@@ -25,16 +25,16 @@ export interface WebSocketTransportConfig {
   peerId?: string;
 
   /** Max reconnection attempts */
-  maxReconnectAttempts: number;
+  maxReconnectAttempts?: number;
 
   /** Initial backoff in ms */
-  initialBackoffMs: number;
+  initialBackoffMs?: number;
 
   /** Max backoff in ms */
-  maxBackoffMs: number;
+  maxBackoffMs?: number;
 
   /** Heartbeat interval in ms */
-  heartbeatIntervalMs: number;
+  heartbeatIntervalMs?: number;
 }
 
 export interface NetworkMessage {
@@ -55,17 +55,17 @@ export class WebSocketTransport {
   private messageHandlers = new Map<string, (msg: NetworkMessage) => void>();
   private isConnected = false;
   private peerId: string;
-  private heartbeatTimer: NodeJS.Timer | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private messageId = 0;
 
   constructor(config: WebSocketTransportConfig) {
-    this.config = {
+    const defaults = {
       maxReconnectAttempts: 10,
       initialBackoffMs: 1000,
       maxBackoffMs: 30000,
       heartbeatIntervalMs: 30000,
-      ...config,
     };
+    this.config = { ...defaults, ...config };
     this.peerId = config.peerId || this.generatePeerId();
   }
 
@@ -178,19 +178,22 @@ export class WebSocketTransport {
   // Private helpers
 
   private attemptReconnect(): void {
-    if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
+    const maxAttempts = this.config.maxReconnectAttempts ?? 10;
+    if (this.reconnectAttempts >= maxAttempts) {
       logger.error('Max reconnection attempts exceeded');
       return;
     }
 
+    const initialBackoff = this.config.initialBackoffMs ?? 1000;
+    const maxBackoff = this.config.maxBackoffMs ?? 30000;
     const backoff = Math.min(
-      this.config.initialBackoffMs * Math.pow(2, this.reconnectAttempts),
-      this.config.maxBackoffMs
+      initialBackoff * Math.pow(2, this.reconnectAttempts),
+      maxBackoff
     );
 
     this.reconnectAttempts++;
     logger.info(
-      `Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts}/${this.config.maxReconnectAttempts})`
+      `Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts}/${maxAttempts})`
     );
 
     setTimeout(() => {
@@ -215,9 +218,10 @@ export class WebSocketTransport {
   }
 
   private startHeartbeat(): void {
+    const interval = this.config.heartbeatIntervalMs ?? 30000;
     this.heartbeatTimer = setInterval(() => {
       this.sendMessage({ type: 'heartbeat', payload: {} });
-    }, this.config.heartbeatIntervalMs);
+    }, interval);
   }
 
   private stopHeartbeat(): void {

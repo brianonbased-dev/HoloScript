@@ -53,9 +53,12 @@ function getAPIConfig() {
 
 /**
  * Check if mock mode should be used
- * Mock mode is enabled when no API keys are configured
+ * Mock mode is enabled when no API keys are configured, or during tests
  */
 function shouldUseMockMode(): boolean {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+    return true;
+  }
   const config = getAPIConfig();
   return !config.meshy.apiKey && !config.rodin.apiKey;
 }

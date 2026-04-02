@@ -561,7 +561,7 @@ export class HoloScriptTypeChecker {
 
     // Type of target should be nullable for ??= to make sense
     const targetType = this.typeMap.get(targetStr);
-    const valueType = node.value ? this.inferType(node.value) : 'unknown';
+    const valueType = node.value ? this.inferType(node.value as HoloScriptValue) : 'unknown';
 
     // Assign the union of target and value types
     this.typeMap.set(targetStr, (targetType || { type: valueType as any, nullable: false }) as any);

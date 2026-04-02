@@ -33,7 +33,7 @@ export class BundleSplitter {
    */
   public analyze(ast: ASTProgram): SplitPoint[] {
     this.splitPoints = [];
-    this.traverse(ast.root);
+    this.traverse(ast.root as any);
     return this.splitPoints;
   }
 

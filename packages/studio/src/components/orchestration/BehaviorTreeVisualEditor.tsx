@@ -28,8 +28,8 @@ import {
   useOrchestrationHistory,
   useOrchestrationKeyboardShortcuts,
 } from '@/hooks/useOrchestrationHistory';
-import {
 import { logger } from '@/lib/logger';
+import {
   trackBehaviorTreeNodeAdded,
   trackPanelOpened,
   trackPanelClosed,

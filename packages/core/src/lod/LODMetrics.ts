@@ -348,8 +348,8 @@ export class LODPerformanceMetrics {
    */
   exportToTelemetry(): {
     histogram: LODLevelHistogram[];
-    transitionStats: ReturnType<typeof this.getTransitionCostStats>;
-    averagePerformance: ReturnType<typeof this.getAveragePerformance>;
+    transitionStats: ReturnType<LODPerformanceMetrics['getTransitionCostStats']>;
+    averagePerformance: ReturnType<LODPerformanceMetrics['getAveragePerformance']>;
     profiling: ProfilingData[];
     counters: {
       totalTransitions: number;

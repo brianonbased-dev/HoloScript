@@ -110,10 +110,13 @@ export interface FileInput {
 }
 
 export interface WorkerPoolStats {
+  poolSize: number;
   activeWorkers: number;
-  pendingTasks: number;
-  completedTasks: number;
-  failedTasks: number;
+  busyWorkers: number;
+  idleWorkers: number;
+  totalTasksProcessed: number;
+  queuedTasks: number;
+  avgTaskTime: number;
 }
 
 export interface ParallelParseResult {
@@ -251,7 +254,7 @@ export class ParallelParser extends SimpleEventEmitter {
       const __filename = this.nodeModules.fileURLToPath(import.meta.url);
       workerExt = this.nodeModules.path.extname(__filename) || '.js';
     } catch {}
-    this.workerPath = this.nodeModules.path.join(this.getCurrentDir(), \`ParseWorker\${workerExt}\`);
+    this.workerPath = this.nodeModules.path.join(this.getCurrentDir(), `ParseWorker${workerExt}`);
 
     try {
       this.workerPool = this.nodeModules.createWorkerPool(this.workerPath, {

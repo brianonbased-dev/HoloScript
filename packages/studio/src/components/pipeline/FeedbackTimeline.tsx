@@ -6,7 +6,7 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import type { FeedbackSignal, FeedbackSignalType } from '@/lib/recursive/types';
+import type { FeedbackSignal, FeedbackSignalType } from '@/lib/recursive';
 
 interface FeedbackTimelineProps {
   signals: FeedbackSignal[];

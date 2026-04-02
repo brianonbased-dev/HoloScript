@@ -253,7 +253,7 @@ connection.onHover((params) => {
   // Trait hover
   if (word.startsWith('@')) {
     const traitName = word.slice(1);
-    if (VR_TRAITS.includes(traitName)) {
+    if (VR_TRAITS.includes(traitName as any)) {
       return {
         contents: {
           kind: 'markdown' as any,

@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type { LayerId, LayerConfig } from '@/lib/recursive/types';
+import type { LayerId, LayerConfig } from '@/lib/recursive';
 
 interface PipelineConfigProps {
   configs: Record<LayerId, LayerConfig>;

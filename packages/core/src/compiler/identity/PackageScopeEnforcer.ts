@@ -14,14 +14,12 @@
  */
 
 import * as path from 'path';
-import { AgentRole, AgentPermission } from './AgentIdentity';
+import { AgentRole } from './AgentIdentity';
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
 import {
   PackageTier,
   PackagePermission,
   PACKAGE_PERMISSION_MANIFEST,
-  PACKAGE_PERMISSIONS_BY_NAME,
-  PACKAGE_PERMISSIONS_BY_PATH,
 } from './PackagePermissionManifest';
 
 /**
@@ -308,7 +306,10 @@ export class PackageScopeEnforcer {
       if (filter.allowed !== undefined)
         entries = entries.filter((e) => e.allowed === filter.allowed);
       if (filter.packageName) entries = entries.filter((e) => e.packageName === filter.packageName);
-      if (filter.since) entries = entries.filter((e) => e.timestamp >= filter.since);
+      if (filter.since !== undefined) {
+        const since = filter.since;
+        entries = entries.filter((e) => e.timestamp >= since);
+      }
     }
 
     return entries;

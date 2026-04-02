@@ -332,7 +332,7 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
 
   const caps: Partial<PlatformCapabilities> = {};
   if (needs3D) caps.gpu3D = true;
-  if (needsAudio) caps.audioOut = true;
+  if (needsAudio) caps.spatialAudio = true;
   
   // Rule: complex scenes (e.g. >50 objects) demand strict frame budget (90Hz -> 11.1ms)
   if (objectCount > 50) {

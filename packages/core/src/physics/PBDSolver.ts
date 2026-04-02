@@ -2713,21 +2713,20 @@ export class PBDSolverGPU {
       layout: 'auto',
       compute: {
         module: this.device.createShaderModule({ code: shaderCode }),
-        entryPoint:
-          'cs_predict' in shaderCode
-            ? 'cs_predict'
-            : 'cs_solve_distance' in shaderCode
-              ? 'cs_solve_distance'
-              : 'cs_solve_volume' in shaderCode
-                ? 'cs_solve_volume'
-                : 'cs_update_velocity' in shaderCode
-                  ? 'cs_update_velocity'
-                  : 'cs_finalize' in shaderCode
-                    ? 'cs_finalize'
-                    : 'cs_compute_normals' in shaderCode
-                      ? 'cs_compute_normals'
-                      : 'cs_normalize_normals' in shaderCode
-                        ? 'cs_normalize_normals'
+        entryPoint: shaderCode.includes('cs_predict')
+          ? 'cs_predict'
+          : shaderCode.includes('cs_solve_distance')
+            ? 'cs_solve_distance'
+            : shaderCode.includes('cs_solve_volume')
+              ? 'cs_solve_volume'
+              : shaderCode.includes('cs_update_velocity')
+                ? 'cs_update_velocity'
+                : shaderCode.includes('cs_finalize')
+                  ? 'cs_finalize'
+                  : shaderCode.includes('cs_compute_normals')
+                    ? 'cs_compute_normals'
+                    : shaderCode.includes('cs_normalize_normals')
+                      ? 'cs_normalize_normals'
                         : 'main',
       },
     });

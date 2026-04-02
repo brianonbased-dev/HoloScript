@@ -26,7 +26,7 @@ export {
   createDefaultMaterialDef,
 } from './MaterialLibrary';
 export { MaterialSystem } from './MaterialSystem';
-export { PostProcessing } from './PostProcessing';
+export * as PostProcessing from './PostProcessing';
 export { PostProcessStack } from './PostProcessStack';
 export { ProjectorLight } from './ProjectorLight';
 export { RenderPass } from './RenderPass';

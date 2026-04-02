@@ -707,9 +707,9 @@ export class USDZExporter {
       }
     } else if (typeof value === 'string') {
       return `"${value}"`;
-    } else if (typeof value === 'object' && 'path' in value) {
+    } else if (typeof value === 'object' && value !== null && 'path' in value) {
       // Asset path
-      return `@${value.path}@`;
+      return `@${(value as any).path}@`;
     } else {
       return String(value);
     }

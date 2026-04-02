@@ -20,7 +20,7 @@ import type {
   HoloComposition,
   HoloObjectDecl,
   HoloObjectTrait,
-} from '../../parser/HoloCompositionTypes';
+} from '../parser/HoloCompositionTypes';
 
 // =============================================================================
 // TYPES

@@ -27,7 +27,7 @@ export class AssetBrowserPanel {
 
   private createPanel() {
     // Main Panel Background
-    const bg = createPanel(0.8, 0.6, '#222222');
+    const bg = createPanel({ width: 0.8, height: 0.6, color: '#222222' });
     // Position at hardcoded offset for now
     this.panelRoot = this.uiBuilder.spawn({
       type: 'Panel',

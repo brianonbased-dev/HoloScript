@@ -139,29 +139,27 @@ export class CurveEditor {
   private autoComputeTangents(): void {
     for (let i = 0; i < this.keyframes.length; i++) {
       const key = this.keyframes[i];
-      if (key.tangentMode !== 'auto') continue;
+      if (key.tangentMode === 'auto') {
+        const prev = this.keyframes[i - 1];
+        const next = this.keyframes[i + 1];
 
-      const prev = this.keyframes[i - 1];
-      const next = this.keyframes[i + 1];
-
-      if (prev && next) {
-        const slope = (next.value - prev.value) / (next.time - prev.time);
-        key.inTangent = slope;
-        key.outTangent = slope;
-      } else if (next) {
-        const slope = (next.value - key.value) / (next.time - key.time);
-        key.inTangent = slope;
-        key.outTangent = slope;
-      } else if (prev) {
-        const slope = (key.value - prev.value) / (key.time - prev.time);
-        key.inTangent = slope;
-        key.outTangent = slope;
-      } else {
-        key.inTangent = 0;
-        key.outTangent = 0;
-      }
-
-      if (key.tangentMode === 'flat') {
+        if (prev && next) {
+          const slope = (next.value - prev.value) / (next.time - prev.time);
+          key.inTangent = slope;
+          key.outTangent = slope;
+        } else if (next) {
+          const slope = (next.value - key.value) / (next.time - key.time);
+          key.inTangent = slope;
+          key.outTangent = slope;
+        } else if (prev) {
+          const slope = (key.value - prev.value) / (key.time - prev.time);
+          key.inTangent = slope;
+          key.outTangent = slope;
+        } else {
+          key.inTangent = 0;
+          key.outTangent = 0;
+        }
+      } else if (key.tangentMode === 'flat') {
         key.inTangent = 0;
         key.outTangent = 0;
       }

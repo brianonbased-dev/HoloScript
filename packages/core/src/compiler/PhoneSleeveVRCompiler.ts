@@ -121,7 +121,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
 
     const title = this.escapeStringValue(
       (composition.name as string) || this.opts.title,
-      'HTML'
+      'XML'
     );
     const sceneObjects = this.compileSceneObjects(composition);
     const lights = this.compileLights(composition);
@@ -155,13 +155,13 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   }
 
   private compileObject(obj: HoloObjectDecl): string {
-    const name = this.escapeStringValue(obj.name, 'JavaScript');
-    const shape = (obj.shape as string)?.toLowerCase() || 'box';
+    const name = this.escapeStringValue(obj.name, 'TypeScript');
+    const shape = (this.getProp(obj.properties, 'shape') as string)?.toLowerCase() || 'box';
     const geo = SHAPE_TO_THREE[shape] || SHAPE_TO_THREE['box'];
 
-    const pos = this.resolveVec3(obj.position, [0, 0, -3]);
-    const rot = this.resolveVec3(obj.rotation, [0, 0, 0]);
-    const scl = this.resolveVec3(obj.scale, [1, 1, 1]);
+    const pos = this.resolveVec3(this.getProp(obj.properties, 'position'), [0, 0, -3]);
+    const rot = this.resolveVec3(this.getProp(obj.properties, 'rotation'), [0, 0, 0]);
+    const scl = this.resolveVec3(this.getProp(obj.properties, 'scale'), [1, 1, 1]);
 
     // Material
     const color = this.resolveColor(obj);
@@ -185,7 +185,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   }
 
   private compileSpatialGroup(group: HoloSpatialGroup): string {
-    const name = this.escapeStringValue(group.name, 'JavaScript');
+    const name = this.escapeStringValue(group.name, 'TypeScript');
     const lines: string[] = [];
     lines.push(`
       {
@@ -235,9 +235,9 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
 
   private compileLight(light: HoloLight): string {
     const type = (light.lightType as string) || 'directional';
-    const color = this.resolveHex(light.color) || '0xffffff';
-    const intensity = (light.intensity as number) ?? 1;
-    const pos = this.resolveVec3(light.position, [0, 5, 0]);
+    const color = this.resolveHex(this.getProp(light.properties, 'color')) || '0xffffff';
+    const intensity = (this.getProp(light.properties, 'intensity') as number) ?? 1;
+    const pos = this.resolveVec3(this.getProp(light.properties, 'position'), [0, 5, 0]);
 
     switch (type) {
       case 'point':
@@ -276,12 +276,16 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
     const env = composition.environment;
     const lines: string[] = [];
 
-    if (env.skybox || env.skyColor) {
-      const skyColor = this.resolveHex(env.skyColor) || '0x1a1a2e';
-      lines.push(`scene.background = new THREE.Color(${skyColor});`);
+    const skybox = this.getProp(env.properties, 'skybox');
+    const skyColor = this.getProp(env.properties, 'skyColor');
+    const fog = this.getProp(env.properties, 'fog');
+
+    if (skybox || skyColor) {
+      const resolvedColor = this.resolveHex(skyColor) || '0x1a1a2e';
+      lines.push(`scene.background = new THREE.Color(${resolvedColor});`);
     }
 
-    if (env.fog) {
+    if (fog) {
       lines.push(`scene.fog = new THREE.FogExp2(0x000000, 0.05);`);
     }
 
@@ -653,6 +657,12 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   // Helpers
   // =========================================================================
 
+  private getProp(properties: { key: string, value: any }[] | undefined, key: string): any {
+    if (!properties) return undefined;
+    const prop = properties.find(p => p.key === key);
+    return prop ? prop.value : undefined;
+  }
+
   private resolveVec3(value: unknown, fallback: [number, number, number]): [number, number, number] {
     if (Array.isArray(value) && value.length >= 3) {
       return [Number(value[0]) || 0, Number(value[1]) || 0, Number(value[2]) || 0];
@@ -661,12 +671,12 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   }
 
   private resolveColor(obj: HoloObjectDecl): string {
-    const color = obj.color || obj.material?.color;
+    const color = this.getProp(obj.properties, 'color') || this.getProp(obj.properties, 'material')?.color;
     if (typeof color === 'string') {
       if (color.startsWith('#')) return `0x${color.slice(1)}`;
       if (color.startsWith('0x')) return color;
       // Named color
-      return `'${this.escapeStringValue(color, 'JavaScript')}'`;
+      return `'${this.escapeStringValue(color, 'TypeScript')}'`;
     }
     return '0x4488ff'; // default blue
   }
@@ -680,8 +690,10 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   }
 
   private resolveOpacity(obj: HoloObjectDecl): number {
-    if (typeof obj.opacity === 'number') return obj.opacity;
-    if (obj.material && typeof obj.material.opacity === 'number') return obj.material.opacity;
+    const opacity = this.getProp(obj.properties, 'opacity');
+    if (typeof opacity === 'number') return opacity;
+    const material = this.getProp(obj.properties, 'material');
+    if (material && typeof material.opacity === 'number') return material.opacity;
     return 1;
   }
 }

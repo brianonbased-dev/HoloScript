@@ -113,6 +113,10 @@ export interface ExportOptions {
    */
   generateDocs?: boolean;
   /**
+   * Agent identity token for RBAC integration
+   */
+  agentToken?: string;
+  /**
    * Documentation generator options (service URL, version, etc.)
    * Only used if generateDocs is true.
    */
@@ -331,6 +335,7 @@ export class ExportManager {
       gaussianBudgetOverrides: options.gaussianBudgetOverrides ?? {},
       generateDocs: options.generateDocs ?? false,
       docsOptions: options.docsOptions ?? {},
+      agentToken: options.agentToken ?? '',
     };
 
     this.circuitRegistry = new CircuitBreakerRegistry({

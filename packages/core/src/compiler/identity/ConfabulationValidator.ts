@@ -21,7 +21,7 @@
  * @module @holoscript/core/compiler/identity/ConfabulationValidator
  */
 
-import type { HoloComposition, HoloObjectDecl, HoloValue } from '../../parser/HoloCompositionTypes';
+import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // =============================================================================
 // TYPES
@@ -1652,7 +1652,7 @@ export class ConfabulationValidator {
   /**
    * Validate a single object's traits.
    */
-  private validateObject(obj: import('../../types/base').HoloObjectDecl): {
+  private validateObject(obj: import('../../parser/HoloCompositionTypes').HoloObjectDecl): {
     errors: ConfabulationError[];
     warnings: ConfabulationWarning[];
     traitsChecked: number;
@@ -1670,7 +1670,7 @@ export class ConfabulationValidator {
     // Let's rely on checking the string value of authority to avoid sync/async issues,
     // or import it at the top level and use it. 
     // Wait, obj.provenance can be checked directly here.
-    const authority = obj.provenance?.context?.authority;
+    const authority = (obj.provenance?.context as any)?.authority;
     if (authority === 'system' || authority === 'verified') {
       return { errors, warnings, traitsChecked: 0, propertiesChecked: 0 };
     }
@@ -1684,9 +1684,14 @@ export class ConfabulationValidator {
 
         // Build property map from trait arguments
         const properties: Record<string, unknown> = {};
-        if (trait.args) {
-          for (const arg of trait.args) {
+        if ((trait as any).args) {
+          for (const arg of (trait as any).args) {
             properties[arg.key] = arg.value;
+            propertiesChecked++;
+          }
+        } else if (trait.config) {
+          for (const [key, value] of Object.entries(trait.config)) {
+            properties[key] = value;
             propertiesChecked++;
           }
         }

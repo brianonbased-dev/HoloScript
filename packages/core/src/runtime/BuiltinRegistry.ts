@@ -139,6 +139,7 @@ export class BuiltinRegistry {
       description: 'Speech-to-text recognition',
       backends: ['whisper.cpp', 'browser', 'auto'],
       create: async (config) => {
+        // @ts-ignore
         const { SpeechRecognizer } = await import('@hololand/voice');
         const recognizer = new SpeechRecognizer({
           backend: (config.backend as 'whisper' | 'browser' | 'auto') || 'auto',
@@ -153,6 +154,7 @@ export class BuiltinRegistry {
       description: 'Text-to-speech synthesis',
       backends: ['browser', 'elevenlabs', 'azure'],
       create: async (config) => {
+        // @ts-ignore
         const { TextToSpeech } = await import('@hololand/voice');
         return new TextToSpeech({
           backend: (config.backend as 'browser' | 'elevenlabs' | 'azure') || 'browser',
@@ -167,6 +169,7 @@ export class BuiltinRegistry {
       backends: ['cpu', 'gpu'],
       create: async (config) => {
         if (config.backend === 'gpu') {
+          // @ts-ignore
           const { FlowFieldCompute } = await import('@hololand/gpu');
           const ff = new FlowFieldCompute({
             width: (config.width as number) || 64,
@@ -176,6 +179,7 @@ export class BuiltinRegistry {
           await ff.initialize();
           return ff;
         } else {
+          // @ts-ignore
           const { FlowFieldGenerator } = await import('@hololand/navigation');
           return new FlowFieldGenerator({
             width: (config.width as number) || 64,
@@ -191,6 +195,7 @@ export class BuiltinRegistry {
       description: 'VR frustration detection',
       backends: ['heuristic'],
       create: async (config) => {
+        // @ts-ignore
         const { FrustrationEstimator } = await import('@hololand/gestures');
         return new FrustrationEstimator({
           frustrationThreshold: (config.threshold as number) || 0.6,
@@ -203,6 +208,7 @@ export class BuiltinRegistry {
       description: 'WebGPU compute context',
       backends: ['webgpu'],
       create: async (config) => {
+        // @ts-ignore
         const { GPUContext } = await import('@hololand/gpu');
         const ctx = new GPUContext({
           powerPreference:

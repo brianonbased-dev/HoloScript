@@ -7,15 +7,28 @@ const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY || 'holomesh_sk_q8VL4jrxcwPi0O
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const entries = body.entries || [];
-    const workspaceId = body.workspace_id || 'default';
+    const entries = body.entries;
+    const workspaceId = body.workspace_id;
     
+    if (!entries || !Array.isArray(entries) || entries.length === 0) {
+      return NextResponse.json({ success: false, error: 'Missing entries' }, { status: 400 });
+    }
+    
+    if (!workspaceId) {
+      return NextResponse.json({ success: false, error: 'Missing workspace_id' }, { status: 400 });
+    }
+    
+    const defaultPremium = body.default_premium === true;
+    let premium_count = 0;
+    let free_count = 0;
     let successCount = 0;
     const errors: any[] = [];
 
     // POST https://mcp.holoscript.net/api/holomesh/contribute
     for (const entry of entries) {
       try {
+        const isPremium = entry.is_premium ?? defaultPremium;
+        
         const res = await fetch(`${MCP_SERVER_URL}/api/holomesh/contribute`, {
           method: 'POST',
           headers: {
@@ -27,13 +40,19 @@ export async function POST(req: NextRequest) {
             type: entry.type?.toLowerCase() || 'wisdom',
             content: entry.content || '',
             domain: workspaceId,
-            tags: entry.is_premium ? ['premium'] : [],
-            ...entry
+            tags: isPremium ? ['premium'] : [],
+            ...entry,
+            is_premium: isPremium
           }),
         });
         
         if (res.ok) {
           successCount++;
+          if (isPremium) {
+            premium_count++;
+          } else {
+            free_count++;
+          }
         } else {
           errors.push(await res.text());
         }
@@ -45,6 +64,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       publishedCount: successCount,
+      premium_count,
+      free_count,
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (err) {

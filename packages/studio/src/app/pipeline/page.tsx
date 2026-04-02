@@ -15,7 +15,7 @@ import { usePipeline } from '@/hooks/usePipeline';
 import { LayerCard } from '@/components/pipeline/LayerCard';
 import { FeedbackTimeline } from '@/components/pipeline/FeedbackTimeline';
 import { PipelineConfig } from '@/components/pipeline/PipelineConfig';
-import type { PipelineMode, LayerId } from '@/lib/recursive/types';
+import type { PipelineMode, LayerId } from '@/lib/recursive';
 
 export default function PipelinePage() {
   const [showConfig, setShowConfig] = useState(false);

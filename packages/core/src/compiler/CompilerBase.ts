@@ -197,7 +197,8 @@ export interface ICompiler {
     | ARCompilationResult
     | VRRCompilationResult
     | AndroidXRCompileResult
-    | IOSCompileResult;
+    | IOSCompileResult
+    | any;
 }
 
 /**
@@ -423,7 +424,8 @@ export abstract class CompilerBase implements ICompiler {
     | ARCompilationResult
     | VRRCompilationResult
     | AndroidXRCompileResult
-    | IOSCompileResult;
+    | IOSCompileResult
+    | any;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support

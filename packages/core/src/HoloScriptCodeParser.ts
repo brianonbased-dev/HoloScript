@@ -376,7 +376,7 @@ export class HoloScriptCodeParser {
   /**
    * Create a rich error with context and suggestions
    */
-  private createError(
+  public createError(
     code: keyof typeof ERROR_CODES,
     message: string,
     token?: Token | null,
@@ -449,7 +449,7 @@ export class HoloScriptCodeParser {
   /**
    * Add error and continue parsing (error recovery)
    */
-  private addError(error: ParseError): void {
+  public addError(error: ParseError): void {
     // Avoid duplicate errors on same line
     if (!this.errors.some((e) => e.line === error.line && e.message === error.message)) {
       this.errors.push(error);
@@ -1666,7 +1666,7 @@ export class HoloScriptCodeParser {
         if (this.check('punctuation', '@')) {
           const directive = this.parseDirective();
           if (directive) {
-            settings[`@${directive.type}`] = directive.args as HoloScriptValue;
+            settings[`@${directive.type}`] = ((directive as any).args || (directive as any).config || []) as HoloScriptValue;
           }
           continue;
         }
@@ -2693,7 +2693,7 @@ export class HoloScriptCodeParser {
   /**
    * Parse object {...}
    */
-  private parseObject(): Record<string, unknown> {
+  public parseObject(): Record<string, unknown> {
     const obj: Record<string, unknown> = {};
     this.expect('punctuation', '{');
 
@@ -2751,15 +2751,15 @@ export class HoloScriptCodeParser {
 
   // Helper methods
 
-  private currentToken(): Token | undefined {
+  public currentToken(): Token | undefined {
     return this.tokens[this.position];
   }
 
-  private advance(): Token | undefined {
+  public advance(): Token | undefined {
     return this.tokens[this.position++];
   }
 
-  private check(type: string, value?: string): boolean {
+  public check(type: string, value?: string): boolean {
     const token = this.currentToken();
     if (!token) return false;
     if (token.type !== type) return false;
@@ -2767,7 +2767,7 @@ export class HoloScriptCodeParser {
     return true;
   }
 
-  private expect(type: string, value?: string): boolean {
+  public expect(type: string, value?: string): boolean {
     if (this.check(type, value)) {
       this.advance();
       return true;
@@ -3006,7 +3006,7 @@ export class HoloScriptCodeParser {
     return condition;
   }
 
-  private skipNewlines(): void {
+  public skipNewlines(): void {
     while (this.currentToken()?.type === 'newline') {
       this.advance();
     }

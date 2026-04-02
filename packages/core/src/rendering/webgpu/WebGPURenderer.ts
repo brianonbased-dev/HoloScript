@@ -1008,7 +1008,7 @@ export class WebGPURenderer {
     const { device } = this.context;
     const session = frame.session;
     const pose = frame.getViewerPose(
-      this.xrBinding.nativeProjectionLayerSpace || this.xrSession.renderState.baseLayer!.space
+      this.xrBinding.nativeProjectionLayerSpace || (this.xrSession.renderState.baseLayer as any)!.space
     );
 
     if (!pose) return;
@@ -1202,11 +1202,11 @@ export class WebGPURenderer {
         viewMatrix: view.transform.inverse.matrix,
         // Mock VP matrix for now (or compute it if we had a math lib)
         viewProjectionMatrix: view.projectionMatrix,
-        cameraPosition: [
+        cameraPosition: new Float32Array([
           view.transform.position.x,
           view.transform.position.y,
           view.transform.position.z,
-        ],
+        ]),
       });
 
       renderCallback(renderPass, view);

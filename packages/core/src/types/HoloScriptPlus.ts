@@ -32,6 +32,13 @@ export interface Transform {
   scale: Vector3;
 }
 
+export type Quaternion = {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+};
+
 export interface VRHand {
   id: string;
   position: Vector3;

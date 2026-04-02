@@ -78,10 +78,11 @@ export { MultiLayerCompiler } from './MultiLayerCompiler';
 
 // Sprint 2 extensions
 export { COCOExporter } from './COCOExporter';
-export { GLTFPipelineMCPTool } from './GLTFPipelineMCPTool';
-export { NodeToyMapping } from './NodeToyMapping';
+export { GLTF_PIPELINE_TOOLS, registerGLTFTools } from './GLTFPipelineMCPTool';
+export { NodeToyMapper, mapNodeToyToShader } from './NodeToyMapping';
 export { RemotionBridge } from './RemotionBridge';
-export { ReproducibilityMode } from './ReproducibilityMode';
+export { createReproducibilityContext, parseReproducibilityFlags } from './ReproducibilityMode';
+export type { ReproducibilityContext, ReproducibilityConfig } from './ReproducibilityMode';
 export { SemanticSceneGraph } from './SemanticSceneGraph';
 
 // Sprint 3: Agent inference

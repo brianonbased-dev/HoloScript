@@ -162,7 +162,7 @@ export class ReplicationManager {
     const previous = entity.previousSnapshot;
 
     // First update → full snapshot
-    if (!entity.sentFullSnapshot) {
+    if (!entity.sentFullSnapshot || !previous) {
       entity.sentFullSnapshot = true;
       return {
         entityId: entity.entityId,

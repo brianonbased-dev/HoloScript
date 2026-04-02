@@ -24,6 +24,12 @@ export interface ButtonConfig extends UIComponentConfig {
   onClick?: string; // Event name
 }
 
+export interface TextConfig extends UIComponentConfig {
+  text: string;
+  fontSize?: number;
+  align?: 'left' | 'center' | 'right';
+}
+
 export interface SliderConfig extends UIComponentConfig {
   value?: number; // 0-1
   width?: number; // Track length
@@ -93,6 +99,23 @@ export const createTextInput = (config: TextInputConfig): HSPlusNode => {
         ]),
       },
     ],
+  } as any;
+};
+
+export const createText = (config: TextConfig): HSPlusNode => {
+  return {
+    id: config.id || getID('text'),
+    type: 'text',
+    properties: {
+      position: config.position || { x: 0, y: 0, z: 0 },
+      rotation: config.rotation || { x: 0, y: 0, z: 0 },
+      text: config.text,
+      color: config.color || '#ffffff',
+      fontSize: config.fontSize || 0.1,
+      align: config.align || 'center',
+    },
+    traits: new Map(),
+    children: [],
   } as any;
 };
 

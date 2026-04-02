@@ -101,7 +101,7 @@ export class GodFileDetector {
       classification = 'god_file';
     } else if (metrics.loc >= this.thresholds.loc_warning) {
       reasons.push(`LOC ${metrics.loc} >= ${this.thresholds.loc_warning} (warning threshold)`);
-      if (classification !== 'god_file') classification = 'warning';
+      classification = 'warning';
     }
 
     // Check function count

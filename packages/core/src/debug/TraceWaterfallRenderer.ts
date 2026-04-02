@@ -153,11 +153,11 @@ export class TraceWaterfallRenderer {
     }
 
     // Get trace ID from first span
-    const traceId = spans[0].traceId;
+    const traceId = spans[0].context.traceId;
 
     // Filter by trace ID and duration
     const filtered = spans.filter((s) => {
-      if (s.traceId !== traceId) return false;
+      if (s.context.traceId !== traceId) return false;
       const duration = (s.endTime ?? s.startTime) - s.startTime;
       return duration >= this.config.minDuration;
     });
@@ -188,38 +188,38 @@ export class TraceWaterfallRenderer {
     const childrenMap = new Map<string, string[]>();
     const spanMap = new Map<string, TraceSpan>();
     for (const span of filtered) {
-      spanMap.set(span.spanId, span);
-      if (!childrenMap.has(span.spanId)) {
-        childrenMap.set(span.spanId, []);
+      spanMap.set(span.id, span);
+      if (!childrenMap.has(span.id)) {
+        childrenMap.set(span.id, []);
       }
     }
 
     for (const span of filtered) {
-      if (span.parentSpanId && childrenMap.has(span.parentSpanId)) {
-        childrenMap.get(span.parentSpanId)!.push(span.spanId);
+      if (span.context.parentSpanId && childrenMap.has(span.context.parentSpanId)) {
+        childrenMap.get(span.context.parentSpanId)!.push(span.id);
       }
     }
 
     // Find root spans (no parent or parent not in trace)
-    const rootSpans = filtered.filter((s) => !s.parentSpanId || !spanMap.has(s.parentSpanId));
+    const rootSpans = filtered.filter((s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId));
 
     // Build rows via DFS
     const rows: WaterfallRow[] = [];
     const visited = new Set<string>();
 
     const buildRow = (span: TraceSpan, depth: number): void => {
-      if (visited.has(span.spanId)) return;
+      if (visited.has(span.id)) return;
       if (depth > this.config.maxDepth) return;
-      visited.add(span.spanId);
+      visited.add(span.id);
 
       const duration = (span.endTime ?? span.startTime) - span.startTime;
       const startOffset = span.startTime - startTime;
       const agentId = (span.attributes?.agentId as string) || 'unknown';
-      const children = childrenMap.get(span.spanId) || [];
+      const children = childrenMap.get(span.id) || [];
 
       const row: WaterfallRow = {
-        spanId: span.spanId,
-        parentSpanId: span.parentSpanId,
+        spanId: span.id,
+        parentSpanId: span.context.parentSpanId,
         name: span.name,
         agentId,
         depth,
@@ -300,10 +300,10 @@ export class TraceWaterfallRenderer {
   renderMultiple(spans: TraceSpan[]): WaterfallData[] {
     const byTrace = new Map<string, TraceSpan[]>();
     for (const span of spans) {
-      if (!byTrace.has(span.traceId)) {
-        byTrace.set(span.traceId, []);
+      if (!byTrace.has(span.context.traceId)) {
+        byTrace.set(span.context.traceId, []);
       }
-      byTrace.get(span.traceId)!.push(span);
+      byTrace.get(span.context.traceId)!.push(span);
     }
 
     return [...byTrace.values()].map((traceSpans) => this.render(traceSpans));
@@ -348,9 +348,9 @@ export class TraceWaterfallRenderer {
     };
 
     // Find root spans
-    const roots = spans.filter((s) => !s.parentSpanId || !spanMap.has(s.parentSpanId));
+    const roots = spans.filter((s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId));
     for (const root of roots) {
-      dfs(root.spanId, [], 0);
+      dfs(root.id, [], 0);
     }
 
     return longestPath;

@@ -64,7 +64,7 @@ export class SteeringBehaviors {
 
   static arrive(agent: SteeringAgent, target: Vec3, slowRadius: number): Vec3 {
     const toTarget = SteeringBehaviors.sub(target, agent.position);
-    const dist = SteeringBehaviors.length(toTarget);
+    const dist = SteeringBehaviors.vecLength(toTarget);
     if (dist < 0.001) return { x: 0, y: 0, z: 0 };
 
     const speed = dist < slowRadius ? agent.maxSpeed * (dist / slowRadius) : agent.maxSpeed;
@@ -131,7 +131,7 @@ export class SteeringBehaviors {
       fz = 0;
     for (const n of neighbors) {
       const d = SteeringBehaviors.sub(agent.position, n.position);
-      const dist = SteeringBehaviors.length(d) || 0.001;
+      const dist = SteeringBehaviors.vecLength(d) || 0.001;
       fx += d.x / (dist * dist);
       fy += d.y / (dist * dist);
       fz += d.z / (dist * dist);
@@ -226,18 +226,18 @@ export class SteeringBehaviors {
   private static scale(v: Vec3, s: number): Vec3 {
     return { x: v.x * s, y: v.y * s, z: v.z * s };
   }
-  private static length(v: Vec3): number {
+  private static vecLength(v: Vec3): number {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
   }
   private static distance(a: Vec3, b: Vec3): number {
-    return SteeringBehaviors.length(SteeringBehaviors.sub(a, b));
+    return SteeringBehaviors.vecLength(SteeringBehaviors.sub(a, b));
   }
   private static normalize(v: Vec3): Vec3 {
-    const len = SteeringBehaviors.length(v) || 1;
+    const len = SteeringBehaviors.vecLength(v) || 1;
     return { x: v.x / len, y: v.y / len, z: v.z / len };
   }
   private static truncate(v: Vec3, max: number): Vec3 {
-    const len = SteeringBehaviors.length(v);
+    const len = SteeringBehaviors.vecLength(v);
     if (len <= max) return v;
     return SteeringBehaviors.scale(SteeringBehaviors.normalize(v), max);
   }

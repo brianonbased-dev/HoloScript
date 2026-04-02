@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { logger } from '@/lib/logger';
 
 // Mock the browser environment
-const mockWindow = {
+const mockWindow: any = {
   CompilerBridge: {
     parse: vi.fn(),
     compile: vi.fn(),
@@ -19,6 +19,12 @@ const mockWindow = {
     log: vi.fn(),
     error: vi.fn(),
   },
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }
 };
 
 // Mock performance.now to return predictable timestamps
@@ -249,7 +255,7 @@ describe('Browser Benchmark', () => {
 
     it('should return early when CompilerBridge is unavailable', async () => {
       // Remove CompilerBridge
-      delete mockWindow.CompilerBridge;
+      mockWindow.CompilerBridge = undefined;
       browserEnv = loadBrowserBenchmark();
 
       const result = await browserEnv.quickBenchmark();

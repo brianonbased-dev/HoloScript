@@ -66,47 +66,59 @@ export class VRPhysicsBridge {
     if (!body) {
       // Create Kinematic Body for Hand (Palm)
       const config: IRigidBodyConfig = {
+        id: bodyId,
         type: 'kinematic',
         mass: 1, // Infinite mass for kinematic
-        position: { x: hand.position.x, y: hand.position.y, z: hand.position.z },
-        rotation: { x: hand.rotation.x, y: hand.rotation.y, z: hand.rotation.z, w: 1 }, // TODO: Convert Euler to Quat if needed
+        transform: {
+          position: { 
+            x: hand.position?.x ?? 0, 
+            y: hand.position?.y ?? 0, 
+            z: hand.position?.z ?? 0 
+          },
+          rotation: { 
+            x: hand.rotation?.x ?? 0, 
+            y: hand.rotation?.y ?? 0, 
+            z: hand.rotation?.z ?? 0, 
+            w: 1 
+          },
+        },
         shape: {
           type: 'sphere',
           radius: 0.05, // 5cm palm radius
         },
-        friction: 0.5,
-        restitution: 0.0,
-        isTrigger: true, // Hands are triggers for "Grab" detection, OR kinematic colliders for pushing?
-        // Let's make them Kinematic Colliders so they push things, but we listen for collisions for grab
+        material: {
+          friction: 0.5,
+          restitution: 0.0,
+        }
       };
 
-      this.world.addBody(bodyId, config);
+      this.world.createBody(config);
       body = this.world.getBody(bodyId);
     }
 
     if (body) {
       // Calculate Velocity (vital for throwing)
-      // Use a simple history buffer if needed, but for now simple delta is okay if smoothed
-      // Let's implement a small exponential smoothing or just raw delta if frame rate is high
+      const safePosX = hand.position?.x ?? 0;
+      const safePosY = hand.position?.y ?? 0;
+      const safePosZ = hand.position?.z ?? 0;
 
       const prevPos = this.lastPositions.get(bodyId) || {
-        x: hand.position.x,
-        y: hand.position.y,
-        z: hand.position.z,
+        x: safePosX,
+        y: safePosY,
+        z: safePosZ,
       };
 
       // Prevent divide by zero
       const safeDelta = delta > 0.001 ? delta : 0.016;
 
       const rawVelocity = {
-        x: (hand.position.x - prevPos.x) / safeDelta,
-        y: (hand.position.y - prevPos.y) / safeDelta,
-        z: (hand.position.z - prevPos.z) / safeDelta,
+        x: (safePosX - prevPos.x) / safeDelta,
+        y: (safePosY - prevPos.y) / safeDelta,
+        z: (safePosZ - prevPos.z) / safeDelta,
       };
 
       // Simple smoothing (Lerp with previous velocity if available)
-      // This helps reduce jitter in physics interactions
-      const prevVel = body.velocity || { x: 0, y: 0, z: 0 };
+      const prevVel = body.linearVelocity || { x: 0, y: 0, z: 0 };
       const smoothingFactor = 0.5; // 0 = old, 1 = new
 
       const smoothedVelocity = {
@@ -116,13 +128,13 @@ export class VRPhysicsBridge {
       };
 
       // Update Body Transform
-      body.position = { x: hand.position.x, y: hand.position.y, z: hand.position.z };
+      this.world.setPosition(bodyId, { x: safePosX, y: safePosY, z: safePosZ });
 
       // Update Body Velocity
-      body.velocity = smoothedVelocity;
+      this.world.setLinearVelocity(bodyId, smoothedVelocity);
 
       // Store history
-      this.lastPositions.set(bodyId, { ...body.position });
+      this.lastPositions.set(bodyId, { x: safePosX, y: safePosY, z: safePosZ });
     }
   }
 

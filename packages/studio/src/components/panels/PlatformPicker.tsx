@@ -67,7 +67,7 @@ export function PlatformPicker({
       {/* Selected Info */}
       <div style={styles.selectedBox}>
         <div style={styles.selectedName}>
-          {CATEGORY_ICONS[selectedInfo.category]} {selected}
+          {CATEGORY_ICONS[selectedInfo.category as XRPlatformCategory]} {selected}
         </div>
         <div style={styles.selectedMeta}>
           <span style={{ color: COMPUTE_COLORS[selectedInfo.capabilities.computeModel] || '#aaa' }}>
@@ -89,14 +89,14 @@ export function PlatformPicker({
 
       {/* Category Groups */}
       {visibleCats.map((cat) => (
-        <div key={cat} style={styles.group}>
+        <div key={String(cat)} style={styles.group}>
           <div style={styles.groupTitle}>
-            {CATEGORY_ICONS[cat]} {cat.toUpperCase()}
+            {CATEGORY_ICONS[cat as XRPlatformCategory]} {String(cat).toUpperCase()}
           </div>
           <div style={styles.targetList}>
-            {grouped[cat]?.map((info: PlatformInfo) => (
+            {grouped[cat as any]?.map((info: PlatformInfo) => (
               <button
-                key={info.target}
+                key={String(info.target)}
                 style={info.target === selected ? styles.targetActive : styles.target}
                 onClick={() => handleSelect(info.target)}
               >

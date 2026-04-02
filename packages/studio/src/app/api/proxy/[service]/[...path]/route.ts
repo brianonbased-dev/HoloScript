@@ -18,20 +18,20 @@ const API_CONFIGS: Record<string, { baseUrl: string; envKey: string; authHeader:
   },
 };
 
-export async function GET(request: NextRequest, { params }: { params: { service: string; path: string[] } }) {
-  return handleProxyRequest(request, params);
+export async function GET(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+  return handleProxyRequest(request, await params);
 }
 
-export async function POST(request: NextRequest, { params }: { params: { service: string; path: string[] } }) {
-  return handleProxyRequest(request, params);
+export async function POST(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+  return handleProxyRequest(request, await params);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { service: string; path: string[] } }) {
-  return handleProxyRequest(request, params);
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+  return handleProxyRequest(request, await params);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { service: string; path: string[] } }) {
-  return handleProxyRequest(request, params);
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+  return handleProxyRequest(request, await params);
 }
 
 async function handleProxyRequest(request: NextRequest, params: { service: string; path: string[] }) {

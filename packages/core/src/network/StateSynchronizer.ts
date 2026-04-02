@@ -62,11 +62,15 @@ export class StateSynchronizer {
     if (this.initializedMesh) return;
     this.initializedMesh = true;
 
-    this.transport = new WebSocketTransport('local_actor', 'ws://127.0.0.1:8080');
-    this.transport.connect('spatial-engine-server');
+    this.transport = new WebSocketTransport({
+      roomId: 'local_actor',
+      serverUrl: 'ws://127.0.0.1:8080',
+    });
+    this.transport.connect();
 
     // Route inbound traffic from the server into the subscriber loops
-    this.transport.onInboundState = (payload: any) => {
+    this.transport.onMessage('state-sync', (msg: any) => {
+      const payload = msg.payload;
       if (payload && payload.agent_updates && Array.isArray(payload.agent_updates)) {
         // Reconstruct native TS Deltas from the Rust AgentDelta structs
         const inboundDeltas: StateDelta[] = [];
@@ -78,7 +82,6 @@ export class StateSynchronizer {
             newValue: update.x,
             oldValue: 0,
             timestamp: payload.timestamp,
-            authoritative: true,
           });
           inboundDeltas.push({
             entityId: update.id,
@@ -86,7 +89,6 @@ export class StateSynchronizer {
             newValue: update.y,
             oldValue: 0,
             timestamp: payload.timestamp,
-            authoritative: true,
           });
           inboundDeltas.push({
             entityId: update.id,
@@ -94,7 +96,6 @@ export class StateSynchronizer {
             newValue: update.z,
             oldValue: 0,
             timestamp: payload.timestamp,
-            authoritative: true,
           });
         }
 
@@ -102,7 +103,38 @@ export class StateSynchronizer {
           this.dispatchToSubscribers(inboundDeltas);
         }
       }
-    };
+    });
+  }
+
+  private dispatchToSubscribers(deltas: StateDelta[]) {
+    // Diff Privacy: Scrub private variables from global telemetry natively
+    const publicDeltasToDispatch = deltas.filter((delta) => {
+      const isPrivate = delta.field.includes('private_') || delta.field.includes('_secure');
+      return !isPrivate;
+    });
+
+    // Basic global dispatch for inbound
+    this.globalSubscribers.forEach((sub) => {
+      sub(publicDeltasToDispatch);
+    });
+
+    // Group changes by Entity to selectively dispatch to scoped listeners
+    const entityGroups = new Map<string, StateDelta[]>();
+    for (const delta of deltas) {
+      let arr = entityGroups.get(delta.entityId);
+      if (!arr) {
+        arr = [];
+        entityGroups.set(delta.entityId, arr);
+      }
+      arr.push(delta);
+    }
+
+    for (const [entityId, entityDeltas] of entityGroups.entries()) {
+      const scopedListeners = this.entitySubscribers.get(entityId);
+      if (scopedListeners) {
+        scopedListeners.forEach((sub) => sub(entityDeltas));
+      }
+    }
   }
 
   /**
@@ -164,13 +196,16 @@ export class StateSynchronizer {
 
     // Send Outbound Sync over Mesh (if initialized)
     if (this.transport) {
-      this.transport.send('spatial-engine-server', 'client_deltas', {
-        deltas: deltasToDispatch.map((d) => ({
-          id: d.entityId,
-          field: d.field,
-          value: d.newValue,
-          time: d.timestamp,
-        })),
+      this.transport.sendMessage({
+        type: 'state-sync',
+        payload: {
+          deltas: deltasToDispatch.map((d) => ({
+            id: d.entityId,
+            field: d.field,
+            value: d.newValue,
+            time: d.timestamp,
+          })),
+        }
       });
     }
 

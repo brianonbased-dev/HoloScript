@@ -22,6 +22,7 @@
 
 import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
+import { useEditorStore } from '@/lib/stores/editorStore';
 import type { SceneNode } from '@/lib/stores';
 import {
   X,
@@ -31,7 +32,7 @@ import {
   Flame,
   Search,
   Download,
-  Map,
+  Map as MapIcon,
   Link2,
   Edit3,
 } from 'lucide-react';
@@ -151,8 +152,8 @@ function computeTraitEdges(nodes: LayoutNode[]): TraitEdge[] {
 
 export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const sceneNodes = useSceneGraphStore((s) => s.nodes);
-  const selectNode = useSceneGraphStore((s) => s.selectNode);
-  const selectedNodeId = useSceneGraphStore((s) => s.selectedNodeId);
+  const selectNode = useEditorStore((s: any) => s.setSelectedObjectId);
+  const selectedNodeId = useEditorStore((s: any) => s.selectedObjectId);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
 
   const [zoom, setZoom] = useState(1);
@@ -347,7 +348,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
             className={`p-1 transition rounded ${showMinimap ? 'text-cyan-400 bg-cyan-900/30' : 'text-slate-400 hover:text-white'}`}
             title={showMinimap ? 'Hide minimap' : 'Show minimap'}
           >
-            <Map className="w-3.5 h-3.5" />
+            <MapIcon className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={exportSVG}
@@ -531,7 +532,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                   fill={color}
                   fontSize={9}
                   fontFamily="JetBrains Mono, monospace"
-                  textTransform="uppercase"
+                  style={{ textTransform: 'uppercase' }}
                 >
                   {node.type}
                 </text>

@@ -10,8 +10,8 @@ import React, { useState, useRef } from 'react';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useShaderCompilation } from '../../hooks/useShaderCompilation';
-import {
 import { logger } from '@/lib/logger';
+import {
   Save,
   FolderOpen,
   Undo2,

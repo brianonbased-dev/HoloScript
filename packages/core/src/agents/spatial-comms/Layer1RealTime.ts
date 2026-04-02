@@ -71,7 +71,7 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
       typeCode = MessageTypeCode.PERFORMANCE_METRIC;
       break;
     default:
-      throw new Error(`Unknown message type: ${message.type}`);
+      throw new Error(`Unknown message type: ${(message as any).type}`);
   }
 
   // Encode based on type
@@ -411,7 +411,7 @@ export class WebRTCRealTimeTransport implements RealTimeTransport {
       throw new Error('Data channel not ready');
     }
 
-    this.dataChannel.send(buffer);
+    this.dataChannel.send(new Uint8Array(buffer));
   }
 
   async broadcast(buffer: Buffer): Promise<void> {
@@ -557,7 +557,7 @@ export class Layer1RealTimeClient extends EventEmitter {
       rotation,
       scale,
       velocity,
-    });
+    } as any);
   }
 
   /**
@@ -577,7 +577,7 @@ export class Layer1RealTimeClient extends EventEmitter {
       target_fps: targetFps,
       actual_fps: actualFps,
       quality_level: qualityLevel,
-    });
+    } as any);
   }
 
   /**

@@ -112,11 +112,12 @@ export class SceneRunner {
     const boundTraits: string[] = [];
     if (node.directives) {
       for (const directive of node.directives) {
-        const traitName = directive.name || (directive as any).type;
+        const d = directive as any;
+        const traitName = d.name || d.type;
         if (!traitName) continue;
 
         if (this.traitBinder.has(traitName)) {
-          const config = this.traitBinder.mergeConfig(traitName, directive.args || {});
+          const config = this.traitBinder.mergeConfig(traitName, d.args || {});
           this.world.addComponent(entity, `trait:${traitName}`, config);
           boundTraits.push(traitName);
 

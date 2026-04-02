@@ -938,7 +938,7 @@ export class TSLCompiler extends CompilerBase {
             if (layer.type === 'fog') {
               lines.push(`//   let fogDist = length(camera.position - in.worldPosition);`);
               lines.push(
-                `//   let fogFactor = exp(-fogDist * ${(layer.intensity * 0.01).toFixed(4)});`
+                `//   let fogFactor = exp(-fogDist * ${((layer.intensity ?? 1.0) * 0.01).toFixed(4)});`
               );
               lines.push(`//   color = mix(vec3<f32>(0.7, 0.7, 0.75), color, fogFactor);`);
             } else if (layer.type === 'rain' || layer.type === 'snow') {

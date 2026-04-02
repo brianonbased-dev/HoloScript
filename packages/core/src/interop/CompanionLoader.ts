@@ -103,7 +103,7 @@ export class CompanionLoader {
 
       // Return all exports as a record
       if (typeof module === 'object' && module !== null) {
-        return module;
+        return module as unknown as Record<string, unknown>;
       }
 
       // Wrap non-object exports

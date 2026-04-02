@@ -10,13 +10,7 @@
  * - Maintain generation history
  */
 
-import type {
-  AIAdapter,
-  GenerateResult,
-  ExplainResult,
-  OptimizeResult,
-  FixResult,
-} from './AIAdapter';
+import type { AIAdapter } from './AIAdapter';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 import type { HSPlusCompileResult } from '../types/AdvancedTypeSystem';
 import { GenerationCache } from './GenerationCache';
@@ -193,13 +187,13 @@ export class HoloScriptGenerator {
         const responseTimeMs = performance.now() - startTime;
 
         // Check confidence threshold
-        if (result.aiConfidence < s.config.minConfidence) {
-          console.warn(`Generated code has low confidence (${result.aiConfidence}). Retrying...`);
+        if ((result.confidence ?? 0) < s.config.minConfidence) {
+          console.warn(`Generated code has low confidence (${result.confidence}). Retrying...`);
 
           this.analytics.recordMetric({
             promptLength: prompt.length,
             codeLength: result.holoScript.length,
-            confidence: result.aiConfidence,
+            confidence: result.confidence ?? 0,
             parseSuccess: false,
             errorCount: 1,
             wasFixed: false,
@@ -241,7 +235,7 @@ export class HoloScriptGenerator {
             const reparseResult = this.parser.parse(holoScript);
             generated = {
               holoScript,
-              aiConfidence: result.aiConfidence,
+              aiConfidence: result.confidence ?? 0,
               parseResult: reparseResult,
               wasFixed,
               attempts,
@@ -249,7 +243,7 @@ export class HoloScriptGenerator {
 
             // Cache successful result
             if (this.cacheEnabled && reparseResult.success) {
-              this.cache.set(prompt, holoScript, result.aiConfidence, s.adapter.name);
+              this.cache.set(prompt, holoScript, result.confidence ?? 0, s.adapter.name);
             }
 
             break;
@@ -259,7 +253,7 @@ export class HoloScriptGenerator {
         // If we got here, use the generated code (even if not fully valid)
         generated = {
           holoScript,
-          aiConfidence: result.aiConfidence,
+          aiConfidence: result.confidence ?? 0,
           parseResult,
           wasFixed,
           attempts,
@@ -269,7 +263,7 @@ export class HoloScriptGenerator {
         this.analytics.recordMetric({
           promptLength: prompt.length,
           codeLength: holoScript.length,
-          confidence: result.aiConfidence,
+          confidence: result.confidence ?? 0,
           parseSuccess: parseResult.success,
           errorCount: parseResult.errors.length,
           wasFixed,
@@ -281,7 +275,7 @@ export class HoloScriptGenerator {
 
         // Cache successful results
         if (this.cacheEnabled && parseResult.success) {
-          this.cache.set(prompt, holoScript, result.aiConfidence, s.adapter.name);
+          this.cache.set(prompt, holoScript, result.confidence ?? 0, s.adapter.name);
         }
 
         if (parseResult.success) {

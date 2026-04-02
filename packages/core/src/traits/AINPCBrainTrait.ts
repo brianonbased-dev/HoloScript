@@ -35,7 +35,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
   name: 'ai_npc_brain',
 
   defaultConfig: {
-    ...llmAgentHandler.defaultConfig,
+    ...(llmAgentHandler.defaultConfig as LLMConfig),
     // NPC defaults
     dialogue_range: 5.0,
     voice_enabled: true,
@@ -57,7 +57,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
       conversation_count: 0,
       relationship_delta: 0,
     };
-    node.__npcState = npcState;
+    (node as any).__npcState = npcState;
 
     // Override system prompt for NPC personality
     const personalityPrompts: Record<string, string> = {
@@ -82,13 +82,13 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
 
   onDetach(node, config, context) {
     llmAgentHandler.onDetach?.(node, config, context);
-    delete node.__npcState;
+    delete (node as any).__npcState;
   },
 
   onUpdate(node, config, context, delta) {
     llmAgentHandler.onUpdate?.(node, config, context, delta);
 
-    const npcState = node.__npcState;
+    const npcState = (node as any).__npcState;
     if (!npcState) return;
 
     // Decay player relationship slowly over time
@@ -99,7 +99,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
 
   onEvent(node, config, context, event) {
     // Handle NPC-specific events
-    const npcState = node.__npcState;
+    const npcState = (node as any).__npcState;
 
     if (event.type === 'player_enter_dialogue_range') {
       if (!npcState.in_dialogue) {

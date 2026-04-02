@@ -1112,7 +1112,7 @@ export function compileToUSDPhysics(
   options?: USDPhysicsCompilerOptions
 ): string {
   const compiler = new USDPhysicsCompiler(options);
-  return compiler.compile(composition);
+  return compiler.compile(composition, 'system');
 }
 
 /**
@@ -1131,5 +1131,5 @@ export function compileForIsaacSim(
     ...options,
   };
   const compiler = new USDPhysicsCompiler(isaacOptions);
-  return compiler.compile(composition);
+  return compiler.compile(composition, 'system');
 }

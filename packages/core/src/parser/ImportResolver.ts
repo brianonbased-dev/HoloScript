@@ -16,7 +16,7 @@
  * @version 1.1.0
  */
 
-import type { HSPlusCompileResult, HSPlusNode } from './HoloScriptPlusParser';
+import type { HSPlusCompileResult, HSPlusNode, ASTProgram } from './HoloScriptPlusParser';
 
 // =============================================================================
 // TYPES
@@ -220,7 +220,7 @@ export class ImportResolver {
     const modules = new Map<string, ResolvedModule>();
     const errors: ImportResolutionError[] = [];
 
-    const imports: ParsedImport[] = (result.ast?.imports ?? []) as ParsedImport[];
+    const imports: ParsedImport[] = ((result.ast as ASTProgram)?.imports ?? []) as ParsedImport[];
     if (imports.length === 0) {
       return { scope, modules, errors };
     }
@@ -367,7 +367,7 @@ export class ImportResolver {
 
       // ── Resolve transitive imports ────────────────────────────────────────
       const transitiveDeps: string[] = [];
-      const subImports: ParsedImport[] = (result.ast?.imports ?? []) as ParsedImport[];
+      const subImports: ParsedImport[] = ((result.ast as ASTProgram)?.imports ?? []) as ParsedImport[];
       const baseDir = canonicalPath.replace(/\/[^/]+$/, '');
 
       for (const subImp of subImports) {
@@ -436,6 +436,7 @@ export class ImportResolver {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
+      // @ts-ignore - optional dependency
       const { LoroDoc } = await import('@loro/loro');
 
       // The HoloMesh Agent uses .holomesh/worldstate.crdt

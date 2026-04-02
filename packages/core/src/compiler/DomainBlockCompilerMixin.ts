@@ -289,6 +289,8 @@ export interface CompiledWeatherLayer {
   /** Layer type keyword (rain, snow, wind, lightning, clouds, fog_layer, etc.) */
   type: string;
   properties: Record<string, unknown>;
+  intensity?: number;
+  color?: string;
 }
 
 export interface CompiledWeather {
@@ -301,6 +303,8 @@ export interface CompiledWeather {
   properties: Record<string, unknown>;
   /** Structured weather layers (rain, snow, wind, lightning, clouds, etc.) */
   layers: CompiledWeatherLayer[];
+  /** Wind configuration */
+  wind?: { direction?: [number, number, number]; speed?: number };
 }
 
 export function compileWeatherBlock(block: HoloDomainBlock): CompiledWeather {

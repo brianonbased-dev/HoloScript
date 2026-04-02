@@ -3,11 +3,9 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
-  // Suppress ESLint during builds — eslint-config-next@14 crashes inside Next.js 15.
-  eslint: { ignoreDuringBuilds: true },
-  // Type-checking is done separately via `pnpm typecheck` or `tsc --noEmit`.
-  // The core package has pre-existing TS errors being resolved incrementally.
-  typescript: { ignoreBuildErrors: true },
+  // Enable standard Next.js build checks
+  eslint: { ignoreDuringBuilds: false },
+  typescript: { ignoreBuildErrors: false },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 

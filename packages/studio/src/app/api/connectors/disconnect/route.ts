@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     switch (serviceId) {
       case 'github': {
-        const github = new GitHubConnector();
+        const github: any = new (GitHubConnector as any)();
         await github.disconnect();
 
         // Clear environment variable
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'railway': {
-        const railway = new RailwayConnector();
+        const railway: any = new (RailwayConnector as any)();
         await railway.disconnect();
 
         // Clear environment variables
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       case 'upstash': {
         // @ts-ignore
         const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
-        const upstash = new UpstashConnector();
+        const upstash: any = new (UpstashConnector as any)();
         await upstash.disconnect();
 
         // Clear environment variables for all three subsystems
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       case 'appstore': {
         // @ts-ignore
         const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
-        const appstore = new AppStoreConnector();
+        const appstore: any = new (AppStoreConnector as any)();
         await appstore.disconnect();
 
         // Clear environment variables for both platforms
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       case 'vscode': {
         // @ts-ignore
         const { VSCodeConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-vscode');
-        const vscode = new VSCodeConnector();
+        const vscode: any = new (VSCodeConnector as any)();
         await vscode.disconnect();
 
         delete process.env.VSCODE_BRIDGE_URL;

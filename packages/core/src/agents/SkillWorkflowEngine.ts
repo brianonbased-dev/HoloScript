@@ -73,7 +73,7 @@ export interface WorkflowValidation {
 /**
  * Result of a single step execution.
  */
-export interface StepResult {
+export interface WorkflowStepResult {
   stepId: string;
   status: 'completed' | 'failed' | 'skipped';
   output: Record<string, unknown>;
@@ -87,7 +87,7 @@ export interface StepResult {
 export interface WorkflowResult {
   workflowId: string;
   status: 'completed' | 'partial' | 'failed';
-  stepResults: StepResult[];
+  stepResults: WorkflowStepResult[];
   totalDurationMs: number;
 }
 
@@ -209,7 +209,7 @@ export class SkillWorkflowEngine {
     onProgress?: ProgressCallback
   ): Promise<WorkflowResult> {
     const startTime = Date.now();
-    const stepResults: StepResult[] = [];
+    const stepResults: WorkflowStepResult[] = [];
     const stepOutputs = new Map<string, Record<string, unknown>>();
     const context = definition.context || {};
 
@@ -227,7 +227,7 @@ export class SkillWorkflowEngine {
 
           // Skip if a previous step failed and onError is not configured
           if (hasFailed && step.onError !== 'skip') {
-            const result: StepResult = {
+            const result: WorkflowStepResult = {
               stepId,
               status: 'skipped',
               output: {},

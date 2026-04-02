@@ -62,6 +62,19 @@ vi.mock('next-auth/react', () => ({
   useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
 }));
 
+// Mock @holoscript/core to prevent loading @loro/loro WASM in jsdom
+vi.mock('@holoscript/core', () => ({
+  CollaborationSession: class {
+    constructor() {}
+    getPeers() { return []; }
+    getOpenDocuments() { return []; }
+    getStats() { return null; }
+    addPeer() {}
+    removePeer() {}
+    openDocument() {}
+    closeDocument() {}
+  }
+}));
 describe('useCollaboration', () => {
   let mockSocket: MockWebSocket;
   const mockSetConnected = vi.fn();

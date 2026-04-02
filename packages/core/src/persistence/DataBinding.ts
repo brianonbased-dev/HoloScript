@@ -149,7 +149,7 @@ export class DataBindingContext {
     return true;
   }
 
-  private notifyListeners(binding: Binding): void {
+  private notifyListeners<T>(binding: Binding<T>): void {
     for (const listener of binding.listeners) {
       listener(binding.value, binding.previousValue);
     }

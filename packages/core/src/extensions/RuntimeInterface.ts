@@ -5,7 +5,7 @@
  * @module extensions/RuntimeInterface
  */
 
-import type { TraitHandler } from '../traits/TraitRegistry';
+import type { TraitHandler } from '../traits/TraitTypes';
 
 /**
  * Interface defining the runtime methods required by ExtensionRegistry.

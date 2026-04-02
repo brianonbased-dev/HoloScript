@@ -93,7 +93,7 @@ export function InventoryPanel() {
         {slots.length === 0 && <p className="text-studio-muted">Add items to begin.</p>}
         {slots.map((slot) => (
           <div
-            key={slot.slotIndex}
+            key={slot.slotIndex as React.Key}
             className="flex items-center justify-between bg-studio-panel/30 rounded px-2 py-1"
           >
             <div className="flex items-center gap-1.5">

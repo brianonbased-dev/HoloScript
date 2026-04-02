@@ -15,9 +15,9 @@ import type {
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
-  VRTraitName,
 } from '../types/AdvancedTypeSystem';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
+import type { VRTraitName } from '../types';
 
 export type {
   ASTProgram,

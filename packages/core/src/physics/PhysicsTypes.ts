@@ -865,6 +865,8 @@ export interface ISoftBodyConfig {
   gravity?: IVector3;
   /** External wind force */
   wind?: IVector3;
+  /** Whether to use GPU acceleration if available */
+  useGPU?: boolean;
 }
 
 /**

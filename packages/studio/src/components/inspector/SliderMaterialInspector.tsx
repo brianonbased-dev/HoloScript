@@ -538,7 +538,7 @@ function Section({
 }: {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   active: boolean;
   onToggle: () => void;
   children: React.ReactNode;

@@ -375,6 +375,8 @@ export class AudioOcclusionSystem {
       hitCount: hits.length,
       totalTransmissionLoss: totalLoss,
       materials: hitMaterials,
+      lowPassCutoff: this.calculateLowPassCutoff(factor, {}),
+      frequencyAttenuation: {},
     };
   }
 

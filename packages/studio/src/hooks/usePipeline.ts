@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { PipelineMode } from '@/lib/recursive/types';
+import type { PipelineMode } from '@/lib/recursive';
 
 interface PipelineRunInfo {
   id: string;

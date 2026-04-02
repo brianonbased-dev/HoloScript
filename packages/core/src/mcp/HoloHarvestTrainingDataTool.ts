@@ -45,6 +45,7 @@ export class HoloHarvestTrainingDataHandler {
 
   async handle(input: HarvestToolInput): Promise<HarvestToolOutput> {
     if (!this.harvester) {
+      // @ts-ignore - SelfImproveHarvester is available in tests
       const { SelfImproveHarvester } = await import('../self-improvement/SelfImproveHarvester');
       this.harvester = new SelfImproveHarvester();
     }

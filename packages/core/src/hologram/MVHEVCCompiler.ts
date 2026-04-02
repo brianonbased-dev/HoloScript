@@ -15,7 +15,7 @@
  * @see P.156.01: Stereo Camera Rig pattern (65mm IPD baseline)
  */
 
-import type { HoloComposition, HoloObject } from '../parser/HoloCompositionTypes';
+import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from '../compiler/CompilerBase';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -162,8 +162,8 @@ export class MVHEVCCompiler extends CompilerBase {
 
     for (const obj of composition.objects) {
       const svTrait = obj.traits?.find((t) => t.name === 'spatial_video');
-      if (svTrait?.params) {
-        const p = svTrait.params;
+      if (svTrait?.config) {
+        const p = svTrait.config;
         if (typeof p['ipd'] === 'number') config.ipd = p['ipd'];
         if (Array.isArray(p['resolution'])) config.resolution = p['resolution'] as [number, number];
         if (typeof p['fps'] === 'number') config.fps = p['fps'];

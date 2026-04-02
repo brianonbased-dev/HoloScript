@@ -70,7 +70,8 @@ export type ExportTarget =
   | 'a2a-agent-card' // A2A Protocol Agent Card manifests
   | 'nir' // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
   | 'openxr-spatial-entities' // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
-  | 'phone-sleeve-vr'; // Phone Sleeve VR (smartphone-as-headset stereoscopic WebXR)
+  | 'phone-sleeve-vr' // Phone Sleeve VR (smartphone-as-headset stereoscopic WebXR)
+  | 'native-2d'; // Native 2D UI for mobile/desktop fallback
 
 /**
  * Circuit configuration per target

@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import type { LayerState, LayerId, LayerStatus } from '@/lib/recursive/types';
+import type { LayerState, LayerId, LayerStatus } from '@/lib/recursive';
 
 interface LayerCardProps {
   layerId: LayerId;

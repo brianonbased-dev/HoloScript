@@ -5,7 +5,7 @@
  * Essential for verifying collision shapes and interaction logic.
  */
 
-import { IPhysicsWorld, BodyState } from '../physics/PhysicsTypes';
+import type { IPhysicsWorld } from '../../physics/PhysicsTypes';
 import { WebGPURenderer } from './WebGPURenderer';
 
 export class PhysicsDebugDrawer {
@@ -29,10 +29,11 @@ export class PhysicsDebugDrawer {
   public update(): void {
     if (!this.enabled) return;
 
-    const states = this.world.getStates();
+    const states = (this.world as any).getStates() || {};
 
     // Sync meshes with physics bodies
-    for (const [id, state] of Object.entries(states)) {
+    for (const [id, stateUncast] of Object.entries(states || {})) {
+      const state = stateUncast as any;
       let mesh = this.debugMeshes.get(id);
 
       if (!mesh) {
@@ -63,7 +64,7 @@ export class PhysicsDebugDrawer {
     // Cleanup removed bodies
     for (const [id, mesh] of this.debugMeshes) {
       if (!states[id]) {
-        this.renderer.destroy(mesh);
+        (this.renderer as any).destroy(mesh);
         this.debugMeshes.delete(id);
       }
     }
@@ -92,12 +93,12 @@ export class PhysicsDebugDrawer {
       meshParams.size = [0.2, 0.2, 0.2];
     }
 
-    return this.renderer.createElement('mesh', meshParams);
+    return (this.renderer as any).createElement('mesh', meshParams);
   }
 
   public clear(): void {
     for (const mesh of this.debugMeshes.values()) {
-      this.renderer.destroy(mesh);
+      (this.renderer as any).destroy(mesh);
     }
     this.debugMeshes.clear();
   }

@@ -22,7 +22,7 @@ import type {
   HoloObjectDecl,
   HoloSpatialGroup,
   HoloLogic,
-} from '../types';
+} from '../parser/HoloCompositionTypes';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES — platform-independent intermediate representation

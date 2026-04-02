@@ -253,7 +253,7 @@ export class Bulkhead {
     fn: () => Promise<any>;
     resolve: (value: any) => void;
     reject: (error: Error) => void;
-    timeoutId: NodeJS.Timer;
+    timeoutId: ReturnType<typeof setTimeout>;
   }> = [];
   private config: Required<BulkheadConfig>;
 

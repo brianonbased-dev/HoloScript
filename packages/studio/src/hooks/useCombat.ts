@@ -6,7 +6,12 @@ import { useState, useCallback, useRef } from 'react';
 import { CombatManager } from '@holoscript/core';
 
 type CombatManagerInstance = InstanceType<typeof CombatManager>;
-type ComboChain = ReturnType<CombatManagerInstance['registerCombo']>;
+export interface ComboChain {
+  id: string;
+  steps: any[];
+  currentStep: number;
+  completed: boolean;
+}
 
 export interface CombatEntity {
   id: string;

@@ -558,12 +558,12 @@ export function createSecurityAuditCheck(): QualityCheck {
 
       // Authority bypass for highly trusted operations
       const { authorityWeight } = await import('./traits/ProvenanceSemiring');
-      if (authorityWeight(context.provenanceContext) >= 100) {
+      if (authorityWeight(context.provenanceContext as any) >= 100) {
         return {
           checkId: 'security-001',
           passed: true,
           confidence: 1.0,
-          message: `Security Audit Bypassed (Authority: ${context.provenanceContext?.authority || 'verified'})`,
+          message: `Security Audit Bypassed (Authority: ${(context.provenanceContext as any)?.authority || 'verified'})`,
           findings: [],
           durationMs: Date.now() - start,
         };

@@ -133,7 +133,7 @@ describe('Knowledge API Routes', () => {
     });
 
     it('publishes entries to orchestrator on success', async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ synced: 2 }),
       });
@@ -163,7 +163,7 @@ describe('Knowledge API Routes', () => {
     });
 
     it('applies default_premium flag to entries without explicit setting', async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ synced: 2 }),
       });

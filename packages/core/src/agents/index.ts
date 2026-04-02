@@ -77,7 +77,7 @@ export {
   type WorkflowInput,
   type WorkflowValidation,
   type WorkflowResult,
-  type StepResult,
+  type WorkflowStepResult,
   type SkillExecutor,
   type ProgressCallback,
 } from './SkillWorkflowEngine';

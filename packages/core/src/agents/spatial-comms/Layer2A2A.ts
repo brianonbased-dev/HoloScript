@@ -290,7 +290,7 @@ export class Layer2A2AClient extends EventEmitter {
       type: 'task_assignment',
       to_agent: toAgent,
       task,
-    });
+    } as any);
   }
 
   /**
@@ -315,7 +315,7 @@ export class Layer2A2AClient extends EventEmitter {
       result,
       error,
       performance_metrics: performanceMetrics,
-    });
+    } as any);
   }
 
   /**
@@ -379,7 +379,7 @@ export class Layer2A2AClient extends EventEmitter {
       priority,
       duration_ms: durationMs,
       exclusive,
-    });
+    } as any);
   }
 
   /**
@@ -397,7 +397,7 @@ export class Layer2A2AClient extends EventEmitter {
       strategy,
       involved_agents: involvedAgents,
       resolution_params: resolutionParams,
-    });
+    } as any);
   }
 
   /**
@@ -415,7 +415,7 @@ export class Layer2A2AClient extends EventEmitter {
       resource_type: resourceType,
       amount,
       priority,
-    });
+    } as any);
   }
 
   /**
@@ -425,7 +425,7 @@ export class Layer2A2AClient extends EventEmitter {
     return this.send({
       type: 'resource_release',
       resource_id: resourceId,
-    });
+    } as any);
   }
 
   /**
@@ -441,7 +441,7 @@ export class Layer2A2AClient extends EventEmitter {
       to_agent: toAgent,
       capabilities,
       protocol_version: protocolVersion,
-    });
+    } as any);
   }
 
   /**

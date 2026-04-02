@@ -67,7 +67,7 @@ interface LLMState {
   compiledToolSchemas: string | null;
 }
 
-interface LLMConfig {
+export interface LLMConfig {
   model: string;
   system_prompt: string;
   context_window: number;

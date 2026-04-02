@@ -709,5 +709,5 @@ export function compileToAndroid(
   options?: AndroidCompilerOptions
 ): Promise<AndroidCompileResult> {
   const compiler = new AndroidCompiler(options);
-  return compiler.compile(composition, '', undefined);
+  return Promise.resolve(compiler.compile(composition, 'test-token', undefined));
 }

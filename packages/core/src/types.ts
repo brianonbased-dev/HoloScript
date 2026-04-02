@@ -328,6 +328,7 @@ export type AllExpandedHooks =
 export interface OrbNode extends ASTNode {
   type: 'orb';
   name: string;
+  template?: string;
   properties: Record<string, HoloScriptValue>;
   methods?: MethodNode[];
   children?: ASTNode[];

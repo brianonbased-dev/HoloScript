@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const searchQuery = searchParams.get('q') || '';
 
     // Initialize GitHub connector
-    const github = new GitHubConnector();
+    const github: any = new (GitHubConnector as any)();
     await github.connect();
 
     // Check health

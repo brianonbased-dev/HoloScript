@@ -903,7 +903,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
   console.log(`[holoscript] Running ${path.basename(filePath)} (target: ${opts.target})`);
 
   // Parse the source
-  const ast = parse(source);
+  const parseResult = parse(source);
+  const ast = parseResult.ast as any;
 
   if (opts.debug) {
     console.log(`[holoscript] Parsed ${ast.body?.length || 0} top-level nodes`);
@@ -987,7 +988,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
 
       try {
         const newSource = fs.readFileSync(filePath, 'utf-8');
-        const newAst = parse(newSource);
+        const newParseResult = parse(newSource);
+        const newAst = newParseResult.ast as any;
         const newRuntime = createHeadlessRuntime(newAst, {
           profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile),
           tickRate: 10,
@@ -1030,7 +1032,8 @@ async function testScript(opts: CLIOptions): Promise<void> {
   console.log(`[holoscript test] Running tests in ${path.basename(filePath)}`);
 
   // Parse and create a headless runtime to populate state for assertions
-  const ast = parse(source);
+  const parseResult = parse(source);
+  const ast = parseResult.ast as any;
   const profile = HEADLESS_PROFILE;
   const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
@@ -1236,7 +1239,6 @@ async function deployScript(opts: CLIOptions): Promise<void> {
   const provenance = generateProvenance(source, ast, {
     author: opts.author || 'anonymous',
     license,
-    version: 1,
   });
 
   console.log(
@@ -1786,15 +1788,15 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   });
 
   // Create host capabilities
-  const host: DaemonHost = {
-    readFile: (p) => fs.readFileSync(path.resolve(repoRoot, p), 'utf-8'),
-    writeFile: (p, c) => {
+  const host: any = {
+    readFile: (p: string) => fs.readFileSync(path.resolve(repoRoot, p), 'utf-8'),
+    writeFile: (p: string, c: string | Buffer) => {
       const resolved = path.resolve(repoRoot, p);
       fs.mkdirSync(path.dirname(resolved), { recursive: true });
       fs.writeFileSync(resolved, c, 'utf-8');
     },
-    exists: (p) => fs.existsSync(path.resolve(repoRoot, p)),
-    exec: (cmd, args = [], execOpts = {}) =>
+    exists: (p: string) => fs.existsSync(path.resolve(repoRoot, p)),
+    exec: (cmd: string, args: string[] = [], execOpts: any = {}) =>
       new Promise((resolve, reject) => {
         const child = spawn(cmd, args, {
           cwd: execOpts.cwd ?? repoRoot,
@@ -2086,10 +2088,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
     // Register all action handlers
     for (const [name, handler] of Object.entries(actions)) {
-      runtime.registerAction(name, handler);
+      runtime.registerAction(name, handler as any);
     }
     for (const [name, handler] of Object.entries(runtimeSkillActions)) {
-      runtime.registerAction(name, handler);
+      runtime.registerAction(name, handler as any);
     }
 
     // Wire trait event listeners: @economy budget enforcement, @feedback_loop metrics,
@@ -2238,7 +2240,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.writeFileSync(stateFile, JSON.stringify(daemonState, null, 2), 'utf-8');
 
     // Persist file tracking (committed + quarantined files)
-    const fileState = getDaemonFileState();
+    const fileState = getDaemonFileState(repoRoot);
     fs.writeFileSync(fileStateFile, JSON.stringify(fileState, null, 2), 'utf-8');
 
     // Convergence detection: escalate strategy when quality plateaus
@@ -2510,13 +2512,18 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     let actionsModule: any;
     let clientModule: any;
     try {
+      // @ts-ignore: TS cannot resolve this workspace import
       actionsModule = await import('@holoscript/mcp-server/holomesh/agent/holomesh-daemon-actions');
+      // @ts-ignore: TS cannot resolve this workspace import
       clientModule = await import('@holoscript/mcp-server/holomesh/orchestrator-client');
     } catch {
       // Monorepo: resolve via relative path from packages/core/src/cli/ to packages/mcp-server/src/
-      actionsModule =
-        await import('../../../mcp-server/src/holomesh/agent/holomesh-daemon-actions');
-      clientModule = await import('../../../mcp-server/src/holomesh/orchestrator-client');
+      const actionsPath = '../../../mcp-server/src/holomesh/agent/holomesh-daemon-actions';
+      const clientPath = '../../../mcp-server/src/holomesh/orchestrator-client';
+      // @ts-ignore
+      actionsModule = await import(actionsPath);
+      // @ts-ignore
+      clientModule = await import(clientPath);
     }
     createHoloMeshDaemonActions = actionsModule.createHoloMeshDaemonActions;
     HoloMeshOrchestratorClient = clientModule.HoloMeshOrchestratorClient;

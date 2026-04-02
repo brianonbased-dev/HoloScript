@@ -25,11 +25,11 @@ import {
   type NIRToWGSLResult,
 } from '../compiler/NIRToWGSLCompiler';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
-import {
-  SpatialTrainingDataGenerator,
-  type SpatialTrainingExample,
-} from '../training/SpatialTrainingDataGenerator';
-import type { SpatialGeneratorConfig } from '../training/SpatialTrainingDataTypes';
+import { SpatialTrainingDataGenerator } from '../training/SpatialTrainingDataGenerator';
+import type { 
+  SpatialTrainingExample, 
+  SpatialGeneratorConfig 
+} from '../training/SpatialTrainingDataTypes';
 import { SparsityMonitor, type LayerActivityInput } from '../training/SparsityMonitor';
 import type { SparsityMonitorConfig, SparsityMonitorStats } from '../training/SparsityMonitorTypes';
 
@@ -325,7 +325,7 @@ export async function handleCompileNIR(args: Record<string, unknown>): Promise<M
 
     // Compile to NIR
     const compiler = new NIRCompiler(options);
-    const nirJson = compiler.compile(parseResult.composition, agentToken);
+    const nirJson = compiler.compile(parseResult.ast as any, agentToken);
 
     return {
       success: true,

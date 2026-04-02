@@ -156,6 +156,7 @@ type TokenType =
   | 'EOF'
   // Keywords
   | 'COMPOSITION'
+  | 'THEME'
   | 'ENVIRONMENT'
   | 'STATE'
   | 'TEMPLATE'
@@ -4462,7 +4463,7 @@ export class HoloCompositionParser {
 
       if (key === 'experience') rewards.experience = value as number;
       else if (key === 'gold') rewards.gold = value as number;
-      else if (key === 'items') rewards.items = value as HoloQuestRewardItem[];
+      else if (key === 'items') rewards.items = value as any[];
       else if (key === 'reputation') rewards.reputation = value as Record<string, number>;
       else if (key === 'unlocks') rewards.unlocks = value as string[];
 

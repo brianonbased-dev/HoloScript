@@ -31,12 +31,23 @@ export type TelemetryEventType =
   | 'agent_deregistered'
   | 'breakpoint_hit'
   | 'error'
-  | 'custom';
+  | 'plugin_loaded'
+  | 'plugin_destroyed'
+  | 'plugin_tool_registered'
+  | 'plugin_event'
+  | 'budget_exceeded'
+  | 'budget_warning'
+  | 'revenue_accrued'
+  | 'webhook_received'
+  | 'subscription_started'
+  | 'subscription_expired'
+  | 'usage_tracked'
+  | string; // Fallback for custom events
 
 /**
  * Severity levels for telemetry events
  */
-export type TelemetrySeverity = 'debug' | 'info' | 'warn' | 'error' | 'critical';
+export type TelemetrySeverity = 'debug' | 'info' | 'warn' | 'warning' | 'error' | 'critical';
 
 /**
  * A telemetry event
@@ -51,7 +62,7 @@ export interface TelemetryEvent {
   /** Associated agent ID */
   agentId: string;
   /** Event data */
-  data: Record<string, any>;
+  data?: Record<string, any>;
   /** Latency in milliseconds (for duration events) */
   latency?: number;
   /** Related event IDs (for correlation) */

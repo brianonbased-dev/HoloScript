@@ -1,4 +1,4 @@
-import { IncrementalParser, ChunkBasedIncrementalParser } from './IncrementalParser';
+import { IncrementalParseResult, ChunkBasedIncrementalParser } from './IncrementalParser';
 import { ASTNode } from '../types/base';
 import * as crypto from 'crypto';
 

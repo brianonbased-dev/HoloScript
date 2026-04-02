@@ -188,7 +188,7 @@ export {
 } from './DeadReckoningBridge';
 
 // Merged from networking/
-export { CRDT } from './CRDT';
+export { LWWRegister, PNCounter, ORSet, isCRDT } from './CRDT';
 export { DeltaCompressor } from './DeltaCompressor';
 export { NetworkTransport } from './NetworkTransport';
 export { PriorityScorer } from './PriorityScorer';

@@ -11,7 +11,7 @@
  * @see G.153.01: Inpainting Seams in Quilt Views
  */
 
-import type { HoloComposition, HoloObject } from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from '../compiler/CompilerBase';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -158,8 +158,8 @@ export class QuiltCompiler extends CompilerBase {
     // Look for @quilt trait in composition objects
     for (const obj of composition.objects) {
       const quiltTrait = obj.traits?.find((t) => t.name === 'quilt');
-      if (quiltTrait?.params) {
-        const p = quiltTrait.params;
+      if (quiltTrait?.config) {
+        const p = quiltTrait.config;
         if (typeof p['views'] === 'number') config.views = p['views'];
         if (typeof p['columns'] === 'number') config.columns = p['columns'];
         if (typeof p['rows'] === 'number') config.rows = p['rows'];
@@ -175,8 +175,8 @@ export class QuiltCompiler extends CompilerBase {
       }
 
       const lgTrait = obj.traits?.find((t) => t.name === 'looking_glass');
-      if (lgTrait?.params) {
-        const device = lgTrait.params['device'] as string;
+      if (lgTrait?.config) {
+        const device = lgTrait.config['device'] as string;
         if (device && device in DEVICE_PRESETS) {
           config = {
             ...config,
@@ -308,16 +308,17 @@ export function QuiltRenderer() {
   /**
    * Convert a HoloScript object to JSX for the quilt scene.
    */
-  private objectToJSX(obj: HoloObject): string {
-    const pos = obj.properties?.position;
-    const rot = obj.properties?.rotation;
-    const scale = obj.properties?.scale;
-    const color = obj.properties?.color ?? '#888888';
-    const geo = obj.properties?.geometry ?? 'box';
+  private objectToJSX(obj: HoloObjectDecl): string {
+    const getProp = (key: string) => obj.properties.find(p => p.key === key)?.value;
+    const pos = getProp('position');
+    const rot = getProp('rotation');
+    const scale = getProp('scale');
+    const color = getProp('color') ?? '#888888';
+    const geo = getProp('geometry') ?? 'box';
 
     const posStr = Array.isArray(pos) ? `[${pos.join(', ')}]` : '[0, 0, 0]';
     const rotStr = Array.isArray(rot)
-      ? `[${rot.map((r: number) => (r * Math.PI) / 180).join(', ')}]`
+      ? `[${rot.map((r: any) => (Number(r) * Math.PI) / 180).join(', ')}]`
       : undefined;
     const scaleStr = Array.isArray(scale) ? `[${scale.join(', ')}]` : undefined;
 
@@ -329,7 +330,7 @@ export function QuiltRenderer() {
       plane: 'planeGeometry',
     };
 
-    const geoTag = geoMap[geo] ?? 'boxGeometry';
+    const geoTag = geoMap[geo as string] ?? 'boxGeometry';
 
     return `<mesh position={${posStr}}${rotStr ? ` rotation={${rotStr}}` : ''}${scaleStr ? ` scale={${scaleStr}}` : ''}>
         <${geoTag} />

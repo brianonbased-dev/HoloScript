@@ -202,7 +202,7 @@ export function useHoloComposition(sourceUrl: string): HoloCompositionResult {
         const parser = new HoloScriptPlusParser();
         const result = parser.parse(code);
 
-        if (!result.success || !result.ast) {
+        if (!result || !('ast' in result) || !result.ast) {
           setError('Failed to parse composition');
           setLoading(false);
           return;
