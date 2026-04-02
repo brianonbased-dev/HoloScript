@@ -70,7 +70,7 @@ export function ShaderEditorToolbar() {
         const content = event.target?.result as string;
         loadGraph(content);
       } catch (error) {
-        logger.error('Failed to load graph:', error);
+        logger.error('[ShaderEditorToolbar] Failed to load graph:', error);
         alert('Failed to load shader graph file');
       }
     };

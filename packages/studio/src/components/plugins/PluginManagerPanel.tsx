@@ -53,7 +53,7 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
         await enablePlugin(id);
       }
     } catch (err) {
-      logger.error('Failed to toggle plugin:', err);
+      logger.error('[PluginManagerPanel] Failed to toggle plugin:', err);
     }
   };
 
@@ -65,7 +65,7 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
     try {
       await uninstallPlugin(id);
     } catch (err) {
-      logger.error('Failed to uninstall plugin:', err);
+      logger.error('[PluginManagerPanel] Failed to uninstall plugin:', err);
     }
   };
 

@@ -47,7 +47,7 @@ export function DevToolsInit() {
 
         logger.debug('%c✅ DevTools Ready', 'color: #0a0; font-weight: bold');
       } catch (e) {
-        logger.error('Failed to init DevTools:', e);
+        logger.error('[DevToolsInit] Failed to init DevTools:', e);
       }
     };
 

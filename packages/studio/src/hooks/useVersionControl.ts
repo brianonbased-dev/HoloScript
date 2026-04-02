@@ -49,7 +49,7 @@ export function useVersionControl({
       const branchList = await vc.getBranches(workflowId);
       setBranches(branchList);
     } catch (err) {
-      logger.error('Get history error:', err);
+      logger.error('[useVersionControl] Get history error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load history');
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export function useVersionControl({
         setCommits((prev) => [newCommit, ...prev]);
         return newCommit;
       } catch (err) {
-        logger.error('Commit error:', err);
+        logger.error('[useVersionControl] Commit error:', err);
         setError(err instanceof Error ? err.message : 'Failed to commit');
         return null;
       } finally {
@@ -92,7 +92,7 @@ export function useVersionControl({
         const diff = await vc.getDiff(commitA, commitB);
         return diff;
       } catch (err) {
-        logger.error('Get diff error:', err);
+        logger.error('[useVersionControl] Get diff error:', err);
         setError(err instanceof Error ? err.message : 'Failed to compute diff');
         return null;
       } finally {
@@ -112,7 +112,7 @@ export function useVersionControl({
         const revertedWorkflow = await vc.revert(workflowId, commitId);
         return revertedWorkflow;
       } catch (err) {
-        logger.error('Revert error:', err);
+        logger.error('[useVersionControl] Revert error:', err);
         setError(err instanceof Error ? err.message : 'Failed to revert');
         return null;
       } finally {
@@ -132,7 +132,7 @@ export function useVersionControl({
         await vc.createBranch(workflowId, branchName);
         setBranches((prev) => [...prev, branchName]);
       } catch (err) {
-        logger.error('Create branch error:', err);
+        logger.error('[useVersionControl] Create branch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to create branch');
       } finally {
         setLoading(false);
@@ -152,7 +152,7 @@ export function useVersionControl({
         setCommits((prev) => [mergeCommit, ...prev]);
         return mergeCommit;
       } catch (err) {
-        logger.error('Merge branch error:', err);
+        logger.error('[useVersionControl] Merge branch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to merge branch');
         return null;
       } finally {

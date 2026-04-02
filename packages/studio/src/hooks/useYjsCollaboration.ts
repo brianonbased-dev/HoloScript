@@ -91,7 +91,7 @@ export function useYjsCollaboration({
         unobserve();
       };
     } catch (err) {
-      logger.error('Collaboration connection error:', err);
+      logger.error('[useYjsCollaboration] Collaboration connection error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setConnectionStatus('failed');
     }
@@ -104,7 +104,7 @@ export function useYjsCollaboration({
       setConnectionStatus('disconnected');
       setUsers([]);
     } catch (err) {
-      logger.error('Collaboration disconnect error:', err);
+      logger.error('[useYjsCollaboration] Collaboration disconnect error:', err);
     }
   }, []);
 
@@ -113,7 +113,7 @@ export function useYjsCollaboration({
       const client = getCollaborationClient();
       client.updateCursor(x, y, nodeId);
     } catch (err) {
-      logger.error('Update cursor error:', err);
+      logger.error('[useYjsCollaboration] Update cursor error:', err);
     }
   }, []);
 
@@ -122,7 +122,7 @@ export function useYjsCollaboration({
       const client = getCollaborationClient();
       client.updateSelection(nodeIds);
     } catch (err) {
-      logger.error('Update selection error:', err);
+      logger.error('[useYjsCollaboration] Update selection error:', err);
     }
   }, []);
 

@@ -32,7 +32,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
         const client = getCollaborationClient();
         client.sendMessage(message.trim(), replyTo, mentions);
       } catch (err) {
-        logger.error('Send message error:', err);
+        logger.error('[useChat] Send message error:', err);
       }
     },
     [enabled]
@@ -45,7 +45,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
       chatArray.delete(0, chatArray.length);
       setMessages([]);
     } catch (err) {
-      logger.error('Clear messages error:', err);
+      logger.error('[useChat] Clear messages error:', err);
     }
   }, []);
 
