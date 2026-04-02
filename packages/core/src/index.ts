@@ -3349,6 +3349,7 @@ export { AgentOutputSchemaValidator } from './identity/AgentOutputSchemaValidato
 export { COCOExporter } from './compiler/COCOExporter';
 export { RemotionBridge } from './compiler/RemotionBridge';
 export { CompilerBase, type BaseCompilerOptions } from './compiler/CompilerBase';
+export { HolobCompiler, type HolobCompilerOptions, type HolobCompileResult } from './compiler/HolobCompiler';
 
 // ── Trait System Base Types ─────────────────────────────────────────────────
 export type { TraitHandler } from './traits/TraitTypes';
