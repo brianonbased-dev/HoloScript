@@ -2,14 +2,14 @@
  * ChangeTrackingTrait — v5.1
  * Entity change history tracking.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface ChangeTrackingConfig {
   max_history: number;
 }
 export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
   name: 'change_tracking',
   defaultConfig: { max_history: 100 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__changeState = {
       history: [] as Array<{
         entityId: string;
@@ -20,11 +20,11 @@ export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
       }>,
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__changeState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: ChangeTrackingConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ChangeTrackingConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__changeState as
       | {
           history: Array<{

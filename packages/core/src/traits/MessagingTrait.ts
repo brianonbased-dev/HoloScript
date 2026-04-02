@@ -162,9 +162,10 @@ function isUserAllowed(userId: string, allowedUsers: string[]): boolean {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export const messagingHandler = {
+  name: 'messaging',
   defaultConfig: DEFAULT_CONFIG,
 
-  async onAttach(node: any, config: MessagingConfig, ctx: any): Promise<void> {
+  async onAttach(node: HSPlusNode, config: MessagingConfig, ctx: TraitContext): Promise<void> {
     if (!config.token) {
       ctx.emit('messaging_error', {
         node,
@@ -213,12 +214,12 @@ export const messagingHandler = {
         botId: state.botId,
         botUsername: state.botUsername,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       ctx.emit('messaging_error', { node, platform: config.platform, error: err.message });
     }
   },
 
-  onDetach(node: any, _config: MessagingConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: MessagingConfig, ctx: TraitContext): void {
     const state: MessagingState | undefined = node.__messagingState;
     if (!state) return;
     if (state.pollTimer) clearInterval(state.pollTimer);
@@ -227,7 +228,7 @@ export const messagingHandler = {
     delete node.__messagingState;
   },
 
-  onEvent(node: any, config: MessagingConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: MessagingConfig, ctx: TraitContext, event: TraitEvent): void {
     const state: MessagingState | undefined = node.__messagingState;
     if (!state?.isConnected) return;
 
@@ -259,15 +260,15 @@ export const messagingHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: MessagingConfig, _ctx: any, _dt: number): void {
+  onUpdate(_node: HSPlusNode, _config: MessagingConfig, _ctx: TraitContext, _dt: number): void {
     /* polling via timer */
   },
 
   _handleIncoming(
     state: MessagingState,
-    node: any,
+    node: HSPlusNode,
     config: MessagingConfig,
-    ctx: any,
+    ctx: TraitContext,
     msg: IncomingMessage
   ): void {
     state.totalReceived++;
@@ -312,9 +313,9 @@ export const messagingHandler = {
 
   _sendMessage(
     state: MessagingState,
-    node: any,
+    node: HSPlusNode,
     config: MessagingConfig,
-    ctx: any,
+    ctx: TraitContext,
     chatId: string,
     text: string,
     replyToId?: string
@@ -336,7 +337,7 @@ export const messagingHandler = {
       });
   },
 
-  _pollTelegram(state: MessagingState, node: any, config: MessagingConfig, ctx: any): void {
+  _pollTelegram(state: MessagingState, node: HSPlusNode, config: MessagingConfig, ctx: TraitContext): void {
     telegramGetUpdates(config.token, state.lastUpdateId + 1)
       .then((updates) => {
         for (const update of updates) {

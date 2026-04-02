@@ -140,9 +140,10 @@ function buildBody(config: LocalLLMConfig, messages: LLMMessage[]): object {
 }
 
 export const localLLMHandler = {
+  name: 'local_llm',
   defaultConfig: DEFAULT_CONFIG,
 
-  async onAttach(node: any, config: LocalLLMConfig, ctx: any): Promise<void> {
+  async onAttach(node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext): Promise<void> {
     const state: LocalLLMState = {
       isReady: false,
       backend: config.backend,
@@ -191,7 +192,7 @@ export const localLLMHandler = {
     }
   },
 
-  onDetach(node: any, _c: LocalLLMConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _c: LocalLLMConfig, ctx: TraitContext): void {
     const s: LocalLLMState | undefined = node.__localLLMState;
     if (!s) return;
     for (const [id, ac] of s.activeRequests) {
@@ -202,7 +203,7 @@ export const localLLMHandler = {
     delete node.__localLLMState;
   },
 
-  onEvent(node: any, config: LocalLLMConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext, event: TraitEvent): void {
     const s: LocalLLMState | undefined = node.__localLLMState;
     if (!s?.isReady) return;
     const { type, payload } = event;
@@ -224,11 +225,11 @@ export const localLLMHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+  onUpdate(_n: HSPlusNode, _c: unknown, _ctx: TraitContext, _dt: number): void {
     /* async only */
   },
 
-  _chat(s: LocalLLMState, node: any, config: LocalLLMConfig, ctx: any, payload: any): void {
+  _chat(s: LocalLLMState, node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext, payload: Record<string, unknown>): void {
     if (!payload?.messages?.length) return;
     const requestId = payload.requestId ?? `llm_${Date.now()}`;
     const model = payload.model ?? s.activeModel ?? config.model;
@@ -254,9 +255,9 @@ export const localLLMHandler = {
 
   async _exec(
     s: LocalLLMState,
-    node: any,
+    node: HSPlusNode,
     config: LocalLLMConfig,
-    ctx: any,
+    ctx: TraitContext,
     requestId: string,
     messages: LLMMessage[],
     ac: AbortController
@@ -349,7 +350,7 @@ export const localLLMHandler = {
     });
   },
 
-  _cancel(s: LocalLLMState, node: any, ctx: any, requestId?: string): void {
+  _cancel(s: LocalLLMState, node: HSPlusNode, ctx: TraitContext, requestId?: string): void {
     if (!requestId) {
       for (const [id, ac] of s.activeRequests) {
         ac.abort();

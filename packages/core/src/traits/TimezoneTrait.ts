@@ -2,7 +2,7 @@
  * TimezoneTrait — v5.1
  * Timezone conversion and display.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface TimezoneConfig {
   default_tz: string;
@@ -11,14 +11,14 @@ export interface TimezoneConfig {
 export const timezoneHandler: TraitHandler<TimezoneConfig> = {
   name: 'timezone',
   defaultConfig: { default_tz: 'UTC' },
-  onAttach(node: any, config: any): void {
+  onAttach(node: HSPlusNode, config: any): void {
     node.__tzState = { current: config.default_tz || 'UTC' };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__tzState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: TimezoneConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: TimezoneConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__tzState as { current: string } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

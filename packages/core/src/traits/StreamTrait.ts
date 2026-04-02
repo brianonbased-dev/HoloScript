@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface StreamConfig {
   max_buffer: number;
@@ -42,17 +42,17 @@ export const streamHandler: TraitHandler<StreamConfig> = {
     enable_backpressure: true,
   },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__streamState = { topics: new Map() } as StreamState;
   },
 
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__streamState;
   },
 
   onUpdate(): void {},
 
-  onEvent(node: any, config: StreamConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: StreamConfig, context: TraitContext, event: TraitEvent): void {
     const state: StreamState | undefined = node.__streamState;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

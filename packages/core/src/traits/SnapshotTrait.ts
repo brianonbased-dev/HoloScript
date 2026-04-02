@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SnapshotConfig {
   max_snapshots: number;
@@ -32,15 +32,15 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
   name: 'snapshot',
   defaultConfig: { max_snapshots: 20, auto_capture_interval_ms: 0 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__snapshotState = { snapshots: new Map<string, SnapshotEntry>(), lastCapture: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__snapshotState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: SnapshotConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SnapshotConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__snapshotState as
       | { snapshots: Map<string, SnapshotEntry>; lastCapture: number }
       | undefined;

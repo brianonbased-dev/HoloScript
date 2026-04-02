@@ -471,18 +471,18 @@ export function createSharedSpatialProvider(): SpatialContextProvider {
 }
 
 // ── Handler (delegates to SpatialAwarenessTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 export const spatialAwarenessHandler = {
   name: 'spatial_awareness',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new SpatialAwarenessTrait(config);
     node.__spatial_awareness_instance = instance;
     ctx.emit('spatial_awareness_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__spatial_awareness_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__spatial_awareness_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -491,8 +491,8 @@ export const spatialAwarenessHandler = {
     ctx.emit('spatial_awareness_detached', { node });
     delete node.__spatial_awareness_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__spatial_awareness_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__spatial_awareness_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -501,8 +501,8 @@ export const spatialAwarenessHandler = {
       ctx.emit('spatial_awareness_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__spatial_awareness_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__spatial_awareness_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

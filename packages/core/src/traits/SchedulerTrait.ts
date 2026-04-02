@@ -21,7 +21,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -80,7 +80,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     poll_interval_ms: 1000,
   },
 
-  onAttach(node: any, config: SchedulerConfig, context: any): void {
+  onAttach(node: HSPlusNode, config: SchedulerConfig, context: TraitContext): void {
     const state: SchedulerState = {
       jobs: new Map(),
       totalTriggered: 0,
@@ -93,7 +93,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     }
   },
 
-  onDetach(node: any, _config: SchedulerConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: SchedulerConfig, _context: TraitContext): void {
     const state: SchedulerState | undefined = node.__schedulerState;
     if (state) {
       for (const [, js] of state.jobs) {
@@ -104,11 +104,11 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     delete node.__schedulerState;
   },
 
-  onUpdate(_node: any, _config: SchedulerConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: SchedulerConfig, _context: TraitContext, _delta: number): void {
     // Timer-driven, no per-frame work
   },
 
-  onEvent(node: any, config: SchedulerConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SchedulerConfig, context: TraitContext, event: TraitEvent): void {
     const state: SchedulerState | undefined = node.__schedulerState;
     if (!state) return;
 
@@ -190,7 +190,7 @@ function addJob(
   state: SchedulerState,
   job: SchedulerJob,
   config: SchedulerConfig,
-  context: any
+  context: TraitContext
 ): void {
   if (state.jobs.size >= config.max_jobs) {
     context.emit?.('scheduler:job_error', {
@@ -225,7 +225,7 @@ function addJob(
   }
 }
 
-function startJobTimer(state: SchedulerState, js: SchedulerJobState, context: any): void {
+function startJobTimer(state: SchedulerState, js: SchedulerJobState, context: TraitContext): void {
   js.timer = setInterval(() => {
     if (js.paused) return;
 

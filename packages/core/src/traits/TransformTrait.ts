@@ -18,7 +18,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -187,7 +187,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
     rules: [],
   },
 
-  onAttach(node: any, config: TransformConfig, _context: any): void {
+  onAttach(node: HSPlusNode, config: TransformConfig, _context: TraitContext): void {
     const state: TransformState = {
       rules: new Map(),
       totalProcessed: 0,
@@ -202,15 +202,15 @@ export const transformHandler: TraitHandler<TransformConfig> = {
     node.__transformState = state;
   },
 
-  onDetach(node: any, _config: TransformConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: TransformConfig, _context: TraitContext): void {
     delete node.__transformState;
   },
 
-  onUpdate(_node: any, _config: TransformConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: TransformConfig, _context: TraitContext, _delta: number): void {
     // Event-driven
   },
 
-  onEvent(node: any, _config: TransformConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: TransformConfig, context: TraitContext, event: TraitEvent): void {
     const state: TransformState | undefined = node.__transformState;
     if (!state) return;
 
@@ -280,7 +280,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
             result: data,
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         state.totalErrors++;
         context.emit?.('transform:error', {
           transformId: rule.id,

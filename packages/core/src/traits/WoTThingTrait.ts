@@ -9,7 +9,7 @@
  * @see https://www.w3.org/TR/wot-thing-description11/
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -160,21 +160,21 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
 /**
  * Check if a node has the @wot_thing trait
  */
-export function hasWoTThingTrait(node: any): boolean {
+export function hasWoTThingTrait(node: HSPlusNode): boolean {
   return !!node.__wotThingState;
 }
 
 /**
  * Get the WoT Thing state from a node
  */
-export function getWoTThingState(node: any): WoTThingState | null {
+export function getWoTThingState(node: HSPlusNode): WoTThingState | null {
   return node.__wotThingState || null;
 }
 
 /**
  * Get the cached TD from a node
  */
-export function getCachedThingDescription(node: any): string | null {
+export function getCachedThingDescription(node: HSPlusNode): string | null {
   const state = getWoTThingState(node);
   return state?.cachedTD || null;
 }
@@ -182,7 +182,7 @@ export function getCachedThingDescription(node: any): string | null {
 /**
  * Mark TD as needing regeneration
  */
-export function invalidateThingDescription(node: any): void {
+export function invalidateThingDescription(node: HSPlusNode): void {
   const state = getWoTThingState(node);
   if (state) {
     state.cachedTD = null;

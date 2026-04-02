@@ -350,7 +350,7 @@ export function traitPropertyTest(
 /**
  * Built-in property tests for the physics trait.
  */
-export const PHYSICS_PROPERTIES: TraitProperty[] = [
+export const PHYSICS_PROPERTIES: TraitProperty<any>[] = [
   property(
     'mass normalization clamps to non-negative',
     (gen) => ({
@@ -378,7 +378,7 @@ export const PHYSICS_PROPERTIES: TraitProperty[] = [
 /**
  * Built-in property tests for material traits.
  */
-export const MATERIAL_PROPERTIES: TraitProperty[] = [
+export const MATERIAL_PROPERTIES: TraitProperty<any>[] = [
   property(
     'metallic and roughness are always 0-1 after clamping',
     (gen) => ({
@@ -408,7 +408,7 @@ export const MATERIAL_PROPERTIES: TraitProperty[] = [
 /**
  * Built-in property tests for vector/transform traits.
  */
-export const TRANSFORM_PROPERTIES: TraitProperty[] = [
+export const TRANSFORM_PROPERTIES: TraitProperty<any>[] = [
   property(
     'position vector always has 3 finite components',
     (gen) => ({

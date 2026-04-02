@@ -2,21 +2,21 @@
  * BatchJobTrait — v5.1
  * Batch processing job runner.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface BatchJobConfig {
   max_concurrent: number;
 }
 export const batchJobHandler: TraitHandler<BatchJobConfig> = {
   name: 'batch_job',
   defaultConfig: { max_concurrent: 5 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__batchState = { jobs: new Map<string, { status: string; progress: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__batchState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: BatchJobConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: BatchJobConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__batchState as { jobs: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

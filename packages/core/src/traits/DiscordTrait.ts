@@ -8,7 +8,7 @@
  *  discord:sent    { channel, messageId }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface DiscordConfig {
   webhook_url: string;
@@ -19,15 +19,15 @@ export const discordHandler: TraitHandler<DiscordConfig> = {
   name: 'discord',
   defaultConfig: { webhook_url: '', bot_name: 'HoloBot' },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__discordState = { sent: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__discordState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: DiscordConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: DiscordConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__discordState as { sent: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'discord:send') {

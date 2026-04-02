@@ -182,6 +182,10 @@ export class WeatherGovProvider extends BaseWeatherProvider {
       condition,
       humidity: props.relativeHumidity.value || 0,
       windSpeed: props.windSpeed.value || 0,
+      windDirection: 0,
+      precipitation: 0,
+      visibility: 0,
+      pressure: 0,
       timestamp: new Date(props.timestamp).getTime(),
     };
   }

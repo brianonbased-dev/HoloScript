@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface MigrateConfig {
   current_version: number;
@@ -30,15 +30,15 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
   name: 'migrate',
   defaultConfig: { current_version: 0, auto_run: false },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__migrateState = { steps: [] as MigrationStep[], currentVersion: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__migrateState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: MigrateConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: MigrateConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__migrateState as
       | { steps: MigrationStep[]; currentVersion: number }
       | undefined;

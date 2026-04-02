@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface IndexConfig {
   max_indices: number;
@@ -26,15 +26,15 @@ export const indexHandler: TraitHandler<IndexConfig> = {
   name: 'index',
   defaultConfig: { max_indices: 50 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__indexState = { indices: new Map() } as IndexState;
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__indexState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: IndexConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: IndexConfig, context: TraitContext, event: TraitEvent): void {
     const state: IndexState | undefined = node.__indexState;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

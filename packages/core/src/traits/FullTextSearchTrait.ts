@@ -2,21 +2,21 @@
  * FullTextSearchTrait — v5.1
  * Full-text search indexing and querying.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface FullTextSearchConfig {
   max_results: number;
 }
 export const fullTextSearchHandler: TraitHandler<FullTextSearchConfig> = {
   name: 'full_text_search',
   defaultConfig: { max_results: 50 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__ftsState = { index: new Map<string, string>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__ftsState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: FullTextSearchConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: FullTextSearchConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__ftsState as { index: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

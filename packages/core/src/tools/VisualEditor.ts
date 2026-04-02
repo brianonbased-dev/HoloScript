@@ -6,7 +6,7 @@
  * Drag-and-drop scene builder, property editing, real-time preview.
  */
 
-import type { HoloComposition, HoloObject, HoloTrait } from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser/HoloCompositionTypes';
 
 /**
  * Editor configuration
@@ -120,7 +120,7 @@ export class VisualEditor {
 
   constructor(config: VisualEditorConfig = {}) {
     this.config = {
-      container: config.container ?? null,
+      container: (config.container ?? null) as any,
       autoSave: config.autoSave ?? true,
       autoSaveInterval: config.autoSaveInterval ?? 30000, // 30 seconds
       debug: config.debug ?? false,
@@ -531,11 +531,28 @@ export class VisualEditor {
    */
   public createNewComposition(): void {
     this.composition = {
+      type: 'Composition',
       name: 'Untitled',
       objects: [],
-      traits: [],
-      settings: {},
-    };
+      templates: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+    } as any;
 
     this.entities.clear();
     this.selectedEntityIds.clear();
@@ -576,7 +593,12 @@ export class VisualEditor {
   /**
    * Convert HoloObject to EditorEntity
    */
-  private holoObjectToEntity(obj: HoloObject, index: number): EditorEntity {
+  private holoObjectToEntity(obj: HoloObjectDecl, index: number): EditorEntity {
+    const getProp = (key: string) => obj.properties?.find((p) => p.key === key)?.value;
+    const pos = getProp('position') as number[] | undefined;
+    const rot = getProp('rotation') as number[] | undefined;
+    const scl = getProp('scale') as number[] | undefined;
+
     return {
       id: `entity_${index}`,
       name: obj.name || `Object ${index}`,
@@ -584,18 +606,20 @@ export class VisualEditor {
       parentId: null,
       children: [],
       transform: {
-        position: obj.position ? [obj.position[0], obj.position[1], obj.position[2]] : [0, 0, 0],
-        rotation: obj.rotation ? [obj.rotation[0], obj.rotation[1], obj.rotation[2]] : [0, 0, 0],
-        scale: obj.scale ? [obj.scale[0], obj.scale[1], obj.scale[2]] : [1, 1, 1],
+        position: pos ? [pos[0], pos[1], pos[2]] : [0, 0, 0],
+        rotation: rot ? [rot[0], rot[1], rot[2]] : [0, 0, 0],
+        scale: scl ? [scl[0], scl[1], scl[2]] : [1, 1, 1],
       },
-      geometry: obj.geometry,
-      material: obj.material,
+      geometry: getProp('geometry') as string | undefined,
+      material: getProp('material') as any,
       traits: (obj.traits || []).map((t) => ({
         name: t.name,
-        properties: t.properties,
+        properties: t.config as Record<string, any>,
         category: this.getTraitCategory(t.name),
       })),
-      properties: obj.properties || {},
+      properties: obj.properties
+        ?.filter((p) => !['position', 'rotation', 'scale', 'geometry', 'material'].includes(p.key))
+        .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}) || {},
       visible: true,
       locked: false,
       selected: false,
@@ -618,22 +642,31 @@ export class VisualEditor {
   public saveComposition(): HoloComposition | null {
     if (!this.composition) return null;
 
-    // Convert EditorEntities back to HoloObjects
-    const objects: HoloObject[] = [];
+    // Convert EditorEntities back to HoloObjectDecls
+    const objects: HoloObjectDecl[] = [];
 
     for (const entity of this.entities.values()) {
-      const obj: HoloObject = {
+      const properties: any[] = [];
+      properties.push({ type: 'ObjectProperty', key: 'position', value: entity.transform.position });
+      properties.push({ type: 'ObjectProperty', key: 'rotation', value: entity.transform.rotation });
+      properties.push({ type: 'ObjectProperty', key: 'scale', value: entity.transform.scale });
+      if (entity.geometry) properties.push({ type: 'ObjectProperty', key: 'geometry', value: entity.geometry });
+      if (entity.material) properties.push({ type: 'ObjectProperty', key: 'material', value: entity.material });
+      
+      for (const [k, v] of Object.entries(entity.properties)) {
+        properties.push({ type: 'ObjectProperty', key: k, value: v });
+      }
+
+      const obj: HoloObjectDecl = {
+        type: 'Object',
         name: entity.name,
-        position: entity.transform.position,
-        rotation: entity.transform.rotation,
-        scale: entity.transform.scale,
-        geometry: entity.geometry,
-        material: entity.material,
+        properties: properties as any,
         traits: entity.traits.map((t) => ({
+          type: 'ObjectTrait',
           name: t.name,
-          properties: t.properties,
+          config: t.properties || {},
         })),
-        properties: entity.properties,
+        children: [],
       };
 
       objects.push(obj);

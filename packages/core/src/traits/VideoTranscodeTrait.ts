@@ -4,7 +4,7 @@
  * Video format conversion and encoding.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface VideoTranscodeConfig {
   default_codec: string;
@@ -15,15 +15,15 @@ export const videoTranscodeHandler: TraitHandler<VideoTranscodeConfig> = {
   name: 'video_transcode',
   defaultConfig: { default_codec: 'h264', max_bitrate: 8000 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__videoState = { jobs: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__videoState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: VideoTranscodeConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: VideoTranscodeConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__videoState as { jobs: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'video:transcode') {

@@ -2,7 +2,7 @@
  * ApprovalTrait — v5.1
  * Human-in-the-loop approval gate.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface ApprovalConfig {
   timeout_ms: number;
@@ -11,14 +11,14 @@ export interface ApprovalConfig {
 export const approvalHandler: TraitHandler<ApprovalConfig> = {
   name: 'approval',
   defaultConfig: { timeout_ms: 86400000 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__approvalState = { requests: new Map<string, { status: string; requestedAt: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__approvalState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: ApprovalConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: ApprovalConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__approvalState as { requests: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

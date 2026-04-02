@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface DatabaseConfig {
   default_collection: string;
@@ -36,7 +36,7 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
     persist_on_detach: false,
   },
 
-  onAttach(node: any, _config: DatabaseConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: DatabaseConfig, _context: TraitContext): void {
     const state: DatabaseState = {
       collections: new Map(),
       totalOps: 0,
@@ -44,7 +44,7 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
     node.__databaseState = state;
   },
 
-  onDetach(node: any, config: DatabaseConfig, context: any): void {
+  onDetach(node: HSPlusNode, config: DatabaseConfig, context: TraitContext): void {
     if (config.persist_on_detach) {
       const state: DatabaseState | undefined = node.__databaseState;
       if (state) {
@@ -60,7 +60,7 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
 
   onUpdate(): void {},
 
-  onEvent(node: any, config: DatabaseConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: DatabaseConfig, context: TraitContext, event: TraitEvent): void {
     const state: DatabaseState | undefined = node.__databaseState;
     if (!state) return;
 

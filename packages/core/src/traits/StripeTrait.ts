@@ -4,7 +4,7 @@
  * Stripe charge / payment intent.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface StripeConfig {
   currency: string;
@@ -14,15 +14,15 @@ export const stripeHandler: TraitHandler<StripeConfig> = {
   name: 'stripe',
   defaultConfig: { currency: 'usd' },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__stripeState = { charges: 0, totalAmount: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__stripeState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: StripeConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: StripeConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__stripeState as { charges: number; totalAmount: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

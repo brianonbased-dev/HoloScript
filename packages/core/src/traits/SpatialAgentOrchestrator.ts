@@ -274,7 +274,7 @@ function parseBlueprint(json: string): SceneBlueprint {
 export const spatialAgentHandler = {
   defaultConfig: DEFAULT_CONFIG,
 
-  onAttach(node: any, _config: SpatialAgentConfig, ctx: any): void {
+  onAttach(node: HSPlusNode, _config: SpatialAgentConfig, ctx: TraitContext): void {
     const state: SpatialAgentState = {
       isReady: true,
       activeGenerations: new Map(),
@@ -286,14 +286,14 @@ export const spatialAgentHandler = {
     ctx.emit('spatial_agent_ready', { node });
   },
 
-  onDetach(node: any, _config: SpatialAgentConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: SpatialAgentConfig, ctx: TraitContext): void {
     const state: SpatialAgentState | undefined = node.__spatialAgentState;
     if (!state) return;
     ctx.emit('spatial_agent_stopped', { node, totalGenerated: state.totalGenerated });
     delete node.__spatialAgentState;
   },
 
-  onEvent(node: any, config: SpatialAgentConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SpatialAgentConfig, ctx: TraitContext, event: TraitEvent): void {
     const state: SpatialAgentState | undefined = node.__spatialAgentState;
     if (!state?.isReady) return;
 
@@ -314,16 +314,16 @@ export const spatialAgentHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: SpatialAgentConfig, _ctx: any, _dt: number): void {
+  onUpdate(_node: HSPlusNode, _config: SpatialAgentConfig, _ctx: TraitContext, _dt: number): void {
     /* async */
   },
 
   _generate(
     state: SpatialAgentState,
-    node: any,
+    node: HSPlusNode,
     config: SpatialAgentConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitContext,
+    payload: Record<string, unknown>
   ): void {
     if (!payload?.prompt) return;
     const requestId = payload.requestId ?? generateRequestId();
@@ -348,9 +348,9 @@ export const spatialAgentHandler = {
 
   async _runGeneration(
     state: SpatialAgentState,
-    node: any,
+    node: HSPlusNode,
     config: SpatialAgentConfig,
-    ctx: any,
+    ctx: TraitContext,
     requestId: string,
     prompt: string
   ): Promise<void> {
@@ -418,10 +418,10 @@ export const spatialAgentHandler = {
 
   _fromBlueprint(
     state: SpatialAgentState,
-    node: any,
+    node: HSPlusNode,
     config: SpatialAgentConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitContext,
+    payload: Record<string, unknown>
   ): void {
     if (!payload?.blueprint) return;
     const requestId = payload.requestId ?? generateRequestId();

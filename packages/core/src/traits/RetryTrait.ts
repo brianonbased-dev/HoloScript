@@ -20,7 +20,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -112,7 +112,7 @@ export const retryHandler: TraitHandler<RetryConfig> = {
     circuit_reset_ms: 60000,
   },
 
-  onAttach(node: any, _config: RetryConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: RetryConfig, _context: TraitContext): void {
     const state: RetryState = {
       circuit: 'closed',
       consecutiveFailures: 0,
@@ -126,11 +126,11 @@ export const retryHandler: TraitHandler<RetryConfig> = {
     node.__retryState = state;
   },
 
-  onDetach(node: any, _config: RetryConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: RetryConfig, _context: TraitContext): void {
     delete node.__retryState;
   },
 
-  onUpdate(node: any, config: RetryConfig, context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: RetryConfig, context: TraitContext, _delta: number): void {
     const state: RetryState | undefined = node.__retryState;
     if (!state) return;
 
@@ -146,7 +146,7 @@ export const retryHandler: TraitHandler<RetryConfig> = {
     }
   },
 
-  onEvent(node: any, config: RetryConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: RetryConfig, context: TraitContext, event: TraitEvent): void {
     const state: RetryState | undefined = node.__retryState;
     if (!state) return;
 

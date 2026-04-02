@@ -5,8 +5,7 @@
  * Handles input buffering and state rollback for smooth multi-user interactions.
  */
 
-import { StateDeclaration } from '../state/ReactiveState';
-
+// Removed unused import
 export interface NetworkInput {
   sequenceNumber: number;
   timestamp: number;

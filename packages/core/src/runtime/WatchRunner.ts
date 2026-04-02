@@ -89,7 +89,7 @@ export class WatchRunner {
     }
 
     // Create a minimal runtime for state binding
-    this.runtime = createHeadlessRuntime({ type: 'Program', body: [] });
+    this.runtime = createHeadlessRuntime({ type: 'Program', root: { id: 'root', type: 'root', children: [], active: true, name: 'root', traits: new Map() } } as any);
     this.watcher.start();
 
     this.pushEvent({

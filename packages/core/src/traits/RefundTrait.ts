@@ -4,7 +4,7 @@
  * Refund processing with reason tracking.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface RefundConfig {
   max_refund_days: number;
@@ -14,17 +14,17 @@ export const refundHandler: TraitHandler<RefundConfig> = {
   name: 'refund',
   defaultConfig: { max_refund_days: 30 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__refundState = {
       refunds: [] as Array<{ refundId: string; chargeId: string; amount: number; reason: string }>,
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__refundState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: RefundConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: RefundConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__refundState as { refunds: Array<any> } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'refund:process') {

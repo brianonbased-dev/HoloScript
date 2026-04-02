@@ -78,7 +78,7 @@ export class SceneInspector {
 
   // Debug overlays
   private boundingBoxHelpers = new Map<string, THREE.Box3Helper>();
-  private normalHelpers = new Map<string, THREE.VertexNormalsHelper>();
+  private normalHelpers = new Map<string, any>();
   private axesHelper: THREE.AxesHelper | null = null;
   private gridHelper: THREE.GridHelper | null = null;
   private cameraHelper: THREE.CameraHelper | null = null;
@@ -317,7 +317,8 @@ export class SceneInspector {
         currentUUIDs.add(object.uuid);
 
         if (!this.normalHelpers.has(object.uuid)) {
-          const helper = new THREE.VertexNormalsHelper(object, 1, 0xff0000);
+          const HelperClass = (THREE as any).VertexNormalsHelper as any;
+          const helper = new HelperClass(object, 1, 0xff0000);
           this.normalHelpers.set(object.uuid, helper);
           this.scene!.add(helper);
         } else {

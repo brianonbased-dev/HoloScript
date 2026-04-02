@@ -9,7 +9,7 @@
  *  prompt:result    { templateId, rendered }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface PromptTemplateConfig {
   max_templates: number;
@@ -24,15 +24,15 @@ export const promptTemplateHandler: TraitHandler<PromptTemplateConfig> = {
   name: 'prompt_template',
   defaultConfig: { max_templates: 100 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__promptState = { templates: new Map<string, PromptEntry>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__promptState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: PromptTemplateConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PromptTemplateConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__promptState as { templates: Map<string, PromptEntry> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

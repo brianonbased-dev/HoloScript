@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -73,7 +73,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
     max_history: 50,
   },
 
-  onAttach(node: any, _config: WebhookConfig, context: any): void {
+  onAttach(node: HSPlusNode, _config: WebhookConfig, context: TraitContext): void {
     const state: WebhookState = {
       history: [],
       requestCounter: 0,
@@ -85,15 +85,15 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
     context.emit?.('webhook:ready', { timestamp: Date.now() });
   },
 
-  onDetach(node: any, _config: WebhookConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: WebhookConfig, _context: TraitContext): void {
     delete node.__webhookState;
   },
 
-  onUpdate(_node: any, _config: WebhookConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: WebhookConfig, _context: TraitContext, _delta: number): void {
     // Event-driven
   },
 
-  onEvent(node: any, config: WebhookConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: WebhookConfig, context: TraitContext, event: TraitEvent): void {
     const state: WebhookState | undefined = node.__webhookState;
     if (!state) return;
 
@@ -150,7 +150,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
               elapsed,
             });
           })
-          .catch((err: any) => {
+          .catch((err: unknown) => {
             if (timer) clearTimeout(timer);
             state.totalErrors++;
             context.emit?.('webhook:error', {

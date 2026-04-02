@@ -11,7 +11,7 @@
  *  canary:status   { version, percentage, started }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface CanaryConfig {
   initial_percentage: number;
@@ -22,15 +22,15 @@ export const canaryHandler: TraitHandler<CanaryConfig> = {
   name: 'canary',
   defaultConfig: { initial_percentage: 5, increment: 10 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__canaryState = { active: false, version: '', percentage: 0, started: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__canaryState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: CanaryConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: CanaryConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__canaryState as
       | { active: boolean; version: string; percentage: number; started: number }
       | undefined;

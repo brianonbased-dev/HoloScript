@@ -93,17 +93,17 @@ export const HSMIntegrationTrait: TraitHandler<HSMIntegrationConfig> = {
   compile(config: HSMIntegrationConfig, target: string): string {
     switch (config.hsm_provider) {
       case 'aws_cloudhsm':
-        return this.compileAWSCloudHSM(config);
+        return (this as any).compileAWSCloudHSM(config);
       case 'azure_keyvault':
-        return this.compileAzureKeyVault(config);
+        return (this as any).compileAzureKeyVault(config);
       case 'google_cloud_hsm':
-        return this.compileGoogleCloudHSM(config);
+        return (this as any).compileGoogleCloudHSM(config);
       case 'secure_enclave':
-        return this.compileSecureEnclave(config);
+        return (this as any).compileSecureEnclave(config);
       case 'tpm':
-        return this.compileTPM(config);
+        return (this as any).compileTPM(config);
       default:
-        return this.compileGeneric(config);
+        return (this as any).compileGeneric(config);
     }
   },
 

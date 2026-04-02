@@ -65,12 +65,12 @@ export const ZeroKnowledgeProofTrait: TraitHandler<ZeroKnowledgeProofConfig> = {
     switch (target) {
       case 'web':
       case 'react-three-fiber':
-        return this.compileWeb(config);
+        return (this as any).compileWeb(config);
       case 'solidity':
       case 'ethereum':
-        return this.compileSolidity(config);
+        return (this as any).compileSolidity(config);
       default:
-        return this.compileGeneric(config);
+        return (this as any).compileGeneric(config);
     }
   },
 

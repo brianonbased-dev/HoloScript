@@ -190,5 +190,5 @@ export const neuralUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
     ...aiUpscalingHandler.defaultConfig,
     upscale_model: 'swinir',
     preserve_details: true,
-  },
+  } as AiUpscalingConfig,
 };

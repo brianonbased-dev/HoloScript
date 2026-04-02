@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -86,7 +86,7 @@ interface BTConfig {
 function tickNode(
   node: BTNode,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -132,7 +132,7 @@ function tickSequence(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -159,7 +159,7 @@ function tickSelector(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -186,7 +186,7 @@ function tickParallel(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -230,7 +230,7 @@ function tickInverter(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -247,7 +247,7 @@ function tickRepeater(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   delta: number
 ): BTStatus {
@@ -273,7 +273,7 @@ function tickRepeater(
   return 'running'; // Keep repeating
 }
 
-function tickCondition(node: BTNode, state: BTState, context: any, owner: unknown): BTStatus {
+function tickCondition(node: BTNode, state: BTState, context: TraitContext, owner: unknown): BTStatus {
   const conditionKey = node.condition || '';
 
   // Check blackboard value
@@ -304,7 +304,7 @@ function tickAction(
   node: BTNode,
   nodeState: BTNodeState,
   state: BTState,
-  context: any,
+  context: TraitContext,
   owner: unknown,
   _delta: number
 ): BTStatus {

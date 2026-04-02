@@ -21,7 +21,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -82,7 +82,7 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
     default_fields: {},
   },
 
-  onAttach(node: any, _config: StructuredLoggerConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: StructuredLoggerConfig, _context: TraitContext): void {
     const state: StructuredLoggerState = {
       entries: [],
       counts: { debug: 0, info: 0, warn: 0, error: 0 },
@@ -92,15 +92,15 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
     node.__structuredLoggerState = state;
   },
 
-  onDetach(node: any, _config: StructuredLoggerConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: StructuredLoggerConfig, _context: TraitContext): void {
     delete node.__structuredLoggerState;
   },
 
-  onUpdate(_node: any, _config: StructuredLoggerConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: StructuredLoggerConfig, _context: TraitContext, _delta: number): void {
     // Event-driven
   },
 
-  onEvent(node: any, config: StructuredLoggerConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: StructuredLoggerConfig, context: TraitContext, event: TraitEvent): void {
     const state: StructuredLoggerState | undefined = node.__structuredLoggerState;
     if (!state) return;
 
@@ -174,9 +174,9 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
 function addEntry(
   state: StructuredLoggerState,
   config: StructuredLoggerConfig,
-  context: any,
+  context: TraitContext,
   level: LogLevel,
-  payload: any
+  payload: Record<string, unknown>
 ): void {
   // Check minimum level
   if (LEVEL_PRIORITY[level] < LEVEL_PRIORITY[config.min_level]) return;

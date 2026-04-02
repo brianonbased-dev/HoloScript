@@ -2,21 +2,21 @@
  * EtlTrait — v5.1
  * Extract-Transform-Load pipeline orchestration.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface EtlConfig {
   max_batch_size: number;
 }
 export const etlHandler: TraitHandler<EtlConfig> = {
   name: 'etl',
   defaultConfig: { max_batch_size: 10000 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__etlState = { pipelines: new Map<string, { phase: string; records: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__etlState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: EtlConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: EtlConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__etlState as { pipelines: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

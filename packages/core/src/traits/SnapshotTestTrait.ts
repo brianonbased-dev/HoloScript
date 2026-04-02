@@ -2,7 +2,7 @@
  * SnapshotTestTrait — v5.1
  * Snapshot comparison testing.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SnapshotTestConfig {
   update_on_mismatch: boolean;
@@ -11,14 +11,14 @@ export interface SnapshotTestConfig {
 export const snapshotTestHandler: TraitHandler<SnapshotTestConfig> = {
   name: 'snapshot_test',
   defaultConfig: { update_on_mismatch: false },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__snapState = { snapshots: new Map<string, string>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__snapState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: SnapshotTestConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SnapshotTestConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__snapState as { snapshots: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

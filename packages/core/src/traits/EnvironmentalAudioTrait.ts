@@ -426,18 +426,18 @@ export class EnvironmentalAudioSystem {
 }
 
 // ── Handler (delegates to EnvironmentalAudioSystem) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export const environmentalAudioHandler = {
   name: 'environmental_audio',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new EnvironmentalAudioSystem();
     node.__environmental_audio_instance = instance;
     ctx.emit('environmental_audio_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__environmental_audio_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__environmental_audio_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -446,8 +446,8 @@ export const environmentalAudioHandler = {
     ctx.emit('environmental_audio_detached', { node });
     delete node.__environmental_audio_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__environmental_audio_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__environmental_audio_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -456,8 +456,8 @@ export const environmentalAudioHandler = {
       ctx.emit('environmental_audio_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__environmental_audio_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__environmental_audio_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

@@ -2,7 +2,7 @@
  * WebhookOutTrait — v5.1
  * Outbound webhook delivery with retry.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface WebhookOutConfig {
   max_retries: number;
   timeout_ms: number;
@@ -10,14 +10,14 @@ export interface WebhookOutConfig {
 export const webhookOutHandler: TraitHandler<WebhookOutConfig> = {
   name: 'webhook_out',
   defaultConfig: { max_retries: 3, timeout_ms: 5000 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__whOutState = { sent: 0, failed: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__whOutState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: WebhookOutConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: WebhookOutConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__whOutState as { sent: number; failed: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'webhook:send') {

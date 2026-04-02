@@ -413,7 +413,6 @@ export class PluginSandboxRunner {
 
       const script = new vm.Script(code, {
         filename: `plugin:${this.pluginId}`,
-        timeout: this.budget.maxCpuTimeMs,
       });
 
       const result = script.runInContext(context, {

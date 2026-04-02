@@ -217,7 +217,7 @@ export class MaterialEditor {
 
   constructor(config: MaterialEditorConfig = {}) {
     this.config = {
-      container: config.container ?? null,
+      container: config.container as HTMLElement,
       livePreview: config.livePreview ?? true,
       previewResolution: config.previewResolution ?? 512,
       autoSave: config.autoSave ?? true,

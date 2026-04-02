@@ -17,7 +17,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -78,7 +78,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
     max_output_bytes: 1024 * 1024, // 1MB
   },
 
-  onAttach(node: any, _config: ShellConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: ShellConfig, _context: TraitContext): void {
     const state: ShellState = {
       activeProcesses: new Map(),
       history: [],
@@ -87,7 +87,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
     node.__shellState = state;
   },
 
-  onDetach(node: any, _config: ShellConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: ShellConfig, _context: TraitContext): void {
     const state: ShellState | undefined = node.__shellState;
     if (state) {
       // Kill all active processes
@@ -104,11 +104,11 @@ export const shellHandler: TraitHandler<ShellConfig> = {
     delete node.__shellState;
   },
 
-  onUpdate(_node: any, _config: ShellConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: ShellConfig, _context: TraitContext, _delta: number): void {
     // Event-driven
   },
 
-  onEvent(node: any, config: ShellConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ShellConfig, context: TraitContext, event: TraitEvent): void {
     const state: ShellState | undefined = node.__shellState;
     if (!state) return;
 
@@ -163,7 +163,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
 
               context.emit?.('shell:exit', { pid, code, signal, elapsed });
             })
-            .catch((err: any) => {
+            .catch((err: unknown) => {
               context.emit?.('shell:error', {
                 command: cmd,
                 error: err?.message ?? String(err),
@@ -253,7 +253,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
             context.emit?.('shell:exit', { pid, code, signal, elapsed });
           });
 
-          child.on('error', (err: any) => {
+          child.on('error', (err: unknown) => {
             if (procEntry.timer) clearTimeout(procEntry.timer);
             state.activeProcesses.delete(pid);
             context.emit?.('shell:error', {
@@ -261,7 +261,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
               error: err.message,
             });
           });
-        } catch (err: any) {
+        } catch (err: unknown) {
           context.emit?.('shell:error', { command, error: err.message });
         }
         break;

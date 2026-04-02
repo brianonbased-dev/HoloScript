@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 export interface VoiceMeshConfig {
   auto_connect: boolean;
@@ -108,7 +108,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
 
   // --- Helpers ---
 
-  async startLocalStream(node: any, config: VoiceMeshConfig, context: any) {
+  async startLocalStream(node: HSPlusNode, config: VoiceMeshConfig, context: TraitContext) {
     const state = node.__voiceMeshState as VoiceMeshState;
 
     // In node/test env, navigator might be missing

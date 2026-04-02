@@ -19,7 +19,7 @@ export class PressableTrait implements Trait {
   private isPressed: boolean = false;
   private initialPos: { x: number; y: number; z: number } | null = null; // Local offset?
 
-  onAttach(node: any, context: TraitContext): void {
+  onAttach(node: HSPlusNode, context: TraitContext): void {
     const distance = node.properties.distance || 0.01;
     const stiffness = node.properties.stiffness || 100;
     const damping = node.properties.damping || 5;
@@ -36,7 +36,7 @@ export class PressableTrait implements Trait {
     });
   }
 
-  onUpdate(node: any, context: TraitContext, _delta: number): void {
+  onUpdate(node: HSPlusNode, context: TraitContext, _delta: number): void {
     if (!this.initialPos) {
       // Capture initial position on first update (assuming simulation settled or static start)
       // Better: capture onAttach, but onAttach might be before physics/layout settle.
@@ -81,18 +81,18 @@ export class PressableTrait implements Trait {
 }
 
 // ── Handler (delegates to PressableTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitEvent } from './TraitTypes';
 
 export const pressableHandler = {
   name: 'pressable',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new PressableTrait();
     node.__pressable_instance = instance;
     ctx.emit('pressable_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__pressable_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__pressable_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -101,8 +101,8 @@ export const pressableHandler = {
     ctx.emit('pressable_detached', { node });
     delete node.__pressable_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__pressable_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__pressable_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -111,8 +111,8 @@ export const pressableHandler = {
       ctx.emit('pressable_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__pressable_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__pressable_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

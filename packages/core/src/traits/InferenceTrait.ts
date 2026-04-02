@@ -9,7 +9,7 @@
  *  inference:error    { modelId, error }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface InferenceConfig {
   timeout_ms: number;
@@ -20,15 +20,15 @@ export const inferenceHandler: TraitHandler<InferenceConfig> = {
   name: 'inference',
   defaultConfig: { timeout_ms: 30000, max_tokens: 4096 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__inferenceState = { totalRuns: 0, totalTokens: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__inferenceState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: InferenceConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: InferenceConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__inferenceState as { totalRuns: number; totalTokens: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'inference:run') {

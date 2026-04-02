@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -58,7 +58,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
     auto_start: true,
   },
 
-  onAttach(node: any, config: WatcherConfig, context: any): void {
+  onAttach(node: HSPlusNode, config: WatcherConfig, context: TraitContext): void {
     const state: WatcherState = {
       active: false,
       lastChange: 0,
@@ -74,7 +74,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
     }
   },
 
-  onDetach(node: any, _config: WatcherConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: WatcherConfig, _context: TraitContext): void {
     const state: WatcherState | undefined = node.__watcherState;
     if (state) {
       stopWatching(state);
@@ -82,11 +82,11 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
     delete node.__watcherState;
   },
 
-  onUpdate(_node: any, _config: WatcherConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: WatcherConfig, _context: TraitContext, _delta: number): void {
     // Watchers are event-driven
   },
 
-  onEvent(node: any, config: WatcherConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: WatcherConfig, context: TraitContext, event: TraitEvent): void {
     const state: WatcherState | undefined = node.__watcherState;
     if (!state) return;
 
@@ -126,7 +126,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
   },
 };
 
-function startWatching(node: any, config: WatcherConfig, context: any): void {
+function startWatching(node: HSPlusNode, config: WatcherConfig, context: TraitContext): void {
   const state: WatcherState = node.__watcherState;
   state.active = true;
 
@@ -148,7 +148,7 @@ function startWatching(node: any, config: WatcherConfig, context: any): void {
             }
           );
           state.watchers.push(watcher);
-        } catch (err: any) {
+        } catch (err: unknown) {
           context.emit?.('watcher:error', { error: err.message, watchType: 'file' });
         }
       }
@@ -190,7 +190,7 @@ function stopWatching(state: WatcherState): void {
 function emitDebouncedChange(
   state: WatcherState,
   config: WatcherConfig,
-  context: any,
+  context: TraitContext,
   changeData: { type: string; path: string; timestamp: number }
 ): void {
   if (config.debounce_ms <= 0) {

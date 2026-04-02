@@ -4,7 +4,7 @@
  * Invoice generation and lifecycle tracking.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface InvoiceConfig {
   auto_number: boolean;
@@ -14,18 +14,18 @@ export const invoiceHandler: TraitHandler<InvoiceConfig> = {
   name: 'invoice',
   defaultConfig: { auto_number: true },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__invoiceState = {
       invoices: new Map<string, { amount: number; status: string }>(),
       counter: 0,
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__invoiceState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: InvoiceConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: InvoiceConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__invoiceState as
       | { invoices: Map<string, any>; counter: number }
       | undefined;

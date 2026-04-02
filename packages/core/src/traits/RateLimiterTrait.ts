@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -70,7 +70,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     default_key: 'default',
   },
 
-  onAttach(node: any, _config: RateLimiterConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: RateLimiterConfig, _context: TraitContext): void {
     const state: RateLimiterState = {
       buckets: new Map(),
       windows: new Map(),
@@ -80,11 +80,11 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     node.__rateLimiterState = state;
   },
 
-  onDetach(node: any, _config: RateLimiterConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: RateLimiterConfig, _context: TraitContext): void {
     delete node.__rateLimiterState;
   },
 
-  onUpdate(node: any, config: RateLimiterConfig, _context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: RateLimiterConfig, _context: TraitContext, _delta: number): void {
     const state: RateLimiterState | undefined = node.__rateLimiterState;
     if (!state) return;
 
@@ -108,7 +108,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     }
   },
 
-  onEvent(node: any, config: RateLimiterConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: RateLimiterConfig, context: TraitContext, event: TraitEvent): void {
     const state: RateLimiterState | undefined = node.__rateLimiterState;
     if (!state) return;
 

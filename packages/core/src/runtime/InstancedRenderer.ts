@@ -97,8 +97,9 @@ export class InstancedRenderer {
     // Get or create batch
     let batch = this.batches.get(batchKey);
     if (!batch) {
-      batch = this.createBatch(batchKey, geometryType, materialType);
-      if (!batch) return false;
+      const newBatch = this.createBatch(batchKey, geometryType, materialType);
+      if (!newBatch) return false;
+      batch = newBatch;
     }
 
     // Check if batch is full

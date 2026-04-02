@@ -1242,6 +1242,16 @@ export async function handleHoloMeshRoute(
         createdAt: new Date().toISOString(),
       };
 
+      // Persist price in metadata so it survives the orchestrator round-trip
+      // (orchestrator stores metadata as JSON, price is not a native column)
+      if (entry.price > 0) {
+        (entry as any).metadata = {
+          ...(entry as any).metadata,
+          price: entry.price,
+          domain: entry.domain,
+        };
+      }
+
       const synced = await c.contributeKnowledge([entry]);
       json(res, 201, {
         success: true,

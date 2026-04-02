@@ -2,7 +2,7 @@
  * RtlTrait — v5.1
  * Right-to-left layout management.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface RtlConfig {
   rtl_locales: string[];
@@ -11,14 +11,14 @@ export interface RtlConfig {
 export const rtlHandler: TraitHandler<RtlConfig> = {
   name: 'rtl',
   defaultConfig: { rtl_locales: ['ar', 'he', 'fa', 'ur'] },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__rtlState = { enabled: false };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__rtlState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: RtlConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: RtlConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__rtlState as { enabled: boolean } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'rtl:check') {

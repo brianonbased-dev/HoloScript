@@ -11,7 +11,7 @@
  *  sse:status      { clients, totalBroadcasts }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SseConfig {
   max_clients: number;
@@ -22,15 +22,15 @@ export const sseHandler: TraitHandler<SseConfig> = {
   name: 'sse',
   defaultConfig: { max_clients: 1000, keepalive_ms: 30000 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__sseState = { clients: new Set<string>(), totalBroadcasts: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__sseState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: SseConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SseConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__sseState as { clients: Set<string>; totalBroadcasts: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

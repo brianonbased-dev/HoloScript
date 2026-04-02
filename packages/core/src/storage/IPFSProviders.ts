@@ -189,7 +189,7 @@ export class NFTStorageProvider implements IIPFSProvider {
 
     // Add files to form data
     for (const file of files) {
-      const blob = new Blob([file.content]);
+      const blob = new Blob([file.content as any]);
       formData.append('file', blob, file.path);
     }
 
@@ -304,7 +304,7 @@ export class InfuraProvider implements IIPFSProvider {
 
     // Add files to form data
     for (const file of files) {
-      const blob = new Blob([file.content]);
+      const blob = new Blob([file.content as any]);
       formData.append('file', blob, file.path);
     }
 

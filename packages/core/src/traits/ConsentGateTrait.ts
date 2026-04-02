@@ -10,7 +10,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -209,7 +209,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
  * Check if consent is currently granted for a given set of scopes.
  * Returns false if even one scope is not covered.
  */
-export function isConsentGranted(node: unknown, requiredScopes: ConsentScope[]): boolean {
+export function isConsentGranted(node: HSPlusNode, requiredScopes: ConsentScope[]): boolean {
   const state = node.__consentGateState as ConsentGateState | undefined;
   if (!state || state.status !== 'granted') return false;
   // All required scopes must be a subset of the granted config scopes

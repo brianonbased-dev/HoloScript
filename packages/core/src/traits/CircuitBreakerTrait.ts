@@ -23,7 +23,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -79,7 +79,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     min_requests: 10,
   },
 
-  onAttach(node: any, _config: CircuitBreakerConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: CircuitBreakerConfig, _context: TraitContext): void {
     const state: CircuitBreakerState = {
       state: 'closed',
       openedAt: 0,
@@ -94,11 +94,11 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     node.__circuitBreakerState = state;
   },
 
-  onDetach(node: any, _config: CircuitBreakerConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: CircuitBreakerConfig, _context: TraitContext): void {
     delete node.__circuitBreakerState;
   },
 
-  onUpdate(node: any, config: CircuitBreakerConfig, context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, _delta: number): void {
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
 
@@ -119,7 +119,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     state.requestLog = state.requestLog.filter((r) => r.timestamp >= cutoff);
   },
 
-  onEvent(node: any, config: CircuitBreakerConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, event: TraitEvent): void {
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
 
@@ -249,7 +249,7 @@ function shouldOpen(state: CircuitBreakerState, config: CircuitBreakerConfig): b
   return false;
 }
 
-function openCircuit(state: CircuitBreakerState, config: CircuitBreakerConfig, context: any): void {
+function openCircuit(state: CircuitBreakerState, config: CircuitBreakerConfig, context: TraitContext): void {
   state.state = 'open';
   state.openedAt = Date.now();
   const windowFailures = state.requestLog.filter((r) => !r.success).length;

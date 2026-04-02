@@ -11,7 +11,7 @@
  *  model:error    { modelId, error }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface ModelLoadConfig {
   max_loaded: number;
@@ -22,15 +22,15 @@ export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
   name: 'model_load',
   defaultConfig: { max_loaded: 5, warmup_rounds: 1 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__modelLoadState = { loaded: new Map<string, { provider: string; loadedAt: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__modelLoadState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: ModelLoadConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ModelLoadConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__modelLoadState as
       | { loaded: Map<string, { provider: string; loadedAt: number }> }
       | undefined;

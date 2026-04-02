@@ -2,7 +2,7 @@
  * LoadTestTrait — v5.1
  * Load / stress test runner with concurrency tracking.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface LoadTestConfig {
   max_vus: number;
@@ -12,14 +12,14 @@ export interface LoadTestConfig {
 export const loadTestHandler: TraitHandler<LoadTestConfig> = {
   name: 'load_test',
   defaultConfig: { max_vus: 100, default_duration_ms: 30000 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__loadState = { running: false, vus: 0, requests: 0, errors: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__loadState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: LoadTestConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: LoadTestConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__loadState as
       | { running: boolean; vus: number; requests: number; errors: number }
       | undefined;

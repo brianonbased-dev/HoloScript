@@ -29,7 +29,7 @@
  * @version 5.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -211,7 +211,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // ===========================================================================
   // onAttach — initialize portal state, attempt relay connection
   // ===========================================================================
-  onAttach(node: any, config: PortalConfig, context: any): void {
+  onAttach(node: HSPlusNode, config: PortalConfig, context: TraitContext): void {
     const state: PortalState = {
       connected: false,
       scenes: new Map(),
@@ -243,7 +243,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // ===========================================================================
   // onDetach — disconnect and cleanup
   // ===========================================================================
-  onDetach(node: any, config: PortalConfig, context: any): void {
+  onDetach(node: HSPlusNode, config: PortalConfig, context: TraitContext): void {
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 
@@ -274,7 +274,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // ===========================================================================
   // onUpdate — heartbeat, prune offline scenes, process inbox
   // ===========================================================================
-  onUpdate(node: any, config: PortalConfig, context: any, delta: number): void {
+  onUpdate(node: HSPlusNode, config: PortalConfig, context: TraitContext, delta: number): void {
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 
@@ -346,7 +346,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // ===========================================================================
   // onEvent — handle portal events
   // ===========================================================================
-  onEvent(node: any, config: PortalConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PortalConfig, context: TraitContext, event: TraitEvent): void {
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 

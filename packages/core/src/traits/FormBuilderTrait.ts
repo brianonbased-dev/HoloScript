@@ -2,7 +2,7 @@
  * FormBuilderTrait — v5.1
  * Dynamic form schema and rendering.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface FormBuilderConfig {
   max_fields: number;
@@ -11,7 +11,7 @@ export interface FormBuilderConfig {
 export const formBuilderHandler: TraitHandler<FormBuilderConfig> = {
   name: 'form_builder',
   defaultConfig: { max_fields: 100 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__formState = {
       forms: new Map<
         string,
@@ -19,11 +19,11 @@ export const formBuilderHandler: TraitHandler<FormBuilderConfig> = {
       >(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__formState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: FormBuilderConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: FormBuilderConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__formState as { forms: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

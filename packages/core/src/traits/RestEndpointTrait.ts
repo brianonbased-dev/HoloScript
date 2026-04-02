@@ -2,21 +2,21 @@
  * RestEndpointTrait — v5.1
  * REST API endpoint definition.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface RestEndpointConfig {
   base_path: string;
 }
 export const restEndpointHandler: TraitHandler<RestEndpointConfig> = {
   name: 'rest_endpoint',
   defaultConfig: { base_path: '/api' },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__restState = { routes: new Map<string, string>(), requests: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__restState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: RestEndpointConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: RestEndpointConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__restState as { routes: Map<string, string>; requests: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

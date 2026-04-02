@@ -171,20 +171,25 @@ export class SceneInspector {
     this.entities.clear();
 
     // Add entities from composition
-    for (const entity of this.composition.entities || []) {
+    for (const obj of this.composition.objects || []) {
+      const getProp = (key: string) => obj.properties?.find((p) => p.key === key)?.value;
+      const pos = getProp('position') as number[] | undefined;
+      const rot = getProp('rotation') as number[] | undefined;
+      const scl = getProp('scale') as number[] | undefined;
+
       const inspectorEntity: InspectorEntity = {
-        id: entity.name,
-        name: entity.name,
-        type: entity.type || 'entity',
+        id: obj.name,
+        name: obj.name,
+        type: obj.type || 'entity',
         parentId: null, // HoloScript doesn't have hierarchy yet, all root-level
         childrenIds: [],
         transform: {
-          position: entity.position || [0, 0, 0],
-          rotation: entity.rotation || [0, 0, 0],
-          scale: entity.scale || [1, 1, 1],
+          position: pos ? [pos[0], pos[1], pos[2]] as any : [0, 0, 0],
+          rotation: rot ? [rot[0], rot[1], rot[2]] as any : [0, 0, 0],
+          scale: scl ? [scl[0], scl[1], scl[2]] as any : [1, 1, 1],
         },
-        properties: this.extractProperties(entity),
-        traits: entity.traits?.map((t) => t.name) || [],
+        properties: this.extractProperties(obj),
+        traits: obj.traits?.map((t: any) => t.name) || [],
         visible: true,
         active: true,
       };
@@ -200,13 +205,16 @@ export class SceneInspector {
     const props: Record<string, any> = {};
 
     // Extract basic properties
-    if (entity.geometry) props.geometry = entity.geometry;
-    if (entity.material) props.material = entity.material;
+    for (const prop of entity.properties || []) {
+      if (['geometry', 'material'].includes(prop.key)) {
+        props[prop.key] = prop.value;
+      }
+    }
 
     // Extract trait properties
     for (const trait of entity.traits || []) {
-      if (trait.properties) {
-        props[trait.name] = trait.properties;
+      if (trait.config) {
+        props[trait.name] = trait.config;
       }
     }
 

@@ -29,7 +29,9 @@ export class MovementPredictor {
    * Convert Vector3 to tuple for consistent handling
    */
   private toTuple(v: Vector3): [number, number, number] {
-    return Array.isArray(v) ? v : [v.x, v.y, v.z];
+    return Array.isArray(v)
+      ? [v[0] as number, v[1] as number, v[2] as number]
+      : [v.x as number, v.y as number, v.z as number];
   }
 
   /**

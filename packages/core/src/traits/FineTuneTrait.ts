@@ -9,7 +9,7 @@
  *  finetune:complete { jobId, modelId, metrics }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface FineTuneConfig {
   max_concurrent: number;
@@ -19,17 +19,17 @@ export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
   name: 'fine_tune',
   defaultConfig: { max_concurrent: 2 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__fineTuneState = {
       jobs: new Map<string, { modelId: string; status: string; progress: number }>(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__fineTuneState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: FineTuneConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: FineTuneConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__fineTuneState as
       | { jobs: Map<string, { modelId: string; status: string; progress: number }> }
       | undefined;

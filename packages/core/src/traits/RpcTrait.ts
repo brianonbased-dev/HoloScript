@@ -2,21 +2,21 @@
  * RpcTrait — v5.1
  * Remote procedure call handler.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface RpcConfig {
   timeout_ms: number;
 }
 export const rpcHandler: TraitHandler<RpcConfig> = {
   name: 'rpc',
   defaultConfig: { timeout_ms: 5000 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__rpcState = { methods: new Map<string, number>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__rpcState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: RpcConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: RpcConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__rpcState as { methods: Map<string, number> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

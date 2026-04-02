@@ -38,7 +38,7 @@ import type {
 /** Helper to convert Vector3 (object or tuple) to a tuple for indexed access */
 function vec3ToTuple(v: Vector3): Vector3Tuple {
   if (Array.isArray(v)) return v as Vector3Tuple;
-  return [v.x, v.y, v.z];
+  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
 }
 
 import {
@@ -535,7 +535,7 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
     if (event.type === 'grab_start') {
       // Check distance for distance grab
       if (!config.distance_grab) {
-        const handPos = vec3ToTuple(event.hand.position);
+        const handPos = vec3ToTuple((event as any).hand.position);
         const nodePos = vec3ToTuple((node.properties?.position as Vector3) || [0, 0, 0]);
         const distance = Math.sqrt(
           Math.pow(handPos[0] - nodePos[0], 2) +
@@ -547,11 +547,11 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
       }
 
       state.isGrabbed = true;
-      state.grabbingHand = event.hand;
+      state.grabbingHand = (event as any).hand;
 
       // Calculate grab offset
       const nodePosArr = vec3ToTuple((node.properties?.position as Vector3) || [0, 0, 0]);
-      const handPosArr = vec3ToTuple(event.hand.position);
+      const handPosArr = vec3ToTuple((event as any).hand.position);
       state.grabOffset = [
         nodePosArr[0] - handPosArr[0],
         nodePosArr[1] - handPosArr[1],
@@ -560,14 +560,14 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
 
       // Haptic feedback
       if (config.haptic_on_grab) {
-        context.haptics.pulse(event.hand.id, config.haptic_on_grab);
+        context.haptics.pulse((event as any).hand.id, config.haptic_on_grab);
       }
 
       // Make kinematic while grabbed
       context.physics.setKinematic(node, true);
 
       // Emit grab event
-      context.emit('grab', { node, hand: event.hand });
+      context.emit('grab', { node, hand: (event as any).hand });
     }
 
     if (event.type === 'grab_end') {
@@ -636,7 +636,7 @@ const throwableHandler: TraitHandler<ThrowableTrait> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'collision' && config.bounce) {
-      const collision = event.data;
+      const collision = (event as any).data as any;
       const bounceFactor = config.bounce_factor || 0.5;
 
       // Reflect velocity
@@ -684,14 +684,14 @@ const pointableHandler: TraitHandler<PointableTrait> = {
 
     if (event.type === 'point_enter') {
       state.isPointed = true;
-      state.pointingHand = event.hand;
+      state.pointingHand = (event as any).hand;
 
       if (config.highlight_on_point && node.properties) {
         node.properties.__originalEmissive = node.properties.emissive;
         node.properties.emissive = config.highlight_color;
       }
 
-      context.emit('point_enter', { node, hand: event.hand });
+      context.emit('point_enter', { node, hand: (event as any).hand });
     }
 
     if (event.type === 'point_exit') {
@@ -707,7 +707,7 @@ const pointableHandler: TraitHandler<PointableTrait> = {
     }
 
     if (event.type === 'click') {
-      context.emit('click', { node, hand: event.hand });
+      context.emit('click', { node, hand: (event as any).hand });
     }
   },
 };
@@ -747,7 +747,7 @@ const hoverableHandler: TraitHandler<HoverableTrait> = {
 
     if (event.type === 'hover_enter') {
       state.isHovered = true;
-      state.hoveringHand = event.hand;
+      state.hoveringHand = (event as any).hand;
 
       // Scale up
       if (config.scale_on_hover && config.scale_on_hover !== 1 && node.properties) {
@@ -775,7 +775,7 @@ const hoverableHandler: TraitHandler<HoverableTrait> = {
         });
       }
 
-      context.emit('hover_enter', { node, hand: event.hand });
+      context.emit('hover_enter', { node, hand: (event as any).hand });
     }
 
     if (event.type === 'hover_exit') {
@@ -886,7 +886,7 @@ const scalableHandler: TraitHandler<ScalableTrait> = {
       state.initialScale = typeof node.properties?.scale === 'number' ? node.properties.scale : 1;
 
       // Calculate initial distance between hands
-      const { left, right } = event.hands;
+      const { left, right } = (event as any).hands;
       state.initialDistance = Math.sqrt(
         Math.pow(right.position[0] - left.position[0], 2) +
           Math.pow(right.position[1] - left.position[1], 2) +
@@ -994,7 +994,7 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     if (event.type === 'rotate_start') {
       state.isRotating = true;
-      state.initialHandRotation = vec3ToTuple(event.hand.rotation);
+      state.initialHandRotation = vec3ToTuple((event as any).hand.rotation);
       state.initialObjectRotation = vec3ToTuple(
         (node.properties?.rotation as Vector3) || [0, 0, 0]
       );
@@ -1053,7 +1053,7 @@ const stackableHandler: TraitHandler<StackableTrait> = {
 
     if (event.type === 'collision' || event.type === 'trigger_enter') {
       const other =
-        event.type === 'collision' ? event.data.target : (event as { other: HSPlusNode }).other;
+        event.type === 'collision' ? (event as any).data.target : (event as any as { other: HSPlusNode }).other;
 
       // Check if other is stackable
       if (!other.traits?.has('stackable')) return;
@@ -1180,7 +1180,7 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
       context.emit('snap', { node, point: closestPoint });
 
       // Haptic feedback
-      context.haptics.pulse(event.hand.id, 0.3);
+      context.haptics.pulse((event as any).hand.id, 0.3);
     }
   },
 };
@@ -1204,7 +1204,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
   onEvent(node, config, context, event) {
     if (event.type !== 'collision') return;
 
-    const collision = event.data;
+    const collision = (event as any).data as any;
     const impactVelocity = Math.sqrt(
       Math.pow(collision.relativeVelocity[0], 2) +
         Math.pow(collision.relativeVelocity[1], 2) +
@@ -1724,7 +1724,7 @@ export class VRTraitRegistry {
 
     // ── Phase A: Previously unregistered handlers ──
     this.register(agentDiscoveryHandler as TraitHandler);
-    this.register(agentMemoryHandler as TraitHandler);
+    this.register(agentMemoryHandler as unknown as TraitHandler);
     this.register(agentPortalHandler as TraitHandler);
     this.register(aiInpaintingHandler as TraitHandler);
     this.register(ainpcBrainHandler as TraitHandler);
@@ -1732,7 +1732,7 @@ export class VRTraitRegistry {
     this.register(analyticsHandler as TraitHandler);
     this.register(biofeedbackHandler as TraitHandler);
     this.register(blackboardHandler as TraitHandler);
-    this.register(computerUseHandler as TraitHandler);
+    this.register(computerUseHandler as unknown as TraitHandler);
     this.register(consentGateHandler as TraitHandler);
     this.register(controlNetHandler as TraitHandler);
     this.register(diffusionRealtimeHandler as TraitHandler);
@@ -1741,9 +1741,9 @@ export class VRTraitRegistry {
     this.register(handMeshAIHandler as TraitHandler);
     this.register(hitlHandler as TraitHandler);
     this.register(interactiveGraphHandler as TraitHandler);
-    this.register(localLLMHandler as TraitHandler);
+    this.register(localLLMHandler as unknown as TraitHandler);
     this.register(marketplaceIntegrationHandler as TraitHandler);
-    this.register(messagingHandler as TraitHandler);
+    this.register(messagingHandler as unknown as TraitHandler);
     this.register(mqttSinkHandler as TraitHandler);
     this.register(mqttSourceHandler as TraitHandler);
     this.register(multiAgentHandler as TraitHandler);
@@ -1761,7 +1761,7 @@ export class VRTraitRegistry {
     this.register(renderNetworkHandler as TraitHandler);
     this.register(sceneReconstructionHandler as TraitHandler);
     this.register(sharePlayHandler as TraitHandler);
-    this.register(skillRegistryHandler as TraitHandler);
+    this.register(skillRegistryHandler as unknown as TraitHandler);
     this.register(spatialNavigationHandler as TraitHandler);
     this.register(spatialPersonaHandler as TraitHandler);
     this.register(stableDiffusionHandler as TraitHandler);
@@ -1837,7 +1837,7 @@ export class VRTraitRegistry {
   attachTrait(
     node: HSPlusNode,
     traitName: VRTraitName,
-    config: unknown,
+    config: any,
     context: TraitContext
   ): void {
     const handler = this.handlers.get(traitName);

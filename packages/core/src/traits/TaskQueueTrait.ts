@@ -20,7 +20,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -88,7 +88,7 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
     process_action: 'queue:process',
   },
 
-  onAttach(node: any, _config: TaskQueueConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: TaskQueueConfig, _context: TraitContext): void {
     const state: TaskQueueState = {
       queue: [],
       active: [],
@@ -100,15 +100,15 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
     node.__taskQueueState = state;
   },
 
-  onDetach(node: any, _config: TaskQueueConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: TaskQueueConfig, _context: TraitContext): void {
     delete node.__taskQueueState;
   },
 
-  onUpdate(_node: any, _config: TaskQueueConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: TaskQueueConfig, _context: TraitContext, _delta: number): void {
     // Queue is event-driven
   },
 
-  onEvent(node: any, config: TaskQueueConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: TaskQueueConfig, context: TraitContext, event: TraitEvent): void {
     const state: TaskQueueState | undefined = node.__taskQueueState;
     if (!state) return;
 
@@ -238,7 +238,7 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
   },
 };
 
-function processNext(state: TaskQueueState, config: TaskQueueConfig, context: any): void {
+function processNext(state: TaskQueueState, config: TaskQueueConfig, context: TraitContext): void {
   while (state.active.length < config.max_concurrent && state.queue.length > 0) {
     const task = state.queue.shift()!;
     task.status = 'active';

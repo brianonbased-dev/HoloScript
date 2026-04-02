@@ -8,7 +8,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -279,7 +279,7 @@ export const goalOrientedHandler: TraitHandler<GOAPConfig> = {
 function selectGoalAndPlan(
   state: GOAPState,
   config: GOAPConfig,
-  context: any,
+  context: TraitContext,
   node: unknown
 ): void {
   // Find highest priority valid goal

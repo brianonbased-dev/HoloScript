@@ -2,21 +2,21 @@
  * DataRetentionTrait — v5.1
  * Data retention policy enforcement.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface DataRetentionConfig {
   default_ttl_days: number;
 }
 export const dataRetentionHandler: TraitHandler<DataRetentionConfig> = {
   name: 'data_retention',
   defaultConfig: { default_ttl_days: 90 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__retentionState = { policies: new Map<string, { ttl: number; created: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__retentionState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: DataRetentionConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: DataRetentionConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__retentionState as { policies: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

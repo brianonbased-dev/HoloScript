@@ -501,18 +501,18 @@ export const LIGHTING_PRESETS = {
 };
 
 // ── Handler (delegates to LightingTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export const lightingHandler = {
   name: 'lighting',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new LightingTrait(config);
     node.__lighting_instance = instance;
     ctx.emit('lighting_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__lighting_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__lighting_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -521,8 +521,8 @@ export const lightingHandler = {
     ctx.emit('lighting_detached', { node });
     delete node.__lighting_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__lighting_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__lighting_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -531,8 +531,8 @@ export const lightingHandler = {
       ctx.emit('lighting_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__lighting_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__lighting_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

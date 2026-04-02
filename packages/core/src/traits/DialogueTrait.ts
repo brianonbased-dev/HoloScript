@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -241,7 +241,7 @@ export const dialogueHandler: TraitHandler<DialogueConfig> = {
 function enterNode(
   state: DialogueState,
   config: DialogueConfig,
-  context: any,
+  context: TraitContext,
   node: unknown
 ): void {
   const dialogueNode = state.currentNodeId ? config.dialogue_tree[state.currentNodeId] : null;
@@ -301,7 +301,7 @@ function advanceToNode(
   state: DialogueState,
   nodeId: string,
   config: DialogueConfig,
-  context: any,
+  context: TraitContext,
   node: unknown
 ): void {
   const currentNode = state.currentNodeId ? config.dialogue_tree[state.currentNodeId] : null;
@@ -316,7 +316,7 @@ function advanceToNode(
   enterNode(state, config, context, node);
 }
 
-function endDialogue(state: DialogueState, context: any, node: unknown): void {
+function endDialogue(state: DialogueState, context: TraitContext, node: unknown): void {
   state.isActive = false;
   state.currentNodeId = null;
   state.awaitingInput = false;

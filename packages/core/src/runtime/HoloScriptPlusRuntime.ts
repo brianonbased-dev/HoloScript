@@ -387,7 +387,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       const ManagerClass = (this.options.webXrManagerClass as any) || WebXRManager;
       this.webXrManager = new ManagerClass(context);
 
-      this.webXrManager.onSessionStart = (session) => {
+      this.webXrManager!.onSessionStart = (session) => {
         console.log('XR Session Started');
         this.isXRSessionActive = true;
 
@@ -407,7 +407,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         (this.webXrManager as any).setAnimationLoop(this.xrLoop.bind(this));
       };
 
-      this.webXrManager.onSessionEnd = () => {
+      this.webXrManager!.onSessionEnd = () => {
         console.log('XR Session Ended');
         this.isXRSessionActive = false;
 
@@ -676,7 +676,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     if (node.type === 'composition') {
       const comp = node as unknown as Record<string, unknown>;
       if (comp.children) {
-        for (const child of comp.children) {
+        for (const child of comp.children as Iterable<any>) {
           this.findAllTemplates(child, templates);
         }
       }
@@ -799,7 +799,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           console.log(`[Hot-Reload] Syncing version ${v} to instance ${instance.__holo_id}`);
           instance.templateVersion = v;
         },
-        state: stateBridge as unknown as Record<string, unknown>,
+        state: stateBridge as any,
       });
     }
 
@@ -856,8 +856,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         console.log(`[Runtime] Initializing state:`, stateBody);
         for (const [key, value] of Object.entries(stateBody)) {
           console.log(`[Runtime] Setting state ${key} = ${value}`);
-          if (!this.state.has(key as keyof StateDeclaration)) {
-            this.state.set(key as keyof StateDeclaration, value);
+          if (!this.state.has(key as any)) {
+            this.state.set(key as any, value);
           }
         }
       }
@@ -930,7 +930,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Process control flow directives
     for (const directive of directives) {
       if (directive.type === 'for') {
-        const items = this.evaluateExpression(directive.iterable);
+        const items = this.evaluateExpression((directive as any).iterable as string);
         if (Array.isArray(items)) {
           items.forEach((item, index) => {
             // Create context for each iteration
@@ -945,7 +945,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
             // Clone and process body nodes
             for (const bodyNode of directive.body) {
-              const cloned = this.cloneNodeWithContext(bodyNode, iterContext);
+              const cloned = this.cloneNodeWithContext(bodyNode as HSPlusNode, iterContext);
               result.push(cloned);
             }
           });
@@ -1386,7 +1386,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Apply Networking Sync
-    if (instance.node.traits?.has('networked' as VRTraitName)) {
+    if (instance.node.traits?.has('networked' as any)) {
       const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as Record<
         string,
         unknown
@@ -1495,7 +1495,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       });
 
       // Broadcast if networked
-      if (instance.node.traits?.has('networked' as VRTraitName)) {
+      if (instance.node.traits?.has('networked' as any)) {
         this.emit('network_snapshot', {
           objectId: instance.node.id,
           position: [
@@ -1528,8 +1528,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       // Use AI Copilot if available, otherwise fall back to event emission
       if (this._copilot && this._copilot.isReady()) {
         this._copilot
-          .generateFromPrompt(directive.prompt, {
-            context: directive.context,
+          .generateFromPrompt(directive.prompt as any, {
+            context: directive.context as any,
           })
           .then((response: unknown) => {
             this.emit('generate_complete', {
@@ -1567,7 +1567,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (directive.type !== 'external_api') continue;
 
       const intervalStr = directive.interval || '0s';
-      const intervalMs = this.parseDurationToMs(intervalStr);
+      const intervalMs = this.parseDurationToMs(intervalStr as any);
 
       if (intervalMs <= 0) continue;
 
@@ -1586,7 +1586,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     directive: Record<string, unknown>
   ): Promise<void> {
     try {
-      const data = await this.builtins.api_call(directive.url, directive.method || 'GET');
+      const data = await (this as any).builtins.api_call(directive.url as any, (directive.method as any) || 'GET');
 
       // Update state if needed or trigger logic
       this.state.set('api_data', data);
@@ -1665,21 +1665,20 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           }
         },
         raycast: (origin, direction, maxDistance) => {
-          const hit = this.physicsWorld.raycast(
-            {
-              origin: { x: origin[0], y: origin[1], z: origin[2] },
-              direction: { x: direction[0], y: direction[1], z: direction[2] },
-            },
-            { maxDistance }
-          );
+          const hit = this.physicsWorld.raycastClosest({
+            origin: { x: origin[0] as number, y: origin[1] as number, z: origin[2] as number },
+            direction: { x: direction[0] as number, y: direction[1] as number, z: direction[2] as number },
+            maxDistance,
+          });
 
           if (hit) {
             const h = hit as any;
             return {
-              point: [h.point.x, h.point.y, h.point.z],
-              normal: [h.normal.x, h.normal.y, h.normal.z],
+              point: [h.point.x || 0, h.point.y || 0, h.point.z || 0],
+              normal: [h.normal.x || 0, h.normal.y || 0, h.normal.z || 0],
               distance: h.distance,
               nodeId: h.bodyId,
+              node: h.bodyId as any,
             };
           }
           return null;

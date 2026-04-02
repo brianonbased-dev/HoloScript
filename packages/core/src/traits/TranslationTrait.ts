@@ -2,7 +2,7 @@
  * TranslationTrait — v5.1
  * Translation key lookup with ICU message formatting.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface TranslationConfig {
   fallback_locale: string;
@@ -11,14 +11,14 @@ export interface TranslationConfig {
 export const translationHandler: TraitHandler<TranslationConfig> = {
   name: 'translation',
   defaultConfig: { fallback_locale: 'en' },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__i18nState = { bundles: new Map<string, Map<string, string>>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__i18nState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: TranslationConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: TranslationConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__i18nState as { bundles: Map<string, Map<string, string>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

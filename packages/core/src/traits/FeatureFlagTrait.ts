@@ -10,7 +10,7 @@
  *  flag:toggle     { flagId, enabled }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface FeatureFlagConfig {
   max_flags: number;
@@ -26,15 +26,15 @@ export const featureFlagHandler: TraitHandler<FeatureFlagConfig> = {
   name: 'feature_flag',
   defaultConfig: { max_flags: 200 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__featureFlagState = { flags: new Map<string, Flag>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__featureFlagState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: FeatureFlagConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: FeatureFlagConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__featureFlagState as { flags: Map<string, Flag> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

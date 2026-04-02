@@ -2,23 +2,23 @@
  * RolloutTrait — v5.1
  * Gradual percentage-based rollout.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface RolloutConfig {
   default_percentage: number;
 }
 export const rolloutHandler: TraitHandler<RolloutConfig> = {
   name: 'rollout',
   defaultConfig: { default_percentage: 0 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__rolloutState = {
       features: new Map<string, { percentage: number; enabled: Set<string> }>(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__rolloutState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: RolloutConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: RolloutConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__rolloutState as
       | { features: Map<string, { percentage: number; enabled: Set<string> }> }
       | undefined;

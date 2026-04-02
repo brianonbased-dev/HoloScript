@@ -208,7 +208,7 @@ export const cronHandler = {
   name: 'cron',
   defaultConfig: DEFAULT_CONFIG,
 
-  async onAttach(node: any, config: CronConfig, ctx: any): Promise<void> {
+  async onAttach(node: HSPlusNode, config: CronConfig, ctx: TraitContext): Promise<void> {
     const db = config.persist ? await openCronDB() : null;
     const savedJobs = await loadAllJobs(db);
 
@@ -233,7 +233,7 @@ export const cronHandler = {
     ctx.emit('cron_ready', { node, jobCount: jobs.size });
   },
 
-  onDetach(node: any, _config: CronConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: CronConfig, ctx: TraitContext): void {
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
     if (state.db) state.db.close();
@@ -241,7 +241,7 @@ export const cronHandler = {
     delete node.__cronState;
   },
 
-  onEvent(node: any, config: CronConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: CronConfig, ctx: TraitContext, event: TraitEvent): void {
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
 
@@ -330,7 +330,7 @@ export const cronHandler = {
     }
   },
 
-  onUpdate(node: any, config: CronConfig, ctx: any, _dt: number): void {
+  onUpdate(node: HSPlusNode, config: CronConfig, ctx: TraitContext, _dt: number): void {
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
 
@@ -363,7 +363,7 @@ export const cronHandler = {
     }
   },
 
-  _triggerJob(state: CronState, node: any, config: CronConfig, ctx: any, job: CronJob): void {
+  _triggerJob(state: CronState, node: HSPlusNode, config: CronConfig, ctx: TraitContext, job: CronJob): void {
     const now = Date.now();
     job.lastRun = now;
     job.runCount++;

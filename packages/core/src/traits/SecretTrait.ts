@@ -11,7 +11,7 @@
  *  secret:rotated    { secretId }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SecretConfig {
   max_secrets: number;
@@ -22,17 +22,17 @@ export const secretHandler: TraitHandler<SecretConfig> = {
   name: 'secret',
   defaultConfig: { max_secrets: 100, auto_expire: true },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__secretState = {
       vault: new Map<string, { value: string; expiresAt: number; version: number }>(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__secretState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: SecretConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SecretConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__secretState as
       | { vault: Map<string, { value: string; expiresAt: number; version: number }> }
       | undefined;

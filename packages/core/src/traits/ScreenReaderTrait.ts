@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -216,7 +216,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
   },
 };
 
-function getNodeAnnouncement(node: any, verbosity: string): string {
+function getNodeAnnouncement(node: HSPlusNode, verbosity: string): string {
   const name = node.name || node.id || 'Object';
   const type = node.type || 'item';
 
@@ -230,7 +230,7 @@ function getNodeAnnouncement(node: any, verbosity: string): string {
   }
 }
 
-function getNodeDescription(node: any, _verbosity: string): string {
+function getNodeDescription(node: HSPlusNode, _verbosity: string): string {
   const name = node.name || node.id || 'Object';
   const type = node.type || 'item';
 

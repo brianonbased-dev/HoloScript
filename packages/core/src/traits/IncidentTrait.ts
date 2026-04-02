@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface IncidentConfig {
   max_incidents: number;
@@ -39,15 +39,15 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
   name: 'incident',
   defaultConfig: { max_incidents: 200, auto_archive_resolved: true },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__incidentState = { incidents: new Map<string, Incident>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__incidentState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: IncidentConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: IncidentConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__incidentState as { incidents: Map<string, Incident> } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

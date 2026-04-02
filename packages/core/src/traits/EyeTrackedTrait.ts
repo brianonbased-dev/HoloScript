@@ -55,7 +55,7 @@ interface EyeTrackedState {
 
 function toTuple(v: Vector3): Vector3Tuple {
   if (Array.isArray(v)) return v as Vector3Tuple;
-  return [v.x, v.y, v.z];
+  return [v.x ?? 0, v.y ?? 0, v.z ?? 0];
 }
 
 interface GazeRay {

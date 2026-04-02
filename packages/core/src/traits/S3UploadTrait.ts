@@ -2,7 +2,7 @@
  * S3UploadTrait — v5.1
  * S3-compatible object storage upload.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface S3UploadConfig {
   bucket: string;
   max_size_mb: number;
@@ -10,14 +10,14 @@ export interface S3UploadConfig {
 export const s3UploadHandler: TraitHandler<S3UploadConfig> = {
   name: 's3_upload',
   defaultConfig: { bucket: 'default', max_size_mb: 100 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__s3State = { uploads: 0, totalBytes: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__s3State;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: S3UploadConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: S3UploadConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__s3State as { uploads: number; totalBytes: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 's3:upload') {

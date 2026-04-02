@@ -14,9 +14,17 @@
  */
 
 import { World, Entity } from '../ecs/World';
-import type { ECSSystem } from '../ecs/SystemScheduler';
-import type { SystemScheduler } from '../ecs/SystemScheduler';
+import type { SystemScheduler, SystemPhase } from '../ecs/SystemScheduler';
 import type { EventBus } from '../events/EventBus';
+
+export interface ECSSystem {
+  name: string;
+  priority: number;
+  enabled: boolean;
+  requiredComponents: string[];
+  update: (world: World, entities: Entity[], delta: number) => void;
+  phase?: SystemPhase;
+}
 
 /**
  * Create the built-in integration systems.
@@ -150,9 +158,19 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
 /**
  * Register all integration systems with the scheduler.
  */
-export function registerIntegrationSystems(scheduler: SystemScheduler, eventBus: EventBus): void {
+export function registerIntegrationSystems(scheduler: SystemScheduler, eventBus: EventBus, world?: World): void {
   const systems = createIntegrationSystems(eventBus);
   for (const sys of systems) {
-    scheduler.register(sys);
+    scheduler.register(
+      sys.name,
+      (dt: number) => {
+        if (world) {
+          const entities = world.query(...sys.requiredComponents);
+          sys.update(world, entities, dt);
+        }
+      },
+      sys.phase || 'update',
+      sys.priority
+    );
   }
 }

@@ -17,7 +17,7 @@
  * @milestone v3.1 (March 2026)
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 import type {
   AgentManifest,
   AgentCapability,
@@ -295,7 +295,7 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
 async function registerAgent(
   state: AgentDiscoveryState,
   config: AgentDiscoveryConfig,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   if (!state.registry || !state.manifest) return;
 
@@ -321,7 +321,7 @@ async function registerAgent(
   }
 }
 
-async function deregisterAgent(state: AgentDiscoveryState, context: any): Promise<void> {
+async function deregisterAgent(state: AgentDiscoveryState, context: TraitContext): Promise<void> {
   if (!state.registry || !state.manifest) return;
 
   try {
@@ -340,7 +340,7 @@ async function deregisterAgent(state: AgentDiscoveryState, context: any): Promis
   }
 }
 
-async function sendHeartbeat(state: AgentDiscoveryState, context: any): Promise<void> {
+async function sendHeartbeat(state: AgentDiscoveryState, context: TraitContext): Promise<void> {
   if (!state.registry || !state.manifest || state.registrationStatus !== 'registered') {
     return;
   }
@@ -360,7 +360,7 @@ async function sendHeartbeat(state: AgentDiscoveryState, context: any): Promise<
 async function discoverPeers(
   state: AgentDiscoveryState,
   config: AgentDiscoveryConfig,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   if (!state.registry) return;
 
@@ -439,7 +439,7 @@ async function discoverPeers(
 async function runQuery(
   state: AgentDiscoveryState,
   query: CapabilityQuery,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   if (!state.registry) return;
 
@@ -477,7 +477,7 @@ function addDiscoveryEvent(
   }
 }
 
-function returnDiscoveredAgents(state: AgentDiscoveryState, context: any): void {
+function returnDiscoveredAgents(state: AgentDiscoveryState, context: TraitContext): void {
   const agents = Array.from(state.discoveredAgents.values()).map((d) => ({
     id: d.manifest.id,
     name: d.manifest.name,
@@ -492,7 +492,7 @@ function returnDiscoveredAgents(state: AgentDiscoveryState, context: any): void 
   });
 }
 
-function returnStatus(state: AgentDiscoveryState, context: any): void {
+function returnStatus(state: AgentDiscoveryState, context: TraitContext): void {
   context.emit?.('discovery_status', {
     registrationStatus: state.registrationStatus,
     agentId: state.manifest?.id,

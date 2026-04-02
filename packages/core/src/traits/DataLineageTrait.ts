@@ -2,21 +2,21 @@
  * DataLineageTrait — v5.1
  * Data origin and transformation lineage.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface DataLineageConfig {
   max_depth: number;
 }
 export const dataLineageHandler: TraitHandler<DataLineageConfig> = {
   name: 'data_lineage',
   defaultConfig: { max_depth: 50 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__lineageState = { graph: new Map<string, { source: string; transforms: string[] }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__lineageState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: DataLineageConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: DataLineageConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__lineageState as
       | { graph: Map<string, { source: string; transforms: string[] }> }
       | undefined;

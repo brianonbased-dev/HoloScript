@@ -5,7 +5,7 @@
  * Bridges with @builtin VoiceSynthesizer and synchronizes with @lip_sync.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import {
   getVoiceSynthesizer,
   voiceSynthesizerRegistry,
@@ -61,7 +61,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
     const eventType = typeof event === 'string' ? event : event.type;
 
     if (eventType === 'speak') {
-      const data = (event as Record<string, unknown>).data || {};
+      const data = ((event as Record<string, unknown>).data as Record<string, any>) || {};
       const { text, emotion, intensity, voiceId } = data;
 
       (this as any).handleSpeak(node, config, state, {
@@ -80,7 +80,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
  * Handle speech synthesis and lip sync integration
  */
 (emotionalVoiceHandler as any).handleSpeak = async function (
-  node: any,
+  node: HSPlusNode,
   config: EmotionalVoiceConfig,
   state: InternalState,
   request: VoiceRequest

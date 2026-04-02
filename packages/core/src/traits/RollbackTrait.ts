@@ -9,7 +9,7 @@
  *  rollback:history   { entries[] }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface RollbackConfig {
   max_history: number;
@@ -19,15 +19,15 @@ export const rollbackHandler: TraitHandler<RollbackConfig> = {
   name: 'rollback',
   defaultConfig: { max_history: 20 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__rollbackState = { history: [] as Array<{ version: string; timestamp: number }> };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__rollbackState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: RollbackConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: RollbackConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__rollbackState as
       | { history: Array<{ version: string; timestamp: number }> }
       | undefined;

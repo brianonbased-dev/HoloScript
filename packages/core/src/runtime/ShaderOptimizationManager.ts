@@ -176,7 +176,7 @@ export const OptimizedDebrisShader = {
  */
 export const BatchedMeshShader = {
   uniforms: {
-    diffuseMap: { value: null },
+    diffuseMap: { value: null as THREE.Texture | null },
     lightPosition: { value: new THREE.Vector3(10, 10, 10) },
     tintColor: { value: new THREE.Color(0xffffff) },
   },
@@ -303,7 +303,7 @@ export const OptimizedFluidShader = {
  */
 export const TerrainDeformationShader = {
   uniforms: {
-    deformationMap: { value: null },
+    deformationMap: { value: null as THREE.Texture | null },
     heightScale: { value: 1.0 },
     baseColor: { value: new THREE.Color(0x8b7355) },
     grassColor: { value: new THREE.Color(0x4a7c3a) },

@@ -26,7 +26,7 @@
  * @version 5.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -134,7 +134,7 @@ function getOrCreateAccount(
   state: EconomyState,
   agentId: string,
   config: EconomyConfig,
-  context: any
+  context: TraitContext
 ): CreditAccount {
   let account = state.accounts.get(agentId);
   if (!account) {
@@ -196,7 +196,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // ===========================================================================
   // onAttach
   // ===========================================================================
-  onAttach(node: any, _config: EconomyConfig, context: any): void {
+  onAttach(node: HSPlusNode, _config: EconomyConfig, context: TraitContext): void {
     const state: EconomyState = {
       accounts: new Map(),
       bounties: new Map(),
@@ -212,7 +212,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // ===========================================================================
   // onDetach
   // ===========================================================================
-  onDetach(node: any, _config: EconomyConfig, context: any): void {
+  onDetach(node: HSPlusNode, _config: EconomyConfig, context: TraitContext): void {
     const state: EconomyState | undefined = node.__economyState;
     if (state) {
       // Cancel all open bounties
@@ -232,7 +232,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // ===========================================================================
   // onUpdate — expire bounties, charge subscriptions
   // ===========================================================================
-  onUpdate(node: any, config: EconomyConfig, context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: EconomyConfig, context: TraitContext, _delta: number): void {
     const state: EconomyState | undefined = node.__economyState;
     if (!state) return;
 
@@ -299,7 +299,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // ===========================================================================
   // onEvent
   // ===========================================================================
-  onEvent(node: any, config: EconomyConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: EconomyConfig, context: TraitContext, event: TraitEvent): void {
     const state: EconomyState | undefined = node.__economyState;
     if (!state) return;
 

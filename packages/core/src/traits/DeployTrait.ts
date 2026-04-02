@@ -10,7 +10,7 @@
  *  deploy:error     { deployId, stage, error }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface DeployConfig {
   stages: string[];
@@ -21,7 +21,7 @@ export const deployHandler: TraitHandler<DeployConfig> = {
   name: 'deploy',
   defaultConfig: { stages: ['prepare', 'deploy', 'verify'], auto_verify: true },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__deployState = {
       deployments: new Map<
         string,
@@ -29,12 +29,12 @@ export const deployHandler: TraitHandler<DeployConfig> = {
       >(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__deployState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: DeployConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: DeployConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__deployState as { deployments: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

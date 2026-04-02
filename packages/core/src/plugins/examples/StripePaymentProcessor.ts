@@ -91,7 +91,7 @@ export class StripePaymentProcessor extends BasePaymentProcessor {
         amount: request.price.toString(),
         currency: request.currency,
         timestamp: Date.now(),
-        confirmed: true,
+        status: 'confirmed',
       };
 
       this.recordPayment(receipt);
@@ -118,7 +118,7 @@ export class StripePaymentProcessor extends BasePaymentProcessor {
       amount: request.price.toString(),
       currency: request.currency,
       timestamp: Date.now(),
-      confirmed: true,
+      status: 'confirmed',
     };
 
     this.recordPayment(receipt);

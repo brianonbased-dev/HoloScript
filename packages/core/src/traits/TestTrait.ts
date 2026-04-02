@@ -27,7 +27,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 import type { ScriptTestResult } from './ScriptTestTrait';
 
 // Re-export ScriptTestResult for consumers
@@ -577,20 +577,20 @@ export const testHandler: TraitHandler<CompositionTestConfig> = {
   name: 'test' as any,
   defaultConfig: { bail: false, debug: false, timeout: 5000 },
 
-  onAttach(node: any, config: CompositionTestConfig, ctx: any): void {
+  onAttach(node: HSPlusNode, config: CompositionTestConfig, ctx: TraitContext): void {
     const instance = new CompositionTestRunner({}, [], config);
     node.__test_instance = instance;
     ctx.emit?.('test:attached', { node, config });
   },
 
-  onDetach(node: any, _config: CompositionTestConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: CompositionTestConfig, ctx: TraitContext): void {
     delete node.__test_instance;
     ctx.emit?.('test:detached', { node });
   },
 
   onUpdate(): void {},
 
-  onEvent(node: any, _config: CompositionTestConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: CompositionTestConfig, ctx: TraitContext, event: TraitEvent): void {
     const instance: CompositionTestRunner | undefined = node.__test_instance;
     if (!instance) return;
 

@@ -9,7 +9,7 @@
  *  push:error     { token, error }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface PushNotificationConfig {
   platform: 'fcm' | 'apns' | 'web';
@@ -20,15 +20,15 @@ export const pushNotificationHandler: TraitHandler<PushNotificationConfig> = {
   name: 'push_notification',
   defaultConfig: { platform: 'fcm', max_batch: 500 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__pushState = { sent: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__pushState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: PushNotificationConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PushNotificationConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__pushState as { sent: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -4,7 +4,7 @@
  * Role-based permission checks with grant/revoke.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface PermissionConfig {
   default_role: string;
@@ -14,15 +14,15 @@ export const permissionHandler: TraitHandler<PermissionConfig> = {
   name: 'permission',
   defaultConfig: { default_role: 'viewer' },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__permState = { grants: new Map<string, Set<string>>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__permState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: PermissionConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: PermissionConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__permState as { grants: Map<string, Set<string>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

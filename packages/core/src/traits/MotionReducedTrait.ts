@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -190,10 +190,10 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
 };
 
 function applyMotionReduction(
-  node: any,
+  node: HSPlusNode,
   config: MotionReducedConfig,
   state: MotionReducedState,
-  context: any
+  context: TraitContext
 ): void {
   context.emit?.('motion_reduced_apply', {
     node,
@@ -209,7 +209,7 @@ function applyMotionReduction(
   });
 }
 
-function restoreMotion(node: any, state: MotionReducedState, context: any): void {
+function restoreMotion(node: HSPlusNode, state: MotionReducedState, context: TraitContext): void {
   context.emit?.('motion_reduced_restore', {
     node,
     animations: Array.from(state.originalAnimations.entries()),

@@ -14,7 +14,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface CacheConfig {
   max_size: number;
@@ -45,7 +45,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
     eviction_policy: 'lru',
   },
 
-  onAttach(node: any, _config: CacheConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: CacheConfig, _context: TraitContext): void {
     node.__cacheState = {
       entries: new Map(),
       hits: 0,
@@ -54,11 +54,11 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
     } as CacheState;
   },
 
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__cacheState;
   },
 
-  onUpdate(node: any, config: CacheConfig, _context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: CacheConfig, _context: TraitContext, _delta: number): void {
     const state: CacheState | undefined = node.__cacheState;
     if (!state) return;
     // Expire entries
@@ -71,7 +71,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
     }
   },
 
-  onEvent(node: any, config: CacheConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: CacheConfig, context: TraitContext, event: TraitEvent): void {
     const state: CacheState | undefined = node.__cacheState;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
@@ -132,7 +132,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
   },
 };
 
-function evictOne(state: CacheState, config: CacheConfig, context: any): void {
+function evictOne(state: CacheState, config: CacheConfig, context: TraitContext): void {
   if (state.entries.size === 0) return;
 
   let oldest: { key: string; time: number } | null = null;

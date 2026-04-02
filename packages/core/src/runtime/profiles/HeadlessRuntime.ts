@@ -725,10 +725,9 @@ export class HeadlessRuntime {
     if (this.profile.traits && this.rootInstance && !this._routingEvent) {
       this._routingEvent = true;
       try {
-        const traitEvent: TraitEvent =
-          typeof payload === 'object' && payload !== null
+        const traitEvent = (typeof payload === 'object' && payload !== null
             ? { type: event, ...(payload as object) }
-            : { type: event, payload };
+            : { type: event, payload }) as TraitEvent;
         this.routeEventToTraits(this.rootInstance, traitEvent);
       } finally {
         this._routingEvent = false;

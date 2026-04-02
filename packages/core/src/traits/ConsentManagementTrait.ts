@@ -2,21 +2,21 @@
  * ConsentManagementTrait — v5.1
  * Consent collection and tracking.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface ConsentManagementConfig {
   required_consents: string[];
 }
 export const consentManagementHandler: TraitHandler<ConsentManagementConfig> = {
   name: 'consent_management',
   defaultConfig: { required_consents: ['analytics', 'marketing'] },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__consentState = { consents: new Map<string, Map<string, boolean>>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__consentState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: ConsentManagementConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: ConsentManagementConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__consentState as
       | { consents: Map<string, Map<string, boolean>> }
       | undefined;

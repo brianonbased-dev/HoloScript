@@ -8,7 +8,7 @@
  *  mqtt:published { topic, messageId }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface MqttPubConfig {
   broker_url: string;
@@ -19,15 +19,15 @@ export const mqttPubHandler: TraitHandler<MqttPubConfig> = {
   name: 'mqtt_pub',
   defaultConfig: { broker_url: '', default_qos: 1 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__mqttPubState = { published: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__mqttPubState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: MqttPubConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: MqttPubConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__mqttPubState as { published: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'mqtt:publish') {

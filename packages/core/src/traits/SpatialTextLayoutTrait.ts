@@ -4,7 +4,7 @@
  * Projects text into 3D volumes (Sphere, Cylinder, Wave, Spiral).
  */
 
-import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, HSPlusNode, TraitContext } from './TraitTypes';
 
 export interface SpatialTextLayoutConfig {
   layout: 'sphere' | 'cylinder' | 'wave' | 'spiral';
@@ -50,7 +50,7 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
     node: HSPlusNode,
     _config: SpatialTextLayoutConfig,
     context: TraitContext,
-    event: any
+    event: TraitEvent
   ): void {
     if ((typeof event === 'string' ? event : event.type) === 'spatial:rotate') {
       if (event.target === node.id || event.target === 'all') {

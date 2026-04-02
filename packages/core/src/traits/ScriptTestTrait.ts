@@ -375,18 +375,18 @@ export const SCRIPT_TEST_TRAIT = {
 };
 
 // ── Handler (delegates to ScriptTestRunner) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export const scriptTestHandler = {
   name: 'script_test',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new ScriptTestRunner(config);
     node.__script_test_instance = instance;
     ctx.emit('script_test_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__script_test_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__script_test_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -395,8 +395,8 @@ export const scriptTestHandler = {
     ctx.emit('script_test_detached', { node });
     delete node.__script_test_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__script_test_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__script_test_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -405,8 +405,8 @@ export const scriptTestHandler = {
       ctx.emit('script_test_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__script_test_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__script_test_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

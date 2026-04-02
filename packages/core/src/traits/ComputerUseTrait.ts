@@ -130,6 +130,7 @@ function isDomainAllowed(url: string, allowedDomains: string[]): boolean {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export const computerUseHandler = {
+  name: 'computer_use',
   defaultConfig: DEFAULT_CONFIG,
 
   onAttach(node: ComputerUseNode, _config: ComputerUseConfig, ctx: TraitCtx): void {

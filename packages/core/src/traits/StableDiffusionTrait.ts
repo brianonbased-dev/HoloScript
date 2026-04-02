@@ -196,7 +196,7 @@ export const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
     realtime: true,
     streaming: true,
     steps: 15, // Fewer steps for real-time
-  },
+  } as StableDiffusionConfig,
 };
 
 /**
@@ -208,7 +208,7 @@ export const aiInpaintingHandler: TraitHandler<StableDiffusionConfig> = {
   defaultConfig: {
     ...stableDiffusionHandler.defaultConfig,
     inpaint_strength: 0.75,
-  },
+  } as StableDiffusionConfig,
 };
 
 /**
@@ -221,5 +221,5 @@ export const controlnetHandler: TraitHandler<StableDiffusionConfig> = {
     ...stableDiffusionHandler.defaultConfig,
     control_mode: 'canny',
     control_strength: 1.0,
-  },
+  } as StableDiffusionConfig,
 };

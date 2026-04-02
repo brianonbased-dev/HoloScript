@@ -49,7 +49,7 @@ export function attachTrait<T>(
   config: Partial<T>,
   ctx: MockContext
 ): void {
-  const fullConfig = { ...handler.defaultConfig, ...config };
+  const fullConfig = { ...handler.defaultConfig, ...config } as T;
   handler.onAttach?.(node as unknown as HSPlusNode, fullConfig, ctx as any);
 }
 
@@ -60,7 +60,7 @@ export function sendEvent<T>(
   ctx: MockContext,
   event: { type: string; [key: string]: unknown }
 ): void {
-  const fullConfig = { ...handler.defaultConfig, ...config };
+  const fullConfig = { ...handler.defaultConfig, ...config } as T;
   handler.onEvent?.(node as unknown as HSPlusNode, fullConfig, ctx as any, event);
 }
 
@@ -71,6 +71,6 @@ export function updateTrait<T>(
   ctx: MockContext,
   delta: number
 ): void {
-  const fullConfig = { ...handler.defaultConfig, ...config };
+  const fullConfig = { ...handler.defaultConfig, ...config } as T;
   handler.onUpdate?.(node as unknown as HSPlusNode, fullConfig, ctx as any, delta);
 }

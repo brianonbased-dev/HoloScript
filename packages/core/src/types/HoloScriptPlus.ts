@@ -135,7 +135,7 @@ export interface HSPlusNode extends ASTNode {
    */
   inferredType?: HSPlusType;
   /** Trait private state — `__`-prefixed keys are reserved for trait handlers. */
-  [key: `__${string}`]: unknown;
+  [key: `__${string}`]: any;
 }
 
 export interface HSPlusAST {

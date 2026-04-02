@@ -172,6 +172,7 @@ async function loadAllFromDB(db: IDBDatabase | null): Promise<Memory[]> {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export const agentMemoryHandler = {
+  name: 'agent_memory',
   defaultConfig: DEFAULT_CONFIG,
 
   async onAttach(node: MemoryNode, config: AgentMemoryConfig, ctx: TraitCtx): Promise<void> {

@@ -9,7 +9,7 @@
  *  vsearch:result   { collection, matches[] }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface VectorSearchConfig {
   default_top_k: number;
@@ -25,15 +25,15 @@ export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
   name: 'vector_search',
   defaultConfig: { default_top_k: 10, max_collections: 20 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__vectorSearchState = { collections: new Map<string, VectorDoc[]>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__vectorSearchState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: VectorSearchConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: VectorSearchConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__vectorSearchState as { collections: Map<string, VectorDoc[]> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

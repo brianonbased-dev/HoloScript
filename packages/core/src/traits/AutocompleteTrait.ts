@@ -2,7 +2,7 @@
  * AutocompleteTrait — v5.1
  * Typeahead / autocomplete suggestions.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface AutocompleteConfig {
   max_suggestions: number;
   min_chars: number;
@@ -10,14 +10,14 @@ export interface AutocompleteConfig {
 export const autocompleteHandler: TraitHandler<AutocompleteConfig> = {
   name: 'autocomplete',
   defaultConfig: { max_suggestions: 10, min_chars: 2 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__acState = { terms: [] as string[] };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__acState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: AutocompleteConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: AutocompleteConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__acState as { terms: string[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -1149,6 +1149,7 @@ export class SpatialDataGenerator {
         );
       }
     }
+    return `"${src}" and "${tgt}" have a relationship of type ${rel.type}.`;
   }
 
   /**
@@ -1188,9 +1189,12 @@ export class SpatialDataGenerator {
         ];
         const question = questions[Math.abs(this.rng.nextInt()) % questions.length];
 
+        const targetObj = allObjects.find((o) => o.id === rel.targetId);
+        const posStr = targetObj ? this.formatVec3(targetObj.position) : 'unknown';
+
         const answer = rel.holds
           ? `Yes, "${src}" contains "${tgt}". "${tgt}" is located at ` +
-            `[${rel.groundTruth?.target?.position ? this.formatVec3(rel.groundTruth.target.position) : 'unknown'}] ` +
+            `[${posStr}] ` +
             `which falls within the bounding volume of "${src}".` +
             (rel.parameters.overlapRatio !== undefined
               ? ` The overlap ratio is ${(rel.parameters.overlapRatio * 100).toFixed(0)}%.`
@@ -1201,7 +1205,6 @@ export class SpatialDataGenerator {
               ? ` Only ${(rel.parameters.overlapRatio * 100).toFixed(0)}% of "${tgt}" overlaps with "${src}".`
               : '');
 
-        // Note: groundTruth is not available in the relationship itself, reference the description instead
         return { question, answer: answer.replace(/\[unknown\]/, '') };
       }
 
@@ -1224,6 +1227,7 @@ export class SpatialDataGenerator {
         return { question, answer };
       }
     }
+    return { question: `What is the relation between ${src} and ${tgt}?`, answer: `They have a ${rel.type} relationship.` };
   }
 
   /**

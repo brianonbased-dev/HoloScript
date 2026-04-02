@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import { SoftBodySolver, type Particle, type DistanceConstraint } from '../physics/SoftBodySolver';
 
 // =============================================================================
@@ -53,7 +53,7 @@ interface SoftBodyConfig {
  * Automatically creates PBD particles and constraints from mesh data
  */
 function autoPopulateFromMesh(
-  node: any,
+  node: HSPlusNode,
   config: SoftBodyConfig
 ): { particles: Particle[]; constraints: DistanceConstraint[] } {
   const meshData = node.properties?.meshData;

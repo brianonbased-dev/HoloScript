@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import {
   MQTTClient,
   createMQTTClient,
@@ -225,21 +225,21 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
 /**
  * Check if a node has the @mqtt_source trait
  */
-export function hasMQTTSourceTrait(node: any): boolean {
+export function hasMQTTSourceTrait(node: HSPlusNode): boolean {
   return !!node.__mqttSourceState;
 }
 
 /**
  * Get the MQTT source state from a node
  */
-export function getMQTTSourceState(node: any): MQTTSourceState | null {
+export function getMQTTSourceState(node: HSPlusNode): MQTTSourceState | null {
   return node.__mqttSourceState || null;
 }
 
 /**
  * Get the MQTT client from a node with @mqtt_source trait
  */
-export function getMQTTSourceClient(node: any): MQTTClient | null {
+export function getMQTTSourceClient(node: HSPlusNode): MQTTClient | null {
   const state = getMQTTSourceState(node);
   return state?.client || null;
 }
@@ -247,7 +247,7 @@ export function getMQTTSourceClient(node: any): MQTTClient | null {
 /**
  * Check if MQTT source is connected
  */
-export function isMQTTSourceConnected(node: any): boolean {
+export function isMQTTSourceConnected(node: HSPlusNode): boolean {
   const state = getMQTTSourceState(node);
   return state?.connected || false;
 }

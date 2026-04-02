@@ -80,7 +80,7 @@ function normalizeBody(body: unknown, headers: Record<string, string>): string |
   return JSON.stringify(body);
 }
 
-function normalizeActionPayload(event: any): HttpRequestPayload {
+function normalizeActionPayload(event: TraitEvent): HttpRequestPayload {
   const payload = event?.payload ?? event;
   const params = payload?.params;
 
@@ -124,7 +124,7 @@ async function parseResponse(
 }
 
 async function callHttp(
-  context: any,
+  context: TraitContext,
   url: string,
   options: HostNetworkRequestOptions
 ): Promise<HostNetworkResponse> {
@@ -204,7 +204,7 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
     include_credentials: false,
   },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     const state: HttpClientState = {
       pendingRequests: new Set<string>(),
       totalRequests: 0,
@@ -212,13 +212,13 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
     node.__httpClientState = state;
   },
 
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__httpClientState;
   },
 
   onUpdate(): void {},
 
-  onEvent(node: any, config: HttpClientConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: HttpClientConfig, context: TraitContext, event: TraitEvent): void {
     const state: HttpClientState | undefined = node.__httpClientState;
     if (!state) return;
 
@@ -318,7 +318,7 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
           });
         }
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         const durationMs = Date.now() - startedAt;
         const message = err?.message ?? String(err);
         context.emit?.('http:error', {

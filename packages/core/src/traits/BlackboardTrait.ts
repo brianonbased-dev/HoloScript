@@ -27,7 +27,7 @@ export interface BlackboardEntry {
 export interface Proposal {
   id: string;
   actionType: string;
-  payload: any;
+  payload: Record<string, unknown>;
   proposerId: string;
   votes: Map<string, 'accept' | 'reject'>;
   status: 'pending' | 'accepted' | 'rejected';

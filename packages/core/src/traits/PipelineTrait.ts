@@ -18,7 +18,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -72,7 +72,7 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
     auto_start: false,
   },
 
-  onAttach(node: any, config: PipelineConfig, context: any): void {
+  onAttach(node: HSPlusNode, config: PipelineConfig, context: TraitContext): void {
     const state: PipelineState = {
       running: false,
       currentStep: 0,
@@ -88,15 +88,15 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
     }
   },
 
-  onDetach(node: any, _config: PipelineConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: PipelineConfig, _context: TraitContext): void {
     delete node.__pipelineState;
   },
 
-  onUpdate(_node: any, _config: PipelineConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: PipelineConfig, _context: TraitContext, _delta: number): void {
     // Pipeline is event-driven, no per-frame work
   },
 
-  onEvent(node: any, config: PipelineConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PipelineConfig, context: TraitContext, event: TraitEvent): void {
     const state: PipelineState | undefined = node.__pipelineState;
     if (!state) return;
 
@@ -172,7 +172,7 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
   },
 };
 
-function startPipeline(node: any, config: PipelineConfig, context: any): void {
+function startPipeline(node: HSPlusNode, config: PipelineConfig, context: TraitContext): void {
   const state: PipelineState = node.__pipelineState;
   state.running = true;
   state.currentStep = 0;
@@ -205,7 +205,7 @@ function startPipeline(node: any, config: PipelineConfig, context: any): void {
   }
 }
 
-function emitStep(index: number, config: PipelineConfig, context: any): void {
+function emitStep(index: number, config: PipelineConfig, context: TraitContext): void {
   const step = config.steps[index];
   context.emit?.('pipeline:step_start', {
     pipelineId: config.pipeline_id,
@@ -219,7 +219,7 @@ function emitStep(index: number, config: PipelineConfig, context: any): void {
   });
 }
 
-function finishPipeline(state: PipelineState, config: PipelineConfig, context: any): void {
+function finishPipeline(state: PipelineState, config: PipelineConfig, context: TraitContext): void {
   state.running = false;
   state.completed = true;
   context.emit?.('pipeline:complete', {

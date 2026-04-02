@@ -2,7 +2,7 @@
  * WorkflowTrait — v5.1
  * Multi-step workflow orchestration with step tracking.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface WorkflowConfig {
   max_steps: number;
@@ -11,16 +11,16 @@ export interface WorkflowConfig {
 export const workflowHandler: TraitHandler<WorkflowConfig> = {
   name: 'workflow',
   defaultConfig: { max_steps: 50 },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__wfState = {
       workflows: new Map<string, { steps: string[]; current: number; status: string }>(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__wfState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: WorkflowConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: WorkflowConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__wfState as { workflows: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -17,7 +17,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -70,7 +70,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
     channels: [],
   },
 
-  onAttach(node: any, config: BufferConfig, _context: any): void {
+  onAttach(node: HSPlusNode, config: BufferConfig, _context: TraitContext): void {
     const state: BufferState = {
       channels: new Map(),
       totalFlushed: 0,
@@ -90,7 +90,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
     node.__bufferState = state;
   },
 
-  onDetach(node: any, _config: BufferConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: BufferConfig, _context: TraitContext): void {
     const state: BufferState | undefined = node.__bufferState;
     if (state) {
       for (const [, cs] of state.channels) {
@@ -101,11 +101,11 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
     delete node.__bufferState;
   },
 
-  onUpdate(_node: any, _config: BufferConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: BufferConfig, _context: TraitContext, _delta: number): void {
     // Timer-driven, no per-frame work
   },
 
-  onEvent(node: any, _config: BufferConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: BufferConfig, context: TraitContext, event: TraitEvent): void {
     const state: BufferState | undefined = node.__bufferState;
     if (!state) return;
 
@@ -214,7 +214,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
   },
 };
 
-function flushChannel(cs: ChannelState, state: BufferState, context: any): void {
+function flushChannel(cs: ChannelState, state: BufferState, context: TraitContext): void {
   const items = cs.items.splice(0);
   const elapsed = cs.firstItemAt > 0 ? Date.now() - cs.firstItemAt : 0;
 

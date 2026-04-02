@@ -14,7 +14,7 @@
  * @module traits/SpatiotemporalTraits
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 import type {
   SpatialTemporalAdjacentConfig,
   SpatialTemporalReachableConfig,
@@ -132,7 +132,7 @@ function distanceToPath(p: Vector3, path: Vector3[]): number {
 }
 
 function emitViolation(
-  context: any,
+  context: TraitContext,
   kind: SpatialConstraintKind,
   sourceId: string,
   targetId: string,
@@ -154,7 +154,7 @@ function emitViolation(
 }
 
 function emitResolved(
-  context: any,
+  context: TraitContext,
   kind: SpatialConstraintKind,
   sourceId: string,
   targetId: string

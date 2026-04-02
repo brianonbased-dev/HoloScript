@@ -21,7 +21,8 @@
 
 import { VRTraitRegistry } from '../traits/VRTraitSystem';
 
-import type { TraitContext, TraitEvent, HSPlusNode, VRTraitName } from '../types';
+import type { HSPlusNode, VRTraitName } from '../types';
+import type { TraitContext, TraitEvent } from '../traits/TraitTypes';
 
 import type { TraitContextFactory } from './TraitContextFactory';
 

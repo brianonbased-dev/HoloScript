@@ -2,7 +2,7 @@
  * StateMachineTrait — v5.1
  * Finite state machine with transitions.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface StateMachineConfig {
   initial_state: string;
@@ -11,18 +11,18 @@ export interface StateMachineConfig {
 export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
   name: 'state_machine',
   defaultConfig: { initial_state: 'idle' },
-  onAttach(node: any, config: any): void {
+  onAttach(node: HSPlusNode, config: any): void {
     node.__smState = {
       current: config.initial_state || 'idle',
       transitions: 0,
       history: [] as string[],
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__smState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: StateMachineConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: StateMachineConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__smState as
       | { current: string; transitions: number; history: string[] }
       | undefined;

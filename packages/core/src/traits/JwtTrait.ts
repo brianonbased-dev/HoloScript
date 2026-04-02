@@ -11,7 +11,7 @@
  *  jwt:refresh   { token }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 import { SignJWT, jwtVerify } from 'jose';
 
 export interface JwtConfig {
@@ -24,15 +24,15 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
   name: 'jwt',
   defaultConfig: { algorithm: 'HS256', default_expiry_s: 3600, secret: 'default-insecure-secret' },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__jwtState = { issued: 0, verified: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__jwtState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: JwtConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: JwtConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__jwtState as { issued: number; verified: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

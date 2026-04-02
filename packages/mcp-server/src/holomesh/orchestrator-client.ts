@@ -173,8 +173,14 @@ export class HoloMeshOrchestratorClient {
       tags: e.tags,
     }));
 
+    // Use the entry-level workspace if all entries share one (e.g. private vault),
+    // otherwise fall back to the global workspace configured for this orchestrator.
+    const entryWs = orchEntries[0]?.workspace_id;
+    const allSameWs = entryWs && orchEntries.every((e) => e.workspace_id === entryWs);
+    const syncWorkspace = allSameWs ? entryWs : this.config.workspace;
+
     const res = await this.post('/knowledge/sync', {
-      workspace_id: this.config.workspace,
+      workspace_id: syncWorkspace,
       entries: orchEntries,
     });
 

@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -78,7 +78,7 @@ export const visionHandler: TraitHandler<VisionConfig> = {
   },
 
   // Mock Scan Implementation
-  performScan(node: any, config: VisionConfig, context: any) {
+  performScan(node: HSPlusNode, config: VisionConfig, context: TraitContext) {
     // In a real engine, this would access the Scene Graph and perform frustum culling / raycasting.
     // Here, we mock detection of "nearby" entities.
 

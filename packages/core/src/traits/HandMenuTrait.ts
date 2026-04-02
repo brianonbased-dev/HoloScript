@@ -5,13 +5,14 @@
  * Uses SpringAnimator for smooth show/hide transitions.
  */
 
-import { TraitHandler, TraitContext, VRContext, Vector3 } from '../types/HoloScriptPlus';
+import { Vector3 } from '../types/HoloScriptPlus';
+import type { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 import { UIHandMenuTrait } from './UITraits';
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>
-  Array.isArray(v) ? v[idx] : v[key];
-const add = (v1: Vector3, v2: Vector3): Vector3 => ({
+  (Array.isArray(v) ? v[idx] : v[key]) ?? 0;
+const add = (v1: Vector3, v2: Vector3) => ({
   x: getCoord(v1, 0, 'x') + getCoord(v2, 0, 'x'),
   y: getCoord(v1, 1, 'y') + getCoord(v2, 1, 'y'),
   z: getCoord(v1, 2, 'z') + getCoord(v2, 2, 'z'),
@@ -68,12 +69,12 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
 
     // Position: Smooth follow via lerp
     const targetPos = add(hand.position, config.offset || { x: 0, y: 0.2, z: 0 });
-    const currentPos = node.properties?.position || targetPos;
+    const currentPos: any = node.properties?.position || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
     const newPos = {
-      x: currentPos.x + (targetPos.x - currentPos.x) * lerpFactor,
-      y: currentPos.y + (targetPos.y - currentPos.y) * lerpFactor,
-      z: currentPos.z + (targetPos.z - currentPos.z) * lerpFactor,
+      x: (currentPos.x ?? 0) + ((targetPos.x ?? 0) - (currentPos.x ?? 0)) * lerpFactor,
+      y: (currentPos.y ?? 0) + ((targetPos.y ?? 0) - (currentPos.y ?? 0)) * lerpFactor,
+      z: (currentPos.z ?? 0) + ((targetPos.z ?? 0) - (currentPos.z ?? 0)) * lerpFactor,
     };
 
     if (node.properties) {

@@ -85,7 +85,7 @@ export default defineConfig({
       'packages/connector-upstash/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
-      'packages/test/vitest.config.ts',
+      // 'packages/test/vitest.config.ts', // removed: package deleted
       {
         test: {
           name: '@holoscript/benchmark',

@@ -280,7 +280,7 @@ export class ScriptVM {
         break;
 
       default:
-        throw new Error(`Unknown opcode: 0x${instr.op.toString(16)}`);
+        throw new Error(`Unknown opcode: 0x${(instr.op as unknown as number).toString(16)}`);
     }
   }
 

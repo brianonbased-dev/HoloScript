@@ -1197,7 +1197,7 @@ export class WebGPURenderer {
       // Note: In a real engine, use a math library. Here we just pass raw matrices if possible or stub.
       // We'll update the camera uniforms directly.
 
-      this.updateCameraUniforms({
+      this.updateCameraUniforms(<any>{
         projectionMatrix: view.projectionMatrix,
         viewMatrix: view.transform.inverse.matrix,
         // Mock VP matrix for now (or compute it if we had a math lib)
@@ -1207,7 +1207,7 @@ export class WebGPURenderer {
           view.transform.position.y,
           view.transform.position.z,
         ]),
-      });
+      } as any);
 
       renderCallback(renderPass, view);
 

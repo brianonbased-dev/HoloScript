@@ -10,7 +10,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface QueryConfig {
   default_limit: number;
@@ -21,15 +21,15 @@ export const queryHandler: TraitHandler<QueryConfig> = {
   name: 'query',
   defaultConfig: { default_limit: 50, max_limit: 1000 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__queryState = { totalQueries: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__queryState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: QueryConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: QueryConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__queryState as { totalQueries: number } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

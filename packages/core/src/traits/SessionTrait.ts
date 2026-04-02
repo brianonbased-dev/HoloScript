@@ -4,7 +4,7 @@
  * Session create / destroy / refresh with TTL.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SessionConfig {
   ttl_ms: number;
@@ -15,15 +15,15 @@ export const sessionHandler: TraitHandler<SessionConfig> = {
   name: 'session',
   defaultConfig: { ttl_ms: 86400000, max_sessions: 1000 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__sessionState = { sessions: new Map<string, { userId: string; expiresAt: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__sessionState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: SessionConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SessionConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__sessionState as { sessions: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

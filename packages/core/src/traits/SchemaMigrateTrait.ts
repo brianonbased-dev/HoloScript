@@ -2,21 +2,21 @@
  * SchemaMigrateTrait — v5.1
  * Schema migration versioning.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface SchemaMigrateConfig {
   auto_rollback: boolean;
 }
 export const schemaMigrateHandler: TraitHandler<SchemaMigrateConfig> = {
   name: 'schema_migrate',
   defaultConfig: { auto_rollback: true },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__migrateState = { version: 0, history: [] as number[] };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__migrateState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: SchemaMigrateConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: SchemaMigrateConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__migrateState as { version: number; history: number[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

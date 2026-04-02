@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface ProfilerConfig {
   max_spans: number;
@@ -29,18 +29,18 @@ export const profilerHandler: TraitHandler<ProfilerConfig> = {
   name: 'profiler',
   defaultConfig: { max_spans: 500, auto_report_interval_ms: 0 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__profilerState = {
       activeSpans: new Map<string, number>(),
       completedSpans: [] as ProfilerSpan[],
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__profilerState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: ProfilerConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ProfilerConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__profilerState as
       | {
           activeSpans: Map<string, number>;

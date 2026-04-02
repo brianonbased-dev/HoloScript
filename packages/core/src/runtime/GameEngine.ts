@@ -28,7 +28,7 @@ import { HotReloadManager, type ReloadWatcher } from './HotReloadManager';
 export type UpdateHandler = (delta: number, frame: number) => void;
 export type EnginePhase = 'idle' | 'running' | 'paused' | 'stopped';
 
-export interface GameEngineOptions extends GameLoopOptions {
+export interface GameEngineOptions extends Omit<GameLoopOptions, 'onUpdate'> {
   /** Enable hot-reload watcher integration. Default: false */
   hotReload?: boolean;
 }

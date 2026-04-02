@@ -403,7 +403,7 @@ const DEFAULT_WASM_CONFIG: WASMBridgeConfig = {
 export const wasmBridgeHandler = {
   defaultConfig: DEFAULT_WASM_CONFIG,
 
-  onAttach(node: any, config: WASMBridgeConfig, ctx: any): void {
+  onAttach(node: HSPlusNode, config: WASMBridgeConfig, ctx: TraitContext): void {
     const world = new ECSWorld();
     if (config.systems.includes('physics')) world.addSystem(physicsSystem);
     if (config.systems.includes('agents')) world.addSystem(agentMovementSystem);
@@ -421,7 +421,7 @@ export const wasmBridgeHandler = {
     ctx.emit('ecs_ready', { node, entityCount: world.entityCount() });
   },
 
-  onDetach(node: any, _config: WASMBridgeConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: WASMBridgeConfig, ctx: TraitContext): void {
     if (!node.__ecsWorld) return;
     const stats = (node.__ecsWorld as ECSWorld).getStats();
     ctx.emit('ecs_stopped', { node, stats });
@@ -429,7 +429,7 @@ export const wasmBridgeHandler = {
     delete node.__ecsBenchResult;
   },
 
-  onEvent(node: any, config: WASMBridgeConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: WASMBridgeConfig, ctx: TraitContext, event: TraitEvent): void {
     const world: ECSWorld | undefined = node.__ecsWorld;
     if (!world) return;
 
@@ -469,7 +469,7 @@ export const wasmBridgeHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+  onUpdate(_n: HSPlusNode, _c: unknown, _ctx: TraitContext, _dt: number): void {
     /* tick driven by ecs_tick events */
   },
 } as const;

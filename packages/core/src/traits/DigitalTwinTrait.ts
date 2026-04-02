@@ -264,14 +264,14 @@ function connectToPhysical(
   const gateway = handler.gateway as IotGateway;
 
   // Listen for connection
-  gateway.on('connected', (data: any) => {
+  gateway.on('connected', (data: unknown) => {
     if (data.deviceId === config.physical_id) {
       context.emit?.('twin_connected', { handle: gateway, ...data });
     }
   });
 
   // Listen for telemetry
-  gateway.on('telemetry', (data: any) => {
+  gateway.on('telemetry', (data: unknown) => {
     if (data.deviceId === config.physical_id) {
       context.emit?.('twin_state_update', { state: data });
     }

@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SLOMonitorConfig {
   alert_on_budget_breach: boolean;
@@ -32,15 +32,15 @@ export const sloMonitorHandler: TraitHandler<SLOMonitorConfig> = {
   name: 'slo_monitor',
   defaultConfig: { alert_on_budget_breach: true },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__sloState = { slos: new Map<string, SLOEntry>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__sloState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: SLOMonitorConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SLOMonitorConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__sloState as { slos: Map<string, SLOEntry> } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

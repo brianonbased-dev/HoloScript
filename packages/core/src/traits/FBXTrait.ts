@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
 import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
@@ -383,7 +383,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: FBXConfig, context: TraitContext, event: any) {
+  onEvent(node: HSPlusNode, config: FBXConfig, context: TraitContext, event: TraitEvent) {
     const state = node.__fbxState as FBXState | undefined;
     if (!state) return;
 
@@ -777,13 +777,13 @@ function setMorphWeight(state: FBXState, target: string, weight: number): void {
 }
 
 function v3x(v: Vector3): number {
-  return Array.isArray(v) ? v[0] : v.x;
+  return Array.isArray(v) ? v[0] : (v.x ?? 0);
 }
 function v3y(v: Vector3): number {
-  return Array.isArray(v) ? v[1] : v.y;
+  return Array.isArray(v) ? v[1] : (v.y ?? 0);
 }
 function v3z(v: Vector3): number {
-  return Array.isArray(v) ? v[2] : v.z;
+  return Array.isArray(v) ? v[2] : (v.z ?? 0);
 }
 
 function blendVec3(a: Vector3, b: Vector3, t: number): Vector3 {

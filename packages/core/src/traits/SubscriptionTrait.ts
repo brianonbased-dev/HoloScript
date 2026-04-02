@@ -4,7 +4,7 @@
  * Recurring subscription lifecycle.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface SubscriptionConfig {
   plans: string[];
@@ -14,17 +14,17 @@ export const subscriptionHandler: TraitHandler<SubscriptionConfig> = {
   name: 'subscription',
   defaultConfig: { plans: ['free', 'pro', 'enterprise'] },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__subState = {
       subs: new Map<string, { plan: string; status: string; started: number }>(),
     };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__subState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: SubscriptionConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: SubscriptionConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__subState as { subs: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

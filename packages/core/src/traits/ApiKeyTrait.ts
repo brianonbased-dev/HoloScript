@@ -4,7 +4,7 @@
  * API key generation, validation, and rotation.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface ApiKeyConfig {
   prefix: string;
@@ -15,15 +15,15 @@ export const apiKeyHandler: TraitHandler<ApiKeyConfig> = {
   name: 'api_key',
   defaultConfig: { prefix: 'sk_', max_keys: 50 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__apiKeyState = { keys: new Map<string, { name: string; created: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__apiKeyState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: ApiKeyConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ApiKeyConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__apiKeyState as { keys: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

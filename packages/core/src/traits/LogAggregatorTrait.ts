@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface LogAggregatorConfig {
   max_entries: number;
@@ -33,15 +33,15 @@ export const logAggregatorHandler: TraitHandler<LogAggregatorConfig> = {
   name: 'log_aggregator',
   defaultConfig: { max_entries: 5000, min_level: 'info' },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__logAggregatorState = { entries: [] as LogEntry[] };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__logAggregatorState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: LogAggregatorConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: LogAggregatorConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__logAggregatorState as { entries: LogEntry[] } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

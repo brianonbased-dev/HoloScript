@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface HealthcheckConfig {
   auto_interval_ms: number;
@@ -32,14 +32,14 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
   name: 'healthcheck',
   defaultConfig: { auto_interval_ms: 30000, timeout_ms: 5000 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__healthcheckState = { checks: new Map<string, HealthCheck>(), lastRun: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__healthcheckState;
   },
 
-  onUpdate(node: any, config: HealthcheckConfig, context: any, _delta: number): void {
+  onUpdate(node: HSPlusNode, config: HealthcheckConfig, context: TraitContext, _delta: number): void {
     if (config.auto_interval_ms <= 0) return;
     const state = node.__healthcheckState as
       | { checks: Map<string, HealthCheck>; lastRun: number }
@@ -52,7 +52,7 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
     }
   },
 
-  onEvent(node: any, _config: HealthcheckConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: HealthcheckConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__healthcheckState as
       | { checks: Map<string, HealthCheck>; lastRun: number }
       | undefined;
@@ -99,7 +99,7 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
   },
 };
 
-function emitResult(state: { checks: Map<string, HealthCheck> }, context: any): void {
+function emitResult(state: { checks: Map<string, HealthCheck> }, context: TraitContext): void {
   const checks = [...state.checks.values()];
   const allPass = checks.every((c) => c.lastStatus === 'pass');
   const anyFail = checks.some((c) => c.lastStatus === 'fail');

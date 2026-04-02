@@ -11,7 +11,7 @@
  * @module traits/SpatialConstraintTraits
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 import type {
   SpatialAdjacentConfig,
   SpatialContainsConfig,
@@ -89,7 +89,7 @@ function computeAxisDistance(
 }
 
 function emitViolation(
-  context: any,
+  context: TraitContext,
   kind: SpatialConstraintKind,
   sourceId: string,
   targetId: string,
@@ -111,7 +111,7 @@ function emitViolation(
 }
 
 function emitResolved(
-  context: any,
+  context: TraitContext,
   kind: SpatialConstraintKind,
   sourceId: string,
   targetId: string

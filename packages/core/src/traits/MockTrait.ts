@@ -2,7 +2,7 @@
  * MockTrait — v5.1
  * Mock object/function creation for testing.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface MockConfig {
   strict: boolean;
@@ -11,14 +11,14 @@ export interface MockConfig {
 export const mockHandler: TraitHandler<MockConfig> = {
   name: 'mock',
   defaultConfig: { strict: true },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__mockState = { mocks: new Map<string, { calls: number; returnValue: unknown }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__mockState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: MockConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: MockConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__mockState as { mocks: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

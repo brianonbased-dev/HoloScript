@@ -18,7 +18,7 @@ export class GrabbableTrait implements Trait {
   private lastHandPositions: Map<string, Vector3> = new Map();
   private lastHandTime: number = 0;
 
-  onUpdate(node: any, context: TraitContext, delta: number): void {
+  onUpdate(node: HSPlusNode, context: TraitContext, delta: number): void {
     const hands = context.vr.hands;
     const now = performance.now();
 
@@ -31,7 +31,7 @@ export class GrabbableTrait implements Trait {
     for (const handName of this.grabbedHands) {
       // ... rest of loop
       const hand = handName === 'left' ? hands.left : hands.right;
-      if (hand && hand.pinchStrength < 0.5) {
+      if (hand && (hand.pinchStrength ?? 0) < 0.5) {
         this.release(node, context, handName, hand);
       }
     }
@@ -49,7 +49,7 @@ export class GrabbableTrait implements Trait {
   }
 
   private checkHandInteraction(
-    node: any,
+    node: HSPlusNode,
     context: TraitContext,
     hand: VRHand | null,
     side: string
@@ -58,13 +58,13 @@ export class GrabbableTrait implements Trait {
     const dist = this.getDistance(node.properties.position, hand.position);
 
     if (dist < 0.1) {
-      if (hand.pinchStrength > 0.9) {
+      if ((hand.pinchStrength ?? 0) > 0.9) {
         this.grab(node, context, side, hand);
       }
     }
   }
 
-  private grab(node: any, context: TraitContext, side: string, hand: VRHand): void {
+  private grab(node: HSPlusNode, context: TraitContext, side: string, hand: VRHand): void {
     this.grabbedHands.add(side);
 
     if (this.grabbedHands.size === 2) {
@@ -72,7 +72,7 @@ export class GrabbableTrait implements Trait {
       const hands = context.vr.hands;
       if (hands.left && hands.right) {
         this.initialPinchDistance = this.getDistance(hands.left.position, hands.right.position);
-        this.initialScale = { ...node.properties.scale } || { x: 1, y: 1, z: 1 };
+        this.initialScale = node.properties.scale ? { ...node.properties.scale } : { x: 1, y: 1, z: 1 };
 
         // Reset Rotation State
         this.initialHandAngle = null;
@@ -87,7 +87,7 @@ export class GrabbableTrait implements Trait {
     }
   }
 
-  private release(node: any, context: TraitContext, side: string, hand: VRHand): void {
+  private release(node: HSPlusNode, context: TraitContext, side: string, hand: VRHand): void {
     this.grabbedHands.delete(side);
 
     // Clear Rotation State on any release
@@ -108,22 +108,22 @@ export class GrabbableTrait implements Trait {
     }
   }
 
-  private updateTwoHanded(node: any, left: VRHand, right: VRHand): void {
+  private updateTwoHanded(node: HSPlusNode, left: VRHand, right: VRHand): void {
     const currentDist = this.getDistance(left.position, right.position);
     const scaleFactor = currentDist / this.initialPinchDistance;
 
     const newScale = {
-      x: this.initialScale.x * scaleFactor,
-      y: this.initialScale.y * scaleFactor,
-      z: this.initialScale.z * scaleFactor,
+      x: (this.initialScale.x ?? 1) * scaleFactor,
+      y: (this.initialScale.y ?? 1) * scaleFactor,
+      z: (this.initialScale.z ?? 1) * scaleFactor,
     };
 
     node.properties.scale = newScale;
 
     // Rotation Logic (Steering Wheel)
     // Vector between hands
-    const dx = right.position.x - left.position.x;
-    const dz = right.position.z - left.position.z;
+    const dx = (right.position.x ?? 0) - (left.position.x ?? 0);
+    const dz = (right.position.z ?? 0) - (left.position.z ?? 0);
     const angle = Math.atan2(dz, dx);
 
     // We need initial angle to calculate delta.
@@ -146,9 +146,9 @@ export class GrabbableTrait implements Trait {
     // Apply to Y axis
     if (this.initialObjectRotation) {
       node.properties.rotation = {
-        x: this.initialObjectRotation.x,
-        y: this.initialObjectRotation.y + deltaAngle,
-        z: this.initialObjectRotation.z,
+        x: this.initialObjectRotation.x ?? 0,
+        y: (this.initialObjectRotation.y ?? 0) + deltaAngle,
+        z: this.initialObjectRotation.z ?? 0,
       };
     }
 
@@ -183,9 +183,9 @@ export class GrabbableTrait implements Trait {
     const delta = 0.016;
 
     const velocity: [number, number, number] = [
-      (hand.position.x - prevPos.x) / delta,
-      (hand.position.y - prevPos.y) / delta,
-      (hand.position.z - prevPos.z) / delta,
+      ((hand.position.x ?? 0) - (prevPos.x ?? 0)) / delta,
+      ((hand.position.y ?? 0) - (prevPos.y ?? 0)) / delta,
+      ((hand.position.z ?? 0) - (prevPos.z ?? 0)) / delta,
     ];
 
     // Clamp for sanity
@@ -197,7 +197,7 @@ export class GrabbableTrait implements Trait {
     ];
   }
 
-  onDetach(node: any, context: TraitContext): void {
+  onDetach(node: HSPlusNode, context: TraitContext): void {
     if (this.grabbedHands.size > 0) {
       context.emit('physics_release', { nodeId: node.id });
     }
@@ -205,18 +205,18 @@ export class GrabbableTrait implements Trait {
 }
 
 // ── Handler (delegates to GrabbableTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitEvent } from './TraitTypes';
 
 export const grabbableHandler = {
   name: 'grabbable',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new GrabbableTrait();
     node.__grabbable_instance = instance;
     ctx.emit('grabbable_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__grabbable_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__grabbable_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -225,8 +225,8 @@ export const grabbableHandler = {
     ctx.emit('grabbable_detached', { node });
     delete node.__grabbable_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__grabbable_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__grabbable_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -235,8 +235,8 @@ export const grabbableHandler = {
       ctx.emit('grabbable_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__grabbable_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__grabbable_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
 import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
@@ -359,7 +359,7 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: GLTFConfig, context: TraitContext, event: any) {
+  onEvent(node: HSPlusNode, config: GLTFConfig, context: TraitContext, event: TraitEvent) {
     const state = node.__gltfState as GLTFState | undefined;
     if (!state) return;
 
@@ -543,12 +543,20 @@ function createMockGLTFData(config: GLTFConfig): {
 }
 
 function calculateCameraDistance(node: HSPlusNode, context: TraitContext): number {
-  const nodePos = node.position || [0, 0, 0];
-  const cameraPos = context.vr.headset.position;
+  const p1 = node.properties?.position as Vector3 || [0, 0, 0];
+  const p2 = context.vr.headset.position;
 
-  const dx = nodePos[0] - (cameraPos as any)[0];
-  const dy = nodePos[1] - (cameraPos as any)[1];
-  const dz = nodePos[2] - (cameraPos as any)[2];
+  const x1 = Array.isArray(p1) ? p1[0] : (p1 as any).x ?? 0;
+  const y1 = Array.isArray(p1) ? p1[1] : (p1 as any).y ?? 0;
+  const z1 = Array.isArray(p1) ? p1[2] : (p1 as any).z ?? 0;
+
+  const x2 = Array.isArray(p2) ? p2[0] : (p2 as any).x ?? 0;
+  const y2 = Array.isArray(p2) ? p2[1] : (p2 as any).y ?? 0;
+  const z2 = Array.isArray(p2) ? p2[2] : (p2 as any).z ?? 0;
+
+  const dx = x1 - x2;
+  const dy = y1 - y2;
+  const dz = z1 - z2;
 
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
@@ -604,7 +612,7 @@ function setMorphWeight(state: GLTFState, target: string, weight: number): void 
  * Get GLTF state from a node
  */
 export function getGLTFState(node: HSPlusNode): GLTFState | undefined {
-  return node.__gltfState;
+  return (node as any).__gltfState as GLTFState | undefined;
 }
 
 /**

@@ -330,13 +330,13 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       const details = ((event as Record<string, unknown>).details as Record<string, unknown>) || {};
       const result = ((event as Record<string, unknown>).result as string) || 'success';
       const userId =
-        (event as Record<string, unknown>).userId ||
-        (event as Record<string, unknown>).actorId ||
+        ((event as Record<string, unknown>).userId as string) ||
+        ((event as Record<string, unknown>).actorId as string) ||
         'system';
-      const tenantId = (event as Record<string, unknown>).tenantId || config.tenantId;
+      const tenantId = ((event as Record<string, unknown>).tenantId as string) || config.tenantId;
 
       const category = categorizeAction(action);
-      const severity = (event as Record<string, unknown>).severity || inferSeverity(action, result);
+      const severity = ((event as Record<string, unknown>).severity as string) || inferSeverity(action, result);
 
       // Check severity filter
       if (SEVERITY_ORDER[severity as AuditSeverity] < SEVERITY_ORDER[config.minSeverity]) {
@@ -364,11 +364,11 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         details,
         actor: {
           userId,
-          role: (event as Record<string, unknown>).actorRole,
-          ipAddress: (event as Record<string, unknown>).ipAddress,
-          sessionId: (event as Record<string, unknown>).sessionId,
+          role: (event as Record<string, unknown>).actorRole as string | undefined,
+          ipAddress: (event as Record<string, unknown>).ipAddress as string | undefined,
+          sessionId: (event as Record<string, unknown>).sessionId as string | undefined,
         },
-        resource: (event as Record<string, unknown>).resource,
+        resource: (event as Record<string, unknown>).resource as any,
         tenantId,
       });
 

@@ -225,14 +225,19 @@ export class HolobCompiler {
     entityId: number
   ): void {
     // Geometry
-    const shape = (obj.shape as string)?.toLowerCase() || 'box';
+    const shapeProp = obj.properties?.find(p => p.key === 'shape')?.value;
+    const shape = (shapeProp as string)?.toLowerCase() || 'box';
     const geoType = GEOMETRY_MAP[shape] ?? GEOMETRY_MAP['box'];
     fn.setGeometry(entityId, geoType);
 
     // Transform
-    const pos = this.resolveVec3(obj.position, [0, 0, 0]);
-    const rot = this.resolveVec3(obj.rotation, [0, 0, 0]);
-    const scl = this.resolveVec3(obj.scale, [1, 1, 1]);
+    const posProp = obj.properties?.find(p => p.key === 'position')?.value;
+    const rotProp = obj.properties?.find(p => p.key === 'rotation')?.value;
+    const sclProp = obj.properties?.find(p => p.key === 'scale')?.value;
+    
+    const pos = this.resolveVec3(posProp, [0, 0, 0]);
+    const rot = this.resolveVec3(rotProp, [0, 0, 0]);
+    const scl = this.resolveVec3(sclProp, [1, 1, 1]);
     fn.transform(entityId, pos[0], pos[1], pos[2], rot[0], rot[1], rot[2], 0, scl[0], scl[1], scl[2]);
 
     // Material — extract color from properties

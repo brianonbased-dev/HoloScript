@@ -11,7 +11,7 @@
  *  envconfig:entries  { entries[] }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface EnvConfigConfig {
   layers: string[];
@@ -21,15 +21,15 @@ export const envConfigHandler: TraitHandler<EnvConfigConfig> = {
   name: 'env_config',
   defaultConfig: { layers: ['default', 'env', 'override'] },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__envConfigState = { values: new Map<string, { value: unknown; layer: string }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__envConfigState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: EnvConfigConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: EnvConfigConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__envConfigState as
       | { values: Map<string, { value: unknown; layer: string }> }
       | undefined;

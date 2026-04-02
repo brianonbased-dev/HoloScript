@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -133,11 +133,11 @@ export const highContrastHandler: TraitHandler<HighContrastConfig> = {
 };
 
 function applyContrast(
-  node: any,
+  node: HSPlusNode,
   config: HighContrastConfig,
   state: HighContrastState,
   mode: ContrastMode,
-  context: any
+  context: TraitContext
 ): void {
   if (mode === 'off') return;
 
@@ -176,7 +176,7 @@ function applyContrast(
   });
 }
 
-function restoreOriginalMaterials(node: any, state: HighContrastState, context: any): void {
+function restoreOriginalMaterials(node: HSPlusNode, state: HighContrastState, context: TraitContext): void {
   const materialId = node.id || 'default';
   const original = state.originalMaterials.get(materialId);
 

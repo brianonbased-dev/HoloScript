@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -281,7 +281,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
 function _handleImpact(
   node: unknown,
   config: DestructionConfig,
-  context: any,
+  context: TraitContext,
   state: DestructionState,
   impulse: number,
   impactPoint: { x: number; y: number; z: number } | undefined
@@ -309,7 +309,7 @@ function _handleImpact(
 function triggerDestruction(
   node: unknown,
   config: DestructionConfig,
-  context: any,
+  context: TraitContext,
   state: DestructionState,
   impactPoint: { x: number; y: number; z: number } | undefined
 ): void {
@@ -322,8 +322,8 @@ function triggerDestruction(
 
   state.isDestroyed = true;
 
-  const position = node.position || { x: 0, y: 0, z: 0 };
-  const scale = node.scale || { x: 1, y: 1, z: 1 };
+  const position = (node as any).position || { x: 0, y: 0, z: 0 };
+  const scale = (node as any).scale || { x: 1, y: 1, z: 1 };
 
   // Generate fragments
   state.fragments = generateFragments(

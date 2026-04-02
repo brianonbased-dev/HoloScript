@@ -2,7 +2,7 @@
  * FileSystemTrait — v5.1
  * Local/remote file system operations.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface FileSystemConfig {
   root: string;
@@ -39,14 +39,14 @@ function normalizeFsPath(root: string, inputPath: string): string {
 export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
   name: 'file_system',
   defaultConfig: { root: '/' },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__fsState = { files: new Map<string, string>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__fsState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: FileSystemConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: FileSystemConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__fsState as { files: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
@@ -62,7 +62,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
           if (fsCaps) {
             Promise.resolve(fsCaps.writeFile(path, content))
               .then(() => context.emit?.('fs:written', { path }))
-              .catch((err: any) =>
+              .catch((err: unknown) =>
                 context.emit?.('fs:error', { path, error: err?.message ?? String(err) })
               );
             break;
@@ -70,7 +70,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
 
           state.files.set(path, content);
           context.emit?.('fs:written', { path });
-        } catch (err: any) {
+        } catch (err: unknown) {
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;
@@ -94,7 +94,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
 
           const content = state.files.get(path);
           context.emit?.('fs:read_result', { path, content, exists: content !== undefined });
-        } catch (err: any) {
+        } catch (err: unknown) {
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;
@@ -107,7 +107,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
           if (fsCaps) {
             Promise.resolve(fsCaps.deleteFile(path))
               .then(() => context.emit?.('fs:deleted', { path }))
-              .catch((err: any) =>
+              .catch((err: unknown) =>
                 context.emit?.('fs:error', { path, error: err?.message ?? String(err) })
               );
             break;
@@ -115,7 +115,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
 
           state.files.delete(path);
           context.emit?.('fs:deleted', { path });
-        } catch (err: any) {
+        } catch (err: unknown) {
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;

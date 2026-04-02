@@ -19,7 +19,7 @@
  * @version 5.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -163,7 +163,7 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
   // ===========================================================================
   // onAttach
   // ===========================================================================
-  onAttach(node: any, config: FeedbackConfig, context: any): void {
+  onAttach(node: HSPlusNode, config: FeedbackConfig, context: TraitContext): void {
     const state: FeedbackState = {
       metrics: new Map(),
       feedback: [],
@@ -199,7 +199,7 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
   // ===========================================================================
   // onDetach
   // ===========================================================================
-  onDetach(node: any, _config: FeedbackConfig, context: any): void {
+  onDetach(node: HSPlusNode, _config: FeedbackConfig, context: TraitContext): void {
     const state: FeedbackState | undefined = node.__feedbackState;
     if (state) {
       context.emit?.('feedback:shutdown', {
@@ -214,14 +214,14 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
   // ===========================================================================
   // onUpdate — no per-frame work needed (event-driven)
   // ===========================================================================
-  onUpdate(_node: any, _config: FeedbackConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: FeedbackConfig, _context: TraitContext, _delta: number): void {
     /* Metric collection and signal emission are event-driven */
   },
 
   // ===========================================================================
   // onEvent
   // ===========================================================================
-  onEvent(node: any, config: FeedbackConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: FeedbackConfig, context: TraitContext, event: TraitEvent): void {
     const state: FeedbackState | undefined = node.__feedbackState;
     if (!state) return;
 

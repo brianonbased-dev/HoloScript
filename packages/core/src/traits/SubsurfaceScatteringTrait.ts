@@ -86,17 +86,17 @@ export const SubsurfaceScatteringTrait: TraitHandler<SubsurfaceScatteringConfig>
         : config;
     switch (target) {
       case 'unity':
-        return this.compileUnity(c);
+        return (this as any).compileUnity(c);
       case 'unreal':
-        return this.compileUnreal(c);
+        return (this as any).compileUnreal(c);
       case 'web':
       case 'react-three-fiber':
       case 'babylon':
-        return this.compileWeb(c);
+        return (this as any).compileWeb(c);
       case 'webgpu':
-        return this.compileWebGPU(c);
+        return (this as any).compileWebGPU(c);
       default:
-        return this.compileGeneric(c);
+        return (this as any).compileGeneric(c);
     }
   },
 

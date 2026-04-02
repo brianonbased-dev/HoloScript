@@ -1,4 +1,5 @@
-import { TraitHandler, TraitContext, Vector3 } from '../types/HoloScriptPlus';
+import { Vector3 } from '../types/HoloScriptPlus';
+import type { TraitHandler, HSPlusNode, TraitEvent, TraitContext } from './TraitTypes';
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
 export interface ScrollableConfig {
@@ -30,7 +31,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     useSpringBounce: true,
   },
 
-  onAttach(node: any, config: any, context: any) {
+  onAttach(node: HSPlusNode, config: any, context: TraitContext) {
     const spring = config.useSpringBounce
       ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })
       : null;
@@ -44,11 +45,11 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     });
   },
 
-  onDetach(node: any, config: any, context: any) {
+  onDetach(node: HSPlusNode, config: any, context: TraitContext) {
     scrollStates.delete(node.id!);
   },
 
-  onUpdate(node: any, config: any, context: any, delta: any) {
+  onUpdate(node: HSPlusNode, config: any, context: TraitContext, delta: number) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 
@@ -104,19 +105,19 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     }
   },
 
-  onEvent(node: any, config: any, context: any, event: any) {
+  onEvent(node: HSPlusNode, config: any, context: TraitContext, event: TraitEvent) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 
     if (event.type === 'ui_press_start') {
       state.isDragging = true;
-      state.lastY = (event as Record<string, unknown>).position?.y || 0;
+      state.lastY = (event as any).position?.y || 0;
       state.velocity = 0;
     } else if (event.type === 'ui_press_end') {
       state.isDragging = false;
     } else if (event.type === 'ui_drag') {
       if (state.isDragging) {
-        const currentY = (event as Record<string, unknown>).position?.y || 0;
+        const currentY = (event as any).position?.y || 0;
         const dy = currentY - state.lastY;
         state.offset += dy;
         state.velocity = dy / 0.016; // Approx velocity

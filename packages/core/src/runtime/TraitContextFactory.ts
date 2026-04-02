@@ -22,6 +22,8 @@ import type {
   AudioContext as TraitAudioContext,
   HapticsContext,
   AccessibilityContext,
+} from '../traits/TraitTypes';
+import type {
   VRHand,
   Vector3,
   HSPlusNode,
@@ -41,6 +43,8 @@ export interface PhysicsProvider {
     direction: Vector3,
     maxDistance: number
   ): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
+  getBodyPosition?(nodeId: string): Vector3 | null;
+  getBodyVelocity?(nodeId: string): Vector3 | null;
 }
 
 /** Implemented by platform spatial audio engine */
@@ -290,16 +294,22 @@ export class TraitContextFactory {
       setKinematic(node: HSPlusNode, kinematic: boolean) {
         self.physicsProvider.setKinematic(node.id || '', kinematic);
       },
-      raycast(origin: Vector3, direction: Vector3, maxDistance: number) {
-        return self.physicsProvider.raycast(origin, direction, maxDistance);
+      raycast(origin: Vector3, direction: Vector3, maxDistance: number): any {
+        return self.physicsProvider.raycast(origin, direction, maxDistance) as any;
+      },
+      getBodyPosition(nodeId: string) {
+        return self.physicsProvider.getBodyPosition?.(nodeId) || null;
+      },
+      getBodyVelocity(nodeId: string) {
+        return self.physicsProvider.getBodyVelocity?.(nodeId) || null;
       },
     };
 
     const audioContext: TraitAudioContext = {
-      playSound(source: string, options?) {
+      playSound(source: string, options?: { position?: Vector3; volume?: number; spatial?: boolean }) {
         self.audioProvider.playSound(source, options);
       },
-      updateSpatialSource(nodeId: string, options) {
+      updateSpatialSource(nodeId: string, options: { hrtfProfile?: string; occlusion?: number; reverbWet?: number }) {
         self.audioProvider.updateSpatialSource?.(nodeId, options);
       },
       registerAmbisonicSource(nodeId: string, order: number) {

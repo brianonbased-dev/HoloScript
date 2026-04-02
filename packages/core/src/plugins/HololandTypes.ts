@@ -191,7 +191,7 @@ export interface AIGeneratedNarrative {
   genre: string;
   wordCount: number;
   generatedAt: number;
-  provider: 'openai' | 'anthropic' | 'gemini';
+  provider: 'openai' | 'anthropic' | 'gemini' | (string & {});
   model: string;
   prompt: string;
 }
@@ -209,7 +209,7 @@ export interface AIGeneratedQuest {
 }
 
 export interface StoryWeaverConfig {
-  provider: 'openai' | 'anthropic' | 'gemini';
+  provider: 'openai' | 'anthropic' | 'gemini' | (string & {});
   model?: string;
   apiKey?: string;
   temperature?: number;

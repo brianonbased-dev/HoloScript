@@ -10,7 +10,7 @@
  *  oauth:revoke      { token }
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface OauthConfig {
   providers: string[];
@@ -20,15 +20,15 @@ export const oauthHandler: TraitHandler<OauthConfig> = {
   name: 'oauth',
   defaultConfig: { providers: ['google', 'github'] },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__oauthState = { tokens: new Map<string, { provider: string; expiresAt: number }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__oauthState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: OauthConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: OauthConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__oauthState as { tokens: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

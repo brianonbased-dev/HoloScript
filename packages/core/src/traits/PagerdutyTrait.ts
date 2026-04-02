@@ -2,21 +2,21 @@
  * PagerdutyTrait — v5.1
  * PagerDuty incident alerting.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface PagerdutyConfig {
   severity: string;
 }
 export const pagerdutyHandler: TraitHandler<PagerdutyConfig> = {
   name: 'pagerduty',
   defaultConfig: { severity: 'critical' },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__pdState = { incidents: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__pdState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: PagerdutyConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PagerdutyConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__pdState as { incidents: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

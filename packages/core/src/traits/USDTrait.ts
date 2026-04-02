@@ -8,7 +8,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { TraitHandler, TraitEvent, TraitContext } from './TraitTypes';
 import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 // =============================================================================
@@ -389,7 +389,7 @@ export const usdHandler: TraitHandler<USDConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: USDConfig, context: TraitContext, event: any) {
+  onEvent(node: HSPlusNode, config: USDConfig, context: TraitContext, event: TraitEvent) {
     const state = node.__usdState as USDState | undefined;
     if (!state) return;
 

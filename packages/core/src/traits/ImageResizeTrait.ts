@@ -4,7 +4,7 @@
  * Image resize / crop / format conversion.
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface ImageResizeConfig {
   max_width: number;
@@ -16,15 +16,15 @@ export const imageResizeHandler: TraitHandler<ImageResizeConfig> = {
   name: 'image_resize',
   defaultConfig: { max_width: 2048, max_height: 2048, quality: 85 },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__imgResizeState = { processed: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__imgResizeState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, config: ImageResizeConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ImageResizeConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__imgResizeState as { processed: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'image:resize') {

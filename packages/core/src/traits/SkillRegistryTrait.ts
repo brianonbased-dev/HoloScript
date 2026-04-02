@@ -229,9 +229,10 @@ const DEFAULT_CONFIG: SkillRegistryConfig = {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export const skillRegistryHandler = {
+  name: 'skill_registry',
   defaultConfig: DEFAULT_CONFIG,
 
-  onAttach(node: any, config: SkillRegistryConfig, ctx: any): void {
+  onAttach(node: HSPlusNode, config: SkillRegistryConfig, ctx: TraitContext): void {
     const state: SkillRegistryState = {
       skills: new Map(),
       activeInvocations: new Map(),
@@ -249,7 +250,7 @@ export const skillRegistryHandler = {
     ctx.emit('skills_ready', { node, builtinCount: state.skills.size });
   },
 
-  onDetach(node: any, _config: SkillRegistryConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: SkillRegistryConfig, ctx: TraitContext): void {
     const state: SkillRegistryState | undefined = node.__skillRegistryState;
     if (!state) return;
     ctx.emit('skills_stopped', {
@@ -261,7 +262,7 @@ export const skillRegistryHandler = {
     delete node.__skillRegistryState;
   },
 
-  onEvent(node: any, config: SkillRegistryConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SkillRegistryConfig, ctx: TraitContext, event: TraitEvent): void {
     const state: SkillRegistryState | undefined = node.__skillRegistryState;
     if (!state) return;
 
@@ -310,16 +311,16 @@ export const skillRegistryHandler = {
     }
   },
 
-  onUpdate(_node: any, _config: SkillRegistryConfig, _ctx: any, _dt: number): void {
+  onUpdate(_node: HSPlusNode, _config: SkillRegistryConfig, _ctx: TraitContext, _dt: number): void {
     /* async only */
   },
 
   _install(
     state: SkillRegistryState,
-    node: any,
+    node: HSPlusNode,
     config: SkillRegistryConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitContext,
+    payload: Record<string, unknown>
   ): void {
     if (!payload) return;
     if (state.skills.size >= config.max_skills) {
@@ -360,10 +361,10 @@ export const skillRegistryHandler = {
 
   _invoke(
     state: SkillRegistryState,
-    node: any,
+    node: HSPlusNode,
     config: SkillRegistryConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitContext,
+    payload: Record<string, unknown>
   ): void {
     const { skillId, inputs = {}, invocationId } = payload ?? {};
     if (!skillId) return;

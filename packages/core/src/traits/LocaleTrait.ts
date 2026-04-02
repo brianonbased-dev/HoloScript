@@ -2,7 +2,7 @@
  * LocaleTrait — v5.1
  * Locale detection and switching.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface LocaleConfig {
   default_locale: string;
@@ -12,14 +12,14 @@ export interface LocaleConfig {
 export const localeHandler: TraitHandler<LocaleConfig> = {
   name: 'locale',
   defaultConfig: { default_locale: 'en-US', supported: ['en-US', 'es', 'fr', 'de', 'ja', 'zh'] },
-  onAttach(node: any, config: any): void {
+  onAttach(node: HSPlusNode, config: any): void {
     node.__localeState = { current: config.default_locale || 'en-US' };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__localeState;
   },
   onUpdate(): void {},
-  onEvent(node: any, config: LocaleConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: LocaleConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__localeState as { current: string } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

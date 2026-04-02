@@ -17,7 +17,7 @@
  * @milestone v3.1 (March 2026)
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 import { HITLAuditLogger } from '../utils/HITLAuditLogger';
 import { logger } from '../logger';
 import { ConstitutionalValidator, constitutionalRule } from '../utils/ConstitutionalValidator';
@@ -510,7 +510,7 @@ interface EvaluationResult {
 }
 
 function evaluateAction(
-  node: any,
+  node: HSPlusNode,
   state: HITLState,
   config: HITLConfig,
   action: ActionEvaluation
@@ -680,7 +680,7 @@ function logAction(
 async function notifyApprovers(
   config: HITLConfig,
   approval: ApprovalRequest,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   if (config.notification_webhook) {
     try {
@@ -737,8 +737,8 @@ async function flushAuditLog(
   state: HITLState,
   endpoint: string,
   batchSize: number,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: HSPlusNode
 ): Promise<void> {
   const entries = state.auditLog.splice(0, batchSize);
   if (entries.length === 0) return;

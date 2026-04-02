@@ -4,7 +4,7 @@
  * Multi-factor authentication (TOTP / SMS / WebAuthn).
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface MfaConfig {
   methods: string[];
@@ -14,15 +14,15 @@ export const mfaHandler: TraitHandler<MfaConfig> = {
   name: 'mfa',
   defaultConfig: { methods: ['totp', 'sms'] },
 
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__mfaState = { enrolled: new Map<string, { method: string; verified: boolean }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__mfaState;
   },
   onUpdate(): void {},
 
-  onEvent(node: any, _config: MfaConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: MfaConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__mfaState as { enrolled: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

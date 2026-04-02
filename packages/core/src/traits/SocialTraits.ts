@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -144,7 +144,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     // Sync logic handled by WebRTC layer
   },
 
-  async initializeVoice(node: any, context: any) {
+  async initializeVoice(node: HSPlusNode, context: TraitContext) {
     try {
       // In a real browser environment, this would request mic access
       // navigator.mediaDevices.getUserMedia({ audio: true })

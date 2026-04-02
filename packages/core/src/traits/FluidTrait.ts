@@ -185,7 +185,8 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       // Apply wind from @weather blackboard as external force on the MLS-MPM grid
       if (config.wind_sensitivity > 0 && weatherBlackboard.wind_speed > 0) {
         const s = config.wind_sensitivity;
-        const windDir = weatherBlackboard.wind_direction ?? { x: 0, y: 0, z: 0 };
+        const wv = weatherBlackboard.wind_vector;
+        const windDir = wv ? { x: wv[0], y: wv[1], z: wv[2] } : { x: 0, y: 0, z: 0 };
         const windSpeed = weatherBlackboard.wind_speed;
         state.mlsMpm.setExternalForce(
           windDir.x * windSpeed * s,

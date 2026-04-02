@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import {
   MQTTClient,
   createMQTTClient,
@@ -240,7 +240,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
 /**
  * Resolve dynamic topic placeholders
  */
-function resolveTopic(topicTemplate: string, node: any): string {
+function resolveTopic(topicTemplate: string, node: HSPlusNode): string {
   return topicTemplate
     .replace('{nodeId}', node.name || 'unknown')
     .replace('{nodeName}', node.name || 'unknown')
@@ -253,7 +253,7 @@ function resolveTopic(topicTemplate: string, node: any): string {
 function buildPayload(
   state: Record<string, unknown>,
   config: MQTTSinkConfig,
-  _node: any
+  _node: HSPlusNode
 ): Record<string, unknown> | string {
   let payload: Record<string, unknown> = {};
 
@@ -293,21 +293,21 @@ function hashState(payload: unknown): string {
 /**
  * Check if a node has the @mqtt_sink trait
  */
-export function hasMQTTSinkTrait(node: any): boolean {
+export function hasMQTTSinkTrait(node: HSPlusNode): boolean {
   return !!node.__mqttSinkState;
 }
 
 /**
  * Get the MQTT sink state from a node
  */
-export function getMQTTSinkState(node: any): MQTTSinkState | null {
+export function getMQTTSinkState(node: HSPlusNode): MQTTSinkState | null {
   return node.__mqttSinkState || null;
 }
 
 /**
  * Get the MQTT client from a node with @mqtt_sink trait
  */
-export function getMQTTSinkClient(node: any): MQTTClient | null {
+export function getMQTTSinkClient(node: HSPlusNode): MQTTClient | null {
   const state = getMQTTSinkState(node);
   return state?.client || null;
 }
@@ -315,7 +315,7 @@ export function getMQTTSinkClient(node: any): MQTTClient | null {
 /**
  * Check if MQTT sink is connected
  */
-export function isMQTTSinkConnected(node: any): boolean {
+export function isMQTTSinkConnected(node: HSPlusNode): boolean {
   const state = getMQTTSinkState(node);
   return state?.connected || false;
 }
@@ -323,7 +323,7 @@ export function isMQTTSinkConnected(node: any): boolean {
 /**
  * Manually trigger a publish
  */
-export function publishToMQTTSink(node: any, payload?: unknown, topic?: string): Promise<void> {
+export function publishToMQTTSink(node: HSPlusNode, payload?: unknown, topic?: string): Promise<void> {
   const state = getMQTTSinkState(node);
   if (!state?.client || !state.connected) {
     return Promise.reject(new Error('MQTT sink not connected'));

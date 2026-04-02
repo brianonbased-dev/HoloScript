@@ -2,7 +2,7 @@
  * FixtureTrait — v5.1
  * Test fixture / data setup with lifecycle hooks.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export interface FixtureConfig {
   auto_teardown: boolean;
@@ -11,14 +11,14 @@ export interface FixtureConfig {
 export const fixtureHandler: TraitHandler<FixtureConfig> = {
   name: 'fixture',
   defaultConfig: { auto_teardown: true },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__fixtureState = { fixtures: new Map<string, { data: unknown; active: boolean }>() };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__fixtureState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: FixtureConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: FixtureConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__fixtureState as { fixtures: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

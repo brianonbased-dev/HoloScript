@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -246,10 +246,10 @@ export const subtitleHandler: TraitHandler<SubtitleConfig> = {
 };
 
 function updateDisplay(
-  node: any,
+  node: HSPlusNode,
   config: SubtitleConfig,
   state: SubtitleState,
-  context: any,
+  context: TraitContext,
   interimText?: string
 ): void {
   const speakerColorMap = new Map<string, string>();

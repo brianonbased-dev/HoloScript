@@ -2,21 +2,21 @@
  * DataQualityTrait — v5.1
  * Data quality validation rules.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 export interface DataQualityConfig {
   fail_on_error: boolean;
 }
 export const dataQualityHandler: TraitHandler<DataQualityConfig> = {
   name: 'data_quality',
   defaultConfig: { fail_on_error: false },
-  onAttach(node: any): void {
+  onAttach(node: HSPlusNode): void {
     node.__dqState = { checks: 0, passed: 0, failed: 0 };
   },
-  onDetach(node: any): void {
+  onDetach(node: HSPlusNode): void {
     delete node.__dqState;
   },
   onUpdate(): void {},
-  onEvent(node: any, _config: DataQualityConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: DataQualityConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__dqState as { checks: number; passed: number; failed: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'quality:check') {

@@ -627,7 +627,7 @@ class BarretenbergBackend {
 export const zkPrivateHandler = {
   defaultConfig: DEFAULT_CONFIG,
 
-  async onAttach(node: any, config: ZkPrivateConfig, ctx: any): Promise<void> {
+  async onAttach(node: HSPlusNode, config: ZkPrivateConfig, ctx: TraitContext): Promise<void> {
     const bbBackend = new BarretenbergBackend();
 
     const state: ZkPrivateState = {
@@ -682,7 +682,7 @@ export const zkPrivateHandler = {
     });
   },
 
-  onDetach(node: any, _c: ZkPrivateConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _c: ZkPrivateConfig, ctx: TraitContext): void {
     const s: ZkPrivateState | undefined = node.__zkPrivateState;
     if (!s) return;
 
@@ -697,7 +697,7 @@ export const zkPrivateHandler = {
     delete node.__zkPrivateState;
   },
 
-  onEvent(node: any, config: ZkPrivateConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ZkPrivateConfig, ctx: TraitContext, event: TraitEvent): void {
     const s: ZkPrivateState | undefined = node.__zkPrivateState;
     if (!s?.isReady) return;
 
@@ -1100,7 +1100,7 @@ export const zkPrivateHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+  onUpdate(_n: HSPlusNode, _c: unknown, _ctx: TraitContext, _dt: number): void {
     /* Proof operations are async/event-driven, no per-frame updates needed */
   },
 } as const;

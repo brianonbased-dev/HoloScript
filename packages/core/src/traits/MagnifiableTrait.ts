@@ -7,7 +7,7 @@
  * @version 2.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -194,7 +194,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
   },
 };
 
-function applyMagnification(node: any, config: MagnifiableConfig, state: MagnifiableState): void {
+function applyMagnification(node: HSPlusNode, config: MagnifiableConfig, state: MagnifiableState): void {
   if (!node.scale) return;
 
   const mag = state.currentMagnification;

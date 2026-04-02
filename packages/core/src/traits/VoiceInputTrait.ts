@@ -144,7 +144,7 @@ export class VoiceInputTrait {
       }
     };
 
-    this.recognition.onresult = (event: any) => {
+    this.recognition.onresult = (event: TraitEvent) => {
       this.interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -174,7 +174,7 @@ export class VoiceInputTrait {
       }
     };
 
-    this.recognition.onerror = (_event: any) => {
+    this.recognition.onerror = (_event: TraitEvent) => {
       this.emitEvent({
         type: 'error',
         result: {
@@ -398,18 +398,18 @@ export function createVoiceInputTrait(config: VoiceInputConfig): VoiceInputTrait
 }
 
 // ── Handler (delegates to VoiceInputTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 export const voiceInputHandler = {
   name: 'voice_input',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new VoiceInputTrait(config);
     node.__voice_input_instance = instance;
     ctx.emit('voice_input_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__voice_input_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__voice_input_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -418,8 +418,8 @@ export const voiceInputHandler = {
     ctx.emit('voice_input_detached', { node });
     delete node.__voice_input_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__voice_input_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__voice_input_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -428,8 +428,8 @@ export const voiceInputHandler = {
       ctx.emit('voice_input_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__voice_input_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__voice_input_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

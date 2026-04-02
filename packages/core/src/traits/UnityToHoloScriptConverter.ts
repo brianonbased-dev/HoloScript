@@ -302,18 +302,18 @@ const DEFAULT_CONVERTER_CONFIG: UnityConverterConfig = {
 export const unityConverterHandler = {
   defaultConfig: DEFAULT_CONVERTER_CONFIG,
 
-  onAttach(node: any, _config: UnityConverterConfig, ctx: any): void {
+  onAttach(node: HSPlusNode, _config: UnityConverterConfig, ctx: TraitContext): void {
     node.__unityConverterState = { totalConverted: 0, totalWarnings: 0 };
     ctx.emit('unity_converter_ready', { node });
   },
 
-  onDetach(node: any, _config: UnityConverterConfig, ctx: any): void {
+  onDetach(node: HSPlusNode, _config: UnityConverterConfig, ctx: TraitContext): void {
     if (!node.__unityConverterState) return;
     ctx.emit('unity_converter_stopped', { node, ...node.__unityConverterState });
     delete node.__unityConverterState;
   },
 
-  onEvent(node: any, config: UnityConverterConfig, ctx: any, event: any): void {
+  onEvent(node: HSPlusNode, config: UnityConverterConfig, ctx: TraitContext, event: TraitEvent): void {
     const state = node.__unityConverterState;
     if (!state) return;
 
@@ -345,7 +345,7 @@ export const unityConverterHandler = {
           warnings: result.warnings,
           unsupportedComponents: result.unsupportedComponents,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         ctx.emit('unity_converter_error', { node, error: err.message, scene: scene.name });
       }
     }
@@ -362,7 +362,7 @@ export const unityConverterHandler = {
     }
   },
 
-  onUpdate(_n: any, _c: any, _ctx: any, _dt: number): void {
+  onUpdate(_n: HSPlusNode, _c: unknown, _ctx: TraitContext, _dt: number): void {
     /* sync only */
   },
 } as const;

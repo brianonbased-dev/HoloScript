@@ -19,7 +19,7 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -64,7 +64,7 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
     max_concurrent: 20,
   },
 
-  onAttach(node: any, _config: TimeoutGuardConfig, _context: any): void {
+  onAttach(node: HSPlusNode, _config: TimeoutGuardConfig, _context: TraitContext): void {
     const state: TimeoutGuardState = {
       operations: new Map(),
       totalStarted: 0,
@@ -75,7 +75,7 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
     node.__timeoutGuardState = state;
   },
 
-  onDetach(node: any, _config: TimeoutGuardConfig, _context: any): void {
+  onDetach(node: HSPlusNode, _config: TimeoutGuardConfig, _context: TraitContext): void {
     const state: TimeoutGuardState | undefined = node.__timeoutGuardState;
     if (state) {
       for (const [, op] of state.operations) {
@@ -86,11 +86,11 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
     delete node.__timeoutGuardState;
   },
 
-  onUpdate(_node: any, _config: TimeoutGuardConfig, _context: any, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: TimeoutGuardConfig, _context: TraitContext, _delta: number): void {
     // Timer-driven, no per-frame work
   },
 
-  onEvent(node: any, config: TimeoutGuardConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: TimeoutGuardConfig, context: TraitContext, event: TraitEvent): void {
     const state: TimeoutGuardState | undefined = node.__timeoutGuardState;
     if (!state) return;
 

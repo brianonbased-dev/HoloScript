@@ -102,9 +102,8 @@ export abstract class PostProcessEffect {
    * Update parameters
    */
   public setParams(params: Partial<EffectParams>): void {
-    this.params = { ...this.params, ...params };
+    this.params = { ...this.params, ...params } as any;
   }
-
   /**
    * Check if effect is initialized
    */

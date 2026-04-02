@@ -1,9 +1,9 @@
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode } from './TraitTypes';
 import { getPhysicsEngine } from '../runtime/PhysicsEngine';
 import { IslandDetector } from '../physics/IslandDetector';
 import { SoftBodyAdapter } from '../physics/SoftBodyAdapter';
 
-function extractPosition(node: any): [number, number, number] {
+function extractPosition(node: HSPlusNode): [number, number, number] {
   const pos = node?.properties?.position ?? node?.position;
   if (Array.isArray(pos) && pos.length >= 3) {
     return [pos[0], pos[1], pos[2]];
@@ -152,8 +152,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
         const engine = getPhysicsEngine(state.engineId || 'webgpu');
         engine?.applyForce(
           node.name || '',
-          (event as Record<string, unknown>).data.force,
-          (event as Record<string, unknown>).data.point
+          (event as any).data?.force,
+          (event as any).data?.point
         );
       }
     }

@@ -15,7 +15,7 @@ import type { TraitContext } from './TraitTypes';
 export class SlidableTrait implements Trait {
   name = 'slidable';
 
-  onAttach(node: any, context: TraitContext): void {
+  onAttach(node: HSPlusNode, context: TraitContext): void {
     const axis = node.properties.axis || 'x';
     const length = node.properties.length || 0.1;
 
@@ -37,7 +37,7 @@ export class SlidableTrait implements Trait {
   private initialPos: { x: number; y: number; z: number } | null = null;
   private lastValue: number = 0;
 
-  onUpdate(node: any, context: TraitContext, _delta: number): void {
+  onUpdate(node: HSPlusNode, context: TraitContext, _delta: number): void {
     if (!this.initialPos) {
       this.initialPos = node.properties.position
         ? { ...node.properties.position }
@@ -83,18 +83,18 @@ export class SlidableTrait implements Trait {
 }
 
 // ── Handler (delegates to SlidableTrait) ──
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitEvent } from './TraitTypes';
 
 export const slidableHandler = {
   name: 'slidable',
   defaultConfig: {},
-  onAttach(node: any, config: any, ctx: any): void {
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
     const instance = new SlidableTrait();
     node.__slidable_instance = instance;
     ctx.emit('slidable_attached', { node, config });
   },
-  onDetach(node: any, _config: any, ctx: any): void {
-    const instance = node.__slidable_instance;
+  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+    const instance = node.__slidable_instance as any;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -103,8 +103,8 @@ export const slidableHandler = {
     ctx.emit('slidable_detached', { node });
     delete node.__slidable_instance;
   },
-  onEvent(node: any, _config: any, ctx: any, event: any): void {
-    const instance = node.__slidable_instance;
+  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+    const instance = node.__slidable_instance as any;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -113,8 +113,8 @@ export const slidableHandler = {
       ctx.emit('slidable_configured', { node });
     }
   },
-  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
-    const instance = node.__slidable_instance;
+  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+    const instance = node.__slidable_instance as any;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },
