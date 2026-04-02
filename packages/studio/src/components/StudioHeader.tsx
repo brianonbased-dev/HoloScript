@@ -361,14 +361,14 @@ export function StudioHeader() {
     try {
       const done = localStorage.getItem('holoscript-studio-tutorial-complete');
       if (!done) setShowTutorial(true);
-    } catch {}
+    } catch (err) { console.warn('[StudioHeader] reading tutorial state from localStorage failed:', err); }
   }, []);
 
   const dismissTutorial = () => {
     setShowTutorial(false);
     try {
       localStorage.setItem('holoscript-studio-tutorial-complete', 'true');
-    } catch {}
+    } catch (err) { console.warn('[StudioHeader] saving tutorial state to localStorage failed:', err); }
   };
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────────

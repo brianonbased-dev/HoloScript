@@ -277,7 +277,7 @@ function saveFavorites(favs: Set<PanelTab>) {
   try {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...favs]));
-  } catch {}
+  } catch (err) { console.warn('[useDomainFilter] saving favorites to localStorage failed:', err); }
 }
 
 export interface UseDomainFilterReturn {
@@ -305,7 +305,7 @@ function loadDomainProfile(): DomainProfile {
       )
     )
       return saved;
-  } catch {}
+  } catch (err) { console.warn('[useDomainFilter] loading domain profile from localStorage failed:', err); }
   return 'all';
 }
 

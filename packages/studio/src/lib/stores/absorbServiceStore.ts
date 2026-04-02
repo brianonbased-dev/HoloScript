@@ -166,7 +166,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ creditBalance: data.balance, tier: data.tier });
-          } catch {}
+          } catch (err) { console.warn('[absorbServiceStore] fetchCredits failed:', err); }
         },
 
         fetchProjects: async () => {
@@ -187,7 +187,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ usageHistory: data.transactions });
-          } catch {}
+          } catch (err) { console.warn('[absorbServiceStore] fetchUsageHistory failed:', err); }
         },
 
         createProject: async (name, sourceType, sourceUrl) => {
@@ -242,7 +242,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookAgents: data.agents });
-          } catch {}
+          } catch (err) { console.warn('[absorbServiceStore] fetchMoltbookAgents failed:', err); }
         },
 
         fetchMoltbookSummary: async () => {
@@ -251,7 +251,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookSummary: data });
-          } catch {}
+          } catch (err) { console.warn('[absorbServiceStore] fetchMoltbookSummary failed:', err); }
         },
 
         createMoltbookAgent: async (projectId, agentName, moltbookApiKey, config = {}) => {

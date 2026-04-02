@@ -947,7 +947,7 @@ function HoloDaemonSubPanel() {
           setJobs(jobList);
           setTelemetry(tel);
         }
-      } catch {}
+      } catch (err) { console.warn('[AbsorbPage] loading jobs/telemetry failed:', err); }
     };
     void load();
     return () => {
@@ -999,7 +999,7 @@ function HoloDaemonSubPanel() {
       try {
         const tel = await getTelemetry();
         setTelemetry(tel);
-      } catch {}
+      } catch (err) { console.warn('[AbsorbPage] telemetry poll failed:', err); }
     }, 10000);
     return () => clearInterval(interval);
   }, [getTelemetry]);
@@ -1025,7 +1025,7 @@ function HoloDaemonSubPanel() {
         activeJobProgress: 0,
         activeJobStatus: 'Job created, starting...',
       });
-    } catch {}
+    } catch (err) { console.warn('[AbsorbPage] daemon job creation failed:', err); }
   }, [createJob, daemonMode, composition]);
 
   const daemonStatus =
@@ -1160,7 +1160,7 @@ function AuthenticatedDashboard() {
   // Load daemon jobs for daemon-ops tab
   useEffect(() => {
     if (tab === 'daemon-ops') {
-      listJobs().then(setJobs).catch(() => {});
+      listJobs().then(setJobs).catch((err) => { console.warn('[AbsorbPage] listing daemon jobs failed:', err); });
     }
   }, [tab, listJobs]);
   const [publishPremium, setPublishPremium] = useState(false);

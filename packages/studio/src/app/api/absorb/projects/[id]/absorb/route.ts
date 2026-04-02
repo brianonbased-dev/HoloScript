@@ -52,7 +52,7 @@ export async function POST(
   let body: any = {};
   try {
     body = await req.json();
-  } catch {}
+  } catch (err) { console.error('[API absorb/projects/[id]/absorb] parsing request body failed:', err); }
 
   // POST directly to MCP tool
   const mcpResult = await callMcpTool('absorb_run_absorb', {
@@ -78,7 +78,7 @@ export async function POST(
     if (res.ok) {
       return NextResponse.json(await res.json());
     }
-  } catch {}
+  } catch (err) { console.error('[API absorb/projects/[id]/absorb] HTTP fallback failed:', err); }
 
   return NextResponse.json(
     { error: 'Failed to run absorb_run_absorb. Ensure the orchestrator is running.' },

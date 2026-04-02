@@ -189,7 +189,7 @@ export default function AdminDashboard() {
           prev.map((a) => (a.id === agentId ? { ...a, heartbeatEnabled: false } : a))
         );
       }
-    } catch {}
+    } catch (err) { console.warn('[AdminPage] force-stop agent failed:', err); }
   };
 
   if (!session?.user) {
