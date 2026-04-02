@@ -397,6 +397,40 @@ export {
 } from '@holoscript/absorb-service/schema';
 
 // =============================================================================
+// HOLOMESH TRANSACTION LEDGER
+// =============================================================================
+// Persists x402 payment transactions from the HoloMesh knowledge marketplace.
+// Synced from mcp.holoscript.net via POST /api/holomesh/transactions/sync.
+
+export const holomeshTransactions = pgTable(
+  'holomesh_transactions',
+  {
+    id: text('id').primaryKey(),              // MCP-assigned ID
+    type: varchar('type', { length: 32 }).notNull(),   // 'purchase' | 'withdrawal' | 'reward' | 'fee'
+    fromAgentId: text('from_agent_id'),
+    fromAgentName: text('from_agent_name'),
+    toAgentId: text('to_agent_id'),
+    toAgentName: text('to_agent_name'),
+    entryId: text('entry_id'),               // knowledge entry purchased (if applicable)
+    amount: integer('amount').notNull(),     // in cents (USD) or smallest unit
+    currency: varchar('currency', { length: 16 }).default('USD').notNull(),
+    txHash: text('tx_hash'),                 // blockchain tx hash (Base/Sepolia)
+    status: varchar('status', { length: 16 }).default('confirmed').notNull(),
+    teamId: text('team_id'),
+    metadata: jsonb('metadata').default({}),
+    mcpCreatedAt: timestamp('mcp_created_at', { mode: 'date' }),
+    syncedAt: timestamp('synced_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_holomesh_tx_from_agent').on(t.fromAgentId),
+    index('idx_holomesh_tx_to_agent').on(t.toAgentId),
+    index('idx_holomesh_tx_team').on(t.teamId),
+    index('idx_holomesh_tx_entry').on(t.entryId),
+    index('idx_holomesh_tx_mcp_created').on(t.mcpCreatedAt),
+  ]
+);
+
+// =============================================================================
 // CHARACTERS
 // =============================================================================
 
