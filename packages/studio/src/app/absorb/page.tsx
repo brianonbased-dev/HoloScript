@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 import { useAbsorbService } from '@/hooks/useAbsorbService';
 import { useToast } from '@/app/providers';
 import { CREDIT_PACKAGES } from '@/lib/absorb/pricing';
@@ -947,7 +948,7 @@ function HoloDaemonSubPanel() {
           setJobs(jobList);
           setTelemetry(tel);
         }
-      } catch (err) { console.warn('[AbsorbPage] loading jobs/telemetry failed:', err); }
+      } catch (err) { logger.warn('[AbsorbPage] loading jobs/telemetry failed:', err); }
     };
     void load();
     return () => {
@@ -999,7 +1000,7 @@ function HoloDaemonSubPanel() {
       try {
         const tel = await getTelemetry();
         setTelemetry(tel);
-      } catch (err) { console.warn('[AbsorbPage] telemetry poll failed:', err); }
+      } catch (err) { logger.warn('[AbsorbPage] telemetry poll failed:', err); }
     }, 10000);
     return () => clearInterval(interval);
   }, [getTelemetry]);
@@ -1160,7 +1161,7 @@ function AuthenticatedDashboard() {
   // Load daemon jobs for daemon-ops tab
   useEffect(() => {
     if (tab === 'daemon-ops') {
-      listJobs().then(setJobs).catch((err) => { console.warn('[AbsorbPage] listing daemon jobs failed:', err); });
+      listJobs().then(setJobs).catch((err) => { logger.warn('[AbsorbPage] listing daemon jobs failed:', err); });
     }
   }, [tab, listJobs]);
   const [publishPremium, setPublishPremium] = useState(false);

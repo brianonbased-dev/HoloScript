@@ -7,6 +7,7 @@
  */
 import { useState, useCallback, useMemo } from 'react';
 import type { PanelTab } from '../types/panels';
+import { logger } from '@/lib/logger';
 
 export type DomainProfile =
   | 'all'
@@ -277,7 +278,7 @@ function saveFavorites(favs: Set<PanelTab>) {
   try {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...favs]));
-  } catch (err) { console.warn('[useDomainFilter] saving favorites to localStorage failed:', err); }
+  } catch (err) { logger.warn('[useDomainFilter] saving favorites to localStorage failed:', err); }
 }
 
 export interface UseDomainFilterReturn {
@@ -305,7 +306,7 @@ function loadDomainProfile(): DomainProfile {
       )
     )
       return saved;
-  } catch (err) { console.warn('[useDomainFilter] loading domain profile from localStorage failed:', err); }
+  } catch (err) { logger.warn('[useDomainFilter] loading domain profile from localStorage failed:', err); }
   return 'all';
 }
 

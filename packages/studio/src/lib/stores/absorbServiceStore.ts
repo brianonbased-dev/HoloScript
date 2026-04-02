@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import type { Tier } from '@/lib/absorb/pricing';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ creditBalance: data.balance, tier: data.tier });
-          } catch (err) { console.warn('[absorbServiceStore] fetchCredits failed:', err); }
+          } catch (err) { logger.warn('[absorbServiceStore] fetchCredits failed:', err); }
         },
 
         fetchProjects: async () => {
@@ -187,7 +188,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ usageHistory: data.transactions });
-          } catch (err) { console.warn('[absorbServiceStore] fetchUsageHistory failed:', err); }
+          } catch (err) { logger.warn('[absorbServiceStore] fetchUsageHistory failed:', err); }
         },
 
         createProject: async (name, sourceType, sourceUrl) => {
@@ -242,7 +243,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookAgents: data.agents });
-          } catch (err) { console.warn('[absorbServiceStore] fetchMoltbookAgents failed:', err); }
+          } catch (err) { logger.warn('[absorbServiceStore] fetchMoltbookAgents failed:', err); }
         },
 
         fetchMoltbookSummary: async () => {
@@ -251,7 +252,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookSummary: data });
-          } catch (err) { console.warn('[absorbServiceStore] fetchMoltbookSummary failed:', err); }
+          } catch (err) { logger.warn('[absorbServiceStore] fetchMoltbookSummary failed:', err); }
         },
 
         createMoltbookAgent: async (projectId, agentName, moltbookApiKey, config = {}) => {

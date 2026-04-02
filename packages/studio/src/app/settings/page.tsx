@@ -83,7 +83,7 @@ export default function SettingsPage() {
         setOracleStatus(status as OracleStatus);
         setOracleTelemetry(telemetry);
       })
-      .catch((err) => { console.warn('[SettingsPage] loading oracle status/telemetry failed:', err); })
+      .catch((err) => { logger.warn('[SettingsPage] loading oracle status/telemetry failed:', err); })
       .finally(() => setOracleLoading(false));
   }, [session?.user?.id]);
 

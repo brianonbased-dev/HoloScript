@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
+import { logger } from '@/lib/logger';
 import {
   Users,
   FolderGit2,
@@ -189,7 +190,7 @@ export default function AdminDashboard() {
           prev.map((a) => (a.id === agentId ? { ...a, heartbeatEnabled: false } : a))
         );
       }
-    } catch (err) { console.warn('[AdminPage] force-stop agent failed:', err); }
+    } catch (err) { logger.warn('[AdminPage] force-stop agent failed:', err); }
   };
 
   if (!session?.user) {

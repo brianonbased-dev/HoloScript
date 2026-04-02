@@ -7,6 +7,7 @@ import { useOrchestrationKeyboard } from '@/hooks/useOrchestrationKeyboard';
 import { useOrchestrationAutoSave } from '@/hooks/useOrchestrationAutoSave';
 import { NavBar } from './header/NavBar';
 import { StudioPanelOverlays } from './header/StudioPanelOverlays';
+import { logger } from '@/lib/logger';
 
 export function StudioHeader() {
   const setShowTutorial = usePanelVisibilityStore((s) => s.setTutorialOpen);
@@ -40,14 +41,14 @@ export function StudioHeader() {
     try {
       const done = localStorage.getItem('holoscript-studio-tutorial-complete');
       if (!done) setShowTutorial(true);
-    } catch (err) { console.warn('[StudioHeader] reading tutorial state from localStorage failed:', err); }
+    } catch (err) { logger.warn('[StudioHeader] reading tutorial state from localStorage failed:', err); }
   }, [setShowTutorial]);
 
   const dismissTutorial = () => {
     setShowTutorial(false);
     try {
       localStorage.setItem('holoscript-studio-tutorial-complete', 'true');
-    } catch (err) { console.warn('[StudioHeader] saving tutorial state to localStorage failed:', err); }
+    } catch (err) { logger.warn('[StudioHeader] saving tutorial state to localStorage failed:', err); }
   };
 
   // Keyboard shortcut: Ctrl+Shift+B => toggle blame overlay
