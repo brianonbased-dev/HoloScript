@@ -424,12 +424,12 @@ export class CompilerDocumentationGenerator {
 
     // State management
     if (composition.state) {
-      const stateObj = composition.state as any;
+      const stateObj = composition.state as Record<string, unknown>;
       let stateProps: string[] = [];
 
       if (stateObj.properties && Array.isArray(stateObj.properties)) {
         // HoloState with properties array
-        stateProps = stateObj.properties.map((p: any) => p.key);
+        stateProps = (stateObj.properties as Array<{ key: string }>).map((p) => p.key);
       } else {
         // Plain object
         stateProps = Object.keys(stateObj);
@@ -448,9 +448,10 @@ export class CompilerDocumentationGenerator {
 
     // Environment
     if (composition.environment) {
+      const env = composition.environment as Record<string, unknown>;
       sections.push('## Environment');
-      sections.push(`Background: ${(composition.environment as any).background || 'default'}`);
-      if ((composition.environment as any).fog) {
+      sections.push(`Background: ${(env.background as string) || 'default'}`);
+      if (env.fog) {
         sections.push('Fog: enabled');
       }
       sections.push('');
@@ -747,11 +748,12 @@ export class CompilerDocumentationGenerator {
       sections.push('|------|------|----------|--------|');
       for (const obj of composition.objects.slice(0, 20)) {
         // Limit to first 20
-        const objAny = obj as any; // HoloObjectDecl position may be nested in properties
-        const pos = objAny.position || objAny.transform?.position;
+        const objRec = obj as unknown as Record<string, unknown>;
+        const transform = objRec.transform as Record<string, unknown> | undefined;
+        const pos = (objRec.position || transform?.position) as { x: number; y: number; z: number } | undefined;
         const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
         const traitNames = obj.traits
-          ? this.extractTraitNames(obj.traits as any).join(', ') || 'none'
+          ? this.extractTraitNames(obj.traits).join(', ') || 'none'
           : 'none';
         sections.push(`| ${obj.name} | ${this.getObjectType(obj)} | ${posStr} | ${traitNames} |`);
       }
@@ -768,8 +770,8 @@ export class CompilerDocumentationGenerator {
       sections.push('| Name | Type |');
       sections.push('|------|------|');
       for (const light of composition.lights) {
-        const lightAny = light as any;
-        sections.push(`| ${light.name || 'unnamed'} | ${lightAny.lightType || 'unknown'} |`);
+        const lightRec = light as unknown as Record<string, unknown>;
+        sections.push(`| ${light.name || 'unnamed'} | ${(lightRec.lightType as string) || 'unknown'} |`);
       }
       sections.push('');
     }
@@ -803,8 +805,9 @@ export class CompilerDocumentationGenerator {
       sections.push('### Custom Trait Definitions');
       sections.push('');
       for (const traitDef of composition.traitDefinitions) {
-        const extendsClause = (traitDef as any).extends
-          ? ` extends ${(traitDef as any).extends}`
+        const traitDefRec = traitDef as unknown as Record<string, unknown>;
+        const extendsClause = traitDefRec.extends
+          ? ` extends ${traitDefRec.extends as string}`
           : '';
         sections.push(`- **${traitDef.name}**${extendsClause}`);
       }
@@ -819,9 +822,9 @@ export class CompilerDocumentationGenerator {
       sections.push('');
       sections.push('| Property | Type | Default Value |');
       sections.push('|----------|------|---------------|');
-      const stateObj = composition.state as any;
+      const stateObj = composition.state as Record<string, unknown>;
       if (stateObj.properties) {
-        // HoloState with properties array
+        // HoloState with properties array (key-value pair entries)
         for (const prop of stateObj.properties) {
           const typeOf = typeof prop.value;
           const defaultValue = JSON.stringify(prop.value).substring(0, 50);
@@ -842,7 +845,7 @@ export class CompilerDocumentationGenerator {
     if (composition.logic) {
       sections.push('## Logic Handlers');
       sections.push('');
-      const logic = composition.logic as any;
+      const logic = composition.logic as Record<string, unknown>;
       if (logic.on_start) {
         sections.push('### on_start');
         sections.push('');
@@ -869,7 +872,7 @@ export class CompilerDocumentationGenerator {
     sections.push('|------|-------------|-------------|');
     for (const tool of mcpTools) {
       const schemaStr = tool.inputSchema
-        ? '`' + JSON.stringify(Object.keys((tool.inputSchema as any).properties || {})) + '`'
+        ? '`' + JSON.stringify(Object.keys(((tool.inputSchema as Record<string, unknown>).properties as Record<string, unknown>) || {})) + '`'
         : 'none';
       sections.push(`| \`${tool.name}\` | ${tool.description} | ${schemaStr} |`);
     }
@@ -959,7 +962,7 @@ export class CompilerDocumentationGenerator {
     // Extract from objects
     if (composition.objects) {
       for (const obj of composition.objects) {
-        for (const name of this.extractTraitNames(obj.traits as any)) {
+        for (const name of this.extractTraitNames(obj.traits)) {
           traitSet.add(name);
         }
       }
@@ -968,7 +971,7 @@ export class CompilerDocumentationGenerator {
     // Extract from templates
     if (composition.templates) {
       for (const template of composition.templates) {
-        for (const name of this.extractTraitNames(template.traits as any)) {
+        for (const name of this.extractTraitNames(template.traits)) {
           traitSet.add(name);
         }
       }
