@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
 
 // ── Nav Items (secondary) ───────────────────────────────────────────────────
 
@@ -209,9 +210,12 @@ function AuthBar() {
 }
 
 export default function HomePage() {
+  const [showWizard, setShowWizard] = useState(false);
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 gap-12 bg-gradient-to-b from-[#0a0a1a] via-[#0d1117] to-[#0a0a1a]">
       <AuthBar />
+      {showWizard && <OnboardingWizard onClose={() => setShowWizard(false)} />}
 
       {/* Hero */}
       <section className="text-center space-y-4 max-w-3xl">
@@ -223,7 +227,15 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* Absorb — the door */}
+      {/* Get Started — opens the unified wizard */}
+      <button
+        onClick={() => setShowWizard(true)}
+        className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20"
+      >
+        Get Started
+      </button>
+
+      {/* Quick absorb — for users who already know what they want */}
       <AbsorbInput />
 
       {/* Stats */}
