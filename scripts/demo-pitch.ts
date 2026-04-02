@@ -56,7 +56,10 @@ async function compileAPI(code: string, target: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`Compile failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
-  return data.code || data.output || JSON.stringify(data, null, 2);
+  if (typeof data.code === 'string') return data.code;
+  if (typeof data.output === 'string') return data.output;
+  // R3F returns a node tree object, others return strings
+  return JSON.stringify(data.output || data, null, 2);
 }
 
 async function mcpCall(tool: string, args: Record<string, unknown>): Promise<unknown> {
