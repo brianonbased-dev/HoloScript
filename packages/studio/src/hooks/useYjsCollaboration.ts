@@ -5,7 +5,6 @@
  * Manages real-time collaborative workflow editing with Yjs CRDT and WebSockets
  */
 
-import { useEffect, useState, useCallback } from 'react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getCollaborationClient } from '@/lib/collaboration/client';
 import type { User, UserPresence, ConnectionStatus } from '@/lib/collaboration/types';
@@ -40,6 +39,7 @@ export function useYjsCollaboration({
 
   const { workflows, updateWorkflow } = useOrchestrationStore();
   const workflowsRef = useRef(workflows);
+  const unobserveRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     workflowsRef.current = workflows;
   });
@@ -76,7 +76,11 @@ export function useYjsCollaboration({
         });
       }
 
-      // Observe changes from other users
+      // Observe changes from other users — remove previous observer first
+      if (unobserveRef.current) {
+        unobserveRef.current();
+        unobserveRef.current = null;
+      }
       const unobserve = client.observeWorkflow(() => {
         const state = client.getWorkflowState();
         updateWorkflow(workflowId, {
@@ -85,11 +89,7 @@ export function useYjsCollaboration({
           metadata: state.metadata,
         });
       });
-
-      // Cleanup on unmount
-      return () => {
-        unobserve();
-      };
+      unobserveRef.current = unobserve;
     } catch (err) {
       logger.error('[useYjsCollaboration] Collaboration connection error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -128,20 +128,18 @@ export function useYjsCollaboration({
 
   // Auto-connect when enabled
   useEffect(() => {
-    let unobservePromise: Promise<(() => void) | undefined> | undefined;
-
     if (enabled) {
-      unobservePromise = connect();
+      void connect();
     }
 
     return () => {
+      // Tear down active observer synchronously before disconnecting
+      if (unobserveRef.current) {
+        unobserveRef.current();
+        unobserveRef.current = null;
+      }
       if (enabled) {
         disconnect();
-      }
-      if (unobservePromise) {
-        unobservePromise.then((unobserve) => {
-          if (typeof unobserve === 'function') unobserve();
-        });
       }
     };
   }, [enabled, connect, disconnect]);
