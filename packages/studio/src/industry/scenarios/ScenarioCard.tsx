@@ -44,7 +44,7 @@ export interface ScenarioCardProps {
  * Displays the scenario name, emoji icon, category badge, description,
  * tags, and test count. Supports hover effects and selection state.
  */
-export function ScenarioCard({
+const ScenarioCard = React.memo(function ScenarioCard({
   scenario,
   onSelect,
   isActive = false,
@@ -147,6 +147,8 @@ export function ScenarioCard({
       </div>
     </div>
   );
-}
+});
+ScenarioCard.displayName = 'ScenarioCard';
 
+export { ScenarioCard };
 export default ScenarioCard;
