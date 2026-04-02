@@ -11,7 +11,8 @@
     "./dist/traits/index.js"
   ],
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {
@@ -144,36 +145,33 @@
     "directory": "packages/core"
   },
   "dependencies": {
+    "jose": "^6.2.2",
+    "jsonwebtoken": "^9.0.0",
+    "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
     "@gltf-transform/core": "^3.7.0",
     "@gltf-transform/extensions": "^3.7.0",
     "@gltf-transform/functions": "^3.7.0",
-    "@holoscript/absorb-service": "workspace:*",
-    "@holoscript/agent-protocol": "workspace:*",
-    "@holoscript/crdt": "workspace:*",
+    "@huggingface/transformers": "^3.8.1",
+    "@noble/post-quantum": "^0.5.4",
     "basis_universal": "^1.0.0",
+    "discord.js": "^14.21.0",
     "dotenv": "^16.4.5",
     "draco3d": "^1.5.6",
     "ipfs-http-client": "^60.0.1",
-    "jose": "^6.2.2",
-    "jsonwebtoken": "^9.0.0",
     "openai": "^6.32.0",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
     "three": "^0.182.0",
-    "ws": "^8.16.0",
-    "zod": "^3.24.0"
-  },
-  "optionalDependencies": {
-    "@huggingface/transformers": "^3.8.1",
-    "@noble/post-quantum": "^0.5.4",
-    "discord.js": "^14.21.0",
     "tree-sitter": "0.22.4",
     "tree-sitter-go": "^0.23.4",
     "tree-sitter-javascript": "^0.23.1",
     "tree-sitter-python": "^0.23.6",
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
-    "web-tree-sitter": "^0.24.0"
+    "web-tree-sitter": "^0.24.0",
+    "ws": "^8.16.0"
   },
   "peerDependencies": {
     "@pixiv/three-vrm": "^2.0.0",
