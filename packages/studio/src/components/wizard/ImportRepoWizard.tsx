@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * ImportRepoWizard — 5-step wizard for importing GitHub repos into Studio.
@@ -12,7 +12,7 @@
  * Matches StudioSetupWizard's visual language (emerald accent, AnimatedStep, same layout).
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X,
   ChevronRight,
@@ -32,14 +32,10 @@ import {
   Shield,
   ArrowRight,
 } from 'lucide-react';
-import { useGitHubRepos } from '@/hooks/useGitHubRepos';
-import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
-import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
-import type { Workspace, ProjectDNA } from '@/lib/stores/workspaceStore';
-import { detectProjectDNA } from '@/lib/workspace/projectDNA';
-import { useAbsorbPipelineBridge } from '@/hooks/useAbsorbPipelineBridge';
+import { useImportRepoWizard } from '@/hooks/useImportRepoWizard';
 
-// ─── Animated step (shared with StudioSetupWizard) ──────────────────────────
+
+// â”€â”€â”€ Animated step (shared with StudioSetupWizard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AnimatedStep({
   visible,
@@ -78,268 +74,37 @@ function AnimatedStep({
   );
 }
 
-// ─── Kind badge ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Kind badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const KIND_META: Record<string, { emoji: string; label: string; color: string }> = {
-  service: { emoji: '🔧', label: 'API / Service', color: 'text-blue-400' },
-  frontend: { emoji: '🎨', label: 'Frontend App', color: 'text-purple-400' },
-  data: { emoji: '📊', label: 'Data Pipeline', color: 'text-amber-400' },
-  automation: { emoji: '🤖', label: 'Automation / Bot', color: 'text-orange-400' },
-  'agent-backend': { emoji: '🧠', label: 'Agent / MCP Backend', color: 'text-cyan-400' },
-  library: { emoji: '📦', label: 'Library / Package', color: 'text-green-400' },
-  spatial: { emoji: '🌐', label: 'Spatial / XR', color: 'text-emerald-400' },
-  storefront: { emoji: '🏪', label: 'Storefront / Retail', color: 'text-lime-400' },
-  unknown: { emoji: '❓', label: 'Unknown', color: 'text-gray-400' },
+  service: { emoji: 'ðŸ”§', label: 'API / Service', color: 'text-blue-400' },
+  frontend: { emoji: 'ðŸŽ¨', label: 'Frontend App', color: 'text-purple-400' },
+  data: { emoji: 'ðŸ“Š', label: 'Data Pipeline', color: 'text-amber-400' },
+  automation: { emoji: 'ðŸ¤–', label: 'Automation / Bot', color: 'text-orange-400' },
+  'agent-backend': { emoji: 'ðŸ§ ', label: 'Agent / MCP Backend', color: 'text-cyan-400' },
+  library: { emoji: 'ðŸ“¦', label: 'Library / Package', color: 'text-green-400' },
+  spatial: { emoji: 'ðŸŒ', label: 'Spatial / XR', color: 'text-emerald-400' },
+  storefront: { emoji: 'ðŸª', label: 'Storefront / Retail', color: 'text-lime-400' },
+  unknown: { emoji: 'â“', label: 'Unknown', color: 'text-gray-400' },
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ImportRepoWizardProps {
   onClose: () => void;
 }
 
 export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
-  const addWorkspace = useWorkspaceStore((s) => s.addWorkspace);
-  const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace);
-  const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
-  const { config, triggerPipeline, isTriggering } = useAbsorbPipelineBridge();
-
-  const [step, setStep] = useState(0);
-  const [prevStep, setPrevStep] = useState(0);
-
-  // Step 0: Repo selection
-  const { repos, isLoading: reposLoading, error: reposError, search, setSearch } = useGitHubRepos();
-  const [selectedRepo, setSelectedRepo] = useState<GitHubRepoItem | null>(null);
-  const [manualUrl, setManualUrl] = useState('');
-  const [useManual, setUseManual] = useState(false);
-
-  // Step 1: Branch
-  const [branch, setBranch] = useState('');
-
-  // Step 2: Import progress
-  const [importStatus, setImportStatus] = useState<
-    'idle' | 'cloning' | 'absorbing' | 'detecting' | 'done' | 'error'
-  >('idle');
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importProgress, setImportProgress] = useState(0);
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
-
-  // Step 3: DNA results
-  const [dna, setDna] = useState<ProjectDNA | null>(null);
-  const [absorbStats, setAbsorbStats] = useState<{
-    totalFiles: number;
-    totalSymbols: number;
-    totalLoc: number;
-    durationMs: number;
-  } | null>(null);
-
-  const direction: 'left' | 'right' = step >= prevStep ? 'right' : 'left';
-  const TOTAL_STEPS = 5;
-
-  const goToStep = useCallback(
-    (next: number) => {
-      setPrevStep(step);
-      setStep(next);
-    },
-    [step]
-  );
-
-  // Effective repo URL
-  const repoUrl = useManual ? manualUrl.trim() : (selectedRepo?.cloneUrl ?? '');
-  const repoName = useManual
-    ? manualUrl.replace(/.*\/([^/]+?)(?:\.git)?$/, '$1')
-    : (selectedRepo?.name ?? '');
-
-  // When a repo is selected, default to its branch
-  useEffect(() => {
-    if (selectedRepo && !useManual) {
-      setBranch(selectedRepo.defaultBranch);
-    }
-  }, [selectedRepo, useManual]);
-
-  // ── Import flow (Step 2) ──
-
-  const runImport = useCallback(async () => {
-    if (!repoUrl) return;
-
-    setImportStatus('cloning');
-    setImportError(null);
-    setImportProgress(15);
-
-    try {
-      // Phase 1: Clone
-      const cloneRes = await fetch('/api/workspace/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          repoUrl,
-          branch: branch || undefined,
-          name: repoName,
-        }),
-      });
-
-      if (!cloneRes.ok) {
-        const body = await cloneRes.json().catch(() => ({ error: 'Clone failed' }));
-        throw new Error(body.error ?? `Clone failed: HTTP ${cloneRes.status}`);
-      }
-
-      const cloneResult = await cloneRes.json();
-      const wsId = cloneResult.id;
-      setWorkspaceId(wsId);
-      setImportProgress(40);
-
-      // Create workspace entry in store
-      const ws: Workspace = {
-        id: wsId,
-        name: cloneResult.name,
-        repoUrl,
-        branch: cloneResult.branch,
-        localPath: cloneResult.localPath,
-        status: 'absorbing',
-        dna: null,
-        absorbedAt: null,
-        createdAt: cloneResult.createdAt,
-        error: null,
-        stats: null,
-      };
-      addWorkspace(ws);
-      setImportStatus('absorbing');
-
-      // Phase 2: Absorb
-      setImportProgress(55);
-      const absorbRes = await fetch('/api/daemon/absorb', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectPath: cloneResult.localPath,
-          depth: 'medium',
-        }),
-      });
-
-      if (!absorbRes.ok) {
-        const body = await absorbRes.json().catch(() => ({ error: 'Absorb failed' }));
-        throw new Error(body.error ?? `Absorb failed: HTTP ${absorbRes.status}`);
-      }
-
-      const absorbResult = await absorbRes.json();
-      setImportProgress(80);
-      setAbsorbStats({
-        totalFiles: absorbResult.stats.totalFiles,
-        totalSymbols: absorbResult.stats.totalSymbols,
-        totalLoc: absorbResult.stats.totalLoc,
-        durationMs: absorbResult.durationMs,
-      });
-
-      // Phase 3: Detect DNA
-      setImportStatus('detecting');
-      setImportProgress(90);
-
-      const detectedDna = detectProjectDNA({
-        stats: absorbResult.stats,
-        hubFiles: absorbResult.hubFiles,
-        leafFirstOrder: absorbResult.leafFirstOrder,
-      });
-      setDna(detectedDna);
-
-      // Update workspace with results
-      updateWorkspace(wsId, {
-        status: 'ready',
-        dna: detectedDna,
-        absorbedAt: absorbResult.absorbedAt,
-        stats: {
-          totalFiles: absorbResult.stats.totalFiles,
-          totalSymbols: absorbResult.stats.totalSymbols,
-          totalLoc: absorbResult.stats.totalLoc,
-        },
-      });
-
-      setImportProgress(100);
-      setImportStatus('done');
-
-      // Auto-advance to DNA step
-      setTimeout(() => goToStep(3), 600);
-    } catch (err) {
-      setImportStatus('error');
-      setImportError((err as Error).message ?? 'Import failed');
-      if (workspaceId) {
-        updateWorkspace(workspaceId, { status: 'error', error: (err as Error).message });
-      }
-    }
-  }, [repoUrl, branch, repoName, addWorkspace, updateWorkspace, goToStep, workspaceId]);
-
-  // Kick off import when Step 2 becomes visible
-  useEffect(() => {
-    if (step === 2 && importStatus === 'idle') {
-      runImport();
-    }
-  }, [step, importStatus, runImport]);
-
-  // ── Handle Absorb & Improve ──
-  const handleAbsorbAndImprove = useCallback(async () => {
-    if (!absorbStats || !repoUrl) return;
-
-    const event = {
-      projectPath: repoUrl,
-      stats: {
-        filesProcessed: absorbStats.totalFiles || 0,
-        patternsDetected: absorbStats.totalSymbols || 0,
-        technologiesFound: dna?.languages || [],
-        confidence: dna?.confidence || 0,
-      },
-    };
-
-    await triggerPipeline(event);
-  }, [absorbStats, repoUrl, dna, triggerPipeline]);
-
-  // ── Validation ──
-
-  const canNext = useMemo(() => {
-    switch (step) {
-      case 0:
-        return useManual
-          ? manualUrl.startsWith('https://') || manualUrl.startsWith('git@')
-          : !!selectedRepo;
-      case 1:
-        return !!branch;
-      case 2:
-        return importStatus === 'done';
-      case 3:
-        return !!dna;
-      case 4:
-        return true;
-      default:
-        return false;
-    }
-  }, [step, selectedRepo, manualUrl, useManual, branch, importStatus, dna]);
-
-  // ── Launch ──
-
-  const handleLaunch = useCallback(() => {
-    if (workspaceId) {
-      setActiveWorkspace(workspaceId);
-    }
-    onClose();
-  }, [workspaceId, setActiveWorkspace, onClose]);
-
-  const stepTitles = [
-    'Choose a repository',
-    'Select branch',
-    'Importing...',
-    'Project DNA',
-    'Workspace Ready',
-  ];
-
-  // ── Time formatting ──
-  function timeAgo(dateStr: string): string {
-    const ms = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(ms / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  }
-
+  const {
+    step, prevStep, direction, TOTAL_STEPS,
+    repos, reposLoading, reposError, search, setSearch,
+    selectedRepo, setSelectedRepo, manualUrl, setManualUrl,
+    useManual, setUseManual, branch, setBranch,
+    importStatus, importError, importProgress,
+    dna, absorbStats, repoUrl, repoName,
+    canNext, stepTitles, isTriggering, config,
+    goToStep, handleLaunch, handleAbsorbAndImprove, retryImport, timeAgo,
+  } = useImportRepoWizard(onClose);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="relative w-full max-w-xl rounded-2xl border border-studio-border bg-studio-panel shadow-2xl overflow-hidden">
@@ -374,7 +139,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
 
         {/* Step content */}
         <div className="relative min-h-[360px] p-6">
-          {/* ── Step 0: Choose repo ── */}
+          {/* â”€â”€ Step 0: Choose repo â”€â”€ */}
           <AnimatedStep visible={step === 0} direction={direction}>
             <div className="flex flex-col gap-3">
               {/* Toggle: GitHub list vs manual URL */}
@@ -532,7 +297,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
             </div>
           </AnimatedStep>
 
-          {/* ── Step 1: Branch ── */}
+          {/* â”€â”€ Step 1: Branch â”€â”€ */}
           <AnimatedStep visible={step === 1} direction={direction}>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
@@ -583,7 +348,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
             </div>
           </AnimatedStep>
 
-          {/* ── Step 2: Import progress ── */}
+          {/* â”€â”€ Step 2: Import progress â”€â”€ */}
           <AnimatedStep visible={step === 2} direction={direction}>
             <div className="flex flex-col items-center justify-center gap-6 py-8">
               {importStatus === 'error' ? (
@@ -596,11 +361,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                     <p className="text-[11px] text-studio-muted mt-1 max-w-xs">{importError}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      setImportStatus('idle');
-                      setImportProgress(0);
-                      runImport();
-                    }}
+                    onClick={retryImport}
                     className="flex items-center gap-1.5 rounded-lg bg-blue-500/20 px-4 py-1.5 text-sm text-blue-400 transition hover:bg-blue-500/30"
                   >
                     Retry
@@ -653,13 +414,13 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
             </div>
           </AnimatedStep>
 
-          {/* ── Step 3: Project DNA ── */}
+          {/* â”€â”€ Step 3: Project DNA â”€â”€ */}
           <AnimatedStep visible={step === 3} direction={direction}>
             {dna && (
               <div className="flex flex-col gap-4">
                 {/* Kind badge */}
                 <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
-                  <span className="text-3xl">{KIND_META[dna.kind]?.emoji ?? '❓'}</span>
+                  <span className="text-3xl">{KIND_META[dna.kind]?.emoji ?? 'â“'}</span>
                   <div>
                     <p
                       className={`text-sm font-semibold ${KIND_META[dna.kind]?.color ?? 'text-studio-text'}`}
@@ -776,7 +537,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
             )}
           </AnimatedStep>
 
-          {/* ── Step 4: Workspace Ready ── */}
+          {/* â”€â”€ Step 4: Workspace Ready â”€â”€ */}
           <AnimatedStep visible={step === 4} direction={direction}>
             <div className="flex flex-col items-center gap-6 py-4">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 shadow-2xl shadow-emerald-500/20">
@@ -792,7 +553,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               {dna && (
                 <div className="w-full flex flex-col gap-2">
                   <div className="flex items-center gap-3 rounded-xl border border-studio-border bg-black/20 p-3">
-                    <span className="text-2xl">{KIND_META[dna.kind]?.emoji ?? '❓'}</span>
+                    <span className="text-2xl">{KIND_META[dna.kind]?.emoji ?? 'â“'}</span>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-studio-text">
                         {KIND_META[dna.kind]?.label}
@@ -870,7 +631,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                   <>
                     <div className="flex items-center gap-2">
                       <ArrowRight className="h-3 w-3 text-emerald-400" />
-                      <span>Open in the Editor — your scene is ready to compile</span>
+                      <span>Open in the Editor â€” your scene is ready to compile</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <ArrowRight className="h-3 w-3 text-emerald-400" />
