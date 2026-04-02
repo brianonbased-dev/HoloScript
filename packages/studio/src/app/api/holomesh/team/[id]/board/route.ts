@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { proxyHoloMesh } from '../../../../../../lib/holomesh-proxy';
+import { boardReadLimit, boardWriteLimit } from '../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // Rate-limit: 120 GETs per minute per IP+key
+  const limit = boardReadLimit(req, id);
+  if (!limit.ok) return limit.response;
 
   // DB-first: serve cached board when available
   try {

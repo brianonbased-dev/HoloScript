@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { proxyHoloMesh } from '../../../../../../../lib/holomesh-proxy';
+import { boardWriteLimit } from '../../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../../db/schema';
 import { eq } from 'drizzle-orm';
@@ -9,6 +10,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; taskId: string }> },
 ) {
   const { id, taskId } = await params;
+
+  // Rate-limit: 20 writes per minute per IP+key
+  const limit = boardWriteLimit(req, id);
+  if (!limit.ok) return limit.response;
 
   // Clone body so we can read it twice (once for DB, once for proxy)
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
