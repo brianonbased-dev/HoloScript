@@ -31,6 +31,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { getMarketplaceClient } from '@/lib/marketplace/client';
+import { DEBOUNCE_INPUT } from '@/lib/ui-timings';
 
 // ── Category config ─────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
   // Debounced search
   const [debouncedQuery, setDebouncedQuery] = useState('');
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), DEBOUNCE_INPUT);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 

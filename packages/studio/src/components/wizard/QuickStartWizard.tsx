@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Check, Code2 } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { DEBOUNCE_INPUT, ANIM_NAVIGATE } from '@/lib/ui-timings';
 
 // ── Step data ────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ function AnimatedStep({
     if (visible) {
       setMounted(true);
     } else {
-      const timer = setTimeout(() => setMounted(false), 300);
+      const timer = setTimeout(() => setMounted(false), DEBOUNCE_INPUT);
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -193,7 +194,7 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
     setCode(code);
     if (typeof window !== 'undefined') window.localStorage.setItem('studio-wizard-seen', '1');
     setCreated(true);
-    setTimeout(onClose, 800);
+    setTimeout(onClose, ANIM_NAVIGATE);
   };
 
   const canNext = step === 0 ? !!setting : true;

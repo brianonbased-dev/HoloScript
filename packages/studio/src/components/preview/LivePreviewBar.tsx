@@ -11,6 +11,7 @@ import { useState, useCallback } from 'react';
 import { Radio, RefreshCw, Pause, Play, Loader2 } from 'lucide-react';
 import { useLivePreview } from '@/hooks/useLivePreview';
 import { useSceneStore } from '@/lib/stores';
+import { ANIM_WIZARD_STEP } from '@/lib/ui-timings';
 
 const STATUS_COLOR: Record<string, string> = {
   connected: 'bg-green-400',
@@ -43,7 +44,7 @@ export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
   const handleBroadcast = useCallback(async () => {
     setBroadcasting(true);
     await broadcast(code);
-    setTimeout(() => setBroadcasting(false), 600);
+      setTimeout(() => setBroadcasting(false), ANIM_WIZARD_STEP);
   }, [broadcast, code]);
 
   const relSync = lastSync ? `${Math.round((Date.now() - lastSync) / 1000)}s ago` : 'never';

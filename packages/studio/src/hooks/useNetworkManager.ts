@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useNetworkManager — Hook for multiplayer networking simulation

@@ -19,6 +19,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { STATUS_RESET_DURATION } from '@/lib/ui-timings';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
   const handleSave = (service: keyof typeof STORAGE_KEYS, key: string) => {
     saveAPIKey(service, key);
     setSavedMessage(`${service.charAt(0).toUpperCase() + service.slice(1)} API key saved ✓`);
-    setTimeout(() => setSavedMessage(''), 3000);
+    setTimeout(() => setSavedMessage(''), STATUS_RESET_DURATION);
   };
 
   // Clear key
@@ -132,7 +133,7 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
     if (service === 'rodin') setRodinKey('');
     if (service === 'sketchfab') setSketchfabKey('');
     setSavedMessage(`${service.charAt(0).toUpperCase() + service.slice(1)} API key cleared`);
-    setTimeout(() => setSavedMessage(''), 3000);
+    setTimeout(() => setSavedMessage(''), STATUS_RESET_DURATION);
   };
 
   // Mask key for display

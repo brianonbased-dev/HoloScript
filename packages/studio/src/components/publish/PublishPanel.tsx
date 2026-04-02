@@ -32,6 +32,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface PublishPanelProps {
   onClose: () => void;
@@ -166,7 +167,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
     if (!publishResult?.url) return;
     navigator.clipboard.writeText(publishResult.url).then(() => {
       setCopying(true);
-      setTimeout(() => setCopying(false), 2000);
+      setTimeout(() => setCopying(false), SAVE_FEEDBACK_DURATION);
     });
   }, [publishResult]);
 

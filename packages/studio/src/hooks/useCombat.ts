@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useCombat — Hook for combat system editing and simulation

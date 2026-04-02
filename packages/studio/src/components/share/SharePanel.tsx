@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import { Share2, Globe, Loader2, Copy, Check, RefreshCw, Clock, X } from 'lucide-react';
 import { useSceneShare } from '@/hooks/useSceneShare';
 import { useSceneStore } from '@/lib/stores';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface SharePanelProps {
   onClose: () => void;
@@ -46,7 +47,7 @@ export function SharePanel({ onClose }: SharePanelProps) {
     if (!shareUrl) return;
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
   }, [shareUrl]);
 
   return (

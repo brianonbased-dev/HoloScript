@@ -36,6 +36,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ANIM_NAVIGATE } from '@/lib/ui-timings';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -496,7 +497,7 @@ export default function SkillBuilderPage() {
     async (testPrompt: string) => {
       setIsTestRunning(true);
       // Simulated test — in production this calls the API
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, ANIM_NAVIGATE));
       setTestResults((prev) => [
         {
           prompt: testPrompt,

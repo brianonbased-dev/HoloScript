@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Package, X, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { STATUS_RESET_DURATION } from '@/lib/ui-timings';
 
 type V2Format = 'obj' | 'fbx' | 'gltf' | 'usd' | 'json';
 type ExportStatus = 'idle' | 'exporting' | 'done' | 'error';
@@ -86,7 +87,7 @@ export function ExportPipelinePanel({ onClose }: ExportPipelinePanelProps) {
       a.click();
       URL.revokeObjectURL(url);
       setStatus('done');
-      setTimeout(() => setStatus('idle'), 3000);
+      setTimeout(() => setStatus('idle'), STATUS_RESET_DURATION);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus('error');

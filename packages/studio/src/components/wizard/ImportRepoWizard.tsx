@@ -33,6 +33,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useImportRepoWizard } from '@/hooks/useImportRepoWizard';
+import { DEBOUNCE_INPUT, ANIM_NAVIGATE } from '@/lib/ui-timings';
 
 
 // â”€â”€â”€ Animated step (shared with StudioSetupWizard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -53,7 +54,7 @@ function AnimatedStep({
     if (visible) {
       setMounted(true);
     } else {
-      const timer = setTimeout(() => setMounted(false), 300);
+      const timer = setTimeout(() => setMounted(false), DEBOUNCE_INPUT);
       return () => clearTimeout(timer);
     }
   }, [visible]);

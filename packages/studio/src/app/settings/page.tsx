@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { logger } from '@/lib/logger';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 /**
  * /settings — Account settings page.
@@ -109,7 +110,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ displayName, bio, website }),
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), SAVE_FEEDBACK_DURATION);
     } catch {
       // Silently fail
     } finally {

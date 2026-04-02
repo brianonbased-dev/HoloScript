@@ -9,6 +9,7 @@ import { Music2, X, Play, Square, Copy, Plus } from 'lucide-react';
 import { useAudioVisualizer, type VisualizerMode } from '@/hooks/useAudioVisualizer';
 import { useSceneStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface AudioPreset {
   id: string;
@@ -67,7 +68,7 @@ export function AudioVisualizerPanel({ onClose }: AudioVisualizerPanelProps) {
     if (!selected) return;
     await navigator.clipboard.writeText(selected.traitSnippet);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
   };
 
   return (

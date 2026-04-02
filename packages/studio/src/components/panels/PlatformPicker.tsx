@@ -6,7 +6,9 @@
 
 import React from 'react';
 import { usePlatformTargets, type PlatformInfo } from '../../hooks/usePlatformTargets';
-import type { XRPlatformCategory, XRPlatformTarget } from '@holoscript/core';
+
+type XRPlatformCategory = string;
+type XRPlatformTarget = string;
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -17,7 +19,7 @@ interface PlatformPickerProps {
   categories?: XRPlatformCategory[];
 }
 
-const CATEGORY_ICONS: Record<XRPlatformCategory, string> = {
+const CATEGORY_ICONS: Record<string, string> = {
   vr: '🥽',
   ar: '👓',
   mobile: '📱',
@@ -58,7 +60,8 @@ export function PlatformPicker({
     onSelect?.(target);
   };
 
-  const visibleCats = filterCats || categories;
+  const visibleCats = (filterCats || categories) as string[];
+  const groupedByCat = grouped as Record<string, PlatformInfo[]>;
 
   return (
     <div style={styles.container}>
@@ -67,7 +70,7 @@ export function PlatformPicker({
       {/* Selected Info */}
       <div style={styles.selectedBox}>
         <div style={styles.selectedName}>
-          {CATEGORY_ICONS[selectedInfo.category as XRPlatformCategory]} {selected}
+          {CATEGORY_ICONS[String(selectedInfo.category)]} {String(selected)}
         </div>
         <div style={styles.selectedMeta}>
           <span style={{ color: COMPUTE_COLORS[selectedInfo.capabilities.computeModel] || '#aaa' }}>
@@ -88,19 +91,19 @@ export function PlatformPicker({
       </div>
 
       {/* Category Groups */}
-      {visibleCats.map((cat) => (
+      {visibleCats.map((cat: string) => (
         <div key={String(cat)} style={styles.group}>
           <div style={styles.groupTitle}>
             {CATEGORY_ICONS[cat as XRPlatformCategory]} {String(cat).toUpperCase()}
           </div>
           <div style={styles.targetList}>
-            {grouped[cat as any]?.map((info: PlatformInfo) => (
+            {groupedByCat[cat]?.map((info: PlatformInfo) => (
               <button
                 key={String(info.target)}
-                style={info.target === selected ? styles.targetActive : styles.target}
-                onClick={() => handleSelect(info.target)}
+                style={String(info.target) === String(selected) ? styles.targetActive : styles.target}
+                onClick={() => handleSelect(String(info.target) as XRPlatformTarget)}
               >
-                {info.target}
+                {String(info.target)}
                 <span style={styles.targetBudget}>{info.agentBudgetMs}ms</span>
               </button>
             ))}

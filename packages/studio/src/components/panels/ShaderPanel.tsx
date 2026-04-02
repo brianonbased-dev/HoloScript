@@ -96,8 +96,8 @@ export function ShaderPanel() {
             {compiled.fragmentCode.length > 300 ? '...' : ''}
           </div>
           <div className="flex gap-3 text-[10px] text-studio-muted">
-            <span>{compiled.nodeCount} nodes</span>
-            <span>{compiled.connectionCount} connections</span>
+            <span>{nodes.length} nodes</span>
+            <span>{connections.length} connections</span>
             <span>{compiled.uniforms.length} uniforms</span>
           </div>
         </div>

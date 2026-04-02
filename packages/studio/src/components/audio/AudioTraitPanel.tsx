@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Music, X, Search, Volume2, Radio, MapPin, Copy, Check } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 type AudioType = 'ambient' | 'triggered' | 'spatial';
 
@@ -67,7 +68,7 @@ export function AudioTraitPanel({ onClose }: AudioTraitPanelProps) {
   const copySnippet = (preset: AudioPreset) => {
     navigator.clipboard.writeText(preset.traitSnippet).catch((err) => logger.warn('Swallowed error caught:', err));
     setCopied(preset.id);
-    setTimeout(() => setCopied(null), 1500);
+    setTimeout(() => setCopied(null), COPY_FEEDBACK_DURATION);
   };
 
   const insertIntoScene = (preset: AudioPreset) => {

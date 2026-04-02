@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { X, Search, Flame, TrendingUp, Star, Sparkles } from 'lucide-react';
 import { MEME_TEMPLATES, searchTemplates, type MemeTemplate } from '@/lib/memeTemplates';
 import { useSceneStore } from '@/lib/stores';
+import { APPLY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface MemeTemplateGalleryProps {
   onClose: () => void;
@@ -111,7 +112,7 @@ export function MemeTemplateGallery({ onClose, onApply }: MemeTemplateGalleryPro
     setMetadata({ name: meme.displayName });
     setApplied(meme.id);
     onApply?.(meme);
-    setTimeout(() => setApplied(null), 2000);
+    setTimeout(() => setApplied(null), APPLY_FEEDBACK_DURATION);
   };
 
   return (

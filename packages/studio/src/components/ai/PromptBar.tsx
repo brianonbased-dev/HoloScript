@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Send, Loader2, Sparkles } from 'lucide-react';
 import { useAIStore, useSceneStore } from '@/lib/stores';
 import { generateScene } from '@/lib/api';
+import { STATUS_RESET_DURATION } from '@/lib/ui-timings';
 
 const SUGGESTIONS = [
   'A floating island with waterfalls',
@@ -57,11 +58,11 @@ export function PromptBar() {
         setAIStatus('idle');
       } else {
         setAIStatus('error');
-        setTimeout(() => setAIStatus('idle'), 3000);
+        setTimeout(() => setAIStatus('idle'), STATUS_RESET_DURATION);
       }
     } catch {
       setAIStatus('error');
-      setTimeout(() => setAIStatus('idle'), 3000);
+      setTimeout(() => setAIStatus('idle'), STATUS_RESET_DURATION);
     }
   }, [prompt, isGenerating, code, model, setAIStatus, setCode, addPrompt]);
 

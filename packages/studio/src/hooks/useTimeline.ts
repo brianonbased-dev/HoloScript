@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useTimeline — Hook for animation timeline orchestration

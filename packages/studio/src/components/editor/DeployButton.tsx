@@ -13,6 +13,7 @@
 
 import React, { useState, useCallback } from 'react';
 import * as CoreModule from '@holoscript/core';
+import { STATUS_RESET_DURATION, SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { extractTraits } from '@holoscript/std';
 
 const {
@@ -102,7 +103,7 @@ export function DeployButton({
       if (!gate.allowed) {
         setStatus('blocked');
         setMessage(gate.warnings?.join('; ') || 'Safety gate blocked deployment');
-        setTimeout(() => setStatus('idle'), 4000);
+        setTimeout(() => setStatus('idle'), SAVE_FEEDBACK_DURATION);
         return;
       }
 
@@ -146,11 +147,11 @@ export function DeployButton({
 
       setStatus('success');
       setMessage(`Deployed to world "${worldId}"`);
-      setTimeout(() => setStatus('idle'), 3000);
+      setTimeout(() => setStatus('idle'), STATUS_RESET_DURATION);
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Unknown error');
-      setTimeout(() => setStatus('idle'), 4000);
+      setTimeout(() => setStatus('idle'), SAVE_FEEDBACK_DURATION);
     }
   }, [code, packageName, worldId, registry, status]);
 

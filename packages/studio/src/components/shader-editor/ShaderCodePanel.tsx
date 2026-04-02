@@ -11,6 +11,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-rust'; // Closest to WGSL
 import { useShaderCompilation } from '../../hooks/useShaderCompilation';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { Copy, Check, Code, AlertTriangle } from 'lucide-react';
 
 export function ShaderCodePanel() {
@@ -32,7 +33,7 @@ export function ShaderCodePanel() {
     if (code) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
     }
   };
 

@@ -26,6 +26,7 @@ const CATEGORY_LABELS: Record<NodeCategory, string> = {
   material: 'Material',
   volumetric: 'Volumetric',
   custom: 'Custom',
+  procedural: 'Procedural',
 };
 
 const FAVORITES_KEY = 'holoscript_shader_editor_favorites';

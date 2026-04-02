@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Sparkles, Loader2, Copy, Check, RotateCcw, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAIMaterial } from '@/hooks/useAIMaterial';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface AIMaterialPanelProps {
   onClose: () => void;
@@ -44,7 +45,7 @@ export function AIMaterialPanel({ onClose, onApply }: AIMaterialPanelProps) {
   async function copyText(text: string, setter: (v: boolean) => void) {
     await navigator.clipboard.writeText(text);
     setter(true);
-    setTimeout(() => setter(false), 1500);
+    setTimeout(() => setter(false), COPY_FEEDBACK_DURATION);
   }
 
   return (

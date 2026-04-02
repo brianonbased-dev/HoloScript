@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { Smartphone, X, Loader2, RefreshCw, Wifi, WifiOff, Joystick } from 'lucide-react';
 import { useMobileRemote } from '@/hooks/useMobileRemote';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 // Lightweight QR SVG generated via Google Charts API (no npm dep)
 function QRCodeImage({ url }: { url: string }) {
@@ -61,7 +62,7 @@ export function QRRemotePanel({ onClose }: QRRemotePanelProps) {
     if (!remoteUrl) return;
     navigator.clipboard.writeText(remoteUrl).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), SAVE_FEEDBACK_DURATION);
     });
   };
 

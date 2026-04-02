@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { DEBOUNCE_INPUT } from '@/lib/ui-timings';
 import {
   BuildTarget,
   BuildStatus,
@@ -289,7 +290,7 @@ export function useDeploymentPipeline() {
         });
       };
 
-      setTimeout(advanceStage, 300);
+      setTimeout(advanceStage, DEBOUNCE_INPUT);
     },
     []
   );

@@ -22,6 +22,7 @@ import { StudioEvents } from '@/lib/analytics';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { useDragSnap } from '@/hooks/useDragSnap';
 import type { SceneNode } from '@/lib/stores';
+import { SAVE_FEEDBACK_DURATION, STATUS_RESET_DURATION } from '@/lib/ui-timings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ export function useAssetDropProcessor() {
 
         if (!asset.is3D) {
           setStatus({ state: 'done', fileName: file.name, meshCount: 0 });
-          setTimeout(() => setStatus({ state: 'idle' }), 2000);
+          setTimeout(() => setStatus({ state: 'idle' }), SAVE_FEEDBACK_DURATION);
           return;
         }
 
@@ -231,7 +232,7 @@ export function useAssetDropProcessor() {
           gridSnapped: snapResult.gridSnapped,
           gridSize: snapResult.gridSize ?? undefined,
         });
-        setTimeout(() => setStatus({ state: 'idle' }), 3000);
+        setTimeout(() => setStatus({ state: 'idle' }), STATUS_RESET_DURATION);
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
         StudioEvents.assetImportFailed(file.name, errMsg);
@@ -240,7 +241,7 @@ export function useAssetDropProcessor() {
           fileName: file.name,
           message: errMsg,
         });
-        setTimeout(() => setStatus({ state: 'idle' }), 4000);
+        setTimeout(() => setStatus({ state: 'idle' }), SAVE_FEEDBACK_DURATION);
       }
     },
     [addNode, addAsset, snapDrop]

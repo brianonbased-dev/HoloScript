@@ -47,6 +47,7 @@ export function SafetyPanel({
   compact = false,
 }: SafetyPanelProps) {
   const { report, analyze, verdict, dangerScore, isAnalyzing } = useSafetyPass();
+  const reportAny = report as any;
 
   useEffect(() => {
     if (autoAnalyze && nodes.length > 0) {
@@ -92,17 +93,17 @@ export function SafetyPanel({
 
       {/* Effects */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>Effects ({report.effects.totalEffects})</div>
+        <div style={styles.sectionTitle}>Effects ({reportAny.effects.totalEffects})</div>
         <div style={styles.tagList}>
-          {report.effects.categories.map((cat: string) => (
+          {reportAny.effects.categories.map((cat: string) => (
             <span key={cat} style={styles.tag}>
               {cat}
             </span>
           ))}
         </div>
-        {report.effects.violations.length > 0 && (
+        {reportAny.effects.violations.length > 0 && (
           <div style={styles.violations}>
-            {report.effects.violations.map((v: any, i: number) => (
+            {reportAny.effects.violations.map((v: any, i: number) => (
               <div
                 key={i}
                 style={{
@@ -118,10 +119,10 @@ export function SafetyPanel({
       </div>
 
       {/* Budget */}
-      {report.budget.diagnostics.length > 0 && (
+      {reportAny.budget.diagnostics.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Budget</div>
-          {report.budget.diagnostics.map((d: any, i: number) => (
+          {reportAny.budget.diagnostics.map((d: any, i: number) => (
             <div key={i} style={styles.budgetRow}>
               <span style={styles.budgetLabel}>{d.category}</span>
               <div style={styles.budgetBar}>
@@ -145,10 +146,10 @@ export function SafetyPanel({
       )}
 
       {/* Capabilities */}
-      {report.capabilities.missing.length > 0 && (
+      {reportAny.capabilities.missing.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Missing Capabilities</div>
-          {report.capabilities.missing.map((cap: any, i: number) => (
+          {reportAny.capabilities.missing.map((cap: any, i: number) => (
             <div key={i} style={styles.capMissing}>
               🔒 {cap.scope} — required by {cap.requiredBy}
             </div>
@@ -157,10 +158,10 @@ export function SafetyPanel({
       )}
 
       {/* Certificate */}
-      {report.verdict !== 'unsafe' && (
+      {reportAny.verdict !== 'unsafe' && (
         <div style={{ ...styles.section, background: '#10b98110' }}>
           <div style={styles.sectionTitle}>📜 Safety Certificate</div>
-          <div style={styles.certHash}>Module: {report.moduleId}</div>
+          <div style={styles.certHash}>Module: {String(reportAny.moduleId)}</div>
         </div>
       )}
     </div>

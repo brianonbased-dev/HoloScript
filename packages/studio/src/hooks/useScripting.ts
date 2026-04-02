@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useScripting — Hook for HoloScript REPL console

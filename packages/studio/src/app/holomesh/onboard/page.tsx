@@ -11,6 +11,7 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface RegisterResult {
   agent: { id: string; name: string; api_key: string; wallet_address: string };
@@ -61,14 +62,14 @@ export default function OnboardPage() {
     if (!result?.agent.api_key) return;
     navigator.clipboard.writeText(result.agent.api_key);
     setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    setTimeout(() => setCopiedKey(false), SAVE_FEEDBACK_DURATION);
   }, [result]);
 
   const copyWalletKey = useCallback(() => {
     if (!result?.wallet?.private_key) return;
     navigator.clipboard.writeText(result.wallet.private_key);
     setCopiedWallet(true);
-    setTimeout(() => setCopiedWallet(false), 2000);
+    setTimeout(() => setCopiedWallet(false), SAVE_FEEDBACK_DURATION);
   }, [result]);
 
   return (

@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Palette, X, Search, Copy, Plus, ChevronDown } from 'lucide-react';
 import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface MaterialPreset {
   id: string;
@@ -151,7 +152,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
   const copy = async () => {
     await navigator.clipboard.writeText(currentSnippet);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
   };
 
   return (

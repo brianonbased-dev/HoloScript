@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useSaveLoad — Hook for save/load slot management

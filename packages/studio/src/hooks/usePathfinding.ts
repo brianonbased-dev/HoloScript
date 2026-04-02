@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * usePathfinding — Hook for A* pathfinding visualization

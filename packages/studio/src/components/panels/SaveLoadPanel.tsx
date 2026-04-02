@@ -5,13 +5,14 @@ import { useSaveLoad } from '../../hooks/useSaveLoad';
 
 export function SaveLoadPanel() {
   const { slots, playtime, save, load, deleteSlot, buildDemo, reset } = useSaveLoad();
+  const safeSlots = slots as any[];
 
   return (
     <div className="p-3 space-y-3 text-xs">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-studio-text">💾 Save/Load</h3>
         <span className="text-[10px] text-studio-muted">
-          {slots.length} slots · {Math.floor(playtime)}s
+          {safeSlots.length} slots · {Math.floor(playtime)}s
         </span>
       </div>
 
@@ -37,12 +38,12 @@ export function SaveLoadPanel() {
       </div>
 
       <div className="space-y-1 max-h-[160px] overflow-y-auto">
-        {slots.length === 0 && (
+        {safeSlots.length === 0 && (
           <p className="text-studio-muted text-center py-2">
             No save slots. Create a demo or save.
           </p>
         )}
-        {slots.map((s) => (
+        {safeSlots.map((s) => (
           <div key={s.id} className="bg-studio-panel/30 rounded px-2 py-1.5 space-y-0.5">
             <div className="flex items-center justify-between">
               <span className="text-studio-text font-medium truncate">{s.name}</span>

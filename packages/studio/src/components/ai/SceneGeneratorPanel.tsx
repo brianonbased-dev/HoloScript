@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useSceneGenerator } from '@/hooks/useSceneGenerator';
 import { useSceneStore } from '@/lib/stores';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 const EXAMPLE_PROMPTS = [
   'A medieval castle courtyard at sunset with torches',
@@ -62,7 +63,7 @@ export function SceneGeneratorPanel({ onClose }: SceneGeneratorPanelProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedCode).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), SAVE_FEEDBACK_DURATION);
     });
   };
 

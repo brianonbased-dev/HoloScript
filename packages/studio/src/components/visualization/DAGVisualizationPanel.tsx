@@ -24,6 +24,7 @@ import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import { useEditorStore } from '@/lib/stores/editorStore';
 import type { SceneNode } from '@/lib/stores';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import {
   X,
   ZoomIn,
@@ -670,7 +671,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                   setTraitProperty(editingTrait.nodeId, editingTrait.trait, key, value);
                   (e.target as HTMLInputElement).value = '';
                   setFlashMessage(`✓ ${key} applied`);
-                  setTimeout(() => setFlashMessage(null), 1500);
+                  setTimeout(() => setFlashMessage(null), COPY_FEEDBACK_DURATION);
                 }
               }
             }}

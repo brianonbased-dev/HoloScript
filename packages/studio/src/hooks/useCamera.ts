@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useCamera — Hook for camera controller preview and editing

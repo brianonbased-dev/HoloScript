@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Search, Download, Globe, Star, Tag, Loader2, ArrowLeft } from 'lucide-react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { logger } from '@/lib/logger';
+import { ANIM_NAVIGATE } from '@/lib/ui-timings';
 
 interface RegistryPack {
   packId: string;
@@ -97,7 +98,7 @@ export default function RegistryPage() {
     if (pack.previewCode) {
       await navigator.clipboard.writeText(pack.previewCode).catch((err) => logger.warn('Swallowed error caught:', err));
     }
-    setTimeout(() => setDownloading(null), 800);
+      setTimeout(() => setDownloading(null), ANIM_NAVIGATE);
   };
 
   return (

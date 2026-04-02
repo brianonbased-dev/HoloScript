@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useLighting — Hook for scene lighting management

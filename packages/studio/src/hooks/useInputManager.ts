@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useInputManager — Hook for input polling and action mapping

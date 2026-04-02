@@ -20,6 +20,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { usePromptLibrary, type Prompt } from '@/hooks/usePromptLibrary';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 const CATEGORY_ICON: Record<string, React.ReactNode> = {
   'Scene Building': <Building2 className="h-3 w-3" />,
@@ -50,7 +51,7 @@ export function PromptLibrary({ onClose, onUsePrompt }: PromptLibraryProps) {
   const handleUse = (p: Prompt) => {
     onUsePrompt(p.prompt);
     setUsed(p.id);
-    setTimeout(() => setUsed(null), 2000);
+    setTimeout(() => setUsed(null), SAVE_FEEDBACK_DURATION);
   };
 
   return (

@@ -28,6 +28,7 @@ import type { GNode } from '@/lib/nodeGraphStore';
 import { useNodeGraphHistory } from '@/hooks/useNodeGraphHistory';
 
 import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
+import { SAVE_FEEDBACK_DURATION, COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import {
   Play,
   RotateCcw,
@@ -285,7 +286,7 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
         setAutoCompileStatus('err');
       }
       if (statusTimer.current) clearTimeout(statusTimer.current);
-      statusTimer.current = setTimeout(() => setAutoCompileStatus('idle'), 2000);
+      statusTimer.current = setTimeout(() => setAutoCompileStatus('idle'), SAVE_FEEDBACK_DURATION);
     }, 600);
     return () => {
       if (autoCompileTimer.current) clearTimeout(autoCompileTimer.current);
@@ -474,8 +475,8 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
               onClick={() => {
                 if (compiledGLSL) {
                   navigator.clipboard.writeText(compiledGLSL);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
+                  setCopied(true);COPY_FEEDBACK_DURATION
+                  setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
                 }
               }}
               className="absolute top-2 right-2 rounded bg-studio-surface px-2 py-0.5 text-[9px] text-studio-muted hover:bg-studio-border transition"

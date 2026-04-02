@@ -14,6 +14,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface GitHubOAuthModalProps {
   onSuccess: (accessToken: string) => void;
@@ -145,7 +146,7 @@ export function GitHubOAuthModal({ onSuccess, onClose }: GitHubOAuthModalProps) 
     if (deviceData?.user_code) {
       await navigator.clipboard.writeText(deviceData.user_code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), SAVE_FEEDBACK_DURATION);
     }
   };
 

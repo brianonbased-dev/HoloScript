@@ -47,6 +47,7 @@ import { getWizardTemplate } from '@/lib/presets/wizardTemplates';
 import type { ExperienceLevel, ProjectSpecifics, StudioPreset } from '@/lib/presets/studioPresets';
 import type { SceneTemplate } from '@/lib/scene/sceneTemplates';
 import { StudioEvents } from '@/lib/analytics';
+import { DEBOUNCE_INPUT } from '@/lib/ui-timings';
 
 // ─── Category cards ──────────────────────────────────────────────────────────
 
@@ -186,7 +187,7 @@ function AnimatedStep({
     if (visible) {
       setMounted(true);
     } else {
-      const timer = setTimeout(() => setMounted(false), 300);
+      const timer = setTimeout(() => setMounted(false), DEBOUNCE_INPUT);
       return () => clearTimeout(timer);
     }
   }, [visible]);

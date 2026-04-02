@@ -10,6 +10,7 @@ import { Atom, X, Search, Copy, Plus, Mountain, Crosshair } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { useSpatialEngine } from '@/hooks/useSpatialEngine';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface PhysicsPreset {
   id: string;
@@ -68,7 +69,7 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
   const copy = async (p: PhysicsPreset) => {
     await navigator.clipboard.writeText(p.traitSnippet);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
   };
 
   return (

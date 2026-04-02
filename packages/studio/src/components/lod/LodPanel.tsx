@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Eye, X, Copy, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface LodLevel {
   distance: number;
@@ -61,7 +62,7 @@ export function LodPanel({ onClose }: LodPanelProps) {
   const copy = async (preset: LodPreset) => {
     await navigator.clipboard.writeText(preset.traitSnippet);
     setCopied(preset.id);
-    setTimeout(() => setCopied(null), 1500);
+    setTimeout(() => setCopied(null), COPY_FEEDBACK_DURATION);
   };
 
   return (

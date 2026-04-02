@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { LayoutTemplate, X, Search, ChevronRight, Layers } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { APPLY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game';
 
@@ -78,7 +79,7 @@ export function TemplateGallery({ onClose }: TemplateGalleryProps) {
   const apply = (t: SceneTemplate) => {
     setCode(t.code);
     setApplied(t.id);
-    setTimeout(() => setApplied(null), 2000);
+    setTimeout(() => setApplied(null), APPLY_FEEDBACK_DURATION);
   };
 
   return (

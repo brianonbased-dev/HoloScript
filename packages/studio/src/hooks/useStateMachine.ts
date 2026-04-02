@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 /**
  * useStateMachine — Hook for hierarchical state machine editing

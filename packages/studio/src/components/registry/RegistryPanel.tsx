@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Package, Search, Download, Loader2, X, Star, RefreshCw, Tag } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { ANIM_NAVIGATE } from '@/lib/ui-timings';
 
 interface RegistryPack {
   packId: string;
@@ -89,7 +90,7 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
         // Append preview HoloScript to current code
         setCode(`${code}\n\n// Imported from: ${pack.name} v${pack.version}\n${pack.previewCode}`);
       }
-      setTimeout(() => setImporting(null), 800);
+      setTimeout(() => setImporting(null), ANIM_NAVIGATE);
     },
     [code, setCode]
   );

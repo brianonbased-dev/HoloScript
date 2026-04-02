@@ -12,6 +12,7 @@ import { Globe, Copy, Check, Loader2, X, ExternalLink } from 'lucide-react';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { serializeScene } from '@/lib/serializer';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 // Minimal QR code via QR-SVG inline (no external dep) — redirects to URL
 // We'll use a simple encoded URL placeholder approach with the qr endpoint or
@@ -89,7 +90,7 @@ export function PublishModal({ onClose }: PublishModalProps) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(publishedUrl).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), SAVE_FEEDBACK_DURATION);
     });
   }, [publishedUrl]);
 

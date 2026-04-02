@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 import { StudioEvents } from '@/lib/analytics';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 export type ExportFormat = 'gltf' | 'usd' | 'usdz' | 'json';
 export type ExportStatus = 'idle' | 'exporting' | 'done' | 'error';
@@ -54,7 +55,7 @@ export function useSceneExport() {
 
         StudioEvents.projectExported(format, sceneName);
         setStatus('done');
-        setTimeout(() => setStatus('idle'), 2000);
+        setTimeout(() => setStatus('idle'), SAVE_FEEDBACK_DURATION);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         StudioEvents.exportFailed(format, errMsg);

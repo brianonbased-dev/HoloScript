@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { BookOpen, X, Search, ChevronRight, Code, FileCode } from 'lucide-react';
 import { useExamples, type ExampleFile } from '@/hooks/useExamples';
 import { useSceneStore } from '@/lib/stores';
+import { APPLY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   quickstart: '🚀',
@@ -35,7 +36,7 @@ export function ExampleGallery({ onClose }: ExampleGalleryProps) {
   const applyExample = (ex: ExampleFile) => {
     setCode(ex.code);
     setApplied(ex.id);
-    setTimeout(() => setApplied(null), 2000);
+    setTimeout(() => setApplied(null), APPLY_FEEDBACK_DURATION);
   };
 
   return (

@@ -19,6 +19,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 // ─── Agent configuration ──────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ function AgentOrb({ agent, selectedPos }: OrbProps) {
         }}
         onPointerLeave={() => {
           setHovered(false);
-          setTimeout(() => setShowHint(false), 2000);
+          setTimeout(() => setShowHint(false), SAVE_FEEDBACK_DURATION);
         }}
       >
         <sphereGeometry args={[0.032, 16, 16]} />

@@ -17,7 +17,7 @@ interface HelloAnimationProps {
 
 export function HelloAnimation({ onComplete }: HelloAnimationProps) {
   const [phase, setPhase] = useState<'drawing' | 'holding' | 'fading' | 'done'>('drawing');
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Phase 1: Drawing the stroke (2s)
@@ -25,7 +25,9 @@ export function HelloAnimation({ onComplete }: HelloAnimationProps) {
       setPhase('holding');
     }, 2000);
 
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -42,7 +44,9 @@ export function HelloAnimation({ onComplete }: HelloAnimationProps) {
       }, 600);
     }
 
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [phase, onComplete]);
 
   if (phase === 'done') return null;

@@ -14,6 +14,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Package, X, Upload, CheckCircle, XCircle, Loader2, Copy, File } from 'lucide-react';
 import { useAssetDropProcessor } from '@/components/assets/AssetDropProcessor';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface ImportedAsset {
   id: string;
@@ -96,7 +97,7 @@ export function AssetPackPanel({ onClose }: AssetPackPanelProps) {
   const copyTrait = (trait: string, id: string) => {
     navigator.clipboard.writeText(trait).then(() => {
       setCopied(id);
-      setTimeout(() => setCopied(null), 1500);
+      setTimeout(() => setCopied(null), COPY_FEEDBACK_DURATION);
     });
   };
 

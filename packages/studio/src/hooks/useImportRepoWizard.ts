@@ -6,6 +6,7 @@ import type { Workspace, ProjectDNA } from '@/lib/stores/workspaceStore';
 import { detectProjectDNA } from '@/lib/workspace/projectDNA';
 import { useAbsorbPipelineBridge } from '@/hooks/useAbsorbPipelineBridge';
 import type { PipelineTriggerConfig } from '@/lib/integrations/absorbPipelineBridge';
+import { ANIM_WIZARD_STEP } from '@/lib/ui-timings';
 
 export interface ImportRepoWizardState {
   step: number;
@@ -218,7 +219,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       setImportStatus('done');
 
       // Auto-advance to DNA step
-      setTimeout(() => goToStep(3), 600);
+      setTimeout(() => goToStep(3), ANIM_WIZARD_STEP);
     } catch (err) {
       setImportStatus('error');
       setImportError((err as Error).message ?? 'Import failed');

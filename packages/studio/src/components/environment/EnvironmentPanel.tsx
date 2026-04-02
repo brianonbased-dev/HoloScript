@@ -9,6 +9,7 @@ import { Sun, X, Copy, Plus, CheckCircle2, Trash2 } from 'lucide-react';
 import { useEnvironment } from '@/hooks/useEnvironment';
 import type { EnvironmentPreset } from '@/app/api/environment-presets/route';
 import { logger } from '@/lib/logger';
+import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 const CATEGORY_COLORS: Record<string, string> = {
   outdoor: '#ffaa44',
@@ -55,7 +56,7 @@ export function EnvironmentPanel({ onClose }: EnvironmentPanelProps) {
     if (!selected) return;
     await navigator.clipboard.writeText(`environment {\n${selected.traitSnippet}\n}`);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
   };
 
   return (

@@ -41,6 +41,15 @@ export async function GET() {
         description: 'Follow users, comment on scenes, view feed',
         endpoints: ['GET /api/social/feed', 'POST /api/social/follows', 'POST /api/social/comments'],
       },
+      oracle_boost: {
+        description: 'Hardware-aware oracle consultation with telemetry. Always active for enterprise tier.',
+        always_on_tiers: ['enterprise'],
+        endpoints: [
+          'POST /api/studio/oracle-boost/status — validate prerequisites (enterprise: always oracle_ready)',
+          'POST /api/studio/oracle-boost/setup — provision policy files',
+          'GET /api/studio/oracle-boost/telemetry — aggregated usage + outcome data',
+        ],
+      },
     },
 
     access: {

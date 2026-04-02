@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import type { LoadProgress } from '@/lib/export/glbOptimizer';
+import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface LoadingProgressProps {
   progress: LoadProgress | null;
@@ -20,7 +21,7 @@ export function LoadingProgress({ progress, loadTime }: LoadingProgressProps) {
   // Auto-hide after load completes
   useEffect(() => {
     if (progress?.stage === 'complete' && loadTime) {
-      const timer = setTimeout(() => setVisible(false), 2000);
+      const timer = setTimeout(() => setVisible(false), SAVE_FEEDBACK_DURATION);
       return () => clearTimeout(timer);
     }
   }, [progress, loadTime]);
