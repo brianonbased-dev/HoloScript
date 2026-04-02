@@ -15,6 +15,7 @@ import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import type { Mesh, Group } from 'three';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 // ═══════════════════════════════════════════════════════════════════
 // Geometry lookup
@@ -168,6 +169,7 @@ export function ModelPreviewCanvas({
       className={`bg-[#0a0a14] rounded-lg overflow-hidden ${className}`}
       style={{ width, height }}
     >
+      <StudioErrorBoundary label="ModelPreview Canvas">
       <Canvas
         camera={{ position: [0, 0.2, 2.2], fov: 40 }}
         dpr={[1, 1.5]}
@@ -194,6 +196,7 @@ export function ModelPreviewCanvas({
           <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={2} />
         )}
       </Canvas>
+      </StudioErrorBoundary>
     </div>
   );
 }

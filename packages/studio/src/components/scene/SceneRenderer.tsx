@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
   Grid,
@@ -413,6 +414,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <StudioErrorBoundary label="R3F Canvas">
       <Canvas
         camera={{ position: [3, 3, 5], fov: 60 }}
         shadows
@@ -479,6 +481,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         {/* Gap 6: Progressive loader for streaming asset LODs */}
         <ProgressiveLoader />
       </Canvas>
+      </StudioErrorBoundary>
 
       {/* Social Aspect Ratio Overlays & Recording UI */}
       <ContentCameraUI />

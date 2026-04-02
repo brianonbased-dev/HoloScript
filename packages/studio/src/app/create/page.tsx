@@ -1621,20 +1621,25 @@ export default function CreatePage() {
           {/* RIGHT RAIL: Node Inspector */}
           {inspectorOpen && (
             <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />
+              <StudioErrorBoundary label="Node Inspector">
+                <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />
+              </StudioErrorBoundary>
             </div>
           )}
 
           {/* RIGHT RAIL: Plugin Marketplace */}
           {pluginsOpen && (
             <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />
+              <StudioErrorBoundary label="Plugin Marketplace">
+                <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />
+              </StudioErrorBoundary>
             </div>
           )}
 
           {/* RIGHT RAIL: Sandboxed Plugins (live sandbox host) */}
           {sandboxedPluginsOpen && (
             <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+              <StudioErrorBoundary label="Sandboxed Plugins">
               <SandboxedPluginsPanel
                 onClose={() => setSandboxedPluginsOpen(false)}
                 onOpenMarketplace={() => {
@@ -1642,6 +1647,7 @@ export default function CreatePage() {
                   setPluginsOpen(true);
                 }}
               />
+              </StudioErrorBoundary>
             </div>
           )}
 
