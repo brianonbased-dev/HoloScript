@@ -23,6 +23,7 @@ import {
   Glasses,
   CheckCircle,
   Upload,
+  Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -595,6 +596,8 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
 
       <CollabBar />
 
+      <WalletChip />
+
       <button
         onClick={() => setShowConformancePanel(!showConformancePanel)}
         className={`flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
@@ -617,5 +620,44 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
 
       <SaveBar />
     </nav>
+  );
+}
+
+// ── WalletChip ────────────────────────────────────────────────────────────────
+function WalletChip() {
+  const [address, setAddress] = useState<string | null>(null);
+  const [balanceUsd, setBalanceUsd] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/holomesh/agent/self').then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch('/api/holomesh/dashboard/earnings').then((r) => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([self, earnings]) => {
+      if (cancelled) return;
+      if (self?.agent?.walletAddress) setAddress(self.agent.walletAddress as string);
+      if (earnings?.totalRevenueCents != null) setBalanceUsd((earnings.totalRevenueCents as number) / 100);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading || (!address && balanceUsd === null)) return null;
+
+  const shortAddr = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : null;
+
+  return (
+    <a
+      href="/holomesh/profile"
+      title={address ?? 'Wallet'}
+      className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-violet-500/40 hover:text-violet-400"
+    >
+      <Wallet className="h-3.5 w-3.5 shrink-0" />
+      {shortAddr && <span className="hidden lg:inline font-mono">{shortAddr}</span>}
+      {balanceUsd !== null && (
+        <span className="text-emerald-400">${balanceUsd.toFixed(2)}</span>
+      )}
+    </a>
   );
 }
