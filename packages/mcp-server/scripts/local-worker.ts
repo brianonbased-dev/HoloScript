@@ -1,21 +1,24 @@
 #!/usr/bin/env npx tsx
 /**
- * HoloScript Local Agent — AI existence on GPU.
+ * HoloScript Scout — The team's always-on eyes.
  *
- * Not a task runner. An agent that lives in a team, perceives the codebase,
- * thinks with Ollama, learns from the knowledge store, acts on what it finds,
- * remembers what it did, and coordinates with other agents.
+ * One job: see and report. Never create, never build, never claim done.
+ *
+ * What it does:
+ *   1. Heartbeat — keeps the slot alive 24/7
+ *   2. Scout — finds relevant files for open tasks, posts locations
+ *   3. Audit — verifies done log commit hashes exist in git
+ *   4. Watch — detects new commits related to open tasks
+ *   5. Farm — derives tasks from docs when board < 20
+ *
+ * What it does NOT do:
+ *   - Create board tasks from code scans
+ *   - Mark tasks as done
+ *   - Interpret data (no Ollama summaries on task work)
+ *   - Respond to messages (wastes cycles)
  *
  * Usage:
  *   npx tsx packages/mcp-server/scripts/local-worker.ts
- *   npx tsx packages/mcp-server/scripts/local-worker.ts --name gpu-worker --role researcher
- *
- * Cognitive loop (every 90s):
- *   1. PERCEIVE — read board, messages, git status, knowledge store
- *   2. THINK   — decide what to do next (Ollama)
- *   3. ACT     — execute (read files, analyze, write findings)
- *   4. LEARN   — contribute findings to team knowledge
- *   5. REPORT  — update board, message team
  */
 
 import { execSync, spawn } from 'child_process';
@@ -24,18 +27,9 @@ import * as path from 'path';
 
 // ── Config ──
 
-function getArg(flag: string, fallback: string): string {
-  const idx = process.argv.indexOf(flag);
-  return idx >= 0 && process.argv[idx + 1] ? process.argv[idx + 1] : fallback;
-}
-
-const WORKER_NAME = getArg('--name', 'gpu-worker');
-const OLLAMA_MODEL = getArg('--model', 'brittney-qwen');
-const ROOM_ID = getArg('--room', 'team_d141a6972eac1e9d');
-const ROLE = getArg('--role', 'flex');
-
+const WORKER_NAME = 'gpu-worker';
+const ROOM_ID = 'team_d141a6972eac1e9d';
 const HOLOMESH_API = 'https://mcp.holoscript.net/api/holomesh';
-const KNOWLEDGE_API = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const OLLAMA_URL = 'http://localhost:11434';
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const HEARTBEAT_MS = 60_000;
@@ -44,21 +38,14 @@ const CYCLE_MS = 90_000;
 let AGENT_KEY = '';
 let AGENT_NAME = WORKER_NAME;
 
-// ── Agent Memory (persists between cycles, lost on restart) ──
-
 const memory = {
-  lastTask: '',
-  tasksCompleted: 0,
-  tasksFailed: 0,
-  findings: [] as string[],
-  messagesRead: 0,
   cycleCount: 0,
-  knowledgeContributed: 0,
-  respondedMessageIds: new Set<string>(),
-  triedTaskIds: new Set<string>(),
-  lastGitReport: 0 as number,
-  todoScanned: false,
+  scoutedTaskIds: new Set<string>(),
+  lastGitHash: '',
+  lastAuditCycle: 0,
+  lastFarmCycle: 0,
   derivedSources: new Set<string>(),
+  todoScanned: false,
 };
 
 // ── HTTP ──
@@ -75,520 +62,219 @@ async function get(url: string, headers: Record<string, string> = {}) {
 
 function auth() { return { Authorization: `Bearer ${AGENT_KEY}` }; }
 
-// ── Ollama ──
+function shell(cmd: string): string {
+  try { return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: 'bash' } as any).trim(); } catch { return ''; }
+}
+
+// ── Setup ──
 
 async function ensureOllama(): Promise<boolean> {
   try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {
     spawn('ollama', ['serve'], { detached: true, stdio: 'ignore' }).unref();
-    for (let i = 0; i < 10; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {}
-    }
+    for (let i = 0; i < 10; i++) { await new Promise(r => setTimeout(r, 2000)); try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {} }
     return false;
   }
 }
-
-async function think(prompt: string): Promise<string> {
-  try {
-    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: OLLAMA_MODEL, prompt, stream: false, options: { temperature: 0.2, num_predict: 800 } }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    return ((await res.json()) as any).response?.trim() || '';
-  } catch { return ''; }
-}
-
-// ── Shell (read-only perception) ──
-
-function perceiveShell(cmd: string): string {
-  try {
-    return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: 'bash' } as any).trim();
-  } catch { return ''; }
-}
-
-// ── Team Operations ──
 
 async function registerAgent(): Promise<boolean> {
   const keyFile = path.join(ROOT, '.local-worker-key');
   if (fs.existsSync(keyFile)) {
     const saved = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
     AGENT_KEY = saved.key; AGENT_NAME = saved.name;
-    console.log(`[agent] Identity: ${AGENT_NAME}`);
     return true;
   }
-  const res = await post(`${HOLOMESH_API}/quickstart`, {
-    name: WORKER_NAME,
-    description: `Local GPU agent (${OLLAMA_MODEL}). Perceives, thinks, learns, acts.`,
-    traits: ['@local-gpu', '@worker', `@${ROLE}`],
-  });
+  const res = await post(`${HOLOMESH_API}/quickstart`, { name: WORKER_NAME, description: 'Scout — the team\'s always-on eyes', traits: ['@scout', '@local-gpu'] });
   const apiKey = res.api_key || res.agent?.api_key;
-  if (apiKey) {
-    AGENT_KEY = apiKey; AGENT_NAME = res.agent?.name || WORKER_NAME;
-    fs.writeFileSync(keyFile, JSON.stringify({ key: AGENT_KEY, name: AGENT_NAME }));
-    console.log(`[agent] Registered: ${AGENT_NAME}`);
-    return true;
-  }
-  if (res.error?.includes('already registered')) {
-    console.error(`[agent] Name taken. Delete ${keyFile} and restart.`);
-    return false;
-  }
-  console.error('[agent] Registration failed:', JSON.stringify(res).slice(0, 200));
+  if (apiKey) { AGENT_KEY = apiKey; AGENT_NAME = res.agent?.name || WORKER_NAME; fs.writeFileSync(keyFile, JSON.stringify({ key: AGENT_KEY, name: AGENT_NAME })); return true; }
+  if (res.error?.includes('already registered')) { console.error(`[scout] Name taken. Delete ${keyFile} and restart.`); return false; }
   return false;
 }
 
-async function joinTeam() {
-  await post(`${HOLOMESH_API}/team/${ROOM_ID}/join`, { invite_code: 'CvRxho-8', ide_type: 'ollama' }, auth()).catch(() => {});
-}
+async function joinTeam() { await post(`${HOLOMESH_API}/team/${ROOM_ID}/join`, { invite_code: 'CvRxho-8', ide_type: 'ollama' }, auth()).catch(() => {}); }
+async function heartbeat() { await post(`${HOLOMESH_API}/team/${ROOM_ID}/presence`, { ide_type: 'ollama', status: 'active', project_path: ROOT }, auth()).catch(() => {}); }
+async function msg(content: string) { await post(`${HOLOMESH_API}/team/${ROOM_ID}/message`, { type: 'text', content }, auth()).catch(() => {}); }
+async function knowledge(type: string, content: string, domain: string, tags: string[]) { await post(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, { entries: [{ type, content, domain, tags: [...tags, 'scout'], confidence: 0.8 }] }, auth()).catch(() => {}); }
 
-async function heartbeat() {
-  await post(`${HOLOMESH_API}/team/${ROOM_ID}/presence`, { ide_type: 'ollama', status: 'active', project_path: ROOT }, auth()).catch(() => {});
-}
+// ── 1. SCOUT — find files for open tasks ──
 
-async function sendMessage(content: string) {
-  await post(`${HOLOMESH_API}/team/${ROOM_ID}/message`, { type: 'text', content }, auth()).catch(() => {});
-}
-
-async function contributeKnowledge(type: string, content: string, domain: string, tags: string[]) {
-  await post(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, {
-    entries: [{ type, content, domain, tags: [...tags, 'gpu-worker'], confidence: 0.7 }],
-  }, auth()).catch(() => {});
-  memory.knowledgeContributed++;
-}
-
-// ── 1. PERCEIVE ──
-
-async function perceive() {
+async function scoutTasks() {
   const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
-  const messages = await get(`${HOLOMESH_API}/team/${ROOM_ID}/messages?limit=5`, auth()).catch(() => ({ messages: [] }));
-  const gitStatus = perceiveShell('git status --short 2>/dev/null | head -20');
-  const recentCommits = perceiveShell('git log --oneline --since="4 hours ago" 2>/dev/null | head -10');
-  const todoCount = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
+  const open = ((board?.board?.open || []) as any[]).filter((t: any) =>
+    !t.title?.startsWith('[report]') &&
+    !t.title?.startsWith('FIXME:') &&
+    !memory.scoutedTaskIds.has(t.id) &&
+    t.priority >= 2
+  );
 
-  // Check for UNREAD messages from other agents (skip ones we already responded to)
-  const otherMessages = (messages.messages || [])
-    .filter((m: any) =>
-      m.fromAgentName !== AGENT_NAME &&
-      m.messageType !== 'equipment-load' &&
-      m.id && !memory.respondedMessageIds.has(m.id)
-    )
+  if (open.length === 0) return;
+
+  // Pick one task to scout
+  const task = open.sort((a: any, b: any) => a.priority - b.priority)[0];
+  memory.scoutedTaskIds.add(task.id);
+
+  // Extract keywords and find relevant files
+  const keywords = task.title
+    .split(/\s+/)
+    .filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix|the|for|and|with/i.test(w))
     .slice(0, 3);
 
-  memory.messagesRead += otherMessages.length;
-
-  return {
-    board: board?.board || {},
-    openTasks: (board?.board?.open || []) as any[],
-    claimedTasks: (board?.board?.claimed || []) as any[],
-    doneCount: board?.done?.total || 0,
-    mode: board?.mode || 'manual',
-    objective: board?.objective || '',
-    otherMessages,
-    gitStatus,
-    recentCommits,
-    todoCount: parseInt(todoCount) || 0,
-  };
-}
-
-// ── 2. THINK ──
-
-async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise<{ action: string; target?: any; reasoning: string }> {
-  const { openTasks, claimedTasks, doneCount, otherMessages, gitStatus, recentCommits, todoCount } = perception;
-
-  // If another agent asked us something, respond first
-  const question = otherMessages.find((m: any) => m.content?.includes('?') || m.content?.includes('@' + AGENT_NAME));
-  if (question) {
-    return { action: 'respond', target: question, reasoning: 'Another agent addressed me or asked a question' };
+  const findings: string[] = [];
+  for (const kw of keywords) {
+    const files = shell(`grep -rn "${kw}" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | grep -v node_modules | grep -v dist | head -5`);
+    if (files) findings.push(...files.split('\n').filter(l => l.trim()));
   }
 
-  // If board is low or empty, auto-derive from sources
-  if (openTasks.length === 0) {
-    return { action: 'derive', reasoning: `Board empty (${doneCount} done). Farming docs for tasks.` };
-  }
-  if (openTasks.length < 20 && memory.cycleCount % 10 === 0) {
-    return { action: 'derive', reasoning: `Board low (${openTasks.length} open). Periodic farm from docs.` };
-  }
-
-  // Find ANY P3+ task to scout (skip already-tried and non-tasks)
-  const handleable = openTasks.filter((t: any) => {
-    if (t.title?.startsWith('[report]') || t.title?.startsWith('[system]')) return false;
-    if (t.title?.startsWith('FIXME:')) return false; // skip auto-generated FIXME tasks
-    if (memory.triedTaskIds.has(t.id)) return false;
-    if (t.priority < 3) return false;
-    return true; // scout can TRY any P3 task — it'll report raw data or nothing
-  });
-
-  if (handleable.length > 0) {
-    const task = handleable.sort((a: any, b: any) => a.priority - b.priority)[0];
-    return { action: 'work', target: task, reasoning: `P${task.priority} task available: ${task.title}` };
-  }
-
-  // If there are many uncommitted changes, report them ONCE
-  const uncommittedCount = gitStatus ? gitStatus.split('\n').filter(l => l.trim()).length : 0;
-  if (uncommittedCount > 5 && !memory.lastGitReport) {
-    memory.lastGitReport = uncommittedCount;
-    return { action: 'report_git', reasoning: `${uncommittedCount} uncommitted files detected` };
-  }
-  // Reset if count changed significantly (new work happened)
-  if (memory.lastGitReport && Math.abs(uncommittedCount - memory.lastGitReport) > 3) {
-    memory.lastGitReport = 0;
-  }
-
-  // Scan TODOs once per session (not every cycle — they don't change fast)
-  if (todoCount > 0 && !memory.todoScanned) {
-    memory.todoScanned = true;
-    return { action: 'scan_todos', reasoning: `${todoCount} TODOs in codebase — one-time scan` };
-  }
-
-  // Check done log for unverified tasks (audit duty)
-  if (memory.cycleCount % 3 === 0) {
-    return { action: 'audit_done', reasoning: 'Periodic audit — check done log for unverified tasks' };
-  }
-
-  // Clear tried tasks every 10 cycles so we can retry with fresh eyes
-  if (memory.triedTaskIds.size > 0 && memory.cycleCount % 10 === 0) {
-    memory.triedTaskIds.clear();
-    console.log(`[agent] Cleared tried tasks — fresh scan`);
-  }
-
-  return { action: 'idle', reasoning: `${openTasks.length} open but none P3/handleable for ${ROLE} role` };
-}
-
-// ── 3. ACT ──
-
-async function act(decision: Awaited<ReturnType<typeof decide>>) {
-  const { action, target, reasoning } = decision;
-  console.log(`[agent] Action: ${action} — ${reasoning}`);
-
-  switch (action) {
-    case 'respond': {
-      const msg = target as any;
-      memory.respondedMessageIds.add(msg.id);
-      const response = await think(
-        `You are ${AGENT_NAME}, a local GPU agent on a development team. ` +
-        `Another agent (${msg.fromAgentName}) said: "${msg.content?.slice(0, 200)}"\n\n` +
-        `Respond in ONE sentence. Be specific about what was said. ` +
-        `You know: team has done ${memory.tasksCompleted} tasks, you run on Ollama (${OLLAMA_MODEL}), role: ${ROLE}.`
-      );
-      if (response) {
-        await sendMessage(`@${msg.fromAgentName} ${response}`);
-        console.log(`[agent] Responded to ${msg.fromAgentName}: ${response.slice(0, 60)}`);
-      }
-      break;
-    }
-
-    case 'derive': {
-      // Cycle through source files to farm tasks (skip already-farmed this session)
-      const allSources = [
-        { file: 'packages/studio/STUDIO_AUDIT.md', name: 'STUDIO_AUDIT.md' },
-        { file: 'docs/strategy/ROADMAP.md', name: 'ROADMAP.md' },
-        { file: 'CHANGELOG.md', name: 'CHANGELOG.md' },
-        { file: 'packages/mcp-server/COMPILER_TOOLS.md', name: 'COMPILER_TOOLS.md' },
-        { file: 'docs/agents/holomesh-teams.md', name: 'holomesh-teams.md' },
-        { file: 'README.md', name: 'README.md' },
-      ];
-      const sources = allSources.filter(s => !memory.derivedSources.has(s.name));
-      if (sources.length === 0) {
-        console.log('[agent] All sources already farmed this session');
-        break;
-      }
-
-      // Pick the next unfarmed source
-      const source = sources[0];
-      memory.derivedSources.add(source.name);
-      const content = perceiveShell(`cat ${source.file} 2>/dev/null | head -300`);
-
-      if (content && content.length > 50) {
-        const result = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, {
-          source: source.name,
-          content,
-        }, auth());
-        const derived = result?.derived || 0;
-        const skipped = result?.skipped_existing || 0;
-        if (derived > 0) {
-          await sendMessage(`[scout] Farmed ${derived} new tasks from ${source.name} (${skipped} already existed)`);
-          console.log(`[agent] Derived ${derived} tasks from ${source.name}`);
-        } else {
-          console.log(`[agent] ${source.name}: 0 new tasks (${skipped} skipped)`);
-        }
-      } else {
-        console.log(`[agent] ${source.file}: empty or not found`);
-      }
-
-      // Also scan for TODO/FIXME directly and create tasks from them
-      if (sourceIdx === 0) {
-        const todos = perceiveShell('grep -rn "TODO-[0-9]\\|FIXME:" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
-        if (todos) {
-          const lines = todos.split('\n').filter(l => l.trim());
-          for (const line of lines.slice(0, 5)) {
-            const match = line.match(/^(.+?):(\d+):.*?(TODO-\d+|FIXME):?\s*(.+)/);
-            if (match) {
-              const [, file, lineNum, tag, desc] = match;
-              await post(`${HOLOMESH_API}/team/${ROOM_ID}/board`, {
-                title: `${tag}: ${desc.trim().slice(0, 80)}`,
-                description: `${file}:${lineNum}`,
-                priority: tag.startsWith('FIXME') ? 2 : 3,
-                role: 'coder',
-                source: `TODO-scan:${file}`,
-              }, auth());
-            }
-          }
-          console.log(`[agent] Scanned ${lines.length} TODOs from studio`);
-        }
-      }
-      break;
-    }
-
-    case 'work': {
-      const task = target as any;
-      memory.lastTask = task.title;
-      memory.triedTaskIds.add(task.id);
-
-      // DON'T claim — scout only. Claim locks the task and we can't do real work.
-      // Instead: analyze and leave a report for capable agents.
-      const analysis = await scoutTask(task);
-
-      if (analysis.data.length > 0) {
-        // Contribute raw findings as knowledge (data, not interpretation)
-        await contributeKnowledge('pattern',
-          `[Scout: ${task.title}]\n${analysis.data.join('\n')}`,
-          analysis.domain,
-          ['scout', 'gpu-worker', task.source || 'board']
-        );
-
-        // Leave a message for the team with raw data
-        await sendMessage(`[scout] ${task.title}:\n${analysis.data.slice(0, 3).join('\n')}${analysis.data.length > 3 ? `\n... +${analysis.data.length - 3} more findings` : ''}`);
-        memory.tasksCompleted++;
-        console.log(`[agent] Scouted: ${task.title} (${analysis.data.length} findings)`);
-      } else {
-        console.log(`[agent] No data for: ${task.title}`);
-        memory.tasksFailed++;
-      }
-      break;
-    }
-
-    case 'report_git': {
-      // Only report modified tracked files, not untracked artifacts
-      const status = perceiveShell('git status --short 2>/dev/null | grep "^ M\\|^M " | head -10');
-      const recent = perceiveShell('git log --oneline -5 2>/dev/null');
-      if (status) {
-        await sendMessage(`[scout] Modified tracked files:\n${status}\nRecent commits:\n${recent}`);
-      }
-      break;
-    }
-
-    case 'scan_todos': {
-      // Scan across key packages only (not all — too noisy)
-      const todos = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src/ packages/core/src/ packages/mcp-server/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v dist | head -20');
-      if (todos) {
-        const lines = todos.split('\n').filter(l => l.trim());
-        // Report only — NEVER create board tasks from TODO scan
-        // Board seeding is a deliberate action, not automatic
-        await contributeKnowledge('pattern',
-          `TODO/FIXME scan (${lines.length} found in studio/core/mcp-server):\n${lines.slice(0, 10).join('\n')}`,
-          'code-quality', ['scan', 'todo', 'raw-data']
-        );
-        await sendMessage(`[scout] TODO scan: ${lines.length} found in studio/core/mcp-server. Data in team knowledge — not auto-added to board.`);
-        console.log(`[agent] Scanned ${lines.length} TODOs — reported only, no board tasks`);
-      }
-      break;
-    }
-
-    case 'audit_done': {
-      try {
-        const audit = await get(`${HOLOMESH_API}/team/${ROOM_ID}/done/audit`, auth());
-        const unverified = audit?.unverified || 0;
-        const verified = audit?.verified || 0;
-        const rate = audit?.health?.verification_rate || 0;
-
-        if (unverified > 0) {
-          // Verify some commit hashes actually exist in git
-          const verifiedInGit: string[] = [];
-          const fakeCommits: string[] = [];
-          for (const task of (audit?.unverified_tasks || []).slice(0, 5)) {
-            if (task.commitHash && task.commitHash.length >= 7) {
-              const exists = perceiveShell(`git log --oneline ${task.commitHash} -1 2>/dev/null`);
-              if (exists) verifiedInGit.push(task.title);
-              else fakeCommits.push(`${task.title} (${task.commitHash})`);
-            }
-          }
-
-          const report = [
-            `Done log audit: ${verified} verified, ${unverified} unverified (${rate}% rate)`,
-            verifiedInGit.length > 0 ? `Git-confirmed: ${verifiedInGit.length}` : null,
-            fakeCommits.length > 0 ? `SUSPECT (hash not in git): ${fakeCommits.join(', ')}` : null,
-          ].filter(Boolean).join('. ');
-
-          console.log(`[agent] ${report}`);
-          await sendMessage(`[scout] ${report}`);
-          await contributeKnowledge('gotcha', report, 'team-health', ['audit', 'verification', 'scout']);
-        } else {
-          console.log(`[agent] Audit clean: ${verified} verified, 0 unverified`);
-        }
-      } catch {}
-      break;
-    }
-
-    case 'idle': {
-      // Rotate through useful idle activities
-      const idleAction = memory.cycleCount % 4;
-
-      if (idleAction === 0) {
-        // Browse knowledge store for recent gotchas
-        try {
-          const knowledge = await post(`${KNOWLEDGE_API}/knowledge/query`, {
-            search: 'gotcha recent',
-            limit: 3,
-            workspace_id: 'ai-ecosystem',
-          }, { 'x-mcp-api-key': 'USNo/BJSBdJm1acZ20EHNhPF8cvB7tnZ+YF/Osp4VRU=' });
-          const count = knowledge?.results?.length || 0;
-          if (count > 0) console.log(`[agent] Browsed ${count} gotchas from knowledge store`);
-        } catch {}
-      } else if (idleAction === 1) {
-        // Check recent commits for work that might need tasks
-        const recent = perceiveShell('git log --oneline --since="12 hours ago" 2>/dev/null | head -10');
-        if (recent) {
-          const commitCount = recent.split('\n').filter(l => l.trim()).length;
-          console.log(`[agent] ${commitCount} commits in last 12h`);
-        }
-      } else if (idleAction === 2) {
-        // Count open P1/P2 tasks and report if urgent work is piling up
-        const boardData = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
-        const p1 = ((boardData?.board?.open || []) as any[]).filter((t: any) => t.priority === 1);
-        const p2 = ((boardData?.board?.open || []) as any[]).filter((t: any) => t.priority === 2);
-        if (p1.length > 0) {
-          await sendMessage(`[scout] ${p1.length} P1 tasks still open — need a cloud agent: ${p1.map((t: any) => t.title.slice(0, 40)).join(', ')}`);
-          console.log(`[agent] Flagged ${p1.length} open P1 tasks`);
-        } else if (p2.length > 5) {
-          console.log(`[agent] ${p2.length} P2 tasks open — team is keeping up`);
-        }
-      } else {
-        console.log(`[agent] Idle cycle ${memory.cycleCount}`);
-      }
-      break;
-    }
-  }
-}
-
-// ── Scouting (raw data gathering, no interpretation) ──
-
-async function scoutTask(task: any): Promise<{ data: string[]; domain: string }> {
-  const title = task.title || '';
-  const commands: string[] = [];
-
-  // Build targeted grep/find commands based on task type
-  if (/console\.log|debug/i.test(title)) {
-    commands.push('grep -rn "console\\.log" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v test | head -10');
-    commands.push('grep -rn "console\\.log" packages/core/src/ --include="*.ts" 2>/dev/null | grep -v test | head -10');
-  } else if (/as.any|type.*cast/i.test(title)) {
-    commands.push('grep -rn "as any" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
-    commands.push('grep -rn "as any" packages/core/src/ --include="*.ts" 2>/dev/null | wc -l');
-  } else if (/empty catch|catch/i.test(title)) {
-    commands.push('grep -rn "catch {}" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
-  } else if (/README/i.test(title)) {
-    commands.push('for d in packages/*/; do [ ! -f "$d/README.md" ] && echo "MISSING: $d"; done 2>/dev/null');
-  } else if (/ErrorBoundary/i.test(title)) {
-    commands.push('grep -rn "ErrorBoundary" packages/ --include="*.tsx" -l 2>/dev/null');
-  } else if (/test.*coverage|zero.*test/i.test(title)) {
-    commands.push('for d in packages/*/; do count=$(find "$d" -name "*.test.ts" -o -name "*.test.tsx" 2>/dev/null | wc -l); [ "$count" -eq 0 ] && echo "ZERO TESTS: $d"; done 2>/dev/null');
-  } else if (/room|team|template|preset/i.test(title)) {
-    commands.push('grep -rn "ROOM_PRESETS\\|RoomConfig\\|roomConfig" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | head -10');
-  } else if (/absorb|knowledge/i.test(title)) {
-    commands.push('grep -rn "absorb_query\\|knowledge.*sync\\|contributeKnowledge" packages/ --include="*.ts" -l 2>/dev/null | head -10');
-  } else if (/rate.limit|DoS|body.*size/i.test(title)) {
-    commands.push('grep -rn "rateLimit\\|rateLimiter\\|bodyParser\\|express\\.json" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | head -10');
-  } else if (/OpenAPI|swagger|SDK/i.test(title)) {
-    commands.push('find . -name "openapi*" -o -name "swagger*" -o -name "*.openapi.*" 2>/dev/null | head -10');
-  } else if (/billing|meter|usage/i.test(title)) {
-    commands.push('grep -rn "metering\\|billing\\|usage.*track\\|compute.*unit" packages/ --include="*.ts" -l 2>/dev/null | head -10');
-  } else if (/validate|validation|zod/i.test(title)) {
-    commands.push('grep -rn "z\\.object\\|z\\.string\\|validateRequest\\|Zod" packages/mcp-server/src/ --include="*.ts" -l 2>/dev/null | head -10');
-  } else if (/version|deprecat/i.test(title)) {
-    commands.push('grep -rn "\\"version\\"" packages/*/package.json 2>/dev/null | head -15');
-  } else if (/commit.*hash|verify|audit.*done/i.test(title)) {
-    commands.push('git log --oneline --since="24 hours ago" 2>/dev/null | head -15');
+  if (findings.length > 0) {
+    const unique = [...new Set(findings)].slice(0, 8);
+    await knowledge('pattern', `[Scout: ${task.title}]\nRelevant files:\n${unique.join('\n')}`, 'codebase', ['scout', task.source || 'board']);
+    await msg(`[scout] ${task.title}:\n${unique.slice(0, 4).join('\n')}${unique.length > 4 ? `\n+${unique.length - 4} more` : ''}`);
+    console.log(`[scout] ${task.title} → ${unique.length} files`);
   } else {
-    // Generic — find files mentioning key terms
-    const keywords = title.split(/\s+/).filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix/i.test(w)).slice(0, 2);
-    for (const kw of keywords) {
-      commands.push('grep -rn "' + kw + '" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | head -8');
-    }
+    console.log(`[scout] ${task.title} → no files found`);
   }
-
-  // Execute and collect RAW output — no interpretation
-  const data: string[] = [];
-  for (const cmd of commands.slice(0, 4)) {
-    const output = perceiveShell(cmd);
-    if (output && output !== '0') {
-      const lines = output.split('\n')
-        .filter(l => l.trim())
-        .filter(l => !l.includes('node_modules'))  // filter symlinked workspace noise
-        .filter(l => !l.includes('/dist/'))         // filter built output
-        .slice(0, 8);
-      data.push(...lines);
-    }
-  }
-
-  const domain = /studio/i.test(title) ? 'studio'
-    : /core|compiler/i.test(title) ? 'core'
-    : /orchestrator/i.test(title) ? 'orchestrator'
-    : /mcp.*server/i.test(title) ? 'mcp-server'
-    : 'codebase';
-
-  return { data, domain };
 }
 
-// ── Main Cognitive Loop ──
+// ── 2. AUDIT — verify done log commits exist in git ──
+
+async function auditDoneLog() {
+  const audit = await get(`${HOLOMESH_API}/team/${ROOM_ID}/done/audit`, auth()).catch(() => null);
+  if (!audit) return;
+
+  const rate = audit?.health?.verification_rate || 0;
+  const unverified = audit?.unverified || 0;
+
+  // Spot-check 3 commit hashes from verified entries
+  const verified = (audit?.unverified_tasks || []).slice(0, 3);
+  const fakes: string[] = [];
+  for (const task of verified) {
+    if (task.commitHash && task.commitHash.length >= 7) {
+      const exists = shell(`git log --oneline ${task.commitHash} -1 2>/dev/null`);
+      if (!exists) fakes.push(task.title?.slice(0, 40));
+    }
+  }
+
+  if (fakes.length > 0) {
+    await msg(`[audit] SUSPECT commits not in git: ${fakes.join(', ')}`);
+    await knowledge('gotcha', `Done log: ${fakes.length} commit hashes not found in git. Verification rate: ${rate}%.`, 'team-health', ['audit']);
+  }
+  console.log(`[audit] ${rate}% verified, ${unverified} unverified${fakes.length ? `, ${fakes.length} suspect` : ''}`);
+}
+
+// ── 3. WATCH — detect new commits related to open tasks ──
+
+async function watchGit() {
+  const currentHash = shell('git rev-parse HEAD 2>/dev/null');
+  if (!currentHash || currentHash === memory.lastGitHash) return;
+
+  const isFirst = !memory.lastGitHash;
+  memory.lastGitHash = currentHash;
+  if (isFirst) return; // skip first cycle
+
+  // New commit detected — check what changed
+  const newCommits = shell('git log --oneline -3 2>/dev/null');
+  const changedFiles = shell('git diff --name-only HEAD~1 HEAD 2>/dev/null | head -10');
+
+  if (!changedFiles) return;
+
+  // Check if changed files relate to any open tasks
+  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
+  const open = (board?.board?.open || []) as any[];
+
+  const related: string[] = [];
+  const fileList = changedFiles.split('\n').filter(l => l.trim());
+  for (const task of open.slice(0, 20)) {
+    const title = (task.title || '').toLowerCase();
+    for (const file of fileList) {
+      const fileLower = file.toLowerCase();
+      if (title.includes('studio') && fileLower.includes('studio')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
+      else if (title.includes('header') && fileLower.includes('header')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
+      else if (title.includes('orchestrator') && fileLower.includes('orchestrator')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
+    }
+  }
+
+  if (related.length > 0) {
+    await msg(`[watch] New commit touches files related to open tasks:\n${related.slice(0, 3).join('\n')}`);
+    console.log(`[watch] ${related.length} task-file matches`);
+  } else {
+    console.log(`[watch] New commit: ${newCommits.split('\n')[0]} (${fileList.length} files, no task matches)`);
+  }
+}
+
+// ── 4. FARM — derive tasks from docs when board is low ──
+
+async function farmTasks() {
+  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
+  const openCount = (board?.board?.open || []).length;
+  if (openCount >= 20) return; // board is healthy
+
+  const sources = [
+    { file: 'packages/studio/STUDIO_AUDIT.md', name: 'STUDIO_AUDIT.md' },
+    { file: 'docs/strategy/ROADMAP.md', name: 'ROADMAP.md' },
+    { file: 'docs/agents/holomesh-teams.md', name: 'holomesh-teams.md' },
+  ].filter(s => !memory.derivedSources.has(s.name));
+
+  if (sources.length === 0) return;
+
+  const source = sources[0];
+  memory.derivedSources.add(source.name);
+  const content = shell(`cat ${source.file} 2>/dev/null | head -300`);
+  if (!content || content.length < 50) return;
+
+  const result = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, { source: source.name, content }, auth());
+  const derived = result?.derived || 0;
+  if (derived > 0) {
+    await msg(`[farm] ${derived} tasks from ${source.name} (board was at ${openCount})`);
+    console.log(`[farm] ${derived} from ${source.name}`);
+  }
+}
+
+// ── Main Loop ──
 
 async function main() {
   console.log('╔═══════════════════════════════════════════════╗');
-  console.log('║  HoloScript Local Agent                      ║');
-  console.log(`║  Name: ${AGENT_NAME.padEnd(39)}║`);
-  console.log(`║  Model: ${OLLAMA_MODEL.padEnd(38)}║`);
-  console.log(`║  Role: ${ROLE.padEnd(39)}║`);
-  console.log(`║  Room: ${ROOM_ID.slice(0, 20).padEnd(39)}║`);
+  console.log('║  HoloScript Scout — The team\'s eyes          ║');
   console.log('╚═══════════════════════════════════════════════╝');
   console.log('');
 
-  if (!(await ensureOllama())) { console.error('[agent] Ollama not available'); process.exit(1); }
-  if (!(await registerAgent())) { process.exit(1); }
+  await ensureOllama(); // start but don't require — scout barely uses it
+  if (!(await registerAgent())) process.exit(1);
   await joinTeam();
   await heartbeat();
+  memory.lastGitHash = shell('git rev-parse HEAD 2>/dev/null');
 
-  console.log('[agent] Alive. Starting cognitive loop.\n');
+  console.log(`[scout] ${AGENT_NAME} online. Watching.\n`);
 
-  // Heartbeat loop (separate from cognitive loop)
   setInterval(() => heartbeat(), HEARTBEAT_MS);
 
-  // Cognitive loop
-  async function cognitiveLoop() {
+  async function cycle() {
     memory.cycleCount++;
-    const prefix = `[cycle ${memory.cycleCount}]`;
+    const c = memory.cycleCount;
 
     try {
-      // 1. PERCEIVE
-      const perception = await perceive();
-      console.log(`${prefix} Board: ${perception.openTasks.length} open, ${perception.claimedTasks.length} claimed, ${perception.doneCount} done`);
+      // Every cycle: scout one task
+      await scoutTasks();
 
-      // 2. THINK
-      const decision = await decide(perception);
+      // Every cycle: watch for new commits
+      await watchGit();
 
-      // 3. ACT + 4. LEARN + 5. REPORT (all inside act())
-      await act(decision);
+      // Every 5th cycle: audit done log
+      if (c % 5 === 0) await auditDoneLog();
 
-      // Status
-      console.log(`${prefix} Stats: ${memory.tasksCompleted} done, ${memory.tasksFailed} reopened, ${memory.knowledgeContributed} knowledge contributed\n`);
+      // Every 10th cycle: farm if board is low
+      if (c % 10 === 0) await farmTasks();
+
+      // Every 15th cycle: clear scouted set so we revisit
+      if (c % 15 === 0) { memory.scoutedTaskIds.clear(); console.log('[scout] Reset — fresh scan'); }
+
+      console.log(`[cycle ${c}] scouted: ${memory.scoutedTaskIds.size}, cycle actions done`);
     } catch (e) {
-      console.error(`${prefix} Error:`, e);
+      console.error(`[cycle ${c}] Error:`, e);
     }
   }
 
-  // Run first cycle immediately
-  await cognitiveLoop();
-  setInterval(cognitiveLoop, CYCLE_MS);
-
-  console.log('[agent] Running. Ctrl+C to stop.\n');
+  await cycle();
+  setInterval(cycle, CYCLE_MS);
+  console.log('[scout] Running. Ctrl+C to stop.\n');
 }
 
-main().catch(e => { console.error('[agent] Fatal:', e); process.exit(1); });
+main().catch(e => { console.error('[scout] Fatal:', e); process.exit(1); });
