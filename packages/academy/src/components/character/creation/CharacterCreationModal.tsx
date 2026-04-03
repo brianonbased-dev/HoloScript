@@ -306,8 +306,6 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
     setIsLoading(true);
 
     try {
-      console.log('[CharacterCreation] Loading preset model:', model.name);
-
       onCharacterCreated(model.glbUrl, {
         name: model.name,
         source: 'preset',
@@ -488,7 +486,6 @@ function AIGenerationTab({
       });
 
       setTaskId(id);
-      console.log('[AIGeneration] Started generation:', id);
     } catch (error) {
       console.error('[AIGeneration] Failed to start:', error);
       alert('Failed to start generation. Please check your API configuration.');
@@ -1064,7 +1061,6 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
     try {
       const { createVRMAvatarFromFile, isLicenseCompatible } = await import('@/lib/vrmImport');
 
-      console.log('[VRoidImport] Processing VRM file:', file.name);
       const avatar = await createVRMAvatarFromFile(file);
 
       setVrmFile(file);
@@ -1330,7 +1326,6 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
       });
 
       setSearchResults(results.results);
-      console.log('[Sketchfab] Found', results.totalCount, 'models');
     } catch (error) {
       console.error('[Sketchfab] Search failed:', error);
       alert('Failed to search Sketchfab. Please try again.');
@@ -1368,7 +1363,6 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
         return;
       }
 
-      console.log('[Sketchfab] Downloading model:', selectedModel.name);
       const url = await downloadModel(selectedModel.uid);
 
       onCharacterCreated(url, {

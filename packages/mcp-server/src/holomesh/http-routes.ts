@@ -893,9 +893,6 @@ function loadSocialStore(): void {
 loadAgentStore();
 loadTeamStore();
 loadSocialStore();
-console.log(
-  `[HoloMesh] Loaded state from ${HOLOMESH_DATA_DIR}: ${agentKeyStore.size} agents, ${teamStore.size} teams, ${commentStore.size} comment threads`
-);
 
 // ── Singleton Client ──
 

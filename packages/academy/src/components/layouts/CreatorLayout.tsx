@@ -520,8 +520,7 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
       <CharacterCreationModal
         isOpen={characterModalOpen}
         onClose={() => setCharacterModalOpen(false)}
-        onCharacterCreated={(glbUrl, metadata) => {
-          console.log('[CreatorLayout] Character created globally:', metadata);
+        onCharacterCreated={(glbUrl, _metadata) => {
           setGlbUrl(glbUrl);
         }}
       />

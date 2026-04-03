@@ -283,7 +283,6 @@ export async function preloadPresetModel(modelId: string): Promise<boolean> {
 
     // Cache in memory
     const blob = await response.blob();
-    console.log(`[PresetModels] Preloaded ${modelId} (${blob.size} bytes)`);
     return true;
   } catch (error) {
     console.error(`[PresetModels] Failed to preload ${modelId}:`, error);

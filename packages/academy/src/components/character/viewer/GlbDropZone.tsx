@@ -19,7 +19,6 @@ export function GlbDropZone() {
   };
 
   const handleCharacterCreated = (glbUrl: string, metadata?: CharacterMetadata) => {
-    console.log('[CharacterCreation] Character created:', metadata);
     setGlbUrl(glbUrl);
   };
 

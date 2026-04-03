@@ -150,7 +150,7 @@ export function createHoloMeshDaemonActions(
       );
     } catch (err: any) {
       // Graceful degradation — missing env var or wallet dep should not crash daemon (G.WALLET.01)
-      console.log(`[holomesh] Wallet init failed (continuing without wallet): ${err.message}`);
+      console.warn(`[holomesh] Wallet init failed (continuing without wallet): ${err.message}`);
     }
   }
 

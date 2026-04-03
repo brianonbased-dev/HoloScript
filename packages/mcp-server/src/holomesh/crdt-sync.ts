@@ -342,7 +342,6 @@ Insight("${this.agentDid}_${Date.now()}") {
 
     if (pruned > 0) {
       this.doc.commit();
-      console.log(`[HoloMesh] Pruned ${pruned} dead knowledge entries across domains.`);
     }
     return pruned;
   }

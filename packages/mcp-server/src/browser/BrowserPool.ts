@@ -77,11 +77,6 @@ export class BrowserPool {
     // Create page
     const page = await context.newPage();
 
-    // Enable console logging
-    page.on('console', (msg) => {
-      console.log(`[Browser Console ${sessionId}]:`, msg.text());
-    });
-
     // Enable error logging
     page.on('pageerror', (error) => {
       console.error(`[Browser Error ${sessionId}]:`, error.message);

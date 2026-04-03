@@ -6,10 +6,6 @@ import * as path from 'path';
 const HOLO_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const STATE_AUTHORITY_FILE = path.join(HOLO_DIR, 'state-authority.json');
 
-console.log(
-  `[CacheDebug][networking] cacheDir=${HOLO_DIR} cacheFile=${STATE_AUTHORITY_FILE} exists=${fs.existsSync(STATE_AUTHORITY_FILE)}`
-);
-
 // ---------------------------------------------------------------------------
 // Persistent in-process authority cache (backed by disk)
 // ---------------------------------------------------------------------------
@@ -18,14 +14,8 @@ function loadStateFromDisk(): Record<string, any> {
     if (fs.existsSync(STATE_AUTHORITY_FILE)) {
       const raw = fs.readFileSync(STATE_AUTHORITY_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      console.log(
-        `[CacheDebug][networking] load hit path=${STATE_AUTHORITY_FILE} entities=${Object.keys(parsed).length}`
-      );
       return parsed;
     }
-    console.log(
-      `[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=file-not-found`
-    );
   } catch {
     // Corrupt file — start fresh
     console.warn(
@@ -41,9 +31,6 @@ function saveStateToDisk(state: Record<string, any>): void {
       fs.mkdirSync(HOLO_DIR, { recursive: true });
     }
     fs.writeFileSync(STATE_AUTHORITY_FILE, JSON.stringify(state), 'utf-8');
-    console.log(
-      `[CacheDebug][networking] save hit path=${STATE_AUTHORITY_FILE} entities=${Object.keys(state).length}`
-    );
   } catch {
     // Best-effort
     console.warn(`[CacheDebug][networking] save miss path=${STATE_AUTHORITY_FILE}`);

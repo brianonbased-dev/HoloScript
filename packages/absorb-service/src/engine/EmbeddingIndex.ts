@@ -119,9 +119,6 @@ export class EmbeddingIndex {
       try {
         const workerFile = path.join(__dirname_esm, 'workers', 'embedding-worker.js');
         this.workerPool = new WorkerPool(workerFile, this.concurrentBatches);
-        console.log(
-          `[EmbeddingIndex] Worker pool initialized with ${this.concurrentBatches} threads for parallel embeddings`
-        );
       } catch (err) {
         console.warn(
           '[EmbeddingIndex] Worker threads unavailable, falling back to sequential:',

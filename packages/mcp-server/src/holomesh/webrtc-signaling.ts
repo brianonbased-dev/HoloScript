@@ -18,7 +18,6 @@ export class WebRTCSignalingServer {
           if (data.type === 'identify' && data.peerId) {
             currentPeerId = data.peerId;
             this.peers.set(currentPeerId, ws);
-            console.log(`[SignalingServer] Registered peer: ${currentPeerId}`);
             return;
           }
 
@@ -39,7 +38,6 @@ export class WebRTCSignalingServer {
       ws.on('close', () => {
         if (currentPeerId) {
           this.peers.delete(currentPeerId);
-          console.log(`[SignalingServer] Deregistered peer: ${currentPeerId}`);
         }
       });
 
@@ -59,6 +57,5 @@ export class WebRTCSignalingServer {
       }
     });
 
-    console.log(`[SignalingServer] Attached WebRTC Signaling Server to ${path}`);
   }
 }

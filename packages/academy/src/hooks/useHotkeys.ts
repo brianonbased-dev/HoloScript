@@ -138,7 +138,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         action: () => {
           if (!characterStore.isRecording) {
             characterStore.setIsRecording(true);
-            console.log('[Hotkey] Started recording (R)');
           }
         },
         enabled: !characterStore.isRecording,
@@ -149,7 +148,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         action: () => {
           if (characterStore.isRecording) {
             characterStore.setIsRecording(false);
-            console.log('[Hotkey] Stopped recording (S)');
           }
         },
         enabled: characterStore.isRecording,
@@ -164,7 +162,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
           if (activeClipId) {
             // Toggle play/pause (implementation depends on R3F useFrame)
             characterStore.setActiveClipId(activeClipId === null ? activeClipId : null);
-            console.log('[Hotkey] Toggled playback (SPACE)');
           }
         },
         enabled: characterStore.recordedClips.length > 0,
@@ -180,7 +177,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
           );
           if (activeClip) {
             // Trigger export (will be implemented in MEME-008)
-            console.log('[Hotkey] Export clip (E):', activeClip.name);
             // TODO: Call exportToMP4(activeClip)
           }
         },
@@ -193,7 +189,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         description: 'Toggle loop',
         action: () => {
           // Toggle loop state (stored in local state or store)
-          console.log('[Hotkey] Toggled loop (L)');
           // TODO: Implement loop state
         },
       },
@@ -206,7 +201,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
           if (characterStore.activeClipId) {
             characterStore.removeRecordedClip(characterStore.activeClipId);
             characterStore.setActiveClipId(null);
-            console.log('[Hotkey] Deleted clip (DELETE)');
           }
         },
         enabled: characterStore.activeClipId !== null,
@@ -218,7 +212,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
           if (characterStore.activeClipId) {
             characterStore.removeRecordedClip(characterStore.activeClipId);
             characterStore.setActiveClipId(null);
-            console.log('[Hotkey] Deleted clip (BACKSPACE)');
           }
         },
         enabled: characterStore.activeClipId !== null,
@@ -229,7 +222,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: `${i + 1}`,
         description: `Apply preset pose ${i + 1}`,
         action: () => {
-          console.log(`[Hotkey] Applied preset pose ${i + 1}`);
           // TODO: Implement preset pose system (MEME-004)
         },
       })),
@@ -240,7 +232,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         ctrl: true,
         description: 'Undo',
         action: () => {
-          console.log('[Hotkey] Undo (CTRL+Z)');
           // TODO: Integrate with useHistoryStore
         },
       },
@@ -250,7 +241,6 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         shift: true,
         description: 'Redo',
         action: () => {
-          console.log('[Hotkey] Redo (CTRL+SHIFT+Z)');
           // TODO: Integrate with useHistoryStore
         },
       },

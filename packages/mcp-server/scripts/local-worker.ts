@@ -246,9 +246,10 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'audit_done', reasoning: 'Periodic audit — check done log for unverified tasks' };
   }
 
-  // Clear tried tasks every 20 cycles so we can retry
-  if (memory.triedTaskIds.size > 0 && memory.cycleCount % 20 === 0) {
+  // Clear tried tasks every 10 cycles so we can retry with fresh eyes
+  if (memory.triedTaskIds.size > 0 && memory.cycleCount % 10 === 0) {
     memory.triedTaskIds.clear();
+    console.log(`[agent] Cleared tried tasks — fresh scan`);
   }
 
   return { action: 'idle', reasoning: `${openTasks.length} open but none P3/handleable for ${ROLE} role` };
@@ -465,9 +466,9 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
         }
       } else if (idleAction === 2) {
         // Count open P1/P2 tasks and report if urgent work is piling up
-        const board = await getBoard();
-        const p1 = ((board?.board?.open || []) as any[]).filter((t: any) => t.priority === 1);
-        const p2 = ((board?.board?.open || []) as any[]).filter((t: any) => t.priority === 2);
+        const boardData = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
+        const p1 = ((boardData?.board?.open || []) as any[]).filter((t: any) => t.priority === 1);
+        const p2 = ((boardData?.board?.open || []) as any[]).filter((t: any) => t.priority === 2);
         if (p1.length > 0) {
           await sendMessage(`[scout] ${p1.length} P1 tasks still open — need a cloud agent: ${p1.map((t: any) => t.title.slice(0, 40)).join(', ')}`);
           console.log(`[agent] Flagged ${p1.length} open P1 tasks`);
@@ -475,7 +476,7 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
           console.log(`[agent] ${p2.length} P2 tasks open — team is keeping up`);
         }
       } else {
-        console.log(`[agent] Idle — ${(await getBoard())?.board?.open?.length || '?'} open tasks, none for me`);
+        console.log(`[agent] Idle cycle ${memory.cycleCount}`);
       }
       break;
     }

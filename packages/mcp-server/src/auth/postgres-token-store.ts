@@ -95,7 +95,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   private ensureSchema(): Promise<void> {
     if (!this.schemaReady) {
       this.schemaReady = this.pool.query(SCHEMA_SQL).then(() => {
-        console.log('[PostgresTokenStore] Schema ensured');
+        // schema ensured
       });
     }
     return this.schemaReady;

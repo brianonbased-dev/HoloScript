@@ -87,9 +87,6 @@ export class CodebaseScanner {
       try {
         const workerFile = path.join(__dirname_esm, 'workers', 'parse-worker.js');
         this.workerPool = new WorkerPool(workerFile);
-        console.log(
-          `[CodebaseScanner] Worker pool initialized with ${this.workerPool.getPoolSize()} threads`
-        );
       } catch (err) {
         console.warn(
           '[CodebaseScanner] Worker threads unavailable, falling back to sequential:',

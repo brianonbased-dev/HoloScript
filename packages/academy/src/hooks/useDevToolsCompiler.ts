@@ -28,7 +28,6 @@ export function useDevToolsCompiler() {
       win.CompilerBridge = bridge;
       win.getCompilerBridge = getCompilerBridge;
 
-      console.log('%c✅ CompilerBridge available in window', 'color: #0a0; font-weight: bold;');
 
       return () => {
         // Cleanup (optional)

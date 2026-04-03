@@ -292,7 +292,6 @@ export const useConnectorStore = create<ConnectorState>()(
 
         eventSource.onopen = () => {
           set({ sseConnected: true });
-          console.log('[ConnectorStore] Activity stream connected');
         };
 
         eventSource.onmessage = (event) => {
@@ -319,7 +318,6 @@ export const useConnectorStore = create<ConnectorState>()(
         if (sseEventSource) {
           sseEventSource.close();
           set({ sseEventSource: null, sseConnected: false });
-          console.log('[ConnectorStore] Activity stream closed');
         }
       },
 

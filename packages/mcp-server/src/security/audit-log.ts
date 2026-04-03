@@ -260,7 +260,6 @@ class AuditLogger {
         _version: '1.0.0',
         _compliance: 'eu-ai-act',
       });
-      console.log(`[AUDIT] ${line}`);
     }
 
     // Send to webhook (fire-and-forget)

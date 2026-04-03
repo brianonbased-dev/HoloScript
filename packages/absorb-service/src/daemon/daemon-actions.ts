@@ -3091,17 +3091,11 @@ export function createDaemonActions(
       const typeErrors = (bb.quality_typeErrors as number) ?? '?';
       const testsPassed = (bb.quality_testsPassed as number) ?? '?';
       const testsTotal = (bb.quality_testsTotal as number) ?? '?';
-      console.log(
-        `[daemon] Cycle complete | quality: ${after.toFixed(3)} (${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) | ` +
-          `types: ${typeErrors} errors | tests: ${testsPassed}/${testsTotal} | ` +
-          `tokens: ${iTokens}i/${oTokens}o`
-      );
       return true;
     },
 
     report_no_candidates: async (_params, bb) => {
       const focus = (bb.focus as string) || 'unknown';
-      console.log(`[daemon] No candidates for focus: ${focus} — fast-fail`);
       return true;
     },
 

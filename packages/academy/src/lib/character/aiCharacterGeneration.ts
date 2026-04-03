@@ -227,8 +227,6 @@ async function pollRodinStatus(taskId: string): Promise<GenerationStatus> {
  * Returns task ID for polling
  */
 export async function startGeneration(request: GenerationRequest): Promise<string> {
-  console.log('[AICharacterGen] Starting generation:', request);
-
   // Use mock mode if API keys not configured
   if (shouldUseMockMode()) {
     console.warn('[AICharacterGen] Using mock mode (no API keys configured)');
@@ -257,7 +255,6 @@ export async function pollGenerationStatus(
 ): Promise<GenerationStatus> {
   // Mock mode
   if (shouldUseMockMode() || taskId.startsWith('mock-')) {
-    console.log('[AICharacterGen] Mock polling:', taskId);
 
     // Simulate progress
     const elapsed = Date.now() - parseInt(taskId.split('-')[1] || '0');
@@ -300,7 +297,6 @@ export async function pollGenerationStatus(
  */
 export async function cancelGeneration(provider: AIProvider, taskId: string): Promise<void> {
   if (shouldUseMockMode() || taskId.startsWith('mock-')) {
-    console.log('[AICharacterGen] Mock cancellation:', taskId);
     return;
   }
 

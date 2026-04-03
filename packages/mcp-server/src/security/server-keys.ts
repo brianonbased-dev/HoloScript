@@ -171,10 +171,6 @@ export function initializeServerKeys(): void {
     }
   }
 
-  console.log(
-    `[ServerKeys] Initialized ${serverKeyRegistry.size} server key(s): ` +
-      Array.from(serverKeyRegistry.keys()).join(', ')
-  );
 }
 
 // ─── Diagnostics ─────────────────────────────────────────────────────────────

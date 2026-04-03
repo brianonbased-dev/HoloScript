@@ -368,7 +368,6 @@ function restorePersistedState() {
     if (savedWorkflows) {
       const parsed = JSON.parse(savedWorkflows);
       restored.workflows = new Map(parsed);
-      console.log('[OrchestrationPersistence] Restored workflows:', parsed.length);
     }
 
     // Restore behavior trees
@@ -376,24 +375,18 @@ function restorePersistedState() {
     if (savedBehaviorTrees) {
       const parsed = JSON.parse(savedBehaviorTrees);
       restored.behaviorTrees = new Map(parsed);
-      console.log('[OrchestrationPersistence] Restored behavior trees:', parsed.length);
     }
 
     // Restore active workflow ID
     const savedActiveWorkflow = localStorage.getItem('holoscript-active-workflow');
     if (savedActiveWorkflow) {
       restored.activeWorkflow = savedActiveWorkflow;
-      console.log('[OrchestrationPersistence] Restored active workflow:', savedActiveWorkflow);
     }
 
     // Restore active behavior tree ID
     const savedActiveBehaviorTree = localStorage.getItem('holoscript-active-behavior-tree');
     if (savedActiveBehaviorTree) {
       restored.activeBehaviorTree = savedActiveBehaviorTree;
-      console.log(
-        '[OrchestrationPersistence] Restored active behavior tree:',
-        savedActiveBehaviorTree
-      );
     }
   } catch (error) {
     console.error('[OrchestrationPersistence] Failed to restore state:', error);

@@ -68,13 +68,6 @@ export function useOrchestrationAutoSave() {
           localStorage.removeItem(`${STORAGE_PREFIX}-active-behavior-tree`);
         }
 
-        // Log successful save
-        console.log(`[OrchestrationAutoSave] Saved at ${new Date().toLocaleTimeString()}:`, {
-          workflows: workflowsArray.length,
-          behaviorTrees: behaviorTreesArray.length,
-          activeWorkflow,
-          activeBehaviorTree,
-        });
       } catch (error) {
         // Handle localStorage quota errors, security errors, etc.
         console.error('[OrchestrationAutoSave] Failed to save:', error);
@@ -123,5 +116,4 @@ export function clearOrchestrationStorage() {
     }
   });
 
-  console.log('[OrchestrationAutoSave] Cleared all persisted data');
 }

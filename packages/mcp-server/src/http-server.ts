@@ -90,13 +90,12 @@ if (process.env.DATABASE_URL) {
       ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
     });
     tokenBackend = new PostgresTokenStore(pool);
-    console.log('[auth] Using PostgreSQL token store');
   } catch (err) {
     console.error('[auth] Failed to initialize PostgreSQL token store:', err);
-    console.log('[auth] Falling back to in-memory token store');
+    console.warn('[auth] Falling back to in-memory token store');
   }
 } else {
-  console.log('[auth] Using in-memory token store (no DATABASE_URL)');
+  console.warn('[auth] Using in-memory token store (no DATABASE_URL)');
 }
 
 // Initialize security services
@@ -216,7 +215,6 @@ async function createAndStoreSessionTransport(
     });
     sessionAuth.delete(sid);
     transports.delete(sid);
-    console.log(`[MCP] Session closed: ${sid}`);
   };
 
   return { transport, sid };
@@ -1210,8 +1208,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.setHeader('X-Auth-Mode', 'oauth2');
     }
 
-    const { sid } = await createAndStoreSessionTransport(req, res, auth);
-    console.log(`[MCP] New session: ${sid} (client: ${auth.clientId || 'legacy'})`);
+    await createAndStoreSessionTransport(req, res, auth);
     return;
   }
 

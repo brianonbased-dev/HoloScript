@@ -84,8 +84,6 @@ export async function searchSketchfab(
   params: SketchfabSearchParams,
   page: number = 1
 ): Promise<{ models: SketchfabModel[]; nextPage: number | null; totalCount: number }> {
-  console.log('[Sketchfab] Searching:', params);
-
   // Build query parameters
   const queryParams = new URLSearchParams({
     q: params.query,
@@ -186,7 +184,6 @@ export async function searchSketchfab(
  * Get detailed model information
  */
 export async function getModelDetails(uid: string): Promise<SketchfabModel> {
-  console.log('[Sketchfab] Fetching model details:', uid);
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -242,8 +239,6 @@ export async function getModelDetails(uid: string): Promise<SketchfabModel> {
  * NOTE: Requires API key or OAuth authentication
  */
 export async function getDownloadUrl(uid: string): Promise<string> {
-  console.log('[Sketchfab] Getting download URL:', uid);
-
   if (!getSketchfabAPI().apiKey) {
     throw new Error(
       'Sketchfab API key required for downloads. Please configure NEXT_PUBLIC_SKETCHFAB_API_KEY'

@@ -126,8 +126,6 @@ export async function searchSketchfab(
   params: SketchfabSearchParams
 ): Promise<SketchfabSearchResult> {
   const url = buildSearchUrl(params);
-  console.log('[Sketchfab] Searching:', url);
-
   // Return dummy data since we don't have a real API key in this context
   const dummyResults: SketchfabModel[] = Array.from({ length: 5 }).map((_, i) => ({
     uid: `sketchfab-dummy-${Date.now()}-${i}`,
@@ -162,7 +160,6 @@ export async function searchSketchfab(
  * Returns the URL to the downloaded GLB file.
  */
 export async function downloadModel(uid: string): Promise<string> {
-  console.log('[Sketchfab] Downloading model UID:', uid);
   // Return a dummy URL to satisfy the UI
   return `blob:dummy-sketchfab-${uid}.glb`;
 }

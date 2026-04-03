@@ -79,9 +79,6 @@ function loadGraphStore(): void {
 
     if (data.reportCounter) reportCounter = data.reportCounter;
 
-    console.log(
-      `[HoloMesh:social] Loaded: ${followGraph.size} follow graphs, ${blockGraph.size} block lists, ${reports.size} reports`
-    );
   } catch {
     // Corrupted file — start fresh
   }

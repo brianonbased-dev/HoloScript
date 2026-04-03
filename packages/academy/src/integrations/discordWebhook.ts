@@ -97,11 +97,6 @@ export class DiscordWebhookManager {
       this.start();
     }
 
-    console.log('[DiscordWebhook] Initialized', {
-      hasWebhook: !!this.config.webhookUrl,
-      hasBotToken: !!this.config.botToken,
-      channels: this.config.channelIds.length,
-    });
   }
 
   /**
@@ -126,7 +121,6 @@ export class DiscordWebhookManager {
       console.warn('[DiscordWebhook] No bot token or webhook URL provided');
     }
 
-    console.log('[DiscordWebhook] Started listening');
   }
 
   /**
@@ -151,7 +145,6 @@ export class DiscordWebhookManager {
     }
 
     this.isConnected = false;
-    console.log('[DiscordWebhook] Stopped listening');
   }
 
   /**
@@ -161,7 +154,6 @@ export class DiscordWebhookManager {
     // In a real implementation, this would connect to Discord Gateway
     // For now, we'll use a mock WebSocket for demonstration
 
-    console.log('[DiscordWebhook] Connecting to Discord Gateway...');
 
     // Mock WebSocket URL (in production, use Discord Gateway)
     const mockWsUrl = 'ws://localhost:8080/discord-gateway';
@@ -171,7 +163,6 @@ export class DiscordWebhookManager {
 
       this.ws.onopen = () => {
         this.isConnected = true;
-        console.log('[DiscordWebhook] Connected to Discord Gateway');
 
         // Send authentication
         if (this.ws) {
@@ -207,12 +198,10 @@ export class DiscordWebhookManager {
 
       this.ws.onclose = () => {
         this.isConnected = false;
-        console.log('[DiscordWebhook] Disconnected from Discord Gateway');
 
         // Auto-reconnect after 5 seconds
         if (this.isListening) {
           setTimeout(() => {
-            console.log('[DiscordWebhook] Attempting to reconnect...');
             this.connectWebSocket();
           }, 5000);
         }
@@ -257,7 +246,6 @@ export class DiscordWebhookManager {
    * Start polling for reactions (fallback method)
    */
   private startPolling(): void {
-    console.log('[DiscordWebhook] Starting polling fallback');
 
     this.pollingInterval = setInterval(() => {
       // In a real implementation, this would poll Discord API for new reactions
@@ -285,13 +273,10 @@ export class DiscordWebhookManager {
     const now = Date.now();
 
     if (now - lastTime < this.config.reactionCooldown) {
-      console.log('[DiscordWebhook] Reaction cooldown active, ignoring');
       return;
     }
 
     this.lastReactionTime.set(cooldownKey, now);
-
-    console.log('[DiscordWebhook] Reaction received:', reaction);
 
     // Trigger callbacks
     this.reactionCallbacks.forEach((callback) => {
@@ -313,8 +298,6 @@ export class DiscordWebhookManager {
    * Execute trigger action
    */
   private executeTrigger(trigger: ReactionTrigger, reaction: DiscordReaction): void {
-    console.log('[DiscordWebhook] Executing trigger:', trigger, reaction);
-
     // Dispatch custom event for trait system
     const event = new CustomEvent('discord-reaction-trigger', {
       detail: {
@@ -336,7 +319,6 @@ export class DiscordWebhookManager {
       cooldown,
     });
 
-    console.log('[DiscordWebhook] Registered trigger:', emoji, '→', action, value);
   }
 
   /**
@@ -344,7 +326,6 @@ export class DiscordWebhookManager {
    */
   unregisterTrigger(emoji: string): void {
     this.triggers.delete(emoji);
-    console.log('[DiscordWebhook] Unregistered trigger:', emoji);
   }
 
   /**
@@ -393,7 +374,6 @@ export class DiscordWebhookManager {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('[DiscordWebhook] Message sent successfully');
       return true;
     } catch (error) {
       console.error('[DiscordWebhook] Failed to send message:', error);

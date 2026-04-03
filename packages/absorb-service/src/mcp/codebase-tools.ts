@@ -200,10 +200,6 @@ const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
 const EMBEDDINGS_FILE = path.join(CACHE_DIR, 'embeddings-cache.bin');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-console.log(
-  `[CacheDebug][codebase] cacheDir=${CACHE_DIR} cacheFile=${CACHE_FILE} exists=${fs.existsSync(CACHE_FILE)}`
-);
-
 interface GraphCacheEnvelope {
   version: 1 | 2;
   rootDir: string;
@@ -238,9 +234,6 @@ function saveGraphCache(
 ): void {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
-    console.log(
-      `[CacheDebug][codebase] save skip path=${CACHE_FILE} reason=empty-scan rootDir=${rootDir}`
-    );
     return;
   }
   try {
@@ -258,9 +251,6 @@ function saveGraphCache(
       embeddingProvider,
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
-    console.log(
-      `[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir} version=2 git=${gitCommitHash?.slice(0, 7)}`
-    );
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
@@ -275,9 +265,6 @@ function saveEmbeddingsCache(index: any, rootDir: string): void {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
       fs.writeFileSync(EMBEDDINGS_FILE, buffer);
-      console.log(
-        `[CacheDebug][codebase] save embeddings hit path=${EMBEDDINGS_FILE} rootDir=${rootDir}`
-      );
     }
   } catch (err) {
     console.warn(
@@ -291,7 +278,6 @@ async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any
     if (!fs.existsSync(EMBEDDINGS_FILE)) return null;
     const buffer = fs.readFileSync(EMBEDDINGS_FILE);
     const index = mod.EmbeddingIndex.deserializeBinary(buffer, { provider: providerInstance });
-    console.log(`[CacheDebug][codebase] load embeddings hit path=${EMBEDDINGS_FILE}`);
     return index;
   } catch (err) {
     console.warn(`[CacheDebug][codebase] load embeddings miss path=${EMBEDDINGS_FILE}`);
@@ -302,7 +288,6 @@ async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any
 function loadGraphCache(): GraphCacheEnvelope | null {
   try {
     if (!fs.existsSync(CACHE_FILE)) {
-      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=file-not-found`);
       return null;
     }
     const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
@@ -310,20 +295,15 @@ function loadGraphCache(): GraphCacheEnvelope | null {
 
     // Accept both v1 and v2
     if (envelope.version !== 1 && envelope.version !== 2) {
-      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=version-mismatch`);
       return null;
     }
 
     // v2 caches use content-based invalidation (no TTL check)
     // v1 caches still use 24h TTL
     if (envelope.version === 1 && Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) {
-      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=v1-expired`);
       return null;
     }
 
-    console.log(
-      `[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir} version=${envelope.version}`
-    );
     return envelope;
   } catch {
     console.warn(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=parse-or-io-error`);
@@ -1021,9 +1001,6 @@ async function runIncrementalPatch(
   const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
   const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged];
 
-  console.log(
-    `[AbsorbIncremental] removing ${filesToRemove.length}, rescanning ${filesToRescan.length}`
-  );
 
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
 
@@ -1216,7 +1193,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // PATH 1: force=true → FULL SCAN
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
-    console.log('[AbsorbIncremental] force=true → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1239,7 +1215,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   const envelope = loadGraphCache();
   if (!envelope) {
-    console.log('[AbsorbIncremental] no cache → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1258,7 +1233,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (envelope.version === 1) {
-    console.log('[AbsorbIncremental] v1 cache (no git data) → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1277,7 +1251,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (envelope.rootDir !== rootDir) {
-    console.log('[AbsorbIncremental] different rootDir → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1300,7 +1273,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   const detector = new GitChangeDetector(rootDir);
   if (!detector.isGitRepo()) {
-    console.log('[AbsorbIncremental] not a git repo → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1320,7 +1292,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
   if (changes.storedCommitMissing) {
-    console.log('[AbsorbIncremental] stored commit missing (force push?) → full scan');
     const result = await runFullScan(
       mod,
       rootDir,
@@ -1344,7 +1315,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // PATH 4: FAST PATH - Zero changes
   // ═══════════════════════════════════════════════════════════════════════════
   if (totalChanges === 0) {
-    console.log('[AbsorbIncremental] 0 changes → fast path (return cached)');
     // Ensure cached graph is in session memory
     if (!cachedGraph) {
       try {
@@ -1395,7 +1365,6 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 5: INCREMENTAL PATCH
   // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`[AbsorbIncremental] ${totalChanges} changes → incremental patch`);
   const result = await runIncrementalPatch(
     mod,
     rootDir,
@@ -1879,7 +1848,6 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
     });
 
     if (response.ok) {
-      console.log(`[MeshSync] Synchronized ${entries.length} symbols with orchestrator`);
     } else {
       console.warn(`[MeshSync] Orchestrator sync failed: ${response.status}`);
     }
