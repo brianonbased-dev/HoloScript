@@ -407,9 +407,8 @@ describe('serializer', () => {
       expect(result.error).toContain('URL decode error');
     });
 
-    it.skip('should handle corrupted compressed data (Node.js DecompressionStream issue)', async () => {
-      // Skip: DecompressionStream in Node.js throws unhandled rejection on corrupted data
-      // TODO: Find a way to properly catch this error in Node.js environment
+    it('should handle corrupted compressed data', async () => {
+      // 'SGVsbG8gV29ybGQ' is base64("Hello World") — valid base64 but not valid deflate
       const badData = 'SGVsbG8gV29ybGQ';
       const result = await decodeSceneFromURL(badData);
       expect(result.ok).toBe(false);

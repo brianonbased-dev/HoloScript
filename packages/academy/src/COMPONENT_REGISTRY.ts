@@ -20,27 +20,18 @@ export const COMPONENT_REGISTRY = {
   // ERROR BOUNDARIES
   // ═══════════════════════════════════════════════════════════════════
 
-  ErrorBoundary_AppLevel: {
-    canonical: 'components/ErrorBoundary.tsx',
-    exports: ['ErrorBoundary'],
-    domain: 'app-shell',
-    description:
-      'App-level error boundary wrapping the entire application. Full-page recovery UI with Try Again + Reload buttons and technical details.',
-    usedIn: ['app/providers.tsx'],
-  },
-
-  ErrorBoundary_Panel: {
-    canonical: 'components/ui/StudioErrorBoundary.tsx',
-    exports: ['StudioErrorBoundary'],
+  ErrorBoundary: {
+    canonical: '@holoscript/ui → ErrorBoundary',
+    exports: ['ErrorBoundary', 'ErrorBoundaryProps'],
     domain: 'ui-primitives',
     description:
-      'Panel-level error boundary with label, onError callback, role="alert", dev-only stack trace. Use this for wrapping individual panels/features.',
-    usedIn: ['app/create/page.tsx (multiple panels)'],
+      'Canonical error boundary from @holoscript/ui. Supports label, fallback, renderFallback, onError, showReloadButton, AST path extraction, dev-only stack trace. Used for both app-level (showReloadButton) and panel-level (label) wrapping.',
+    usedIn: ['app/providers.tsx'],
     deprecated: [
       {
-        file: 'components/orchestration/ErrorBoundary.tsx',
-        export: 'OrchestrationErrorBoundary',
-        reason: 'Replaced with StudioErrorBoundary wrapper with label="Orchestration"',
+        file: 'components/ErrorBoundary.tsx (DELETED)',
+        export: 'ErrorBoundary',
+        reason: 'Consolidated into @holoscript/ui ErrorBoundary',
       },
     ],
   },

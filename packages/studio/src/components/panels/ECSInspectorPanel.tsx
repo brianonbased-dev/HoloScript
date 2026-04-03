@@ -135,9 +135,9 @@ export function ECSInspectorPanel() {
           </div>
           {selectedEntity.transform && (
             <div className="font-mono text-[10px] text-studio-muted">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(() => {
-                const t = selectedEntity.transform as any;
+                interface Vec3 { x?: number; y?: number; z?: number }
+                const t = selectedEntity.transform as { position?: Vec3; scale?: Vec3; x?: number; y?: number; z?: number; sx?: number; sy?: number; sz?: number };
                 return (
                   <>
                     Pos: ({t.position?.x?.toFixed(2) ?? t.x?.toFixed(2) ?? '0.00'},{' '}

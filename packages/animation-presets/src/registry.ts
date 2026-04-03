@@ -242,11 +242,12 @@ export class PresetRegistry {
   /**
    * Register a custom preset in the registry.
    * Overwrites any existing preset with the same name.
+   * Accepts both canonical presets (PresetName) and custom-named presets (string).
    *
    * @param preset - The AnimationPreset to register.
    */
-  register(preset: AnimationPreset): void {
-    this.presets.set(preset.name, preset);
+  register(preset: Omit<AnimationPreset, 'name'> & { name: string }): void {
+    this.presets.set(preset.name, preset as AnimationPreset);
   }
 
   /**

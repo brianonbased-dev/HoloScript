@@ -64,9 +64,9 @@
  * [x] Add input validation - Receipt parsing before destructuring
  * [x] Add nonce tracking - Prevent replay attacks
  * [x] Sanitize error messages - No internal detail leaks
- * [ ] Implement agentKitIntegration() - AI agent autonomous payment handling
- * [ ] Add tests (x402PaymentService.test.ts)
- * [ ] Add E2E test (simulate AR -> VRR payment flow)
+ * [x] Implement agentKitIntegration() - AI agent autonomous payment handling
+ * [x] Add tests (x402PaymentService.test.ts)
+ * [x] Add E2E test (simulate AR -> VRR payment flow)
  * [ ] Add webhook endpoint (/api/payments/x402/callback)
  *
  * ESTIMATED COMPLEXITY: 9/10 (very high - multi-chain, blockchain verification, webhook handling)
@@ -288,7 +288,7 @@ export class x402PaymentService {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         // Rate limit by IP
-        const clientIp = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+        const clientIp = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
         if (!this.rateLimiter.isAllowed(clientIp)) {
           res.status(429).json({ error: 'Too many requests. Please try again later.' });
           return;

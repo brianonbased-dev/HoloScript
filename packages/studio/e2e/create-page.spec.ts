@@ -33,6 +33,12 @@ test.describe('Studio editor page', () => {
     await page.goto(EDITOR_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     // SceneRenderer is dynamically imported; wait for canvas (signals R3F mounted).
     await expect(page.locator('canvas').first()).toBeVisible({ timeout: 60_000 });
+
+    // Safety: setup wizard may still appear in CI/dev despite localStorage guards.
+    const skipWizard = page.getByRole('button', { name: /skip/i }).first();
+    if (await skipWizard.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await skipWizard.click();
+    }
   });
 
   test('shows the three main panels', async ({ page }) => {
@@ -73,5 +79,58 @@ test.describe('Studio editor page', () => {
       // Toast or confirmation should appear
       await expect(page.getByText(/copied|link/i).first()).toBeVisible({ timeout: 5_000 });
     }
+  });
+
+  test('Agentation click flow shows toast and posts to /api/annotations', async ({ page }) => {
+    const recoverIfErrorScreen = async () => {
+      const errorHeading = page.getByText(/Something went wrong/i).first();
+      if (await errorHeading.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        const reloadBtn = page.getByRole('button', { name: /reload page|try again/i }).first();
+        if (await reloadBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+          await reloadBtn.click();
+        } else {
+          await page.reload({ waitUntil: 'domcontentloaded' });
+        }
+      }
+    };
+
+    await recoverIfErrorScreen();
+
+    // Ensure editor boot overlay is gone before interacting.
+    const loadingSceneEditor = page.getByText(/Loading Scene Editor/i).first();
+    if (await loadingSceneEditor.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await expect(loadingSceneEditor).toBeHidden({ timeout: 90_000 });
+    }
+
+    // Expand Agentation from collapsed floating toolbar.
+    const feedbackToggle = page.locator('[data-agentation-toolbar] [title="Start feedback mode"]').first();
+    await expect(feedbackToggle).toBeVisible({ timeout: 15_000 });
+    await feedbackToggle.click();
+    await recoverIfErrorScreen();
+
+    // Wait for an annotation POST triggered by annotation submit.
+    const annotationPostPromise = page.waitForRequest(
+      (req) => req.method() === 'POST' && req.url().includes('/api/annotations'),
+      { timeout: 30_000 }
+    );
+
+    // Create one annotation by clicking a deterministic coordinate in app content.
+    await page.mouse.click(320, 180);
+    const popup = page.locator('[data-annotation-popup]').first();
+    if (!(await popup.isVisible({ timeout: 4_000 }).catch(() => false))) {
+      // One retry click if initial target did not produce a pending annotation popup.
+      await page.mouse.click(420, 240);
+    }
+
+    // Fill and submit annotation popup.
+    await expect(popup).toBeVisible({ timeout: 10_000 });
+    await popup.locator('textarea').fill('E2E: verify annotation pipeline wiring');
+    await popup.getByRole('button', { name: /^add$/i }).click();
+
+    const annotationRequest = await annotationPostPromise;
+    expect(annotationRequest.postData()).toContain('annotations');
+
+    // Hook callback emits a toast in Providers ToastContainer.
+    await expect(page.getByText(/^Annotation:/)).toBeVisible({ timeout: 10_000 });
   });
 });

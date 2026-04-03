@@ -103,6 +103,9 @@ export class AgentKeystore {
   /** Persistent encrypted storage (simulated with Map, replace with file/db in production) */
   private encryptedStorage: Map<AgentRole, EncryptedCredential> = new Map();
 
+  /** Secondary index: JWK thumbprint → AgentRole, for fast PoP key lookup */
+  private thumbprintIndex: Map<string, AgentRole> = new Map();
+
   /** Audit log buffer */
   private auditLog: AuditLogEntry[] = [];
 
@@ -187,8 +190,15 @@ export class AgentKeystore {
    * Store agent credential securely
    */
   async storeCredential(credential: AgentCredential): Promise<void> {
+    // Update thumbprint index: remove old entry if role already has a credential
+    const existing = this.credentialCache.get(credential.role);
+    if (existing) {
+      this.thumbprintIndex.delete(existing.keyPair.thumbprint);
+    }
+
     // Cache in memory
     this.credentialCache.set(credential.role, credential);
+    this.thumbprintIndex.set(credential.keyPair.thumbprint, credential.role);
 
     // Encrypt and persist
     const serialized = JSON.stringify({
@@ -308,9 +318,49 @@ export class AgentKeystore {
   }
 
   /**
+   * Retrieve credential by JWK thumbprint (for PoP token verification).
+   *
+   * Returns the credential whose key pair matches the given JWK SHA-256
+   * thumbprint, or null if no matching credential is found.
+   *
+   * Primary lookup uses the in-memory index; falls back to decrypting all
+   * stored credentials when the index doesn't contain the thumbprint (e.g.
+   * credentials stored before the index was introduced).
+   */
+  async getCredentialByThumbprint(thumbprint: string): Promise<AgentCredential | null> {
+    // Fast path: use secondary thumbprint index
+    const role = this.thumbprintIndex.get(thumbprint);
+    if (role) {
+      return this.getCredential(role);
+    }
+
+    // Slow path: scan all stored credentials to backfill index
+    for (const [storedRole, encrypted] of this.encryptedStorage.entries()) {
+      if (new Date(encrypted.expiresAt) < new Date()) {
+        continue; // skip expired
+      }
+      const credential = await this.getCredential(storedRole); // decrypts + caches
+      if (credential) {
+        // getCredential already cached; also update thumbprint index
+        this.thumbprintIndex.set(credential.keyPair.thumbprint, storedRole);
+        if (credential.keyPair.thumbprint === thumbprint) {
+          return credential;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Delete agent credential
    */
   async deleteCredential(role: AgentRole): Promise<void> {
+    // Remove associated thumbprint from index
+    const credential = this.credentialCache.get(role);
+    if (credential) {
+      this.thumbprintIndex.delete(credential.keyPair.thumbprint);
+    }
     this.credentialCache.delete(role);
     this.encryptedStorage.delete(role);
 
@@ -351,6 +401,7 @@ export class AgentKeystore {
   clearAll(): void {
     this.credentialCache.clear();
     this.encryptedStorage.clear();
+    this.thumbprintIndex.clear();
 
     this.logAudit({
       timestamp: new Date().toISOString(),

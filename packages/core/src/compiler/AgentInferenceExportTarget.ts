@@ -1,8 +1,6 @@
 /**
  * AgentInferenceExportTarget — Export target for RWKV-X 1.5B on Quest 3
  *
- * TODO-064: Agent-Inference Export Target
- *
  * Architecture:
  *   Exports a trained HoloScript agent model (RWKV-X 1.5B) for on-device
  *   inference on Meta Quest 3. Handles model quantization, ONNX conversion,

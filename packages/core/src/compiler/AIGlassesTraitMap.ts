@@ -685,12 +685,48 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
 
   plane_detection: {
     trait: 'plane_detection',
-    components: [],
-    level: 'comment',
-    generate: (varName) => [
-      `// @plane_detection -- limited on AI Glasses (camera-only, no depth)`,
-      `// TODO: implement lightweight plane detection via camera for ${varName}`,
+    components: ['CameraProvider'],
+    level: 'partial',
+    imports: [
+      'com.google.ar.core.Session',
+      'com.google.ar.core.Config',
+      'com.google.ar.core.Plane',
+      'com.google.ar.core.TrackingState',
     ],
+    generate: (varName, config) => {
+      const planeType = String(config.plane_type || 'horizontal');
+      const planeModeMap: Record<string, string> = {
+        horizontal: 'Config.PlaneFindingMode.HORIZONTAL',
+        vertical: 'Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL',
+        both: 'Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL',
+      };
+      const planeMode = planeModeMap[planeType] ?? planeModeMap['horizontal'];
+      const confidence = Number(config.min_confidence ?? 0.7);
+      return [
+        `// @plane_detection -- ARCore lightweight plane detection for AI Glasses`,
+        `// AI Glasses: camera-only (no depth sensor), limited to ${planeType} surfaces`,
+        `val arSession = Session(context).apply {`,
+        `    val arConfig = config.apply {`,
+        `        planeFindingMode = ${planeMode}`,
+        `        lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY`,
+        `    }`,
+        `    configure(arConfig)`,
+        `}`,
+        ``,
+        `// Process detected planes for ${varName}`,
+        `fun onPlaneDetected(plane: Plane) {`,
+        `    if (plane.trackingState == TrackingState.TRACKING &&`,
+        `        plane.type == Plane.Type.${planeType === 'vertical' ? 'VERTICAL' : 'HORIZONTAL_UPWARD_FACING'}) {`,
+        `        val extent = plane.extentX * plane.extentZ`,
+        `        if (extent > ${confidence}) {`,
+        `            // Surface detected: center=(%.2f, %.2f, %.2f) extent=%.1fm`,
+        `            val pose = plane.centerPose`,
+        `            // ${varName}: overlay HUD content anchored to detected surface`,
+        `        }`,
+        `    }`,
+        `}`,
+      ];
+    },
   },
 
   hand_tracking: {
@@ -735,16 +771,46 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
 
   geospatial: {
     trait: 'geospatial',
-    components: [],
-    level: 'comment',
-    imports: ['android.location.LocationManager'],
+    components: ['ProjectedDeviceController'],
+    level: 'partial',
+    imports: [
+      'android.location.LocationManager',
+      'android.location.LocationListener',
+      'android.location.Criteria',
+      'android.Manifest',
+    ],
     generate: (varName, config) => {
-      const lat = config.latitude ?? 0;
-      const lng = config.longitude ?? 0;
+      const lat = Number(config.latitude ?? 0);
+      const lng = Number(config.longitude ?? 0);
+      const accuracy = String(config.accuracy || 'fine');
+      const intervalMs = Number(config.update_interval_ms ?? 5000);
+      const accuracyConst = accuracy === 'coarse'
+        ? 'Criteria.ACCURACY_COARSE'
+        : 'Criteria.ACCURACY_FINE';
       return [
-        `// @geospatial -- AI Glasses: GPS via connected phone`,
-        `// Latitude: ${lat}, Longitude: ${lng}`,
-        `// TODO: access GPS from paired phone for location overlay for ${varName}`,
+        `// @geospatial -- AI Glasses: GPS via paired phone (accuracy: ${accuracy})`,
+        `val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager`,
+        `val criteria = Criteria().apply {`,
+        `    accuracy = ${accuracyConst}`,
+        `    powerRequirement = Criteria.POWER_${accuracy === 'coarse' ? 'LOW' : 'MEDIUM'}`,
+        `}`,
+        `val provider = locationManager.getBestProvider(criteria, true) ?: "fused"`,
+        ``,
+        `// Location listener for ${varName}`,
+        `val locationListener = object : LocationListener {`,
+        `    override fun onLocationChanged(location: android.location.Location) {`,
+        `        val lat = location.latitude  // initial: ${lat}`,
+        `        val lng = location.longitude // initial: ${lng}`,
+        `        val alt = location.altitude`,
+        `        val acc = location.accuracy`,
+        `        // ${varName}: update HUD overlay with geospatial position`,
+        `    }`,
+        `}`,
+        ``,
+        `// Request updates every ${intervalMs}ms, minimum displacement 1m`,
+        `locationManager.requestLocationUpdates(`,
+        `    provider, ${intervalMs}L, 1.0f, locationListener`,
+        `)`,
       ];
     },
   },
@@ -916,13 +982,65 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   ai_vision: {
     trait: 'ai_vision',
     components: ['CameraProvider'],
-    level: 'comment',
-    imports: ['com.google.mlkit.vision'],
+    level: 'partial',
+    imports: [
+      'com.google.mlkit.vision.common.InputImage',
+      'com.google.mlkit.vision.objects.ObjectDetection',
+      'com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions',
+      'com.google.mlkit.vision.text.TextRecognition',
+      'com.google.mlkit.vision.text.latin.TextRecognizerOptions',
+      'com.google.mlkit.vision.pose.PoseDetection',
+      'com.google.mlkit.vision.pose.defaults.PoseDetectorOptions',
+    ],
     generate: (varName, config) => {
       const task = String(config.task || 'detection');
+      const taskMap: Record<string, { detector: string; options: string; resultType: string }> = {
+        detection: {
+          detector: 'ObjectDetection.getClient',
+          options: [
+            'ObjectDetectorOptions.Builder()',
+            '    .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)',
+            '    .enableMultipleObjects()',
+            '    .enableClassification()',
+            '    .build()',
+          ].join('\n'),
+          resultType: 'DetectedObject',
+        },
+        text: {
+          detector: 'TextRecognition.getClient',
+          options: 'TextRecognizerOptions.Builder().build()',
+          resultType: 'Text',
+        },
+        pose: {
+          detector: 'PoseDetection.getClient',
+          options: [
+            'PoseDetectorOptions.Builder()',
+            '    .setDetectorMode(PoseDetectorOptions.STREAM_MODE)',
+            '    .build()',
+          ].join('\n'),
+          resultType: 'Pose',
+        },
+      };
+      const selected = taskMap[task] ?? taskMap['detection'];
       return [
-        `// @ai_vision -- AI vision via glasses camera (task: ${task})`,
-        `// TODO: configure ML Kit pipeline for ${varName}`,
+        `// @ai_vision -- ML Kit on-device inference via glasses camera (task: ${task})`,
+        `// AI Glasses: camera feed -> ML Kit -> HUD overlay result`,
+        `val mlKitOptions = ${selected.options}`,
+        `val detector = ${selected.detector}(mlKitOptions)`,
+        ``,
+        `// Process camera frames for ${varName}`,
+        `fun processFrame(image: InputImage) {`,
+        `    detector.process(image)`,
+        `        .addOnSuccessListener { results ->`,
+        `            // ${varName}: ${selected.resultType} detected, update HUD overlay`,
+        `            for (result in results) {`,
+        `                // Render bounding box / landmarks on glasses display`,
+        `            }`,
+        `        }`,
+        `        .addOnFailureListener { e ->`,
+        `            // ${varName}: ML Kit ${task} failed: \${e.message}`,
+        `        }`,
+        `}`,
       ];
     },
   },
@@ -930,12 +1048,39 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
   ai_npc_brain: {
     trait: 'ai_npc_brain',
     components: [],
-    level: 'comment',
+    level: 'partial',
+    imports: [
+      'com.google.ai.edge.aicore.GenerativeModel',
+      'com.google.ai.edge.aicore.GenerationConfig',
+      'com.google.ai.edge.aicore.Content',
+    ],
     generate: (varName, config) => {
       const model = String(config.model || 'gemini-nano');
+      const maxTokens = Number(config.max_tokens ?? 256);
+      const temperature = Number(config.temperature ?? 0.7);
+      const systemPrompt = String(config.system_prompt || `You are ${varName}, an AI assistant on smart glasses.`);
       return [
-        `// @ai_npc_brain -- on-device Gemini Nano for ${varName} (model: ${model})`,
-        `// TODO: integrate Gemini Nano on-device LLM`,
+        `// @ai_npc_brain -- on-device Gemini Nano LLM for ${varName} (model: ${model})`,
+        `// AI Glasses: fully on-device inference, no network required`,
+        `val generationConfig = GenerationConfig.Builder().apply {`,
+        `    maxOutputTokens = ${maxTokens}`,
+        `    temperature = ${temperature}f`,
+        `}.build()`,
+        ``,
+        `val generativeModel = GenerativeModel(`,
+        `    modelName = "${model}",`,
+        `    generationConfig = generationConfig`,
+        `)`,
+        ``,
+        `// On-device LLM inference for ${varName}`,
+        `suspend fun generateResponse(userInput: String): String {`,
+        `    val content = Content.Builder().apply {`,
+        `        addText("${systemPrompt}")`,
+        `        addText(userInput)`,
+        `    }.build()`,
+        `    val response = generativeModel.generateContent(content)`,
+        `    return response.text ?: "// ${varName}: no response generated"`,
+        `}`,
       ];
     },
   },

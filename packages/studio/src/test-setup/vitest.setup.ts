@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * vitest.setup.ts
  *

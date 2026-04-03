@@ -371,7 +371,7 @@ export const FAILURE_MODE_CONTROLS: FailureModeControl[] = [
         enforcedPermissions: [],
         applicableTiers: [PackageTier.CRITICAL, PackageTier.HIGH, PackageTier.STANDARD],
         implemented: false,
-        implementationRef: 'TODO: deprecation/DeprecationRegistry.ts',
+        implementationRef: 'deprecation/DeprecationRegistry.ts',
       },
     ],
   },

@@ -5,7 +5,7 @@ import { SessionProvider } from 'next-auth/react';
 import { useState, useEffect, type ReactNode, createContext, useContext, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
 import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import { useMagicMoment } from '../hooks/useMagicMoment';
@@ -145,7 +145,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
             <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-              <ErrorBoundary>
+              <ErrorBoundary showReloadButton>
                 <AppShell>{children}</AppShell>
               </ErrorBoundary>
               <ToastContainer toasts={toasts} onRemove={removeToast} />

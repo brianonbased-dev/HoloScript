@@ -83,6 +83,7 @@ export default defineConfig({
       'packages/auth/vitest.config.ts',
       'packages/animation-presets/vitest.config.ts',
       'packages/connector-upstash/vitest.config.ts',
+      'packages/compiler-wasm/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       // 'packages/test/vitest.config.ts', // removed: package deleted

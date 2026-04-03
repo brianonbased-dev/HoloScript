@@ -1,6 +1,32 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterAll, beforeEach } from 'vitest';
 import { x402PaymentService } from '../x402PaymentService';
 import type { Request, Response } from 'express';
+
+const mockQuery = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+const mockEnd = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('pg', () => {
+  const MockPool = vi.fn(function (this: Record<string, unknown>) {
+    this.query = mockQuery;
+    this.end = mockEnd;
+  });
+  return { Pool: MockPool };
+});
+
+vi.mock('viem', () => ({
+  createPublicClient: vi.fn(() => ({
+    getTransactionReceipt: vi.fn(),
+    getGasPrice: vi.fn().mockResolvedValue(100000n),
+  })),
+  http: vi.fn(),
+  parseAbiItem: vi.fn(() => ({ type: 'event', name: 'Transfer' })),
+  decodeEventLog: vi.fn(),
+}));
+
+vi.mock('viem/chains', () => ({
+  base: { id: 8453, name: 'Base' },
+  mainnet: { id: 1, name: 'Ethereum' },
+}));
 
 describe('Monetization Layer E2E Integration', () => {
   const paymentService = new x402PaymentService({
@@ -10,6 +36,15 @@ describe('Monetization Layer E2E Integration', () => {
     gasless: { enabled: true, subsidy_provider: 'coinbase', max_gas_price: 1000000 },
     receipt_storage: { provider: 'supabase', table: 'x402_receipts' },
     webhook_endpoint: '/api/payments/x402/callback',
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+  });
+
+  afterAll(async () => {
+    await paymentService.destroy();
   });
 
   it('simulates the complete AR → VRR payment flow and 80/10/10 split', async () => {

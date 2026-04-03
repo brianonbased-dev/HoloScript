@@ -55,7 +55,7 @@ describe('COMPONENT_REGISTRY', () => {
 describe('findCanonical', () => {
   it('finds a canonical component by export name', () => {
     const result = findCanonical('ErrorBoundary');
-    expect(result).toBe('components/ErrorBoundary.tsx');
+    expect(result).toBe('@holoscript/ui → ErrorBoundary');
   });
 
   it('finds a canonical component for ShaderEditor', () => {

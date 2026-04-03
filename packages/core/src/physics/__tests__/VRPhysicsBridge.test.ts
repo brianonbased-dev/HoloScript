@@ -9,11 +9,18 @@ function createMockWorld() {
   const bodies = new Map<string, any>();
   const contacts: any[] = [];
   return {
-    addBody: vi.fn((id: string, config: any) => {
-      bodies.set(id, { ...config, velocity: { x: 0, y: 0, z: 0 }, position: config.position });
+    createBody: vi.fn((config: any) => {
+      bodies.set(config.id, { ...config, velocity: { x: 0, y: 0, z: 0 }, position: config.transform?.position });
+      return config.id;
     }),
     getBody: vi.fn((id: string) => bodies.get(id) || null),
     getContacts: vi.fn(() => contacts),
+    setPosition: vi.fn((id: string, position: any) => {
+      if (bodies.has(id)) bodies.get(id).position = { ...position };
+    }),
+    setLinearVelocity: vi.fn((id: string, velocity: any) => {
+      if (bodies.has(id)) bodies.get(id).velocity = { ...velocity };
+    }),
     _bodies: bodies,
     _contacts: contacts,
   };
@@ -52,14 +59,12 @@ describe('VRPhysicsBridge', () => {
       0.016
     );
 
-    expect(world.addBody).toHaveBeenCalledTimes(2);
-    expect(world.addBody).toHaveBeenCalledWith(
-      'hand_left',
-      expect.objectContaining({ type: 'kinematic' })
+    expect(world.createBody).toHaveBeenCalledTimes(2);
+    expect(world.createBody).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'hand_left', type: 'kinematic' })
     );
-    expect(world.addBody).toHaveBeenCalledWith(
-      'hand_right',
-      expect.objectContaining({ type: 'kinematic' })
+    expect(world.createBody).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'hand_right', type: 'kinematic' })
     );
   });
 
@@ -73,7 +78,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(ctx, 0.016);
     bridge.update(ctx, 0.016);
     // addBody called only once per hand (2 total)
-    expect(world.addBody).toHaveBeenCalledTimes(2);
+    expect(world.createBody).toHaveBeenCalledTimes(2);
   });
 
   it('updates body position from hand tracking', () => {
@@ -142,7 +147,7 @@ describe('VRPhysicsBridge', () => {
       0.016
     );
 
-    expect(world.addBody).not.toHaveBeenCalled();
+    expect(world.createBody).not.toHaveBeenCalled();
   });
 
   it('fires haptic feedback on hand collision', () => {

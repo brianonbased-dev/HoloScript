@@ -14,8 +14,15 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
   const contacts: ContactEvent[] = [];
 
   return {
-    addBody(id: string, config: any) {
-      bodies[id] = { ...config, velocity: { x: 0, y: 0, z: 0 } };
+    createBody(config: any) {
+      bodies[config.id] = { ...config, velocity: { x: 0, y: 0, z: 0 }, position: config.transform?.position };
+      return config.id;
+    },
+    setPosition(id: string, position: IVector3) {
+      if (bodies[id]) bodies[id].position = { ...position };
+    },
+    setLinearVelocity(id: string, velocity: IVector3) {
+      if (bodies[id]) bodies[id].velocity = { ...velocity };
     },
     getBody(id: string) {
       return bodies[id] ?? null;

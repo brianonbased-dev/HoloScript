@@ -93,13 +93,18 @@ class MockGPUDevice {
     maxStorageBufferBindingSize: 128 * 1024 * 1024,
     maxBufferSize: 256 * 1024 * 1024,
   };
-  queue = {
+  queue: {
+    submit: (commandBuffers: any[]) => void;
+    onSubmittedWorkDone: () => Promise<void>;
+    writeBuffer: (buffer: MockGPUBuffer, bufferOffset: number, data: BufferSource | SharedArrayBuffer, dataOffset?: number, size?: number) => void;
+  } = {
     submit: vi.fn(),
     onSubmittedWorkDone: vi.fn().mockResolvedValue(undefined),
-    writeBuffer: vi.fn((buffer: MockGPUBuffer, offset: number, data: ArrayBufferView) => {
-      const src = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    writeBuffer: vi.fn((buffer: MockGPUBuffer, offset: number, data: BufferSource | SharedArrayBuffer, dataOffset?: number, size?: number) => {
+      const arrView = data as ArrayBufferView;
+      const src = new Uint8Array(arrView.buffer ?? data, arrView.byteOffset || 0, arrView.byteLength || (data as ArrayBuffer).byteLength);
       buffer._writeData(src.buffer, offset);
-    }),
+    }) as any,
   };
   createBuffer(d: GPUBufferDescriptor): MockGPUBuffer {
     return new MockGPUBuffer(d);

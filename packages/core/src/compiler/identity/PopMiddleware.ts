@@ -27,6 +27,7 @@ import {
 } from './PopUtils';
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
 import { IntentTokenPayload } from './AgentIdentity';
+import { AgentKeystore, getKeystore } from './AgentKeystore';
 
 /**
  * HTTP Request interface (compatible with Express)
@@ -67,6 +68,13 @@ export interface PopMiddlewareConfig {
 
   /** Custom error handler */
   onError?: (error: Error, req: HttpRequest, res: HttpResponse) => void;
+
+  /**
+   * Keystore for public-key fallback lookup by JWK thumbprint.
+   * Used when the JWT does not embed a `publicKey` claim directly.
+   * Defaults to the global keystore if not provided.
+   */
+  keystore?: AgentKeystore;
 }
 
 /**
@@ -100,6 +108,7 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
     allowLegacy = true, // Default to true for gradual rollout
     excludePaths = [],
     onError,
+    keystore,
   } = config;
 
   return async (
@@ -209,9 +218,15 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
         return;
       }
 
-      // TODO: Retrieve public key from keystore using JWK thumbprint
-      // For now, we'll add publicKey to token claims in AgentTokenIssuer update
-      const publicKey = (tokenResult.payload as any).publicKey;
+      // Retrieve public key: prefer the embedded claim, fall back to keystore lookup.
+      let publicKey = tokenResult.payload.publicKey;
+      if (!publicKey && jkt) {
+        const ks = keystore ?? getKeystore();
+        const credential = await ks.getCredentialByThumbprint(jkt);
+        if (credential) {
+          publicKey = credential.keyPair.publicKey;
+        }
+      }
       if (!publicKey) {
         res
           .status(500)

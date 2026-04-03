@@ -1,106 +1,25 @@
-import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import prompts from 'prompts';
 import pc from 'picocolors';
+import {
+  TEMPLATES,
+  detectPackageManager,
+  installCommand,
+  devCommand,
+  validateProjectName,
+  normalizePackageName,
+  copyDir,
+  writeProjectPackageJson,
+  writeHoloscriptConfig,
+  parseArgs,
+  resolveTemplate,
+  checkProjectDir,
+} from './scaffold.js';
+import fs from 'node:fs';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// ─── Templates ────────────────────────────────────────────
-interface TemplateInfo {
-  name: string;
-  description: string;
-  dir: string;
-}
-
-const TEMPLATES: TemplateInfo[] = [
-  {
-    name: 'hello-world',
-    description: 'Interactive scene with physics — ground, cube, glowing orb',
-    dir: 'hello-world',
-  },
-  {
-    name: 'physics-playground',
-    description: 'Throwable objects, collisions, and particle effects',
-    dir: 'physics-playground',
-  },
-  {
-    name: 'interactive-gallery',
-    description: 'Clickable art panels with portals and ambient audio',
-    dir: 'interactive-gallery',
-  },
-  {
-    name: '2d-revolution',
-    description: 'V6 Semantic2D hybrid UI using React Three Fiber',
-    dir: '2d-revolution',
-  },
-];
-
-// ─── Package Manager Detection ────────────────────────────
-function detectPackageManager(): 'pnpm' | 'yarn' | 'npm' {
-  const ua = process.env.npm_config_user_agent ?? '';
-  if (ua.startsWith('pnpm')) return 'pnpm';
-  if (ua.startsWith('yarn')) return 'yarn';
-  return 'npm';
-}
-
-function installCommand(pm: string): string {
-  return pm === 'yarn' ? 'yarn' : `${pm} install`;
-}
-
-function devCommand(pm: string): string {
-  return pm === 'yarn' ? 'yarn dev' : `${pm} run dev`;
-}
-
-// ─── File Operations ──────────────────────────────────────
-function copyDir(src: string, dest: string): void {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
-function writeProjectPackageJson(
-  projectDir: string,
-  projectName: string,
-  templateName: string
-): void {
-  const pkg: any = {
-    name: projectName,
-    version: '0.1.0',
-    private: true,
-    type: 'module',
-    scripts: {
-      dev: 'vite',
-      build: 'vite build',
-      preview: 'vite preview',
-    },
-    dependencies: {
-      three: '^0.170.0',
-    },
-    devDependencies: {
-      vite: '^6.0.0',
-    },
-  };
-
-  if (templateName === '2d-revolution') {
-    pkg.dependencies['react'] = '^18.2.0';
-    pkg.dependencies['react-dom'] = '^18.2.0';
-    pkg.dependencies['@react-three/fiber'] = '^8.17.10';
-    pkg.dependencies['@react-three/drei'] = '^9.114.0';
-    pkg.dependencies['@holoscript/semantic-2d'] = 'workspace:*'; // Or published version
-    pkg.devDependencies['@vitejs/plugin-react'] = '^4.3.4';
-  }
-
-  fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
-}
 
 // ─── Banner ───────────────────────────────────────────────
 function printBanner(): void {
@@ -120,25 +39,21 @@ function printBanner(): void {
 async function main(): Promise<void> {
   printBanner();
 
-  const args = process.argv.slice(2);
-  const flags = args.filter((a) => a.startsWith('-'));
-  const positional = args.filter((a) => !a.startsWith('-'));
-  const skipPrompts = flags.includes('--yes') || flags.includes('-y');
-  const templateFlag = flags.find((f) => f.startsWith('--template'))
-    ? args[args.indexOf('--template') + 1]
-    : undefined;
+  const parsed = parseArgs(process.argv);
+  let { projectName } = parsed;
+  const { skipPrompts, templateFlag } = parsed;
 
   // ─── Project Name ──────
-  let projectName = positional[0];
-
   if (!projectName && !skipPrompts) {
     const res = await prompts({
       type: 'text',
       name: 'name',
       message: 'Project name:',
       initial: 'my-holoscript-app',
-      validate: (v: string) =>
-        /^[a-z0-9_-]+$/i.test(v) || 'Only alphanumeric, hyphens, and underscores',
+      validate: (v: string) => {
+        const result = validateProjectName(v);
+        return result === true ? true : result;
+      },
     });
     if (!res.name) {
       console.log(pc.red('\n  ✗ Cancelled.\n'));
@@ -152,7 +67,7 @@ async function main(): Promise<void> {
   }
 
   // ─── Template Selection ──────
-  let template = TEMPLATES.find((t) => t.name === templateFlag) ?? TEMPLATES[0];
+  let template = resolveTemplate(templateFlag);
 
   if (!templateFlag && !skipPrompts) {
     const res = await prompts({
@@ -175,12 +90,10 @@ async function main(): Promise<void> {
   // ─── Create Project ──────
   const projectDir = path.resolve(process.cwd(), projectName);
 
-  if (fs.existsSync(projectDir)) {
-    const files = fs.readdirSync(projectDir);
-    if (files.length > 0) {
-      console.log(pc.red(`\n  ✗ Directory "${projectName}" already exists and is not empty.\n`));
-      process.exit(1);
-    }
+  const dirCheck = checkProjectDir(projectDir);
+  if (!dirCheck.ok) {
+    console.log(pc.red(`\n  ✗ Directory "${projectName}" already exists and is not empty.\n`));
+    process.exit(1);
   }
 
   console.log(
@@ -201,24 +114,12 @@ async function main(): Promise<void> {
   console.log(`  ${pc.green('✓')} Scaffolded project structure`);
 
   // Write package.json — use basename for the npm package name
-  const pkgName = path
-    .basename(projectDir)
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, '-');
+  const pkgName = normalizePackageName(path.basename(projectDir));
   writeProjectPackageJson(projectDir, pkgName, template.name);
   console.log(`  ${pc.green('✓')} Generated package.json`);
 
   // Write holoscript.config.json
-  const config = {
-    $schema: 'https://holoscript.dev/schema/config.json',
-    target: 'webxr',
-    entry: 'src/scene.holo',
-    output: 'dist/',
-  };
-  fs.writeFileSync(
-    path.join(projectDir, 'holoscript.config.json'),
-    JSON.stringify(config, null, 2) + '\n'
-  );
+  writeHoloscriptConfig(projectDir);
   console.log(`  ${pc.green('✓')} Created holoscript.config.json`);
 
   // ─── Install Dependencies ──────

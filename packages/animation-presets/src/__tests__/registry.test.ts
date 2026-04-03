@@ -220,9 +220,9 @@ describe('PresetRegistry', () => {
 
   describe('register()', () => {
     it('should add a new preset', () => {
-      const custom: AnimationPreset = {
+      const custom = {
         ...walkPreset,
-        name: 'sneak' as any,
+        name: 'sneak',
         description: 'Custom sneaking behavior',
       };
       registry.register(custom);

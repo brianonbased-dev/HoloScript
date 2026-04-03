@@ -1,7 +1,8 @@
 export * from './utils/cn';
 export * from './components/Button';
 export * from './components/PanelSplitter';
-export * from './components/ErrorBoundary';
+export { ErrorBoundary } from './components/ErrorBoundary';
+export type { ErrorBoundaryProps } from './components/ErrorBoundary';
 export * from './components/ContextMenu';
 export * from './components/SimplePropertyInspector';
 export * from './components/Input';

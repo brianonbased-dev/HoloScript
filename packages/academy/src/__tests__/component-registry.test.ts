@@ -55,7 +55,7 @@ describe('COMPONENT_REGISTRY', () => {
 describe('findCanonical', () => {
   it('finds a canonical component by export name', () => {
     const result = findCanonical('ErrorBoundary');
-    expect(result).toBe('components/ErrorBoundary.tsx');
+    expect(result).toBe('@holoscript/ui → ErrorBoundary');
   });
 
   it('finds a canonical component for ShaderEditor', () => {
@@ -83,8 +83,9 @@ describe('findCanonical', () => {
     expect(result).toBe('components/export/ExportPanel.tsx');
   });
 
-  it('identifies deprecated OrchestrationErrorBoundary', () => {
-    const result = findCanonical('OrchestrationErrorBoundary');
-    expect(result).toContain('DEPRECATED');
+  it('identifies deprecated ErrorBoundary from deleted local file', () => {
+    const result = findCanonical('ErrorBoundary');
+    // Now resolves to the canonical @holoscript/ui location
+    expect(result).toBe('@holoscript/ui → ErrorBoundary');
   });
 });
