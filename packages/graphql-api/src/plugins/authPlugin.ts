@@ -122,16 +122,7 @@ export function createAuthPlugin(options: AuthPluginOptions = {}): ApolloServerP
             }
           }
 
-          // Log authentication events
-          if (authContext.isAuthenticated) {
-            console.log(
-              `[Auth] User ${authContext.user?.id} performed ${operationName || 'unknown'}`
-            );
-          } else if (!isPublic) {
-            console.log(
-              `[Auth] Anonymous access to ${operationName || 'unknown'} (public operation)`
-            );
-          }
+          // Auth events tracked via response extensions
         },
 
         async willSendResponse({ response }) {

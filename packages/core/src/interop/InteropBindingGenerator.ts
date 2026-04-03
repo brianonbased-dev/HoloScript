@@ -51,19 +51,26 @@ export class InteropBindingGenerator {
     if (!ast.body) return exports;
 
     for (const node of ast.body) {
-      const nodeType = (node as any).type;
-      const nodeName = (node as any).name;
+      const nodeRecord = node as unknown as Record<string, unknown>;
+      const nodeType = nodeRecord.type as string | undefined;
+      const nodeName = nodeRecord.name as string | undefined;
 
       if (nodeType === 'FunctionDeclaration' || nodeType === 'function') {
+        const params = (nodeRecord.params || []) as Array<Record<string, unknown> | string>;
         exports.push({
           name: nodeName || 'anonymous',
           type: 'function',
-          parameters: ((node as any).params || []).map((p: any) => ({
-            name: p.name || p,
-            type: p.type || 'any',
-            optional: p.optional || false,
-          })),
-          returnType: (node as any).returnType || 'void',
+          parameters: params.map((p) => {
+            if (typeof p === 'string') {
+              return { name: p, type: 'any', optional: false };
+            }
+            return {
+              name: (p.name as string) || '',
+              type: (p.type as string) || 'any',
+              optional: (p.optional as boolean) || false,
+            };
+          }),
+          returnType: (nodeRecord.returnType as string) || 'void',
         });
       }
 
@@ -85,7 +92,7 @@ export class InteropBindingGenerator {
         exports.push({
           name: nodeName || 'unnamed',
           type: 'constant',
-          value: (node as any).value,
+          value: nodeRecord.value,
         });
       }
     }

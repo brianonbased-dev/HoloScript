@@ -8,7 +8,7 @@ const SNAPSHOTS_FILE = path.join(HOLO_DIR, 'snapshots.json');
 export interface TemporalSnapshot {
   snapshotId: string;
   timestamp: number;
-  keyframe: Record<string, any>;
+  keyframe: Record<string, unknown>;
   forwardDeltas: any[]; // Chain to rapidly seek O(1) forward in time
 }
 

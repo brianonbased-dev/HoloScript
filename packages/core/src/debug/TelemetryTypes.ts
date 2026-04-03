@@ -62,7 +62,7 @@ export interface TelemetryEvent {
   /** Associated agent ID */
   agentId: string;
   /** Event data */
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   /** Latency in milliseconds (for duration events) */
   latency?: number;
   /** Related event IDs (for correlation) */
@@ -131,7 +131,7 @@ export interface TraceSpan {
   /** Status message */
   statusMessage?: string;
   /** Span attributes/tags */
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   /** Span events (logs within span) */
   events: SpanEvent[];
   /** Links to other spans */
@@ -149,7 +149,7 @@ export interface SpanEvent {
   /** Event timestamp */
   timestamp: number;
   /** Event attributes */
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
 }
 
 /**
@@ -159,7 +159,7 @@ export interface SpanLink {
   /** Target trace context */
   context: TraceContext;
   /** Link attributes */
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
 }
 
 /**
@@ -182,7 +182,7 @@ export interface AgentInspection {
   /** Agent status */
   status: 'active' | 'idle' | 'paused' | 'stopped';
   /** Current state snapshot */
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   /** Active capabilities */
   capabilities: string[];
   /** Current task (if any) */
@@ -240,9 +240,9 @@ export interface BreakpointContext {
   /** Current event (if triggered by event) */
   event?: TelemetryEvent;
   /** Current state */
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   /** Variables in scope */
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -270,7 +270,7 @@ export interface SessionRecording {
   /** Agent IDs involved */
   agentIds: string[];
   /** Session metadata */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**

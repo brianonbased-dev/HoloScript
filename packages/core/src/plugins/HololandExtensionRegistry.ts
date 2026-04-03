@@ -247,7 +247,7 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
   static reset(): void {
     if (HololandExtensionRegistry.instance) {
       HololandExtensionRegistry.instance.disposeAll();
-      HololandExtensionRegistry.instance = undefined as any;
+      HololandExtensionRegistry.instance = undefined!;
     }
   }
 }

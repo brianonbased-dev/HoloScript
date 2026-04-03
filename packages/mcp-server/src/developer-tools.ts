@@ -288,19 +288,36 @@ async function handleInspectTraceWaterfall(args: Record<string, unknown>): Promi
     throw new Error('spans parameter is required and must be an array');
   }
 
-  // Normalize span data
-  const normalized: TraceSpan[] = spans.map((s) => ({
-    traceId: s.traceId || '',
-    spanId: s.spanId || '',
-    parentSpanId: s.parentSpanId,
-    name: s.name || 'unnamed',
-    kind: s.kind || 'internal',
-    startTime: s.startTime || 0,
-    endTime: s.endTime,
-    status: s.status || 'unset',
-    attributes: s.attributes,
-    events: s.events,
-  }));
+  // Normalize span data — accept both flat (traceId/spanId at top) and nested (context) formats
+  const normalized: TraceSpan[] = spans.map((s: Record<string, unknown>) => {
+    const flat = s as Record<string, unknown>;
+    const ctx = (flat.context as Record<string, unknown>) || {};
+    const traceId = (ctx.traceId as string) || (flat.traceId as string) || '';
+    const spanId = (ctx.spanId as string) || (flat.spanId as string) || '';
+    const parentSpanId = (ctx.parentSpanId as string) || (flat.parentSpanId as string) || undefined;
+    const startTime = (flat.startTime as number) || 0;
+    const endTime = (flat.endTime as number) || 0;
+    return {
+      id: (flat.id as string) || spanId,
+      name: (flat.name as string) || 'unnamed',
+      context: {
+        traceId,
+        spanId,
+        parentSpanId,
+        traceFlags: (ctx.traceFlags as number) || 0,
+        baggage: (ctx.baggage as Record<string, string>) || {},
+      },
+      startTime,
+      endTime,
+      duration: endTime - startTime,
+      status: (flat.status as string) || 'unset',
+      statusMessage: flat.statusMessage as string | undefined,
+      attributes: (flat.attributes as Record<string, unknown>) || {},
+      events: (flat.events as Array<unknown>) || [],
+      links: (flat.links as Array<unknown>) || [],
+      kind: (flat.kind as string) || 'internal',
+    } as TraceSpan;
+  });
 
   const renderer = getWaterfallRenderer();
   if (args.minDuration) {

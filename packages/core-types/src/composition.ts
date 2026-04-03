@@ -1198,7 +1198,7 @@ export interface HoloDomainBlock extends HoloNode {
 export interface CompiledCutsceneAction {
   type: 'camera_move' | 'character_action' | 'wait' | 'effect' | 'audio';
   target?: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   duration?: number;
 }
 

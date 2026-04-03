@@ -7,7 +7,7 @@ async function run() {
     type: 'Program',
     body: [],
     root: { type: 'scene', traits: new Map(), directives: [], children: [], properties: {} },
-  } as any;
+  } as unknown as Parameters<typeof createRuntime>[0];
   const runtime = createRuntime(mockAST);
 
   console.log('--- SPAWNING V1 ---');

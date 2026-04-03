@@ -66,7 +66,6 @@ export class AppStoreConnector extends ServiceConnector {
       const appleCredentials = this.loadAppleCredentials();
       if (appleCredentials) {
         this.appleClient = new AppleAppStoreClient(appleCredentials);
-        console.log('[AppStoreConnector] Apple App Store Connect initialized');
       } else {
         console.warn(
           '[AppStoreConnector] Apple credentials not found - Apple tools will be unavailable'
@@ -82,7 +81,6 @@ export class AppStoreConnector extends ServiceConnector {
       if (googleCredentials) {
         this.googleClient = new GooglePlayClient(googleCredentials);
         await this.googleClient.initialize();
-        console.log('[AppStoreConnector] Google Play Developer initialized');
       } else {
         console.warn(
           '[AppStoreConnector] Google credentials not found - Google tools will be unavailable'
@@ -237,8 +235,8 @@ export class AppStoreConnector extends ServiceConnector {
           releaseNotes: args.releaseNotes as string | undefined,
         };
 
-        const build = await this.appleClient.uploadBuild(artifact, app, (progress) => {
-          console.log(`[Apple Upload] ${progress.status} ${progress.percentage}%`);
+        const build = await this.appleClient.uploadBuild(artifact, app, () => {
+          // progress callback
         });
 
         return build;
@@ -370,8 +368,8 @@ export class AppStoreConnector extends ServiceConnector {
           artifact,
           app,
           (args.track as GooglePlayTrack['track']) || 'internal',
-          (progress) => {
-            console.log(`[Google Upload] ${progress.status} ${progress.percentage}%`);
+          () => {
+            // progress callback
           }
         );
 

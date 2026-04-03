@@ -99,7 +99,7 @@ export const createTextInput = (config: TextInputConfig): HSPlusNode => {
         ]),
       },
     ],
-  } as any;
+  } as unknown as HSPlusNode;
 };
 
 export const createText = (config: TextConfig): HSPlusNode => {
@@ -116,7 +116,7 @@ export const createText = (config: TextConfig): HSPlusNode => {
     },
     traits: new Map(),
     children: [],
-  } as any;
+  } as unknown as HSPlusNode;
 };
 
 export const createPanel = (config: PanelConfig): HSPlusNode => {
@@ -178,9 +178,9 @@ export const createButton = (config: ButtonConfig): HSPlusNode => {
         },
         traits: new Map(),
         children: [],
-      } as any,
+      } as unknown as HSPlusNode,
     ],
-  } as any;
+  } as unknown as HSPlusNode;
 
   return buttonNode;
 };
@@ -220,9 +220,9 @@ export const createSlider = (config: SliderConfig): HSPlusNode => {
           ['grabbable', {}], // Knob must be grabbable to slide!
         ]),
         children: [],
-      } as any,
+      } as unknown as HSPlusNode,
     ],
-  } as any;
+  } as unknown as HSPlusNode;
 };
 
 export interface ScrollViewConfig extends UIComponentConfig {
@@ -268,5 +268,5 @@ export const createScrollView = (config: ScrollViewConfig): HSPlusNode => {
       ],
     ]),
     children: config.children || [],
-  } as any;
+  } as unknown as HSPlusNode;
 };

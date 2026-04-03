@@ -180,8 +180,9 @@ export class WebXRManager {
       // Create WebGPU Binding
       // Note: This API is experimental and varies by browser
       // We check for global constructor existence
-      if (typeof (globalThis as any).XRWebGPUBinding !== 'undefined') {
-        this.glBinding = new (globalThis as any).XRWebGPUBinding(
+      const g = globalThis as unknown as Record<string, unknown>;
+      if (typeof g.XRWebGPUBinding !== 'undefined') {
+        this.glBinding = new (g.XRWebGPUBinding as new (session: XRSession, device: GPUDevice) => XRWebGPUBindingLike)(
           this.session!,
           this.context.device
         ) as XRWebGPUBindingLike;

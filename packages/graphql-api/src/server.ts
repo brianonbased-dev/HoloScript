@@ -144,43 +144,7 @@ export async function startServer() {
   const PORT = parseInt(process.env.GRAPHQL_PORT || process.env.PORT || '4000', 10);
   await new Promise<void>((resolve) => httpServer.listen({ port: PORT }, resolve));
 
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🚀 HoloScript GraphQL API Server (Week 3 - Real-time Edition)');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🌐 HTTP Server:       http://localhost:${PORT}/graphql`);
-  console.log(`📡 WebSocket Server:  ws://localhost:${PORT}/graphql`);
-  console.log(`📊 GraphQL Playground: http://localhost:${PORT}/graphql`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
-  console.log('Available Features:');
-  console.log('');
-  console.log('✅ Queries:');
-  console.log('   - parseHoloScript: Parse HoloScript code to AST');
-  console.log('   - listTargets: List all compiler targets');
-  console.log('   - getTargetInfo: Get detailed target information');
-  console.log('');
-  console.log('✅ Mutations:');
-  console.log('   - compile: Single file compilation');
-  console.log('   - batchCompile: Batch compilation with DataLoader');
-  console.log('   - validateCode: Real-time code validation');
-  console.log('   - compileTraitById: Fetch trait from Marketplace & compile (Bridge)');
-  console.log('');
-  console.log('✅ Subscriptions (NEW - Week 3):');
-  console.log('   - compilationProgress: Real-time compilation updates');
-  console.log('   - validationResults: Live validation feedback');
-  console.log('');
-  console.log('Example Subscription:');
-  console.log('');
-  console.log('subscription LiveValidation {');
-  console.log('  validationResults {');
-  console.log('    codeHash');
-  console.log('    isValid');
-  console.log('    errors { message line column }');
-  console.log('    warnings { message line column }');
-  console.log('  }');
-  console.log('}');
-  console.log('');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`HoloScript GraphQL API — http://localhost:${PORT}/graphql (HTTP + WS)`);
 
   return { server, app, httpServer };
 }

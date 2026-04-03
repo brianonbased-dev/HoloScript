@@ -18,6 +18,7 @@
  */
 
 import type { HSPlusAST, HSPlusNode, StateDeclaration } from '../../types/HoloScriptPlus';
+import type { HoloScriptValue } from '../../types';
 import type { HSPlusDirective } from '../../types';
 import { ReactiveState, createState, ExpressionEvaluator } from '../../state/ReactiveState';
 import type { HostCapabilities, TraitEvent } from '../../traits/TraitTypes';
@@ -616,7 +617,7 @@ export class HeadlessRuntime {
 
     // Global event bus
     if (this.profile.events) {
-      eventBus.emit(event, payload as any);
+      eventBus.emit(event, payload as HoloScriptValue);
     }
 
     // Native action bridge: route action:* events to registered handlers.

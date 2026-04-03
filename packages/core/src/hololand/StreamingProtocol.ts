@@ -507,13 +507,13 @@ export class StreamProtocol {
           if (this.connectionState === 'connecting') {
             reject(error);
           }
-          this.emit('error', { error } as any);
+          this.emit('error', { type: 'error' as const, seq: 0, timestamp: Date.now(), reliable: false, priority: 0, payload: { error } } as StreamMessage);
         };
 
         this.connection.onclose = (event) => {
           this.connectionState = 'disconnected';
           this.stopHeartbeat();
-          this.emit('close', { code: event.code, reason: event.reason } as any);
+          this.emit('close', { type: 'close' as const, seq: 0, timestamp: Date.now(), reliable: false, priority: 0, payload: { code: event.code, reason: event.reason } } as StreamMessage);
         };
       } catch (error) {
         this.connectionState = 'disconnected';
@@ -550,8 +550,9 @@ export class StreamProtocol {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
-    this.handlers.get(type)!.add(handler as any);
-    return () => this.handlers.get(type)?.delete(handler as any);
+    const h = handler as (message: StreamMessage) => void;
+    this.handlers.get(type)!.add(h);
+    return () => this.handlers.get(type)?.delete(h);
   }
 
   /**
@@ -578,12 +579,14 @@ export class StreamProtocol {
     this.lastAckSeq = Math.max(this.lastAckSeq, message.seq);
 
     // Handle acks
-    if (message.type === 'heartbeat_ack' || (message as any).ack) {
-      const pending = this.pendingAcks.get((message as any).ackSeq || message.seq);
+    const msgExt = message as StreamMessage & { ack?: boolean; ackSeq?: number };
+    if (message.type === 'heartbeat_ack' || msgExt.ack) {
+      const ackKey = msgExt.ackSeq || message.seq;
+      const pending = this.pendingAcks.get(ackKey);
       if (pending) {
         clearTimeout(pending.timeout);
         pending.resolve();
-        this.pendingAcks.delete((message as any).ackSeq || message.seq);
+        this.pendingAcks.delete(ackKey);
       }
     }
 

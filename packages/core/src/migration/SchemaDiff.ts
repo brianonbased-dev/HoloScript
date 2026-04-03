@@ -309,9 +309,10 @@ function stateToMap(
   const map = new Map<string, HoloStateProperty>();
   if (!state) return map;
 
-  if ('properties' in state && Array.isArray((state as any).properties)) {
+  const stateRec = state as Record<string, unknown>;
+  if ('properties' in state && Array.isArray(stateRec.properties)) {
     // Declarative .holo format
-    for (const prop of (state as any).properties) {
+    for (const prop of stateRec.properties as HoloStateProperty[]) {
       map.set(prop.key, prop);
     }
   } else {
@@ -329,7 +330,7 @@ function stateToMap(
         key,
         value,
         reactive: true,
-      } as any);
+      } as HoloStateProperty);
     }
   }
   return map;

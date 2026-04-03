@@ -1,6 +1,14 @@
 import { HoloObjectDecl } from '../parser/HoloCompositionTypes';
 import { HSPlusRuntime } from '../types/HoloScriptPlus';
 
+/** Extended runtime interface for chunk loading operations */
+interface ChunkLoadableRuntime extends HSPlusRuntime {
+  vrContext: { headset: { position: number[] } };
+  mountObject?(obj: HoloObjectDecl): void;
+  instantiateNode?(obj: HoloObjectDecl, root: unknown): void;
+  rootInstance?: unknown;
+}
+
 // Type definitions for chunk loading
 export interface ChunkInfo {
   file: string;
@@ -49,7 +57,7 @@ export class ChunkLoader {
   public update(): void {
     if (!this.manifest) return;
 
-    const playerPos = (this.runtime as any).vrContext.headset.position as number[];
+    const playerPos = (this.runtime as unknown as ChunkLoadableRuntime).vrContext.headset.position;
     if (!playerPos) return;
 
     for (const [chunkId, info] of Object.entries(this.manifest.chunks)) {
@@ -87,19 +95,21 @@ export class ChunkLoader {
     }
   }
 
-  private async integrateChunk(chunk: any): Promise<void> {
-    const objects = chunk.objects as HoloObjectDecl[];
+  private async integrateChunk(chunk: Record<string, unknown>): Promise<void> {
+    const objects = chunk.objects as HoloObjectDecl[] | undefined;
     if (!objects) return;
+
+    const extRuntime = this.runtime as unknown as ChunkLoadableRuntime;
 
     for (const obj of objects) {
       // Use the runtime's internal instantiateNode if accessible,
       // or a public method if we add one.
       // For now, we assume we've added a mountObject method to the runtime interface.
-      if ((this.runtime as any).mountObject) {
-        (this.runtime as any).mountObject(obj);
-      } else {
+      if (extRuntime.mountObject) {
+        extRuntime.mountObject(obj);
+      } else if (extRuntime.instantiateNode) {
         // Fallback or internal access
-        (this.runtime as any).instantiateNode(obj, (this.runtime as any).rootInstance);
+        extRuntime.instantiateNode(obj, extRuntime.rootInstance);
       }
     }
   }

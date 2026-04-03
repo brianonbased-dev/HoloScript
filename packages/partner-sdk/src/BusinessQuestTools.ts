@@ -17,7 +17,7 @@ export interface QuestReward {
 
 export interface BusinessQuestStep {
   trigger: 'ar_scan' | 'vrr_hunt' | 'vr_taste' | 'geo_arrival';
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface BusinessQuestConfig {

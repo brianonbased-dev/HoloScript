@@ -25,6 +25,7 @@ import {
   type NIRToWGSLResult,
 } from '../compiler/NIRToWGSLCompiler';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
+import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { SpatialTrainingDataGenerator } from '../training/SpatialTrainingDataGenerator';
 import type { 
   SpatialTrainingExample, 
@@ -325,7 +326,7 @@ export async function handleCompileNIR(args: Record<string, unknown>): Promise<M
 
     // Compile to NIR
     const compiler = new NIRCompiler(options);
-    const nirJson = compiler.compile(parseResult.ast as any, agentToken);
+    const nirJson = compiler.compile(parseResult.ast as HoloComposition, agentToken);
 
     return {
       success: true,

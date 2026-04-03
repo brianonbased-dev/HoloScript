@@ -14,6 +14,7 @@ import type {
   HoloObjectProperty,
 } from '../parser/HoloCompositionTypes';
 import type { Extensible } from '../types/utility-types';
+import type { HSPlusCompileResult } from '../types/AdvancedTypeSystem';
 import type { ReadFileFn } from '../parser/HoloCompositionTypes';
 import {
   TraitDependencyGraph,
@@ -757,7 +758,7 @@ export class IncrementalCompiler {
     const sourceFile = options.sourceFile ?? `${baseDir}/unknown.hs`;
 
     const resolver = new ImportResolver();
-    const resolution = await resolver.resolve(result as any, sourceFile, {
+    const resolution = await resolver.resolve(result as HSPlusCompileResult, sourceFile, {
       baseDir,
       readFile: options.readFile,
     });

@@ -3772,33 +3772,86 @@ export async function handleHoloMeshRoute(
       }
 
       // Parse tasks from content — look for actionable items
-      // Patterns: "- [ ] ...", "### ...: ...", "HIGH:", "CRITICAL:", numbered lists
+      // Patterns: markdown checkboxes, section headers, and TODO/FIXME markers
+      // including grep-style output: path:line:// FIXME: message
       const lines = content.split('\n');
       const derived: TeamTask[] = [];
+      const derivedNorm = new Set<string>();
       let priority = 5;
+
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+      const pushDerived = (titleRaw: string, descriptionRaw = '', taskPriority = priority) => {
+        const title = String(titleRaw || '').trim().slice(0, 200);
+        if (!title) return;
+        const norm = normalize(title);
+        if (derivedNorm.has(norm)) return;
+        derivedNorm.add(norm);
+        derived.push({
+          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          title,
+          description: String(descriptionRaw || '').slice(0, 1000),
+          status: 'open',
+          source,
+          priority: taskPriority,
+          createdAt: new Date().toISOString(),
+        });
+      };
+
+      const inferFixPriority = (kind: string, text: string): number => {
+        const upper = `${kind} ${text}`.toUpperCase();
+        if (/SECURITY|VULN|INJECTION|AUTH|CRITICAL/.test(upper)) return 1;
+        if (/FIXME|BUG|BROKEN|FAIL|ERROR|REGRESSION/.test(upper)) return 2;
+        if (/TODO|HACK|TECH\s*DEBT|CLEANUP|REFACTOR/.test(upper)) return 3;
+        return 4;
+      };
 
       for (const line of lines) {
         const trimmed = line.trim();
-        // Markdown checkboxes
-        if (trimmed.match(/^-\s*\[\s*\]\s+.+/)) {
-          const title = trimmed.replace(/^-\s*\[\s*\]\s+/, '').slice(0, 200);
-          derived.push({ id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title, description: '', status: 'open', source, priority, createdAt: new Date().toISOString() });
-        }
+
         // Priority markers
         if (trimmed.match(/^#+\s*(CRITICAL|SEC-)/i)) priority = 1;
         else if (trimmed.match(/^#+\s*(HIGH|PERF-|MEM-|TYPE-|ERR-|TEST-)/i)) priority = 2;
         else if (trimmed.match(/^#+\s*(MEDIUM|LOG-|TODO-|STORE-|UNUSED-)/i)) priority = 3;
+
+        // Markdown checkboxes
+        if (trimmed.match(/^\-\s*\[\s*\]\s+.+/)) {
+          const title = trimmed.replace(/^\-\s*\[\s*\]\s+/, '');
+          pushDerived(title, '', priority);
+          continue;
+        }
+
         // Section headers as tasks
         if (trimmed.match(/^###\s+\w+-\d+:.+/)) {
-          const title = trimmed.replace(/^###\s+/, '').slice(0, 200);
-          if (!team.taskBoard.find((t) => t.title === title) && !derived.find((t) => t.title === title)) {
-            derived.push({ id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title, description: '', status: 'open', source, priority, createdAt: new Date().toISOString() });
-          }
+          const title = trimmed.replace(/^###\s+/, '');
+          pushDerived(title, '', priority);
+          continue;
+        }
+
+        // grep-style TODO/FIXME/HACK lines:
+        //   path/to/file.ts:123: // FIXME: actual issue
+        const grepFix = trimmed.match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+        if (grepFix) {
+          const file = grepFix[1].trim();
+          const lineNo = grepFix[2].trim();
+          const kind = grepFix[3].toUpperCase();
+          const detail = grepFix[4].trim().replace(/^[-:\s]+/, '').slice(0, 180);
+          const title = `${kind}: ${detail || `${file}:${lineNo}`}`.slice(0, 200);
+          const desc = `Source: ${file}:${lineNo}`;
+          pushDerived(title, desc, inferFixPriority(kind, detail));
+          continue;
+        }
+
+        // Plain TODO/FIXME/HACK lines
+        const inlineFix = trimmed.match(/^(?:[-*]\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+        if (inlineFix) {
+          const kind = inlineFix[1].toUpperCase();
+          const detail = inlineFix[2].trim().replace(/^[-:\s]+/, '').slice(0, 180);
+          const title = `${kind}: ${detail}`.slice(0, 200);
+          pushDerived(title, '', inferFixPriority(kind, detail));
         }
       }
 
       // Dedup against existing board + done log (fuzzy: normalize titles)
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
       const existingNorm = new Set([
         ...team.taskBoard.map((t) => normalize(t.title)),
         ...(team.doneLog || []).map((d) => normalize(d.title)),

@@ -23,8 +23,8 @@ interface GltfNode {
   rotation?: [number, number, number, number];
   scale?: [number, number, number];
   matrix?: number[];
-  extras?: Record<string, any>;
-  extensions?: Record<string, any>;
+  extras?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
 }
 
 interface GltfMaterial {
@@ -43,7 +43,7 @@ interface GltfMaterial {
   alphaMode?: string;
   alphaCutoff?: number;
   doubleSided?: boolean;
-  extensions?: Record<string, any>;
+  extensions?: Record<string, unknown>;
 }
 
 interface GltfMeshPrimitive {
@@ -96,7 +96,7 @@ interface GltfData {
   cameras?: Array<{ name?: string; type: string; perspective?: any; orthographic?: any }>;
   skins?: Array<{ name?: string; joints: number[] }>;
   extensionsUsed?: string[];
-  extensions?: Record<string, any>;
+  extensions?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

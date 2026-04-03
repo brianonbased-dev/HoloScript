@@ -109,7 +109,7 @@ export class TelemetryCollector extends EventEmitter {
   recordEvent(
     type: TelemetryEventType,
     agentId: string,
-    data: Record<string, any> = {},
+    data: Record<string, unknown> = {},
     severity: TelemetrySeverity = 'info'
   ): TelemetryEvent | null {
     return this.record({ type, agentId, data, severity });
@@ -118,7 +118,7 @@ export class TelemetryCollector extends EventEmitter {
   /**
    * Record an error event
    */
-  recordError(agentId: string, error: Error, context?: Record<string, any>): TelemetryEvent | null {
+  recordError(agentId: string, error: Error, context?: Record<string, unknown>): TelemetryEvent | null {
     return this.record({
       type: 'error',
       severity: 'error',
@@ -163,7 +163,7 @@ export class TelemetryCollector extends EventEmitter {
     options: {
       parentContext?: TraceContext;
       agentId?: string;
-      attributes?: Record<string, any>;
+      attributes?: Record<string, unknown>;
       kind?: SpanKind;
     } = {}
   ): TraceSpan {
@@ -228,7 +228,7 @@ export class TelemetryCollector extends EventEmitter {
   /**
    * Add an event to a span
    */
-  addSpanEvent(spanId: string, name: string, attributes: Record<string, any> = {}): void {
+  addSpanEvent(spanId: string, name: string, attributes: Record<string, unknown> = {}): void {
     const span = this.spans.get(spanId);
     if (!span) {
       throw new Error(`Span not found: ${spanId}`);
@@ -246,7 +246,7 @@ export class TelemetryCollector extends EventEmitter {
   /**
    * Set span attributes
    */
-  setSpanAttributes(spanId: string, attributes: Record<string, any>): void {
+  setSpanAttributes(spanId: string, attributes: Record<string, unknown>): void {
     const span = this.spans.get(spanId);
     if (!span) {
       throw new Error(`Span not found: ${spanId}`);

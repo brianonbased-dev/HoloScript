@@ -118,7 +118,7 @@ const pipeline = new GLTFPipeline({ format: outputJson ? 'gltf' : 'glb' });
 
 let compileResult;
 try {
-  compileResult = pipeline.compile(ast, undefined as any);
+  compileResult = pipeline.compile(ast, 'script-token');
 } catch (err: unknown) {
   console.error(`\n❌ Compilation failed: ${err instanceof Error ? err.message : String(err)}`);
   if (printStats && err instanceof Error) console.error(err.stack);

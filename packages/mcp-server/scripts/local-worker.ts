@@ -19,6 +19,9 @@
  *
  * Usage:
  *   npx tsx packages/mcp-server/scripts/local-worker.ts
+ *
+ * PM2 (persistent daemon mode):
+ *   npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout
  */
 
 import { execSync, spawn } from 'child_process';
@@ -27,7 +30,8 @@ import * as path from 'path';
 
 // ── Config ──
 
-const WORKER_NAME = 'gpu-worker';
+const WORKER_NAME = process.env.HOLOMESH_WORKER_NAME || 'holoscout';
+const LEGACY_WORKER_NAMES = new Set(['gpu-worker']);
 const ROOM_ID = 'team_d141a6972eac1e9d';
 const HOLOMESH_API = 'https://mcp.holoscript.net/api/holomesh';
 const OLLAMA_URL = 'http://localhost:11434';
@@ -63,14 +67,85 @@ async function get(url: string, headers: Record<string, string> = {}) {
 function auth() { return { Authorization: `Bearer ${AGENT_KEY}` }; }
 
 function shell(cmd: string): string {
-  // Try git-bash first (available in IDE terminals), fall back to cmd
-  const shells = ['C:\\Program Files\\Git\\bin\\bash.exe', 'bash', 'cmd'];
-  for (const sh of shells) {
-    try {
-      return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: sh } as any).trim();
-    } catch { continue; }
+  try {
+    return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: true } as any).trim();
+  } catch {
+    return '';
   }
-  return '';
+}
+
+function fileContainsKeyword(filePath: string, keyword: string): boolean {
+  try {
+    const st = fs.statSync(filePath);
+    // Skip huge files to keep cycles fast
+    if (st.size > 1_000_000) return false;
+    const content = fs.readFileSync(filePath, 'utf8');
+    return content.toLowerCase().includes(keyword.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function findMatchingFiles(keyword: string, limit = 5): string[] {
+  const results: string[] = [];
+  const rootDir = path.join(ROOT, 'packages');
+  const stack: string[] = [rootDir];
+
+  while (stack.length > 0 && results.length < limit) {
+    const dir = stack.pop()!;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (results.length >= limit) break;
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.')) continue;
+        stack.push(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+      if (!fullPath.endsWith('.ts') && !fullPath.endsWith('.tsx')) continue;
+      if (!fileContainsKeyword(fullPath, keyword)) continue;
+
+      const relative = path.relative(ROOT, fullPath).replace(/\\/g, '/');
+      results.push(relative);
+    }
+  }
+
+  return results;
+}
+
+function gitCommitExists(commitHash: string): boolean {
+  try {
+    execSync(`git rev-parse --verify ${commitHash}^{commit}`, {
+      encoding: 'utf8',
+      timeout: 10_000,
+      cwd: ROOT,
+      shell: true,
+      stdio: 'pipe',
+    } as any);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readFarmSource(relativePath: string, maxLines = 300): string {
+  const fullPath = path.join(ROOT, relativePath);
+  if (!fs.existsSync(fullPath)) return '';
+  try {
+    const raw = fs.readFileSync(fullPath, 'utf8');
+    return raw.split(/\r?\n/).slice(0, maxLines).join('\n');
+  } catch {
+    return '';
+  }
 }
 
 // ── Setup ──
@@ -87,8 +162,23 @@ async function registerAgent(): Promise<boolean> {
   const keyFile = path.join(ROOT, '.local-worker-key');
   if (fs.existsSync(keyFile)) {
     const saved = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
-    AGENT_KEY = saved.key; AGENT_NAME = saved.name;
-    return true;
+    const savedName = saved?.name || '';
+
+    // Migrate legacy identity (gpu-worker) to the new default name.
+    // Keep custom names untouched.
+    if (!LEGACY_WORKER_NAMES.has(savedName) || savedName === WORKER_NAME) {
+      AGENT_KEY = saved.key;
+      AGENT_NAME = savedName || WORKER_NAME;
+      return true;
+    }
+
+    try {
+      const backupFile = `${keyFile}.legacy.${Date.now()}.json`;
+      fs.renameSync(keyFile, backupFile);
+      console.log(`[scout] Migrating legacy worker identity "${savedName}" → "${WORKER_NAME}"`);
+    } catch {
+      // If backup fails, continue and attempt fresh registration anyway.
+    }
   }
   const res = await post(`${HOLOMESH_API}/quickstart`, { name: WORKER_NAME, description: 'Scout — the team\'s always-on eyes', traits: ['@scout', '@local-gpu'] });
   const apiKey = res.api_key || res.agent?.api_key;
@@ -137,8 +227,8 @@ async function scoutTasks() {
 
   const findings: string[] = [];
   for (const kw of keywords) {
-    const files = shell(`grep -rn "${kw}" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | grep -v node_modules | grep -v dist | head -5`);
-    if (files) findings.push(...files.split('\n').filter(l => l.trim()));
+    const files = findMatchingFiles(kw, 5);
+    findings.push(...files);
   }
 
   if (findings.length > 0) {
@@ -165,7 +255,7 @@ async function auditDoneLog() {
   const fakes: string[] = [];
   for (const task of verified) {
     if (task.commitHash && task.commitHash.length >= 7) {
-      const exists = shell(`git log --oneline ${task.commitHash} -1 2>/dev/null`);
+      const exists = gitCommitExists(task.commitHash);
       if (!exists) fakes.push(task.title?.slice(0, 40));
     }
   }
@@ -180,7 +270,7 @@ async function auditDoneLog() {
 // ── 3. WATCH — detect new commits related to open tasks ──
 
 async function watchGit() {
-  const currentHash = shell('git rev-parse HEAD 2>/dev/null');
+  const currentHash = shell('git rev-parse HEAD');
   if (!currentHash || currentHash === memory.lastGitHash) return;
 
   const isFirst = !memory.lastGitHash;
@@ -188,8 +278,14 @@ async function watchGit() {
   if (isFirst) return; // skip first cycle
 
   // New commit detected — check what changed
-  const newCommits = shell('git log --oneline -3 2>/dev/null');
-  const changedFiles = shell('git diff --name-only HEAD~1 HEAD 2>/dev/null | head -10');
+  const newCommits = shell('git log --oneline -3');
+  const changedFilesRaw = shell('git diff --name-only HEAD~1 HEAD');
+  const changedFiles = changedFilesRaw
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 10)
+    .join('\n');
 
   if (!changedFiles) return;
 
@@ -234,7 +330,7 @@ async function farmTasks() {
 
   const source = sources[0];
   memory.derivedSources.add(source.name);
-  const content = shell(`cat ${source.file} 2>/dev/null | head -300`);
+  const content = readFarmSource(source.file, 300);
   if (!content || content.length < 50) return;
 
   const result = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, { source: source.name, content }, auth());
@@ -257,7 +353,7 @@ async function main() {
   if (!(await registerAgent())) process.exit(1);
   await joinTeam();
   await heartbeat();
-  memory.lastGitHash = shell('git rev-parse HEAD 2>/dev/null');
+  memory.lastGitHash = shell('git rev-parse HEAD');
 
   console.log(`[scout] ${AGENT_NAME} online. Watching.\n`);
 

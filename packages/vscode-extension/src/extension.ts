@@ -93,7 +93,6 @@ export function activate(context: ExtensionContext) {
   // ── AI Agent API ──────────────────────────────────────────────────────────
 
   agentAPI.initialize(context);
-  console.log('HoloScript: AI Agent API initialized.');
 
   // ── Validate Command ──────────────────────────────────────────────────────
 
@@ -255,7 +254,6 @@ export function activate(context: ExtensionContext) {
   }
 
   if (!serverModule) {
-    console.log('HoloScript: Language server not found. Running in syntax-only mode.');
     return;
   }
 
@@ -439,7 +437,6 @@ export function activate(context: ExtensionContext) {
     }
   }
 
-  console.log('HoloScript v6: Extension activated.');
 }
 
 function isHoloScriptFile(document: TextDocument): boolean {

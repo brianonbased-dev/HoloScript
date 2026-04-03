@@ -32,6 +32,8 @@ interface GodRaysConfig {
 
 /** Module-level state store to avoid casting node to any */
 const activeNodes = new WeakSet<HSPlusNode>();
+/** Tracks whether god rays are active per node (replaces __godRaysActive property) */
+const godRaysActiveFlag = new WeakMap<HSPlusNode, boolean>();
 
 export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   name: 'god_rays',
@@ -47,7 +49,8 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
 
   onAttach(node, config, context) {
     activeNodes.add(node);
-    (node as any).__godRaysActive = true;
+    godRaysActiveFlag.set(node, true);
+    (node as unknown as Record<string, unknown>).__godRaysActive = true;
 
     const lightPos = config.use_weather ? weatherBlackboard.sun_position : config.light_position;
 
@@ -65,12 +68,13 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
     if (activeNodes.has(node)) {
       context.emit('god_rays_destroy', { nodeId: node.id });
       activeNodes.delete(node);
-      delete (node as any).__godRaysActive;
+      godRaysActiveFlag.delete(node);
+      delete (node as unknown as Record<string, unknown>).__godRaysActive;
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    if (!activeNodes.has(node) || (node as any).__godRaysActive === false) return;
+    if (!activeNodes.has(node) || godRaysActiveFlag.get(node) === false || (node as unknown as Record<string, unknown>).__godRaysActive === false) return;
 
     if (config.use_weather) {
       // Only emit update when sun moves (every frame for smooth rays)
@@ -83,7 +87,7 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    if (!activeNodes.has(node) || (node as any).__godRaysActive === false) return;
+    if (!activeNodes.has(node) || godRaysActiveFlag.get(node) === false || (node as unknown as Record<string, unknown>).__godRaysActive === false) return;
 
     switch (event.type) {
       case 'god_rays_set_params':

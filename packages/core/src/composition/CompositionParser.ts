@@ -332,7 +332,7 @@ export function parsePosition(pos: unknown): Vec3 {
     return { x: Number(pos[0]) || 0, y: Number(pos[1]) || 0, z: Number(pos[2]) || 0 };
   }
   if (typeof pos === 'object') {
-    const p = pos as any;
+    const p = pos as Record<string, unknown>;
     return { x: Number(p.x) || 0, y: Number(p.y) || 0, z: Number(p.z) || 0 };
   }
   return { x: 0, y: 0, z: 0 };
@@ -346,7 +346,7 @@ export function parseScale(scale: unknown): Vec3 {
     return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: Number(scale[2]) || 1 };
   }
   if (typeof scale === 'object') {
-    const s = scale as any;
+    const s = scale as Record<string, unknown>;
     return { x: Number(s.x) || 1, y: Number(s.y) || 1, z: Number(s.z) || 1 };
   }
   return { x: 1, y: 1, z: 1 };

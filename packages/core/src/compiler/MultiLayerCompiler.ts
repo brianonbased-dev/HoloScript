@@ -81,14 +81,12 @@ export class MultiLayerCompiler extends CompilerBase {
     }
 
     if (this.options.targets.includes('vr')) {
-      const vrCompiler = new BabylonCompiler({
-        minify: this.options.minify,
-      } as any);
+      const vrCompiler = new BabylonCompiler({});
       // The BabylonCompiler handles standard VR.
       // In a real scenario, we might pre-filter the AST to remove pure AR/VRR nodes
       // but standard traits are mostly ignored if unsupported by the backend.
       try {
-        const vrResult = vrCompiler.compile(composition as any, agentToken);
+        const vrResult = vrCompiler.compile(composition, agentToken);
         result.vr = vrResult;
       } catch (err: unknown) {
         result.success = false;

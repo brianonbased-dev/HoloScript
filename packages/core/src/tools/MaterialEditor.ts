@@ -596,9 +596,9 @@ export class MaterialEditor {
    * Initialize 3D preview
    */
   private initializePreview(): void {
-    if (!this.previewCanvas || typeof (window as any).THREE === 'undefined') return;
-
-    const THREE = (window as any).THREE;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const THREE = (globalThis as unknown as Record<string, unknown>).THREE as Record<string, any> | undefined;
+    if (!this.previewCanvas || !THREE) return;
 
     // Scene
     this.previewScene = new THREE.Scene();
@@ -765,7 +765,7 @@ export class MaterialEditor {
    * Update preview material (THREE.js sphere).
    * Accepts hex color strings for THREE.js Color.set() compatibility.
    */
-  private updatePreviewMaterial(params: any): void {
+  private updatePreviewMaterial(params: Record<string, unknown>): void {
     if (!this.previewSphere) return;
 
     const material = this.previewSphere.material;

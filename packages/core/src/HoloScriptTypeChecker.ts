@@ -25,6 +25,8 @@ import type {
   HoloScriptValue,
   MatchExpression,
   ExhaustiveMatchCheck,
+  LiteralPattern,
+  BindingPattern,
 } from './types';
 import { BUILTIN_CONSTRAINTS } from './traits/traitConstraints';
 import { loadConstraintsFromConfig } from './traits/constraintConfig';
@@ -548,7 +550,8 @@ export class HoloScriptTypeChecker {
     const targetStr =
       typeof node.target === 'string'
         ? node.target
-        : (node.target as any).__ref || (node.target as any).name;
+        : (node.target as Record<string, unknown>)?.__ref as string ||
+          (node.target as Record<string, unknown>)?.name as string;
 
     if (!targetStr) {
       this.addDiagnostic(
@@ -564,7 +567,7 @@ export class HoloScriptTypeChecker {
     const valueType = node.value ? this.inferType(node.value as HoloScriptValue) : 'unknown';
 
     // Assign the union of target and value types
-    this.typeMap.set(targetStr, (targetType || { type: valueType as any, nullable: false }) as any);
+    this.typeMap.set(targetStr, targetType || { type: valueType as HoloScriptType, nullable: false });
   }
 
   private checkSpread(node: SpreadExpression): void {
@@ -608,7 +611,8 @@ export class HoloScriptTypeChecker {
     const subjectId =
       typeof node.subject === 'string'
         ? node.subject
-        : (node.subject as any)?.__ref || (node.subject as any)?.name;
+        : (node.subject as Record<string, unknown>)?.__ref as string ||
+          (node.subject as Record<string, unknown>)?.name as string;
 
     // Try to find a registered union type for the subject
     let unionType: UnionType | undefined;
@@ -644,7 +648,7 @@ export class HoloScriptTypeChecker {
         }
         casePatterns.push('_');
       } else if (pattern.type === 'literal-pattern') {
-        const value = String((pattern as any).value);
+        const value = String((pattern as LiteralPattern).value);
 
         // Check for duplicate patterns
         if (casePatterns.includes(value)) {
@@ -657,7 +661,7 @@ export class HoloScriptTypeChecker {
         casePatterns.push(value);
       } else if (pattern.type === 'binding-pattern') {
         // Binding patterns match anything, similar to wildcard but with capture
-        casePatterns.push((pattern as any).name);
+        casePatterns.push((pattern as BindingPattern).name);
       }
 
       // Check for unreachable patterns after wildcard
@@ -791,8 +795,8 @@ export class HoloScriptTypeChecker {
 
       // Special case for tests: if it's an expression statement with a single identifier,
       // emit a debug diagnostic showing its current type.
-      if (node.type === 'expression-statement' && typeof (node as any).expression === 'string') {
-        const varName = (node as any).expression;
+      if (node.type === 'expression-statement' && typeof (node as unknown as { expression: unknown }).expression === 'string') {
+        const varName = (node as unknown as { expression: string }).expression;
         const typeInfo = this.typeMap.get(varName);
         if (typeInfo) {
           this.addDiagnostic('info', `Type of '${varName}' is ${typeInfo.type}`, 'DEBUG');
@@ -1206,14 +1210,14 @@ export class HoloScriptTypeChecker {
       return;
     }
 
-    const traitNames = Array.from(traitsMap.keys());
+    const traitNames: string[] = Array.from(traitsMap.keys());
     const allConstraints = [...BUILTIN_CONSTRAINTS, ...this.customConstraints];
 
     for (const constraint of allConstraints) {
       if (constraint.type === 'requires') {
-        if (traitNames.includes(constraint.source as any)) {
+        if (traitNames.includes(constraint.source)) {
           for (const target of constraint.targets) {
-            if (!traitNames.includes(target as any)) {
+            if (!traitNames.includes(target)) {
               const suggestions = constraint.suggestion
                 ? [constraint.suggestion]
                 : [`Add @${target} to the same orb as @${constraint.source}.`];
@@ -1227,9 +1231,9 @@ export class HoloScriptTypeChecker {
           }
         }
       } else if (constraint.type === 'conflicts') {
-        if (traitNames.includes(constraint.source as any)) {
+        if (traitNames.includes(constraint.source)) {
           for (const target of constraint.targets) {
-            if (traitNames.includes(target as any)) {
+            if (traitNames.includes(target)) {
               const suggestions = constraint.suggestion
                 ? [constraint.suggestion]
                 : [`Remove either @${constraint.source} or @${target} from the orb.`];

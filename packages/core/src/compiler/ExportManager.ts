@@ -84,6 +84,7 @@ export interface ExportOptions {
   /** Custom circuit breaker config */
   circuitConfig?: Partial<CircuitBreakerConfig>;
   /** Target-specific compiler options */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Passed to heterogeneous compiler constructors
   compilerOptions?: Record<string, any>;
   /** Enable memory monitoring (default: true) */
   useMemoryMonitoring?: boolean;
@@ -177,7 +178,7 @@ export interface ExportEvent {
   type: ExportEventType;
   target: ExportTarget;
   timestamp: number;
-  data?: any;
+  data?: unknown;
 }
 
 export type ExportEventListener = (event: ExportEvent) => void;
@@ -190,6 +191,7 @@ export type ExportEventListener = (event: ExportEvent) => void;
  * Factory for creating compiler instances
  */
 class CompilerFactory {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Compilers are heterogeneous (4 don't implement ICompiler); full interface unification tracked separately
   createCompiler(target: ExportTarget, options: Record<string, any> = {}): any {
     switch (target) {
       case 'urdf':
@@ -227,17 +229,17 @@ class CompilerFactory {
       case 'playcanvas':
         return new PlayCanvasCompiler(options);
       case 'vrr':
-        return new VRRCompiler(options as any);
+        return new VRRCompiler(options as unknown as ConstructorParameters<typeof VRRCompiler>[0]);
       case 'ar':
-        return new ARCompiler(options as any);
+        return new ARCompiler(options as unknown as ConstructorParameters<typeof ARCompiler>[0]);
       case 'multi-layer':
-        return new MultiLayerCompiler(options as any);
+        return new MultiLayerCompiler(options as unknown as ConstructorParameters<typeof MultiLayerCompiler>[0]);
       case 'incremental':
-        return new IncrementalCompiler(options as any);
+        return new IncrementalCompiler(options as unknown as ConstructorParameters<typeof IncrementalCompiler>[0]);
       case 'state':
         return new StateCompiler();
       case 'trait-composition':
-        return new TraitCompositionCompiler(options as any);
+        return new TraitCompositionCompiler(options as unknown as ConstructorParameters<typeof TraitCompositionCompiler>[0]);
       case 'tsl':
         return new TSLCompiler(options);
       case 'a2a-agent-card':
@@ -676,7 +678,7 @@ export class ExportManager {
     const result: ExportResult = {
       target,
       success: circuitResult.success,
-      output: circuitResult.data,
+      output: circuitResult.data as string | undefined,
       error: circuitResult.error,
       usedFallback: circuitResult.usedFallback,
       circuitState: circuitResult.state,

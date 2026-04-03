@@ -249,8 +249,8 @@ export class HITLManager {
     }
 
     // Resolve the pending promise
-    if ((request as any)._resolve) {
-      (request as any)._resolve(approvalDecision);
+    if (request._resolve) {
+      request._resolve(approvalDecision);
     }
 
     // Mark as resolved
@@ -384,12 +384,11 @@ export class HITLManager {
       }, this.config.approvalTimeoutMs);
 
       // Store resolver for external callback (approveAction / rejectAction)
-      const originalRequest = request as any;
-      originalRequest._resolve = (decision: ApprovalDecision) => {
+      request._resolve = (decision: ApprovalDecision) => {
         clearTimeout(timeout);
         resolve(decision);
       };
-      originalRequest._reject = (error: Error) => {
+      request._reject = (error: Error) => {
         clearTimeout(timeout);
         reject(error);
       };

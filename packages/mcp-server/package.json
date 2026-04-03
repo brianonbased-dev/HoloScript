@@ -25,6 +25,12 @@
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
     "start": "node start.js",
+    "scout:start": "npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout",
+    "scout:restart": "npx pm2 restart holoscout",
+    "scout:stop": "npx pm2 stop holoscout",
+    "scout:delete": "npx pm2 delete holoscout",
+    "scout:status": "npx pm2 status holoscout",
+    "scout:logs": "npx pm2 logs holoscout --lines 100",
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"

@@ -267,7 +267,7 @@ export class OTLPExporter {
       const response = await fetchFn(this.config.endpoint, {
         method: 'POST',
         headers,
-        body: body as any, // Cast to any to bypass BodyInit type mismatch with Uint8Array
+        body: body as BodyInit,
         signal: controller.signal,
       });
 

@@ -139,9 +139,9 @@ export class MovementPredictor {
     });
 
     const speed = Math.sqrt(
-      (this.velocity as any)[0] ** 2 +
-        (this.velocity as any)[1] ** 2 +
-        (this.velocity as any)[2] ** 2
+      (this.velocity[0] ?? 0) ** 2 +
+        (this.velocity[1] ?? 0) ** 2 +
+        (this.velocity[2] ?? 0) ** 2
     );
 
     if (speed > 0.5) {

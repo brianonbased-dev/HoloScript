@@ -68,7 +68,7 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
 
     // Override position from node
     if (config.followNode && node.properties?.position) {
-      const pos = node.properties.position as any;
+      const pos = node.properties.position as Record<string, number>;
       emitterConfig.position = { x: pos.x || 0, y: pos.y || 0, z: pos.z || 0 };
     }
 
@@ -103,7 +103,7 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
 
     // Follow node position
     if (config.followNode && node.properties?.position) {
-      const pos = node.properties.position as any;
+      const pos = node.properties.position as Record<string, number>;
       system.setPosition(pos.x || 0, pos.y || 0, pos.z || 0);
     }
 
@@ -111,8 +111,8 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
 
     // Surface particle data on node for renderer
     if (node.properties) {
-      (node.properties as any)._particles = system.getAliveParticles();
-      (node.properties as any)._particleCount = system.getActiveCount();
+      (node.properties as Record<string, unknown>)._particles = system.getAliveParticles();
+      (node.properties as Record<string, unknown>)._particleCount = system.getActiveCount();
     }
   },
 };

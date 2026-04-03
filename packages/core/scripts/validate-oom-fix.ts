@@ -3,7 +3,7 @@ import { getRBAC } from '../src/compiler/identity/AgentRBAC';
 
 // Bypass RBAC for test compilation
 const rbac = getRBAC();
-rbac.checkAccess = () => ({ allowed: true, agentRole: 'orchestrator' }) as any;
+rbac.checkAccess = () => ({ allowed: true, agentRole: 'orchestrator' }) as ReturnType<typeof rbac.checkAccess>;
 
 import type { HoloComposition, HoloObjectDecl } from '../src/parser/HoloCompositionTypes';
 

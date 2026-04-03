@@ -28,7 +28,7 @@ export class WebXRManager {
    */
   async isSessionSupported(): Promise<boolean> {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-      return (navigator as any).xr.isSessionSupported('immersive-vr');
+      return (navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }).xr.isSessionSupported('immersive-vr');
     }
     return false;
   }
@@ -39,7 +39,7 @@ export class WebXRManager {
   async requestSession(): Promise<XRSession> {
     if (!this.session) {
       const sessionInit = { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] };
-      this.session = await (navigator as any).xr.requestSession('immersive-vr', sessionInit);
+      this.session = await (navigator as unknown as { xr: { requestSession(mode: string, init: Record<string, unknown>): Promise<XRSession> } }).xr.requestSession('immersive-vr', sessionInit);
 
       this.session!.addEventListener('end', this.onSessionEnded);
 

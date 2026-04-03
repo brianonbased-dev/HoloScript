@@ -13,6 +13,12 @@
  * - Performance monitoring
  */
 
+/** Typed accessor for globally-loaded Three.js. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getThree(): Record<string, any> | undefined {
+  return (globalThis as unknown as { THREE?: Record<string, any> }).THREE;
+}
+
 export interface InstancedObject {
   /** Unique instance ID */
   id: string;
@@ -135,7 +141,7 @@ export class InstancedRenderer {
 
     // Update color if provided
     if (color && batch.instancedMesh.instanceColor) {
-      const THREE = (window as any).THREE;
+      const THREE = getThree()!;
       batch.instancedMesh.setColorAt(instanceIndex, new THREE.Color(color[0], color[1], color[2]));
     }
 
@@ -213,7 +219,7 @@ export class InstancedRenderer {
     const batch = this.batches.get(instance.batchKey);
     if (!batch || !batch.instancedMesh.instanceColor) return false;
 
-    const THREE = (window as any).THREE;
+    const THREE = getThree()!;
     batch.instancedMesh.setColorAt(
       instance.instanceIndex,
       new THREE.Color(color[0], color[1], color[2])
@@ -248,9 +254,9 @@ export class InstancedRenderer {
     geometryType: string,
     materialType: string
   ): InstanceBatch | null {
-    if (typeof (window as any).THREE === 'undefined') return null;
+    if (!getThree()) return null;
 
-    const THREE = (window as any).THREE;
+    const THREE = getThree()!;
 
     // Create geometry
     const geometry = this.createGeometry(geometryType);
@@ -297,7 +303,7 @@ export class InstancedRenderer {
    * Create geometry by type
    */
   private createGeometry(type: string): any {
-    const THREE = (window as any).THREE;
+    const THREE = getThree()!;
 
     const geometryMap: Record<string, any> = {
       // ===== CORE PRIMITIVES =====
@@ -328,7 +334,7 @@ export class InstancedRenderer {
    * Create material by type
    */
   private createMaterial(type: string): any {
-    const THREE = (window as any).THREE;
+    const THREE = getThree()!;
 
     // Basic material with per-instance color support
     return new THREE.MeshStandardMaterial({
@@ -386,7 +392,7 @@ export class InstancedRenderer {
    * Convert Float32Array to THREE.Matrix4
    */
   private arrayToMatrix4(array: Float32Array): any {
-    const THREE = (window as any).THREE;
+    const THREE = getThree()!;
     const matrix = new THREE.Matrix4();
     matrix.fromArray(array);
     return matrix;

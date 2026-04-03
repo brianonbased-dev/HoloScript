@@ -3,7 +3,7 @@ import { HoloComposition, HoloObjectDecl, HoloZone } from '@holoscript/core';
 export interface Chunk {
   id: string;
   objects: HoloObjectDecl[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface Manifest {

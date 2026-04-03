@@ -34,8 +34,6 @@ export class HoloHubClient {
   }
 
   async fetchAsset(id: string): Promise<HoloSmartAsset | null> {
-    console.log(`[HoloHub] Fetching asset: ${id}...`);
-
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -49,20 +47,16 @@ export class HoloHubClient {
   }
 
   async publishAsset(asset: HoloSmartAsset): Promise<string> {
-    console.log(`[HoloHub] Publishing asset: ${asset.metadata.name}...`);
-
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const id = `${asset.metadata.name.toLowerCase().replace(/\s+/g, '-')}-${asset.metadata.version}`;
     this.mockRegistry.set(id, asset);
 
-    console.log(`[HoloHub] Published successfully. ID: ${id}`);
     return id;
   }
 
   async searchAssets(query: string): Promise<HoloSmartAsset[]> {
-    console.log(`[HoloHub] Searching for: ${query}...`);
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     const results: HoloSmartAsset[] = [];

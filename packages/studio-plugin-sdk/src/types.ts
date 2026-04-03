@@ -212,7 +212,7 @@ export interface PluginConfig {
   settingsSchema?: PluginSetting[];
 
   /** Current settings values */
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
 }
 
 // ── Custom Extensions ─────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ export interface CustomNodeType {
   outputs?: Array<{ id: string; label: string; type?: string }>;
 
   /** Default configuration */
-  defaultConfig?: Record<string, any>;
+  defaultConfig?: Record<string, unknown>;
 
   /** React component for custom node UI (optional) */
   component?: ComponentType<any>;

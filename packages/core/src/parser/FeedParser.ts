@@ -1,5 +1,6 @@
 import { IncrementalParseResult, ChunkBasedIncrementalParser } from './IncrementalParser';
 import { ASTNode } from '../types/base';
+import type { VRTraitName } from '../types/base';
 import * as crypto from 'crypto';
 
 export interface SpatialEntity {
@@ -39,16 +40,16 @@ export class FeedParser {
     this.version++;
 
     // Walk the AST fragment to extract orb/Insight nodes
-    const root = parseResult.ast as any;
-    const children = root.type === 'fragment' ? root.children : [root];
+    const root = parseResult.ast as ASTNode & { children?: ASTNode[] };
+    const children = root.type === 'fragment' ? root.children ?? [] : [root];
 
     for (const node of children) {
       if ((node.type === 'orb' || node.type === 'Insight') && node.id) {
         // Extract provenance from comments or traits if needed
         if (!node.provenance) {
-          const authorTrait = node.traits?.get('author') as any;
+          const authorTrait = node.traits?.get('author' as VRTraitName) as Record<string, unknown> | undefined;
           node.provenance = {
-            author: authorTrait?.value || authorTrait?.[0] || 'anonymous',
+            author: String(authorTrait?.value || authorTrait?.[0] || 'anonymous'),
             timestamp: Date.now(),
             provenanceHash: crypto.createHash('sha256').update(JSON.stringify(node)).digest('hex'),
           };
@@ -66,18 +67,18 @@ export class FeedParser {
       .filter((n) => n.position)
       .map((n) => {
         // Extract thought trait content
-        const thoughtTrait = n.traits?.get('thought') as any;
-        const content = thoughtTrait?.value || thoughtTrait?.[0] || '';
+        const thoughtTrait = n.traits?.get('thought' as VRTraitName) as Record<string, unknown> | undefined;
+        const content = String(thoughtTrait?.value || thoughtTrait?.[0] || '');
 
         // Extract velocity if present
-        const velocityTrait = n.traits?.get('velocity') as any;
-        const vArgs = velocityTrait?.args || [0, 0, 0];
+        const velocityTrait = n.traits?.get('velocity' as VRTraitName) as Record<string, unknown> | undefined;
+        const vArgs = (velocityTrait?.args as number[]) || [0, 0, 0];
 
         return {
           id: n.id!,
           ast: n,
           position: n.position!,
-          velocity: [vArgs[0] || 0, vArgs[1] || 0, vArgs[2] || 0],
+          velocity: [Number(vArgs[0]) || 0, Number(vArgs[1]) || 0, Number(vArgs[2]) || 0],
           traits: n.traits || new Map(),
           author: n.provenance?.author || 'anonymous',
           content,

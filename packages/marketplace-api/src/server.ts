@@ -96,8 +96,7 @@ export function createApp(
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
-      const duration = Date.now() - start;
-      console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
+      // Request timing available via monitoring middleware
     });
     next();
   });
@@ -159,13 +158,10 @@ export async function startServer(
   // Use PostgreSQL when DATABASE_URL is set (Railway production), else in-memory (dev)
   let registry: TraitRegistry;
   if (process.env.DATABASE_URL) {
-    console.log('[db] Connecting to PostgreSQL...');
     const pgDb = new PostgresTraitDatabase(process.env.DATABASE_URL);
     await pgDb.initSchema();
-    console.log('[db] PostgreSQL ready');
     registry = new TraitRegistry(pgDb);
   } else {
-    console.log('[db] Using in-memory database (set DATABASE_URL for persistence)');
     registry = new TraitRegistry();
   }
 

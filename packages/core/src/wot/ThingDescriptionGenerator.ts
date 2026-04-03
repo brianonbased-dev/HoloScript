@@ -288,7 +288,8 @@ export class ThingDescriptionGenerator {
    * Parse @wot_thing config from directive
    */
   private parseWoTConfig(directive: HSPlusDirective): WoTThingConfig {
-    const args = (directive as any).args || (directive as any).config || {};
+    const dir = directive as { type: string; args?: Record<string, unknown>; config?: Record<string, unknown> };
+    const args = dir.args || dir.config || {};
 
     return {
       title: String(args.title || ''),
@@ -312,10 +313,10 @@ export class ThingDescriptionGenerator {
 
     // Find @state directive (use any for flexibility with directive variants)
     const stateDirective = node.directives.find(
-      (d: any) => d.type === 'state' || (d.type === 'directive' && (d as any).name === 'state')
+      (d) => d.type === 'state' || (d.type === 'directive' && (d as { name?: string }).name === 'state')
     );
 
-    if (!stateDirective || !(stateDirective as any).body) {
+    if (!stateDirective || !(stateDirective as { body?: unknown }).body) {
       // Also check node.properties for inline state
       if (node.properties?.state && typeof node.properties.state === 'object') {
         return this.mapStateToProperties(node.properties.state as Record<string, unknown>);
@@ -324,7 +325,8 @@ export class ThingDescriptionGenerator {
     }
 
     // Parse state body
-    const stateBody = typeof (stateDirective as any).body === 'object' ? (stateDirective as any).body : {};
+    const rawBody = (stateDirective as { body?: unknown }).body;
+    const stateBody = typeof rawBody === 'object' && rawBody !== null ? rawBody as Record<string, unknown> : {};
     return this.mapStateToProperties(stateBody);
   }
 
@@ -403,8 +405,8 @@ export class ThingDescriptionGenerator {
     ];
 
     for (const directive of node.directives) {
-      // Check for lifecycle hooks (type narrowing with any for flexibility)
-      const d = directive as any;
+      // Check for lifecycle hooks
+      const d = directive as { type: string; hook?: string; name?: string; args?: unknown };
       if (directive.type !== 'lifecycle' && d.hook === undefined) {
         continue;
       }
@@ -462,7 +464,8 @@ export class ThingDescriptionGenerator {
     );
 
     for (const directive of observableDirectives) {
-      const args = (directive as any).args || (directive as any).config || {};
+      const dirExt = directive as { type: string; args?: Record<string, unknown>; config?: Record<string, unknown> };
+      const args = dirExt.args || dirExt.config || {};
       const eventName = args.name || args.event || 'change';
 
       events[String(eventName)] = {
@@ -482,7 +485,7 @@ export class ThingDescriptionGenerator {
       if (args.data && typeof args.data === 'object') {
         events[String(eventName)].data = {
           type: 'object',
-          properties: this.extractInputSchema(args.data),
+          properties: this.extractInputSchema(args.data as Record<string, unknown>),
         };
       }
     }
@@ -490,9 +493,10 @@ export class ThingDescriptionGenerator {
     // Also scan for emit() calls in handler bodies
     const emitPattern = /emit\s*\(\s*['"]([^'"]+)['"]/g;
     for (const directive of node.directives) {
-      if ((directive as any).body && typeof (directive as any).body === 'string') {
+      const dirBody = (directive as { body?: unknown }).body;
+      if (dirBody && typeof dirBody === 'string') {
         let match;
-        while ((match = emitPattern.exec((directive as any).body)) !== null) {
+        while ((match = emitPattern.exec(dirBody)) !== null) {
           const eventName = match[1];
           if (!events[eventName]) {
             events[eventName] = {

@@ -61,9 +61,6 @@ export class ZoraMintingService {
 
       // 3. Mock Transaction Broadcast (To Base L2 via viem / wagmi)
       // In reality, this communicates with the Zora Create SDK
-      console.log(`[ZoraMintingService] Broadcasting mint tx for "${payload.name}" to Base L2...`);
-      console.log(`[ZoraMintingService] Metadata:`, metadata);
-      console.log(`[ZoraMintingService] Royalties:`, payload.royalties);
 
       return {
         success: true,

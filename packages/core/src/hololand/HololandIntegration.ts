@@ -6,7 +6,7 @@
  * cross-platform runtime services.
  */
 
-import { WorldDefinition, WorldConfig } from './WorldDefinitionSchema';
+import type { WorldDefinition, WorldConfig, WorldEnvironment, SceneNode, WorldLODConfig } from './WorldDefinitionSchema';
 
 // ============================================================================
 // Hololand Connection State
@@ -810,15 +810,15 @@ export class HololandClient {
         metadata: {},
       },
       config: {} as WorldConfig,
-      environment: {} as any,
+      environment: {} as WorldEnvironment,
       zones: [],
       spawnPoints: [],
       assetManifest: '',
       prefabs: [],
-      sceneGraph: {} as any,
+      sceneGraph: {} as SceneNode,
       scripts: [],
       events: [],
-      lod: {} as any,
+      lod: {} as WorldLODConfig,
     };
   }
 

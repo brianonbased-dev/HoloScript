@@ -40,8 +40,6 @@ export class ConfigLoader {
       return { ...DEFAULT_CONFIG };
     }
 
-    // console.log(`Loaded ${configPath}:`, JSON.stringify(rawConfig));
-    console.log(`Loaded ${configPath}:`, JSON.stringify(rawConfig));
 
     let combinedConfig: LinterConfig = {
       rules: {},

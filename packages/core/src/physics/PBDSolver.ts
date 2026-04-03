@@ -2703,7 +2703,8 @@ export class PBDSolverGPU {
       usage,
       mappedAtCreation: true,
     });
-    new (data.constructor as any)(buffer.getMappedRange()).set(data);
+    const TypedArrayCtor = data.constructor as new (buffer: ArrayBuffer) => typeof data;
+    new TypedArrayCtor(buffer.getMappedRange()).set(data);
     buffer.unmap();
     return buffer;
   }
@@ -2838,9 +2839,11 @@ export async function createPBDSolver(
   }
 
   // Attempt to use WebGPU if available and requested
-  if (config.useGPU && (navigator as any).gpu) {
+  const nav = navigator as Navigator & { gpu?: { requestAdapter(): Promise<GPUAdapter> } };
+  if (config.useGPU && nav.gpu) {
     try {
-      const adapter = await (navigator as any).gpu.requestAdapter();
+      const adapter = await nav.gpu.requestAdapter();
+      if (!adapter) throw new Error('No GPU adapter available');
       const device = await adapter.requestDevice();
       const solver = new PBDSolverGPU(config, device);
       await solver.initialize();

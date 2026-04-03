@@ -5,7 +5,7 @@ export interface AgentConfig {
   name: string;
   type: string;
   status: 'idle' | 'running' | 'error';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface AgentRegistryState {

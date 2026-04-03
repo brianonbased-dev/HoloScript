@@ -118,7 +118,7 @@ function runEffect(effect: EffectFunc): void {
 
 function createReactiveProxy<T extends object>(
   target: T,
-  onMutation?: (target: T, key: string | symbol, value: any, oldValue: any) => void
+  onMutation?: (target: T, key: string | symbol, value: unknown, oldValue: unknown) => void
 ): T {
   return new Proxy(target, {
     get(obj, key: string | symbol) {
@@ -199,7 +199,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
     if (oldValue === value) return;
 
     // 1. Update Proxy/State
-    (this.proxy as any)[key] = value;
+    (this.proxy as Record<string, unknown>)[key as string] = value;
 
     // 2. Create and reconcile local CRDT operation
     const redoOp = this.crdt.createOperation(key as string, value);
@@ -224,8 +224,8 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
 
     for (const key in updates) {
       if (Object.prototype.hasOwnProperty.call(updates, key)) {
-        this.set(key as any, updates[key] as any);
-        changedKeys.push(key as any);
+        this.set(key as keyof T, updates[key] as T[keyof T]);
+        changedKeys.push(key as keyof T);
       }
     }
   }
@@ -235,7 +235,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
     if (step) {
       this.isApplyingSync = true;
       try {
-        this.set(step.undo.key as any, step.undo.value);
+        this.set(step.undo.key as keyof T, step.undo.value as T[keyof T]);
       } finally {
         this.isApplyingSync = false;
       }
@@ -256,8 +256,9 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
 
   private setupSync(): void {
     // Listen for remote updates
-    eventBus.on(`state_sync:${this.syncId}`, (data: any) => {
-      const op = data.op as CRDTOperation;
+    eventBus.on(`state_sync:${this.syncId}`, (data: unknown) => {
+      const syncData = data as { op: CRDTOperation };
+      const op = syncData.op;
       if (op.clientId === this.clientId) return;
 
       this.isApplyingSync = true;
@@ -278,7 +279,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
       eventBus.emit(`state_sync:${this.syncId}`, {
         source: 'local',
         op,
-      } as any);
+      } as unknown as import('../types').HoloScriptValue);
     }
   }
 
@@ -440,7 +441,7 @@ export function ref<T>(value: T): { value: T } {
 
 export function reactive<T extends object>(
   target: T,
-  onMutation?: (target: T, key: string | symbol, value: any, oldValue: any) => void
+  onMutation?: (target: T, key: string | symbol, value: unknown, oldValue: unknown) => void
 ): T {
   return createReactiveProxy(target, onMutation);
 }

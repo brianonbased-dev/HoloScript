@@ -18,7 +18,7 @@ export interface Room {
   hostId: string;
   players: Set<string>;
   createdAt: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class RoomManager {

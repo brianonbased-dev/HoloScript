@@ -1350,11 +1350,10 @@ export class HoloScriptPreviewPanel {
                 scene.add(model);
                 objects.push(model);
               }, undefined, (error) => {
-                // Keep placeholder on error, just log
-                console.log('GLB load hint:', modelPath, '(relative paths need workspace context)');
+                // Keep placeholder on error
               });
             } catch (e) {
-              console.log('GLB placeholder for:', modelPath);
+              void e; // GLB load failed, using placeholder
             }
             count++;
             continue; // Skip normal geometry creation

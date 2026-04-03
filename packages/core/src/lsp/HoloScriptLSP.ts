@@ -991,12 +991,12 @@ export class HoloScriptLSP {
       for (const obj of result.ast.objects) {
         for (const tr of obj.traits) traitNames.add(tr.name);
       }
-      const domainNodes: any[] = (result.ast as any).domainBlocks ?? [];
+      const domainNodes = (result.ast as unknown as { domainBlocks?: DiagnosticContext['nodes'] }).domainBlocks ?? [];
       const ctx: DiagnosticContext = { nodes: domainNodes, knownTraits: traitNames };
       const providerDiags = this.diagnosticProvider.diagnose(ctx);
       for (const d of providerDiags) {
         diagnostics.push({
-          severity: d.severity as any,
+          severity: d.severity,
           message: d.message,
           range: {
             start: { line: d.line, character: d.column },
@@ -1162,7 +1162,7 @@ export class HoloScriptLSP {
         items.push({
           label: pi.label,
           kind:
-            pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : (pi.kind as any),
+            pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : (pi.kind as CompletionItemKind),
           detail: pi.detail,
           documentation: pi.documentation,
           insertText: pi.insertText,

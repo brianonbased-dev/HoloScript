@@ -22,12 +22,10 @@ export function useHoloSocket(port: number = 8080) {
     socketRef.current = ws;
 
     ws.onopen = () => {
-      console.log('Connected to HoloScript Runtime');
       setStatus('connected');
     };
 
     ws.onclose = () => {
-      console.log('Disconnected from HoloScript Runtime');
       setStatus('disconnected');
     };
 
@@ -40,10 +38,8 @@ export function useHoloSocket(port: number = 8080) {
       try {
         const message = JSON.parse(event.data);
         const { type, payload, orbs: initialOrbs, time } = message;
-        console.log('[Frontend] Received WebSocket message:', type);
 
         if (type === 'init') {
-          console.log('[Frontend] Initializing with', initialOrbs.length, 'orbs');
           const newMap = new Map();
           initialOrbs.forEach((orb: OrbData) => newMap.set(orb.id, orb));
           setOrbs(newMap);
@@ -53,7 +49,6 @@ export function useHoloSocket(port: number = 8080) {
             setTimeState(time);
           }
         } else if (type === 'orb_created' || type === 'orb_update') {
-          console.log('[Frontend] Orb update:', payload.orb?.name, 'pos=', payload.orb?.position);
           setOrbs((prev) => {
             const next = new Map(prev);
             if (payload && payload.orb) {

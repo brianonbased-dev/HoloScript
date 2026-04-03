@@ -132,7 +132,7 @@ export interface AgentConfig {
   tools?: string[];
 
   /** Configuration parameters */
-  configuration?: Record<string, any>;
+  configuration?: Record<string, unknown>;
 
   /** Optional target scope (e.g., package path restriction) */
   scope?: string;
@@ -193,7 +193,7 @@ export interface IntentTokenPayload {
     executed_by: AgentRole;
     initiated_by: AgentRole;
     delegation_chain: AgentRole[];
-    execution_context?: Record<string, any>;
+    execution_context?: Record<string, unknown>;
   };
 
   /**

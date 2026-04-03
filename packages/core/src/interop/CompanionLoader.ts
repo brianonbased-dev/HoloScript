@@ -58,8 +58,8 @@ export class CompanionLoader {
     };
 
     for (const imp of ast.imports || []) {
-      const modulePath = (imp as any).path || imp.source;
-      const alias = (imp as any).alias || imp.source;
+      const modulePath = imp.path || imp.source;
+      const alias = imp.alias || imp.source;
 
       // Create a lazy wrapper for the module
       const lazyModule = new Lazy(() => this.loadModule(modulePath));
@@ -68,20 +68,20 @@ export class CompanionLoader {
       // The runtime will await it if it's a promise, but here we provide a way
       // to avoid triggering the load until a property is accessed.
       const proxy = new Proxy(
-        {},
+        {} as Record<string, unknown>,
         {
-          get: (target, prop) => {
+          get: (_target, prop: string) => {
             const mod = lazyModule.get();
             if (mod instanceof Promise) {
               // If it's still loading (async), we return a promise for the property
-              return mod.then((m) => (m as any)[prop]);
+              return mod.then((m) => (m as Record<string, unknown>)[prop]);
             }
-            return (mod as any)[prop];
+            return (mod as Record<string, unknown>)[prop];
           },
         }
       );
 
-      result.companions[alias] = proxy as any;
+      result.companions[alias] = proxy;
       result.loaded.push(modulePath);
     }
 

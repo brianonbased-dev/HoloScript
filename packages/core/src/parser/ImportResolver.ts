@@ -489,8 +489,9 @@ export class ImportResolver {
   private _extractExports(result: HSPlusCompileResult): Map<string, HSPlusNode> {
     const exports = new Map<string, HSPlusNode>();
 
-    const ast = result.ast as any;
-    const root = ast?.root;
+    const ast = result.ast as Record<string, unknown> | undefined;
+    if (!ast) return exports;
+    const root = ast.root as Record<string, unknown> | undefined;
     if (!root) return exports;
 
     // Build a flat list of all nodes to inspect (deduplicated)
@@ -523,11 +524,12 @@ export class ImportResolver {
     }
 
     for (const node of nodesToCheck) {
-      const directives: any[] = (node as any).directives ?? [];
-      const exportDir = directives.find((d: any) => d?.type === 'export');
+      const nodeRec = node as unknown as Record<string, unknown>;
+      const directives: Array<Record<string, unknown>> = (nodeRec.directives as Array<Record<string, unknown>>) ?? [];
+      const exportDir = directives.find((d) => d?.type === 'export');
       if (exportDir) {
         const exportName: string =
-          exportDir.exportName ?? (node as any).id ?? (node as any).name ?? (node as any).type;
+          (exportDir.exportName as string) ?? (nodeRec.id as string) ?? (nodeRec.name as string) ?? (nodeRec.type as string);
         exports.set(exportName, node);
       }
     }

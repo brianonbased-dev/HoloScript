@@ -344,7 +344,7 @@ console.log('🔮 HoloScript GLTFPipeline — Generating Play Mode assets\n');
 
 for (const [name, comp] of Object.entries(MODELS)) {
   try {
-    const result = pipeline.compile(comp, undefined as any);
+    const result = pipeline.compile(comp, 'script-token');
     if (result.binary) {
       const outPath = path.join(outDir, `${name}.glb`);
       fs.writeFileSync(outPath, result.binary);

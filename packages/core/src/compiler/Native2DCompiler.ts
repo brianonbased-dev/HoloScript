@@ -226,7 +226,7 @@ export default ${safeName}Component;
       const bgProp = composition.environment.properties.find((p) => p.key === 'backgroundColor');
       if (
         themeProp?.value === 'dark' ||
-        (composition as any).traits?.some((t: any) => t.name === 'theme' && t.config?.dark)
+        (composition as unknown as { traits?: Array<{ name: string; config?: { dark?: boolean } }> }).traits?.some((t) => t.name === 'theme' && t.config?.dark)
       ) {
         bgColor = (bgProp?.value as string) || '#050510';
         color = '#ffffff';

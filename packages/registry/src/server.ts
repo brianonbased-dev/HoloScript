@@ -297,10 +297,7 @@ if (BOOTSTRAP_TOKEN) {
     permissions: ['admin'],
     expiresIn: 365 * 24 * 60 * 60, // 1 year
   });
-  console.log(
-    `[registry] Bootstrap admin token created (use REGISTRY_BOOTSTRAP_TOKEN env to disable)`
-  );
-  console.log(`[registry] Token: ${rawToken.substring(0, 8)}...`);
+  // Bootstrap token created — retrieve via REGISTRY_BOOTSTRAP_TOKEN env
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────

@@ -65,7 +65,7 @@ export class RuntimeBridge {
     this.themeEngine.onThemeChange(() => {
       const newResolver = StyleResolver.fromTokens(this.themeEngine.getTokens());
       // Copy rules into existing resolver reference
-      (this as any).styleResolver = newResolver;
+      (this as unknown as { styleResolver: StyleResolver }).styleResolver = newResolver;
     });
 
     // ECS Systems

@@ -442,7 +442,7 @@ export class CapabilityMatrix {
     // Check WebGPU first
     if ('gpu' in navigator) {
       try {
-        const adapter = await (navigator as any).gpu.requestAdapter();
+        const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<GPUAdapter | null> } }).gpu.requestAdapter();
         if (adapter) return 'webgpu';
       } catch {
         // WebGPU not available
@@ -539,7 +539,8 @@ export class CapabilityMatrix {
     // WebGPU capabilities
     if ('gpu' in navigator) {
       try {
-        const adapter = await (navigator as any).gpu?.requestAdapter();
+        const gpuNav = navigator as unknown as { gpu?: { requestAdapter(): Promise<GPUAdapter | null> } };
+        const adapter = await gpuNav.gpu?.requestAdapter();
         if (adapter) {
           defaults.computeShaders = true;
           defaults.meshShaders = adapter.features.has('mesh_shader');
@@ -575,7 +576,7 @@ export class CapabilityMatrix {
       return defaults;
     }
 
-    const xr = (navigator as any).xr;
+    const xr = (navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }).xr;
 
     try {
       // Check VR support
@@ -768,7 +769,7 @@ export class CapabilityMatrix {
 
     // Check memory if available
     if ('deviceMemory' in navigator) {
-      defaults.availableMemory = (navigator as any).deviceMemory * 1024;
+      defaults.availableMemory = (navigator as unknown as { deviceMemory: number }).deviceMemory * 1024;
     }
 
     defaults.sharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
@@ -900,11 +901,11 @@ export class CapabilityMatrix {
     if (!this.profile) return undefined;
 
     const parts = path.split('.');
-    let current: any = this.profile;
+    let current: unknown = this.profile;
 
     for (const part of parts) {
       if (current === undefined || current === null) return undefined;
-      current = current[part];
+      current = (current as Record<string, unknown>)[part];
     }
 
     return current;

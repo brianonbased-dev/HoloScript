@@ -42,7 +42,7 @@ export const themeTraitHandler: TraitHandler<ThemeTraitConfig> = {
       config.inline || {}
     );
     if (node.properties) {
-      (node.properties as any)._style = style;
+      (node.properties as Record<string, unknown>)._style = style;
     }
   },
 
@@ -56,7 +56,7 @@ export const themeTraitHandler: TraitHandler<ThemeTraitConfig> = {
       config.inline || {}
     );
     if (node.properties) {
-      (node.properties as any)._style = style;
+      (node.properties as Record<string, unknown>)._style = style;
     }
   },
 };

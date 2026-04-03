@@ -1450,7 +1450,7 @@ export class GLTFPipeline extends CompilerBase {
           material: (block) => {
             const mat = compileMaterialBlock(block);
             const gltfMat = materialToGLTF(mat);
-            this.materials.push(gltfMat as any);
+            this.materials.push(gltfMat as GLTFMaterial);
             this.stats.materialCount++;
             return '';
           },

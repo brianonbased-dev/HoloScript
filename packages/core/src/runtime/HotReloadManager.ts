@@ -120,7 +120,7 @@ export class HotReloadManager {
     const result = { ...newState };
     for (const key of Object.keys(newState) as (keyof T)[]) {
       if (key in oldState) {
-        result[key] = oldState[key] as any;
+        result[key] = oldState[key];
       }
     }
     return result;

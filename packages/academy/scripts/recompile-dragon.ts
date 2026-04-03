@@ -18,7 +18,7 @@ if (!r.ast) {
 }
 
 const pipeline = new GLTFPipeline({ format: 'glb' });
-const result = pipeline.compile(r.ast, undefined as any);
+const result = pipeline.compile(r.ast, 'script-token');
 console.log('Stats:', JSON.stringify(result.stats, null, 2));
 
 if (result.binary) {

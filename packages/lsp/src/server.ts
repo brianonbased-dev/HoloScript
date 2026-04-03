@@ -342,7 +342,6 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
         semanticCompletion = new SemanticCompletionProvider(adapter);
         await semanticCompletion.initialize();
         aiCompletion = new AICompletionProvider(adapter);
-        console.log(`[LSP] AI initialized with Ollama (${ollamaModel})`);
         aiInitialized = true;
       }
     }
@@ -360,7 +359,6 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
         semanticCompletion = new SemanticCompletionProvider(adapter);
         await semanticCompletion.initialize();
         aiCompletion = new AICompletionProvider(adapter);
-        console.log('[LSP] AI initialized with Gemini (Ollama not available)');
       }
     }
   }

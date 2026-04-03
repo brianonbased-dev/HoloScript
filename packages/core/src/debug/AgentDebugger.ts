@@ -154,7 +154,7 @@ export class AgentDebugger extends EventEmitter {
   /**
    * Register an agent for debugging
    */
-  registerAgent(manifest: AgentManifest, initialState: Record<string, any> = {}): void {
+  registerAgent(manifest: AgentManifest, initialState: Record<string, unknown> = {}): void {
     this.inspector.registerAgent(manifest, initialState);
     this.collector.recordEvent('agent_registered', manifest.id, {
       name: manifest.name,
@@ -189,7 +189,7 @@ export class AgentDebugger extends EventEmitter {
     options: {
       agentId?: string;
       parentSpanId?: string;
-      attributes?: Record<string, any>;
+      attributes?: Record<string, unknown>;
     } = {}
   ): TraceSpan {
     const parentSpan = options.parentSpanId
@@ -518,7 +518,7 @@ export class AgentDebugger extends EventEmitter {
     return Promise.resolve();
   }
 
-  private handleBreakpointHit(breakpoint: BreakpointInfo, _context: Record<string, any>): void {
+  private handleBreakpointHit(breakpoint: BreakpointInfo, _context: Record<string, unknown>): void {
     this.collector.recordEvent('breakpoint_hit', breakpoint.agentId, {
       breakpointId: breakpoint.id,
       condition: breakpoint.condition,

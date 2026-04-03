@@ -23,6 +23,7 @@ import { randomUUID } from 'crypto';
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
 import { createHeadlessRuntime as createProfileRuntime } from '../runtime/profiles/HeadlessRuntime';
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+import type { HSPlusAST } from '../types/HoloScriptPlus';
 import { HEADLESS_PROFILE as PROFILES_HEADLESS } from '../runtime/profiles/RuntimeProfile';
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
@@ -636,7 +637,21 @@ function runTicks(runtime: { tick: () => void }, count: number): void {
   }
 }
 
-async function runDaemon(runtime: any, opts: CLIOptions): Promise<void> {
+/** Duck-typed runtime interface for daemon mode */
+interface DaemonRuntime {
+  emit(event: string, payload?: unknown): void;
+  on(event: string, handler: (payload: unknown) => void): () => void;
+  stop(): void;
+  registerAction(name: string, handler: ActionHandler): void;
+  getState(key?: string): unknown;
+  getAllState?(): unknown;
+  setState(key: string, value: unknown): void;
+  getStats(): Record<string, unknown>;
+  tick(): void;
+  [key: string]: unknown;
+}
+
+async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void> {
   const supportsEvents = typeof runtime.emit === 'function';
   const supportsStats = typeof runtime.getStats === 'function';
   const supportsActionRegistry = typeof runtime.registerAction === 'function';
@@ -904,7 +919,7 @@ async function runScript(opts: CLIOptions): Promise<void> {
 
   // Parse the source
   const parseResult = parse(source);
-  const ast = parseResult.ast as any;
+  const ast = parseResult.ast as HSPlusAST;
 
   if (opts.debug) {
     console.log(`[holoscript] Parsed ${ast.body?.length || 0} top-level nodes`);
@@ -957,7 +972,7 @@ async function runScript(opts: CLIOptions): Promise<void> {
     if (opts.debug) {
       console.log('[holoscript] Entering daemon mode');
     }
-    await runDaemon(runtime as any, opts);
+    await runDaemon(runtime as unknown as DaemonRuntime, opts);
     return;
   }
 
@@ -989,7 +1004,7 @@ async function runScript(opts: CLIOptions): Promise<void> {
       try {
         const newSource = fs.readFileSync(filePath, 'utf-8');
         const newParseResult = parse(newSource);
-        const newAst = newParseResult.ast as any;
+        const newAst = newParseResult.ast as HSPlusAST;
         const newRuntime = createHeadlessRuntime(newAst, {
           profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile),
           tickRate: 10,
@@ -1033,7 +1048,7 @@ async function testScript(opts: CLIOptions): Promise<void> {
 
   // Parse and create a headless runtime to populate state for assertions
   const parseResult = parse(source);
-  const ast = parseResult.ast as any;
+  const ast = parseResult.ast as HSPlusAST;
   const profile = HEADLESS_PROFILE;
   const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
@@ -2088,10 +2103,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
     // Register all action handlers
     for (const [name, handler] of Object.entries(actions)) {
-      runtime.registerAction(name, handler as any);
+      runtime.registerAction(name, handler as ActionHandler);
     }
     for (const [name, handler] of Object.entries(runtimeSkillActions)) {
-      runtime.registerAction(name, handler as any);
+      runtime.registerAction(name, handler as ActionHandler);
     }
 
     // Wire trait event listeners: @economy budget enforcement, @feedback_loop metrics,

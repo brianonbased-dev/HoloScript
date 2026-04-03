@@ -29,7 +29,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 // ── Trait completions from VR_TRAITS ────────────────────────────────────────
 // We import from the barrel to get the full 1,800+ trait list.
 // At build time this resolves to the compiled core package.
-import { VR_TRAITS } from '@holoscript/core/constants';
+import { VR_TRAITS, type VRTraitName } from '@holoscript/core/constants';
 import {
   ErrorRecovery,
   HOLOSCHEMA_KEYWORDS,
@@ -150,7 +150,7 @@ connection.onCompletionResolve((item) => {
   if (item.data?.type === 'trait') {
     const traitName = VR_TRAITS[item.data.index];
     item.documentation = {
-      kind: 'markdown' as any,
+      kind: 'markdown' as const,
       value: [
         `### @${traitName}`,
         '',
@@ -253,10 +253,10 @@ connection.onHover((params) => {
   // Trait hover
   if (word.startsWith('@')) {
     const traitName = word.slice(1);
-    if (VR_TRAITS.includes(traitName as any)) {
+    if (VR_TRAITS.includes(traitName as VRTraitName)) {
       return {
         contents: {
-          kind: 'markdown' as any,
+          kind: 'markdown' as const,
           value: `### @${traitName}\n\nHoloScript behavior trait.\n\nApply to objects to add \`${traitName}\` functionality.`,
         },
       };
@@ -267,7 +267,7 @@ connection.onHover((params) => {
   if (HOLOSCHEMA_KEYWORDS.includes(word)) {
     return {
       contents: {
-        kind: 'markdown' as any,
+        kind: 'markdown' as const,
         value: `### ${word}\n\nHoloScript keyword — defines a ${word} block.`,
       },
     };

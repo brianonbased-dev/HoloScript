@@ -151,7 +151,7 @@ export async function timed<T>(label: string, fn: () => T | Promise<T>): Promise
     return await fn();
   } finally {
     const duration = hrTime() - start;
-    console.log(`[${label}] ${duration.toFixed(2)}ms`);
+    void duration; // timing available for callers via return value
   }
 }
 

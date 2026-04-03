@@ -1665,7 +1665,8 @@ export class HoloScriptCodeParser {
         if (this.check('punctuation', '@')) {
           const directive = this.parseDirective();
           if (directive) {
-            settings[`@${directive.type}`] = ((directive as any).args || (directive as any).config || []) as HoloScriptValue;
+            const dir = directive as { type: string; args?: unknown[]; config?: Record<string, unknown> };
+            settings[`@${directive.type}`] = (dir.args || dir.config || []) as HoloScriptValue;
           }
           continue;
         }

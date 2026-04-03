@@ -153,14 +153,7 @@ export function createRateLimitPlugin(
       return req.ip || req.connection?.remoteAddress || 'unknown';
     });
 
-  // Log stats every 5 minutes
-  setInterval(
-    () => {
-      const stats = limiter.getStats();
-      console.log('[Rate Limit Stats]', stats);
-    },
-    5 * 60 * 1000
-  );
+  // Rate limit stats available via limiter.getStats()
 
   return {
     async requestDidStart(requestContext): Promise<GraphQLRequestListener<BaseContext>> {

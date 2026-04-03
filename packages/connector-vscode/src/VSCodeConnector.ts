@@ -56,7 +56,6 @@ export class VSCodeConnector extends ServiceConnector {
         console.warn('[VSCodeConnector] Extension heartbeat lost');
         this.isConnected = false;
       } else if (alive && !this.isConnected) {
-        console.log('[VSCodeConnector] Extension reconnected');
         this.isConnected = true;
       }
     }, 15_000); // 15-second heartbeat

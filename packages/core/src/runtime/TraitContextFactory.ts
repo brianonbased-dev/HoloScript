@@ -22,6 +22,7 @@ import type {
   AudioContext as TraitAudioContext,
   HapticsContext,
   AccessibilityContext,
+  RaycastHit,
 } from '../traits/TraitTypes';
 import type {
   VRHand,
@@ -294,8 +295,8 @@ export class TraitContextFactory {
       setKinematic(node: HSPlusNode, kinematic: boolean) {
         self.physicsProvider.setKinematic(node.id || '', kinematic);
       },
-      raycast(origin: Vector3, direction: Vector3, maxDistance: number): any {
-        return self.physicsProvider.raycast(origin, direction, maxDistance) as any;
+      raycast(origin: Vector3, direction: Vector3, maxDistance: number): RaycastHit | null {
+        return self.physicsProvider.raycast(origin, direction, maxDistance) as RaycastHit | null;
       },
       getBodyPosition(nodeId: string) {
         return self.physicsProvider.getBodyPosition?.(nodeId) || null;

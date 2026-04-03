@@ -1,6 +1,6 @@
 import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
-import { ProvenanceSemiring } from './traits/ProvenanceSemiring';
+import { ProvenanceSemiring, type ProvenanceContext } from './traits/ProvenanceSemiring';
 // Side-effect import: registers all preset visuals into the registry
 import '../traits/visual';
 import {
@@ -2861,17 +2861,17 @@ export class R3FCompiler {
           return {
             name: t.name as string,
             config: baseConfig,
-            context: (obj.provenance as any)?.context
+            context: (obj.provenance as { context?: ProvenanceContext } | undefined)?.context
           };
         });
 
       if (physicsApplications.length > 0) {
-        const { config: mergedPhysics } = semiring.add(physicsApplications as any[]);
+        const { config: mergedPhysics } = semiring.add(physicsApplications);
         props.rigidBody = { ...mergedPhysics };
         props.collider = { type: 'auto' };
         
         // Inherit legacy shadow toggles if the resolved type is fixed
-        if ((props.rigidBody as any).type === 'fixed') {
+        if ((props.rigidBody as Record<string, unknown>)?.type === 'fixed') {
           props.castShadow = true;
           props.receiveShadow = true;
         }

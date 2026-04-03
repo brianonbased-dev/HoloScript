@@ -207,7 +207,7 @@ export class HololandGraphicsPipelineService {
     const asset: MaterialAsset = {
       id,
       name: config.name || 'Material',
-      material: null as any, // Would be actual MaterialTrait
+      material: null! as MaterialTrait, // Would be actual MaterialTrait
       shaders: this.generateShaders(config),
       textures: this.loadTexturesFromConfig(config),
       instances: 0,

@@ -226,7 +226,7 @@ export class PerformanceTelemetry {
   public recordMemorySnapshot(): void {
     if (!this.monitoringEnabled) return;
 
-    const perf = (performance as any).memory;
+    const perf = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
 
     if (!perf) {
       console.warn('Memory profiling not available');

@@ -5,8 +5,8 @@ import { pushObjectTrait } from '../runtime-types';
 export interface TraitContext {
   object: THREE.Object3D;
   physicsWorld: PhysicsWorld;
-  config: Record<string, any>;
-  data: Record<string, any>; // Trait-specific runtime data
+  config: Record<string, unknown>;
+  data: Record<string, unknown>; // Trait-specific runtime data
 }
 
 export interface TraitHandler {
@@ -27,7 +27,7 @@ export class TraitSystem {
     this.activeTraits.set(handler.name, []);
   }
 
-  apply(object: THREE.Object3D, traitName: string, config: Record<string, any> = {}): void {
+  apply(object: THREE.Object3D, traitName: string, config: Record<string, unknown> = {}): void {
     const handler = this.handlers.get(traitName);
     if (!handler) {
       console.warn(`Trait ${traitName} not registered`);

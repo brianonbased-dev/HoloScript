@@ -6,7 +6,7 @@
  * Drag-and-drop scene builder, property editing, real-time preview.
  */
 
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectDecl, HoloObjectTrait, HoloObjectProperty, HoloValue } from '../parser/HoloCompositionTypes';
 
 /**
  * Editor configuration
@@ -56,12 +56,12 @@ export interface EditorEntity {
   material?: {
     type: string;
     color?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   /** Applied traits */
   traits: EditorTrait[];
   /** Custom properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** Visibility */
   visible: boolean;
   /** Locked (can't be edited) */
@@ -77,7 +77,7 @@ export interface EditorTrait {
   /** Trait name */
   name: string;
   /** Trait properties */
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   /** Trait category */
   category?: string;
 }
@@ -91,9 +91,9 @@ export interface HistoryEntry {
   /** Entity ID */
   entityId: string;
   /** Previous state */
-  previousState?: any;
+  previousState?: EditorEntity;
   /** New state */
-  newState?: any;
+  newState?: EditorEntity;
   /** Timestamp */
   timestamp: number;
 }
@@ -120,7 +120,7 @@ export class VisualEditor {
 
   constructor(config: VisualEditorConfig = {}) {
     this.config = {
-      container: (config.container ?? null) as any,
+      container: (config.container ?? null) as unknown as HTMLElement,
       autoSave: config.autoSave ?? true,
       autoSaveInterval: config.autoSaveInterval ?? 30000, // 30 seconds
       debug: config.debug ?? false,
@@ -552,7 +552,7 @@ export class VisualEditor {
       achievements: [],
       talentTrees: [],
       shapes: [],
-    } as any;
+    } as HoloComposition;
 
     this.entities.clear();
     this.selectedEntityIds.clear();
@@ -611,10 +611,10 @@ export class VisualEditor {
         scale: scl ? [scl[0], scl[1], scl[2]] : [1, 1, 1],
       },
       geometry: getProp('geometry') as string | undefined,
-      material: getProp('material') as any,
+      material: getProp('material') as EditorEntity['material'],
       traits: (obj.traits || []).map((t) => ({
         name: t.name,
-        properties: t.config as Record<string, any>,
+        properties: t.config as Record<string, unknown>,
         category: this.getTraitCategory(t.name),
       })),
       properties: obj.properties
@@ -646,25 +646,25 @@ export class VisualEditor {
     const objects: HoloObjectDecl[] = [];
 
     for (const entity of this.entities.values()) {
-      const properties: any[] = [];
+      const properties: HoloObjectProperty[] = [];
       properties.push({ type: 'ObjectProperty', key: 'position', value: entity.transform.position });
       properties.push({ type: 'ObjectProperty', key: 'rotation', value: entity.transform.rotation });
       properties.push({ type: 'ObjectProperty', key: 'scale', value: entity.transform.scale });
       if (entity.geometry) properties.push({ type: 'ObjectProperty', key: 'geometry', value: entity.geometry });
-      if (entity.material) properties.push({ type: 'ObjectProperty', key: 'material', value: entity.material });
+      if (entity.material) properties.push({ type: 'ObjectProperty', key: 'material', value: entity.material as unknown as HoloObjectProperty['value'] });
       
       for (const [k, v] of Object.entries(entity.properties)) {
-        properties.push({ type: 'ObjectProperty', key: k, value: v });
+        properties.push({ type: 'ObjectProperty', key: k, value: v as HoloValue });
       }
 
       const obj: HoloObjectDecl = {
         type: 'Object',
         name: entity.name,
-        properties: properties as any,
+        properties,
         traits: entity.traits.map((t) => ({
           type: 'ObjectTrait',
           name: t.name,
-          config: t.properties || {},
+          config: (t.properties || {}) as Record<string, HoloValue>,
         })),
         children: [],
       };
@@ -814,7 +814,7 @@ export class VisualEditor {
   /**
    * Update entity property
    */
-  public updateEntityProperty(id: string, path: string, value: any): void {
+  public updateEntityProperty(id: string, path: string, value: unknown): void {
     const entity = this.entities.get(id);
     if (!entity || entity.locked) return;
 
@@ -822,10 +822,10 @@ export class VisualEditor {
 
     // Parse property path (e.g., "transform.position.0")
     const keys = path.split('.');
-    let target: any = entity;
+    let target: Record<string, unknown> = entity as unknown as Record<string, unknown>;
 
     for (let i = 0; i < keys.length - 1; i++) {
-      target = target[keys[i]];
+      target = target[keys[i]] as Record<string, unknown>;
     }
 
     target[keys[keys.length - 1]] = value;
@@ -844,8 +844,8 @@ export class VisualEditor {
   private addToHistory(
     action: HistoryEntry['action'],
     entityId: string,
-    previousState?: any,
-    newState?: any
+    previousState?: EditorEntity,
+    newState?: EditorEntity
   ): void {
     // Remove entries after current index (if we've undone)
     this.history = this.history.slice(0, this.historyIndex + 1);
@@ -880,11 +880,11 @@ export class VisualEditor {
       // Remove entity
       this.entities.delete(entry.entityId);
     } else if (entry.action === 'delete') {
-      // Restore entity
-      this.entities.set(entry.entityId, entry.previousState);
+      // Restore entity (delete entries always have previousState)
+      this.entities.set(entry.entityId, entry.previousState!);
     } else if (entry.action === 'modify') {
-      // Restore previous state
-      this.entities.set(entry.entityId, entry.previousState);
+      // Restore previous state (modify entries always have previousState)
+      this.entities.set(entry.entityId, entry.previousState!);
     }
 
     this.historyIndex--;
@@ -906,14 +906,14 @@ export class VisualEditor {
     const entry = this.history[this.historyIndex];
 
     if (entry.action === 'create') {
-      // Re-add entity
-      this.entities.set(entry.entityId, entry.newState);
+      // Re-add entity (create entries always have newState)
+      this.entities.set(entry.entityId, entry.newState!);
     } else if (entry.action === 'delete') {
       // Re-delete entity
       this.entities.delete(entry.entityId);
     } else if (entry.action === 'modify') {
-      // Re-apply new state
-      this.entities.set(entry.entityId, entry.newState);
+      // Re-apply new state (modify entries always have newState)
+      this.entities.set(entry.entityId, entry.newState!);
     }
 
     this.updateHierarchy();

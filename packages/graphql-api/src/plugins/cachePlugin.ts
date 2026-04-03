@@ -150,14 +150,7 @@ export function createCachePlugin(
 
   const cache = new ResponseCache(maxSize, ttl);
 
-  // Log cache stats every 5 minutes
-  setInterval(
-    () => {
-      const stats = cache.getStats();
-      console.log('[Cache Stats]', stats);
-    },
-    5 * 60 * 1000
-  );
+  // Periodic cache stats available via cache.getStats()
 
   return {
     async requestDidStart(): Promise<GraphQLRequestListener<BaseContext>> {
@@ -178,7 +171,6 @@ export function createCachePlugin(
           if (cached) {
             cacheHit = true;
             (request as CacheableRequest).__cachedResult = cached;
-            console.log(`[Cache HIT] ${operationName}`);
           }
         },
 
@@ -209,7 +201,6 @@ export function createCachePlugin(
             const result = response.body.singleResult;
             if (!result.errors || result.errors.length === 0) {
               cache.set(operationName, request.variables, result);
-              console.log(`[Cache MISS -> SET] ${operationName}`);
 
               // Add cache status to extensions
               if (includeStatus) {

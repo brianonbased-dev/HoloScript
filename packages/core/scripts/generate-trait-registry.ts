@@ -23,17 +23,18 @@ async function generateRegistry() {
       typeof exp === 'object' &&
       'id' in exp &&
       'category' in exp &&
-      Array.isArray((exp as any).properties)
+      Array.isArray((exp as Record<string, unknown>).properties)
     ) {
       // Actually, if it's already a TraitDefinition, register it
-      if (!defaultTraitRegistry.has((exp as any).id)) {
-        defaultTraitRegistry.register(exp as any);
+      const expRec = exp as Record<string, unknown>;
+      if (!defaultTraitRegistry.has(expRec.id as string)) {
+        defaultTraitRegistry.register(exp as Parameters<typeof defaultTraitRegistry.register>[0]);
         importedCount++;
       }
     }
     // Also support trait handlers (they usually have 'name' mapping to id and might contain a meta block)
     if (exp && typeof exp === 'object' && 'name' in exp && 'defaultConfig' in exp) {
-      const handler = exp as any;
+      const handler = exp as Record<string, unknown>;
       if (!defaultTraitRegistry.has(handler.name)) {
         defaultTraitRegistry.register({
           id: handler.name,

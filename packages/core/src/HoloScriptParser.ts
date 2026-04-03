@@ -331,7 +331,7 @@ export class HoloScriptParser {
         glow: true,
         interactive: true,
       },
-    } as any;
+    };
   }
 
   private createStreamNode(name: string, params: string[], position?: SpatialPosition): StreamNode {
@@ -643,8 +643,8 @@ export class HoloScriptParser {
     return [
       {
         type: 'state-declaration',
-        directives: [{ type: 'state', body }],
-      } as any,
+        directives: [{ type: 'state' as const, body }],
+      },
     ];
   }
 
@@ -668,13 +668,13 @@ export class HoloScriptParser {
           }
           directives.push({
             type: 'trait',
-            name: name as any,
+            name,
             config,
           });
         } else if (this.isLifecycleHook(name)) {
           directives.push({
             type: 'lifecycle',
-            hook: name as any,
+            hook: name,
             body: tokens[i + 1] || '', // Assume next token is body for now
           });
           i++; // Skip body token

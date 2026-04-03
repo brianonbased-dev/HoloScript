@@ -20,6 +20,7 @@ export type {
 
 // Load default rules into the default instance
 import { defaultRuleForge } from './RuleForge';
+import type { RuleSet } from './types';
 import defaultRulesData from './default-rules.json';
 
-defaultRuleForge.loadRuleSet(defaultRulesData as any);
+defaultRuleForge.loadRuleSet(defaultRulesData as unknown as RuleSet);

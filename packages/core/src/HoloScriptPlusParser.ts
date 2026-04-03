@@ -784,7 +784,7 @@ export class HoloScriptPlusParser {
         vertex: config.vertex,
         fragment: config.fragment,
       },
-      uniforms: config.uniforms as any,
+      uniforms: config.uniforms as ShaderConfig['uniforms'],
       includes: config.includes?.map((path) => ({ path })),
       blendMode: config.blendMode,
       depthTest: config.depthTest,

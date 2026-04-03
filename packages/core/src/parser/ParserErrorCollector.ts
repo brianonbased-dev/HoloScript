@@ -19,7 +19,7 @@
  * ```
  */
 
-import type { ParseError, QuickFix } from './ErrorRecovery';
+import type { ParseError, QuickFix, ErrorCode } from './ErrorRecovery';
 import {
   enrichErrorWithSuggestions,
   generateQuickFixes,
@@ -149,7 +149,7 @@ export class ParserErrorCollector {
     }
 
     this.warnings.push({
-      code: code as any,
+      code: code as ErrorCode,
       message,
       line,
       column,

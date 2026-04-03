@@ -12,14 +12,14 @@ export class ProceduralCompiler {
    */
   static compile(skill: ProceduralSkill): string {
     let compiled = `// Auto-generated skill: ${skill.name}\n`;
-    compiled += `// Desc: ${(skill as any).description || 'N/A'}\n\n`;
+    compiled += `// Desc: ${(skill as unknown as { description?: string }).description || 'N/A'}\n\n`;
 
     compiled += `agent ${skill.id.replace(/-/g, '_')} {\n`;
 
     // Generate behavior node
     compiled += `  behavior execute() {\n`;
 
-    const codeBlock = (skill as any).code || '';
+    const codeBlock = (skill as unknown as { code?: string }).code || '';
 
     // MVP: The LLM outputs pseudo-code or raw JS/HoloScript lines directly in string
     // The procedural compiler validates and formats the raw string cleanly

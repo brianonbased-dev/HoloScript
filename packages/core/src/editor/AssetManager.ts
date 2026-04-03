@@ -1,4 +1,5 @@
 import { AssetRegistry } from '../assets/AssetRegistry';
+import type { AssetType } from '../assets/AssetMetadata';
 import { World } from '../ecs/World';
 
 /**
@@ -91,7 +92,7 @@ export class AssetManager {
   }
 
   getAssetsByType(type: string): any[] {
-    const registryAssets = this.registry.findByType(type as any);
+    const registryAssets = this.registry.findByType(type as AssetType);
     const sessionAssets = Array.from(this.sessionAssets.values()).filter(
       (a) => a.assetType === type
     );

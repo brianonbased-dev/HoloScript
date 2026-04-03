@@ -18,6 +18,7 @@
 import { HotReloadWatcher, type HotReloadConfig } from '../traits/HotReloadTrait';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
 import { createHeadlessRuntime, type HeadlessRuntime } from './HeadlessRuntime';
+import type { HSPlusAST } from '../types/HoloScriptPlus';
 import * as fs from 'fs';
 import { logger } from '../logger';
 
@@ -89,7 +90,7 @@ export class WatchRunner {
     }
 
     // Create a minimal runtime for state binding
-    this.runtime = createHeadlessRuntime({ type: 'Program', root: { id: 'root', type: 'root', children: [], active: true, name: 'root', traits: new Map() } } as any);
+    this.runtime = createHeadlessRuntime({ type: 'Program', body: [], root: { type: 'root', id: 'root', name: 'root', children: [], properties: {} } } as HSPlusAST);
     this.watcher.start();
 
     this.pushEvent({

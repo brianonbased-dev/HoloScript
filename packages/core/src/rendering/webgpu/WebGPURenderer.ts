@@ -1003,7 +1003,7 @@ export class WebGPURenderer {
     const { device } = this.context;
     const session = frame.session;
     const pose = frame.getViewerPose(
-      this.xrBinding.nativeProjectionLayerSpace || (this.xrSession.renderState.baseLayer as any)!.space
+      this.xrBinding.nativeProjectionLayerSpace || (this.xrSession.renderState.baseLayer as unknown as { space: XRReferenceSpace })!.space
     );
 
     if (!pose) return;
@@ -1029,7 +1029,7 @@ export class WebGPURenderer {
           view.projectionMatrix,
           view.transform.inverse.matrix
         ),
-      } as any);
+      } as unknown as ICameraUniforms);
 
       // Acquire texture from WebXR binding
       const subImage = this.xrBinding.getViewSubImage(this.xrProjectionLayer, view);
@@ -1192,7 +1192,7 @@ export class WebGPURenderer {
       // Note: In a real engine, use a math library. Here we just pass raw matrices if possible or stub.
       // We'll update the camera uniforms directly.
 
-      this.updateCameraUniforms(<any>{
+      this.updateCameraUniforms({
         projectionMatrix: view.projectionMatrix,
         viewMatrix: view.transform.inverse.matrix,
         // Mock VP matrix for now (or compute it if we had a math lib)
@@ -1202,7 +1202,7 @@ export class WebGPURenderer {
           view.transform.position.y,
           view.transform.position.z,
         ]),
-      } as any);
+      } as unknown as ICameraUniforms);
 
       renderCallback(renderPass, view);
 

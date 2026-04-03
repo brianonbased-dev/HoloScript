@@ -1,4 +1,4 @@
-import { HSPlusRuntime, VRHand, Vector3 } from '../types/HoloScriptPlus';
+import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode } from '../types/HoloScriptPlus';
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
 import { TransitionSystem } from '../animation/TransitionSystem';
@@ -24,7 +24,7 @@ export class HandMenuSystem {
     this.transitions.update(delta);
 
     // Check left hand palm orientation
-    const leftHand = (this.runtime as any).vrContext?.hands?.left;
+    const leftHand = (this.runtime as unknown as { vrContext?: { hands?: { left?: VRHand } } }).vrContext?.hands?.left;
     if (!leftHand) return;
 
     if (this.checkPalmFacingUser(leftHand)) {
@@ -86,7 +86,7 @@ export class HandMenuSystem {
     menu.properties!.opacity = 0;
     menu.properties!.scale = 0;
 
-    (this.runtime as any).mountObject(menu);
+    (this.runtime as unknown as { mountObject(node: HSPlusNode): void }).mountObject(menu);
     this.menuNodeId = menuId;
     this.menuNode = menu;
     this.isMenuVisible = true;

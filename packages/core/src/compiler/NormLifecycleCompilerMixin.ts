@@ -51,7 +51,7 @@ export interface CompiledNormCreation {
   /** Timestamp or epoch when the norm was created */
   createdAt?: number;
   /** Additional creation properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -68,7 +68,7 @@ export interface CompiledNormRepresentation {
   validFrom?: number;
   validUntil?: number;
   /** Additional representation properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -84,7 +84,7 @@ export interface CompiledNormSpreading {
   /** Channels through which the norm is communicated */
   channels?: string[];
   /** Additional spreading properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -104,7 +104,7 @@ export interface CompiledNormEvaluation {
   /** Maximum number of voting rounds */
   maxRounds?: number;
   /** Additional evaluation properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -126,7 +126,7 @@ export interface CompiledNormCompliance {
   /** Cooldown period between sanction escalations */
   sanctionCooldown?: number;
   /** Additional compliance properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -142,7 +142,7 @@ export interface CompiledNorm {
   category?: string;
   priority?: number;
   status?: NormStatus;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** CRSEC lifecycle phases */
   creation?: CompiledNormCreation;
   representation?: CompiledNormRepresentation;
@@ -172,7 +172,7 @@ export interface CompiledMetanormRules {
   /** Whether retroactive norm changes are allowed */
   retroactiveAllowed?: boolean;
   /** Additional rules properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -186,7 +186,7 @@ export interface CompiledMetanormEscalation {
   /** Number of appeal levels */
   appealLevels?: number;
   /** Additional escalation properties */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /**
@@ -200,7 +200,7 @@ export interface CompiledMetanorm {
   /** Top-level properties */
   description?: string;
   appliesTo?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** Governance rules sub-block */
   rules?: CompiledMetanormRules;
   /** Escalation configuration */

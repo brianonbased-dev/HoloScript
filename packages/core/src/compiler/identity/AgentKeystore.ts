@@ -76,7 +76,7 @@ export interface AuditLogEntry {
   timestamp: string;
   event: 'key_generated' | 'key_rotated' | 'key_accessed' | 'key_expired' | 'key_deleted';
   agentRole: AgentRole;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 const DEFAULT_TOKEN_LIFETIME = 24 * 60 * 60 * 1000; // 24 hours

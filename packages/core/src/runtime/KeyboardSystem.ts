@@ -7,14 +7,20 @@
 
 import { HSPlusRuntime } from '../types/HoloScriptPlus';
 
+/** Extended runtime interface for keyboard-specific methods */
+interface KeyboardRuntime extends HSPlusRuntime {
+  findInstanceById(id: string): { node: { id: string; type: string; properties: Record<string, unknown> }; children?: Array<{ node: { id: string; type: string; properties: Record<string, unknown> } }> } | null;
+  updateNodeProperty(id: string, key: string, value: unknown): void;
+}
+
 export class KeyboardSystem {
-  private runtime: HSPlusRuntime;
+  private runtime: KeyboardRuntime;
   private focusedInputId: string | null = null;
   private cursorIndex: number = 0;
   private static readonly CHAR_WIDTH = 0.048; // Monospace approximation for fontSize 0.08
   private static readonly START_X = -0.2;
 
-  constructor(runtime: HSPlusRuntime) {
+  constructor(runtime: KeyboardRuntime) {
     this.runtime = runtime;
     this.setupListeners();
   }
@@ -91,23 +97,23 @@ export class KeyboardSystem {
   }
 
   private getText(nodeId: string): string {
-    const runtimeAny = this.runtime as any;
-    const instance = runtimeAny.findInstanceById(nodeId);
-    return (instance && instance.node.properties.text) || '';
+
+    const instance = this.runtime.findInstanceById(nodeId);
+    return String((instance && instance.node.properties.text) || '');
   }
 
   private updateInputState(nodeId: string, text: string) {
-    const runtimeAny = this.runtime as any;
+
 
     // Update Parent Property
-    runtimeAny.updateNodeProperty(nodeId, 'text', text);
+    this.runtime.updateNodeProperty(nodeId, 'text', text);
 
     // Update Child Text Node
-    const instance = runtimeAny.findInstanceById(nodeId);
+    const instance = this.runtime.findInstanceById(nodeId);
     if (instance && instance.children) {
-      const textChild = instance.children.find((c: any) => c.node.type === 'text');
+      const textChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.type === 'text');
       if (textChild) {
-        runtimeAny.updateNodeProperty(textChild.node.id, 'text', text);
+        this.runtime.updateNodeProperty(textChild.node.id, 'text', text);
       }
     }
 
@@ -115,23 +121,23 @@ export class KeyboardSystem {
   }
 
   private setCursorVisible(nodeId: string, visible: boolean) {
-    const runtimeAny = this.runtime as any;
-    const instance = runtimeAny.findInstanceById(nodeId);
+
+    const instance = this.runtime.findInstanceById(nodeId);
     if (instance && instance.children) {
-      const cursorChild = instance.children.find((c: any) => c.node.properties.tag === 'cursor');
+      const cursorChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.properties.tag === 'cursor');
       if (cursorChild) {
-        runtimeAny.updateNodeProperty(cursorChild.node.id, 'visible', visible);
+        this.runtime.updateNodeProperty(cursorChild.node.id, 'visible', visible);
       }
     }
   }
 
   private updateCursorVisuals(nodeId: string) {
     // Find cursor child
-    const runtimeAny = this.runtime as any;
-    const instance = runtimeAny.findInstanceById(nodeId);
+
+    const instance = this.runtime.findInstanceById(nodeId);
     if (!instance || !instance.children) return;
 
-    const cursorChild = instance.children.find((c: any) => c.node.properties.tag === 'cursor');
+    const cursorChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.properties.tag === 'cursor');
     if (cursorChild) {
       const newX = KeyboardSystem.START_X + this.cursorIndex * KeyboardSystem.CHAR_WIDTH;
 
@@ -139,7 +145,7 @@ export class KeyboardSystem {
       const currentPos = cursorChild.node.properties.position || { x: 0, y: 0, z: 0 };
       const newPos = { ...currentPos, x: newX };
 
-      runtimeAny.updateNodeProperty(cursorChild.node.id, 'position', newPos);
+      this.runtime.updateNodeProperty(cursorChild.node.id, 'position', newPos);
     }
   }
 }

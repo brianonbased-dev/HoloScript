@@ -76,7 +76,7 @@ export interface TokenRequest {
   delegationChain?: AgentRole[];
 
   /** Additional execution context */
-  executionContext?: Record<string, any>;
+  executionContext?: Record<string, unknown>;
 
   /** Agent's key pair for PoP binding */
   keyPair: AgentKeyPair;

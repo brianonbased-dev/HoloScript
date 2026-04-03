@@ -99,8 +99,8 @@ export class SceneRunner {
       this.world.addComponent(entity, 'renderable', {
         visible: true,
         nodeType: node.type,
-        color: (node.properties as any)?.color || '#FFFFFF',
-        opacity: (node.properties as any)?.opacity ?? 1,
+        color: (node.properties as Record<string, unknown> | undefined)?.color || '#FFFFFF',
+        opacity: (node.properties as Record<string, unknown> | undefined)?.opacity ?? 1,
       });
     }
 
@@ -112,12 +112,12 @@ export class SceneRunner {
     const boundTraits: string[] = [];
     if (node.directives) {
       for (const directive of node.directives) {
-        const d = directive as any;
-        const traitName = d.name || d.type;
+        const d = directive as Record<string, unknown>;
+        const traitName = String(d.name || d.type || '');
         if (!traitName) continue;
 
         if (this.traitBinder.has(traitName)) {
-          const config = this.traitBinder.mergeConfig(traitName, d.args || {});
+          const config = this.traitBinder.mergeConfig(traitName, (d.args || {}) as Record<string, unknown>);
           this.world.addComponent(entity, `trait:${traitName}`, config);
           boundTraits.push(traitName);
 
@@ -216,9 +216,9 @@ export class SceneRunner {
     fallback: { x: number; y: number; z: number }
   ): { x: number; y: number; z: number } {
     if (!props || !props[key]) return fallback;
-    const v = props[key] as any;
-    if (Array.isArray(v)) return { x: v[0] || 0, y: v[1] || 0, z: v[2] || 0 };
-    if (typeof v === 'object') return { x: v.x || 0, y: v.y || 0, z: v.z || 0 };
+    const v = props[key];
+    if (Array.isArray(v)) return { x: Number(v[0]) || 0, y: Number(v[1]) || 0, z: Number(v[2]) || 0 };
+    if (typeof v === 'object' && v !== null) { const o = v as Record<string, unknown>; return { x: Number(o.x) || 0, y: Number(o.y) || 0, z: Number(o.z) || 0 }; }
     return fallback;
   }
 }

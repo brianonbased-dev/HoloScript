@@ -17,8 +17,6 @@ interface CompilationRequest {
 function createCompilationLoader() {
   return new DataLoader<CompilationRequest, CompilePayload>(
     async (requests) => {
-      console.log(`[DataLoader] Batching ${requests.length} compilation requests`);
-
       // Dynamic import to avoid ESM/CJS issues
       const core = await import('@holoscript/core');
       const { HoloScriptPlusParser } = core;
@@ -183,7 +181,6 @@ function createCompilationLoader() {
         })
       );
 
-      console.log(`[DataLoader] Completed ${results.length} compilations`);
       return results;
     },
     {
