@@ -8,7 +8,7 @@
  * and supports runtime registration of custom presets.
  */
 
-import type { AnimationPreset, PresetCategory, PresetName } from './types.js';
+import type { AnimationPreset, CustomAnimationPreset, PresetCategory, PresetName } from './types.js';
 import { allPresets } from './presets/index.js';
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ const CATEGORY_METADATA: Record<PresetCategory, Omit<CategoryInfo, 'presetNames'
  */
 export class PresetRegistry {
   /** Internal store: name -> preset. */
-  private readonly presets: Map<PresetName | string, AnimationPreset>;
+  private readonly presets: Map<PresetName | string, AnimationPreset | CustomAnimationPreset>;
 
   /**
    * Creates a new PresetRegistry pre-loaded with all 15 canonical presets.
@@ -111,7 +111,7 @@ export class PresetRegistry {
    * @param name - The preset name (e.g. 'walk', 'idle', 'attack')
    * @returns The matching AnimationPreset, or `undefined` if not found.
    */
-  get(name: PresetName | string): AnimationPreset | undefined {
+  get(name: PresetName | string): AnimationPreset | CustomAnimationPreset | undefined {
     return this.presets.get(name);
   }
 
@@ -132,8 +132,8 @@ export class PresetRegistry {
    * @param category - The category to filter by.
    * @returns Array of presets in that category (may be empty).
    */
-  getByCategory(category: PresetCategory): AnimationPreset[] {
-    const results: AnimationPreset[] = [];
+  getByCategory(category: PresetCategory): (AnimationPreset | CustomAnimationPreset)[] {
+    const results: (AnimationPreset | CustomAnimationPreset)[] = [];
     for (const preset of this.presets.values()) {
       if (preset.category === category) {
         results.push(preset);
@@ -177,9 +177,9 @@ export class PresetRegistry {
    * @param tag - Tag string to search for (case-insensitive).
    * @returns Array of presets containing the tag.
    */
-  searchByTag(tag: string): AnimationPreset[] {
+  searchByTag(tag: string): (AnimationPreset | CustomAnimationPreset)[] {
     const normalizedTag = tag.toLowerCase();
-    const results: AnimationPreset[] = [];
+    const results: (AnimationPreset | CustomAnimationPreset)[] = [];
     for (const preset of this.presets.values()) {
       if (preset.tags.some((t) => t.toLowerCase() === normalizedTag)) {
         results.push(preset);
@@ -194,9 +194,9 @@ export class PresetRegistry {
    * @param query - Search query (case-insensitive substring match).
    * @returns Array of matching presets.
    */
-  search(query: string): AnimationPreset[] {
+  search(query: string): (AnimationPreset | CustomAnimationPreset)[] {
     const q = query.toLowerCase();
-    const results: AnimationPreset[] = [];
+    const results: (AnimationPreset | CustomAnimationPreset)[] = [];
     for (const preset of this.presets.values()) {
       const matchesName = preset.name.toLowerCase().includes(q);
       const matchesDescription = preset.description.toLowerCase().includes(q);
@@ -217,7 +217,7 @@ export class PresetRegistry {
   /**
    * Get all registered presets as an array.
    */
-  getAll(): AnimationPreset[] {
+  getAll(): (AnimationPreset | CustomAnimationPreset)[] {
     return Array.from(this.presets.values());
   }
 
@@ -246,8 +246,8 @@ export class PresetRegistry {
    *
    * @param preset - The AnimationPreset to register.
    */
-  register(preset: Omit<AnimationPreset, 'name'> & { name: string }): void {
-    this.presets.set(preset.name, preset as AnimationPreset);
+  register(preset: AnimationPreset | CustomAnimationPreset): void {
+    this.presets.set(preset.name, preset);
   }
 
   /**

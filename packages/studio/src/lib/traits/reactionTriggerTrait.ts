@@ -20,6 +20,48 @@ import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export type AnimationTriggerCondition = 'immediate' | 'proximity' | 'interaction' | 'timer';
+
+export interface AnimationTriggerOptions {
+  /**
+   * Condition that must be met before animation plays
+   */
+  condition: AnimationTriggerCondition;
+
+  /**
+   * Proximity radius in world units (only for 'proximity' condition)
+   */
+  proximityRadius?: number;
+
+  /**
+   * Timer delay in ms (only for 'timer' condition)
+   */
+  timerDelay?: number;
+
+  /**
+   * Whether the animation should loop
+   */
+  loop?: boolean;
+
+  /**
+   * Playback speed multiplier (1.0 = normal)
+   */
+  speed?: number;
+
+  /**
+   * Blend weight when mixing with other animations (0-1)
+   */
+  blendWeight?: number;
+}
+
+export interface AnimationEvent {
+  type: 'animation-start' | 'animation-complete' | 'animation-cancel';
+  animationName: string;
+  poseId: string | null;
+  timestamp: number;
+  trigger: AnimationTriggerCondition;
+}
+
 export interface ReactionTriggerConfig {
   /**
    * Auto-start listening on initialization
@@ -50,6 +92,11 @@ export interface ReactionTriggerConfig {
    * Feedback duration (ms)
    */
   feedbackDuration?: number;
+
+  /**
+   * Default animation trigger options
+   */
+  animationDefaults?: Partial<AnimationTriggerOptions>;
 }
 
 export interface ReactionFeedback {
@@ -69,6 +116,9 @@ export class ReactionTriggerTrait {
   private lastTriggerTime: Map<string, number> = new Map();
   private feedbackHistory: ReactionFeedback[] = [];
   private onReactionCallbacks: Array<(reaction: DiscordReaction) => void> = [];
+  private onAnimationCallbacks: Array<(event: AnimationEvent) => void> = [];
+  private pendingTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private activeAnimations: Map<string, AnimationTriggerOptions> = new Map();
 
   // Reference to other traits for triggering
   private viralPoseTrait: ViralPoseTrait | null = null;
@@ -82,6 +132,12 @@ export class ReactionTriggerTrait {
       globalCooldown: config.globalCooldown ?? 500, // 500ms default
       showFeedback: config.showFeedback ?? true,
       feedbackDuration: config.feedbackDuration ?? 3000, // 3 seconds
+      animationDefaults: config.animationDefaults ?? {
+        condition: 'immediate',
+        loop: false,
+        speed: 1.0,
+        blendWeight: 1.0,
+      },
     };
 
     // Load default triggers if enabled
@@ -278,11 +334,230 @@ export class ReactionTriggerTrait {
   }
 
   /**
-   * Trigger animation
+   * Trigger animation via ViralPoseTrait with configurable trigger conditions.
+   *
+   * MEME-009: Animation triggering supports three condition modes:
+   *  - immediate: play animation right away (default)
+   *  - proximity: play when an interaction source is within proximityRadius
+   *  - interaction: play only when explicitly activated (dispatches event for external handler)
+   *  - timer: play after a configurable delay
    */
-  private triggerAnimation(animationName: string): void {
-    // TODO(MEME-009): Implement animation triggering via ViralPoseTrait.applyPose or VRM mixer
-    logger.debug('[ReactionTriggerTrait] Triggered animation:', animationName);
+  private triggerAnimation(
+    animationName: string,
+    options?: Partial<AnimationTriggerOptions>
+  ): void {
+    const resolved: AnimationTriggerOptions = {
+      condition: options?.condition ??
+        (this.config.animationDefaults.condition as AnimationTriggerCondition) ?? 'immediate',
+      proximityRadius: options?.proximityRadius ?? this.config.animationDefaults.proximityRadius ?? 5.0,
+      timerDelay: options?.timerDelay ?? this.config.animationDefaults.timerDelay ?? 1000,
+      loop: options?.loop ?? this.config.animationDefaults.loop ?? false,
+      speed: options?.speed ?? this.config.animationDefaults.speed ?? 1.0,
+      blendWeight: options?.blendWeight ?? this.config.animationDefaults.blendWeight ?? 1.0,
+    };
+
+    switch (resolved.condition) {
+      case 'immediate':
+        this.executeAnimation(animationName, resolved);
+        break;
+
+      case 'proximity':
+        // Dispatch a proximity-check event; external proximity system resolves it
+        this.dispatchAnimationEvent({
+          type: 'animation-start',
+          animationName,
+          poseId: null,
+          timestamp: Date.now(),
+          trigger: 'proximity',
+        });
+        // Store as pending — the proximity system calls resolveProximityAnimation()
+        this.activeAnimations.set(animationName, resolved);
+        logger.debug(
+          '[ReactionTriggerTrait] Animation queued for proximity check:',
+          animationName,
+          'radius:', resolved.proximityRadius
+        );
+        break;
+
+      case 'interaction':
+        // Dispatch event for external interaction handler to resolve
+        this.dispatchAnimationEvent({
+          type: 'animation-start',
+          animationName,
+          poseId: null,
+          timestamp: Date.now(),
+          trigger: 'interaction',
+        });
+        this.activeAnimations.set(animationName, resolved);
+        logger.debug(
+          '[ReactionTriggerTrait] Animation queued for interaction:',
+          animationName
+        );
+        break;
+
+      case 'timer': {
+        const existingTimer = this.pendingTimers.get(animationName);
+        if (existingTimer !== undefined) {
+          clearTimeout(existingTimer);
+        }
+
+        const timer = setTimeout(() => {
+          this.executeAnimation(animationName, resolved);
+          this.pendingTimers.delete(animationName);
+        }, resolved.timerDelay);
+
+        this.pendingTimers.set(animationName, timer);
+        logger.debug(
+          '[ReactionTriggerTrait] Animation scheduled:',
+          animationName,
+          'delay:', resolved.timerDelay, 'ms'
+        );
+        break;
+      }
+
+      default:
+        logger.warn('[ReactionTriggerTrait] Unknown trigger condition:', resolved.condition);
+    }
+  }
+
+  /**
+   * Execute animation playback through ViralPoseTrait
+   */
+  private executeAnimation(animationName: string, options: AnimationTriggerOptions): void {
+    if (!this.viralPoseTrait) {
+      logger.warn('[ReactionTriggerTrait] ViralPoseTrait not attached, cannot play animation:', animationName);
+      return;
+    }
+
+    // Use ViralPoseTrait.triggerPose to drive the animation
+    this.viralPoseTrait.triggerPose(animationName);
+
+    // Track active animation
+    this.activeAnimations.set(animationName, options);
+
+    // Dispatch start event
+    this.dispatchAnimationEvent({
+      type: 'animation-start',
+      animationName,
+      poseId: animationName,
+      timestamp: Date.now(),
+      trigger: options.condition,
+    });
+
+    // Listen for pose completion to dispatch animation-complete
+    const unsubscribe = this.viralPoseTrait.onPoseChange((pose) => {
+      if (pose.id === animationName) {
+        this.dispatchAnimationEvent({
+          type: 'animation-complete',
+          animationName,
+          poseId: pose.id,
+          timestamp: Date.now(),
+          trigger: options.condition,
+        });
+        this.activeAnimations.delete(animationName);
+        unsubscribe();
+      }
+    });
+
+    logger.debug('[ReactionTriggerTrait] Animation executing:', animationName, 'speed:', options.speed);
+  }
+
+  /**
+   * Resolve a proximity-gated animation (called by external proximity system)
+   */
+  resolveProximityAnimation(animationName: string): void {
+    const options = this.activeAnimations.get(animationName);
+    if (!options || options.condition !== 'proximity') {
+      logger.warn('[ReactionTriggerTrait] No pending proximity animation:', animationName);
+      return;
+    }
+
+    this.activeAnimations.delete(animationName);
+    this.executeAnimation(animationName, options);
+  }
+
+  /**
+   * Resolve an interaction-gated animation (called by external interaction handler)
+   */
+  resolveInteractionAnimation(animationName: string): void {
+    const options = this.activeAnimations.get(animationName);
+    if (!options || options.condition !== 'interaction') {
+      logger.warn('[ReactionTriggerTrait] No pending interaction animation:', animationName);
+      return;
+    }
+
+    this.activeAnimations.delete(animationName);
+    this.executeAnimation(animationName, options);
+  }
+
+  /**
+   * Cancel a pending or active animation
+   */
+  cancelAnimation(animationName: string): void {
+    // Clear any pending timer
+    const timer = this.pendingTimers.get(animationName);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.pendingTimers.delete(animationName);
+    }
+
+    // Remove from active
+    const wasActive = this.activeAnimations.has(animationName);
+    this.activeAnimations.delete(animationName);
+
+    if (wasActive) {
+      this.dispatchAnimationEvent({
+        type: 'animation-cancel',
+        animationName,
+        poseId: null,
+        timestamp: Date.now(),
+        trigger: 'immediate',
+      });
+    }
+
+    logger.debug('[ReactionTriggerTrait] Animation cancelled:', animationName);
+  }
+
+  /**
+   * Get currently active animations
+   */
+  getActiveAnimations(): ReadonlyMap<string, AnimationTriggerOptions> {
+    return this.activeAnimations;
+  }
+
+  /**
+   * Subscribe to animation events
+   */
+  onAnimation(callback: (event: AnimationEvent) => void): () => void {
+    this.onAnimationCallbacks.push(callback);
+
+    return () => {
+      const index = this.onAnimationCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.onAnimationCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Dispatch animation event to subscribers and window
+   */
+  private dispatchAnimationEvent(event: AnimationEvent): void {
+    // Notify direct subscribers
+    this.onAnimationCallbacks.forEach((callback) => {
+      try {
+        callback(event);
+      } catch (error) {
+        logger.error('[ReactionTriggerTrait] Animation callback error:', error);
+      }
+    });
+
+    // Dispatch as CustomEvent for external consumers
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('holoscript-animation-event', { detail: event })
+      );
+    }
   }
 
   /**
@@ -385,7 +660,16 @@ export class ReactionTriggerTrait {
    */
   dispose(): void {
     this.stop();
+
+    // Clear pending timers
+    for (const timer of this.pendingTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.pendingTimers.clear();
+    this.activeAnimations.clear();
+
     this.onReactionCallbacks = [];
+    this.onAnimationCallbacks = [];
     this.triggers.clear();
     this.lastTriggerTime.clear();
     this.feedbackHistory = [];

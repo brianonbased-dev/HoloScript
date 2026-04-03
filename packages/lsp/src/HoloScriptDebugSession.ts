@@ -35,6 +35,9 @@ import { HoloScriptDebugger, type StackFrame as HoloStackFrame } from '@holoscri
 import {
   AttachConnection,
   type AttachConfig,
+  type AttachBreakpointDescriptor,
+  type AttachWatchDescriptor,
+  type RemoteExecutionState,
   type HotReloadEvent,
   type TraitVariableInfo,
   type PerformanceFrame,
@@ -60,6 +63,16 @@ export interface AttachRequestArguments extends DebugProtocol.AttachRequestArgum
   port?: number;
   /** Host to attach to. */
   host?: string;
+  /** Session ID to attach to a specific running debug session. */
+  sessionId?: string;
+  /** Authentication token for the remote process. */
+  token?: string;
+  /** Connection timeout in milliseconds. */
+  timeout?: number;
+  /** Breakpoints to reattach after connecting. */
+  breakpoints?: AttachBreakpointDescriptor[];
+  /** Watch expressions to reattach after connecting. */
+  watchExpressions?: AttachWatchDescriptor[];
 }
 
 // ── Scope Reference Descriptor ───────────────────────────────────────────────
@@ -128,6 +141,11 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
 
   // DAP Hot Reload adapter for attach-mode debugging
   private _attachConnection: AttachConnection | null = null;
+
+  // Attach-mode state tracking
+  private _attachBreakpoints: AttachBreakpointDescriptor[] = [];
+  private _attachWatchExpressions: AttachWatchDescriptor[] = [];
+  private _isAttachMode: boolean = false;
 
   public constructor() {
     super('holoscript-debug.txt');
@@ -341,6 +359,13 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
 
   /**
    * DAP Attach: attach to a running HoloScript process.
+   *
+   * Supports:
+   * - Connecting by host:port (default localhost:9229)
+   * - Connecting to a specific session by ID
+   * - Reattaching breakpoints and watch expressions
+   * - Syncing current execution state from the remote process
+   * - Graceful detach (see disconnectRequest)
    */
   protected async attachRequest(
     response: DebugProtocol.AttachResponse,
@@ -350,16 +375,44 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     const config: AttachConfig = {
       host: attachArgs.host || 'localhost',
       port: attachArgs.port || 9229,
+      sessionId: attachArgs.sessionId,
+      token: attachArgs.token,
+      timeout: attachArgs.timeout,
     };
 
     this._attachConnection = new AttachConnection();
-    const connected = await this._attachConnection.connect(config);
-    if (!connected) {
+
+    let connected: boolean;
+    try {
+      connected = await this._attachConnection.connect(config);
+    } catch (err) {
       this._attachConnection = null;
-      this.sendErrorResponse(response, 1003, `Failed to attach to ${config.host}:${config.port}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.sendErrorResponse(
+        response,
+        1003,
+        `Failed to attach to ${config.host}:${config.port}${config.sessionId ? ` (session: ${config.sessionId})` : ''}: ${msg}`
+      );
       return;
     }
 
+    if (!connected) {
+      this._attachConnection = null;
+      this.sendErrorResponse(
+        response,
+        1003,
+        `Failed to attach to ${config.host}:${config.port}${config.sessionId ? ` (session: ${config.sessionId})` : ''}`
+      );
+      return;
+    }
+
+    this._isAttachMode = true;
+
+    // Store breakpoints and watches for reattach
+    this._attachBreakpoints = attachArgs.breakpoints || [];
+    this._attachWatchExpressions = attachArgs.watchExpressions || [];
+
+    // Set up event listeners for the attach connection
     this._attachConnection.on('hot-reload', (data: unknown) => {
       const ev = data as HotReloadEvent;
       this.sendEvent(
@@ -370,32 +423,151 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       );
     });
 
+    // Listen for remote disconnect
+    this._attachConnection.on('disconnected', () => {
+      if (this._isAttachMode) {
+        this._isAttachMode = false;
+        this._isRunning = false;
+        this.sendEvent(new OutputEvent('Remote debug session disconnected.\n', 'console'));
+        this.sendEvent(new TerminatedEvent());
+      }
+    });
+
+    // Listen for remote breakpoint hits
+    this._attachConnection.on('stopped', (data: unknown) => {
+      const stopData = data as { reason?: string; threadId?: number };
+      this._isRunning = false;
+      this.sendEvent(
+        new StoppedEvent(
+          stopData.reason || 'breakpoint',
+          stopData.threadId || HoloScriptDebugSession.THREAD_ID
+        )
+      );
+    });
+
+    const sessionLabel = config.sessionId
+      ? `session ${config.sessionId} at`
+      : '';
     this.sendEvent(
       new OutputEvent(
-        `Attached to HoloScript runtime at ${config.host}:${config.port}\n`,
+        `Attached to HoloScript runtime ${sessionLabel} ${config.host}:${config.port}\n`,
         'console'
       )
     );
+
+    // Sync breakpoints if provided
+    if (this._attachBreakpoints.length > 0) {
+      try {
+        const synced = await this._attachConnection.syncBreakpoints(this._attachBreakpoints);
+        this._attachBreakpoints = synced;
+        this.sendEvent(
+          new OutputEvent(
+            `Reattached ${synced.length} breakpoint(s)\n`,
+            'console'
+          )
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.sendEvent(
+          new OutputEvent(`Warning: Failed to sync breakpoints: ${msg}\n`, 'stderr')
+        );
+      }
+    }
+
+    // Sync watch expressions if provided
+    if (this._attachWatchExpressions.length > 0) {
+      try {
+        const watchResults = await this._attachConnection.syncWatchExpressions(
+          this._attachWatchExpressions
+        );
+        this.sendEvent(
+          new OutputEvent(
+            `Reattached ${watchResults.length} watch expression(s)\n`,
+            'console'
+          )
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.sendEvent(
+          new OutputEvent(`Warning: Failed to sync watch expressions: ${msg}\n`, 'stderr')
+        );
+      }
+    }
+
+    // Fetch and sync current execution state
+    try {
+      const state = await this._attachConnection.fetchExecutionState();
+      this._isRunning = state.status === 'running';
+
+      if (state.sourceFile) {
+        this._sourceFile = state.sourceFile;
+        this._registerSource(state.sourceFile);
+      }
+
+      this.sendEvent(
+        new OutputEvent(
+          `Remote state: ${state.status}${state.currentLine ? ` at line ${state.currentLine}` : ''}\n`,
+          'console'
+        )
+      );
+
+      // If the remote is paused, emit a stopped event so the UI updates
+      if (state.status === 'paused') {
+        this.sendEvent(
+          new StoppedEvent(
+            state.pauseReason || 'attach',
+            state.threadId || HoloScriptDebugSession.THREAD_ID
+          )
+        );
+      }
+    } catch (err) {
+      // Non-fatal: we can still debug without initial state sync
+      const msg = err instanceof Error ? err.message : String(err);
+      this.sendEvent(
+        new OutputEvent(`Warning: Could not fetch execution state: ${msg}\n`, 'stderr')
+      );
+      this._isRunning = true;
+    }
+
     this.sendEvent(new InitializedEvent());
     this.sendResponse(response);
   }
 
   /**
    * DAP Disconnect: end debug session.
+   * In attach mode, performs a graceful detach that leaves the remote process running
+   * (unless terminateDebuggee is true).
    */
-  protected disconnectRequest(
+  protected async disconnectRequest(
     response: DebugProtocol.DisconnectResponse,
     args: DebugProtocol.DisconnectArguments
-  ): void {
+  ): Promise<void> {
     // Stop the debugger
     this._debugger.stop();
     this._isRunning = false;
 
     // Clean up attach connection if present
     if (this._attachConnection) {
-      this._attachConnection.disconnect();
+      if (this._isAttachMode && !args.terminateDebuggee) {
+        // Graceful detach: notify remote we are leaving without killing it
+        try {
+          await this._attachConnection.detach();
+        } catch {
+          // Best-effort detach; swallow errors
+          this._attachConnection.disconnect();
+        }
+        this.sendEvent(
+          new OutputEvent('Detached from remote debug session (process continues running).\n', 'console')
+        );
+      } else {
+        this._attachConnection.disconnect();
+      }
       this._attachConnection = null;
     }
+
+    this._isAttachMode = false;
+    this._attachBreakpoints = [];
+    this._attachWatchExpressions = [];
 
     // Clean up handles
     this._variableHandles.reset();

@@ -171,6 +171,14 @@ export interface AnimationPreset {
   tags: string[];
 }
 
+/**
+ * An animation preset that allows arbitrary (non-canonical) names.
+ * Used for custom presets registered at runtime via `PresetRegistry.register()`.
+ */
+export interface CustomAnimationPreset extends Omit<AnimationPreset, 'name'> {
+  name: string;
+}
+
 // ---------------------------------------------------------------------------
 // Resolved Trait Annotation
 // ---------------------------------------------------------------------------

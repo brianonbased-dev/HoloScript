@@ -39,6 +39,10 @@
     "./hologram": {
       "types": "./dist/hologram.d.ts",
       "import": "./dist/hologram.js"
+    },
+    "./utility": {
+      "types": "./dist/utility.d.ts",
+      "import": "./dist/utility.js"
     }
   },
   "scripts": {

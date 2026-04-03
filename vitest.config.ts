@@ -124,6 +124,15 @@ export default defineConfig({
       },
       {
         test: {
+          name: '@holoscript/core-types',
+          root: './packages/core-types',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
           name: '@holoscript/visual',
           root: './packages/visual',
           include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],

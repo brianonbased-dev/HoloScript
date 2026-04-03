@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PresetRegistry } from '../registry.js';
 import { allPresets, walkPreset, idlePreset } from '../presets/index.js';
-import type { AnimationPreset, PresetCategory } from '../types.js';
+import type { AnimationPreset, CustomAnimationPreset, PresetCategory } from '../types.js';
 
 describe('PresetRegistry', () => {
   let registry: PresetRegistry;
@@ -220,7 +220,7 @@ describe('PresetRegistry', () => {
 
   describe('register()', () => {
     it('should add a new preset', () => {
-      const custom = {
+      const custom: CustomAnimationPreset = {
         ...walkPreset,
         name: 'sneak',
         description: 'Custom sneaking behavior',

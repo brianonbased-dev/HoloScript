@@ -33,3 +33,6 @@ export * from './security';
 
 // ── Hologram Types ────────────────────────────────────────────────────────────
 export * from './hologram';
+
+// ── Utility Types ────────────────────────────────────────────────────────────
+export * from './utility';

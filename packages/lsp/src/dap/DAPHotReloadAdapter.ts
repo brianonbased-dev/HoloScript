@@ -27,6 +27,46 @@ export interface AttachConfig {
   token?: string;
   /** Timeout for connection attempt in ms. */
   timeout?: number;
+  /** Session ID to attach to a specific running debug session. */
+  sessionId?: string;
+}
+
+/** Breakpoint descriptor for reattach synchronization. */
+export interface AttachBreakpointDescriptor {
+  /** Source file path. */
+  file: string;
+  /** Line number. */
+  line: number;
+  /** Optional condition expression. */
+  condition?: string;
+  /** Optional hit condition. */
+  hitCondition?: string;
+  /** Optional log message (logpoint). */
+  logMessage?: string;
+}
+
+/** Watch expression descriptor for reattach synchronization. */
+export interface AttachWatchDescriptor {
+  /** The expression to watch. */
+  expression: string;
+}
+
+/** Execution state snapshot received from the remote process. */
+export interface RemoteExecutionState {
+  /** Current execution status. */
+  status: 'running' | 'paused' | 'stopped';
+  /** Reason the process is paused, if applicable. */
+  pauseReason?: string;
+  /** Current source file. */
+  sourceFile?: string;
+  /** Current line number. */
+  currentLine?: number;
+  /** Current column number. */
+  currentColumn?: number;
+  /** Active breakpoint IDs in the remote session. */
+  activeBreakpointIds?: string[];
+  /** Thread ID that is currently active. */
+  threadId?: number;
 }
 
 export interface HotReloadEvent {
@@ -107,11 +147,26 @@ export class AttachConnection {
     return this._connected;
   }
 
+  private _sessionId: string | null = null;
+  private _remoteState: RemoteExecutionState | null = null;
+
+  /** The session ID this connection is attached to. */
+  get sessionId(): string | null {
+    return this._sessionId;
+  }
+
+  /** The last known remote execution state. */
+  get remoteState(): RemoteExecutionState | null {
+    return this._remoteState;
+  }
+
   /**
    * Connect to a running HoloScript process.
+   * If config.sessionId is provided, attaches to that specific session.
    */
   async connect(config: AttachConfig): Promise<boolean> {
-    const url = `ws://${config.host}:${config.port}/debug`;
+    const sessionPath = config.sessionId ? `/debug/${config.sessionId}` : '/debug';
+    const url = `ws://${config.host}:${config.port}${sessionPath}`;
     const timeout = config.timeout || 5000;
 
     return new Promise<boolean>((resolve, reject) => {
@@ -125,6 +180,7 @@ export class AttachConnection {
         this.ws.onopen = () => {
           clearTimeout(timer);
           this._connected = true;
+          this._sessionId = config.sessionId || null;
 
           // Authenticate if token provided
           if (config.token) {
@@ -142,6 +198,7 @@ export class AttachConnection {
 
         this.ws.onclose = () => {
           this._connected = false;
+          this._sessionId = null;
           this.rejectAllPending(new Error('Connection closed'));
           this.emit('disconnected', {});
         };
@@ -156,6 +213,71 @@ export class AttachConnection {
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
+  }
+
+  /**
+   * Sync breakpoints to the remote session.
+   * Sends all breakpoints and returns the remote's confirmed breakpoint list.
+   */
+  async syncBreakpoints(
+    breakpoints: AttachBreakpointDescriptor[]
+  ): Promise<AttachBreakpointDescriptor[]> {
+    if (!this._connected) {
+      throw new Error('Not connected');
+    }
+    const result = await this.send('syncBreakpoints', { breakpoints });
+    const response = result as { breakpoints?: AttachBreakpointDescriptor[] } | undefined;
+    return response?.breakpoints ?? breakpoints;
+  }
+
+  /**
+   * Sync watch expressions to the remote session.
+   * Returns the current values for each watch expression.
+   */
+  async syncWatchExpressions(
+    watches: AttachWatchDescriptor[]
+  ): Promise<Array<{ expression: string; value: string; error?: string }>> {
+    if (!this._connected) {
+      throw new Error('Not connected');
+    }
+    const result = await this.send('syncWatches', { watches });
+    const response = result as {
+      results?: Array<{ expression: string; value: string; error?: string }>;
+    } | undefined;
+    return response?.results ?? watches.map((w) => ({ expression: w.expression, value: '<pending>' }));
+  }
+
+  /**
+   * Fetch the current execution state from the remote process.
+   */
+  async fetchExecutionState(): Promise<RemoteExecutionState> {
+    if (!this._connected) {
+      throw new Error('Not connected');
+    }
+    const result = await this.send('getExecutionState', {});
+    const state = result as RemoteExecutionState | undefined;
+    this._remoteState = state ?? { status: 'running' };
+    return this._remoteState;
+  }
+
+  /**
+   * Gracefully detach from the remote session without terminating it.
+   * Notifies the remote that this debugger is detaching.
+   */
+  async detach(): Promise<void> {
+    if (!this._connected || !this.ws) {
+      return;
+    }
+    try {
+      // Notify remote we are detaching (don't wait for response on close)
+      this.sendEvent('detach', { sessionId: this._sessionId });
+      // Small delay to let the message flush
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    } finally {
+      this._sessionId = null;
+      this._remoteState = null;
+      this.disconnect();
+    }
   }
 
   /**

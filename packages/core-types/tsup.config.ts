@@ -9,6 +9,7 @@ export default defineConfig({
     'src/physics.ts',
     'src/security.ts',
     'src/hologram.ts',
+    'src/utility.ts',
   ],
   format: ['esm', 'cjs'],
   dts: true,

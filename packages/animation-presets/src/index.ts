@@ -35,6 +35,7 @@
 export type {
   AnimationPreset,
   AnimationTiming,
+  CustomAnimationPreset,
   EasingFunction,
   LoopMode,
   MixamoClipMapping,
