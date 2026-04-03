@@ -92,3 +92,15 @@ export async function PATCH(
 
   return mcpRes;
 }
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; taskId: string }> },
+) {
+  const { id, taskId } = await params;
+  const proxyReq = new Request(req.url, {
+    method: 'GET',
+    headers: req.headers,
+  });
+  return proxyHoloMesh(`/api/holomesh/team/${id}/board/${taskId}`, proxyReq as NextRequest);
+}

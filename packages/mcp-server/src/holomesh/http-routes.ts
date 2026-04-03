@@ -3685,6 +3685,27 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/team/:id/board/:taskId — Get specific task details
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.taskBoard) team.taskBoard = [];
+
+      const parts = pathname.split('/');
+      const taskId = parts[parts.length - 1];
+      const task = team.taskBoard.find((t) => t.id === taskId);
+      
+      if (!task) {
+        json(res, 404, { error: 'Task not found' });
+        return true;
+      }
+
+      json(res, 200, { success: true, task });
+      return true;
+    }
+
     // PATCH /api/holomesh/team/:id/board/:taskId — Claim, complete, or update a task
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'PATCH') {
       const access = requireTeamAccess(req, res, url);
