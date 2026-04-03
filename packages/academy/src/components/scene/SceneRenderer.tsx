@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import {
   OrbitControls,
   Grid,
@@ -30,7 +30,19 @@ import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/Conte
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useStudioBus } from '@/hooks/useStudioBus';
 import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
+import { LODManager } from '@holoscript/core';
 import * as THREE from 'three';
+
+/**
+ * Subset of LODMetrics from @holoscript/core that we consume here.
+ * Defined locally because the hand-crafted dist/index.d.ts does not export it.
+ */
+interface LODMetricsResult {
+  totalObjects: number;
+  objectsPerLevel: Map<number, number>;
+  trianglesRendered: number;
+  trianglesSaved: number;
+}
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -285,6 +297,162 @@ function PhysicsProviderWrapper() {
   );
 }
 
+// ─── LOD Controller (lives inside Canvas for useFrame/useThree access) ──────
+
+/** Shared LOD metrics snapshot, updated each frame by LODController */
+interface LODMetricsSnapshot {
+  levelDistribution: [number, number, number, number];
+  totalTriangles: number;
+  entityCount: number;
+}
+
+const DEFAULT_LOD_SNAPSHOT: LODMetricsSnapshot = {
+  levelDistribution: [0, 0, 0, 0],
+  totalTriangles: 0,
+  entityCount: 0,
+};
+
+/**
+ * LODController — runs inside the Canvas to access useFrame/useThree.
+ * Initializes an LODManager, syncs registered scene objects each frame,
+ * and writes metrics to a shared ref so the outer SceneRenderer can read them.
+ */
+function LODController({
+  r3fTree,
+  metricsRef,
+}: {
+  r3fTree: R3FNode | null;
+  metricsRef: React.MutableRefObject<LODMetricsSnapshot>;
+}) {
+  const { camera, scene } = useThree();
+  const managerRef = useRef<LODManager | null>(null);
+  const registeredIdsRef = useRef<Set<string>>(new Set());
+  // Throttle LOD updates to ~30 Hz (every ~33ms) to keep render loop fast
+  const lastUpdateRef = useRef(0);
+  const UPDATE_INTERVAL_MS = 33;
+
+  // Lazily create the LODManager once
+  // Cast needed: dist/index.d.ts declares constructor() but source accepts options
+  if (!managerRef.current) {
+    const Ctor = LODManager as unknown as new (opts: Record<string, unknown>) => LODManager;
+    managerRef.current = new Ctor({
+      autoUpdate: false,
+      collectMetrics: true,
+      cameraFOV: 60,
+      targetFrameRate: 60,
+      updateFrequency: 30,
+    });
+    managerRef.current.start();
+  }
+
+  // Sync registered objects when the R3F tree changes
+  useEffect(() => {
+    const mgr = managerRef.current;
+    if (!mgr || !r3fTree) return;
+
+    const currentIds = new Set<string>();
+
+    // Walk the tree and register any mesh node that has LOD config
+    const walk = (node: R3FNode) => {
+      if (
+        node.type === 'mesh' &&
+        node.id &&
+        (node.props.lod || node.props.lodDistances || node.props.lodEnabled || node.props.lodConfig)
+      ) {
+        currentIds.add(node.id);
+
+        if (!registeredIdsRef.current.has(node.id)) {
+          const distances = (node.props.lodDistances as number[]) ?? [0, 25, 50, 100];
+          mgr.register(node.id, {
+            id: node.id,
+            levels: distances.map((d, i) => ({
+              level: i,
+              distance: d,
+              triangleCount: Math.round(10000 / (i + 1)),
+              polygonRatio: 1 / (i + 1),
+              textureScale: 1 - i * 0.25,
+              disabledFeatures: [] as string[],
+            })),
+          });
+          mgr.updatePosition(
+            node.id,
+            (node.props.position as [number, number, number]) ?? [0, 0, 0],
+          );
+        }
+      }
+
+      if (node.children) {
+        for (const child of node.children) {
+          walk(child);
+        }
+      }
+    };
+
+    walk(r3fTree);
+
+    // Unregister objects that disappeared from the tree
+    for (const oldId of registeredIdsRef.current) {
+      if (!currentIds.has(oldId)) {
+        mgr.unregister(oldId);
+      }
+    }
+
+    registeredIdsRef.current = currentIds;
+  }, [r3fTree]);
+
+  // Also register all scene meshes (non-LOD) so we track total entity count
+  // but only LOD-tagged nodes get full LOD config above.
+
+  useFrame((_state, delta) => {
+    const mgr = managerRef.current;
+    if (!mgr) return;
+
+    // Throttle: skip if not enough time has passed
+    const now = performance.now();
+    if (now - lastUpdateRef.current < UPDATE_INTERVAL_MS) return;
+    lastUpdateRef.current = now;
+
+    // Feed camera position to the manager
+    const camPos: [number, number, number] = [
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+    ];
+    mgr.setCameraPosition(camPos);
+
+    // Update object positions from the live scene graph
+    scene.traverse((obj: THREE.Object3D) => {
+      if (obj.userData?.nodeId && registeredIdsRef.current.has(obj.userData.nodeId as string)) {
+        mgr.updatePosition(obj.userData.nodeId as string, [
+          obj.position.x,
+          obj.position.y,
+          obj.position.z,
+        ]);
+      }
+    });
+
+    // Run LOD selection
+    mgr.update(delta);
+
+    // Collect metrics and write to shared ref (no React state — avoids re-renders)
+    const metrics = mgr.getMetrics() as LODMetricsResult;
+    const dist: [number, number, number, number] = [0, 0, 0, 0];
+    for (const [level, count] of metrics.objectsPerLevel) {
+      if (level >= 0 && level < 4) {
+        dist[level] = count;
+      }
+    }
+
+    metricsRef.current = {
+      levelDistribution: dist,
+      totalTriangles: metrics.trianglesRendered,
+      entityCount: metrics.totalObjects,
+    };
+  });
+
+  return null; // Pure logic component — no visual output
+}
+
 // ─── Main renderer with drop zone ────────────────────────────────────────────
 
 export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererProps) {
@@ -296,6 +464,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
   const artMode = useEditorStore((s) => s.artMode);
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
+
+  // Shared ref for LODController → bus bridge (no re-renders on metric ticks)
+  const lodMetricsRef = useRef<LODMetricsSnapshot>(DEFAULT_LOD_SNAPSHOT);
 
   // Sync R3F tree → scene graph store (flattens nested native asset children)
   useSceneGraphSync(r3fTree);
@@ -318,13 +489,14 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     if (now - lastEmitRef.current < 16) return;
     lastEmitRef.current = now;
 
+    const lodSnap = lodMetricsRef.current;
     emitBus('lodMetrics:tick', {
       timestamp: now,
       avgFrameTimeMs: perfResult.avgFrameTimeMs,
       isRegressed: perfResult.isRegressed,
-      levelDistribution: [0, 0, 0, 0], // TODO: wire from LODManager when available
-      totalTriangles: 0,
-      entityCount: 0,
+      levelDistribution: lodSnap.levelDistribution,
+      totalTriangles: lodSnap.totalTriangles,
+      entityCount: lodSnap.entityCount,
       regressionCount: perfResult.regressionCount,
       recoveryCount: perfResult.recoveryCount,
     });
@@ -461,6 +633,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
 
         {/* Handles WebM video recording of the Canvas stream */}
         <ContentCameraCapture />
+
+        {/* LOD Manager — updates LOD levels each frame and exposes metrics */}
+        <LODController r3fTree={r3fTree} metricsRef={lodMetricsRef} />
 
         {/* Gap 6: Progressive loader for streaming asset LODs */}
         <ProgressiveLoader entities={[]} visible={true} />

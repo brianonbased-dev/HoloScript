@@ -18,6 +18,7 @@
 
 import * as crypto from 'crypto';
 import { promisify } from 'util';
+import { calculateJwkThumbprint } from './JwkThumbprint';
 import type { CulturalFamily, PromptDialect } from '../../traits/CultureTraits';
 
 // crypto.generateKeyPair is a Node.js-only API not present in browser polyfills.
@@ -285,20 +286,8 @@ export async function generateAgentKeyPair(
   const ts = timestamp || new Date();
   const kid = `agent:${agentRole}#${ts.toISOString()}`;
 
-  // Calculate JWK thumbprint (SHA-256 of canonical JWK)
-  // Extract public key bytes from PEM format
-  const pubKeyObject = crypto.createPublicKey(publicKey);
-  const pubKeyDer = pubKeyObject.export({ type: 'spki', format: 'der' });
-
-  // For Ed25519, the public key is the last 32 bytes of the DER encoding
-  const pubKeyBytes = pubKeyDer.slice(-32);
-
-  const jwk = {
-    kty: 'OKP',
-    crv: 'Ed25519',
-    x: pubKeyBytes.toString('base64url'),
-  };
-  const thumbprint = crypto.createHash('sha256').update(JSON.stringify(jwk)).digest('base64url');
+  // Calculate JWK thumbprint (SHA-256 of canonical JWK per RFC 7638)
+  const thumbprint = calculateJwkThumbprint(publicKey);
 
   return {
     publicKey,

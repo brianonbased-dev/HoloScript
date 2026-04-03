@@ -28,6 +28,7 @@ import {
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
 import { IntentTokenPayload } from './AgentIdentity';
 import { AgentKeystore, getKeystore } from './AgentKeystore';
+import { verifyJwkThumbprint } from './JwkThumbprint';
 
 /**
  * HTTP Request interface (compatible with Express)
@@ -219,21 +220,39 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       }
 
       // Retrieve public key: prefer the embedded claim, fall back to keystore lookup.
+      // In all cases, verify that the key's JWK thumbprint matches the cnf.jkt
+      // claim so a compromised token cannot redirect verification to a different key.
       let publicKey = tokenResult.payload.publicKey;
-      if (!publicKey && jkt) {
+
+      if (publicKey) {
+        // Embedded key — verify its thumbprint matches the token claim
+        if (!verifyJwkThumbprint(publicKey, jkt)) {
+          res
+            .status(401)
+            .json(
+              formatSignatureError(
+                'JKT_MISMATCH',
+                'Embedded public key does not match JWK thumbprint (cnf.jkt).'
+              )
+            );
+          return;
+        }
+      } else {
+        // No embedded key — look up by thumbprint in the keystore
         const ks = keystore ?? getKeystore();
         const credential = await ks.getCredentialByThumbprint(jkt);
         if (credential) {
           publicKey = credential.keyPair.publicKey;
         }
       }
+
       if (!publicKey) {
         res
-          .status(500)
+          .status(401)
           .json(
             formatSignatureError(
               'MISSING_PUBLIC_KEY',
-              'Token missing public key. Update AgentTokenIssuer to include publicKey in claims.'
+              'No public key found for JWK thumbprint. Ensure the agent credential is registered in the keystore.'
             )
           );
         return;

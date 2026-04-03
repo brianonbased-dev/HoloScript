@@ -173,6 +173,7 @@ export type CompilerName =
   | 'scm'
   | 'vrr'
   | 'a2a-agent-card'
+  | 'agent-inference'
   // neuromorphic
   | 'nir'
   // meta
@@ -254,6 +255,7 @@ export const ANSCapabilityPath = {
   SCM: '/compile/ai/scm',
   VRR: '/compile/ai/vrr',
   A2A_AGENT_CARD: '/compile/ai/a2a-agent-card',
+  AGENT_INFERENCE: '/compile/ai/agent-inference',
 
   // ── neuromorphic ─────────────────────────────────────────────────────
   NIR: '/compile/neuromorphic/nir',
@@ -320,6 +322,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   scm: ANSDomain.AI,
   vrr: ANSDomain.AI,
   'a2a-agent-card': ANSDomain.AI,
+  'agent-inference': ANSDomain.AI,
   // neuromorphic
   nir: ANSDomain.NEUROMORPHIC,
   // meta
@@ -369,6 +372,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   scm: ANSCapabilityPath.SCM,
   vrr: ANSCapabilityPath.VRR,
   'a2a-agent-card': ANSCapabilityPath.A2A_AGENT_CARD,
+  'agent-inference': ANSCapabilityPath.AGENT_INFERENCE,
   nir: ANSCapabilityPath.NIR,
   'multi-layer': ANSCapabilityPath.MULTI_LAYER,
   incremental: ANSCapabilityPath.INCREMENTAL,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
+import { useStudioBus } from '@/hooks/useStudioBus';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 
@@ -65,6 +67,15 @@ interface R3FNodeRendererProps {
 }
 
 export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
+  const { emit: emitBus } = useStudioBus();
+
+  const handleLODChange = useCallback(
+    (nodeId: string, level: number, distance: number) => {
+      emitBus('lod:levelChanged', { nodeId, level, distance, timestamp: Date.now() });
+    },
+    [emitBus],
+  );
+
   const children = node.children?.map((child: R3FNode, i: number) => (
     <R3FNodeRenderer key={child.id || `child-${i}`} node={child} />
   ));
@@ -104,7 +115,11 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       } else if (isLODMesh) {
         const distances = props.lodDistances || [0, 25, 50];
         meshComponent = (
-          <LODMeshNode node={node} distances={distances} lodConfig={{}} onLODChange={() => {}} />
+          <LODMeshNode
+            node={node}
+            distances={distances}
+            {...({ lodConfig: {}, onLODChange: handleLODChange } as Record<string, unknown>)}
+          />
         );
       } else if (hasKeyframes) {
         meshComponent = <StudioAnimatedMeshNode node={node} />;

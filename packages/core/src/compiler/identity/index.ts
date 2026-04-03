@@ -133,6 +133,15 @@ export {
   formatSignatureError,
 } from './PopUtils';
 
+// JWK Thumbprint (RFC 7638)
+export {
+  type JwkKeyType,
+  type CanonicalJwk,
+  calculateJwkThumbprint,
+  calculateJwkThumbprintFromJwk,
+  verifyJwkThumbprint,
+} from './JwkThumbprint';
+
 // Per-package permission manifest
 export {
   PackageTier,
