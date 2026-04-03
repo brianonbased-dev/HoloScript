@@ -36,6 +36,7 @@
 
 import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import type { Extensible } from '../types/utility-types';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -1309,7 +1310,7 @@ ${
   // ─── Domain Blocks (v4.2) ──────────────────────────────────────────
 
   private compileAndroidXRDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');

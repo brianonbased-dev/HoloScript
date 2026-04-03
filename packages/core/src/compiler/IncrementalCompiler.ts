@@ -13,6 +13,7 @@ import type {
   HoloObjectDecl,
   HoloObjectProperty,
 } from '../parser/HoloCompositionTypes';
+import type { Extensible } from '../types/utility-types';
 import type { ReadFileFn } from '../parser/HoloCompositionTypes';
 import {
   TraitDependencyGraph,
@@ -206,7 +207,7 @@ function serializeObject(obj: HoloObjectDecl): string {
     properties: obj.properties,
     traits: obj.traits,
     children: obj.children?.map(serializeObject),
-    logic: (obj as any).logic, // logic might not be directly on HoloObjectDecl but used in diff
+    logic: (obj as Extensible<HoloObjectDecl>).logic, // logic might not be directly on HoloObjectDecl but used in diff
   });
 }
 
@@ -437,14 +438,14 @@ export class IncrementalCompiler {
     }
 
     // Compare logic blocks
-    if (JSON.stringify((oldObj as any).logic) !== JSON.stringify((newObj as any).logic)) {
+    if (JSON.stringify((oldObj as Extensible<HoloObjectDecl>).logic) !== JSON.stringify((newObj as Extensible<HoloObjectDecl>).logic)) {
       changes.push({
         type: 'modified',
         path: [...path, 'logic'],
         nodeName: 'logic',
         nodeType: 'logic',
-        oldValue: (oldObj as any).logic,
-        newValue: (newObj as any).logic,
+        oldValue: (oldObj as Extensible<HoloObjectDecl>).logic,
+        newValue: (newObj as Extensible<HoloObjectDecl>).logic,
       });
     }
 
@@ -848,7 +849,7 @@ export class IncrementalCompiler {
         objectName: name,
         sourceId: newAST.name || 'default',
         traits: traitUsages,
-        template: (obj as any).template,
+        template: (obj as Extensible<HoloObjectDecl>).template as string | undefined,
       });
 
       if (skipUnchanged && !recompileSet.has(name)) {

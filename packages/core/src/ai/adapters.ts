@@ -13,6 +13,10 @@ import type {
   FixResult,
   GenerateOptions,
 } from './AIAdapter';
+/** Shape of API error responses from AI providers. */
+interface APIErrorResponse {
+  error?: { message?: string };
+}
 
 export type {
   AIAdapter,
@@ -768,7 +772,7 @@ export class GeminiAdapter implements AIAdapter {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMsg = (errorData as any)?.error?.message || response.statusText;
+        const errorMsg = (errorData as APIErrorResponse)?.error?.message || response.statusText;
         throw new Error('Gemini Embeddings API error: ' + errorMsg);
       }
 
@@ -824,7 +828,7 @@ export class GeminiAdapter implements AIAdapter {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMsg = (errorData as any)?.error?.message || response.statusText;
+      const errorMsg = (errorData as APIErrorResponse)?.error?.message || response.statusText;
       const status = response.status;
 
       if (status === 429) {

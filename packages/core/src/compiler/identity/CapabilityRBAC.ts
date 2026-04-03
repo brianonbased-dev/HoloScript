@@ -342,7 +342,7 @@ export class CapabilityRBAC {
         reason: 'Capability token chain verification failed (attenuation invariant violation)',
         mode: 'capability',
         capabilityVerification: verification,
-        errorCode: 'ATTENUATION_VIOLATION' as any,
+        errorCode: 'ATTENUATION_VIOLATION',
         denial: this.buildDenialReceipt(request, 'capability', {
           requiredCapability: 'valid-attenuation-chain',
           suggestedFix: 'Ensure delegated capabilities do not exceed parent scope',

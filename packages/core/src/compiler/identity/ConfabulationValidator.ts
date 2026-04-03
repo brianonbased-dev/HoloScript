@@ -22,6 +22,7 @@
  */
 
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import type { Extensible } from '../../types/utility-types';
 
 // =============================================================================
 // TYPES
@@ -1670,7 +1671,7 @@ export class ConfabulationValidator {
     // Let's rely on checking the string value of authority to avoid sync/async issues,
     // or import it at the top level and use it. 
     // Wait, obj.provenance can be checked directly here.
-    const authority = (obj.provenance?.context as any)?.authority;
+    const authority = (obj.provenance?.context as Extensible<Record<string, unknown>> | undefined)?.authority as string | undefined;
     if (authority === 'system' || authority === 'verified') {
       return { errors, warnings, traitsChecked: 0, propertiesChecked: 0 };
     }
@@ -1684,8 +1685,9 @@ export class ConfabulationValidator {
 
         // Build property map from trait arguments
         const properties: Record<string, unknown> = {};
-        if ((trait as any).args) {
-          for (const arg of (trait as any).args) {
+        const traitExt = trait as Extensible<typeof trait>;
+        if (traitExt.args) {
+          for (const arg of traitExt.args as Array<{ key: string; value: unknown }>) {
             properties[arg.key] = arg.value;
             propertiesChecked++;
           }

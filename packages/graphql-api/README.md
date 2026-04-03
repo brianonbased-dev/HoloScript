@@ -1,6 +1,6 @@
 # @holoscript/graphql-api
 
-GraphQL API layer for HoloScript v3.42.0 compiler with TypeGraphQL and Apollo Server integration.
+GraphQL API layer for HoloScript v6.0.0 compiler with TypeGraphQL and Apollo Server integration.
 
 ## Features
 

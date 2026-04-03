@@ -4229,7 +4229,7 @@ export async function handleHoloMeshRoute(
           provenanceHash: crypto.createHash('sha256').update(content).digest('hex'),
           authorId: caller.id,
           authorName: caller.name,
-          price: 0,
+          price: (e.price as number) || 0,
           queryCount: 0,
           reuseCount: 0,
           domain: (e.domain as string) || 'general',
@@ -4240,6 +4240,39 @@ export async function handleHoloMeshRoute(
       });
 
       const synced = await c.contributeKnowledge(meshEntries);
+
+      // --- NEW REVENUE SPLIT LOGIC ---
+      // Auto-purchase priced knowledge for the team treasury.
+      // E.g., if priced at 1 (100 cents), team buys it from agent.
+      // Team takes its treasury cut back, agent gets the rest.
+      for (const entry of meshEntries) {
+        if (entry.price && entry.price > 0 && team.treasuryWallet) {
+          const priceCents = Math.round(entry.price * 100);
+          const treasuryFeeBps = team.roomConfig?.treasuryFeeBps || 0;
+          const treasuryCut = Math.floor((priceCents * treasuryFeeBps) / 10000);
+          const agentCut = priceCents - treasuryCut;
+
+          recordTransaction({
+            buyerWallet: team.treasuryWallet,
+            buyerName: `Room: ${team.name}`,
+            sellerWallet: team.treasuryWallet,
+            sellerName: `Room Treasury: ${team.name}`,
+            entryId: entry.id,
+            entryDomain: entry.domain || 'general',
+            priceCents: treasuryCut,
+          });
+
+          recordTransaction({
+            buyerWallet: team.treasuryWallet,
+            buyerName: `Room: ${team.name}`,
+            sellerWallet: caller.walletAddress || caller.id,
+            sellerName: caller.name,
+            entryId: entry.id,
+            entryDomain: entry.domain || 'general',
+            priceCents: agentCut,
+          });
+        }
+      }
 
       // Broadcast knowledge contribution to team
       const messages = teamMessageStore.get(teamId) || [];

@@ -26,6 +26,7 @@ import type {
   HoloValue,
   HoloEnvironment,
 } from '../parser/HoloCompositionTypes';
+import type { Extensible } from '../types/utility-types';
 
 export interface DTDLCompilerOptions {
   /** DTDL context version */
@@ -302,10 +303,9 @@ export class DTDLCompiler extends CompilerBase {
     };
 
     // Handle template inheritance
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const templateAny = template as any;
-    if (templateAny.extends) {
-      iface.extends = [this.generateModelId(templateAny.extends)];
+    const templateExt = template as Extensible<HoloTemplate>;
+    if (templateExt.extends) {
+      iface.extends = [this.generateModelId(templateExt.extends as string)];
     }
 
     return iface;
@@ -381,19 +381,18 @@ export class DTDLCompiler extends CompilerBase {
     const props: DTDLProperty[] = [];
 
     // Handle both structured format (properties array) and plain object format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const envAny = env as any;
+    const envExt = env as Extensible<HoloEnvironment>;
 
     // If env has a properties array, use it; otherwise treat env itself as key-value object
-    if (Array.isArray(envAny.properties)) {
-      for (const prop of envAny.properties) {
+    if (Array.isArray(envExt.properties)) {
+      for (const prop of envExt.properties as Array<{ key: string; value: unknown }>) {
         this.addEnvironmentProperty(props, prop.key, prop.value);
       }
     } else {
       // Plain object format: { skybox: 'sunset', ambient_light: 0.5 }
-      for (const key of Object.keys(envAny)) {
+      for (const key of Object.keys(envExt)) {
         if (key !== 'type') {
-          this.addEnvironmentProperty(props, key, envAny[key]);
+          this.addEnvironmentProperty(props, key, envExt[key]);
         }
       }
     }
@@ -442,9 +441,8 @@ export class DTDLCompiler extends CompilerBase {
     const commands: DTDLCommand[] = [];
 
     // Handle both handlers and rules formats
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const logicAny = logic as any;
-    const items = logicAny.handlers || logicAny.rules || [];
+    const logicExt = logic as Extensible<HoloLogic>;
+    const items = (logicExt.handlers || logicExt.rules || []) as Array<{ event: string; actions?: unknown[] }>;
 
     for (const item of items) {
       const event = item.event;

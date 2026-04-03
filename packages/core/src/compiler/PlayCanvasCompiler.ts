@@ -35,6 +35,7 @@ import type {
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import type { Extensible } from '../types/utility-types';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -187,7 +188,7 @@ export class PlayCanvasCompiler extends CompilerBase {
   }
 
   private compilePlayCanvasDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');

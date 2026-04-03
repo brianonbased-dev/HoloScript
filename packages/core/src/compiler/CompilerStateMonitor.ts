@@ -15,6 +15,10 @@
 
 import type { HoloComposition, HoloNode } from '../parser/HoloCompositionTypes';
 import type { IncrementalCompiler } from './IncrementalCompiler';
+import type { ExtendedGlobal } from '../types/utility-types';
+
+/** Node global with optional GC exposure (requires --expose-gc). */
+type NodeGlobalWithGC = ExtendedGlobal<{ gc?: () => void }>;
 
 // =============================================================================
 // TYPES
@@ -577,8 +581,8 @@ export class CompilerStateMonitor {
     this.incrementalCompiler.reset();
 
     // Force garbage collection if available
-    if ((global as any).gc) {
-      (global as any).gc();
+    if ((globalThis as NodeGlobalWithGC).gc) {
+      (globalThis as NodeGlobalWithGC).gc!();
     }
   }
 

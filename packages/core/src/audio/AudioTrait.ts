@@ -68,12 +68,12 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
   name: 'audio' as const,
   defaultConfig,
 
-  onAttach(node: HSPlusNode, config: AudioTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, config: AudioTraitConfig, _context: unknown) {
     if (!config.soundId || !config.autoPlay) return;
 
     const engine = getSharedAudioEngine();
     const nodeId = node.id!;
-    const pos = (node.properties?.position as any) || { x: 0, y: 0, z: 0 };
+    const pos = (node.properties?.position as { x: number; y: number; z: number } | undefined) || { x: 0, y: 0, z: 0 };
 
     const sourceId = engine.play(config.soundId, {
       position: pos,
@@ -90,7 +90,7 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     nodeAudioSources.set(nodeId, sourceId);
   },
 
-  onDetach(node: HSPlusNode, _config: AudioTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, _config: AudioTraitConfig, _context: unknown) {
     const nodeId = node.id!;
     const sourceId = nodeAudioSources.get(nodeId);
     if (sourceId) {
@@ -105,7 +105,7 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     if (!sourceId) return;
 
     // Sync source position with node position
-    const pos = (node.properties?.position as any) || { x: 0, y: 0, z: 0 };
+    const pos = (node.properties?.position as { x: number; y: number; z: number } | undefined) || { x: 0, y: 0, z: 0 };
     getSharedAudioEngine().setSourcePosition(sourceId, pos);
   },
 };

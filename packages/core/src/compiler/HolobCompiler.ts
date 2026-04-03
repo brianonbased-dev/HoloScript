@@ -26,6 +26,7 @@ import type {
   HoloSpatialGroup,
   HoloEnvironment,
 } from '../parser/HoloCompositionTypes';
+import type { Extensible } from '../types/utility-types';
 
 // Import from holo-vm — these are the bytecode building primitives.
 // The HoloVM package exports HoloBytecodeBuilder with a fluent API.
@@ -247,7 +248,7 @@ export class HolobCompiler {
     // Traits → compile to opcodes
     if (obj.traits && Array.isArray(obj.traits)) {
       for (const trait of obj.traits) {
-        const traitName = typeof trait === 'string' ? trait : (trait as any).name || String(trait);
+        const traitName = typeof trait === 'string' ? trait : ('name' in trait ? (trait as { name: string }).name : String(trait));
         this.compileTrait(fn, entityId, traitName, obj);
       }
     }
@@ -318,10 +319,11 @@ export class HolobCompiler {
     builder.addEntity(light.name || `light_${entityId}`, 0);
 
     const lightType = LIGHT_MAP[light.lightType || 'directional'] ?? 0;
-    const intensity = (light as any).intensity ?? 1.0;
+    const lightExt = light as Extensible<HoloLight>;
+    const intensity = (lightExt.intensity as number) ?? 1.0;
     fn.setLight(entityId, lightType, intensity, intensity, intensity);
 
-    const pos = this.resolveVec3((light as any).position, [0, 10, 0]);
+    const pos = this.resolveVec3(lightExt.position, [0, 10, 0]);
     fn.transform(entityId, pos[0], pos[1], pos[2]);
   }
 

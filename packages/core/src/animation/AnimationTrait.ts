@@ -86,14 +86,14 @@ function resolveEasing(name?: string): EasingFn {
 // =============================================================================
 
 export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
-  name: 'animate' as any,
+  name: 'animate',
   defaultConfig: {
     clips: [],
     springs: [],
     autoPlay: true,
   },
 
-  onAttach(node: HSPlusNode, config: AnimationTraitConfig, context: any) {
+  onAttach(node: HSPlusNode, config: AnimationTraitConfig, _context: unknown) {
     const engine = getSharedAnimationEngine();
     const nodeId = node.id || 'unknown';
 
@@ -140,7 +140,7 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     }
   },
 
-  onDetach(node: HSPlusNode, _config: AnimationTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, _config: AnimationTraitConfig, _context: unknown) {
     const nodeId = node.id || 'unknown';
     const engine = getSharedAnimationEngine();
 

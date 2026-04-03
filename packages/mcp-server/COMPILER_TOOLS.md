@@ -17,7 +17,7 @@ The HoloScript MCP Compiler Tools enable AI agents (Claude, GPT-4, Grok, etc.) t
 
 ## Installation
 
-The compiler tools are included in `@holoscript/mcp-server` v3.43.0+:
+The compiler tools are included in `@holoscript/mcp-server` v6.0.1+:
 
 ```bash
 npm install @holoscript/mcp-server
@@ -532,7 +532,7 @@ Use `validate_holoscript` tool before compilation to catch syntax errors early.
 curl http://localhost:8100/health
 
 # Expected response:
-{"status": "ok", "version": "3.43.0"}
+{"status": "ok", "version": "6.0.1"}
 ```
 
 ### Circuit Breaker Always OPEN

@@ -25,7 +25,7 @@ mesh.registerPeer({
   id: 'agent_spatial_002',
   hostname: '192.168.1.100',
   port: 5000,
-  version: '5.0.0',
+  version: '6.0.0',
   agentCount: 3,
   capabilities: ['3d-pathfinding', 'object-tracking'],
   lastSeen: Date.now(),
@@ -69,7 +69,7 @@ import { createAgentCard, validateAgentCard } from '@holoscript/agent-sdk';
 const card = createAgentCard({
   name: 'SpatialReasoningAgent',
   description: 'Autonomous spatial reasoning with 3D pathfinding and object tracking',
-  version: '5.0.0',
+  version: '6.0.0',
   url: 'http://localhost:5000/agent',
   skills: [
     {

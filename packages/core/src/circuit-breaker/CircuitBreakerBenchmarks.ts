@@ -15,6 +15,19 @@
  * @package @holoscript/examples
  */
 
+import type { ExtendedGlobal } from '../types/utility-types';
+
+/** Node global with optional GC exposure (requires --expose-gc). */
+type NodeGlobalWithGC = ExtendedGlobal<{ gc?: () => void }>;
+
+/** Chrome-specific performance.memory extension. */
+interface PerformanceMemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+type PerformanceWithMemory = Performance & { memory?: PerformanceMemoryInfo };
+
 // =============================================================================
 // TYPES & INTERFACES
 // =============================================================================
@@ -420,8 +433,8 @@ function getMemoryUsage(): number {
     return process.memoryUsage().heapUsed;
   }
   // Browser fallback: estimate from performance API
-  if (typeof performance !== 'undefined' && (performance as any).memory) {
-    return (performance as any).memory.usedJSHeapSize;
+  if (typeof performance !== 'undefined' && (performance as PerformanceWithMemory).memory) {
+    return (performance as PerformanceWithMemory).memory!.usedJSHeapSize;
   }
   return 0;
 }
@@ -430,8 +443,8 @@ function getMemoryUsage(): number {
  * Attempt garbage collection (requires --expose-gc flag in Node.js).
  */
 function tryGC(): void {
-  if (typeof global !== 'undefined' && (global as any).gc) {
-    (global as any).gc();
+  if (typeof global !== 'undefined' && (globalThis as NodeGlobalWithGC).gc) {
+    (globalThis as NodeGlobalWithGC).gc!();
   }
 }
 

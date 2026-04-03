@@ -427,7 +427,8 @@ export class GaussianBudgetAnalyzer {
 
     // 3. Check against each platform budget
     const warnings: GaussianBudgetWarning[] = [];
-    const platformUtilization: Record<GaussianPlatform, number> = {} as any;
+    // Built incrementally — all platforms in this.platforms are assigned in the loop below
+    const platformUtilization: Partial<Record<GaussianPlatform, number>> = {};
 
     for (const platform of this.platforms) {
       const budget = this.getBudgetForPlatform(platform);
@@ -448,7 +449,7 @@ export class GaussianBudgetAnalyzer {
       sources,
       warnings,
       withinBudget,
-      platformUtilization,
+      platformUtilization: platformUtilization as Record<GaussianPlatform, number>,
     };
   }
 

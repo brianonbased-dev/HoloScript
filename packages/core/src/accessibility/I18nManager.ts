@@ -7,6 +7,9 @@
  * @module accessibility
  */
 
+/** Navigator with language property (standard but not always in TS lib). */
+interface NavigatorWithLanguage { language?: string; [key: string]: unknown; }
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -54,7 +57,7 @@ export class I18nManager {
 
   detectLocale(): string {
     // Simulate browser detection
-    return typeof navigator !== 'undefined' ? ((navigator as any).language ?? 'en') : 'en';
+    return typeof navigator !== 'undefined' ? ((navigator as NavigatorWithLanguage).language ?? 'en') : 'en';
   }
 
   onLocaleChange(callback: (locale: string) => void): void {
