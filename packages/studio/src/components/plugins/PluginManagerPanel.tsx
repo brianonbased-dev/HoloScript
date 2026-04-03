@@ -211,7 +211,7 @@ function PluginCard({
 }: PluginCardProps) {
   const { plugin, enabled } = entry;
   const { metadata } = plugin;
-  const IconComponent = metadata.icon ? (LucideIcons as any)[metadata.icon] || Package : Package;
+  const IconComponent = metadata.icon ? (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[metadata.icon] || Package : Package;
 
   return (
     <div

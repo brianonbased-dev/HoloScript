@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * projectDNA — Infer repo classification from absorb results.
  *

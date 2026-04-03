@@ -169,7 +169,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
         {/* Sort */}
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
           className="rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none focus:ring-1 focus:ring-studio-accent"
         >
           <option value="popular">Popular</option>

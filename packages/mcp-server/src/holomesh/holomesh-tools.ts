@@ -414,7 +414,7 @@ async function handleContribute(client: HoloMeshOrchestratorClient, args: Record
     const entry: MeshKnowledgeEntry = {
       id: entryId,
       workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
-      type: entryType as any,
+      type: entryType as MeshKnowledgeEntry['type'],
       content,
       provenanceHash,
       authorId: client.getAgentId()!,

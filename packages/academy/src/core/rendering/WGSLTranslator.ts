@@ -12,6 +12,24 @@
 import type { GNode, GEdge } from '../../lib/nodeGraphStore';
 import { NODE_TEMPLATES } from '../../lib/shaderGraph';
 
+/**
+ * Loose accessor for GNodeData fields across all union members.
+ * Avoids `as any` by providing optional access to every possible field.
+ */
+interface LooseNodeData {
+  type?: string;
+  value?: unknown;
+  op?: string;
+  label?: string;
+  uniformName?: string;
+  channel?: number;
+  outputType?: string;
+}
+
+function getNodeData(node: GNode): LooseNodeData {
+  return (node.data ?? {}) as LooseNodeData;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface WGSLCompileResult {
@@ -88,8 +106,8 @@ export class WGSLTranslator {
         ok: true,
         wgsl: this.generatedCode.join('\n'),
       };
-    } catch (e: any) {
-      return { ok: false, errors: [e.message] };
+    } catch (e: unknown) {
+      return { ok: false, errors: [e instanceof Error ? e.message : String(e)] };
     }
   }
 
@@ -225,8 +243,8 @@ export class WGSLTranslator {
    * inputs where available.
    */
   private emitNodeExpression(node: GNode, inputs: Map<string, string>): string {
-    const nodeType = node.type ?? (node.data as any)?.type ?? '';
-    const data = node.data as any;
+    const data = getNodeData(node);
+    const nodeType = node.type ?? data.type ?? '';
 
     switch (nodeType) {
       // ── Constant value nodes ───────────────────────────────────────────
@@ -440,7 +458,8 @@ export class WGSLTranslator {
    * propagates type from upstream inputs — e.g. vec3 + vec3 = vec3f, not f32.
    */
   private inferWGSLType(node: GNode, upstreamVars?: Map<string, string>): string {
-    const nodeType = node.type ?? (node.data as any)?.type ?? '';
+    const inferData = getNodeData(node);
+    const nodeType = node.type ?? inferData.type ?? '';
 
     switch (nodeType) {
       case 'vec2':
@@ -515,7 +534,7 @@ export class WGSLTranslator {
     // For mathNode with scalar-output operations, always return f32
     if (nodeType === 'mathNode' || nodeType === 'math') {
       const node = this.nodes.get(nodeId);
-      const op = (node?.data as any)?.op;
+      const op = node ? getNodeData(node).op : undefined;
       if (op === 'dot' || op === 'length') {
         return 'f32';
       }

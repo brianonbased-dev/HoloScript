@@ -56,8 +56,40 @@ const s = {
   } as React.CSSProperties,
 };
 
+/** Display-level step shape used within this panel. */
+interface DisplayStep {
+  id: string;
+  name: string;
+  durationMin: number;
+  tools: string[];
+  critical: boolean;
+  description: string;
+}
+
+interface DisplayProcedure {
+  id: string;
+  name: string;
+  type: string;
+  bodyRegion: string;
+  steps: DisplayStep[];
+  estimatedDurationMin: number;
+  riskLevel: string;
+}
+
+interface DisplayPatient {
+  id: string;
+  age: number;
+  weight: number;
+  height: number;
+  bmi: number;
+  allergies: string[];
+  bloodType: string;
+  conditions: string[];
+  asaScore: number;
+}
+
 export function SurgicalRehearsalPanel() {
-  const procedure: any = {
+  const procedure: DisplayProcedure = {
     id: 'proc1',
     name: 'Laparoscopic Cholecystectomy',
     type: 'laparoscopic',
@@ -108,7 +140,7 @@ export function SurgicalRehearsalPanel() {
     riskLevel: 'moderate',
   };
 
-  const patient: any = {
+  const patient: DisplayPatient = {
     id: 'pat1',
     age: 55,
     weight: 82,
@@ -127,11 +159,26 @@ export function SurgicalRehearsalPanel() {
     monitoringLevel: 'standard',
   };
 
-  const duration = useMemo(() => estimateProcedureDuration(procedure.steps as any), []);
-  const risk = useMemo(() => overallRiskLevel(procedure.steps as any, patient), []);
-  const bloodRisk = useMemo(() => bloodLossRisk(procedure.steps as any, patient), []);
-  const tools = useMemo(() => toolsRequired(procedure.steps as any), []);
-  const anesOk = useMemo(() => anesthesiaCheck(config, patient), []);
+  const procedureSteps = useMemo(
+    () =>
+      procedure.steps.map((s, i) => ({
+        id: s.id,
+        order: i + 1,
+        name: s.name,
+        description: s.description,
+        instrumentRequired: (s.tools[0] ?? 'scalpel') as import('@/lib/surgicalRehearsal').InstrumentType,
+        targetLandmark: '',
+        durationMinutes: s.durationMin,
+        riskLevel: (s.critical ? 'high' : 'low') as 'low' | 'moderate' | 'high' | 'critical',
+        completed: false,
+      })),
+    [procedure.steps]
+  );
+  const duration = useMemo(() => estimateProcedureDuration(procedureSteps), [procedureSteps]);
+  const risk = useMemo(() => overallRiskLevel(procedureSteps, patient), [procedureSteps, patient]);
+  const bloodRisk = useMemo(() => bloodLossRisk(procedureSteps, patient), [procedureSteps, patient]);
+  const tools = useMemo(() => toolsRequired(procedureSteps), [procedureSteps]);
+  const anesOk = useMemo(() => anesthesiaCheck(config, patient), [config, patient]);
 
   return (
     <div style={s.panel}>
@@ -172,7 +219,7 @@ export function SurgicalRehearsalPanel() {
             </div>
           ))}
         </div>
-        {procedure.steps.map((step: any) => (
+        {procedure.steps.map((step: DisplayStep) => (
           <div
             key={step.id}
             style={{

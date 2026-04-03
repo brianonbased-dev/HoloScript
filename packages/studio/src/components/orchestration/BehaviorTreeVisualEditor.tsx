@@ -22,7 +22,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { GitBranch, X, Save, Plus, BookTemplate, Undo, Redo } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
-import type { BTNode } from '@/lib/orchestrationStore';
+import type { BTNode, WorkflowEdge } from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
 import {
   useOrchestrationHistory,
@@ -180,7 +180,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
       const edge = { ...connection, id: `edge_${Date.now()}`, type: 'smoothstep' };
       setEdges((eds) => addEdge(edge, eds));
       if (tree) {
-        addBTEdge(treeId, edge as any);
+        addBTEdge(treeId, edge as unknown as WorkflowEdge);
       }
     },
     [setEdges, tree, addBTEdge, treeId]

@@ -49,6 +49,7 @@ import {
   getExportManager,
   TraitCompositionCompiler,
   type ExportTarget,
+  type ExportOptions,
   type HoloComposition,
   type TraitCompositionDecl,
   selectModality,
@@ -168,11 +169,11 @@ function trackJob(
 async function compileToTarget(
   composition: HoloComposition,
   target: ExportTarget,
-  options: Record<string, unknown> = {}
+  options: Partial<ExportOptions> = {}
 ): Promise<{ output: string; usedFallback: boolean }> {
   const exportManager = getExportManager();
   // ExportManager.export(target, composition, options) — target is first arg
-  const result = await exportManager.export(target, composition, options as any);
+  const result = await exportManager.export(target, composition, options);
 
   if (!result.success) {
     throw new Error(result.error?.message || 'Compilation failed');

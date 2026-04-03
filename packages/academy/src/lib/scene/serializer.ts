@@ -168,10 +168,14 @@ export async function decodeSceneFromURL(encoded: string): Promise<DeserializeRe
     try {
       const ds = new DecompressionStream('deflate-raw');
       const writer = ds.writable.getWriter();
-      writer.write(bytes);
-      writer.close();
-      const raw = await new Response(ds.readable).text();
-      return deserializeScene(raw);
+      // Write and close, suppressing writer-side errors (read side will surface them)
+      const writePromise = writer.write(bytes).then(() => writer.close()).catch(() => {});
+      const readPromise = new Response(ds.readable).text();
+      const [, readResult] = await Promise.allSettled([writePromise, readPromise]);
+      if (readResult.status === 'rejected') {
+        throw readResult.reason;
+      }
+      return deserializeScene(readResult.value);
     } catch {
       // Fallback: assume plain base64
       const raw = decodeURIComponent(atob(b64 + '=='.slice(b64.length % 4 || 4)));

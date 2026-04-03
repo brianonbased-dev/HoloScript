@@ -28,7 +28,14 @@ export class CollaborationClient {
   private provider: WebsocketProvider | null = null;
   private config: CollaborationClientConfig;
   private sessionId: string | null = null;
-  private awareness: any;
+  private awareness: {
+    clientID: number;
+    setLocalState(state: unknown): void;
+    setLocalStateField(field: string, value: unknown): void;
+    getLocalState(): unknown;
+    getStates(): Map<number, AwarenessState>;
+    on(event: string, callback: () => void): void;
+  } | null = null;
 
   constructor(config: CollaborationClientConfig) {
     this.config = config;
@@ -72,10 +79,11 @@ export class CollaborationClient {
     });
 
     // Listen to awareness changes (user presence)
-    this.awareness.on('change', () => {
+    const awareness = this.awareness;
+    awareness.on('change', () => {
       const users = new Map<number, UserPresence>();
-      this.awareness.getStates().forEach((state: AwarenessState, clientId: number) => {
-        if (state.presence && clientId !== this.awareness.clientID) {
+      awareness.getStates().forEach((state: AwarenessState, clientId: number) => {
+        if (state.presence && clientId !== awareness.clientID) {
           users.set(clientId, state.presence);
         }
       });
@@ -107,35 +115,35 @@ export class CollaborationClient {
   /**
    * Get a shared map for workflow data
    */
-  getWorkflowMap(): Y.Map<any> {
+  getWorkflowMap(): Y.Map<unknown> {
     return this.ydoc.getMap('workflow');
   }
 
   /**
    * Get a shared array for nodes
    */
-  getNodesArray(): Y.Array<any> {
+  getNodesArray(): Y.Array<unknown> {
     return this.ydoc.getArray('nodes');
   }
 
   /**
    * Get a shared array for edges
    */
-  getEdgesArray(): Y.Array<any> {
+  getEdgesArray(): Y.Array<unknown> {
     return this.ydoc.getArray('edges');
   }
 
   /**
    * Get a shared map for metadata
    */
-  getMetadataMap(): Y.Map<any> {
+  getMetadataMap(): Y.Map<unknown> {
     return this.ydoc.getMap('metadata');
   }
 
   /**
    * Sync workflow state to Yjs
    */
-  syncWorkflow(workflow: { nodes: any[]; edges: any[]; metadata: Record<string, any> }): void {
+  syncWorkflow(workflow: { nodes: unknown[]; edges: unknown[]; metadata: Record<string, unknown> }): void {
     this.ydoc.transact(() => {
       const nodesArray = this.getNodesArray();
       const edgesArray = this.getEdgesArray();
@@ -160,9 +168,9 @@ export class CollaborationClient {
    * Get current workflow state from Yjs
    */
   getWorkflowState(): {
-    nodes: any[];
-    edges: any[];
-    metadata: Record<string, any>;
+    nodes: unknown[];
+    edges: unknown[];
+    metadata: Record<string, unknown>;
   } {
     const nodesArray = this.getNodesArray();
     const edgesArray = this.getEdgesArray();
@@ -178,7 +186,7 @@ export class CollaborationClient {
   /**
    * Observe changes to the workflow
    */
-  observeWorkflow(callback: (event: Y.YEvent<any>) => void): () => void {
+  observeWorkflow(callback: (event: Y.YEvent<unknown>) => void): () => void {
     const nodesArray = this.getNodesArray();
     const edgesArray = this.getEdgesArray();
     const metadataMap = this.getMetadataMap();
@@ -216,7 +224,7 @@ export class CollaborationClient {
   updateCursor(x: number, y: number, nodeId?: string): void {
     this.updatePresence({
       cursor: { x, y, nodeId },
-    } as any);
+    });
   }
 
   /**
@@ -225,7 +233,7 @@ export class CollaborationClient {
   updateSelection(nodeIds: string[]): void {
     this.updatePresence({
       selection: { nodeIds },
-    } as any);
+    });
   }
 
   /**
@@ -288,11 +296,12 @@ export class CollaborationClient {
   /**
    * Create undo manager for collaborative editing
    */
-  createUndoManager(scope?: Y.AbstractType<any>[]): Y.UndoManager {
+  createUndoManager(scope?: Y.AbstractType<unknown>[]): Y.UndoManager {
     const scopes = scope || [this.getNodesArray(), this.getEdgesArray(), this.getMetadataMap()];
 
+    const clientID = this.awareness?.clientID;
     return new Y.UndoManager(scopes, {
-      trackedOrigins: new Set([this.awareness?.clientID]),
+      trackedOrigins: clientID != null ? new Set([clientID]) : new Set<number>(),
     });
   }
 

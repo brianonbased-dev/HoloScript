@@ -2,6 +2,20 @@
 
 import { useEffect } from 'react';
 
+/** Extended window interface for HoloScript dev tooling. */
+interface CompilerBridge {
+  parse(code: string): Promise<unknown>;
+}
+
+interface HoloScriptDevToolsWindow extends Window {
+  CompilerBridge?: CompilerBridge;
+  holoscriptTools?: unknown;
+}
+
+function getDevWindow(): HoloScriptDevToolsWindow {
+  return window as unknown as HoloScriptDevToolsWindow;
+}
+
 /**
  * DevTools initializer - runs on app startup to expose CompilerBridge to window
  */
@@ -9,37 +23,39 @@ export function DevToolsInit() {
   useEffect(() => {
     const initDevTools = async () => {
       try {
+        const win = getDevWindow();
         // Dynamic import to avoid build issues
         const { getCompilerBridge } = await import('../lib/wasm-compiler-bridge');
         const bridge = getCompilerBridge();
 
         // Expose directly to window
-        (window as any).CompilerBridge = bridge;
+        win.CompilerBridge = bridge;
 
         // Create tools namespace
-        (window as any).holoscriptTools = {
+        win.holoscriptTools = {
           checkStatus: () => {
             console.log(
               '🔍 Status: CompilerBridge =',
-              !!(window as any).CompilerBridge ? '✅' : '❌'
+              !!win.CompilerBridge ? '✅' : '❌'
             );
-            return { ready: !!(window as any).CompilerBridge };
+            return { ready: !!win.CompilerBridge };
           },
           test: async () => {
-            if (!(window as any).CompilerBridge) {
+            if (!win.CompilerBridge) {
               console.error('❌ CompilerBridge not ready');
               return;
             }
             try {
               const code = `composition "T" { object "O" { geometry: "sphere" } }`;
               const start = performance.now();
-              const result = await (window as any).CompilerBridge.parse(code);
+              await win.CompilerBridge.parse(code);
               const time = performance.now() - start;
               console.log(`✅ Parse: ${time.toFixed(2)}ms`);
               return { success: true, time };
-            } catch (e: any) {
-              console.error('❌ Parse failed:', e.message);
-              return { success: false, error: e.message };
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : String(e);
+              console.error('❌ Parse failed:', msg);
+              return { success: false, error: msg };
             }
           },
         };

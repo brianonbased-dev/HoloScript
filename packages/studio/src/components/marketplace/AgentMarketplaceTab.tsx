@@ -251,7 +251,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
 
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
           className="rounded-md border border-studio-border bg-studio-surface px-2 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none"
         >
           <option value="popular">Popular</option>

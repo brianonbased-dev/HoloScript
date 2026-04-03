@@ -5,6 +5,9 @@
  * with knowledge store queries to answer agent questions.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 const TREES: Record<string, string> = {
   package:
     'Add to the closest relevant existing package. Only create a new package if standalone service or shared by 3+ packages.',
@@ -25,11 +28,48 @@ const TREES: Record<string, string> = {
   git: 'ALWAYS explicit file paths. NEVER git add -A or git add .',
 };
 
+const ORACLE_TELEMETRY_PATH =
+  process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
+
+function inferHardwareTarget(
+  question: string,
+  context: string,
+  explicitTarget?: unknown
+): string {
+  if (typeof explicitTarget === 'string' && explicitTarget.trim()) {
+    return explicitTarget.trim().toLowerCase();
+  }
+  const haystack = `${question} ${context}`.toLowerCase();
+  if (haystack.includes('quest') || haystack.includes('mobile') || haystack.includes('android-xr')) {
+    return 'mobile-xr';
+  }
+  if (haystack.includes('vision') || haystack.includes('visionos')) return 'visionos';
+  if (haystack.includes('openxr') || haystack.includes('desktop vr') || haystack.includes('pc vr')) {
+    return 'desktop-vr';
+  }
+  if (haystack.includes('edge') || haystack.includes('iot') || haystack.includes('jetson') || haystack.includes('raspberry')) {
+    return 'edge-iot';
+  }
+  return 'unknown';
+}
+
+function appendOracleTelemetry(event: Record<string, unknown>): void {
+  try {
+    const dir = path.dirname(ORACLE_TELEMETRY_PATH);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(ORACLE_TELEMETRY_PATH, `${JSON.stringify(event)}\n`, 'utf-8');
+  } catch {
+    // Do not block oracle response on telemetry failures
+  }
+}
+
 export async function handleOracleConsult(
   args: Record<string, unknown>
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   const question = String(args.question || '').toLowerCase();
   const context = String(args.context || '');
+  const hardwareTarget = inferHardwareTarget(question, context, args.hardware_target);
+  const ideClient = String(args.ide_client || 'unknown').toLowerCase();
   const results: string[] = [];
 
   // Match decision trees
@@ -60,14 +100,15 @@ export async function handleOracleConsult(
       });
       clearTimeout(t);
       if (res.ok) {
-        const data = (await res.json()) as any;
+        interface KnowledgeEntry { id?: string; type?: string; content?: string }
+        const data = (await res.json()) as { results?: KnowledgeEntry[]; entries?: KnowledgeEntry[] };
         const entries = data.results || data.entries || [];
         if (entries.length > 0) {
           results.push(
             '## Knowledge Store\n' +
               entries
                 .map(
-                  (e: any) =>
+                  (e: KnowledgeEntry) =>
                     `- **[${e.id || e.type}]** ${String(e.content || '').substring(0, 200)}`
                 )
                 .join('\n')
@@ -86,5 +127,17 @@ export async function handleOracleConsult(
   } else {
     results.push('\n---\n*Oracle answered. Proceed without asking the user.*');
   }
+
+  appendOracleTelemetry({
+    timestamp: new Date().toISOString(),
+    source: 'mcp-server',
+    tool: 'holo_oracle_consult',
+    ideClient,
+    hardwareTarget,
+    outcome: results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
+    decisionTreeMatches: dtMatches.length,
+    questionPreview: question.slice(0, 200),
+  });
+
   return { content: [{ type: 'text', text: results.join('\n\n') }] };
 }

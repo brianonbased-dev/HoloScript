@@ -978,6 +978,19 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   const candidates: DiagnosisCandidate[] = [];
 
   // Import handler to run GraphRAG queries internally
+  interface GraphRagContextItem {
+    name: string;
+    file: string;
+    line?: number;
+    score: number;
+    impactRadius: number;
+    callers?: string[];
+    callees?: string[];
+  }
+  interface GraphRagResult {
+    error?: string;
+    context?: GraphRagContextItem[];
+  }
   const { handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
 
   // ── Coverage analysis ──────────────────────────────────────────────────
@@ -988,7 +1001,7 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
           'Which exported functions and classes have the highest number of callers ' +
           'but are most likely untested? Focus on public API surface.',
         topK: 20,
-      })) as any;
+      })) as GraphRagResult | null;
 
       if (result && !result.error && result.context) {
         for (const ctx of result.context.slice(0, Math.ceil(maxResults / 3))) {
@@ -1017,7 +1030,7 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
           'Which exported classes and functions are missing JSDoc comments or ' +
           'have very short documentation? Focus on public-facing APIs.',
         topK: 15,
-      })) as any;
+      })) as GraphRagResult | null;
 
       if (result && !result.error && result.context) {
         for (const ctx of result.context.slice(0, Math.ceil(maxResults / 3))) {
@@ -1046,7 +1059,7 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
           'Which modules or classes have the most incoming and outgoing dependencies? ' +
           'These are likely the most complex and fragile parts of the codebase.',
         topK: 15,
-      })) as any;
+      })) as GraphRagResult | null;
 
       if (result && !result.error && result.context) {
         for (const ctx of result.context.slice(0, Math.ceil(maxResults / 3))) {

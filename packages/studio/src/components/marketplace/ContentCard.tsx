@@ -32,7 +32,7 @@ export function ContentCard({
   const metadata = CONTENT_TYPE_METADATA[item.type];
 
   // Get icon component from metadata
-  const IconComponent = (LucideIcons as any)[metadata.icon] || LucideIcons.Box;
+  const IconComponent = (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[metadata.icon] || LucideIcons.Box;
 
   // Format numbers for display
   const formatCount = (count: number) => {

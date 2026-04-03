@@ -72,7 +72,7 @@ export function InventoryPanel() {
           🎲 Random
         </button>
         <select
-          onChange={(e) => sortBy(e.target.value as any)}
+          onChange={(e) => sortBy(e.target.value as 'name' | 'rarity' | 'category' | 'weight')}
           className="px-2 py-1 bg-studio-panel text-studio-muted rounded text-[10px]"
         >
           <option value="name">Sort: Name</option>

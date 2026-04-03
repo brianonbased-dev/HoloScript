@@ -87,7 +87,13 @@ export class AudioSyncManager {
   private updateCallbacks: Array<(currentTime: number) => void> = [];
 
   constructor(config: AudioSyncConfig = {}) {
-    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextCtor =
+      window.AudioContext ??
+      ((window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext | undefined);
+    if (!AudioContextCtor) {
+      throw new Error('AudioContext not supported in this browser');
+    }
+    this.audioContext = new AudioContextCtor();
 
     this.config = {
       sensitivity: config.sensitivity ?? 0.5,

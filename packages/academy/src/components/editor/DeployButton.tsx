@@ -15,15 +15,33 @@ import React, { useState, useCallback } from 'react';
 import * as CoreModule from '@holoscript/core';
 import { extractTraits } from '@holoscript/std';
 
-const {
-  runSafetyPass,
-  createSubmission,
-  verifySubmission,
-  publishSubmission,
-  MarketplaceRegistry,
-  gateCheck,
-} = CoreModule as any;
-type MarketplacePackage = any;
+// These exports may not be in every build of @holoscript/core; extract safely.
+const CoreExports = CoreModule as unknown as Record<string, unknown>;
+const runSafetyPass = CoreExports.runSafetyPass as
+  | ((code: string) => { allowed: boolean; report: unknown })
+  | undefined;
+const createSubmission = CoreExports.createSubmission as
+  | ((pkg: unknown) => unknown)
+  | undefined;
+const verifySubmission = CoreExports.verifySubmission as
+  | ((sub: unknown) => Promise<{ verified: boolean }>)
+  | undefined;
+const publishSubmission = CoreExports.publishSubmission as
+  | ((sub: unknown) => Promise<void>)
+  | undefined;
+const MarketplaceRegistry = CoreExports.MarketplaceRegistry as
+  | (new () => { install(pkg: unknown): Promise<void> })
+  | undefined;
+const gateCheck = CoreExports.gateCheck as
+  | ((report: unknown, policy: unknown) => { allowed: boolean; reason?: string })
+  | undefined;
+
+interface MarketplacePackage {
+  name: string;
+  code: string;
+  traits: string[];
+  [key: string]: unknown;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 

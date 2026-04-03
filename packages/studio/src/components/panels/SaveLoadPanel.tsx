@@ -3,9 +3,19 @@
 import React from 'react';
 import { useSaveLoad } from '../../hooks/useSaveLoad';
 
+/** Extended save slot view for UI display */
+interface SaveSlotView {
+  id: string;
+  name: string;
+  timestamp: number;
+  playtime: number;
+  version?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export function SaveLoadPanel() {
   const { slots, playtime, save, load, deleteSlot, buildDemo, reset } = useSaveLoad();
-  const safeSlots = slots as any[];
+  const safeSlots = slots as SaveSlotView[];
 
   return (
     <div className="p-3 space-y-3 text-xs">

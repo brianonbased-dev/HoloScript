@@ -40,18 +40,15 @@ interface SceneRendererProps {
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasLights = r3fTree.children?.some(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (c: any) =>
+    (c: R3FNode) =>
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
       c.type === 'pointLight' ||
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasEnv = r3fTree.children?.some((c: any) => c.type === 'Environment');
+  const hasEnv = r3fTree.children?.some((c: R3FNode) => c.type === 'Environment');
 
   return (
     <group onClick={() => setSelectedId(null)}>
@@ -104,8 +101,7 @@ function GizmoController() {
   const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
   const gridSnap = useBuilderStore((s) => s.gridSnap);
   const gridSize = useBuilderStore((s) => s.gridSize);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<{ detach: () => void } | null>(null);
 
   // Find the Three.js object whose userData.nodeId matches the selection
   const target: THREE.Object3D | null = selectedId
@@ -133,8 +129,7 @@ function GizmoController() {
     <TransformControls
       ref={controlsRef}
       object={target}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mode={gizmoMode as any}
+      mode={gizmoMode as 'translate' | 'rotate' | 'scale'}
       translationSnap={gridSnap ? gridSize : undefined}
       rotationSnap={gridSnap ? Math.PI / 12 : undefined}
       scaleSnap={gridSnap ? 0.25 : undefined}

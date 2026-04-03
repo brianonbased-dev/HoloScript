@@ -105,7 +105,7 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
           // For now, we use a convention-based path that the Studio dev server can serve.
           pluginUrl: `/plugins/${plugin.id}/index.js`,
           manifest: {
-            permissions: permissions as any,
+            permissions: permissions as string[],
             trustLevel: 'sandboxed',
             memoryBudget: 64,
           },

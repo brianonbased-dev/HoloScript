@@ -225,8 +225,9 @@ export class WGSLTranslator {
    * inputs where available.
    */
   private emitNodeExpression(node: GNode, inputs: Map<string, string>): string {
-    const nodeType = node.type ?? (node.data as any)?.type ?? '';
-    const data = node.data as any;
+    const nodeData = node.data as Record<string, unknown> | undefined;
+    const nodeType = node.type ?? (nodeData?.type as string) ?? '';
+    const data = nodeData ?? {};
 
     switch (nodeType) {
       // ── Constant value nodes ───────────────────────────────────────────
@@ -440,7 +441,8 @@ export class WGSLTranslator {
    * propagates type from upstream inputs — e.g. vec3 + vec3 = vec3f, not f32.
    */
   private inferWGSLType(node: GNode, upstreamVars?: Map<string, string>): string {
-    const nodeType = node.type ?? (node.data as any)?.type ?? '';
+    const inferData = node.data as Record<string, unknown> | undefined;
+    const nodeType = node.type ?? (inferData?.type as string) ?? '';
 
     switch (nodeType) {
       case 'vec2':
@@ -515,7 +517,7 @@ export class WGSLTranslator {
     // For mathNode with scalar-output operations, always return f32
     if (nodeType === 'mathNode' || nodeType === 'math') {
       const node = this.nodes.get(nodeId);
-      const op = (node?.data as any)?.op;
+      const op = (node?.data as Record<string, unknown> | undefined)?.op;
       if (op === 'dot' || op === 'length') {
         return 'f32';
       }

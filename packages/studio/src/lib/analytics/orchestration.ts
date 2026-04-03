@@ -330,5 +330,5 @@ export function getStats(): OrchestrationStats {
 }
 
 export function trackStatsSnapshot() {
-  trackOrchestrationEvent('stats_snapshot', statsCache as any);
+  trackOrchestrationEvent('stats_snapshot', statsCache as unknown as OrchestrationEventProps);
 }

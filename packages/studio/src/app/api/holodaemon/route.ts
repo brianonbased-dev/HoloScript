@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     }
 
     // Mark the job as stopping so the runner's next cycle check exits gracefully
-    running.status = 'completed' as any;
+    (running as { status: string }).status = 'completed';
     running.statusMessage = 'Stopped by user request';
     running.progress = 100;
 

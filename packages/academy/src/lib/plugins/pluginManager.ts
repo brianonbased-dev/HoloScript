@@ -190,7 +190,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         if (!plugin?.metadata?.id) {
           throw new Error(`Package "${source}" does not export a valid HoloScript plugin`);
         }
-        (plugin as any).__source = 'npm';
+        (plugin as unknown as Record<string, unknown>).__source = 'npm';
       } else if (type === 'url') {
         // Load plugin from URL via dynamic import
         const mod = await import(/* @vite-ignore */ source);
@@ -198,7 +198,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         if (!plugin?.metadata?.id) {
           throw new Error(`Module at "${source}" does not export a valid HoloScript plugin`);
         }
-        (plugin as any).__source = 'url';
+        (plugin as unknown as Record<string, unknown>).__source = 'url';
       } else {
         // Local plugin (already loaded)
         throw new Error('Local plugin installation requires registerPlugin');
@@ -236,7 +236,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
 
   // ── Plugin Settings ─────────────────────────────────────────────────────
 
-  updatePluginSettings: (id: string, settings: Record<string, any>) => {
+  updatePluginSettings: (id: string, settings: Record<string, unknown>) => {
     const { plugins } = get();
     const entry = plugins.get(id);
 
@@ -261,7 +261,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     savePluginsToStorage(newPlugins);
   },
 
-  getPluginSettings: (id: string): Record<string, any> => {
+  getPluginSettings: (id: string): Record<string, unknown> => {
     const { plugins } = get();
     const entry = plugins.get(id);
 

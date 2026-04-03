@@ -135,8 +135,7 @@ function GizmoController() {
     <TransformControls
       ref={controlsRef}
       object={target}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mode={gizmoMode as any}
+      mode={gizmoMode}
       translationSnap={gridSnap ? gridSize : undefined}
       rotationSnap={gridSnap ? Math.PI / 12 : undefined}
       scaleSnap={gridSnap ? 0.25 : undefined}

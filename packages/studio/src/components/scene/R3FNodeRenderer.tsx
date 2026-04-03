@@ -93,7 +93,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         meshComponent = (
           <DraftMeshNode
             node={node}
-            shape={(props.draftShape || props.hsType || 'box') as any}
+            shape={(props.draftShape || props.hsType || 'box') as string}
             showWireframe={props.draftWireframe}
             color={props.draftColor}
           />
@@ -208,7 +208,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       return <PostProcessingNode node={node} />;
 
     case 'gltfModel': {
-      const animTrait = node.traits?.get('animation' as any);
+      const animTrait = node.traits?.get('animation');
       const action = animTrait ? ((animTrait.properties?.state as string) ?? 'idle') : 'idle';
       return (
         <GLTFModelNode

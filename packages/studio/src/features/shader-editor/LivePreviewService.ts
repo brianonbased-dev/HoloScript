@@ -153,11 +153,12 @@ export class LivePreviewService {
       return;
     }
 
-    if (!(navigator as any).gpu) {
+    const gpu = (navigator as unknown as { gpu?: GPU }).gpu;
+    if (!gpu) {
       throw new Error('WebGPU is not supported in this browser');
     }
 
-    const adapter = await (navigator as any).gpu.requestAdapter();
+    const adapter = await gpu.requestAdapter();
     if (!adapter) {
       throw new Error('Failed to get WebGPU adapter');
     }

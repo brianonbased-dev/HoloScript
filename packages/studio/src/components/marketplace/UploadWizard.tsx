@@ -4,7 +4,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft, Box } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';
 import { StudioEvents } from '@/lib/analytics';
@@ -280,7 +281,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
               <h3 className="text-sm font-semibold text-studio-text">Select Content Type</h3>
               <div className="grid grid-cols-3 gap-3">
                 {Object.entries(CONTENT_TYPE_METADATA).map(([type, meta]) => {
-                  const Icon = meta.icon as any;
+                  const Icon = (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[meta.icon] || Box;
                   const isSelected = selectedType === type;
 
                   return (
@@ -517,7 +518,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                   <select
                     title="Select content license"
                     value={metadata.license}
-                    onChange={(e) => setMetadata({ ...metadata, license: e.target.value as any })}
+                    onChange={(e) => setMetadata({ ...metadata, license: e.target.value as typeof metadata.license })}
                     className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
                   >
                     <option value="MIT">MIT</option>

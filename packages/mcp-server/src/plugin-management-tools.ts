@@ -11,6 +11,7 @@ import {
   getPluginLifecycleManager,
   type InstallPluginOptions,
   type SandboxPermission,
+  type PluginLifecycleState,
 } from '@holoscript/core';
 
 // =============================================================================
@@ -175,7 +176,7 @@ function handleListPlugins(args: Record<string, unknown>) {
   const stateFilter = args.state as string | undefined;
 
   const allPlugins = stateFilter
-    ? manager.getPluginsByState(stateFilter as any)
+    ? manager.getPluginsByState(stateFilter as PluginLifecycleState)
     : manager.getAllPlugins();
 
   const plugins = allPlugins.map((p) => ({

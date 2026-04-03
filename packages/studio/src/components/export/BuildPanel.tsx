@@ -143,7 +143,7 @@ export function BuildPanel() {
             >
               <input
                 type="checkbox"
-                checked={(config as any)[key] ?? false}
+                checked={config[key as keyof BuildConfig] as boolean ?? false}
                 onChange={(e) => setConfig({ ...config, [key]: e.target.checked })}
                 className="rounded border-studio-border"
               />

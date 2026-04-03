@@ -276,7 +276,7 @@ async function handleExplainError(args: Record<string, unknown>) {
       const format = detectFormat(code);
       if (format === 'holo') {
         const result = parseHolo(code);
-        errors = (result as any).errors || [];
+        errors = result.errors || [];
       } else {
         const parser = new HoloScriptPlusParser();
         const result = parser.parse(code);
@@ -423,7 +423,7 @@ async function handleFixCode(args: Record<string, unknown>) {
     const format = detectFormat(fixed);
     if (format === 'holo') {
       const result = parseHolo(fixed);
-      isValid = !(result as any).errors?.length;
+      isValid = !result.errors?.length;
     } else {
       const parser = new HoloScriptPlusParser();
       const result = parser.parse(fixed);
@@ -857,7 +857,7 @@ async function tryModelScaffold(
     const format = detectFormat(code);
     if (format === 'holo') {
       const result = parseHolo(code);
-      if ((result as any).errors?.length > 0) return null;
+      if (result.errors?.length > 0) return null;
     } else {
       const parser = new HoloScriptPlusParser();
       const result = parser.parse(code);
@@ -900,7 +900,7 @@ async function tryModelFix(brokenCode: string): Promise<string | null> {
     const format = detectFormat(code);
     if (format === 'holo') {
       const result = parseHolo(code);
-      if ((result as any).errors?.length > 0) return null;
+      if (result.errors?.length > 0) return null;
     } else {
       const parser = new HoloScriptPlusParser();
       const result = parser.parse(code);

@@ -243,27 +243,24 @@ function SimpleAssetLibrary({ onLoadTemplate, onShowWizard }: SimpleAssetLibrary
 function BrittneyPromptBar() {
   const [value, setValue] = useState('');
   const [listening, setListening] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
     // Web Speech API — available in Chrome/Edge; undefined in some environments
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as unknown as Record<string, unknown>;
+    const SR = (win.SpeechRecognition || win.webkitSpeechRecognition) as
+      | (new () => SpeechRecognition)
+      | undefined;
     if (!SR) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recog: any = new SR();
+    const recog = new SR();
     recog.continuous = false;
     recog.interimResults = true;
     recog.lang = 'en-US';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recog.onresult = (e: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((r: any) => r[0].transcript)
+    recog.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results)
+        .map((r: SpeechRecognitionResult) => r[0].transcript)
         .join('');
       setValue(transcript);
     };

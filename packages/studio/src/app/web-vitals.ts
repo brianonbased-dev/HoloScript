@@ -21,7 +21,7 @@ function sendToAnalytics(metric: Metric) {
       event_name: metric.name,
       value: metric.value.toString(),
       rating: metric.rating,
-      speed: (navigator as any).connection?.effectiveType || '',
+      speed: ('connection' in navigator ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection?.effectiveType : '') || '',
     });
 
     if (navigator.sendBeacon) {

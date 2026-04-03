@@ -241,7 +241,7 @@ export function DeployWorkflowModal({ onClose, onSuccess }: DeployWorkflowModalP
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      auth: { ...config.auth, type: e.target.value as any },
+                      auth: { ...config.auth, type: e.target.value as 'api-key' | 'jwt' | 'oauth' | 'none' },
                     })
                   }
                   className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"

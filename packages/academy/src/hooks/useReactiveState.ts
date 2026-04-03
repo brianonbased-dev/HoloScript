@@ -4,6 +4,15 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import { ReactiveState } from '@holoscript/core';
+import type { HoloScriptValue } from '@holoscript/core';
+
+/** ReactiveState with undo/redo methods exposed by the core class. */
+interface ReactiveStateInstance {
+  getSnapshot(): Record<string, HoloScriptValue>;
+  set(key: string, value: HoloScriptValue): void;
+  undo(): void;
+  redo(): void;
+}
 
 export interface UseReactiveStateReturn {
   state: Record<string, unknown>;
@@ -15,9 +24,12 @@ export interface UseReactiveStateReturn {
   reset: () => void;
 }
 
+function createReactiveState(initial: Record<string, HoloScriptValue>): ReactiveStateInstance {
+  return new ReactiveState(initial) as unknown as ReactiveStateInstance;
+}
+
 export function useReactiveState(): UseReactiveStateReturn {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rs = useRef<any>(new (ReactiveState as any)({}));
+  const rs = useRef<ReactiveStateInstance>(createReactiveState({}));
   const [state, setState] = useState<Record<string, unknown>>({});
   const [changes, setChanges] = useState(0);
   const changeCount = useRef(0);
@@ -29,7 +41,7 @@ export function useReactiveState(): UseReactiveStateReturn {
 
   const set = useCallback(
     (key: string, value: unknown) => {
-      rs.current.set(key as any, value as any);
+      rs.current.set(key, value as HoloScriptValue);
       changeCount.current++;
       sync();
     },
@@ -46,7 +58,7 @@ export function useReactiveState(): UseReactiveStateReturn {
   }, [sync]);
 
   const buildDemo = useCallback(() => {
-    rs.current = new (ReactiveState as any)({
+    rs.current = createReactiveState({
       playerName: 'Hero',
       health: 100,
       gold: 50,
@@ -58,7 +70,7 @@ export function useReactiveState(): UseReactiveStateReturn {
   }, [sync]);
 
   const reset = useCallback(() => {
-    rs.current = new (ReactiveState as any)({});
+    rs.current = createReactiveState({});
     changeCount.current = 0;
     sync();
   }, [sync]);

@@ -61,6 +61,8 @@ export interface MeshKnowledgeEntry {
   confidence?: number;
   createdAt: string;
   updatedAt?: string;
+  /** Arbitrary metadata that survives orchestrator round-trip (stored as JSON) */
+  metadata?: Record<string, unknown>;
 }
 
 // --- Reputation ---
@@ -493,6 +495,8 @@ export interface HoloMeshDaemonState {
   profileBio: string;
   profileCustomTitle: string;
   profileThemeColor: string;
+  // V7 team message dedup
+  processedMessageIds: string[];
   // V11 resource pressure (L4 Blueprint 1: wire rendering to budget gate)
   resourcePressure: number;
   suggestedLOD: number;
@@ -521,6 +525,7 @@ export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   cycles: 0,
   lastCycleAt: null,
   errors: 0,
+  processedMessageIds: [],
   v2Enabled: false,
   p2pPeerCount: 0,
   gossipSyncCount: 0,

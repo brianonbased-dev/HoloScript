@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useSceneGraphStore } from '../../lib/stores';
 import type { SceneNode } from '../../lib/stores';
 
+/** Extended scene node properties used by conformance checks. */
+interface ConformanceNodeExtensions {
+  castShadow?: boolean;
+  textColor?: string;
+  roughness?: number;
+  metallic?: number;
+}
+
+type ExtendedSceneNode = SceneNode & ConformanceNodeExtensions;
+
 export interface ConformanceRule {
   id: string;
   name: string;
@@ -166,17 +176,18 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
     // A simple AST traversal for validation
     const traverse = (nodeList: SceneNode[]) => {
       for (const node of nodeList) {
+        const extNode = node as ExtendedSceneNode;
         // Check duplicates
         if (node.name && seenNames.has(node.name)) {
           duplicateNames = true;
         }
         if (node.name) seenNames.add(node.name);
 
-        if (node.type === 'light' && (node as any).castShadow !== false) {
+        if (node.type === 'light' && extNode.castShadow !== false) {
           dlCount++;
         }
-        if (node.type === 'mesh' && (node as any).textColor) {
-          const color = (node as any).textColor;
+        if (node.type === 'mesh' && extNode.textColor) {
+          const color = extNode.textColor;
           if (color === '#ffffff' || color === 'white') {
             badTextFound = true;
           }
@@ -206,8 +217,8 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
         }
 
         // Material value validation
-        const roughness = (node as any).roughness;
-        const metallic = (node as any).metallic;
+        const roughness = extNode.roughness;
+        const metallic = extNode.metallic;
         if (
           (roughness !== undefined && (roughness < 0 || roughness > 1)) ||
           (metallic !== undefined && (metallic < 0 || metallic > 1))

@@ -282,7 +282,7 @@ export function ViewportPanel() {
     useViewport();
   const { diffModeHash } = useEditorStore();
 
-  const modes = ['scene', 'wireframe', 'normals', 'flat-semantic'] as any[];
+  const modes = ['scene', 'wireframe', 'normals', 'flat-semantic'] as const;
   const entityTypes = [
     { type: 'box' as const, icon: '📦', label: 'Box' },
     { type: 'sphere' as const, icon: '🔵', label: 'Sphere' },

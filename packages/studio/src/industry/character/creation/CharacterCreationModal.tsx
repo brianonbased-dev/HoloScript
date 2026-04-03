@@ -1604,7 +1604,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="rounded-lg border border-studio-border bg-black/20 px-3 py-1.5 text-sm text-white focus:border-purple-500 focus:outline-none"
           >
             <option value="relevance">Most Relevant</option>

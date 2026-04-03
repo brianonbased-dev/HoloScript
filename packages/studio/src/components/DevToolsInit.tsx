@@ -3,6 +3,19 @@
 import { useEffect } from 'react';
 import { logger } from '@/lib/logger';
 
+/** Augment window with HoloScript dev tools */
+interface HoloScriptDevWindow extends Window {
+  CompilerBridge?: { parse: (code: string) => Promise<unknown> };
+  holoscriptTools?: {
+    checkStatus: () => { ready: boolean };
+    test: () => Promise<{ success: boolean; time?: number; error?: string } | undefined>;
+  };
+}
+
+function getDevWindow(): HoloScriptDevWindow {
+  return window as unknown as HoloScriptDevWindow;
+}
+
 /**
  * DevTools initializer - runs on app startup to expose CompilerBridge to window
  */
@@ -13,34 +26,36 @@ export function DevToolsInit() {
         // Dynamic import to avoid build issues
         const { getCompilerBridge } = await import('../lib/wasm-compiler-bridge');
         const bridge = getCompilerBridge();
+        const devWin = getDevWindow();
 
         // Expose directly to window
-        (window as any).CompilerBridge = bridge;
+        devWin.CompilerBridge = bridge;
 
         // Create tools namespace
-        (window as any).holoscriptTools = {
+        devWin.holoscriptTools = {
           checkStatus: () => {
             logger.debug(
               '🔍 Status: CompilerBridge =',
-              !!(window as any).CompilerBridge ? '✅' : '❌'
+              !!getDevWindow().CompilerBridge ? '✅' : '❌'
             );
-            return { ready: !!(window as any).CompilerBridge };
+            return { ready: !!getDevWindow().CompilerBridge };
           },
           test: async () => {
-            if (!(window as any).CompilerBridge) {
+            if (!getDevWindow().CompilerBridge) {
               logger.error('❌ CompilerBridge not ready');
               return;
             }
             try {
               const code = `composition "T" { object "O" { geometry: "sphere" } }`;
               const start = performance.now();
-              const result = await (window as any).CompilerBridge.parse(code);
+              await getDevWindow().CompilerBridge!.parse(code);
               const time = performance.now() - start;
               logger.debug(`✅ Parse: ${time.toFixed(2)}ms`);
               return { success: true, time };
-            } catch (e: any) {
-              logger.error('❌ Parse failed:', e.message);
-              return { success: false, error: e.message };
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : String(e);
+              logger.error('❌ Parse failed:', msg);
+              return { success: false, error: msg };
             }
           },
         };

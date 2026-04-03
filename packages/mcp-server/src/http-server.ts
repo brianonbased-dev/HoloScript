@@ -29,6 +29,7 @@ import {
   createShareLink,
   getScene,
   storeScene,
+  type SceneProvenance,
   findSceneByAuthor,
   generateBrowserTemplate,
   generateThumbnail,
@@ -52,6 +53,7 @@ import {
   deriveSkillTags,
 } from './a2a';
 import { getOAuth21Service, SCOPE_CATEGORIES, type TokenIntrospection } from './security/oauth21';
+import type { TokenIntrospectionWithTenant } from './security/tenant-auth';
 import { runTripleGate } from './security/gates';
 import { getAuditLogger, type AuditEventType, type AuditResultStatus } from './security/audit-log';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
@@ -60,6 +62,12 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
+
+/** Revenue distribution result from @holoscript/core (not in dist/index.d.ts, so defined locally) */
+interface RevenueDistributionResult {
+  totalPrice: bigint;
+  flows: Array<{ recipient: string; amount: bigint; reason: string; bps: number; depth?: number }>;
+}
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -351,8 +359,7 @@ async function securedToolExecution(
   }
 
   // Enforce Tenant Config / Billing Limits
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenantCtx = (auth as any).tenantContext;
+  const tenantCtx = (auth as TokenIntrospectionWithTenant).tenantContext;
   if (tenantCtx) {
     const rl = getRateLimit(
       `tenant_${tenantCtx.tenantId}`,
@@ -1598,8 +1605,7 @@ const httpServer = http.createServer(async (req, res) => {
         description: (body.description as string) || undefined,
         author: (body.author as string) || undefined,
         license: (body.license as string) || undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        provenance: (body.provenance as any) || undefined,
+        provenance: (body.provenance as SceneProvenance | undefined) || undefined,
       });
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -1739,8 +1745,9 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
+          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as unknown as {
+            calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
+          };
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
             totalPrice: dist.totalPrice.toString(),
@@ -1810,8 +1817,9 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
+          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as unknown as {
+            calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
+          };
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
             totalPrice: dist.totalPrice.toString(),
@@ -1930,7 +1938,10 @@ const httpServer = http.createServer(async (req, res) => {
       const creator = (record?.author as string) || 'unknown';
       // Dynamic import to avoid loading core at startup if unused
       const { calculateRevenueDistribution, formatRevenueDistribution } =
-        (await import('@holoscript/core')) as any;
+        (await import('@holoscript/core')) as unknown as {
+          calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
+          formatRevenueDistribution: (dist: RevenueDistributionResult) => string[];
+        };
       const dist = calculateRevenueDistribution(price, creator, []);
       const lines = formatRevenueDistribution(dist);
       res.writeHead(200, { 'Content-Type': 'application/json' });

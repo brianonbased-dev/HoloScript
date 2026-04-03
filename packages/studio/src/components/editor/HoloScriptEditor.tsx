@@ -72,8 +72,11 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
       endColumn: model.getLineLength(e.line ?? 1) + 1,
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    monaco.editor.setModelMarkers(model as any, 'holoscript', markers as any);
+    monaco.editor.setModelMarkers(
+      model as unknown as Parameters<typeof monaco.editor.setModelMarkers>[0],
+      'holoscript',
+      markers as unknown as Parameters<typeof monaco.editor.setModelMarkers>[2],
+    );
   }, [errors]);
 
   const handleMount: OnMount = useCallback(

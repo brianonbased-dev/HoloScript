@@ -19,7 +19,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { useSceneGraphStore } from '@/lib/stores';
 import { StudioEvents } from '@/lib/analytics';
-import { useAssetStore } from '@/components/assets/useAssetStore';
+import { useAssetStore, type AssetCategory } from '@/components/assets/useAssetStore';
 import { useDragSnap } from '@/hooks/useDragSnap';
 import type { SceneNode } from '@/lib/stores';
 import { SAVE_FEEDBACK_DURATION, STATUS_RESET_DURATION } from '@/lib/ui-timings';
@@ -63,7 +63,7 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
               mat.toneMapped = true;
 
               // Auto-enable transparency for transmission materials
-              if ('transmission' in mat && (mat as any).transmission > 0) {
+              if ('transmission' in mat && (mat as unknown as { transmission: number }).transmission > 0) {
                 mat.transparent = true;
               }
 
@@ -134,8 +134,7 @@ export function useAssetDropProcessor() {
           id: asset.id,
           name: asset.name,
           src: asset.src,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          category: asset.category as any,
+          category: asset.category as AssetCategory,
           size: asset.sizeKb * 1024,
           addedAt: Date.now(),
           tags: [],

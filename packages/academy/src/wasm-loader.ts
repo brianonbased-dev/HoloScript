@@ -44,7 +44,7 @@ export async function initializeWasm(
     });
 
     // Extract exported functions from the WASM module
-    const exports = wasmModule.instance.exports as any;
+    const exports = wasmModule.instance.exports as WebAssembly.Exports & Record<string, unknown>;
 
     // Create a wrapper with typed interface
     return createWasmWrapper(exports);
@@ -59,7 +59,7 @@ export async function initializeWasm(
  */
 export interface ParseResult {
   success: boolean;
-  ast?: any;
+  ast?: unknown;
   errors?: string[];
   warnings?: string[];
 }
@@ -89,7 +89,7 @@ export interface WasmInstance {
    * @param ast Abstract syntax tree from parser
    * @returns Validation result with errors/warnings
    */
-  validate(ast: any): ValidationResult;
+  validate(ast: unknown): ValidationResult;
 
   /**
    * Compile to target language
@@ -97,7 +97,7 @@ export interface WasmInstance {
    * @param target Compilation target (e.g., "unity", "unreal", "babylon")
    * @returns Compiled code or errors
    */
-  compile(ast: any, target: string): CompileResult;
+  compile(ast: unknown, target: string): CompileResult;
 
   /**
    * Format HoloScript code
@@ -135,7 +135,7 @@ export interface ValidationError {
 /**
  * Create typed wrapper around raw WASM exports
  */
-function createWasmWrapper(exports: any): WasmInstance {
+function createWasmWrapper(exports: WebAssembly.Exports & Record<string, unknown>): WasmInstance {
   return {
     parse(code: string): ParseResult {
       try {
@@ -159,13 +159,13 @@ function createWasmWrapper(exports: any): WasmInstance {
       }
     },
 
-    validate(ast: any): ValidationResult {
+    validate(ast: unknown): ValidationResult {
       try {
         if (exports.validate && typeof exports.validate === 'function') {
-          const result = exports.validate(JSON.stringify(ast));
+          const result = (exports.validate as (s: string) => Record<string, unknown> | null)(JSON.stringify(ast));
           return {
-            valid: !result || result.error_count === 0,
-            errors: result?.errors || [],
+            valid: !result || (result.error_count as number) === 0,
+            errors: (result?.errors as ValidationError[]) || [],
           };
         }
         return { valid: true, errors: [] };
@@ -184,14 +184,14 @@ function createWasmWrapper(exports: any): WasmInstance {
       }
     },
 
-    compile(ast: any, target: string): CompileResult {
+    compile(ast: unknown, target: string): CompileResult {
       try {
         if (exports.compile && typeof exports.compile === 'function') {
-          const result = exports.compile(JSON.stringify(ast), target);
+          const result = (exports.compile as (s: string, t: string) => Record<string, unknown>)(JSON.stringify(ast), target);
           return {
             success: !result.error,
-            code: result.code,
-            errors: result.errors ? [result.errors] : [],
+            code: result.code as string | undefined,
+            errors: result.errors ? [result.errors as string] : [],
           };
         }
         return {
@@ -235,7 +235,7 @@ function createWasmWrapper(exports: any): WasmInstance {
 /**
  * Parse WASM parser result into normalized format
  */
-function parseWasmResult(result: any): ParseResult {
+function parseWasmResult(result: unknown): ParseResult {
   if (typeof result === 'string') {
     try {
       return JSON.parse(result);
@@ -248,11 +248,12 @@ function parseWasmResult(result: any): ParseResult {
   }
 
   if (result && typeof result === 'object') {
+    const r = result as Record<string, unknown>;
     return {
-      success: result.success || !result.error,
-      ast: result.ast || result.node,
-      errors: result.errors || (result.error ? [result.error] : []),
-      warnings: result.warnings || [],
+      success: (r.success as boolean) || !r.error,
+      ast: r.ast || r.node,
+      errors: (r.errors as string[]) || (r.error ? [r.error as string] : []),
+      warnings: (r.warnings as string[]) || [],
     };
   }
 

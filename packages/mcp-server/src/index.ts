@@ -96,14 +96,15 @@ async function handleOracleConsult(
       });
       clearTimeout(t);
       if (res.ok) {
-        const data = (await res.json()) as any;
+        interface KnowledgeEntry { id?: string; type?: string; content?: string }
+        const data = (await res.json()) as { results?: KnowledgeEntry[]; entries?: KnowledgeEntry[] };
         const entries = data.results || data.entries || [];
         if (entries.length > 0) {
           results.push(
             '## Knowledge Store\n' +
               entries
                 .map(
-                  (e: any) =>
+                  (e: KnowledgeEntry) =>
                     `- **[${e.id || e.type}]** ${String(e.content || '').substring(0, 200)}`
                 )
                 .join('\n')

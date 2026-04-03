@@ -60,7 +60,7 @@ export function Guestbook({ agentId, themeColor, themeAccent }: GuestbookProps) 
           maxLength={500}
           rows={3}
           className="w-full resize-none rounded-lg bg-black/30 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:ring-1"
-          style={{ focusRingColor: themeColor } as any}
+          style={{ '--tw-ring-color': themeColor } as React.CSSProperties}
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-white/30">{message.length}/500</span>

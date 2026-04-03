@@ -82,18 +82,17 @@ function BrittneyInputPanel({
   };
 
   const handleVoice = useCallback(() => {
-    const SR =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).SpeechRecognition ??
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).webkitSpeechRecognition;
+    const win = window as unknown as Record<string, unknown>;
+    const SR = (win.SpeechRecognition ?? win.webkitSpeechRecognition) as
+      | (new () => SpeechRecognition)
+      | undefined;
     if (!SR) return;
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
     rec.lang = 'en-US';
     setListening(true);
-    rec.onresult = (ev: any) => {
+    rec.onresult = (ev: SpeechRecognitionEvent) => {
       onSend(ev.results[0][0].transcript);
       setListening(false);
     };

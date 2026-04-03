@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         // @ts-ignore
         const userResult = await github.executeTool('github_user_get', {});
         const userData = userResult && typeof userResult === 'object' && 'data' in userResult
-          ? (userResult.data as any)
+          ? (userResult.data as Record<string, unknown>)
           : null;
 
         return NextResponse.json({
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
         // Dynamically import to avoid bundling issues
         // @ts-ignore
         const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
-        const upstash: any = new (UpstashConnector as any)();
+        const upstash = new (UpstashConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; getCapabilities(): unknown })();
         await upstash.connect();
 
         const healthy = await upstash.health();
@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
 
         // @ts-ignore
         const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
-        const appstore: any = new (AppStoreConnector as any)();
+        const appstore = new (AppStoreConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; getCapabilities(): unknown })();
         await appstore.connect();
 
         const healthy = await appstore.health();

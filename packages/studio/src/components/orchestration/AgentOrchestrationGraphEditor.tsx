@@ -36,7 +36,7 @@ import {
   Redo,
   History,
 } from 'lucide-react';
-import { useOrchestrationStore } from '@/lib/orchestrationStore';
+import { useOrchestrationStore, type WorkflowEdge, type WorkflowNode } from '@/lib/orchestrationStore';
 import type {
   WorkflowNode,
   AgentNodeData,
@@ -238,7 +238,7 @@ export function AgentOrchestrationGraphEditor({
       const edge = { ...connection, id: `edge_${Date.now()}`, animated: true };
       setEdges((eds) => addEdge(edge, eds));
       if (workflow) {
-        addWorkflowEdge(workflow.id, edge as any);
+        addWorkflowEdge(workflow.id, edge as WorkflowEdge);
       }
     },
     [setEdges, workflow, addWorkflowEdge]
@@ -361,7 +361,7 @@ export function AgentOrchestrationGraphEditor({
 
   const handleSave = () => {
     if (workflow) {
-      updateWorkflow(workflow.id, { nodes: nodes as any, edges: edges as any });
+      updateWorkflow(workflow.id, { nodes: nodes as unknown as WorkflowNode[], edges: edges as unknown as WorkflowEdge[] });
       trackWorkflowSaved(workflow.id, nodes.length, edges.length);
     }
   };

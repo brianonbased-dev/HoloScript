@@ -76,9 +76,9 @@ export interface HoloMeshDaemonConfig {
 }
 
 type ActionHandler = (
-  params: any,
-  blackboard: Record<string, any>,
-  context: any
+  params: Record<string, unknown>,
+  blackboard: Record<string, unknown>,
+  context: Record<string, unknown>
 ) => Promise<boolean>;
 
 const DEFAULT_SEARCH_TOPICS = [
@@ -667,12 +667,13 @@ export function createHoloMeshDaemonActions(
 
       // Collect resource usage from contributed compositions this cycle
       const contributed = blackboard.contributed_this_cycle || 0;
-      const queryResults = (blackboard.query_results as any[]) || [];
+      interface QueryResult { id?: string; traits?: string[] }
+      const queryResults = (blackboard.query_results as QueryResult[] | undefined) || [];
 
       // Build resource usage nodes from recent activity
       const nodes = queryResults
-        .filter((r: any) => r?.traits?.length)
-        .map((r: any) => ({
+        .filter((r) => r?.traits?.length)
+        .map((r) => ({
           name: r.id || 'query-result',
           traits: r.traits || [],
           count: 1,
@@ -1018,5 +1019,5 @@ function loadState(stateFile: string): HoloMeshDaemonState {
   } catch {
     /* fresh state on error */
   }
-  return { ...INITIAL_MESH_STATE, processedMessageIds: [] } as any;
+  return { ...INITIAL_MESH_STATE, processedMessageIds: [] };
 }

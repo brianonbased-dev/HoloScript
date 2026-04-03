@@ -106,8 +106,9 @@ export function useMonacoAutocomplete(monaco: Monaco | null, options?: Autocompl
       freeInlineCompletions() {
         /* noop */
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      // Structural typing mismatch between two pnpm installs of monaco-editor;
+      // provider is structurally compatible so we cast through unknown.
+    } as unknown as Parameters<typeof monaco.languages.registerInlineCompletionsProvider>[1]);
 
     return () => {
       disposableRef.current?.dispose();

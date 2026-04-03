@@ -1005,8 +1005,20 @@ function findSimilarTraits(trait: string): string[] {
   }).slice(0, 3);
 }
 
+interface ParsedAST {
+  composition?: unknown;
+  type?: string;
+  name?: string;
+  nodes?: Array<{ type?: string; nodeType?: string; name?: string; id?: string; objectType?: string; geometry?: string; traits?: string[] }>;
+  ast?: { nodes?: ParsedAST['nodes'] };
+  objects?: Array<{ name?: string; id?: string; type?: string; geometry?: string; traits?: string[] }>;
+  environment?: { skybox?: string; ambient_light?: number; theme?: string };
+  logic?: unknown;
+  actions?: unknown;
+}
+
 function generateExplanation(parsed: unknown, detail: string): string {
-  const ast = parsed as any;
+  const ast = parsed as ParsedAST;
   const sections: string[] = [];
 
   // Overview section
@@ -1080,8 +1092,14 @@ function generateExplanation(parsed: unknown, detail: string): string {
   return sections.join('\n');
 }
 
-function extractObjectsForExplanation(ast: any): any[] {
-  const objects: any[] = [];
+interface ExtractedObject {
+  name: string;
+  type?: string;
+  traits: string[];
+}
+
+function extractObjectsForExplanation(ast: ParsedAST): ExtractedObject[] {
+  const objects: ExtractedObject[] = [];
 
   if (!ast) return objects;
 
@@ -1147,7 +1165,8 @@ function analyzeAST(parsed: unknown, code: string) {
 async function handleGenerate3DObject(args: Record<string, unknown>) {
   const description = args.description as string;
   const providerName = (args.provider as string) || 'meshy';
-  const style = (args.style as string) || 'pbr';
+  type TextTo3DStyle = 'realistic' | 'cartoon' | 'low-poly' | 'pbr';
+  const style = ((args.style as string) || 'pbr') as TextTo3DStyle;
   const objectName = args.objectName as string | undefined;
 
   if (!description) {
@@ -1170,7 +1189,7 @@ async function handleGenerate3DObject(args: Record<string, unknown>) {
     const result = await textTo3DToHolo({
       description,
       provider,
-      style: style as any,
+      style,
       objectName,
     });
 

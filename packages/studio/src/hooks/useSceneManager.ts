@@ -46,7 +46,7 @@ export function useSceneManager(): UseSceneManagerReturn {
           },
         ],
       };
-      mgr.current.save(name, demoNode as any);
+      mgr.current.save(name, demoNode as unknown as Parameters<typeof mgr.current.save>[1]);
       sync();
     },
     [sync]

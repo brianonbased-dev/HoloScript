@@ -280,7 +280,7 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
       }
 
       default:
-        diffLog.push(`⚠ Unknown operation: ${(edit as any).op}`);
+        diffLog.push(`⚠ Unknown operation: ${(edit as unknown as { op: string }).op}`);
     }
   }
 

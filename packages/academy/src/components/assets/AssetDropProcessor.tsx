@@ -62,7 +62,7 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
               mat.toneMapped = true;
 
               // Auto-enable transparency for transmission materials
-              if ('transmission' in mat && (mat as any).transmission > 0) {
+              if (mat instanceof THREE.MeshPhysicalMaterial && mat.transmission > 0) {
                 mat.transparent = true;
               }
 
@@ -133,8 +133,7 @@ export function useAssetDropProcessor() {
           id: asset.id,
           name: asset.name,
           src: asset.src,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          category: asset.category as any,
+          category: asset.category as 'model' | 'texture' | 'audio' | 'hdri' | 'splat',
           size: asset.sizeKb * 1024,
           addedAt: Date.now(),
           tags: [],

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const searchQuery = searchParams.get('q') || '';
 
     // Initialize GitHub connector
-    const github: any = new (GitHubConnector as any)();
+    const github = new (GitHubConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; executeTool(name: string, args: Record<string, unknown>): Promise<{ data: unknown }> })();
     await github.connect();
 
     // Check health
@@ -55,17 +55,17 @@ export async function GET(req: NextRequest) {
       throw new Error('Invalid response from GitHub connector');
     }
 
-    const data = result.data as any;
-    let repos = Array.isArray(data) ? data : [];
+    const data = result.data as unknown;
+    let repos = Array.isArray(data) ? data as Record<string, unknown>[] : [];
 
     // Filter by search query if provided
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       repos = repos.filter(
-        (repo: any) =>
-          repo.name?.toLowerCase().includes(query) ||
-          repo.description?.toLowerCase().includes(query) ||
-          repo.full_name?.toLowerCase().includes(query)
+        (repo) =>
+          (repo.name as string | undefined)?.toLowerCase().includes(query) ||
+          (repo.description as string | undefined)?.toLowerCase().includes(query) ||
+          (repo.full_name as string | undefined)?.toLowerCase().includes(query)
       );
     }
 

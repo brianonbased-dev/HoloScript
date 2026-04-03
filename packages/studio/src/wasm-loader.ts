@@ -45,7 +45,7 @@ export async function initializeWasm(
     });
 
     // Extract exported functions from the WASM module
-    const exports = wasmModule.instance.exports as any;
+    const exports = wasmModule.instance.exports as unknown as Record<string, (...args: unknown[]) => unknown>;
 
     // Create a wrapper with typed interface
     return createWasmWrapper(exports);

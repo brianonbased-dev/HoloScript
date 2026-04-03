@@ -15,13 +15,21 @@ export interface OrchestrationEventProps {
  * @param event Event name (e.g., 'panel_opened', 'workflow_executed')
  * @param props Event properties
  */
+/** Window with optional Google Analytics gtag function. */
+interface GtagWindow extends Window {
+  gtag?: (...args: unknown[]) => void;
+}
+
 export function trackOrchestrationEvent(event: string, props: OrchestrationEventProps = {}) {
   // Send to Google Analytics if available
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', event, {
-      event_category: 'orchestration',
-      ...props,
-    });
+  if (typeof window !== 'undefined') {
+    const win = window as unknown as GtagWindow;
+    if (win.gtag) {
+      win.gtag('event', event, {
+        event_category: 'orchestration',
+        ...props,
+      });
+    }
   }
 
   // Log to console in development
@@ -323,5 +331,14 @@ export function getStats(): OrchestrationStats {
 }
 
 export function trackStatsSnapshot() {
-  trackOrchestrationEvent('stats_snapshot', statsCache as any);
+  const props: OrchestrationEventProps = {
+    totalWorkflows: statsCache.totalWorkflows,
+    totalBehaviorTrees: statsCache.totalBehaviorTrees,
+    totalToolCalls: statsCache.totalToolCalls,
+    totalEvents: statsCache.totalEvents,
+    mostUsedServer: statsCache.mostUsedServer ?? undefined,
+    averageWorkflowNodes: statsCache.averageWorkflowNodes,
+    averageExecutionTime: statsCache.averageExecutionTime,
+  };
+  trackOrchestrationEvent('stats_snapshot', props);
 }

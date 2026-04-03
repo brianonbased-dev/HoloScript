@@ -16,15 +16,19 @@ import * as CoreModule from '@holoscript/core';
 import { STATUS_RESET_DURATION, SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { extractTraits } from '@holoscript/std';
 
-const {
-  runSafetyPass,
-  createSubmission,
-  verifySubmission,
-  publishSubmission,
-  MarketplaceRegistry,
-  gateCheck,
-} = CoreModule as any;
-type MarketplacePackage = any;
+const CoreModuleRecord = CoreModule as unknown as Record<string, (...args: unknown[]) => unknown>;
+const runSafetyPass = CoreModuleRecord.runSafetyPass as (nodes: unknown[], opts: Record<string, unknown>) => { report: { verdict: string; dangerScore: number } };
+const createSubmission = CoreModuleRecord.createSubmission as (pkg: unknown) => { status: string };
+const verifySubmission = CoreModuleRecord.verifySubmission as (sub: { status: string }) => void;
+const publishSubmission = CoreModuleRecord.publishSubmission as (sub: { status: string }) => void;
+const gateCheck = CoreModuleRecord.gateCheck as (manifest: unknown, report: unknown, level: number) => { allowed: boolean; warnings?: string[] };
+
+interface MarketplacePackage {
+  metadata: Record<string, unknown>;
+  nodes: unknown[];
+  assets: unknown[];
+  bundleSizeBytes: number;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -36,7 +40,7 @@ interface DeployButtonProps {
   /** Package name for deployment */
   packageName?: string;
   /** MarketplaceRegistry instance to install into (optional) */
-  registry?: any;
+  registry?: { publish: (sub: unknown) => void; install: (id: string, worldId: string) => void };
 }
 
 type DeployStatus = 'idle' | 'deploying' | 'success' | 'blocked' | 'error';

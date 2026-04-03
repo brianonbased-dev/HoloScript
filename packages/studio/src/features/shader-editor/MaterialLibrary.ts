@@ -14,7 +14,7 @@
  */
 
 import { ShaderGraph } from '../../lib/shader/shaderGraph';
-import type { ISerializedShaderGraph } from '../../lib/shaderGraphTypes';
+import type { ISerializedShaderGraph } from '../../lib/shader/shaderGraph';
 import { openDB, type IDBPDatabase } from 'idb';
 
 // ============================================================================

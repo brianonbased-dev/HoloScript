@@ -263,7 +263,8 @@ function BrittneyPromptBar() {
     if (typeof window === 'undefined') return;
     // Web Speech API — available in Chrome/Edge; undefined in some environments
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as unknown as Record<string, unknown>;
+    const SR = (win.SpeechRecognition || win.webkitSpeechRecognition) as (new () => SpeechRecognition) | undefined;
     if (!SR) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -274,9 +275,8 @@ function BrittneyPromptBar() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recog.onresult = (e: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(e.results as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((r: any) => r[0].transcript)
+      const transcript = Array.from(e.results as Iterable<SpeechRecognitionResult>)
+        .map((r: SpeechRecognitionResult) => r[0].transcript)
         .join('');
       setValue(transcript);
     };

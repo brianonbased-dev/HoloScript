@@ -25,7 +25,7 @@
  *     reputation (LoroMap)             — agentDid → JSON reputation data
  *     peers (LoroMap)                  — peerDid → JSON { url, name, lastSeen }
  */
-import { LoroDoc } from 'loro-crdt';
+import { LoroDoc, VersionVector } from 'loro-crdt';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -215,12 +215,13 @@ Insight("${this.agentDid}_${Date.now()}") {
 
   /** Returns a flattened view of all insights currently active in the Mesh as .hs source blocks. */
   public queryFeedView(): Array<{ source: string; timestamp: number }> {
-    const list = this.doc.getList('insights') as any;
+    const list = this.doc.getList('insights');
     if (!list) return [];
-    const feed = list.toJSON();
-    return (feed as any[])
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((item: any) => ({
+    interface InsightEntry { hs_source?: string; author?: string; text?: string; timestamp: number }
+    const feed = list.toJSON() as InsightEntry[];
+    return feed
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((item) => ({
         source:
           item.hs_source ||
           `Insight("legacy") {\n  @author("${item.author}")\n  @thought(${JSON.stringify(item.text)})\n}`,
@@ -242,7 +243,7 @@ Insight("${this.agentDid}_${Date.now()}") {
   }
 
   public getKnowledgeDomainSource(domain: string): string {
-    const entries = this.queryDomain(domain as any);
+    const entries = this.queryDomain(domain as KnowledgeDomain);
     return entries.map((e) => e.entry.content || '').join('\n\n');
   }
 
@@ -518,7 +519,8 @@ Insight("${this.agentDid}_${Date.now()}") {
   /** Export delta since given frontiers (for efficient gossip) */
   public exportDelta(sinceFrontiers?: unknown): Uint8Array {
     if (sinceFrontiers) {
-      return this.doc.export({ mode: 'update', from: sinceFrontiers as any });
+      // sinceFrontiers is a VersionVector passed opaquely from a previous session
+      return this.doc.export({ mode: 'update', from: sinceFrontiers as VersionVector });
     }
     return this.doc.export({ mode: 'update' });
   }

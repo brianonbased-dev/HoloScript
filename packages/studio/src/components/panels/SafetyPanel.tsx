@@ -47,12 +47,21 @@ export function SafetyPanel({
   compact = false,
 }: SafetyPanelProps) {
   const { report, analyze, verdict, dangerScore, isAnalyzing } = useSafetyPass();
-  const reportAny = report as any;
+
+  /** Typed view of the nested report structure for UI rendering */
+  interface SafetyReportView {
+    effects: { totalEffects: number; categories: string[]; violations: { message: string; severity: string }[] };
+    budget: { diagnostics: { label: string; used: number; max: number; pct: number }[] };
+    capabilities: { missing: { name: string; reason: string }[] };
+    verdict: string;
+    moduleId: string;
+  }
+  const reportView = report as unknown as SafetyReportView | null;
 
   useEffect(() => {
     if (autoAnalyze && nodes.length > 0) {
       analyze(nodes, {
-        targetPlatforms: targetPlatform ? ([targetPlatform] as any) : undefined,
+        targetPlatforms: targetPlatform ? [targetPlatform] as string[] : undefined,
         trustLevel,
       });
     }
@@ -93,17 +102,17 @@ export function SafetyPanel({
 
       {/* Effects */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>Effects ({reportAny.effects.totalEffects})</div>
+        <div style={styles.sectionTitle}>Effects ({reportView.effects.totalEffects})</div>
         <div style={styles.tagList}>
-          {reportAny.effects.categories.map((cat: string) => (
+          {reportView.effects.categories.map((cat: string) => (
             <span key={cat} style={styles.tag}>
               {cat}
             </span>
           ))}
         </div>
-        {reportAny.effects.violations.length > 0 && (
+        {reportView.effects.violations.length > 0 && (
           <div style={styles.violations}>
-            {reportAny.effects.violations.map((v: any, i: number) => (
+            {reportView.effects.violations.map((v, i: number) => (
               <div
                 key={i}
                 style={{
@@ -119,10 +128,10 @@ export function SafetyPanel({
       </div>
 
       {/* Budget */}
-      {reportAny.budget.diagnostics.length > 0 && (
+      {reportView.budget.diagnostics.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Budget</div>
-          {reportAny.budget.diagnostics.map((d: any, i: number) => (
+          {reportView.budget.diagnostics.map((d, i: number) => (
             <div key={i} style={styles.budgetRow}>
               <span style={styles.budgetLabel}>{d.category}</span>
               <div style={styles.budgetBar}>
@@ -146,10 +155,10 @@ export function SafetyPanel({
       )}
 
       {/* Capabilities */}
-      {reportAny.capabilities.missing.length > 0 && (
+      {reportView.capabilities.missing.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Missing Capabilities</div>
-          {reportAny.capabilities.missing.map((cap: any, i: number) => (
+          {reportView.capabilities.missing.map((cap, i: number) => (
             <div key={i} style={styles.capMissing}>
               🔒 {cap.scope} — required by {cap.requiredBy}
             </div>
@@ -158,10 +167,10 @@ export function SafetyPanel({
       )}
 
       {/* Certificate */}
-      {reportAny.verdict !== 'unsafe' && (
+      {reportView.verdict !== 'unsafe' && (
         <div style={{ ...styles.section, background: '#10b98110' }}>
           <div style={styles.sectionTitle}>📜 Safety Certificate</div>
-          <div style={styles.certHash}>Module: {String(reportAny.moduleId)}</div>
+          <div style={styles.certHash}>Module: {String(reportView.moduleId)}</div>
         </div>
       )}
     </div>

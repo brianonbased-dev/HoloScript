@@ -83,7 +83,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
       if (node) {
         const matTrait = node.traits.find((t) => t.name === 'material');
         if (matTrait?.properties) {
-          const props = matTrait.properties as any;
+          const props = matTrait.properties as Record<string, unknown>;
           if (props.albedo) setAlbedo(props.albedo);
           if (props.color) setAlbedo(props.color);
           if (props.roughness !== undefined) setGlossiness(1.0 - props.roughness);

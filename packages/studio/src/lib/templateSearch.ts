@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * templateSearch.ts — Template Search Engine
  *

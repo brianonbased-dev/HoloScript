@@ -121,13 +121,13 @@ export class DeleteNodeCommand implements ICommand {
 
       // Restore connections
       for (const conn of this.deletedConnections) {
-        graph.connect(conn.fromNode, conn.fromPort, conn.toNode, conn.toPort);
+          graph.connect(conn.fromNodeId, conn.fromPort, conn.toNodeId, conn.toPort);
       }
     }
   }
 
   getDescription(): string {
-    return `Delete ${this.deletedNode?.name ?? 'node'}`;
+    return `Delete ${this.deletedNode?.label ?? 'node'}`;
   }
 
   canMergeWith(): boolean {
@@ -154,7 +154,7 @@ export class ConnectCommand implements ICommand {
   execute(graph: ShaderGraph): void {
     // Check for existing connection to this input
     const existing = graph.connections.find(
-      (c: any) => c.toNode === this.toNodeId && c.toPort === this.toPortId
+      (c: any) => c.toNodeId === this.toNodeId && c.toPort === this.toPortId
     );
 
     if (existing) {
@@ -171,9 +171,9 @@ export class ConnectCommand implements ICommand {
       // Restore previous connection if it existed
       if (this.previousConnection) {
         graph.connect(
-          this.previousConnection.fromNode,
+          this.previousConnection.fromNodeId,
           this.previousConnection.fromPort,
-          this.previousConnection.toNode,
+          this.previousConnection.toNodeId,
           this.previousConnection.toPort
         );
       }
@@ -206,8 +206,8 @@ export class DisconnectCommand implements ICommand {
     // Find and store the connection
     const conn = graph.connections.find(
       (c: any) =>
-        (c.toNode === this.nodeId && c.toPort === this.portId) ||
-        (c.fromNode === this.nodeId && c.fromPort === this.portId)
+        (c.toNodeId === this.nodeId && c.toPort === this.portId) ||
+        (c.fromNodeId === this.nodeId && c.fromPort === this.portId)
     );
 
     if (conn) {
@@ -220,9 +220,9 @@ export class DisconnectCommand implements ICommand {
   undo(graph: ShaderGraph): void {
     if (this.deletedConnection) {
       graph.connect(
-        this.deletedConnection.fromNode,
+        this.deletedConnection.fromNodeId,
         this.deletedConnection.fromPort,
-        this.deletedConnection.toNode,
+        this.deletedConnection.toNodeId,
         this.deletedConnection.toPort
       );
     }
