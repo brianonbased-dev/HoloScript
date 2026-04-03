@@ -3321,6 +3321,34 @@ export function bestCategoryForTraits(requiredCapabilities: any): any[];
 export function inferCapabilitiesFromGraph(graph: any): any;
 export function inferModalityFromGraph(graph: any, platform?: any, options?: ModalitySelectorOptions): ModalitySelection | null;
 
+// ============================================================================
+// SNN Sparsity Monitoring (Self-Improvement)
+// ============================================================================
+export interface SparsitySnapshot { [key: string]: any; }
+export interface SNNLayerMetrics { [key: string]: any; }
+export interface LayerActivityInput { [key: string]: any; }
+export interface SparsityQualityHistoryEntry { [key: string]: any; }
+
+export class SparsityMonitor {
+  constructor(config?: any);
+  recordLayerActivity(layerId: string, input: LayerActivityInput): SNNLayerMetrics;
+  recordBatchActivity(layerInputs: any): SNNLayerMetrics[];
+  takeSnapshot(): SparsitySnapshot | null;
+  getActiveViolations(): any[];
+  getViolationHistory(): any[];
+  getStats(): any;
+  toQualityHistoryEntry(cycle: number): SparsityQualityHistoryEntry;
+  getHarvesterMetrics(): Record<string, number | boolean>;
+  getSnapshots(): SparsitySnapshot[];
+  getLatestSnapshot(): SparsitySnapshot | null;
+  getCurrentLayerMetrics(): Map<string, SNNLayerMetrics>;
+  getLayerHistory(layerId: string): SNNLayerMetrics[];
+  getConfig(): any;
+  reset(): void;
+  [key: string]: any;
+}
+export function createSparsityMonitor(config?: any): SparsityMonitor;
+
 `;
 
 // Write type declaration files

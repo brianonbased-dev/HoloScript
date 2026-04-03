@@ -3357,7 +3357,7 @@ export type { TraitConstraint } from './types';
 export { BUILTIN_CONSTRAINTS } from './traits/traitConstraints';
 
 // ── Sprint 3: Agent Inference Export ────────────────────────────────────────
-export { AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarget';
+export { default as AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarget';
 
 // ── Sprint 1: Procedural Geometry Patch ─────────────────────────────────────
 export * from './compiler/ProceduralGeometry';
@@ -3656,3 +3656,9 @@ export {
 } from './gpu/GaussianSplatExtractor';
 
 export * from './compiler/platform/ModalitySelector';
+
+// ============================================================================
+// SNN Sparsity Monitoring (Self-Improvement)
+// ============================================================================
+export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
+export type * from './training/SparsityMonitorTypes';
