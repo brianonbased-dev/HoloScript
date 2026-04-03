@@ -199,9 +199,12 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'respond', target: question, reasoning: 'Another agent addressed me or asked a question' };
   }
 
-  // If board is empty, auto-derive from sources
+  // If board is low or empty, auto-derive from sources
   if (openTasks.length === 0) {
-    return { action: 'derive', reasoning: `Board empty (${doneCount} done). Need to populate from source files.` };
+    return { action: 'derive', reasoning: `Board empty (${doneCount} done). Farming docs for tasks.` };
+  }
+  if (openTasks.length < 20 && memory.cycleCount % 10 === 0) {
+    return { action: 'derive', reasoning: `Board low (${openTasks.length} open). Periodic farm from docs.` };
   }
 
   // Find a task this agent can handle (skip already-tried ones)
@@ -265,15 +268,58 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     }
 
     case 'derive': {
-      // Read STUDIO_AUDIT.md and derive tasks
-      const auditContent = perceiveShell('cat packages/studio/STUDIO_AUDIT.md 2>/dev/null | head -200');
-      if (auditContent) {
-        await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, {
-          source: 'STUDIO_AUDIT.md',
-          content: auditContent,
+      // Cycle through source files to farm tasks
+      const sources = [
+        { file: 'packages/studio/STUDIO_AUDIT.md', name: 'STUDIO_AUDIT.md' },
+        { file: 'docs/strategy/ROADMAP.md', name: 'ROADMAP.md' },
+        { file: 'CHANGELOG.md', name: 'CHANGELOG.md' },
+        { file: 'packages/mcp-server/COMPILER_TOOLS.md', name: 'COMPILER_TOOLS.md' },
+        { file: 'docs/agents/holomesh-teams.md', name: 'holomesh-teams.md' },
+        { file: 'README.md', name: 'README.md' },
+      ];
+
+      // Pick the next source file in rotation
+      const sourceIdx = memory.cycleCount % sources.length;
+      const source = sources[sourceIdx];
+      const content = perceiveShell(`cat ${source.file} 2>/dev/null | head -300`);
+
+      if (content && content.length > 50) {
+        const result = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, {
+          source: source.name,
+          content,
         }, auth());
-        await sendMessage(`[${AGENT_NAME}] Auto-derived tasks from STUDIO_AUDIT.md — board was empty.`);
-        console.log('[agent] Derived tasks from STUDIO_AUDIT.md');
+        const derived = result?.derived || 0;
+        const skipped = result?.skipped_existing || 0;
+        if (derived > 0) {
+          await sendMessage(`[scout] Farmed ${derived} new tasks from ${source.name} (${skipped} already existed)`);
+          console.log(`[agent] Derived ${derived} tasks from ${source.name}`);
+        } else {
+          console.log(`[agent] ${source.name}: 0 new tasks (${skipped} skipped)`);
+        }
+      } else {
+        console.log(`[agent] ${source.file}: empty or not found`);
+      }
+
+      // Also scan for TODO/FIXME directly and create tasks from them
+      if (sourceIdx === 0) {
+        const todos = perceiveShell('grep -rn "TODO-[0-9]\\|FIXME:" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
+        if (todos) {
+          const lines = todos.split('\n').filter(l => l.trim());
+          for (const line of lines.slice(0, 5)) {
+            const match = line.match(/^(.+?):(\d+):.*?(TODO-\d+|FIXME):?\s*(.+)/);
+            if (match) {
+              const [, file, lineNum, tag, desc] = match;
+              await post(`${HOLOMESH_API}/team/${ROOM_ID}/board`, {
+                title: `${tag}: ${desc.trim().slice(0, 80)}`,
+                description: `${file}:${lineNum}`,
+                priority: tag.startsWith('FIXME') ? 2 : 3,
+                role: 'coder',
+                source: `TODO-scan:${file}`,
+              }, auth());
+            }
+          }
+          console.log(`[agent] Scanned ${lines.length} TODOs from studio`);
+        }
       }
       break;
     }
@@ -314,18 +360,33 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     }
 
     case 'scan_todos': {
-      const todos = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src --include="*.ts" --include="*.tsx" 2>/dev/null | head -20');
+      // Scan across all packages, not just studio
+      const todos = perceiveShell('grep -rn "TODO\\|FIXME" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v dist | grep -v __tests__ | head -30');
       if (todos) {
-        const summary = await think(
-          `These are TODO/FIXME comments found in the HoloScript Studio codebase:\n\n${todos}\n\n` +
-          `Categorize them: which are critical (security, broken), which are tech debt, which are nice-to-have? ` +
-          `Respond in 3 lines max.`
+        const lines = todos.split('\n').filter(l => l.trim());
+        // Contribute raw data
+        await contributeKnowledge('pattern',
+          `TODO/FIXME scan (${lines.length} found):\n${lines.slice(0, 15).join('\n')}`,
+          'code-quality', ['scan', 'todo', 'raw-data']
         );
-        if (summary) {
-          await contributeKnowledge('pattern', `Studio TODO scan: ${summary}`, 'code-quality', ['scan', 'todo']);
-          await sendMessage(`[${AGENT_NAME}] TODO scan: ${summary}`);
-          console.log(`[agent] Scanned TODOs, contributed finding`);
+        // Create board tasks from FIXME items (higher priority than TODO)
+        const fixmes = lines.filter(l => /FIXME/i.test(l)).slice(0, 5);
+        for (const line of fixmes) {
+          const match = line.match(/^(.+?):(\d+):.*?FIXME:?\s*(.+)/i);
+          if (match) {
+            const [, file, lineNum, desc] = match;
+            const shortFile = file.replace(/^packages\//, '');
+            await post(`${HOLOMESH_API}/team/${ROOM_ID}/board`, {
+              title: `FIXME: ${desc.trim().slice(0, 80)}`,
+              description: `${shortFile}:${lineNum}`,
+              priority: 2,
+              role: 'coder',
+              source: `scan:${shortFile}`,
+            }, auth()).catch(() => {});
+          }
         }
+        await sendMessage(`[scout] TODO scan: ${lines.length} found across packages. ${fixmes.length} FIXMEs added to board.`);
+        console.log(`[agent] Scanned ${lines.length} TODOs, ${fixmes.length} FIXMEs → board`);
       }
       break;
     }
