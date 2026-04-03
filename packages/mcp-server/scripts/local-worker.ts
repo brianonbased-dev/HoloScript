@@ -48,9 +48,9 @@ let AGENT_NAME = 'local-worker';
 
 // ── HTTP helpers ──
 
-async function post(url: string, body: unknown, headers: Record<string, string> = {}) {
+async function post(url: string, body: unknown, headers: Record<string, string> = {}, method = 'POST') {
   const res = await fetch(url, {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30_000),
@@ -175,14 +175,14 @@ async function getBoard(): Promise<any> {
 }
 
 async function claimTask(taskId: string) {
-  return post(`${API}/team/${ROOM_ID}/board/${taskId}`, { action: 'claim' }, auth());
+  return post(`${API}/team/${ROOM_ID}/board/${taskId}`, { action: 'claim' }, auth(), 'PATCH');
 }
 
 async function markDone(taskId: string, summary: string) {
   return post(`${API}/team/${ROOM_ID}/board/${taskId}`, {
     action: 'done',
     summary,
-  }, auth());
+  }, auth(), 'PATCH');
 }
 
 async function sendMessage(content: string) {
