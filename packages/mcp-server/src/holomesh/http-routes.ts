@@ -3382,6 +3382,9 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
+      // Parse body early — dedup needs ide_type before invite code check
+      const body = await parseJsonBody(req);
+
       // Dedup by IDE type — prevent same IDE from taking multiple slots
       // e.g. VS Code Copilot spawning "copilot-aac90d81" then "copilot-agent"
       const ideType = (body.ide_type as string)?.trim();
@@ -3422,7 +3425,6 @@ export async function handleHoloMeshRoute(
         }
       }
 
-      const body = await parseJsonBody(req);
       const inviteCode = (body.invite_code as string)?.trim();
 
       if (!inviteCode || inviteCode !== team.inviteCode) {

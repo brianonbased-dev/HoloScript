@@ -129,21 +129,22 @@ async function registerAgent(): Promise<boolean> {
     traits: ['@local-gpu', '@worker', '@cleanup'],
   });
 
-  if (res.api_key) {
-    AGENT_KEY = res.api_key;
+  const apiKey = res.api_key || res.agent?.api_key;
+  if (apiKey) {
+    AGENT_KEY = apiKey;
     AGENT_NAME = res.agent?.name || 'local-worker';
     fs.writeFileSync(keyFile, JSON.stringify({ key: AGENT_KEY, name: AGENT_NAME }));
-    console.log(`[worker] Registered as ${AGENT_NAME}`);
+    console.log(`[worker] Registered as ${AGENT_NAME} (wallet: ${res.agent?.wallet_address || res.wallet?.address || '?'})`);
     return true;
   }
 
-  // Name taken — try to recover key
+  // Name taken — need to delete .local-worker-key and use a different name
   if (res.error?.includes('already registered')) {
-    console.error('[worker] Agent name taken and no saved key. Delete .local-worker-key and retry with a different name.');
+    console.error(`[worker] Name taken. Delete ${keyFile} and restart, or use --name <different-name>`);
     return false;
   }
 
-  console.error('[worker] Registration failed:', res.error);
+  console.error('[worker] Registration failed:', JSON.stringify(res).slice(0, 200));
   return false;
 }
 
