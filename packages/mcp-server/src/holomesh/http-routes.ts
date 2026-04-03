@@ -430,14 +430,39 @@ function pruneStalePresence(teamId: string): string[] {
   if (!presenceMap) return [];
   const now = Date.now();
   const pruned: string[] = [];
+  const prunedIds: string[] = [];
   for (const [agentId, entry] of presenceMap) {
     if (now - new Date(entry.lastHeartbeat).getTime() > PRESENCE_TTL_MS) {
       presenceMap.delete(agentId);
       pruned.push(entry.agentName || agentId);
+      prunedIds.push(agentId);
     }
   }
-  // If agents went stale and there's a waitlist, promote replacements
   if (pruned.length > 0) {
+    // Reopen any tasks claimed by dead agents — work goes back on the board
+    const team = teamStore.get(teamId);
+    if (team?.taskBoard) {
+      for (const task of team.taskBoard) {
+        if (task.status === 'claimed' && task.claimedBy && prunedIds.includes(task.claimedBy)) {
+          const oldClaimer = task.claimedByName || task.claimedBy;
+          task.status = 'open';
+          task.claimedBy = undefined;
+          task.claimedByName = undefined;
+          // Log the reopen as a team message
+          const messages = teamMessageStore.get(teamId) || [];
+          messages.push({
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            teamId,
+            fromAgentId: 'room',
+            fromAgentName: `Room: ${team.name}`,
+            content: `Task reopened: "${task.title}" — ${oldClaimer} went offline. Next agent can claim it.`,
+            messageType: 'text' as any,
+            createdAt: new Date().toISOString(),
+          } as any);
+          teamMessageStore.set(teamId, messages.slice(-500));
+        }
+      }
+    }
     promoteFromWaitlist(teamId);
   }
   return pruned;
