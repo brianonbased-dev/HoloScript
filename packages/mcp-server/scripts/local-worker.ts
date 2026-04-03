@@ -57,6 +57,8 @@ const memory = {
   respondedMessageIds: new Set<string>(),
   triedTaskIds: new Set<string>(),
   lastGitReport: 0 as number,
+  todoScanned: false,
+  derivedSources: new Set<string>(),
 };
 
 // ── HTTP ──
@@ -233,9 +235,10 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     memory.lastGitReport = 0;
   }
 
-  // Nothing to do — observe and contribute knowledge
-  if (todoCount > 0) {
-    return { action: 'scan_todos', reasoning: `${todoCount} TODOs in studio — scan and report` };
+  // Scan TODOs once per session (not every cycle — they don't change fast)
+  if (todoCount > 0 && !memory.todoScanned) {
+    memory.todoScanned = true;
+    return { action: 'scan_todos', reasoning: `${todoCount} TODOs in codebase — one-time scan` };
   }
 
   // Check done log for unverified tasks (audit duty)
@@ -275,8 +278,8 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     }
 
     case 'derive': {
-      // Cycle through source files to farm tasks
-      const sources = [
+      // Cycle through source files to farm tasks (skip already-farmed this session)
+      const allSources = [
         { file: 'packages/studio/STUDIO_AUDIT.md', name: 'STUDIO_AUDIT.md' },
         { file: 'docs/strategy/ROADMAP.md', name: 'ROADMAP.md' },
         { file: 'CHANGELOG.md', name: 'CHANGELOG.md' },
@@ -284,10 +287,15 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
         { file: 'docs/agents/holomesh-teams.md', name: 'holomesh-teams.md' },
         { file: 'README.md', name: 'README.md' },
       ];
+      const sources = allSources.filter(s => !memory.derivedSources.has(s.name));
+      if (sources.length === 0) {
+        console.log('[agent] All sources already farmed this session');
+        break;
+      }
 
-      // Pick the next source file in rotation
-      const sourceIdx = memory.cycleCount % sources.length;
-      const source = sources[sourceIdx];
+      // Pick the next unfarmed source
+      const source = sources[0];
+      memory.derivedSources.add(source.name);
       const content = perceiveShell(`cat ${source.file} 2>/dev/null | head -300`);
 
       if (content && content.length > 50) {
