@@ -670,7 +670,7 @@ async function main(): Promise<void> {
         const profileName = options.profile || 'headless';
         let profile;
         try {
-          profile = getProfile(profileName as any);
+          profile = getProfile(profileName);
         } catch {
           profile = HEADLESS_PROFILE;
         }
@@ -1580,7 +1580,7 @@ async function main(): Promise<void> {
           const compiler = new Native2DCompiler();
           const parsedFormat = process.argv.includes('--format')
             ? process.argv[process.argv.indexOf('--format') + 1]
-            : (options as any).format;
+            : options.compileFormat;
           const outputFormat = parsedFormat === 'react' ? 'react' : 'html';
 
           const output = compiler.compile(parseResult.ast, '', options.output, {
@@ -1601,14 +1601,19 @@ async function main(): Promise<void> {
                 ? outputPath
                 : outputPath + ext;
 
-            fs.writeFileSync(
-              finalPath,
-              typeof output === 'string' ? output : (output as any).output
-            );
+            const outputStr =
+              typeof output === 'string'
+                ? output
+                : (output as { output: string }).output;
+            fs.writeFileSync(finalPath, outputStr);
             console.log(`\x1b[32m✓ Native 2D output written to ${finalPath}\x1b[0m`);
           } else {
             console.log(`\n--- Native 2D Output (${outputFormat}) ---\n`);
-            console.log(typeof output === 'string' ? output : (output as any).output);
+            const outputStr =
+              typeof output === 'string'
+                ? output
+                : (output as { output: string }).output;
+            console.log(outputStr);
           }
 
           process.exit(0);
@@ -3031,7 +3036,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         } else {
           // .holo output (3D spatial)
           const emitter = new HoloEmitter();
-          const layout = (options as any).layout === 'layered' ? 'layered' : 'force';
+          const layout = options.layout === 'layered' ? 'layered' : 'force';
           const holoSource = emitter.emit(graph, {
             name: path.basename(rootDir),
             layout: layout as 'force' | 'layered',
@@ -3547,7 +3552,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         );
         process.exit(1);
       }
-      const tier = (options as any).tier || 'free';
+      const tier = options.tier || 'free';
       try {
         const { issueTenantKey } = await import('./admin-provisioner');
         await issueTenantKey(tenantId, tier);

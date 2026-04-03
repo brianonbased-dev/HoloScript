@@ -65,7 +65,7 @@ describe('Schema Compression', () => {
     expect(compressed.i).toBe('123e4567-e89b-12d3-a456-426614174000'); // crdtId -> i
   });
 
-  it.skip('should remove nullish values', () => {
+  it('should remove nullish values', () => {
     const history: DecisionHistory = {
       crdtType: 'g-set',
       crdtId: '123e4567-e89b-12d3-a456-426614174000',
@@ -84,19 +84,22 @@ describe('Schema Compression', () => {
       lastUpdated: 1704067200000,
     };
 
-    const result = compressMVC(history, { removeNulls: true });
+    const result = compressMVC(history, { removeNulls: true, compactKeys: false });
     const compressed = result.compressed as DecisionHistory;
 
-    // Nullish fields should be removed
-    expect(compressed.decisions[0].parentId).toBeUndefined();
-    expect(compressed.decisions[0].outcome).toBeUndefined();
+    // Nullish fields should be stripped from the object entirely
+    const firstDecision = compressed.decisions[0] as Record<string, unknown>;
+    expect('parentId' in firstDecision).toBe(false);
+    expect('outcome' in firstDecision).toBe(false);
 
     // Required fields should still be present
-    expect(compressed.decisions[0].id).toBeDefined();
+    expect(compressed.decisions[0].id).toBe('223e4567-e89b-12d3-a456-426614174000');
     expect(compressed.decisions[0].type).toBe('task');
+    expect(compressed.decisions[0].description).toBe('Test');
+    expect(compressed.decisions[0].choice).toBe('Test');
   });
 
-  it.skip('should round floats to precision', () => {
+  it('should round floats to precision', () => {
     const spatial: SpatialContextSummary = {
       crdtType: 'lww+gset',
       crdtId: '123e4567-e89b-12d3-a456-426614174000',
@@ -116,12 +119,16 @@ describe('Schema Compression', () => {
       lastUpdated: 1704067200000,
     };
 
-    const result = compressMVC(spatial, { floatPrecision: 4 });
+    const result = compressMVC(spatial, { floatPrecision: 4, compactKeys: false });
     const compressed = result.compressed as SpatialContextSummary;
 
     expect(compressed.primaryAnchor?.coordinate.latitude).toBe(37.7749);
     expect(compressed.primaryAnchor?.coordinate.longitude).toBe(-122.4194);
     expect(compressed.primaryAnchor?.coordinate.altitude).toBe(10.1235);
+
+    // Integer timestamps should not be affected by float rounding
+    expect(compressed.lastUpdated).toBe(1704067200000);
+    expect(compressed.primaryAnchor?.createdAt).toBe(1704067200000);
   });
 });
 

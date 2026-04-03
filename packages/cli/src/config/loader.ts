@@ -4,7 +4,11 @@ import { HoloScriptConfig } from './schema';
 import { mergeConfigs } from './merge';
 
 export class ConfigLoader {
-  private visitedFiles = new Set<string>();
+  private visitedFiles: Set<string>;
+
+  constructor(visitedFiles?: Set<string>) {
+    this.visitedFiles = visitedFiles ?? new Set<string>();
+  }
 
   /**
    * Load and resolve configuration starting from a file
@@ -83,9 +87,7 @@ export class ConfigLoader {
       }
     }
 
-    const subLoader = new ConfigLoader();
-    // Share visited files to detect circularities across the whole chain
-    (subLoader as any).visitedFiles = this.visitedFiles;
+    const subLoader = new ConfigLoader(this.visitedFiles);
     return subLoader.loadConfig(basePath);
   }
 

@@ -199,6 +199,12 @@ export interface CLIOptions {
   queryDir?: string;
   /** Studio URL for setup-hooks command (default: http://localhost:3000) */
   studioUrl?: string;
+  /** Graph layout algorithm for visualize command */
+  layout?: 'force' | 'layered';
+  /** Tenant tier for issue-key command */
+  tier?: 'free' | 'pro' | 'enterprise';
+  /** Compile output format (e.g. react, html) */
+  compileFormat?: string;
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -527,6 +533,12 @@ export function parseArgs(args: string[]): CLIOptions {
         break;
       case '--studio-url':
         options.studioUrl = args[++i];
+        break;
+      case '--layout':
+        options.layout = args[++i] as 'force' | 'layered';
+        break;
+      case '--tier':
+        options.tier = args[++i] as 'free' | 'pro' | 'enterprise';
         break;
     }
     i++;

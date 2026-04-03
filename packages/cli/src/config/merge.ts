@@ -2,7 +2,7 @@
  * Deep merge utility for configuration objects
  */
 
-export function mergeConfigs<T extends Record<string, any>>(base: T, extension: Partial<T>): T {
+export function mergeConfigs<T extends Record<string, unknown>>(base: T, extension: Partial<T>): T {
   const result = { ...base };
 
   for (const key in extension) {
@@ -17,15 +17,15 @@ export function mergeConfigs<T extends Record<string, any>>(base: T, extension: 
       !Array.isArray(baseValue) &&
       !Array.isArray(extensionValue)
     ) {
-      result[key] = mergeConfigs(baseValue, extensionValue) as any;
+      (result as Record<string, unknown>)[key] = mergeConfigs(baseValue, extensionValue);
     } else {
-      result[key] = extensionValue as any;
+      (result as Record<string, unknown>)[key] = extensionValue;
     }
   }
 
   return result;
 }
 
-function isObject(item: any): item is Record<string, any> {
-  return item && typeof item === 'object' && !Array.isArray(item);
+function isObject(item: unknown): item is Record<string, unknown> {
+  return item != null && typeof item === 'object' && !Array.isArray(item);
 }
