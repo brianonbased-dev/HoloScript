@@ -122,15 +122,15 @@
  *
  * IMPLEMENTATION TASKS:
  * [x] Define VRRCompilerOptions interface
- * [ ] Implement parseVRRComposition() - Extract VRR-specific traits
- * [ ] Implement compileToThreeJS() - Generate Three.js scene code
- * [ ] Implement generateWeatherSync() - Weather API integration code
- * [ ] Implement generateEventSync() - Event API integration code
- * [ ] Implement generateInventorySync() - Square/Shopify/WooCommerce integration
- * [ ] Implement generateQuestLogic() - Business quest mechanics
- * [ ] Implement generateLayerShift() - AR/VRR/VR transition handlers
- * [ ] Implement generateX402Paywall() - Payment requirement checks
- * [ ] Add tests (VRRCompiler.test.ts)
+ * [x] Implement parseVRRComposition() - Extract VRR-specific traits
+ * [x] Implement compileToThreeJS() - Generate Three.js scene code
+ * [x] Implement generateWeatherSync() - Weather API integration code
+ * [x] Implement generateEventSync() - Event API integration code
+ * [x] Implement generateInventorySync() - Square/Shopify/WooCommerce integration
+ * [x] Implement generateQuestLogic() - Business quest mechanics
+ * [x] Implement generateLayerShift() - AR/VRR/VR transition handlers
+ * [x] Implement generateX402Paywall() - Payment requirement checks
+ * [x] Add tests (VRRCompiler.test.ts)
  * [ ] Add E2E compilation test (compile Phoenix downtown twin)
  * [ ] Performance optimization (lazy loading, asset streaming)
  *
@@ -179,7 +179,64 @@ export interface VRRCompilerOptions {
 import type { VRRCompilationResult } from './CompilerTypes';
 export type { VRRCompilationResult } from './CompilerTypes';
 
-// Removed duplicate imports
+/**
+ * Inline VRR trait validators — mirrors @holoscript/std VRRTraits definitions
+ * without requiring a cross-package import from core → std.
+ */
+const VRRTraitDefs: Record<string, { validator?: (params: Record<string, unknown>) => boolean }> = {
+  vrr_twin: { validator: (p) => !!p.mirror },
+  reality_mirror: { validator: (p) => Array.isArray(p.sync) && (p.sync as unknown[]).length > 0 },
+  geo_anchor: {
+    validator: (p) =>
+      typeof p.lat === 'number' && typeof p.lng === 'number' &&
+      (p.lat as number) >= -90 && (p.lat as number) <= 90 &&
+      (p.lng as number) >= -180 && (p.lng as number) <= 180,
+  },
+  weather_sync: { validator: (p) => ['weather.gov', 'openweathermap'].includes(String(p.provider)) },
+  event_sync: { validator: (p) => ['eventbrite', 'ticketmaster'].includes(String(p.provider)) },
+  inventory_sync: { validator: (p) => ['square_pos', 'shopify', 'woocommerce'].includes(String(p.provider)) },
+  quest_hub: { validator: (p) => Array.isArray(p.quests) && (p.quests as unknown[]).length > 0 },
+  layer_shift: {
+    validator: (p) => {
+      const valid = ['ar', 'vrr', 'vr'];
+      return valid.includes(String(p.from)) && valid.includes(String(p.to));
+    },
+  },
+  x402_paywall: {
+    validator: (p) =>
+      Number(p.price) > 0 &&
+      ['USDC', 'ETH', 'SOL'].includes(String(p.asset || 'USDC')) &&
+      ['base', 'ethereum', 'solana'].includes(String(p.network || 'base')),
+  },
+  geo_sync: { validator: (p) => !!p.center && Number(p.radius || 0) >= 0 },
+};
+
+/**
+ * Internal representation of a VRR AST node with traits.
+ * Used to avoid `any` throughout the compiler.
+ */
+interface VRRAstNode {
+  name?: string;
+  type?: string;
+  traits?: Array<{ name: string; params: Record<string, unknown> }>;
+  children?: VRRAstNode[];
+  [key: string]: unknown;
+}
+
+/**
+ * Parsed VRR composition result from parseVRRComposition().
+ */
+export interface VRRCompositionData {
+  twinNodes: VRRAstNode[];
+  weatherNodes: VRRAstNode[];
+  eventNodes: VRRAstNode[];
+  inventoryNodes: VRRAstNode[];
+  questNodes: VRRAstNode[];
+  layerShiftNodes: VRRAstNode[];
+  paywallNodes: VRRAstNode[];
+  geoAnchorNodes: VRRAstNode[];
+}
+
 export class VRRCompiler extends CompilerBase {
   protected readonly compilerName = 'VRRCompiler';
 
@@ -197,6 +254,559 @@ export class VRRCompiler extends CompilerBase {
     this.options = options;
   }
 
+  // ─── 1. parseVRRComposition ───────────────────────────────────────────
+  /**
+   * Parse a HoloScript AST and extract VRR-specific traits.
+   * Walks AST nodes, collects trait annotations, validates params against VRRTraits definitions.
+   */
+  parseVRRComposition(composition: HoloComposition): VRRCompositionData {
+    const data: VRRCompositionData = {
+      twinNodes: [],
+      weatherNodes: [],
+      eventNodes: [],
+      inventoryNodes: [],
+      questNodes: [],
+      layerShiftNodes: [],
+      paywallNodes: [],
+      geoAnchorNodes: [],
+    };
+
+    const traitToField: Record<string, keyof VRRCompositionData> = {
+      vrr_twin: 'twinNodes',
+      weather_sync: 'weatherNodes',
+      event_sync: 'eventNodes',
+      inventory_sync: 'inventoryNodes',
+      quest_hub: 'questNodes',
+      layer_shift: 'layerShiftNodes',
+      x402_paywall: 'paywallNodes',
+      geo_anchor: 'geoAnchorNodes',
+    };
+
+    const traverse = (node: unknown): void => {
+      if (!node || typeof node !== 'object') return;
+      const n = node as VRRAstNode;
+
+      if (n.traits && Array.isArray(n.traits)) {
+        for (const trait of n.traits) {
+          const field = traitToField[trait.name];
+          if (field) {
+            // Validate params against VRRTraits definitions
+            const traitDef = VRRTraitDefs[trait.name];
+            if (traitDef?.validator && !traitDef.validator(trait.params)) {
+              this.warnings.push(
+                `@${trait.name} on "${n.name || 'unnamed'}" has invalid params`
+              );
+            }
+            data[field].push(n);
+          }
+        }
+      }
+
+      for (const key of Object.keys(n)) {
+        const val = n[key];
+        if (val && typeof val === 'object') {
+          if (Array.isArray(val)) {
+            for (const item of val) {
+              traverse(item);
+            }
+          } else {
+            traverse(val);
+          }
+        }
+      }
+    };
+
+    traverse(composition);
+    return data;
+  }
+
+  // ─── 2. compileToThreeJS ──────────────────────────────────────────────
+  /**
+   * Generate a complete Three.js scene from VRR composition data.
+   * Places objects using geo_anchor coordinates, sets up materials/lighting/camera.
+   */
+  private compileToThreeJS(compositionData: VRRCompositionData): void {
+    this.generatedCode.push(`\n// === Three.js Scene Generation ===`);
+
+    // Ambient + directional lighting
+    this.generatedCode.push(`const ambientLight = new THREE.AmbientLight(0x404040, 0.6);`);
+    this.generatedCode.push(`scene.add(ambientLight);`);
+    this.generatedCode.push(
+      `const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);`
+    );
+    this.generatedCode.push(`directionalLight.position.set(50, 200, 100);`);
+    this.generatedCode.push(`directionalLight.castShadow = true;`);
+    this.generatedCode.push(`scene.add(directionalLight);`);
+
+    // Ground plane
+    this.generatedCode.push(
+      `const groundGeo = new THREE.PlaneGeometry(10000, 10000);`
+    );
+    this.generatedCode.push(
+      `const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7d3a, roughness: 0.9 });`
+    );
+    this.generatedCode.push(
+      `const ground = new THREE.Mesh(groundGeo, groundMat);`
+    );
+    this.generatedCode.push(`ground.rotation.x = -Math.PI / 2;`);
+    this.generatedCode.push(`ground.receiveShadow = true;`);
+    this.generatedCode.push(`scene.add(ground);`);
+
+    // Camera positioning
+    this.generatedCode.push(`camera.position.set(0, 50, 100);`);
+    this.generatedCode.push(`camera.lookAt(0, 0, 0);`);
+
+    // Place geo-anchored objects
+    for (const node of compositionData.geoAnchorNodes) {
+      const geoTrait = this.findTrait(node, 'geo_anchor');
+      if (!geoTrait) continue;
+
+      const lat = Number(geoTrait.params.lat) || 0;
+      const lng = Number(geoTrait.params.lng) || 0;
+      const safeName = this.escapeStringValue(String(node.name || 'geo_object'), 'TypeScript');
+
+      this.generatedCode.push(`\n// Geo-anchored: ${safeName} (${lat}, ${lng})`);
+      this.generatedCode.push(
+        `const marker_${safeName} = new THREE.Group();`
+      );
+      this.generatedCode.push(
+        `marker_${safeName}.position.copy(vrr.geoToSceneCoords(${lat}, ${lng}));`
+      );
+      this.generatedCode.push(
+        `marker_${safeName}.userData.geo = { lat: ${lat}, lng: ${lng} };`
+      );
+      this.generatedCode.push(`phoenix_downtown.add(marker_${safeName});`);
+    }
+
+    // Skybox
+    this.generatedCode.push(`\n// Skybox`);
+    this.generatedCode.push(
+      `scene.background = new THREE.Color(0x87ceeb);`
+    );
+
+    // Render loop
+    this.generatedCode.push(`\n// Render loop`);
+    this.generatedCode.push(`renderer.shadowMap.enabled = true;`);
+    this.generatedCode.push(
+      `renderer.shadowMap.type = THREE.PCFSoftShadowMap;`
+    );
+    this.generatedCode.push(`function animate() {`);
+    this.generatedCode.push(`  requestAnimationFrame(animate);`);
+    this.generatedCode.push(`  vrr.tick();`);
+    this.generatedCode.push(`  renderer.render(scene, camera);`);
+    this.generatedCode.push(`}`);
+    this.generatedCode.push(`animate();`);
+  }
+
+  // ─── 3. generateWeatherSync ───────────────────────────────────────────
+  /**
+   * Generate code that connects to weather API and updates scene
+   * lighting/particles/skybox based on real-time weather data.
+   */
+  private generateWeatherSync(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @weather_sync — Real-Time Weather Integration ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'weather_sync');
+      if (!trait) continue;
+
+      const provider = String(trait.params.provider || 'weather.gov');
+      const refresh = String(trait.params.refresh || '5_minutes');
+      const safeName = this.escapeStringValue(String(node.name || 'zone'), 'TypeScript');
+
+      this.generatedCode.push(`// Weather sync for "${safeName}" via ${provider}`);
+      this.generatedCode.push(`const weatherSync_${safeName} = vrr.createWeatherSync({`);
+      this.generatedCode.push(`  provider: '${provider}',`);
+      this.generatedCode.push(`  refresh: '${refresh}',`);
+      this.generatedCode.push(`  location: vrr.getGeoCenter(),`);
+      this.generatedCode.push(`});`);
+
+      // Rain particle system
+      this.generatedCode.push(`const rainGeometry = new THREE.BufferGeometry();`);
+      this.generatedCode.push(
+        `const rainPositions = new Float32Array(3000 * 3);`
+      );
+      this.generatedCode.push(`for (let i = 0; i < 3000; i++) {`);
+      this.generatedCode.push(
+        `  rainPositions[i * 3] = (Math.random() - 0.5) * 500;`
+      );
+      this.generatedCode.push(
+        `  rainPositions[i * 3 + 1] = Math.random() * 200;`
+      );
+      this.generatedCode.push(
+        `  rainPositions[i * 3 + 2] = (Math.random() - 0.5) * 500;`
+      );
+      this.generatedCode.push(`}`);
+      this.generatedCode.push(
+        `rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));`
+      );
+      this.generatedCode.push(
+        `const rainMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1, transparent: true });`
+      );
+      this.generatedCode.push(
+        `const rainSystem = new THREE.Points(rainGeometry, rainMaterial);`
+      );
+      this.generatedCode.push(`rainSystem.visible = false;`);
+      this.generatedCode.push(`scene.add(rainSystem);`);
+
+      // Weather update callback
+      this.generatedCode.push(`weatherSync_${safeName}.onUpdate((weather) => {`);
+      this.generatedCode.push(
+        `  // Update fog based on visibility`
+      );
+      this.generatedCode.push(
+        `  scene.fog = new THREE.Fog(0xcccccc, 10, Math.max(weather.visibility, 50));`
+      );
+      this.generatedCode.push(`  // Toggle rain particles`);
+      this.generatedCode.push(
+        `  rainSystem.visible = weather.precipitation > 0;`
+      );
+      this.generatedCode.push(`  // Adjust sun intensity based on cloud cover`);
+      this.generatedCode.push(
+        `  directionalLight.intensity = Math.max(0.2, 1.0 - (weather.cloud_cover || 0) / 100);`
+      );
+      this.generatedCode.push(`  // Update skybox color`);
+      this.generatedCode.push(
+        `  const skyHue = weather.precipitation > 50 ? 0x666680 : 0x87ceeb;`
+      );
+      this.generatedCode.push(
+        `  scene.background = new THREE.Color(skyHue);`
+      );
+      this.generatedCode.push(`  // Temperature-based ambient tint`);
+      this.generatedCode.push(
+        `  const tempNorm = Math.max(0, Math.min(1, (weather.temperature_f || 70) / 120));`
+      );
+      this.generatedCode.push(
+        `  ambientLight.color.setHSL(0.6 - tempNorm * 0.4, 0.3, 0.4);`
+      );
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── 4. generateEventSync ─────────────────────────────────────────────
+  /**
+   * Generate code that fetches events from providers (Eventbrite/Ticketmaster)
+   * and creates event markers + UI overlays in the scene.
+   */
+  private generateEventSync(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @event_sync — Real-Time Event Integration ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'event_sync');
+      if (!trait) continue;
+
+      const provider = String(trait.params.provider || 'eventbrite');
+      const refresh = String(trait.params.refresh || '5_minutes');
+      const safeName = this.escapeStringValue(String(node.name || 'zone'), 'TypeScript');
+
+      this.generatedCode.push(`// Event sync for "${safeName}" via ${provider}`);
+      this.generatedCode.push(`const eventSync_${safeName} = vrr.createEventSync({`);
+      this.generatedCode.push(`  provider: '${provider}',`);
+      this.generatedCode.push(`  refresh: '${refresh}',`);
+      this.generatedCode.push(`  location: vrr.getGeoCenter(),`);
+      this.generatedCode.push(`});`);
+
+      this.generatedCode.push(`const eventMarkers_${safeName} = new THREE.Group();`);
+      this.generatedCode.push(`scene.add(eventMarkers_${safeName});`);
+
+      this.generatedCode.push(`eventSync_${safeName}.onUpdate((events) => {`);
+      this.generatedCode.push(`  // Clear previous markers`);
+      this.generatedCode.push(`  while (eventMarkers_${safeName}.children.length > 0) {`);
+      this.generatedCode.push(`    eventMarkers_${safeName}.remove(eventMarkers_${safeName}.children[0]);`);
+      this.generatedCode.push(`  }`);
+      this.generatedCode.push(`  for (const evt of events) {`);
+      this.generatedCode.push(`    // Create event marker billboard`);
+      this.generatedCode.push(`    const markerGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 8);`);
+      this.generatedCode.push(
+        `    const markerMat = new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0x331111 });`
+      );
+      this.generatedCode.push(`    const marker = new THREE.Mesh(markerGeo, markerMat);`);
+      this.generatedCode.push(`    if (evt.geo) {`);
+      this.generatedCode.push(`      marker.position.copy(vrr.geoToSceneCoords(evt.geo.lat, evt.geo.lng));`);
+      this.generatedCode.push(`    }`);
+      this.generatedCode.push(`    marker.userData.event = { name: evt.name, date: evt.date, url: evt.url };`);
+      this.generatedCode.push(`    eventMarkers_${safeName}.add(marker);`);
+      this.generatedCode.push(`    // Spawn NPC crowds for active events`);
+      this.generatedCode.push(`    if (evt.status === 'active') {`);
+      this.generatedCode.push(`      vrr.spawnNPCCrowd(marker.position, evt.expected_attendance || 20);`);
+      this.generatedCode.push(`    }`);
+      this.generatedCode.push(`  }`);
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── 5. generateInventorySync ─────────────────────────────────────────
+  /**
+   * Generate code for real-time inventory display:
+   * product counts, availability badges, stock-level indicators.
+   */
+  private generateInventorySync(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @inventory_sync — Real-Time Inventory Display ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'inventory_sync');
+      if (!trait) continue;
+
+      const provider = String(trait.params.provider || 'square_pos');
+      const refresh = String(trait.params.refresh || '1_minute');
+      const useWebSocket = Boolean(trait.params.websocket);
+      const safeName = this.escapeStringValue(String(node.name || 'shop'), 'TypeScript');
+
+      this.generatedCode.push(`// Inventory sync for "${safeName}" via ${provider}`);
+      this.generatedCode.push(`const inventorySync_${safeName} = vrr.createInventorySync({`);
+      this.generatedCode.push(`  provider: '${provider}',`);
+      this.generatedCode.push(`  refresh: '${refresh}',`);
+      this.generatedCode.push(`  websocket: ${useWebSocket},`);
+      this.generatedCode.push(`  business_id: '${safeName}',`);
+      this.generatedCode.push(`});`);
+
+      this.generatedCode.push(`const inventoryUI_${safeName} = new THREE.Group();`);
+      this.generatedCode.push(`phoenix_downtown.add(inventoryUI_${safeName});`);
+
+      this.generatedCode.push(`inventorySync_${safeName}.onUpdate((inventory) => {`);
+      this.generatedCode.push(`  // Clear previous inventory display`);
+      this.generatedCode.push(`  while (inventoryUI_${safeName}.children.length > 0) {`);
+      this.generatedCode.push(`    inventoryUI_${safeName}.remove(inventoryUI_${safeName}.children[0]);`);
+      this.generatedCode.push(`  }`);
+      this.generatedCode.push(`  for (const item of inventory.items) {`);
+      this.generatedCode.push(`    // Availability badge color: green=in-stock, yellow=low, red=out`);
+      this.generatedCode.push(`    const badgeColor = item.quantity > 10 ? 0x00ff00 : item.quantity > 0 ? 0xffaa00 : 0xff0000;`);
+      this.generatedCode.push(`    const badgeGeo = new THREE.SphereGeometry(0.3, 8, 8);`);
+      this.generatedCode.push(`    const badgeMat = new THREE.MeshStandardMaterial({ color: badgeColor, emissive: badgeColor, emissiveIntensity: 0.5 });`);
+      this.generatedCode.push(`    const badge = new THREE.Mesh(badgeGeo, badgeMat);`);
+      this.generatedCode.push(`    badge.userData.product = { name: item.name, quantity: item.quantity, price: item.price };`);
+      this.generatedCode.push(`    inventoryUI_${safeName}.add(badge);`);
+      this.generatedCode.push(`  }`);
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── 6. generateQuestLogic ────────────────────────────────────────────
+  /**
+   * Generate quest/gamification code: visit locations, collect items,
+   * earn rewards, track progress across AR/VRR/VR layers.
+   */
+  private generateQuestLogic(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @quest_hub — Business Quest Mechanics ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'quest_hub');
+      if (!trait) continue;
+
+      const quests = Array.isArray(trait.params.quests) ? trait.params.quests : [];
+      const safeName = this.escapeStringValue(String(node.name || 'business'), 'TypeScript');
+
+      this.generatedCode.push(`// Quest hub: "${safeName}" with ${quests.length} quest(s)`);
+      this.generatedCode.push(`const questHub_${safeName} = vrr.createQuestHub({`);
+      this.generatedCode.push(`  business_id: '${safeName}',`);
+      this.generatedCode.push(`  quests: ${JSON.stringify(quests)},`);
+      this.generatedCode.push(`});`);
+
+      // Quest NPC marker
+      this.generatedCode.push(`// Quest NPC beacon`);
+      this.generatedCode.push(
+        `const questBeacon_${safeName} = new THREE.PointLight(0xffdd00, 2, 30);`
+      );
+      this.generatedCode.push(
+        `questBeacon_${safeName}.position.set(0, 5, 0);`
+      );
+      this.generatedCode.push(
+        `if (marker_${safeName}) marker_${safeName}.add(questBeacon_${safeName});`
+      );
+
+      // Quest state machine
+      this.generatedCode.push(`questHub_${safeName}.onQuestStart((quest) => {`);
+      this.generatedCode.push(`  vrr.persistState('quest_progress_' + quest.id, {`);
+      this.generatedCode.push(`    started_at: Date.now(),`);
+      this.generatedCode.push(`    current_step: 0,`);
+      this.generatedCode.push(`    steps_completed: [],`);
+      this.generatedCode.push(`  });`);
+      this.generatedCode.push(`});`);
+
+      this.generatedCode.push(`questHub_${safeName}.onStepComplete((quest, stepIndex) => {`);
+      this.generatedCode.push(`  const state = vrr.getState('quest_progress_' + quest.id);`);
+      this.generatedCode.push(`  if (state) {`);
+      this.generatedCode.push(`    state.steps_completed.push(stepIndex);`);
+      this.generatedCode.push(`    state.current_step = stepIndex + 1;`);
+      this.generatedCode.push(`    vrr.persistState('quest_progress_' + quest.id, state);`);
+      this.generatedCode.push(`  }`);
+      this.generatedCode.push(`});`);
+
+      this.generatedCode.push(`questHub_${safeName}.onQuestComplete((quest, reward) => {`);
+      this.generatedCode.push(`  vrr.persistState('quest_progress_' + quest.id, {`);
+      this.generatedCode.push(`    completed_at: Date.now(),`);
+      this.generatedCode.push(`    reward_claimed: false,`);
+      this.generatedCode.push(`  });`);
+      this.generatedCode.push(`  // Grant reward (coupon, NFT, etc.)`);
+      this.generatedCode.push(`  vrr.grantReward(quest.id, reward);`);
+      this.generatedCode.push(`  // Visual celebration`);
+      this.generatedCode.push(
+        `  questBeacon_${safeName}.color.setHex(0x00ff00);`
+      );
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── 7. generateLayerShift ────────────────────────────────────────────
+  /**
+   * Generate AR/VRR/VR transition handlers with state persistence.
+   * Preserves quest progress, inventory state, and player position across layers.
+   */
+  private generateLayerShift(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @layer_shift — AR/VRR/VR Transition Handlers ===`);
+
+    // Shared layer state manager
+    this.generatedCode.push(`const layerState = {`);
+    this.generatedCode.push(`  current: 'vrr',`);
+    this.generatedCode.push(`  persist: async (data) => {`);
+    this.generatedCode.push(`    // IndexedDB for client-side persistence`);
+    this.generatedCode.push(`    const db = await vrr.getIndexedDB('hololand_layers');`);
+    this.generatedCode.push(`    await db.put('layer_state', data);`);
+    this.generatedCode.push(`    // Server-side sync`);
+    this.generatedCode.push(`    await vrr.syncToServer('layer_state', data);`);
+    this.generatedCode.push(`  },`);
+    this.generatedCode.push(`  restore: async () => {`);
+    this.generatedCode.push(`    const db = await vrr.getIndexedDB('hololand_layers');`);
+    this.generatedCode.push(`    return await db.get('layer_state');`);
+    this.generatedCode.push(`  },`);
+    this.generatedCode.push(`};`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'layer_shift');
+      if (!trait) continue;
+
+      const from = String(trait.params.from || 'ar');
+      const to = String(trait.params.to || 'vrr');
+      const price = Number(trait.params.price) || 0;
+      const persistState = trait.params.persist_state !== false;
+      const safeName = this.escapeStringValue(String(node.name || 'portal'), 'TypeScript');
+
+      this.generatedCode.push(`\n// Layer shift: ${from} -> ${to} (${safeName})`);
+      this.generatedCode.push(`vrr.registerLayerShift({`);
+      this.generatedCode.push(`  id: '${safeName}',`);
+      this.generatedCode.push(`  from: '${from}',`);
+      this.generatedCode.push(`  to: '${to}',`);
+      this.generatedCode.push(`  price: ${price},`);
+      this.generatedCode.push(`  persist_state: ${persistState},`);
+      this.generatedCode.push(`  onTransition: async (player) => {`);
+
+      if (persistState) {
+        this.generatedCode.push(`    // Save current state before transition`);
+        this.generatedCode.push(`    await layerState.persist({`);
+        this.generatedCode.push(`      player_position: player.position,`);
+        this.generatedCode.push(`      quest_progress: vrr.getAllQuestProgress(),`);
+        this.generatedCode.push(`      inventory: vrr.getPlayerInventory(),`);
+        this.generatedCode.push(`      layer_from: '${from}',`);
+        this.generatedCode.push(`      timestamp: Date.now(),`);
+        this.generatedCode.push(`    });`);
+      }
+
+      if (price > 0) {
+        this.generatedCode.push(`    // Require payment before transition`);
+        this.generatedCode.push(
+          `    const paid = await vrr.requirePayment({ price: ${price}, asset: 'USDC', network: 'base' });`
+        );
+        this.generatedCode.push(`    if (!paid) return false;`);
+      }
+
+      this.generatedCode.push(`    // Execute layer transition`);
+      this.generatedCode.push(`    layerState.current = '${to}';`);
+      this.generatedCode.push(`    vrr.transitionToLayer('${to}');`);
+      this.generatedCode.push(`    return true;`);
+      this.generatedCode.push(`  },`);
+      this.generatedCode.push(`  onArrive: async (player) => {`);
+
+      if (persistState) {
+        this.generatedCode.push(`    // Restore state after transition`);
+        this.generatedCode.push(`    const saved = await layerState.restore();`);
+        this.generatedCode.push(`    if (saved) {`);
+        this.generatedCode.push(`      vrr.restoreQuestProgress(saved.quest_progress);`);
+        this.generatedCode.push(`      vrr.restorePlayerInventory(saved.inventory);`);
+        this.generatedCode.push(`    }`);
+      }
+
+      this.generatedCode.push(`  },`);
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── 8. generateX402Paywall ───────────────────────────────────────────
+  /**
+   * Generate payment requirement checks using x402 protocol.
+   * Blocks content access until on-chain payment is verified.
+   */
+  private generateX402Paywall(nodes: VRRAstNode[]): void {
+    if (nodes.length === 0) return;
+
+    this.generatedCode.push(`\n// === @x402_paywall — Payment Requirement Checks ===`);
+
+    for (const node of nodes) {
+      const trait = this.findTrait(node, 'x402_paywall');
+      if (!trait) continue;
+
+      const price = Number(trait.params.price) || 0;
+      const asset = String(trait.params.asset || 'USDC');
+      const network = String(trait.params.network || 'base');
+      const safeName = this.escapeStringValue(String(node.name || 'content'), 'TypeScript');
+
+      this.generatedCode.push(`// x402 paywall: "${safeName}" — ${price} ${asset} on ${network}`);
+      this.generatedCode.push(`const paywall_${safeName} = vrr.createPaywall({`);
+      this.generatedCode.push(`  content_id: '${safeName}',`);
+      this.generatedCode.push(`  price: ${price},`);
+      this.generatedCode.push(`  asset: '${asset}',`);
+      this.generatedCode.push(`  network: '${network}',`);
+      this.generatedCode.push(`  on402: async (req) => {`);
+      this.generatedCode.push(`    // Return 402 Payment Required with payment details`);
+      this.generatedCode.push(`    return {`);
+      this.generatedCode.push(`      status: 402,`);
+      this.generatedCode.push(`      headers: {`);
+      this.generatedCode.push(`        'X-Payment-Required': 'true',`);
+      this.generatedCode.push(`        'X-Payment-Amount': '${price}',`);
+      this.generatedCode.push(`        'X-Payment-Asset': '${asset}',`);
+      this.generatedCode.push(`        'X-Payment-Network': '${network}',`);
+      this.generatedCode.push(
+        `        'X-Payment-Address': vrr.getPaymentAddress('${safeName}'),`
+      );
+      this.generatedCode.push(`      },`);
+      this.generatedCode.push(`    };`);
+      this.generatedCode.push(`  },`);
+      this.generatedCode.push(`  onPaymentVerified: (receipt) => {`);
+      this.generatedCode.push(`    vrr.persistState('paywall_${safeName}', {`);
+      this.generatedCode.push(`      paid: true,`);
+      this.generatedCode.push(`      tx_hash: receipt.tx_hash,`);
+      this.generatedCode.push(`      timestamp: Date.now(),`);
+      this.generatedCode.push(`    });`);
+      this.generatedCode.push(`    // Unlock content in scene`);
+      this.generatedCode.push(`    vrr.unlockContent('${safeName}');`);
+      this.generatedCode.push(`  },`);
+      this.generatedCode.push(`  onPaymentFailed: (error) => {`);
+      this.generatedCode.push(`    console.warn('Payment failed for ${safeName}:', error.message);`);
+      this.generatedCode.push(`    vrr.showPaywallUI('${safeName}', { price: ${price}, asset: '${asset}', network: '${network}' });`);
+      this.generatedCode.push(`  },`);
+      this.generatedCode.push(`});`);
+    }
+  }
+
+  // ─── Utility: find trait on node ──────────────────────────────────────
+  private findTrait(
+    node: VRRAstNode,
+    traitName: string
+  ): { name: string; params: Record<string, unknown> } | undefined {
+    if (!node.traits) return undefined;
+    return node.traits.find((t) => t.name === traitName);
+  }
+
+  // ─── Main compile() ──────────────────────────────────────────────────
   override compile(
     composition: HoloComposition,
     agentToken: string,
@@ -213,19 +823,35 @@ export class VRRCompiler extends CompilerBase {
       return this.buildResult();
     }
 
-    const twinNodes = this.extractNodesWithTrait(composition, '@vrr_twin');
+    // 1. Parse VRR composition — extract all trait-annotated nodes
+    const compositionData = this.parseVRRComposition(composition);
+
+    const twinNodes = compositionData.twinNodes;
     if (twinNodes.length === 0) {
       this.warnings.push(
         'No @vrr_twin traits found. Compiling as standard 3D instead of reality mirror.'
       );
     }
 
+    // Generate imports and scene setup
     this.generateImports();
     this.generateSceneSetup();
-    this.generateAPIHooks(twinNodes);
+    this.generateAPIHooks(twinNodes as unknown[]);
+
+    // 2. Generate Three.js scene with geo-anchored objects, lighting, camera
+    this.compileToThreeJS(compositionData);
+
+    // 3-8. Generate sync/logic for each VRR trait
+    this.generateWeatherSync(compositionData.weatherNodes);
+    this.generateEventSync(compositionData.eventNodes);
+    this.generateInventorySync(compositionData.inventoryNodes);
+    this.generateQuestLogic(compositionData.questNodes);
+    this.generateLayerShift(compositionData.layerShiftNodes);
+    this.generateX402Paywall(compositionData.paywallNodes);
 
     // v4.2: Domain Blocks
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const comp = composition as Record<string, unknown>;
+    const domainBlocks = (Array.isArray(comp.domainBlocks) ? comp.domainBlocks : []) as Array<Record<string, unknown>>;
     if (domainBlocks.length > 0) {
       this.generatedCode.push('\n// === v4.2 Domain Blocks ===');
       const compiled = compileDomainBlocks(
@@ -267,17 +893,19 @@ export class VRRCompiler extends CompilerBase {
     return this.buildResult();
   }
 
-  private extractNodesWithTrait(astNode: any, traitName: string) {
-    const matched: any[] = [];
+  private extractNodesWithTrait(astNode: unknown, traitName: string): VRRAstNode[] {
+    const matched: VRRAstNode[] = [];
     const cleanTraitName = traitName.startsWith('@') ? traitName.slice(1) : traitName;
-    const traverse = (node: any) => {
+    const traverse = (node: unknown): void => {
       if (!node || typeof node !== 'object') return;
-      if (node.traits && node.traits.some((t: any) => t.name === cleanTraitName)) {
-        matched.push(node);
+      const n = node as VRRAstNode;
+      if (n.traits && Array.isArray(n.traits) && n.traits.some((t) => t.name === cleanTraitName)) {
+        matched.push(n);
       }
-      for (const key of Object.keys(node)) {
-        if (typeof node[key] === 'object') {
-          traverse(node[key]);
+      for (const key of Object.keys(n)) {
+        const val = (n as Record<string, unknown>)[key];
+        if (typeof val === 'object' && val !== null) {
+          traverse(val);
         }
       }
     };
@@ -301,25 +929,26 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`document.body.appendChild(renderer.domElement);`);
   }
 
-  private generateAPIHooks(twinNodes: any[]) {
+  private generateAPIHooks(twinNodes: unknown[]) {
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
 
     // Default config values
     let geoCenter = { lat: 0, lng: 0 };
-    let twinId = `auto_gen_twin_${Date.now()}`;
+    let twinId = `auto_gen_twin`;
     let weatherProvider = '';
     let eventProvider = '';
     let inventoryProvider = '';
 
-    for (const node of twinNodes) {
+    for (const rawNode of twinNodes) {
+      const node = rawNode as VRRAstNode;
       if (node.traits) {
         for (const trait of node.traits) {
           if (trait.name === 'geo_anchor')
-            geoCenter = { lat: trait.params.lat, lng: trait.params.lng };
-          else if (trait.name === 'vrr_twin' && trait.params.mirror) twinId = trait.params.mirror;
-          else if (trait.name === 'weather_sync') weatherProvider = trait.params.provider;
-          else if (trait.name === 'event_sync') eventProvider = trait.params.provider;
-          else if (trait.name === 'inventory_sync') inventoryProvider = trait.params.provider;
+            geoCenter = { lat: Number(trait.params.lat), lng: Number(trait.params.lng) };
+          else if (trait.name === 'vrr_twin' && trait.params.mirror) twinId = String(trait.params.mirror);
+          else if (trait.name === 'weather_sync') weatherProvider = String(trait.params.provider);
+          else if (trait.name === 'event_sync') eventProvider = String(trait.params.provider);
+          else if (trait.name === 'inventory_sync') inventoryProvider = String(trait.params.provider);
         }
       }
     }
@@ -366,13 +995,14 @@ export class VRRCompiler extends CompilerBase {
     // Business Quest and Inventory scanning
     const questHubs = this.extractNodesWithTrait(twinNodes[0] || {}, '@quest_hub');
     for (const hub of questHubs) {
-      const quests = hub.traits.find((t: any) => t.name === 'quest_hub')?.params.quests || [];
+      const questTrait = hub.traits?.find((t) => t.name === 'quest_hub');
+      const quests = questTrait ? (Array.isArray(questTrait.params.quests) ? questTrait.params.quests : []) : [];
       this.generatedCode.push(`\n// Configured @quest_hub for ${hub.name || 'Business'}`);
       this.generatedCode.push(`const hub_${Math.random().toString(36).substring(7)} = {`);
       this.generatedCode.push(`  quests: ${JSON.stringify(quests)}`);
       this.generatedCode.push(`};`);
 
-      const inventory = hub.traits.find((t: any) => t.name === 'inventory_sync');
+      const inventory = hub.traits?.find((t) => t.name === 'inventory_sync');
       if (inventory) {
         this.generatedCode.push(`vrr.syncInventory('${hub.name || 'shop'}', (inv) => {`);
         this.generatedCode.push(`  console.log('Stock updated:', inv);`);
@@ -383,12 +1013,13 @@ export class VRRCompiler extends CompilerBase {
     // x402 Paywalls
     const paywalls = this.extractNodesWithTrait(twinNodes[0] || {}, '@x402_paywall');
     for (const pw of paywalls) {
-      const trait = pw.traits.find((t: any) => t.name === 'x402_paywall');
+      const trait = pw.traits?.find((t) => t.name === 'x402_paywall');
+      if (!trait) continue;
       this.generatedCode.push(
-        `\n// @x402_paywall requirement for ${this.escapeStringValue(pw.name as string, 'TypeScript')}`
+        `\n// @x402_paywall requirement for ${this.escapeStringValue(String(pw.name || ''), 'TypeScript')}`
       );
       this.generatedCode.push(
-        `vrr.persistState('paywall_${this.escapeStringValue(pw.name as string, 'TypeScript')}', ${JSON.stringify(trait.params)});`
+        `vrr.persistState('paywall_${this.escapeStringValue(String(pw.name || ''), 'TypeScript')}', ${JSON.stringify(trait.params)});`
       );
     }
 
