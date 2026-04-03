@@ -23,6 +23,26 @@ curl -X POST https://mcp.holoscript.net/api/compile \
 
 Change `target` to `unity`, `urdf`, `godot`, `node-service`, `native-2d`, `visionos`, or any of the [37 targets](./docs/reference/FULL_README.md#compilation-targets). Same input, different output.
 
+The output is platform-ready source code. For example, `r3f` returns a React Three Fiber JSX component you can drop into any React app. `unity` returns a C# MonoBehaviour. Try `native-2d` for an HTML product card you can open directly in a browser:
+
+```bash
+curl -s -X POST https://mcp.holoscript.net/api/compile \
+  -H "Content-Type: application/json" \
+  -d '{"code": "composition \"Store\" { object \"Product\" { @label(text: \"Demo\") @gauge(value: 99, unit: \"%\") geometry: \"box\" } }", "target": "native-2d"}' \
+  -o demo.html && open demo.html
+```
+
+## Run locally
+
+```bash
+npx create-holoscript-app my-world
+cd my-world
+npm install
+npm run dev
+```
+
+This scaffolds a project with a sample scene and opens a live preview. See the [Getting Started guide](./docs/getting-started/index.md) for more.
+
 ## Install
 
 ```bash
