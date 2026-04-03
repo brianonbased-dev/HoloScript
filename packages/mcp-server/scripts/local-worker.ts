@@ -224,6 +224,8 @@ function canHandle(task: any): boolean {
   const title = task.title || '';
   const desc = task.description || '';
   const text = `${title} ${desc}`;
+  // Skip non-tasks (session reports, system messages)
+  if (title.startsWith('[report]') || title.startsWith('[system]')) return false;
   // Only P3+ tasks, only ones matching simple patterns
   if (task.priority < 3) return false;
   // If worker has a role, prefer tasks matching that role
@@ -307,19 +309,27 @@ async function main() {
   setInterval(() => heartbeat(), HEARTBEAT_MS);
 
   // 6. Task loop
+  const recentlyTried = new Set<string>(); // avoid retrying same task
   async function workLoop() {
     try {
       const board = await getBoard();
       const open = board?.board?.open || [];
-      const handleable = open.filter(canHandle);
+      const handleable = open.filter((t: any) => canHandle(t) && !recentlyTried.has(t.id));
 
       if (handleable.length === 0) {
-        console.log(`[worker] ${open.length} open tasks, none P3/handleable. Waiting.`);
+        // Clear retry set every 10 cycles so tasks can be retried eventually
+        if (recentlyTried.size > 0 && open.length > 0) {
+          recentlyTried.clear();
+          console.log(`[worker] Cleared retry set. ${open.length} open, retrying.`);
+        } else {
+          console.log(`[worker] ${open.length} open tasks, none P3/handleable. Waiting.`);
+        }
         return;
       }
 
       // Pick highest priority handleable task
       const task = handleable.sort((a: any, b: any) => a.priority - b.priority)[0];
+      recentlyTried.add(task.id);
       console.log(`[worker] Claiming: ${task.title}`);
 
       const claimed = await claimTask(task.id);
@@ -332,10 +342,18 @@ async function main() {
       const summary = await executeTask(task);
       console.log(`[worker] Result: ${summary}`);
 
-      // Mark done
-      await markDone(task.id, summary);
-      await sendMessage(`[local-worker] Done: ${task.title} — ${summary}`);
-      console.log(`[worker] Marked done.\n`);
+      // Only mark done if actual work was done (not just "needs human review")
+      if (summary.includes('needs human review') || summary.includes('Analyzed but')) {
+        // Reopen — analysis only, no actual work done
+        await post(`${API}/team/${ROOM_ID}/board/${task.id}`, { action: 'reopen' }, auth(), 'PATCH');
+        await sendMessage(`[gpu-worker] Analyzed "${task.title}" — ${summary}. Task reopened for a capable agent.`);
+        console.log(`[worker] Reopened (analysis only).\n`);
+      } else {
+        // Real work done — mark done
+        await markDone(task.id, summary);
+        await sendMessage(`[gpu-worker] Done: ${task.title} — ${summary}`);
+        console.log(`[worker] Marked done.\n`);
+      }
     } catch (e) {
       console.error('[worker] Error in work loop:', e);
     }
