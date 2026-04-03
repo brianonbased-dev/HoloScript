@@ -46,6 +46,11 @@ interface AiInpaintingState {
   avgProcessTimeMs: number;
 }
 
+interface SetMaskPayload { maskData?: string | null }
+interface ProcessPayload { regionId?: string; prompt?: string }
+interface CompletePayload { regionId?: string; resultUrl?: string | null; elapsedMs?: number }
+interface ErrorPayload { message?: string }
+
 // =============================================================================
 // HANDLER
 // =============================================================================
@@ -92,7 +97,7 @@ export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
     if (!state) return;
 
     if (event.type === 'inpainting:set_mask') {
-      const payload = event.payload as any;
+      const payload = event.payload as SetMaskPayload | undefined;
       state.activeMask = payload?.maskData ?? null;
       context.emit('inpainting:mask_set', {
         hasMask: state.activeMask !== null,
@@ -103,7 +108,7 @@ export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
         context.emit('inpainting:error', { message: 'No mask set' });
         return;
       }
-      const payload = event.payload as any;
+      const payload = event.payload as ProcessPayload | undefined;
       const regionId: string = payload?.regionId ?? `region_${Date.now()}`;
       const prompt: string = payload?.prompt ?? '';
 
@@ -123,7 +128,7 @@ export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
         strength: config.strength,
       });
     } else if (event.type === 'inpainting:complete') {
-      const payload = event.payload as any;
+      const payload = event.payload as CompletePayload | undefined;
       const regionId: string = payload?.regionId ?? '';
       const region = state.regions.get(regionId);
 
@@ -156,7 +161,7 @@ export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
     } else if (event.type === 'inpainting:error') {
       state.isProcessing = false;
       context.emit('inpainting:error', {
-        message: (event.payload as any)?.message ?? 'Inpainting failed',
+        message: (event.payload as ErrorPayload | undefined)?.message ?? 'Inpainting failed',
       });
     }
   },

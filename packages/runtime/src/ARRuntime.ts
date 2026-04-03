@@ -98,7 +98,7 @@ export class ARRuntime {
   private onSessionEnd() {
     this.trackingState = 'inactive';
     this.session = null;
-    console.log('[ARRuntime] Session ended natively.');
+
   }
 
   /**
@@ -106,14 +106,14 @@ export class ARRuntime {
    */
   onBeaconDetected(beaconId: string, callback: (pose: XRPose) => void): void {
     // In actual implementation, binds to XRImageTrackingResult
-    console.log(`[ARRuntime] Listening for beacon: ${beaconId}`);
+
   }
 
   /**
    * Transitions from AR to VR or VRR mode based on @layer_shift
    */
   async triggerLayerShift(targetLayer: 'vr' | 'vrr'): Promise<void> {
-    console.log(`[ARRuntime] Shifting reality to ${targetLayer} layer.`);
+
     await this.stopSession();
     // Hand off state to VRRRuntime or VRRuntime
   }

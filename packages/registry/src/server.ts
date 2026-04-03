@@ -300,7 +300,7 @@ if (BOOTSTRAP_TOKEN) {
   console.log(
     `[registry] Bootstrap admin token created (use REGISTRY_BOOTSTRAP_TOKEN env to disable)`
   );
-  console.log(`[registry] Token: ${rawToken}`);
+  console.log(`[registry] Token: ${rawToken.substring(0, 8)}...`);
 }
 
 // ─── Start ───────────────────────────────────────────────────────────────────

@@ -47,7 +47,7 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
   },
 
   onUpdate(node, config, context, delta) {
-    const vrContext = (context as any).vr as VRContext;
+    const vrContext = context.vr as VRContext;
     if (!vrContext || !vrContext.hands) return;
 
     const nodeStates = gestureStates.get(node.id!);

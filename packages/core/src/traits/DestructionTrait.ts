@@ -318,13 +318,14 @@ function triggerDestruction(
 
   // Store original mesh for repair restoration
   if (!state.originalMesh) {
-    state.originalMesh = (node as any).mesh ?? (node as any).geometry ?? node;
+    state.originalMesh = (node as Record<string, unknown>).mesh ?? (node as Record<string, unknown>).geometry ?? node;
   }
 
   state.isDestroyed = true;
 
-  const position = (node as any).position || { x: 0, y: 0, z: 0 };
-  const scale = (node as any).scale || { x: 1, y: 1, z: 1 };
+  const nodeRecord = node as Record<string, unknown>;
+  const position = (nodeRecord.position as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 };
+  const scale = (nodeRecord.scale as { x: number; y: number; z: number }) || { x: 1, y: 1, z: 1 };
 
   // Generate fragments
   state.fragments = generateFragments(

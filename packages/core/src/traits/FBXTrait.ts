@@ -288,7 +288,7 @@ function getUnitScaleFactor(unit: FBXConfig['unit_scale']): number {
 export function applyFBXAxisConversion(config: FBXConfig, position: Vector3): Vector3 {
   // Convert from FBX coordinate system to HoloScript (Y-up, -Z forward)
   if (config.up_axis === 'z') {
-    return [(position as any)[0], (position as any)[2], -(position as any)[1]];
+    return [position[0], position[2], -(position[1] ?? 0)] as unknown as Vector3;
   }
   return position;
 }

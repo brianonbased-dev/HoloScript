@@ -61,6 +61,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
       goals: new Map(),
     };
     traitState.set(node, state);
+    node.__crowdSimState = state;
 
     context.emit('crowd_sim_create', {
       maxAgents: config.max_agents,
@@ -80,6 +81,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
     if (traitState.has(node)) {
       context.emit('crowd_sim_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__crowdSimState;
     }
   },
 

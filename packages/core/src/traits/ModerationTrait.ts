@@ -60,6 +60,7 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
       totalBlocked: 0,
     };
     traitState.set(node, state);
+    node.__moderationState = state;
 
     context.emit('moderation_create', {
       sensitivity: config.sensitivity,
@@ -74,6 +75,7 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
     if (traitState.has(node)) {
       context.emit('moderation_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__moderationState;
     }
   },
 

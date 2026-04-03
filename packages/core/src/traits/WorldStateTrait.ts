@@ -66,6 +66,7 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
       version: 0,
     };
     traitState.set(node, state);
+    node.__worldStateTraitState = state;
 
     context.emit('world_state_create', {
       worldId: config.world_id,
@@ -82,6 +83,7 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
       context.emit('world_state_save', { reason: 'detach' });
       context.emit('world_state_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__worldStateTraitState;
     }
   },
 

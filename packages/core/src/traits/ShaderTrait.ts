@@ -850,7 +850,7 @@ export type InlineShader = { vertex?: string; fragment?: string };
 export default ShaderTrait;
 
 // ── Handler (delegates to ShaderTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const shaderHandler = {
   name: 'shader',
@@ -861,7 +861,7 @@ export const shaderHandler = {
     ctx.emit('shader_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__shader_instance as any;
+    const instance = node.__shader_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -871,7 +871,7 @@ export const shaderHandler = {
     delete node.__shader_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__shader_instance as any;
+    const instance = node.__shader_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -881,7 +881,7 @@ export const shaderHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__shader_instance as any;
+    const instance = node.__shader_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

@@ -30,6 +30,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { extractPayload } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -351,7 +352,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
-    const payload = (event as any)?.payload ?? (event as any);
+    const payload = extractPayload(event);
 
     switch (eventType) {
       // ─── Connection lifecycle (platform-triggered) ───────────────────

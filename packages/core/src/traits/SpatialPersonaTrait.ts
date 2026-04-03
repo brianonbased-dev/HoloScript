@@ -85,23 +85,23 @@ export const spatialPersonaHandler: TraitHandler<SpatialPersonaConfig> = {
     if (!state) return;
 
     if (event.type === 'persona:activate') {
-      const payload = event.payload as any;
+      const payload = event.payload;
       state.isActive = true;
-      state.personaId = payload?.personaId ?? `persona_${node.id}`;
+      state.personaId = (payload?.personaId as string) ?? `persona_${node.id}`;
       context.emit('persona:activated', { personaId: state.personaId });
     } else if (event.type === 'persona:deactivate') {
       state.isActive = false;
       context.emit('persona:deactivated', { personaId: state.personaId });
     } else if (event.type === 'persona:position_update') {
-      const payload = event.payload as any;
-      if (payload?.position) state.position = payload.position;
-      if (payload?.orientation) state.orientation = payload.orientation;
+      const payload = event.payload;
+      if (payload?.position) state.position = payload.position as typeof state.position;
+      if (payload?.orientation) state.orientation = payload.orientation as typeof state.orientation;
       context.emit('persona:moved', {
         personaId: state.personaId,
         position: state.position,
       });
     } else if (event.type === 'persona:expression') {
-      const expr = (event.payload as any)?.expression as ExpressionState;
+      const expr = event.payload?.expression as ExpressionState;
       if (expr) {
         state.expressionState = expr;
         state.isSpeaking = expr === 'talking';
@@ -111,10 +111,10 @@ export const spatialPersonaHandler: TraitHandler<SpatialPersonaConfig> = {
         });
       }
     } else if (event.type === 'persona:participant_visible') {
-      const participantId = (event.payload as any)?.participantId as string;
+      const participantId = event.payload?.participantId as string;
       if (participantId) state.visibleTo.add(participantId);
     } else if (event.type === 'persona:participant_hidden') {
-      const participantId = (event.payload as any)?.participantId as string;
+      const participantId = event.payload?.participantId as string;
       if (participantId) state.visibleTo.delete(participantId);
     }
   },

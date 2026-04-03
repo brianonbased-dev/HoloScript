@@ -152,7 +152,7 @@ async function callHttp(
       body: options.body,
       credentials: options.credentials,
       signal: controller?.signal,
-    } as any);
+    } as RequestInit);
 
     const rawHeaders: Record<string, string> = {};
     try {

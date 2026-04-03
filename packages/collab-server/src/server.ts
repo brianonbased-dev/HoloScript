@@ -108,14 +108,14 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     const token = url.searchParams.get('token');
     if (!token) {
       ws.close(1008, 'Authentication required');
-      console.log(`[collab-server] Rejected unauthenticated connection to room "${roomId}"`);
+
       return;
     }
 
     const payload = verifyToken(token, AUTH_SECRET);
     if (!payload) {
       ws.close(1008, 'Invalid or expired token');
-      console.log(`[collab-server] Rejected invalid token for room "${roomId}"`);
+
       return;
     }
 
@@ -129,7 +129,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   room.add(ws);
 
   const userLabel = (ws as unknown as Record<string, string>)._userName ?? 'anonymous';
-  console.log(`[collab-server] ${userLabel} joined room "${roomId}" (${room.size} peers)`);
+
 
   ws.on('message', (data) => {
     let msg: Record<string, unknown>;
@@ -154,7 +154,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   ws.on('close', () => {
     room.delete(ws);
     if (room.size === 0) rooms.delete(roomId);
-    console.log(`[collab-server] ${userLabel} left room "${roomId}" (${room.size} remaining)`);
+
   });
 
   ws.on('error', (err) => {

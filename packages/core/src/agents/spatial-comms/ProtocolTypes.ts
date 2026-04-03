@@ -86,6 +86,11 @@ export type RealTimeMessage =
   | PerformanceMetricMessage;
 
 /**
+ * Real-time message body — strips auto-generated fields for the `send()` method.
+ */
+export type RealTimeMessageBody = DistributiveOmit<RealTimeMessage, 'agent_id' | 'timestamp'>;
+
+/**
  * Binary protocol configuration for minimal overhead
  */
 export interface RealTimeProtocolConfig {
@@ -289,6 +294,17 @@ export type A2AMessage =
   | ResourceReleaseMessage
   | AgentHandshakeMessage
   | AgentDisconnectMessage;
+
+/**
+ * Distributive Omit for discriminated unions — removes keys from each member individually.
+ */
+type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
+/**
+ * A2A message body type for the `send()` method.
+ * Strips auto-generated fields so callers only provide the domain payload.
+ */
+export type A2AMessageBody = DistributiveOmit<A2AMessage, 'message_id' | 'from_agent' | 'timestamp'>;
 
 /**
  * A2A protocol configuration

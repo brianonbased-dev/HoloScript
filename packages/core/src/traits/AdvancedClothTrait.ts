@@ -491,7 +491,7 @@ export class AdvancedClothSystem {
 }
 
 // ── Handler (delegates to AdvancedClothSystem) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const advancedClothHandler = {
   name: 'advanced_cloth',
@@ -502,7 +502,7 @@ export const advancedClothHandler = {
     ctx.emit('advanced_cloth_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__advanced_cloth_instance as any;
+    const instance = node.__advanced_cloth_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -512,7 +512,7 @@ export const advancedClothHandler = {
     delete node.__advanced_cloth_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__advanced_cloth_instance as any;
+    const instance = node.__advanced_cloth_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -522,7 +522,7 @@ export const advancedClothHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__advanced_cloth_instance as any;
+    const instance = node.__advanced_cloth_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

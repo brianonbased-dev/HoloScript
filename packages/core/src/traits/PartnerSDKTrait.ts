@@ -347,7 +347,7 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
         id: `req_${now}_${Math.random().toString(36).substring(2, 8)}`,
         partnerId,
         endpoint: event.endpoint as string,
-        method: (event.method as any) || 'POST',
+        method: (event.method as 'POST' | 'GET' | 'PUT' | 'DELETE') || 'POST',
         payload: event.payload,
         signature,
         timestamp: now,

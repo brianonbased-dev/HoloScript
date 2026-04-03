@@ -522,7 +522,7 @@ export class LipSyncTrait {
       return {};
     }
 
-    (this.analyserNode as any).getByteFrequencyData(this.frequencyData);
+    this.analyserNode.getByteFrequencyData(this.frequencyData);
 
     const sampleRate = this.audioContext.sampleRate;
     const binCount = this.analyserNode.frequencyBinCount;
@@ -1026,7 +1026,7 @@ export function createLipSyncTrait(config?: LipSyncConfig): LipSyncTrait {
 }
 
 // ── Handler (delegates to LipSyncTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const lipSyncHandler = {
   name: 'lip_sync',
@@ -1037,7 +1037,7 @@ export const lipSyncHandler = {
     ctx.emit('lip_sync_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__lip_sync_instance as any;
+    const instance = node.__lip_sync_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -1047,7 +1047,7 @@ export const lipSyncHandler = {
     delete node.__lip_sync_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__lip_sync_instance as any;
+    const instance = node.__lip_sync_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -1057,7 +1057,7 @@ export const lipSyncHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__lip_sync_instance as any;
+    const instance = node.__lip_sync_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

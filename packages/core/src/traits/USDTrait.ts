@@ -299,7 +299,7 @@ function isUSDZFile(source: string): boolean {
 /** @internal */
 export function applyUSDAxisConversion(upAxis: 'y' | 'z', position: Vector3): Vector3 {
   if (upAxis === 'z') {
-    return [(position as any)[0], (position as any)[2], -(position as any)[1]];
+    return [position[0], position[2], -(position[1] ?? 0)] as unknown as Vector3;
   }
   return position;
 }

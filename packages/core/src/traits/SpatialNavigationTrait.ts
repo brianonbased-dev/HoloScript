@@ -116,11 +116,11 @@ export const spatialNavigationHandler: TraitHandler<SpatialNavigationConfig> = {
     if (!state) return;
 
     if (event.type === 'navigation:start') {
-      const payload = event.payload as any;
-      state.waypoints = (payload?.waypoints ?? []).map((wp: any, i: number) => ({
-        id: wp.id ?? `wp_${i}`,
-        position: wp.position,
-        label: wp.label,
+      const payload = event.payload as { waypoints?: Array<Record<string, unknown>>; totalDistance?: number; estimatedSeconds?: number } | undefined;
+      state.waypoints = (payload?.waypoints ?? []).map((wp: Record<string, unknown>, i: number) => ({
+        id: (wp.id as string) ?? `wp_${i}`,
+        position: wp.position as [number, number, number],
+        label: wp.label as string | undefined,
         reached: false,
       }));
       state.currentWaypointIndex = 0;

@@ -907,7 +907,7 @@ export function createCharacterTrait(config?: CharacterConfig): CharacterTrait {
 }
 
 // ── Handler (delegates to CharacterTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const characterHandler = {
   name: 'character',
@@ -918,7 +918,7 @@ export const characterHandler = {
     ctx.emit('character_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__character_instance as any;
+    const instance = node.__character_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -928,7 +928,7 @@ export const characterHandler = {
     delete node.__character_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__character_instance as any;
+    const instance = node.__character_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -938,7 +938,7 @@ export const characterHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__character_instance as any;
+    const instance = node.__character_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

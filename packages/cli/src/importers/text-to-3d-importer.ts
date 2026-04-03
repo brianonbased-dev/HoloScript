@@ -252,11 +252,11 @@ export async function textTo3DToHolo(opts: TextTo3DHoloOptions): Promise<TextTo3
   const objectName = opts.objectName || sanitizeName(description);
 
   // Step 1: Generate 3D model from text
-  console.log(`[text-to-3d] Generating model with ${provider.name}: "${description}"`);
+
   const result = await provider.generateModel(description, { style, format: 'glb' });
 
   // Step 2: Download the model file
-  console.log(`[text-to-3d] Downloading model from ${result.modelUrl}`);
+
   const modelFileName = `${objectName}.${result.format}`;
   const modelFilePath = path.join(outputDir, modelFileName);
 
@@ -268,7 +268,7 @@ export async function textTo3DToHolo(opts: TextTo3DHoloOptions): Promise<TextTo3
   fs.writeFileSync(modelFilePath, modelBuffer);
 
   // Step 3: Run glTF importer to get base .holo code
-  console.log(`[text-to-3d] Converting ${result.format} to .holo`);
+
   let baseHolo: string;
   try {
     baseHolo = importGltf(modelFilePath);
@@ -278,7 +278,7 @@ export async function textTo3DToHolo(opts: TextTo3DHoloOptions): Promise<TextTo3
   }
 
   // Step 4: Suggest traits from the text description
-  console.log(`[text-to-3d] Inferring traits from description`);
+
   const suggestedTraits = await suggestTraits(description);
   const traitNames = suggestedTraits.map((t: { name: string }) => t.name);
 
@@ -290,7 +290,7 @@ export async function textTo3DToHolo(opts: TextTo3DHoloOptions): Promise<TextTo3
   if (outputDir) {
     holoFilePath = path.join(outputDir, `${objectName}.holo`);
     fs.writeFileSync(holoFilePath, holoCode, 'utf-8');
-    console.log(`[text-to-3d] Written: ${holoFilePath}`);
+
   }
 
   return {

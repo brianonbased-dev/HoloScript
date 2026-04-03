@@ -1057,7 +1057,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
-    const payload = (event as any)?.payload ?? event;
+    const payload = event?.payload ?? event;
 
     switch (eventType) {
       // ─── Request access (generates 402 response) ─────────────────────

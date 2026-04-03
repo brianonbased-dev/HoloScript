@@ -107,7 +107,7 @@ export const diffusionRealtimeHandler: TraitHandler<DiffusionRealtimeConfig> = {
       });
     } else if (event.type === 'diffusion_rt:frame') {
       if (!state.isStreaming) return;
-      const payload = event.payload as any;
+      const payload = event.payload as { frameUrl?: string | null; latencyMs?: number } | undefined;
       state.lastFrameUrl = payload?.frameUrl ?? null;
       state.frameCount += 1;
       state.latencyMs = payload?.latencyMs ?? state.latencyMs;
@@ -129,7 +129,7 @@ export const diffusionRealtimeHandler: TraitHandler<DiffusionRealtimeConfig> = {
     } else if (event.type === 'diffusion_rt:prompt_update') {
       // Dynamic prompt steering during stream
       context.emit('diffusion_rt:prompt_updated', {
-        prompt: (event.payload as any)?.prompt ?? config.prompt,
+        prompt: (event.payload as { prompt?: string } | undefined)?.prompt ?? config.prompt,
       });
     }
   },

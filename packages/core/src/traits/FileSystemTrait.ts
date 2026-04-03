@@ -3,6 +3,7 @@
  * Local/remote file system operations.
  */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { extractPayload } from './TraitTypes';
 
 export interface FileSystemConfig {
   root: string;
@@ -50,7 +51,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
     const state = node.__fsState as { files: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
-    const payload = (event as any)?.payload ?? event;
+    const payload = extractPayload(event);
     const fsCaps = context.hostCapabilities?.fileSystem;
 
     switch (t) {

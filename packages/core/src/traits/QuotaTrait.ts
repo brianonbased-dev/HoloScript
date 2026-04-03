@@ -613,7 +613,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
       ];
 
       for (const [resource, configKey] of resourceMap) {
-        const newLimit = (tierDefaults as any)[configKey];
+        const newLimit = (tierDefaults as Record<string, unknown>)[configKey] as number | undefined;
         if (newLimit !== undefined) {
           const limit = state.limits.get(resource);
           if (limit) {
@@ -624,7 +624,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
               limit.overage = 0;
             }
           }
-          (config as any)[configKey] = newLimit;
+          (config as unknown as Record<string, unknown>)[configKey] = newLimit;
         }
       }
 

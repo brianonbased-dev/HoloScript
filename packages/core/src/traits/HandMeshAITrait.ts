@@ -119,7 +119,7 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
 
   onAttach(node, config, context) {
     // Call base HandTracking attach
-    handTrackingHandler.onAttach?.(node, config as any, context);
+    handTrackingHandler.onAttach?.(node, config as HandTrackingConfig, context);
 
     // Add mesh state
     const meshState: HandMeshState = {
@@ -138,13 +138,13 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
   },
 
   onDetach(node, config, context) {
-    handTrackingHandler.onDetach?.(node, config as any, context);
+    handTrackingHandler.onDetach?.(node, config as HandTrackingConfig, context);
     delete node.__handMeshState;
   },
 
   onUpdate(node, config, context, delta) {
     // Call base update
-    handTrackingHandler.onUpdate?.(node, config as any, context, delta);
+    handTrackingHandler.onUpdate?.(node, config as HandTrackingConfig, context, delta);
 
     const meshState = node.__handMeshState as HandMeshState;
     const trackingState = node.__handTrackingState;
@@ -208,6 +208,6 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
     }
 
     // Forward to base HandTracking handler
-    handTrackingHandler.onEvent?.(node, config as any, context, event);
+    handTrackingHandler.onEvent?.(node, config as HandTrackingConfig, context, event);
   },
 };

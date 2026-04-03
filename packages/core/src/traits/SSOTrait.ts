@@ -537,8 +537,8 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         lastActivityAt: now.toISOString(),
         attributes,
         roles: mappedRoles,
-        tokenData: (event as Record<string, unknown>).tokenData as any,
-        samlData: (event as Record<string, unknown>).samlData as any,
+        tokenData: (event as Record<string, unknown>).tokenData as { accessToken: string; refreshToken?: string; idToken: string; tokenType: string; expiresIn: number } | undefined,
+        samlData: (event as Record<string, unknown>).samlData as { nameId: string; sessionIndex: string } | undefined,
         ipAddress: (event as Record<string, unknown>).ipAddress as string,
         userAgent: (event as Record<string, unknown>).userAgent as string,
       };

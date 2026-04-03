@@ -45,6 +45,11 @@ interface BlackboardConfig {
   cleanup_interval: number;
 }
 
+interface PostBeliefEvent { key: string; value: unknown; ttl?: number; authorId?: string }
+interface ReadBeliefEvent { key: string; queryId?: string }
+interface ProposeActionEvent { actionType: string; payload: Record<string, unknown>; proposerId?: string; timeout?: number }
+interface VoteEvent { proposalId: string; voterId: string; vote: 'accept' | 'reject' }
+
 // =============================================================================
 // HANDLER
 // =============================================================================
@@ -101,7 +106,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
     if (!state) return;
 
     if (event.type === 'blackboard_post_belief') {
-      const { key, value, ttl, authorId } = event as any;
+      const { key, value, ttl, authorId } = event as unknown as PostBeliefEvent;
       const entry: BlackboardEntry = {
         id: `${key}_${Date.now()}`,
         key,
@@ -113,7 +118,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
       state.beliefs.set(key, entry);
       context.emit?.('blackboard_belief_updated', { node, key, value });
     } else if (event.type === 'blackboard_read_belief') {
-      const { key, queryId } = event as any;
+      const { key, queryId } = event as unknown as ReadBeliefEvent;
       const entry = state.beliefs.get(key);
       context.emit?.('blackboard_belief_result', {
         node,
@@ -122,7 +127,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
         value: entry?.value,
       });
     } else if (event.type === 'blackboard_propose_action') {
-      const { actionType, payload, proposerId, timeout } = event as any;
+      const { actionType, payload, proposerId, timeout } = event as unknown as ProposeActionEvent;
       const id = `prop_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
       const proposal: Proposal = {
@@ -141,7 +146,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
       state.proposals.set(id, proposal);
       context.emit?.('blackboard_proposal_created', { node, proposal });
     } else if (event.type === 'blackboard_vote') {
-      const { proposalId, voterId, vote } = event as any;
+      const { proposalId, voterId, vote } = event as unknown as VoteEvent;
       const proposal = state.proposals.get(proposalId);
 
       if (proposal && proposal.status === 'pending') {

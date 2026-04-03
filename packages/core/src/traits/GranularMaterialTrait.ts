@@ -504,7 +504,7 @@ export class GranularMaterialSystem {
 }
 
 // ── Handler (delegates to GranularMaterialSystem) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const granularMaterialHandler = {
   name: 'granular_material',
@@ -515,7 +515,7 @@ export const granularMaterialHandler = {
     ctx.emit('granular_material_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__granular_material_instance as any;
+    const instance = node.__granular_material_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -525,7 +525,7 @@ export const granularMaterialHandler = {
     delete node.__granular_material_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__granular_material_instance as any;
+    const instance = node.__granular_material_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -535,7 +535,7 @@ export const granularMaterialHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__granular_material_instance as any;
+    const instance = node.__granular_material_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

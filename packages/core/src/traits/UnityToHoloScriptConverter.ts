@@ -132,11 +132,11 @@ export function convertUnityMaterial(mat: UnityMaterial): { id: string; dsl: str
   const shaderType = SHADER_TYPE_MAP[mat.shader] ?? 'pbr';
   const p = mat.properties ?? {};
 
-  const color = p._Color ? colorToHex(p._Color as any) : '#cccccc';
+  const color = p._Color ? colorToHex(p._Color as { r: number; g: number; b: number }) : '#cccccc';
   const metalness = typeof p._Metallic === 'number' ? p._Metallic : 0;
   const roughness = typeof p._Glossiness === 'number' ? 1 - (p._Glossiness as number) : 0.5;
 
-  const emissive = p._EmissionColor ? colorToHex(p._EmissionColor as any) : undefined;
+  const emissive = p._EmissionColor ? colorToHex(p._EmissionColor as { r: number; g: number; b: number }) : undefined;
 
   const lines: string[] = [
     `  material ${id} : ${shaderType} {`,

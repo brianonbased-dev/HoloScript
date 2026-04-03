@@ -368,7 +368,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
           ipAddress: (event as Record<string, unknown>).ipAddress as string | undefined,
           sessionId: (event as Record<string, unknown>).sessionId as string | undefined,
         },
-        resource: (event as Record<string, unknown>).resource as any,
+        resource: (event as Record<string, unknown>).resource as { type: string; id: string; name?: string } | undefined,
         tenantId,
       });
 
@@ -400,7 +400,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         });
       }
     } else if (event.type === 'audit_query') {
-      const query = event as any as AuditLogQuery & { queryId?: string };
+      const query = event as unknown as AuditLogQuery & { queryId?: string };
 
       let results = [...state.entries];
 

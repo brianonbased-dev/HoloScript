@@ -63,6 +63,7 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
       windOffset: [0, 0, 0],
     };
     traitState.set(node, state);
+    node.__cloudState = state;
 
     context.emit('volumetric_clouds_create', {
       altitude: config.altitude,
@@ -78,6 +79,7 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
     if (traitState.has(node)) {
       context.emit('volumetric_clouds_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__cloudState;
     }
   },
 

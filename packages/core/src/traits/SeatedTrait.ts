@@ -76,16 +76,18 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
       currentReach: 0,
     };
     traitState.set(node, state);
+    node.__seatedState = state;
 
     // Auto-calibrate on attach
     if (config.auto_calibrate) {
-      state.calibratedHeight = context.vr.headset.position.y ?? 1.2;
+      state.calibratedHeight = posComponent(context.vr.headset.position, 1) || 1.2;
       state.isCalibrated = true;
     }
   },
 
   onDetach(node) {
     traitState.delete(node);
+    delete node.__seatedState;
   },
 
   onUpdate(node, config, context, _delta) {
@@ -96,8 +98,8 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
     const origin = state.originalPosition;
 
     // Calculate reach distance from center
-    const dx = (headPos.x ?? 0) - posComponent(origin, 0);
-    const dz = (headPos.z ?? 0) - posComponent(origin, 2);
+    const dx = posComponent(headPos, 0) - posComponent(origin, 0);
+    const dz = posComponent(headPos, 2) - posComponent(origin, 2);
     state.currentReach = Math.sqrt(dx * dx + dz * dz);
 
     // Clamp within play bounds
@@ -127,7 +129,7 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
 
     // Handle recalibration request
     if (event.type === 'recalibrate') {
-      state.calibratedHeight = context.vr.headset.position.y ?? 1.2;
+      state.calibratedHeight = posComponent(context.vr.headset.position, 1) || 1.2;
       state.isCalibrated = true;
       context.emit('seated_calibrated', { height: state.calibratedHeight });
     }

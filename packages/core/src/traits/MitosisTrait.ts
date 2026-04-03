@@ -37,7 +37,7 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
 
   onAttach(node, config, context) {
     const state: MitosisState = {
-      parent_id: ('parent_id' in config ? (config as any).parent_id : null) || null,
+      parent_id: ('parent_id' in config ? (config as Record<string, unknown>).parent_id as string | null : null) || null,
       active_children: [],
       tasks_delegated: 0,
       completed_tasks: 0,

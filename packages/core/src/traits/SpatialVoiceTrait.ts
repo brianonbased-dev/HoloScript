@@ -60,6 +60,7 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
       localVolume: 0,
     };
     traitState.set(node, state);
+    node.__spatialVoiceState = state;
 
     context.emit('spatial_voice_create', {
       range: config.range,
@@ -79,6 +80,7 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
       context.emit('spatial_voice_destroy', { nodeId: node.id });
       state.connectedPeers.clear();
       traitState.delete(node);
+      delete node.__spatialVoiceState;
     }
   },
 

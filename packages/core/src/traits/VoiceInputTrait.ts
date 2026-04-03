@@ -114,15 +114,16 @@ export class VoiceInputTrait {
    */
   private initializeRecognition(): void {
     // Use native Web Speech API or polyfill
-    const SpeechRecognition =
-      (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
+    const _g = globalThis as unknown as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API constructor not in all TS libs
+    const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as (new () => unknown) | undefined;
 
-    if (!SpeechRecognition) {
+    if (!SpeechRecognitionCtor) {
       console.error('Web Speech API not supported');
       return;
     }
 
-    this.recognition = new SpeechRecognition();
+    this.recognition = new SpeechRecognitionCtor();
     this.setupRecognitionHandlers();
   }
 
@@ -353,7 +354,9 @@ export class VoiceInputTrait {
   private playBeep(type: 'start' | 'end' | 'success'): void {
     // AudioContext beep generation
     try {
-      const audioContext = new (globalThis as any).AudioContext();
+      const AudioCtx = (globalThis as unknown as { AudioContext?: typeof AudioContext }).AudioContext;
+      if (!AudioCtx) return;
+      const audioContext = new AudioCtx();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -402,7 +405,7 @@ export function createVoiceInputTrait(config: VoiceInputConfig): VoiceInputTrait
 }
 
 // ── Handler (delegates to VoiceInputTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const voiceInputHandler = {
   name: 'voice_input',
@@ -413,7 +416,7 @@ export const voiceInputHandler = {
     ctx.emit('voice_input_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__voice_input_instance as any;
+    const instance = node.__voice_input_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -423,7 +426,7 @@ export const voiceInputHandler = {
     delete node.__voice_input_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__voice_input_instance as any;
+    const instance = node.__voice_input_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -433,7 +436,7 @@ export const voiceInputHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__voice_input_instance as any;
+    const instance = node.__voice_input_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

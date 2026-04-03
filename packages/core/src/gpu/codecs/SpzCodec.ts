@@ -687,8 +687,9 @@ async function decompressGzip(compressed: ArrayBuffer): Promise<ArrayBuffer> {
   }
 
   // Fallback to pako if available
-  if (typeof globalThis !== 'undefined' && (globalThis as any).pako) {
-    const pako = (globalThis as any).pako;
+  const _global = globalThis as unknown as { pako?: { inflate: (data: Uint8Array) => Uint8Array } };
+  if (typeof globalThis !== 'undefined' && _global.pako) {
+    const pako = _global.pako;
     const decompressed: Uint8Array = pako.inflate(new Uint8Array(compressed));
     return decompressed.buffer as ArrayBuffer;
   }

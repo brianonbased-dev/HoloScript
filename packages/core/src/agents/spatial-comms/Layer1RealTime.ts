@@ -13,12 +13,10 @@ import { EventEmitter } from 'events';
 import { DEFAULT_REALTIME_CONFIG } from './ProtocolTypes';
 import type {
   RealTimeMessage,
-  RealTimeMessageType,
+  RealTimeMessageBody,
   RealTimeProtocolConfig,
   PositionSyncMessage,
   FrameBudgetMessage,
-  SpatialConflictMessage,
-  PerformanceMetricMessage,
 } from './ProtocolTypes';
 
 // ============================================================================
@@ -71,7 +69,7 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
       typeCode = MessageTypeCode.PERFORMANCE_METRIC;
       break;
     default:
-      throw new Error(`Unknown message type: ${(message as any).type}`);
+      throw new Error(`Unknown message type: ${(message as unknown as Record<string, unknown>).type}`);
   }
 
   // Encode based on type
@@ -491,7 +489,7 @@ export class Layer1RealTimeClient extends EventEmitter {
    * Send real-time message
    */
   async send(
-    message: Omit<RealTimeMessage, 'agent_id' | 'timestamp'>,
+    message: RealTimeMessageBody,
     targetAgent?: string
   ): Promise<void> {
     if (!this.transport) throw new Error('Transport not initialized');
@@ -542,7 +540,7 @@ export class Layer1RealTimeClient extends EventEmitter {
       rotation,
       scale,
       velocity,
-    } as any);
+    });
   }
 
   /**
@@ -562,7 +560,7 @@ export class Layer1RealTimeClient extends EventEmitter {
       target_fps: targetFps,
       actual_fps: actualFps,
       quality_level: qualityLevel,
-    } as any);
+    });
   }
 
   /**

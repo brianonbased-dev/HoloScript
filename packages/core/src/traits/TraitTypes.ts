@@ -184,3 +184,29 @@ export interface TraitEvent {
 }
 
 export type TraitEventPayload<T = unknown> = Record<string, unknown> & T;
+
+/**
+ * Extract a loosely-typed payload from a TraitEvent.
+ * Returns `event.payload` if present, otherwise the event itself.
+ * The result is typed as `Record<string, any>` to allow property access
+ * without explicit casts at every call site (pragmatic trade-off).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractPayload(event: TraitEvent): Record<string, any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (event.payload ?? event) as Record<string, any>;
+}
+
+/**
+ * Common interface for trait instance delegates stored on `node.__*_instance`.
+ * All methods are optional — callers must guard with `typeof instance.X === 'function'`.
+ */
+export interface TraitInstanceDelegate {
+  onDetach?: (node: HSPlusNode, ctx: TraitContext) => void;
+  onEvent?: (event: TraitEvent) => void;
+  onUpdate?: (node: HSPlusNode, ctx: TraitContext, dt: number) => void;
+  emit?: (event: TraitEvent) => void;
+  dispose?: () => void;
+  cleanup?: () => void;
+  [key: string]: unknown;
+}

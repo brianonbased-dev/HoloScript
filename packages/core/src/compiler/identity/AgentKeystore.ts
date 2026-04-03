@@ -182,7 +182,7 @@ export class AgentKeystore {
 
     // In production, write to persistent storage
     if (process.env.NODE_ENV === 'production') {
-      console.log(`[AUDIT] ${entry.event} - ${entry.agentRole} - ${entry.timestamp}`);
+      console.info(`[AUDIT] ${entry.event} - ${entry.agentRole} - ${entry.timestamp}`);
     }
   }
 

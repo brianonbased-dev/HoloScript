@@ -474,9 +474,7 @@ export const NetworkedTrait: TraitHandler = {
     context.data.lastSync = 0;
     context.data.syncTimer = 0;
 
-    console.log(
-      `[HoloScript] Networked trait applied to "${context.object.name}" (ownership: ${context.data.ownership})`
-    );
+
   },
 
   onUpdate(context: TraitContext, delta: number) {
@@ -510,9 +508,7 @@ export const AnchorTrait: TraitHandler = {
     context.data.anchorPosition = context.object.position.clone();
     context.data.anchorRotation = context.object.quaternion.clone();
 
-    console.log(
-      `[HoloScript] Anchor set at (${context.object.position.x.toFixed(2)}, ${context.object.position.y.toFixed(2)}, ${context.object.position.z.toFixed(2)})`
-    );
+
   },
 
   onUpdate(context: TraitContext, _delta: number) {
@@ -643,9 +639,7 @@ export const ReverbZoneTrait: TraitHandler = {
       context.data.boundsVisual = sphere;
     }
 
-    console.log(
-      `[HoloScript] Reverb zone "${context.data.reverbType}" (radius: ${context.data.radius}m, decay: ${context.data.decay}s)`
-    );
+
   },
 
   onUpdate(_context: TraitContext, _delta: number) {
@@ -678,9 +672,7 @@ export const VoiceProximityTrait: TraitHandler = {
     context.data.maxVolume = (cfg.max_volume as number) ?? 1;
     context.data.falloff = (cfg.falloff as string) ?? 'linear'; // linear, exponential
 
-    console.log(
-      `[HoloScript] Voice proximity: near=${context.data.nearDistance}m, far=${context.data.farDistance}m`
-    );
+
   },
 
   onUpdate(_context: TraitContext, _delta: number) {

@@ -31,7 +31,7 @@ export class AgentWalletService {
    */
   async initialize(): Promise<string> {
     try {
-      console.log(`[AgentWalletService] Initializing AgentKit wallet on ${this.networkId}...`);
+
 
       // 1. Provision the CDP Wallet Node
       const config = {
@@ -68,7 +68,7 @@ export class AgentWalletService {
         ] as ActionProvider<any>[],
       });
 
-      console.log(`[AgentWalletService] Autonomous Wallet Live: ${this.walletAddress}`);
+      console.info(`[AgentWalletService] Wallet initialized: ${this.walletAddress}`);
       return this.walletAddress as string;
     } catch (e) {
       console.error('[AgentWalletService] Initialization failed!', {
@@ -86,9 +86,7 @@ export class AgentWalletService {
       throw new Error('Wallet not initialized');
     }
 
-    console.log(
-      `[AgentWalletService] Processing 402 M2M Challenge for ${challengeObj.cost} ${challengeObj.currency}...`
-    );
+
 
     // 1. Sign the authorization intent (EIP-712 equivalent)
     const authMessage = `Authorized payment of ${challengeObj.cost} wei for ${challengeObj.memo}`;

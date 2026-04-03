@@ -120,7 +120,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       const updates = [...state.pendingUpdates];
       state.pendingUpdates = [];
 
-      const handler = digitalTwinHandler as any;
+      const handler = digitalTwinHandler as Record<string, unknown>;
       const gateway = handler.gateway as IotGateway;
 
       for (const update of updates) {
@@ -255,7 +255,7 @@ function connectToPhysical(
   config: DigitalTwinConfig,
   context: { emit?: (event: string, data: unknown) => void }
 ): void {
-  const handler = digitalTwinHandler as any;
+  const handler = digitalTwinHandler as Record<string, unknown>;
   if (!handler.gateway) {
     console.warn('[DigitalTwinTrait] No Gateway configured. Call setGateway() first.');
     return;

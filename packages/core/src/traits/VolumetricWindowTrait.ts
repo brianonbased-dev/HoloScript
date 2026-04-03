@@ -95,18 +95,18 @@ export const volumetricWindowHandler: TraitHandler<VolumetricWindowConfig> = {
 
     if (event.type === 'vWindow:open') {
       state.isOpen = true;
-      const payload = event.payload as any;
-      if (payload?.position) state.placement = payload.position;
+      const payload = event.payload;
+      if (payload?.position) state.placement = payload.position as typeof state.placement;
       context.emit('vWindow:opened', { type: config.window_type });
     } else if (event.type === 'vWindow:close') {
       state.isOpen = false;
       context.emit('vWindow:closed');
     } else if (event.type === 'vWindow:resize') {
-      const payload = event.payload as any;
+      const payload = event.payload;
       if (!config.resizable) return;
-      if (payload?.width !== undefined) state.currentWidth = payload.width;
-      if (payload?.height !== undefined) state.currentHeight = payload.height;
-      if (payload?.depth !== undefined) state.currentDepth = payload.depth;
+      if (payload?.width !== undefined) state.currentWidth = payload.width as number;
+      if (payload?.height !== undefined) state.currentHeight = payload.height as number;
+      if (payload?.depth !== undefined) state.currentDepth = payload.depth as number;
       context.emit('vWindow:resized', {
         width: state.currentWidth,
         height: state.currentHeight,
@@ -115,12 +115,12 @@ export const volumetricWindowHandler: TraitHandler<VolumetricWindowConfig> = {
     } else if (event.type === 'vWindow:scale') {
       const scale = Math.max(
         config.min_scale,
-        Math.min(config.max_scale, (event.payload as any)?.scale ?? 1)
+        Math.min(config.max_scale, (event.payload?.scale as number) ?? 1)
       );
       state.currentScale = scale;
       context.emit('vWindow:scaled', { scale });
     } else if (event.type === 'vWindow:immersion_change') {
-      state.immersionProgress = Math.max(0, Math.min(1, (event.payload as any)?.progress ?? 0));
+      state.immersionProgress = Math.max(0, Math.min(1, (event.payload?.progress as number) ?? 0));
       state.isImmersive = state.immersionProgress >= 1;
     }
   },

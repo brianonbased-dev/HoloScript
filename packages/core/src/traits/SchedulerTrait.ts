@@ -22,6 +22,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import { extractPayload } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -113,7 +114,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
-    const payload = (event as any)?.payload ?? event;
+    const payload = extractPayload(event);
 
     switch (eventType) {
       case 'scheduler:add_job': {

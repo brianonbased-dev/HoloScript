@@ -112,13 +112,13 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
 
     if (event.type === 'ui_press_start') {
       state.isDragging = true;
-      state.lastY = (event as any).position?.y || 0;
+      state.lastY = ((event as Record<string, unknown>).position as { y?: number } | undefined)?.y || 0;
       state.velocity = 0;
     } else if (event.type === 'ui_press_end') {
       state.isDragging = false;
     } else if (event.type === 'ui_drag') {
       if (state.isDragging) {
-        const currentY = (event as any).position?.y || 0;
+        const currentY = ((event as Record<string, unknown>).position as { y?: number } | undefined)?.y || 0;
         const dy = currentY - state.lastY;
         state.offset += dy;
         state.velocity = dy / 0.016; // Approx velocity

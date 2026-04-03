@@ -97,8 +97,9 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
     if (!state || !state.isActive) return;
 
     // Velocity limiting
-    if ((node as any).velocity) {
-      const vel = (node as any).velocity;
+    const nodeRecord = node as unknown as Record<string, unknown>;
+    if (nodeRecord.velocity) {
+      const vel = nodeRecord.velocity as { x: number; y: number; z: number };
       const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
 
       if (speed > config.max_velocity) {

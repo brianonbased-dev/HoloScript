@@ -592,7 +592,7 @@ export function createAnimationTrait(config?: AnimationConfig): AnimationTrait {
 }
 
 // ── Handler (delegates to AnimationTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const animationHandler = {
   name: 'animation',
@@ -603,7 +603,7 @@ export const animationHandler = {
     ctx.emit('animation_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__animation_instance as any;
+    const instance = node.__animation_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -613,7 +613,7 @@ export const animationHandler = {
     delete node.__animation_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__animation_instance as any;
+    const instance = node.__animation_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -623,7 +623,7 @@ export const animationHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__animation_instance as any;
+    const instance = node.__animation_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

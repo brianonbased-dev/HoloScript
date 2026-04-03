@@ -53,6 +53,24 @@ interface AiTextureGenState {
   avgGenTimeMs: number;
 }
 
+interface TextureGenPayload {
+  prompt?: string;
+  requestId?: string;
+}
+
+interface TextureCompletePayload {
+  requestId?: string;
+  prompt?: string;
+  diffuseUrl?: string;
+  normalUrl?: string | null;
+  roughnessUrl?: string | null;
+  elapsedMs?: number;
+}
+
+interface TextureApplyPayload {
+  textureId?: string;
+}
+
 // =============================================================================
 // HANDLER
 // =============================================================================
@@ -99,7 +117,7 @@ export const aiTextureGenHandler: TraitHandler<AiTextureGenConfig> = {
     if (!state) return;
 
     if (event.type === 'texture_gen:generate') {
-      const payload = event.payload as any;
+      const payload = event.payload as TextureGenPayload | undefined;
       const prompt: string = payload?.prompt ?? '';
       const requestId: string = payload?.requestId ?? `req_${Date.now()}`;
 
@@ -116,7 +134,7 @@ export const aiTextureGenHandler: TraitHandler<AiTextureGenConfig> = {
         });
       }
     } else if (event.type === 'texture_gen:complete') {
-      const payload = event.payload as any;
+      const payload = event.payload as TextureCompletePayload | undefined;
       const texture: GeneratedTexture = {
         id: payload?.requestId ?? `tex_${Date.now()}`,
         prompt: payload?.prompt ?? '',
@@ -150,7 +168,7 @@ export const aiTextureGenHandler: TraitHandler<AiTextureGenConfig> = {
         context.emit('texture_gen:started', { requestId: nextId });
       }
     } else if (event.type === 'texture_gen:apply') {
-      const textureId = (event.payload as any)?.textureId as string;
+      const textureId = (event.payload as TextureApplyPayload | undefined)?.textureId;
       if (textureId && state.textures.has(textureId)) {
         state.activeTextureId = textureId;
         context.emit('texture_gen:applied', { textureId });

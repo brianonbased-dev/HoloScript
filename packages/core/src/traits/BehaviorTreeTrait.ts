@@ -286,8 +286,9 @@ function tickCondition(node: BTNode, state: BTState, context: TraitContext, owne
   }
 
   // Check owner properties
-  if (result === undefined && (owner as any)[conditionKey] !== undefined) {
-    result = (owner as any)[conditionKey];
+  const ownerRecord = owner as Record<string, unknown>;
+  if (result === undefined && ownerRecord[conditionKey] !== undefined) {
+    result = ownerRecord[conditionKey];
   }
 
   // Evaluate simple expressions
@@ -319,7 +320,7 @@ function tickAction(
   }
 
   // Try to call method on owner
-  const method = (owner as any)[actionName];
+  const method = (owner as Record<string, unknown>)[actionName];
   if (typeof method === 'function') {
     const result = method.call(owner, node.params || {});
     const normalized = normalizeActionResult(result);

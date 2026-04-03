@@ -59,6 +59,7 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
       erosionSteps: 0,
     };
     traitState.set(node, state);
+    node.__terrainState = state;
 
     context.emit('deformable_terrain_create', {
       resolution: config.resolution,
@@ -72,6 +73,7 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
     if (traitState.has(node)) {
       context.emit('deformable_terrain_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__terrainState;
     }
   },
 

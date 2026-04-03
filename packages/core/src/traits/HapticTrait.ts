@@ -148,18 +148,15 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
 
     // Handle proximity haptics
     if (config.proximity_enabled && node.properties) {
-      const pos = node.properties!.position || [0, 0, 0];
+      const pos = (node.properties!.position as number[]) || [0, 0, 0];
       const dominantHand = context.vr.getDominantHand();
 
       if (dominantHand) {
         const handPos = dominantHand.position;
         const distance = Math.sqrt(
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          Math.pow((handPos as any)[0] - pos[0], 2) +
-            // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-            Math.pow((handPos as any)[1] - pos[1], 2) +
-            // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-            Math.pow((handPos as any)[2] - pos[2], 2)
+          Math.pow((handPos[0] ?? 0) - pos[0], 2) +
+            Math.pow((handPos[1] ?? 0) - pos[1], 2) +
+            Math.pow((handPos[2] ?? 0) - pos[2], 2)
         );
 
         const maxDist = config.proximity_distance * context.getScaleMultiplier();
@@ -266,7 +263,7 @@ function pulseHands(
     case 'dominant':
       const dominant = context.vr.getDominantHand();
       if (dominant) {
-        context.haptics.pulse((dominant as any).id as 'left' | 'right', clampedIntensity, duration);
+        context.haptics.pulse(dominant.id as 'left' | 'right', clampedIntensity, duration);
       }
       break;
     case 'both':

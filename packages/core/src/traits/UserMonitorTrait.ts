@@ -90,10 +90,12 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
       engagement: 0,
     };
     traitState.set(node, state);
+    node.__userMonitorState = state;
   },
 
   onDetach(node) {
     traitState.delete(node);
+    delete node.__userMonitorState;
   },
 
   onUpdate(node, config, context, delta) {
@@ -105,8 +107,16 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     const hand = context.vr.getDominantHand();
     const handPos = hand ? hand.position : null;
 
-    state.headPositions.push({ x: headPos.x, y: headPos.y, z: headPos.z });
-    if (handPos) state.handPositions.push({ x: handPos.x, y: handPos.y, z: handPos.z });
+    const hx = Array.isArray(headPos) ? headPos[0] : (headPos.x ?? 0);
+    const hy = Array.isArray(headPos) ? headPos[1] : (headPos.y ?? 0);
+    const hz = Array.isArray(headPos) ? headPos[2] : (headPos.z ?? 0);
+    state.headPositions.push([hx, hy, hz] as unknown as Vector3);
+    if (handPos) {
+      const px = Array.isArray(handPos) ? handPos[0] : (handPos.x ?? 0);
+      const py = Array.isArray(handPos) ? handPos[1] : (handPos.y ?? 0);
+      const pz = Array.isArray(handPos) ? handPos[2] : (handPos.z ?? 0);
+      state.handPositions.push([px, py, pz] as unknown as Vector3);
+    }
 
     // Keep buffers small (last 30 frames ~0.5s)
     if (state.headPositions.length > 30) state.headPositions.shift();

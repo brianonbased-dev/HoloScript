@@ -83,7 +83,7 @@ export class WebGPUContext {
 
     try {
       // Request adapter
-      this.adapter = await (navigator as any).gpu.requestAdapter({
+      this.adapter = await (navigator as unknown as { gpu: GPU }).gpu.requestAdapter({
         powerPreference: this.options.powerPreference,
       });
 
@@ -108,7 +108,7 @@ export class WebGPUContext {
 
       // Request device with required features and limits
       const deviceDescriptor: GPUDeviceDescriptor = {
-        requiredFeatures: this.options.requiredFeatures as any,
+        requiredFeatures: this.options.requiredFeatures as GPUFeatureName[],
         requiredLimits: this.options.requiredLimits,
       };
 
@@ -279,7 +279,7 @@ export class WebGPUContext {
       return;
     }
 
-    const info = await (this.adapter as any).requestAdapterInfo?.();
+    const info = await (this.adapter as unknown as { requestAdapterInfo?: () => Promise<Record<string, unknown>> }).requestAdapterInfo?.();
     if (info) {
       void info;
     }

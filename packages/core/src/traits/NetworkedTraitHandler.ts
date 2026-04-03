@@ -326,7 +326,7 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
       // W.NET.05: Separate event type for AI agent state
       case 'networked:remote_state':
       case 'networked:agent_state': {
-        const data = (event as Record<string, unknown>).data || (event as any);
+        const data = ((event as Record<string, unknown>).data || event) as Record<string, unknown>;
         if (!trait.isLocalOwner()) {
           trait.applyState(data);
         }

@@ -65,6 +65,7 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
       shieldedPlayers: new Map(),
     };
     traitState.set(node, state);
+    node.__antiGriefState = state;
 
     context.emit('anti_grief_create', {
       sensitivity: config.sensitivity,
@@ -77,6 +78,7 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
     if (traitState.has(node)) {
       context.emit('anti_grief_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__antiGriefState;
     }
   },
 

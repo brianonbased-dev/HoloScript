@@ -87,7 +87,7 @@ export const embeddingSearchHandler: TraitHandler<EmbeddingSearchConfig> = {
     if (!state) return;
 
     if (event.type === 'search:query') {
-      const payload = event.payload as any;
+      const payload = event.payload as { query?: string } | undefined;
       const query: string = payload?.query ?? '';
 
       if (config.cache_embeddings && state.embeddingCache.has(query)) {
@@ -99,7 +99,7 @@ export const embeddingSearchHandler: TraitHandler<EmbeddingSearchConfig> = {
       state.isSearching = true;
       context.emit('search:started', { query, model: config.embedding_model });
     } else if (event.type === 'search:results') {
-      const payload = event.payload as any;
+      const payload = event.payload as { results?: SearchResult[]; queryTimeMs?: number } | undefined;
       state.isSearching = false;
       state.lastResults = (payload?.results ?? [])
         .filter((r: SearchResult) => r.score >= config.min_score)

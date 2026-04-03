@@ -119,7 +119,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
     node.__fluidState = state;
 
     // Try GPU MLS-MPM backend first, fall back to event-based SPH
-    if (config.method === 'mls_mpm' && (context as any).gpuDevice) {
+    if (config.method === 'mls_mpm' && (context as unknown as Record<string, unknown>).gpuDevice) {
       const sim = new MLSMPMFluid({
         type: 'liquid',
         particleCount: config.particle_count,
@@ -136,7 +136,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       });
       state.mlsMpm = sim;
 
-      sim.init((context as any).gpuDevice).then(() => {
+      sim.init((context as unknown as Record<string, unknown>).gpuDevice as GPUDevice).then(() => {
         state.gpuReady = true;
         state.particleCount = config.particle_count;
         // Generate default particle block in lower half of domain

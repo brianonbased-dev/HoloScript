@@ -54,6 +54,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       deformation: 0,
     };
     traitState.set(node, state);
+    node.__softBodyProState = state;
 
     context.emit('soft_body_pro_create', {
       tearThreshold: config.tear_threshold,
@@ -69,6 +70,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
     if (traitState.has(node)) {
       context.emit('soft_body_pro_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__softBodyProState;
     }
   },
 

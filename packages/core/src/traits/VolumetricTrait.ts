@@ -135,7 +135,7 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
     } else if (event.type === 'volumetric_reset_clip') {
       state.clipBounds = null;
     } else if (event.type === 'volumetric_ray_query') {
-      const { origin, direction, threshold } = event as any;
+      const { origin, direction, threshold } = event as unknown as { origin: Vector3; direction: Vector3; threshold: number };
       if (state.renderMode === 'splat' && state.splatData) {
         const hit = state.service.intersectRay(
           state.splatData,

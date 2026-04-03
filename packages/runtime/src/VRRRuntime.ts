@@ -353,7 +353,7 @@ export class VRRRuntime {
       if (supported) {
         await this.activeARRuntime.startSession();
         this.isARActive = true;
-        console.log(`[VRR] Reality shifted: AR Mode ON for ${this.options.twin_id}`);
+
       } else {
         console.warn(`[VRR] AR not supported on this device. Retaining VRR/VR view.`);
         this.activeARRuntime = null;
@@ -362,7 +362,7 @@ export class VRRRuntime {
       await this.activeARRuntime.stopSession();
       this.activeARRuntime = null;
       this.isARActive = false;
-      console.log(`[VRR] Reality shifted: AR Mode OFF for ${this.options.twin_id}`);
+
     }
   }
 
@@ -486,7 +486,7 @@ export class VRRRuntime {
           this.BASE_RECONNECT_DELAY_MS * Math.pow(2, this.eventsRetryCount),
           30000
         );
-        console.log(`[VRR] Retrying events sync in ${retryDelay}ms (attempt ${this.eventsRetryCount}/${this.MAX_EVENT_RETRIES})`);
+
         this.eventsPollingTimeout = setTimeout(() => this.syncEvents(callback), retryDelay);
         return;
       }
@@ -537,7 +537,7 @@ export class VRRRuntime {
         clearInterval(this.inventoryPollingInterval);
         this.inventoryPollingInterval = null;
       }
-      console.log(`[VRR] Inventory WebSocket connected for ${business_id}`);
+
     };
 
     ws.onmessage = (event) => {
@@ -563,7 +563,7 @@ export class VRRRuntime {
           this.BASE_RECONNECT_DELAY_MS * Math.pow(2, this.inventoryReconnectAttempts),
           30000
         );
-        console.log(`[VRR] Reconnecting inventory WebSocket in ${delay}ms (attempt ${this.inventoryReconnectAttempts})`);
+
         setTimeout(() => this.connectInventoryWebSocket(business_id, callback), delay);
       } else {
         console.warn('[VRR] Max inventory WebSocket reconnect attempts reached, falling back to polling');
@@ -648,7 +648,7 @@ export class VRRRuntime {
 
     ws.onopen = () => {
       this.playerReconnectAttempts = 0;
-      console.log(`[VRR] Multiplayer WebSocket connected for ${this.options.twin_id}`);
+
 
       // Send join event
       ws.send(JSON.stringify({
@@ -684,11 +684,11 @@ export class VRRRuntime {
             }
             break;
           case 'player_join':
-            console.log(`[VRR] Player joined: ${msg.player?.id ?? 'unknown'}`);
+
             // Server will send updated player list; handled by player_state
             break;
           case 'player_leave':
-            console.log(`[VRR] Player left: ${msg.player?.id ?? 'unknown'}`);
+
             // Server will send updated player list; handled by player_state
             break;
           default:
@@ -723,7 +723,7 @@ export class VRRRuntime {
           this.BASE_RECONNECT_DELAY_MS * Math.pow(2, this.playerReconnectAttempts),
           30000
         );
-        console.log(`[VRR] Reconnecting multiplayer in ${delay}ms (attempt ${this.playerReconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS})`);
+
         setTimeout(() => this.connectPlayerWebSocket(callback), delay);
       } else {
         console.error('[VRR] Max multiplayer reconnect attempts reached. Multiplayer offline.');
@@ -794,7 +794,7 @@ export class VRRRuntime {
     const ws = new WebSocket(`wss://${iotConfig.endpoint}/telemetry/${sensor_id}`);
 
     ws.onopen = () => {
-      console.log(`[VRR] IoT WebSocket connected for sensor ${sensor_id}`);
+
     };
 
     ws.onmessage = (event) => {
@@ -817,7 +817,7 @@ export class VRRRuntime {
           this.BASE_RECONNECT_DELAY_MS * Math.pow(2, reconnectAttempts + 1),
           30000
         );
-        console.log(`[VRR] Reconnecting IoT WebSocket in ${delay}ms (attempt ${reconnectAttempts + 1})`);
+
         setTimeout(() => this.connectIoTWebSocket(sensor_id, callback, reconnectAttempts + 1), delay);
       } else {
         console.warn(`[VRR] Max IoT reconnect attempts reached for ${sensor_id}, falling back to HTTP polling`);

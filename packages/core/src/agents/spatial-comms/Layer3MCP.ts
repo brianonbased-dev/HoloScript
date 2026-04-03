@@ -253,7 +253,7 @@ export class Layer3MCPClient extends EventEmitter {
       throw new Error(response.error || 'Failed to get agent registry');
     }
 
-    return response.data as any;
+    return response.data as { agents: Array<{ agent_id: string; role: string; status: 'online' | 'offline' | 'degraded'; world_id?: string; capabilities: string[] }>; total: number };
   }
 
   /**
@@ -542,10 +542,10 @@ export class Layer3MCPServer extends EventEmitter {
 
     // Get agent registry handler
     this.registerHandler('get_agent_registry', async (params, context) => {
-      const filter = params.filter as any;
+      const filter = params.filter as Record<string, unknown> | undefined;
 
       // Get all agents from worlds
-      const agents: any[] = [];
+      const agents: Record<string, unknown>[] = [];
 
       for (const world of this.worlds.values()) {
         for (const agent of world.active_agents) {
@@ -613,7 +613,7 @@ export class Layer3MCPServer extends EventEmitter {
 
     // Set global config handler
     this.registerHandler('set_global_config', async (params, context) => {
-      const config = params.config as any;
+      const config = params.config as Record<string, unknown>;
 
       this.emit('config_updated', { config, context });
 
@@ -623,7 +623,7 @@ export class Layer3MCPServer extends EventEmitter {
     // Trigger event handler
     this.registerHandler('trigger_event', async (params, context) => {
       const eventType = params.event_type as string;
-      const eventData = params.event_data as any;
+      const eventData = params.event_data as Record<string, unknown>;
 
       this.emit('system_event', { eventType, eventData, context });
 

@@ -14,6 +14,7 @@ import { EventEmitter } from 'events';
 import { DEFAULT_A2A_CONFIG } from './ProtocolTypes';
 import type {
   A2AMessage,
+  A2AMessageBody,
   A2AResponse,
   A2AProtocolConfig,
   TaskSpec,
@@ -263,7 +264,7 @@ export class Layer2A2AClient extends EventEmitter {
    * Send A2A message with retry
    */
   async send(
-    message: Omit<A2AMessage, 'message_id' | 'from_agent' | 'timestamp'>
+    message: A2AMessageBody
   ): Promise<A2AResponse> {
     // Generate message ID and add metadata
     const fullMessage: A2AMessage = {
@@ -290,7 +291,7 @@ export class Layer2A2AClient extends EventEmitter {
       type: 'task_assignment',
       to_agent: toAgent,
       task,
-    } as any);
+    });
   }
 
   /**
@@ -299,7 +300,7 @@ export class Layer2A2AClient extends EventEmitter {
   async completeTask(
     taskId: string,
     success: boolean,
-    result?: any,
+    result?: unknown,
     error?: string,
     performanceMetrics?: {
       duration_ms: number;
@@ -315,7 +316,7 @@ export class Layer2A2AClient extends EventEmitter {
       result,
       error,
       performance_metrics: performanceMetrics,
-    } as any);
+    });
   }
 
   /**
@@ -379,7 +380,7 @@ export class Layer2A2AClient extends EventEmitter {
       priority,
       duration_ms: durationMs,
       exclusive,
-    } as any);
+    });
   }
 
   /**
@@ -389,7 +390,7 @@ export class Layer2A2AClient extends EventEmitter {
     conflictId: string,
     involvedAgents: string[],
     strategy: ConflictResolutionStrategy,
-    resolutionParams?: Record<string, any>
+    resolutionParams?: Record<string, unknown>
   ): Promise<A2AResponse> {
     return this.send({
       type: 'conflict_resolution',
@@ -397,7 +398,7 @@ export class Layer2A2AClient extends EventEmitter {
       strategy,
       involved_agents: involvedAgents,
       resolution_params: resolutionParams,
-    } as any);
+    });
   }
 
   /**
@@ -415,7 +416,7 @@ export class Layer2A2AClient extends EventEmitter {
       resource_type: resourceType,
       amount,
       priority,
-    } as any);
+    });
   }
 
   /**
@@ -425,7 +426,7 @@ export class Layer2A2AClient extends EventEmitter {
     return this.send({
       type: 'resource_release',
       resource_id: resourceId,
-    } as any);
+    });
   }
 
   /**
@@ -441,7 +442,7 @@ export class Layer2A2AClient extends EventEmitter {
       to_agent: toAgent,
       capabilities,
       protocol_version: protocolVersion,
-    } as any);
+    });
   }
 
   /**

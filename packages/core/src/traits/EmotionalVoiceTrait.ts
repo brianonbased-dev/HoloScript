@@ -100,7 +100,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
   } else {
     try {
       if (synthesizer) {
-        audioBuffer = await (synthesizer as any).generate(request);
+        audioBuffer = await (synthesizer as unknown as { generate: (req: unknown) => Promise<ArrayBuffer> }).generate(request);
       } else {
         return;
       }

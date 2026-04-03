@@ -95,7 +95,7 @@ export class PressableTrait implements Trait {
 }
 
 // ── Handler (delegates to PressableTrait) ──
-import type { TraitHandler, HSPlusNode, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const pressableHandler = {
   name: 'pressable',
@@ -106,7 +106,7 @@ export const pressableHandler = {
     ctx.emit('pressable_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__pressable_instance as any;
+    const instance = node.__pressable_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -116,7 +116,7 @@ export const pressableHandler = {
     delete node.__pressable_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__pressable_instance as any;
+    const instance = node.__pressable_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -126,7 +126,7 @@ export const pressableHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__pressable_instance as any;
+    const instance = node.__pressable_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

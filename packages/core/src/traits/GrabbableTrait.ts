@@ -214,7 +214,7 @@ export class GrabbableTrait implements Trait {
 }
 
 // ── Handler (delegates to GrabbableTrait) ──
-import type { TraitHandler, HSPlusNode, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const grabbableHandler = {
   name: 'grabbable',
@@ -225,7 +225,7 @@ export const grabbableHandler = {
     ctx.emit('grabbable_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__grabbable_instance as any;
+    const instance = node.__grabbable_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -235,7 +235,7 @@ export const grabbableHandler = {
     delete node.__grabbable_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__grabbable_instance as any;
+    const instance = node.__grabbable_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -245,7 +245,7 @@ export const grabbableHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__grabbable_instance as any;
+    const instance = node.__grabbable_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

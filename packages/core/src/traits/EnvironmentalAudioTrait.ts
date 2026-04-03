@@ -426,7 +426,7 @@ export class EnvironmentalAudioSystem {
 }
 
 // ── Handler (delegates to EnvironmentalAudioSystem) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
+import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
 
 export const environmentalAudioHandler = {
   name: 'environmental_audio',
@@ -437,7 +437,7 @@ export const environmentalAudioHandler = {
     ctx.emit('environmental_audio_attached', { node, config });
   },
   onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
-    const instance = node.__environmental_audio_instance as any;
+    const instance = node.__environmental_audio_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
       else if (typeof instance.dispose === 'function') instance.dispose();
@@ -447,7 +447,7 @@ export const environmentalAudioHandler = {
     delete node.__environmental_audio_instance;
   },
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__environmental_audio_instance as any;
+    const instance = node.__environmental_audio_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
     else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
@@ -457,7 +457,7 @@ export const environmentalAudioHandler = {
     }
   },
   onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
-    const instance = node.__environmental_audio_instance as any;
+    const instance = node.__environmental_audio_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },

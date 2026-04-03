@@ -136,8 +136,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     if (bodyState && !bodyState.isSleeping) {
       // Sync GPU position/rotation back to the node
       // This allows HoloScript code and animations to track the physics
-      node.position = bodyState.position as any;
-      node.rotation = bodyState.rotation as any;
+      node.position = bodyState.position as unknown as typeof node.position;
+      node.rotation = bodyState.rotation as unknown as typeof node.rotation;
     }
   },
 
@@ -153,8 +153,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
         const engine = getPhysicsEngine(state.engineId || 'webgpu');
         engine?.applyForce(
           node.name || '',
-          (event as any).data?.force,
-          (event as any).data?.point
+          (event.data as Record<string, unknown> | undefined)?.force as [number, number, number],
+          (event.data as Record<string, unknown> | undefined)?.point as [number, number, number]
         );
       }
     }

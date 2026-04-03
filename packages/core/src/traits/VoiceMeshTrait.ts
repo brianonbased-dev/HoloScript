@@ -93,7 +93,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
     if (!state) return;
 
     if (event.type === 'voice_stream_received') {
-      const { peerId, stream } = event as any;
+      const { peerId, stream } = event as unknown as { peerId: string; stream: MediaStream };
       state.remoteStreams.set(peerId, stream);
 
       // Pipe to HeadTrackedAudio if spatial is enabled
@@ -123,12 +123,11 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
       state.localStream = stream;
 
       // Setup Analysis for VAD
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const _w = window as unknown as Record<string, unknown>;
+      const AudioContextClass = (_w.AudioContext || _w.webkitAudioContext) as (typeof AudioContext) | undefined;
       if (AudioContextClass) {
         state.audioContext = new AudioContextClass();
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         const source = state.audioContext.createMediaStreamSource(stream);
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         state.analyzer = state.audioContext.createAnalyser();
         state.analyzer.fftSize = 256;
         source.connect(state.analyzer);

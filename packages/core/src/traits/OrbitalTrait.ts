@@ -32,8 +32,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
    */
   onUpdate(node: HSPlusNode, config: OrbitalTraitConfig, context: TraitContext, _delta: number) {
     // Merge node properties into config to allow @orbital() to pick up elements from the object
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime duck typing requires any spread
-    const properties = (node as any).properties || {};
+    const properties = node.properties || {};
     const mergedConfig = { ...properties, ...config };
 
     if (!mergedConfig || !mergedConfig.semiMajorAxis) {
@@ -41,7 +40,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     }
 
     // Get current simulation time (Julian date) from context
-    const julianDate = (context as any).julianDate || 0;
+    const julianDate = ((context as unknown as Record<string, unknown>).julianDate as number) || 0;
 
     // Scale factor to convert AU to visible units (1 AU = 50 units for better visibility)
     const visualScale = context.getScaleMultiplier() * 50;
@@ -64,11 +63,11 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     // Get parent position if this is a moon/satellite
     if (mergedConfig.parent) {
       // Try to get parent node by name or object reference
-      let parentNode = (context as any).getNode?.(mergedConfig.parent);
+      let parentNode = ((context as unknown as Record<string, unknown>).getNode as ((name: string) => HSPlusNode | null) | undefined)?.(mergedConfig.parent as string);
 
       // Fallback: If parent is already the object (evaluated string)
-      if (!parentNode && typeof mergedConfig.parent === 'object' && mergedConfig.parent.position) {
-        parentNode = mergedConfig.parent;
+      if (!parentNode && typeof mergedConfig.parent === 'object' && mergedConfig.parent && (mergedConfig.parent as Record<string, unknown>).position) {
+        parentNode = mergedConfig.parent as HSPlusNode;
       }
 
       if (parentNode && parentNode.position) {
@@ -87,7 +86,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     }
 
     // Update node position
-    node.position = finalPosition as any;
+    node.position = finalPosition as unknown as typeof node.position;
 
     // Emit position update event
     context.emit('position_update', { position: finalPosition });

@@ -225,9 +225,6 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   const state: Record<string, unknown> = {};
   const environment: EnvironmentConfig = {};
 
-  console.log('[HoloScript] Extracting from AST:', ast);
-  console.log('[HoloScript] AST objects:', ast.objects);
-
   // Extract state
   if (ast.state?.properties) {
     for (const prop of ast.state.properties) {
@@ -281,13 +278,10 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
       properties,
     });
   }
-  console.log('[HoloScript] Extracted templates:', Array.from(templates.keys()));
-
   // ═══════════════════════════════════════════════════════════════════════════
   // EXTRACT OBJECTS (inheriting from templates via "using" clause)
   // ═══════════════════════════════════════════════════════════════════════════
   for (const obj of ast.objects || []) {
-    console.log('[HoloScript] Processing object:', obj.name, obj);
 
     // Check if object uses a template (modern composition pattern)
     const templateRef = asASTNode(obj).template;
@@ -350,15 +344,6 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
       }
     }
     const allTraits = Array.from(traitMap.values());
-
-    if (allTraits.length > 0) {
-      console.log(
-        `[HoloScript] Object "${obj.name}" has traits:`,
-        allTraits.map((t) =>
-          Object.keys(t.config).length > 0 ? `${t.name}(${JSON.stringify(t.config)})` : t.name
-        )
-      );
-    }
 
     objects.push({
       id: obj.name,
@@ -524,13 +509,6 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
       }
     }
   }
-
-  console.log('[HoloScript] Extracted logic:', {
-    actions: actions.size,
-    eventHandlers: eventHandlers.size,
-    frameHandlers: frameHandlers.length,
-    keyboardHandlers: keyboardHandlers.size,
-  });
 
   return { actions, eventHandlers, frameHandlers, keyboardHandlers };
 }
@@ -1023,23 +1001,16 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   async load(source: string): Promise<void> {
     try {
-      console.log('[HoloScript] Loading source:', source.substring(0, 100) + '...');
+
 
       // Detect file type from source
       const fileType = source.includes('composition') ? 'holo' : 'hsplus';
-      console.log('[HoloScript] Detected file type:', fileType);
+
 
       // Load the composition
       this.composition = loadComposition(source, fileType);
-      console.log('[HoloScript] Loaded composition:', this.composition);
-      console.log('[HoloScript] Number of objects:', this.composition?.objects?.length || 0);
-
       // Load module imports
       if (this.composition.imports.length > 0) {
-        console.log(
-          '[HoloScript] Loading imports:',
-          this.composition.imports.map((i) => i.source)
-        );
         const modules = await moduleLoader.loadImports(this.composition.imports);
 
         // Make imported templates available
@@ -1064,7 +1035,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             }
           }
         }
-        console.log('[HoloScript] Modules loaded:', modules.size);
+
       }
 
       // Initialize state
@@ -1284,7 +1255,7 @@ class BrowserRuntime implements HoloScriptRuntime {
       // Load texture URL (HDR or image)
       if (skybox.endsWith('.hdr')) {
         // For HDR, would need RGBELoader - fallback to color for now
-        console.log('[HoloScript] HDR skybox loading requires RGBELoader, using fallback');
+
         this.scene.background = new THREE.Color(0x1a1a2e);
       } else {
         // Load standard image texture as equirectangular
@@ -1305,23 +1276,22 @@ class BrowserRuntime implements HoloScriptRuntime {
       }
     } else {
       // Unknown skybox, use default
-      console.log('[HoloScript] Unknown skybox preset:', skybox);
+      console.warn('[HoloScript] Unknown skybox preset:', skybox);
       this.scene.background = new THREE.Color(0x1a1a2e);
     }
   }
 
   private buildScene(): void {
     if (!this.composition) {
-      console.log('[HoloScript] No composition to build');
+      console.warn('[HoloScript] No composition to build');
       return;
     }
 
-    console.log('[HoloScript] Building scene with', this.composition.objects.length, 'objects');
-    console.log('[HoloScript] Objects:', this.composition.objects);
+
 
     // Iterate through parsed objects
     for (const obj of this.composition.objects) {
-      console.log('[HoloScript] Creating object:', obj);
+
       this.createSceneObject(obj);
     }
   }
@@ -1495,7 +1465,7 @@ class BrowserRuntime implements HoloScriptRuntime {
       for (const trait of obj.traits as ParsedTrait[]) {
         // Pass the trait's config to the handler
         this.traitSystem.apply(mesh, trait.name, trait.config);
-        console.log(`[HoloScript] Applied trait "${trait.name}" with config:`, trait.config);
+
       }
     }
   }
@@ -1536,7 +1506,7 @@ class BrowserRuntime implements HoloScriptRuntime {
         // Only apply to materials without texture maps
         if (obj.color) {
           const targetColor = new THREE.Color(obj.color);
-          console.log(`[HoloScript] Color ${obj.color} specified for ${obj.id}`);
+
 
           let coloredCount = 0;
           let skippedCount = 0;
@@ -1575,9 +1545,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             }
           });
 
-          console.log(
-            `[HoloScript] ${obj.id}: colored ${coloredCount} materials, preserved ${skippedCount} textured materials`
-          );
+
         }
 
         // Detect and log skeleton/bone structure
@@ -1594,19 +1562,10 @@ class BrowserRuntime implements HoloScriptRuntime {
           }
           if (skinnedMesh.isSkinnedMesh) {
             skeletonFound = true;
-            console.log(`[HoloScript] Found skinned mesh in ${obj.id}: ${child.name}`);
-            if (skinnedMesh.skeleton) {
-              console.log(`[HoloScript] Skeleton bones: ${skinnedMesh.skeleton.bones.length}`);
-            }
           }
         });
 
         if (skeletonFound) {
-          console.log(`[HoloScript] ✓ Humanoid skeleton detected in ${obj.id}`);
-          console.log(
-            `[HoloScript]   Bones (${boneCount}): ${boneNames.slice(0, 10).join(', ')}${boneCount > 10 ? '...' : ''}`
-          );
-
           // Store skeleton info for potential IK or retargeting
           asModelExt(model)._skeletonInfo = {
             type: obj.skeleton || 'humanoid',
@@ -1614,24 +1573,14 @@ class BrowserRuntime implements HoloScriptRuntime {
             boneNames,
             autoDetected: true,
           };
-        } else {
-          console.log(`[HoloScript] No skeleton in ${obj.id} - static model`);
         }
 
         // Play animations if available
-        console.log(`[HoloScript] Model ${obj.id} has ${gltf.animations.length} animations`);
         if (gltf.animations.length > 0) {
-          console.log(
-            `[HoloScript] Animation clips:`,
-            gltf.animations.map((a) => a.name)
-          );
           const mixer = new THREE.AnimationMixer(model);
 
           // Check for directive-based action sequences
           if (obj.actions && Array.isArray(obj.actions) && obj.actions.length > 0) {
-            console.log(
-              `[HoloScript] ✓ Directive mode for ${obj.id} with ${obj.actions.length} actions`
-            );
 
             // Setup directive state
             const directiveState: DirectiveState = {
@@ -1671,7 +1620,7 @@ class BrowserRuntime implements HoloScriptRuntime {
 
               if (reps && reps > 0) {
                 // Rep-based animation with rest
-                console.log(`[HoloScript] ${obj.id}: ${reps} reps of ${clip.name}`);
+
                 action.setLoop(THREE.LoopRepeat, reps);
                 action.clampWhenFinished = true;
 
@@ -1696,7 +1645,7 @@ class BrowserRuntime implements HoloScriptRuntime {
                 // Simple infinite loop
                 action.setLoop(shouldLoop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
                 action.play();
-                console.log(`[HoloScript] Playing requested animation: ${clip.name}`);
+
               }
             }
 
@@ -1708,9 +1657,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             for (const clip of gltf.animations) {
               const action = mixer.clipAction(clip);
               action.play();
-              console.log(
-                `[HoloScript] Playing animation: ${clip.name} (duration: ${clip.duration}s)`
-              );
+
             }
 
             // Store mixer for animation updates
@@ -1718,14 +1665,14 @@ class BrowserRuntime implements HoloScriptRuntime {
             this.animationMixers.push(mixer);
           }
 
-          console.log(`[HoloScript] Total animation mixers: ${this.animationMixers.length}`);
+
         } else {
           // No embedded animations - use procedural skeleton animation if skeleton exists
           const skeletonInfo = asModelExt(model)._skeletonInfo;
 
           if (skeletonInfo && skeletonInfo.boneCount > 0) {
             // Has skeleton - use bone-based procedural animation
-            console.log(`[HoloScript] ${obj.id}: No clips, using procedural skeleton animation`);
+
 
             // Find the SkinnedMesh and its bones
             let skinnedMesh: THREE.SkinnedMesh | null = null;
@@ -1757,13 +1704,11 @@ class BrowserRuntime implements HoloScriptRuntime {
 
               asModelExt(model)._isProceduralSkeletonAnimated = true;
               this.proceduralAnimatedObjects.push(model);
-              console.log(
-                `[HoloScript] ${obj.id}: Procedural skeleton ready with ${bones.length} bones`
-              );
+
             }
           } else {
             // No skeleton - simple breathing animation on whole model
-            console.log(`[HoloScript] No animations in ${obj.id}, adding procedural idle`);
+
             const baseScale = model.scale.clone();
             asModelExt(model)._breathePhase = Math.random() * Math.PI * 2; // Random start phase
             asModelExt(model)._baseScale = baseScale;
@@ -1774,9 +1719,6 @@ class BrowserRuntime implements HoloScriptRuntime {
 
         // Setup patrol if specified
         if (obj.patrol && Array.isArray(obj.patrol) && obj.patrol.length > 1) {
-          console.log(
-            `[HoloScript] Setting up patrol for ${obj.id} with ${obj.patrol.length} waypoints`
-          );
           asModelExt(model)._patrol = {
             waypoints: obj.patrol.map((p: number[]) => new THREE.Vector3(p[0], p[1], p[2])),
             currentIndex: 0,
@@ -1792,7 +1734,7 @@ class BrowserRuntime implements HoloScriptRuntime {
 
         this.scene.add(model);
         this.objectMap.set(obj.id, model);
-        console.log(`Loaded model: ${obj.id} from ${modelPath}`);
+
       },
       (_progress) => {
         // Progress callback
@@ -2388,7 +2330,7 @@ class BrowserRuntime implements HoloScriptRuntime {
         return this.evaluateExpression(s.expression, context);
 
       default:
-        console.log('[HoloScript] Unhandled statement type:', type, s);
+        console.warn('[HoloScript] Unhandled statement type:', type);
         return undefined;
     }
   }
@@ -2463,7 +2405,7 @@ class BrowserRuntime implements HoloScriptRuntime {
       if (method === 'play') {
         // Load and play audio
         const audioPath = args[0] as string;
-        console.log('[HoloScript] Audio play:', audioPath);
+
         return undefined;
       }
     }
@@ -2471,7 +2413,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     if (obj === 'scene') {
       if (method === 'transition') {
         const config = args[0] as Record<string, unknown>;
-        console.log('[HoloScript] Scene transition:', config);
+
         return undefined;
       }
     }
@@ -2490,7 +2432,7 @@ class BrowserRuntime implements HoloScriptRuntime {
       return this.runAction(action, args);
     }
 
-    console.log('[HoloScript] Unknown method call:', obj, method);
+    console.warn('[HoloScript] Unknown method call:', obj, method);
     return undefined;
   }
 
@@ -2942,7 +2884,7 @@ class BrowserRuntime implements HoloScriptRuntime {
 
     if (action.rest !== undefined) {
       // This is a rest action
-      console.log(`[HoloScript] ${modelName}: resting for ${action.rest}s`);
+
       directive.isResting = true;
       directive.restEndTime = performance.now() + action.rest * 1000;
 
@@ -2951,7 +2893,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     } else if (action.animation) {
       // This is an animation action
       const targetReps = action.reps || 1;
-      console.log(`[HoloScript] ${modelName}: ${action.animation} x${targetReps}`);
+
 
       // Find the animation clip
       const clip =
@@ -2982,9 +2924,9 @@ class BrowserRuntime implements HoloScriptRuntime {
           if (directive.currentIndex >= directive.actions.length) {
             if (directive.loop) {
               directive.currentIndex = 0;
-              console.log(`[HoloScript] ${modelName}: Directive sequence complete, restarting`);
+
             } else {
-              console.log(`[HoloScript] ${modelName}: Directive sequence complete`);
+
               return;
             }
           }
@@ -2996,7 +2938,6 @@ class BrowserRuntime implements HoloScriptRuntime {
         const onLoop = (event: { action: THREE.AnimationAction; loopDelta: number }) => {
           if (event.action === animAction) {
             directive.currentReps++;
-            console.log(`[HoloScript] ${modelName}: rep ${directive.currentReps}/${targetReps}`);
 
             if (directive.currentReps >= targetReps) {
               advanceToNextAction();
@@ -3117,9 +3058,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           if (directive.currentIndex >= directive.actions.length) {
             if (directive.loop) {
               directive.currentIndex = 0;
-              console.log(
-                `[HoloScript] Directive loop restart for ${getModelName(directive.model)}`
-              );
+
             } else {
               continue; // Done with this directive
             }

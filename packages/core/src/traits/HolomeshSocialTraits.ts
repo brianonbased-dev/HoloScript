@@ -157,12 +157,12 @@ export const agentProfileHandler: TraitHandler<AgentProfileConfig> = {
       lastSeenAt: Date.now(),
       profileVersion: 1,
     };
-    node.__ = state;
+    node.__agentProfileState = state;
     context.emit('profile:created', { did: config.did, displayName: config.display_name });
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__agentProfileState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -170,7 +170,7 @@ export const agentProfileHandler: TraitHandler<AgentProfileConfig> = {
   },
 
   onEvent(node, _config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__agentProfileState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -247,12 +247,12 @@ export const profileThemeHandler: TraitHandler<ProfileThemeConfig> = {
       savedThemes: new Map<string, ProfileThemeConfig>(),
       themeVersion: 1,
     };
-    node.__ = state;
+    node.__profileThemeState = state;
     context.emit('theme:applied', { theme: { ...config } });
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__profileThemeState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -260,7 +260,7 @@ export const profileThemeHandler: TraitHandler<ProfileThemeConfig> = {
   },
 
   onEvent(node, _config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__profileThemeState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -334,15 +334,15 @@ export const statusMoodHandler: TraitHandler<StatusMoodConfig> = {
       autoMoodSource: null,
       statusHistory: [] as Array<{ text: string; mood: string; at: number }>,
     };
-    node.__ = state;
+    node.__statusMoodState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__statusMoodState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__statusMoodState as Record<string, any>;
     if (!state) return;
 
     // Check expiry
@@ -358,7 +358,7 @@ export const statusMoodHandler: TraitHandler<StatusMoodConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__statusMoodState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -439,11 +439,11 @@ export const agentBadgeHandler: TraitHandler<AgentBadgeConfig> = {
       allBadges: new Map<string, Badge>(),
       totalBadges: 0,
     };
-    node.__ = state;
+    node.__agentBadgeState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__agentBadgeState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -451,7 +451,7 @@ export const agentBadgeHandler: TraitHandler<AgentBadgeConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__agentBadgeState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -537,15 +537,15 @@ export const visitorCounterHandler: TraitHandler<VisitorCounterConfig> = {
       lastResetAt: Date.now(),
       lastMilestone: 0,
     };
-    node.__ = state;
+    node.__visitorCounterState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__visitorCounterState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__visitorCounterState as Record<string, any>;
     if (!state) return;
 
     // Check reset interval
@@ -563,7 +563,7 @@ export const visitorCounterHandler: TraitHandler<VisitorCounterConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__visitorCounterState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -824,17 +824,17 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
       maxSlots: config.max_slots,
       pendingRequests: new Map<string, { from: string; name: string; at: number }>(),
     };
-    node.__ = state;
+    node.__top8FriendsState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__top8FriendsState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__top8FriendsState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -963,17 +963,17 @@ export const guestbookHandler: TraitHandler<GuestbookConfig> = {
       totalSigned: 0,
       pendingModeration: [] as GuestbookEntry[],
     };
-    node.__ = state;
+    node.__guestbookState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__guestbookState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__guestbookState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1083,17 +1083,17 @@ export const agentWallHandler: TraitHandler<AgentWallConfig> = {
       posts: [] as WallPost[],
       totalPosts: 0,
     };
-    node.__ = state;
+    node.__agentWallState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__agentWallState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__agentWallState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1225,18 +1225,18 @@ export const agentRoomHandler: TraitHandler<AgentRoomConfig> = {
       environment: config.environment,
       furniture: [] as Array<{ id: string; type: string; position: [number, number, number] }>,
     };
-    node.__ = state;
+    node.__agentRoomState = state;
     context.emit('room:created', { name: config.room_name, dimensions: config.dimensions });
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__agentRoomState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__agentRoomState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1343,24 +1343,24 @@ export const backgroundMusicHandler: TraitHandler<BackgroundMusicConfig> = {
       volume: config.volume,
       startedAt: config.autoplay && config.source ? Date.now() : null,
     };
-    node.__ = state;
+    node.__backgroundMusicState = state;
     if (state.isPlaying) {
       context.emit('music:playing', { source: config.source, volume: config.volume });
     }
   },
 
   onDetach(node, _config, context) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__backgroundMusicState as Record<string, any>;
     if (state && state.isPlaying) {
       context.emit('music:stopped', {});
     }
-    delete node.__;
+    delete node.__backgroundMusicState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, _config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__backgroundMusicState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1424,16 +1424,16 @@ export const spatialCommentHandler: TraitHandler<SpatialCommentConfig> = {
       comments: [] as SpatialComment[],
       totalComments: 0,
     };
-    node.__ = state;
+    node.__spatialCommentState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__spatialCommentState;
   },
 
   onUpdate(node, config, _context, _delta) {
     if (config.lifetime <= 0) return;
-    const state = node.__ as Record<string, any>;
+    const state = node.__spatialCommentState as Record<string, any>;
     if (!state) return;
 
     const now = Date.now();
@@ -1446,7 +1446,7 @@ export const spatialCommentHandler: TraitHandler<SpatialCommentConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__spatialCommentState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1524,7 +1524,7 @@ export const roomPortalHandler: TraitHandler<RoomPortalConfig> = {
       isActive: !!config.target_did,
       traversals: 0,
     };
-    node.__ = state;
+    node.__roomPortalState = state;
     if (config.target_did) {
       context.emit('portal:created', {
         targetDid: config.target_did,
@@ -1535,13 +1535,13 @@ export const roomPortalHandler: TraitHandler<RoomPortalConfig> = {
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__roomPortalState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, _config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__roomPortalState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;
@@ -1607,17 +1607,17 @@ export const traitShowcaseHandler: TraitHandler<TraitShowcaseConfig> = {
     const state: Record<string, unknown> = {
       items: [] as ShowcaseItem[],
     };
-    node.__ = state;
+    node.__traitShowcaseState = state;
   },
 
   onDetach(node) {
-    delete node.__;
+    delete node.__traitShowcaseState;
   },
 
   onUpdate(_node, _config, _context, _delta) {},
 
   onEvent(node, config, context, event) {
-    const state = node.__ as Record<string, any>;
+    const state = node.__traitShowcaseState as Record<string, any>;
     if (!state) return;
 
     const ev = event as Record<string, unknown>;

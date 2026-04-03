@@ -65,7 +65,7 @@ export class AgentKitIntegration {
     agent_id: string;
     initial_balance: number;
   }): Promise<AgentWallet> {
-    console.log(`[AgentKit] Initializing wallet for ${config.agent_id} on ${this.options.network}`);
+
 
     const walletService = new AgentWalletService(
       this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia'
@@ -90,7 +90,7 @@ export class AgentKitIntegration {
     to: string,
     amount: number
   ): Promise<AgentTransaction> {
-    console.log(`[AgentKit] Trading ${amount} ${from} to ${to} for ${agent_id}`);
+
     return {
       tx_hash: `0xTxTrade_${Date.now()}`,
       agent_id,
@@ -110,7 +110,7 @@ export class AgentKitIntegration {
     agent_id: string,
     metadata: { name: string; description: string; uri: string; royalty_percentage: number }
   ): Promise<{ token_id: string; contract_address: string }> {
-    console.log(`[AgentKit] Minting NFT '${metadata.name}' for ${agent_id}`);
+
     return {
       token_id: '1',
       contract_address: `0xNFTContract_${Date.now()}`,
@@ -121,9 +121,7 @@ export class AgentKitIntegration {
     agent_id: string,
     params: { endpoint: string; price: number; asset: string }
   ): Promise<{ transaction_hash: string; content: any }> {
-    console.log(
-      `[AgentKit] Paying ${params.price} ${params.asset} for ${params.endpoint} via x402`
-    );
+
     return {
       transaction_hash: `0xTxPay_${Date.now()}`,
       content: { success: true, message: 'Content unlocked' },
@@ -134,9 +132,7 @@ export class AgentKitIntegration {
     agent_id: string,
     params: { protocol: 'aave' | 'compound'; asset: string; amount: number }
   ): Promise<AgentTransaction> {
-    console.log(
-      `[AgentKit] Staking ${params.amount} ${params.asset} in ${params.protocol} for yield`
-    );
+
     return {
       tx_hash: `0xTxYield_${Date.now()}`,
       agent_id,

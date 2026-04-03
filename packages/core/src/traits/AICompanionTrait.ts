@@ -71,6 +71,7 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
       lastResponseTime: 0,
     };
     traitState.set(node, state);
+    node.__aiCompanionState = state;
 
     context.emit('ai_companion_create', {
       personality: config.personality,
@@ -85,6 +86,7 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
     if (traitState.has(node)) {
       context.emit('ai_companion_destroy', { nodeId: node.id });
       traitState.delete(node);
+      delete node.__aiCompanionState;
     }
   },
 

@@ -64,7 +64,7 @@ export async function detectBestBackend(): Promise<DepthBackend> {
   // Check WebGPU availability
   if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
     try {
-      const adapter = await (navigator as any).gpu.requestAdapter();
+      const adapter = await (navigator as unknown as { gpu: GPU }).gpu.requestAdapter();
       if (adapter) return 'webgpu';
     } catch {
       // WebGPU not available, fall through

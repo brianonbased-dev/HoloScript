@@ -47,6 +47,7 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
 
   onAttach(node, config, context) {
     activeNodes.add(node);
+    (node as any).__godRaysActive = true;
 
     const lightPos = config.use_weather ? weatherBlackboard.sun_position : config.light_position;
 
@@ -64,11 +65,12 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
     if (activeNodes.has(node)) {
       context.emit('god_rays_destroy', { nodeId: node.id });
       activeNodes.delete(node);
+      delete (node as any).__godRaysActive;
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    if (!activeNodes.has(node)) return;
+    if (!activeNodes.has(node) || (node as any).__godRaysActive === false) return;
 
     if (config.use_weather) {
       // Only emit update when sun moves (every frame for smooth rays)
@@ -81,7 +83,7 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    if (!activeNodes.has(node)) return;
+    if (!activeNodes.has(node) || (node as any).__godRaysActive === false) return;
 
     switch (event.type) {
       case 'god_rays_set_params':

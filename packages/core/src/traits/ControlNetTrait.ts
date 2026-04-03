@@ -87,16 +87,16 @@ export const controlNetHandler: TraitHandler<ControlNetConfig> = {
     if (!state) return;
 
     if (event.type === 'controlnet:process') {
-      const payload = event.payload as any;
+      const payload = event.payload;
       state.isProcessing = true;
-      state.lastControlMap = payload?.controlMap ?? null;
-      state.lastPrompt = payload?.prompt ?? null;
+      state.lastControlMap = (payload?.controlMap as string | null) ?? null;
+      state.lastPrompt = (payload?.prompt as string | null) ?? null;
       context.emit('controlnet:started', {
         model: config.model_type,
         prompt: state.lastPrompt,
       });
     } else if (event.type === 'controlnet:complete') {
-      const payload = event.payload as any;
+      const payload = event.payload as { result?: string | null; elapsedMs?: number } | undefined;
       state.isProcessing = false;
       state.lastResult = payload?.result ?? null;
       state.processCount += 1;
@@ -115,7 +115,7 @@ export const controlNetHandler: TraitHandler<ControlNetConfig> = {
     } else if (event.type === 'controlnet:error') {
       state.isProcessing = false;
       context.emit('controlnet:error', {
-        message: (event.payload as any)?.message ?? 'Unknown error',
+        message: (event.payload as { message?: string } | undefined)?.message ?? 'Unknown error',
       });
     } else if (event.type === 'controlnet:extract_map') {
       // Trigger control map extraction from current scene

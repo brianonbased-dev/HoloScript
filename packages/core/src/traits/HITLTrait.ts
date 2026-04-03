@@ -408,9 +408,9 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
       if (checkpoint && checkpoint.canRollback && checkpoint.expiresAt > Date.now()) {
         // v3.1: Actually apply the state rollback to the node
         if (checkpoint.stateBefore) {
-          checkpoint.stateAfter = { ...(node as any) };
+          checkpoint.stateAfter = { ...(node as unknown as Record<string, unknown>) };
           for (const [key, value] of Object.entries(checkpoint.stateBefore)) {
-            (node as any)[key] = value;
+            (node as unknown as Record<string, unknown>)[key] = value;
           }
         }
         checkpoint.canRollback = false; // Mark as used

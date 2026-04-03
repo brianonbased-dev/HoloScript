@@ -83,7 +83,7 @@ export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
     if (!state) return;
 
     if (event.type === 'shareplay:start') {
-      const payload = event.payload as any;
+      const payload = event.payload as { sessionId?: string } | undefined;
       state.sessionState = 'active';
       state.sessionId = payload?.sessionId ?? `sp_${Date.now()}`;
       state.isHost = true;
@@ -93,7 +93,7 @@ export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
         activity: config.activity_title,
       });
     } else if (event.type === 'shareplay:join') {
-      const payload = event.payload as any;
+      const payload = event.payload as { sessionId?: string | null } | undefined;
       state.sessionState = 'active';
       state.sessionId = payload?.sessionId ?? null;
       state.isHost = false;
@@ -104,7 +104,7 @@ export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
       state.participants.clear();
       context.emit('shareplay:ended', { sessionId: state.sessionId });
     } else if (event.type === 'shareplay:participant_joined') {
-      const participant = event.payload as any as SharePlayParticipant;
+      const participant = event.payload as unknown as SharePlayParticipant;
       if (state.participants.size < config.max_participants) {
         state.participants.set(participant.id, participant);
         context.emit('shareplay:participant_joined', {
@@ -114,14 +114,14 @@ export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
         });
       }
     } else if (event.type === 'shareplay:participant_left') {
-      const id = (event.payload as any)?.id as string;
+      const id = (event.payload as { id?: string } | undefined)?.id as string;
       state.participants.delete(id);
       context.emit('shareplay:participant_left', {
         participantId: id,
         count: state.participants.size,
       });
     } else if (event.type === 'shareplay:sync') {
-      const payload = event.payload as any;
+      const payload = event.payload as { properties?: Record<string, unknown> } | undefined;
       if (payload?.properties) {
         state.syncedProperties = { ...state.syncedProperties, ...payload.properties };
         context.emit('shareplay:state_synced', {

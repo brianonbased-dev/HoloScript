@@ -134,7 +134,7 @@ export const realityKitMeshHandler: TraitHandler<RealityKitMeshConfig> = {
       }
       context.emit('rkMesh:anchor_added', { id: anchor.id, classification: anchor.classification });
     } else if (event.type === 'rkMesh:anchor_removed') {
-      const id = (event.payload as any)?.id as string;
+      const id = event.payload?.id as string;
       const anchor = state.anchors.get(id);
       if (anchor) {
         state.totalVertices -= anchor.vertexCount;

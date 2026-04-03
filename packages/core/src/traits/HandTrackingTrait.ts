@@ -277,7 +277,7 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
     if (event.type === 'hand_data') {
       // Receive hand tracking data from XR system
       const hand = event.hand as 'left' | 'right';
-      const data = (event as any).data as {
+      const data = event.data as {
         visible: boolean;
         joints?: Map<HandJoint, JointPose>;
         pinchStrength?: number;

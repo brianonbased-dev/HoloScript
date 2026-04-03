@@ -101,7 +101,7 @@ export const objectTrackingHandler: TraitHandler<ObjectTrackingConfig> = {
       const state = context.getState().objectTracking as ObjectTrackingState;
       state.isTracking = true;
       state.trackingLost = false;
-      state.anchorId = (event.payload as any)?.anchorId ?? null;
+      state.anchorId = (event.payload?.anchorId as string) ?? null;
       state.trackingConfidence = 1.0;
     } else if (event.type === 'tracking:lost') {
       const state = context.getState().objectTracking as ObjectTrackingState;

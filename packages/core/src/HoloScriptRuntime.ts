@@ -27,6 +27,9 @@ import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
 import { TraitHandler } from './traits/TraitTypes';
+import type { TraitEvent } from './traits/TraitTypes';
+import type { HSPlusNode } from './types/HoloScriptPlus';
+import type { HSPlusDirective, HSPlusTraitDirective } from './types/AdvancedTypeSystem';
 import { ExtensionRegistry } from './extensions/ExtensionRegistry';
 // ExtensionInterface consumed by ExtensionRegistry
 import type {
@@ -100,6 +103,35 @@ const RUNTIME_SECURITY_LIMITS = {
 type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
 
 /**
+ * Runtime orb data — the shape of an orb stored in context.variables.
+ * Used to avoid `as any` casts when reading dynamic orb state.
+ */
+interface OrbData {
+  __type: 'orb';
+  id: string;
+  name: string;
+  created: number;
+  position?: SpatialPosition;
+  velocity?: SpatialPosition;
+  saliency?: number;
+  hologram?: HologramProperties;
+  properties?: Record<string, HoloScriptValue>;
+  directives?: Array<Record<string, unknown>>;
+  _templateRef?: TemplateNode;
+  show: () => HoloScriptValue | Promise<HoloScriptValue>;
+  hide: () => HoloScriptValue | Promise<HoloScriptValue>;
+  pulse: (opts?: Record<string, unknown>) => HoloScriptValue | Promise<HoloScriptValue>;
+  version?: number | string;
+  traits?: unknown[];
+  [key: string]: unknown;
+}
+
+/** Type guard: checks if a HoloScriptValue is an OrbData record */
+function isOrbData(v: unknown): v is OrbData {
+  return v !== null && typeof v === 'object' && (v as Record<string, unknown>).__type === 'orb';
+}
+
+/**
  * Scope for variable resolution
  */
 export interface Scope {
@@ -141,7 +173,7 @@ export class HoloScriptRuntime {
     string,
     (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>
   >;
-  private traitHandlers: Map<VRTraitName, TraitHandler<any>> = new Map();
+  private traitHandlers: Map<VRTraitName, TraitHandler<unknown>> = new Map();
   private extensionRegistry: ExtensionRegistry;
 
   constructor(
@@ -179,8 +211,9 @@ export class HoloScriptRuntime {
     this.registerFunction('get_attended_entities', (args: HoloScriptValue[]) => {
       const topK = typeof args[0] === 'number' ? args[0] : 10;
 
-      const selfNode = this.context.variables.get('self') as any;
-      const observerPos = (selfNode?.position as any) || { x: 0, y: 0, z: 0 };
+      const selfRaw = this.context.variables.get('self');
+      const selfNode = isOrbData(selfRaw) ? selfRaw : undefined;
+      const observerPos: SpatialPosition = selfNode?.position ?? { x: 0, y: 0, z: 0 };
 
       const entities: Array<{
         id: string;
@@ -190,13 +223,13 @@ export class HoloScriptRuntime {
       }> = [];
       this.context.spatialMemory.forEach((pos, id) => {
         if (id !== selfNode?.name) {
+          const entityRaw = this.context.variables.get(id);
+          const entityOrb = isOrbData(entityRaw) ? entityRaw : undefined;
           entities.push({
             id,
             position: pos,
-            velocity: (this.context.variables.get(id) as any)?.velocity as
-              | SpatialPosition
-              | undefined,
-            saliencyBase: (this.context.variables.get(id) as any)?.saliency as number | undefined,
+            velocity: entityOrb?.velocity,
+            saliencyBase: typeof entityOrb?.saliency === 'number' ? entityOrb.saliency : undefined,
           });
         }
       });
@@ -1079,8 +1112,9 @@ export class HoloScriptRuntime {
     const scale = this.context.currentScale || 1;
 
     // 1. STATE RECONCILIATION: Check for existing orb instance
-    const existingOrb = this.context.variables.get(node.name) as any;
-    const isUpdate = !!existingOrb && existingOrb.__type === 'orb';
+    const existingRaw = this.context.variables.get(node.name);
+    const existingOrb = isOrbData(existingRaw) ? existingRaw : undefined;
+    const isUpdate = !!existingOrb;
 
     let pos = { x: 0, y: 0, z: 0 };
     if (Array.isArray(node.position)) {
@@ -1184,9 +1218,9 @@ export class HoloScriptRuntime {
         };
 
     // 4. MIGRATION LOGIC
-    if (isUpdate && (node as any).template) {
-      const tpl = this.context.templates.get((node as any).template) as TemplateNode | undefined;
-      const oldTpl = existingOrb._templateRef as TemplateNode | undefined;
+    if (isUpdate && node.template) {
+      const tpl = this.context.templates.get(node.template);
+      const oldTpl = existingOrb?._templateRef;
 
       if (tpl && oldTpl && tpl.version !== undefined && oldTpl.version !== undefined) {
         if (Number(tpl.version) > Number(oldTpl.version)) {
@@ -1235,8 +1269,8 @@ export class HoloScriptRuntime {
     orbData.directives = node.directives || [];
     orbData.position = adjustedPos;
     orbData.hologram = hologram;
-    orbData._templateRef = (node as any).template
-      ? this.context.templates.get((node as any).template)
+    orbData._templateRef = node.template
+      ? this.context.templates.get(node.template)
       : undefined;
 
     if (!isUpdate) {
@@ -1489,7 +1523,7 @@ export class HoloScriptRuntime {
 
     return {
       success: true,
-      output: debugInfo as any,
+      output: debugInfo as unknown as HoloScriptValue,
       hologram: debugOrb,
     };
   }
@@ -2079,7 +2113,7 @@ export class HoloScriptRuntime {
    * Emit event
    */
   async emit(event: string, data?: unknown): Promise<void> {
-    logger.info(`[Runtime] Emitting event: ${event}`, data as any);
+    logger.info(`[Runtime] Emitting event: ${event}`, data as Record<string, unknown>);
     // 1. Dotted event handling: e.g. "AlphaCommander.mitosis_spawned"
     if (event.includes('.')) {
       const [target, eventName] = event.split('.');
@@ -2132,14 +2166,19 @@ export class HoloScriptRuntime {
           const handler = this.traitHandlers.get(d.name as string);
           if (handler && handler.onEvent) {
             // Ensure onEvent is handled properly (it might return a promise even if typed void)
+            const traitNode = orb as unknown as HSPlusNode;
+            const eventPayload: TraitEvent = {
+              type: event,
+              ...(data && typeof data === 'object' ? data as Record<string, unknown> : {}),
+            };
             await handler.onEvent(
-              orb as any,
+              traitNode,
               d.config || {},
               {
                 emit: async (e: string, p: HoloScriptValue) => await this.emit(e, p),
                 getScaleMultiplier: () => this.context.currentScale || 1,
               } as unknown as TraitContext,
-              { type: event, ...(data as any) }
+              eventPayload
             );
           }
         }
@@ -2551,12 +2590,15 @@ export class HoloScriptRuntime {
                 ? { x: orbData.position[0], y: orbData.position[1], z: orbData.position[2] }
                 : orbData.position,
               properties: orbData.properties || {},
-              hologram: orbData.hologram || {
-                color: (orbData.properties as any)?.color || '#ffffff',
-                size: (orbData.properties as any)?.size || (orbData.properties as any)?.scale || 1,
-                shape: ((orbData.properties as any)?.geometry || 'sphere') as 'sphere' | 'cube',
-                glow: (orbData.properties as any)?.glow || false,
-              },
+              hologram: orbData.hologram || (() => {
+                const props = orbData.properties as Record<string, unknown> | undefined;
+                return {
+                  color: (props?.color as string) || '#ffffff',
+                  size: (props?.size as number) || (props?.scale as number) || 1,
+                  shape: ((props?.geometry as string) || 'sphere') as 'sphere' | 'cube',
+                  glow: (props?.glow as boolean) || false,
+                };
+              })(),
               traits: orbData.traits || [],
             };
           });
@@ -2611,7 +2653,7 @@ export class HoloScriptRuntime {
         break;
       case 'setDate':
         if (value) {
-          this.timeManager.setDate(new Date(value as any));
+          this.timeManager.setDate(new Date(value as string | number));
         }
         break;
       case 'syncRealTime':
@@ -2804,7 +2846,7 @@ export class HoloScriptRuntime {
 
   private async executeHoloComposition(node: HoloComposition): Promise<ExecutionResult> {
     // Register templates
-    for (const template of (node as any).templates) {
+    for (const template of node.templates) {
       await this.executeHoloTemplate(template);
     }
 
@@ -2874,8 +2916,8 @@ export class HoloScriptRuntime {
       directives: [
         ...(node.directives || []),
         ...(node.traits || []).map((t) => ({ type: 'trait' as const, name: t.name, ...t.config })),
-        ...((node as any).template
-          ? this.context.templates.get((node as any).template)?.directives || []
+        ...(node.template
+          ? this.context.templates.get(node.template)?.directives || []
           : []), // Inherit template directives/traits
       ],
       traits: new Map((node.traits || []).map((t) => [t.name as VRTraitName, t.config])),
@@ -2883,8 +2925,8 @@ export class HoloScriptRuntime {
     };
 
     // Handle 'using' template
-    if ((node as any).template) {
-      const tpl = this.context.templates.get((node as any).template) as unknown as
+    if (node.template) {
+      const tpl = this.context.templates.get(node.template) as unknown as
         | HoloTemplate
         | undefined;
       if (tpl) {
@@ -3430,8 +3472,10 @@ export class HoloScriptRuntime {
       const [min, max] = pattern;
       if (
         typeof value === 'number' &&
-        (value as any) >= (min as any) &&
-        (value as any) <= (max as any)
+        typeof min === 'number' &&
+        typeof max === 'number' &&
+        value >= min &&
+        value <= max
       ) {
         return true;
       }
@@ -3522,7 +3566,7 @@ export class HoloScriptRuntime {
   private async executeTemplate(node: TemplateNode): Promise<ExecutionResult> {
     const existing = this.context.templates.get(node.name);
     if (existing) {
-      (node as any)._previousVersion = existing.version;
+      (node as unknown as Record<string, unknown>)._previousVersion = existing.version;
     }
     this.context.templates.set(node.name, node);
     return {
@@ -3554,7 +3598,7 @@ export class HoloScriptRuntime {
       const result = parser.parse(migration.body);
 
       if (result.errors.length > 0) {
-        logger.error(`Migration parse errors for ${orb.name}:`, { errors: result.errors } as any);
+        logger.error(`Migration parse errors for ${orb.name}:`, { errors: result.errors as unknown });
         return;
       }
 
@@ -3798,7 +3842,7 @@ export class HoloScriptRuntime {
 
         const handler = this.traitHandlers.get(d.name as VRTraitName);
         if (handler) {
-          handler.onAttach?.(node as any, d.config || {}, {
+          handler.onAttach?.(node as unknown as HSPlusNode, d.config || {}, {
             emit: (event: string, payload: unknown) => this.emit(event, payload),
             getScaleMultiplier: () => this.context.currentScale || 1,
           } as unknown as TraitContext);
@@ -3858,9 +3902,9 @@ export class HoloScriptRuntime {
     return !!node.directives?.some(
       (d) =>
         d.type === 'trait' &&
-        ((d as any).name === 'llm_agent' ||
-          (d as any).name === 'agent' ||
-          (d as any).name === 'companion')
+        ((d as HSPlusTraitDirective).name === 'llm_agent' ||
+          (d as HSPlusTraitDirective).name === 'agent' ||
+          (d as HSPlusTraitDirective).name === 'companion')
     );
   }
 
@@ -3905,20 +3949,24 @@ export class HoloScriptRuntime {
       ) {
         const orb = value as Record<string, unknown>;
         if (orb.directives) {
-          for (const d of (orb.directives as any[]) || []) {
+          for (const d of (orb.directives as Array<Record<string, unknown>>) || []) {
             if (d.type === 'trait') {
-              const handler = this.traitHandlers.get(d.name);
+              const handler = this.traitHandlers.get(d.name as string);
               if (handler && handler.onUpdate) {
                 // Execute trait update
+                const traitNode = orb as unknown as HSPlusNode;
                 handler.onUpdate(
-                  orb as any,
+                  traitNode,
                   d.config || {},
                   {
                     emit: (event: string, payload: unknown) => {
                       if (event === 'position_update') {
                         // Special handling for position updates to sync with visualizer
                         // Using 'name' (variable key) as the authoritative ID for the visualizer
-                        this.setOrbPosition(name, (payload as any).position);
+                        const posPayload = payload as Record<string, unknown> | undefined;
+                        if (posPayload?.position) {
+                          this.setOrbPosition(name, posPayload.position as { x: number; y: number; z: number });
+                        }
 
                       }
                       return this.emit(event, payload);
