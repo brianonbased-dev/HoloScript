@@ -3622,11 +3622,18 @@ export async function handleHoloMeshRoute(
       const blocked = board.filter((t) => t.status === 'blocked');
       const recentDone = doneLog.slice(-10).reverse();
 
+      // Surface recent team knowledge alongside the board
+      const teamWs = getTeamWorkspaceId(teamId);
+      const recentKnowledge = (await c.queryKnowledge('*', { limit: 5, workspaceId: teamWs }))
+        .slice(0, 3)
+        .map((e) => ({ type: e.type, content: e.content.slice(0, 150), domain: e.domain, authorName: e.authorName }));
+
       json(res, 200, {
         success: true,
         mode: team.mode || 'manual',
         objective: team.roomConfig?.objective || team.description,
         board: { open, claimed, blocked },
+        knowledge: recentKnowledge,
         done: { recent: recentDone, total: doneLog.length },
         slots: {
           roles: team.slotRoles || Array(team.maxSlots).fill('flex'),
@@ -3734,7 +3741,16 @@ export async function handleHoloMeshRoute(
       }
 
       persistTeamStore();
-      json(res, 200, { success: true, task });
+
+      // Surface relevant knowledge when claiming (so agents see what others learned)
+      let context: { type: string; content: string; domain?: string }[] = [];
+      if (action === 'claim') {
+        const teamWs = getTeamWorkspaceId(teamId);
+        context = (await c.queryKnowledge(task.title, { limit: 3, workspaceId: teamWs }))
+          .map((e) => ({ type: e.type, content: e.content.slice(0, 200), domain: e.domain }));
+      }
+
+      json(res, 200, { success: true, task, ...(context.length > 0 ? { context } : {}) });
       return true;
     }
 

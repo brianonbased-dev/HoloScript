@@ -78,7 +78,7 @@ function shell(cmd: string): string {
 async function ensureOllama(): Promise<boolean> {
   try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {
     spawn('ollama', ['serve'], { detached: true, stdio: 'ignore' }).unref();
-    for (let i = 0; i < 10; i++) { await new Promise(r => setTimeout(r, 2000)); try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {} }
+    for (let i = 0; i < 10; i++) { await new Promise(r => setTimeout(r, 2000)); try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch { /* intentionally swallowed: polling for ollama startup */ } }
     return false;
   }
 }
@@ -118,6 +118,16 @@ async function scoutTasks() {
   // Pick one task to scout
   const task = open.sort((a: any, b: any) => a.priority - b.priority)[0];
   memory.scoutedTaskIds.add(task.id);
+
+  // Check if team knowledge already has findings for this task — don't duplicate
+  const existing = await get(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, auth()).catch(() => ({ entries: [] }));
+  const alreadyScouted = ((existing.entries || []) as any[]).some((e: any) =>
+    e.content?.includes(task.title) || e.content?.includes('Scout: ' + task.title)
+  );
+  if (alreadyScouted) {
+    console.log(`[scout] ${task.title} — already in knowledge, skipping`);
+    return;
+  }
 
   // Extract keywords and find relevant files
   const keywords = task.title
