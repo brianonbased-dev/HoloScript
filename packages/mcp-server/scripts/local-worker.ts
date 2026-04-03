@@ -56,6 +56,7 @@ const memory = {
   knowledgeContributed: 0,
   respondedMessageIds: new Set<string>(),
   triedTaskIds: new Set<string>(),
+  lastGitReport: 0 as number,
 };
 
 // ── HTTP ──
@@ -221,9 +222,15 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'work', target: task, reasoning: `P${task.priority} task available: ${task.title}` };
   }
 
-  // If there are uncommitted changes, report them
-  if (gitStatus && gitStatus.split('\n').length > 3) {
-    return { action: 'report_git', reasoning: `${gitStatus.split('\\n').length} uncommitted files detected` };
+  // If there are many uncommitted changes, report them ONCE
+  const uncommittedCount = gitStatus ? gitStatus.split('\n').filter(l => l.trim()).length : 0;
+  if (uncommittedCount > 5 && !memory.lastGitReport) {
+    memory.lastGitReport = uncommittedCount;
+    return { action: 'report_git', reasoning: `${uncommittedCount} uncommitted files detected` };
+  }
+  // Reset if count changed significantly (new work happened)
+  if (memory.lastGitReport && Math.abs(uncommittedCount - memory.lastGitReport) > 3) {
+    memory.lastGitReport = 0;
   }
 
   // Nothing to do — observe and contribute knowledge
@@ -426,22 +433,44 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
       break;
     }
 
-    case 'idle':
-      // Every 5th idle cycle, query knowledge store for something interesting
-      if (memory.cycleCount % 5 === 0) {
+    case 'idle': {
+      // Rotate through useful idle activities
+      const idleAction = memory.cycleCount % 4;
+
+      if (idleAction === 0) {
+        // Browse knowledge store for recent gotchas
         try {
           const knowledge = await post(`${KNOWLEDGE_API}/knowledge/query`, {
-            search: 'holoscript recent patterns',
+            search: 'gotcha recent',
             limit: 3,
             workspace_id: 'ai-ecosystem',
           }, { 'x-mcp-api-key': 'USNo/BJSBdJm1acZ20EHNhPF8cvB7tnZ+YF/Osp4VRU=' });
-          const results = knowledge?.results || [];
-          if (results.length > 0) {
-            console.log(`[agent] Browsed ${results.length} knowledge entries`);
-          }
+          const count = knowledge?.results?.length || 0;
+          if (count > 0) console.log(`[agent] Browsed ${count} gotchas from knowledge store`);
         } catch {}
+      } else if (idleAction === 1) {
+        // Check recent commits for work that might need tasks
+        const recent = perceiveShell('git log --oneline --since="12 hours ago" 2>/dev/null | head -10');
+        if (recent) {
+          const commitCount = recent.split('\n').filter(l => l.trim()).length;
+          console.log(`[agent] ${commitCount} commits in last 12h`);
+        }
+      } else if (idleAction === 2) {
+        // Count open P1/P2 tasks and report if urgent work is piling up
+        const board = await getBoard();
+        const p1 = ((board?.board?.open || []) as any[]).filter((t: any) => t.priority === 1);
+        const p2 = ((board?.board?.open || []) as any[]).filter((t: any) => t.priority === 2);
+        if (p1.length > 0) {
+          await sendMessage(`[scout] ${p1.length} P1 tasks still open — need a cloud agent: ${p1.map((t: any) => t.title.slice(0, 40)).join(', ')}`);
+          console.log(`[agent] Flagged ${p1.length} open P1 tasks`);
+        } else if (p2.length > 5) {
+          console.log(`[agent] ${p2.length} P2 tasks open — team is keeping up`);
+        }
+      } else {
+        console.log(`[agent] Idle — ${(await getBoard())?.board?.open?.length || '?'} open tasks, none for me`);
       }
       break;
+    }
   }
 }
 
@@ -495,8 +524,11 @@ async function scoutTask(task: any): Promise<{ data: string[]; domain: string }>
   for (const cmd of commands.slice(0, 4)) {
     const output = perceiveShell(cmd);
     if (output && output !== '0') {
-      // Return actual file paths and line numbers, not just counts
-      const lines = output.split('\n').filter(l => l.trim()).slice(0, 8);
+      const lines = output.split('\n')
+        .filter(l => l.trim())
+        .filter(l => !l.includes('node_modules'))  // filter symlinked workspace noise
+        .filter(l => !l.includes('/dist/'))         // filter built output
+        .slice(0, 8);
       data.push(...lines);
     }
   }
