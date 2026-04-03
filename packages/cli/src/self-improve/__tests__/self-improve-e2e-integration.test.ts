@@ -22,7 +22,7 @@ import { parseArgs } from '../../args.ts';
 // Import from the core source directly via the workspace symlink.
 // The CLI vitest config does not alias @holoscript/core subpath exports,
 // so we resolve through the linked source to avoid ERR_MODULE_NOT_FOUND.
-import { SelfImproveCommand } from '../../../node_modules/@holoscript/core/src/self-improvement/SelfImproveCommand';
+import { SelfImproveCommand } from '../../../../absorb-service/src/self-improvement/SelfImproveCommand';
 import type {
   SelfImproveIO,
   AbsorbResult,
@@ -32,7 +32,7 @@ import type {
   VitestSuiteResult,
   LintResult,
   SelfImproveResult,
-} from '../../../node_modules/@holoscript/core/src/self-improvement/SelfImproveCommand';
+} from '../../../../absorb-service/src/self-improvement/SelfImproveCommand';
 
 // =============================================================================
 // TEST FIXTURES: Minimal HoloScript with a known TODO stub
@@ -143,6 +143,7 @@ function createEndToEndMockIO(
 
   const targets = options.noTargets ? [] : (options.targets ?? [defaultTarget]);
   const testPassed = options.testPassed ?? true;
+  let queryCallCount = 0;
 
   return {
     logs,
@@ -157,7 +158,13 @@ function createEndToEndMockIO(
           graphEdges: 312,
         }),
 
-    queryUntested: vi.fn<(query: string) => Promise<UntestedTarget[]>>().mockResolvedValue(targets),
+    queryUntested: vi.fn<(query: string) => Promise<UntestedTarget[]>>().mockImplementation(async () => {
+      const currentCall = queryCallCount++;
+      return targets.map(t => ({
+        ...t, 
+        symbolName: currentCall === 0 ? t.symbolName : `${t.symbolName}_iter${currentCall}`
+      }));
+    }),
 
     generateTest: vi
       .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()
