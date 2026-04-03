@@ -171,18 +171,19 @@ export const ScreenSpaceEffectsTrait: TraitHandler<ScreenSpaceEffectsConfig> = {
   },
 
   compile(config: ScreenSpaceEffectsConfig, target: string): string {
+    const self = this as unknown as Record<string, (c: ScreenSpaceEffectsConfig) => string>;
     switch (target) {
       case 'unity':
-        return (this as any).compileUnity(config);
+        return self.compileUnity(config);
       case 'unreal':
-        return (this as any).compileUnreal(config);
+        return self.compileUnreal(config);
       case 'web':
       case 'react-three-fiber':
-        return (this as any).compileWeb(config);
+        return self.compileWeb(config);
       case 'webgpu':
-        return (this as any).compileWebGPU(config);
+        return self.compileWebGPU(config);
       default:
-        return (this as any).compileGeneric(config);
+        return self.compileGeneric(config);
     }
   },
 

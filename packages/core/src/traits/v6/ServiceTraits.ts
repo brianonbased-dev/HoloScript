@@ -54,7 +54,7 @@ export interface ServiceConfig {
 }
 
 export const serviceHandler: TraitHandler<ServiceConfig> = {
-  name: 'service' as any,
+  name: 'service',
   defaultConfig: {
     port: 3000,
     base_path: '/',
@@ -98,7 +98,7 @@ export interface EndpointConfig {
 }
 
 export const endpointHandler: TraitHandler<EndpointConfig> = {
-  name: 'endpoint' as any,
+  name: 'endpoint',
   defaultConfig: {
     method: 'GET',
     path: '/',
@@ -130,7 +130,7 @@ export interface RouteConfig {
 }
 
 export const routeHandler: TraitHandler<RouteConfig> = {
-  name: 'route' as any,
+  name: 'route',
   defaultConfig: {
     path: '/',
     methods: ['GET'],
@@ -165,7 +165,7 @@ export interface HandlerConfig {
 }
 
 export const handlerHandler: TraitHandler<HandlerConfig> = {
-  name: 'handler' as any,
+  name: 'handler',
   defaultConfig: {
     name: '',
     type: 'async',
@@ -208,7 +208,7 @@ export interface MiddlewareConfig {
 }
 
 export const middlewareHandler: TraitHandler<MiddlewareConfig> = {
-  name: 'middleware' as any,
+  name: 'middleware',
   defaultConfig: {
     type: 'custom',
     position: 'before',

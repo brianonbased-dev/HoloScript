@@ -53,7 +53,7 @@ export interface MetricConfig {
 }
 
 export const metricHandler: TraitHandler<MetricConfig> = {
-  name: 'metric' as any,
+  name: 'metric',
   defaultConfig: {
     name: '',
     type: 'counter',
@@ -90,7 +90,7 @@ export interface TraceConfig {
 }
 
 export const traceHandler: TraitHandler<TraceConfig> = {
-  name: 'trace' as any,
+  name: 'trace',
   defaultConfig: {
     service: '',
     sampler: 'probabilistic',
@@ -127,7 +127,7 @@ export interface LogConfig {
 }
 
 export const logHandler: TraitHandler<LogConfig> = {
-  name: 'log' as any,
+  name: 'log',
   defaultConfig: {
     name: '',
     level: 'info',
@@ -160,7 +160,7 @@ export interface HealthCheckConfig {
 }
 
 export const healthCheckHandler: TraitHandler<HealthCheckConfig> = {
-  name: 'health_check' as any,
+  name: 'health_check',
   defaultConfig: {
     path: '/health',
     interval: 30000,

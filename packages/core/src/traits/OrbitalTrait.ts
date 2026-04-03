@@ -32,6 +32,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
    */
   onUpdate(node: HSPlusNode, config: OrbitalTraitConfig, context: TraitContext, _delta: number) {
     // Merge node properties into config to allow @orbital() to pick up elements from the object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime duck typing requires any spread
     const properties = (node as any).properties || {};
     const mergedConfig = { ...properties, ...config };
 

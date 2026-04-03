@@ -498,7 +498,6 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
           obj.material.emissive = new THREE.Color(origColor);
         }, 300);
       }
-      console.log('[PhoneSleeveVR] Gaze selected:', obj.name);
     }
 
     // =====================================================================

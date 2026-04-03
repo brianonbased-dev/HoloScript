@@ -238,10 +238,9 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
     if (!state) return;
 
     if (event.type === 'damage') {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      state.currentHealth -= event.amount || 10;
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      state.accumulatedDamage += event.amount || 10;
+      const damageAmount = (event as unknown as Record<string, unknown>).amount as number || 10;
+      state.currentHealth -= damageAmount;
+      state.accumulatedDamage += damageAmount;
 
       if (state.currentHealth <= config.damage_threshold && !state.isDestroyed) {
         triggerDestruction(node, config, context, state, (event.impactPoint as { x: number; y: number; z: number; } | undefined));
@@ -342,33 +341,31 @@ function triggerDestruction(
   );
 
   // Create fragment meshes
+  const ctxExt = context as unknown as Record<string, (...args: unknown[]) => unknown>;
   for (const frag of state.fragments) {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (context.createFragment) {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      frag.mesh = context.createFragment({
+    if (typeof ctxExt.createFragment === 'function') {
+      frag.mesh = ctxExt.createFragment({
         position: frag.position,
         scale: frag.scale,
-        material: (node as any).material,
+        material: (node as Record<string, unknown>).material,
         physics: config.debris_physics,
       });
     }
   }
 
   // Hide original object
-  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-  context.setVisible?.(node, false);
+  if (typeof ctxExt.setVisible === 'function') {
+    ctxExt.setVisible(node, false);
+  }
 
   // Play sound
-  if (config.sound_on_break) {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    context.playSound?.(config.sound_on_break, position);
+  if (config.sound_on_break && typeof ctxExt.playSound === 'function') {
+    ctxExt.playSound(config.sound_on_break, position);
   }
 
   // Spawn particle effect
-  if (config.effect_on_break) {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    context.spawnEffect?.(config.effect_on_break, position);
+  if (config.effect_on_break && typeof ctxExt.spawnEffect === 'function') {
+    ctxExt.spawnEffect(config.effect_on_break, position);
   }
 
   // Emit destruction event
@@ -383,12 +380,14 @@ function triggerDestruction(
     state.chainReactionTriggered = true;
 
     setTimeout(() => {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      const nearbyDestructibles = context.getObjectsInRadius?.(position, config.chain_radius) || [];
+      const nearbyDestructibles = (typeof ctxExt.getObjectsInRadius === 'function'
+        ? ctxExt.getObjectsInRadius(position, config.chain_radius)
+        : []) as Array<Record<string, unknown>>;
       for (const other of nearbyDestructibles) {
         if (other !== node && other.__destructionState) {
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          context.dispatchEvent?.(other, { type: 'destroy', impactPoint: position });
+          if (typeof ctxExt.dispatchEvent === 'function') {
+            ctxExt.dispatchEvent(other, { type: 'destroy', impactPoint: position });
+          }
         }
       }
     }, config.chain_delay * 1000);

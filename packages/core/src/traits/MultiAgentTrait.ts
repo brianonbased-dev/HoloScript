@@ -155,7 +155,7 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
   },
 
   onAttach(node, config, context) {
-    const agentId = config.agent_id || (node as any).id || `agent_${Date.now()}`;
+    const agentId = config.agent_id || node.id || `agent_${Date.now()}`;
 
     const self: AgentRegistration = {
       id: agentId,

@@ -137,7 +137,6 @@ export class SceneSerializer {
       if (type === 'Transform') {
         // Robust extraction: Handle { position } or { x, y, z }
         const pos = data.position || { x: data.x || 0, y: data.y || 0, z: data.z || 0 };
-        console.log(`[Serializer] Extracting Transform: data=`, data, `pos=`, pos);
         const rot = data.rotation || {
           x: data.rx || 0,
           y: data.ry || 0,

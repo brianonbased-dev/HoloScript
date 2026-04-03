@@ -58,7 +58,7 @@ export interface ContainerConfig {
 }
 
 export const containerHandler: TraitHandler<ContainerConfig> = {
-  name: 'container' as any,
+  name: 'container',
   defaultConfig: {
     image: 'node:20-alpine',
     port: 3000,
@@ -100,7 +100,7 @@ export interface DeploymentConfig {
 }
 
 export const deploymentHandler: TraitHandler<DeploymentConfig> = {
-  name: 'deployment' as any,
+  name: 'deployment',
   defaultConfig: {
     replicas: 1,
     strategy: 'rolling',
@@ -138,7 +138,7 @@ export interface ScalingConfig {
 }
 
 export const scalingHandler: TraitHandler<ScalingConfig> = {
-  name: 'scaling' as any,
+  name: 'scaling',
   defaultConfig: {
     metric: 'cpu',
     target: 70,
@@ -178,7 +178,7 @@ export interface SecretConfig {
 }
 
 export const secretHandler: TraitHandler<SecretConfig> = {
-  name: 'secret' as any,
+  name: 'secret',
   defaultConfig: {
     name: '',
     source: 'env',

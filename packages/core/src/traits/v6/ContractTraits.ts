@@ -46,7 +46,7 @@ export interface ContractConfig {
 }
 
 export const contractHandler: TraitHandler<ContractConfig> = {
-  name: 'contract' as any,
+  name: 'contract',
   defaultConfig: {
     version: '1.0.0',
     format: 'openapi',
@@ -91,7 +91,7 @@ export interface SchemaConfig {
 }
 
 export const schemaHandler: TraitHandler<SchemaConfig> = {
-  name: 'schema' as any,
+  name: 'schema',
   defaultConfig: {
     name: '',
     fields: {},
@@ -121,7 +121,7 @@ export interface ValidatorConfig {
 }
 
 export const validatorHandler: TraitHandler<ValidatorConfig> = {
-  name: 'validator' as any,
+  name: 'validator',
   defaultConfig: {
     target: '',
     rules: {},
@@ -152,7 +152,7 @@ export interface SerializerConfig {
 }
 
 export const serializerHandler: TraitHandler<SerializerConfig> = {
-  name: 'serializer' as any,
+  name: 'serializer',
   defaultConfig: {
     target: '',
     format: 'json',

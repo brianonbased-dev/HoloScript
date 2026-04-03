@@ -33,7 +33,9 @@ class StudioBus {
       cbs.forEach((cb) => {
         try {
           cb(data);
-        } catch (_) {}
+        } catch (_) {
+          // intentionally swallowed: bus listener errors must not crash other listeners
+        }
       });
   }
 

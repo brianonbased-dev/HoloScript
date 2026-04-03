@@ -50,7 +50,7 @@ const affectorRegistry: Record<string, (p: any, delta: number) => void> = {
 };
 
 export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
-  name: 'particles' as any,
+  name: 'particles',
   defaultConfig,
 
   onAttach(node: HSPlusNode, config: ParticleTraitConfig, _context: any) {

@@ -176,7 +176,7 @@ export class WASMCompiler extends CompilerBase {
     this.emitModule(composition);
 
     // v4.2: Domain Blocks — add material data as data segments
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length > 0) {
       this.emit('');
       this.emit('  ;; === v4.2 Domain Blocks ===');

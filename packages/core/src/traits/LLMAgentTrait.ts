@@ -268,8 +268,10 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
       state.lastRequestTime = now;
       state.turnActionCount = 0;
 
-      // Prepare messages for API
-      const messages = trimHistory(state.conversationHistory, config.context_window);
+      // G.XR.04: Use XR context limit when set, to protect VR memory budget
+      const effectiveContextWindow = Math.min(config.context_window, config.xr_context_limit);
+      const messages = trimHistory(state.conversationHistory, effectiveContextWindow);
+      state.currentContextTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
 
       // Emit request for external handling
       context.emit?.('llm_request', {
@@ -338,9 +340,10 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
         });
       }
 
-      // Trim history
+      // Trim history (G.XR.04: respect XR context limit)
       if (state.conversationHistory.length > config.max_history_length) {
-        state.conversationHistory = trimHistory(state.conversationHistory, config.context_window);
+        const trimLimit = Math.min(config.context_window, config.xr_context_limit);
+        state.conversationHistory = trimHistory(state.conversationHistory, trimLimit);
       }
     } else if (event.type === 'llm_tool_result') {
       // Tool execution result
@@ -351,9 +354,11 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
         timestamp: Date.now(),
       });
 
-      // Continue conversation after tool result
+      // Continue conversation after tool result (G.XR.04: respect XR context limit)
       if (!state.isProcessing) {
-        const messages = trimHistory(state.conversationHistory, config.context_window);
+        const effectiveLimit = Math.min(config.context_window, config.xr_context_limit);
+        const messages = trimHistory(state.conversationHistory, effectiveLimit);
+        state.currentContextTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
         state.isProcessing = true;
 
         context.emit?.('llm_request', {

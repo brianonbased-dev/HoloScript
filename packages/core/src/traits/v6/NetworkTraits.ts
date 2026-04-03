@@ -54,7 +54,7 @@ export interface HttpConfig {
 }
 
 export const httpHandler: TraitHandler<HttpConfig> = {
-  name: 'http' as any,
+  name: 'http',
   defaultConfig: {
     base_url: '',
     timeout: 30000,
@@ -95,7 +95,7 @@ export interface WebSocketConfig {
 }
 
 export const websocketHandler: TraitHandler<WebSocketConfig> = {
-  name: 'websocket' as any,
+  name: 'websocket',
   defaultConfig: {
     url: '',
     protocols: [],
@@ -136,7 +136,7 @@ export interface GrpcConfig {
 }
 
 export const grpcHandler: TraitHandler<GrpcConfig> = {
-  name: 'grpc' as any,
+  name: 'grpc',
   defaultConfig: {
     host: 'localhost:50051',
     proto: '',
@@ -177,7 +177,7 @@ export interface GraphQLConfig {
 }
 
 export const graphqlHandler: TraitHandler<GraphQLConfig> = {
-  name: 'graphql' as any,
+  name: 'graphql',
   defaultConfig: {
     endpoint: '/graphql',
     schema: '',

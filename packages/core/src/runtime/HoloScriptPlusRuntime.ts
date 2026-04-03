@@ -264,7 +264,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Check for sync intent (P3 Pattern)
 
     const isNetworked =
-      ast.root.traits?.has('networked' as any) ||
+      ast.root.traits?.has('networked') ||
       ast.root.directives?.some(
         (d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked'
       );
@@ -1370,7 +1370,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Apply Networking Sync
-    if (instance.node.traits?.has('networked' as any)) {
+    if (instance.node.traits?.has('networked')) {
       const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as Record<
         string,
         unknown
@@ -1479,7 +1479,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       });
 
       // Broadcast if networked
-      if (instance.node.traits?.has('networked' as any)) {
+      if (instance.node.traits?.has('networked')) {
         this.emit('network_snapshot', {
           objectId: instance.node.id,
           position: [

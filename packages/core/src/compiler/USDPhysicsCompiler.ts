@@ -471,7 +471,7 @@ export class USDPhysicsCompiler extends CompilerBase {
     }
 
     // v4.2: Process all domain blocks (materials, physics, particles, post-fx, audio, weather)
-    const domainBlocks: any[] = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length > 0) {
       this.emitBlank();
       this.emit(`# === v4.2 Domain Blocks ===`);

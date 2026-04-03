@@ -574,7 +574,7 @@ export const TEST_TRAIT = {
 // =============================================================================
 
 export const testHandler: TraitHandler<CompositionTestConfig> = {
-  name: 'test' as any,
+  name: 'test',
   defaultConfig: { bail: false, debug: false, timeout: 5000 },
 
   onAttach(node: HSPlusNode, config: CompositionTestConfig, ctx: TraitContext): void {

@@ -153,14 +153,14 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
       nextCycleDuration: randomRange(config.cycle_min_duration, config.cycle_max_duration),
     };
 
-    (node as any).__weatherHubState = state;
+    node.__weatherHubState = state;
 
     // Write initial blackboard state
     writeBlackboard(state, config);
   },
 
   onUpdate(node, config, _context, delta) {
-    const state = (node as any).__weatherHubState as WeatherHubState | undefined;
+    const state = node.__weatherHubState as WeatherHubState | undefined;
     if (!state) return;
 
     // Advance day-night cycle
@@ -190,11 +190,11 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
   },
 
   onDetach(node) {
-    delete (node as any).__weatherHubState;
+    delete node.__weatherHubState;
   },
 
   onEvent(node, config, _context, event) {
-    const state = (node as any).__weatherHubState as WeatherHubState | undefined;
+    const state = node.__weatherHubState as WeatherHubState | undefined;
     if (!state) return;
 
     // Allow external control of weather

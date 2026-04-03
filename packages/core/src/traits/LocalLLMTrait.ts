@@ -1,5 +1,4 @@
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
+import type { HSPlusNode, TraitContext, TraitEvent } from './TraitTypes';
 /**
  * LocalLLMTrait — v4.0
  *
@@ -91,7 +90,6 @@ export interface LocalLLMState {
   speculativeActive: boolean;
 }
 
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 const DEFAULT_CONFIG: LocalLLMConfig = {
   model: 'llama3',
   backend: 'ollama',
@@ -105,7 +103,19 @@ const DEFAULT_CONFIG: LocalLLMConfig = {
   fallback_api_key: '',
   fallback_model: 'gpt-4o-mini',
   timeout_ms: 120_000,
+  max_kv_cache_mb: 512,
 };
+
+/**
+ * P.XR.07: Estimate KV cache memory usage in MB.
+ * Approximation: 2 bytes per element * 2 (key+value) * num_layers * head_dim * num_heads * context_tokens / 1MB.
+ * Simplified: ~2MB per 1K tokens for a 3B model (reasonable Quest 3 estimate).
+ */
+function estimateKVCacheMB(tokenCount: number, contextLength: number): number {
+  const effectiveTokens = Math.min(tokenCount, contextLength);
+  // ~2MB per 1K tokens for 3B-class models (conservative estimate for Quest 3)
+  return (effectiveTokens / 1024) * 2;
+}
 
 function chatEndpoint(config: LocalLLMConfig): string {
   return config.backend === 'ollama'
@@ -145,7 +155,6 @@ export const localLLMHandler = {
   defaultConfig: DEFAULT_CONFIG,
 
   async onAttach(node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext): Promise<void> {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const state: LocalLLMState = {
       isReady: false,
       backend: config.backend,
@@ -155,6 +164,8 @@ export const localLLMHandler = {
       usingFallback: false,
       totalRequests: 0,
       totalTokens: 0,
+      kvCacheSizeMB: 0,
+      speculativeActive: false,
     };
     node.__localLLMState = state;
 
@@ -218,13 +229,12 @@ export const localLLMHandler = {
     } else if (type === 'llm_chat') {
       this._chat(s, node, config, ctx, (payload as Record<string, unknown>));
     } else if (type === 'llm_cancel') {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      this._cancel(s, node, ctx, (payload as string | undefined)?.requestId);
+      const cancelPayload = payload as Record<string, unknown> | undefined;
+      this._cancel(s, node, ctx, cancelPayload?.requestId as string | undefined);
     } else if (type === 'llm_list_models') {
       ctx.emit('llm_models_listed', { node, models: s.availableModels });
     } else if (type === 'llm_switch_model' && payload?.model) {
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      s.activeModel = payload.model;
+      s.activeModel = payload.model as string;
       ctx.emit('llm_model_loaded', { node, model: payload.model, backend: s.backend });
     }
   },
@@ -234,30 +244,28 @@ export const localLLMHandler = {
   },
 
   _chat(s: LocalLLMState, node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext, payload: Record<string, unknown>): void {
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    if (!payload?.messages?.length) return;
-    const requestId = payload.requestId ?? `llm_${Date.now()}`;
-    const model = payload.model ?? s.activeModel ?? config.model;
+    const messages = payload?.messages as LLMMessage[] | undefined;
+    if (!messages?.length) return;
+    const requestId = (payload.requestId as string) ?? `llm_${Date.now()}`;
+    const model = (payload.model as string) ?? s.activeModel ?? config.model;
     const ac = new AbortController();
-    s.activeRequests.set((requestId as string), ac);
+    s.activeRequests.set(requestId, ac);
     s.totalRequests++;
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    ctx.emit('llm_started', { node, requestId, model, prompt: payload.messages.at(-1)?.content });
+    const lastMessage = messages.at(-1);
+    ctx.emit('llm_started', { node, requestId, model, prompt: lastMessage?.content });
 
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const cfg: LocalLLMConfig = s.usingFallback
       ? {
           ...config,
-          backend: 'openai',
+          backend: 'openai' as const,
           model: config.fallback_model,
           base_url: 'https://api.openai.com',
         }
       : { ...config, model };
 
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    this._exec(s, node, cfg, ctx, (requestId as string), payload.messages, ac).catch((err: Error) => {
+    this._exec(s, node, cfg, ctx, requestId, messages, ac).catch((err: Error) => {
       if (err.name !== 'AbortError') ctx.emit('llm_error', { node, requestId, error: err.message });
-      s.activeRequests.delete((requestId as string));
+      s.activeRequests.delete(requestId);
     });
   },
 
@@ -290,6 +298,15 @@ export const localLLMHandler = {
           : (data.choices?.[0]?.message?.content ?? '');
       const tokens = data.eval_count ?? data.usage?.completion_tokens ?? text.split(' ').length;
       s.totalTokens += tokens;
+      // P.XR.07: Track KV cache memory and emit pressure warning
+      s.kvCacheSizeMB = estimateKVCacheMB(s.totalTokens, config.context_length);
+      if (s.kvCacheSizeMB > config.max_kv_cache_mb) {
+        ctx.emit('llm_memory_pressure', {
+          node,
+          kvCacheSizeMB: s.kvCacheSizeMB,
+          limitMB: config.max_kv_cache_mb,
+        });
+      }
       s.activeRequests.delete(requestId);
       ctx.emit('llm_complete', {
         node,
@@ -346,6 +363,15 @@ export const localLLMHandler = {
         s.totalTokens++;
         ctx.emit('llm_token', { node, requestId, token, accumulated });
       }
+    }
+    // P.XR.07: Track KV cache memory after streaming completion
+    s.kvCacheSizeMB = estimateKVCacheMB(s.totalTokens, config.context_length);
+    if (s.kvCacheSizeMB > config.max_kv_cache_mb) {
+      ctx.emit('llm_memory_pressure', {
+        node,
+        kvCacheSizeMB: s.kvCacheSizeMB,
+        limitMB: config.max_kv_cache_mb,
+      });
     }
     s.activeRequests.delete(requestId);
     ctx.emit('llm_complete', {

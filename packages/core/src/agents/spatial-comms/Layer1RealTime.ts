@@ -220,45 +220,28 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
 
   // Decode based on type
   if (typeCode === MessageTypeCode.POSITION_SYNC) {
-    const position: [number, number, number] = [
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-    ] as any;
+    const px = buffer.readFloatBE(offset); offset += 4;
+    const py = buffer.readFloatBE(offset); offset += 4;
+    const pz = buffer.readFloatBE(offset); offset += 4;
+    const position: [number, number, number] = [px, py, pz];
 
-    const rotation: [number, number, number, number] = [
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-    ] as any;
+    const rx = buffer.readFloatBE(offset); offset += 4;
+    const ry = buffer.readFloatBE(offset); offset += 4;
+    const rz = buffer.readFloatBE(offset); offset += 4;
+    const rw = buffer.readFloatBE(offset); offset += 4;
+    const rotation: [number, number, number, number] = [rx, ry, rz, rw];
 
-    const scale: [number, number, number] = [
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-      buffer.readFloatBE(offset),
-      (offset += 4),
-    ] as any;
+    const sx = buffer.readFloatBE(offset); offset += 4;
+    const sy = buffer.readFloatBE(offset); offset += 4;
+    const sz = buffer.readFloatBE(offset); offset += 4;
+    const scale: [number, number, number] = [sx, sy, sz];
 
     let velocity: [number, number, number] | undefined;
     if (offset < buffer.length) {
-      velocity = [
-        buffer.readFloatBE(offset),
-        (offset += 4),
-        buffer.readFloatBE(offset),
-        (offset += 4),
-        buffer.readFloatBE(offset),
-        (offset += 4),
-      ] as any;
+      const vx = buffer.readFloatBE(offset); offset += 4;
+      const vy = buffer.readFloatBE(offset); offset += 4;
+      const vz = buffer.readFloatBE(offset); offset += 4;
+      velocity = [vx, vy, vz];
     }
 
     return {
@@ -281,7 +264,8 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
     offset += 4;
     const qualityCode = buffer.readUInt8(offset);
     offset += 1;
-    const quality_level = ['high', 'medium', 'low', 'minimal'][qualityCode] as any;
+    const qualityLevels: Array<FrameBudgetMessage['quality_level']> = ['high', 'medium', 'low', 'minimal'];
+    const quality_level = qualityLevels[qualityCode] ?? 'medium';
 
     return {
       type: 'frame_budget',
@@ -317,7 +301,8 @@ export interface RealTimeTransport {
  * UDP-based real-time transport (Node.js environment)
  */
 export class UDPRealTimeTransport implements RealTimeTransport {
-  private socket?: any; // dgram.Socket
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dgram.Socket dynamically imported at runtime
+  private socket?: any;
   private port: number;
   private targetHost: string = 'localhost';
 
@@ -342,7 +327,7 @@ export class UDPRealTimeTransport implements RealTimeTransport {
     });
   }
 
-  async send(buffer: Buffer, targetAgent?: string): Promise<void> {
+  async send(buffer: Buffer, _targetAgent?: string): Promise<void> {
     if (!this.socket) throw new Error('Transport not initialized');
 
     return new Promise((resolve, reject) => {
@@ -374,7 +359,7 @@ export class UDPRealTimeTransport implements RealTimeTransport {
     }
   }
 
-  onMessage(callback: (buffer: Buffer, rinfo: any) => void): void {
+  onMessage(callback: (buffer: Buffer, rinfo: unknown) => void): void {
     if (!this.socket) throw new Error('Transport not initialized');
     this.socket.on('message', callback);
   }
@@ -469,7 +454,7 @@ export class Layer1RealTimeClient extends EventEmitter {
   private agentId: string;
   private messageCount = 0;
   private lastMessageTime = 0;
-  private messageBuffer: RealTimeMessage[] = [];
+  private readonly _messageBuffer: RealTimeMessage[] = [];
 
   constructor(agentId: string, config?: Partial<RealTimeProtocolConfig>) {
     super();

@@ -64,7 +64,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
       const data = ((event as Record<string, unknown>).data as Record<string, any>) || {};
       const { text, emotion, intensity, voiceId } = data;
 
-      (this as any).handleSpeak(node, config, state, {
+      (this as unknown as Record<string, Function>).handleSpeak(node, config, state, {
         text,
         voiceId: voiceId ?? config.voiceId,
         emotion: {
@@ -79,7 +79,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
 /**
  * Handle speech synthesis and lip sync integration
  */
-(emotionalVoiceHandler as any).handleSpeak = async function (
+(emotionalVoiceHandler as Record<string, unknown>).handleSpeak = async function (
   node: HSPlusNode,
   config: EmotionalVoiceConfig,
   state: InternalState,

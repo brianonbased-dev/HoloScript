@@ -56,7 +56,7 @@ export interface PipelineConfig {
 }
 
 export const pipelineHandler: TraitHandler<PipelineConfig> = {
-  name: 'pipeline' as any,
+  name: 'pipeline',
   defaultConfig: {
     name: '',
     stages: [],
@@ -93,7 +93,7 @@ export interface StreamConfig {
 }
 
 export const streamHandler: TraitHandler<StreamConfig> = {
-  name: 'stream' as any,
+  name: 'stream',
   defaultConfig: {
     source: '',
     backend: 'kafka',
@@ -133,7 +133,7 @@ export interface QueueConfig {
 }
 
 export const queueHandler: TraitHandler<QueueConfig> = {
-  name: 'queue' as any,
+  name: 'queue',
   defaultConfig: {
     name: '',
     backend: 'redis',
@@ -167,7 +167,7 @@ export interface WorkerConfig {
 }
 
 export const workerHandler: TraitHandler<WorkerConfig> = {
-  name: 'worker' as any,
+  name: 'worker',
   defaultConfig: {
     name: '',
     queue: '',
@@ -204,7 +204,7 @@ export interface SchedulerConfig {
 }
 
 export const schedulerHandler: TraitHandler<SchedulerConfig> = {
-  name: 'scheduler' as any,
+  name: 'scheduler',
   defaultConfig: {
     name: '',
     cron: '',

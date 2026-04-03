@@ -158,7 +158,6 @@ export class IPFSService {
         const providerType = this.options.fallbackProviders[i].provider;
 
         try {
-          console.log(`Trying fallback provider: ${providerType}`);
           const result = await this.uploadWithRetry(provider, providerType, options, needsChunking);
           return this.buildUploadResult(result.cid, result.size, startTime, options.pin ?? true);
         } catch (error) {
@@ -226,7 +225,6 @@ export class IPFSService {
         if (attempt < this.options.maxRetries - 1) {
           // Exponential backoff: 1s, 2s, 4s, ...
           const delay = this.options.retryDelay * Math.pow(2, attempt);
-          console.log(`Upload attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
           await this.delay(delay);
         }
       }

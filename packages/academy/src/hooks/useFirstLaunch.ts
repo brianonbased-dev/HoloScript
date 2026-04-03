@@ -26,13 +26,17 @@ export function useFirstLaunch() {
     setIsFirstLaunch(false);
     try {
       localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {}
+    } catch {
+      // intentionally swallowed: localStorage may be unavailable in private browsing or SSR
+    }
   }, []);
 
   const retrigger = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch {
+      // intentionally swallowed: localStorage may be unavailable in private browsing or SSR
+    }
     setIsFirstLaunch(true);
   }, []);
 

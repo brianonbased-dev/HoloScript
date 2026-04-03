@@ -26,7 +26,7 @@ import {
   formatSignatureError,
 } from './PopUtils';
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
-import { IntentTokenPayload } from './AgentIdentity';
+import { IntentTokenPayload, AgentPermission } from './AgentIdentity';
 import { AgentKeystore, getKeystore } from './AgentKeystore';
 import { verifyJwkThumbprint } from './JwkThumbprint';
 
@@ -332,14 +332,14 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
  * );
  * ```
  */
-export function requirePermission(permission: string) {
+export function requirePermission(permission: AgentPermission) {
   return (req: AuthenticatedRequest, res: HttpResponse, next: NextFunction): void => {
     if (!req.agent) {
       res.status(401).json(formatSignatureError('UNAUTHORIZED', 'Agent identity not verified'));
       return;
     }
 
-    if (!req.agent.permissions.includes(permission as any)) {
+    if (!req.agent.permissions.includes(permission)) {
       res
         .status(403)
         .json(formatSignatureError('FORBIDDEN', `Agent lacks required permission: ${permission}`));

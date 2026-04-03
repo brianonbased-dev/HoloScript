@@ -981,7 +981,7 @@ interface CreditTraitState {
  * ```
  */
 export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
-  name: 'credit' as any,
+  name: 'credit',
 
   defaultConfig: {
     price: 0.01,

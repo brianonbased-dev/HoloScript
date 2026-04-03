@@ -703,7 +703,7 @@ export class URDFCompiler extends CompilerBase {
   }
 
   private emitDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emitBlank();

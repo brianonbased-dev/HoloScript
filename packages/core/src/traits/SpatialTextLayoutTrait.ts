@@ -27,11 +27,11 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
   },
 
   onAttach(node: HSPlusNode, config: SpatialTextLayoutConfig): void {
-    (node as any).__spatialTextState = { initialized: true, rotationY: 0 };
+    node.__spatialTextState = { initialized: true, rotationY: 0 };
   },
 
   onDetach(node: HSPlusNode): void {
-    delete (node as any).__spatialTextState;
+    delete node.__spatialTextState;
   },
 
   onUpdate(

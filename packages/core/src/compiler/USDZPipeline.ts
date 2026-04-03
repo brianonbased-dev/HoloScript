@@ -1073,7 +1073,7 @@ export class USDZPipeline {
    * v4.2: Generate USD domain blocks (materials, physics, particles, post-fx, audio, weather)
    */
   private generateDomainBlocks(composition: HoloComposition): string {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return '';
 
     const compiled = compileDomainBlocks(

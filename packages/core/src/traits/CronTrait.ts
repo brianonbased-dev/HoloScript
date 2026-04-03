@@ -1,5 +1,4 @@
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler, TraitEventPayload } from './TraitTypes';
+import type { HSPlusNode, TraitContext, TraitEvent, TraitEventPayload } from './TraitTypes';
 /**
  * CronTrait
  *
@@ -273,23 +272,18 @@ export const cronHandler = {
 
         const job: CronJob = {
           id: `cron_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          name,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          expression,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          targetEvent,
+          name: name as string,
+          expression: expression as string,
+          targetEvent: targetEvent as string,
           targetPayload,
           timezone: config.timezone,
           enabled: true,
           createdAt: Date.now(),
           lastRun: null,
-          nextRun: getNextRun((expression as string)),
+          nextRun: getNextRun(expression as string),
           runCount: 0,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          maxRuns,
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          missedJobStrategy: missedJobStrategy ?? config.missed_job_strategy,
+          maxRuns: (maxRuns as number | null),
+          missedJobStrategy: ((missedJobStrategy as CronJob['missedJobStrategy']) ?? config.missed_job_strategy),
         };
 
         state.jobs.set(job.id, job);
@@ -308,21 +302,21 @@ export const cronHandler = {
       }
 
       case 'cron_enable': {
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        const job = state.jobs.get((event.payload as string)?.jobId);
-        if (job) {
-          job.enabled = true;
-          if (config.persist) persistJob(state.db, job);
+        const enablePayload = event.payload as Record<string, unknown> | undefined;
+        const enableJob = state.jobs.get(enablePayload?.jobId as string);
+        if (enableJob) {
+          enableJob.enabled = true;
+          if (config.persist) persistJob(state.db, enableJob);
         }
         break;
       }
 
       case 'cron_disable': {
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        const job = state.jobs.get((event.payload as string)?.jobId);
-        if (job) {
-          job.enabled = false;
-          if (config.persist) persistJob(state.db, job);
+        const disablePayload = event.payload as Record<string, unknown> | undefined;
+        const disableJob = state.jobs.get(disablePayload?.jobId as string);
+        if (disableJob) {
+          disableJob.enabled = false;
+          if (config.persist) persistJob(state.db, disableJob);
         }
         break;
       }
@@ -332,9 +326,9 @@ export const cronHandler = {
         break;
 
       case 'cron_run_now': {
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        const job = state.jobs.get((event.payload as string)?.jobId);
-        if (job) this._triggerJob(state, node, config, ctx, job);
+        const runPayload = event.payload as Record<string, unknown> | undefined;
+        const runJob = state.jobs.get(runPayload?.jobId as string);
+        if (runJob) this._triggerJob(state, node, config, ctx, runJob);
         break;
       }
     }

@@ -175,7 +175,7 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
     state.registry = getDefaultRegistry(config.registry_config || undefined);
 
     // Create manifest
-    const nodeId = (node as any).id || 'unknown';
+    const nodeId = node.id || 'unknown';
     state.manifest = createManifest(nodeId, config);
 
     // Auto-register if enabled

@@ -19,18 +19,13 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import {
-  CircuitBreaker,
   CircuitBreakerRegistry,
   CircuitState,
   type ExportTarget,
   type CircuitBreakerConfig,
   type CircuitMetrics,
-  type CircuitResult,
 } from './CircuitBreaker';
-import {
-  ReferenceExporterRegistry,
-  type ExportResult as ReferenceExportResult,
-} from './ReferenceExporters';
+import { ReferenceExporterRegistry } from './ReferenceExporters';
 
 // Import all compilers
 import { URDFCompiler } from './URDFCompiler';
@@ -72,7 +67,6 @@ import {
   GaussianBudgetAnalyzer,
   type GaussianPlatform,
   type GaussianBudgetAnalysis,
-  type GaussianBudgetWarning,
 } from './GaussianBudgetAnalyzer';
 import { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
 
@@ -283,7 +277,7 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
 
   // Mobile VR
   'android-xr': ['quest3'],
-  'phone-sleeve-vr': ['mobile' as any],
+  'phone-sleeve-vr': ['mobile_ar' as GaussianPlatform],
 
   // Desktop/Browser rendering
   webgpu: ['webgpu'],

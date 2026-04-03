@@ -52,7 +52,7 @@ export interface CircuitBreakerConfig {
 }
 
 export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
-  name: 'circuit_breaker' as any,
+  name: 'circuit_breaker',
   defaultConfig: {
     failure_threshold: 5,
     reset_timeout: 30000,
@@ -89,7 +89,7 @@ export interface RetryConfig {
 }
 
 export const retryHandler: TraitHandler<RetryConfig> = {
-  name: 'retry' as any,
+  name: 'retry',
   defaultConfig: {
     max_attempts: 3,
     backoff: 'exponential',
@@ -116,7 +116,7 @@ export interface TimeoutConfig {
 }
 
 export const timeoutHandler: TraitHandler<TimeoutConfig> = {
-  name: 'timeout' as any,
+  name: 'timeout',
   defaultConfig: {
     duration: 30000,
     fallback: '',
@@ -139,7 +139,7 @@ export interface FallbackConfig {
 }
 
 export const fallbackHandler: TraitHandler<FallbackConfig> = {
-  name: 'fallback' as any,
+  name: 'fallback',
   defaultConfig: {
     handler: '',
     static_value: null,
@@ -162,7 +162,7 @@ export interface BulkheadConfig {
 }
 
 export const bulkheadHandler: TraitHandler<BulkheadConfig> = {
-  name: 'bulkhead' as any,
+  name: 'bulkhead',
   defaultConfig: {
     max_concurrent: 10,
     max_queue: 100,

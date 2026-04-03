@@ -295,7 +295,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
         if (config.enable_rollback) {
           createRollbackCheckpoint(state, config, {
             action,
-            agentId: (node as any).id || 'unknown',
+            agentId: node.id || 'unknown',
             stateBefore: (metadata.stateBefore as Record<string, unknown>) || {},
           });
         }
@@ -303,7 +303,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
         if (config.enable_audit_log) {
           logAction(state, {
             action,
-            agentId: (node as any).id || 'unknown',
+            agentId: node.id || 'unknown',
             decision: 'autonomous',
             confidence,
             riskScore,
@@ -335,7 +335,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
           riskScore,
           description,
           metadata,
-          agentId: (node as any).id || 'unknown',
+          agentId: node.id || 'unknown',
         });
 
         state.pendingApprovals.push(approval);

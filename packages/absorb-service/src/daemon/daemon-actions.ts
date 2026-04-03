@@ -360,7 +360,9 @@ async function resolveRelatedFiles(
                 relation: `structural caller (${caller.callerId})`,
               });
             }
-          } catch {}
+          } catch {
+            // intentionally swallowed: non-critical related file lookup may fail for missing/unreadable files
+          }
         }
       }
       for (const callee of callees.slice(0, 2)) {
@@ -374,7 +376,9 @@ async function resolveRelatedFiles(
                 relation: `structural callee (${callee.calleeName})`,
               });
             }
-          } catch {}
+          } catch {
+            // intentionally swallowed: non-critical related file lookup may fail for missing/unreadable files
+          }
         }
       }
     }

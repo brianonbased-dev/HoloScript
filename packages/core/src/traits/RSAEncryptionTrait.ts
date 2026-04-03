@@ -53,16 +53,17 @@ export const RSAEncryptionTrait: TraitHandler<RSAEncryptionConfig> = {
   },
 
   compile(config: RSAEncryptionConfig, target: string): string {
+    const self = this as unknown as Record<string, (c: RSAEncryptionConfig) => string>;
     switch (target) {
       case 'web':
       case 'react-three-fiber':
-        return (this as any).compileWeb(config);
+        return self.compileWeb(config);
       case 'node':
-        return (this as any).compileNode(config);
+        return self.compileNode(config);
       case 'unity':
-        return (this as any).compileUnity(config);
+        return self.compileUnity(config);
       default:
-        return (this as any).compileGeneric(config);
+        return self.compileGeneric(config);
     }
   },
 

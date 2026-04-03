@@ -84,19 +84,20 @@ export const SubsurfaceScatteringTrait: TraitHandler<SubsurfaceScatteringConfig>
       config.preset && config.preset !== 'custom'
         ? ({ ...PRESETS[config.preset], ...config } as SubsurfaceScatteringConfig)
         : config;
+    const self = this as unknown as Record<string, (c: SubsurfaceScatteringConfig) => string>;
     switch (target) {
       case 'unity':
-        return (this as any).compileUnity(c);
+        return self.compileUnity(c);
       case 'unreal':
-        return (this as any).compileUnreal(c);
+        return self.compileUnreal(c);
       case 'web':
       case 'react-three-fiber':
       case 'babylon':
-        return (this as any).compileWeb(c);
+        return self.compileWeb(c);
       case 'webgpu':
-        return (this as any).compileWebGPU(c);
+        return self.compileWebGPU(c);
       default:
-        return (this as any).compileGeneric(c);
+        return self.compileGeneric(c);
     }
   },
 

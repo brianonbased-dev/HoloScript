@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import { ReferenceGraph, GraphNode, SymbolDefinition, SymbolType } from './ReferenceGraph';
+import { ReferenceGraph, GraphNode, SymbolDefinition, SymbolType, ASTNode } from './ReferenceGraph';
 
 /**
  * Dead code item
@@ -467,7 +467,7 @@ export function analyzeDeadCode(
   options?: ReachabilityOptions
 ): ReachabilityResult {
   const graph = new ReferenceGraph();
-  graph.buildFromAST(ast as any, filePath);
+  graph.buildFromAST(ast as ASTNode, filePath);
 
   const analyzer = new ReachabilityAnalyzer(graph, options);
   return analyzer.analyze();

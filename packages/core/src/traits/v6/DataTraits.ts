@@ -59,7 +59,7 @@ export interface DatabaseConfig {
 }
 
 export const dbHandler: TraitHandler<DatabaseConfig> = {
-  name: 'db' as any,
+  name: 'db',
   defaultConfig: {
     engine: 'postgres',
     connection: 'DATABASE_URL',
@@ -97,7 +97,7 @@ export interface ModelConfig {
 }
 
 export const modelHandler: TraitHandler<ModelConfig> = {
-  name: 'model' as any,
+  name: 'model',
   defaultConfig: {
     name: '',
     table: '',
@@ -136,7 +136,7 @@ export interface QueryConfig {
 }
 
 export const queryHandler: TraitHandler<QueryConfig> = {
-  name: 'query' as any,
+  name: 'query',
   defaultConfig: {
     name: '',
     type: 'select',
@@ -180,7 +180,7 @@ export interface MigrationConfig {
 }
 
 export const migrationHandler: TraitHandler<MigrationConfig> = {
-  name: 'migration' as any,
+  name: 'migration',
   defaultConfig: {
     version: '',
     description: '',
@@ -214,7 +214,7 @@ export interface CacheConfig {
 }
 
 export const cacheHandler: TraitHandler<CacheConfig> = {
-  name: 'cache' as any,
+  name: 'cache',
   defaultConfig: {
     strategy: 'lru',
     max_size: 1000,

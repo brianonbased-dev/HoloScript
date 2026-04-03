@@ -118,7 +118,6 @@ export class EmojiReactionTrait {
    */
   start(): void {
     this.isActive = true;
-    console.log('[EmojiReaction] Started continuous spawning');
   }
 
   /**
@@ -126,7 +125,6 @@ export class EmojiReactionTrait {
    */
   stop(): void {
     this.isActive = false;
-    console.log('[EmojiReaction] Stopped continuous spawning');
   }
 
   /**

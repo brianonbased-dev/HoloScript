@@ -73,17 +73,18 @@ export const SandboxExecutionTrait: TraitHandler<SandboxExecutionConfig> = {
   },
 
   compile(config: SandboxExecutionConfig, target: string): string {
+    const self = this as unknown as Record<string, (c: SandboxExecutionConfig) => string>;
     switch (config.sandbox_type) {
       case 'wasm':
-        return (this as any).compileWASM(config);
+        return self.compileWASM(config);
       case 'vm':
-        return (this as any).compileVM(config);
+        return self.compileVM(config);
       case 'worker':
-        return (this as any).compileWorker(config);
+        return self.compileWorker(config);
       case 'iframe':
-        return (this as any).compileIframe(config);
+        return self.compileIframe(config);
       default:
-        return (this as any).compileGeneric(config);
+        return self.compileGeneric(config);
     }
   },
 

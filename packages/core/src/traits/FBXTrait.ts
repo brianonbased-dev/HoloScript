@@ -319,7 +319,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
 
   onAttach(node: HSPlusNode, config: FBXConfig, context: TraitContext) {
     const state = createInitialState();
-    (node as any).__fbxState = state as FBXState;
+    node.__fbxState = state as FBXState;
 
     // Start loading if source is provided
     if (config.source) {
@@ -916,7 +916,7 @@ function clearBoneOverride(state: FBXState, boneName?: string): void {
  * Get FBX state from a node
  */
 export function getFBXState(node: HSPlusNode): FBXState | undefined {
-  return (node as any).__fbxState as FBXState | undefined;
+  return node.__fbxState as FBXState | undefined;
 }
 
 /**

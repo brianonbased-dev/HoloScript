@@ -66,18 +66,19 @@ export const EncryptionTrait: TraitHandler<EncryptionConfig> = {
   },
 
   compile(config: EncryptionConfig, target: string): string {
+    const self = this as unknown as Record<string, (config: EncryptionConfig) => string>;
     switch (target) {
       case 'unity':
-        return (this as any).compileUnity(config);
+        return self.compileUnity(config);
       case 'unreal':
-        return (this as any).compileUnreal(config);
+        return self.compileUnreal(config);
       case 'godot':
-        return (this as any).compileGodot(config);
+        return self.compileGodot(config);
       case 'web':
       case 'react-three-fiber':
-        return (this as any).compileWeb(config);
+        return self.compileWeb(config);
       default:
-        return (this as any).compileGeneric(config);
+        return self.compileGeneric(config);
     }
   },
 

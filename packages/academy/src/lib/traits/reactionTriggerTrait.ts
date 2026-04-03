@@ -154,7 +154,6 @@ export class ReactionTriggerTrait {
       this.start();
     }
 
-    console.log('[ReactionTriggerTrait] Initialized with', this.triggers.size, 'triggers');
   }
 
   /**
@@ -206,7 +205,6 @@ export class ReactionTriggerTrait {
     // Listen to Discord reaction events
     window.addEventListener('discord-reaction-trigger', this.handleReactionEvent as EventListener);
 
-    console.log('[ReactionTriggerTrait] Started listening for reactions');
   }
 
   /**
@@ -218,7 +216,6 @@ export class ReactionTriggerTrait {
       'discord-reaction-trigger',
       this.handleReactionEvent as EventListener
     );
-    console.log('[ReactionTriggerTrait] Stopped listening');
   }
 
   /**
@@ -235,7 +232,6 @@ export class ReactionTriggerTrait {
     const now = Date.now();
 
     if (now - lastTime < this.config.globalCooldown) {
-      console.log('[ReactionTriggerTrait] Global cooldown active, ignoring');
       return;
     }
 
@@ -269,8 +265,6 @@ export class ReactionTriggerTrait {
    * Execute trigger action
    */
   private executeTrigger(trigger: ReactionTrigger, reaction: DiscordReaction): void {
-    console.log('[ReactionTriggerTrait] Executing:', trigger.action, trigger.value);
-
     switch (trigger.action) {
       case 'pose':
         this.triggerPose(trigger.value);
@@ -303,7 +297,6 @@ export class ReactionTriggerTrait {
     }
 
     this.viralPoseTrait.triggerPose(poseId);
-    console.log('[ReactionTriggerTrait] Triggered pose:', poseId);
   }
 
   /**
@@ -316,7 +309,6 @@ export class ReactionTriggerTrait {
     }
 
     this.emojiReactionTrait.burst(5, emoji); // Burst 5 emojis
-    console.log('[ReactionTriggerTrait] Triggered emoji burst:', emoji);
   }
 
   /**
@@ -329,7 +321,6 @@ export class ReactionTriggerTrait {
     }
 
     this.emojiReactionTrait.reactToEvent(eventType);
-    console.log('[ReactionTriggerTrait] Triggered event:', eventType);
   }
 
   /**
@@ -371,11 +362,6 @@ export class ReactionTriggerTrait {
         });
         // Store as pending — the proximity system calls resolveProximityAnimation()
         this.activeAnimations.set(animationName, resolved);
-        console.log(
-          '[ReactionTriggerTrait] Animation queued for proximity check:',
-          animationName,
-          'radius:', resolved.proximityRadius
-        );
         break;
 
       case 'interaction':
@@ -388,10 +374,6 @@ export class ReactionTriggerTrait {
           trigger: 'interaction',
         });
         this.activeAnimations.set(animationName, resolved);
-        console.log(
-          '[ReactionTriggerTrait] Animation queued for interaction:',
-          animationName
-        );
         break;
 
       case 'timer': {
@@ -406,11 +388,6 @@ export class ReactionTriggerTrait {
         }, resolved.timerDelay);
 
         this.pendingTimers.set(animationName, timer);
-        console.log(
-          '[ReactionTriggerTrait] Animation scheduled:',
-          animationName,
-          'delay:', resolved.timerDelay, 'ms'
-        );
         break;
       }
 
@@ -458,7 +435,6 @@ export class ReactionTriggerTrait {
       }
     });
 
-    console.log('[ReactionTriggerTrait] Animation executing:', animationName, 'speed:', options.speed);
   }
 
   /**
@@ -514,7 +490,6 @@ export class ReactionTriggerTrait {
       });
     }
 
-    console.log('[ReactionTriggerTrait] Animation cancelled:', animationName);
   }
 
   /**
@@ -564,7 +539,6 @@ export class ReactionTriggerTrait {
    */
   attachViralPoseTrait(trait: ViralPoseTrait): void {
     this.viralPoseTrait = trait;
-    console.log('[ReactionTriggerTrait] Attached ViralPoseTrait');
   }
 
   /**
@@ -572,7 +546,6 @@ export class ReactionTriggerTrait {
    */
   attachEmojiReactionTrait(trait: EmojiReactionTrait): void {
     this.emojiReactionTrait = trait;
-    console.log('[ReactionTriggerTrait] Attached EmojiReactionTrait');
   }
 
   /**
@@ -586,7 +559,6 @@ export class ReactionTriggerTrait {
       cooldown,
     });
 
-    console.log('[ReactionTriggerTrait] Added trigger:', emoji, '→', action, value);
   }
 
   /**
@@ -594,7 +566,6 @@ export class ReactionTriggerTrait {
    */
   removeTrigger(emoji: string): void {
     this.triggers.delete(emoji);
-    console.log('[ReactionTriggerTrait] Removed trigger:', emoji);
   }
 
   /**

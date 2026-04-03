@@ -769,7 +769,9 @@ function playPlaceSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.2);
-  } catch {}
+  } catch {
+    // intentionally swallowed: audio may be unavailable or blocked by browser autoplay policy
+  }
 }
 function playDeleteSound() {
   try {
@@ -785,7 +787,9 @@ function playDeleteSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.25);
-  } catch {}
+  } catch {
+    // intentionally swallowed: audio may be unavailable or blocked by browser autoplay policy
+  }
 }
 function playBounceSound() {
   try {
@@ -800,7 +804,9 @@ function playBounceSound() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.12);
-  } catch {}
+  } catch {
+    // intentionally swallowed: audio may be unavailable or blocked by browser autoplay policy
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

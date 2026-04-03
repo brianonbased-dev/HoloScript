@@ -62,15 +62,16 @@ export const ZeroKnowledgeProofTrait: TraitHandler<ZeroKnowledgeProofConfig> = {
   },
 
   compile(config: ZeroKnowledgeProofConfig, target: string): string {
+    const self = this as unknown as Record<string, (c: ZeroKnowledgeProofConfig) => string>;
     switch (target) {
       case 'web':
       case 'react-three-fiber':
-        return (this as any).compileWeb(config);
+        return self.compileWeb(config);
       case 'solidity':
       case 'ethereum':
-        return (this as any).compileSolidity(config);
+        return self.compileSolidity(config);
       default:
-        return (this as any).compileGeneric(config);
+        return self.compileGeneric(config);
     }
   },
 

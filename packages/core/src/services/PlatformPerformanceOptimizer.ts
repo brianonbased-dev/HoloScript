@@ -432,8 +432,6 @@ export class PlatformPerformanceOptimizer {
   ): Promise<BenchmarkResult> {
     const iterations = this.getBenchmarkIterations();
 
-    console.log(`Running benchmark: ${name} (${iterations} iterations)...`);
-
     const result = await renderFunc(iterations);
 
     const fps = result.fps;

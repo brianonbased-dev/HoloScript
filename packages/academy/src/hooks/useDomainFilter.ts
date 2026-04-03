@@ -277,7 +277,9 @@ function saveFavorites(favs: Set<PanelTab>) {
   try {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...favs]));
-  } catch {}
+  } catch {
+    // intentionally swallowed: localStorage may be unavailable in private browsing or SSR
+  }
 }
 
 export interface UseDomainFilterReturn {
@@ -305,7 +307,9 @@ function loadDomainProfile(): DomainProfile {
       )
     )
       return saved;
-  } catch {}
+  } catch {
+    // intentionally swallowed: localStorage may be unavailable in private browsing or SSR
+  }
   return 'all';
 }
 
