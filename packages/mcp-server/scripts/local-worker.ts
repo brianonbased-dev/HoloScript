@@ -54,6 +54,8 @@ const memory = {
   messagesRead: 0,
   cycleCount: 0,
   knowledgeContributed: 0,
+  respondedMessageIds: new Set<string>(),
+  triedTaskIds: new Set<string>(),
 };
 
 // ── HTTP ──
@@ -157,13 +159,17 @@ async function contributeKnowledge(type: string, content: string, domain: string
 async function perceive() {
   const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
   const messages = await get(`${HOLOMESH_API}/team/${ROOM_ID}/messages?limit=5`, auth()).catch(() => ({ messages: [] }));
-  const gitStatus = perceiveShell('git status --short | head -20');
-  const recentCommits = perceiveShell('git log --oneline --since="4 hours ago" | head -10');
-  const todoCount = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
+  const gitStatus = perceiveShell('git status --short 2>/dev/null | head -20');
+  const recentCommits = perceiveShell('git log --oneline --since="4 hours ago" 2>/dev/null | head -10');
+  const todoCount = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
 
-  // Check for unread messages from other agents
+  // Check for UNREAD messages from other agents (skip ones we already responded to)
   const otherMessages = (messages.messages || [])
-    .filter((m: any) => m.fromAgentName !== AGENT_NAME && m.messageType !== 'equipment-load')
+    .filter((m: any) =>
+      m.fromAgentName !== AGENT_NAME &&
+      m.messageType !== 'equipment-load' &&
+      m.id && !memory.respondedMessageIds.has(m.id)
+    )
     .slice(0, 3);
 
   memory.messagesRead += otherMessages.length;
@@ -198,9 +204,10 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'derive', reasoning: `Board empty (${doneCount} done). Need to populate from source files.` };
   }
 
-  // Find a task this agent can handle
+  // Find a task this agent can handle (skip already-tried ones)
   const handleable = openTasks.filter((t: any) => {
     if (t.title?.startsWith('[report]') || t.title?.startsWith('[system]')) return false;
+    if (memory.triedTaskIds.has(t.id)) return false;
     if (t.priority < 3) return false;
     if (ROLE !== 'flex' && t.role && t.role !== ROLE && t.role !== 'flex') return false;
     return true;
@@ -221,6 +228,16 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'scan_todos', reasoning: `${todoCount} TODOs in studio — scan and report` };
   }
 
+  // Check done log for unverified tasks (audit duty)
+  if (memory.cycleCount % 3 === 0) {
+    return { action: 'audit_done', reasoning: 'Periodic audit — check done log for unverified tasks' };
+  }
+
+  // Clear tried tasks every 20 cycles so we can retry
+  if (memory.triedTaskIds.size > 0 && memory.cycleCount % 20 === 0) {
+    memory.triedTaskIds.clear();
+  }
+
   return { action: 'idle', reasoning: `${openTasks.length} open but none P3/handleable for ${ROLE} role` };
 }
 
@@ -233,15 +250,16 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
   switch (action) {
     case 'respond': {
       const msg = target as any;
+      memory.respondedMessageIds.add(msg.id);
       const response = await think(
         `You are ${AGENT_NAME}, a local GPU agent on a development team. ` +
-        `Another agent (${msg.fromAgentName}) said: "${msg.content}"\n\n` +
-        `Respond briefly and helpfully. You know: the team has ${memory.tasksCompleted} tasks done this session, ` +
-        `you're running on Ollama (${OLLAMA_MODEL}), and your role is ${ROLE}.`
+        `Another agent (${msg.fromAgentName}) said: "${msg.content?.slice(0, 200)}"\n\n` +
+        `Respond in ONE sentence. Be specific about what was said. ` +
+        `You know: team has done ${memory.tasksCompleted} tasks, you run on Ollama (${OLLAMA_MODEL}), role: ${ROLE}.`
       );
       if (response) {
         await sendMessage(`@${msg.fromAgentName} ${response}`);
-        console.log(`[agent] Responded to ${msg.fromAgentName}`);
+        console.log(`[agent] Responded to ${msg.fromAgentName}: ${response.slice(0, 60)}`);
       }
       break;
     }
@@ -263,6 +281,7 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     case 'work': {
       const task = target as any;
       memory.lastTask = task.title;
+      memory.triedTaskIds.add(task.id);
 
       // Claim
       const claimed = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/${task.id}`, { action: 'claim' }, auth(), 'PATCH');
@@ -314,6 +333,22 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
           console.log(`[agent] Scanned TODOs, contributed finding`);
         }
       }
+      break;
+    }
+
+    case 'audit_done': {
+      // Check done log for unverified tasks
+      try {
+        const audit = await get(`${HOLOMESH_API}/team/${ROOM_ID}/done/audit`, auth());
+        const unverified = audit?.unverified || 0;
+        const verified = audit?.verified || 0;
+        const rate = audit?.health?.verification_rate || 0;
+        if (unverified > 0) {
+          console.log(`[agent] Audit: ${verified} verified, ${unverified} unverified (${rate}% rate)`);
+          await sendMessage(`[${AGENT_NAME}] Done log audit: ${verified} verified, ${unverified} unverified (${rate}% verification rate). ${unverified > 10 ? 'Needs attention — many tasks have no commit proof.' : 'Acceptable.'}`);
+          await contributeKnowledge('pattern', `Done log verification rate: ${rate}%. ${verified} verified, ${unverified} unverified out of ${verified + unverified} total.`, 'team-health', ['audit', 'verification']);
+        }
+      } catch {}
       break;
     }
 
