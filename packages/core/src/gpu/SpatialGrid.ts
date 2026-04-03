@@ -93,8 +93,6 @@ export class SpatialGrid {
    * Initialize spatial grid buffers and pipelines
    */
   async initialize(): Promise<void> {
-    console.log('Creating spatial grid...');
-
     // Create shader module
     const shaderModule = this.device.createShaderModule({
       label: 'spatial-grid-shader',
@@ -115,13 +113,6 @@ export class SpatialGrid {
     // Create pipelines
     this.createPipelines(shaderModule);
 
-    console.log('✅ Spatial grid created:', {
-      cellSize: this.options.cellSize,
-      gridDimensions: this.options.gridDimensions,
-      totalCells: this.totalCells,
-      maxParticlesPerCell: this.options.maxParticlesPerCell,
-      memoryUsage: this.calculateMemoryUsage(),
-    });
   }
 
   /**
@@ -521,6 +512,5 @@ export class SpatialGrid {
     this.buildBindGroup = null;
     this.collisionBindGroup = null;
 
-    console.log('Spatial grid destroyed');
   }
 }

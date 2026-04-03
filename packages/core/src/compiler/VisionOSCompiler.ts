@@ -231,7 +231,7 @@ export class VisionOSCompiler extends CompilerBase {
   }
 
   private compileVisionOSDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -482,7 +482,7 @@ export class VisionOSCompiler extends CompilerBase {
 
     // Position, rotation, scale
     const pos = this.findObjProp(obj, 'position');
-    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos as any)}`);
+    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos)}`);
     const rot = this.findObjProp(obj, 'rotation');
     if (rot && Array.isArray(rot)) {
       // Convert degrees to radians for RealityKit
@@ -494,7 +494,7 @@ export class VisionOSCompiler extends CompilerBase {
       );
     }
     const scale = this.findObjProp(obj, 'scale');
-    if (scale) this.emit(`${varName}.scale = ${this.toSIMD3(scale as any)}`);
+    if (scale) this.emit(`${varName}.scale = ${this.toSIMD3(scale)}`);
 
     this.emit(`${parentVar}.addChild(${varName})`);
 
@@ -558,7 +558,7 @@ export class VisionOSCompiler extends CompilerBase {
     }
 
     const pos = audio.properties.find((p) => p.key === 'position')?.value;
-    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos as any)}`);
+    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos)}`);
 
     this.emit(`root.addChild(${varName})`);
   }
@@ -588,7 +588,7 @@ export class VisionOSCompiler extends CompilerBase {
     }
 
     const pos = zone.properties.find((p) => p.key === 'position')?.value;
-    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos as any)}`);
+    if (pos) this.emit(`${varName}.position = ${this.toSIMD3(pos)}`);
 
     this.emit(`// Zone handlers: ${zone.handlers?.map((h) => h.event).join(', ') || 'none'}`);
     this.emit(`root.addChild(${varName})`);
@@ -871,14 +871,14 @@ export class VisionOSCompiler extends CompilerBase {
     return name.replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
-  private toSIMD3(arr: any): string {
+  private toSIMD3(arr: HoloValue): string {
     if (Array.isArray(arr) && arr.length >= 3) {
       return `SIMD3<Float>(${arr[0]}, ${arr[1]}, ${arr[2]})`;
     }
     return `SIMD3<Float>(${arr}, ${arr}, ${arr})`;
   }
 
-  private toUIColor(value: any): string {
+  private toUIColor(value: HoloValue): string {
     if (typeof value === 'string' && value.startsWith('#')) {
       const hex = value.slice(1);
       const r = parseInt(hex.substring(0, 2), 16) / 255;

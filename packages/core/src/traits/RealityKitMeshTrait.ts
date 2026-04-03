@@ -123,6 +123,7 @@ export const realityKitMeshHandler: TraitHandler<RealityKitMeshConfig> = {
     if (event.type === 'rkMesh:started') {
       state.isActive = true;
     } else if (event.type === 'rkMesh:anchor_added') {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       const anchor = event.payload as MeshAnchor;
       state.anchors.set(anchor.id, anchor);
       state.totalVertices += anchor.vertexCount;

@@ -182,3 +182,5 @@ export interface TraitEvent {
   /** Arbitrary additional fields */
   [key: string]: unknown;
 }
+
+export type TraitEventPayload<T = unknown> = Record<string, unknown> & T;

@@ -128,8 +128,6 @@ export class GPUBufferManager {
    * Initialize GPU buffers
    */
   async initialize(): Promise<void> {
-    console.log(`Creating GPU buffers for ${this.particleCount} particles...`);
-
     // Create double-buffered storage buffers (ping-pong pattern)
     const positionsRead = this.createStorageBuffer(this.positionBufferSize, 'positions-read');
     const positionsWrite = this.createStorageBuffer(this.positionBufferSize, 'positions-write');
@@ -157,12 +155,6 @@ export class GPUBufferManager {
       uniforms,
     };
 
-    console.log('✅ GPU buffers created:', {
-      positionBufferSize: `${(this.positionBufferSize / 1024 / 1024).toFixed(2)} MB`,
-      velocityBufferSize: `${(this.velocityBufferSize / 1024 / 1024).toFixed(2)} MB`,
-      stateBufferSize: `${(this.stateBufferSize / 1024 / 1024).toFixed(2)} MB`,
-      totalSize: `${(((this.positionBufferSize + this.velocityBufferSize + this.stateBufferSize) * 2) / 1024 / 1024).toFixed(2)} MB`,
-    });
   }
 
   /**
@@ -189,7 +181,6 @@ export class GPUBufferManager {
     this.device.queue.writeBuffer(this.buffers.velocitiesRead, 0, data.velocities.buffer);
     this.device.queue.writeBuffer(this.buffers.statesRead, 0, data.states.buffer);
 
-    console.log(`✅ Uploaded ${this.particleCount} particles to GPU`);
   }
 
   /**
@@ -353,7 +344,6 @@ export class GPUBufferManager {
 
     this.buffers = null;
 
-    console.log('GPU buffers destroyed');
   }
 }
 

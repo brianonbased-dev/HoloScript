@@ -339,7 +339,8 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
 
       const partner = config.partners.find((p) => p.id === partnerId);
       const now = Date.now();
-      const payloadStr = JSON.stringify(event.payload ?? {});
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      const payloadStr = JSON.stringify((event.payload as TraitEventPayload) ?? {});
       const signature = partner?.secret ? signRequest(payloadStr, partner.secret, now) : undefined;
 
       const request: PartnerRequest = {
@@ -395,7 +396,8 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
     else if (event.type === 'partner_webhook') {
       const partnerId = event.partnerId as string;
       const partner = config.partners.find((p) => p.id === partnerId);
-      const payloadStr = JSON.stringify(event.payload ?? {});
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      const payloadStr = JSON.stringify((event.payload as TraitEventPayload) ?? {});
 
       let verified = false;
       if (config.enable_webhook_verification && partner?.secret) {

@@ -252,9 +252,9 @@ export class ReferenceGraph {
     }
 
     // Logic blocks - check for function definitions
-    if (node.type === 'logic' && (node as any).body) {
-      const body = (node as any).body;
-      if (body.functions) {
+    if (node.type === 'logic' && node.body) {
+      const body = node.body as Record<string, unknown>;
+      if (Array.isArray(body.functions)) {
         for (const func of body.functions) {
           this.addDefinition({
             name: func.name,
@@ -277,8 +277,9 @@ export class ReferenceGraph {
     }
 
     // Also check 'root' for top-level AST structures
-    if ((node as any).root && Array.isArray((node as any).root.children)) {
-      for (const child of (node as any).root.children) {
+    const root = node.root as ASTNode | undefined;
+    if (root && Array.isArray(root.children)) {
+      for (const child of root.children) {
         this.collectDefinitions(child, filePath, null);
       }
     }
@@ -289,8 +290,8 @@ export class ReferenceGraph {
    */
   private collectReferences(node: ASTNode, filePath: string, parent: string | null): void {
     // Template usage: `using "TemplateName"`
-    if ((node as any).template || (node as any).using) {
-      const templateName = (node as any).template || (node as any).using;
+    if (node.template || node.using) {
+      const templateName = node.template || node.using;
       if (typeof templateName === 'string') {
         this.addReference({
           name: templateName,
@@ -345,8 +346,8 @@ export class ReferenceGraph {
     }
 
     // Logic block references
-    if (node.type === 'logic' && (node as any).body) {
-      this.scanLogicBlockForReferences((node as any).body, filePath, node.loc?.start.line || 1);
+    if (node.type === 'logic' && node.body) {
+      this.scanLogicBlockForReferences(node.body as Record<string, unknown>, filePath, node.loc?.start.line || 1);
     }
 
     // Directives may reference properties/functions
@@ -361,8 +362,9 @@ export class ReferenceGraph {
     }
 
     // Check root for top-level
-    if ((node as any).root && Array.isArray((node as any).root.children)) {
-      for (const child of (node as any).root.children) {
+    const refRoot = node.root as ASTNode | undefined;
+    if (refRoot && Array.isArray(refRoot.children)) {
+      for (const child of refRoot.children) {
         this.collectReferences(child, filePath, null);
       }
     }

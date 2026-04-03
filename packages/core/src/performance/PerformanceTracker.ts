@@ -291,7 +291,6 @@ export class PerformanceTracker {
       this.nodeStorage.write('baseline.json', json);
     }
 
-    console.log(`Baseline metrics saved (${this.currentMetrics.length} metrics)`);
   }
 
   /**

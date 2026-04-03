@@ -3522,6 +3522,8 @@ export class HoloCompositionParser {
       'TRANSITION',
       'ELEMENT',
       'ON_ERROR',
+      'THEME',
+      'DIALOGUE_TREE',
       // Spatial primitives
       'SPAWN_GROUP',
       'WAYPOINTS',

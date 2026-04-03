@@ -207,7 +207,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
       const payload = (event as Record<string, unknown>).payload || context.getState();
 
       state.client
-        .publish(topic, config.serializeJson ? payload : String(payload), {
+        .publish((topic as string), config.serializeJson ? payload : String(payload), {
           retain: config.retain,
           qos: config.qos,
         })

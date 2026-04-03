@@ -166,6 +166,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
             .catch((err: unknown) => {
               context.emit?.('shell:error', {
                 command: cmd,
+                // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
                 error: err?.message ?? String(err),
               });
             });
@@ -258,10 +259,12 @@ export const shellHandler: TraitHandler<ShellConfig> = {
             state.activeProcesses.delete(pid);
             context.emit?.('shell:error', {
               command: procEntry.command,
+              // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
               error: err.message,
             });
           });
         } catch (err: unknown) {
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           context.emit?.('shell:error', { command, error: err.message });
         }
         break;

@@ -56,7 +56,9 @@ export class SpatialWebSocketTransport extends NetworkTransport {
           if (this.onInboundState) {
             this.onInboundState(data);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('[SpatialWebSocketTransport] Failed to process inbound message:', e);
+        }
       };
 
       this.ws.onclose = () => {
@@ -64,7 +66,9 @@ export class SpatialWebSocketTransport extends NetworkTransport {
         super.disconnect(peerId);
       };
 
-      this.ws.onerror = (error) => {};
+      this.ws.onerror = (error) => {
+        console.warn('[SpatialWebSocketTransport] WebSocket error:', error);
+      };
 
       return true;
     } catch (e) {

@@ -992,11 +992,6 @@ export class WebGPURenderer {
     this.xrBinding = binding;
     this.xrProjectionLayer = layer;
 
-    if (session) {
-      console.log('WebGPURenderer: Switched to XR Mode');
-    } else {
-      console.log('WebGPURenderer: Switched to Inline Mode');
-    }
   }
 
   /**

@@ -172,10 +172,6 @@ export class HoloScriptAgentRuntime {
       | (MethodNode & RuntimeDirective)
       | undefined;
 
-    console.log(
-      `[AGENT_DEBUG] Executing action ${actionName} for ${this.agentNode.name}. Action found: ${!!action}`
-    );
-
     if (!action) {
       // Fallback: check if it's a built-in or global function
       return this.parentRuntime.callFunction(actionName, args);
@@ -215,12 +211,8 @@ export class HoloScriptAgentRuntime {
     }
 
     try {
-      console.log(
-        `[AGENT_DEBUG] Action body type: ${Array.isArray(action.body) ? 'Array' : typeof action.body}`
-      );
       // Check if action.body is HoloStatement[]
       if (Array.isArray(action.body)) {
-        console.log(`[AGENT_DEBUG] Executing as HoloProgram with ${action.body.length} statements`);
         const results = await this.parentRuntime.executeHoloProgram(action.body, agentScope);
         const success = results.every((r: ExecutionResult) => r.success);
         return {
@@ -229,7 +221,6 @@ export class HoloScriptAgentRuntime {
           error: results.find((r: ExecutionResult) => !r.success)?.error,
         };
       } else {
-        console.log(`[AGENT_DEBUG] Executing as Legacy Program`);
         const results = await this.parentRuntime.executeProgram(action.body, 1);
         const success = results.every((r) => r.success);
         return {

@@ -163,6 +163,10 @@ export interface PromptExtractorConfig {
   extensions: string[];
   /** Directories to exclude from scanning */
   excludeDirs: string[];
+  /** Maximum total prompts to collect before stopping (default: 10000) */
+  maxPrompts: number;
+  /** Maximum lines to scan when extracting a function body (default: 500) */
+  maxBodyScanLines: number;
 }
 
 /** Statistics about the extraction run */
@@ -227,6 +231,8 @@ const DEFAULT_CONFIG: PromptExtractorConfig = {
   maxInstructionLength: 500,
   extensions: ['.ts'],
   excludeDirs: ['node_modules', 'dist', 'build', '.git', 'coverage', '.stryker-tmp', '.turbo'],
+  maxPrompts: 10_000,
+  maxBodyScanLines: 500,
 };
 
 // =============================================================================
@@ -456,29 +462,46 @@ export class GRPOPromptExtractor {
       this.config.excludeDirs
     );
 
-    // 2. Extract prompts from all 4 sources
+    // Partition files once to avoid redundant filtering
+    const testFiles: string[] = [];
+    const nonTestFiles: string[] = [];
+    for (const f of allFiles) {
+      if (f.includes('.test.') || f.includes('.spec.') || f.includes('__tests__')) {
+        testFiles.push(f);
+      } else {
+        nonTestFiles.push(f);
+      }
+    }
+
+    // 2. Extract prompts from all 4 sources, reading each file at most once
+    //    per extraction method, with a global cap to prevent unbounded growth.
     const rawPrompts: GRPOPrompt[] = [];
+    const cap = this.config.maxPrompts;
 
     // Source A: TODO/FIXME/HACK comments
-    const todoPrompts = await this.extractTodoComments(allFiles);
+    const todoPrompts = await this.extractTodoComments(allFiles, cap);
     rawPrompts.push(...todoPrompts);
 
-    // Source B: Empty/stub implementations
-    const stubPrompts = await this.extractStubImplementations(allFiles);
+    // Source B: Empty/stub implementations (skip test files)
+    const stubPrompts = await this.extractStubImplementations(
+      nonTestFiles,
+      cap - rawPrompts.length
+    );
     rawPrompts.push(...stubPrompts);
 
     // Source C: Failing/skipped tests
-    const testFiles = allFiles.filter(
-      (f) => f.includes('.test.') || f.includes('.spec.') || f.includes('__tests__')
+    const skippedPrompts = await this.extractSkippedTests(
+      testFiles,
+      cap - rawPrompts.length
     );
-    const skippedPrompts = await this.extractSkippedTests(testFiles);
     rawPrompts.push(...skippedPrompts);
 
     // Source D: Low-coverage functions (exported symbols without test files)
-    const nonTestFiles = allFiles.filter(
-      (f) => !f.includes('.test.') && !f.includes('.spec.') && !f.includes('__tests__')
+    const coveragePrompts = await this.extractLowCoverageExports(
+      nonTestFiles,
+      testFiles,
+      cap - rawPrompts.length
     );
-    const coveragePrompts = await this.extractLowCoverageExports(nonTestFiles, testFiles);
     rawPrompts.push(...coveragePrompts);
 
     // 3. Deduplicate using ROUGE-L
@@ -511,11 +534,15 @@ export class GRPOPromptExtractor {
   /**
    * Parse all .ts files for TODO, FIXME, and HACK comments.
    * Extract surrounding function context and format as actionable instructions.
+   *
+   * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
-  async extractTodoComments(files: string[]): Promise<GRPOPrompt[]> {
+  async extractTodoComments(files: string[], cap = Infinity): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
     for (const filePath of files) {
+      if (prompts.length >= cap) break;
+
       let content: string;
       try {
         content = await this.fs.readFile(filePath);
@@ -526,6 +553,8 @@ export class GRPOPromptExtractor {
       const annotations = this.parseTodoComments(content);
 
       for (const ann of annotations) {
+        if (prompts.length >= cap) break;
+
         const actionVerb = this.todoActionVerb(ann.type);
         const instruction = truncate(
           `${actionVerb} ${ann.text} in ${this.fs.basename(filePath)}:${ann.functionName}`,
@@ -551,6 +580,9 @@ export class GRPOPromptExtractor {
           symbolName: ann.functionName,
         });
       }
+
+      // Release content reference eagerly for GC
+      content = '';
     }
 
     return prompts;
@@ -594,19 +626,14 @@ export class GRPOPromptExtractor {
   /**
    * Find functions with empty bodies, single-line returns, or
    * `throw new Error("not implemented")`.
+   *
+   * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
-  async extractStubImplementations(files: string[]): Promise<GRPOPrompt[]> {
+  async extractStubImplementations(files: string[], cap = Infinity): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
     for (const filePath of files) {
-      // Skip test files
-      if (
-        filePath.includes('.test.') ||
-        filePath.includes('.spec.') ||
-        filePath.includes('__tests__')
-      ) {
-        continue;
-      }
+      if (prompts.length >= cap) break;
 
       let content: string;
       try {
@@ -618,6 +645,8 @@ export class GRPOPromptExtractor {
       const stubs = this.parseStubFunctions(content);
 
       for (const stub of stubs) {
+        if (prompts.length >= cap) break;
+
         const instruction = truncate(
           `Complete the implementation of ${stub.name} in ${this.fs.basename(filePath)}`,
           this.config.maxInstructionLength
@@ -638,6 +667,9 @@ export class GRPOPromptExtractor {
           symbolName: stub.name,
         });
       }
+
+      // Release content reference eagerly for GC
+      content = '';
     }
 
     return prompts;
@@ -714,11 +746,15 @@ export class GRPOPromptExtractor {
 
   /**
    * Find test files with skipped or todo tests.
+   *
+   * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
-  async extractSkippedTests(testFiles: string[]): Promise<GRPOPrompt[]> {
+  async extractSkippedTests(testFiles: string[], cap = Infinity): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
     for (const filePath of testFiles) {
+      if (prompts.length >= cap) break;
+
       let content: string;
       try {
         content = await this.fs.readFile(filePath);
@@ -729,6 +765,8 @@ export class GRPOPromptExtractor {
       const skipped = this.parseSkippedTests(content);
 
       for (const skip of skipped) {
+        if (prompts.length >= cap) break;
+
         const instruction = truncate(
           `Write the test implementation for "${skip.description}" in ${this.fs.basename(filePath)}`,
           this.config.maxInstructionLength
@@ -753,6 +791,9 @@ export class GRPOPromptExtractor {
           symbolName: skip.description,
         });
       }
+
+      // Release content reference eagerly for GC
+      content = '';
     }
 
     return prompts;
@@ -809,10 +850,13 @@ export class GRPOPromptExtractor {
   /**
    * Cross-reference exported functions against test files to find
    * symbols that lack corresponding test coverage.
+   *
+   * @param cap Maximum number of prompts to collect (prevents unbounded growth)
    */
   async extractLowCoverageExports(
     sourceFiles: string[],
-    testFiles: string[]
+    testFiles: string[],
+    cap = Infinity
   ): Promise<GRPOPrompt[]> {
     const prompts: GRPOPrompt[] = [];
 
@@ -820,6 +864,8 @@ export class GRPOPromptExtractor {
     const testedSymbols = await this.collectTestedSymbols(testFiles);
 
     for (const filePath of sourceFiles) {
+      if (prompts.length >= cap) break;
+
       let content: string;
       try {
         content = await this.fs.readFile(filePath);
@@ -830,6 +876,8 @@ export class GRPOPromptExtractor {
       const exports = this.parseExportedSymbols(content);
 
       for (const exp of exports) {
+        if (prompts.length >= cap) break;
+
         // Check if any test file references this symbol
         if (testedSymbols.has(exp.symbolName)) continue;
 
@@ -865,6 +913,9 @@ export class GRPOPromptExtractor {
           symbolName: exp.symbolName,
         });
       }
+
+      // Release content reference eagerly for GC
+      content = '';
     }
 
     return prompts;
@@ -919,6 +970,9 @@ export class GRPOPromptExtractor {
           }
         }
       }
+
+      // Release content reference eagerly for GC
+      content = '';
     }
 
     return symbols;
@@ -1149,6 +1203,9 @@ export class GRPOPromptExtractor {
   /**
    * Extract the body of a function starting at the given line index.
    * Returns the body text and end line, or null if no body is found.
+   *
+   * Bounded to `maxBodyScanLines` to prevent unbounded memory growth
+   * when parsing malformed files with unmatched braces.
    */
   extractFunctionBody(
     lines: string[],
@@ -1174,10 +1231,14 @@ export class GRPOPromptExtractor {
       return null;
     }
 
-    // Find matching closing brace
+    // Find matching closing brace, bounded to prevent scanning entire files
+    const scanLimit = Math.min(
+      lines.length,
+      braceStart + this.config.maxBodyScanLines
+    );
     let depth = 0;
     const bodyLines: string[] = [];
-    for (let i = braceStart; i < lines.length; i++) {
+    for (let i = braceStart; i < scanLimit; i++) {
       for (const ch of lines[i]) {
         if (ch === '{') depth++;
         if (ch === '}') depth--;

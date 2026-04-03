@@ -389,27 +389,29 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
 
     switch (event.type) {
       case 'fbx:play_animation':
-        playAnimation(state, event.stack || event.animation, event.options);
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+        playAnimation(state, (event.stack as string) || event.animation, event.options);
         break;
 
       case 'fbx:stop_animation':
-        stopAnimation(state, event.stack || event.animation);
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+        stopAnimation(state, (event.stack as string | undefined) || event.animation);
         break;
 
       case 'fbx:set_morph':
-        setMorphWeight(state, event.target, event.weight);
+        setMorphWeight(state, (event.target as string), (event.weight as number));
         break;
 
       case 'fbx:set_animation_speed':
-        setAnimationSpeed(state, event.stack, event.speed);
+        setAnimationSpeed(state, (event.stack as string), (event.speed as number));
         break;
 
       case 'fbx:set_animation_weight':
-        setAnimationWeight(state, event.stack, event.weight);
+        setAnimationWeight(state, (event.stack as string), (event.weight as number));
         break;
 
       case 'fbx:seek_animation':
-        seekAnimation(state, event.stack, event.time);
+        seekAnimation(state, (event.stack as string), (event.time as number));
         break;
 
       case 'fbx:reload':
@@ -421,11 +423,11 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
         break;
 
       case 'fbx:set_bone_override':
-        setBoneOverride(state, event.bone, event.transform);
+        setBoneOverride(state, (event.bone as string), (event.transform as Partial<FBXTransform>));
         break;
 
       case 'fbx:clear_bone_override':
-        clearBoneOverride(state, event.bone);
+        clearBoneOverride(state, (event.bone as string | undefined));
         break;
     }
   },

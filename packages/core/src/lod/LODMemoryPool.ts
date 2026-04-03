@@ -249,7 +249,6 @@ export class LODMemoryPool {
     this.updateStatistics();
 
     const duration = performance.now() - startTime;
-    console.log(`[MemoryPool] Defragmentation completed in ${duration.toFixed(2)}ms`);
   }
 
   /**

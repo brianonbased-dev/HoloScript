@@ -418,7 +418,6 @@ export class HumanoidLoader {
           (parser: unknown) => new VRMLoaderPlugin(parser as any)
         );
         this.vrmLoaderPlugin = VRMLoaderPlugin;
-        console.log('[HumanoidLoader] VRM support enabled');
       } catch {
         console.warn('[HumanoidLoader] VRM plugin not available, VRM-specific features disabled');
       }
@@ -430,12 +429,10 @@ export class HumanoidLoader {
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
         (this.gltfLoader as GLTFLoaderLike).setDRACOLoader(dracoLoader);
-        console.log('[HumanoidLoader] Draco compression support enabled');
       } catch {
         console.warn('[HumanoidLoader] Draco loader not available');
       }
 
-      console.log('[HumanoidLoader] Initialized successfully');
     } catch (error) {
       console.error('[HumanoidLoader] Failed to initialize:', error);
       throw new Error('HumanoidLoader initialization failed. Ensure Three.js is available.');

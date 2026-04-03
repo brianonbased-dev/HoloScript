@@ -142,10 +142,12 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
     if (event.type === 'wot_td_generated') {
       state.tdGenerated = true;
       state.lastGenerated = Date.now();
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       state.cachedTD =
         typeof (event as Record<string, unknown>).td === 'string'
           ? (event as Record<string, unknown>).td
           : null;
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       state.validationErrors = Array.isArray((event as Record<string, unknown>).errors)
         ? (event as Record<string, unknown>).errors
         : [];

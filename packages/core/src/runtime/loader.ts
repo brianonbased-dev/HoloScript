@@ -38,7 +38,6 @@ export class ChunkLoader {
     try {
       const response = await fetch(this.options.manifestUrl);
       this.manifest = await response.json();
-      console.log('[ChunkLoader] Manifest loaded', this.manifest);
     } catch (e) {
       console.error('[ChunkLoader] Failed to load manifest', e);
     }
@@ -70,8 +69,6 @@ export class ChunkLoader {
     if (this.loadedChunks.has(chunkId) || this.loadingChunks.has(chunkId)) return;
 
     this.loadingChunks.add(chunkId);
-    console.log(`[ChunkLoader] Loading chunk: ${chunkId}`);
-
     try {
       const info = this.manifest.chunks[chunkId];
       const url = this.options.baseUrl ? `${this.options.baseUrl}/${info.file}` : info.file;
@@ -83,7 +80,6 @@ export class ChunkLoader {
       await this.integrateChunk(chunkData);
 
       this.loadedChunks.add(chunkId);
-      console.log(`[ChunkLoader] Chunk loaded and integrated: ${chunkId}`);
     } catch (e) {
       console.error(`[ChunkLoader] Failed to load chunk ${chunkId}`, e);
     } finally {

@@ -45,7 +45,6 @@ export class KeyboardSystem {
         this.setCursorVisible(nodeId, true);
         this.updateCursorVisuals(nodeId);
 
-        console.log(`[KeyboardSystem] Focused input: ${nodeId} (Cursor: ${this.cursorIndex})`);
       }
     }
   }

@@ -152,7 +152,9 @@ export default ${safeName}Component;
         for (const [key, value] of Object.entries(parsedAttrs)) {
           props += ` ${key}="${value}"`;
         }
-      } catch (e) {}
+      } catch (e) {
+        // Intentionally swallowed: invalid theme attributes JSON should not break rendering
+      }
     }
 
     // Interactive props
@@ -325,7 +327,9 @@ export default ${safeName}Component;
         for (const [key, value] of Object.entries(parsedAttrs)) {
           props += ` ${key}="${value}"`;
         }
-      } catch (e) {}
+      } catch (e) {
+        // Intentionally swallowed: invalid theme attributes JSON should not break rendering
+      }
     }
 
     // Input attributes

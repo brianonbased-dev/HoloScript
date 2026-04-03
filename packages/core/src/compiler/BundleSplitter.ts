@@ -33,32 +33,32 @@ export class BundleSplitter {
    */
   public analyze(ast: ASTProgram): SplitPoint[] {
     this.splitPoints = [];
-    this.traverse(ast.root as any);
+    this.traverse(ast.root as HSPlusNode);
     return this.splitPoints;
   }
 
   private traverse(node: HSPlusNode) {
     // 1. Check for dynamic imports in `logic` blocks
-    if (node.type === 'logic' && (node as any).body) {
-      const body = (node as any).body;
+    if (node.type === 'logic' && node.body) {
+      const body = node.body as Record<string, unknown>;
 
-      // Functions
-      if (body.functions) {
-        for (const func of body.functions) {
+      const functions = body.functions as Array<{ name: string; body?: string }> | undefined;
+      if (functions) {
+        for (const func of functions) {
           if (func.body) this.scanStringForImports(func.body, `func_${func.name}`);
         }
       }
 
-      // Event Handlers
-      if (body.eventHandlers) {
-        for (const handler of body.eventHandlers) {
+      const eventHandlers = body.eventHandlers as Array<{ event: string; body?: string }> | undefined;
+      if (eventHandlers) {
+        for (const handler of eventHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `event_${handler.event}`);
         }
       }
 
-      // Tick Handlers
-      if (body.tickHandlers) {
-        for (const handler of body.tickHandlers) {
+      const tickHandlers = body.tickHandlers as Array<{ interval: string; body?: string }> | undefined;
+      if (tickHandlers) {
+        for (const handler of tickHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `tick_${handler.interval}`);
         }
       }
@@ -106,7 +106,7 @@ export class BundleSplitter {
     // This logic depends on how the parser represents dynamic imports.
     // Often it's a CallExpression with callee.name === 'import'
     // Or a specific node type.
-    if (node.type === 'call_expression' && (node as any).callee === 'import') {
+    if (node.type === 'call_expression' && (node as unknown as Record<string, unknown>).callee === 'import') {
       return true;
     }
     // As per HoloScript AST, checking if we have a specific node for this
@@ -114,8 +114,8 @@ export class BundleSplitter {
   }
 
   private extractImportPath(node: HSPlusNode): string | null {
-    const args = (node as any).arguments;
-    const source = (node as any).source;
+    const args = node.arguments;
+    const source = (node as unknown as Record<string, unknown>).source;
 
     // 1. Property access pattern: node.source?.value (e.g. ESTree-style ImportExpression)
     if (source != null) {

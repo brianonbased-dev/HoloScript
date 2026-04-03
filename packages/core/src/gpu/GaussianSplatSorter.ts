@@ -178,12 +178,6 @@ export class GaussianSplatSorter {
       return;
     }
 
-    console.log('Initializing GaussianSplatSorter...', {
-      maxSplats: this.options.maxSplats,
-      workgroupSize: this.options.workgroupSize,
-      elementsPerThread: this.options.elementsPerThread,
-    });
-
     // Create shader modules with cross-browser error handling
     await this.createShaderModules();
 
@@ -198,10 +192,6 @@ export class GaussianSplatSorter {
 
     this.initialized = true;
 
-    console.log('GaussianSplatSorter initialized:', {
-      memoryUsage: `${(this.getMemoryUsage() / 1024 / 1024).toFixed(2)} MB`,
-      compressionRatio: `${((1 - BYTES_PER_COMPRESSED_SPLAT / BYTES_PER_RAW_SPLAT) * 100).toFixed(0)}% reduction`,
-    });
   }
 
   /**
@@ -460,9 +450,6 @@ export class GaussianSplatSorter {
       count * BYTES_PER_RAW_SPLAT
     );
 
-    console.log(
-      `Uploaded ${count} splats (${((count * BYTES_PER_RAW_SPLAT) / 1024 / 1024).toFixed(2)} MB)`
-    );
   }
 
   // ===========================================================================
@@ -882,7 +869,6 @@ export class GaussianSplatSorter {
 
     this.initialized = false;
 
-    console.log('GaussianSplatSorter destroyed');
   }
 }
 

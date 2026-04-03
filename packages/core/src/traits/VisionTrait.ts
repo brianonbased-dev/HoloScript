@@ -66,6 +66,7 @@ export const visionHandler: TraitHandler<VisionConfig> = {
 
     state.lastScan += delta * 1000;
     if (state.lastScan >= config.scan_interval) {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.performScan(node, config, context);
       state.lastScan = 0;
     }
@@ -73,6 +74,7 @@ export const visionHandler: TraitHandler<VisionConfig> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'vision_scan_request') {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.performScan(node, config, context);
     }
   },

@@ -118,6 +118,7 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
   // and the LipSyncTrait would receive the audio stream or pre-calculated phonemes.
 
   // Emit event for runtime to play audio
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   node.emit?.('vocalize', {
     buffer: audioBuffer,
     text: request.text,

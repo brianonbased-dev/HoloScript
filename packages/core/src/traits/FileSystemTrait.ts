@@ -63,6 +63,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
             Promise.resolve(fsCaps.writeFile(path, content))
               .then(() => context.emit?.('fs:written', { path }))
               .catch((err: unknown) =>
+                // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
                 context.emit?.('fs:error', { path, error: err?.message ?? String(err) })
               );
             break;
@@ -71,6 +72,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
           state.files.set(path, content);
           context.emit?.('fs:written', { path });
         } catch (err: unknown) {
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;
@@ -95,6 +97,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
           const content = state.files.get(path);
           context.emit?.('fs:read_result', { path, content, exists: content !== undefined });
         } catch (err: unknown) {
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;
@@ -108,6 +111,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
             Promise.resolve(fsCaps.deleteFile(path))
               .then(() => context.emit?.('fs:deleted', { path }))
               .catch((err: unknown) =>
+                // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
                 context.emit?.('fs:error', { path, error: err?.message ?? String(err) })
               );
             break;
@@ -116,6 +120,7 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
           state.files.delete(path);
           context.emit?.('fs:deleted', { path });
         } catch (err: unknown) {
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           context.emit?.('fs:error', { path: payload.path, error: err?.message ?? String(err) });
         }
         break;

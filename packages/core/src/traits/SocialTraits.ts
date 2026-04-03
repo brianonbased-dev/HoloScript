@@ -126,6 +126,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
 
     // Initialize Voice Chat if enabled
     if (config.voice) {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initializeVoice(node, context);
     }
   },

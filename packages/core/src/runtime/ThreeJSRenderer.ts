@@ -260,7 +260,6 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       // Load composition into scene
       this.loadComposition();
 
-      console.log('[ThreeJSRenderer] Initialized successfully');
     } catch (error) {
       console.error('[ThreeJSRenderer] Failed to initialize:', error);
     }
@@ -362,7 +361,6 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     this.isRunning = true;
     this.clock?.start();
     this.animate();
-    console.log('[ThreeJSRenderer] Started rendering loop');
   }
 
   /**
@@ -376,7 +374,6 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       this.animationFrameId = undefined;
     }
     this.clock?.stop();
-    console.log('[ThreeJSRenderer] Stopped rendering loop');
   }
 
   /**
@@ -1294,6 +1291,5 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       this.renderer.dispose();
     }
 
-    console.log('[ThreeJSRenderer] Disposed');
   }
 }

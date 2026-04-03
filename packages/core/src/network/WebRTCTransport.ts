@@ -279,8 +279,6 @@ export class WebRTCTransport {
         this.signalingWs = new WebSocket(this.config.signalingServerUrl);
 
         this.signalingWs.onopen = () => {
-          console.log(`✓ WebRTC signaling connected to ${this.config.signalingServerUrl}`);
-
           // Announce presence in room
           this.signalingWs?.send(
             JSON.stringify({

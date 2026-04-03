@@ -75,8 +75,6 @@ export class ComputePipeline {
    * Initialize compute pipeline and bind groups
    */
   async initialize(): Promise<void> {
-    console.log('Creating compute pipeline...');
-
     // Create shader module from WGSL code
     const shaderModule = this.device.createShaderModule({
       label: 'particle-physics-shader',
@@ -166,12 +164,6 @@ export class ComputePipeline {
     const particleCount = this.bufferManager.getParticleCount();
     this.workgroupsX = Math.ceil(particleCount / this.options.workgroupSize);
 
-    console.log('✅ Compute pipeline created:', {
-      particleCount,
-      workgroupSize: this.options.workgroupSize,
-      workgroupsX: this.workgroupsX,
-      threadsTotal: this.workgroupsX * this.options.workgroupSize,
-    });
   }
 
   /**
@@ -278,7 +270,6 @@ export class ComputePipeline {
     uniforms: UniformData,
     onProgress?: (step: number, total: number) => void
   ): Promise<void> {
-    console.log(`Running ${steps} simulation steps...`);
     const startTime = performance.now();
 
     for (let i = 0; i < steps; i++) {
@@ -289,15 +280,6 @@ export class ComputePipeline {
       }
     }
 
-    const elapsed = performance.now() - startTime;
-    const avgStepTime = elapsed / steps;
-
-    console.log(`✅ Simulation complete:`, {
-      steps,
-      elapsed: `${elapsed.toFixed(2)}ms`,
-      avgStepTime: `${avgStepTime.toFixed(2)}ms`,
-      realtime: `${(1000 / avgStepTime).toFixed(1)}x`,
-    });
   }
 
   /**
@@ -325,7 +307,6 @@ export class ComputePipeline {
     this.bindGroupLayout = null;
     this.bindGroup = null;
 
-    console.log('Compute pipeline destroyed');
   }
 }
 

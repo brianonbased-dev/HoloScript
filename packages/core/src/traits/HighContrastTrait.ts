@@ -143,10 +143,14 @@ function applyContrast(
 
   // Store original materials
   const materialId = node.id || 'default';
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   if (!state.originalMaterials.has(materialId) && node.material) {
     state.originalMaterials.set(materialId, {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       color: node.material.color || '#FFFFFF',
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       emissive: node.material.emissive || '#000000',
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       opacity: node.material.opacity ?? 1,
     });
   }

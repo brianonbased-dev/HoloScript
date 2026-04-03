@@ -132,7 +132,6 @@ export class CircuitBreaker {
       this.successCount++;
       if (this.successCount >= this.config.successThreshold) {
         this.state = CircuitBreakerState.CLOSED;
-        console.log('Circuit breaker CLOSED - service recovered');
       }
     }
   }
@@ -147,7 +146,6 @@ export class CircuitBreaker {
 
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.state = CircuitBreakerState.OPEN;
-      console.log('Circuit breaker OPEN - service still failing');
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitBreakerState.OPEN;
       console.error(`Circuit breaker OPEN after ${this.failureCount} failures: ${error.message}`);
@@ -362,9 +360,6 @@ export async function fallbackChain<T>(strategies: Array<() => Promise<T>>): Pro
   for (let i = 0; i < strategies.length; i++) {
     try {
       const result = await strategies[i]();
-      if (i > 0) {
-        console.log(`Fallback strategy ${i + 1} succeeded`);
-      }
       return result;
     } catch (error) {
       lastError = error as Error;

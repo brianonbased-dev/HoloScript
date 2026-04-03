@@ -132,7 +132,6 @@ export class PerformanceTelemetry {
       }, this.exportIntervalMs);
     }
 
-    console.log('Performance monitoring started');
   }
 
   /**
@@ -148,7 +147,6 @@ export class PerformanceTelemetry {
       this.exportInterval = null;
     }
 
-    console.log('Performance monitoring stopped');
   }
 
   /**

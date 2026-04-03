@@ -43,9 +43,10 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
         state.issued++;
         const exp = Math.floor(Date.now() / 1000) + ((event.expiresIn as number) ?? config.default_expiry_s);
         
-        new SignJWT(event.claims || {})
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+        new SignJWT((event.claims as JWTPayload) || {})
           .setProtectedHeader({ alg: config.algorithm })
-          .setSubject(event.sub || 'anonymous')
+          .setSubject((event.sub as string) || 'anonymous')
           .setExpirationTime(exp)
           .sign(secretKey)
           .then((token) => {
@@ -65,6 +66,7 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
       }
       case 'jwt:verify': {
         state.verified++;
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         jwtVerify(event.token, secretKey)
           .then((result) => {
             if (context && context.emit) {

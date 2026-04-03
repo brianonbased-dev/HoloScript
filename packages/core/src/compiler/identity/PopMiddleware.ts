@@ -270,10 +270,6 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
       }
 
       // Signature verified successfully
-      console.log(
-        `[POP_MIDDLEWARE] PoP verified: ${tokenResult.payload.agent_role} (kid: ${metadata.keyid})`
-      );
-
       next();
     } catch (error: any) {
       if (onError) {

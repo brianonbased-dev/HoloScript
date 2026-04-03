@@ -835,9 +835,6 @@ export class GLTFExporter {
     this.compressionStats = compressor.getStats();
 
     // Log compression report in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(compressor.getCompressionReport());
-    }
   }
 
   /**

@@ -51,7 +51,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
       );
     }
     this.weatherProviders.set(provider.id, provider);
-    console.log(`[HololandRegistry] Registered weather provider: ${provider.id}`);
   }
 
   getWeatherProviders(): IWeatherProvider[] {
@@ -67,7 +66,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     if (provider) {
       provider.dispose();
       this.weatherProviders.delete(id);
-      console.log(`[HololandRegistry] Unregistered weather provider: ${id}`);
     }
   }
 
@@ -82,7 +80,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
       );
     }
     this.eventsProviders.set(provider.id, provider);
-    console.log(`[HololandRegistry] Registered events provider: ${provider.id}`);
   }
 
   getEventsProviders(): IEventsProvider[] {
@@ -98,7 +95,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     if (provider) {
       provider.dispose();
       this.eventsProviders.delete(id);
-      console.log(`[HololandRegistry] Unregistered events provider: ${id}`);
     }
   }
 
@@ -113,7 +109,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
       );
     }
     this.inventoryProviders.set(provider.id, provider);
-    console.log(`[HololandRegistry] Registered inventory provider: ${provider.id}`);
   }
 
   getInventoryProviders(): IInventoryProvider[] {
@@ -129,7 +124,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     if (provider) {
       provider.dispose();
       this.inventoryProviders.delete(id);
-      console.log(`[HololandRegistry] Unregistered inventory provider: ${id}`);
     }
   }
 
@@ -144,7 +138,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
       );
     }
     this.aiProviders.set(provider.id, provider);
-    console.log(`[HololandRegistry] Registered AI provider: ${provider.id}`);
   }
 
   getAIProviders(): IAIProvider[] {
@@ -160,7 +153,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     if (provider) {
       provider.dispose();
       this.aiProviders.delete(id);
-      console.log(`[HololandRegistry] Unregistered AI provider: ${id}`);
     }
   }
 
@@ -175,7 +167,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
       );
     }
     this.paymentProcessors.set(processor.id, processor);
-    console.log(`[HololandRegistry] Registered payment processor: ${processor.id}`);
   }
 
   getPaymentProcessors(): IPaymentProcessor[] {
@@ -191,7 +182,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     if (processor) {
       processor.dispose();
       this.paymentProcessors.delete(id);
-      console.log(`[HololandRegistry] Unregistered payment processor: ${id}`);
     }
   }
 
@@ -237,8 +227,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
    * Dispose all registered providers
    */
   disposeAll(): void {
-    console.log('[HololandRegistry] Disposing all providers...');
-
     this.weatherProviders.forEach((p) => p.dispose());
     this.eventsProviders.forEach((p) => p.dispose());
     this.inventoryProviders.forEach((p) => p.dispose());
@@ -251,7 +239,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     this.aiProviders.clear();
     this.paymentProcessors.clear();
 
-    console.log('[HololandRegistry] All providers disposed');
   }
 
   /**

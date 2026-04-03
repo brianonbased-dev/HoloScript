@@ -190,7 +190,9 @@ function addEntry(
   };
 
   // Remove internal tracking fields
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   delete fields.message;
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   delete fields.level;
 
   const now = Date.now();

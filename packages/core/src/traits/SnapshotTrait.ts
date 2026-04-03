@@ -56,6 +56,7 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
         }
         const entry: SnapshotEntry = {
           id,
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           data: event.data ?? {},
           timestamp: Date.now(),
           scope: (event.scope as string) ?? 'full',

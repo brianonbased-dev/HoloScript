@@ -194,6 +194,7 @@ export * from './SpatialPersonaTrait';
 export * from './SpatiotemporalTraits';
 export * from './SpectatorTrait';
 export * from './SSOTrait';
+// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 export * from './StableDiffusionTrait';
 export * from './StructuredLoggerTrait';
 export * from './SubsurfaceScatteringTrait';

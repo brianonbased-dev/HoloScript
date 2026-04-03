@@ -55,6 +55,48 @@ const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';
 
+const ORACLE_TELEMETRY_PATH =
+  process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
+
+function inferHardwareTarget(
+  question: string,
+  context: string,
+  explicitTarget?: unknown
+): string {
+  if (typeof explicitTarget === 'string' && explicitTarget.trim()) {
+    return explicitTarget.trim().toLowerCase();
+  }
+
+  const haystack = `${question} ${context}`.toLowerCase();
+  if (haystack.includes('quest') || haystack.includes('mobile') || haystack.includes('android-xr')) {
+    return 'mobile-xr';
+  }
+  if (
+    haystack.includes('vision') ||
+    haystack.includes('visionos') ||
+    haystack.includes('apple vision')
+  ) {
+    return 'visionos';
+  }
+  if (haystack.includes('openxr') || haystack.includes('pc vr') || haystack.includes('desktop vr')) {
+    return 'desktop-vr';
+  }
+  if (haystack.includes('edge') || haystack.includes('iot') || haystack.includes('raspberry') || haystack.includes('jetson')) {
+    return 'edge-iot';
+  }
+  return 'unknown';
+}
+
+function appendOracleTelemetry(event: Record<string, unknown>): void {
+  try {
+    const dir = path.dirname(ORACLE_TELEMETRY_PATH);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(ORACLE_TELEMETRY_PATH, `${JSON.stringify(event)}\n`, 'utf-8');
+  } catch {
+    // Telemetry must never break oracle answers
+  }
+}
+
 async function queryKnowledgeStore(search: string, limit: number = 5): Promise<any[]> {
   const apiKey = process.env.MCP_API_KEY || process.env.ABSORB_API_KEY;
   if (!apiKey) return [];
@@ -106,6 +148,15 @@ export const oracleTools: Tool[] = [
           type: 'string',
           description: "Optional context about what you're working on to improve answer relevance.",
         },
+        hardware_target: {
+          type: 'string',
+          description:
+            'Optional hardware target to track oracle effectiveness (e.g. quest3, desktop-vr, mobile-ar, visionos, edge-iot).',
+        },
+        ide_client: {
+          type: 'string',
+          description: 'Optional IDE/client source (e.g. vscode, antigravity-ide, cursor).',
+        },
       },
       required: ['question'],
     },
@@ -126,6 +177,8 @@ export async function handleOracleTool(
 
   const question = String(args.question || '').toLowerCase();
   const context = String(args.context || '');
+  const hardwareTarget = inferHardwareTarget(question, context, args.hardware_target);
+  const ideClient = String(args.ide_client || 'unknown').toLowerCase();
   const results: string[] = [];
 
   // 1. Check decision trees for instant answers
@@ -168,6 +221,17 @@ export async function handleOracleTool(
       '\n---\n*Oracle answered. Proceed without asking the user unless the answer is insufficient.*'
     );
   }
+
+  appendOracleTelemetry({
+    timestamp: new Date().toISOString(),
+    tool: 'holo_oracle_consult',
+    ideClient,
+    hardwareTarget,
+    outcome: results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
+    decisionTreeMatches: dtMatches.length,
+    knowledgeMatches: kEntries.length,
+    questionPreview: question.slice(0, 200),
+  });
 
   return {
     content: [{ type: 'text', text: results.join('\n\n') }],

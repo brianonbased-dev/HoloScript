@@ -236,8 +236,6 @@ export class PerformanceReportGenerator {
     };
 
     fs.writeFileSync(fullPath, JSON.stringify(reportData, null, 2));
-    console.log(`\n📊 Performance report saved to: ${fullPath}`);
-
     return fullPath;
   }
 

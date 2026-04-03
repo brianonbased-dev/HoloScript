@@ -388,7 +388,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       this.webXrManager = new ManagerClass(context);
 
       this.webXrManager!.onSessionStart = (session) => {
-        console.log('XR Session Started');
         this.isXRSessionActive = true;
 
         // Stop the regular update loop to avoid double-processing
@@ -408,7 +407,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       };
 
       this.webXrManager!.onSessionEnd = () => {
-        console.log('XR Session Ended');
         this.isXRSessionActive = false;
 
         // Notify renderer
@@ -421,14 +419,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       };
     }
 
-    if (this.webXrManager) {
-      console.log(
-        'Runtime webXrManager:',
-        this.webXrManager,
-        'isSessionSupported:',
-        (this.webXrManager as any).isSessionSupported
-      );
-    }
     if (await (this.webXrManager as any).isSessionSupported('immersive-vr')) {
       await (this.webXrManager as any).requestSession();
     } else {
@@ -660,9 +650,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     templates: Map<string, HSPlusNode> = new Map()
   ): Map<string, HSPlusNode> {
     if (node.type === 'template' && node.name) {
-      console.log(
-        `[Hot-Reload] template found during traversal: ${node.name} (v${(node as unknown as Record<string, unknown>).version})`
-      );
       templates.set(node.name, node);
     }
 
@@ -796,7 +783,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           return instance.templateVersion || 0;
         },
         set version(v: number) {
-          console.log(`[Hot-Reload] Syncing version ${v} to instance ${instance.__holo_id}`);
           instance.templateVersion = v;
         },
         state: stateBridge as any,
@@ -853,9 +839,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       } else if (directive.type === 'state') {
         const stateBody =
           ((directive as unknown as Record<string, unknown>).body as Record<string, unknown>) || {};
-        console.log(`[Runtime] Initializing state:`, stateBody);
         for (const [key, value] of Object.entries(stateBody)) {
-          console.log(`[Runtime] Setting state ${key} = ${value}`);
           if (!this.state.has(key as any)) {
             this.state.set(key as any, value);
           }
@@ -1927,15 +1911,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // ==========================================================================
 
   public async hotReload(newAst: HSPlusAST): Promise<void> {
-    console.log(`[Hot-Reload] Starting transactional hot-reload...`);
-
     // 1. Find all new templates in the AST
     const newTemplates = this.findAllTemplates(newAst.root);
-    console.log(
-      `[Hot-Reload] Found ${newTemplates.size} templates in new AST:`,
-      Array.from(newTemplates.keys())
-    );
-
     // 2. Process each template through HotReloader
     for (const [name, newNode] of newTemplates) {
       const oldNode = this.templates.get(name);
@@ -1958,14 +1935,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // 2b. Global Program reload if versioned
-    console.log(
-      `[Hot-Reload] Checking global program: new version=${newAst.version}, old version=${(this.ast as unknown as Record<string, unknown>).version}`
-    );
     if (
       newAst.version !== undefined &&
       newAst.version !== (this.ast as unknown as Record<string, unknown>).version
     ) {
-      console.log(`[Hot-Reload] Global program version change detected`);
       const result = await this.hotReloader.reload({
         type: 'template', // Use template container for HotReloader
         name: '@program',
@@ -1977,13 +1950,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (!result.success) {
         console.error(`[Hot-Reload] Global program migration failed:`, result.error);
       } else {
-        console.log(`[Hot-Reload] Global program migration successful`);
       }
     }
 
     // 3. Update active instances (simple swap for non-versioned parts)
     this.ast = newAst;
-    console.log(`[Hot-Reload] Hot-reload complete.`);
   }
 
   /**
@@ -2057,7 +2028,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     instance: NodeInstance,
     body: HSPlusStatement[]
   ): Promise<void> {
-    console.log(`[Runtime] Executing statement block with ${body.length} statements`);
     for (const stmt of body) {
       await this.executeStatement(instance, stmt);
     }
@@ -2200,10 +2170,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   }
 
   private executeMigrationCode(instance: NodeInstance, code: string): void {
-    console.log(`[Hot-Reload] Executing migration code: "${code}"`);
     const stateProxy = new Proxy(this.state, {
       get: (target, prop) => {
-        console.log(`[Hot-Reload Proxy] GET ${String(prop)}`);
         if (
           typeof prop === 'string' &&
           prop in target &&
@@ -2214,7 +2182,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         return target.get(String(prop) as keyof StateDeclaration);
       },
       set: (target, prop, value) => {
-        console.log(`[Hot-Reload Proxy] SET ${String(prop)} = ${value}`);
         target.set(String(prop) as keyof StateDeclaration, value);
         return true;
       },
@@ -2539,7 +2506,6 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
         runtime.emit('play_sound', { source: options.audio });
       }
       runtime.emit('scene_transition', { target: targetScene, options });
-      console.log(`[Runtime] Transitioning to scene: ${targetScene}`);
     },
   };
 }

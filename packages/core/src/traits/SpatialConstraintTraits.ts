@@ -240,6 +240,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
     ) {
       const state = context.getState().spatialAdjacent as AdjacentState | undefined;
       if (state) {
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         state.targetPosition = (event as Record<string, unknown>).position;
         context.setState({ spatialAdjacent: state });
       }

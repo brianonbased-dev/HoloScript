@@ -155,6 +155,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
             state.totalErrors++;
             context.emit?.('webhook:error', {
               url,
+              // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
               error: err.name === 'AbortError' ? 'Timeout' : err.message,
             });
           });

@@ -453,7 +453,8 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
 
     // v3.1: Handle audit log flush request
     if (event.type === 'flush_audit_log') {
-      const { endpoint, batchSize } = (event.payload || {}) as {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      const { endpoint, batchSize } = ((event.payload as TraitEventPayload) || {}) as {
         endpoint?: string;
         batchSize?: number;
       };

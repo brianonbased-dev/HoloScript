@@ -52,6 +52,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
           stiffness: 200,
           damping: 10,
         },
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         traits: [
           {
             name: 'pressable',

@@ -65,7 +65,6 @@ export class ARCompiler extends CompilerBase {
 
     this.generateImports();
     this.generateSceneSetup();
-    console.log('VITEST COMPILER arNodes:', arNodes.length, 'overlayNodes:', overlayNodes.length);
     this.generateARHooks(arNodes, overlayNodes);
 
     return this.buildResult();

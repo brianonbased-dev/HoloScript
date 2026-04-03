@@ -751,7 +751,6 @@ export class HoloScriptCodeParser {
       column++;
     }
 
-    console.log(`[HoloScriptCodeParser] Tokenization complete. Tokens: ${tokens.length}`);
     return tokens;
   }
 

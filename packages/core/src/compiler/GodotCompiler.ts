@@ -221,7 +221,7 @@ export class GodotCompiler extends CompilerBase {
   }
 
   private compileGodotDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -351,10 +351,10 @@ export class GodotCompiler extends CompilerBase {
     const fov = this.findProp(camera.properties, 'fov');
     if (fov) this.emit(`cam.fov = ${fov}`);
     const pos = this.findProp(camera.properties, 'position');
-    if (pos) this.emit(`cam.position = ${this.toVector3(pos as any)}`);
+    if (pos) this.emit(`cam.position = ${this.toVector3(pos)}`);
     const lookAt =
       this.findProp(camera.properties, 'look_at') || this.findProp(camera.properties, 'lookAt');
-    if (lookAt) this.emit(`cam.look_at(${this.toVector3(lookAt as any)})`);
+    if (lookAt) this.emit(`cam.look_at(${this.toVector3(lookAt)})`);
     const near = this.findProp(camera.properties, 'near');
     if (near) this.emit(`cam.near = ${near}`);
     const far = this.findProp(camera.properties, 'far');
@@ -471,13 +471,13 @@ export class GodotCompiler extends CompilerBase {
 
     // Position, rotation, scale
     const pos = this.findObjProp(obj, 'position');
-    if (pos) this.emit(`${varName}.position = ${this.toVector3(pos as any)}`);
+    if (pos) this.emit(`${varName}.position = ${this.toVector3(pos)}`);
     const rot = this.findObjProp(obj, 'rotation');
     if (rot && Array.isArray(rot)) {
       this.emit(`${varName}.rotation_degrees = ${this.toVector3(rot)}`);
     }
     const scale = this.findObjProp(obj, 'scale');
-    if (scale) this.emit(`${varName}.scale = ${this.toVector3(scale as any)}`);
+    if (scale) this.emit(`${varName}.scale = ${this.toVector3(scale)}`);
 
     // Add to parent
     const hasPhysics = obj.traits?.some((t) => t.name === 'physics' || t.name === 'grabbable');
@@ -696,7 +696,7 @@ export class GodotCompiler extends CompilerBase {
     this.emit(`${varName}.add_child(${varName}_shape)`);
 
     const pos = zone.properties.find((p) => p.key === 'position')?.value;
-    if (pos) this.emit(`${varName}.position = ${this.toVector3(pos as any)}`);
+    if (pos) this.emit(`${varName}.position = ${this.toVector3(pos)}`);
 
     // Connect handlers
     for (const handler of zone.handlers) {
@@ -823,14 +823,14 @@ export class GodotCompiler extends CompilerBase {
     return name.replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
-  private toVector3(arr: any): string {
+  private toVector3(arr: HoloValue): string {
     if (Array.isArray(arr) && arr.length >= 3) {
       return `Vector3(${arr[0]}, ${arr[1]}, ${arr[2]})`;
     }
     return `Vector3(${arr}, ${arr}, ${arr})`;
   }
 
-  private toColor(value: any): string {
+  private toColor(value: HoloValue): string {
     if (typeof value === 'string' && value.startsWith('#')) {
       return `Color.html("${value}")`;
     }
@@ -846,8 +846,8 @@ export class GodotCompiler extends CompilerBase {
     return 'null';
   }
 
-  private findProp(props: any[], key: string): HoloValue | undefined {
-    return props?.find((p: any) => p.key === key)?.value;
+  private findProp(props: Array<{ key: string; value: HoloValue }>, key: string): HoloValue | undefined {
+    return props?.find((p) => p.key === key)?.value;
   }
 
   private findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {

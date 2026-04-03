@@ -245,7 +245,7 @@ export class UnityCompiler extends CompilerBase {
   }
 
   private compileDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -381,10 +381,10 @@ export class UnityCompiler extends CompilerBase {
     this.emit('var cam = Camera.main;');
     this.emit(`cam.fieldOfView = ${this.findProp(camera.properties, 'fov') || 60}f;`);
     const pos = this.findProp(camera.properties, 'position');
-    if (pos) this.emit(`cam.transform.position = ${this.toVector3(pos as any)};`);
+    if (pos) this.emit(`cam.transform.position = ${this.toVector3(pos)};`);
     const lookAt =
       this.findProp(camera.properties, 'look_at') || this.findProp(camera.properties, 'lookAt');
-    if (lookAt) this.emit(`cam.transform.LookAt(${this.toVector3(lookAt as any)});`);
+    if (lookAt) this.emit(`cam.transform.LookAt(${this.toVector3(lookAt)});`);
     const near = this.findProp(camera.properties, 'near');
     if (near) this.emit(`cam.nearClipPlane = ${near}f;`);
     const far = this.findProp(camera.properties, 'far');
@@ -448,11 +448,11 @@ export class UnityCompiler extends CompilerBase {
 
     // Position, rotation, scale
     const pos = this.findObjProp(obj, 'position');
-    if (pos) this.emit(`${varName}GO.transform.localPosition = ${this.toVector3(pos as any)};`);
+    if (pos) this.emit(`${varName}GO.transform.localPosition = ${this.toVector3(pos)};`);
     const rot = this.findObjProp(obj, 'rotation');
-    if (rot) this.emit(`${varName}GO.transform.localEulerAngles = ${this.toVector3(rot as any)};`);
+    if (rot) this.emit(`${varName}GO.transform.localEulerAngles = ${this.toVector3(rot)};`);
     const scale = this.findObjProp(obj, 'scale');
-    if (scale) this.emit(`${varName}GO.transform.localScale = ${this.toVector3(scale as any)};`);
+    if (scale) this.emit(`${varName}GO.transform.localScale = ${this.toVector3(scale)};`);
     const size = this.findObjProp(obj, 'size');
     if (size && !isText) {
       if (Array.isArray(size)) {
@@ -605,15 +605,15 @@ export class UnityCompiler extends CompilerBase {
         } else if (trait.name === 'eye_hand_fusion') {
           this.emit(`// @eye_hand_fusion — combine XREyeInteractor + XRHandInteractorController`);
         } else if (trait.name === 'controlnet') {
-          const model = (trait.config as any)?.model || 'canny';
+          const model = trait.config?.model || 'canny';
           this.emit(`// @controlnet(model: "${model}") — route to inference API or Unity Sentis`);
         } else if (trait.name === 'ai_texture_gen') {
-          const style = (trait.config as any)?.style || 'photorealistic';
+          const style = trait.config?.style || 'photorealistic';
           this.emit(`// @ai_texture_gen(style: "${style}") — Unity Sentis or external API`);
         } else if (trait.name === 'diffusion_realtime') {
           this.emit(`// @diffusion_realtime — Unity Sentis real-time diffusion pipeline`);
         } else if (trait.name === 'ai_upscaling') {
-          const factor = (trait.config as any)?.factor || 2;
+          const factor = trait.config?.factor || 2;
           this.emit(`// @ai_upscaling(${factor}x) — Unity Sentis super-resolution model`);
         } else if (trait.name === 'ai_inpainting') {
           this.emit(`// @ai_inpainting — Unity Sentis or API-based inpainting`);
@@ -856,7 +856,7 @@ export class UnityCompiler extends CompilerBase {
     return name.replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
-  private toVector3(arr: any): string {
+  private toVector3(arr: HoloValue): string {
     if (Array.isArray(arr) && arr.length >= 3) {
       return `new Vector3(${arr[0]}f, ${arr[1]}f, ${arr[2]}f)`;
     }
@@ -866,7 +866,7 @@ export class UnityCompiler extends CompilerBase {
     return `new Vector3(${arr}f, ${arr}f, ${arr}f)`;
   }
 
-  private toColor(value: any): string {
+  private toColor(value: HoloValue): string {
     if (typeof value === 'string' && value.startsWith('#')) {
       const hex = value.slice(1);
       const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -893,8 +893,8 @@ export class UnityCompiler extends CompilerBase {
     return 'null';
   }
 
-  private findProp(props: any[], key: string): HoloValue | undefined {
-    return props?.find((p: any) => p.key === key)?.value;
+  private findProp(props: Array<{ key: string; value: HoloValue }>, key: string): HoloValue | undefined {
+    return props?.find((p) => p.key === key)?.value;
   }
 
   private findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {

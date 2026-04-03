@@ -51,6 +51,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     if (!spring) return;
 
     const handName = config.hand || 'left';
+    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     const hand = vrContext.hands[handName];
     const shouldShow = !!hand;
 

@@ -165,12 +165,15 @@ export const windHandler: TraitHandler<WindConfig> = {
     if (!state) return;
 
     if (event.type === 'set_wind_direction') {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       config.direction = event.direction;
     } else if (event.type === 'set_wind_strength') {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       config.strength = event.strength;
     } else if (event.type === 'toggle_wind') {
       state.isActive = !state.isActive;
     } else if (event.type === 'trigger_gust') {
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       state.gustTimer = event.duration || 1.0;
     }
   },

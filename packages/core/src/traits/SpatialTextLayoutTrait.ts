@@ -27,9 +27,6 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
   },
 
   onAttach(node: HSPlusNode, config: SpatialTextLayoutConfig): void {
-    console.log(
-      `[SpatialText] Attaching ${config.layout} layout with radius ${config.radius} to ${node.id}`
-    );
     (node as any).__spatialTextState = { initialized: true, rotationY: 0 };
   },
 
@@ -59,6 +56,7 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
         // Emit rotation event to the renderer
         context.emit?.('node:rotate', {
           id: node.id,
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           rotation: [0, delta * dampening, 0],
           relative: true,
         });

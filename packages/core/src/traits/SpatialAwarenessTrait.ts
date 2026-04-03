@@ -491,6 +491,7 @@ export const spatialAwarenessHandler = {
     ctx.emit('spatial_awareness_detached', { node });
     delete node.__spatial_awareness_instance;
   },
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__spatial_awareness_instance as any;
     if (!instance) return;

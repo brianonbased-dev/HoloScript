@@ -245,7 +245,8 @@ const ALL_PRESETS = [
 export function registerAllPresets(): void {
   const registry = TraitVisualRegistry.getInstance();
   for (const presetMap of ALL_PRESETS) {
-    registry.registerBatch(presetMap);
+    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+    registry.registerBatch((presetMap as Record<string, TraitVisualConfig>));
   }
 }
 

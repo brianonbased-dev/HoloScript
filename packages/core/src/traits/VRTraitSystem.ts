@@ -1322,7 +1322,6 @@ const proactiveHandler: TraitHandler<ProactiveTrait> = {
   },
 
   onAttach(node, config, context) {
-    console.log(`[Proactive] Neural bridge attached to ${node.id || node.type}`);
     context.emit('proactive_init', { nodeId: node.id, tier: config.intelligence_tier });
   },
 

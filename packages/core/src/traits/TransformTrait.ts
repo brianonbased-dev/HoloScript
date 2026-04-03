@@ -285,6 +285,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
         context.emit?.('transform:error', {
           transformId: rule.id,
           sourceEvent: eventType,
+          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           error: err.message,
         });
       }

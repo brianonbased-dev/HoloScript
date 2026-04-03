@@ -397,8 +397,6 @@ export class HITLManager {
   }
 
   private notifyApprovers(request: HumanApprovalRequest): void {
-    console.log(`📢 Approval request ${request.id} sent to ${request.approvers.join(', ')}`);
-
     this.approvalHandlers.forEach((handler) => {
       handler(request);
     });

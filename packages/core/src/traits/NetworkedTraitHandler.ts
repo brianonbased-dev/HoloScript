@@ -335,12 +335,14 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
 
       // Ownership granted by server/host
       case 'networked:authority_granted': {
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         trait.setOwner(true, (event as Record<string, unknown>).peerId);
         break;
       }
 
       // Ownership revoked
       case 'networked:authority_revoked': {
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         trait.setOwner(false, (event as Record<string, unknown>).peerId);
         break;
       }

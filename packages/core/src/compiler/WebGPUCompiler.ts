@@ -97,7 +97,7 @@ export class WebGPUCompiler extends CompilerBase {
   }
 
   private emitWebGPUDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -222,7 +222,7 @@ export class WebGPUCompiler extends CompilerBase {
     if (traits.some((t) => t.name === 'compute' || t.name === 'gpu_buffer')) {
       const ct = traits.find((t) => t.name === 'compute' || t.name === 'gpu_buffer');
       this.emit(
-        `const ${v}ComputeBuf = createStorageBuffer(device, ${(ct?.config as any)?.buffer_size || 4096});`
+        `const ${v}ComputeBuf = createStorageBuffer(device, ${ct?.config?.buffer_size || 4096});`
       );
     }
     this.emit('');
@@ -291,9 +291,9 @@ export class WebGPUCompiler extends CompilerBase {
 
   private emitGaussianSplatObject(v: string, obj: HoloObjectDecl): void {
     const trait = obj.traits?.find((t) => t.name === 'gaussian_splat');
-    const src = (trait?.config as any)?.src || 'scene.ply';
-    const max = (trait?.config as any)?.max_splats || 500000;
-    const sorted = (trait?.config as any)?.sorted !== false; // default: true
+    const src = trait?.config?.src || 'scene.ply';
+    const max = trait?.config?.max_splats || 500000;
+    const sorted = trait?.config?.sorted !== false; // default: true
     this.emit(`// Gaussian Splat — source: ${src} (${sorted ? 'radix-sorted' : 'unsorted'})`);
 
     if (sorted) {
@@ -339,7 +339,7 @@ export class WebGPUCompiler extends CompilerBase {
 
   private emitPointCloudObject(v: string, obj: HoloObjectDecl): void {
     const trait = obj.traits?.find((t) => t.name === 'point_cloud');
-    const max = (trait?.config as any)?.max_points || 100000;
+    const max = trait?.config?.max_points || 100000;
     this.emit(`// Point Cloud (${max} max points)`);
     this.emit(`const ${v}PointBuf = createStorageBuffer(device, ${max} * 16);`);
     this.emit(`const ${v}PointCount = { value: 0 };`);
@@ -364,7 +364,7 @@ export class WebGPUCompiler extends CompilerBase {
 
   private emitGpuParticleObject(v: string, obj: HoloObjectDecl): void {
     const trait = obj.traits?.find((t) => t.name === 'gpu_particle');
-    const count = (trait?.config as any)?.count || 10000;
+    const count = trait?.config?.count || 10000;
     this.emit(`// GPU Particles (${count})`);
     this.emit(`const ${v}ParticleCount = ${count};`);
     this.emit(`const ${v}ParticleBufA = createStorageBuffer(device, ${v}ParticleCount * 32);`);
@@ -487,7 +487,7 @@ export class WebGPUCompiler extends CompilerBase {
 
       if (traits.some((t) => t.name === 'gpu_particle')) {
         const count =
-          (traits.find((t) => t.name === 'gpu_particle')?.config as any)?.count || 10000;
+          traits.find((t) => t.name === 'gpu_particle')?.config?.count || 10000;
         this.emit(
           `const ${v}ParticleCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_PARTICLE_COMPUTE }), entryPoint: "cs_particle_update" } });`
         );
@@ -500,8 +500,8 @@ export class WebGPUCompiler extends CompilerBase {
       }
       if (traits.some((t) => t.name === 'compute')) {
         const ct = traits.find((t) => t.name === 'compute');
-        const entry = (ct?.config as any)?.shader || 'custom_compute';
-        const wg = (ct?.config as any)?.workgroups || [64, 1, 1];
+        const entry = ct?.config?.shader || 'custom_compute';
+        const wg = ct?.config?.workgroups || [64, 1, 1];
         this.emit(
           `const ${v}CustomCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_CUSTOM_${v.toUpperCase()} }), entryPoint: "${entry}" } });`
         );

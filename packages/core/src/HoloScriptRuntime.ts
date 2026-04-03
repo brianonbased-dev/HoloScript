@@ -577,10 +577,6 @@ export class HoloScriptRuntime {
    */
   async executeNode(node: ASTNode): Promise<ExecutionResult> {
     const startTime = Date.now();
-    console.log(
-      `[RUNTIME_DEBUG] executeNode: ${node.type} (Line: ${(node as unknown as Record<string, unknown>).line})`
-    );
-
     try {
       this.context.executionStack.push(node);
 
@@ -1080,7 +1076,6 @@ export class HoloScriptRuntime {
   // ============================================================================
 
   private async executeOrb(node: OrbNode): Promise<ExecutionResult> {
-    console.log(`[RUNTIME_DEBUG] Entering executeOrb for: ${node.name}`);
     const scale = this.context.currentScale || 1;
 
     // 1. STATE RECONCILIATION: Check for existing orb instance
@@ -1142,15 +1137,9 @@ export class HoloScriptRuntime {
       const tpl = this.context.templates.get(orbNodeExt.template) as unknown as
         | TemplateNode
         | undefined;
-      console.log(
-        `[RUNTIME_DEBUG] executeOrb: ${orbNodeExt.name} using template: ${orbNodeExt.template}. Found template: ${!!tpl}`
-      );
       if (tpl) {
         // Merge template properties if not overridden by orb
         if (tpl.properties) {
-          console.log(
-            `[RUNTIME_DEBUG] Merging properties from template ${orbNodeExt.template} into ${orbNodeExt.name}`
-          );
           for (const [key, val] of Object.entries(tpl.properties)) {
             if (evaluatedProperties[key] === undefined) {
               if (typeof val === 'string') {
@@ -1164,9 +1153,6 @@ export class HoloScriptRuntime {
 
         // Note: Template children/traits are handled via directives
         if (tpl.directives) {
-          console.log(
-            `[RUNTIME_DEBUG] Merging ${tpl.directives.length} directives from template ${orbNodeExt.template} into ${orbNodeExt.name}`
-          );
           // Prepend template directives so orb directives can override if needed (though usually directives accumulate)
           // Actually for things like @state, we might want unique processing.
           // For now, simpler concatenation.
@@ -1177,11 +1163,6 @@ export class HoloScriptRuntime {
           node.directives = [...tpl.directives, ...existingDirectives];
         }
       }
-    }
-
-    if (node.directives) {
-      console.log(`[RUNTIME_DEBUG] Total directives for ${node.name}: ${node.directives.length}`);
-      console.log(`[RUNTIME_DEBUG] Directives for ${node.name}:`, JSON.stringify(node.directives));
     }
 
     const hologram = node.hologram
@@ -2098,7 +2079,6 @@ export class HoloScriptRuntime {
    * Emit event
    */
   async emit(event: string, data?: unknown): Promise<void> {
-    console.log(`[RUNTIME_DEBUG] EMIT: ${event}`, data);
     logger.info(`[Runtime] Emitting event: ${event}`, data as any);
     // 1. Dotted event handling: e.g. "AlphaCommander.mitosis_spawned"
     if (event.includes('.')) {
@@ -2118,8 +2098,6 @@ export class HoloScriptRuntime {
     const orbs = Array.from(this.context.variables.values()).filter(
       (v) => v && typeof v === 'object' && (v as Record<string, unknown>).__type === 'orb'
     );
-    console.log(`[EMIT_DEBUG] Event: ${event}, Orbs Found: ${orbs.length}`);
-
     for (const agent of this.agentRuntimes.values()) {
       await agent.onEvent(event, data);
     }
@@ -2151,7 +2129,6 @@ export class HoloScriptRuntime {
     if (orb.directives) {
       for (const d of orb.directives as Array<Record<string, unknown>>) {
         if (d.type === 'trait') {
-          console.log(`[FORWARD_TRAIT] Orb: ${orb.id}, Trait: ${d.name}, Event: ${event}`);
           const handler = this.traitHandlers.get(d.name as string);
           if (handler && handler.onEvent) {
             // Ensure onEvent is handled properly (it might return a promise even if typed void)
@@ -2291,7 +2268,9 @@ export class HoloScriptRuntime {
         try {
           const keys = JSON.parse(savedKeys);
           configuredCount = Object.values(keys).filter((k) => !!k).length;
-        } catch (_e) {}
+        } catch (_e) {
+          // Intentionally swallowed: malformed localStorage JSON should not block runtime init
+        }
       }
 
       this.setVariable('$ai_config', {
@@ -2582,13 +2561,6 @@ export class HoloScriptRuntime {
             };
           });
 
-        console.log('[Visualizer] Sending init with', orbs.length, 'orbs');
-        orbs.forEach((orb) => {
-          console.log(
-            `[Visualizer Init] ${orb.name}: pos=(${(orb as any).position.x}, ${(orb as any).position.y}, ${(orb as any).position.z})`
-          );
-        });
-
         // Send initial state with time info
         ws.send(
           JSON.stringify({
@@ -2831,10 +2803,6 @@ export class HoloScriptRuntime {
   }
 
   private async executeHoloComposition(node: HoloComposition): Promise<ExecutionResult> {
-    console.log(
-      `[Visualizer] Executing composition "${node.name}" with ${node.objects.length} objects`
-    );
-
     // Register templates
     for (const template of (node as any).templates) {
       await this.executeHoloTemplate(template);
@@ -2853,7 +2821,6 @@ export class HoloScriptRuntime {
     // Execute objects
     const results: ExecutionResult[] = [];
     for (const object of node.objects) {
-      console.log(`[Visualizer] Executing object "${object.name}"`);
       results.push(await this.executeHoloObject(object));
     }
 
@@ -3844,7 +3811,6 @@ export class HoloScriptRuntime {
       } else if (d.type === 'state') {
         // Ensure local state is merged into orb properties
         if (node && (node as unknown as Record<string, unknown>).__type === 'orb') {
-          console.log(`[RUNTIME_DEBUG] Merging @state into orb ${(node as any).name}:`, d.body);
           const stateBody = d.body as Record<string, HoloScriptValue>;
           const existingProps =
             ((node as unknown as Record<string, unknown>).properties as Record<
@@ -3954,12 +3920,6 @@ export class HoloScriptRuntime {
                         // Using 'name' (variable key) as the authoritative ID for the visualizer
                         this.setOrbPosition(name, (payload as any).position);
 
-                        if (isLogFrame && name === 'Earth') {
-                          const date = this.timeManager?.getDate().toISOString();
-                          console.log(
-                            `[Orbital Sync] Date: ${date}, JD: ${julianDate.toFixed(4)}, Earth: (${(payload as any).position.x.toFixed(2)}, ${(payload as any).position.y.toFixed(2)}, ${(payload as any).position.z.toFixed(2)})`
-                          );
-                        }
                       }
                       return this.emit(event, payload);
                     },

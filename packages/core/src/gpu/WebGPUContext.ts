@@ -97,18 +97,6 @@ export class WebGPUContext {
       this.features = new Set(this.adapter.features);
 
       // Log adapter info
-      console.log('WebGPU Adapter:', {
-        features: Array.from(this.features),
-        limits: {
-          maxBindGroups: this.limits.maxBindGroups,
-          maxComputeWorkgroupSizeX: this.limits.maxComputeWorkgroupSizeX,
-          maxComputeWorkgroupSizeY: this.limits.maxComputeWorkgroupSizeY,
-          maxComputeWorkgroupSizeZ: this.limits.maxComputeWorkgroupSizeZ,
-          maxComputeInvocationsPerWorkgroup: this.limits.maxComputeInvocationsPerWorkgroup,
-          maxStorageBufferBindingSize: this.limits.maxStorageBufferBindingSize,
-        },
-      });
-
       // Validate required features
       const missingFeatures = this.options.requiredFeatures!.filter(
         (feature) => !this.features.has(feature)
@@ -140,7 +128,6 @@ export class WebGPUContext {
       });
 
       this.initialized = true;
-      console.log('✅ WebGPU initialized successfully');
     } catch (error) {
       this.handleUnsupported(`WebGPU initialization failed: ${error}`);
     }
@@ -250,7 +237,6 @@ export class WebGPUContext {
     this.features.clear();
     this.initialized = false;
 
-    console.log('WebGPU context destroyed');
   }
 
   /**
@@ -295,12 +281,7 @@ export class WebGPUContext {
 
     const info = await (this.adapter as any).requestAdapterInfo?.();
     if (info) {
-      console.log('GPU Info:', {
-        vendor: info.vendor,
-        architecture: info.architecture,
-        device: info.device,
-        description: info.description,
-      });
+      void info;
     }
   }
 }

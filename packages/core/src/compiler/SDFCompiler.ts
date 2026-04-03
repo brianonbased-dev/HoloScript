@@ -144,7 +144,7 @@ export class SDFCompiler extends CompilerBase {
   }
 
   private emitSDFDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -188,27 +188,20 @@ export class SDFCompiler extends CompilerBase {
 
   private getEnvProp(env: HoloEnvironment | undefined, key: string): HoloValue | undefined {
     if (!env) return undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const envAny = env as any;
-    // Handle both array format (properties: [{key, value}]) and object format ({skybox: 'value'})
-    if (Array.isArray(envAny.properties)) {
-      const prop = envAny.properties.find((p: { key: string }) => p.key === key);
+    if (Array.isArray(env.properties)) {
+      const prop = env.properties.find((p) => p.key === key);
       return prop?.value as HoloValue | undefined;
     } else {
-      // Plain object format
-      return envAny[key] as HoloValue | undefined;
+      return (env as unknown as Record<string, HoloValue>)[key];
     }
   }
 
   private getLightProp<T extends HoloValue>(light: HoloLight, key: string, fallback: T): T {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lightAny = light as any;
-    // Handle both array format and object format
-    if (Array.isArray(lightAny.properties)) {
-      const prop = lightAny.properties.find((p: { key: string }) => p.key === key);
+    if (Array.isArray(light.properties)) {
+      const prop = light.properties.find((p) => p.key === key);
       return (prop?.value as T) ?? fallback;
-    } else if (lightAny[key] !== undefined) {
-      return lightAny[key] as T;
+    } else if ((light as unknown as Record<string, unknown>)[key] !== undefined) {
+      return (light as unknown as Record<string, unknown>)[key] as T;
     }
     return fallback;
   }

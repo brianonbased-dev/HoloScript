@@ -160,7 +160,6 @@ export class NeuralStreamingTransport {
     
     // Backoff reconnect
     setTimeout(async () => {
-      console.log('[NeuralStreamingTransport] Initiating ICE restart tunnel...');
       await this.initWebRTC();
       this.isReconnecting = false;
     }, 2000);

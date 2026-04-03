@@ -127,7 +127,7 @@ class MessageQueue {
 // SPATIAL CLAIM MANAGER
 // ============================================================================
 
-interface SpatialClaim {
+export interface SpatialClaim {
   claim_id: string;
   agent_id: string;
   bounding_box: {

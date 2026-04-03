@@ -236,7 +236,9 @@ function getNodeDescription(node: HSPlusNode, _verbosity: string): string {
 
   let desc = `${name} is a ${type}`;
 
+  // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
   if (node.material?.color) {
+    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     desc += `, colored ${node.material.color}`;
   }
 

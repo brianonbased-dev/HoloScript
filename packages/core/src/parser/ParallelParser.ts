@@ -253,7 +253,9 @@ export class ParallelParser extends SimpleEventEmitter {
     try {
       const __filename = this.nodeModules.fileURLToPath(import.meta.url);
       workerExt = this.nodeModules.path.extname(__filename) || '.js';
-    } catch {}
+    } catch {
+      // Intentionally swallowed: fallback to .js extension if import.meta.url is unavailable
+    }
     this.workerPath = this.nodeModules.path.join(this.getCurrentDir(), `ParseWorker${workerExt}`);
 
     try {

@@ -854,7 +854,7 @@ export class GLTFPipeline extends CompilerBase {
     return SHARED_COMPILE_BUFFER;
   }
   private set bufferData(v: Uint8Array) {
-    SHARED_COMPILE_BUFFER = v as any;
+    SHARED_COMPILE_BUFFER = v;
   }
   private bufferByteLength: number = 0;
 
@@ -1442,7 +1442,7 @@ export class GLTFPipeline extends CompilerBase {
     }
 
     // v4.2: Process domain block materials into glTF materials array
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = composition.domainBlocks ?? [];
     if (domainBlocks.length > 0) {
       compileDomainBlocks(
         domainBlocks,

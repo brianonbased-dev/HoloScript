@@ -46,7 +46,6 @@ export class EditorUI {
 
     // Handle Spawning
     this.assetBrowser.onAssetSelected = (asset) => {
-      console.log('Spawning asset:', asset.name);
       // Spawn 1 meter in front of user (0, 1.5, -1)
       const spawnPos: Vector3 = { x: 0, y: 1.5, z: -1 };
 
@@ -73,7 +72,6 @@ export class EditorUI {
 
     // Handle Minting/Spawning
     this.marketplace.onSpawnNFT = (nft: NFTAsset) => {
-      console.log('Spawning NFT:', nft.name);
       const spawnPos: Vector3 = { x: -0.5, y: 1.5, z: -1 };
 
       const entity = this.world.createEntity();

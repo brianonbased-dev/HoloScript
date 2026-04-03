@@ -100,8 +100,6 @@ export class InstancedRenderer {
    * Initialize renderer
    */
   async initialize(): Promise<void> {
-    console.log('Initializing instanced renderer...');
-
     // Configure canvas context
     this.gpuContext = this.canvas.getContext('webgpu');
     if (!this.gpuContext) {
@@ -124,13 +122,6 @@ export class InstancedRenderer {
     // Create render pipeline
     this.createRenderPipeline(canvasFormat);
 
-    console.log('✅ Instanced renderer initialized:', {
-      maxParticles: this.options.maxParticles,
-      sphereSegments: this.options.sphereSegments,
-      vertexCount: this.vertexCount,
-      indexCount: this.indexCount,
-      enableLOD: this.options.enableLOD,
-    });
   }
 
   /**
@@ -558,7 +549,6 @@ export class InstancedRenderer {
     this.frameCount++;
     const now = performance.now();
     if (now - this.lastFrameTime >= 1000) {
-      console.log(`FPS: ${this.frameCount}`);
       this.frameCount = 0;
       this.lastFrameTime = now;
     }
@@ -591,6 +581,5 @@ export class InstancedRenderer {
 
     this.pipeline = null;
 
-    console.log('Instanced renderer destroyed');
   }
 }

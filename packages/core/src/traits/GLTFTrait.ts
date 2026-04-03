@@ -365,15 +365,15 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
 
     switch (event.type) {
       case 'gltf:play_animation':
-        playAnimation(state, event.animation, event.options);
+        playAnimation(state, (event.animation as string), (event.options as { loop?: boolean | undefined; speed?: number | undefined; weight?: number | undefined; startTime?: number | undefined; } | undefined));
         break;
 
       case 'gltf:stop_animation':
-        stopAnimation(state, event.animation);
+        stopAnimation(state, (event.animation as string | undefined));
         break;
 
       case 'gltf:set_morph':
-        setMorphWeight(state, event.target, event.weight);
+        setMorphWeight(state, (event.target as string), (event.weight as number));
         break;
 
       case 'gltf:reload':

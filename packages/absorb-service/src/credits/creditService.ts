@@ -246,7 +246,7 @@ export async function getUsageHistory(
     .limit(limit)
     .offset(offset);
 
-  return rows.map((r) => ({
+  return rows.map((r: (typeof rows)[number]) => ({
     id: r.id,
     type: r.type,
     amountCents: r.amountCents,

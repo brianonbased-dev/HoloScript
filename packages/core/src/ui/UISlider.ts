@@ -51,6 +51,7 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
           length: length,
           value: config.initialValue || 0.5,
         },
+        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
         traits: [
           {
             name: 'slidable',

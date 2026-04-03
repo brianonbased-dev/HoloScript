@@ -9,6 +9,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import { handTrackingHandler } from './HandTrackingTrait';
+// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 import type { HandTrackingConfig } from './HandTrackingTrait';
 
 // =============================================================================

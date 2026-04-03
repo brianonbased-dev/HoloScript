@@ -106,7 +106,7 @@ export class TraitRuntimeIntegration {
     const tracked = this.trackedNodes.get(nodeId);
     if (!tracked) return;
 
-    this.registry.attachTrait(tracked.node, traitName, config, this.context);
+    this.registry.attachTrait(tracked.node, traitName, (config as Record<string, unknown>), this.context);
     if (!tracked.traitNames.includes(traitName)) {
       tracked.traitNames.push(traitName);
     }

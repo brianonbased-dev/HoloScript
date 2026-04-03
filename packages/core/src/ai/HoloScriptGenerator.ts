@@ -123,8 +123,6 @@ export class HoloScriptGenerator {
     if (this.cacheEnabled) {
       const cachedEntry = this.cache.get(prompt, s.adapter.name);
       if (cachedEntry) {
-        console.log(`✓ Cache hit for prompt (${cachedEntry.code.length} chars)`);
-
         // Record cache hit in analytics
         this.analytics.recordMetric({
           promptLength: prompt.length,
