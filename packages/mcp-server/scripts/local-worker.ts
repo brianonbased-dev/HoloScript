@@ -63,7 +63,14 @@ async function get(url: string, headers: Record<string, string> = {}) {
 function auth() { return { Authorization: `Bearer ${AGENT_KEY}` }; }
 
 function shell(cmd: string): string {
-  try { return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: 'bash' } as any).trim(); } catch { return ''; }
+  // Try git-bash first (available in IDE terminals), fall back to cmd
+  const shells = ['C:\\Program Files\\Git\\bin\\bash.exe', 'bash', 'cmd'];
+  for (const sh of shells) {
+    try {
+      return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: sh } as any).trim();
+    } catch { continue; }
+  }
+  return '';
 }
 
 // ── Setup ──
