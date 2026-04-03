@@ -209,7 +209,7 @@ describe('GLTFTrait — onUpdate: animation tick', () => {
 
 describe('GLTFTrait — onUpdate: LOD selection', () => {
   it('emits gltf:lod_changed when LOD level switches', () => {
-    const node = { ...makeNode(), position: [0, 0, 15] }; // distance ~15 from origin camera
+    const node = { ...makeNode(), properties: { position: [0, 0, 15] } }; // distance ~15 from origin camera
     const { cfg, ctx } = bootstrapLoaded(node, { lod_levels: 3, lod_distances: [10, 25, 50] });
     ctx.emit.mockClear();
     // distance 15: 15 >= 10, 15 < 25 → LOD index 1
@@ -219,7 +219,7 @@ describe('GLTFTrait — onUpdate: LOD selection', () => {
   });
 
   it('no LOD change emit when LOD stays the same', () => {
-    const node = { ...makeNode(), position: [0, 0, 5] }; // distance 5 < 10 → LOD 0
+    const node = { ...makeNode(), properties: { position: [0, 0, 5] } }; // distance 5 < 10 → LOD 0
     const { cfg, ctx } = bootstrapLoaded(node, { lod_levels: 3, lod_distances: [10, 25, 50] });
     st(node).currentLOD = 0;
     ctx.emit.mockClear();

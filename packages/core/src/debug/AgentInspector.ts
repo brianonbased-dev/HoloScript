@@ -21,7 +21,7 @@ export interface AgentState {
   /** Agent ID */
   agentId: string;
   /** State values */
-  values: Record<string, any>;
+  values: Record<string, unknown>;
   /** Last update timestamp */
   lastUpdated: number;
 }
@@ -94,7 +94,7 @@ export class AgentInspector extends EventEmitter {
   /**
    * Register an agent for inspection
    */
-  registerAgent(manifest: AgentManifest, initialState: Record<string, any> = {}): void {
+  registerAgent(manifest: AgentManifest, initialState: Record<string, unknown> = {}): void {
     this.agentManifests.set(manifest.id, manifest);
     this.agentStates.set(manifest.id, {
       agentId: manifest.id,
@@ -141,7 +141,7 @@ export class AgentInspector extends EventEmitter {
   /**
    * Update agent state
    */
-  updateState(agentId: string, updates: Record<string, any>): void {
+  updateState(agentId: string, updates: Record<string, unknown>): void {
     const state = this.agentStates.get(agentId);
     if (!state) {
       throw new Error(`Agent not registered: ${agentId}`);
@@ -176,7 +176,7 @@ export class AgentInspector extends EventEmitter {
   /**
    * Get agent state
    */
-  getState(agentId: string): Record<string, any> {
+  getState(agentId: string): Record<string, unknown> {
     const state = this.agentStates.get(agentId);
     if (!state) {
       throw new Error(`Agent not registered: ${agentId}`);
@@ -412,7 +412,7 @@ export class AgentInspector extends EventEmitter {
   /**
    * Evaluate breakpoint condition
    */
-  evaluateBreakpoint(breakpointId: string, context: Record<string, any>): boolean {
+  evaluateBreakpoint(breakpointId: string, context: Record<string, unknown>): boolean {
     let breakpoint: BreakpointInfo | undefined;
 
     for (const breakpoints of this.breakpoints.values()) {

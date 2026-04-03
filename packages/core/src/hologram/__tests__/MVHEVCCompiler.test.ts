@@ -201,7 +201,7 @@ describe('MVHEVCCompiler', () => {
             traits: [
               {
                 name: 'spatial_video',
-                params: {
+                config: {
                   ipd: 0.07,
                   fps: 60,
                   convergence: 3.0,

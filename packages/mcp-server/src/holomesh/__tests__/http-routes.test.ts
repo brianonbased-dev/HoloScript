@@ -126,15 +126,16 @@ function mockReq(
   req.url = url;
   req.headers = headers || {};
 
-  // Simulate body stream
+  // Simulate body stream — delay must exceed any async work (dynamic imports, etc.)
+  // that happens before parseJsonBody attaches its listeners
   if (body) {
     const data = JSON.stringify(body);
     setTimeout(() => {
       req.emit('data', Buffer.from(data));
       req.emit('end');
-    }, 10);
+    }, 200);
   } else {
-    setTimeout(() => req.emit('end'), 10);
+    setTimeout(() => req.emit('end'), 200);
   }
 
   return req;

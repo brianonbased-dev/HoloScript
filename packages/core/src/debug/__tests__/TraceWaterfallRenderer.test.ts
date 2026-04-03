@@ -6,17 +6,29 @@ import { describe, it, expect } from 'vitest';
 import { TraceWaterfallRenderer } from '../TraceWaterfallRenderer';
 import type { TraceSpan } from '../TelemetryTypes';
 
-function makeSpan(overrides: Partial<TraceSpan> = {}): TraceSpan {
+function makeSpan(overrides: Partial<TraceSpan> & { traceId?: string; spanId?: string; parentSpanId?: string } = {}): TraceSpan {
+  const { traceId, spanId, parentSpanId, ...rest } = overrides;
+  const resolvedSpanId = spanId ?? `span-${Math.random().toString(36).slice(2, 8)}`;
   return {
-    traceId: 'trace-1',
-    spanId: `span-${Math.random().toString(36).slice(2, 8)}`,
+    id: resolvedSpanId,
     name: 'test-span',
+    context: {
+      traceId: traceId ?? 'trace-1',
+      spanId: resolvedSpanId,
+      parentSpanId,
+      traceFlags: 1,
+      baggage: {},
+    },
     kind: 'internal',
     startTime: 1000,
     endTime: 2000,
+    duration: 0,
     status: 'ok',
-    ...overrides,
-  };
+    attributes: {},
+    events: [],
+    links: [],
+    ...rest,
+  } as TraceSpan;
 }
 
 describe('TraceWaterfallRenderer', () => {

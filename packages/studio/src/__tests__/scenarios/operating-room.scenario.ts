@@ -57,10 +57,10 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     // Surgeon binds the patient's heart rate monitor to a HoloScript overlay.
     // Ensure the syncIoTSensor hook accurately propagates the telemetry.
     mockFetch.mockResolvedValue({
+      ok: true,
       json: async () => ({
-        heart_rate: 85,
-        spo2: 98,
-        blood_pressure: '120/80',
+        values: { heart_rate: 85, spo2: 98, blood_pressure: '120/80' },
+        status: 'online',
       }),
     });
 
@@ -71,8 +71,8 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     });
 
     const data = await telemetryReceived;
-    expect(data.heart_rate).toBe(85);
-    expect(data.spo2).toBe(98);
+    expect(data.values.heart_rate).toBe(85);
+    expect(data.values.spo2).toBe(98);
   });
 
   it('triggers @hardware_fault behaviors on anomaly detection', async () => {
@@ -88,7 +88,7 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'IoT Polling failed for broken_sensor_2',
+      'IoT polling failed for broken_sensor_2',
       expect.any(Error)
     );
 

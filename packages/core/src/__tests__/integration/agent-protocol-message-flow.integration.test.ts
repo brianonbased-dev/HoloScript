@@ -283,7 +283,7 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const compiler = new UAALCompiler();
       const bytecode = compiler.buildFullCycle(goal.description);
 
-      expect(bytecode.version).toBe(1);
+      expect(bytecode.version).toBe(2);
       expect(bytecode.instructions.length).toBeGreaterThan(0);
 
       // Step 3: Verify bytecode contains all protocol phases

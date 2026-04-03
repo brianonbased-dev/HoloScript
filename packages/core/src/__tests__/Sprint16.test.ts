@@ -573,8 +573,8 @@ describe('Feature 5A: MCP graphTools array', () => {
     expect(Array.isArray(graphTools)).toBe(true);
   });
 
-  it('has exactly 6 graph tools', () => {
-    expect(graphTools.length).toBe(6);
+  it('has exactly 8 graph tools', () => {
+    expect(graphTools.length).toBe(8);
   });
 
   it('every tool has a name string', () => {

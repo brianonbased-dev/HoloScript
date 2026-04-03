@@ -28,6 +28,45 @@ import { execSync, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const ROOT = path.resolve(__dirname, '..', '..', '..');
+
+function loadEnvIfPresent(filePath: string): void {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx <= 0) continue;
+      const key = trimmed.slice(0, idx).trim();
+      if (!key || process.env[key] !== undefined) continue;
+      let value = trimmed.slice(idx + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+    }
+  } catch {
+    // Intentionally ignore malformed .env files to keep Scout boot resilient.
+  }
+}
+
+function preloadEnv(): void {
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  const candidates = [
+    path.join(ROOT, '.env'),
+    path.resolve(ROOT, '..', 'mcp-orchestrator', '.env'),
+    home ? path.join(home, '.ai-ecosystem', '.env') : '',
+  ].filter(Boolean);
+
+  for (const envPath of candidates) {
+    loadEnvIfPresent(envPath);
+  }
+}
+
+preloadEnv();
+
 // ── Config ──
 
 const WORKER_NAME = process.env.HOLOMESH_WORKER_NAME || 'holoscout';
@@ -35,7 +74,6 @@ const LEGACY_WORKER_NAMES = new Set(['gpu-worker']);
 const ROOM_ID = 'team_d141a6972eac1e9d';
 const HOLOMESH_API = 'https://mcp.holoscript.net/api/holomesh';
 const OLLAMA_URL = 'http://localhost:11434';
-const ROOT = path.resolve(__dirname, '..', '..', '..');
 const HEARTBEAT_MS = 60_000;
 const CYCLE_MS = 90_000;
 

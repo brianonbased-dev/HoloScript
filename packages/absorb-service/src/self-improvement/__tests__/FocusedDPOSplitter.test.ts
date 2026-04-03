@@ -6,7 +6,7 @@ import {
   type FocusedDPOConfig,
   type SplitterStats,
 } from '../FocusedDPOSplitter';
-import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+import { HoloCompositionParser } from '@holoscript/core';
 
 // =============================================================================
 // TEST FIXTURES

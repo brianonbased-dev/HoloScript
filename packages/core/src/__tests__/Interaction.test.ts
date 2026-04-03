@@ -16,6 +16,15 @@ vi.mock('../physics/PhysicsWorldImpl', () => {
 
       return {
         step: vi.fn(),
+        createBody: vi.fn((config) => {
+          const id = config.id || `body_${bodies.size}`;
+          bodies.set(id, {
+            position: config.position,
+            velocity: { x: 0, y: 0, z: 0 },
+            type: config.type,
+          });
+          return id;
+        }),
         addBody: vi.fn((id, config) => {
           bodies.set(id, {
             position: config.position,
@@ -24,8 +33,13 @@ vi.mock('../physics/PhysicsWorldImpl', () => {
           });
         }),
         getBody: vi.fn((id) => bodies.get(id) || null),
+        createConstraint: vi.fn(),
         addConstraint: vi.fn(),
+        removeConstraint: vi.fn(),
         removeConstraints: vi.fn(),
+        setPosition: vi.fn(),
+        setLinearVelocity: vi.fn(),
+        getContacts: vi.fn().mockReturnValue([]),
         raycast: vi.fn(),
         getStates: vi.fn().mockReturnValue({}),
       };
@@ -95,7 +109,7 @@ describe('Physics Interaction', () => {
     // Call directly
     bridge.updateHand(handData, 'left', 0.016);
 
-    expect(physicsWorld.addBody).toHaveBeenCalledWith('hand_left', expect.anything());
+    expect(physicsWorld.createBody).toHaveBeenCalledWith(expect.objectContaining({ id: 'hand_left' }));
   });
 
   it('triggers grab event when pinching near object', () => {
@@ -110,7 +124,7 @@ describe('Physics Interaction', () => {
     const payload = { nodeId: 'box1', hand: 'right' };
     (runtime as any).emit('physics_grab', payload);
 
-    expect(physicsWorld.addConstraint).toHaveBeenCalledWith(
+    expect(physicsWorld.createConstraint).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'fixed',
         bodyB: 'box1',
@@ -122,7 +136,7 @@ describe('Physics Interaction', () => {
     const payload = { nodeId: 'box1', velocity: [10, 5, 0] };
     (runtime as any).emit('physics_release', payload);
 
-    expect(physicsWorld.removeConstraints).toHaveBeenCalledWith('box1');
+    expect(physicsWorld.removeConstraint).toHaveBeenCalledWith(expect.stringContaining('box1'));
 
     // Check if getBody was called to retrieve the body for velocity application
     expect(physicsWorld.getBody).toHaveBeenCalledWith('box1');

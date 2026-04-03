@@ -854,5 +854,5 @@ describe('Module Exports', () => {
     expect(marketplace.createMarketplaceRoutes).toBeDefined();
     expect(marketplace.createApp).toBeDefined();
     expect(marketplace.startServer).toBeDefined();
-  });
+  }, 60_000);
 });

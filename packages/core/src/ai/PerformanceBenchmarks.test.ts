@@ -19,17 +19,23 @@ import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 // =============================================================================
 
 class BenchmarkAdapter {
+  readonly id = 'benchmark';
+  readonly name = 'BenchmarkAdapter';
   private responseDelayMs: number;
 
   constructor(delayMs: number = 100) {
     this.responseDelayMs = delayMs;
   }
 
+  isReady() {
+    return true;
+  }
+
   async generateHoloScript() {
     await this.sleep(this.responseDelayMs);
     return {
       holoScript: `orb #test { geometry: "sphere"; position: [0, 0, 0] }`,
-      aiConfidence: 0.95,
+      confidence: 0.95,
     };
   }
 
@@ -38,11 +44,11 @@ class BenchmarkAdapter {
   }
 
   async optimizeHoloScript(code: string) {
-    return { holoScript: code };
+    return { holoScript: code, improvements: ['benchmark optimization'] };
   }
 
   async fixHoloScript(code: string) {
-    return { holoScript: code, fixes: [] };
+    return { holoScript: code, fixes: [] as Array<{ line: number; issue: string; fix: string }> };
   }
 
   async chat(message: string) {
@@ -51,10 +57,6 @@ class BenchmarkAdapter {
 
   async getEmbeddings(texts: string[]) {
     return texts.map(() => [0.1, 0.2, 0.3]);
-  }
-
-  getName() {
-    return 'BenchmarkAdapter';
   }
 
   private sleep(ms: number): Promise<void> {

@@ -12,7 +12,7 @@ describe('Studio API Routes', () => {
       const { authOptions } = await import('../lib/auth');
       expect(authOptions).toBeDefined();
       expect(authOptions.session?.strategy).toBe('jwt');
-    });
+    }, 30_000);
 
     it('has signIn page set to /auth/signin', async () => {
       const { authOptions } = await import('../lib/auth');

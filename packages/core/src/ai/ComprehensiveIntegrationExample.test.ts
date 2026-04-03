@@ -9,7 +9,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { HoloScriptGenerator, type AIAdapter } from './HoloScriptGenerator';
+import type { AIAdapter } from './AIAdapter';
+import { HoloScriptGenerator } from './HoloScriptGenerator';
 import { PromptTemplateSystem } from './PromptTemplates';
 import { GenerationCache } from './GenerationCache';
 
@@ -18,7 +19,12 @@ import { GenerationCache } from './GenerationCache';
 // =============================================================================
 
 class DemoAdapter implements AIAdapter {
-  name = 'DemoAdapter';
+  readonly id = 'demo';
+  readonly name = 'DemoAdapter';
+
+  isReady() {
+    return true;
+  }
 
   async generateHoloScript(prompt: string) {
     // Simulate different code based on keywords
@@ -70,13 +76,14 @@ class DemoAdapter implements AIAdapter {
 
     return {
       holoScript: code,
-      aiConfidence: 0.9,
+      confidence: 0.9,
     };
   }
 
   async fixHoloScript(code: string, errors: string[]) {
     return {
       holoScript: code,
+      fixes: [] as Array<{ line: number; issue: string; fix: string }>,
     };
   }
 
@@ -91,7 +98,7 @@ class DemoAdapter implements AIAdapter {
     if (platform === 'mobile') {
       optimized = code.replace(/scale: \[.*?\]/g, 'scale: [0.2, 0.2, 0.2]');
     }
-    return { holoScript: optimized };
+    return { holoScript: optimized, improvements: [`Optimized for ${platform}`] };
   }
 
   async chat(
@@ -218,21 +225,23 @@ describe('Comprehensive Integration Example', () => {
     it('should not cache failures', async () => {
       // Create a failing adapter
       class FailingAdapter implements AIAdapter {
-        name = 'FailingAdapter';
+        readonly id = 'failing';
+        readonly name = 'FailingAdapter';
+        isReady() { return true; }
         async generateHoloScript(prompt: string) {
           return {
             holoScript: 'invalid [[[ code',
-            aiConfidence: 0.1, // Below threshold
+            confidence: 0.1, // Below threshold
           };
         }
         async fixHoloScript(code: string, errors: string[]) {
-          return { holoScript: code };
+          return { holoScript: code, fixes: [] as Array<{ line: number; issue: string; fix: string }> };
         }
         async explainHoloScript(code: string) {
           return { explanation: 'Failed' };
         }
         async optimizeHoloScript(code: string, platform: string) {
-          return { holoScript: code };
+          return { holoScript: code, improvements: [] as string[] };
         }
         async chat(message: string, context: string, history?: any) {
           return 'Failed';

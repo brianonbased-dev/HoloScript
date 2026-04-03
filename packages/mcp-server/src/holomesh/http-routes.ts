@@ -4008,17 +4008,41 @@ export async function handleHoloMeshRoute(
       const team = teamStore.get(teamId)!;
       const doneLog = team.doneLog || [];
 
-      const verified = doneLog.filter((e) => e.commitHash && e.commitHash !== 'uncommit' && e.commitHash.length >= 7);
-      const unverified = doneLog.filter((e) => !e.commitHash || e.commitHash === 'uncommit' || e.commitHash.length < 7);
+      const isLikelyReportEntry = (entry: { title?: string; summary?: string }): boolean => {
+        const title = (entry.title || '').toLowerCase();
+        const summary = (entry.summary || '').toLowerCase();
+        return title.startsWith('[report]') || summary.startsWith('session end');
+      };
+
+      const isCommitProof = (commitHash?: string): boolean => {
+        if (!commitHash) return false;
+        const hash = commitHash.trim();
+        if (!hash) return false;
+        if (['uncommit', 'local-uncommitted', 'local_uncommitted', 'none', 'n/a', 'na'].includes(hash.toLowerCase())) {
+          return false;
+        }
+        return /^[0-9a-f]{7,40}$/i.test(hash);
+      };
+
+      const proofRequired = doneLog.filter((e) => !isLikelyReportEntry(e));
+      const nonProofEntries = doneLog.filter((e) => isLikelyReportEntry(e));
+
+      const verified = proofRequired.filter((e) => isCommitProof(e.commitHash));
+      const unverified = proofRequired.filter((e) => !isCommitProof(e.commitHash));
       const duplicates = new Map<string, number>();
       for (const e of doneLog) {
         duplicates.set(e.title, (duplicates.get(e.title) || 0) + 1);
       }
       const duped = [...duplicates.entries()].filter(([, count]) => count > 1).map(([title, count]) => ({ title, count }));
 
+      const denominator = proofRequired.length;
+      const verificationRate = denominator > 0 ? Math.round((verified.length / denominator) * 100) : 100;
+
       json(res, 200, {
         success: true,
         total: doneLog.length,
+        proof_required_total: proofRequired.length,
+        non_proof_entries: nonProofEntries.length,
         verified: verified.length,
         unverified: unverified.length,
         duplicates: duped.length,
@@ -4031,10 +4055,10 @@ export async function handleHoloMeshRoute(
         })),
         duplicate_tasks: duped,
         health: {
-          verification_rate: doneLog.length > 0 ? Math.round((verified.length / doneLog.length) * 100) : 0,
+          verification_rate: verificationRate,
           message: unverified.length === 0
             ? 'All tasks have commit proof.'
-            : `${unverified.length} tasks need verification — no commit hash provided.`,
+            : `${unverified.length} tasks need verification — missing or invalid commit proof.`,
         },
       });
       return true;

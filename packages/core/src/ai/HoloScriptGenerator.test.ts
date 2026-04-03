@@ -30,10 +30,16 @@ import {
 // =============================================================================
 
 class MockGeneratorAdapter implements AIAdapter {
+  readonly id = 'mock-generator';
+  readonly name = 'MockGeneratorAdapter';
   generateCount = 0;
   fixCount = 0;
   explainCount = 0;
   optimizeCount = 0;
+
+  isReady() {
+    return true;
+  }
 
   private validCode = `
 orb #player
@@ -62,14 +68,14 @@ orb #broken
     if (prompt.includes('broken')) {
       return {
         holoScript: this.brokenCode,
-        aiConfidence: 0.6,
+        confidence: 0.6,
       };
     }
 
     // Return valid code for normal prompts
     return {
       holoScript: this.validCode,
-      aiConfidence: 0.95,
+      confidence: 0.95,
     };
   }
 
@@ -84,6 +90,7 @@ orb #broken
     this.optimizeCount++;
     return {
       holoScript: `// Optimized for ${platform}\n${code}`,
+      improvements: [`Optimized for ${platform}`],
     };
   }
 
@@ -91,7 +98,7 @@ orb #broken
     this.fixCount++;
     return {
       holoScript: this.validCode,
-      fixes: errors.map((e) => `Fixed: ${e}`),
+      fixes: errors.map((e, i) => ({ line: i + 1, issue: e, fix: `Fixed: ${e}` })),
     };
   }
 
@@ -101,10 +108,6 @@ orb #broken
 
   async getEmbeddings(texts: string[]): Promise<number[][]> {
     return texts.map(() => [0.1, 0.2, 0.3]);
-  }
-
-  getName(): string {
-    return 'MockGeneratorAdapter';
   }
 }
 
@@ -222,7 +225,7 @@ describe('HoloScriptGenerator', () => {
     });
 
     it('should auto-fix broken code', async () => {
-      const session = generator.createSession(adapter, { autoFix: true, minConfidence: 0.5 });
+      const session = generator.createSession(adapter, { autoFix: true, minConfidence: 0.3 });
       const result = await generator.generate('generate broken code', session);
 
       // Should attempt fix when code is broken
@@ -252,7 +255,7 @@ describe('HoloScriptGenerator', () => {
         fixCalled = true;
         return {
           holoScript: code,
-          fixes: errors.map((e) => `Fixed: ${e}`),
+          fixes: errors.map((e, i) => ({ line: i + 1, issue: e, fix: `Fixed: ${e}` })),
         };
       });
 
@@ -297,7 +300,7 @@ orb #player
       // Mock broken generation
       adapter.generateHoloScript = vi.fn(async () => ({
         holoScript: 'invalid code',
-        aiConfidence: 0.95,
+        confidence: 0.95,
       }));
 
       const result = await generator.generate('test', session);
@@ -552,7 +555,7 @@ describe('Helper Functions', () => {
       expect(results).toHaveLength(3);
       results.forEach((r) => {
         expect(r.code).toBeDefined();
-        expect(r.valid).toBe(typeof r.valid === 'boolean');
+        expect(typeof r.valid).toBe('boolean');
         expect(r.errors).toBeGreaterThanOrEqual(0);
       });
     });

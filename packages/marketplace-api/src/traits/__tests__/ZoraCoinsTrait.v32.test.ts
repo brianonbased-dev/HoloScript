@@ -27,7 +27,7 @@ vi.mock('@zoralabs/protocol-deployments', () => ({
   zoraCreator1155ImplABI: [],
 }));
 
-vi.mock('../utils/WalletConnection', () => ({
+vi.mock('../../web3/WalletConnection', () => ({
   WalletConnection: class MockWallet {
     connect = vi.fn();
     isConnected = () => true;
@@ -43,7 +43,7 @@ vi.mock('../utils/WalletConnection', () => ({
   },
 }));
 
-vi.mock('../utils/GasEstimator', () => ({
+vi.mock('../../web3/GasEstimator', () => ({
   GasEstimator: class MockGasEstimator {
     static estimateMintGas = vi.fn();
     static formatEstimate = vi.fn();

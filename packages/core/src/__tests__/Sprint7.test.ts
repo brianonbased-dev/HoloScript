@@ -87,8 +87,6 @@ function makeCtx(overrides: Partial<CompletionContext> = {}): CompletionContext 
   };
 }
 
-const INTELLIJ_ROOT = join(__dirname, '../../../../packages/intellij');
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Visual node registry
 // ─────────────────────────────────────────────────────────────────────────────
@@ -497,7 +495,7 @@ describe('Sprint 7 – AI PromptBuilder', () => {
 // 4. IntelliJ plugin
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Sprint 7 – IntelliJ plugin', () => {
+describe.skip('Sprint 7 – IntelliJ plugin (packages/intellij removed)', () => {
   it('plugin.xml manifest exists', () => {
     expect(existsSync(join(INTELLIJ_ROOT, 'src/main/resources/META-INF/plugin.xml'))).toBe(true);
   });

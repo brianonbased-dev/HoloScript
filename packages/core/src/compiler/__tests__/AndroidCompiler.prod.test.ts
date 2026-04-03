@@ -156,14 +156,14 @@ describe('AndroidCompiler — Production', () => {
   });
 
   // ─── Convenience function ─────────────────────────────────────────────
-  it('compileToAndroid convenience function works', () => {
-    const result = compileToAndroid(makeComp());
+  it('compileToAndroid convenience function works', async () => {
+    const result = await compileToAndroid(makeComp());
     expect(typeof result.activityFile).toBe('string');
     expect(typeof result.manifestFile).toBe('string');
   });
 
-  it('compileToAndroid passes options', () => {
-    const result = compileToAndroid(makeComp(), { packageName: 'com.foo.ar' });
+  it('compileToAndroid passes options', async () => {
+    const result = await compileToAndroid(makeComp(), { packageName: 'com.foo.ar' });
     expect(result.activityFile).toContain('com.foo.ar');
   });
 

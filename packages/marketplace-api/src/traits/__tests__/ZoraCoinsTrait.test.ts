@@ -6,15 +6,47 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { zoraCoinsHandler } from '../ZoraCoinsTrait';
-import {
-  createMockContext,
-  createMockNode,
-  attachTrait,
-  sendEvent,
-  updateTrait,
-  getLastEvent,
-  getEventCount,
-} from './traitTestHelpers';
+
+// traitTestHelpers module was never created — inline minimal stubs
+function createMockContext() {
+  const events: Array<{ event: string; data: unknown }> = [];
+  const ctx = {
+    emit: (event: string, data: unknown) => { events.push({ event, data }); },
+    events,
+    emittedEvents: events, // alias used by some tests
+    clearEvents: () => { events.length = 0; },
+  };
+  return ctx;
+}
+function createMockNode(id = 'node') {
+  return { id } as Record<string, unknown>;
+}
+function attachTrait(handler: any, node: any, config: any, ctx: any) {
+  const mergedConfig = { ...handler.defaultConfig, ...config };
+  handler.onAttach(node, mergedConfig, ctx);
+}
+function sendEvent(handler: any, node: any, config: any, ctx: any, event: any) {
+  const mergedConfig = { ...handler.defaultConfig, ...config };
+  handler.onEvent?.(node, mergedConfig, ctx, event);
+}
+function updateTrait(handler: any, node: any, config: any, ctx: any, delta = 0.016) {
+  const mergedConfig = { ...handler.defaultConfig, ...config };
+  handler.onUpdate?.(node, mergedConfig, ctx, delta);
+}
+function getLastEvent(ctx: ReturnType<typeof createMockContext>, eventName?: string) {
+  if (eventName) {
+    const filtered = ctx.events.filter((e) => e.event === eventName);
+    const last = filtered[filtered.length - 1];
+    return last?.data as any;
+  }
+  return ctx.events[ctx.events.length - 1];
+}
+function getEventCount(ctx: ReturnType<typeof createMockContext>, eventName?: string) {
+  if (eventName) {
+    return ctx.events.filter((e) => e.event === eventName).length;
+  }
+  return ctx.events.length;
+}
 
 describe('ZoraCoinsTrait', () => {
   let node: Record<string, unknown>;

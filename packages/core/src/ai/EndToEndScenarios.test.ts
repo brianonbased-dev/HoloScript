@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { AIAdapter } from './adapters';
+import type { AIAdapter } from './AIAdapter';
 import { HoloScriptGenerator } from './HoloScriptGenerator';
 
 // =============================================================================
@@ -18,7 +18,13 @@ import { HoloScriptGenerator } from './HoloScriptGenerator';
 // =============================================================================
 
 class E2ETestAdapter implements AIAdapter {
+  readonly id = 'e2e-test';
+  readonly name = 'E2ETestAdapter';
   generatedCodes: Map<string, string> = new Map();
+
+  isReady() {
+    return true;
+  }
 
   constructor() {
     this.setupScenarios();
@@ -342,7 +348,7 @@ composition "ProgressionGame" {
 
     return {
       holoScript: code,
-      aiConfidence: 0.92,
+      confidence: 0.92,
     };
   }
 
@@ -351,11 +357,11 @@ composition "ProgressionGame" {
   }
 
   async optimizeHoloScript(code: string, platform: string) {
-    return { holoScript: `// Optimized for ${platform}\n${code}` };
+    return { holoScript: `// Optimized for ${platform}\n${code}`, improvements: [`Optimized for ${platform}`] };
   }
 
   async fixHoloScript(code: string, errors: string[]) {
-    return { holoScript: code, fixes: [] };
+    return { holoScript: code, fixes: [] as Array<{ line: number; issue: string; fix: string }> };
   }
 
   async chat(message: string) {
@@ -364,10 +370,6 @@ composition "ProgressionGame" {
 
   async getEmbeddings(texts: string[]) {
     return texts.map(() => [0.1, 0.2, 0.3]);
-  }
-
-  getName() {
-    return 'E2ETestAdapter';
   }
 }
 
