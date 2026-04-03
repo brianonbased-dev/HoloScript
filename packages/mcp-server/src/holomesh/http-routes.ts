@@ -57,16 +57,19 @@ function recordTransaction(tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>): 
 }
 
 /** Lazy-loaded PaymentGateway from @holoscript/core economy module */
-let paymentGateway: any = null;
+interface PaymentGatewayInstance {
+  create402Response(params: { entryId: string; priceUSDC: number; metadata?: Record<string, unknown> }): Record<string, unknown>;
+}
+let paymentGateway: PaymentGatewayInstance | null = null;
 
-async function getPaymentGateway(): Promise<any> {
+async function getPaymentGateway(): Promise<PaymentGatewayInstance | null> {
   if (paymentGateway) return paymentGateway;
   try {
     const { PaymentGateway } = await import('@holoscript/core');
     paymentGateway = new PaymentGateway({
       recipientAddress:
         process.env.HOLOMESH_PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000',
-      chain: (process.env.HOLOMESH_PAYMENT_CHAIN as any) || 'base-sepolia',
+      chain: (process.env.HOLOMESH_PAYMENT_CHAIN as string | undefined) || 'base-sepolia',
     });
     return paymentGateway;
   } catch {
@@ -256,7 +259,7 @@ interface TeamMessage {
   fromAgentName: string;
   toAgentId?: string; // undefined = broadcast to team
   content: string;
-  messageType: 'text' | 'task' | 'knowledge' | 'absorb-result';
+  messageType: 'text' | 'task' | 'knowledge' | 'absorb-result' | 'equipment-load';
   metadata?: Record<string, unknown>;
   createdAt: string;
 }
@@ -392,10 +395,10 @@ function promoteFromWaitlist(teamId: string): string[] {
       teamId,
       fromAgentId: 'system',
       fromAgentName: 'HoloMesh',
-      type: 'text',
+      messageType: 'text',
       content: `Slot opened — promoted from waitlist: ${promoted.join(', ')}`,
       createdAt: new Date().toISOString(),
-    } as any);
+    });
     teamMessageStore.set(teamId, messages.slice(-500));
     persistTeamStore();
   }
@@ -456,9 +459,9 @@ function pruneStalePresence(teamId: string): string[] {
             fromAgentId: 'room',
             fromAgentName: `Room: ${team.name}`,
             content: `Task reopened: "${task.title}" — ${oldClaimer} went offline. Next agent can claim it.`,
-            messageType: 'text' as any,
+            messageType: 'text',
             createdAt: new Date().toISOString(),
-          } as any);
+          });
           teamMessageStore.set(teamId, messages.slice(-500));
         }
       }
@@ -1351,8 +1354,8 @@ export async function handleHoloMeshRoute(
       // Persist price in metadata so it survives the orchestrator round-trip
       // (orchestrator stores metadata as JSON, price is not a native column)
       if (entry.price > 0) {
-        (entry as any).metadata = {
-          ...(entry as any).metadata,
+        entry.metadata = {
+          ...entry.metadata,
           price: entry.price,
           domain: entry.domain,
         };
@@ -2546,7 +2549,7 @@ export async function handleHoloMeshRoute(
             json(res, 400, { error: 'backgroundMusicUrl must be an HTTPS URL' });
             return true;
           }
-          updates[field] = val as any;
+          (updates as Record<string, unknown>)[field] = val;
         }
       }
 
@@ -2616,7 +2619,7 @@ export async function handleHoloMeshRoute(
       if (!caller) return true;
 
       const body = await parseJsonBody(req);
-      const entries = body.entries as any[];
+      const entries = body.entries as Record<string, unknown>[] | undefined;
 
       if (!Array.isArray(entries) || entries.length === 0) {
         json(res, 400, {
@@ -3087,20 +3090,21 @@ export async function handleHoloMeshRoute(
         });
 
         if (!verifyRes.ok) {
-          const errData = await verifyRes.json().catch(() => ({}));
+          const errData = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
           json(res, 401, {
             error: 'Token verification failed',
             hint:
-              (errData as any).error ||
+              (errData.error as string) ||
               'Token may be expired (1 hour lifetime). Generate a new one.',
           });
           return true;
         }
 
-        const data = await verifyRes.json();
-        verifiedAgent = (data as any).agent;
-      } catch (err: any) {
-        json(res, 502, { error: `Failed to verify with Moltbook: ${err.message}` });
+        const data = (await verifyRes.json()) as Record<string, unknown>;
+        verifiedAgent = data.agent as typeof verifiedAgent;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        json(res, 502, { error: `Failed to verify with Moltbook: ${message}` });
         return true;
       }
 
@@ -3584,9 +3588,9 @@ export async function handleHoloMeshRoute(
           fromAgentId: 'room',
           fromAgentName: `Room: ${team.name}`,
           content: `Room config updated by ${caller.name}. Reload your equipment.`,
-          messageType: 'text' as any,
+          messageType: 'text',
           createdAt: new Date().toISOString(),
-        } as any);
+        });
         teamMessageStore.set(teamId, messages.slice(-500));
       }
 
@@ -3829,9 +3833,9 @@ export async function handleHoloMeshRoute(
         fromAgentId: 'room',
         fromAgentName: `Room: ${team.name}`,
         content: `Mode switched to "${mode}" by ${caller.name}. New objective: ${preset.objective}. Task sources: ${preset.taskSources.join(', ')}`,
-        messageType: 'text' as any,
+        messageType: 'text',
         createdAt: new Date().toISOString(),
-      } as any);
+      });
       teamMessageStore.set(teamId, messages.slice(-500));
 
       persistTeamStore();
@@ -3896,6 +3900,111 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/team/:id/done/audit — Flag unverified "done" tasks
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/done\/audit$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+      void access.caller;
+      const team = teamStore.get(teamId)!;
+      const doneLog = team.doneLog || [];
+
+      const verified = doneLog.filter((e) => e.commitHash && e.commitHash !== 'uncommit' && e.commitHash.length >= 7);
+      const unverified = doneLog.filter((e) => !e.commitHash || e.commitHash === 'uncommit' || e.commitHash.length < 7);
+      const duplicates = new Map<string, number>();
+      for (const e of doneLog) {
+        duplicates.set(e.title, (duplicates.get(e.title) || 0) + 1);
+      }
+      const duped = [...duplicates.entries()].filter(([, count]) => count > 1).map(([title, count]) => ({ title, count }));
+
+      json(res, 200, {
+        success: true,
+        total: doneLog.length,
+        verified: verified.length,
+        unverified: unverified.length,
+        duplicates: duped.length,
+        unverified_tasks: unverified.map((e) => ({
+          taskId: e.taskId,
+          title: e.title,
+          completedBy: e.completedBy,
+          summary: e.summary,
+          timestamp: e.timestamp,
+        })),
+        duplicate_tasks: duped,
+        health: {
+          verification_rate: doneLog.length > 0 ? Math.round((verified.length / doneLog.length) * 100) : 0,
+          message: unverified.length === 0
+            ? 'All tasks have commit proof.'
+            : `${unverified.length} tasks need verification — no commit hash provided.`,
+        },
+      });
+      return true;
+    }
+
+    // PATCH /api/holomesh/team/:id/done/:taskId — Verify or reject a done task
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/done\/[^/]+$/) && method === 'PATCH') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      const doneLog = team.doneLog || [];
+
+      const parts = pathname.split('/');
+      const taskId = parts[parts.length - 1];
+      const entry = doneLog.find((e) => e.taskId === taskId);
+      if (!entry) {
+        json(res, 404, { error: 'Done entry not found' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const action = body.action as string;
+
+      if (action === 'verify') {
+        // Add commit hash as proof
+        entry.commitHash = (body.commit as string) || entry.commitHash;
+        if (body.summary) entry.summary = body.summary as string;
+        persistTeamStore();
+        json(res, 200, { success: true, entry, message: 'Verified with commit proof.' });
+        return true;
+      }
+
+      if (action === 'reject') {
+        // Move back to board as open task
+        if (!team.taskBoard) team.taskBoard = [];
+        team.taskBoard.push({
+          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          title: entry.title,
+          description: `Rejected from done log: ${body.reason || 'no proof'}. Previously claimed by ${entry.completedBy}.`,
+          status: 'open',
+          source: 'audit',
+          priority: 2,
+          createdAt: new Date().toISOString(),
+        });
+        // Remove from done log
+        team.doneLog = doneLog.filter((e) => e.taskId !== taskId);
+        persistTeamStore();
+
+        const messages = teamMessageStore.get(teamId) || [];
+        messages.push({
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          teamId,
+          fromAgentId: caller.id,
+          fromAgentName: caller.name,
+          content: `Task rejected from done log: "${entry.title}" (was: ${entry.completedBy}). Reason: ${body.reason || 'no commit proof'}. Re-added to board.`,
+          messageType: 'text',
+          createdAt: new Date().toISOString(),
+        });
+        teamMessageStore.set(teamId, messages.slice(-500));
+
+        json(res, 200, { success: true, message: 'Rejected. Task re-added to board as open.' });
+        return true;
+      }
+
+      json(res, 400, { error: 'action must be: verify or reject' });
+      return true;
+    }
+
     // POST /api/holomesh/team/:id/presence — Agent heartbeat (presence)
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'POST') {
       const access = requireTeamAccess(req, res, url);
@@ -3941,9 +4050,9 @@ export async function handleHoloMeshRoute(
             treasuryWallet: team.treasuryWallet,
             treasuryFeeBps: team.roomConfig.treasuryFeeBps,
           }),
-          messageType: 'equipment-load' as any,
+          messageType: 'equipment-load',
           createdAt: new Date().toISOString(),
-        } as any);
+        });
         teamMessageStore.set(teamId, messages.slice(-500));
       }
 
@@ -4092,7 +4201,7 @@ export async function handleHoloMeshRoute(
       const { caller, team, teamId } = access;
 
       const body = await parseJsonBody(req);
-      const entries = body.entries as any[];
+      const entries = body.entries as Record<string, unknown>[] | undefined;
 
       if (!Array.isArray(entries) || entries.length === 0) {
         json(res, 400, { error: 'Missing entries array' });
