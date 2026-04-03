@@ -9,6 +9,7 @@
 
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
+import { dispatchCustomEvent } from '../runtime-types';
 
 // =============================================================================
 // BEHAVIOR TREE TRAIT
@@ -229,11 +230,11 @@ function tickAction(node: BTNode, state: BTState, context: TraitContext): BTStat
   }
 
   // Emit event for external handling
-  context.object.dispatchEvent({
+  dispatchCustomEvent(context.object, {
     type: 'bt_action',
     action: actionName,
     params: node.params,
-  } as any);
+  });
   return 'success';
 }
 
@@ -273,11 +274,11 @@ export const BehaviorTreeTrait: TraitHandler = {
       state.status = tickBTNode(context.data.root, state, context, delta);
 
       if (state.status !== 'running') {
-        context.object.dispatchEvent({
+        dispatchCustomEvent(context.object, {
           type: 'bt_complete',
           status: state.status,
           blackboard: state.blackboard,
-        } as any);
+        });
 
         if (context.data.restartOnComplete) {
           state.nodeStates.clear();
@@ -406,13 +407,13 @@ export const EmotionTrait: TraitHandler = {
 
     // Emit on emotion change
     if (context.data.currentEmotion !== previousEmotion) {
-      context.object.dispatchEvent({
+      dispatchCustomEvent(context.object, {
         type: 'emotion_changed',
         from: previousEmotion,
         to: context.data.currentEmotion,
         intensity: context.data.intensity,
         pad: context.data.pad,
-      } as any);
+      });
     }
   },
   onRemove: (context: TraitContext) => {
@@ -574,20 +575,20 @@ export const GoalOrientedTrait: TraitHandler = {
           // Action complete - apply effects
           Object.assign(context.data.worldState, currentAction.effects);
 
-          context.object.dispatchEvent({
+          dispatchCustomEvent(context.object, {
             type: 'goap_action_complete',
             action: currentAction.name,
             worldState: context.data.worldState,
-          } as any);
+          });
 
           context.data.planIndex++;
           context.data.currentActionTime = 0;
 
           if (context.data.planIndex >= context.data.plan.length) {
-            context.object.dispatchEvent({
+            dispatchCustomEvent(context.object, {
               type: 'goap_goal_complete',
               goal: context.data.currentGoal?.name,
-            } as any);
+            });
             context.data.isExecuting = false;
             selectGoalAndPlan(context);
           }
@@ -635,16 +636,16 @@ function selectGoalAndPlan(context: TraitContext): void {
     context.data.currentActionTime = 0;
     context.data.isExecuting = true;
 
-    context.object.dispatchEvent({
+    dispatchCustomEvent(context.object, {
       type: 'goap_plan_created',
       goal: goal.name,
       actions: plan.map((a) => a.name),
-    } as any);
+    });
   } else {
-    context.object.dispatchEvent({
+    dispatchCustomEvent(context.object, {
       type: 'goap_plan_failed',
       goal: goal.name,
-    } as any);
+    });
     context.data.plan = [];
     context.data.isExecuting = false;
   }
@@ -671,7 +672,7 @@ export const PerceptionTrait: TraitHandler = {
     if (context.data.timer < context.data.updateRate) return;
     context.data.timer = 0;
 
-    const perceived: any[] = [];
+    const perceived: Array<{ object: THREE.Object3D; name: string; distance: number; angle: number; tag: unknown }> = [];
     const myPos = context.object.position;
     const range = context.data.range;
     const fovRad = ((context.data.fov / 2) * Math.PI) / 180;
@@ -682,7 +683,7 @@ export const PerceptionTrait: TraitHandler = {
     // Check all objects in scene
     const scene = context.object.parent;
     if (scene) {
-      scene.traverse((child: any) => {
+      scene.traverse((child: THREE.Object3D) => {
         if (child === context.object) return;
         if (!child.userData) return;
 
@@ -718,10 +719,10 @@ export const PerceptionTrait: TraitHandler = {
 
     // Emit perception update
     if (perceived.length > 0) {
-      context.object.dispatchEvent({
+      dispatchCustomEvent(context.object, {
         type: 'perception_update',
         objects: perceived,
-      } as any);
+      });
     }
   },
   onRemove: (context: TraitContext) => {

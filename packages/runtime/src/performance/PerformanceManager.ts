@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hasGPU } from '../runtime-types';
 
 // =============================================================================
 // ObjectPool - Reusable pool for Three.js math objects to minimize GC pressure
@@ -358,12 +359,12 @@ export class RendererManager {
    */
   private async tryCreateWebGPURenderer(): Promise<unknown | null> {
     // Guard: the WebGPU API must be present on the navigator
-    if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
+    if (typeof navigator === 'undefined' || !hasGPU(navigator)) {
       return null;
     }
 
     // Request an adapter to confirm the browser can actually provide WebGPU
-    const gpu = (navigator as any).gpu;
+    const gpu = navigator.gpu;
     const adapter = await gpu.requestAdapter();
     if (!adapter) {
       return null;

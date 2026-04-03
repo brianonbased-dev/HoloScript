@@ -9,6 +9,11 @@
 
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
+import {
+  dispatchCustomEvent,
+  type GamepadWithVibration,
+  type HapticActuatorWithPulse,
+} from '../runtime-types';
 
 // =============================================================================
 // TELEPORT TRAIT - Parabolic arc teleportation
@@ -474,7 +479,7 @@ export const WeatherTrait: TraitHandler = {
 
       // Traverse up to find the scene
       let scene: THREE.Object3D | null = context.object;
-      while (scene && !(scene as any).isScene && scene.parent) {
+      while (scene && !(scene instanceof THREE.Scene) && scene.parent) {
         scene = scene.parent;
       }
       if (scene) {
@@ -1065,13 +1070,13 @@ export const HapticTrait: TraitHandler = {
             const gamepad = inputSource.gamepad;
             if (gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
               // Standard Gamepad Haptic API
-              const actuator = gamepad.hapticActuators[0] as any;
+              const actuator = gamepad.hapticActuators[0] as unknown as HapticActuatorWithPulse | undefined;
               if (actuator && typeof actuator.pulse === 'function') {
                 actuator.pulse(intensity, duration);
               }
-            } else if ((gamepad as any).vibrationActuator) {
+            } else if ((gamepad as GamepadWithVibration).vibrationActuator) {
               // Alternative vibration API
-              (gamepad as any).vibrationActuator.playEffect('dual-rumble', {
+              (gamepad as GamepadWithVibration).vibrationActuator!.playEffect('dual-rumble', {
                 duration,
                 strongMagnitude: intensity,
                 weakMagnitude: intensity * 0.5,
@@ -1186,7 +1191,7 @@ export const PortalTrait: TraitHandler = {
 
         if (dist < activationDist) {
           child.position.set(destination.x, destination.y, destination.z);
-          child.dispatchEvent({ type: 'portal_teleported', destination } as any);
+          dispatchCustomEvent(child, { type: 'portal_teleported', destination });
         }
       });
     }

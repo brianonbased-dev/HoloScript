@@ -4,6 +4,8 @@
  * Timer functions for HoloScript: after(), every(), debounce(), throttle()
  */
 
+import { hasIdleCallback } from './runtime-types';
+
 export type TimerId = number;
 export type CancelFn = () => void;
 
@@ -134,9 +136,9 @@ export function createLoop(callback: (deltaTime: number, elapsed: number) => voi
  * Execute callback on next idle period
  */
 export function onIdle(callback: () => void, timeout = 1000): CancelFn {
-  if (typeof (window as any).requestIdleCallback === 'function') {
-    const id = (window as any).requestIdleCallback(callback, { timeout });
-    return () => (window as any).cancelIdleCallback(id);
+  if (hasIdleCallback(window)) {
+    const id = window.requestIdleCallback(callback, { timeout });
+    return () => window.cancelIdleCallback(id);
   }
 
   // Fallback for browsers without requestIdleCallback

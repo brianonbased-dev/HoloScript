@@ -155,6 +155,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holomesh_subscribe: ['tools:read'],
   holomesh_collect: ['tools:write'],
 
+  // === HoloMesh Board / Slots / Mode ===
+  holomesh_board_list: ['tools:read'],
+  holomesh_board_add: ['tools:write'],
+  holomesh_board_claim: ['tools:write'],
+  holomesh_board_complete: ['tools:write'],
+  holomesh_slot_assign: ['tools:write', 'tools:admin'],
+  holomesh_mode_set: ['tools:write', 'tools:admin'],
+
   // === Railway Deployment (registered dynamically via connector) ===
   railway_project_create: ['tools:admin'],
   railway_service_create: ['tools:admin'],
@@ -217,6 +225,14 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holomesh_contribute: 'medium',
   holomesh_collect: 'medium',
   holomesh_gossip: 'high',
+
+  // HoloMesh Board / Slots / Mode
+  holomesh_board_list: 'low',
+  holomesh_board_add: 'medium',
+  holomesh_board_claim: 'medium',
+  holomesh_board_complete: 'medium',
+  holomesh_slot_assign: 'high',
+  holomesh_mode_set: 'high',
 
   // Railway Deployment
   railway_project_create: 'critical',

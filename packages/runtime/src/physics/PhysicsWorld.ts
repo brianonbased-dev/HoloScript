@@ -142,8 +142,8 @@ export class PhysicsWorld {
     this.bodies.forEach((body, id) => {
       const mesh = this.meshes.get(id);
       if (mesh) {
-        mesh.position.copy(body.position as any);
-        mesh.quaternion.copy(body.quaternion as any);
+        mesh.position.set(body.position.x, body.position.y, body.position.z);
+        mesh.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
       }
     });
   }

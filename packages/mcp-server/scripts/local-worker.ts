@@ -101,7 +101,7 @@ async function think(prompt: string): Promise<string> {
 
 function perceiveShell(cmd: string): string {
   try {
-    return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT }).trim();
+    return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: 'bash' } as any).trim();
   } catch { return ''; }
 }
 
@@ -381,27 +381,33 @@ async function analyzeTask(task: any): Promise<{ actionable: boolean; finding: s
   const commands: string[] = [];
 
   if (/console\.log|debug/i.test(title)) {
-    commands.push('grep -rn "console\\.log\\|console\\.warn\\|console\\.error" packages/studio/src --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v test | wc -l');
-    commands.push('grep -rn "console\\.log" packages/core/src --include="*.ts" 2>/dev/null | grep -v test | wc -l');
+    commands.push('grep -rn "console\\.log" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v test | wc -l');
+    commands.push('grep -rn "console\\.log" packages/core/src/ --include="*.ts" 2>/dev/null | grep -v test | wc -l');
   } else if (/as.any|type.*cast/i.test(title)) {
-    commands.push('grep -rn "as any" packages/studio/src --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
-    commands.push('grep -rn "as any" packages/core/src --include="*.ts" 2>/dev/null | wc -l');
+    commands.push('grep -rn "as any" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
+    commands.push('grep -rn "as any" packages/core/src/ --include="*.ts" 2>/dev/null | wc -l');
   } else if (/empty catch|catch.*{}/i.test(title)) {
-    commands.push('grep -rn "catch\\s*{}" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
+    commands.push('grep -rn "catch {}" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
   } else if (/unused|dead.*code/i.test(title)) {
-    commands.push('grep -rn "// unused\\|// dead\\|// deprecated" packages/ --include="*.ts" 2>/dev/null | wc -l');
+    commands.push('grep -rn "unused\\|deprecated" packages/ --include="*.ts" 2>/dev/null | wc -l');
   } else if (/README/i.test(title)) {
-    commands.push('find packages -maxdepth 2 -name "README.md" | wc -l');
-    commands.push('find packages -maxdepth 2 -name "package.json" | wc -l');
+    commands.push('find packages/ -maxdepth 2 -name "README.md" 2>/dev/null | wc -l');
+    commands.push('find packages/ -maxdepth 2 -name "package.json" 2>/dev/null | wc -l');
   } else if (/ErrorBoundary/i.test(title)) {
     commands.push('grep -rn "ErrorBoundary" packages/ --include="*.tsx" 2>/dev/null | wc -l');
   } else if (/test.*coverage|zero.*test/i.test(title)) {
-    commands.push('find packages -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" 2>/dev/null | wc -l');
+    commands.push('find packages/ -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" 2>/dev/null | wc -l');
+  } else if (/room|team|template/i.test(title)) {
+    commands.push('grep -rn "roomConfig\\|RoomConfig\\|room_config" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | wc -l');
+    commands.push('grep -rn "ROOM_PRESETS\\|room.*template" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | wc -l');
+  } else if (/absorb|query|knowledge/i.test(title)) {
+    commands.push('grep -rn "absorb_query\\|absorb_run" packages/ --include="*.ts" 2>/dev/null | wc -l');
+    commands.push('grep -rn "knowledge.*query\\|knowledge.*sync" packages/ --include="*.ts" 2>/dev/null | wc -l');
   } else {
     // Generic — try to find relevant files
-    const keywords = title.split(/\s+/).filter((w: string) => w.length > 4).slice(0, 3);
+    const keywords = title.split(/\s+/).filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add/i.test(w)).slice(0, 3);
     for (const kw of keywords) {
-      commands.push(`grep -rn "${kw}" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l`);
+      commands.push('grep -rn "' + kw + '" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l');
     }
   }
 

@@ -9,6 +9,7 @@
 
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
+import { getObjectTraits } from '../runtime-types';
 
 // =============================================================================
 // HELPERS
@@ -798,9 +799,7 @@ export const WindTrait: TraitHandler = {
 
     scene.traverse((child: THREE.Object3D) => {
       if (child === context.object) return;
-      const traits = (child as any)._traits as
-        | Array<{ name: string; context: TraitContext }>
-        | undefined;
+      const traits = getObjectTraits(child);
       if (!traits) return;
 
       // Check distance
@@ -1060,9 +1059,7 @@ export const DestructionTrait: TraitHandler = {
  * Trigger destruction externally by calling this function
  */
 export function triggerDestruction(object: THREE.Object3D): void {
-  const traits = (object as any)._traits as
-    | Array<{ name: string; context: TraitContext }>
-    | undefined;
+  const traits = getObjectTraits(object);
   if (!traits) return;
 
   const destructTrait = traits.find((t) => t.name === 'destruction');

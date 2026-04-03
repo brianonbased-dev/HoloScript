@@ -87,6 +87,18 @@ import {
   MirrorTrait,
 } from '../traits/AdvancedTraits';
 import { InputManager } from '../input/InputManager';
+import {
+  hasXR,
+  isStateRef,
+  isHandlerCall,
+  asASTNode,
+  asModelExt,
+  getModelName,
+  getVec3Component,
+  type DynamicMaterialProps,
+  type WindowWithHoloScript,
+  type WindowWithModuleExports,
+} from '../runtime-types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INLINED TYPES (from @hololand/world to avoid cross-repo dependency)
@@ -184,7 +196,7 @@ interface DirectiveState {
   loop: boolean;
   mixer: THREE.AnimationMixer;
   model: THREE.Object3D;
-  gltf: any;
+  gltf: unknown;
 }
 
 // Minimal composition loader
@@ -261,7 +273,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
       geometry,
       color,
       traits: extractedTraits,
-      state: (template as any).state,
+      state: asASTNode(template).state,
       properties,
     });
   }
@@ -274,7 +286,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
     console.log('[HoloScript] Processing object:', obj.name, obj);
 
     // Check if object uses a template (modern composition pattern)
-    const templateRef = (obj as any).template as string | undefined;
+    const templateRef = asASTNode(obj).template;
     const parentTemplate = templateRef ? templates.get(templateRef) : undefined;
 
     if (templateRef && !parentTemplate) {
@@ -312,7 +324,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
     const restTime = getProperty('restTime') as number | undefined;
 
     // Merge traits: template traits + object traits (object configs override template)
-    const objectTraits: ParsedTrait[] = ((obj as any).traits || []).map((t: unknown) => {
+    const objectTraits: ParsedTrait[] = (asASTNode(obj).traits || []).map((t: unknown) => {
       if (typeof t === 'string') return { name: t, config: {} };
       const traitObj = t as { name?: string; config?: Record<string, unknown> };
       return { name: traitObj.name || String(t), config: traitObj.config || {} };
@@ -370,7 +382,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   for (const group of ast.spatialGroups || []) {
     for (const obj of group.objects || []) {
       // Check if object uses a template
-      const templateRef = (obj as any).template as string | undefined;
+      const templateRef = asASTNode(obj).template;
       const parentTemplate = templateRef ? templates.get(templateRef) : undefined;
 
       // Helper to get property from object or fallback to template
@@ -402,7 +414,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
       const restTime = getProperty('restTime') as number | undefined;
 
       // Merge traits: template traits + object traits (object configs override template)
-      const objectTraits: ParsedTrait[] = ((obj as any).traits || []).map((t: unknown) => {
+      const objectTraits: ParsedTrait[] = (asASTNode(obj).traits || []).map((t: unknown) => {
         if (typeof t === 'string') return { name: t, config: {} };
         const traitObj = t as { name?: string; config?: Record<string, unknown> };
         return { name: traitObj.name || String(t), config: traitObj.config || {} };
@@ -748,7 +760,7 @@ class ModuleLoader {
           .split('/')
           .pop()
           ?.replace(/\.[^.]+$/, '');
-        const exports = (window as any)[exportName || 'module'] || {};
+        const exports = (window as unknown as WindowWithModuleExports)[exportName || 'module'] || {};
         resolve(exports);
       };
 
@@ -1132,7 +1144,8 @@ class BrowserRuntime implements HoloScriptRuntime {
       throw new Error('VR not supported');
     }
 
-    const session = await (navigator as any).xr.requestSession('immersive-vr');
+    if (!hasXR(navigator)) throw new Error('WebXR not available');
+    const session = await navigator.xr.requestSession('immersive-vr');
     this.renderer.xr.setSession(session);
     this.inputManager.setupVR(this.renderer);
     emit('xr:entered', { type: 'vr' });
@@ -1143,7 +1156,8 @@ class BrowserRuntime implements HoloScriptRuntime {
       throw new Error('AR not supported');
     }
 
-    const session = await (navigator as any).xr.requestSession('immersive-ar');
+    if (!hasXR(navigator)) throw new Error('WebXR not available');
+    const session = await navigator.xr.requestSession('immersive-ar');
     this.renderer.xr.setSession(session);
     emit('xr:entered', { type: 'ar' });
   }
@@ -1428,8 +1442,8 @@ class BrowserRuntime implements HoloScriptRuntime {
       materialProps.iridescence ||
       materialProps.ior;
     const material = needsPhysical
-      ? new THREE.MeshPhysicalMaterial(materialProps as any)
-      : new THREE.MeshStandardMaterial(materialProps as any);
+      ? new THREE.MeshPhysicalMaterial(materialProps as DynamicMaterialProps)
+      : new THREE.MeshStandardMaterial(materialProps as DynamicMaterialProps);
 
     // Legacy fallback: apply visual traits directly if compositor returned empty
     // (preserves backward compatibility when visual registry has no presets loaded)
@@ -1586,7 +1600,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           );
 
           // Store skeleton info for potential IK or retargeting
-          (model as any)._skeletonInfo = {
+          asModelExt(model)._skeletonInfo = {
             type: obj.skeleton || 'humanoid',
             boneCount,
             boneNames,
@@ -1629,7 +1643,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             this.directiveObjects.push(directiveState);
 
             // Store mixer for animation updates
-            (model as any)._mixer = mixer;
+            asModelExt(model)._mixer = mixer;
             this.animationMixers.push(mixer);
           }
           // Check if a specific animation was requested (simple mode)
@@ -1679,7 +1693,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             }
 
             // Store mixer for animation updates
-            (model as any)._mixer = mixer;
+            asModelExt(model)._mixer = mixer;
             this.animationMixers.push(mixer);
           } else {
             // Play ALL animations (default behavior)
@@ -1692,14 +1706,14 @@ class BrowserRuntime implements HoloScriptRuntime {
             }
 
             // Store mixer for animation updates
-            (model as any)._mixer = mixer;
+            asModelExt(model)._mixer = mixer;
             this.animationMixers.push(mixer);
           }
 
           console.log(`[HoloScript] Total animation mixers: ${this.animationMixers.length}`);
         } else {
           // No embedded animations - use procedural skeleton animation if skeleton exists
-          const skeletonInfo = (model as any)._skeletonInfo;
+          const skeletonInfo = asModelExt(model)._skeletonInfo;
 
           if (skeletonInfo && skeletonInfo.boneCount > 0) {
             // Has skeleton - use bone-based procedural animation
@@ -1723,7 +1737,7 @@ class BrowserRuntime implements HoloScriptRuntime {
                 originalRotations.push(bone.quaternion.clone());
               }
 
-              (model as any)._proceduralSkeleton = {
+              asModelExt(model)._proceduralSkeleton = {
                 mesh: skinnedMesh,
                 skeleton: skeleton,
                 bones: bones,
@@ -1732,7 +1746,7 @@ class BrowserRuntime implements HoloScriptRuntime {
                 animationType: obj.animation || 'idle', // Use animation property to select type
               };
 
-              (model as any)._isProceduralSkeletonAnimated = true;
+              asModelExt(model)._isProceduralSkeletonAnimated = true;
               this.proceduralAnimatedObjects.push(model);
               console.log(
                 `[HoloScript] ${obj.id}: Procedural skeleton ready with ${bones.length} bones`
@@ -1742,9 +1756,9 @@ class BrowserRuntime implements HoloScriptRuntime {
             // No skeleton - simple breathing animation on whole model
             console.log(`[HoloScript] No animations in ${obj.id}, adding procedural idle`);
             const baseScale = model.scale.clone();
-            (model as any)._breathePhase = Math.random() * Math.PI * 2; // Random start phase
-            (model as any)._baseScale = baseScale;
-            (model as any)._isProceduralAnimated = true;
+            asModelExt(model)._breathePhase = Math.random() * Math.PI * 2; // Random start phase
+            asModelExt(model)._baseScale = baseScale;
+            asModelExt(model)._isProceduralAnimated = true;
             this.proceduralAnimatedObjects.push(model);
           }
         }
@@ -1754,7 +1768,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           console.log(
             `[HoloScript] Setting up patrol for ${obj.id} with ${obj.patrol.length} waypoints`
           );
-          (model as any)._patrol = {
+          asModelExt(model)._patrol = {
             waypoints: obj.patrol.map((p: number[]) => new THREE.Vector3(p[0], p[1], p[2])),
             currentIndex: 0,
             speed: obj.patrolSpeed || 1.0,
@@ -2160,8 +2174,8 @@ class BrowserRuntime implements HoloScriptRuntime {
   }
 
   private resolveStateRef(value: unknown): string {
-    if (typeof value === 'object' && value !== null && '__stateRef' in value) {
-      const path = (value as any).__stateRef;
+    if (isStateRef(value)) {
+      const path = value.__stateRef;
       return (this.getStatePath(path) as string) || '';
     }
     return value as string;
@@ -2169,17 +2183,17 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   private getStatePath(path: string): unknown {
     const keys = path.split('.');
-    let current: any = this.state;
+    let current: unknown = this.state;
     for (const key of keys) {
       if (current === undefined || current === null) return undefined;
-      current = current[key];
+      current = (current as Record<string, unknown>)[key];
     }
     return current;
   }
 
   private executeHandler(handler: unknown, _event: Record<string, unknown>): void {
-    if (typeof handler === 'object' && handler !== null && '__call' in handler) {
-      const call = (handler as any).__call;
+    if (isHandlerCall(handler)) {
+      const call = handler.__call;
       this.executeAction(call.name, ...call.args);
     } else if (typeof handler === 'string') {
       // Direct action name
@@ -2660,8 +2674,8 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   private getPropertyValue(obj: THREE.Object3D, property: string): number {
     const parts = property.split('.');
-    if (parts[0] === 'position') return (obj.position as any)[parts[1]];
-    if (parts[0] === 'rotation') return (obj.rotation as any)[parts[1]];
+    if (parts[0] === 'position') return getVec3Component(obj.position, parts[1]);
+    if (parts[0] === 'rotation') return getVec3Component(obj.rotation, parts[1]);
     if (parts[0] === 'scale') return obj.scale.x;
     return 0;
   }
@@ -2904,7 +2918,7 @@ class BrowserRuntime implements HoloScriptRuntime {
    */
   private startDirectiveAction(directive: DirectiveState): void {
     const action = directive.actions[directive.currentIndex];
-    const modelName = (directive.model as any).name || 'unknown';
+    const modelName = getModelName(directive.model) || 'unknown';
 
     if (action.rest !== undefined) {
       // This is a rest action
@@ -3027,14 +3041,15 @@ class BrowserRuntime implements HoloScriptRuntime {
     const time = this.clock.getElapsedTime();
     for (const obj of this.proceduralAnimatedObjects) {
       // Check if this is procedural skeleton animation
-      const skelData = (obj as any)._proceduralSkeleton;
-      if (skelData && (obj as any)._isProceduralSkeletonAnimated) {
+      const ext = asModelExt(obj);
+      const skelData = ext._proceduralSkeleton;
+      if (skelData && ext._isProceduralSkeletonAnimated) {
         // Procedural skeleton animation - animate bones
         this.updateProceduralSkeleton(skelData, time);
       } else {
         // Simple breathing animation for non-skeleton models
-        const phase = (obj as any)._breathePhase || 0;
-        const baseScale = (obj as any)._baseScale;
+        const phase = ext._breathePhase || 0;
+        const baseScale = ext._baseScale;
         if (baseScale) {
           // Subtle breathing: scale oscillates ±2%
           const breathe = 1 + Math.sin(time * 2 + phase) * 0.02;
@@ -3048,7 +3063,7 @@ class BrowserRuntime implements HoloScriptRuntime {
 
     // Update patrolling objects
     for (const obj of this.patrollingObjects) {
-      const patrol = (obj as any)._patrol;
+      const patrol = asModelExt(obj)._patrol;
       if (!patrol) continue;
 
       const target = patrol.waypoints[patrol.currentIndex];
@@ -3083,7 +3098,7 @@ class BrowserRuntime implements HoloScriptRuntime {
             if (directive.loop) {
               directive.currentIndex = 0;
               console.log(
-                `[HoloScript] Directive loop restart for ${(directive.model as any).name}`
+                `[HoloScript] Directive loop restart for ${getModelName(directive.model)}`
               );
             } else {
               continue; // Done with this directive
@@ -3154,7 +3169,7 @@ export function createRuntime(config: RuntimeConfig): HoloScriptRuntime {
 
 // For global/UMD build
 if (typeof window !== 'undefined') {
-  (window as any).HoloScript = {
+  (window as unknown as WindowWithHoloScript).HoloScript = {
     createRuntime,
     version: '2.1.0',
   };

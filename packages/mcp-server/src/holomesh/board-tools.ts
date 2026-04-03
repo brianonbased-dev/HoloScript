@@ -1,0 +1,361 @@
+/**
+ * HoloMesh Team Board MCP Tools
+ *
+ * MCP tool wrappers for the team board HTTP endpoints:
+ * - holomesh_board_list: List tasks on a team board
+ * - holomesh_board_add: Add a task to the board
+ * - holomesh_board_claim: Claim a task
+ * - holomesh_board_complete: Mark a task done
+ * - holomesh_slot_assign: Assign slot roles for a team
+ * - holomesh_mode_set: Set team mode (audit, research, build, review)
+ *
+ * All tools call the HTTP API with Bearer auth, same as any external agent.
+ */
+
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+
+// ── Server URL Resolution ──
+
+function getServerUrl(): string {
+  return (
+    process.env.HOLOSCRIPT_SERVER_URL ||
+    process.env.MCP_LOCAL_URL ||
+    'https://mcp.holoscript.net'
+  );
+}
+
+function getApiKey(): string {
+  return process.env.HOLOMESH_API_KEY || process.env.MCP_API_KEY || '';
+}
+
+async function boardFetch(
+  path: string,
+  method: 'GET' | 'POST' | 'PATCH',
+  body?: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return { error: 'No API key configured. Set HOLOMESH_API_KEY or MCP_API_KEY.' };
+  }
+
+  const url = `${getServerUrl()}${path}`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = (await res.json()) as Record<string, unknown>;
+    return data;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: `HTTP request failed: ${message}` };
+  }
+}
+
+// ── MCP Tool Definitions ──
+
+export const boardTools: Tool[] = [
+  {
+    name: 'holomesh_board_list',
+    description:
+      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID to list the board for',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
+  {
+    name: 'holomesh_board_add',
+    description:
+      'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        tasks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'Task title (max 200 chars)',
+              },
+              description: {
+                type: 'string',
+                description: 'Task description (max 1000 chars)',
+              },
+              priority: {
+                type: 'number',
+                description: 'Priority 1-10 (1 = critical, default 5)',
+              },
+              source: {
+                type: 'string',
+                description: 'Where the task came from (e.g., "audit", "manual")',
+              },
+              role: {
+                type: 'string',
+                enum: ['coder', 'tester', 'researcher', 'reviewer', 'flex'],
+                description: 'Preferred slot role for this task',
+              },
+            },
+            required: ['title'],
+          },
+          description: 'Array of tasks to add',
+        },
+      },
+      required: ['team_id', 'tasks'],
+    },
+  },
+  {
+    name: 'holomesh_board_claim',
+    description:
+      'Claim an open task on a team board. The task must be in "open" status. The calling agent becomes the assignee.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        task_id: {
+          type: 'string',
+          description: 'The task ID to claim',
+        },
+      },
+      required: ['team_id', 'task_id'],
+    },
+  },
+  {
+    name: 'holomesh_board_complete',
+    description:
+      'Mark a claimed task as done. Optionally include a commit hash and summary as proof of work.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        task_id: {
+          type: 'string',
+          description: 'The task ID to mark done',
+        },
+        commit: {
+          type: 'string',
+          description: 'Git commit hash as proof of work (optional)',
+        },
+        summary: {
+          type: 'string',
+          description: 'Summary of what was done (optional)',
+        },
+      },
+      required: ['team_id', 'task_id'],
+    },
+  },
+  {
+    name: 'holomesh_slot_assign',
+    description:
+      'Set slot roles for a team. Provide an array of roles matching the team\'s max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        roles: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['coder', 'tester', 'researcher', 'reviewer', 'flex'],
+          },
+          description:
+            'Array of roles for each slot. Length must equal team max_slots.',
+        },
+      },
+      required: ['team_id', 'roles'],
+    },
+  },
+  {
+    name: 'holomesh_mode_set',
+    description:
+      'Set the team mode/preset. Changes the objective, rules, and task sources. Available modes: audit, research, build, review.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        mode: {
+          type: 'string',
+          enum: ['audit', 'research', 'build', 'review'],
+          description: 'The mode to switch to',
+        },
+      },
+      required: ['team_id', 'mode'],
+    },
+  },
+];
+
+// ── MCP Tool Handler ──
+
+/**
+ * Handle MCP tool calls for team board operations.
+ * Returns null if the tool name is not a board tool.
+ */
+export async function handleBoardTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown | null> {
+  switch (name) {
+    case 'holomesh_board_list':
+      return handleBoardList(args);
+    case 'holomesh_board_add':
+      return handleBoardAdd(args);
+    case 'holomesh_board_claim':
+      return handleBoardClaim(args);
+    case 'holomesh_board_complete':
+      return handleBoardComplete(args);
+    case 'holomesh_slot_assign':
+      return handleSlotAssign(args);
+    case 'holomesh_mode_set':
+      return handleModeSet(args);
+    default:
+      return null;
+  }
+}
+
+// ── Individual Handlers ──
+
+async function handleBoardList(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  return boardFetch(`/api/holomesh/team/${encodeURIComponent(teamId)}/board`, 'GET');
+}
+
+async function handleBoardAdd(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const tasks = args.tasks as Array<Record<string, unknown>> | undefined;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+    return { error: '"tasks" must be a non-empty array of task objects.' };
+  }
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/board`,
+    'POST',
+    { tasks }
+  );
+}
+
+async function handleBoardClaim(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const taskId = args.task_id as string;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!taskId) {
+    return { error: '"task_id" is required.' };
+  }
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/board/${encodeURIComponent(taskId)}`,
+    'PATCH',
+    { action: 'claim' }
+  );
+}
+
+async function handleBoardComplete(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const taskId = args.task_id as string;
+  const commit = args.commit as string | undefined;
+  const summary = args.summary as string | undefined;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!taskId) {
+    return { error: '"task_id" is required.' };
+  }
+
+  const body: Record<string, unknown> = { action: 'done' };
+  if (commit) body.commit = commit;
+  if (summary) body.summary = summary;
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/board/${encodeURIComponent(taskId)}`,
+    'PATCH',
+    body
+  );
+}
+
+async function handleSlotAssign(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const roles = args.roles as string[] | undefined;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!roles || !Array.isArray(roles) || roles.length === 0) {
+    return { error: '"roles" must be a non-empty array of role strings.' };
+  }
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/roles`,
+    'PATCH',
+    { roles }
+  );
+}
+
+async function handleModeSet(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const mode = args.mode as string;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!mode) {
+    return { error: '"mode" is required.' };
+  }
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/mode`,
+    'POST',
+    { mode }
+  );
+}

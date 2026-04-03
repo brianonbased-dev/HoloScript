@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
+import { pushObjectTrait } from '../runtime-types';
 
 export interface TraitContext {
   object: THREE.Object3D;
@@ -48,10 +49,7 @@ export class TraitSystem {
     contexts.push(context);
 
     // Store context on object for easy access/removal
-    if (!(object as any)._traits) {
-      (object as any)._traits = [];
-    }
-    (object as any)._traits.push({ name: traitName, context });
+    pushObjectTrait(object, { name: traitName, context });
   }
 
   update(delta: number): void {

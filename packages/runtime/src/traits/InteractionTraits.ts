@@ -1,5 +1,6 @@
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
+import { dispatchCustomEvent } from '../runtime-types';
 
 // ============================================================================
 // Grabbable Trait
@@ -147,7 +148,7 @@ export const CollidableTrait: TraitHandler = {
       }
 
       // Dispatch custom event on the object (cast to any for custom event types)
-      (context.object as any).dispatchEvent({ type: event.type, event });
+      dispatchCustomEvent(context.object, { type: event.type, event });
     });
 
     context.data.unsubscribeCollision = unsubscribe;
@@ -238,10 +239,10 @@ export const TriggerTrait: TraitHandler = {
     const unsubscribe = context.physicsWorld.onCollision(context.object.name, (event) => {
       if (event.type === 'trigger-enter') {
         for (const cb of context.data.enterCallbacks) cb(event);
-        (context.object as any).dispatchEvent({ type: 'triggerEnter', event });
+        dispatchCustomEvent(context.object, { type: 'triggerEnter', event });
       } else if (event.type === 'trigger-exit') {
         for (const cb of context.data.exitCallbacks) cb(event);
-        (context.object as any).dispatchEvent({ type: 'triggerExit', event });
+        dispatchCustomEvent(context.object, { type: 'triggerExit', event });
       }
     });
 
@@ -702,12 +703,12 @@ export const ProximityTrait: TraitHandler = {
     if (isInside && !context.data.playerInside) {
       context.data.playerInside = true;
       if (context.data.onEnter) {
-        context.object.dispatchEvent({ type: 'proximityEnter' } as any);
+        dispatchCustomEvent(context.object, { type: 'proximityEnter' });
       }
     } else if (!isInside && context.data.playerInside) {
       context.data.playerInside = false;
       if (context.data.onExit) {
-        context.object.dispatchEvent({ type: 'proximityExit' } as any);
+        dispatchCustomEvent(context.object, { type: 'proximityExit' });
       }
     }
   },

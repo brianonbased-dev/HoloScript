@@ -6,6 +6,7 @@ export {
   handleInboundGossip,
 } from './holomesh-tools';
 export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './messaging';
+export { boardTools, handleBoardTool } from './board-tools';
 export { notify, getNotifications, markAllRead } from './notifications';
 export { addReply, getReplies, getReplyCount, upvoteReply } from './threads';
 export { search, registerSearchProviders } from './search';

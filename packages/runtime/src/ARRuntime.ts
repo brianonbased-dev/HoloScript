@@ -6,6 +6,8 @@
  * features mapped from the HoloScript AST (e.g., @ar_beacon, @overlay).
  */
 
+import { hasXR } from './runtime-types';
+
 export interface ARRuntimeOptions {
   scene_id: string;
   features: {
@@ -37,9 +39,9 @@ export class ARRuntime {
    * Initializes the AR session checks
    */
   async initialize(): Promise<boolean> {
-    if (typeof navigator !== 'undefined' && 'xr' in navigator) {
+    if (typeof navigator !== 'undefined' && hasXR(navigator)) {
       try {
-        const supported = await (navigator as any).xr.isSessionSupported('immersive-ar');
+        const supported = await navigator.xr.isSessionSupported('immersive-ar');
         this.isSupported = supported;
         return supported;
       } catch (err) {
@@ -65,7 +67,11 @@ export class ARRuntime {
     if (this.options.features.plane_detection) optionalFeatures.push('plane-detection');
     if (this.options.features.image_tracking) optionalFeatures.push('image-tracking');
 
-    this.session = await (navigator as any).xr.requestSession('immersive-ar', {
+    if (!hasXR(navigator)) {
+      throw new Error('WebXR not available');
+    }
+
+    this.session = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures,
       optionalFeatures,
     });

@@ -10,6 +10,7 @@
 
 import { TraitHandler, TraitContext } from './TraitSystem';
 import * as THREE from 'three';
+import { getObjectTraits } from '../runtime-types';
 
 // =============================================================================
 // VR INTERACTION: ROTATABLE
@@ -71,9 +72,7 @@ export const StackableTrait: TraitHandler = {
     // Find stackable objects below
     scene.traverse((child: THREE.Object3D) => {
       if (child === obj) return;
-      const traits = (child as any)._traits as
-        | Array<{ name: string; context: TraitContext }>
-        | undefined;
+      const traits = getObjectTraits(child);
       if (!traits) return;
       const stackTrait = traits.find((t) => t.name === 'stackable');
       if (!stackTrait) return;
