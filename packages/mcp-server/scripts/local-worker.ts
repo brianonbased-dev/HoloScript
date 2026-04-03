@@ -210,13 +210,13 @@ async function decide(perception: Awaited<ReturnType<typeof perceive>>): Promise
     return { action: 'derive', reasoning: `Board low (${openTasks.length} open). Periodic farm from docs.` };
   }
 
-  // Find a task this agent can handle (skip already-tried ones)
+  // Find ANY P3+ task to scout (skip already-tried and non-tasks)
   const handleable = openTasks.filter((t: any) => {
     if (t.title?.startsWith('[report]') || t.title?.startsWith('[system]')) return false;
+    if (t.title?.startsWith('FIXME:')) return false; // skip auto-generated FIXME tasks
     if (memory.triedTaskIds.has(t.id)) return false;
     if (t.priority < 3) return false;
-    if (ROLE !== 'flex' && t.role && t.role !== ROLE && t.role !== 'flex') return false;
-    return true;
+    return true; // scout can TRY any P3 task — it'll report raw data or nothing
   });
 
   if (handleable.length > 0) {
