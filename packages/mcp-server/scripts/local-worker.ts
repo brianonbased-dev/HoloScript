@@ -283,30 +283,24 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
       memory.lastTask = task.title;
       memory.triedTaskIds.add(task.id);
 
-      // Claim
-      const claimed = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/${task.id}`, { action: 'claim' }, auth(), 'PATCH');
-      if (!claimed?.success && !claimed?.task) {
-        console.log(`[agent] Claim failed: ${claimed?.error || 'unknown'}`);
-        break;
-      }
+      // DON'T claim — scout only. Claim locks the task and we can't do real work.
+      // Instead: analyze and leave a report for capable agents.
+      const analysis = await scoutTask(task);
 
-      // Perceive the relevant code
-      const analysis = await analyzeTask(task);
+      if (analysis.data.length > 0) {
+        // Contribute raw findings as knowledge (data, not interpretation)
+        await contributeKnowledge('pattern',
+          `[Scout: ${task.title}]\n${analysis.data.join('\n')}`,
+          analysis.domain,
+          ['scout', 'gpu-worker', task.source || 'board']
+        );
 
-      if (analysis.actionable) {
-        // Contribute finding as knowledge
-        await contributeKnowledge('pattern', analysis.finding, analysis.domain, ['task-analysis', task.source || 'board']);
-
-        // Mark done with the finding
-        await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/${task.id}`, {
-          action: 'done', summary: analysis.finding.slice(0, 200),
-        }, auth(), 'PATCH');
-        await sendMessage(`[${AGENT_NAME}] Done: ${task.title} — ${analysis.finding.slice(0, 100)}`);
+        // Leave a message for the team with raw data
+        await sendMessage(`[scout] ${task.title}:\n${analysis.data.slice(0, 3).join('\n')}${analysis.data.length > 3 ? `\n... +${analysis.data.length - 3} more findings` : ''}`);
         memory.tasksCompleted++;
+        console.log(`[agent] Scouted: ${task.title} (${analysis.data.length} findings)`);
       } else {
-        // Reopen — couldn't do meaningful work
-        await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/${task.id}`, { action: 'reopen' }, auth(), 'PATCH');
-        console.log(`[agent] Reopened: ${task.title} (${analysis.reason})`);
+        console.log(`[agent] No data for: ${task.title}`);
         memory.tasksFailed++;
       }
       break;
@@ -337,16 +331,35 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     }
 
     case 'audit_done': {
-      // Check done log for unverified tasks
       try {
         const audit = await get(`${HOLOMESH_API}/team/${ROOM_ID}/done/audit`, auth());
         const unverified = audit?.unverified || 0;
         const verified = audit?.verified || 0;
         const rate = audit?.health?.verification_rate || 0;
+
         if (unverified > 0) {
-          console.log(`[agent] Audit: ${verified} verified, ${unverified} unverified (${rate}% rate)`);
-          await sendMessage(`[${AGENT_NAME}] Done log audit: ${verified} verified, ${unverified} unverified (${rate}% verification rate). ${unverified > 10 ? 'Needs attention — many tasks have no commit proof.' : 'Acceptable.'}`);
-          await contributeKnowledge('pattern', `Done log verification rate: ${rate}%. ${verified} verified, ${unverified} unverified out of ${verified + unverified} total.`, 'team-health', ['audit', 'verification']);
+          // Verify some commit hashes actually exist in git
+          const verifiedInGit: string[] = [];
+          const fakeCommits: string[] = [];
+          for (const task of (audit?.unverified_tasks || []).slice(0, 5)) {
+            if (task.commitHash && task.commitHash.length >= 7) {
+              const exists = perceiveShell(`git log --oneline ${task.commitHash} -1 2>/dev/null`);
+              if (exists) verifiedInGit.push(task.title);
+              else fakeCommits.push(`${task.title} (${task.commitHash})`);
+            }
+          }
+
+          const report = [
+            `Done log audit: ${verified} verified, ${unverified} unverified (${rate}% rate)`,
+            verifiedInGit.length > 0 ? `Git-confirmed: ${verifiedInGit.length}` : null,
+            fakeCommits.length > 0 ? `SUSPECT (hash not in git): ${fakeCommits.join(', ')}` : null,
+          ].filter(Boolean).join('. ');
+
+          console.log(`[agent] ${report}`);
+          await sendMessage(`[scout] ${report}`);
+          await contributeKnowledge('gotcha', report, 'team-health', ['audit', 'verification', 'scout']);
+        } else {
+          console.log(`[agent] Audit clean: ${verified} verified, 0 unverified`);
         }
       } catch {}
       break;
@@ -371,72 +384,69 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
   }
 }
 
-// ── Task Analysis (the actual work) ──
+// ── Scouting (raw data gathering, no interpretation) ──
 
-async function analyzeTask(task: any): Promise<{ actionable: boolean; finding: string; domain: string; reason?: string }> {
+async function scoutTask(task: any): Promise<{ data: string[]; domain: string }> {
   const title = task.title || '';
-  const desc = task.description || '';
-
-  // Gather data about the task
   const commands: string[] = [];
 
+  // Build targeted grep/find commands based on task type
   if (/console\.log|debug/i.test(title)) {
-    commands.push('grep -rn "console\\.log" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v test | wc -l');
-    commands.push('grep -rn "console\\.log" packages/core/src/ --include="*.ts" 2>/dev/null | grep -v test | wc -l');
+    commands.push('grep -rn "console\\.log" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v test | head -10');
+    commands.push('grep -rn "console\\.log" packages/core/src/ --include="*.ts" 2>/dev/null | grep -v test | head -10');
   } else if (/as.any|type.*cast/i.test(title)) {
-    commands.push('grep -rn "as any" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
+    commands.push('grep -rn "as any" packages/studio/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
     commands.push('grep -rn "as any" packages/core/src/ --include="*.ts" 2>/dev/null | wc -l');
-  } else if (/empty catch|catch.*{}/i.test(title)) {
-    commands.push('grep -rn "catch {}" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | wc -l');
-  } else if (/unused|dead.*code/i.test(title)) {
-    commands.push('grep -rn "unused\\|deprecated" packages/ --include="*.ts" 2>/dev/null | wc -l');
+  } else if (/empty catch|catch/i.test(title)) {
+    commands.push('grep -rn "catch {}" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | head -10');
   } else if (/README/i.test(title)) {
-    commands.push('find packages/ -maxdepth 2 -name "README.md" 2>/dev/null | wc -l');
-    commands.push('find packages/ -maxdepth 2 -name "package.json" 2>/dev/null | wc -l');
+    commands.push('for d in packages/*/; do [ ! -f "$d/README.md" ] && echo "MISSING: $d"; done 2>/dev/null');
   } else if (/ErrorBoundary/i.test(title)) {
-    commands.push('grep -rn "ErrorBoundary" packages/ --include="*.tsx" 2>/dev/null | wc -l');
+    commands.push('grep -rn "ErrorBoundary" packages/ --include="*.tsx" -l 2>/dev/null');
   } else if (/test.*coverage|zero.*test/i.test(title)) {
-    commands.push('find packages/ -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" 2>/dev/null | wc -l');
-  } else if (/room|team|template/i.test(title)) {
-    commands.push('grep -rn "roomConfig\\|RoomConfig\\|room_config" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | wc -l');
-    commands.push('grep -rn "ROOM_PRESETS\\|room.*template" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | wc -l');
-  } else if (/absorb|query|knowledge/i.test(title)) {
-    commands.push('grep -rn "absorb_query\\|absorb_run" packages/ --include="*.ts" 2>/dev/null | wc -l');
-    commands.push('grep -rn "knowledge.*query\\|knowledge.*sync" packages/ --include="*.ts" 2>/dev/null | wc -l');
+    commands.push('for d in packages/*/; do count=$(find "$d" -name "*.test.ts" -o -name "*.test.tsx" 2>/dev/null | wc -l); [ "$count" -eq 0 ] && echo "ZERO TESTS: $d"; done 2>/dev/null');
+  } else if (/room|team|template|preset/i.test(title)) {
+    commands.push('grep -rn "ROOM_PRESETS\\|RoomConfig\\|roomConfig" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | head -10');
+  } else if (/absorb|knowledge/i.test(title)) {
+    commands.push('grep -rn "absorb_query\\|knowledge.*sync\\|contributeKnowledge" packages/ --include="*.ts" -l 2>/dev/null | head -10');
+  } else if (/rate.limit|DoS|body.*size/i.test(title)) {
+    commands.push('grep -rn "rateLimit\\|rateLimiter\\|bodyParser\\|express\\.json" packages/mcp-server/src/ --include="*.ts" 2>/dev/null | head -10');
+  } else if (/OpenAPI|swagger|SDK/i.test(title)) {
+    commands.push('find . -name "openapi*" -o -name "swagger*" -o -name "*.openapi.*" 2>/dev/null | head -10');
+  } else if (/billing|meter|usage/i.test(title)) {
+    commands.push('grep -rn "metering\\|billing\\|usage.*track\\|compute.*unit" packages/ --include="*.ts" -l 2>/dev/null | head -10');
+  } else if (/validate|validation|zod/i.test(title)) {
+    commands.push('grep -rn "z\\.object\\|z\\.string\\|validateRequest\\|Zod" packages/mcp-server/src/ --include="*.ts" -l 2>/dev/null | head -10');
+  } else if (/version|deprecat/i.test(title)) {
+    commands.push('grep -rn "\\"version\\"" packages/*/package.json 2>/dev/null | head -15');
+  } else if (/commit.*hash|verify|audit.*done/i.test(title)) {
+    commands.push('git log --oneline --since="24 hours ago" 2>/dev/null | head -15');
   } else {
-    // Generic — try to find relevant files
-    const keywords = title.split(/\s+/).filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add/i.test(w)).slice(0, 3);
+    // Generic — find files mentioning key terms
+    const keywords = title.split(/\s+/).filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix/i.test(w)).slice(0, 2);
     for (const kw of keywords) {
-      commands.push('grep -rn "' + kw + '" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l');
+      commands.push('grep -rn "' + kw + '" packages/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | head -8');
     }
   }
 
-  // Execute analysis commands
-  const results: string[] = [];
-  for (const cmd of commands.slice(0, 5)) {
+  // Execute and collect RAW output — no interpretation
+  const data: string[] = [];
+  for (const cmd of commands.slice(0, 4)) {
     const output = perceiveShell(cmd);
-    if (output) results.push(`${cmd.split('|')[0].trim()}: ${output}`);
+    if (output && output !== '0') {
+      // Return actual file paths and line numbers, not just counts
+      const lines = output.split('\n').filter(l => l.trim()).slice(0, 8);
+      data.push(...lines);
+    }
   }
 
-  if (results.length === 0) {
-    return { actionable: false, finding: '', domain: 'general', reason: 'No relevant data found' };
-  }
+  const domain = /studio/i.test(title) ? 'studio'
+    : /core|compiler/i.test(title) ? 'core'
+    : /orchestrator/i.test(title) ? 'orchestrator'
+    : /mcp.*server/i.test(title) ? 'mcp-server'
+    : 'codebase';
 
-  // Ask Ollama to interpret
-  const interpretation = await think(
-    `Task: "${title}"\nDescription: "${desc}"\n\nAnalysis data:\n${results.join('\n')}\n\n` +
-    `In 2-3 sentences: What did the analysis find? Is this a real issue? What should be done about it?`
-  );
-
-  if (!interpretation || interpretation.includes('SKIP')) {
-    return { actionable: false, finding: '', domain: 'general', reason: 'Ollama could not interpret' };
-  }
-
-  return {
-    actionable: true,
-    finding: `[${title}] ${interpretation}`,
-    domain: /studio/i.test(title) ? 'studio' : /core/i.test(title) ? 'core' : 'codebase',
-  };
+  return { data, domain };
 }
 
 // ── Main Cognitive Loop ──
