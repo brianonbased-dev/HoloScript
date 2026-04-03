@@ -2,23 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
 import type { OrbData } from '../types';
-
-interface OrbitalPathProps {
-  orb: OrbData;
-  parentOrb?: OrbData;
-  scale?: number;
-}
-
-/**
- * Solve Kepler's equation for path generation
- */
-function solveKepler(M: number, e: number): number {
-  let E = M;
-  for (let i = 0; i < 10; i++) {
-    E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
-  }
-  return E;
-}
+import { solveKepler } from '../utils/kepler';
 
 export const OrbitalPath = ({ orb, parentOrb, scale = 50 }: OrbitalPathProps) => {
   const points = useMemo(() => {

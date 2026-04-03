@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { formatDate, formatTime } from '../utils/format';
 
 interface TimeControlsProps {
-  onTimeControl: (command: string, value?: any) => void;
+  onTimeControl: (command: string, value?: unknown) => void;
   currentTime: Date;
   timeScale: number;
   isPaused: boolean;
@@ -18,21 +19,6 @@ export const TimeControls: React.FC<TimeControlsProps> = ({
   const handleSpeedChange = (speed: number) => {
     setSelectedSpeed(speed);
     onTimeControl('setSpeed', speed);
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (

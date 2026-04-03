@@ -1,8 +1,8 @@
 /**
  * ZoraCoinsTrait Blockchain Integration Tests
  *
- * Tests real blockchain interactions with Zora Protocol on Base L2.
- * These tests validate wallet connection, gas estimation, and balance checking.
+ * Tests blockchain interactions with Zora Protocol on Base L2.
+ * All external RPC calls are mocked so tests run without network access.
  *
  * @version 3.2.0
  * @milestone v3.2 (June 2026)
@@ -14,8 +14,39 @@ import { GasEstimator } from '../../web3/GasEstimator';
 import { createPublicClient, http, parseEther, type Address } from 'viem';
 import { base, baseGoerli } from 'viem/chains';
 
-// Enable testnet tests only if environment variable is set
-const ENABLE_TESTNET_TESTS = process.env.ENABLE_TESTNET_TESTS === 'true';
+// ---------------------------------------------------------------------------
+// Mock viem's createPublicClient so no real RPC calls are made.
+// The mock returns a client stub whose async methods return realistic data.
+// ---------------------------------------------------------------------------
+vi.mock('viem', async () => {
+  const actual = await vi.importActual<typeof import('viem')>('viem');
+
+  const mockBlock = {
+    baseFeePerGas: actual.parseGwei('0.001'),
+    number: BigInt(12345678),
+    hash: '0x' + 'ab'.repeat(32),
+    timestamp: BigInt(1700000000),
+    transactions: [],
+  };
+
+  function createMockPublicClient(opts?: { chain?: { id: number; name: string } }) {
+    return {
+      chain: opts?.chain ?? actual.base,
+      getBlock: vi.fn().mockResolvedValue(mockBlock),
+      getBlockNumber: vi.fn().mockResolvedValue(BigInt(12345678)),
+      getBalance: vi.fn().mockResolvedValue(BigInt(0)), // dead address = 0 balance
+      estimateGas: vi.fn().mockResolvedValue(BigInt(180000)),
+    };
+  }
+
+  return {
+    ...actual,
+    createPublicClient: vi.fn((opts?: Record<string, unknown>) => {
+      const chain = opts?.chain as { id: number; name: string } | undefined;
+      return createMockPublicClient({ chain });
+    }),
+  };
+});
 
 describe('ZoraCoinsTrait Blockchain Integration', () => {
   describe('WalletConnection', () => {
@@ -312,8 +343,8 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
     });
   });
 
-  // Testnet integration tests (only run if enabled)
-  (ENABLE_TESTNET_TESTS ? describe : describe.skip)('Base Testnet Integration', () => {
+  // Testnet integration tests — mocked, always enabled
+  describe('Base Testnet Integration', () => {
     it('should connect to Base Goerli testnet', async () => {
       const wallet = new WalletConnection({ chain: 'base-testnet' });
       const publicClient = wallet.getPublicClient();
@@ -360,6 +391,12 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
         chain: base,
         transport: http('https://invalid-rpc-url-that-does-not-exist.com'),
       });
+
+      // Override getBlock to simulate a network failure
+      const client = publicClient as unknown as {
+        getBlock: ReturnType<typeof vi.fn>;
+      };
+      client.getBlock.mockRejectedValueOnce(new Error('Network request failed'));
 
       const mockContractAddress: Address = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0';
       const quantity = BigInt(1);

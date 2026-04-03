@@ -84,6 +84,9 @@ export default defineConfig({
       'packages/animation-presets/vitest.config.ts',
       'packages/connector-upstash/vitest.config.ts',
       'packages/compiler-wasm/vitest.config.ts',
+      'packages/visualizer-client/vitest.config.ts',
+      'packages/tree-sitter-holoscript/vitest.config.ts',
+      'packages/video-tutorials/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       // 'packages/test/vitest.config.ts', // removed: package deleted
