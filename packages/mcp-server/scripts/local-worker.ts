@@ -369,40 +369,28 @@ async function act(decision: Awaited<ReturnType<typeof decide>>) {
     }
 
     case 'report_git': {
-      const status = perceiveShell('git status --short | head -10');
-      const recent = perceiveShell('git log --oneline -5');
-      await sendMessage(`[${AGENT_NAME}] Git status:\n${status}\nRecent:\n${recent}`);
+      // Only report modified tracked files, not untracked artifacts
+      const status = perceiveShell('git status --short 2>/dev/null | grep "^ M\\|^M " | head -10');
+      const recent = perceiveShell('git log --oneline -5 2>/dev/null');
+      if (status) {
+        await sendMessage(`[scout] Modified tracked files:\n${status}\nRecent commits:\n${recent}`);
+      }
       break;
     }
 
     case 'scan_todos': {
-      // Scan across all packages, not just studio
-      const todos = perceiveShell('grep -rn "TODO\\|FIXME" packages/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v dist | grep -v __tests__ | head -30');
+      // Scan across key packages only (not all — too noisy)
+      const todos = perceiveShell('grep -rn "TODO\\|FIXME" packages/studio/src/ packages/core/src/ packages/mcp-server/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v dist | head -20');
       if (todos) {
         const lines = todos.split('\n').filter(l => l.trim());
-        // Contribute raw data
+        // Report only — NEVER create board tasks from TODO scan
+        // Board seeding is a deliberate action, not automatic
         await contributeKnowledge('pattern',
-          `TODO/FIXME scan (${lines.length} found):\n${lines.slice(0, 15).join('\n')}`,
+          `TODO/FIXME scan (${lines.length} found in studio/core/mcp-server):\n${lines.slice(0, 10).join('\n')}`,
           'code-quality', ['scan', 'todo', 'raw-data']
         );
-        // Create board tasks from FIXME items (higher priority than TODO)
-        const fixmes = lines.filter(l => /FIXME/i.test(l)).slice(0, 5);
-        for (const line of fixmes) {
-          const match = line.match(/^(.+?):(\d+):.*?FIXME:?\s*(.+)/i);
-          if (match) {
-            const [, file, lineNum, desc] = match;
-            const shortFile = file.replace(/^packages\//, '');
-            await post(`${HOLOMESH_API}/team/${ROOM_ID}/board`, {
-              title: `FIXME: ${desc.trim().slice(0, 80)}`,
-              description: `${shortFile}:${lineNum}`,
-              priority: 2,
-              role: 'coder',
-              source: `scan:${shortFile}`,
-            }, auth()).catch(() => {});
-          }
-        }
-        await sendMessage(`[scout] TODO scan: ${lines.length} found across packages. ${fixmes.length} FIXMEs added to board.`);
-        console.log(`[agent] Scanned ${lines.length} TODOs, ${fixmes.length} FIXMEs → board`);
+        await sendMessage(`[scout] TODO scan: ${lines.length} found in studio/core/mcp-server. Data in team knowledge — not auto-added to board.`);
+        console.log(`[agent] Scanned ${lines.length} TODOs — reported only, no board tasks`);
       }
       break;
     }
