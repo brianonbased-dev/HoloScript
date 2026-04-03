@@ -3672,7 +3672,6 @@ export async function handleHoloMeshRoute(
         team.taskBoard.push(task);
         existingNorm.add(normalize(title)); // prevent intra-batch dupes
         added.push(task);
-        }
       }
       persistTeamStore();
       json(res, 201, { success: true, added: added.length, tasks: added });
