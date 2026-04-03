@@ -90,7 +90,7 @@ export function PropertyPanel() {
           <div>
             <h4 className="text-sm font-medium text-white mb-3">Inputs</h4>
             <div className="space-y-2">
-              {node.inputs.map((input: any) => (
+              {node.inputs.map((input) => (
                 <div key={input.id} className="text-xs">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-gray-300">{input.name}</span>
@@ -112,7 +112,7 @@ export function PropertyPanel() {
           <div>
             <h4 className="text-sm font-medium text-white mb-3">Outputs</h4>
             <div className="space-y-2">
-              {node.outputs.map((output: any) => (
+              {node.outputs.map((output) => (
                 <div key={output.id} className="text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-300">{output.name}</span>

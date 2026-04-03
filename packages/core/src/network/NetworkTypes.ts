@@ -4,26 +4,21 @@
  * Type definitions for networked state synchronization in HoloScript.
  * Provides peer-to-peer and client-server networking primitives.
  *
- * TODO(P.NET.01): Implement tiered consistency architecture.
- *   Add 'syncTier' to ISyncConfig: 'physics' | 'movement' | 'ai_agent' | 'cosmetic'.
- *   Physics = server-authoritative 60Hz reliable. Movement = client-predicted 20Hz.
- *   AI agent = CRDT 1-5Hz eventual. Cosmetic = LWW <1Hz fire-and-forget.
- *   Reduces bandwidth 60-80% for 100+ player scenarios.
+ * DONE(P.NET.01): Tiered consistency architecture implemented.
+ *   SyncTier type + SYNC_TIER_DEFAULTS + SYNC_TIER_DELIVERY + SYNC_TIER_RATES.
+ *   resolveSyncConfig() auto-configures mode/frequency/delivery from tier.
  *
- * TODO(W.NET.02): Implement spatial hash grid interest management.
- *   Only send state for entities in a player's Area of Interest (AOI).
- *   95% bandwidth reduction. 200 entities → each player sees 20-40.
- *   Requires ISpatialHashGrid + IInterestManager interfaces here.
+ * DONE(W.NET.02): Spatial hash grid interest management implemented.
+ *   SpatialHashGrid class with IInterestManager interface.
+ *   AOI-based entity filtering with configurable cell size.
  *
- * TODO(P.NET.02): Add CRDT types for AI agent state sync.
- *   LWW-Register for agent state, G-Counter for shared resources,
- *   OR-Set for agent group membership. SyncMode already has 'crdt' —
- *   need concrete implementations. Scope to AOI cells, max 15 replicas (G.NET.05).
+ * DONE(P.NET.02): CRDT types for AI agent state sync implemented.
+ *   ILWWRegister + IGCounter interfaces. mergeLWW(), mergeGCounter(),
+ *   createLWWRegister(), createGCounter(), incrementGCounter() functions.
  *
- * TODO(W.NET.05): Define AI agent as a distinct entity class.
- *   AI agents: 50-200 bytes at 1-5Hz (not 20 bytes × 60Hz like players).
- *   Add 'agent' to entity types. Separate sync channel with its own
- *   consistency model. Don't treat AI state like player state (G.NET.04).
+ * DONE(W.NET.05): AI agent defined as distinct entity class.
+ *   EntityType includes 'agent'. ENTITY_BANDWIDTH_PROFILES maps each type
+ *   to bytesPerUpdate and updatesPerSecond. estimateAOIBandwidth() helper.
  *
  * @module network
  */

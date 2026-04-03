@@ -235,14 +235,15 @@ export class EmbeddingIndex {
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
   ): Promise<void> {
     // Serialize provider config for workers
+    const p = this.provider as Record<string, unknown>;
     const providerConfig = {
       name: this.provider.name,
       config: {
-        apiKey: (this.provider as any).apiKey,
-        model: (this.provider as any).model,
-        ollamaUrl: (this.provider as any).baseUrl,
-        ollamaModel: (this.provider as any).model,
-        xenovaModel: (this.provider as any).model,
+        apiKey: p.apiKey as string | undefined,
+        model: p.model as string | undefined,
+        ollamaUrl: p.baseUrl as string | undefined,
+        ollamaModel: p.model as string | undefined,
+        xenovaModel: p.model as string | undefined,
       },
     };
 

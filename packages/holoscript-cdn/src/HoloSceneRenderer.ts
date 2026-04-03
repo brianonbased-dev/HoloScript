@@ -111,8 +111,8 @@ export class HoloSceneRenderer {
     btn.addEventListener('click', async () => {
       if ('xr' in navigator) {
         try {
-          const nav = navigator as any;
-          const session = await nav.xr.requestSession('immersive-vr');
+          const xrSystem = (navigator as Navigator & { xr?: XRSystem }).xr!;
+          const session = await xrSystem.requestSession('immersive-vr');
           session.addEventListener('end', () => {
             btn.textContent = 'Enter VR';
           });

@@ -2,6 +2,7 @@
 /** CinematicPanel — Scene timeline and cue editor */
 import React from 'react';
 import { useCinematic } from '../../hooks/useCinematic';
+import type { CuePoint } from '@holoscript/core';
 
 const CUE_ICONS: Record<string, string> = {
   camera_cut: '📷',
@@ -104,7 +105,7 @@ export function CinematicPanel() {
               className="h-1.5 rounded-full bg-studio-accent transition-all"
               style={{ width: `${Math.min(100, (elapsed / activeScene.duration) * 100)}%` }}
             />
-            {activeScene.cues.map((c: any) => (
+            {activeScene.cues.map((c: CuePoint) => (
               <div
                 key={c.id}
                 className={`absolute top-0 w-1 h-1.5 rounded ${c.fired ? 'bg-emerald-400' : 'bg-studio-muted'}`}
@@ -115,7 +116,7 @@ export function CinematicPanel() {
           </div>
           {/* Cue list */}
           <div className="space-y-0.5 max-h-[80px] overflow-y-auto">
-            {activeScene.cues.map((c: any) => (
+            {activeScene.cues.map((c: CuePoint) => (
               <div
                 key={c.id}
                 className={`flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] ${c.fired ? 'bg-emerald-500/10 text-emerald-400' : 'bg-studio-panel/20 text-studio-muted'}`}

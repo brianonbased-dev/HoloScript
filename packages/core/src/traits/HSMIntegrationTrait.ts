@@ -93,21 +93,22 @@ export const HSMIntegrationTrait: TraitHandler<HSMIntegrationConfig> = {
   compile(config: HSMIntegrationConfig, target: string): string {
     switch (config.hsm_provider) {
       case 'aws_cloudhsm':
-        return (this as any).compileAWSCloudHSM(config);
+        return compileAWSCloudHSM(config);
       case 'azure_keyvault':
-        return (this as any).compileAzureKeyVault(config);
+        return compileAzureKeyVault(config);
       case 'google_cloud_hsm':
-        return (this as any).compileGoogleCloudHSM(config);
+        return compileGoogleCloudHSM(config);
       case 'secure_enclave':
-        return (this as any).compileSecureEnclave(config);
+        return compileSecureEnclave(config);
       case 'tpm':
-        return (this as any).compileTPM(config);
+        return compileTPM(config);
       default:
-        return (this as any).compileGeneric(config);
+        return compileGeneric(config);
     }
   },
+};
 
-  compileAWSCloudHSM(config: HSMIntegrationConfig): string {
+function compileAWSCloudHSM(config: HSMIntegrationConfig): string {
     return `
 // AWS CloudHSM Integration
 const { CloudHSMV2Client, DescribeClustersCommand } = require('@aws-sdk/client-cloudhsmv2');
@@ -220,9 +221,9 @@ class AWSCloudHSMIntegration {
 }
 
 module.exports = new AWSCloudHSMIntegration();`;
-  },
+}
 
-  compileAzureKeyVault(config: HSMIntegrationConfig): string {
+function compileAzureKeyVault(config: HSMIntegrationConfig): string {
     return `
 // Azure Key Vault HSM Integration
 const { KeyClient, CryptographyClient } = require('@azure/keyvault-keys');
@@ -306,9 +307,9 @@ class AzureKeyVaultIntegration {
 }
 
 module.exports = new AzureKeyVaultIntegration();`;
-  },
+}
 
-  compileGoogleCloudHSM(config: HSMIntegrationConfig): string {
+function compileGoogleCloudHSM(config: HSMIntegrationConfig): string {
     return `
 // Google Cloud HSM Integration
 const { KeyManagementServiceClient } = require('@google-cloud/kms');
@@ -379,9 +380,9 @@ class GoogleCloudHSMIntegration {
 }
 
 module.exports = new GoogleCloudHSMIntegration();`;
-  },
+}
 
-  compileSecureEnclave(config: HSMIntegrationConfig): string {
+function compileSecureEnclave(config: HSMIntegrationConfig): string {
     return `
 // iOS/macOS Secure Enclave Integration (Swift)
 import CryptoKit
@@ -471,9 +472,9 @@ struct SecureEnclaveKeyInfo {
     let createdAt: TimeInterval
     let complianceLevel: String
 }`;
-  },
+}
 
-  compileTPM(config: HSMIntegrationConfig): string {
+function compileTPM(config: HSMIntegrationConfig): string {
     return `
 // TPM (Trusted Platform Module) Integration
 #include <tss2/tss2_esys.h>
@@ -562,11 +563,10 @@ public:
         ESYS_TR handle;
     };
 };`;
-  },
+}
 
-  compileGeneric(config: HSMIntegrationConfig): string {
+function compileGeneric(config: HSMIntegrationConfig): string {
     return JSON.stringify(config, null, 2);
-  },
-};
+}
 
 export default HSMIntegrationTrait;

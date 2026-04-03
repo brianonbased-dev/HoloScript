@@ -305,9 +305,9 @@ export function createPopMiddleware(config: PopMiddlewareConfig = {}) {
 
       // Signature verified successfully
       next();
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (onError) {
-        onError(error, req, res);
+        onError(error as Error, req, res);
       } else {
         console.error('[POP_MIDDLEWARE] Unexpected error:', error);
         res

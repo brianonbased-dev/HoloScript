@@ -11,6 +11,7 @@
 
 import type { Vector3 } from '../types';
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 // =============================================================================
 // TYPES
@@ -34,13 +35,26 @@ export interface SeatedTrait {
 interface SeatedState {
   isCalibrated: boolean;
   calibratedHeight: number;
-  originalPosition: Vector3;
+  originalPosition: Vector3 | number[];
   currentReach: number;
 }
+
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, SeatedState>();
 
 // =============================================================================
 // HANDLER
 // =============================================================================
+
+/** Extract a numeric component from a position-like value */
+function posComponent(pos: unknown, index: number): number {
+  if (Array.isArray(pos)) return (pos[index] as number) ?? 0;
+  if (pos && typeof pos === 'object') {
+    const keys = ['x', 'y', 'z'];
+    return ((pos as Record<string, unknown>)[keys[index]] as number) ?? 0;
+  }
+  return 0;
+}
 
 export const seatedHandler: TraitHandler<SeatedTrait> = {
   name: 'seated',
@@ -58,32 +72,32 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
     const state: SeatedState = {
       isCalibrated: false,
       calibratedHeight: 1.2, // Default seated height
-      originalPosition: (node.properties?.position as any) || [0, 0, 0],
+      originalPosition: (node.properties?.position as Vector3 | number[]) || [0, 0, 0],
       currentReach: 0,
     };
-    node.__seatedState = state;
+    traitState.set(node, state);
 
     // Auto-calibrate on attach
     if (config.auto_calibrate) {
-      state.calibratedHeight = (context.vr.headset.position as any)[1];
+      state.calibratedHeight = context.vr.headset.position.y ?? 1.2;
       state.isCalibrated = true;
     }
   },
 
   onDetach(node) {
-    delete node.__seatedState;
+    traitState.delete(node);
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = node.__seatedState as SeatedState;
+    const state = traitState.get(node);
     if (!state) return;
 
-    const headPos = context.vr.headset.position as any;
-    const origin = state.originalPosition as any;
+    const headPos = context.vr.headset.position;
+    const origin = state.originalPosition;
 
     // Calculate reach distance from center
-    const dx = headPos[0] - origin[0];
-    const dz = headPos[2] - origin[2];
+    const dx = (headPos.x ?? 0) - posComponent(origin, 0);
+    const dz = (headPos.z ?? 0) - posComponent(origin, 2);
     state.currentReach = Math.sqrt(dx * dx + dz * dz);
 
     // Clamp within play bounds
@@ -98,36 +112,38 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
 
     // Apply height offset
     if (node.properties?.position) {
-      const pos = node.properties.position as any;
+      const pos = node.properties.position;
       node.properties.position = [
-        pos[0],
+        posComponent(pos, 0),
         state.calibratedHeight + config.height_offset,
-        pos[2],
-      ] as any;
+        posComponent(pos, 2),
+      ];
     }
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__seatedState as SeatedState;
+    const state = traitState.get(node);
     if (!state) return;
 
     // Handle recalibration request
-    if ((event as Record<string, unknown>).type === 'recalibrate') {
-      state.calibratedHeight = (context.vr.headset.position as any)[1];
+    if (event.type === 'recalibrate') {
+      state.calibratedHeight = context.vr.headset.position.y ?? 1.2;
       state.isCalibrated = true;
       context.emit('seated_calibrated', { height: state.calibratedHeight });
     }
 
     // Handle snap turn
-    if (
-      (event as Record<string, unknown>).type === 'turn_left' ||
-      (event as Record<string, unknown>).type === 'turn_right'
-    ) {
+    if (event.type === 'turn_left' || event.type === 'turn_right') {
       const angle = config.snap_turn_angle || 45;
-      const direction = (event as Record<string, unknown>).type === 'turn_left' ? -1 : 1;
-      const currentRot = (node.properties?.rotation as any) || [0, 0, 0];
+      const direction = event.type === 'turn_left' ? -1 : 1;
+      const currentRot = node.properties?.rotation;
+      const rotY = posComponent(currentRot, 1);
 
-      node.properties!.rotation = [currentRot[0], currentRot[1] + angle * direction, currentRot[2]];
+      node.properties!.rotation = [
+        posComponent(currentRot, 0),
+        rotY + angle * direction,
+        posComponent(currentRot, 2),
+      ];
 
       // Comfort vignette on snap turn
       if (config.comfort_vignette) {

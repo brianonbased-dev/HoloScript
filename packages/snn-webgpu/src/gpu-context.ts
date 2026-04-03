@@ -154,10 +154,11 @@ export class GPUContext {
 
     // Capture capabilities
     // Use adapter.info (newer spec) or fallback to requestAdapterInfo (older spec)
+    const adapterExt = adapter as GPUAdapter & { info?: { vendor?: string; architecture?: string }; requestAdapterInfo?: () => Promise<{ vendor?: string; architecture?: string }> };
     const adapterInfo: { vendor?: string; architecture?: string } =
-      (adapter as any).info ??
-      (typeof (adapter as any).requestAdapterInfo === 'function'
-        ? await (adapter as any).requestAdapterInfo()
+      adapterExt.info ??
+      (typeof adapterExt.requestAdapterInfo === 'function'
+        ? await adapterExt.requestAdapterInfo()
         : { vendor: 'unknown', architecture: 'unknown' });
 
     this._capabilities = {

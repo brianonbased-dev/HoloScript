@@ -117,8 +117,8 @@ export async function provisionMcpConfigs(apiKey: string): Promise<void> {
           provisionedCount++;
         }
       }
-    } catch (err: any) {
-      console.error(`\x1b[31mFailed to provision ${target.name}: ${err.message}\x1b[0m`);
+    } catch (err: unknown) {
+      console.error(`\x1b[31mFailed to provision ${target.name}: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
     }
   }
 

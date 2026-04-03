@@ -39,7 +39,7 @@ export class GitService {
         filepath
       });
 
-      return commits.map((c: any) => ({
+      return commits.map((c) => ({
         oid: c.oid,
         message: c.commit.message,
         author: {

@@ -55,13 +55,13 @@ export function useScripting(): UseScriptingReturn {
           ...prev,
           { id, input: code, output, success: true, timestamp: Date.now() },
         ]);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setHistory((prev) => [
           ...prev,
           {
             id,
             input: code,
-            output: err?.message || 'Error',
+            output: err instanceof Error ? err.message : String(err) || 'Error',
             success: false,
             timestamp: Date.now(),
           },

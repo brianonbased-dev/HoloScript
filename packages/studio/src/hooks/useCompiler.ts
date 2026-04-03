@@ -185,12 +185,12 @@ export function useCompiler(): UseCompilerReturn {
             time,
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const time = performance.now() - start;
         newResults.push({
           target: target.name,
           success: false,
-          output: `✗ ${err.message?.slice(0, 100) || 'Compilation error'}`,
+          output: `✗ ${(err instanceof Error ? err.message : String(err)).slice(0, 100) || 'Compilation error'}`,
           time,
         });
       }

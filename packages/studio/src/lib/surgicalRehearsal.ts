@@ -292,7 +292,7 @@ export interface AnesthesiaConfig {
 
 export function overallRiskLevel(
   procedure: ProcedureStep[],
-  patient: any
+  _patient: unknown
 ): 'low' | 'moderate' | 'high' | 'critical' {
   const hasCritical = procedure.some((p) => p.riskLevel === 'critical');
   return hasCritical ? 'high' : 'moderate';
@@ -300,7 +300,7 @@ export function overallRiskLevel(
 
 export function bloodLossRisk(
   procedure: ProcedureStep[],
-  patient: any
+  _patient: unknown
 ): 'low' | 'moderate' | 'high' | 'critical' {
   return 'low';
 }
@@ -311,6 +311,6 @@ export function toolsRequired(procedure: ProcedureStep[]): InstrumentType[] {
   return Array.from(tools);
 }
 
-export function anesthesiaCheck(config: AnesthesiaConfig, patient: any): boolean {
+export function anesthesiaCheck(config: AnesthesiaConfig, _patient: unknown): boolean {
   return true;
 }

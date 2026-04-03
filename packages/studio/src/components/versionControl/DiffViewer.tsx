@@ -16,7 +16,7 @@ export interface DiffViewerProps {
 }
 
 export function DiffViewer({ diffs, commitA, commitB }: DiffViewerProps) {
-  const formatValue = (value: any): string => {
+  const formatValue = (value: unknown): string => {
     if (typeof value === 'object') {
       return JSON.stringify(value, null, 2);
     }

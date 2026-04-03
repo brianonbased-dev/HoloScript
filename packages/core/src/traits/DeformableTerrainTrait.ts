@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { weatherBlackboard } from '../environment/WeatherBlackboard';
 
 interface DeformableTerrainConfig {
@@ -35,8 +36,11 @@ interface TerrainState {
   erosionSteps: number;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, TerrainState>();
+
 export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
-  name: 'deformable_terrain' as any,
+  name: 'deformable_terrain',
   defaultConfig: {
     resolution: 256,
     scale: 100,
@@ -54,7 +58,7 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
       totalErosion: 0,
       erosionSteps: 0,
     };
-    (node as any).__terrainState = state;
+    traitState.set(node, state);
 
     context.emit('deformable_terrain_create', {
       resolution: config.resolution,
@@ -65,14 +69,14 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__terrainState) {
+    if (traitState.has(node)) {
       context.emit('deformable_terrain_destroy', { nodeId: node.id });
-      delete (node as any).__terrainState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__terrainState as TerrainState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     // Read precipitation from @weather blackboard
@@ -97,17 +101,16 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__terrainState as TerrainState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'terrain_deform': {
-        const e = event as any;
         context.emit('deformable_terrain_deform', {
-          position: e.position,
-          radius: e.radius ?? 5.0,
-          strength: e.strength ?? 1.0,
-          mode: e.mode ?? 'dig', // 'dig' | 'raise' | 'smooth'
+          position: event.position,
+          radius: (event.radius as number) ?? 5.0,
+          strength: (event.strength as number) ?? 1.0,
+          mode: (event.mode as string) ?? 'dig', // 'dig' | 'raise' | 'smooth'
         });
         break;
       }

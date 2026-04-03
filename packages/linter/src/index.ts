@@ -361,8 +361,8 @@ const BUILT_IN_RULES: Rule[] = [
                     ruleId: 'valid-trait-syntax',
                     message: `Unknown or unsupported trait "@${dir.name}"`,
                     severity: 'warning',
-                    line: (dir as any).loc?.start.line || 1,
-                    column: (dir as any).loc?.start.column || 1,
+                    line: dir.loc?.start.line || 1,
+                    column: dir.loc?.start.column || 1,
                   });
                 }
               }
@@ -402,8 +402,8 @@ const BUILT_IN_RULES: Rule[] = [
                   ruleId: 'deprecated-trait',
                   message: `Trait "@${dir.name}" is deprecated. ${deprecated[dir.name as keyof typeof deprecated]}`,
                   severity: 'warning',
-                  line: (dir as any).loc?.start.line || 1,
-                  column: (dir as any).loc?.start.column || 1,
+                  line: dir.loc?.start.line || 1,
+                  column: dir.loc?.start.column || 1,
                 });
               }
             }
@@ -934,6 +934,8 @@ const BUILT_IN_RULES: Rule[] = [
 export class HoloScriptLinter {
   private config: LinterConfig;
   private rules: Map<string, Rule>;
+  /** Exposed for debugging/verification tools */
+  lastAST?: LintASTNode;
 
   constructor(config: Partial<LinterConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -957,7 +959,7 @@ export class HoloScriptLinter {
     const parser = new HoloScriptPlusParser();
     const parseResult = parser.parse(source);
     const ast = parseResult.ast;
-    (this as any).lastAST = ast;
+    this.lastAST = ast;
 
     for (const [ruleId, rule] of this.rules) {
       const ruleConfig = this.config.rules[ruleId];

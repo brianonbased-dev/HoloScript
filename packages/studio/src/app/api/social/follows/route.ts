@@ -94,8 +94,8 @@ export async function POST(req: NextRequest) {
   // Upsert follow (ignore conflict)
   try {
     await db.insert(follows).values({ followerId: userId, followingId: targetUserId });
-  } catch (err: any) {
-    if (err?.code === '23505') {
+  } catch (err: unknown) {
+    if ((err as Record<string, unknown>)?.code === '23505') {
       // Already following — not an error
       return NextResponse.json({ ok: true, alreadyFollowing: true });
     }

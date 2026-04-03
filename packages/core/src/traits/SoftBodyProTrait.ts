@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface SoftBodyProConfig {
   /** Tear threshold: strain ratio before constraint removal (default: 0.8) */
@@ -31,8 +32,11 @@ interface SoftBodyProState {
   deformation: number;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, SoftBodyProState>();
+
 export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
-  name: 'soft_body_pro' as any,
+  name: 'soft_body_pro',
   defaultConfig: {
     tear_threshold: 0.8,
     tear_color: '#8b0000',
@@ -49,7 +53,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       totalConstraints: 0,
       deformation: 0,
     };
-    (node as any).__softBodyProState = state;
+    traitState.set(node, state);
 
     context.emit('soft_body_pro_create', {
       tearThreshold: config.tear_threshold,
@@ -62,14 +66,14 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__softBodyProState) {
+    if (traitState.has(node)) {
       context.emit('soft_body_pro_destroy', { nodeId: node.id });
-      delete (node as any).__softBodyProState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__softBodyProState as SoftBodyProState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     context.emit('soft_body_pro_step', {
@@ -79,14 +83,13 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__softBodyProState as SoftBodyProState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'soft_body_pro_tear_report': {
-        const e = event as any;
-        state.tornConstraints = e.tornCount ?? state.tornConstraints;
-        state.totalConstraints = e.totalCount ?? state.totalConstraints;
+        state.tornConstraints = (event.tornCount as number) ?? state.tornConstraints;
+        state.totalConstraints = (event.totalCount as number) ?? state.totalConstraints;
         context.emit('on_soft_body_tear', {
           tornConstraints: state.tornConstraints,
           tearRatio:
@@ -96,9 +99,9 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       }
       case 'soft_body_pro_apply_force':
         context.emit('soft_body_pro_impulse', {
-          position: (event as any).position,
-          force: (event as any).force,
-          radius: (event as any).radius ?? 1.0,
+          position: event.position,
+          force: event.force,
+          radius: (event.radius as number) ?? 1.0,
         });
         break;
       case 'soft_body_pro_reset':

@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
@@ -42,18 +42,15 @@ interface SceneRendererProps {
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasLights = r3fTree.children?.some(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (c: any) =>
+    (c) =>
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
       c.type === 'pointLight' ||
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasEnv = r3fTree.children?.some((c: any) => c.type === 'Environment');
+  const hasEnv = r3fTree.children?.some((c) => c.type === 'Environment');
 
   return (
     <group onClick={() => setSelectedId(null)}>
@@ -198,10 +195,10 @@ function PlacementPlane() {
   const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
 
   const handlePointerMove = useCallback(
-    (e: any) => {
+    (e: ThreeEvent<PointerEvent>) => {
       if (builderMode !== 'place') return;
       e.stopPropagation();
-      const point = e.point as THREE.Vector3;
+      const point = e.point;
       const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
       const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
       setGhostPos([x, 0.5, z]);
@@ -210,11 +207,11 @@ function PlacementPlane() {
   );
 
   const handleClick = useCallback(
-    (e: any) => {
+    (e: ThreeEvent<MouseEvent>) => {
       if (builderMode !== 'place') return;
       e.stopPropagation();
       const shape = getActiveShape();
-      const point = e.point as THREE.Vector3;
+      const point = e.point;
       const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
       const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
       const nodeId = `placed-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

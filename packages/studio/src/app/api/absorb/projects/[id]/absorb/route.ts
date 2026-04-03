@@ -49,7 +49,7 @@ export async function POST(
 ) {
   const { id: projectId } = await params;
 
-  let body: any = {};
+  let body: Record<string, unknown> = {};
   try {
     body = await req.json();
   } catch (err) { console.error('[API absorb/projects/[id]/absorb] parsing request body failed:', err); }

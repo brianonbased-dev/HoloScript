@@ -113,7 +113,7 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
     if (!r3fTree) return;
 
     // Quick identity check to avoid unnecessary re-syncs
-    const treeId = JSON.stringify(r3fTree.children?.map((c: any) => c.id) || []);
+    const treeId = JSON.stringify(r3fTree.children?.map((c) => c.id) || []);
     if (treeId === prevTreeRef.current) return;
     prevTreeRef.current = treeId;
 

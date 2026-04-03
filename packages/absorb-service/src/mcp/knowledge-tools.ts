@@ -139,7 +139,7 @@ export async function handleKnowledgeToolCall(
         walletAddress: input.wallet_address || null,
         type: input.type,
         content: input.content,
-        contentHash: input.content_signature ? (input.metadata as any)?.content_hash || null : null,
+        contentHash: input.content_signature ? (input.metadata as Record<string, unknown>)?.content_hash as string || null : null,
         metadata: {
           ...input.metadata,
           content_signature: input.content_signature || undefined,
@@ -230,7 +230,7 @@ export async function handleKnowledgeToolCall(
               totalCostCents += cost;
 
               // Increment access count + revenue
-              await (deps.db as any).execute(
+              await (deps.db as unknown as { execute: (query: unknown) => Promise<unknown> }).execute(
                 sql`UPDATE knowledge_entries SET access_count = access_count + 1, revenue_cents = revenue_cents + ${authorShare}, updated_at = NOW() WHERE id = ${row.id}`
               );
             }

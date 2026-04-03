@@ -55,15 +55,17 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         });
 
         return (response.data as Array<{ embedding: number[] }>).map((d) => d.embedding);
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
 
         // Check for rate limit error (429 or specific error codes)
+        const errObj = error as Record<string, unknown>;
+        const errMsg = error instanceof Error ? error.message : String(error);
         const isRateLimit =
-          error?.status === 429 ||
-          error?.code === 'rate_limit_exceeded' ||
-          error?.message?.includes('rate limit') ||
-          error?.message?.includes('Rate limit');
+          errObj?.status === 429 ||
+          errObj?.code === 'rate_limit_exceeded' ||
+          errMsg?.includes('rate limit') ||
+          errMsg?.includes('Rate limit');
 
         if (!isRateLimit || attempt === maxRetries - 1) {
           // Not a rate limit or final attempt - throw immediately
@@ -72,8 +74,9 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
         // Exponential backoff: 2^attempt seconds (2s, 4s, 8s, 16s, 32s)
         const backoffMs = Math.min(32000, Math.pow(2, attempt + 1) * 1000);
-        const retryAfter = error?.headers?.['retry-after']
-          ? parseInt(error.headers['retry-after']) * 1000
+        const headers = errObj?.headers as Record<string, string> | undefined;
+        const retryAfter = headers?.['retry-after']
+          ? parseInt(headers['retry-after']) * 1000
           : backoffMs;
 
         console.error(

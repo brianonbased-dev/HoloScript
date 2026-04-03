@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface AntiGriefConfig {
   /** Detection sensitivity 0-1 (default: 0.5) */
@@ -38,11 +39,14 @@ interface BehaviorRecord {
 interface AntiGriefState {
   active: boolean;
   players: Map<string, BehaviorRecord>;
-  shieldedPlayers: Map<string, number>; // playerId → shield expiry
+  shieldedPlayers: Map<string, number>; // playerId -> shield expiry
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, AntiGriefState>();
+
 export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
-  name: 'anti_grief' as any,
+  name: 'anti_grief',
   defaultConfig: {
     sensitivity: 0.5,
     shield_threshold: 0.7,
@@ -60,7 +64,7 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
       players: new Map(),
       shieldedPlayers: new Map(),
     };
-    (node as any).__antiGriefState = state;
+    traitState.set(node, state);
 
     context.emit('anti_grief_create', {
       sensitivity: config.sensitivity,
@@ -70,14 +74,14 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__antiGriefState) {
+    if (traitState.has(node)) {
       context.emit('anti_grief_destroy', { nodeId: node.id });
-      delete (node as any).__antiGriefState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__antiGriefState as AntiGriefState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     const now = Date.now();
@@ -128,7 +132,7 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__antiGriefState as AntiGriefState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     const getRecord = (playerId: string): BehaviorRecord => {
@@ -140,26 +144,22 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
 
     switch (event.type) {
       case 'player_kill': {
-        const e = event as any;
-        const record = getRecord(e.killerId ?? 'unknown');
+        const record = getRecord((event.killerId as string) ?? 'unknown');
         record.kills.push(Date.now());
         break;
       }
       case 'object_destroyed': {
-        const e = event as any;
-        const record = getRecord(e.destroyerId ?? 'unknown');
+        const record = getRecord((event.destroyerId as string) ?? 'unknown');
         record.destructions.push(Date.now());
         break;
       }
       case 'player_report': {
-        const e = event as any;
-        const record = getRecord(e.reportedId ?? 'unknown');
+        const record = getRecord((event.reportedId as string) ?? 'unknown');
         record.reports.push(Date.now());
         break;
       }
       case 'anti_grief_shield_player': {
-        const e = event as any;
-        const playerId = e.playerId;
+        const playerId = event.playerId as string | undefined;
         if (playerId) {
           state.shieldedPlayers.set(playerId, Date.now() + config.shield_duration * 1000);
           context.emit('anti_grief_shield_activated', {

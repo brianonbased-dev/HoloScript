@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface ModerationConfig {
   /** Moderation sensitivity: 'low' | 'medium' | 'high' | 'strict' (default: 'medium') */
@@ -30,13 +31,16 @@ interface ModerationConfig {
 
 interface ModerationState {
   active: boolean;
-  violations: Map<string, number>; // userId → count
-  cooldowns: Map<string, number>; // userId → expiry timestamp
+  violations: Map<string, number>; // userId -> count
+  cooldowns: Map<string, number>; // userId -> expiry timestamp
   totalBlocked: number;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, ModerationState>();
+
 export const moderationHandler: TraitHandler<ModerationConfig> = {
-  name: 'moderation' as any,
+  name: 'moderation',
   defaultConfig: {
     sensitivity: 'medium',
     categories: ['harassment', 'hate_speech', 'sexual', 'violence', 'spam'],
@@ -55,7 +59,7 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
       cooldowns: new Map(),
       totalBlocked: 0,
     };
-    (node as any).__moderationState = state;
+    traitState.set(node, state);
 
     context.emit('moderation_create', {
       sensitivity: config.sensitivity,
@@ -67,9 +71,9 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__moderationState) {
+    if (traitState.has(node)) {
       context.emit('moderation_destroy', { nodeId: node.id });
-      delete (node as any).__moderationState;
+      traitState.delete(node);
     }
   },
 
@@ -78,13 +82,12 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__moderationState as ModerationState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     switch (event.type) {
       case 'moderation_check': {
-        const e = event as any;
-        const userId = e.userId ?? 'unknown';
+        const userId = (event.userId as string) ?? 'unknown';
         const now = Date.now();
 
         // Check cooldown
@@ -101,16 +104,15 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
         // Forward to AI moderation service
         context.emit('moderation_analyze', {
           userId,
-          contentType: e.contentType ?? 'text',
-          content: e.content,
+          contentType: (event.contentType as string) ?? 'text',
+          content: event.content,
           sensitivity: config.sensitivity,
           categories: config.categories,
         });
         break;
       }
       case 'moderation_violation': {
-        const e = event as any;
-        const userId = e.userId ?? 'unknown';
+        const userId = (event.userId as string) ?? 'unknown';
         const count = (state.violations.get(userId) ?? 0) + 1;
         state.violations.set(userId, count);
         state.totalBlocked++;
@@ -128,19 +130,19 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
           userId,
           action,
           violationCount: count,
-          category: e.category,
-          content: e.content,
+          category: event.category,
+          content: event.content,
         });
 
         context.emit('on_moderation_violation', {
           userId,
           action,
-          category: e.category,
+          category: event.category,
         });
         break;
       }
       case 'moderation_clear_violations': {
-        const userId = (event as any).userId;
+        const userId = event.userId as string | undefined;
         if (userId) {
           state.violations.delete(userId);
           state.cooldowns.delete(userId);

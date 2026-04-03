@@ -97,9 +97,10 @@ async function step1_checkBalance(): Promise<TestResult> {
       success: true,
       data: { balance: balanceETH, address: TEST_WALLET_ADDRESS },
     };
-  } catch (error: any) {
-    logError(`Failed to check balance: ${error.message}`);
-    return { step: 'step1', success: false, error: error.message };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logError(`Failed to check balance: ${msg}`);
+    return { step: 'step1', success: false, error: msg };
   }
 }
 
@@ -156,9 +157,10 @@ async function step2_estimateGas(): Promise<TestResult> {
       success: true,
       data: { estimate: formatted, sufficient: true },
     };
-  } catch (error: any) {
-    logError(`Failed to estimate gas: ${error.message}`);
-    return { step: 'step2', success: false, error: error.message };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logError(`Failed to estimate gas: ${msg}`);
+    return { step: 'step2', success: false, error: msg };
   }
 }
 
@@ -259,9 +261,10 @@ async function step4_verifyTransaction(): Promise<TestResult> {
 
       return { step: 'step4', success: false, error: 'Transaction reverted' };
     }
-  } catch (error: any) {
-    logError(`Failed to verify transaction: ${error.message}`);
-    return { step: 'step4', success: false, error: error.message };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logError(`Failed to verify transaction: ${msg}`);
+    return { step: 'step4', success: false, error: msg };
   }
 }
 

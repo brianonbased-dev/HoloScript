@@ -43,12 +43,12 @@ export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedPr
       fetches.push(
         fetch(`${workspaceUrl}/api/delegate/browse?limit=10`)
           .then((r) => (r.ok ? r.json() : { entries: [] }))
-          .then((data) =>
+          .then((data: { entries?: Array<{ access?: string; content?: string; id: string; type?: string; domain?: string; createdAt?: string }> }) =>
             (data.entries || [])
-              .filter((e: any) => e.access === 'shared' && e.content)
-              .map((e: any) => ({
+              .filter((e): e is typeof e & { content: string } => e.access === 'shared' && !!e.content)
+              .map((e): FeedEntry => ({
                 id: `ws:${e.id}`,
-                type: mapWorkspaceType(e.type),
+                type: mapWorkspaceType(e.type || ''),
                 content: e.content,
                 domain: e.domain,
                 createdAt: e.createdAt || new Date().toISOString(),

@@ -88,13 +88,13 @@ export class CompilerResolver {
           targetVersion: '3.42.0',
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         output: undefined,
         errors: [
           {
-            message: error.message || 'Unknown compilation error',
+            message: (error instanceof Error ? error.message : String(error)) || 'Unknown compilation error',
             phase: 'compile',
           },
         ],

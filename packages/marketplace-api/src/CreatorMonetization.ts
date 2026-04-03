@@ -291,12 +291,12 @@ export class CreatorMonetization {
         gasUsed: receipt.gasUsed.toString(),
         totalCost: formatEther(gasEstimate.totalCost),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof CreatorMonetizationError) {
         throw error;
       }
 
-      throw new CreatorMonetizationError(`Failed to mint NFT: ${error.message}`, 'MINT_FAILED', {
+      throw new CreatorMonetizationError(`Failed to mint NFT: ${error instanceof Error ? error.message : String(error)}`, 'MINT_FAILED', {
         originalError: error,
       });
     }
@@ -599,8 +599,9 @@ export class CreatorMonetization {
       };
 
       return stats;
-    } catch (error: any) {
-      throw new ZoraAPIError(`Failed to fetch creator stats: ${error.message}`, error.status);
+    } catch (error: unknown) {
+      const status = (error as Record<string, unknown>)?.status as number | undefined;
+      throw new ZoraAPIError(`Failed to fetch creator stats: ${error instanceof Error ? error.message : String(error)}`, status);
     }
   }
 

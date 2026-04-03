@@ -17,7 +17,7 @@ async function proxyToAbsorb(
   path: string,
   method: string,
   body?: string,
-): Promise<{ ok: boolean; status: number; data: any }> {
+): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
     const res = await fetch(`${ABSORB_BASE}${path}`, {
       method,

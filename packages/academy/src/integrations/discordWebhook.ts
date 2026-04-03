@@ -216,7 +216,7 @@ export class DiscordWebhookManager {
   /**
    * Handle Discord Gateway messages
    */
-  private handleGatewayMessage(data: any): void {
+  private handleGatewayMessage(data: { op?: number; t?: string; d?: Record<string, unknown> }): void {
     // Handle heartbeat
     if (data.op === 10) {
       const heartbeatInterval = data.d.heartbeat_interval;
@@ -352,7 +352,7 @@ export class DiscordWebhookManager {
   /**
    * Send message to Discord (via webhook)
    */
-  async sendMessage(content: string, embeds?: any[]): Promise<boolean> {
+  async sendMessage(content: string, embeds?: Array<Record<string, unknown>>): Promise<boolean> {
     if (!this.config.webhookUrl) {
       console.error('[DiscordWebhook] No webhook URL configured');
       return false;
@@ -486,7 +486,7 @@ export function useDiscordWebhook(config?: DiscordWebhookConfig) {
   );
 
   const sendMessage = React.useCallback(
-    (content: string, embeds?: any[]) => {
+    (content: string, embeds?: Array<Record<string, unknown>>) => {
       return manager?.sendMessage(content, embeds) || Promise.resolve(false);
     },
     [manager]

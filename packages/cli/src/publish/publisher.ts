@@ -220,11 +220,12 @@ export class PackagePublisher {
         tarballPath: packResult.tarballPath,
         warnings,
       };
-    } catch (err: any) {
-      console.log(`\x1b[31m✗ Publish failed: ${err.message}\x1b[0m`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`\x1b[31m✗ Publish failed: ${msg}\x1b[0m`);
       return {
         success: false,
-        errors: [err.message],
+        errors: [msg],
         tarballPath: packResult.tarballPath,
       };
     }
@@ -313,11 +314,12 @@ export class PackagePublisher {
         message: result.message,
         url: `${this.options.registry}/api/v1/traits/${result.id}`,
       };
-    } catch (err: any) {
-      if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+    } catch (err: unknown) {
+      const code = err instanceof Error ? (err as NodeJS.ErrnoException).code : undefined;
+      if (code === 'ECONNREFUSED' || code === 'ENOTFOUND') {
         return { success: false, error: `Unable to connect to registry: ${this.options.registry}` };
       }
-      return { success: false, error: err.message };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
 

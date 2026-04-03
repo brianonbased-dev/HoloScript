@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface CrowdSimConfig {
   /** Maximum agent count (default: 1000) */
@@ -36,8 +37,11 @@ interface CrowdSimState {
   goals: Map<string, [number, number, number]>;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, CrowdSimState>();
+
 export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
-  name: 'crowd_sim' as any,
+  name: 'crowd_sim',
   defaultConfig: {
     max_agents: 1000,
     speed: 1.5,
@@ -56,7 +60,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
       agentCount: 0,
       goals: new Map(),
     };
-    (node as any).__crowdSimState = state;
+    traitState.set(node, state);
 
     context.emit('crowd_sim_create', {
       maxAgents: config.max_agents,
@@ -73,14 +77,14 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__crowdSimState) {
+    if (traitState.has(node)) {
       context.emit('crowd_sim_destroy', { nodeId: node.id });
-      delete (node as any).__crowdSimState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__crowdSimState as CrowdSimState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     context.emit('crowd_sim_step', {
@@ -90,26 +94,26 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__crowdSimState as CrowdSimState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'crowd_spawn_agents': {
-        const e = event as any;
-        state.agentCount = Math.min(state.agentCount + (e.count ?? 1), config.max_agents);
+        const count = (event.count as number) ?? 1;
+        state.agentCount = Math.min(state.agentCount + count, config.max_agents);
         context.emit('crowd_sim_spawn', {
-          count: e.count ?? 1,
-          position: e.position,
+          count,
+          position: event.position,
           agentCount: state.agentCount,
         });
         break;
       }
       case 'crowd_set_goal': {
-        const e = event as any;
-        state.goals.set(e.groupId ?? 'default', e.position);
+        const groupId = (event.groupId as string) ?? 'default';
+        state.goals.set(groupId, event.position as [number, number, number]);
         context.emit('crowd_sim_goal', {
-          groupId: e.groupId ?? 'default',
-          position: e.position,
+          groupId,
+          position: event.position,
         });
         break;
       }

@@ -357,8 +357,8 @@ for (const [name, comp] of Object.entries(MODELS)) {
     } else {
       console.error(`  ❌ ${name} — no binary output`);
     }
-  } catch (err: any) {
-    console.error(`  ❌ ${name} — ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`  ❌ ${name} — ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

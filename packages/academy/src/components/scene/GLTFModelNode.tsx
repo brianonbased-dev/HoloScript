@@ -58,7 +58,7 @@ function GLTFModel({
         rotation={rotation?.map((r) => THREE.MathUtils.degToRad(r)) as [number, number, number]}
         scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
         userData={{ nodeId: node.id }}
-        onClick={(e: any) => {
+        onClick={(e) => {
           e.stopPropagation();
           setSelectedId(node.id || null);
         }}

@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface AICompanionConfig {
   /** Personality profile name (default: 'friendly') */
@@ -44,8 +45,11 @@ interface AICompanionState {
   lastResponseTime: number;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, AICompanionState>();
+
 export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
-  name: 'ai_companion' as any,
+  name: 'ai_companion',
   defaultConfig: {
     personality: 'friendly',
     interaction_range: 10,
@@ -66,7 +70,7 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
       interactingWith: null,
       lastResponseTime: 0,
     };
-    (node as any).__aiCompanionState = state;
+    traitState.set(node, state);
 
     context.emit('ai_companion_create', {
       personality: config.personality,
@@ -78,14 +82,14 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__aiCompanionState) {
+    if (traitState.has(node)) {
       context.emit('ai_companion_destroy', { nodeId: node.id });
-      delete (node as any).__aiCompanionState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__aiCompanionState as AICompanionState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     // Decay emotions toward neutral
@@ -104,44 +108,50 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__aiCompanionState as AICompanionState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'ai_companion_interact': {
-        const e = event as any;
-        state.interactingWith = e.playerId ?? null;
+        state.interactingWith = (event.playerId as string) ?? null;
         state.currentAction = 'interacting';
         state.emotion.curiosity = Math.min(1, state.emotion.curiosity + 0.2);
         context.emit('ai_companion_response_start', {
-          playerId: e.playerId,
-          message: e.message,
+          playerId: event.playerId,
+          message: event.message,
           latency: config.response_latency,
         });
         break;
       }
       case 'ai_companion_response': {
-        const e = event as any;
         state.lastResponseTime = Date.now();
         state.memoryCount = Math.min(state.memoryCount + 1, config.memory_capacity);
         context.emit('on_ai_companion_speak', {
-          text: e.text,
+          text: event.text,
           emotion: { ...state.emotion },
         });
         break;
       }
       case 'ai_companion_emotion_stimulus': {
-        const e = event as any;
-        if (e.happiness !== undefined)
-          state.emotion.happiness = Math.max(0, Math.min(1, state.emotion.happiness + e.happiness));
-        if (e.fear !== undefined)
-          state.emotion.fear = Math.max(0, Math.min(1, state.emotion.fear + e.fear));
-        if (e.trust !== undefined)
-          state.emotion.trust = Math.max(0, Math.min(1, state.emotion.trust + e.trust));
+        if (event.happiness !== undefined)
+          state.emotion.happiness = Math.max(
+            0,
+            Math.min(1, state.emotion.happiness + (event.happiness as number))
+          );
+        if (event.fear !== undefined)
+          state.emotion.fear = Math.max(
+            0,
+            Math.min(1, state.emotion.fear + (event.fear as number))
+          );
+        if (event.trust !== undefined)
+          state.emotion.trust = Math.max(
+            0,
+            Math.min(1, state.emotion.trust + (event.trust as number))
+          );
         break;
       }
       case 'ai_companion_set_action':
-        state.currentAction = (event as any).action ?? 'idle';
+        state.currentAction = (event.action as string) ?? 'idle';
         break;
       case 'ai_companion_end_interaction':
         state.interactingWith = null;

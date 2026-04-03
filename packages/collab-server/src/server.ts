@@ -120,15 +120,15 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     }
 
     // Attach user info for logging
-    (ws as any)._userId = payload.sub ?? 'unknown';
-    (ws as any)._userName = payload.name ?? payload.email ?? 'Anonymous';
+    (ws as unknown as Record<string, string>)._userId = payload.sub ?? 'unknown';
+    (ws as unknown as Record<string, string>)._userName = payload.name ?? payload.email ?? 'Anonymous';
   }
   // ────────────────────────────────────────────────────────────────────────
 
   const room = getOrCreateRoom(roomId);
   room.add(ws);
 
-  const userLabel = (ws as any)._userName ?? 'anonymous';
+  const userLabel = (ws as unknown as Record<string, string>)._userName ?? 'anonymous';
   console.log(`[collab-server] ${userLabel} joined room "${roomId}" (${room.size} peers)`);
 
   ws.on('message', (data) => {

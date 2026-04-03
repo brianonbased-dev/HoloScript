@@ -214,12 +214,12 @@ export class GaussianSplatSorter {
             console.warn(`Shader warning in ${label}: ${msg.message} (line ${msg.lineNum})`);
           }
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         // getCompilationInfo may not be available on older browsers
-        if (e.message?.includes('Shader compilation error')) {
+        if (e instanceof Error && e.message?.includes('Shader compilation error')) {
           throw e;
         }
-        console.warn(`Could not validate shader ${label}:`, e.message);
+        console.warn(`Could not validate shader ${label}:`, e instanceof Error ? e.message : String(e));
       }
 
       return module;

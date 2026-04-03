@@ -187,7 +187,7 @@ export const HoloScriptPreview: React.FC<HoloScriptPreviewProps> = ({
         try {
           // eslint-disable-next-line @typescript-eslint/no-var-requires
           const mod = await import('three/examples/jsm/controls/OrbitControls.js');
-          const { OrbitControls } = mod as any;
+          const { OrbitControls } = mod as Record<string, unknown>;
           if (!cancelled) {
             orbitControlsRef.current = OrbitControls;
           }

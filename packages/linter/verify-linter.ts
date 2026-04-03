@@ -25,9 +25,9 @@ console.log('--- Linting Test Source ---');
 const result = linter.lint(source, 'test.hsplus');
 
 // Debug AST
-if ((linter as any).lastAST) {
+if (linter.lastAST) {
   console.log('--- AST Structure (First Child) ---');
-  console.dir((linter as any).lastAST.children[1], { depth: 4 });
+  console.dir(linter.lastAST.children?.[1], { depth: 4 });
 }
 
 console.log(`File: ${result.filePath}`);

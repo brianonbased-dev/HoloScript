@@ -90,9 +90,9 @@ export class MultiLayerCompiler extends CompilerBase {
       try {
         const vrResult = vrCompiler.compile(composition as any, agentToken);
         result.vr = vrResult;
-      } catch (err: any) {
+      } catch (err: unknown) {
         result.success = false;
-        result.errors.push(`VR Compilation Error: ${err.message}`);
+        result.errors.push(`VR Compilation Error: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 

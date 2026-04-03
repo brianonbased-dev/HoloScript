@@ -13,8 +13,22 @@ import type { ShaderNode } from '../../hooks/useShaderGraph';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useNodeSelection } from '../../hooks/useNodeSelection';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+/** Port data as received from the shader graph editor (may include types beyond ShaderDataType) */
+interface NodePort {
+  id?: string;
+  name: string;
+  type: string;
+  connected?: boolean;
+  defaultValue?: unknown;
+}
 
-type NodeData = any;
+type NodeData = Omit<ShaderNode, 'inputs' | 'outputs'> & {
+  collapsed?: boolean;
+  name?: string;
+  preview?: boolean;
+  inputs: NodePort[];
+  outputs: NodePort[];
+};
 
 // Type color mapping
 const TYPE_COLORS: Record<string, string> = {
@@ -104,7 +118,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
       {!collapsed && (
         <div className="node-body p-3 space-y-2">
           {/* Input Ports */}
-          {data.inputs.map((input: any, index: number) => (
+          {data.inputs.map((input: NodePort, index: number) => (
             <div key={input.id} className="flex items-center gap-2 relative">
               <Handle
                 type="target"
@@ -130,7 +144,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
                 {!input.connected && input.type !== 'sampler2D' && input.type !== 'samplerCube' && (
                   <InlinePropertyEditor
                     type={input.type}
-                    value={input.defaultValue}
+                    value={input.defaultValue as number | number[] | undefined}
                     onChange={(value) => handlePropertyChange(`input_${input.id}`, value)}
                   />
                 )}
@@ -141,7 +155,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
           {/* Custom Properties */}
           {data.properties && Object.keys(data.properties).length > 0 && (
             <div className="border-t border-gray-700 pt-2 mt-2 space-y-2">
-              {Object.entries(data.properties).map(([key, value]: [string, any]) => (
+              {Object.entries(data.properties).map(([key, value]) => (
                 <div key={key}>
                   <label className="text-xs text-gray-400 block mb-1">{key}</label>
                   <PropertyEditor
@@ -155,7 +169,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
           )}
 
           {/* Output Ports */}
-          {data.outputs.map((output: any, index: number) => (
+          {data.outputs.map((output: NodePort, index: number) => (
             <div key={output.id} className="flex items-center gap-2 justify-end relative">
               <span className="text-xs text-gray-400 truncate">{output.name}</span>
               <Handle

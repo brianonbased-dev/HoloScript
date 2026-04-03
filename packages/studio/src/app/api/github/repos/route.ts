@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Transform to studio format
-    const transformedRepos = repos.map((repo: any) => ({
+    const transformedRepos = repos.map((repo: Record<string, unknown>) => ({
       id: repo.id,
       name: repo.name,
       fullName: repo.full_name,

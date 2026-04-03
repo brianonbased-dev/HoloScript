@@ -12,7 +12,11 @@
  * @module traits
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
+
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, WorldStateTraitState>();
 
 interface WorldStateConfig {
   /** Sync interval in seconds (default: 0.1 = 10Hz) */
@@ -41,7 +45,7 @@ interface WorldStateTraitState {
 }
 
 export const worldStateHandler: TraitHandler<WorldStateConfig> = {
-  name: 'world_state' as any,
+  name: 'world_state',
   defaultConfig: {
     sync_interval: 0.1,
     autosave_interval: 30,
@@ -61,7 +65,7 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
       lastSyncTime: 0,
       version: 0,
     };
-    (node as any).__worldStateTraitState = state;
+    traitState.set(node, state);
 
     context.emit('world_state_create', {
       worldId: config.world_id,
@@ -73,16 +77,16 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__worldStateTraitState) {
+    if (traitState.has(node)) {
       // Trigger final save before detach
       context.emit('world_state_save', { reason: 'detach' });
       context.emit('world_state_destroy', { nodeId: node.id });
-      delete (node as any).__worldStateTraitState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__worldStateTraitState as WorldStateTraitState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     // Sync timer (~10Hz CRDT sync)
@@ -109,7 +113,7 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__worldStateTraitState as WorldStateTraitState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
@@ -117,23 +121,23 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
         state.objectCount = Math.min(state.objectCount + 1, config.max_objects);
         context.emit('world_state_update', {
           action: 'add_object',
-          objectId: (event as any).objectId,
-          data: (event as any).data,
+          objectId: event.objectId,
+          data: event.data,
         });
         break;
       case 'world_state_object_removed':
         state.objectCount = Math.max(0, state.objectCount - 1);
         context.emit('world_state_update', {
           action: 'remove_object',
-          objectId: (event as any).objectId,
+          objectId: event.objectId,
         });
         break;
       case 'world_state_terrain_update':
         if (config.persist_terrain) {
           context.emit('world_state_update', {
             action: 'terrain',
-            position: (event as any).position,
-            delta: (event as any).delta,
+            position: event.position,
+            delta: event.delta,
           });
         }
         break;
@@ -141,8 +145,8 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
         if (config.persist_npc_memory) {
           context.emit('world_state_update', {
             action: 'npc_memory',
-            npcId: (event as any).npcId,
-            memory: (event as any).memory,
+            npcId: event.npcId,
+            memory: event.memory,
           });
         }
         break;
@@ -150,8 +154,8 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
         if (config.persist_inventory) {
           context.emit('world_state_update', {
             action: 'inventory',
-            playerId: (event as any).playerId,
-            item: (event as any).item,
+            playerId: event.playerId,
+            item: event.item,
           });
         }
         break;
@@ -164,13 +168,13 @@ export const worldStateHandler: TraitHandler<WorldStateConfig> = {
         break;
       case 'world_state_load':
         context.emit('world_state_load', {
-          worldId: (event as any).worldId ?? config.world_id,
-          snapshot: (event as any).snapshot,
+          worldId: event.worldId ?? config.world_id,
+          snapshot: event.snapshot,
         });
         break;
       case 'world_state_merge':
         context.emit('world_state_merge', {
-          updates: (event as any).updates,
+          updates: event.updates,
         });
         break;
     }

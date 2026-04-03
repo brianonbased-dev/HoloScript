@@ -92,7 +92,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments({
       if ('range' in c && c.range) {
         return {
           range: c.range,
-          rangeLength: (c as any).rangeLength as number | undefined,
+          rangeLength: (c as Record<string, unknown>).rangeLength as number | undefined,
           text: c.text,
         };
       }

@@ -9,6 +9,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { weatherBlackboard } from '../environment/WeatherBlackboard';
 
 interface VolumetricCloudsConfig {
@@ -38,8 +39,11 @@ interface CloudState {
   windOffset: [number, number, number];
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, CloudState>();
+
 export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
-  name: 'volumetric_clouds' as any,
+  name: 'volumetric_clouds',
   defaultConfig: {
     altitude: 500,
     thickness: 200,
@@ -58,7 +62,7 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
       time: 0,
       windOffset: [0, 0, 0],
     };
-    (node as any).__cloudState = state;
+    traitState.set(node, state);
 
     context.emit('volumetric_clouds_create', {
       altitude: config.altitude,
@@ -71,14 +75,14 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__cloudState) {
+    if (traitState.has(node)) {
       context.emit('volumetric_clouds_destroy', { nodeId: node.id });
-      delete (node as any).__cloudState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__cloudState as CloudState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     state.time += delta;
@@ -108,13 +112,13 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__cloudState as CloudState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'clouds_set_coverage':
         context.emit('volumetric_clouds_update', {
-          coverage: (event as any).coverage ?? config.coverage,
+          coverage: (event.coverage as number) ?? config.coverage,
         });
         break;
       case 'clouds_pause':

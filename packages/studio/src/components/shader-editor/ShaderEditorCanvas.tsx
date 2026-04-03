@@ -71,7 +71,7 @@ function ShaderEditorCanvasInner({
     const flowNodes: Node[] = [];
     const flowEdges: Edge[] = [];
 
-    graph.nodes.forEach((node: any) => {
+    graph.nodes.forEach((node) => {
       flowNodes.push({
         id: node.id,
         type: 'shaderNode',
@@ -81,13 +81,13 @@ function ShaderEditorCanvasInner({
       });
     });
 
-    graph.connections.forEach((conn: any) => {
+    graph.connections.forEach((conn) => {
       flowEdges.push({
         id: conn.id,
         source: conn.fromNodeId,
-        sourceHandle: conn.fromPortId,
+        sourceHandle: conn.fromPort,
         target: conn.toNodeId,
-        targetHandle: conn.toPortId,
+        targetHandle: conn.toPort,
         type: 'default',
         animated: false,
       });
@@ -238,7 +238,7 @@ function ShaderEditorCanvasInner({
         <Controls className="bg-gray-800 border-gray-700" />
         <MiniMap
           className="bg-gray-900 border-gray-700"
-          nodeColor={(node: any) => {
+          nodeColor={(node: Node) => {
             const data = node.data as { category?: string };
             if (data.category === 'output') return '#ef4444';
             if (data.category === 'input') return '#3b82f6';

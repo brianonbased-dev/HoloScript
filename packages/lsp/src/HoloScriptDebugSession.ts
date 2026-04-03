@@ -1351,23 +1351,26 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
 
     const v = new Variable(name, displayValue, varRef);
 
+    // DAP Variable supports type/indexedVariables/namedVariables as optional fields
+    const ext = v as Variable & { type?: string; indexedVariables?: number; namedVariables?: number };
+
     // Add type information
     if (value === null) {
-      (v as any).type = 'null';
+      ext.type = 'null';
     } else if (value === undefined) {
-      (v as any).type = 'undefined';
+      ext.type = 'undefined';
     } else if (Array.isArray(value)) {
-      (v as any).type = `Array(${value.length})`;
-      (v as any).indexedVariables = value.length;
-      (v as any).namedVariables = 0;
+      ext.type = `Array(${value.length})`;
+      ext.indexedVariables = value.length;
+      ext.namedVariables = 0;
     } else if (value instanceof Map) {
-      (v as any).type = `Map(${value.size})`;
-      (v as any).namedVariables = value.size;
+      ext.type = `Map(${value.size})`;
+      ext.namedVariables = value.size;
     } else if (typeof value === 'object') {
-      (v as any).type = value.constructor?.name || 'Object';
-      (v as any).namedVariables = Object.keys(value as object).length;
+      ext.type = value.constructor?.name || 'Object';
+      ext.namedVariables = Object.keys(value as object).length;
     } else {
-      (v as any).type = typeof value;
+      ext.type = typeof value;
     }
 
     return v;
@@ -1393,7 +1396,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     if (typeof value === 'object') {
       const keys = Object.keys(value as object);
       if (keys.length <= 3) {
-        const entries = keys.map((k) => `${k}: ${this._formatValue((value as any)[k])}`);
+        const entries = keys.map((k) => `${k}: ${this._formatValue((value as Record<string, unknown>)[k])}`);
         return `{${entries.join(', ')}}`;
       }
       return `Object {${keys.slice(0, 3).join(', ')}, ...}`;
@@ -1425,7 +1428,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       const keys = Object.keys(value as object);
       if (keys.length === 0) return 0;
       for (const key of keys) {
-        childVars.set(key, (value as any)[key]);
+        childVars.set(key, (value as Record<string, unknown>)[key]);
       }
     }
 

@@ -31,83 +31,15 @@ interface UserMonitorState {
   engagement: number;
 }
 
-export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
-  name: 'user_monitor',
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, UserMonitorState>();
 
-  defaultConfig: {
-    updateRate: 0.2,
-    jitterSensitivity: 0.5,
-    adaptiveAssistance: true,
-  },
-
-  onAttach(node, _config, _context) {
-    const state: UserMonitorState = {
-      lastInferenceTime: 0,
-      headPositions: [],
-      handPositions: [],
-      clickCount: 0,
-      lastClickTime: 0,
-      frustration: 0,
-      confusion: 0,
-      engagement: 0,
-    };
-    node.__userMonitorState = state;
-  },
-
-  onDetach(node) {
-    delete node.__userMonitorState;
-  },
-
-  onUpdate(node, config, context, delta) {
-    const state = node.__userMonitorState as UserMonitorState;
-    if (!state) return;
-
-    // 1. Collect tracking signals
-    const headPos = context.vr.headset.position;
-    const hand = context.vr.getDominantHand();
-    const handPos = hand ? hand.position : null;
-
-    state.headPositions.push([...(headPos as any)] as any as Vector3);
-    if (handPos) state.handPositions.push([...(handPos as any)] as any as Vector3);
-
-    // Keep buffers small (last 30 frames ~0.5s)
-    if (state.headPositions.length > 30) state.headPositions.shift();
-    if (state.handPositions.length > 30) state.handPositions.shift();
-
-    // 2. Periodic inference
-    state.lastInferenceTime += delta;
-    if (state.lastInferenceTime >= (config.updateRate ?? 0.2)) {
-      state.lastInferenceTime = 0;
-      (this as any).performInference(node, config, context, state);
-    }
-  },
-
-  onEvent(node, config, context, event) {
-    const state = node.__userMonitorState as UserMonitorState;
-    if (!state) return;
-
-    if (event.type === 'click') {
-      const now = Date.now();
-      // Track rapid clicking as a stress signal
-      if (now - state.lastClickTime < 500) {
-        state.clickCount++;
-      } else {
-        state.clickCount = Math.max(0, state.clickCount - 1);
-      }
-      state.lastClickTime = now;
-    }
-  },
-};
-
-/**
- * Perform emotion inference using the @builtin detector
- */
-(userMonitorHandler as any).performInference = function (
+function performInference(
   node: HSPlusNode,
   config: UserMonitorConfig,
-  context: TraitContext,
+  _context: TraitContext,
   state: UserMonitorState
-) {
+): void {
   const detector = getEmotionDetector('default') || getEmotionDetector('lite');
   if (!detector) return;
 
@@ -135,6 +67,74 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     node.properties.userFrustration = state.frustration;
     node.properties.userConfusion = state.confusion;
   }
+}
+
+export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
+  name: 'user_monitor',
+
+  defaultConfig: {
+    updateRate: 0.2,
+    jitterSensitivity: 0.5,
+    adaptiveAssistance: true,
+  },
+
+  onAttach(node, _config, _context) {
+    const state: UserMonitorState = {
+      lastInferenceTime: 0,
+      headPositions: [],
+      handPositions: [],
+      clickCount: 0,
+      lastClickTime: 0,
+      frustration: 0,
+      confusion: 0,
+      engagement: 0,
+    };
+    traitState.set(node, state);
+  },
+
+  onDetach(node) {
+    traitState.delete(node);
+  },
+
+  onUpdate(node, config, context, delta) {
+    const state = traitState.get(node);
+    if (!state) return;
+
+    // 1. Collect tracking signals
+    const headPos = context.vr.headset.position;
+    const hand = context.vr.getDominantHand();
+    const handPos = hand ? hand.position : null;
+
+    state.headPositions.push({ x: headPos.x, y: headPos.y, z: headPos.z });
+    if (handPos) state.handPositions.push({ x: handPos.x, y: handPos.y, z: handPos.z });
+
+    // Keep buffers small (last 30 frames ~0.5s)
+    if (state.headPositions.length > 30) state.headPositions.shift();
+    if (state.handPositions.length > 30) state.handPositions.shift();
+
+    // 2. Periodic inference
+    state.lastInferenceTime += delta;
+    if (state.lastInferenceTime >= (config.updateRate ?? 0.2)) {
+      state.lastInferenceTime = 0;
+      performInference(node, config, context, state);
+    }
+  },
+
+  onEvent(node, config, context, event) {
+    const state = traitState.get(node);
+    if (!state) return;
+
+    if (event.type === 'click') {
+      const now = Date.now();
+      // Track rapid clicking as a stress signal
+      if (now - state.lastClickTime < 500) {
+        state.clickCount++;
+      } else {
+        state.clickCount = Math.max(0, state.clickCount - 1);
+      }
+      state.lastClickTime = now;
+    }
+  },
 };
 
 function calculateStability(positions: Vector3[]): number {
@@ -145,9 +145,9 @@ function calculateStability(positions: Vector3[]): number {
     const p1 = positions[i - 1];
     const p2 = positions[i];
     totalDelta += Math.sqrt(
-      ((p2 as any)[0] - (p1 as any)[0]) ** 2 +
-        ((p2 as any)[1] - (p1 as any)[1]) ** 2 +
-        ((p2 as any)[2] - (p1 as any)[2]) ** 2
+      ((p2.x ?? p2[0] ?? 0) - (p1.x ?? p1[0] ?? 0)) ** 2 +
+        ((p2.y ?? p2[1] ?? 0) - (p1.y ?? p1[1] ?? 0)) ** 2 +
+        ((p2.z ?? p2[2] ?? 0) - (p1.z ?? p1[2] ?? 0)) ** 2
     );
   }
 

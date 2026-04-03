@@ -336,9 +336,9 @@ export class ImportResolver {
       } else if (isCrdtImport(canonicalPath)) {
         try {
           source = await this._fetchCrdtSource(canonicalPath);
-        } catch (err: any) {
+        } catch (err: unknown) {
           throw new Error(
-            `CRDT feed unavailable for '${canonicalPath}' (imported from '${importedBy}'): ${err.message}`
+            `CRDT feed unavailable for '${canonicalPath}' (imported from '${importedBy}'): ${err instanceof Error ? err.message : String(err)}`
           );
         }
       } else {
@@ -448,8 +448,8 @@ export class ImportResolver {
 
       const feed = doc.getText('feed');
       return feed.toString();
-    } catch (e: any) {
-      throw new Error(`CRDT Sync Error: ${e.message}`);
+    } catch (e: unknown) {
+      throw new Error(`CRDT Sync Error: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

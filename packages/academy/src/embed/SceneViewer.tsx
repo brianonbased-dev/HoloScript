@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, Suspense, lazy } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
 import {
   HoloScriptPlusParser,
@@ -95,7 +95,7 @@ function EmbedMeshNode({
       position={position}
       rotation={rotation}
       scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
-      onClick={(e: any) => {
+      onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         onSelect?.(node.id || null);
       }}
@@ -281,7 +281,7 @@ function usePipeline(code: string) {
         if (result.errors && result.errors.length > 0) {
           return {
             r3fTree: null,
-            errors: result.errors.map((e: any) => ({
+            errors: result.errors.map((e: string | { message: string }) => ({
               message: typeof e === 'string' ? e : e.message || String(e),
             })),
           };

@@ -106,7 +106,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
           padding: 12,
           displayColors: true,
           callbacks: {
-            label: function (context: any) {
+            label: function (context: { dataset: { label?: string }; parsed: { y: number | null } }) {
               let label = context.dataset.label || '';
               if (label) {
                 label += ': ';
@@ -137,7 +137,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
           },
           ticks: {
             color: 'rgb(156, 163, 175)',
-            callback: function (value: any) {
+            callback: function (value: string | number) {
               return '$' + value.toLocaleString();
             },
           },

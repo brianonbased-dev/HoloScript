@@ -53,9 +53,9 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
         if (result.errors && result.errors.length > 0) {
           return {
             r3fTree: null,
-            errors: result.errors.map((e: any) => ({
+            errors: result.errors.map((e: string | { message: string; line?: number }) => ({
               message: typeof e === 'string' ? e : e.message || String(e),
-              line: e.line,
+              line: typeof e === 'string' ? undefined : e.line,
             })),
           };
         }

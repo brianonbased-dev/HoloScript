@@ -446,16 +446,20 @@ export class PreviewRenderer {
           case 'sway':
             mesh.rotation.z = Math.sin(t * 2) * amplitude;
             break;
-          case 'flicker':
-            if ((mesh.material as any).emissiveIntensity !== undefined) {
-              (mesh.material as any).emissiveIntensity = 0.5 + Math.random() * 0.5;
+          case 'flicker': {
+            const flickerMat = mesh.material as THREE_NS.MeshStandardMaterial;
+            if (flickerMat.emissiveIntensity !== undefined) {
+              flickerMat.emissiveIntensity = 0.5 + Math.random() * 0.5;
             }
             break;
-          case 'rainbow':
-            if ((mesh.material as any).color) {
-              (mesh.material as any).color.setHSL((t * 0.1) % 1, 0.8, 0.5);
+          }
+          case 'rainbow': {
+            const rainbowMat = mesh.material as THREE_NS.MeshStandardMaterial;
+            if (rainbowMat.color) {
+              rainbowMat.color.setHSL((t * 0.1) % 1, 0.8, 0.5);
             }
             break;
+          }
         }
       }
 
@@ -485,8 +489,9 @@ export class PreviewRenderer {
   toggleWireframe(): boolean {
     this.state.wireframeMode = !this.state.wireframeMode;
     for (const obj of this.state.objects) {
-      if ((obj as any).material) {
-        (obj as any).material.wireframe = this.state.wireframeMode;
+      const mesh = obj as THREE_NS.Mesh;
+      if (mesh.material) {
+        (mesh.material as THREE_NS.MeshStandardMaterial).wireframe = this.state.wireframeMode;
       }
     }
     return this.state.wireframeMode;

@@ -242,18 +242,18 @@ export class RTree {
   // PRIVATE METHODS
   // =============================================================================
 
-  private createNode(children: RTreeNode[], leaf: boolean): RTreeNode {
+  private createNode(children: RTreeNode[] | GeospatialAnchor[], leaf: boolean): RTreeNode {
     const node: RTreeNode = {
       bbox: this.createEmptyBBox(),
-      children: leaf ? undefined : children,
+      children: leaf ? undefined : (children as RTreeNode[]),
       items: leaf ? [] : undefined,
-      height: leaf ? 1 : children[0]?.height + 1 || 1,
+      height: leaf ? 1 : (children as RTreeNode[])[0]?.height + 1 || 1,
       leaf,
     };
 
     if (leaf && children.length > 0) {
       // For leaf nodes created during bulk loading
-      node.items = children as any;
+      node.items = children as GeospatialAnchor[];
     }
 
     this.updateBBox(node);
@@ -352,7 +352,7 @@ export class RTree {
     }
     this.updateBBox(node);
 
-    const newNode = this.createNode(right as any, node.leaf);
+    const newNode = this.createNode(right, node.leaf);
 
     if (level === 0) {
       // Create new root
@@ -490,7 +490,7 @@ export class RTree {
 
     if (N <= M) {
       // Create leaf node
-      return this.createNode(items.map((item) => item.anchor) as any, true);
+      return this.createNode(items.map((item) => item.anchor), true);
     }
 
     // Sort items by Hilbert value for better spatial locality

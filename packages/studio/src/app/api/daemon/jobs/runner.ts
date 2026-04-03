@@ -420,10 +420,10 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
       cwd: workDir,
       timeout: 120_000,
       maxBuffer: 50 * 1024 * 1024,
-    }).catch((err: any) => ({
-      stdout: err.stdout ?? '',
-      stderr: err.stderr ?? '',
-    }));
+    }).catch((err: unknown) => {
+      const e = err as Record<string, unknown>;
+      return { stdout: String(e.stdout ?? ''), stderr: String(e.stderr ?? '') };
+    });
     const output = String(stdout) + String(stderr);
     const tsErrors = (output.match(/error TS\d+/g) ?? []).length;
     result.typeErrors = tsErrors;
@@ -437,7 +437,10 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
       cwd: workDir,
       timeout: 180_000,
       maxBuffer: 50 * 1024 * 1024,
-    }).catch((err: any) => ({ stdout: (err.stdout ?? '') + (err.stderr ?? '') }));
+    }).catch((err: unknown) => {
+      const e = err as Record<string, unknown>;
+      return { stdout: String(e.stdout ?? '') + String(e.stderr ?? '') };
+    });
     const output = String(stdout);
     const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
     if (jsonMatch) {
@@ -457,8 +460,9 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
       maxBuffer: 10 * 1024 * 1024,
     });
     // Clean lint
-  } catch (err: any) {
-    const output = String(err.stdout ?? '') + String(err.stderr ?? '');
+  } catch (err: unknown) {
+    const e = err as Record<string, unknown>;
+    const output = String(e.stdout ?? '') + String(e.stderr ?? '');
     const summaryMatch = output.match(/(\d+) problems? \((\d+) errors?, (\d+) warnings?\)/);
     if (summaryMatch) {
       result.lintErrors = parseInt(summaryMatch[2], 10);
@@ -674,8 +678,9 @@ export async function runDaemonJob(
     workDir = ws.workDir;
     cleanup = ws.cleanup;
     log('info', `Workspace created at ${workDir}`);
-  } catch (err: any) {
-    log('error', `Failed to create workspace: ${err.message}`);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log('error', `Failed to create workspace: ${msg}`);
     return {
       success: false,
       cycles: 0,
@@ -686,9 +691,9 @@ export async function runDaemonJob(
       qualityDelta: 0,
       patches: [],
       logs,
-      summary: `Daemon failed: could not create isolated workspace. ${err.message}`,
+      summary: `Daemon failed: could not create isolated workspace. ${msg}`,
       durationMs: Date.now() - startTime,
-      error: err.message,
+      error: msg,
       absorb: null,
     };
   }
@@ -705,8 +710,8 @@ export async function runDaemonJob(
     } else {
       log('warn', 'Absorb returned empty graph — continuing without graph intelligence');
     }
-  } catch (err: any) {
-    log('warn', `Absorb phase failed (non-fatal): ${err.message}`);
+  } catch (err: unknown) {
+    log('warn', `Absorb phase failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Step 2: Rollback snapshot
@@ -715,8 +720,8 @@ export async function runDaemonJob(
   try {
     snapshotPath = await createRollbackSnapshot(workDir, jobId);
     log('info', `Rollback snapshot saved: ${snapshotPath}`);
-  } catch (err: any) {
-    log('warn', `Rollback snapshot failed (non-fatal): ${err.message}`);
+  } catch (err: unknown) {
+    log('warn', `Rollback snapshot failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     snapshotPath = '';
   }
 
@@ -727,8 +732,8 @@ export async function runDaemonJob(
   try {
     baselineQuality = await assessQuality(workDir);
     log('info', `Baseline: score=${baselineQuality.compositeScore}, typeErrors=${baselineQuality.typeErrors}, tests=${baselineQuality.testsPassed}/${baselineQuality.testsTotal}`);
-  } catch (err: any) {
-    log('warn', `Baseline assessment partial: ${err.message}`);
+  } catch (err: unknown) {
+    log('warn', `Baseline assessment partial: ${err instanceof Error ? err.message : String(err)}`);
     baselineQuality = {
       typeErrors: -1,
       testsPassed: 0,
@@ -761,10 +766,10 @@ export async function runDaemonJob(
         cwd: workDir,
         timeout: 120_000,
         maxBuffer: 50 * 1024 * 1024,
-      }).catch((err: any) => ({
-        stdout: err.stdout ?? '',
-        stderr: err.stderr ?? '',
-      }));
+      }).catch((err: unknown) => {
+        const e = err as Record<string, unknown>;
+        return { stdout: String(e.stdout ?? ''), stderr: String(e.stderr ?? '') };
+      });
 
       const output = String(stdout) + String(stderr);
       const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -846,8 +851,8 @@ export async function runDaemonJob(
       }
 
       log('info', `Applied fixes to ${fixesApplied} files in cycle ${cycle + 1}`);
-    } catch (err: any) {
-      log('warn', `Cycle ${cycle + 1} analysis error: ${err.message}`);
+    } catch (err: unknown) {
+      log('warn', `Cycle ${cycle + 1} analysis error: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     // 4c. Re-assess quality
@@ -876,8 +881,8 @@ export async function runDaemonJob(
   try {
     patches = await detectChanges(projectPath, workDir, allDenyPatterns, limits.maxFilesChanged);
     log('info', `Generated ${patches.length} patch proposal(s)`);
-  } catch (err: any) {
-    log('warn', `Patch detection error: ${err.message}`);
+  } catch (err: unknown) {
+    log('warn', `Patch detection error: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Step 6: Cleanup

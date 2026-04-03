@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 interface SpatialVoiceConfig {
   /** Voice range in world units (default: 20) */
@@ -35,8 +36,11 @@ interface SpatialVoiceState {
   localVolume: number;
 }
 
+/** Module-level state store to avoid casting node to any */
+const traitState = new WeakMap<HSPlusNode, SpatialVoiceState>();
+
 export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
-  name: 'spatial_voice' as any,
+  name: 'spatial_voice',
   defaultConfig: {
     range: 20,
     rolloff: 'inverse',
@@ -55,7 +59,7 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
       connectedPeers: new Set(),
       localVolume: 0,
     };
-    (node as any).__spatialVoiceState = state;
+    traitState.set(node, state);
 
     context.emit('spatial_voice_create', {
       range: config.range,
@@ -70,16 +74,16 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__spatialVoiceState as SpatialVoiceState | undefined;
+    const state = traitState.get(node);
     if (state) {
       context.emit('spatial_voice_destroy', { nodeId: node.id });
       state.connectedPeers.clear();
-      delete (node as any).__spatialVoiceState;
+      traitState.delete(node);
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__spatialVoiceState as SpatialVoiceState | undefined;
+    const state = traitState.get(node);
     if (!state?.active) return;
 
     // Emit position update for spatialization
@@ -90,21 +94,21 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
   },
 
   onEvent(node, _config, context, event) {
-    const state = (node as any).__spatialVoiceState as SpatialVoiceState | undefined;
+    const state = traitState.get(node);
     if (!state) return;
 
     switch (event.type) {
       case 'voice_peer_connected':
-        state.connectedPeers.add((event as any).peerId);
+        state.connectedPeers.add(event.peerId as string);
         context.emit('spatial_voice_peer_joined', {
-          peerId: (event as any).peerId,
+          peerId: event.peerId,
           peerCount: state.connectedPeers.size,
         });
         break;
       case 'voice_peer_disconnected':
-        state.connectedPeers.delete((event as any).peerId);
+        state.connectedPeers.delete(event.peerId as string);
         context.emit('spatial_voice_peer_left', {
-          peerId: (event as any).peerId,
+          peerId: event.peerId,
           peerCount: state.connectedPeers.size,
         });
         break;
@@ -117,10 +121,10 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
         context.emit('spatial_voice_unmuted', {});
         break;
       case 'voice_vad_event':
-        state.isSpeaking = (event as any).speaking ?? false;
+        state.isSpeaking = (event.speaking as boolean) ?? false;
         context.emit('on_voice_activity', {
           speaking: state.isSpeaking,
-          volume: (event as any).volume ?? 0,
+          volume: (event.volume as number) ?? 0,
         });
         break;
     }

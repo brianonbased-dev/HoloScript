@@ -200,8 +200,8 @@ async function main(): Promise<void> {
           });
           process.exit(1);
         }
-      } catch (err: any) {
-        console.error(`\x1b[31mUnexpected error during validation: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mUnexpected error during validation: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -439,8 +439,8 @@ async function main(): Promise<void> {
         }
 
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mDiff error: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mDiff error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
     }
@@ -576,9 +576,9 @@ async function main(): Promise<void> {
         }
 
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mWoT export error: ${err.message}\x1b[0m`);
-        if (options.verbose) {
+      } catch (err: unknown) {
+        console.error(`\x1b[31mWoT export error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (options.verbose && err instanceof Error) {
           console.error(err.stack);
         }
         process.exit(1);
@@ -739,9 +739,9 @@ async function main(): Promise<void> {
 
         // Keep process alive
         await new Promise(() => {});
-      } catch (err: any) {
-        console.error(`\x1b[31mHeadless runtime error: ${err.message}\x1b[0m`);
-        if (options.verbose) {
+      } catch (err: unknown) {
+        console.error(`\x1b[31mHeadless runtime error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (options.verbose && err instanceof Error) {
           console.error(err.stack);
         }
         process.exit(1);
@@ -1634,8 +1634,8 @@ async function main(): Promise<void> {
 
         console.log(`\x1b[32m✓ Compilation successful!\x1b[0m\n`);
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mCompilation error: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mCompilation error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
     }
@@ -1814,8 +1814,8 @@ async function main(): Promise<void> {
           platform: options.platform || 'linux-arm64',
         });
         process.exit(0);
-      } catch (error: any) {
-        console.error(`\x1b[31mError: ${error.message}\x1b[0m`);
+      } catch (error: unknown) {
+        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -1854,8 +1854,8 @@ async function main(): Promise<void> {
           serviceName: options.serviceName,
         });
         process.exit(success ? 0 : 1);
-      } catch (error: any) {
-        console.error(`\x1b[31mError: ${error.message}\x1b[0m`);
+      } catch (error: unknown) {
+        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -1885,8 +1885,8 @@ async function main(): Promise<void> {
           dashboard: options.dashboard ?? true,
           logFile: options.output,
         });
-      } catch (error: any) {
-        console.error(`\x1b[31mError: ${error.message}\x1b[0m`);
+      } catch (error: unknown) {
+        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -1933,8 +1933,8 @@ async function main(): Promise<void> {
         }
 
         process.exit(0);
-      } catch (error: any) {
-        console.error(`\x1b[31mPublish error: ${error.message}\x1b[0m`);
+      } catch (error: unknown) {
+        console.error(`\x1b[31mPublish error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
         process.exit(1);
       }
     }
@@ -2014,8 +2014,8 @@ async function main(): Promise<void> {
 
         rl.close();
         process.exit(0);
-      } catch (error: any) {
-        console.error(`\x1b[31mLogin error: ${error.message}\x1b[0m`);
+      } catch (error: unknown) {
+        console.error(`\x1b[31mLogin error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
         rl.close();
         process.exit(1);
       }
@@ -2731,9 +2731,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const { runSelfImprove } = await import('./self-improve');
         const exitCode = await runSelfImprove(options);
         process.exit(exitCode);
-      } catch (err: any) {
-        console.error(`\x1b[31mSelf-improve error: ${err.message}\x1b[0m`);
-        if (options.verbose && err.stack) console.error(err.stack);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mSelf-improve error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
       break;
@@ -2793,9 +2793,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           });
           child.on('error', reject);
         });
-      } catch (err: any) {
-        console.error(`\x1b[31mDaemon error: ${err.message}\x1b[0m`);
-        if (options.verbose && err.stack) console.error(err.stack);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mDaemon error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
       break;
@@ -3054,9 +3054,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         }
 
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mAbsorb error: ${err.message}\x1b[0m`);
-        if (err.stack) console.error(err.stack);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mAbsorb error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
       break;
@@ -3155,9 +3155,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 `Graph loaded from cache ${DIM}(${graphSymbolCount.toLocaleString()} symbols)${RESET}`
               )
             );
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.warn(
-              bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err.message}. Rescanning...`)
+              bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err instanceof Error ? err.message : String(err)}. Rescanning...`)
             );
             fromCache = false;
           }
@@ -3201,8 +3201,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             console.log(
               bullet(`${DIM}💾${RESET}`, `${DIM}Graph cached for future queries${RESET}`)
             );
-          } catch (err: any) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache save failed: ${err.message}`));
+          } catch (err: unknown) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache save failed: ${err instanceof Error ? err.message : String(err)}`));
           }
         }
 
@@ -3232,11 +3232,11 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, binary)${RESET}`
               )
             );
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.warn(
               bullet(
                 `${YELLOW}⚠${RESET}`,
-                `Binary index cache load failed: ${err.message}. Rebuilding...`
+                `Binary index cache load failed: ${err instanceof Error ? err.message : String(err)}. Rebuilding...`
               )
             );
             indexFromCache = false;
@@ -3252,9 +3252,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, json-legacy)${RESET}`
               )
             );
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.warn(
-              bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err.message}. Rebuilding...`)
+              bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err instanceof Error ? err.message : String(err)}. Rebuilding...`)
             );
             indexFromCache = false;
           }
@@ -3292,8 +3292,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
                 /* ignore */
               }
             }
-          } catch (err: any) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache save failed: ${err.message}`));
+          } catch (err: unknown) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache save failed: ${err instanceof Error ? err.message : String(err)}`));
           }
         }
 
@@ -3458,9 +3458,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         }
 
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mQuery error: ${err.message}\x1b[0m`);
-        if (options.verbose && err.stack) console.error(err.stack);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mQuery error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
       break;
@@ -3476,8 +3476,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const { setupGitHooks } = await import('./commands/setup-hooks');
         await setupGitHooks({ projectPath, studioUrl });
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -3492,8 +3492,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const { removeGitHooks } = await import('./commands/setup-hooks');
         await removeGitHooks({ projectPath });
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mError: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
       break;
@@ -3537,8 +3537,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const { provisionMcpConfigs } = await import('./mcp-provisioner');
         await provisionMcpConfigs(apiKey);
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mSetup failed: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
     }
@@ -3557,8 +3557,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const { issueTenantKey } = await import('./admin-provisioner');
         await issueTenantKey(tenantId, tier);
         process.exit(0);
-      } catch (err: any) {
-        console.error(`\x1b[31mSetup failed: ${err.message}\x1b[0m`);
+      } catch (err: unknown) {
+        console.error(`\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
         process.exit(1);
       }
     }

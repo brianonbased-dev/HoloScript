@@ -299,14 +299,14 @@ export class CliSelfImproveIO implements SelfImproveIO {
         testsTotal: 1,
         duration: 0,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         passed: false,
         testsPassed: 0,
         testsFailed: 1,
         testsTotal: 1,
         duration: 0,
-        error: err.message?.slice(0, 500),
+        error: (err instanceof Error ? err.message : String(err)).slice(0, 500),
       };
     }
   }

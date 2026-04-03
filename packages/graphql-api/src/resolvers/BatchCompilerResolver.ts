@@ -160,21 +160,22 @@ function createCompilationLoader() {
                 targetVersion: '3.42.0',
               },
             };
-          } catch (error: any) {
+          } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             // Publish error
             publishCompilationProgress({
               requestId,
               target: request.target,
               progress: 0,
               stage: 'error',
-              message: `Compilation failed: ${error.message}`,
+              message: `Compilation failed: ${msg}`,
               timestamp: Date.now(),
             });
 
             return {
               success: false,
               output: undefined,
-              errors: [{ message: error.message, phase: 'compile' }],
+              errors: [{ message: msg, phase: 'compile' }],
               warnings: [],
               metadata: undefined,
             };

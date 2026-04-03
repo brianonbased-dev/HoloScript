@@ -685,7 +685,8 @@ export class LoroNativeSpatialAdapter {
   setNodeMetadata(treeId: TreeID, key: string, value: unknown): void {
     const node = this.tree.getNodeByID(treeId);
     if (!node || node.isDeleted()) return;
-    node.data.set(key, value as any);
+    // Loro LoroMap.set() accepts JSON-compatible values
+    node.data.set(key, value as string | number | boolean | null);
   }
 
   /**

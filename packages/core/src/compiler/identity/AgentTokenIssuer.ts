@@ -338,14 +338,14 @@ export class AgentTokenIssuer {
         valid: true,
         payload: decoded,
       };
-    } catch (error: any) {
-      if (error.name === 'TokenExpiredError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         return {
           valid: false,
           error: 'Token expired',
           errorCode: 'EXPIRED',
         };
-      } else if (error.name === 'JsonWebTokenError') {
+      } else if (error instanceof Error && error.name === 'JsonWebTokenError') {
         return {
           valid: false,
           error: 'Invalid signature or malformed token',
@@ -355,7 +355,7 @@ export class AgentTokenIssuer {
 
       return {
         valid: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         errorCode: 'INVALID_CLAIMS',
       };
     }

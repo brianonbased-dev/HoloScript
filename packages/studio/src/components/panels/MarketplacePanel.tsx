@@ -94,7 +94,7 @@ export function MarketplacePanel({ worldId = 'default', category }: MarketplaceP
 
           {/* Results */}
           <div style={styles.results}>
-            {results?.listings.map((listing: any) => {
+            {results?.listings.map((listing) => {
               const isInstalled = installed.some((m) => m.packageId === listing.metadata.id);
               return (
                 <div

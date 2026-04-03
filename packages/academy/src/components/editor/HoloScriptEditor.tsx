@@ -32,7 +32,7 @@ interface IStandaloneCodeEditor {
     id: string;
     label: string;
     keybindings?: number[];
-    run: (editor: any) => void;
+    run: (editor: unknown) => void;
   }): void;
   getAction(id: string): { run(): Promise<void> } | null;
 }
@@ -719,8 +719,8 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
         id: 'holoscript.format',
         label: 'Format HoloScript',
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
-        run: (ed: any) => {
-          const m = ed.getModel();
+        run: () => {
+          const m = editor.getModel();
           if (!m) return;
           const formatted = formatHoloScript(m.getValue());
           if (formatted !== m.getValue()) {
@@ -734,8 +734,8 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
         id: 'holoscript.formatOnSave',
         label: 'Format & Save HoloScript',
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-        run: (ed: any) => {
-          const m = ed.getModel();
+        run: () => {
+          const m = editor.getModel();
           if (!m) return;
           const formatted = formatHoloScript(m.getValue());
           if (formatted !== m.getValue()) {
@@ -751,10 +751,10 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
         label: 'Spatial Blame: Who wrote this?',
         contextMenuGroupId: 'navigation',
         contextMenuOrder: 1.5,
-        run: (ed: any) => {
-          const pos = ed.getPosition();
+        run: () => {
+          const pos = editor.getPosition();
           if (!pos) return;
-          const lineText = ed.getModel()?.getLineContent(pos.lineNumber) ?? '';
+          const lineText = editor.getModel()?.getLineContent(pos.lineNumber) ?? '';
           const traitMatch = lineText.match(/@([a-zA-Z_]\w*)/);
           setBlameTarget({
             line: pos.lineNumber,

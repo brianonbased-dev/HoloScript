@@ -31,22 +31,24 @@ export class QueryResolver {
         errors: [],
         warnings: result.warnings || [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle parsing errors
+      const errObj = error as Record<string, unknown>;
+      const location = errObj?.location as { line: number; column: number; offset: number } | undefined;
       return {
         success: false,
         ast: undefined,
         errors: [
           {
-            message: error.message || 'Unknown parsing error',
-            location: error.location
+            message: (error instanceof Error ? error.message : String(error)) || 'Unknown parsing error',
+            location: location
               ? {
-                  line: error.location.line,
-                  column: error.location.column,
-                  offset: error.location.offset,
+                  line: location.line,
+                  column: location.column,
+                  offset: location.offset,
                 }
               : undefined,
-            code: error.code,
+            code: errObj?.code as string | undefined,
           },
         ],
         warnings: [],

@@ -10,6 +10,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { weatherBlackboard } from '../environment/WeatherBlackboard';
 
 interface GodRaysConfig {
@@ -29,8 +30,11 @@ interface GodRaysConfig {
   light_position: [number, number, number];
 }
 
+/** Module-level state store to avoid casting node to any */
+const activeNodes = new WeakSet<HSPlusNode>();
+
 export const godRaysHandler: TraitHandler<GodRaysConfig> = {
-  name: 'god_rays' as any,
+  name: 'god_rays',
   defaultConfig: {
     decay: 0.96,
     weight: 0.5,
@@ -42,7 +46,7 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onAttach(node, config, context) {
-    (node as any).__godRaysActive = true;
+    activeNodes.add(node);
 
     const lightPos = config.use_weather ? weatherBlackboard.sun_position : config.light_position;
 
@@ -57,14 +61,14 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onDetach(node, _config, context) {
-    if ((node as any).__godRaysActive) {
+    if (activeNodes.has(node)) {
       context.emit('god_rays_destroy', { nodeId: node.id });
-      delete (node as any).__godRaysActive;
+      activeNodes.delete(node);
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    if (!(node as any).__godRaysActive) return;
+    if (!activeNodes.has(node)) return;
 
     if (config.use_weather) {
       // Only emit update when sun moves (every frame for smooth rays)
@@ -77,14 +81,14 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    if (!(node as any).__godRaysActive) return;
+    if (!activeNodes.has(node)) return;
 
     switch (event.type) {
       case 'god_rays_set_params':
         context.emit('god_rays_update', {
-          decay: (event as any).decay ?? config.decay,
-          weight: (event as any).weight ?? config.weight,
-          exposure: (event as any).exposure ?? config.exposure,
+          decay: (event.decay as number) ?? config.decay,
+          weight: (event.weight as number) ?? config.weight,
+          exposure: (event.exposure as number) ?? config.exposure,
         });
         break;
     }

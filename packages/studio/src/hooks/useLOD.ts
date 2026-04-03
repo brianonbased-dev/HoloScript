@@ -96,7 +96,7 @@ export function useLOD(): UseLODReturn {
               disabledFeatures: [],
             },
           ],
-        } as any,
+        } as unknown as Parameters<InstanceType<typeof LODManager>['register']>[1],
         obj.pos
       );
     }

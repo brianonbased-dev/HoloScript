@@ -203,12 +203,18 @@ const state = new PlaygroundState();
  */
 async function initializeEditor(): Promise<void> {
   return new Promise((resolve) => {
-    (window as any).require.config({
+    // Monaco AMD loader types
+    interface MonacoRequire {
+      config(opts: Record<string, unknown>): void;
+      (deps: string[], cb: () => void): void;
+    }
+    const win = window as Window & { require: MonacoRequire; monaco: Record<string, unknown> };
+    win.require.config({
       paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' },
     });
 
-    (window as any).require(['vs/editor/editor.main'], () => {
-      const monaco = (window as any).monaco;
+    win.require(['vs/editor/editor.main'], () => {
+      const monaco = win.monaco;
 
       // Register HoloScript language
       monaco.languages.register({ id: 'holoscript' });
@@ -403,7 +409,7 @@ async function runCode(): Promise<void> {
     state.isRunning = true;
     state.stats.status = 'Running';
   } catch (error) {
-    logConsole('error', `Error: ${(error as any).message}`);
+    logConsole('error', `Error: ${(error instanceof Error ? error.message : String(error))}`);
     state.stats.status = 'Error';
     overlay.style.display = 'flex';
   } finally {
@@ -619,7 +625,7 @@ async function init(): Promise<void> {
     logConsole('info', 'Select an example or write your own HoloScript code');
   } catch (error) {
     console.error('Failed to initialize playground:', error);
-    logConsole('error', `Initialization failed: ${(error as any).message}`);
+    logConsole('error', `Initialization failed: ${(error instanceof Error ? error.message : String(error))}`);
   }
 }
 

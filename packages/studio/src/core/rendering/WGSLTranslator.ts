@@ -88,8 +88,8 @@ export class WGSLTranslator {
         ok: true,
         wgsl: this.generatedCode.join('\n'),
       };
-    } catch (e: any) {
-      return { ok: false, errors: [e.message] };
+    } catch (e: unknown) {
+      return { ok: false, errors: [e instanceof Error ? e.message : String(e)] };
     }
   }
 

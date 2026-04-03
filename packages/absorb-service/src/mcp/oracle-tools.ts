@@ -117,7 +117,7 @@ async function queryKnowledgeStore(search: string, limit: number = 5): Promise<a
     clearTimeout(timeout);
 
     if (!res.ok) return [];
-    const data = (await res.json()) as any;
+    const data = (await res.json()) as { results?: unknown[]; entries?: unknown[] };
     return data.results || data.entries || [];
   } catch {
     return [];

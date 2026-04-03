@@ -53,8 +53,8 @@ export async function issueTenantKey(tenantId: string, tier: 'free' | 'pro' | 'e
       await pool.query(query, [apiKey, tenantId, tier, JSON.stringify(limits)]);
       savedToDb = true;
       console.log(`\x1b[32m✓\x1b[0m Successfully saved to PostgreSQL database.`);
-    } catch (e: any) {
-      console.warn(`\x1b[33m⚠\x1b[0m Failed to save to Postgres: ${e.message}`);
+    } catch (e: unknown) {
+      console.warn(`\x1b[33m⚠\x1b[0m Failed to save to Postgres: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -81,8 +81,8 @@ export async function issueTenantKey(tenantId: string, tier: 'free' | 'pro' | 'e
       }
 
       console.log(`\x1b[32m✓\x1b[0m Successfully synchronized cache in Upstash Redis.`);
-    } catch (e: any) {
-      console.warn(`\x1b[33m⚠\x1b[0m Failed to sync to Upstash Redis: ${e.message}`);
+    } catch (e: unknown) {
+      console.warn(`\x1b[33m⚠\x1b[0m Failed to sync to Upstash Redis: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

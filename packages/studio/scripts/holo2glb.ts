@@ -119,9 +119,9 @@ const pipeline = new GLTFPipeline({ format: outputJson ? 'gltf' : 'glb' });
 let compileResult;
 try {
   compileResult = pipeline.compile(ast, undefined as any);
-} catch (err: any) {
-  console.error(`\n❌ Compilation failed: ${err.message}`);
-  if (printStats) console.error(err.stack);
+} catch (err: unknown) {
+  console.error(`\n❌ Compilation failed: ${err instanceof Error ? err.message : String(err)}`);
+  if (printStats && err instanceof Error) console.error(err.stack);
   process.exit(1);
 }
 const compileTime = performance.now() - startCompile;

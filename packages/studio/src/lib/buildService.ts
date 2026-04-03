@@ -216,8 +216,8 @@ export function build(code: string, config: Partial<BuildConfig> = {}): BuildRes
       errors,
       warnings,
     };
-  } catch (err: any) {
-    errors.push({ message: err.message });
+  } catch (err: unknown) {
+    errors.push({ message: err instanceof Error ? err.message : String(err) });
     return {
       success: false,
       target: cfg.target,

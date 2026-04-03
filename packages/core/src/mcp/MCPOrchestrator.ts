@@ -279,9 +279,9 @@ export class MCPOrchestrator {
                 results.set(step.id, result);
                 completed.add(step.id);
                 stepStatuses.push({ id: step.id, status: 'success', result });
-              } catch (error: any) {
+              } catch (error: unknown) {
                 failedSteps.add(step.id);
-                stepStatuses.push({ id: step.id, status: 'failure', error: error.message });
+                stepStatuses.push({ id: step.id, status: 'failure', error: error instanceof Error ? error.message : String(error) });
                 if (!task.config.parallel) throw error;
               }
             })();
@@ -314,7 +314,7 @@ export class MCPOrchestrator {
         steps: stepStatuses,
         durationMs: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         taskId: task.id,
         status: 'failure',

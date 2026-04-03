@@ -12,7 +12,7 @@ export interface LintASTNode {
   name?: string;
   children?: LintASTNode[];
   properties?: Record<string, unknown>;
-  directives?: Array<{ type: string; name: string; params?: Record<string, unknown> }>;
+  directives?: Array<{ type: string; name: string; params?: Record<string, unknown>; loc?: { start: { line: number; column: number }; end?: { line: number; column: number } } }>;
   loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
   [key: string]: unknown;
 }

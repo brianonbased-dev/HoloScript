@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   OrbitControls,
   Grid,
@@ -204,10 +204,10 @@ function PlacementPlane() {
   const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
 
   const handlePointerMove = useCallback(
-    (e: any) => {
+    (e: ThreeEvent<PointerEvent>) => {
       if (builderMode !== 'place') return;
       e.stopPropagation();
-      const point = e.point as THREE.Vector3;
+      const point = e.point;
       const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
       const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
       setGhostPos([x, 0.5, z]);
@@ -216,11 +216,11 @@ function PlacementPlane() {
   );
 
   const handleClick = useCallback(
-    (e: any) => {
+    (e: ThreeEvent<MouseEvent>) => {
       if (builderMode !== 'place') return;
       e.stopPropagation();
       const shape = getActiveShape();
-      const point = e.point as THREE.Vector3;
+      const point = e.point;
       const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
       const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
       const nodeId = `placed-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

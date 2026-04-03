@@ -116,10 +116,10 @@ export class AuthService {
   verifyToken(token: string): UserPayload {
     try {
       return jwt.verify(token, this.jwtSecret) as UserPayload;
-    } catch (error: any) {
-      if (error.name === 'TokenExpiredError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         throw new AuthError('Token expired. Please log in again.', 'TOKEN_EXPIRED');
-      } else if (error.name === 'JsonWebTokenError') {
+      } else if (error instanceof Error && error.name === 'JsonWebTokenError') {
         throw new AuthError('Invalid token. Please log in again.', 'INVALID_TOKEN');
       }
       throw new AuthError('Authentication failed.', 'AUTH_FAILED');

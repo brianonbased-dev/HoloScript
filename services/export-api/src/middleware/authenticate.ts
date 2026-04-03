@@ -19,6 +19,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { config } from '../config.js';
 import { logSecurityEvent } from '../utils/logger.js';
+import { apiKeyStore } from '../services/apiKeyStore.js';
 
 /** Authenticated user identity attached to requests */
 export interface AuthIdentity {
@@ -98,19 +99,33 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   // Try API key
   if (apiKey) {
-    // In production, this would look up the hashed key in the database.
-    // For the scaffold, we validate the format and use a placeholder.
     const keyHash = hashApiKey(apiKey);
+    const keyRecord = apiKeyStore.findByHash(keyHash);
 
-    // TODO: Replace with actual database lookup
-    // const keyRecord = await db.apiKeys.findByHash(keyHash);
-    // if (keyRecord && keyRecord.active && !keyRecord.expired) { ... }
-
-    if (apiKey.startsWith('hsk_') && apiKey.length >= 68) {
+    if (keyRecord && keyRecord.active) {
+      // Check expiration
+      if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
+        logSecurityEvent('api_key_expired', {
+          requestId: req.requestId,
+          keyId: keyRecord.keyId,
+          ip: req.ip,
+        }, 'warn');
+      } else {
+        req.identity = {
+          sub: `apikey:${keyRecord.keyId}`,
+          authMethod: 'api_key',
+          role: keyRecord.role,
+          apiKeyId: keyRecord.keyId,
+        };
+        next();
+        return;
+      }
+    } else if (!keyRecord && apiKey.startsWith('hsk_') && apiKey.length >= 68) {
+      // Fallback: accept well-formed keys not yet registered (bootstrap mode)
       req.identity = {
         sub: `apikey:${keyHash.slice(0, 12)}`,
         authMethod: 'api_key',
-        role: 'developer', // Default role for API keys
+        role: 'developer',
         apiKeyId: keyHash.slice(0, 12),
       };
       next();

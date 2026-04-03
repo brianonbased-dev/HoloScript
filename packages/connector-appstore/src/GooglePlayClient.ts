@@ -258,7 +258,7 @@ export class GooglePlayClient {
     const latestRelease = releases[0];
 
     return {
-      track: track as any,
+      track: track as GooglePlayTrack['track'],
       status: latestRelease?.status || 'draft',
       userFraction: latestRelease?.userFraction,
       versionCodes: latestRelease?.versionCodes?.map((v: string) => parseInt(v, 10)) || [],

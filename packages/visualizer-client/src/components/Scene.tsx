@@ -60,7 +60,7 @@ const SceneContent = ({
         const parentProp = orb.properties?.parent;
         const parentId =
           typeof parentProp === 'object' && parentProp !== null
-            ? (parentProp as any).id
+            ? (parentProp as Record<string, unknown>).id
             : parentProp;
         const parentOrb = parentId ? orbs.find((o) => o.id === parentId) : undefined;
         return (

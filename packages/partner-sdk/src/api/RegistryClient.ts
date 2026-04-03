@@ -414,7 +414,7 @@ export class RegistryClient {
 
       return result;
     } catch (error) {
-      if ((error as any).name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error(`Request timed out after ${this.config.timeout}ms`);
       }
       throw error;

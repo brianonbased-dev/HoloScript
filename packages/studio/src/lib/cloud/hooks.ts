@@ -30,8 +30,8 @@ export function useDeployments(params?: { status?: string; limit?: number }) {
       const client = getCloudClient();
       const response = await client.listDeployments(params);
       setDeployments(response.deployments);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -69,8 +69,8 @@ export function useDeployment(deploymentId: string | null) {
       const client = getCloudClient();
       const dep = await client.getDeployment(deploymentId);
       setDeployment(dep);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -106,9 +106,10 @@ export function useDeploy() {
       setDeployment(response.deployment);
       StudioEvents.projectDeployed(response.deployment.id, config.provider ?? 'default');
       return response;
-    } catch (err: any) {
-      StudioEvents.deployFailed(err.message);
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      StudioEvents.deployFailed(msg);
+      setError(msg);
       throw err;
     } finally {
       setDeploying(false);
@@ -124,8 +125,8 @@ export function useDeploy() {
       const dep = await client.redeploy(deploymentId);
       setDeployment(dep);
       return dep;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
       throw err;
     } finally {
       setDeploying(false);
@@ -137,8 +138,8 @@ export function useDeploy() {
       const client = getCloudClient();
       await client.deleteDeployment(deploymentId);
       setDeployment(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
       throw err;
     }
   }, []);
@@ -184,8 +185,8 @@ export function useExecutionLogs(
         level: options?.level,
       });
       setLogs(fetchedLogs);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -232,8 +233,8 @@ export function useStreamLogs(deploymentId: string | null) {
       for await (const log of client.streamLogs(deploymentId)) {
         setLogs((prev) => [...prev, log]);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setStreaming(false);
     }
@@ -281,8 +282,8 @@ export function useDeploymentMetrics(
       const client = getCloudClient();
       const data = await client.getMetrics(deploymentId);
       setMetrics(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -328,8 +329,8 @@ export function useDeploymentAnalytics(
       const client = getCloudClient();
       const data = await client.getAnalytics(deploymentId, period);
       setAnalytics(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -362,8 +363,8 @@ export function useBilling() {
       const client = getCloudClient();
       const data = await client.getBilling();
       setBilling(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

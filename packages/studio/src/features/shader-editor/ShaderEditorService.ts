@@ -457,21 +457,21 @@ export class ShaderEditorService {
     oldGraph: ISerializedShaderGraph,
     newGraph: ISerializedShaderGraph
   ): ShaderGraphDiff {
-    const oldNodeIds = new Set(oldGraph.nodes.map((n: any) => n.id));
-    const newNodeIds = new Set(newGraph.nodes.map((n: any) => n.id));
+    const oldNodeIds = new Set(oldGraph.nodes.map((n) => n.id));
+    const newNodeIds = new Set(newGraph.nodes.map((n) => n.id));
 
     const nodesAdded = newGraph.nodes
-      .filter((n: any) => !oldNodeIds.has(n.id))
-      .map((n: any) => n.id);
+      .filter((n) => !oldNodeIds.has(n.id))
+      .map((n) => n.id);
     const nodesRemoved = oldGraph.nodes
-      .filter((n: any) => !newNodeIds.has(n.id))
-      .map((n: any) => n.id);
+      .filter((n) => !newNodeIds.has(n.id))
+      .map((n) => n.id);
 
     const nodesModified: string[] = [];
     const propertiesChanged: Record<string, { old: unknown; new: unknown }> = {};
 
     for (const newNode of newGraph.nodes) {
-      const oldNode = oldGraph.nodes.find((n: any) => n.id === newNode.id);
+      const oldNode = oldGraph.nodes.find((n) => n.id === newNode.id);
       if (!oldNode) continue;
 
       if (JSON.stringify(oldNode) !== JSON.stringify(newNode)) {
@@ -485,15 +485,15 @@ export class ShaderEditorService {
       }
     }
 
-    const oldConnIds = new Set((oldGraph.connections ?? []).map((c: any) => c.id));
-    const newConnIds = new Set((newGraph.connections ?? []).map((c: any) => c.id));
+    const oldConnIds = new Set((oldGraph.connections ?? []).map((c) => c.id));
+    const newConnIds = new Set((newGraph.connections ?? []).map((c) => c.id));
 
     const connectionsAdded = (newGraph.connections ?? [])
-      .filter((c: any) => !oldConnIds.has(c.id))
-      .map((c: any) => c.id);
+      .filter((c) => !oldConnIds.has(c.id))
+      .map((c) => c.id);
     const connectionsRemoved = (oldGraph.connections ?? [])
-      .filter((c: any) => !newConnIds.has(c.id))
-      .map((c: any) => c.id);
+      .filter((c) => !newConnIds.has(c.id))
+      .map((c) => c.id);
 
     return {
       nodesAdded,

@@ -23,7 +23,7 @@
  */
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
 import { createXRStore, XR } from '@react-three/xr';
 import { MATERIAL_PRESETS } from '@holoscript/core';
@@ -157,7 +157,7 @@ function EmbedMeshNode({
       position={position}
       rotation={rotation}
       scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
-      onClick={(e: any) => {
+      onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         onSelect?.(node.id || null);
       }}

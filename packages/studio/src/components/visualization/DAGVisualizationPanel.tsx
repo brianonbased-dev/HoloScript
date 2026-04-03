@@ -153,8 +153,8 @@ function computeTraitEdges(nodes: LayoutNode[]): TraitEdge[] {
 
 export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const sceneNodes = useSceneGraphStore((s) => s.nodes);
-  const selectNode = useEditorStore((s: any) => s.setSelectedObjectId);
-  const selectedNodeId = useEditorStore((s: any) => s.selectedObjectId);
+  const selectNode = useEditorStore((s) => s.setSelectedObjectId);
+  const selectedNodeId = useEditorStore((s) => s.selectedObjectId);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
 
   const [zoom, setZoom] = useState(1);

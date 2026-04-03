@@ -91,7 +91,7 @@ class ParseWorkerInstance {
         imports: this.extractImports(result.ast),
         parseTime: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         fileId: data.fileId,
         filePath: data.filePath,
@@ -99,7 +99,7 @@ class ParseWorkerInstance {
         success: false,
         errors: [
           {
-            message: error.message,
+            message: error instanceof Error ? error.message : String(error),
             line: 0,
             column: 0,
             code: 'PARSE_CRASH',
@@ -202,10 +202,10 @@ parentPort?.on('message', (message: WorkerMessage) => {
         taskId: message.taskId,
         result,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       parentPort?.postMessage({
         taskId: message.taskId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }

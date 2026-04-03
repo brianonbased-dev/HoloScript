@@ -70,9 +70,10 @@ export class ZoraMintingService {
         contractAddress: '0xZORA_MOCK_CONTRACT_' + Date.now(),
         txHash: '0xTX_HASH_MOCK_' + Math.random().toString(36).substring(7),
       };
-    } catch (e: any) {
-      console.error(`[ZoraMintingService] Minting failed - ${e.message}`);
-      return { success: false, contractAddress: '', txHash: '', error: e.message };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`[ZoraMintingService] Minting failed - ${msg}`);
+      return { success: false, contractAddress: '', txHash: '', error: msg };
     }
   }
 }

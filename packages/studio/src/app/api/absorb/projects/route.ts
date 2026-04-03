@@ -31,7 +31,7 @@ async function proxyToAbsorb(
   method: string,
   body?: string,
   userAuth?: string | null,
-): Promise<{ ok: boolean; status: number; data: any }> {
+): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

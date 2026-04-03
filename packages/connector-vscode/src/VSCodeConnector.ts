@@ -166,7 +166,7 @@ export class VSCodeConnector extends ServiceConnector {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: response.statusText }));
       throw new Error(
-        `VSCode bridge error (${endpoint}): ${(errorData as any).error || response.statusText}`
+        `VSCode bridge error (${endpoint}): ${(errorData as Record<string, unknown>).error || response.statusText}`
       );
     }
 

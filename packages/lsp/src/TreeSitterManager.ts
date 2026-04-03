@@ -114,7 +114,8 @@ export class TreeSitterManager {
       // tree-sitter's JS wrapper expects the module object (with a .language
       // property).  The native C++ layer extracts .language internally and
       // the JS layer uses the outer object for node-class initialization.
-      const p = new (ParserModule as any)();
+      const ParserCtor = ParserModule as unknown as { new(): Parser };
+      const p = new ParserCtor();
       p.setLanguage(HoloScriptModule);
       this.parser = p;
       this.language = HoloScriptModule;

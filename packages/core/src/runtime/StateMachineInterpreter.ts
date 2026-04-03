@@ -119,8 +119,8 @@ export class StateMachineInterpreter {
     if (this.hookExecutor) {
       try {
         this.hookExecutor(code, context);
-      } catch (error: any) {
-        logger.error(`[StateMachine] Hook execution failed for ${id}: ${error.message}`);
+      } catch (error: unknown) {
+        logger.error(`[StateMachine] Hook execution failed for ${id}: ${error instanceof Error ? error.message : String(error)}`);
       }
     } else {
       logger.warn(`[StateMachine] No hook executor registered - hook code not executed`);

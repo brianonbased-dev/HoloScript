@@ -148,14 +148,15 @@ export function useViewport(): UseViewportReturn {
   // Listen for bus events from other panels
   useEffect(() => {
     const unsubs = [
-      on('lighting:changed', (data: any) => {
-        if (data?.lights) {
+      on('lighting:changed', (data: unknown) => {
+        const d = data as { lights?: Array<{ id?: string; type?: string; position?: { x: number; y: number; z: number }; color?: number[] | string; intensity?: number; enabled?: boolean }> } | null;
+        if (d?.lights) {
           setState((prev) => ({
             ...prev,
-            lights: data.lights.map((l: any) => ({
+            lights: d.lights!.map((l): ViewportLight => ({
               id: l.id || 'light',
-              type: l.type || 'point',
-              position: l.position ? [l.position.x, l.position.y, l.position.z] : [0, 5, 0],
+              type: (l.type || 'point') as ViewportLight['type'],
+              position: l.position ? [l.position.x, l.position.y, l.position.z] as [number, number, number] : [0, 5, 0],
               color: Array.isArray(l.color)
                 ? `rgb(${Math.floor(l.color[0] * 255)},${Math.floor(l.color[1] * 255)},${Math.floor(l.color[2] * 255)})`
                 : '#ffffff',
@@ -165,7 +166,7 @@ export function useViewport(): UseViewportReturn {
           }));
         }
       }),
-      on('camera:moved', (data: any) => {
+      on('camera:moved', (data: unknown) => {
         // Camera updates handled by R3F camera directly
         emit('viewport:camera-sync', data);
       }),

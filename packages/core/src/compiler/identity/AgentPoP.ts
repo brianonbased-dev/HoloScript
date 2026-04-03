@@ -324,10 +324,10 @@ export function verifySignature(
     nonceCache.set(metadata.nonce, metadata.created);
 
     return { valid: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       valid: false,
-      error: `Signature verification failed: ${error.message}`,
+      error: `Signature verification failed: ${error instanceof Error ? error.message : String(error)}`,
       errorCode: 'INVALID_SIGNATURE',
     };
   }

@@ -6,7 +6,7 @@
  * Responds to useStudioBus events from other panels (Terrain, Lighting, Camera).
  */
 import React, { useRef, useMemo, Suspense } from 'react';
-import { Canvas, useFrame, type ThreeElements } from '@react-three/fiber';
+import { Canvas, useFrame, type ThreeElements, type ThreeEvent } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
@@ -121,7 +121,7 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
     }
   });
 
-  const handleClick = async (e: any) => {
+  const handleClick = async (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation(); // Prevent canvas background click
 
     // Show loading state

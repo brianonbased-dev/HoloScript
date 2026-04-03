@@ -546,13 +546,13 @@ function calculateCameraDistance(node: HSPlusNode, context: TraitContext): numbe
   const p1 = node.properties?.position as Vector3 || [0, 0, 0];
   const p2 = context.vr.headset.position;
 
-  const x1 = Array.isArray(p1) ? p1[0] : (p1 as any).x ?? 0;
-  const y1 = Array.isArray(p1) ? p1[1] : (p1 as any).y ?? 0;
-  const z1 = Array.isArray(p1) ? p1[2] : (p1 as any).z ?? 0;
+  const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
+  const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
+  const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
 
-  const x2 = Array.isArray(p2) ? p2[0] : (p2 as any).x ?? 0;
-  const y2 = Array.isArray(p2) ? p2[1] : (p2 as any).y ?? 0;
-  const z2 = Array.isArray(p2) ? p2[2] : (p2 as any).z ?? 0;
+  const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
+  const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
+  const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
 
   const dx = x1 - x2;
   const dy = y1 - y2;
@@ -612,7 +612,7 @@ function setMorphWeight(state: GLTFState, target: string, weight: number): void 
  * Get GLTF state from a node
  */
 export function getGLTFState(node: HSPlusNode): GLTFState | undefined {
-  return (node as any).__gltfState as GLTFState | undefined;
+  return node.__gltfState as GLTFState | undefined;
 }
 
 /**

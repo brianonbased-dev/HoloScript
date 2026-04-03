@@ -358,12 +358,12 @@ export class AgentCommitSigner {
           error: 'Ed25519 signature verification failed',
         };
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         valid: false,
         agentRole: metadata.agentRole,
         agentId: metadata.agentId,
-        error: `Signature verification error: ${err.message}`,
+        error: `Signature verification error: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
 

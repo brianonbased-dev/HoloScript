@@ -16,6 +16,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { setGraphRAGState } from './graph-rag-tools';
+import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 
 // =============================================================================
 // SMART EMBEDDING PROVIDER AUTO-DETECTION
@@ -100,7 +101,7 @@ async function createDynamicEmbeddingIndex(
   const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
 
   const provider = await createEmbeddingProvider({
-    provider: providerName as any,
+    provider: providerName as EmbeddingProviderName,
     ollamaUrl: process.env.OLLAMA_URL,
     ollamaModel: process.env.OLLAMA_MODEL,
     openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
@@ -672,7 +673,7 @@ async function ensureCachedGraph(): Promise<{
         const { GraphRAGEngine } = mod;
         const providerName = await detectBestEmbeddingProvider();
         const providerObj = await mod.createEmbeddingProvider({
-          provider: providerName as any,
+          provider: providerName as EmbeddingProviderName,
           ollamaUrl: process.env.OLLAMA_URL,
           ollamaModel: process.env.OLLAMA_MODEL,
           openaiApiKey: process.env.OPENAI_API_KEY,
@@ -1043,7 +1044,7 @@ async function runIncrementalPatch(
     } else {
       const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
       const providerObj = await mod.createEmbeddingProvider({
-        provider: providerName as any,
+        provider: providerName as EmbeddingProviderName,
         ollamaUrl: process.env.OLLAMA_URL,
         ollamaModel: process.env.OLLAMA_MODEL,
         openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
@@ -1066,7 +1067,9 @@ async function runIncrementalPatch(
         index.removeSymbols(file);
       }
       // Add fresh embeddings
-      const newSymbols = (rescanResult as any).files.flatMap((f: any) => f.symbols);
+      const newSymbols = rescanResult.files.flatMap(
+        (f: Record<string, unknown>) => (f as { symbols?: unknown[] }).symbols ?? []
+      );
       if (newSymbols.length > 0) {
         await index.addSymbols(newSymbols);
       }

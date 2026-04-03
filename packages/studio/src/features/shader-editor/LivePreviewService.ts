@@ -40,8 +40,7 @@ type compileShaderGraph = (
 // updatedAt !== createdAt (i.e. has been modified after initial creation).
 const compileShaderGraph: compileShaderGraph = (graph, _opts) => {
   const nodes = Array.from(graph.nodes.values());
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasOutput = nodes.some((n: any) => n.type === 'output_surface');
+  const hasOutput = nodes.some((n) => n.type === 'output_surface');
 
   // A graph with multiple nodes but no output node is "broken"
   // A single node graph after the graph was edited (updatedAt changed) is also "broken"
@@ -321,8 +320,8 @@ export class LivePreviewService {
       const fragmentInfo = await fragmentModule.getCompilationInfo();
 
       const hasErrors =
-        vertexInfo.messages.some((m: any) => m.type === 'error') ||
-        fragmentInfo.messages.some((m: any) => m.type === 'error');
+        vertexInfo.messages.some((m: { type: string }) => m.type === 'error') ||
+        fragmentInfo.messages.some((m: { type: string }) => m.type === 'error');
 
       if (hasErrors) {
         logger.error('Shader compilation errors:', {
@@ -394,7 +393,7 @@ export class LivePreviewService {
   private computeCacheKey(graph: ShaderGraph): string {
     const serialized = graph.toJSON();
     return JSON.stringify({
-      nodes: serialized.nodes.map((n: any) => ({
+      nodes: serialized.nodes.map((n) => ({
         type: n.type,
         props: n.properties,
       })),

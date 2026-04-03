@@ -61,8 +61,7 @@ function HandController({ handedness }: HandControllerProps) {
 
     const onInputSourceChange = () => {
       const match = Array.from(session.inputSources).find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (src: any) => (src as XRInputSource).handedness === handedness
+        (src) => src.handedness === handedness
       ) as XRInputSource | undefined;
       inputSource.current = match ?? null;
     };

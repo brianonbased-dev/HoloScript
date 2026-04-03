@@ -119,10 +119,10 @@ export class PackagePackager {
     let packageJson: any;
     try {
       packageJson = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: `Failed to parse package.json: ${err.message}`,
+        error: `Failed to parse package.json: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
 
@@ -181,10 +181,10 @@ export class PackagePackager {
         size,
         files,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
-        error: `Failed to create tarball: ${err.message}`,
+        error: `Failed to create tarball: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

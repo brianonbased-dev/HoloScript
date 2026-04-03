@@ -69,8 +69,8 @@ export function ScriptConsole() {
       // eslint-disable-next-line no-eval
       const result = String(eval(input));
       addEntry('info', result, 'eval');
-    } catch (e: any) {
-      addEntry('error', e.message, 'eval');
+    } catch (e: unknown) {
+      addEntry('error', e instanceof Error ? e.message : String(e), 'eval');
     }
     setInput('');
   }, [input, addEntry]);

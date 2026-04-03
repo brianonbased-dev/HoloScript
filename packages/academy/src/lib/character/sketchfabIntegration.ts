@@ -41,6 +41,24 @@ export interface SketchfabModel {
   tags: string[];
 }
 
+/** Raw Sketchfab API result shape (external data, defensive access) */
+interface SketchfabAPIResult {
+  uid: string;
+  name: string;
+  description?: string;
+  thumbnails?: { images?: Array<{ url: string }> };
+  user?: { username?: string; displayName?: string; profileUrl?: string };
+  license?: { uid?: string; label?: string; requirements?: string; url?: string };
+  faceCount?: number;
+  vertexCount?: number;
+  animationCount?: number;
+  viewCount?: number;
+  likeCount?: number;
+  downloadCount?: number;
+  isDownloadable?: boolean;
+  tags?: Array<{ name: string }>;
+}
+
 export interface SketchfabSearchParams {
   query: string;
   categories?: string; // e.g., "characters-creatures"
@@ -136,10 +154,10 @@ export async function searchSketchfab(
       throw new Error(`Sketchfab API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { results: SketchfabAPIResult[]; next?: string; count?: number };
 
     // Transform results
-    const models: SketchfabModel[] = data.results.map((result: any) => ({
+    const models: SketchfabModel[] = data.results.map((result) => ({
       uid: result.uid,
       name: result.name,
       description: result.description,
@@ -164,7 +182,7 @@ export async function searchSketchfab(
       isDownloadable: result.isDownloadable || false,
       viewerUrl: `https://sketchfab.com/models/${result.uid}`,
       embedUrl: `https://sketchfab.com/models/${result.uid}/embed`,
-      tags: result.tags?.map((t: any) => t.name) || [],
+      tags: result.tags?.map((t) => t.name) || [],
     }));
 
     return {
@@ -201,7 +219,7 @@ export async function getModelDetails(uid: string): Promise<SketchfabModel> {
     throw new Error(`Sketchfab API error: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as SketchfabAPIResult;
 
   return {
     uid: data.uid,
@@ -228,7 +246,7 @@ export async function getModelDetails(uid: string): Promise<SketchfabModel> {
     isDownloadable: data.isDownloadable || false,
     viewerUrl: `https://sketchfab.com/models/${data.uid}`,
     embedUrl: `https://sketchfab.com/models/${data.uid}/embed`,
-    tags: data.tags?.map((t: any) => t.name) || [],
+    tags: data.tags?.map((t) => t.name) || [],
   };
 }
 

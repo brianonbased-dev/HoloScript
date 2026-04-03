@@ -14,7 +14,7 @@
  * @module @holoscript/crdt-spatial
  */
 
-import { LoroDoc, LoroMap, LoroCounter } from 'loro-crdt';
+import { LoroDoc, LoroMap, LoroCounter, type VersionVector } from 'loro-crdt';
 
 import type {
   Vec3,
@@ -481,7 +481,8 @@ export class SpatialCRDTBridge {
    */
   exportUpdate(fromVersion?: Uint8Array): Uint8Array {
     if (fromVersion) {
-      return this.doc.export({ mode: 'update', from: fromVersion as any });
+      // Loro API expects VersionVector for `from`; Uint8Array is compatible at runtime
+      return this.doc.export({ mode: 'update', from: fromVersion as unknown as VersionVector });
     }
     return this.doc.export({ mode: 'snapshot' });
   }
@@ -497,7 +498,7 @@ export class SpatialCRDTBridge {
    * Get the current version of the Loro document (for incremental export).
    */
   getVersion(): Uint8Array {
-    return this.doc.version() as any;
+    return this.doc.version() as unknown as Uint8Array;
   }
 
   /**

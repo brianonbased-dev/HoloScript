@@ -15,6 +15,7 @@ import {
   PublishResult,
   PlatformPublishResult,
   AppStoreLocalization,
+  GooglePlayTrack,
 } from './types.js';
 import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
 import { resolve, extname } from 'path';
@@ -230,7 +231,7 @@ export class AppStoreConnector extends ServiceConnector {
 
         const artifact: BuildArtifact = {
           filePath: args.filePath as string,
-          platform: args.platform as any,
+          platform: args.platform as BuildArtifact['platform'],
           version: args.version as string,
           buildNumber: args.buildNumber as string,
           releaseNotes: args.releaseNotes as string | undefined,
@@ -290,8 +291,8 @@ export class AppStoreConnector extends ServiceConnector {
         const version = await this.appleClient.createAppStoreVersion(
           app.appId,
           args.versionString as string,
-          (args.platform as any) || 'IOS',
-          (args.releaseType as any) || 'AFTER_APPROVAL',
+          (args.platform as 'IOS' | 'VISION_OS') || 'IOS',
+          (args.releaseType as 'MANUAL' | 'AFTER_APPROVAL' | 'SCHEDULED') || 'AFTER_APPROVAL',
           args.earliestReleaseDate as string | undefined
         );
         return version;
@@ -301,7 +302,7 @@ export class AppStoreConnector extends ServiceConnector {
         const app = await this.appleClient.getApp(args.bundleId as string);
         const version = await this.appleClient.getAppStoreVersion(
           app.appId,
-          (args.platform as any) || 'IOS'
+          (args.platform as 'IOS' | 'VISION_OS') || 'IOS'
         );
         return version;
       }
@@ -368,7 +369,7 @@ export class AppStoreConnector extends ServiceConnector {
         const result = await this.googleClient.uploadBuild(
           artifact,
           app,
-          (args.track as any) || 'internal',
+          (args.track as GooglePlayTrack['track']) || 'internal',
           (progress) => {
             console.log(`[Google Upload] ${progress.status} ${progress.percentage}%`);
           }
@@ -633,7 +634,7 @@ export class AppStoreConnector extends ServiceConnector {
 
           const artifact: BuildArtifact = {
             filePath: ipaPath,
-            platform: platform as any,
+            platform: platform as BuildArtifact['platform'],
             version,
             buildNumber,
             releaseNotes,
@@ -700,7 +701,7 @@ export class AppStoreConnector extends ServiceConnector {
             releaseNotes,
           };
 
-          const result = await this.googleClient.uploadBuild(artifact, app, androidTrack as any);
+          const result = await this.googleClient.uploadBuild(artifact, app, androidTrack as GooglePlayTrack['track']);
 
           results[platform] = { success: true, result };
         }

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     let premium_count = 0;
     let free_count = 0;
     let successCount = 0;
-    const errors: any[] = [];
+    const errors: string[] = [];
 
     // POST https://mcp.holoscript.net/api/holomesh/contribute
     for (const entry of entries) {

@@ -39,7 +39,7 @@ import {
   trackRedoPerformed,
 } from '@/lib/analytics/orchestration';
 
-function SequenceNode({ data }: { data: any }) {
+function SequenceNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border border-green-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-green-400 mb-1">→ SEQUENCE</div>
@@ -48,7 +48,7 @@ function SequenceNode({ data }: { data: any }) {
   );
 }
 
-function ActionNode({ data }: { data: any }) {
+function ActionNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border border-yellow-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-yellow-400 mb-1">⚡ ACTION</div>
@@ -57,7 +57,7 @@ function ActionNode({ data }: { data: any }) {
   );
 }
 
-function InverterNode({ data }: { data: any }) {
+function InverterNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border-2 border-pink-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-pink-400 mb-1">↻ INVERTER</div>
@@ -66,7 +66,7 @@ function InverterNode({ data }: { data: any }) {
   );
 }
 
-function RepeatNode({ data }: { data: any }) {
+function RepeatNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border-2 border-purple-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-purple-400 mb-1">🔁 REPEAT</div>
@@ -78,7 +78,7 @@ function RepeatNode({ data }: { data: any }) {
   );
 }
 
-function RetryNode({ data }: { data: any }) {
+function RetryNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border-2 border-cyan-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-cyan-400 mb-1">⟳ RETRY</div>
@@ -90,7 +90,7 @@ function RetryNode({ data }: { data: any }) {
   );
 }
 
-function GuardNode({ data }: { data: any }) {
+function GuardNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border-2 border-orange-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-orange-400 mb-1">🛡️ GUARD</div>
@@ -104,7 +104,7 @@ function GuardNode({ data }: { data: any }) {
   );
 }
 
-function TimeoutNode({ data }: { data: any }) {
+function TimeoutNode({ data }: { data: BTNode }) {
   return (
     <div className="rounded-xl border-2 border-red-500 bg-studio-panel px-3 py-2 min-w-[120px]">
       <div className="text-[10px] font-bold text-red-400 mb-1">⏱️ TIMEOUT</div>

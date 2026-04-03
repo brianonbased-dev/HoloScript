@@ -173,14 +173,14 @@ export class GraphQLCircuitBreakerClient {
         data: response.data,
         retriedCount: attemptNumber,
       };
-    } catch (error: any) {
-      const isTimeout = error.name === 'TimeoutError' || error.code === 'ETIMEDOUT';
+    } catch (error: unknown) {
+      const isTimeout = error instanceof Error && (error.name === 'TimeoutError' || (error as NodeJS.ErrnoException).code === 'ETIMEDOUT');
 
       // Check for retry
       if (attemptNumber < (this.options.maxRetries || 3)) {
         const delay = circuit.calculateRetryDelay(attemptNumber);
         console.info(
-          `[Retry] ${operationName} attempt ${attemptNumber + 1} after ${delay}ms (${error.message})`
+          `[Retry] ${operationName} attempt ${attemptNumber + 1} after ${delay}ms (${error instanceof Error ? error.message : String(error)})`
         );
 
         await this.sleep(delay);
@@ -227,10 +227,10 @@ export class GraphQLCircuitBreakerClient {
       }
 
       return await response.json();
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeout);
 
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         const timeoutError = new Error('Request timeout');
         timeoutError.name = 'TimeoutError';
         throw timeoutError;

@@ -14,6 +14,14 @@ import { validateBody } from '../middleware/validateBody.js';
 import { SUPPORTED_TARGETS } from '../services/compileWorker.js';
 import { logger } from '../utils/logger.js';
 
+let parseHolo: typeof import('@holoscript/core').parseHolo | undefined;
+try {
+  const core = await import('@holoscript/core');
+  parseHolo = core.parseHolo;
+} catch {
+  logger.warn('Failed to load @holoscript/core parser — falling back to regex validation');
+}
+
 export const validateRouter = Router();
 
 /** Validation result */
@@ -27,7 +35,7 @@ interface ValidationIssue {
 
 /**
  * POST /api/v1/validate
- * Validate HoloScript source code.
+ * Validate HoloScript source code using @holoscript/core parser.
  */
 validateRouter.post(
   '/',
@@ -39,8 +47,6 @@ validateRouter.post(
       const { source, target } = req.body;
       const startTime = Date.now();
 
-      // TODO: Integrate with @holoscript/core parser and validator
-      // For scaffold: simulate validation with basic checks
       const issues: ValidationIssue[] = [];
 
       // Basic source validation
@@ -71,17 +77,63 @@ validateRouter.post(
         });
       }
 
-      // Check for basic HoloScript syntax markers
-      const hasScene = /scene\s+\w+/.test(source);
-      const hasEntity = /entity\s+\w+/.test(source);
-      const hasTrait = /@\w+/.test(source);
+      let hasScene = false;
+      let hasEntity = false;
+      let hasTrait = false;
 
-      if (!hasScene && !hasEntity && source.length > 10) {
-        issues.push({
-          severity: 'warning',
-          message: 'No scene or entity declarations found. Source may not be valid HoloScript.',
-          rule: 'has-declarations',
-        });
+      // Use @holoscript/core parser for real validation when available
+      if (parseHolo && source.trim()) {
+        try {
+          const result = parseHolo(source, { tolerant: true });
+
+          // Map parse errors to validation issues
+          for (const err of result.errors) {
+            issues.push({
+              severity: err.severity ?? 'error',
+              message: err.message,
+              line: err.loc?.line,
+              column: err.loc?.column,
+              rule: err.code ?? 'parse-error',
+            });
+          }
+
+          // Map parse warnings to validation issues
+          for (const warn of result.warnings) {
+            issues.push({
+              severity: 'warning',
+              message: warn.message,
+              line: warn.loc?.line,
+              column: warn.loc?.column,
+              rule: warn.code ?? 'parse-warning',
+            });
+          }
+
+          // Extract stats from AST
+          if (result.ast) {
+            hasScene = (result.ast.scenes?.length ?? 0) > 0;
+            hasEntity = (result.ast.objects?.length ?? 0) > 0;
+            hasTrait = source.includes('@');
+          }
+        } catch (parseError) {
+          logger.warn({ error: parseError }, 'Parser threw — falling back to regex validation');
+          // Fall through to regex-based checks below
+          hasScene = /scene\s+\w+/.test(source);
+          hasEntity = /entity\s+\w+/.test(source);
+          hasTrait = /@\w+/.test(source);
+        }
+      } else {
+        // Fallback: regex-based structural checks
+        hasScene = /scene\s+\w+/.test(source);
+        hasEntity = /entity\s+\w+/.test(source);
+        hasTrait = /@\w+/.test(source);
+
+        if (!hasScene && !hasEntity && source.length > 10) {
+          issues.push({
+            severity: 'warning',
+            message: 'No scene or entity declarations found. Source may not be valid HoloScript.',
+            rule: 'has-declarations',
+          });
+        }
       }
 
       const durationMs = Date.now() - startTime;

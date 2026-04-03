@@ -36,9 +36,8 @@ import {
   Redo,
   History,
 } from 'lucide-react';
-import { useOrchestrationStore, type WorkflowEdge, type WorkflowNode } from '@/lib/orchestrationStore';
+import { useOrchestrationStore, type AgentWorkflow, type WorkflowEdge, type WorkflowNode } from '@/lib/orchestrationStore';
 import type {
-  WorkflowNode,
   AgentNodeData,
   ToolNodeData,
   DecisionNodeData,
@@ -366,10 +365,10 @@ export function AgentOrchestrationGraphEditor({
     }
   };
 
-  const handleRevertWorkflow = (revertedWorkflow: any) => {
+  const handleRevertWorkflow = (revertedWorkflow: AgentWorkflow) => {
     // Update nodes and edges from reverted workflow
     setNodes(
-      revertedWorkflow.nodes.map((n: any) => ({
+      revertedWorkflow.nodes.map((n) => ({
         id: n.id,
         type: n.type,
         position: n.position,

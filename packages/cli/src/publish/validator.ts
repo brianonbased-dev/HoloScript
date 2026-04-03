@@ -179,10 +179,10 @@ export class PublishValidator {
     try {
       const content = readFileSync(pkgPath, 'utf-8');
       this.packageJson = JSON.parse(content);
-    } catch (err: any) {
+    } catch (err: unknown) {
       errors.push({
         code: 'E_INVALID_PACKAGE_JSON',
-        message: `Failed to parse package.json: ${err.message}`,
+        message: `Failed to parse package.json: ${err instanceof Error ? err.message : String(err)}`,
         file: 'package.json',
         fix: 'Ensure package.json is valid JSON',
       });
@@ -451,10 +451,10 @@ export class PublishValidator {
             });
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         errors.push({
           code: 'E_FILE_READ_ERROR',
-          message: `Failed to validate ${file}: ${err.message}`,
+          message: `Failed to validate ${file}: ${err instanceof Error ? err.message : String(err)}`,
           file: file.replace(this.cwd + '/', ''),
         });
       }

@@ -91,7 +91,7 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
         transport: {
           ...definition.transport,
           requestHeaders: {
-            ...(definition.transport as any).requestHeaders,
+            ...(definition.transport as Record<string, unknown>).requestHeaders as Record<string, string>,
             'Authorization': `Bearer ${token}`,
           },
         },

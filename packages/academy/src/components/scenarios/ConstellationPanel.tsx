@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from 'react';
 import { type Star, type ConstellationDef as Constellation } from '@/lib/constellationStory';
 
-export function constellationsByMonth(constellations: any[], month: number) {
+export function constellationsByMonth(constellations: Constellation[], month: number) {
   // Simple logic: visible if bestMonth is within +/- 2 months
   return constellations.filter((c) => {
     const diff = Math.abs(c.bestMonth - month);
@@ -13,7 +13,7 @@ export function constellationsByMonth(constellations: any[], month: number) {
   });
 }
 
-const DEMO_CONSTELLATIONS: any[] = [
+const DEMO_CONSTELLATIONS: Constellation[] = [
   {
     id: 'ori',
     name: 'Orion',
@@ -217,7 +217,7 @@ export function ConstellationPanel() {
 
       <div style={s.section}>
         <div style={s.sectionTitle}>✨ Stars in {constellation.name}</div>
-        {constellation.stars.map((star: any) => (
+        {constellation.stars.map((star) => (
           <div
             key={star.id}
             style={{
