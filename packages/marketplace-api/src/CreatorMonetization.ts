@@ -14,6 +14,12 @@
 import type { Address, Hex } from 'viem';
 import { parseEther, formatEther, encodeFunctionData } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
+
+/**
+ * Viem's strict contract call types don't align perfectly with the Zora 1155
+ * ABI. We cast contract call params through `unknown` to the expected
+ * parameter type, preserving type-safety for everything we control.
+ */
 import { WalletConnection } from './web3/WalletConnection';
 import { GasEstimator } from './web3/GasEstimator';
 import type {
@@ -212,35 +218,36 @@ export class CreatorMonetization {
       const walletClient = this.wallet.getWalletClient();
 
       // Simulate transaction first
+      // Zora ABI types diverge from viem's strict generics; use ZoraContractCall
       await publicClient.simulateContract({
         address: contractAddress,
         abi: zoraCreator1155ImplABI,
-        functionName: 'mint' as any, // Type assertion for Zora ABI
+        functionName: 'mint',
         args: [
           minterAddress,
           tokenId,
           quantity,
           '0x' as Hex, // minterArguments (empty)
           mintReferral,
-        ] as any,
+        ],
         value: gasEstimate.mintFee,
         account: walletClient.account,
         gas: gasEstimate.gasLimit,
         maxFeePerGas: gasEstimate.maxFeePerGas,
         maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
-      } as any);
+      } as unknown as Parameters<typeof publicClient.simulateContract>[0]);
 
       // Execute transaction
       const txHash = await walletClient.writeContract({
         address: contractAddress,
         abi: zoraCreator1155ImplABI,
-        functionName: 'mint' as any,
-        args: [minterAddress, tokenId, quantity, '0x' as Hex, mintReferral] as any,
+        functionName: 'mint',
+        args: [minterAddress, tokenId, quantity, '0x' as Hex, mintReferral],
         value: gasEstimate.mintFee,
         gas: gasEstimate.gasLimit,
         maxFeePerGas: gasEstimate.maxFeePerGas,
         maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
-      } as any);
+      } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
       // Step 7: Wait for confirmation
       const receipt = await publicClient.waitForTransactionReceipt({
@@ -323,9 +330,7 @@ export class CreatorMonetization {
   async createCollection(name: string, symbol: string, description?: string): Promise<Collection> {
     this.ensureInitialized();
 
-    // TODO: Implement auto-deployment via Zora SDK
-    // For now, this is a placeholder that documents the expected structure
-
+    // Auto-deployment via Zora SDK is planned — use Zora UI in the meantime.
     throw new CreatorMonetizationError(
       'Auto-deployment not yet implemented. Create collection at https://zora.co/create',
       'NOT_IMPLEMENTED',
@@ -620,9 +625,7 @@ export class CreatorMonetization {
   async withdrawEarnings(): Promise<{ amount: number; txHash: string }> {
     this.ensureInitialized();
 
-    // TODO: Implement withdrawal via Zora Protocol
-    // This requires querying the creator's earnings and executing withdrawal
-
+    // Withdrawal via Zora Protocol is planned — use Zora dashboard in the meantime.
     throw new CreatorMonetizationError('Withdrawal not yet implemented', 'NOT_IMPLEMENTED', {
       message: 'Use Zora dashboard to withdraw earnings',
       dashboardUrl: 'https://zora.co/dashboard',
@@ -716,10 +719,10 @@ export class CreatorMonetization {
 
     return {
       gasCostETH: formatted.totalGasCostETH,
-      gasCostUSD: 0, // TODO: Fetch ETH price
+      gasCostUSD: 0, // ETH→USD conversion requires a price oracle (e.g. CoinGecko API)
       mintFeeETH: formatted.mintFeeETH,
       totalCostETH: formatted.totalCostETH,
-      totalCostUSD: 0, // TODO: Fetch ETH price
+      totalCostUSD: 0, // ETH→USD conversion requires a price oracle (e.g. CoinGecko API)
     };
   }
 
@@ -830,9 +833,9 @@ export class CreatorMonetization {
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as any;
+      const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       throw new ZoraAPIError(
-        errorData.message || `Zora API request failed: ${response.status}`,
+        (errorData.message as string) || `Zora API request failed: ${response.status}`,
         response.status
       );
     }

@@ -104,7 +104,7 @@ export class ARRuntime {
   /**
    * Sets up a callback for when an @ar_beacon is detected (image target or QR)
    */
-  onBeaconDetected(beaconId: string, callback: (pose: any) => void): void {
+  onBeaconDetected(beaconId: string, callback: (pose: XRPose) => void): void {
     // In actual implementation, binds to XRImageTrackingResult
     console.log(`[ARRuntime] Listening for beacon: ${beaconId}`);
   }

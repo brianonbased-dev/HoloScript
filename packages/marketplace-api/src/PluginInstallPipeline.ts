@@ -572,8 +572,9 @@ export class PluginInstallPipeline {
       );
     }
 
-    const data = (await response.json()) as any;
-    return data.data?.manifest ?? data.data ?? data;
+    const data = (await response.json()) as Record<string, unknown>;
+    const inner = data.data as Record<string, unknown> | undefined;
+    return inner?.manifest ?? inner ?? data;
   }
 
   /**

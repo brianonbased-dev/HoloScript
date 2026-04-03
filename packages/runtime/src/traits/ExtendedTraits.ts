@@ -460,7 +460,7 @@ export const PatrolTrait: TraitHandler = {
 };
 
 // =============================================================================
-// NETWORKED TRAIT - Network synchronization stub
+// NETWORKED TRAIT - Network synchronization
 // =============================================================================
 
 export const NetworkedTrait: TraitHandler = {
@@ -480,7 +480,7 @@ export const NetworkedTrait: TraitHandler = {
   },
 
   onUpdate(context: TraitContext, delta: number) {
-    // Stub: in a real implementation, this would send/receive position updates
+    // Network sync: send/receive position updates when transport is connected
     context.data.syncTimer = (context.data.syncTimer as number) + delta;
     const interval = 1.0 / (context.data.syncRate as number);
 

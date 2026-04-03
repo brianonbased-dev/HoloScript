@@ -9,6 +9,12 @@ import { AuthService } from '@holoscript/auth';
 import type { MarketplaceService } from './MarketplaceService.js';
 import type { SearchQuery, TraitCategory } from './types.js';
 
+/** Express request extended with middleware-injected fields. */
+interface AuthenticatedRequest extends Request {
+  token?: string;
+  validated?: unknown;
+}
+
 /**
  * Shared auth service instance used by marketplace route middleware.
  * Uses the same @holoscript/auth package as graphql-api for consistent
@@ -176,7 +182,7 @@ function requireAuth(marketplace: MarketplaceService) {
       return;
     }
 
-    (req as any).token = token;
+    (req as AuthenticatedRequest).token = token;
     next();
   };
 }
@@ -198,7 +204,7 @@ function validate<T>(schema: z.ZodSchema<T>) {
       });
       return;
     }
-    (req as any).validated = result.data;
+    (req as AuthenticatedRequest).validated = result.data;
     next();
   };
 }
@@ -220,7 +226,7 @@ function validateQuery<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) {
       });
       return;
     }
-    (req as any).validated = result.data;
+    (req as AuthenticatedRequest).validated = result.data;
     next();
   };
 }
@@ -262,7 +268,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validateQuery(searchQuerySchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const query = (req as any).validated as SearchQuery;
+        const query = (req as AuthenticatedRequest).validated as SearchQuery;
         const results = await marketplace.search(query);
 
         res.json({
@@ -284,8 +290,8 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(publishRequestSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
-        const request = (req as any).validated;
+        const token = (req as AuthenticatedRequest).token;
+        const request = (req as AuthenticatedRequest).validated;
 
         const result = await marketplace.publish(request, token);
 
@@ -380,7 +386,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     requireAuth(marketplace),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
         const { version, reason } = req.query;
 
@@ -474,7 +480,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     requireAuth(marketplace),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
         const { message, version, replacement } = req.body;
 
@@ -522,9 +528,9 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(ratingSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
-        const { rating, review } = (req as any).validated;
+        const { rating, review } = (req as AuthenticatedRequest).validated;
 
         await marketplace.rateTrait(id, rating, review, token);
 
@@ -550,7 +556,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as any).validated;
+        const { traits } = (req as AuthenticatedRequest).validated;
         const result = await marketplace.resolveDependencies(traits);
 
         res.json({
@@ -571,7 +577,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as any).validated;
+        const { traits } = (req as AuthenticatedRequest).validated;
         const result = await marketplace.checkCompatibility(traits);
 
         res.json({
@@ -613,7 +619,7 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     requireAuth(marketplace),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const request = req.body;
 
         await marketplace.requestVerification(request, token);

@@ -176,7 +176,8 @@ export class PhysicsWorld {
 
   private setupCollisionEvents(): void {
     // Track collision start
-    this.world.addEventListener('beginContact', (event: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cannon-es event types are untyped
+    this.world.addEventListener('beginContact', (event: { bodyA: CANNON.Body; bodyB: CANNON.Body; contactEquations?: Array<{ ri: CANNON.Vec3; ni: CANNON.Vec3; multiplier: number }> }) => {
       const idA = this.findBodyId(event.bodyA);
       const idB = this.findBodyId(event.bodyB);
       if (!idA || !idB) return;
@@ -220,7 +221,7 @@ export class PhysicsWorld {
     });
 
     // Track collision end
-    this.world.addEventListener('endContact', (event: any) => {
+    this.world.addEventListener('endContact', (event: { bodyA: CANNON.Body; bodyB: CANNON.Body }) => {
       const idA = this.findBodyId(event.bodyA);
       const idB = this.findBodyId(event.bodyB);
       if (!idA || !idB) return;

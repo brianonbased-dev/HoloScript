@@ -86,14 +86,15 @@ export class MarketplaceBridgeResolver {
       const response = await fetch(url.toString());
 
       if (!response.ok) {
-        const errorBody = (await response.json().catch(() => ({}))) as any;
+        const errorBody = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        const errorObj = errorBody?.error as Record<string, unknown> | undefined;
         return {
           success: false,
           output: undefined,
           errors: [
             {
               message:
-                errorBody?.error?.message ||
+                (errorObj?.message as string) ||
                 `Marketplace API returned ${response.status}: Failed to fetch trait "${input.traitId}"`,
               phase: 'fetch',
             },
@@ -124,13 +125,14 @@ export class MarketplaceBridgeResolver {
       }
 
       traitData = body.data;
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
+      const errMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
       return {
         success: false,
         output: undefined,
         errors: [
           {
-            message: `Failed to reach Marketplace API: ${fetchError.message}`,
+            message: `Failed to reach Marketplace API: ${errMessage}`,
             phase: 'fetch',
           },
         ],
@@ -172,7 +174,7 @@ export class MarketplaceBridgeResolver {
       }
 
       const core = await import('@holoscript/core');
-      let compiler: any;
+      let compiler: { compile(ast: unknown): string };
       let compiledOutput: string;
 
       switch (input.target) {
@@ -248,13 +250,14 @@ export class MarketplaceBridgeResolver {
         traitName: traitData.name,
         traitVersion: traitData.version,
       };
-    } catch (compileError: any) {
+    } catch (compileError: unknown) {
+      const errMessage = compileError instanceof Error ? compileError.message : 'Unknown compilation error';
       return {
         success: false,
         output: undefined,
         errors: [
           {
-            message: compileError.message || 'Unknown compilation error',
+            message: errMessage,
             phase: 'compile',
           },
         ],

@@ -24,22 +24,40 @@ import {
 // AST Bridge: HSPlusNode → EffectASTNode
 // ---------------------------------------------------------------------------
 
+/** Minimal shape of an HSPlus AST node for safety analysis. */
+interface SafetyASTInput {
+  type?: string;
+  id?: string;
+  name?: string;
+  directives?: Array<{ type: string; name?: string }>;
+  traits?: Map<string, unknown>;
+  children?: SafetyASTInput[];
+  body?: SafetyASTInput[] | SafetyASTInput;
+  arguments?: SafetyASTInput[];
+  method?: string;
+  callee?: string;
+  loc?: { start?: { line?: number; column?: number } };
+  line?: number;
+  column?: number;
+  [key: string]: unknown;
+}
+
 /**
  * Extract EffectASTNodes from the parsed HSPlus AST.
  *
  * The parser produces HSPlusNode with:
  * - directives[].type === 'trait' → trait names (without @)
- * - traits: Map<VRTraitName, any> → pre-processed traits
+ * - traits: Map<VRTraitName, unknown> → pre-processed traits
  * - children: HSPlusNode[] → nested definitions
  *
  * The safety pass expects EffectASTNode with:
  * - traits: string[] → trait names (with @ prefix)
  * - calls: string[] → built-in function names
  */
-export function extractEffectNodes(ast: any): EffectASTNode[] {
+export function extractEffectNodes(ast: SafetyASTInput): EffectASTNode[] {
   const nodes: EffectASTNode[] = [];
 
-  function extractTraits(node: any): string[] {
+  function extractTraits(node: SafetyASTInput): string[] {
     const traits: string[] = [];
 
     // Source 1: directives array (type === 'trait')
@@ -65,10 +83,10 @@ export function extractEffectNodes(ast: any): EffectASTNode[] {
     return traits;
   }
 
-  function extractCalls(node: any): string[] {
+  function extractCalls(node: SafetyASTInput): string[] {
     const calls: string[] = [];
 
-    function walkForCalls(n: any) {
+    function walkForCalls(n: SafetyASTInput) {
       if (!n) return;
 
       // function_call nodes
@@ -101,7 +119,7 @@ export function extractEffectNodes(ast: any): EffectASTNode[] {
     return calls;
   }
 
-  function visit(node: any) {
+  function visit(node: SafetyASTInput) {
     if (!node || typeof node !== 'object') return;
 
     const traits = extractTraits(node);
@@ -249,7 +267,7 @@ const DEFAULT_CONFIG: SafetyDiagnosticConfig = {
  * This is the single entry point for the LSP server to call.
  */
 export function runSafetyDiagnostics(
-  ast: any,
+  ast: SafetyASTInput,
   uri: string,
   config?: Partial<SafetyDiagnosticConfig>
 ): Diagnostic[] {

@@ -31,7 +31,7 @@ import {
   Handles,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { HoloScriptDebugger, type StackFrame as HoloStackFrame } from '@holoscript/core';
+import { HoloScriptDebugger, type StackFrame as HoloStackFrame, type DebugEvent } from '@holoscript/core';
 import {
   AttachConnection,
   type AttachConfig,
@@ -157,33 +157,34 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
    * Set up event listeners on the underlying HoloScript debugger engine.
    */
   private _setupDebuggerEvents(): void {
-    this._debugger.on('breakpoint-hit', (_event: any) => {
+    this._debugger.on('breakpoint-hit', (_event: DebugEvent) => {
       this._isRunning = false;
       this.sendEvent(new StoppedEvent('breakpoint', HoloScriptDebugSession.THREAD_ID));
     });
 
-    this._debugger.on('step-complete', (_event: any) => {
+    this._debugger.on('step-complete', (_event: DebugEvent) => {
       this._isRunning = false;
       this.sendEvent(new StoppedEvent('step', HoloScriptDebugSession.THREAD_ID));
     });
 
-    this._debugger.on('state-change', (event: any) => {
-      if (event.data.status === 'stopped' && event.data.reason === 'complete') {
+    this._debugger.on('state-change', (event: DebugEvent) => {
+      const stateData = event.data as { status?: string; reason?: string };
+      if (stateData.status === 'stopped' && stateData.reason === 'complete') {
         this._isRunning = false;
         this.sendEvent(new TerminatedEvent());
-      } else if (event.data.status === 'paused') {
+      } else if (stateData.status === 'paused') {
         this._isRunning = false;
         this.sendEvent(new StoppedEvent('pause', HoloScriptDebugSession.THREAD_ID));
       }
     });
 
-    this._debugger.on('exception', (event: any) => {
+    this._debugger.on('exception', (event: DebugEvent) => {
       this._isRunning = false;
-      const errorData = event.data as { error?: string; node?: any; line?: number };
+      const errorData = event.data as { error?: string; node?: { type?: string }; line?: number };
       this._lastException = {
         description: errorData.error || 'Unknown exception',
         details: errorData.node
-          ? `at ${errorData.node.type} (line ${errorData.line || 0})`
+          ? `at ${errorData.node.type ?? 'unknown'} (line ${errorData.line || 0})`
           : undefined,
       };
 
@@ -199,7 +200,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       }
     });
 
-    this._debugger.on('output', (event: any) => {
+    this._debugger.on('output', (event: DebugEvent) => {
       const outputData = event.data as { output?: unknown };
       if (outputData.output !== undefined) {
         this.sendEvent(

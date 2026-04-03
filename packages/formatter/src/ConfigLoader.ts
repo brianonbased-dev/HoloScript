@@ -22,7 +22,7 @@ export class ConfigLoader {
       return this.cache.get(configPath)!;
     }
 
-    let rawConfig: any;
+    let rawConfig: Record<string, unknown>;
     try {
       if (configPath.endsWith('.js')) {
         rawConfig = require(configPath);
@@ -35,14 +35,14 @@ export class ConfigLoader {
       return { ...DEFAULT_CONFIG };
     }
 
-    let options = rawConfig;
-    if (configPath.endsWith('holoscript.config.json') && rawConfig.formatOptions) {
-      options = rawConfig.formatOptions;
+    let options: Record<string, unknown> = rawConfig;
+    if (configPath.endsWith('holoscript.config.json') && rawConfig.formatOptions && typeof rawConfig.formatOptions === 'object') {
+      options = rawConfig.formatOptions as Record<string, unknown>;
     }
 
     const combinedConfig: FormatterConfig = {
       ...DEFAULT_CONFIG,
-      ...options,
+      ...(options as Partial<FormatterConfig>),
     };
 
     this.cache.set(configPath, combinedConfig);

@@ -10,6 +10,8 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { SearchResult } from '../engine/EmbeddingIndex';
+import type { EnrichedResult, LLMProvider } from '../engine/GraphRAGEngine';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -157,7 +159,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 
     return {
       query,
-      results: results.map((r: any) => ({
+      results: results.map((r: SearchResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.type,
         file: r.file,
@@ -170,9 +172,9 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
       count: results.length,
       filters: hasFilters ? filters : undefined,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
-      error: `Semantic search failed: ${err.message}`,
+      error: `Semantic search failed: ${err instanceof Error ? err.message : String(err)}`,
       hint: 'Ensure Ollama is running with the nomic-embed-text model: ollama pull nomic-embed-text',
     };
   }
@@ -201,7 +203,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         const llmPkg = await import('@holoscript/llm-provider');
         const apiKey = llmApiKey || process.env[`${llmProvider.toUpperCase()}_API_KEY`] || '';
 
-        let llmAdapter: any;
+        let llmAdapter: LLMProvider;
         switch (llmProvider) {
           case 'openai':
             llmAdapter = new llmPkg.OpenAIAdapter({
@@ -235,9 +237,9 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           llmProvider: llmAdapter,
           llmModel: llmModel,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         return {
-          error: `Failed to initialize ${llmProvider} provider: ${err.message}`,
+          error: `Failed to initialize ${llmProvider} provider: ${err instanceof Error ? err.message : String(err)}`,
           hint: 'Ensure @holoscript/llm-provider is installed and API key is valid',
         };
       }
@@ -253,7 +255,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       question,
       answer: answer.answer,
       citations: answer.citations,
-      context: answer.context.slice(0, 5).map((r: any) => ({
+      context: answer.context.slice(0, 5).map((r: EnrichedResult) => ({
         name: r.symbol.owner ? `${r.symbol.owner}.${r.symbol.name}` : r.symbol.name,
         type: r.symbol.type,
         file: r.file,
@@ -266,9 +268,9 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       })),
       llmProvider: llmProvider ?? 'ollama',
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
-      error: `Graph RAG query failed: ${err.message}`,
+      error: `Graph RAG query failed: ${err instanceof Error ? err.message : String(err)}`,
       hint:
         llmProvider && llmProvider !== 'ollama'
           ? `Ensure ${llmProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`

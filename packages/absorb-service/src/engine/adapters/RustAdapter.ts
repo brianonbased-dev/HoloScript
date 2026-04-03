@@ -8,6 +8,7 @@
 import type {
   LanguageAdapter,
   ParseTree,
+  SyntaxNode,
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
@@ -223,7 +224,7 @@ export class RustAdapter implements LanguageAdapter {
   }
 
   private extractImplMethods(
-    implNode: any,
+    implNode: SyntaxNode,
     typeName: string,
     filePath: string,
     symbols: ExternalSymbolDefinition[]
@@ -253,13 +254,13 @@ export class RustAdapter implements LanguageAdapter {
     }
   }
 
-  private extractUsePath(node: any): { module: string; names: string[]; isGlob: boolean } | null {
+  private extractUsePath(node: SyntaxNode): { module: string; names: string[]; isGlob: boolean } | null {
     // Recursively build the use path
     const names: string[] = [];
     let isGlob = false;
     let modulePath = '';
 
-    const collectPath = (n: any): string => {
+    const collectPath = (n: SyntaxNode): string => {
       if (n.type === 'scoped_identifier' || n.type === 'scoped_use_list') {
         const path = n.childForFieldName('path');
         const name = n.childForFieldName('name');

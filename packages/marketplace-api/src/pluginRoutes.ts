@@ -18,6 +18,12 @@ import { z } from 'zod';
 import type { PluginMarketplaceService } from './PluginMarketplaceService.js';
 import type { PluginCategory, PluginSearchQuery } from './PluginPackageSpec.js';
 
+/** Express request extended with middleware-injected fields. */
+interface AuthenticatedRequest extends Request {
+  token?: string;
+  validated?: unknown;
+}
+
 // =============================================================================
 // VALIDATION SCHEMAS
 // =============================================================================
@@ -193,7 +199,7 @@ function requireAuth() {
       });
       return;
     }
-    (req as any).token = token;
+    (req as AuthenticatedRequest).token = token;
     next();
   };
 }
@@ -212,7 +218,7 @@ function validate<T>(schema: z.ZodSchema<T>) {
       });
       return;
     }
-    (req as any).validated = result.data;
+    (req as AuthenticatedRequest).validated = result.data;
     next();
   };
 }
@@ -231,7 +237,7 @@ function validateQuery<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) {
       });
       return;
     }
-    (req as any).validated = result.data;
+    (req as AuthenticatedRequest).validated = result.data;
     next();
   };
 }
@@ -270,7 +276,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     validateQuery(pluginSearchQuerySchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const query = (req as any).validated as PluginSearchQuery;
+        const query = (req as AuthenticatedRequest).validated as PluginSearchQuery;
         const results = await marketplace.searchPlugins(query);
         res.json({ success: true, data: results });
       } catch (err) {
@@ -343,8 +349,8 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     validate(pluginPublishSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
-        const request = (req as any).validated;
+        const token = (req as AuthenticatedRequest).token;
+        const request = (req as AuthenticatedRequest).validated;
         const result = await marketplace.publishPlugin(request, token);
 
         if (result.success) {
@@ -390,7 +396,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     requireAuth(),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
         const { version } = req.query;
         await marketplace.unpublishPlugin(id, version as string | undefined, token);
@@ -407,7 +413,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     requireAuth(),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
         const { message, replacement } = req.body;
         await marketplace.deprecatePlugin(id, message, replacement, token);
@@ -491,9 +497,9 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     validate(pluginRatingSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { id } = req.params;
-        const { rating, review } = (req as any).validated;
+        const { rating, review } = (req as AuthenticatedRequest).validated;
         await marketplace.ratePlugin(id, rating, review, token);
         res.status(201).json({ success: true, data: { rated: true } });
       } catch (err) {
@@ -524,8 +530,8 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     validate(registerKeySchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
-        const { publicKey } = (req as any).validated;
+        const token = (req as AuthenticatedRequest).token;
+        const { publicKey } = (req as AuthenticatedRequest).validated;
         const result = await marketplace.registerSigningKey(publicKey, token);
         res.status(201).json({ success: true, data: result });
       } catch (err) {
@@ -540,7 +546,7 @@ export function createPluginMarketplaceRoutes(marketplace: PluginMarketplaceServ
     requireAuth(),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const token = (req as any).token;
+        const token = (req as AuthenticatedRequest).token;
         const { keyId } = req.params;
         await marketplace.revokeSigningKey(keyId, token);
         res.status(204).send();

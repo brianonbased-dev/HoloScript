@@ -98,6 +98,7 @@ import {
   type DynamicMaterialProps,
   type WindowWithHoloScript,
   type WindowWithModuleExports,
+  type ProceduralSkeletonData,
 } from '../runtime-types';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -159,10 +160,13 @@ interface ParsedObject {
   type: string;
   position: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
+  rotation?: { x: number; y: number; z: number };
   color?: string;
   model?: string;
   traits: ParsedTrait[];
   metadata: Record<string, unknown>;
+  /** Runtime properties bag for UI components and model configuration */
+  properties?: Record<string, unknown>;
   // Animation properties
   animation?: string;
   animationLoop?: boolean;
@@ -464,7 +468,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   for (const imp of ast.imports || []) {
     imports.push({
       source: imp.source,
-      specifiers: imp.specifiers.map((s: any) => ({
+      specifiers: imp.specifiers.map((s: { imported: string; local?: string }) => ({
         imported: s.imported,
         local: s.local,
       })),
@@ -495,7 +499,7 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
     for (const action of ast.logic.actions || []) {
       const actionDef: ActionDefinition = {
         name: action.name,
-        params: (action.parameters || []).map((p: any) => p.name),
+        params: (action.parameters || []).map((p: { name: string }) => p.name),
         body: action.body,
       };
       actions.set(action.name, actionDef);
@@ -505,7 +509,7 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
     for (const handler of ast.logic.handlers || []) {
       const handlerDef: ActionDefinition = {
         name: handler.event,
-        params: (handler.parameters || []).map((p: any) => p.name),
+        params: (handler.parameters || []).map((p: { name: string }) => p.name),
         body: handler.body,
       };
 
@@ -1115,13 +1119,13 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   setState(key: string, value: unknown): void {
     const keys = key.split('.');
-    let current: any = this.state;
+    let current: Record<string, unknown> = this.state;
 
     for (let i = 0; i < keys.length - 1; i++) {
-      if (!(keys[i] in current)) {
+      if (!(keys[i] in current) || typeof current[keys[i]] !== 'object' || current[keys[i]] === null) {
         current[keys[i]] = {};
       }
-      current = current[keys[i]];
+      current = current[keys[i]] as Record<string, unknown>;
     }
 
     current[keys[keys.length - 1]] = value;
@@ -1322,7 +1326,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     }
   }
 
-  private createSceneObject(obj: any): void {
+  private createSceneObject(obj: ParsedObject): void {
     const type = obj.type;
 
     // Check for UI components
@@ -1499,7 +1503,7 @@ class BrowserRuntime implements HoloScriptRuntime {
   /**
    * Load a GLB/GLTF model
    */
-  private loadModel(obj: any): void {
+  private loadModel(obj: ParsedObject): void {
     const loader = new GLTFLoader();
     const modelPath = obj.model || obj.properties?.model;
 
@@ -1537,19 +1541,21 @@ class BrowserRuntime implements HoloScriptRuntime {
           let coloredCount = 0;
           let skippedCount = 0;
 
-          model.traverse((child: any) => {
-            if ((child.isMesh || child.isSkinnedMesh) && child.material) {
-              const materials = Array.isArray(child.material) ? child.material : [child.material];
+          model.traverse((child: THREE.Object3D) => {
+            const mesh = child as THREE.Mesh;
+            if ((mesh.isMesh || (child as THREE.SkinnedMesh).isSkinnedMesh) && mesh.material) {
+              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 
-              const newMaterials = materials.map((mat: any) => {
+              const newMaterials = materials.map((mat: THREE.Material) => {
                 // Skip materials that have texture maps - they have proper artwork
+                const stdMat = mat as THREE.MeshStandardMaterial;
                 const hasTexture =
-                  mat.map ||
-                  mat.normalMap ||
-                  mat.roughnessMap ||
-                  mat.metalnessMap ||
-                  mat.aoMap ||
-                  mat.emissiveMap;
+                  stdMat.map ||
+                  stdMat.normalMap ||
+                  stdMat.roughnessMap ||
+                  stdMat.metalnessMap ||
+                  stdMat.aoMap ||
+                  stdMat.emissiveMap;
 
                 if (hasTexture) {
                   skippedCount++;
@@ -1557,7 +1563,7 @@ class BrowserRuntime implements HoloScriptRuntime {
                 }
 
                 // Only tint solid-color materials (no textures)
-                const clonedMat = mat.clone();
+                const clonedMat = stdMat.clone();
                 if (clonedMat.color) {
                   clonedMat.color.copy(targetColor);
                   coloredCount++;
@@ -1565,7 +1571,7 @@ class BrowserRuntime implements HoloScriptRuntime {
                 return clonedMat;
               });
 
-              child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
+              mesh.material = Array.isArray(mesh.material) ? newMaterials : newMaterials[0];
             }
           });
 
@@ -1579,16 +1585,18 @@ class BrowserRuntime implements HoloScriptRuntime {
         let boneCount = 0;
         const boneNames: string[] = [];
 
-        model.traverse((child: any) => {
-          if (child.isBone) {
+        model.traverse((child: THREE.Object3D) => {
+          const bone = child as THREE.Bone;
+          const skinnedMesh = child as THREE.SkinnedMesh;
+          if (bone.isBone) {
             boneCount++;
             boneNames.push(child.name);
           }
-          if (child.isSkinnedMesh) {
+          if (skinnedMesh.isSkinnedMesh) {
             skeletonFound = true;
             console.log(`[HoloScript] Found skinned mesh in ${obj.id}: ${child.name}`);
-            if (child.skeleton) {
-              console.log(`[HoloScript] Skeleton bones: ${child.skeleton.bones.length}`);
+            if (skinnedMesh.skeleton) {
+              console.log(`[HoloScript] Skeleton bones: ${skinnedMesh.skeleton.bones.length}`);
             }
           }
         });
@@ -1720,15 +1728,16 @@ class BrowserRuntime implements HoloScriptRuntime {
             console.log(`[HoloScript] ${obj.id}: No clips, using procedural skeleton animation`);
 
             // Find the SkinnedMesh and its bones
-            let skinnedMesh: any = null;
-            model.traverse((child: any) => {
-              if (child.isSkinnedMesh && child.skeleton) {
-                skinnedMesh = child;
+            let skinnedMesh: THREE.SkinnedMesh | null = null;
+            model.traverse((child: THREE.Object3D) => {
+              const sm = child as THREE.SkinnedMesh;
+              if (sm.isSkinnedMesh && sm.skeleton) {
+                skinnedMesh = sm;
               }
             });
 
-            if (skinnedMesh && skinnedMesh.skeleton) {
-              const skeleton = skinnedMesh.skeleton;
+            if (skinnedMesh && (skinnedMesh as THREE.SkinnedMesh).skeleton) {
+              const skeleton = (skinnedMesh as THREE.SkinnedMesh).skeleton;
               const bones = skeleton.bones;
 
               // Store original bone rotations
@@ -1803,7 +1812,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     );
   }
 
-  private createUIComponent(obj: any): void {
+  private createUIComponent(obj: ParsedObject): void {
     const type = obj.type.replace('ui-', '');
 
     switch (type) {
@@ -1839,7 +1848,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     }
   }
 
-  private createMonacoEditor(obj: any): void {
+  private createMonacoEditor(obj: ParsedObject): void {
     if (!this.config.features?.monaco) {
       console.warn('Monaco editor feature not enabled');
       return;
@@ -1907,7 +1916,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     }
   }
 
-  private create3DViewport(obj: any): void {
+  private create3DViewport(obj: ParsedObject): void {
     // Create a secondary renderer for the preview
     const container = document.createElement('div');
     container.id = `viewport-${obj.id}`;
@@ -1968,7 +1977,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createButton(obj: any): void {
+  private createButton(obj: ParsedObject): void {
     const button = document.createElement('button');
     button.id = `btn-${obj.id}`;
     button.textContent = obj.properties?.label || 'Button';
@@ -1998,7 +2007,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createText(obj: any): void {
+  private createText(obj: ParsedObject): void {
     const text = document.createElement('div');
     text.id = `text-${obj.id}`;
     text.textContent = this.resolveStateRef(obj.properties?.text) || '';
@@ -2019,7 +2028,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createInput(obj: any): void {
+  private createInput(obj: ParsedObject): void {
     const input = document.createElement('input');
     input.id = `input-${obj.id}`;
     input.type = 'text';
@@ -2054,7 +2063,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createChatPanel(obj: any): void {
+  private createChatPanel(obj: ParsedObject): void {
     const container = document.createElement('div');
     container.id = `chat-${obj.id}`;
     container.style.cssText = `
@@ -2093,7 +2102,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createList(obj: any): void {
+  private createList(obj: ParsedObject): void {
     const list = document.createElement('div');
     list.id = `list-${obj.id}`;
     list.style.cssText = `
@@ -2116,7 +2125,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createPropertiesPanel(obj: any): void {
+  private createPropertiesPanel(obj: ParsedObject): void {
     const panel = document.createElement('div');
     panel.id = `props-${obj.id}`;
     panel.style.cssText = `
@@ -2140,7 +2149,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     });
   }
 
-  private createErrorList(obj: any): void {
+  private createErrorList(obj: ParsedObject): void {
     const container = document.createElement('div');
     container.id = `errors-${obj.id}`;
     container.style.cssText = `
@@ -2229,7 +2238,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           return { success: false, errors: [message] };
         }
       },
-      render_to_preview: (viewportId: string, ast: any) => {
+      render_to_preview: (viewportId: string, ast: LoadedComposition) => {
         const viewport = this.uiComponents.get(viewportId);
         if (viewport && viewport.type === '3d-viewport') {
           // Clear existing preview objects
@@ -2791,11 +2800,22 @@ class BrowserRuntime implements HoloScriptRuntime {
   /**
    * Update procedural skeleton animation based on animation type
    */
-  private updateProceduralSkeleton(skelData: any, time: number): void {
+  private updateProceduralSkeleton(skelData: ProceduralSkeletonData, time: number): void {
     const { bones, phase, animationType, originalRotations } = skelData;
 
     // Animation parameters based on type
-    const animations: Record<string, any> = {
+    interface AnimParams {
+      speed: number;
+      amplitude: number;
+      breathing?: boolean;
+      arms?: boolean;
+      punch?: boolean;
+      spine?: boolean;
+      legs?: boolean;
+      rightArm?: boolean;
+      fullBody?: boolean;
+    }
+    const animations: Record<string, AnimParams> = {
       idle: { speed: 1.5, amplitude: 0.05, breathing: true },
       flexing: { speed: 2.0, amplitude: 0.3, arms: true },
       boxing: { speed: 4.0, amplitude: 0.4, arms: true, punch: true },
@@ -2973,7 +2993,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           this.startDirectiveAction(directive);
         };
 
-        const onLoop = (event: any) => {
+        const onLoop = (event: { action: THREE.AnimationAction; loopDelta: number }) => {
           if (event.action === animAction) {
             directive.currentReps++;
             console.log(`[HoloScript] ${modelName}: rep ${directive.currentReps}/${targetReps}`);
@@ -3143,15 +3163,15 @@ interface UIComponent {
   element: HTMLElement;
   type: string;
   dispose: () => void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ActionContext {
   state: Record<string, unknown>;
   setState: (key: string, value: unknown) => void;
   emit: typeof emit;
-  parse_holo: (code: string) => { success: boolean; ast?: any; errors?: string[] };
-  render_to_preview: (viewportId: string, ast: any) => void;
+  parse_holo: (code: string) => { success: boolean; ast?: HoloComposition; errors?: string[] };
+  render_to_preview: (viewportId: string, ast: HoloComposition) => void;
   format_holoscript: (code: string) => string;
   lint_holoscript: (code: string) => unknown[];
   get_fps: () => number;

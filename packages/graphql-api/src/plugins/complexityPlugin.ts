@@ -4,9 +4,15 @@
  */
 
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
+import type { GraphQLRequest } from '@apollo/server';
 import { GraphQLError } from 'graphql';
 import { fieldExtensionsEstimator, getComplexity, simpleEstimator } from 'graphql-query-complexity';
 import type { GraphQLSchema } from 'graphql';
+
+/** Extended request type carrying complexity score through the plugin pipeline. */
+interface ComplexityRequest extends GraphQLRequest {
+  __complexity?: number;
+}
 
 export interface ComplexityPluginOptions {
   /**
@@ -92,7 +98,7 @@ export function createComplexityPlugin(
             // Include complexity in response extensions for debugging
             if (includeInExtensions) {
               // Store complexity for inclusion in response
-              (request as any).__complexity = complexity;
+              (request as ComplexityRequest).__complexity = complexity;
             }
           } catch (error) {
             if (error instanceof GraphQLError) {
@@ -105,12 +111,13 @@ export function createComplexityPlugin(
 
         async willSendResponse({ response, request }) {
           // Add complexity to extensions if enabled
-          if (includeInExtensions && (request as any).__complexity) {
+          const storedComplexity = (request as ComplexityRequest).__complexity;
+          if (includeInExtensions && storedComplexity) {
             response.body.kind = 'single';
             if (response.body.kind === 'single') {
               response.body.singleResult.extensions = {
                 ...response.body.singleResult.extensions,
-                complexity: (request as any).__complexity,
+                complexity: storedComplexity,
                 maxComplexity,
               };
             }

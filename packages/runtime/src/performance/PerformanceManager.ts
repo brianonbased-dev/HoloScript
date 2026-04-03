@@ -343,7 +343,7 @@ export class RendererManager {
    * Contains `render` (draw-call counts, triangles, etc.) and `memory`
    * (geometry / texture counts) sub-objects.
    */
-  get info(): { render: any; memory: any } {
+  get info(): { render: THREE.WebGLInfo['render']; memory: THREE.WebGLInfo['memory'] } {
     return {
       render: this.renderer.info.render,
       memory: this.renderer.info.memory,

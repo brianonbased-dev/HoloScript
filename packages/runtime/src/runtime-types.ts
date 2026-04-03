@@ -216,6 +216,19 @@ export function isHandlerCall(value: unknown): value is HandlerCall {
 }
 
 // ---------------------------------------------------------------------------
+// XR Hand joint data (WebXR Hand Input not in standard TS lib)
+// ---------------------------------------------------------------------------
+
+export interface XRJointSpace {
+  position: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+}
+
+export interface XRHandWithJoints {
+  joints: Record<string, XRJointSpace | undefined>;
+}
+
+// ---------------------------------------------------------------------------
 // Gamepad haptics (WebXR extensions not in standard TS lib)
 // ---------------------------------------------------------------------------
 

@@ -8,6 +8,7 @@
 import type {
   LanguageAdapter,
   ParseTree,
+  SyntaxNode,
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
@@ -168,7 +169,7 @@ export class PythonAdapter implements LanguageAdapter {
   }
 
   private extractMethods(
-    classNode: any,
+    classNode: SyntaxNode,
     className: string,
     filePath: string,
     symbols: ExternalSymbolDefinition[]
@@ -179,7 +180,7 @@ export class PythonAdapter implements LanguageAdapter {
     for (const child of body.namedChildren) {
       const defNode =
         child.type === 'decorated_definition'
-          ? child.namedChildren.find((c: any) => c.type === 'function_definition')
+          ? child.namedChildren.find((c: SyntaxNode) => c.type === 'function_definition')
           : child.type === 'function_definition'
             ? child
             : null;

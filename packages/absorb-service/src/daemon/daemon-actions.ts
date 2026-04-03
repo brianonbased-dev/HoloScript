@@ -23,7 +23,7 @@ import {
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
 import { parseTscOutput, aggregatePatterns, type ErrorCategory } from './daemon-error-taxonomy';
-import type { HostCapabilities } from '@holoscript/core/traits';
+import type { HostCapabilities, HostExecOptions, HostNetworkRequestOptions } from '@holoscript/core/traits';
 import {
   createStdlibActions,
   resolveRepoRelativePath,
@@ -194,8 +194,8 @@ async function computeQuality(
 
 // ── Native GraphRAG Engine Injection ─────────────────────────────────────────
 
-let _graphEngine: any = null;
-let _codebaseGraph: any = null;
+let _graphEngine: import('../engine').GraphRAGEngine | null = null;
+let _codebaseGraph: import('../engine').CodebaseGraph | null = null;
 
 async function getGraphEngine() {
   if (_graphEngine) return { engine: _graphEngine, graph: _codebaseGraph };
@@ -1227,14 +1227,14 @@ export function createDaemonActions(
       },
     },
     process: {
-      exec: async (command: string, options?: any) => {
+      exec: async (command: string, options?: HostExecOptions & { args?: string[] }) => {
         const args = options?.args || [];
         const res = await host.exec(command, args, options);
         return { exitCode: res.code ?? 1, stdout: res.stdout, stderr: res.stderr };
       },
     },
     network: {
-      fetch: async (url: string, options?: any) => {
+      fetch: async (url: string, options?: HostNetworkRequestOptions) => {
         const response = await (globalThis.fetch as typeof fetch)(url, {
           method: options?.method ?? 'GET',
           headers: options?.headers,

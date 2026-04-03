@@ -31,6 +31,35 @@ import type {
 } from './types.js';
 
 // =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Extract author information from a bearer token.
+ * Supports JWT-style tokens (base64 JSON payload) and plain bearer strings.
+ */
+function extractAuthorFromToken(token: string): Author {
+  try {
+    // Try JWT-style: header.payload.signature
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
+      return {
+        name: String(payload.name || payload.sub || payload.preferred_username || 'unknown'),
+        email: payload.email ? String(payload.email) : undefined,
+        verified: Boolean(payload.email_verified || payload.verified),
+      };
+    }
+  } catch {
+    // Not a valid JWT — fall through
+  }
+
+  // Fallback: use a hash of the token as an anonymous identifier
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex').slice(0, 8);
+  return { name: `creator-${tokenHash}`, verified: false };
+}
+
+// =============================================================================
 // DATABASE INTERFACE
 // =============================================================================
 
@@ -263,7 +292,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
       name: request.name,
       version: request.version,
       description: request.description,
-      author: { name: 'creator', verified: false }, // TODO: extract from token
+      author: extractAuthorFromToken(token),
       license: request.license,
       keywords: request.keywords,
       repository: request.repository,
@@ -415,7 +444,8 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     const skill = await this.db.getSkill(skillId);
     if (!skill) throw new Error(`Skill not found: ${skillId}`);
 
-    // TODO: integrate with x402PaymentService for actual payment
+    // Payment stub: returns a download URL valid for 24h.
+    // Wire up x402PaymentService when the payment gateway is live.
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     return {
       downloadUrl: `/api/skills/${skillId}/download`,
@@ -454,9 +484,50 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     await this.db.saveSkill(skill);
   }
 
-  async getInstalledSkills(_workspacePath: string, _token: string): Promise<SkillSummary[]> {
-    // TODO: scan workspace for installed skills
-    return [];
+  async getInstalledSkills(workspacePath: string, _token: string): Promise<SkillSummary[]> {
+    const skillsDir = `${workspacePath}/.agents/skills`;
+    const fs = await import('fs/promises');
+
+    try {
+      const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+      const summaries: SkillSummary[] = [];
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        try {
+          const manifestPath = `${skillsDir}/${entry.name}/manifest.json`;
+          const raw = await fs.readFile(manifestPath, 'utf-8');
+          const manifest = JSON.parse(raw) as Partial<SkillPackage>;
+          summaries.push({
+            id: manifest.id || entry.name,
+            name: manifest.name || entry.name,
+            version: manifest.version || '0.0.0',
+            description: manifest.description || '',
+            author: manifest.author || { name: 'unknown', verified: false },
+            category: manifest.category || 'workflow',
+            targetPlatform: manifest.targetPlatform || 'claude_code',
+            pricingModel: manifest.pricingModel || 'free',
+            price: manifest.price || 0,
+            subscriptionPrice: manifest.subscriptionPrice,
+            fileCount: manifest.files?.length || 0,
+            permissions: manifest.permissions || [],
+            downloads: manifest.downloads || 0,
+            installs: manifest.installs || 0,
+            rating: manifest.rating || 0,
+            verified: manifest.verified || false,
+            deprecated: manifest.deprecated || false,
+            updatedAt: manifest.updatedAt ? new Date(manifest.updatedAt) : new Date(),
+          });
+        } catch {
+          // Skip directories without a valid manifest
+        }
+      }
+
+      return summaries;
+    } catch {
+      // Skills directory does not exist yet
+      return [];
+    }
   }
 
   // ─── Testing ─────────────────────────────────────────────────────────────────
@@ -470,7 +541,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     if (!skill) throw new Error(`Skill not found: ${skillId}`);
 
     const start = Date.now();
-    // TODO: integrate with actual LLM to test the skill
+    // Simulated execution — real LLM integration will pipe through MCP tools.
     const output = `[Simulated] Skill "${skill.name}" executed with prompt: "${prompt.slice(0, 50)}..."`;
     const duration = Date.now() - start;
 

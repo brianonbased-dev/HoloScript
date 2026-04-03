@@ -162,8 +162,8 @@ export class CodebaseScanner {
             if (sizeBytes > maxFileSize) return null;
 
             return { filePath, content, language, sizeBytes };
-          } catch (e: any) {
-            errors.push({ file: filePath, error: e.message, phase: 'read' });
+          } catch (e: unknown) {
+            errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' });
             return null;
           }
         });
@@ -223,8 +223,8 @@ export class CodebaseScanner {
           content = await readFile(filePath);
           sizeBytes = Buffer.byteLength(content, 'utf-8');
           if (sizeBytes > maxFileSize) continue;
-        } catch (e: any) {
-          errors.push({ file: filePath, error: e.message, phase: 'read' });
+        } catch (e: unknown) {
+          errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' });
           continue;
         }
 
@@ -260,9 +260,9 @@ export class CodebaseScanner {
             errors.push({ file: filePath, error: `No parser for ${language}`, phase: 'parse' });
             continue;
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (!(options.includeBuildArtifacts ?? false)) {
-            errors.push({ file: filePath, error: e.message, phase: 'parse' });
+            errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'parse' });
             continue;
           }
 
@@ -318,8 +318,8 @@ export class CodebaseScanner {
           }
 
           onProgress?.(files.length, filePaths.length, relPath);
-        } catch (e: any) {
-          errors.push({ file: filePath, error: e.message, phase: 'extract' });
+        } catch (e: unknown) {
+          errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'extract' });
         }
       }
     }
@@ -439,8 +439,8 @@ export class CodebaseScanner {
       content = await readFile(filePath);
       sizeBytes = Buffer.byteLength(content, 'utf-8');
       if (sizeBytes > maxFileSize) return {};
-    } catch (e: any) {
-      return { error: { file: filePath, error: e.message, phase: 'read' } };
+    } catch (e: unknown) {
+      return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' } };
     }
 
     // Parse with tree-sitter
@@ -470,9 +470,9 @@ export class CodebaseScanner {
       if (!tree) {
         return { error: { file: filePath, error: `No parser for ${language}`, phase: 'parse' } };
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (!includeBuildArtifacts) {
-        return { error: { file: filePath, error: e.message, phase: 'parse' } };
+        return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'parse' } };
       }
 
       // Dist-safe fallback
@@ -503,8 +503,8 @@ export class CodebaseScanner {
       return {
         file: { path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment },
       };
-    } catch (e: any) {
-      return { error: { file: filePath, error: e.message, phase: 'extract' } };
+    } catch (e: unknown) {
+      return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'extract' } };
     }
   }
 

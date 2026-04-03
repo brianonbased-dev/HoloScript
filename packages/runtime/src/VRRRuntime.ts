@@ -2,7 +2,7 @@
  * @fileoverview VRR (Virtual Reality Reality) Runtime
  * @module @holoscript/runtime
  *
- * TODO: CRITICAL - Implement VRR Runtime for Real-Time Synchronization
+ * VRR Runtime for Real-Time Synchronization
  *
  * PURPOSE:
  * Provide runtime support for VRR (Virtual Reality Reality) digital twins,

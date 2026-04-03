@@ -8,6 +8,7 @@
 import type {
   LanguageAdapter,
   ParseTree,
+  SyntaxNode,
   ExternalSymbolDefinition,
   ImportEdge,
   CallEdge,
@@ -208,7 +209,7 @@ export class GoAdapter implements LanguageAdapter {
     return this.isExported(name) ? 'public' : 'internal';
   }
 
-  private extractReceiverType(receiver: any): string | undefined {
+  private extractReceiverType(receiver: SyntaxNode): string | undefined {
     if (!receiver) return undefined;
     // (r *ReceiverType) or (r ReceiverType)
     for (const child of receiver.namedChildren) {
@@ -223,7 +224,7 @@ export class GoAdapter implements LanguageAdapter {
   }
 
   private extractStructFields(
-    structNode: any,
+    structNode: SyntaxNode,
     structName: string,
     filePath: string,
     symbols: ExternalSymbolDefinition[]

@@ -11,6 +11,7 @@ import type {
   SkillSearchQuery,
   SkillPublishRequest,
   SkillCategory,
+  SkillTargetPlatform,
   ApiResponse,
   SkillPackage,
   SkillSummary,
@@ -78,15 +79,15 @@ export function createSkillMarketplaceRoutes(service: SkillMarketplaceService): 
       const query: SkillSearchQuery = {
         q: req.query.q as string,
         category: req.query.category as SkillCategory,
-        targetPlatform: req.query.platform as any,
+        targetPlatform: req.query.platform as SkillTargetPlatform | undefined,
         author: req.query.author as string,
-        pricingModel: req.query.pricing as any,
+        pricingModel: req.query.pricing as SkillSearchQuery['pricingModel'],
         maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
         verified:
           req.query.verified === 'true' ? true : req.query.verified === 'false' ? false : undefined,
         minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
-        sortBy: (req.query.sortBy as any) || 'relevance',
-        sortOrder: (req.query.sortOrder as any) || 'desc',
+        sortBy: (req.query.sortBy as SkillSearchQuery['sortBy']) || 'relevance',
+        sortOrder: (req.query.sortOrder as SkillSearchQuery['sortOrder']) || 'desc',
         page: req.query.page ? Number(req.query.page) : 1,
         limit: req.query.limit ? Math.min(Number(req.query.limit), 100) : 20,
       };

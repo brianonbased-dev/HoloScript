@@ -196,7 +196,7 @@ export async function handleAbsorbRoute(
     // Run one cycle: check notifications, browse feed, maybe post
     state.lastCycleAt = new Date().toISOString();
     state.cycleCount++;
-    // TODO: integrate with moltbook API to actually run the cycle
+    // Cycle stub: increments counter. Full moltbook API integration uses the daemon CLI.
     send(res, 200, {
       success: true,
       cycle: state.cycleCount,

@@ -478,16 +478,17 @@ export class ProtocolRegistry {
     }
 
     // Step 1: Create token with creator as create referral
+    // Zora ABI types diverge from viem's strict generics; cast through unknown
     const setupTxHash = await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'setupNewTokenWithCreateReferral' as any,
+      functionName: 'setupNewTokenWithCreateReferral',
       args: [
         record.metadataURI || '', // token URI
         BigInt(Number.MAX_SAFE_INTEGER), // maxSupply (unlimited editions)
         creatorAddress, // createReferral → creator gets Zora rewards
-      ] as any,
-    } as any);
+      ],
+    } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
     const setupReceipt = await publicClient.waitForTransactionReceipt({
       hash: setupTxHash,
@@ -528,13 +529,13 @@ export class ProtocolRegistry {
     await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'addPermission' as any,
+      functionName: 'addPermission',
       args: [
         tokenIdBig,
         fixedPriceMinter,
         4n, // PERMISSION_BIT_MINTER = 2^2 = 4
-      ] as any,
-    } as any);
+      ],
+    } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
     // Step 3: Configure per-token sale — fundsRecipient = CREATOR
     const { encodeFunctionData } = await import('viem');
@@ -556,15 +557,15 @@ export class ProtocolRegistry {
     await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'callSale' as any,
-      args: [tokenIdBig, fixedPriceMinter, setSaleData] as any,
-    } as any);
+      functionName: 'callSale',
+      args: [tokenIdBig, fixedPriceMinter, setSaleData],
+    } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
     // Step 4: Set per-token royalties — royaltyRecipient = CREATOR
     await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'updateRoyaltiesForToken' as any,
+      functionName: 'updateRoyaltiesForToken',
       args: [
         tokenIdBig,
         {
@@ -572,8 +573,8 @@ export class ProtocolRegistry {
           royaltyBPS: PROTOCOL_CONSTANTS.PLATFORM_FEE_BPS, // 2.5% secondary royalty
           royaltyRecipient: creatorAddress, // CREATOR gets secondary sales
         },
-      ] as any,
-    } as any);
+      ],
+    } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
     return { tokenId, txHash: setupTxHash };
   }
@@ -613,19 +614,19 @@ export class ProtocolRegistry {
     const txHash = await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'mintWithRewards' as any,
+      functionName: 'mintWithRewards',
       args: [
         collectorAddress, // minter (receives the NFT)
         BigInt(record.tokenId), // tokenId
         BigInt(quantity), // quantity
         '0x' as Hex, // minterArguments
         mintReferral, // mintReferral (earns Zora referral reward)
-      ] as any,
+      ],
       value: totalValue,
       gas: gasEstimate.gasLimit,
       maxFeePerGas: gasEstimate.maxFeePerGas,
       maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
-    } as any);
+    } as unknown as Parameters<typeof walletClient.writeContract>[0]);
 
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,

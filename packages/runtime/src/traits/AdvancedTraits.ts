@@ -13,6 +13,7 @@ import {
   dispatchCustomEvent,
   type GamepadWithVibration,
   type HapticActuatorWithPulse,
+  type XRHandWithJoints,
 } from '../runtime-types';
 
 // =============================================================================
@@ -946,7 +947,7 @@ export const HandTrackingTrait: TraitHandler = {
 
     // Try to access XR hand from the renderer
     // This requires renderer.xr to be active
-    let xrHand: any = null;
+    let xrHand: XRHandWithJoints | null = null;
     let root: THREE.Object3D | null = context.object;
     while (root && root.parent) {
       root = root.parent;
@@ -955,7 +956,7 @@ export const HandTrackingTrait: TraitHandler = {
     // Check userData for renderer reference (set by runtime)
     const renderer = context.object.userData._renderer as THREE.WebGLRenderer | undefined;
     if (renderer && renderer.xr && renderer.xr.isPresenting) {
-      const hand = renderer.xr.getHand(handIndex);
+      const hand = renderer.xr.getHand(handIndex) as unknown as XRHandWithJoints | undefined;
       if (hand && hand.joints) {
         xrHand = hand;
       }

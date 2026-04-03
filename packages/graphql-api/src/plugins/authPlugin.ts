@@ -4,8 +4,14 @@
  */
 
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
+import type { GraphQLRequest } from '@apollo/server';
 import { GraphQLError } from 'graphql';
 import { authService, type AuthContext } from '../services/auth.js';
+
+/** Extended request type carrying auth context through the plugin pipeline. */
+interface AuthenticatedRequest extends GraphQLRequest {
+  authContext?: AuthContext;
+}
 
 export interface AuthPluginOptions {
   /**
@@ -77,7 +83,7 @@ export function createAuthPlugin(options: AuthPluginOptions = {}): ApolloServerP
           authContext = authService.authenticate(authHeader);
 
           // Store auth context in request for access in resolvers
-          (request as any).authContext = authContext;
+          (request as AuthenticatedRequest).authContext = authContext;
 
           // Check if operation requires authentication
           const isPublic = authService.isPublicOperation(operationName);
@@ -165,6 +171,6 @@ export function createAuthPlugin(options: AuthPluginOptions = {}): ApolloServerP
  * }
  * ```
  */
-export function getAuthContext(context: any): AuthContext {
-  return context.authContext || { user: null, isAuthenticated: false };
+export function getAuthContext(context: Record<string, unknown>): AuthContext {
+  return (context.authContext as AuthContext) || { user: null, isAuthenticated: false };
 }

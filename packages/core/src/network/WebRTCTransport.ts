@@ -57,8 +57,8 @@
  *   roomId: 'phoenix_downtown_vrr',
  *   peerId: 'player_123',
  *   iceServers: [{ urls: 'stun:stun.hololand.io:3478' }],
- *   spatialAudio: true, // TODO: Add spatial audio config
- *   interestManagement: { // TODO: Add interest management
+ *   spatialAudio: true, // @planned spatial audio config
+ *   interestManagement: { // @planned interest management
  *     enabled: true,
  *     radius: 500, // meters
  *     updateInterval: 100 // ms
@@ -101,7 +101,7 @@ export interface WebRTCTransportConfig {
   /** ICE servers for NAT traversal */
   iceServers?: RTCIceServer[];
 
-  // TODO: Add Hololand VRR multiplayer configuration
+  // @planned Hololand VRR multiplayer configuration
   // IMPLEMENTATION: Use Web Audio API PannerNode for 3D positional audio
   // - Create AudioContext and PannerNode per remote peer
   // - Update panner.setPosition() on every peer movement (from social packets)
@@ -117,7 +117,7 @@ export interface WebRTCTransportConfig {
   //   occlusionEnabled?: boolean; // reduce volume when walls block line-of-sight
   // };
   //
-  // TODO: Add interest management for 1000+ player scalability
+  // @planned Interest management for 1000+ player scalability
   // IMPLEMENTATION: Spatial partitioning to reduce O(n²) peer updates to O(log n)
   // - Grid: Divide world into 50m×50m cells, only sync players in same cell + adjacent 8 cells
   // - Quadtree: Hierarchical tree for dynamic player density (better for uneven distribution)
@@ -132,7 +132,7 @@ export interface WebRTCTransportConfig {
   //   spatialPartitioning?: 'grid' | 'quadtree'; // algorithm (grid = simpler, quadtree = adaptive)
   // };
   //
-  // TODO: Add x402 payment verification for premium features
+  // @planned x402 payment verification for premium features
   // IMPLEMENTATION: HTTP 402 Payment Required verification before enabling features
   // - Before getUserMedia(audio): POST to x402Endpoint with userId + feature='voice'
   // - Response 200 = paid, enable voice; Response 402 = unpaid, show payment modal
@@ -148,7 +148,7 @@ export interface WebRTCTransportConfig {
   //   x402Endpoint?: string; // x402 payment verification endpoint (e.g., /api/x402/verify)
   // };
   //
-  // TODO: Add VRR layer context (for AR → VRR → VR transitions)
+  // @planned VRR layer context (for AR -> VRR -> VR transitions)
   // IMPLEMENTATION: Persist state across AR → VRR → VR layer transitions
   // - AR layer: User scans QR code at coffee shop → store businessId + questId in localStorage
   // - VRR layer: Load from localStorage, show VRR twin with quest UI, sync progress to backend
@@ -164,7 +164,7 @@ export interface WebRTCTransportConfig {
   //   questId?: string; // For VRR quest context (e.g., 'latte_legend_quest')
   // };
   //
-  // TODO: Add AI agent voice synthesis configuration
+  // @planned AI agent voice synthesis configuration
   // IMPLEMENTATION: TTS for AI agents (NPCs, Story Weaver narrator) via WebRTC
   // - When AI agent speaks: POST text to TTS provider API (ElevenLabs/Replica/PlayHT)
   // - Receive audio stream (MP3/WAV), convert to MediaStream via Web Audio API

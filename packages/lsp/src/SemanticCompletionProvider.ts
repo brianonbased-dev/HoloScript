@@ -2,8 +2,14 @@ import { CompletionItem, CompletionItemKind } from 'vscode-languageserver/node.j
 import { SemanticSearchService, type AIAdapter } from '@holoscript/core';
 import { TRAIT_DOCS } from './traitDocs';
 
+interface TraitSearchItem {
+  name: string;
+  description: string;
+  doc: { annotation: string; description: string };
+}
+
 export class SemanticCompletionProvider {
-  private searchService: SemanticSearchService<any> | null = null;
+  private searchService: SemanticSearchService<TraitSearchItem> | null = null;
   private isInitialized = false;
 
   constructor(adapter?: AIAdapter) {
@@ -35,7 +41,7 @@ export class SemanticCompletionProvider {
     try {
       const results = await this.searchService.search(query, limit);
 
-      return results.map((result: { item: any; score: number }, index: number) => {
+      return results.map((result: { item: TraitSearchItem; score: number }, index: number) => {
         const { item, score } = result;
         const doc = item.doc;
 

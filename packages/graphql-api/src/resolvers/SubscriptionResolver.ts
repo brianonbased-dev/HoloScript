@@ -2,6 +2,7 @@ import { Resolver, Subscription, Root, Arg, Mutation } from 'type-graphql';
 import { createHash } from 'crypto';
 import {
   CompilationProgressPayload,
+  CompilationStage,
   ValidationResultPayload,
   ValidationInput,
   ParseResult,
@@ -36,14 +37,14 @@ export class SubscriptionResolver {
 
     // Filter by requestId if specified
     if (requestId && event.requestId !== requestId) {
-      return null as any; // Skip this event
+      return undefined as unknown as CompilationProgressPayload; // Skip this event
     }
 
     return {
       requestId: event.requestId,
       target: event.target,
       progress: event.progress,
-      stage: event.stage as any,
+      stage: event.stage as CompilationStage,
       message: event.message,
       timestamp: event.timestamp,
     };
@@ -100,13 +101,13 @@ export class SubscriptionResolver {
           codeHash,
           isValid: !!result.ast && (!result.errors || result.errors.length === 0),
           errors:
-            result.errors?.map((e: any) => ({
+            result.errors?.map((e: { message: string; location?: { line?: number; column?: number } }) => ({
               message: e.message,
               line: e.location?.line,
               column: e.location?.column,
             })) || [],
           warnings:
-            result.warnings?.map((w: any) => ({
+            result.warnings?.map((w: { message: string; location?: { line?: number; column?: number } }) => ({
               message: w.message,
               line: w.location?.line,
               column: w.location?.column,
@@ -123,7 +124,8 @@ export class SubscriptionResolver {
         errors: result.errors || [],
         warnings: result.warnings || [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : 'Unknown validation error';
       const codeHash = createHash('sha256').update(input.code).digest('hex').substring(0, 16);
 
       // Publish error event
@@ -132,7 +134,7 @@ export class SubscriptionResolver {
           code: input.code,
           codeHash,
           isValid: false,
-          errors: [{ message: error.message || 'Unknown validation error' }],
+          errors: [{ message: errMessage }],
           warnings: [],
           timestamp: Date.now(),
         });
@@ -143,9 +145,9 @@ export class SubscriptionResolver {
         ast: undefined,
         errors: [
           {
-            message: error.message || 'Unknown validation error',
-            location: error.location,
-            code: error.code,
+            message: errMessage,
+            location: (error as Record<string, unknown>)?.location as Record<string, unknown> | undefined,
+            code: (error as Record<string, unknown>)?.code as string | undefined,
           },
         ],
         warnings: [],

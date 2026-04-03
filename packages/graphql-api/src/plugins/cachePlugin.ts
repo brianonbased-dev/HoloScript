@@ -4,7 +4,13 @@
  */
 
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
+import type { GraphQLRequest } from '@apollo/server';
 import { createHash } from 'crypto';
+
+/** Extended request type carrying cached result through the plugin pipeline. */
+interface CacheableRequest extends GraphQLRequest {
+  __cachedResult?: Record<string, unknown>;
+}
 
 export interface CachePluginOptions {
   /**
@@ -33,7 +39,7 @@ export interface CachePluginOptions {
 }
 
 interface CacheEntry {
-  result: any;
+  result: Record<string, unknown>;
   timestamp: number;
   hits: number;
 }
@@ -56,12 +62,12 @@ class ResponseCache {
     this.ttl = ttl;
   }
 
-  private generateKey(operationName: string | undefined, variables: any): string {
+  private generateKey(operationName: string | undefined, variables: Record<string, unknown> | null): string {
     const key = `${operationName || 'unknown'}:${JSON.stringify(variables || {})}`;
     return createHash('sha256').update(key).digest('hex').substring(0, 16);
   }
 
-  get(operationName: string | undefined, variables: any): any | null {
+  get(operationName: string | undefined, variables: Record<string, unknown> | null): CacheEntry['result'] | null {
     const key = this.generateKey(operationName, variables);
     const entry = this.cache.get(key);
 
@@ -85,7 +91,7 @@ class ResponseCache {
     return entry.result;
   }
 
-  set(operationName: string | undefined, variables: any, result: any): void {
+  set(operationName: string | undefined, variables: Record<string, unknown> | null, result: Record<string, unknown>): void {
     const key = this.generateKey(operationName, variables);
 
     // Evict oldest entry if at capacity
@@ -171,7 +177,7 @@ export function createCachePlugin(
           const cached = cache.get(operationName, request.variables);
           if (cached) {
             cacheHit = true;
-            (request as any).__cachedResult = cached;
+            (request as CacheableRequest).__cachedResult = cached;
             console.log(`[Cache HIT] ${operationName}`);
           }
         },
@@ -180,17 +186,19 @@ export function createCachePlugin(
           const isCacheable = operationName && cacheableOps.has(operationName);
 
           // Return cached result if available
-          if ((request as any).__cachedResult) {
+          const cachedResult = (request as CacheableRequest).__cachedResult;
+          if (cachedResult) {
             response.body.kind = 'single';
             if (response.body.kind === 'single') {
+              const cachedExtensions = cachedResult.extensions as Record<string, unknown> | undefined;
               response.body.singleResult = {
-                ...(request as any).__cachedResult,
+                ...cachedResult,
                 extensions: includeStatus
                   ? {
-                      ...(request as any).__cachedResult.extensions,
+                      ...cachedExtensions,
                       cache: { hit: true },
                     }
-                  : (request as any).__cachedResult.extensions,
+                  : cachedExtensions,
               };
             }
             return;
