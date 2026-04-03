@@ -38,7 +38,7 @@ export interface HttpRequest {
   url: string;
   path: string;
   headers: Record<string, string | string[] | undefined>;
-  body?: any;
+  body?: unknown;
 }
 
 /**
@@ -46,13 +46,13 @@ export interface HttpRequest {
  */
 export interface HttpResponse {
   status(code: number): HttpResponse;
-  json(body: any): void;
+  json(body: unknown): void;
 }
 
 /**
  * Next function type (compatible with Express)
  */
-export type NextFunction = (error?: any) => void;
+export type NextFunction = (error?: unknown) => void;
 
 /**
  * PoP middleware configuration

@@ -60,7 +60,7 @@ export function extractComponentsFromRequest(req: {
   method: string;
   url: string;
   headers: Record<string, string | string[] | undefined>;
-  body?: any;
+  body?: unknown;
 }): SignatureComponents {
   const components: SignatureComponents = {
     '@method': req.method.toUpperCase(),

@@ -51,8 +51,8 @@ export interface ASTChange {
   path: string[];
   nodeName: string;
   nodeType: 'object' | 'property' | 'trait' | 'logic' | 'composition';
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
 }
 
 /**
