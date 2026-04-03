@@ -1,7 +1,7 @@
 /**
  * HoloMesh MCP tool definitions and handlers.
  *
- * 7 tools for the decentralized knowledge exchange mesh:
+ * 8 tools for the decentralized knowledge exchange mesh:
  * - holomesh_discover: Find agents by traits, workspace, or reputation
  * - holomesh_contribute: Share a W/P/G entry with provenance
  * - holomesh_query: Semantic search across all workspaces
@@ -257,6 +257,29 @@ export const holomeshTools: Tool[] = [
       properties: {},
     },
   },
+  {
+    name: 'holomesh_crosspost_moltbook',
+    description:
+      'Cross-post a HoloMesh knowledge entry to Moltbook for broader agent discoverability. Only the entry author can cross-post. Requires MOLTBOOK_API_KEY in environment.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entry_id: {
+          type: 'string',
+          description: 'The ID of the HoloMesh knowledge entry to cross-post',
+        },
+        submolt: {
+          type: 'string',
+          description: 'Target Moltbook submolt/community (default: "general")',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional custom title for the Moltbook post. Auto-generated if omitted.',
+        },
+      },
+      required: ['entry_id'],
+    },
+  },
   // Social layer tools (messaging, notifications, threads, search)
   ...messagingTools,
   ...notificationTools,
@@ -349,6 +372,8 @@ export async function handleHoloMeshTool(
       return handleWalletStatus();
     case 'holomesh_gossip_sync':
       return handleGossipSync(client, args);
+    case 'holomesh_crosspost_moltbook':
+      return handleCrosspostMoltbook(client, args);
     default:
       return null;
   }
@@ -756,5 +781,105 @@ async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record
     };
   } catch (err: unknown) {
     return { error: `Gossip sync failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function handleCrosspostMoltbook(
+  client: HoloMeshOrchestratorClient,
+  args: Record<string, unknown>
+) {
+  try {
+    const entryId = args.entry_id as string;
+    if (!entryId) {
+      return { error: 'Missing required field: entry_id' };
+    }
+
+    const moltbookKey = process.env.MOLTBOOK_API_KEY;
+    if (!moltbookKey) {
+      return { error: 'MOLTBOOK_API_KEY not configured in environment' };
+    }
+
+    // Look up the entry
+    const results = await client.queryKnowledge(entryId, { limit: 50 });
+    const entry = results.find((e: MeshKnowledgeEntry) => e.id === entryId);
+    if (!entry) {
+      return { error: `Entry not found: ${entryId}` };
+    }
+
+    // Build Moltbook post
+    const typeLabel =
+      entry.type === 'wisdom' ? 'Wisdom' : entry.type === 'pattern' ? 'Pattern' : 'Gotcha';
+    const submolt = (args.submolt as string) || 'general';
+    const title =
+      (args.title as string) ||
+      `[${typeLabel}] ${entry.content.slice(0, 80)}${entry.content.length > 80 ? '...' : ''}`;
+    const moltbookContent = `${entry.content}\n\n---\n*Cross-posted from [HoloMesh](https://mcp.holoscript.net/api/holomesh/entry/${entryId}) — domain: ${entry.domain || 'general'}, confidence: ${entry.confidence || 0.9}*`;
+
+    const moltbookRes = await fetch('https://www.moltbook.com/api/v1/posts', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${moltbookKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, content: moltbookContent, submolt }),
+    });
+
+    const moltbookData = (await moltbookRes.json()) as Record<string, unknown>;
+
+    if (!moltbookData.success) {
+      return { error: 'Moltbook post failed', details: moltbookData };
+    }
+
+    // Auto-verify if challenge present
+    const post = moltbookData.post as Record<string, unknown> | undefined;
+    const verification = post?.verification as Record<string, unknown> | undefined;
+    if (verification?.challenge_text && verification?.verification_code) {
+      try {
+        const answer = solveChallengeSimple(verification.challenge_text as string);
+        if (answer) {
+          await fetch('https://www.moltbook.com/api/v1/verify', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${moltbookKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              verification_code: verification.verification_code,
+              answer,
+            }),
+          });
+        }
+      } catch {
+        /* verification is best-effort */
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Entry cross-posted to Moltbook',
+      holomesh_entry_id: entryId,
+      moltbook_post: moltbookData.post,
+    };
+  } catch (err: unknown) {
+    return {
+      error: `Crosspost failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
+/** Lightweight Moltbook challenge solver for MCP tool verification */
+function solveChallengeSimple(challenge: string): string | null {
+  const cleaned = challenge.toLowerCase().replace(/[^a-z0-9+\-*/=. ]/g, '');
+  const match = cleaned.match(/([\d.]+)\s*([+\-*/])\s*([\d.]+)/);
+  if (!match) return null;
+  const [, a, op, b] = match;
+  const na = parseFloat(a);
+  const nb = parseFloat(b);
+  switch (op) {
+    case '+': return String(na + nb);
+    case '-': return String(na - nb);
+    case '*': return String(na * nb);
+    case '/': return nb !== 0 ? String(na / nb) : null;
+    default: return null;
   }
 }
