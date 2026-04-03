@@ -2,8 +2,6 @@
 /**
  * CinematicCameraPanel — Cinematic camera control panel for scene capture
  *
- * TODO-058: Cinematic Camera Control Panel
- *
  * Features:
  * - Dolly, truck, pedestal, pan, tilt, zoom controls
  * - Keyframe timeline with add/remove/interpolation

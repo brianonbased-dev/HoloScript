@@ -36,7 +36,7 @@ interface ProceduralMeshProps {
   bulge?: number;
 }
 
-function toBufferGeometry(data: any): THREE.BufferGeometry {
+function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
@@ -59,14 +59,14 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         break;
       case 'spline':
         data = generateSplineGeometry(
-          (props.points as any) || [],
-          (props.radii as any) || [0.1],
+          props.points || [],
+          props.radii || [0.1],
           32,
           12
         );
         break;
       case 'membrane':
-        data = generateMembraneGeometry((props.anchors as any) || [], props.subdivisions || 8);
+        data = generateMembraneGeometry(props.anchors || [], props.subdivisions || 8);
         break;
       default:
         return new THREE.BoxGeometry(1, 1, 1);

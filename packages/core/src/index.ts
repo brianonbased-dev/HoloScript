@@ -300,7 +300,7 @@ export {
 export { DeltaCompressor, type StateDelta } from './network/DeltaCompressor';
 export { StateSynchronizer, type StateSubscriber } from './network/StateSynchronizer';
 
-// Performance Monitoring (Phase 7 - TODO-020)
+// Performance Monitoring (Phase 7)
 export { telemetry } from './monitoring/telemetry';
 
 // Core types

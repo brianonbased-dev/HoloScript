@@ -179,7 +179,7 @@ export const ShapePoolRenderer: React.FC<ShapePoolRendererProps> = ({
   if (count === 0) return null;
 
   return (
-    <group position={position} rotation={rotation as any}>
+    <group position={position} rotation={rotation}>
       <instancedMesh
         ref={meshRef}
         args={[geometry, material, count]}

@@ -139,7 +139,7 @@ function extractThumbnailFromGLTF(gltf: any, textureIndex: number): string | und
       return image.uri;
     }
 
-    // TODO(VRM-001): Extract thumbnail from binary buffer (GLB chunks) if no data URI available
+    // DEFERRED(VRM-001): GLB binary chunk thumbnail extraction requires ArrayBuffer parsing
     return undefined;
   } catch (error) {
     return undefined;

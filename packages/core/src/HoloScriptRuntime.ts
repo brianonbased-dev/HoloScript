@@ -174,7 +174,7 @@ export class HoloScriptRuntime {
         fn(spreadArgs)) as unknown as MethodNode);
     }
 
-    // Attention Graph Query (TODO-018)
+    // Attention Graph Query
     // Allows scripts to cull massive global state arrays into top-k attended components efficiently.
     this.registerFunction('get_attended_entities', (args: HoloScriptValue[]) => {
       const topK = typeof args[0] === 'number' ? args[0] : 10;
@@ -3705,7 +3705,7 @@ export class HoloScriptRuntime {
   public loadSkill(skill: ProceduralSkill): void {
     logger.info(`[Procedural] Loading skill: ${skill.name} (${skill.id})`);
 
-    // Skill Merging implementation (TODO-015):
+    // Skill Merging implementation:
     // If we receive a network version of a skill we already know, merge the success rate
     const existing = this.proceduralSkills.get(skill.id);
     if (existing) {

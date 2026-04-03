@@ -275,7 +275,8 @@ export const HairRenderer: React.FC<HairRendererProps> = ({
   position,
   opacity = 1.0,
 }) => {
-  const meshRef = useRef<THREE.Mesh | THREE.LineSegments>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
+  const lineRef = useRef<THREE.LineSegments>(null);
 
   const hairColor = useMemo(
     () => melaninToColor(melanin, melaninRedness),
@@ -327,14 +328,14 @@ export const HairRenderer: React.FC<HairRendererProps> = ({
   if (mode === 'strands') {
     return (
       <group position={position}>
-        <lineSegments ref={meshRef as any} geometry={geometry} material={material} />
+        <lineSegments ref={lineRef} geometry={geometry} material={material} />
       </group>
     );
   }
 
   return (
     <group position={position}>
-      <mesh ref={meshRef as any} geometry={geometry} material={material} />
+      <mesh ref={meshRef} geometry={geometry} material={material} />
     </group>
   );
 };

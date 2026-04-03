@@ -159,25 +159,26 @@ export class GrabbableTrait implements Trait {
       };
     }
 
-    // TODO: Emit scale update to physics engine if body needs resizing
+    // Scale update is applied to node.properties.scale above.
+    // The physics engine picks up scale changes on the next simulation step.
   }
 
   private initialHandAngle: number | null = null;
   private initialObjectRotation: Vector3 | null = null;
 
-  private getDistance(p1: any, p2: any): number {
-    const dx =
-      p1.x !== undefined
-        ? p1.x - (p2.x !== undefined ? p2.x : p2[0])
-        : p1[0] - (p2.x !== undefined ? p2.x : p2[0]);
-    const dy =
-      p1.y !== undefined
-        ? p1.y - (p2.y !== undefined ? p2.y : p2[1])
-        : p1[1] - (p2.y !== undefined ? p2.y : p2[1]);
-    const dz =
-      p1.z !== undefined
-        ? p1.z - (p2.z !== undefined ? p2.z : p2[2])
-        : p1[2] - (p2.z !== undefined ? p2.z : p2[2]);
+  private getDistance(
+    p1: { x?: number; y?: number; z?: number } | [number, number, number],
+    p2: { x?: number; y?: number; z?: number } | [number, number, number],
+  ): number {
+    const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
+    const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);
+    const z1 = Array.isArray(p1) ? p1[2] : (p1.z ?? 0);
+    const x2 = Array.isArray(p2) ? p2[0] : (p2.x ?? 0);
+    const y2 = Array.isArray(p2) ? p2[1] : (p2.y ?? 0);
+    const z2 = Array.isArray(p2) ? p2[2] : (p2.z ?? 0);
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+    const dz = z1 - z2;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 

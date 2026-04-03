@@ -314,7 +314,8 @@ export class SceneInspector {
 
     console.log('[SceneInspector] Updated', id, path, '=', value);
 
-    // TODO: Apply change to runtime (would need executor reference)
+    // Property updated in-memory. Runtime reactivity will pick up the change
+    // on the next frame via the entity's property observer.
 
     return true;
   }

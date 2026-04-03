@@ -2,8 +2,6 @@
 /**
  * AssetImportDropZone — Drag-and-drop 3D asset import component
  *
- * TODO-057: Asset Import Drag-and-Drop Zone
- *
  * Features:
  * - Drag & drop support for GLTF/GLB, OBJ, FBX, USD/USDZ files
  * - File validation with format detection and size limits

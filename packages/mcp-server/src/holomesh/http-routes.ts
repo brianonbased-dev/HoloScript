@@ -669,8 +669,8 @@ function atomicWriteJSON(filePath: string, data: unknown): void {
     const tmp = filePath + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tmp, filePath);
-  } catch (e: any) {
-    console.warn('[HoloMesh] persist failed:', e?.message);
+  } catch (e: unknown) {
+    console.warn('[HoloMesh] persist failed:', e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -2031,8 +2031,8 @@ export async function handleHoloMeshRoute(
         }
         const profileData = await profileRes.json();
         mbProfile = profileData.agent;
-      } catch (err: any) {
-        json(res, 502, { error: `Failed to reach Moltbook API: ${err.message}` });
+      } catch (err: unknown) {
+        json(res, 502, { error: `Failed to reach Moltbook API: ${err instanceof Error ? err.message : String(err)}` });
         return true;
       }
 
@@ -2221,8 +2221,8 @@ export async function handleHoloMeshRoute(
           preview: { posts, comments },
           seedReputation: Math.min(agent.karma / 100, 50),
         });
-      } catch (err: any) {
-        json(res, 502, { error: `Failed to reach Moltbook: ${err.message}` });
+      } catch (err: unknown) {
+        json(res, 502, { error: `Failed to reach Moltbook: ${err instanceof Error ? err.message : String(err)}` });
       }
       return true;
     }
@@ -2411,8 +2411,8 @@ export async function handleHoloMeshRoute(
             createdAt: new Date().toISOString(),
           },
         ]);
-      } catch (e: any) {
-        console.warn('[HoloMesh] private workspace init failed:', e?.message);
+      } catch (e: unknown) {
+        console.warn('[HoloMesh] private workspace init failed:', e instanceof Error ? e.message : String(e));
       }
 
       const response: Record<string, unknown> = {
@@ -3250,8 +3250,8 @@ export async function handleHoloMeshRoute(
             createdAt: new Date().toISOString(),
           },
         ]);
-      } catch (e: any) {
-        console.warn('[HoloMesh] team workspace init failed:', e?.message);
+      } catch (e: unknown) {
+        console.warn('[HoloMesh] team workspace init failed:', e instanceof Error ? e.message : String(e));
       }
 
       json(res, 201, {
@@ -3648,10 +3648,20 @@ export async function handleHoloMeshRoute(
       const tasks = Array.isArray(body.tasks) ? body.tasks : [body];
       const added: TeamTask[] = [];
 
+      // Fuzzy dedup against existing board + done log
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+      const existingNorm = new Set([
+        ...team.taskBoard.map((t) => normalize(t.title)),
+        ...(team.doneLog || []).map((d) => normalize(d.title)),
+      ]);
+
       for (const t of tasks) {
+        const title = String(t.title || '').slice(0, 200);
+        if (!title || existingNorm.has(normalize(title))) continue; // skip empty or duplicate
+
         const task: TeamTask = {
           id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          title: String(t.title || '').slice(0, 200),
+          title,
           description: String(t.description || '').slice(0, 1000),
           status: 'open',
           source: String(t.source || 'manual'),
@@ -3659,9 +3669,9 @@ export async function handleHoloMeshRoute(
           role: t.role as SlotRole || undefined,
           createdAt: new Date().toISOString(),
         };
-        if (task.title) {
-          team.taskBoard.push(task);
-          added.push(task);
+        team.taskBoard.push(task);
+        existingNorm.add(normalize(title)); // prevent intra-batch dupes
+        added.push(task);
         }
       }
       persistTeamStore();
@@ -3772,10 +3782,13 @@ export async function handleHoloMeshRoute(
         }
       }
 
-      // Dedup against existing board
-      const existing = new Set(team.taskBoard.map((t) => t.title));
-      const doneSet = new Set((team.doneLog || []).map((d) => d.title));
-      const fresh = derived.filter((t) => !existing.has(t.title) && !doneSet.has(t.title));
+      // Dedup against existing board + done log (fuzzy: normalize titles)
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+      const existingNorm = new Set([
+        ...team.taskBoard.map((t) => normalize(t.title)),
+        ...(team.doneLog || []).map((d) => normalize(d.title)),
+      ]);
+      const fresh = derived.filter((t) => !existingNorm.has(normalize(t.title)));
 
       team.taskBoard.push(...fresh);
       persistTeamStore();
@@ -4903,8 +4916,8 @@ export async function handleHoloMeshRoute(
           holomesh_entry_id: entryId,
           moltbook_post: moltbookData.post,
         });
-      } catch (err: any) {
-        json(res, 502, { error: 'Failed to reach Moltbook API', details: err.message });
+      } catch (err: unknown) {
+        json(res, 502, { error: 'Failed to reach Moltbook API', details: err instanceof Error ? err.message : String(err) });
       }
       return true;
     }
@@ -4973,8 +4986,8 @@ export async function handleHoloMeshRoute(
 
     // No route matched
     return false;
-  } catch (err: any) {
-    json(res, 500, { error: err.message || 'Internal server error' });
+  } catch (err: unknown) {
+    json(res, 500, { error: (err instanceof Error ? err.message : String(err)) || 'Internal server error' });
     return true;
   }
 }

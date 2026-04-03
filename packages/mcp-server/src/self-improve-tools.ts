@@ -19,6 +19,16 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/** Error shape from child_process.exec — includes stdout/stderr from the failed command. */
+interface ExecError extends Error {
+  stdout?: string;
+  stderr?: string;
+}
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const execAsync = promisify(exec);
 
 // =============================================================================
@@ -382,8 +392,8 @@ async function handleWriteFile(args: Record<string, unknown>): Promise<unknown> 
       bytesWritten: Buffer.byteLength(content, 'utf-8'),
       linesWritten: content.split('\n').length,
     };
-  } catch (err: any) {
-    return { error: `Write failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Write failed: ${errMsg(err)}` };
   }
 }
 
@@ -422,8 +432,8 @@ async function handleEditFile(args: Record<string, unknown>): Promise<unknown> {
       filePath,
       replacements: 1,
     };
-  } catch (err: any) {
-    return { error: `Edit failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Edit failed: ${errMsg(err)}` };
   }
 }
 
@@ -454,8 +464,8 @@ async function handleReadFile(args: Record<string, unknown>): Promise<unknown> {
       totalLines: lines.length,
       content: slice.map((line, i) => `${start + i + 1}: ${line}`).join('\n'),
     };
-  } catch (err: any) {
-    return { error: `Read failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Read failed: ${errMsg(err)}` };
   }
 }
 
@@ -496,8 +506,8 @@ async function handleGitCommit(args: Record<string, unknown>): Promise<unknown> 
       message,
       output: stdout.trim(),
     };
-  } catch (err: any) {
-    return { error: `Git commit failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Git commit failed: ${errMsg(err)}` };
   }
 }
 
@@ -543,10 +553,10 @@ async function handleRunTestsTargeted(args: Record<string, unknown>): Promise<un
       success: !output.includes('FAIL'),
       rawOutput: output.slice(0, 5000),
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       success: false,
-      error: err.message?.slice(0, 2000),
+      error: errMsg(err).slice(0, 2000),
     };
   }
 }
@@ -567,8 +577,9 @@ async function handleListTypeErrors(args: Record<string, unknown>): Promise<unkn
         maxBuffer: 50 * 1024 * 1024,
       });
       output = result.stdout + result.stderr;
-    } catch (err: any) {
-      output = (err.stdout ?? '') + (err.stderr ?? '');
+    } catch (e: unknown) {
+      const execErr = e as ExecError;
+      output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
     }
 
     const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -625,8 +636,8 @@ async function handleListTypeErrors(args: Record<string, unknown>): Promise<unkn
           ? `Showing ${errors.length} of ${totalErrors} errors. Fix the top files first.`
           : undefined,
     };
-  } catch (err: any) {
-    return { error: `Failed to run tsc: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Failed to run tsc: ${errMsg(err)}` };
   }
 }
 
@@ -646,8 +657,9 @@ async function handleBatchTypeFix(args: Record<string, unknown>): Promise<unknow
         maxBuffer: 50 * 1024 * 1024,
       });
       output = result.stdout + result.stderr;
-    } catch (err: any) {
-      output = (err.stdout ?? '') + (err.stderr ?? '');
+    } catch (e: unknown) {
+      const execErr = e as ExecError;
+      output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
     }
 
     const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -719,8 +731,8 @@ async function handleBatchTypeFix(args: Record<string, unknown>): Promise<unknow
         `Then ${sortedCodes[1]?.[0]} (${sortedCodes[1]?.[1]?.length}). ` +
         `Target the file with the most errors in each group for maximum impact.`,
     };
-  } catch (err: any) {
-    return { error: `Failed to run tsc: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Failed to run tsc: ${errMsg(err)}` };
   }
 }
 
@@ -744,8 +756,9 @@ async function handleVerifyBeforeCommit(args: Record<string, unknown>): Promise<
         maxBuffer: 50 * 1024 * 1024,
       });
       output = result.stdout + result.stderr;
-    } catch (err: any) {
-      output = (err.stdout ?? '') + (err.stderr ?? '');
+    } catch (e: unknown) {
+      const execErr = e as ExecError;
+      output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
     }
 
     const allErrors = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -776,8 +789,8 @@ async function handleVerifyBeforeCommit(args: Record<string, unknown>): Promise<
           ? 'Safe to commit — no type errors in changed files.'
           : `${totalRelevant} type errors in changed files. Fix before committing.`,
     };
-  } catch (err: any) {
-    return { error: `Verification failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Verification failed: ${errMsg(err)}` };
   }
 }
 
@@ -817,9 +830,10 @@ async function handleRunRelatedTests(args: Record<string, unknown>): Promise<unk
       rawOutput: output.slice(0, 3000),
       sourceFiles,
     };
-  } catch (err: any) {
+  } catch (e: unknown) {
     // vitest --related exits non-zero if tests fail
-    const output = (err.stdout ?? '') + (err.stderr ?? '');
+    const execErr = e as ExecError;
+    const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
     const jsonMatch = output.match?.(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
     if (jsonMatch) {
       try {
@@ -835,7 +849,7 @@ async function handleRunRelatedTests(args: Record<string, unknown>): Promise<unk
         /* fall through */
       }
     }
-    return { success: false, error: err.message?.slice(0, 1000), sourceFiles };
+    return { success: false, error: errMsg(e).slice(0, 1000), sourceFiles };
   }
 }
 
@@ -953,8 +967,8 @@ async function handleQualityTrend(args: Record<string, unknown>): Promise<unknow
         focus: h.focus,
       })),
     };
-  } catch (err: any) {
-    return { error: `Failed to analyze history: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Failed to analyze history: ${errMsg(err)}` };
   }
 }
 
@@ -1125,9 +1139,10 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
       score: tscScore(errorCount),
       details: errorCount === 0 ? 'No type errors' : `${errorCount} type error(s)`,
     };
-  } catch (err: any) {
+  } catch (e: unknown) {
     // tsc exits non-zero when there are errors — this is normal, not a crash
-    const output = (err.stdout ?? '') + (err.stderr ?? '');
+    const execErr = e as ExecError;
+    const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
     const tsErrors = output.match?.(/error TS\d+/g) ?? [];
     const errorCount = tsErrors.length;
     // Also check for "Found N errors" summary line as fallback
@@ -1167,9 +1182,10 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
       } catch {
         scores.tests = { pass: true, score: 0.8, details: 'Tests ran but JSON parse failed' };
       }
-    } catch (err: any) {
+    } catch (e: unknown) {
       // Try to extract partial results even from failed runs
-      const output = (err.stdout ?? '') + (err.stderr ?? '');
+      const execErr = e as ExecError;
+      const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
       const jsonMatch = output.match?.(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
       if (jsonMatch) {
         try {
@@ -1188,7 +1204,7 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
         scores.tests = {
           pass: false,
           score: 0.1,
-          details: `Test suite failed: ${err.message?.slice(0, 200)}`,
+          details: `Test suite failed: ${errMsg(e).slice(0, 200)}`,
         };
       }
     }
@@ -1205,8 +1221,9 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
         maxBuffer: 50 * 1024 * 1024,
       });
       scores.lint = { pass: true, score: 1.0, details: 'No lint errors' };
-    } catch (err: any) {
-      const output = (err.stdout ?? '') + (err.stderr ?? '');
+    } catch (e: unknown) {
+      const execErr = e as ExecError;
+      const output = (execErr.stdout ?? '') + (execErr.stderr ?? '');
       // Count actual ESLint problem lines (format: "N problems (X errors, Y warnings)")
       const summaryMatch = output.match(/(\d+) problems? \((\d+) errors?, (\d+) warnings?\)/);
       let errorCount: number;

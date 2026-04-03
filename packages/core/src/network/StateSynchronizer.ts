@@ -31,15 +31,15 @@ export class StateSynchronizer {
   private entityPositions: Map<string, { x: number; y: number; z: number }> = new Map();
   private entityShards: Map<string, string> = new Map();
 
-  // Procedural Skill Syncer Mesh (TODO-015)
+  // Procedural Skill Syncer Mesh
   private skillSubscribers: Set<SkillSubscriber> = new Set();
 
-  // Adaptive Batching Metrics (TODO-016)
+  // Adaptive Batching Metrics
   private pendingBatch: ScoredDelta[] = [];
   private batchTimer: ReturnType<typeof setTimeout> | null = null;
   private currentBatchWindowMs = 50;
 
-  // Persistent Storage (TODO-031)
+  // Persistent Storage (WAL)
   private wal: TransactionLog = new TransactionLog();
 
   // Active Transport Mesh

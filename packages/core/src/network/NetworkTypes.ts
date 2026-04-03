@@ -586,7 +586,7 @@ export const CONNECTION_DEFAULTS: Required<IConnectionConfig> = {
   roomId: 'default',
   peerId: '',
   topology: 'client-server',
-  maxPeers: 16, // TODO(W.NET.01): Increase to 100+ once tiered consistency is in place
+  maxPeers: 16, // Increase to 100+ once tiered consistency (P.NET.01) is in place
   timeout: 10000,
   reconnectAttempts: 5,
   reconnectDelay: 1000,

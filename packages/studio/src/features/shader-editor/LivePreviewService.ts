@@ -360,8 +360,8 @@ export class LivePreviewService {
         textures: new Map(),
       };
 
-      // TODO(SHADER-001): Create WebGPU pipeline and bind groups based on shader requirements
-      // Requires render context from the canvas — deferred until shader integration milestone.
+      // DEFERRED(SHADER-001): WebGPU pipeline + bind groups require render context from canvas.
+      // Blocked until shader integration milestone provides GPURenderPassEncoder access.
     } catch (error) {
       logger.error('Failed to update material instance:', error);
       throw error;

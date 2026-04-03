@@ -1,6 +1,30 @@
 import { World, Entity } from '../ecs/World';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
+/** Convert Euler angles (radians) to quaternion { x, y, z, w }. */
+function eulerToQuat(euler: { x: number; y: number; z: number }): {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+} {
+  const halfX = euler.x * 0.5;
+  const halfY = euler.y * 0.5;
+  const halfZ = euler.z * 0.5;
+  const cx = Math.cos(halfX);
+  const sx = Math.sin(halfX);
+  const cy = Math.cos(halfY);
+  const sy = Math.sin(halfY);
+  const cz = Math.cos(halfZ);
+  const sz = Math.sin(halfZ);
+  return {
+    x: sx * cy * cz - cx * sy * sz,
+    y: cx * sy * cz + sx * cy * sz,
+    z: cx * cy * sz - sx * sy * cz,
+    w: cx * cy * cz + sx * sy * sz,
+  };
+}
+
 /**
  * UIBuilder
  *
@@ -31,7 +55,7 @@ export class UIBuilder {
 
     this.world.addComponent(entity, 'Transform', {
       position,
-      rotation: { ...rotation, w: 1 }, // TODO: Euler to Quat conversion if needed
+      rotation: eulerToQuat(rotation),
       scale,
       parent, // If World supports hierarchy via component, or handle manually
     });

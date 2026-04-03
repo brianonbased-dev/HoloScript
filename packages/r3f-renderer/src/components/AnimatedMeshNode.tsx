@@ -10,7 +10,7 @@
  */
 
 import { useRef, useMemo, Suspense } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
 import * as THREE from 'three';
 import { getGeometry, getMaterialProps, isScaledBody } from '../utils/materialUtils';
@@ -215,22 +215,28 @@ export function AnimatedMeshNode({
 
   // Parse keyframe sequences
   const sequences: KeyframeSequence[] = useMemo(() => {
-    const raw = props.keyframes as any[];
-    if (!raw || !Array.isArray(raw)) return [];
-    return raw.map((kf: any) => ({
-      name: kf.name || 'default',
-      stops: (kf.stops || []).map((s: any) => ({
-        percent: s.percent ?? 0,
-        position: s.position,
-        rotation: s.rotation,
-        scale: s.scale,
-        color: s.color,
-        opacity: s.opacity,
-      })),
-      duration: kf.duration || 1000,
-      easing: kf.easing || 'linear',
-      loop: kf.loop ?? true,
-    }));
+    const raw: unknown[] = Array.isArray(props.keyframes) ? props.keyframes : [];
+    return raw.map((kf) => {
+      const k = kf as Record<string, unknown>;
+      const stops = Array.isArray(k.stops) ? k.stops : [];
+      return {
+        name: (k.name as string) || 'default',
+        stops: stops.map((s) => {
+          const st = s as Record<string, unknown>;
+          return {
+            percent: (st.percent as number) ?? 0,
+            position: st.position as [number, number, number] | undefined,
+            rotation: st.rotation as [number, number, number] | undefined,
+            scale: st.scale as [number, number, number] | number | undefined,
+            color: st.color as string | undefined,
+            opacity: st.opacity as number | undefined,
+          };
+        }),
+        duration: (k.duration as number) || 1000,
+        easing: (k.easing as string) || 'linear',
+        loop: (k.loop as boolean) ?? true,
+      };
+    });
   }, [props.keyframes]);
 
   const startTimeRef = useRef<number | null>(null);
@@ -296,7 +302,7 @@ export function AnimatedMeshNode({
     ?.filter((c: R3FNode) => c.type === 'mesh')
     .map((child: R3FNode, i: number) => {
       const childHasKeyframes =
-        child.props?.keyframes && (child.props.keyframes as any[]).length > 0;
+        child.props?.keyframes && Array.isArray(child.props.keyframes) && child.props.keyframes.length > 0;
       return childHasKeyframes ? (
         <AnimatedMeshNode
           key={child.id || `child-${i}`}
@@ -320,10 +326,10 @@ export function AnimatedMeshNode({
       <mesh
         ref={meshRef}
         position={basePosition}
-        rotation={baseRotation.map((r: number) => THREE.MathUtils.degToRad(r)) as any}
+        rotation={baseRotation.map((r: number) => THREE.MathUtils.degToRad(r)) as [number, number, number]}
         scale={typeof baseScale === 'number' ? [baseScale, baseScale, baseScale] : baseScale}
         userData={{ nodeId: node.id }}
-        onClick={(e: any) => {
+        onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (isBreakMode && node.id) {
             onRemove?.(node.id);
@@ -411,7 +417,7 @@ function StaticChildMesh({
       rotation={rotation}
       scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
       userData={{ nodeId: node.id }}
-      onClick={(e: any) => {
+      onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         onSelect?.(node.id || null);
       }}

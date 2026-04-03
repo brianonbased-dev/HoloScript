@@ -47,7 +47,7 @@ export class HoloScriptAgentRuntime {
   private runningActions: Map<string, Promise<unknown>> = new Map();
   private isDestroyed: boolean = false;
 
-  // Episodic Memory & Semantic Extraction (Phase 7 // TODO-019)
+  // Episodic Memory & Semantic Extraction (Phase 7)
   private rawEpisodes: EpisodicMemory[] = [];
   public semanticFacts: SemanticFact[] = [];
   private consolidationInterval: NodeJS.Timeout | null = null;

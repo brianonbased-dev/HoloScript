@@ -148,9 +148,9 @@ export function createHoloMeshDaemonActions(
         wallet!.getAddress(),
         wallet!.getChainId()
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Graceful degradation — missing env var or wallet dep should not crash daemon (G.WALLET.01)
-      console.warn(`[holomesh] Wallet init failed (continuing without wallet): ${err.message}`);
+      console.warn(`[holomesh] Wallet init failed (continuing without wallet): ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -205,8 +205,8 @@ export function createHoloMeshDaemonActions(
             address: wallet.getAddress(),
             signature,
           };
-        } catch (err: any) {
-          log(`Wallet signing failed (falling back to UUID): ${err.message}`);
+        } catch (err: unknown) {
+          log(`Wallet signing failed (falling back to UUID): ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
@@ -224,8 +224,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Registered on mesh: ${id}${walletAuth ? ' (wallet-authenticated)' : ''}`);
       return true;
-    } catch (err: any) {
-      log(`Registration failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Registration failed: ${err instanceof Error ? err.message : String(err)}`);
       state.errors++;
       return false;
     }
@@ -241,8 +241,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Discovered ${peers.length} peers`);
       return peers.length > 0;
-    } catch (err: any) {
-      log(`Discovery failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Discovery failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -255,8 +255,8 @@ export function createHoloMeshDaemonActions(
       state.unreadMessages = unprocessed.length;
       log(`Inbox: ${unprocessed.length} unread messages`);
       return unprocessed.length > 0;
-    } catch (err: any) {
-      log(`Inbox check failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Inbox check failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -328,8 +328,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Contributed ${batch.length} entries (${synced} synced)`);
       return true;
-    } catch (err: any) {
-      log(`Contribution failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Contribution failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -354,8 +354,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Queried "${topic}": ${newResults.length} new results`);
       return newResults.length > 0;
-    } catch (err: any) {
-      log(`Query failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Query failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -386,8 +386,8 @@ export function createHoloMeshDaemonActions(
         state.spentUSD += entry.price;
         state.totalPaymentsMade++;
         collected++;
-      } catch (err: any) {
-        log(`Payment record failed for ${entry.id}: ${err.message}`);
+      } catch (err: unknown) {
+        log(`Payment record failed for ${entry.id}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -471,8 +471,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Gossip sync: ${synced}/${targets.length} peers synced`);
       return synced > 0;
-    } catch (err: any) {
-      log(`Gossip sync failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Gossip sync failed: ${err instanceof Error ? err.message : String(err)}`);
       state.errors++;
       return false;
     }
@@ -518,8 +518,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`P2P discovery complete: ${discovery.getPeerCount()} peers known`);
       return discovery.getPeerCount() > 0;
-    } catch (err: any) {
-      log(`P2P discovery failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`P2P discovery failed: ${err instanceof Error ? err.message : String(err)}`);
       state.errors++;
       return false;
     }
@@ -535,8 +535,8 @@ export function createHoloMeshDaemonActions(
       const saved = worldState.saveSnapshot();
       log(`CRDT snapshot ${saved ? 'saved' : 'skipped (no path)'}`);
       return saved;
-    } catch (err: any) {
-      log(`CRDT persist failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`CRDT persist failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -576,8 +576,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Balance: ${state.walletBalanceUSDC} USDC`);
       return true;
-    } catch (err: any) {
-      log(`Balance check failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Balance check failed: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -600,8 +600,8 @@ export function createHoloMeshDaemonActions(
         `Batch settlement: ${result.settled} settled, ${result.failed} failed, $${result.totalVolume} volume`
       );
       return result.settled > 0;
-    } catch (err: any) {
-      log(`Micro settlement failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Micro settlement failed: ${err instanceof Error ? err.message : String(err)}`);
       state.errors++;
       return false;
     }
@@ -639,8 +639,8 @@ export function createHoloMeshDaemonActions(
 
       log(`Agent profile created: ${profile.displayName} (${profile.did})`);
       return true;
-    } catch (err: any) {
-      log(`Profile creation failed: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Profile creation failed: ${err instanceof Error ? err.message : String(err)}`);
       state.errors++;
       return false;
     }
@@ -704,10 +704,10 @@ export function createHoloMeshDaemonActions(
 
       saveCurrentState();
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Graceful degradation: if UnifiedBudgetOptimizer unavailable, fall back to economic-only
       blackboard.has_budget = state.spentUSD < state.budgetCapUSD;
-      log(`Resource pressure check failed (economic-only fallback): ${err.message}`);
+      log(`Resource pressure check failed (economic-only fallback): ${err instanceof Error ? err.message : String(err)}`);
       return true; // Don't fail the cycle — just use economic-only gate
     }
   };
@@ -860,8 +860,8 @@ export function createHoloMeshDaemonActions(
       saveCurrentState();
       log(`Workspace sync: ${meshEntries.length} entries posted to HoloMesh (${synced} synced)`);
       return true;
-    } catch (err: any) {
-      log(`Workspace sync error: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Workspace sync error: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };
@@ -937,8 +937,8 @@ export function createHoloMeshDaemonActions(
       blackboard.moltbook_crossposted = true;
       log(`Moltbook crosspost: "${title.slice(0, 50)}..." → ${moltbookData.post?.id || 'posted'}`);
       return true;
-    } catch (err: any) {
-      log(`Moltbook crosspost error: ${err.message}`);
+    } catch (err: unknown) {
+      log(`Moltbook crosspost error: ${err instanceof Error ? err.message : String(err)}`);
       return false;
     }
   };

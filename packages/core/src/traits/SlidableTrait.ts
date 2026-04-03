@@ -34,7 +34,7 @@ export class SlidableTrait implements Trait {
       min: -length / 2,
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       max: length / 2,
-      // friction: 0.5 // TODO: Support friction in constraint event
+      // friction: 0.5 // Not yet supported by the physics_add_constraint event schema
     });
   }
 
@@ -87,7 +87,8 @@ export class SlidableTrait implements Trait {
       // Haptic Tick
       // trigger every 10% change?
       if (Math.floor(value * 10) !== Math.floor(this.lastValue * 10)) {
-        context.haptics.rumble('right', 0.2); // TODO: Hand detection
+        // Rumble both hands — physics contact alone doesn't identify which hand is sliding.
+        context.haptics.rumble('right', 0.2);
         context.haptics.rumble('left', 0.2);
       }
 

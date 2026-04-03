@@ -217,8 +217,9 @@ export async function handleThreadTool(
           reply,
           thread_count: getReplyCount(entryId),
         };
-      } catch (err: any) {
-        return { error: err.message };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { error: msg };
       }
     }
 
@@ -347,9 +348,10 @@ export async function handleThreadRoute(
           thread_count: getReplyCount(entryId),
         },
       };
-    } catch (err: any) {
-      const status = err.message.includes('maximum') ? 429 : 400;
-      return { status, body: { error: err.message } };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const status = msg.includes('maximum') ? 429 : 400;
+      return { status, body: { error: msg } };
     }
   }
 

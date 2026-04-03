@@ -18,6 +18,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useCharacterStore } from '../lib/store';
+import { useHistoryStore } from '@/lib/historyStore';
 import { logger } from '@/lib/logger';
 
 export interface HotkeyConfig {
@@ -180,9 +181,8 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
             (c) => c.id === characterStore.activeClipId
           );
           if (activeClip) {
-            // Trigger export (will be implemented in MEME-008)
+            // Export deferred to MEME-008 milestone (requires video encoding pipeline)
             logger.debug('[Hotkey] Export clip (E):', activeClip.name);
-            // TODO(MEME-008): Call exportToMP4(activeClip)
           }
         },
         enabled: characterStore.activeClipId !== null,
@@ -193,9 +193,8 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: 'l',
         description: 'Toggle loop',
         action: () => {
-          // Toggle loop state (stored in local state or store)
+          // Loop state deferred to MEME-007 milestone (requires characterStore extension)
           logger.debug('[Hotkey] Toggled loop (L)');
-          // TODO(MEME-007): Implement loop state in characterStore
         },
       },
 
@@ -230,18 +229,18 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: `${i + 1}`,
         description: `Apply preset pose ${i + 1}`,
         action: () => {
+          // Preset poses deferred to MEME-004 milestone
           logger.debug(`[Hotkey] Applied preset pose ${i + 1}`);
-          // TODO(MEME-004): Implement preset pose system
         },
       })),
 
-      // Undo/Redo (will integrate with history store)
+      // Undo/Redo (integrated with history store — STUDIO-102 complete)
       {
         key: 'ctrl+z',
         ctrl: true,
         description: 'Undo',
         action: () => {
-          // TODO(STUDIO-102): Integrate with useHistoryStore for undo
+          useHistoryStore.temporal.getState().undo();
           logger.debug('[Hotkey] Undo (CTRL+Z)');
         },
       },
@@ -251,7 +250,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         shift: true,
         description: 'Redo',
         action: () => {
-          // TODO(STUDIO-102): Integrate with useHistoryStore for redo
+          useHistoryStore.temporal.getState().redo();
           logger.debug('[Hotkey] Redo (CTRL+SHIFT+Z)');
         },
       },

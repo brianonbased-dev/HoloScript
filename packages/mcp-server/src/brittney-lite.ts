@@ -282,8 +282,8 @@ async function handleExplainError(args: Record<string, unknown>) {
         const result = parser.parse(code);
         errors = result.errors || [];
       }
-    } catch (e: any) {
-      errors = [{ message: e.message, line: 1 }];
+    } catch (e: unknown) {
+      errors = [{ message: e instanceof Error ? e.message : String(e), line: 1 }];
     }
   }
 

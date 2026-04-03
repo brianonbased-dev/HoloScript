@@ -377,8 +377,8 @@ async function handlePublishInsight(
       message: 'Insight published to local mesh lattice as a spatial AST object. Ready for gossip.',
       agentId,
     };
-  } catch (err: any) {
-    return { error: `Publish failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Publish failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -399,8 +399,8 @@ async function handleDiscover(client: HoloMeshOrchestratorClient, args: Record<s
       count: Math.min(peers.length, limit),
       total: peers.length,
     };
-  } catch (err: any) {
-    return { error: `Discovery failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Discovery failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -442,8 +442,8 @@ async function handleContribute(client: HoloMeshOrchestratorClient, args: Record
       synced,
       type: entryType,
     };
-  } catch (err: any) {
-    return { error: `Contribute failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Contribute failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -462,8 +462,8 @@ async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<stri
       count: results.length,
       query: search,
     };
-  } catch (err: any) {
-    return { error: `Query failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Query failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -492,8 +492,8 @@ async function handleGossip(client: HoloMeshOrchestratorClient, args: Record<str
       target: to || 'broadcast',
       messageType: args.type,
     };
-  } catch (err: any) {
-    return { error: `Gossip failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Gossip failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -511,8 +511,8 @@ async function handleSubscribe(client: HoloMeshOrchestratorClient, args: Record<
       topic,
       agentId: client.getAgentId(),
     };
-  } catch (err: any) {
-    return { error: `Subscribe failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Subscribe failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -543,8 +543,8 @@ async function handleStatus(client: HoloMeshOrchestratorClient) {
       reputation,
       unreadMessages: inbox.length,
     };
-  } catch (err: any) {
-    return { error: `Status failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Status failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -576,8 +576,8 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
       referrer,
       walletRequired: true,
     };
-  } catch (err: any) {
-    return { error: `Collect failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Collect failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -596,8 +596,8 @@ async function handleQuerySpatial(
       message: 'Spatial query returning raw spatial entities from feed.',
       entities: worldState.queryFeedView(),
     };
-  } catch (err: any) {
-    return { error: `Query spatial failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Query spatial failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -611,8 +611,8 @@ async function handleFeedSource(client: HoloMeshOrchestratorClient) {
       success: true,
       source: worldState.getFeedSource(),
     };
-  } catch (err: any) {
-    return { error: `Feed source failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Feed source failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -707,7 +707,7 @@ export async function handleInboundGossip(
       signatureVerified,
       responderHealth: discovery.buildHealthMetadata(),
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return { success: false };
   }
 }
@@ -754,7 +754,7 @@ async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record
       attempted: targets.length,
       message: `Successfully gossiped bounded CRDT vector states with ${synced}/${targets.length} peers`,
     };
-  } catch (err: any) {
-    return { error: `Gossip sync failed: ${err.message}` };
+  } catch (err: unknown) {
+    return { error: `Gossip sync failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }

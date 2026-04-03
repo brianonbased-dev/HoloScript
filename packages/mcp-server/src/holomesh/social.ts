@@ -44,8 +44,8 @@ function persistGraphStore(): void {
     const tmp = SOCIAL_GRAPH_PATH + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tmp, SOCIAL_GRAPH_PATH);
-  } catch (e: any) {
-    console.warn('[HoloMesh:social] persist failed:', e?.message);
+  } catch (e: unknown) {
+    console.warn('[HoloMesh:social] persist failed:', e instanceof Error ? e.message : String(e));
   }
 }
 

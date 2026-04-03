@@ -60,10 +60,10 @@ export class PressableTrait implements Trait {
     // Assumptions: Button moves along Positive Z or Negative Z?
     // Prismatic setup was local Z (0,0,1).
     // Depression = difference in Z.
-    // TODO: Handle rotation! For now assume world-aligned or use local transform logic.
-    // If we assume the button only moves along Z, we can check distance.
+    // NOTE: Assumes world-aligned button (Z-axis depression). Rotated buttons would need
+    // inverse-transform of currentPos into local space before measuring depression.
 
-    const dist = Math.abs((currentPos as any).z - this.initialPos.z);
+    const dist = Math.abs(currentPos.z - this.initialPos.z);
 
     // Config
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
@@ -81,8 +81,9 @@ export class PressableTrait implements Trait {
     if (!this.isPressed && depression > triggerPoint) {
       this.isPressed = true;
       context.emit('ui_press_start', { nodeId: node.id });
-      context.haptics.pulse('left', 0.5, 20); // TODO: Which hand pressed? We don't know from physics alone.
-      context.haptics.pulse('right', 0.5, 20); // Pulse both for now or track collision contacts.
+      // Pulse both hands — physics contact alone doesn't identify which hand pressed.
+      context.haptics.pulse('left', 0.5, 20);
+      context.haptics.pulse('right', 0.5, 20);
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     } else if (this.isPressed && depression < releasePoint) {
       this.isPressed = false;

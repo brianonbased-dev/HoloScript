@@ -91,6 +91,11 @@ export class ViralPoseTrait {
   private boneMap: Map<string, THREE.Bone> = new Map();
   private onPoseChangeCallbacks: Array<(pose: ViralPose) => void> = [];
 
+  // VRM AnimationMixer integration
+  private mixer: THREE.AnimationMixer | null = null;
+  private clipActions: Map<string, THREE.AnimationAction> = new Map();
+  private activeClipAction: THREE.AnimationAction | null = null;
+
   constructor(config: ViralPoseConfig = {}) {
     // Default configuration
     this.config = {
@@ -185,6 +190,102 @@ export class ViralPoseTrait {
   }
 
   /**
+   * Attach to a THREE.AnimationMixer for VRM clip-based animation playback.
+   * Animation clips loaded from VRM/GLB files are registered by name.
+   */
+  attachToMixer(mixer: THREE.AnimationMixer, clips: THREE.AnimationClip[]): void {
+    this.mixer = mixer;
+    this.clipActions.clear();
+
+    for (const clip of clips) {
+      const action = mixer.clipAction(clip);
+      this.clipActions.set(clip.name, action);
+    }
+
+    logger.debug(
+      '[ViralPoseTrait] Attached to mixer with',
+      this.clipActions.size,
+      'clips:',
+      clips.map((c) => c.name)
+    );
+  }
+
+  /**
+   * Play a VRM animation clip by name through the attached mixer.
+   * Crossfades from any currently playing clip.
+   *
+   * @param clipName - Name of the animation clip to play
+   * @param options - Playback options (loop, speed, fadeIn duration)
+   * @returns true if the clip was found and played
+   */
+  playClip(
+    clipName: string,
+    options?: { loop?: boolean; speed?: number; fadeInDuration?: number }
+  ): boolean {
+    if (!this.mixer) {
+      logger.warn('[ViralPoseTrait] No mixer attached, cannot play clip:', clipName);
+      return false;
+    }
+
+    const action = this.clipActions.get(clipName);
+    if (!action) {
+      logger.warn('[ViralPoseTrait] Clip not found:', clipName);
+      return false;
+    }
+
+    const fadeIn = options?.fadeInDuration ?? 0.2;
+    const speed = options?.speed ?? 1.0;
+    const loop = options?.loop ?? false;
+
+    // Fade out current clip if playing
+    if (this.activeClipAction && this.activeClipAction !== action) {
+      this.activeClipAction.fadeOut(fadeIn);
+    }
+
+    // Configure and play new clip
+    action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    action.clampWhenFinished = !loop;
+    action.timeScale = speed;
+    action.reset().fadeIn(fadeIn).play();
+
+    this.activeClipAction = action;
+
+    logger.debug(
+      '[ViralPoseTrait] Playing clip:',
+      clipName,
+      'speed:', speed,
+      'loop:', loop
+    );
+
+    return true;
+  }
+
+  /**
+   * Stop any currently playing VRM clip animation.
+   */
+  stopClip(fadeOutDuration?: number): void {
+    if (this.activeClipAction) {
+      this.activeClipAction.fadeOut(fadeOutDuration ?? 0.2);
+      this.activeClipAction = null;
+      logger.debug('[ViralPoseTrait] Stopped active clip');
+    }
+  }
+
+  /**
+   * Get available animation clip names from the attached mixer.
+   */
+  getAvailableClips(): string[] {
+    return Array.from(this.clipActions.keys());
+  }
+
+  /**
+   * Check if a clip name exists in the attached mixer.
+   */
+  hasClip(clipName: string): boolean {
+    return this.clipActions.has(clipName);
+  }
+
+  /**
    * Start auto-cycling
    */
   start(): void {
@@ -204,9 +305,17 @@ export class ViralPoseTrait {
   }
 
   /**
-   * Trigger specific pose by ID
+   * Trigger specific pose by ID.
+   * If a mixer is attached and has a clip matching the poseId, plays the clip.
+   * Otherwise falls back to bone-pose interpolation from the pose library.
    */
   triggerPose(poseId: string): void {
+    // Try clip-based playback first when a mixer is attached
+    if (this.mixer && this.clipActions.has(poseId)) {
+      this.playClip(poseId);
+      return;
+    }
+
     const pose = getPoseById(poseId);
     if (!pose) {
       logger.warn('[ViralPoseTrait] Pose not found:', poseId);
@@ -262,6 +371,11 @@ export class ViralPoseTrait {
    * Update (call in animation loop)
    */
   update(deltaTime: number): void {
+    // Tick the VRM mixer if attached (clip animations run through it)
+    if (this.mixer) {
+      this.mixer.update(deltaTime / 1000); // deltaTime is ms, mixer expects seconds
+    }
+
     if (!this.skeleton || this.poseSequence.length === 0) return;
 
     if (this.state.isTransitioning) {
@@ -418,9 +532,13 @@ export class ViralPoseTrait {
    */
   dispose(): void {
     this.stop();
+    this.stopClip(0);
     this.onPoseChangeCallbacks = [];
     this.boneMap.clear();
     this.skeleton = null;
+    this.clipActions.clear();
+    this.activeClipAction = null;
+    this.mixer = null;
   }
 }
 

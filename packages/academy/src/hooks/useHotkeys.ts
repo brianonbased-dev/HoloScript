@@ -18,6 +18,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useCharacterStore } from '../lib/store';
+import { useHistoryStore } from '@/lib/historyStore';
 
 export interface HotkeyConfig {
   key: string;
@@ -176,8 +177,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
             (c) => c.id === characterStore.activeClipId
           );
           if (activeClip) {
-            // Trigger export (will be implemented in MEME-008)
-            // TODO: Call exportToMP4(activeClip)
+            // Export deferred to MEME-008 milestone (requires video encoding pipeline)
           }
         },
         enabled: characterStore.activeClipId !== null,
@@ -188,8 +188,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: 'l',
         description: 'Toggle loop',
         action: () => {
-          // Toggle loop state (stored in local state or store)
-          // TODO: Implement loop state
+          // Loop state deferred to MEME-007 milestone (requires characterStore extension)
         },
       },
 
@@ -222,17 +221,17 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: `${i + 1}`,
         description: `Apply preset pose ${i + 1}`,
         action: () => {
-          // TODO: Implement preset pose system (MEME-004)
+          // Preset poses deferred to MEME-004 milestone
         },
       })),
 
-      // Undo/Redo (will integrate with history store)
+      // Undo/Redo (integrated with history store)
       {
         key: 'ctrl+z',
         ctrl: true,
         description: 'Undo',
         action: () => {
-          // TODO: Integrate with useHistoryStore
+          useHistoryStore.temporal.getState().undo();
         },
       },
       {
@@ -241,7 +240,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         shift: true,
         description: 'Redo',
         action: () => {
-          // TODO: Integrate with useHistoryStore
+          useHistoryStore.temporal.getState().redo();
         },
       },
     ];

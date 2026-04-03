@@ -56,7 +56,7 @@ export function HologramGif({
   const meshRef = useRef<THREE.Mesh>(null);
   const [frames, setFrames] = useState<
     Array<{
-      texture: THREE.DataTexture;
+      texture: THREE.Texture;
       delayMs: number;
     }>
   >([]);
@@ -80,7 +80,7 @@ export function HologramGif({
       texture.colorSpace = THREE.SRGBColorSpace;
       const img = texture.image;
       if (img) setAspect(img.width / img.height);
-      setFrames([{ texture: texture as any, delayMs: 100 }]);
+      setFrames([{ texture, delayMs: 100 }]);
     });
 
     return () => {

@@ -1202,18 +1202,19 @@ async function handleGenerate3DObject(args: Record<string, unknown>) {
       provider: result.metadata.provider,
       generationTimeMs: result.metadata.generationTimeMs,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     // Check for missing API key
-    if (error.message?.includes('API_KEY required')) {
+    if (msg.includes('API_KEY required')) {
       return {
         success: false,
-        error: error.message,
+        error: msg,
         hint: 'Set MESHY_API_KEY or TRIPO_API_KEY in your environment',
       };
     }
     return {
       success: false,
-      error: error.message || 'Text-to-3D generation failed',
+      error: msg || 'Text-to-3D generation failed',
     };
   }
 }

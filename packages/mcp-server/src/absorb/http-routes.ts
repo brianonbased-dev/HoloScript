@@ -27,6 +27,16 @@ interface AgentState {
 
 const agentStates = new Map<string, AgentState>();
 
+/** Extract a user identifier from the request's Authorization header, falling back to 'default'. */
+function extractUserId(req: http.IncomingMessage): string {
+  const auth = req.headers['authorization'];
+  if (auth?.startsWith('Bearer ') && auth.length > 7) {
+    // Use last 8 chars of the token as a stable user identifier
+    return `user_${auth.slice(-8)}`;
+  }
+  return 'default';
+}
+
 // ── Helpers ──
 
 function readBody(req: http.IncomingMessage): Promise<string> {
@@ -119,7 +129,7 @@ export async function handleAbsorbRoute(
     const id = `agent_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
     const state: AgentState = {
       id,
-      userId: 'default', // TODO: extract from auth
+      userId: extractUserId(req),
       agentName: agent_name,
       heartbeatEnabled: false,
       lastCycleAt: null,

@@ -1,10 +1,8 @@
 import { TraitConstraint } from '../types';
 
-// TODO(P.PROCGEN.01): Zone/world-level constraints now in ZoneWorldConstraints.ts.
-//   Object-level constraints here remain the source of truth for single-entity rules.
-//   SemanticExpander compiler pass will chain: object → zone → world validation.
-// TODO(W.SIG25.01): AVBD physics solver (SIGGRAPH 2025 Audience Choice) can handle
-//   millions of objects. Review physics constraints below for updated performance budgets.
+// Zone/world-level constraints live in ZoneWorldConstraints.ts.
+// Object-level constraints here remain the source of truth for single-entity rules.
+// SemanticExpander compiler pass chains: object -> zone -> world validation.
 export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
   // =============================================================================
   // PHYSICS & INTERACTION REQUIREMENTS

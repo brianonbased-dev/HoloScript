@@ -6,15 +6,13 @@ import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from '
  * Run HoloScript agents on local LLMs: Ollama, LM Studio, llama.cpp.
  * No API key. Privacy-first. Full SSE streaming.
  *
- * TODO(P.XR.02): Add 'executorch' backend for on-device XR inference.
- *   ExecuTorch + QNN Delegate: 50KB footprint, native Hexagon NPU support.
- *   Llama 3.2 1B/3B at 4-bit groupwise quantization, 25-40 tok/s on NPU.
- *   New LLMBackend type: 'executorch'. No HTTP — direct native bridge.
+ * P.XR.02: 'executorch' backend for on-device XR inference.
+ *   Type defined in LLMBackend union. Implementation pending:
+ *   ExecuTorch + QNN Delegate, native Hexagon NPU, no HTTP — direct native bridge.
  *
- * TODO(W.032): Add 'bitnet' backend for ultra-low-power inference.
- *   BitNet 2B at 1.58-bit: 400MB, 20-35 tok/s, 55-70% energy reduction.
- *   Ternary weights ({-1, 0, 1}) — all multiply → add/subtract.
- *   Mathematical convergence with SNN perception layer.
+ * W.032: 'bitnet' backend for ultra-low-power inference.
+ *   Type defined in LLMBackend union. Implementation pending:
+ *   BitNet 2B at 1.58-bit, ternary weights, SNN perception convergence.
  *
  * TODO(P.XR.07): Dynamic memory budget manager integration.
  *   GS primitives vs KV cache is zero-sum on 8GB Quest 3.
