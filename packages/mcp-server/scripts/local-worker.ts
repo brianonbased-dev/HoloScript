@@ -29,22 +29,24 @@ import * as path from 'path';
 
 // ── Config ──
 
-const OLLAMA_MODEL = process.argv.includes('--model')
-  ? process.argv[process.argv.indexOf('--model') + 1]
-  : 'brittney-qwen';
+function getArg(flag: string, fallback: string): string {
+  const idx = process.argv.indexOf(flag);
+  return idx >= 0 && process.argv[idx + 1] ? process.argv[idx + 1] : fallback;
+}
 
-const ROOM_ID = process.argv.includes('--room')
-  ? process.argv[process.argv.indexOf('--room') + 1]
-  : 'team_d141a6972eac1e9d';
+const WORKER_NAME = getArg('--name', `gpu-worker-${process.pid}`);
+const OLLAMA_MODEL = getArg('--model', 'brittney-qwen');
+const ROOM_ID = getArg('--room', 'team_d141a6972eac1e9d');
+const ROLE = getArg('--role', 'flex'); // coder, tester, researcher, reviewer, flex
 
 const API = 'https://mcp.holoscript.net/api/holomesh';
 const OLLAMA_URL = 'http://localhost:11434';
 const HOLOSCRIPT_ROOT = path.resolve(__dirname, '..', '..', '..');
 const HEARTBEAT_MS = 60_000;
-const TASK_CHECK_MS = 120_000; // check board every 2 min
+const TASK_CHECK_MS = 90_000; // check board every 90s
 
 let AGENT_KEY = '';
-let AGENT_NAME = 'local-worker';
+let AGENT_NAME = WORKER_NAME;
 
 // ── HTTP helpers ──
 
@@ -96,13 +98,20 @@ async function ensureOllama(): Promise<boolean> {
 
 async function askOllama(prompt: string): Promise<string> {
   try {
-    const res = await post(`${OLLAMA_URL}/api/generate`, {
-      model: OLLAMA_MODEL,
-      prompt,
-      stream: false,
-      options: { temperature: 0.1, num_predict: 500 },
+    // 120s timeout — cold start loads 8GB model into VRAM
+    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        prompt,
+        stream: false,
+        options: { temperature: 0.1, num_predict: 500 },
+      }),
+      signal: AbortSignal.timeout(120_000),
     });
-    return res.response?.trim() || '';
+    const data = await res.json() as any;
+    return data.response?.trim() || '';
   } catch (e) {
     console.error('[worker] Ollama error:', e);
     return '';
@@ -124,9 +133,9 @@ async function registerAgent(): Promise<boolean> {
 
   // Register new agent
   const res = await post(`${API}/quickstart`, {
-    name: `local-worker-${process.platform}`,
-    description: 'Local GPU worker agent (Ollama). Handles P3 tasks, board grooming, cleanup.',
-    traits: ['@local-gpu', '@worker', '@cleanup'],
+    name: WORKER_NAME,
+    description: `Local GPU worker (${OLLAMA_MODEL}, role: ${ROLE}). Handles P3 tasks, board grooming, cleanup.`,
+    traits: ['@local-gpu', '@worker', `@${ROLE}`],
   });
 
   const apiKey = res.api_key || res.agent?.api_key;
@@ -217,6 +226,8 @@ function canHandle(task: any): boolean {
   const text = `${title} ${desc}`;
   // Only P3+ tasks, only ones matching simple patterns
   if (task.priority < 3) return false;
+  // If worker has a role, prefer tasks matching that role
+  if (ROLE !== 'flex' && task.role && task.role !== ROLE && task.role !== 'flex') return false;
   return HANDLEABLE_PATTERNS.some((p) => p.test(text));
 }
 
@@ -270,6 +281,7 @@ async function executeTask(task: any): Promise<string> {
 
 async function main() {
   console.log('[worker] HoloScript Local GPU Worker Agent');
+  console.log(`[worker] Name: ${WORKER_NAME}, Role: ${ROLE}`);
   console.log(`[worker] Model: ${OLLAMA_MODEL}, Room: ${ROOM_ID}`);
   console.log(`[worker] Root: ${HOLOSCRIPT_ROOT}`);
   console.log('');
