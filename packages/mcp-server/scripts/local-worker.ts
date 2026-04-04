@@ -24,7 +24,7 @@
  *   npx pm2 start packages/mcp-server/scripts/ecosystem.scout.cjs --only holoscout
  */
 
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -73,9 +73,15 @@ const WORKER_NAME = process.env.HOLOMESH_WORKER_NAME || 'holoscout';
 const LEGACY_WORKER_NAMES = new Set(['gpu-worker']);
 const ROOM_ID = 'team_d141a6972eac1e9d';
 const HOLOMESH_API = 'https://mcp.holoscript.net/api/holomesh';
-const OLLAMA_URL = 'http://localhost:11434';
 const HEARTBEAT_MS = 60_000;
 const CYCLE_MS = 90_000;
+
+// ── LLM Config (Claude API — same pattern as ollama-client.ts) ──
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const CLAUDE_MODEL = process.env.SCOUT_CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+const OPENROUTER_MODEL = process.env.SCOUT_OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
+const LLM_TIMEOUT = 30_000; // 30s — scout needs fast responses
 
 let AGENT_KEY = '';
 let AGENT_NAME = WORKER_NAME;
@@ -186,15 +192,65 @@ function readFarmSource(relativePath: string, maxLines = 300): string {
   }
 }
 
-// ── Setup ──
+// ── LLM Client (lightweight Claude API — no SDK dependency) ──
 
-async function ensureOllama(): Promise<boolean> {
-  try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch {
-    spawn('ollama', ['serve'], { detached: true, stdio: 'ignore' }).unref();
-    for (let i = 0; i < 10; i++) { await new Promise(r => setTimeout(r, 2000)); try { await get(`${OLLAMA_URL}/api/tags`); return true; } catch { /* intentionally swallowed: polling for ollama startup */ } }
-    return false;
+async function queryClaude(prompt: string, system: string, maxTokens = 1024): Promise<string | null> {
+  // Try OpenRouter first (preferred), then direct Anthropic
+  if (OPENROUTER_API_KEY) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://mcp.holoscript.net',
+          'X-Title': 'HoloScript Scout',
+        },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: maxTokens,
+        }),
+        signal: AbortSignal.timeout(LLM_TIMEOUT),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+        return data.choices?.[0]?.message?.content || null;
+      }
+    } catch { /* fall through to Anthropic */ }
   }
+
+  if (ANTHROPIC_API_KEY) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        signal: AbortSignal.timeout(LLM_TIMEOUT),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { content: Array<{ text: string }> };
+        return data.content?.[0]?.text || null;
+      }
+    } catch { /* no LLM available */ }
+  }
+
+  return null; // graceful fallback — scout works without LLM
 }
+
+// ── Setup ──
 
 async function registerAgent(): Promise<boolean> {
   const keyFile = path.join(ROOT, '.local-worker-key');
@@ -257,11 +313,21 @@ async function scoutTasks() {
     return;
   }
 
-  // Extract keywords and find relevant files
-  const keywords = task.title
-    .split(/\s+/)
-    .filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix|the|for|and|with/i.test(w))
-    .slice(0, 3);
+  // Extract keywords — use Claude if available, fall back to naive split
+  let keywords: string[];
+  const claudeKeywords = await queryClaude(
+    `Extract 3-5 search keywords from this task title for finding relevant TypeScript source files in a monorepo. Return ONLY the keywords, one per line, no explanation.\n\nTask: "${task.title}"`,
+    'You extract precise code-search keywords from task descriptions. Return only lowercase keywords, one per line.',
+    128,
+  );
+  if (claudeKeywords) {
+    keywords = claudeKeywords.split(/\n/).map(k => k.trim()).filter(k => k.length > 2 && !k.includes(' ')).slice(0, 5);
+  } else {
+    keywords = task.title
+      .split(/\s+/)
+      .filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix|the|for|and|with/i.test(w))
+      .slice(0, 3);
+  }
 
   const findings: string[] = [];
   for (const kw of keywords) {
@@ -330,21 +396,43 @@ async function watchGit() {
   // Check if changed files relate to any open tasks
   const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
   const open = (board?.board?.open || []) as any[];
+  const fileList = changedFiles.split('\n').filter((l: string) => l.trim());
+
+  // Use Claude to match files to tasks semantically
+  const claudeMatch = open.length > 0 ? await queryClaude(
+    `Given these changed files:\n${fileList.slice(0, 15).join('\n')}\n\nAnd these open tasks:\n${open.slice(0, 15).map((t: any, i: number) => `${i + 1}. ${t.title}`).join('\n')}\n\nWhich tasks are related to the changed files? Return ONLY lines in format: "task number: file path" — one per line. If none match, return "none".`,
+    'You are a code-aware assistant that matches git changes to task board items. Be precise — only match when the file change is clearly relevant to the task.',
+    256,
+  ) : null;
 
   const related: string[] = [];
-  const fileList = changedFiles.split('\n').filter(l => l.trim());
-  for (const task of open.slice(0, 20)) {
-    const title = (task.title || '').toLowerCase();
-    for (const file of fileList) {
-      const fileLower = file.toLowerCase();
-      if (title.includes('studio') && fileLower.includes('studio')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
-      else if (title.includes('header') && fileLower.includes('header')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
-      else if (title.includes('orchestrator') && fileLower.includes('orchestrator')) related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
+  if (claudeMatch && !claudeMatch.toLowerCase().startsWith('none')) {
+    for (const line of claudeMatch.split('\n').filter((l: string) => l.trim())) {
+      const match = line.match(/^(\d+)\s*[:.]\s*(.+)/);
+      if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        const task = open[idx];
+        if (task) related.push(`"${task.title.slice(0, 40)}" ← ${match[2].trim()}`);
+      }
+    }
+  }
+
+  // Fallback: naive keyword matching if Claude unavailable
+  if (!claudeMatch) {
+    for (const task of open.slice(0, 20)) {
+      const titleWords = (task.title || '').toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
+      for (const file of fileList) {
+        const fileLower = file.toLowerCase();
+        if (titleWords.some((w: string) => fileLower.includes(w))) {
+          related.push(`"${task.title.slice(0, 40)}" ← ${file}`);
+          break;
+        }
+      }
     }
   }
 
   if (related.length > 0) {
-    await msg(`[watch] New commit touches files related to open tasks:\n${related.slice(0, 3).join('\n')}`);
+    await msg(`[watch] New commit touches files related to open tasks:\n${related.slice(0, 5).join('\n')}`);
     console.log(`[watch] ${related.length} task-file matches`);
   } else {
     console.log(`[watch] New commit: ${newCommits.split('\n')[0]} (${fileList.length} files, no task matches)`);
@@ -387,7 +475,9 @@ async function main() {
   console.log('╚═══════════════════════════════════════════════╝');
   console.log('');
 
-  await ensureOllama(); // start but don't require — scout barely uses it
+  // Claude API via OpenRouter/Anthropic — no local Ollama dependency
+  const hasLLM = !!(OPENROUTER_API_KEY || ANTHROPIC_API_KEY);
+  console.log(`[scout] LLM: ${hasLLM ? (OPENROUTER_API_KEY ? 'OpenRouter' : 'Anthropic') : 'none (rule-based fallback)'}`);
   if (!(await registerAgent())) process.exit(1);
   await joinTeam();
   await heartbeat();
