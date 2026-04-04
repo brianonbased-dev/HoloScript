@@ -272,10 +272,24 @@ Insight("${this.agentDid}_${Date.now()}") {
     const domainMap = this.doc.getMap(`knowledge.${domain}`);
     if (!domainMap) return [];
     const raw = domainMap.toJSON() as Record<string, string>;
-    return Object.entries(raw).map(([id, json]) => ({
-      id,
-      entry: typeof json === 'string' ? JSON.parse(json) : json,
-    }));
+    return Object.entries(raw).map(([id, json]) => {
+      const entry = typeof json === 'string' ? JSON.parse(json) : json;
+      
+      // Blueprint 5: Connect V2 reputation tiering directly to algebraic provenance context
+      if (!entry.provenanceContext && entry.authorDid) {
+        const repInfo = this.getReputation(entry.authorDid);
+        const score = typeof repInfo?.score === 'number' ? repInfo.score : 0;
+        
+        entry.provenanceContext = {
+          authorityLevel: repInfo?.tier === 'founder' ? 100 : 50,
+          agentId: entry.authorDid,
+          sourceType: 'agent',
+          reputationScore: score
+        };
+      }
+
+      return { id, entry };
+    });
   }
 
   /** Query all entries across all domains */

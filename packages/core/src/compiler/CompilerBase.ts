@@ -275,6 +275,96 @@ export type EscapeTarget =
   | 'JSON'
   | 'Rust';
 
+function escapeCStyle(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\0/g, '\\0');
+}
+
+function escapeGDScript(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t')
+    .replace(/\0/g, '');
+}
+
+function escapeJSX(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\{/g, '&#123;')
+    .replace(/\}/g, '&#125;');
+}
+
+function escapeXML(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function escapeShader(value: string): string {
+  return value
+    .replace(/\\/g, '')
+    .replace(/\*/g, '')
+    .replace(/\//g, '')
+    .replace(/#/g, '')
+    .replace(/\n/g, ' ')
+    .replace(/\r/g, '');
+}
+
+function escapePython(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\0/g, '\\x00');
+}
+
+function escapeLua(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\0/g, '\\0');
+}
+
+function escapeUSD(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+function escapeJSON(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/[\x00-\x1f]/g, (ch) => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+
 export function escapeStringValue(value: string, target: EscapeTarget): string {
   if (!value) return value;
   switch (target) {
@@ -284,89 +374,25 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
     case 'Kotlin':
     case 'TypeScript':
     case 'Rust':
-      // Standard C-style escape: backslashes, quotes, newlines, carriage returns, tabs, null bytes
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/'/g, "\\'")
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t')
-        .replace(/\0/g, '\\0');
+      return escapeCStyle(value);
     case 'GDScript':
-      // GDScript escaping (no \r support in GDScript strings)
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/'/g, "\\'")
-        .replace(/\n/g, '\\n')
-        .replace(/\t/g, '\\t')
-        .replace(/\0/g, '');
+      return escapeGDScript(value);
     case 'JSX':
-      // React JSX escape: escape braces, angle brackets, quotes, ampersand
-      return value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/\{/g, '&#123;')
-        .replace(/\}/g, '&#125;');
+      return escapeJSX(value);
     case 'XML':
-      // XML attribute/content escape: angle brackets, quotes, ampersand
-      return value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+      return escapeXML(value);
     case 'GLSL':
     case 'HLSL':
     case 'WGSL':
-      // Shader languages: no string literals, but sanitize for comments/identifiers
-      // Strip anything that could break out of a comment or inject preprocessor directives
-      return value
-        .replace(/\\/g, '')
-        .replace(/\*/g, '')
-        .replace(/\//g, '')
-        .replace(/#/g, '')
-        .replace(/\n/g, ' ')
-        .replace(/\r/g, '');
+      return escapeShader(value);
     case 'Python':
-      // Python string escape (inside double quotes)
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/'/g, "\\'")
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t')
-        .replace(/\0/g, '\\x00');
+      return escapePython(value);
     case 'Lua':
-      // Lua string escape (inside double quotes)
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/'/g, "\\'")
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\0/g, '\\0');
+      return escapeLua(value);
     case 'USD':
-      // Universal Scene Description string escape
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r');
+      return escapeUSD(value);
     case 'JSON':
-      // JSON string escape (subset of C-style + unicode control chars)
-      return value
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t')
-        .replace(/[\x00-\x1f]/g, (ch) => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'));
+      return escapeJSON(value);
     default:
       return value;
   }

@@ -103,10 +103,18 @@ export enum AuthorityTier {
  * Before (C1 bug): authority > other => skip all rules, return winner
  * After (C1 fix): authority difference => weight multiplier on rule result
  */
-export function authorityWeight(level: number): number {
+export function authorityWeight(level: number, reputationScore?: number): number {
   // Clamp to [0, 100], map to [0.5, 2.0]
   const clamped = Math.max(0, Math.min(100, level));
-  return 0.5 + (clamped / 100) * 1.5;
+  let baseWeight = 0.5 + (clamped / 100) * 1.5;
+
+  if (reputationScore !== undefined && reputationScore > 0) {
+    if (reputationScore >= 100) baseWeight *= 3.0;      // authority tier weight
+    else if (reputationScore >= 30) baseWeight *= 2.0;  // expert tier weight
+    else if (reputationScore >= 5) baseWeight *= 1.5;   // contributor tier weight
+  }
+
+  return baseWeight;
 }
 
 export interface ProvenanceContext {
@@ -271,8 +279,8 @@ export class ProvenanceSemiring {
     }
 
     // Authority weights for modulating numeric strategies
-    const weightA = authorityWeight(a.context?.authorityLevel ?? 0);
-    const weightB = authorityWeight(b.context?.authorityLevel ?? 0);
+    const weightA = authorityWeight(a.context?.authorityLevel ?? 0, a.context?.reputationScore);
+    const weightB = authorityWeight(b.context?.authorityLevel ?? 0, b.context?.reputationScore);
 
     switch (rule.strategy) {
       case 'max':
