@@ -2,15 +2,15 @@
 
 _The declarative language for the spatial and autonomous web._
 
-> **Current version: v6.0.0** — shipped 2026-03-30. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current version: v6.0.1** — shipped 2026-03-30. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
 
-## Current State (v6.0.0)
+## Current State (v6.0.1)
 
-v6.0.0 shipped with 134 commits. The v5.x "Great Refinement" goals have been met or exceeded:
+v6.0.1 shipped with 134 commits. The v5.x "Great Refinement" goals have been met or exceeded:
 
 | Metric | v5.0 Target | v6.0 Actual |
 | ------ | ----------- | ----------- |
@@ -23,7 +23,7 @@ v6.0.0 shipped with 134 commits. The v5.x "Great Refinement" goals have been met
 | HoloMesh | concept | V8: 43 endpoints, 8 MCP tools, 15 BT actions |
 | Knowledge store | — | 676 entries across 10 domains |
 
-What shipped in v6.0.0:
+What shipped in v6.0.1:
 
 - HoloMesh V5-V8 (social traits, marketplace, enterprise teams, accessibility endpoints)
 - Publishing protocol (4-layer on-chain: Provenance, Registry, Collect, Remix Revenue)

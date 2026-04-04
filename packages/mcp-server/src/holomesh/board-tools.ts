@@ -212,6 +212,86 @@ export const boardTools: Tool[] = [
       required: ['team_id', 'mode'],
     },
   },
+  {
+    name: 'holomesh_suggest',
+    description:
+      'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        title: {
+          type: 'string',
+          description: 'Short title for the suggestion (max 200 chars)',
+        },
+        description: {
+          type: 'string',
+          description: 'Detailed description of the improvement (max 2000 chars)',
+        },
+        category: {
+          type: 'string',
+          enum: ['process', 'tooling', 'architecture', 'testing', 'docs', 'performance', 'other'],
+          description: 'Category of the suggestion',
+        },
+        evidence: {
+          type: 'string',
+          description: 'What you observed that led to this suggestion (optional, max 1000 chars)',
+        },
+      },
+      required: ['team_id', 'title'],
+    },
+  },
+  {
+    name: 'holomesh_suggest_vote',
+    description:
+      'Vote on a team suggestion. +1 to support, -1 to oppose. Suggestions auto-promote to board tasks when they reach majority support, or auto-dismiss at majority opposition.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        suggestion_id: {
+          type: 'string',
+          description: 'The suggestion ID to vote on',
+        },
+        value: {
+          type: 'number',
+          enum: [1, -1],
+          description: '+1 to support, -1 to oppose',
+        },
+        reason: {
+          type: 'string',
+          description: 'Optional reason for your vote (max 500 chars)',
+        },
+      },
+      required: ['team_id', 'suggestion_id', 'value'],
+    },
+  },
+  {
+    name: 'holomesh_suggest_list',
+    description:
+      'List all suggestions for a team, sorted by score. Optionally filter by status: open, promoted, dismissed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        status: {
+          type: 'string',
+          enum: ['open', 'promoted', 'dismissed'],
+          description: 'Filter by status (optional, default: all)',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
 ];
 
 // ── MCP Tool Handler ──
@@ -237,6 +317,12 @@ export async function handleBoardTool(
       return handleSlotAssign(args);
     case 'holomesh_mode_set':
       return handleModeSet(args);
+    case 'holomesh_suggest':
+      return handleSuggest(args);
+    case 'holomesh_suggest_vote':
+      return handleSuggestVote(args);
+    case 'holomesh_suggest_list':
+      return handleSuggestList(args);
     default:
       return null;
   }
@@ -357,5 +443,73 @@ async function handleModeSet(
     `/api/holomesh/team/${encodeURIComponent(teamId)}/mode`,
     'POST',
     { mode }
+  );
+}
+
+async function handleSuggest(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const title = args.title as string;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!title) {
+    return { error: '"title" is required.' };
+  }
+
+  const body: Record<string, unknown> = { title };
+  if (args.description) body.description = args.description;
+  if (args.category) body.category = args.category;
+  if (args.evidence) body.evidence = args.evidence;
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions`,
+    'POST',
+    body
+  );
+}
+
+async function handleSuggestVote(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  const sugId = args.suggestion_id as string;
+  const value = args.value as number;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+  if (!sugId) {
+    return { error: '"suggestion_id" is required.' };
+  }
+  if (value !== 1 && value !== -1) {
+    return { error: '"value" must be 1 or -1.' };
+  }
+
+  const body: Record<string, unknown> = { action: 'vote', value };
+  if (args.reason) body.reason = args.reason;
+
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions/${encodeURIComponent(sugId)}`,
+    'PATCH',
+    body
+  );
+}
+
+async function handleSuggestList(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+
+  const statusFilter = args.status ? `?status=${encodeURIComponent(args.status as string)}` : '';
+  return boardFetch(
+    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions${statusFilter}`,
+    'GET'
   );
 }

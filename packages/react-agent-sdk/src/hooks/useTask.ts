@@ -42,8 +42,8 @@ export function useTask<T = unknown>(
   const [error, setError] = useState<Error>();
   const [status, setStatus] = useState<UseTaskReturn<T>['status']>('idle');
   const [progress, setProgress] = useState<number>();
-  const abortControllerRef = useRef<AbortController>();
-  const backoffRef = useRef<ExponentialBackoff>();
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
+  const backoffRef = useRef<ExponentialBackoff | undefined>(undefined);
 
   /**
    * Execute task

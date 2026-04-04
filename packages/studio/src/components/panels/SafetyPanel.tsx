@@ -51,12 +51,11 @@ export function SafetyPanel({
   /** Typed view of the nested report structure for UI rendering */
   interface SafetyReportView {
     effects: { totalEffects: number; categories: string[]; violations: { message: string; severity: string }[] };
-    budget: { diagnostics: { label: string; used: number; max: number; pct: number }[] };
-    capabilities: { missing: { name: string; reason: string }[] };
+    budget: { diagnostics: { category: string; used: number; max: number; usagePercent: number }[] };
+    capabilities: { missing: { scope: string; requiredBy: string }[] };
     verdict: string;
     moduleId: string;
   }
-  const reportView = report as unknown as SafetyReportView | null;
 
   useEffect(() => {
     if (autoAnalyze && nodes.length > 0) {
@@ -75,6 +74,8 @@ export function SafetyPanel({
       </div>
     );
   }
+
+  const reportView = report as unknown as SafetyReportView;
 
   const vs = verdict ? VERDICT_STYLES[verdict] : VERDICT_STYLES.safe;
 

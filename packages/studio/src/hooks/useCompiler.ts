@@ -1,20 +1,13 @@
 'use client';
 /**
  * useCompiler — Hook for multi-target HoloScript compilation
- *
- * ★ REAL COMPILER OUTPUT — routes through actual CompilerBase subclasses
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import {
   UnityCompiler,
   GodotCompiler,
-  BabylonCompiler,
   R3FCompiler,
-  WASMCompiler,
   VRChatCompiler,
-  URDFCompiler,
-  DTDLCompiler,
-  SDFCompiler,
 } from '@holoscript/core';
 
 const ALL_TARGETS = [
@@ -95,13 +88,8 @@ const COMPILER_MAP: Record<string, any> = {};
 try {
   COMPILER_MAP['unity'] = new UnityCompiler();
   COMPILER_MAP['godot'] = new GodotCompiler();
-  COMPILER_MAP['babylon'] = new BabylonCompiler();
   COMPILER_MAP['r3f'] = new R3FCompiler();
-  COMPILER_MAP['wasm'] = new WASMCompiler();
   COMPILER_MAP['vrchat'] = new VRChatCompiler();
-  COMPILER_MAP['urdf'] = new URDFCompiler();
-  COMPILER_MAP['dtdl'] = new DTDLCompiler();
-  COMPILER_MAP['sdf'] = new SDFCompiler();
 } catch (_) {
   /* compilers may not be available in all environments */
 }

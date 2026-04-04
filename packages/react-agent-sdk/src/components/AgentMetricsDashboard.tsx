@@ -28,7 +28,7 @@ export function AgentMetricsDashboard({
   showDetailed = true,
   className = '',
   style = {},
-}: AgentMetricsDashboardProps): JSX.Element {
+}: AgentMetricsDashboardProps): React.JSX.Element {
   const { metrics, loading, error, refresh } = useAgentMetrics(agentName, refreshInterval);
 
   if (loading && !metrics) {

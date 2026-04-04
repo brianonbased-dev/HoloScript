@@ -208,13 +208,21 @@ async function initializeEditor(): Promise<void> {
       config(opts: Record<string, unknown>): void;
       (deps: string[], cb: () => void): void;
     }
-    const win = window as Window & { require: MonacoRequire; monaco: Record<string, unknown> };
+    interface MonacoGlobal {
+      languages: typeof Monaco.languages;
+      editor: typeof Monaco.editor;
+    }
+
+    const win = window as unknown as Window & {
+      require: MonacoRequire;
+      monaco: MonacoGlobal;
+    };
     win.require.config({
       paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' },
     });
 
     win.require(['vs/editor/editor.main'], () => {
-      const monaco = win.monaco;
+      const monaco: MonacoGlobal = win.monaco;
 
       // Register HoloScript language
       monaco.languages.register({ id: 'holoscript' });

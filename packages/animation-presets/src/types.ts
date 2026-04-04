@@ -201,7 +201,7 @@ export interface ResolvedAnimatedTrait {
   fullOutput: string;
 
   /** The source preset this was resolved from. */
-  preset: AnimationPreset;
+  preset: AnimationPreset | CustomAnimationPreset;
 }
 
 // ---------------------------------------------------------------------------

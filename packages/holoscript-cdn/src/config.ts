@@ -20,7 +20,7 @@ export function detectOptimalTarget(): string {
   if (typeof navigator === 'undefined') return 'threejs';
 
   if ('xr' in navigator) {
-    const xrSystem = (navigator as Navigator & { xr?: XRSystem }).xr;
+    const xrSystem = (navigator as Navigator & { xr?: { isSessionSupported(mode: string): Promise<boolean> } }).xr;
     if (xrSystem?.isSessionSupported) {
       return 'webxr';
     }
@@ -36,7 +36,7 @@ export function detectOptimalTarget(): string {
 export async function checkXRSupport(mode: 'immersive-vr' | 'immersive-ar'): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('xr' in navigator)) return false;
   try {
-    const xrSystem = (navigator as Navigator & { xr?: XRSystem }).xr;
+    const xrSystem = (navigator as Navigator & { xr?: { isSessionSupported(mode: string): Promise<boolean> } }).xr;
     return await xrSystem!.isSessionSupported(mode);
   } catch {
     return false;

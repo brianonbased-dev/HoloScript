@@ -249,11 +249,12 @@ function parseWasmResult(result: unknown): ParseResult {
   }
 
   if (result && typeof result === 'object') {
+    const rawResult = result as Record<string, any>;
     return {
-      success: result.success || !result.error,
-      ast: result.ast || result.node,
-      errors: result.errors || (result.error ? [result.error] : []),
-      warnings: result.warnings || [],
+      success: rawResult.success || !rawResult.error,
+      ast: rawResult.ast || rawResult.node,
+      errors: rawResult.errors || (rawResult.error ? [rawResult.error] : []),
+      warnings: rawResult.warnings || [],
     };
   }
 

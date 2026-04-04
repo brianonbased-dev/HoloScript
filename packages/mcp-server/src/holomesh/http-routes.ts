@@ -313,6 +313,40 @@ interface DoneLogEntry {
   summary: string;
 }
 
+// ── Team Suggestions (agent-proposed improvements) ──
+
+type SuggestionCategory = 'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other';
+
+interface SuggestionVote {
+  agentId: string;
+  agentName: string;
+  value: 1 | -1;
+  reason?: string;
+  votedAt: string;
+}
+
+interface TeamSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  category: SuggestionCategory;
+  /** Agent who proposed it */
+  proposedBy: string;
+  proposedByName: string;
+  /** Votes from team members */
+  votes: SuggestionVote[];
+  /** Net score (sum of vote values) */
+  score: number;
+  /** Status lifecycle */
+  status: 'open' | 'promoted' | 'dismissed';
+  /** If promoted, the resulting board task ID */
+  promotedTaskId?: string;
+  /** Optional: what the agent observed that led to this suggestion */
+  evidence?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 // ── Room Presets (switch workload with one command) ──
 
 const ROOM_PRESETS: Record<string, { objective: string; taskSources: string[]; rules: string[] }> = {
@@ -356,6 +390,7 @@ interface Team {
   doneLog?: DoneLogEntry[];
   slotRoles?: SlotRole[];     // roles for slots 0..maxSlots-1
   mode?: string;              // current preset: 'audit' | 'research' | 'build' | 'review'
+  suggestions?: TeamSuggestion[]; // agent-proposed improvements
 }
 
 const teamStore: Map<string, Team> = new Map(); // teamId → Team
@@ -3628,11 +3663,19 @@ export async function handleHoloMeshRoute(
         .slice(0, 3)
         .map((e) => ({ type: e.type, content: e.content.slice(0, 150), domain: e.domain, authorName: e.authorName }));
 
+      // Surface open suggestions alongside the board
+      const openSuggestions = (team.suggestions || [])
+        .filter((s) => s.status === 'open')
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map((s) => ({ id: s.id, title: s.title, category: s.category, score: s.score, proposedByName: s.proposedByName, votes: s.votes.length }));
+
       json(res, 200, {
         success: true,
         mode: team.mode || 'manual',
         objective: team.roomConfig?.objective || team.description,
         board: { open, claimed, blocked },
+        suggestions: openSuggestions,
         knowledge: recentKnowledge,
         done: { recent: recentDone, total: doneLog.length },
         slots: {
@@ -4125,6 +4168,243 @@ export async function handleHoloMeshRoute(
       }
 
       json(res, 400, { error: 'action must be: verify or reject' });
+      return true;
+    }
+
+    // ── Team Suggestions: agents propose improvements, team votes ──
+
+    // POST /api/holomesh/team/:id/suggestions — Create a suggestion
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.suggestions) team.suggestions = [];
+
+      const body = await parseJsonBody(req);
+      const title = String(body.title || '').trim().slice(0, 200);
+      const description = String(body.description || '').trim().slice(0, 2000);
+      const category = (['process', 'tooling', 'architecture', 'testing', 'docs', 'performance', 'other']
+        .includes(body.category as string) ? body.category : 'other') as SuggestionCategory;
+      const evidence = body.evidence ? String(body.evidence).slice(0, 1000) : undefined;
+
+      if (!title) {
+        json(res, 400, { error: 'title is required' });
+        return true;
+      }
+
+      // Dedup: don't allow near-identical open suggestions
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+      const existingNorm = new Set(
+        team.suggestions.filter((s) => s.status === 'open').map((s) => normalize(s.title))
+      );
+      if (existingNorm.has(normalize(title))) {
+        json(res, 409, { error: 'A similar open suggestion already exists' });
+        return true;
+      }
+
+      const suggestion: TeamSuggestion = {
+        id: `sug_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        title,
+        description,
+        category,
+        proposedBy: caller.id,
+        proposedByName: caller.name,
+        votes: [],
+        score: 0,
+        status: 'open',
+        evidence,
+        createdAt: new Date().toISOString(),
+      };
+      team.suggestions.push(suggestion);
+      persistTeamStore();
+
+      // Broadcast to team chat
+      const messages = teamMessageStore.get(teamId) || [];
+      messages.push({
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        teamId,
+        fromAgentId: caller.id,
+        fromAgentName: caller.name,
+        content: `New suggestion from ${caller.name}: "${title}" [${category}]. Vote with PATCH /api/holomesh/team/${teamId}/suggestions/${suggestion.id}`,
+        messageType: 'text',
+        createdAt: new Date().toISOString(),
+      });
+      teamMessageStore.set(teamId, messages.slice(-500));
+
+      json(res, 201, { success: true, suggestion });
+      return true;
+    }
+
+    // GET /api/holomesh/team/:id/suggestions — List all suggestions (sorted by score desc)
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+      void access.caller;
+      const team = teamStore.get(teamId)!;
+      const suggestions = team.suggestions || [];
+
+      const url2 = new URL(`http://localhost${pathname}`);
+      const statusFilter = url2.searchParams?.get('status') || undefined;
+      const filtered = statusFilter
+        ? suggestions.filter((s) => s.status === statusFilter)
+        : suggestions;
+
+      const sorted = [...filtered].sort((a, b) => b.score - a.score);
+      const open = sorted.filter((s) => s.status === 'open');
+      const promoted = sorted.filter((s) => s.status === 'promoted');
+      const dismissed = sorted.filter((s) => s.status === 'dismissed');
+
+      json(res, 200, {
+        success: true,
+        total: suggestions.length,
+        open: open.length,
+        promoted: promoted.length,
+        dismissed: dismissed.length,
+        suggestions: sorted,
+      });
+      return true;
+    }
+
+    // PATCH /api/holomesh/team/:id/suggestions/:sugId — Vote, promote, or dismiss
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+$/) && method === 'PATCH') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.suggestions) team.suggestions = [];
+
+      const parts = pathname.split('/');
+      const sugId = parts[parts.length - 1];
+      const suggestion = team.suggestions.find((s) => s.id === sugId);
+      if (!suggestion) {
+        json(res, 404, { error: 'Suggestion not found' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const action = body.action as string;
+
+      // ── Vote on a suggestion ──
+      if (action === 'vote') {
+        if (suggestion.status !== 'open') {
+          json(res, 409, { error: `Suggestion is ${suggestion.status}, voting closed` });
+          return true;
+        }
+        const value = body.value === -1 ? -1 : 1;
+        const reason = body.reason ? String(body.reason).slice(0, 500) : undefined;
+
+        // Replace previous vote from same agent
+        suggestion.votes = suggestion.votes.filter((v) => v.agentId !== caller.id);
+        suggestion.votes.push({
+          agentId: caller.id,
+          agentName: caller.name,
+          value: value as 1 | -1,
+          reason,
+          votedAt: new Date().toISOString(),
+        });
+        suggestion.score = suggestion.votes.reduce((sum, v) => sum + v.value, 0);
+
+        // Auto-promote if score reaches threshold (majority of team slots)
+        const promoteThreshold = Math.ceil(team.maxSlots / 2);
+        if (suggestion.score >= promoteThreshold && suggestion.status === 'open') {
+          suggestion.status = 'promoted';
+          suggestion.resolvedAt = new Date().toISOString();
+
+          // Create a real board task from the suggestion
+          if (!team.taskBoard) team.taskBoard = [];
+          const task: TeamTask = {
+            id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            title: suggestion.title,
+            description: `${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`,
+            status: 'open',
+            source: `suggestion:${suggestion.id}`,
+            priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+            createdAt: new Date().toISOString(),
+          };
+          team.taskBoard.push(task);
+          suggestion.promotedTaskId = task.id;
+
+          const messages = teamMessageStore.get(teamId) || [];
+          messages.push({
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            teamId,
+            fromAgentId: 'room',
+            fromAgentName: `Room: ${team.name}`,
+            content: `Suggestion promoted to task! "${suggestion.title}" (score: ${suggestion.score}/${promoteThreshold}). Task ${task.id} added to board.`,
+            messageType: 'text',
+            createdAt: new Date().toISOString(),
+          });
+          teamMessageStore.set(teamId, messages.slice(-500));
+        }
+
+        // Auto-dismiss if score drops below negative threshold
+        const dismissThreshold = -Math.ceil(team.maxSlots / 2);
+        if (suggestion.score <= dismissThreshold && suggestion.status === 'open') {
+          suggestion.status = 'dismissed';
+          suggestion.resolvedAt = new Date().toISOString();
+        }
+
+        persistTeamStore();
+        json(res, 200, { success: true, suggestion });
+        return true;
+      }
+
+      // ── Promote manually (owner/admin) ──
+      if (action === 'promote') {
+        if (suggestion.status !== 'open') {
+          json(res, 409, { error: `Suggestion is already ${suggestion.status}` });
+          return true;
+        }
+        if (!hasTeamPermission(team, caller.id, 'team:settings')) {
+          json(res, 403, { error: 'Only owner/admin can manually promote' });
+          return true;
+        }
+
+        suggestion.status = 'promoted';
+        suggestion.resolvedAt = new Date().toISOString();
+
+        if (!team.taskBoard) team.taskBoard = [];
+        const task: TeamTask = {
+          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          title: suggestion.title,
+          description: `${suggestion.description}\n\n[Promoted by ${caller.name} from suggestion by ${suggestion.proposedByName}]`,
+          status: 'open',
+          source: `suggestion:${suggestion.id}`,
+          priority: parseInt(String(body.priority)) || 3,
+          role: body.role as SlotRole || undefined,
+          createdAt: new Date().toISOString(),
+        };
+        team.taskBoard.push(task);
+        suggestion.promotedTaskId = task.id;
+        persistTeamStore();
+
+        json(res, 200, { success: true, suggestion, task });
+        return true;
+      }
+
+      // ── Dismiss manually (owner/admin or original proposer) ──
+      if (action === 'dismiss') {
+        if (suggestion.status !== 'open') {
+          json(res, 409, { error: `Suggestion is already ${suggestion.status}` });
+          return true;
+        }
+        const canDismiss = hasTeamPermission(team, caller.id, 'team:settings') || caller.id === suggestion.proposedBy;
+        if (!canDismiss) {
+          json(res, 403, { error: 'Only owner/admin or original proposer can dismiss' });
+          return true;
+        }
+
+        suggestion.status = 'dismissed';
+        suggestion.resolvedAt = new Date().toISOString();
+        persistTeamStore();
+
+        json(res, 200, { success: true, suggestion, message: 'Suggestion dismissed.' });
+        return true;
+      }
+
+      json(res, 400, { error: 'action must be: vote, promote, or dismiss' });
       return true;
     }
 

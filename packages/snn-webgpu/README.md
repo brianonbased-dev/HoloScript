@@ -133,7 +133,7 @@ const latencyDecoder = new SpikeDecoder(DecodingMode.LATENCY);
 
 ## Neuromorphic Export
 
-HoloScript v6.0.0 supports NIR (Neuromorphic Intermediate Representation) export target #19, enabling compilation to Intel Loihi 2 and other neuromorphic hardware.
+HoloScript v6.0.1 supports NIR (Neuromorphic Intermediate Representation) export target #19, enabling compilation to Intel Loihi 2 and other neuromorphic hardware.
 
 ```bash
 holoc my_network.hs --target=nir --output=network.nir

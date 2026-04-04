@@ -838,7 +838,7 @@ function generatePlaneGeometry(scale: [number, number, number]): GeometryData {
 // to prevent unbounded memory growth (see post-compile shrink in compile()).
 const INITIAL_COMPILE_BUFFER_SIZE = 1024 * 1024; // 1MB
 const MAX_RETAINED_BUFFER_SIZE = 1024 * 1024 * 20; // 20MB — shrink back above this
-let SHARED_COMPILE_BUFFER = new Uint8Array(INITIAL_COMPILE_BUFFER_SIZE);
+let SHARED_COMPILE_BUFFER: Uint8Array = new Uint8Array(INITIAL_COMPILE_BUFFER_SIZE);
 
 export class GLTFPipeline extends CompilerBase {
   protected readonly compilerName = 'GLTFPipeline';

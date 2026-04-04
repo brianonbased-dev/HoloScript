@@ -30,7 +30,7 @@ export function TaskMonitor({
   showPhase = true,
   className = '',
   style = {},
-}: TaskMonitorProps): JSX.Element {
+}: TaskMonitorProps): React.JSX.Element {
   const { status, progress, estimatedTime, logs, phase } = useTaskStatus(taskId);
 
   return (

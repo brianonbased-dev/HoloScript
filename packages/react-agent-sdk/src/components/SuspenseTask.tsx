@@ -26,7 +26,7 @@ function TaskContent<T>({
   params,
   children,
   onError,
-}: Omit<SuspenseTaskProps<T>, 'fallback'>): JSX.Element {
+}: Omit<SuspenseTaskProps<T>, 'fallback'>): React.JSX.Element {
   const { data, loading, error } = useTask<T>(agent, taskName, params);
 
   if (loading) {
@@ -73,7 +73,7 @@ export function SuspenseTask<T = unknown>({
   fallback = <div>Loading...</div>,
   children,
   onError,
-}: SuspenseTaskProps<T>): JSX.Element {
+}: SuspenseTaskProps<T>): React.JSX.Element {
   return (
     <Suspense fallback={fallback}>
       <TaskContent agent={agent} taskName={taskName} params={params} onError={onError}>

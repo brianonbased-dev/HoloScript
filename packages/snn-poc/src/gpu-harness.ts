@@ -213,7 +213,7 @@ export class GPUHarness {
     if (input.length !== this.config.neuronCount) {
       throw new Error(`Input length ${input.length} !== neuron count ${this.config.neuronCount}`);
     }
-    this.device!.queue.writeBuffer(this.synapticInputBuffer!, 0, input);
+    this.device!.queue.writeBuffer(this.synapticInputBuffer!, 0, input.buffer);
   }
 
   /**

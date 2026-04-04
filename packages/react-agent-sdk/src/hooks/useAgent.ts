@@ -166,7 +166,7 @@ export function useAgent(agentName: string, config: UseAgentConfig = {}): UseAge
   const context = useAgentContext();
   const [status, setStatus] = useState<UseAgentReturn['status']>('connecting');
   const [error, setError] = useState<Error>();
-  const agentRef = useRef<AgentInstance>();
+  const agentRef = useRef<AgentInstance | undefined>(undefined);
 
   // Initialize agent instance
   useEffect(() => {

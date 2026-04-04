@@ -27,7 +27,7 @@ import type { AgentProviderProps } from '../types';
  * </AgentProvider>
  * ```
  */
-export function AgentProvider({ children, config = {} }: AgentProviderProps): JSX.Element {
+export function AgentProvider({ children, config = {} }: AgentProviderProps): React.JSX.Element {
   const contextValue = {
     apiUrl: config.apiUrl || 'http://localhost:3000',
     defaultTimeout: config.defaultTimeout || 30000,

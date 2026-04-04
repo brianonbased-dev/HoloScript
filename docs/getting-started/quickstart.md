@@ -1,6 +1,6 @@
 # 🚀 HoloScript Quickstart Guide
 
-Get up and running with HoloScript v3.3.0 in less than 5 minutes.
+Get up and running with HoloScript v6.0.2 in less than 5 minutes.
 
 ## 1. Installation
 
@@ -14,7 +14,7 @@ Verify your installation:
 
 ```bash
 holoscript --version
-# Output: v3.3.0
+# Output: v6.0.2
 ```
 
 ## 2. Your First Composition
@@ -71,6 +71,6 @@ holoscript compile hello.holo --target ios
 
 ## 5. Next Steps
 
-- 📖 **[Traits Reference](../TRAITS_REFERENCE.md)** - Explore all 1,800+ VR traits.
+- 📖 **[Traits Reference](../traits/index.md)** - Explore 2,000+ traits by category.
 - 🎓 **[Academy](../academy/README.md)** - Step-by-step interactive lessons.
-- 🛠️ **[Platform Guides](../platforms/README.md)** - Deep dives into Unreal, Unity, and VRChat setup.
+- 🛠️ **[Platform Guides](../compilers/index.md)** - Target-specific guides for Unity, Unreal, VRChat, and more.

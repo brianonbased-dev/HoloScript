@@ -247,7 +247,7 @@ export class AppleAppStoreClient {
         Authorization: `Bearer ${this.getToken()}`,
         ...formData.getHeaders(),
       },
-      body: formData as unknown as BodyInit,
+      body: formData as unknown as RequestInit['body'],
     });
 
     if (!response.ok) {

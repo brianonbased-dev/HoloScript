@@ -2761,6 +2761,36 @@ export declare class WebCodecsDepthPipeline {
   flush(): Promise<void>;
   dispose(): void;
 }
+
+// ============================================================================
+// STUDIO BUNDLE SHIMS (Phase 2)
+// ============================================================================
+export class DialogueGraph {
+  constructor();
+  [key: string]: any;
+}
+
+export class InventorySystem {
+  constructor();
+  [key: string]: any;
+}
+export interface InventoryItem { [key: string]: any; }
+
+export function createSubmission(data: any): any;
+export function verifySubmission(id: string): any;
+export function publishSubmission(id: string): any;
+
+export const XR_PLATFORM_CATEGORIES: any;
+export const XR_PLATFORM_CAPABILITIES: any;
+export const XR_ALL_PLATFORMS: any;
+export function platformCategory(platform: any): any;
+export function embodimentFor(platform: any): any;
+export function agentBudgetFor(platform: any): any;
+export function hasCapability(platform: any, cap: any): any;
+export function resolvePlatforms(criteria: any): any;
+
+export interface HoloCamera { [key: string]: any; }
+export type HoloValue = any;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {
@@ -3348,7 +3378,6 @@ export class SparsityMonitor {
   [key: string]: any;
 }
 export function createSparsityMonitor(config?: any): SparsityMonitor;
-
 `;
 
 // Write type declaration files

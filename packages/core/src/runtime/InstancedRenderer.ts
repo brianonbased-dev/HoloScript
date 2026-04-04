@@ -16,6 +16,7 @@
 /** Typed accessor for globally-loaded Three.js. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getThree(): Record<string, any> | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (globalThis as unknown as { THREE?: Record<string, any> }).THREE;
 }
 
@@ -42,6 +43,7 @@ export interface InstanceBatch {
   /** Material type */
   materialType: string;
   /** Three.js InstancedMesh */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   instancedMesh: any;
   /** Maximum instances */
   maxInstances: number;
@@ -75,10 +77,12 @@ export interface InstancedRenderingStats {
 export class InstancedRenderer {
   private batches = new Map<string, InstanceBatch>();
   private objects = new Map<string, InstancedObject>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private scene: any; // THREE.Scene
   private maxInstancesPerBatch = 1000; // Configurable
   private enabled = true;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(scene: any, maxInstancesPerBatch: number = 1000) {
     this.scene = scene;
     this.maxInstancesPerBatch = maxInstancesPerBatch;
@@ -302,10 +306,10 @@ export class InstancedRenderer {
   /**
    * Create geometry by type
    */
-  private createGeometry(type: string): any {
+  private createGeometry(type: string): unknown {
     const THREE = getThree()!;
 
-    const geometryMap: Record<string, any> = {
+    const geometryMap: Record<string, () => unknown> = {
       // ===== CORE PRIMITIVES =====
       box: () => new THREE.BoxGeometry(1, 1, 1),
       sphere: () => new THREE.SphereGeometry(0.5, 16, 16),
@@ -333,7 +337,7 @@ export class InstancedRenderer {
   /**
    * Create material by type
    */
-  private createMaterial(type: string): any {
+  private createMaterial(_type: string): unknown {
     const THREE = getThree()!;
 
     // Basic material with per-instance color support
@@ -406,18 +410,44 @@ export class InstancedRenderer {
     rotation: [number, number, number];
     scale: [number, number, number];
   } {
-    // Extract position
-    const position: [number, number, number] = [matrix[12], matrix[13], matrix[14]];
+    const THREE = getThree();
+    if (THREE) {
+      const m = new THREE.Matrix4().fromArray(matrix);
+      const pos = new THREE.Vector3();
+      const quat = new THREE.Quaternion();
+      const scl = new THREE.Vector3();
+      
+      m.decompose(pos, quat, scl);
+      const euler = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+      
+      return {
+        position: [pos.x, pos.y, pos.z],
+        rotation: [euler.x, euler.y, euler.z],
+        scale: [scl.x, scl.y, scl.z]
+      };
+    }
 
-    // Extract scale
+    // Fallback if THREE is somehow unavailable (though it should be)
+    const position: [number, number, number] = [matrix[12], matrix[13], matrix[14]];
     const sx = Math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1] + matrix[2] * matrix[2]);
     const sy = Math.sqrt(matrix[4] * matrix[4] + matrix[5] * matrix[5] + matrix[6] * matrix[6]);
     const sz = Math.sqrt(matrix[8] * matrix[8] + matrix[9] * matrix[9] + matrix[10] * matrix[10]);
     const scale: [number, number, number] = [sx, sy, sz];
-
-    // Extract rotation (simplified - assumes no skew)
-    const rotation: [number, number, number] = [0, 0, 0];
-    // Note: Full rotation extraction requires more complex math
+    
+    // Fallback rotation extraction using basic math
+    let rx = 0, ry = 0, rz = 0;
+    if (sx !== 0 && sy !== 0 && sz !== 0) {
+      const m13 = matrix[8] / sz;
+      ry = Math.asin(Math.max(-1, Math.min(1, m13)));
+      if (Math.abs(m13) < 0.999999) {
+        rx = Math.atan2(-matrix[9] / sz, matrix[10] / sz);
+        rz = Math.atan2(-matrix[4] / sy, matrix[0] / sx);
+      } else {
+        rx = Math.atan2(matrix[6] / sy, matrix[5] / sy);
+        rz = 0;
+      }
+    }
+    const rotation: [number, number, number] = [rx, ry, rz];
 
     return { position, rotation, scale };
   }

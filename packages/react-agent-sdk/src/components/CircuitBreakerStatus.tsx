@@ -26,7 +26,7 @@ export function CircuitBreakerStatus({
   showMetrics = true,
   className = '',
   style = {},
-}: CircuitBreakerStatusProps): JSX.Element {
+}: CircuitBreakerStatusProps): React.JSX.Element {
   const { state, failureRate, lastError, reset, status } = useCircuitBreaker(queryName);
 
   return (

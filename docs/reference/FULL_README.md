@@ -226,7 +226,7 @@ Production 3D rendering components. Each is a standalone R3F component:
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
-![version-badge](https://img.shields.io/badge/version-v6.0.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v6.0.1-green?style=for-the-badge)
 
 ---
 
@@ -804,7 +804,7 @@ curl -s https://mcp.holoscript.net/api/health
 
 ---
 
-v6.0.0 shipped 2026-03-30 with 134 commits. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history.
+v6.0.1 shipped 2026-03-30 with 134 commits. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history.
 
 ---
 

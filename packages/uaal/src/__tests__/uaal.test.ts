@@ -69,7 +69,7 @@ describe('UAALCompiler', () => {
 
   it('should compile INTAKE intent', () => {
     const bytecode = compiler.compileIntent('INTAKE new data from sensors');
-    expect(bytecode.version).toBe(1);
+    expect(bytecode.version).toBe(2);
     const opcodes = bytecode.instructions.map((i) => i.opCode);
     expect(opcodes).toContain(UAALOpCode.INTAKE);
     expect(opcodes[opcodes.length - 1]).toBe(UAALOpCode.HALT);
@@ -116,7 +116,7 @@ describe('UAALCompiler', () => {
       { opCode: UAALOpCode.PUSH, operands: [42] },
       { opCode: UAALOpCode.HALT },
     ]);
-    expect(bytecode.version).toBe(1);
+    expect(bytecode.version).toBe(2);
     expect(bytecode.instructions).toHaveLength(2);
   });
 });

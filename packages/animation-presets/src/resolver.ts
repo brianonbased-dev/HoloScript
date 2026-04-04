@@ -14,6 +14,7 @@
 
 import type {
   AnimationPreset,
+  CustomAnimationPreset,
   PresetName,
   PresetOverrides,
   ResolvedAnimatedTrait,
@@ -104,7 +105,7 @@ export function resolvePreset(
   registry?: PresetRegistry
 ): ResolvedAnimatedTrait {
   // Resolve the preset object
-  let preset: AnimationPreset;
+  let preset: AnimationPreset | CustomAnimationPreset;
 
   if (typeof presetOrName === 'string') {
     const reg = registry ?? getDefaultRegistry();
@@ -174,7 +175,7 @@ export function resolvePreset(
   const fullOutput = fullOutputLines.join('\n');
 
   // Build the resolved preset with overrides applied
-  const resolvedPreset: AnimationPreset = {
+  const resolvedPreset: AnimationPreset | CustomAnimationPreset = {
     ...preset,
     timing,
     loopMode,

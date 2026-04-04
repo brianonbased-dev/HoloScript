@@ -29,7 +29,7 @@ export interface CategoryInfo {
   description: string;
 
   /** Preset names belonging to this category. */
-  presetNames: PresetName[];
+  presetNames: (PresetName | string)[];
 }
 
 /**
@@ -148,7 +148,7 @@ export class PresetRegistry {
    * @returns Array of CategoryInfo objects with associated preset names.
    */
   getCategories(): CategoryInfo[] {
-    const categoryMap = new Map<PresetCategory, PresetName[]>();
+    const categoryMap = new Map<PresetCategory, (PresetName | string)[]>();
 
     for (const preset of this.presets.values()) {
       const names = categoryMap.get(preset.category) ?? [];

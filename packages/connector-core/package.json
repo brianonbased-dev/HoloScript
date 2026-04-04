@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest"
   },

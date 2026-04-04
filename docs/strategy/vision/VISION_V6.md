@@ -1,7 +1,7 @@
 # Vision: HoloScript v6.0 — The Great Refinement & Expansion
 
 **Date**: March 8, 2026
-**Shipped**: March 30, 2026 (v6.0.0)
+**Shipped**: March 30, 2026 (v6.0.1)
 **Status**: Realized — Pillars I-III delivered. Pillar IV (Sovereign Mesh) deferred to v7.0.
 
 ---

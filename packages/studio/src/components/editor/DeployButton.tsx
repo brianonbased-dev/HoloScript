@@ -143,7 +143,7 @@ export function DeployButton({
 
       if (sub.status === 'verified') {
         publishSubmission(sub);
-        if (sub.status === 'published' && registry) {
+        if ((sub.status as string) === 'published' && registry) {
           registry.publish(sub);
           registry.install(`@user/${packageName}`, worldId);
         }
