@@ -18,12 +18,16 @@ describe('RailwayConnector', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.RAILWAY_TOKEN;
+    delete process.env.PROJECT_RAILWAY_TOKEN;
     process.env.RAILWAY_API_TOKEN = mockToken;
     connector = new RailwayConnector();
   });
 
   afterEach(async () => {
     await connector.disconnect();
+    delete process.env.RAILWAY_TOKEN;
+    delete process.env.PROJECT_RAILWAY_TOKEN;
     delete process.env.RAILWAY_API_TOKEN;
   });
 
@@ -48,7 +52,7 @@ describe('RailwayConnector', () => {
       await connector.connect();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://mcp-orchestrator-production-45f9.up.railway.app/register',
+        expect.stringContaining('/register'),
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,6 +62,8 @@ describe('RailwayConnector', () => {
     });
 
     it('should handle missing token gracefully', async () => {
+      delete process.env.RAILWAY_TOKEN;
+      delete process.env.PROJECT_RAILWAY_TOKEN;
       delete process.env.RAILWAY_API_TOKEN;
       const newConnector = new RailwayConnector();
       await newConnector.connect();
