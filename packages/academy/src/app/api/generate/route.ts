@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
 import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 30;
 
 // ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
@@ -81,9 +84,23 @@ RULES:
 5. Use negative z positions so objects are visible from default camera`;
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
   const userKeys = extractUserKeys(request);
   const providerLabel = resolveProviderLabel(userKeys);
-  const headers = { 'x-llm-provider': providerLabel };
+  const headers = { 'x-llm-provider': providerLabel, 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) };
 
   try {
     const { prompt, existingCode, model } = await request.json();

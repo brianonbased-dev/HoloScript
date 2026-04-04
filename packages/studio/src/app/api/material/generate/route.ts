@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 10;
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
@@ -7,6 +10,19 @@ import { NextRequest, NextResponse } from 'next/server';
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
 
   let body: { prompt?: string; baseColor?: string; model?: string };
 
@@ -66,7 +82,7 @@ void main() {
     return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
   }
 
-  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': 'server' } });
+  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } });
 }
 
 async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 10;
 
 const STARTER_TEMPLATES = [
   {
@@ -68,7 +71,21 @@ Examples:
 Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
 export async function POST(request: Request) {
-  const headers = { 'x-llm-provider': 'server' };
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
+  const headers = { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) };
 
   try {
     const body = await request.json();

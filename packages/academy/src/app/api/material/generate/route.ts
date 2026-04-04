@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 20;
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
@@ -8,6 +11,20 @@ import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from 
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
   const userKeys = extractUserKeys(req);
   const providerLabel = resolveProviderLabel(userKeys);
 
@@ -69,7 +86,7 @@ void main() {
     return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
   }
 
-  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': providerLabel } });
+  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': providerLabel, 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } });
 }
 
 async function tryCloudProviders(systemPrompt: string, prompt: string, userKeys: UserKeys): Promise<string | null> {

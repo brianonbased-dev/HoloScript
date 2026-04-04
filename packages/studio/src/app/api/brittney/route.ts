@@ -7,6 +7,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 20;
 
 const SYSTEM_PROMPT = `You are Brittney, the AI for the HoloScript platform.
 
@@ -100,6 +103,20 @@ function convertToolsToClaudeFormat(): Anthropic.Tool[] {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return sseResponse([
@@ -203,7 +220,13 @@ export async function POST(request: Request) {
     },
   });
 
-  return new Response(stream, { headers: sseHeaders() });
+  return new Response(stream, {
+    headers: {
+      ...sseHeaders(),
+      'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+      'X-RateLimit-Remaining': String(limit.remaining),
+    },
+  });
 }
 
 function sseResponse(events: Array<{ type: string; payload: unknown }>): Response {

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 60;
 
 /**
  * POST /api/autocomplete
@@ -139,6 +142,20 @@ function getProviders(userKeys: UserKeys): Provider[] {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
   const userKeys = extractUserKeys(request);
   const providerLabel = resolveProviderLabel(userKeys);
 
@@ -165,7 +182,7 @@ export async function POST(request: Request) {
       if (result) {
         return NextResponse.json(
           { completion: result, provider: provider.name },
-          { headers: { 'x-llm-provider': providerLabel } }
+          { headers: { 'x-llm-provider': providerLabel, 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } }
         );
       }
     } catch {
@@ -179,6 +196,6 @@ export async function POST(request: Request) {
       completion: '',
       warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env, or provide x-openrouter-key / x-anthropic-key / x-openai-key headers',
     },
-    { headers: { 'x-llm-provider': 'none' } }
+    { headers: { 'x-llm-provider': 'none', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } }
   );
 }

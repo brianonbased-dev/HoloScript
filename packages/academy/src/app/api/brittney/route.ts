@@ -26,6 +26,9 @@ import {
   buildTraitLookupContext,
 } from '@/lib/brittney/brittney-system-prompt';
 import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
+import { rateLimit } from '@/lib/rateLimit';
+
+const MAX_REQUESTS_PER_MIN = 30;
 
 // ─── Claude via OpenRouter (OpenAI-compatible format) ────────────────────────
 
@@ -358,6 +361,20 @@ async function* streamOpenAI(
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(limit.retryAfter || 60),
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': '0',
+      },
+    });
+  }
+
   const userKeys = extractUserKeys(req);
   const providerLabel = resolveProviderLabel(userKeys);
 
@@ -420,6 +437,8 @@ export async function POST(req: NextRequest) {
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
       'x-llm-provider': providerLabel,
+      'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+      'X-RateLimit-Remaining': String(limit.remaining),
     },
   });
 }
