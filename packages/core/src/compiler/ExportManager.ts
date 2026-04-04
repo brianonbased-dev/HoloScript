@@ -69,6 +69,10 @@ import {
   type GaussianBudgetAnalysis,
 } from './GaussianBudgetAnalyzer';
 import { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
+import {
+  generateSemanticSceneGraphObject,
+  type JsonLdSceneGraph,
+} from './SemanticSceneGraph';
 
 // =============================================================================
 // TYPES
@@ -613,6 +617,9 @@ export class ExportManager {
       this.memoryMonitor.checkMemoryStatus();
     }
 
+    // Generate SSG once and cache for this compilation pass
+    const sceneGraph = generateSemanticSceneGraphObject(composition);
+
     // Define main export operation
     const exportOperation = async () => {
       const compiler = this.compilerFactory.createCompiler(target, options.compilerOptions);
@@ -626,11 +633,11 @@ export class ExportManager {
       // Its compile() method expects HSPlusAST. Other compilers use compile() directly.
       const asRecord = compiler as Record<string, unknown>;
       if (typeof asRecord['compileComposition'] === 'function') {
-        const compileFn = asRecord['compileComposition'] as (comp: unknown, token?: string) => unknown;
-        const output = await compileFn.call(compiler, composition, options.agentToken);
+        const compileFn = asRecord['compileComposition'] as (comp: unknown, token?: string, path?: string, ssg?: JsonLdSceneGraph) => unknown;
+        const output = await compileFn.call(compiler, composition, options.agentToken, undefined, sceneGraph);
         return output;
       }
-      const output = await compiler.compile(composition);
+      const output = await compiler.compile(composition, undefined as unknown as string, undefined, sceneGraph);
       return output;
     };
 

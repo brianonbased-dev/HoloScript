@@ -41,6 +41,7 @@ import {
   type TripleOutputResult,
   type DocumentationGeneratorOptions,
 } from './CompilerDocumentationGenerator';
+import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 
 // ---------------------------------------------------------------------------
 // Dual-mode token types (P3 Migration Bridge)
@@ -184,13 +185,15 @@ export interface ICompiler {
    * @param composition - HoloScript AST
    * @param agentToken - JWT token proving agent identity
    * @param outputPath - Optional output file path for scope validation
+   * @param sceneGraph - Optional pre-computed SSG for capability inference and optimization hints
    * @returns Compiled code (string or multi-file object)
    * @throws UnauthorizedCompilerAccessError if token invalid or lacks permissions
    */
   compile(
     composition: HoloComposition,
     agentToken: string,
-    outputPath?: string
+    outputPath?: string,
+    sceneGraph?: JsonLdSceneGraph
   ):
     | string
     | Record<string, string>
@@ -443,7 +446,8 @@ export abstract class CompilerBase implements ICompiler {
   abstract compile(
     composition: HoloComposition,
     agentToken: string,
-    outputPath?: string
+    outputPath?: string,
+    sceneGraph?: JsonLdSceneGraph
   ):
     | string
     | Record<string, string>
