@@ -61,11 +61,11 @@
 ; Property definitions (state variables)
 (state_block
   (property
-    key: (identifier) @definition.var))
+    key: (property_key) @definition.var))
 
 ; Animation names
-(animation
-  name: (identifier) @definition.var)
+;(animation
+;  name: (identifier) @definition.var)
 
 ; Event bus definitions
 (event_bus

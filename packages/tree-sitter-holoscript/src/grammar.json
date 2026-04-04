@@ -224,6 +224,18 @@
         {
           "type": "SYMBOL",
           "name": "custom_block"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "spatial_group"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "light"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "camera"
         }
       ]
     },
@@ -7577,8 +7589,16 @@
           }
         },
         {
-          "type": "STRING",
-          "value": ":"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": ":"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -7682,17 +7702,8 @@
           "value": "onDeactivate"
         },
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "STRING",
-              "value": "on"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "identifier"
-            }
-          ]
+          "type": "PATTERN",
+          "value": "[oO]n[A-Za-z0-9_]*"
         },
         {
           "type": "SEQ",
@@ -7890,6 +7901,196 @@
         }
       ]
     },
+    "_keyword": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "model"
+        },
+        {
+          "type": "STRING",
+          "value": "kind"
+        },
+        {
+          "type": "STRING",
+          "value": "layer"
+        },
+        {
+          "type": "STRING",
+          "value": "action"
+        },
+        {
+          "type": "STRING",
+          "value": "state"
+        },
+        {
+          "type": "STRING",
+          "value": "value"
+        },
+        {
+          "type": "STRING",
+          "value": "event"
+        },
+        {
+          "type": "STRING",
+          "value": "name"
+        },
+        {
+          "type": "STRING",
+          "value": "table"
+        },
+        {
+          "type": "STRING",
+          "value": "version"
+        },
+        {
+          "type": "STRING",
+          "value": "destructive"
+        },
+        {
+          "type": "STRING",
+          "value": "trigger"
+        },
+        {
+          "type": "STRING",
+          "value": "condition"
+        },
+        {
+          "type": "STRING",
+          "value": "object"
+        },
+        {
+          "type": "STRING",
+          "value": "orb"
+        },
+        {
+          "type": "STRING",
+          "value": "cube"
+        },
+        {
+          "type": "STRING",
+          "value": "sphere"
+        },
+        {
+          "type": "STRING",
+          "value": "cylinder"
+        },
+        {
+          "type": "STRING",
+          "value": "cone"
+        },
+        {
+          "type": "STRING",
+          "value": "npc"
+        },
+        {
+          "type": "STRING",
+          "value": "portal"
+        },
+        {
+          "type": "STRING",
+          "value": "audio"
+        },
+        {
+          "type": "STRING",
+          "value": "spawnpoint"
+        },
+        {
+          "type": "STRING",
+          "value": "ui_panel"
+        },
+        {
+          "type": "STRING",
+          "value": "text"
+        },
+        {
+          "type": "STRING",
+          "value": "gesture"
+        },
+        {
+          "type": "STRING",
+          "value": "progress"
+        },
+        {
+          "type": "STRING",
+          "value": "button"
+        },
+        {
+          "type": "STRING",
+          "value": "sensor"
+        },
+        {
+          "type": "STRING",
+          "value": "device"
+        },
+        {
+          "type": "STRING",
+          "value": "binding"
+        },
+        {
+          "type": "STRING",
+          "value": "telemetry_stream"
+        },
+        {
+          "type": "STRING",
+          "value": "digital_twin"
+        },
+        {
+          "type": "STRING",
+          "value": "data_binding"
+        },
+        {
+          "type": "STRING",
+          "value": "mqtt_source"
+        },
+        {
+          "type": "STRING",
+          "value": "mqtt_sink"
+        },
+        {
+          "type": "STRING",
+          "value": "wot_thing"
+        },
+        {
+          "type": "STRING",
+          "value": "spatial_group"
+        },
+        {
+          "type": "STRING",
+          "value": "timeline"
+        },
+        {
+          "type": "STRING",
+          "value": "logic"
+        },
+        {
+          "type": "STRING",
+          "value": "light"
+        },
+        {
+          "type": "STRING",
+          "value": "camera"
+        },
+        {
+          "type": "STRING",
+          "value": "test"
+        }
+      ]
+    },
+    "property_key": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_keyword"
+        }
+      ]
+    },
     "property": {
       "type": "SEQ",
       "members": [
@@ -7898,7 +8099,7 @@
           "name": "key",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "property_key"
           }
         },
         {
@@ -7944,7 +8145,7 @@
       "members": [
         {
           "type": "SYMBOL",
-          "name": "variable_declaration"
+          "name": "variable_declaration_stmt"
         },
         {
           "type": "SYMBOL",
@@ -10613,6 +10814,10 @@
   "conflicts": [
     [
       "object"
+    ],
+    [
+      "behavior_node",
+      "_keyword"
     ],
     [
       "platform_decorator",

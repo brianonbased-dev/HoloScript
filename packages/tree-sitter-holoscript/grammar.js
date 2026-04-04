@@ -51,6 +51,7 @@ module.exports = grammar({
   // Handle parsing conflicts
   conflicts: ($) => [
     [$.object],
+    [$.behavior_node, $._keyword],
     [$.platform_decorator, $.trait_inline],
   ],
 
@@ -139,7 +140,11 @@ module.exports = grammar({
         // Linear resource types (v4.4 — compile-time safety)
         $.resource_definition,
         // Extensible: any unknown domain block
-        $.custom_block
+        $.custom_block,
+        // Additional top-level spatial constructs
+        $.spatial_group,
+        $.light,
+        $.camera
       ),
 
     // =========================================================================
@@ -1113,7 +1118,7 @@ module.exports = grammar({
 
     parameter: ($) => seq(field('name', $.identifier), optional(seq(':', field('type', $.type)))),
 
-    event_handler: ($) => seq(field('event', $.event_name), ':', $.block),
+    event_handler: ($) => seq(field('event', $.event_name), optional(':'), $.block),
 
     event_name: ($) =>
       choice(
@@ -1140,7 +1145,7 @@ module.exports = grammar({
         'onDrop',
         'onActivate',
         'onDeactivate',
-        seq('on', $.identifier),
+        /[oO]n[A-Za-z0-9_]*/,
         seq('onGesture', '(', $.string, ')')
       ),
 
@@ -1173,7 +1178,21 @@ module.exports = grammar({
     // PROPERTIES
     // =========================================================================
 
-    property: ($) => seq(field('key', $.identifier), ':', field('value', $._expression)),
+    _keyword: ($) => choice(
+      'model', 'kind', 'layer', 'action', 'state', 'value', 'event', 'name',
+      'table', 'version', 'destructive', 'trigger', 'condition', 'object', 'orb', 'cube', 'sphere',
+      'cylinder', 'cone', 'npc', 'portal', 'audio', 'spawnpoint', 'ui_panel', 'text', 'gesture',
+      'progress', 'button', 'sensor', 'device', 'binding', 'telemetry_stream', 'digital_twin',
+      'data_binding', 'mqtt_source', 'mqtt_sink', 'wot_thing', 'spatial_group', 'timeline', 'logic',
+      'light', 'camera', 'test'
+    ),
+
+    property_key: ($) => choice(
+      $.identifier,
+      $._keyword
+    ),
+
+    property: ($) => seq(field('key', $.property_key), ':', field('value', $._expression)),
 
     // =========================================================================
     // BLOCKS & STATEMENTS
@@ -1183,7 +1202,7 @@ module.exports = grammar({
 
     _statement: ($) =>
       choice(
-        $.variable_declaration,
+        $.variable_declaration_stmt,
         $.assignment,
         $.function_call,
         $.if_statement,

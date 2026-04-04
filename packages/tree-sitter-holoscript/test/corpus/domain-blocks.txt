@@ -17,13 +17,16 @@ lesson "Intro to Physics" @interactive {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -47,21 +50,26 @@ quiz "Chapter 1 Review" {
   (education_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
@@ -82,10 +90,12 @@ lab_experiment "ChemMix" {
   (education_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -107,13 +117,16 @@ procedure "Appendectomy" @sterile {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -133,16 +146,20 @@ vital_monitor "PatientA" {
   (healthcare_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -164,13 +181,16 @@ instrument "Piano" @spatial {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -189,13 +209,16 @@ beat_pattern "FunkDrum" {
   (music_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -213,10 +236,12 @@ floor_plan "MainLevel" {
   (architecture_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -238,13 +263,16 @@ hvac_system "CentralAir" @automated {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -266,13 +294,15 @@ contract "NFTMarket" @upgradeable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -291,13 +321,16 @@ staking_pool "ETHVault" {
   (web3_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -324,18 +357,22 @@ gameplay "BossFight" @epic {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
@@ -364,27 +401,34 @@ procedural "TerrainGen" {
   (procedural_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (noise_function
       name: (identifier)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))))
 
 ================================================================================
@@ -413,31 +457,38 @@ generate "WorldMap" {
   (procedural_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (biome_rule
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number))))
     (biome_rule
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number))))))
@@ -465,19 +516,22 @@ behavior_tree "EnemyAI" {
   (navigation_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (behavior_node
       name: (identifier)
       (behavior_node
         name: (identifier)
         (property
-          key: (identifier)
+          key: (property_key
+            (identifier))
           value: (number)))
       (behavior_node
         name: (identifier)
         (property
-          key: (identifier)
+          key: (property_key
+            (identifier))
           value: (number))))))
 
 ================================================================================
@@ -500,16 +554,20 @@ nav_agent "Guard" @avoidance {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -530,7 +588,8 @@ input "PlayerControls" {
   (input_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (input_binding
       action: (identifier)
@@ -653,26 +712,32 @@ lod {
     (lod_level
       distance: (number)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))
     (lod_level
       distance: (number)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))
     (lod_level
       distance: (number)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))))
 
 ================================================================================
@@ -691,16 +756,19 @@ render {
 (source_file
   (render_hints
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -925,16 +993,19 @@ zone "SafeArea" {
   (zone_declaration
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (array
         (number)
         (number)
         (number)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -954,16 +1025,20 @@ spawn_group "EnemyWave" {
   (spawn_group
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1011,13 +1086,16 @@ constraint lookAt {
   (constraint_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1037,16 +1115,20 @@ terrain landscape {
   (terrain_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1069,16 +1151,20 @@ sensor "TempSensor" @realtime {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -1097,13 +1183,15 @@ digital_twin "FactoryFloor" {
   (iot_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -1126,20 +1214,24 @@ joint "Shoulder" @servo {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (array
         (number)
         (number)
         (number)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (unary_expression
         operand: (number)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1158,13 +1250,16 @@ path_planner "ArmPlanner" {
   (robotics_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1183,13 +1278,16 @@ dashboard "SystemMonitor" {
   (dataviz_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1212,16 +1310,20 @@ chart "CPUUsage" @realtime {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1239,10 +1341,12 @@ trait Glowing {
   (trait_definition
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -1261,10 +1365,12 @@ trait Explosive extends Damageable {
     name: (identifier)
     base: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1323,7 +1429,8 @@ gesture_profile "VRHands" @xr {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (input_binding
       action: (identifier)
@@ -1370,13 +1477,16 @@ codebase "HoloScript" @absorbed {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1399,10 +1509,12 @@ module_map "Architecture" {
   (codebase_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (object
       name: (string)
@@ -1410,13 +1522,15 @@ module_map "Architecture" {
         (trait_inline
           name: (identifier)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
           (number)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))
 
 ================================================================================
@@ -1435,13 +1549,16 @@ dependency_graph "Imports" {
   (codebase_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -1465,11 +1582,14 @@ call_graph "DataFlow" @interactive @vr {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))

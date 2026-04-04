@@ -13,10 +13,12 @@ service "UserAPI" {
   (service_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -39,10 +41,12 @@ service "PaymentGateway" @auth @rate_limit {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -67,7 +71,8 @@ service "ItemAPI" @cors {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (object
       name: (string)
@@ -75,10 +80,12 @@ service "ItemAPI" @cors {
         (trait_inline
           name: (identifier)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))
 
 ================================================================================
@@ -97,13 +104,16 @@ endpoint "ListUsers" {
   (service_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -124,10 +134,12 @@ route "GetUser" @auth {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -148,10 +160,12 @@ handler "CreateUser" @validation {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -170,13 +184,16 @@ middleware "RateLimit" {
   (service_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -200,13 +217,16 @@ gateway "APIGateway" @cors @rate_limit {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -224,10 +244,12 @@ proxy "BackendProxy" {
   (service_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -248,10 +270,12 @@ load_balancer "AppLB" @health_check {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -272,10 +296,11 @@ service "NotificationService" {
   (service_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (event_handler
-      event: (identifier)
+      event: (event_name)
       (block
         (function_call
           function: (identifier)
@@ -297,10 +322,11 @@ service UserService {
   (service_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))))
 
 ================================================================================
@@ -330,10 +356,12 @@ service "CRUD" {
         (trait_inline
           name: (identifier)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (object
       name: (string)
@@ -341,10 +369,12 @@ service "CRUD" {
         (trait_inline
           name: (identifier)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))
 
 ================================================================================
@@ -362,10 +392,11 @@ schema "User" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -386,10 +417,12 @@ validator "UserInput" @strict {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -408,13 +441,16 @@ serializer "JSONSerializer" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -436,13 +472,15 @@ openapi "PetStore" @versioned {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -460,10 +498,11 @@ asyncapi "EventBus" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -481,10 +520,12 @@ protobuf "Messages" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -506,13 +547,16 @@ graphql_schema "API" @federation {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -534,15 +578,17 @@ schema "Order" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))))
 
 ================================================================================
@@ -560,10 +606,11 @@ schema UserSchema {
   (contract_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -583,16 +630,20 @@ validator "EmailValidator" {
   (contract_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -611,13 +662,15 @@ data_model "User" {
   (data_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -636,13 +689,14 @@ migration "001_create_users" {
   (data_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -663,10 +717,11 @@ seed "InitialData" @idempotent {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -685,13 +740,16 @@ data_view "ActiveUsers" {
   (data_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -713,13 +771,15 @@ data_index "UserEmail" @unique {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -738,13 +798,16 @@ stored_procedure "GetUserOrders" {
   (data_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -766,13 +829,14 @@ data_trigger "AuditLog" @async {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -794,15 +858,17 @@ data_model "Product" {
   (data_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))))
 
 ================================================================================
@@ -820,10 +886,12 @@ data_model UserTable {
   (data_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -847,19 +915,23 @@ data_model "Session" @encrypted {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -882,10 +954,10 @@ data_trigger "SyncCache" @async @idempotent {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))))
 
 ================================================================================
@@ -903,10 +975,12 @@ pipeline "EventIngestion" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -928,13 +1002,16 @@ stage "Transform" @retry {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -953,13 +1030,16 @@ queue "EmailQueue" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -980,10 +1060,12 @@ worker "EmailWorker" @scalable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1002,13 +1084,16 @@ scheduler "Cleanup" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -1030,13 +1115,16 @@ consumer "OrderConsumer" @idempotent {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -1055,13 +1143,16 @@ producer "EventProducer" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -1080,13 +1171,16 @@ dead_letter "FailedOrders" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1108,15 +1202,18 @@ pipeline "DataSync" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))))
 
 ================================================================================
@@ -1137,10 +1234,11 @@ pipeline "StreamProcessor" {
   (pipeline_block
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (event_handler
-      event: (identifier)
+      event: (event_name)
       (block
         (function_call
           function: (identifier)
@@ -1162,10 +1260,12 @@ worker BackgroundWorker {
   (pipeline_block
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1190,10 +1290,12 @@ queue "PriorityQueue" @persistent @ordered @bounded {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1217,16 +1319,19 @@ object "Cube" @physics @collidable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (array
         (number)
         (number)
         (number)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (array
         (number)
         (number)
@@ -1250,10 +1355,12 @@ sensor "Temperature" @realtime {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1274,10 +1381,11 @@ contract "Token" @upgradeable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key)
       value: (string))))
 
 ================================================================================
@@ -1298,10 +1406,12 @@ lesson "Intro" @interactive {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))
 
 ================================================================================
@@ -1319,8 +1429,10 @@ trait Hoverable {
   (trait_definition
     name: (identifier)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))))

@@ -240,20 +240,19 @@
 ; PROPERTIES
 ; =============================================================================
 
-(property
-  key: (identifier) @property)
+(property_key) @property
 
 (networked_property
   name: (identifier) @property)
 
-(animation_property
-  key: (identifier) @property)
+;(animation_property
+;  key: (identifier) @property)
 
 ; Property values that are special
-(property
-  key: (identifier) @property
-  value: (identifier) @constant
-  (#match? @property "^(geometry|skybox|type)$"))
+;(property
+;  key: (identifier) @property
+;  value: (identifier) @constant
+;  (#match? @property "^(geometry|skybox|type)$"))
 
 ; Sync modes
 [

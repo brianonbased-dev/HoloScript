@@ -16,7 +16,8 @@ object "VRMenu" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (array
         (number)
         (number)
@@ -41,7 +42,8 @@ object "XRHandMenu" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -63,7 +65,8 @@ object "FlatScreenUI" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -84,7 +87,8 @@ object "NativeOnlyFeature" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (boolean))))
 
 ================================================================================
@@ -106,7 +110,8 @@ object "FullInteractionModel" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -130,7 +135,8 @@ template "VRController" @grabbable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))))
 
 ================================================================================
@@ -155,7 +161,8 @@ spatial_group "ARAnchors" {
     (object
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
@@ -180,10 +187,12 @@ light "SunLight" {
         (platform_name)))
     name: (string)
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (color))))
 
 ================================================================================
@@ -219,24 +228,30 @@ norm "SpatialEtiquette" @enforceable {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (norm_creation
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (norm_compliance
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))
 
 ================================================================================
@@ -277,13 +292,16 @@ composition "AdaptiveMenu" {
         (trait_inline
           name: (identifier)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
-          (number)))
+          (unary_expression
+            operand: (number))))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (object
       (platform_decorator
@@ -291,13 +309,15 @@ composition "AdaptiveMenu" {
           (platform_name)))
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
           (number)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (object
       (platform_decorator
@@ -305,13 +325,15 @@ composition "AdaptiveMenu" {
           (platform_name)))
       name: (string)
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (array
           (number)
           (number)
           (number)))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))
 
 ================================================================================
@@ -364,58 +386,75 @@ norm "PriorityDeferral" @enforceable @community_driven {
       (trait_inline
         name: (identifier)))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (string))
     (property
-      key: (identifier)
+      key: (property_key
+        (identifier))
       value: (number))
     (norm_creation
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (norm_representation
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))
     (norm_spreading
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))
     (norm_evaluation
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (number)))
     (norm_compliance
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string))
       (property
-        key: (identifier)
+        key: (property_key
+          (identifier))
         value: (string)))))

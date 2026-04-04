@@ -24,6 +24,10 @@
         "named": true
       },
       {
+        "type": "camera",
+        "named": true
+      },
+      {
         "type": "codebase_block",
         "named": true
       },
@@ -104,6 +108,10 @@
         "named": true
       },
       {
+        "type": "light",
+        "named": true
+      },
+      {
         "type": "lod_block",
         "named": true
       },
@@ -161,6 +169,10 @@
       },
       {
         "type": "service_block",
+        "named": true
+      },
+      {
+        "type": "spatial_group",
         "named": true
       },
       {
@@ -316,7 +328,7 @@
         "named": true
       },
       {
-        "type": "variable_declaration",
+        "type": "variable_declaration_stmt",
         "named": true
       },
       {
@@ -1989,10 +2001,6 @@
       "required": false,
       "types": [
         {
-          "type": "identifier",
-          "named": true
-        },
-        {
           "type": "string",
           "named": true
         }
@@ -3554,7 +3562,7 @@
         "required": true,
         "types": [
           {
-            "type": "identifier",
+            "type": "property_key",
             "named": true
           }
         ]
@@ -3607,6 +3615,21 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "property_key",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -4862,32 +4885,6 @@
     }
   },
   {
-    "type": "variable_declaration",
-    "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
-      "value": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "_expression",
-            "named": true
-          }
-        ]
-      }
-    }
-  },
-  {
     "type": "variable_declaration_stmt",
     "named": true,
     "fields": {
@@ -5704,6 +5701,10 @@
     "named": false
   },
   {
+    "type": "destructive",
+    "named": false
+  },
+  {
     "type": "device",
     "named": false
   },
@@ -5801,6 +5802,10 @@
   },
   {
     "type": "evaluation",
+    "named": false
+  },
+  {
+    "type": "event",
     "named": false
   },
   {
@@ -6016,6 +6021,10 @@
     "named": false
   },
   {
+    "type": "kind",
+    "named": false
+  },
+  {
     "type": "kinematics",
     "named": false
   },
@@ -6025,6 +6034,10 @@
   },
   {
     "type": "landscape",
+    "named": false
+  },
+  {
+    "type": "layer",
     "named": false
   },
   {
@@ -6144,6 +6157,10 @@
     "named": false
   },
   {
+    "type": "name",
+    "named": false
+  },
+  {
     "type": "nav_agent",
     "named": false
   },
@@ -6209,10 +6226,6 @@
   },
   {
     "type": "of",
-    "named": false
-  },
-  {
-    "type": "on",
     "named": false
   },
   {
@@ -6844,6 +6857,10 @@
     "named": false
   },
   {
+    "type": "value",
+    "named": false
+  },
+  {
     "type": "var",
     "named": false
   },
@@ -6861,6 +6878,10 @@
   },
   {
     "type": "velocity",
+    "named": false
+  },
+  {
+    "type": "version",
     "named": false
   },
   {
