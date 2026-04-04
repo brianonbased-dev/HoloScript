@@ -230,8 +230,8 @@ export class DiscordWebhookManager {
    */
   private handleGatewayMessage(data: { op?: number; t?: string; d?: Record<string, unknown> }): void {
     // Handle heartbeat
-    if (data.op === 10) {
-      const heartbeatInterval = data.d.heartbeat_interval;
+    if (data.op === 10 && data.d) {
+      const heartbeatInterval = (data.d as any).heartbeat_interval;
       setInterval(() => {
         if (this.ws?.readyState === WebSocket.OPEN) {
           this.ws.send(JSON.stringify({ op: 1, d: null }));
@@ -240,11 +240,11 @@ export class DiscordWebhookManager {
     }
 
     // Handle MESSAGE_REACTION_ADD event
-    if (data.t === 'MESSAGE_REACTION_ADD') {
-      const reactionData = data.d;
+    if (data.t === 'MESSAGE_REACTION_ADD' && data.d) {
+      const reactionData = data.d as any;
       this.handleReaction({
-        emoji: reactionData.emoji.name || reactionData.emoji.id,
-        emojiName: reactionData.emoji.name || 'custom',
+        emoji: reactionData.emoji?.name || reactionData.emoji?.id,
+        emojiName: reactionData.emoji?.name || 'custom',
         userId: reactionData.user_id,
         userName: 'DiscordUser',
         channelId: reactionData.channel_id,

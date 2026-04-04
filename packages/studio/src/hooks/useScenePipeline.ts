@@ -74,7 +74,7 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
           r3fTree: null,
           errors: result.errors.map((e: string | { message?: string; line?: number }) => ({
             message: typeof e === 'string' ? e : e.message || String(e),
-            line: e.line,
+            line: typeof e === 'string' ? undefined : e.line,
           })),
         };
       }

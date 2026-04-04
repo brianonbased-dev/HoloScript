@@ -17,33 +17,26 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 
-interface SpeechRecognitionEvent extends Event {
+interface IWebSpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
+interface IWebSpeechRecognitionErrorEvent extends Event {
   error: string;
 }
 
 // Poly-fill type for SpeechRecognition (may not be in old TS DOM lib)
-interface ISpeechRecognition extends EventTarget {
+interface IWebSpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
   start(): void;
   stop(): void;
   abort(): void;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => ISpeechRecognition;
-    webkitSpeechRecognition?: new () => ISpeechRecognition;
-  }
+  onresult: ((event: IWebSpeechRecognitionEvent) => void) | null;
+  onerror: ((event: IWebSpeechRecognitionErrorEvent) => void) | null;
+  onend: ((event: any) => void) | null;
 }
 
 export interface UseBrittneyVoiceReturn {
@@ -59,7 +52,7 @@ export interface UseBrittneyVoiceReturn {
 export function useBrittneyVoice(): UseBrittneyVoiceReturn {
   const SpeechRecognition =
     typeof window !== 'undefined'
-      ? (window.SpeechRecognition ?? window.webkitSpeechRecognition)
+      ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
       : undefined;
 
   const isSupported = !!SpeechRecognition;
@@ -67,7 +60,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
-  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const recognitionRef = useRef<IWebSpeechRecognition | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -84,7 +77,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let final = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -99,7 +92,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
       setInterimTranscript(interim);
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       logger.warn('[BrittneyVoice] SpeechRecognition error:', event.error);
       setIsListening(false);
     };
