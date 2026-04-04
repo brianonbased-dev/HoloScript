@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
+import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 // ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
@@ -80,6 +81,10 @@ RULES:
 5. Use negative z positions so objects are visible from default camera`;
 
 export async function POST(request: Request) {
+  const userKeys = extractUserKeys(request);
+  const providerLabel = resolveProviderLabel(userKeys);
+  const headers = { 'x-llm-provider': providerLabel };
+
   try {
     const { prompt, existingCode, model } = await request.json();
 
@@ -98,25 +103,25 @@ export async function POST(request: Request) {
 
     // Try Brittney Cloud Service first (GPU inference)
     const brittneyResult = await tryBrittneyCloud(fullPrompt);
-    if (brittneyResult) return NextResponse.json(brittneyResult);
+    if (brittneyResult) return NextResponse.json(brittneyResult, { headers });
 
-    // Try cloud providers (OpenRouter > Anthropic > OpenAI)
-    const cloudResult = await tryCloudProvider(fullPrompt);
-    if (cloudResult) return NextResponse.json(cloudResult);
+    // Try cloud providers (OpenRouter > Anthropic > OpenAI) — BYOK keys resolved inside
+    const cloudResult = await tryCloudProvider(fullPrompt, userKeys);
+    if (cloudResult) return NextResponse.json(cloudResult, { headers });
 
     // Try LLM service next
     const llmResult = await tryLLMService(fullPrompt);
-    if (llmResult) return NextResponse.json(llmResult);
+    if (llmResult) return NextResponse.json(llmResult, { headers });
 
     // Ollama as optional local fallback (only if OLLAMA_URL is set)
     const ollamaResult = await tryOllama(fullPrompt, model);
-    if (ollamaResult) return NextResponse.json(ollamaResult);
+    if (ollamaResult) return NextResponse.json(ollamaResult, { headers });
 
     // Final fallback: mock generator (always works, zero dependencies)
     const mockCode = existingCode
       ? refineMockScene(existingCode, prompt)
       : generateMockScene(prompt);
-    return NextResponse.json({ success: true, code: mockCode, source: 'mock' });
+    return NextResponse.json({ success: true, code: mockCode, source: 'mock' }, { headers: { 'x-llm-provider': 'mock' } });
   } catch (err) {
     return NextResponse.json({ success: false, code: '', error: String(err) }, { status: 500 });
   }
@@ -142,17 +147,19 @@ async function tryBrittneyCloud(prompt: string) {
   }
 }
 
-async function tryCloudProvider(prompt: string) {
-  const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}`;
+async function tryCloudProvider(prompt: string, userKeys: UserKeys) {
+  const openrouterKey = getApiKey(userKeys, 'openrouter');
+  const anthropicKey = getApiKey(userKeys, 'anthropic');
+  const openaiKey = getApiKey(userKeys, 'openai');
 
   // Try OpenRouter
-  if (process.env.OPENROUTER_API_KEY) {
+  if (openrouterKey) {
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${openrouterKey}`,
         },
         body: JSON.stringify({
           model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
@@ -175,13 +182,13 @@ async function tryCloudProvider(prompt: string) {
   }
 
   // Try Anthropic
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (anthropicKey) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
@@ -203,13 +210,13 @@ async function tryCloudProvider(prompt: string) {
   }
 
   // Try OpenAI
-  if (process.env.OPENAI_API_KEY) {
+  if (openaiKey) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
           model: process.env.OPENAI_MODEL || 'gpt-4.1',

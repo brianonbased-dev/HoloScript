@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 /**
  * POST /api/autocomplete
@@ -26,10 +27,14 @@ function buildChatPrompt(prefix: string, suffix: string) {
 
 type Provider = { name: string; call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null> };
 
-function getProviders(): Provider[] {
+function getProviders(userKeys: UserKeys): Provider[] {
   const providers: Provider[] = [];
 
-  if (process.env.OPENROUTER_API_KEY) {
+  const openrouterKey = getApiKey(userKeys, 'openrouter');
+  const anthropicKey = getApiKey(userKeys, 'anthropic');
+  const openaiKey = getApiKey(userKeys, 'openai');
+
+  if (openrouterKey) {
     providers.push({
       name: 'openrouter',
       call: async (prefix, suffix, maxTokens) => {
@@ -37,7 +42,7 @@ function getProviders(): Provider[] {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            Authorization: `Bearer ${openrouterKey}`,
           },
           body: JSON.stringify({
             model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
@@ -54,7 +59,7 @@ function getProviders(): Provider[] {
     });
   }
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (anthropicKey) {
     providers.push({
       name: 'anthropic',
       call: async (prefix, suffix, maxTokens) => {
@@ -62,7 +67,7 @@ function getProviders(): Provider[] {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY!,
+            'x-api-key': anthropicKey,
             'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify({
@@ -80,7 +85,7 @@ function getProviders(): Provider[] {
     });
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (openaiKey) {
     providers.push({
       name: 'openai',
       call: async (prefix, suffix, maxTokens) => {
@@ -88,7 +93,7 @@ function getProviders(): Provider[] {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            Authorization: `Bearer ${openaiKey}`,
           },
           body: JSON.stringify({
             model: process.env.OPENAI_MODEL || 'gpt-4.1',
@@ -134,6 +139,9 @@ function getProviders(): Provider[] {
 }
 
 export async function POST(request: Request) {
+  const userKeys = extractUserKeys(request);
+  const providerLabel = resolveProviderLabel(userKeys);
+
   let body: CompletionRequest;
   try {
     body = (await request.json()) as CompletionRequest;
@@ -149,13 +157,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ completion: '' });
   }
 
-  const providers = getProviders();
+  const providers = getProviders(userKeys);
 
   for (const provider of providers) {
     try {
       const result = await provider.call(prefix, suffix, maxTokens);
       if (result) {
-        return NextResponse.json({ completion: result, provider: provider.name });
+        return NextResponse.json(
+          { completion: result, provider: provider.name },
+          { headers: { 'x-llm-provider': providerLabel } }
+        );
       }
     } catch {
       // Try next provider
@@ -163,8 +174,11 @@ export async function POST(request: Request) {
   }
 
   // No provider available — return empty completion (editor degrades gracefully)
-  return NextResponse.json({
-    completion: '',
-    warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
-  });
+  return NextResponse.json(
+    {
+      completion: '',
+      warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env, or provide x-openrouter-key / x-anthropic-key / x-openai-key headers',
+    },
+    { headers: { 'x-llm-provider': 'none' } }
+  );
 }

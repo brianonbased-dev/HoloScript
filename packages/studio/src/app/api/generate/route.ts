@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { extractUserKeys, getApiKey, resolveProviderLabel } from '@/lib/byok';
 
 const STARTER_TEMPLATES = [
   {
@@ -68,6 +69,10 @@ Examples:
 Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
 export async function POST(request: Request) {
+  const userKeys = extractUserKeys(request);
+  const providerLabel = resolveProviderLabel(userKeys);
+  const headers = { 'x-llm-provider': providerLabel };
+
   try {
     const body = await request.json();
     const { prompt, existingCode } = body;
@@ -79,10 +84,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = getApiKey(userKeys, 'anthropic');
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, code: '', error: 'ANTHROPIC_API_KEY not configured' },
+        { success: false, code: '', error: 'No API key available. Set ANTHROPIC_API_KEY in .env or provide x-anthropic-key header' },
         { status: 500 }
       );
     }
@@ -105,7 +110,7 @@ export async function POST(request: Request) {
     const textBlock = response.content.find((b) => b.type === 'text');
     const code = textBlock ? textBlock.text.trim() : '';
 
-    return NextResponse.json({ success: true, code });
+    return NextResponse.json({ success: true, code }, { headers });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, code: '', error: msg }, { status: 500 });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
+  const userKeys = extractUserKeys(req);
+  const providerLabel = resolveProviderLabel(userKeys);
+
   let body: { prompt?: string; baseColor?: string; model?: string };
 
   try {
@@ -46,8 +50,8 @@ void main() {
 
   const userPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
 
-  // Try cloud providers in order
-  const raw = await tryCloudProviders(systemPrompt, prompt) ?? await tryOllamaFallback(userPrompt, body.model);
+  // Try cloud providers in order — BYOK keys resolved inside
+  const raw = await tryCloudProviders(systemPrompt, prompt, userKeys) ?? await tryOllamaFallback(userPrompt, body.model);
 
   if (!raw) {
     return NextResponse.json(
@@ -65,18 +69,22 @@ void main() {
     return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
   }
 
-  return NextResponse.json({ glsl, traits, raw });
+  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': providerLabel } });
 }
 
-async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+async function tryCloudProviders(systemPrompt: string, prompt: string, userKeys: UserKeys): Promise<string | null> {
+  const openrouterKey = getApiKey(userKeys, 'openrouter');
+  const anthropicKey = getApiKey(userKeys, 'anthropic');
+  const openaiKey = getApiKey(userKeys, 'openai');
+
   // OpenRouter
-  if (process.env.OPENROUTER_API_KEY) {
+  if (openrouterKey) {
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${openrouterKey}`,
         },
         body: JSON.stringify({
           model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
@@ -98,13 +106,13 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   }
 
   // Anthropic
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (anthropicKey) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
@@ -125,13 +133,13 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   }
 
   // OpenAI
-  if (process.env.OPENAI_API_KEY) {
+  if (openaiKey) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
           model: process.env.OPENAI_MODEL || 'gpt-4.1',

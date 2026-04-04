@@ -25,23 +25,27 @@ import {
   buildTraitRAGContext,
   buildTraitLookupContext,
 } from '@/lib/brittney/brittney-system-prompt';
+import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 // ─── Claude via OpenRouter (OpenAI-compatible format) ────────────────────────
 
 async function* streamClaude(
   messages: BrittneyMessage[],
-  scene: string
+  scene: string,
+  userKeys: UserKeys
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
   // OpenRouter provides OpenAI-compatible API for Claude models
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY!;
-  const baseUrl = process.env.OPENROUTER_API_KEY
+  const openrouterKey = getApiKey(userKeys, 'openrouter');
+  const anthropicKey = getApiKey(userKeys, 'anthropic');
+  const apiKey = openrouterKey || anthropicKey;
+  const baseUrl = openrouterKey
     ? 'https://openrouter.ai/api/v1'
     : 'https://api.anthropic.com/v1';
   const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'anthropic/claude-haiku-4.5';
 
   // For direct Anthropic API, use native format
-  if (!process.env.OPENROUTER_API_KEY && process.env.ANTHROPIC_API_KEY) {
-    yield* streamAnthropicDirect(messages, scene);
+  if (!openrouterKey && anthropicKey) {
+    yield* streamAnthropicDirect(messages, scene, userKeys);
     return;
   }
 
@@ -77,9 +81,10 @@ async function* streamClaude(
 
 async function* streamAnthropicDirect(
   messages: BrittneyMessage[],
-  scene: string
+  scene: string,
+  userKeys: UserKeys
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY!;
+  const apiKey = getApiKey(userKeys, 'anthropic');
   const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'claude-haiku-4-5-20251001';
 
   const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
@@ -321,9 +326,10 @@ async function* parseOpenAIStream(
 
 async function* streamOpenAI(
   messages: BrittneyMessage[],
-  scene: string
+  scene: string,
+  userKeys: UserKeys
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
-  const apiKey = process.env.OPENAI_API_KEY!;
+  const apiKey = getApiKey(userKeys, 'openai');
   const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 
   const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
@@ -352,6 +358,9 @@ async function* streamOpenAI(
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const userKeys = extractUserKeys(req);
+  const providerLabel = resolveProviderLabel(userKeys);
+
   const { messages, sceneContext } = (await req.json()) as {
     messages: BrittneyMessage[];
     sceneContext: string;
@@ -379,12 +388,16 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        // Provider priority: Claude (OpenRouter/Anthropic) → Ollama → OpenAI
+        // Provider priority: Claude (OpenRouter/Anthropic) → OpenAI → Ollama
+        // BYOK: user-provided keys are resolved inside getApiKey()
         let gen: AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }>;
-        if (process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY) {
-          gen = streamClaude(messages, enrichedContext);
-        } else if (process.env.OPENAI_API_KEY) {
-          gen = streamOpenAI(messages, enrichedContext);
+        const openrouterKey = getApiKey(userKeys, 'openrouter');
+        const anthropicKey = getApiKey(userKeys, 'anthropic');
+        const openaiKey = getApiKey(userKeys, 'openai');
+        if (openrouterKey || anthropicKey) {
+          gen = streamClaude(messages, enrichedContext, userKeys);
+        } else if (openaiKey) {
+          gen = streamOpenAI(messages, enrichedContext, userKeys);
         } else {
           gen = streamOllama(messages, enrichedContext);
         }
@@ -406,6 +419,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      'x-llm-provider': providerLabel,
     },
   });
 }

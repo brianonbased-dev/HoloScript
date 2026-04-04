@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
-// As per the specification from the orchestrator
-const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY || 'holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR';
+const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY;
+
+if (!HOLOMESH_KEY) {
+  console.error('FATAL: HOLOMESH_API_KEY environment variable is not set. Knowledge publish endpoint will reject requests.');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +19,10 @@ export async function POST(req: NextRequest) {
     
     if (!workspaceId) {
       return NextResponse.json({ success: false, error: 'Missing workspace_id' }, { status: 400 });
+    }
+
+    if (!HOLOMESH_KEY) {
+      return NextResponse.json({ success: false, error: 'HOLOMESH_API_KEY environment variable is not set' }, { status: 500 });
     }
     
     const defaultPremium = body.default_premium === true;
