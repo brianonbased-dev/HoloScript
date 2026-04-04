@@ -84,13 +84,13 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         const matTrait = node.traits.find((t) => t.name === 'material');
         if (matTrait?.properties) {
           const props = matTrait.properties as Record<string, unknown>;
-          if (props.albedo) setAlbedo(props.albedo);
-          if (props.color) setAlbedo(props.color);
-          if (props.roughness !== undefined) setGlossiness(1.0 - props.roughness);
-          if (props.metallic !== undefined) setMetallic(props.metallic);
-          if (props.emissive) setEmissive(props.emissive);
-          if (props.emissiveIntensity !== undefined) setEmissiveInt(props.emissiveIntensity);
-          if (props.opacity !== undefined) setOpacity(props.opacity);
+          if (typeof props.albedo === 'string') setAlbedo(props.albedo);
+          if (typeof props.color === 'string') setAlbedo(props.color);
+          if (typeof props.roughness === 'number') setGlossiness(1.0 - props.roughness);
+          if (typeof props.metallic === 'number') setMetallic(props.metallic);
+          if (typeof props.emissive === 'string') setEmissive(props.emissive);
+          if (typeof props.emissiveIntensity === 'number') setEmissiveInt(props.emissiveIntensity);
+          if (typeof props.opacity === 'number') setOpacity(props.opacity);
         }
       }
     }

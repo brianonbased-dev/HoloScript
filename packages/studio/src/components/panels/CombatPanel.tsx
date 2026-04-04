@@ -106,7 +106,7 @@ export function CombatPanel() {
           {combos.map((c) => (
             <div key={c.id} className="bg-studio-panel/30 rounded p-1.5 mb-1">
               <div className="flex items-center gap-1 mb-1">
-                {c.steps.map((s: { name: string; input: string }, i: number) => (
+                {c.steps.map((s: any, i: number) => (
                   <span
                     key={i}
                     className={`px-1 py-0.5 rounded text-[10px] ${i < c.currentStep ? 'bg-emerald-500/20 text-emerald-400' : i === c.currentStep ? 'bg-amber-500/20 text-amber-400' : 'bg-studio-panel text-studio-muted'}`}

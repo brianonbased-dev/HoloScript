@@ -83,9 +83,8 @@ function BrittneyInputPanel({
 
   const handleVoice = useCallback(() => {
     const SR =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as unknown as Record<string, unknown>).SpeechRecognition ??
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ??
+      (window as any).webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
     rec.continuous = false;

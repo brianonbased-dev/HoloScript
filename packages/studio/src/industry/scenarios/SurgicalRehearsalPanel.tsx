@@ -137,10 +137,10 @@ export function SurgicalRehearsalPanel() {
     monitoringLevel: 'standard',
   };
 
-  const duration = useMemo(() => estimateProcedureDuration(procedure.steps), []);
-  const risk = useMemo(() => overallRiskLevel(procedure.steps, patient), []);
-  const bloodRisk = useMemo(() => bloodLossRisk(procedure.steps, patient), []);
-  const tools = useMemo(() => toolsRequired(procedure.steps), []);
+  const duration = useMemo(() => estimateProcedureDuration(procedure.steps as any), []);
+  const risk = useMemo(() => overallRiskLevel(procedure.steps as any, patient as any), []);
+  const bloodRisk = useMemo(() => bloodLossRisk(procedure.steps as any, patient as any), []);
+  const tools = useMemo(() => toolsRequired(procedure.steps as any), []);
   const anesOk = useMemo(() => anesthesiaCheck(config, patient), []);
 
   return (
