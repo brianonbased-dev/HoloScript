@@ -462,6 +462,23 @@ async function handleValidate(args: Record<string, unknown>) {
       }
     }
 
+    // Check for unknown traits — add as warnings, not errors
+    if (includeWarnings) {
+      const KNOWN_TRAIT_SET: Set<string> = new Set(VR_TRAITS as readonly string[]);
+      const traitMatches = [...code.matchAll(/@(\w+)/g)];
+      for (const match of traitMatches) {
+        const traitName = match[1];
+        if (!KNOWN_TRAIT_SET.has(traitName)) {
+          warnings.push({
+            code: 'unknown-trait',
+            message: `Unknown trait @${traitName} — not found in VR_TRAITS (${KNOWN_TRAIT_SET.size} known traits)`,
+            line: code.substring(0, match.index).split('\n').length,
+            suggestion: `Check available traits with list_traits tool`,
+          });
+        }
+      }
+    }
+
     const hasWarnings = warnings.length > 0;
     return {
       valid: errors.length === 0,

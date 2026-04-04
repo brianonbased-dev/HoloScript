@@ -37,7 +37,7 @@ async function* streamClaude(
   const baseUrl = process.env.OPENROUTER_API_KEY
     ? 'https://openrouter.ai/api/v1'
     : 'https://api.anthropic.com/v1';
-  const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'anthropic/claude-haiku-3-5-20241022';
+  const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'anthropic/claude-haiku-4.5';
 
   // For direct Anthropic API, use native format
   if (!process.env.OPENROUTER_API_KEY && process.env.ANTHROPIC_API_KEY) {

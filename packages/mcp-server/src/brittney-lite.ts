@@ -8,7 +8,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { HoloScriptPlusParser, parseHolo } from '@holoscript/core';
+import { HoloScriptPlusParser, parseHolo, VR_TRAITS } from '@holoscript/core';
 import { queryOllama, stripCodeFences } from './ollama-client.js';
 
 // =============================================================================
@@ -124,100 +124,10 @@ More comprehensive than generate_scene - creates production-ready structure.`,
 ];
 
 // =============================================================================
-// KNOWN TRAITS (for validation)
+// KNOWN TRAITS (built from VR_TRAITS — the single source of truth in core)
 // =============================================================================
 
-const KNOWN_TRAITS = new Set([
-  'grabbable',
-  'throwable',
-  'holdable',
-  'clickable',
-  'hoverable',
-  'draggable',
-  'selectable',
-  'focusable',
-  'pointable',
-  'scalable',
-  'rotatable',
-  'snappable',
-  'collidable',
-  'physics',
-  'rigid',
-  'kinematic',
-  'trigger',
-  'gravity',
-  'buoyant',
-  'glowing',
-  'emissive',
-  'transparent',
-  'reflective',
-  'animated',
-  'billboard',
-  'sprite',
-  'instanced',
-  'pulse',
-  'outline',
-  'spinning',
-  'floating',
-  'look_at',
-  'proximity',
-  'networked',
-  'synced',
-  'persistent',
-  'owned',
-  'host_only',
-  'local_only',
-  'stackable',
-  'attachable',
-  'equippable',
-  'consumable',
-  'destructible',
-  'respawnable',
-  'breakable',
-  'character',
-  'patrol',
-  'anchor',
-  'tracked',
-  'world_locked',
-  'hand_tracked',
-  'eye_tracked',
-  'head_tracked',
-  'spatial_audio',
-  'ambient',
-  'voice_activated',
-  'music_reactive',
-  'reverb_zone',
-  'voice_proximity',
-  'state',
-  'reactive',
-  'observable',
-  'computed',
-  'persistent_state',
-  'teleport',
-  'ui_panel',
-  'particle_system',
-  'weather',
-  'day_night',
-  'lod',
-  'hand_tracking',
-  'haptic',
-  'portal',
-  'mirror',
-  'behavior_tree',
-  'emotion',
-  'goal_oriented',
-  'perception',
-  'memory',
-  'cloth',
-  'soft_body',
-  'fluid',
-  'buoyancy',
-  'rope',
-  'wind',
-  'joint',
-  'rigidbody',
-  'destruction',
-]);
+const KNOWN_TRAITS: Set<string> = new Set(VR_TRAITS as readonly string[]);
 
 // Trait compatibility rules
 const TRAIT_REQUIRES: Record<string, string[]> = {
@@ -310,7 +220,7 @@ async function handleExplainError(args: Record<string, unknown>) {
       const traitMatch = err.message.match(/@?(\w+)/);
       const trait = traitMatch?.[1] || '';
       const suggestion = findSimilarTrait(trait);
-      explanation.explanation = `The trait @${trait} doesn't exist in HoloScript's 56-trait system.`;
+      explanation.explanation = `The trait @${trait} doesn't exist in HoloScript's ${KNOWN_TRAITS.size}-trait system.`;
       explanation.fix = suggestion
         ? `Use @${suggestion} instead`
         : 'Check available traits with list_traits tool';
@@ -812,8 +722,38 @@ async function handleScaffold(args: Record<string, unknown>) {
 
   const code = lines.join('\n');
 
+  // Validate scaffolded code through the parser before returning
+  try {
+    const parseResult = parseHolo(code);
+    if (parseResult.errors && parseResult.errors.length > 0) {
+      return {
+        code,
+        isValid: false,
+        scaffoldType: type,
+        errors: parseResult.errors.map((e: { message: string; line?: number }) => ({
+          message: e.message,
+          line: e.line,
+        })),
+        stats: {
+          lines: lines.length,
+          templates: (code.match(/template\s+"/g) || []).length,
+          objects: (code.match(/object\s+"/g) || []).length,
+          traits: (code.match(/@\w+/g) || []).length,
+        },
+        features: features.length > 0 ? features : ['basic'],
+        nextSteps: [
+          'Fix the validation errors above',
+          'Then test with render_preview tool',
+        ],
+      };
+    }
+  } catch {
+    // Parser threw — treat as invalid but still return the code for debugging
+  }
+
   return {
     code,
+    isValid: true,
     scaffoldType: type,
     stats: {
       lines: lines.length,
@@ -939,10 +879,8 @@ function findSimilarTrait(input: string): string | null {
     if (trait.includes(normalized) || normalized.includes(trait)) return trait;
   }
 
-  // First 3 chars
-  for (const trait of KNOWN_TRAITS) {
-    if (trait.substring(0, 3) === normalized.substring(0, 3)) return trait;
-  }
+  // NOTE: First-3-chars matching removed — too loose, causes silent wrong replacements
+  // with 1800+ traits (e.g. "gra" matching "grabbable" when "gravity" was intended)
 
   return null;
 }
