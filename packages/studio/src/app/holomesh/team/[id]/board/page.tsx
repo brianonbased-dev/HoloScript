@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 
 interface BoardTask {
@@ -58,8 +58,8 @@ function priorityColor(p?: number): string {
   return 'bg-studio-bg text-studio-muted';
 }
 
-export default function KanbanBoardPage({ params }: { params: { id: string } }) {
-  const teamId = params.id;
+export default function KanbanBoardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: teamId } = use(params);
   const [data, setData] = useState<BoardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

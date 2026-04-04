@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 
 interface TeamMember {
@@ -55,8 +55,8 @@ interface TeamData {
 
 const MODES = ['manual', 'build', 'audit', 'research', 'review'];
 
-export default function TeamDashboardPage({ params }: { params: { id: string } }) {
-  const teamId = params.id;
+export default function TeamDashboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: teamId } = use(params);
 
   const [team, setTeam] = useState<TeamData | null>(null);
   const [board, setBoard] = useState<BoardData | null>(null);
