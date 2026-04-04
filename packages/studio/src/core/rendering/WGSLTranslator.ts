@@ -225,7 +225,7 @@ export class WGSLTranslator {
    * inputs where available.
    */
   private emitNodeExpression(node: GNode, inputs: Map<string, string>): string {
-    const nodeData = node.data as Record<string, unknown> | undefined;
+    const nodeData = (node.data as unknown) as Record<string, unknown> | undefined;
     const nodeType = node.type ?? (nodeData?.type as string) ?? '';
     const data = nodeData ?? {};
 
@@ -441,7 +441,7 @@ export class WGSLTranslator {
    * propagates type from upstream inputs — e.g. vec3 + vec3 = vec3f, not f32.
    */
   private inferWGSLType(node: GNode, upstreamVars?: Map<string, string>): string {
-    const inferData = node.data as Record<string, unknown> | undefined;
+    const inferData = (node.data as unknown) as Record<string, unknown> | undefined;
     const nodeType = node.type ?? (inferData?.type as string) ?? '';
 
     switch (nodeType) {
