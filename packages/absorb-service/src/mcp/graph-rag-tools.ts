@@ -76,9 +76,9 @@ export const graphRagTools: Tool[] = [
         },
         llmProvider: {
           type: 'string',
-          enum: ['openai', 'anthropic', 'gemini', 'ollama'],
+          enum: ['openrouter', 'anthropic', 'openai', 'gemini', 'ollama'],
           description:
-            'LLM provider for answer generation (default: ollama). Use "gemini" for Google Gemini, "openai" for GPT models, "anthropic" for Claude.',
+            'LLM provider for answer generation (default: auto-detect from env, cloud-first). Priority: openrouter → anthropic → openai → gemini → ollama.',
         },
         llmApiKey: {
           type: 'string',
@@ -133,6 +133,20 @@ export async function handleGraphRagTool(
   }
 }
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Auto-detect the best LLM provider from environment variables.
+ * Cloud-first: OpenRouter → Anthropic → OpenAI → Ollama (last resort).
+ */
+function detectDefaultLLMProvider(): string {
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  return 'ollama';
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
@@ -175,7 +189,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
   } catch (err: unknown) {
     return {
       error: `Semantic search failed: ${err instanceof Error ? err.message : String(err)}`,
-      hint: 'Ensure Ollama is running with the nomic-embed-text model: ollama pull nomic-embed-text',
+      hint: 'Embedding search failed. Ensure your embedding provider is configured (OPENAI_API_KEY for best quality, or Ollama with nomic-embed-text).',
     };
   }
 }
@@ -198,13 +212,21 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
     let engine = cachedGraphRAGEngine;
-    if (llmProvider && llmProvider !== 'ollama') {
+    const effectiveProvider = llmProvider ?? detectDefaultLLMProvider();
+    if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
         const llmPkg = await import('@holoscript/llm-provider');
-        const apiKey = llmApiKey || process.env[`${llmProvider.toUpperCase()}_API_KEY`] || '';
+        const apiKey = llmApiKey || process.env[`${effectiveProvider.toUpperCase()}_API_KEY`] || '';
 
         let llmAdapter: LLMProvider;
-        switch (llmProvider) {
+        switch (effectiveProvider) {
+          case 'openrouter':
+            llmAdapter = new llmPkg.OpenAIAdapter({
+              apiKey: apiKey || process.env.OPENROUTER_API_KEY || '',
+              defaultModel: llmModel ?? 'anthropic/claude-sonnet-4',
+              baseUrl: 'https://openrouter.ai/api/v1',
+            });
+            break;
           case 'openai':
             llmAdapter = new llmPkg.OpenAIAdapter({
               apiKey,
@@ -225,8 +247,8 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             break;
           default:
             return {
-              error: `Unknown LLM provider: ${llmProvider}`,
-              hint: 'Supported providers: openai, anthropic, gemini, ollama',
+              error: `Unknown LLM provider: ${effectiveProvider}`,
+              hint: 'Supported providers: openrouter, anthropic, openai, gemini, ollama',
             };
         }
 
@@ -239,7 +261,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         });
       } catch (err: unknown) {
         return {
-          error: `Failed to initialize ${llmProvider} provider: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Failed to initialize ${effectiveProvider} provider: ${err instanceof Error ? err.message : String(err)}`,
           hint: 'Ensure @holoscript/llm-provider is installed and API key is valid',
         };
       }
@@ -266,15 +288,15 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         impactRadius: r.impactRadius,
         community: r.community ?? null,
       })),
-      llmProvider: llmProvider ?? 'ollama',
+      llmProvider: effectiveProvider ?? 'ollama',
     };
   } catch (err: unknown) {
     return {
       error: `Graph RAG query failed: ${err instanceof Error ? err.message : String(err)}`,
       hint:
-        llmProvider && llmProvider !== 'ollama'
-          ? `Ensure ${llmProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
-          : 'Ensure Ollama is running with both nomic-embed-text and a chat model.',
+        effectiveProvider && effectiveProvider !== 'ollama'
+          ? `Ensure ${effectiveProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
+          : 'No cloud API keys found. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for cloud LLM, or ensure Ollama is running locally.',
     };
   }
 }

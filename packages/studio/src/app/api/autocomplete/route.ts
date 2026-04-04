@@ -6,12 +6,9 @@ import { NextResponse } from 'next/server';
  * Body: { prefix: string, suffix?: string, maxTokens?: number }
  * Returns: { completion: string }
  *
- * Calls Ollama (or any OpenAI-compatible endpoint) with a HoloScript fill-in-the-middle prompt.
- * Falls back gracefully when Ollama is unavailable.
+ * Cloud-first autocomplete. Tries OpenRouter, Anthropic, OpenAI in order.
+ * Falls back to Ollama if configured, then returns empty completion gracefully.
  */
-
-const OLLAMA_BASE = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-const MODEL = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
 
 interface CompletionRequest {
   prefix?: string;
@@ -19,8 +16,121 @@ interface CompletionRequest {
   maxTokens?: number;
 }
 
-function buildPrompt(prefix: string, suffix: string) {
+function buildFIMPrompt(prefix: string, suffix: string) {
   return `<PRE>${prefix}<SUF>${suffix}<MID>`;
+}
+
+function buildChatPrompt(prefix: string, suffix: string) {
+  return `Complete the following HoloScript code. Return ONLY the completion text, no explanation.\n\nCode before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nCompletion:`;
+}
+
+type Provider = { name: string; call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null> };
+
+function getProviders(): Provider[] {
+  const providers: Provider[] = [];
+
+  if (process.env.OPENROUTER_API_KEY) {
+    providers.push({
+      name: 'openrouter',
+      call: async (prefix, suffix, maxTokens) => {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+            max_tokens: maxTokens,
+            temperature: 0.1,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content?.trimEnd() || null;
+      },
+    });
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    providers.push({
+      name: 'anthropic',
+      call: async (prefix, suffix, maxTokens) => {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+            max_tokens: maxTokens,
+            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+            temperature: 0.1,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.content?.[0]?.text?.trimEnd() || null;
+      },
+    });
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    providers.push({
+      name: 'openai',
+      call: async (prefix, suffix, maxTokens) => {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: process.env.OPENAI_MODEL || 'gpt-4.1',
+            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+            max_tokens: maxTokens,
+            temperature: 0.1,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content?.trimEnd() || null;
+      },
+    });
+  }
+
+  // Ollama as optional local fallback
+  if (process.env.OLLAMA_URL) {
+    const ollamaBase = process.env.OLLAMA_URL;
+    const model = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
+    providers.push({
+      name: 'ollama',
+      call: async (prefix, suffix, maxTokens) => {
+        const res = await fetch(`${ollamaBase}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            prompt: buildFIMPrompt(prefix, suffix),
+            stream: false,
+            options: { num_predict: maxTokens, temperature: 0.1, stop: ['\n\n', '}', ')'] },
+          }),
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as { response?: string };
+        return data.response?.trimEnd() || null;
+      },
+    });
+  }
+
+  return providers;
 }
 
 export async function POST(request: Request) {
@@ -39,34 +149,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ completion: '' });
   }
 
-  try {
-    const res = await fetch(`${OLLAMA_BASE}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        prompt: buildPrompt(prefix, suffix),
-        stream: false,
-        options: {
-          num_predict: maxTokens,
-          temperature: 0.1,
-          stop: ['\n\n', '}', ')'],
-        },
-      }),
-      signal: AbortSignal.timeout(4000),
-    });
+  const providers = getProviders();
 
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json({ completion: '', warning: `Ollama error: ${text.slice(0, 100)}` });
+  for (const provider of providers) {
+    try {
+      const result = await provider.call(prefix, suffix, maxTokens);
+      if (result) {
+        return NextResponse.json({ completion: result, provider: provider.name });
+      }
+    } catch {
+      // Try next provider
     }
-
-    const data = (await res.json()) as { response?: string };
-    const completion = (data.response ?? '').trimEnd();
-    return NextResponse.json({ completion });
-  } catch (err) {
-    // Ollama unavailable — return empty completion (editor degrades gracefully)
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ completion: '', warning: `Autocomplete unavailable: ${msg}` });
   }
+
+  // No provider available — return empty completion (editor degrades gracefully)
+  return NextResponse.json({
+    completion: '',
+    warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
+  });
 }

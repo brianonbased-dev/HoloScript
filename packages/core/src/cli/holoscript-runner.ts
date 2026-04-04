@@ -482,10 +482,11 @@ function createDaemonLLMProvider(opts: CLIOptions): LLMProvider {
     };
   }
 
-  // ollama
+  // ollama (optional local fallback — requires OLLAMA_BASE_URL or OLLAMA_URL)
   return {
     chat: async ({ system, prompt }) => {
-      const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+      const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
+      if (!baseUrl) throw new Error('Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env');
       const response = await fetch(`${baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

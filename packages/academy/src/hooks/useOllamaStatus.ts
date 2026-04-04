@@ -5,7 +5,9 @@ import { useAIStore } from '@/lib/stores';
 import { checkOllamaHealth } from '@/lib/api';
 
 /**
- * Polls Ollama health status every 10 seconds and updates the AI store.
+ * Polls AI provider health status every 30 seconds and updates the AI store.
+ * Cloud-first: checks for any configured provider (OpenRouter, Anthropic, OpenAI, Ollama).
+ * Name kept as useOllamaStatus for backward compatibility.
  */
 export function useOllamaStatus() {
   const setOllamaStatus = useAIStore((s) => s.setOllamaStatus);
@@ -21,7 +23,8 @@ export function useOllamaStatus() {
     }
 
     check();
-    const interval = setInterval(check, 10_000);
+    // Cloud providers are stable — no need to poll every 10s
+    const interval = setInterval(check, 30_000);
     return () => {
       mounted = false;
       clearInterval(interval);

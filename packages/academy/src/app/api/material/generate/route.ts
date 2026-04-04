@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'brittney-qwen-v23:latest';
-
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
  *  Returns: { glsl: string; traits: string; error?: string }
+ *
+ *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
   let body: { prompt?: string; baseColor?: string; model?: string };
@@ -16,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { prompt, baseColor = '#ffffff', model = DEFAULT_MODEL } = body;
+  const { prompt, baseColor = '#ffffff' } = body;
   if (!prompt) {
     return NextResponse.json({ error: '`prompt` is required' }, { status: 400 });
   }
@@ -45,38 +44,136 @@ void main() {
 ---TRAITS---
 @material emissive:"#ff6600" emissiveIntensity:0.8 metalness:0.0 roughness:0.5`;
 
+  const userPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
+
+  // Try cloud providers in order
+  const raw = await tryCloudProviders(systemPrompt, prompt) ?? await tryOllamaFallback(userPrompt, body.model);
+
+  if (!raw) {
+    return NextResponse.json(
+      { error: 'No AI provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env' },
+      { status: 503 }
+    );
+  }
+
+  // Split on the separator
+  const parts = raw.split('---TRAITS---');
+  const glsl = (parts[0] ?? '').trim();
+  const traits = (parts[1] ?? '').trim();
+
+  if (!glsl.includes('void main')) {
+    return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
+  }
+
+  return NextResponse.json({ glsl, traits, raw });
+}
+
+async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+  // OpenRouter
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 512,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch { /* try next */ }
+  }
+
+  // Anthropic
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+          max_tokens: 512,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.content?.[0]?.text;
+        if (text) return text;
+      }
+    } catch { /* try next */ }
+  }
+
+  // OpenAI
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_MODEL || 'gpt-4.1',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 512,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch { /* try next */ }
+  }
+
+  return null;
+}
+
+async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<string | null> {
+  const ollamaUrl = process.env.OLLAMA_URL;
+  if (!ollamaUrl) return null; // Ollama is optional
   try {
-    const ollamaRes = await fetch(`${OLLAMA_BASE}/api/generate`, {
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model,
-        prompt: `${systemPrompt}\n\nUser request: ${prompt}`,
+        model: model || 'brittney-qwen-v23:latest',
+        prompt: fullPrompt,
         stream: false,
         options: { temperature: 0.7, num_predict: 512 },
       }),
       signal: AbortSignal.timeout(30_000),
     });
-
-    if (!ollamaRes.ok) {
-      return NextResponse.json({ error: `Ollama returned ${ollamaRes.status}` }, { status: 502 });
-    }
-
-    const data = (await ollamaRes.json()) as { response?: string; error?: string };
-    const raw = data.response ?? '';
-
-    // Split on the separator
-    const parts = raw.split('---TRAITS---');
-    const glsl = (parts[0] ?? '').trim();
-    const traits = (parts[1] ?? '').trim();
-
-    if (!glsl.includes('void main')) {
-      return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
-    }
-
-    return NextResponse.json({ glsl, traits, raw });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { response?: string };
+    return data.response ?? null;
+  } catch {
+    return null;
   }
 }

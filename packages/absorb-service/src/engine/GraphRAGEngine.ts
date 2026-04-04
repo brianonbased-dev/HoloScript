@@ -38,9 +38,9 @@ export interface GraphRAGOptions {
   type?: string;
   /** Filter results to specific file path prefix */
   file?: string;
-  /** Ollama base URL for LLM queries (default: 'http://localhost:11434') */
+  /** Ollama base URL for LLM queries (last-resort fallback, default: 'http://localhost:11434') */
   ollamaUrl?: string;
-  /** LLM model for answer generation (default: 'brittney-qwen-v23') */
+  /** LLM model for answer generation (default: 'brittney-qwen-v23' for Ollama fallback) */
   llmModel?: string;
   /**
    * LLM provider for answer generation.

@@ -51,9 +51,10 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     return cachedProviderName;
   }
 
-  // 3. Probe Ollama
+  // 3. Probe Ollama (only if OLLAMA_URL is configured)
   try {
-    const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434';
+    const ollamaUrl = process.env.OLLAMA_URL;
+    if (!ollamaUrl) throw new Error('OLLAMA_URL not set');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000);
 

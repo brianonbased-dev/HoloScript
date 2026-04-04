@@ -175,7 +175,10 @@ async function* streamOllama(
   messages: BrittneyMessage[],
   scene: string
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
-  const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434';
+  const ollamaUrl = process.env.OLLAMA_URL;
+  if (!ollamaUrl) {
+    throw new Error('Ollama not configured. Set OLLAMA_URL in .env to use the Brittney Ollama provider.');
+  }
   const model = process.env.BRITTNEY_MODEL ?? 'brittney-qwen3b';
 
   const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;

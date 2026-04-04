@@ -120,7 +120,7 @@ export function PromptBar() {
 
       {isDisconnected && !isGenerating && (
         <div className="rounded-lg border border-studio-border bg-studio-surface/50 px-3 py-2 text-xs text-studio-muted">
-          Using built-in scene generator. Install Ollama for AI-powered generation.
+          Using built-in scene generator. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env for AI-powered generation.
         </div>
       )}
 

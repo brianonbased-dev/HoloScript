@@ -328,38 +328,45 @@ const legend: SemanticTokensLegend = {
 };
 
 connection.onInitialize(async (_params: InitializeParams): Promise<InitializeResult> => {
-  // Initialize AI: try Ollama first (free, local, HoloScript-optimized), fall back to Gemini
+  // Initialize AI: cloud-first, Ollama as optional local fallback
   let aiInitialized = false;
 
-  // Try Ollama with brittney-qwen-v23
-  try {
-    const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
-    const ollamaModel = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
-    const ollamaAdapter = useOllama({ baseUrl: ollamaUrl, model: ollamaModel });
-    if (await ollamaAdapter.isReady()) {
-      const adapter = getDefaultAIAdapter();
-      if (adapter) {
-        semanticCompletion = new SemanticCompletionProvider(adapter);
-        await semanticCompletion.initialize();
-        aiCompletion = new AICompletionProvider(adapter);
-        aiInitialized = true;
-      }
-    }
-  } catch {
-    // Ollama not available, try Gemini
-  }
-
-  // Fall back to Gemini if Ollama unavailable
+  // Try Gemini (cloud) first
   if (!aiInitialized) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
-      useGemini({ apiKey });
-      const adapter = getDefaultAIAdapter();
-      if (adapter) {
-        semanticCompletion = new SemanticCompletionProvider(adapter);
-        await semanticCompletion.initialize();
-        aiCompletion = new AICompletionProvider(adapter);
+      try {
+        useGemini({ apiKey });
+        const adapter = getDefaultAIAdapter();
+        if (adapter) {
+          semanticCompletion = new SemanticCompletionProvider(adapter);
+          await semanticCompletion.initialize();
+          aiCompletion = new AICompletionProvider(adapter);
+          aiInitialized = true;
+        }
+      } catch {
+        // Gemini not available, try Ollama
       }
+    }
+  }
+
+  // Fall back to Ollama if configured (optional — never required)
+  if (!aiInitialized && process.env.OLLAMA_URL) {
+    try {
+      const ollamaUrl = process.env.OLLAMA_URL;
+      const ollamaModel = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
+      const ollamaAdapter = useOllama({ baseUrl: ollamaUrl, model: ollamaModel });
+      if (await ollamaAdapter.isReady()) {
+        const adapter = getDefaultAIAdapter();
+        if (adapter) {
+          semanticCompletion = new SemanticCompletionProvider(adapter);
+          await semanticCompletion.initialize();
+          aiCompletion = new AICompletionProvider(adapter);
+          aiInitialized = true;
+        }
+      }
+    } catch {
+      // Ollama not available — AI completions disabled
     }
   }
 

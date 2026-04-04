@@ -5,9 +5,12 @@ import { devtools } from 'zustand/middleware';
 import type { AIStatus, OllamaStatus, PromptEntry } from '@/types';
 
 // ─── AI Store ───────────────────────────────────────────────────────────────
+// Cloud-first: ollamaStatus now tracks any AI provider availability,
+// not just Ollama. Name kept for backward compatibility with components.
 
 interface AIState {
   status: AIStatus;
+  /** @deprecated Renamed conceptually to "AI provider status". Checks cloud API keys, not Ollama. */
   ollamaStatus: OllamaStatus;
   model: string;
   promptHistory: PromptEntry[];
@@ -23,7 +26,7 @@ export const useAIStore = create<AIState>()(
     (set) => ({
       status: 'idle',
       ollamaStatus: 'checking',
-      model: 'brittney-qwen-v23:latest',
+      model: 'auto',
       promptHistory: [],
       setStatus: (status) => set({ status }),
       setOllamaStatus: (ollamaStatus) => set({ ollamaStatus }),

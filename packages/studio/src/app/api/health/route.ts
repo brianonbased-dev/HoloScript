@@ -3,7 +3,16 @@ import { getDb } from '../../../db/client';
 import { holomeshBoardTasks } from '../../../db/schema';
 import { sql } from 'drizzle-orm';
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+/**
+ * Cloud-first AI detection. Ollama is an optional local fallback — never required.
+ */
+function detectAIProvider(): { provider: string; connected: boolean } {
+  if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', connected: true };
+  if (process.env.ANTHROPIC_API_KEY) return { provider: 'anthropic', connected: true };
+  if (process.env.OPENAI_API_KEY) return { provider: 'openai', connected: true };
+  if (process.env.OLLAMA_URL) return { provider: 'ollama', connected: true };
+  return { provider: 'none', connected: false };
+}
 
 interface TeamActivity {
   active_teams: number;
@@ -57,23 +66,18 @@ export async function GET() {
     };
   }
 
-  // Check Ollama
-  let ollama = false;
-  let models: string[] = [];
-  try {
-    const ollamaRes = await fetch(`${OLLAMA_URL}/api/tags`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (ollamaRes.ok) {
-      const data = await ollamaRes.json();
-      models = ((data.models || []) as Array<{ name: string }>).map((m) => m.name);
-      ollama = true;
-    }
-  } catch {
-    // ollama stays false
-  }
+  // Detect AI provider (cloud-first, Ollama optional fallback)
+  const ai = detectAIProvider();
 
   const degraded = taskBoard.degraded;
 
-  return NextResponse.json({ degraded, ollama, models, taskBoard, teamActivity });
+  // Legacy compat: ollama field mirrors ai.connected for old clients
+  return NextResponse.json({
+    degraded,
+    ai,
+    ollama: ai.connected,
+    models: ai.provider !== 'none' ? [ai.provider] : [],
+    taskBoard,
+    teamActivity,
+  });
 }

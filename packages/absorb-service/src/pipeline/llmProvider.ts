@@ -1,7 +1,7 @@
 /**
  * LLM Provider — Concrete implementations for L1/L2 pipeline executors.
  *
- * Fallback chain: Anthropic → xAI → OpenAI → Ollama
+ * Fallback chain: OpenRouter → Anthropic → xAI → OpenAI → Ollama (last resort)
  * Auto-detects available provider from environment variables.
  */
 
@@ -144,6 +144,53 @@ export class XAILLMProvider implements LLMProvider {
   }
 }
 
+// ─── OpenRouter Provider ───────────────────────────────────────────────────
+// OpenAI-compatible API at https://openrouter.ai/api/v1
+
+export class OpenRouterLLMProvider implements LLMProvider {
+  private apiKey: string;
+  private model: string;
+
+  constructor(apiKey: string, model = 'anthropic/claude-sonnet-4') {
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+        'HTTP-Referer': 'https://holoscript.net',
+        'X-Title': 'HoloScript Absorb',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: params.maxTokens,
+        messages: [
+          { role: 'system', content: params.system },
+          { role: 'user', content: params.prompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`OpenRouter API error ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content ?? '';
+    return { text };
+  }
+}
+
 // ─── Ollama Provider ────────────────────────────────────────────────────────
 
 export class OllamaLLMProvider implements LLMProvider {
@@ -190,9 +237,15 @@ export class OllamaLLMProvider implements LLMProvider {
 
 /**
  * Auto-detect available LLM provider from environment variables.
- * Fallback chain: ANTHROPIC_API_KEY → XAI_API_KEY → OPENAI_API_KEY → OLLAMA_URL
+ * Fallback chain: OPENROUTER_API_KEY → ANTHROPIC_API_KEY → XAI_API_KEY → OPENAI_API_KEY → OLLAMA_URL (last resort)
  */
 export function createLLMProvider(): LLMProvider {
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    const model = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-sonnet-4';
+    return new OpenRouterLLMProvider(openRouterKey, model);
+  }
+
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
     const model = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5-20250929';
@@ -211,9 +264,18 @@ export function createLLMProvider(): LLMProvider {
     return new OpenAILLMProvider(openaiKey, model);
   }
 
+  // Ollama is last resort — only used if no cloud API keys are set and OLLAMA_URL is configured
   const ollamaUrl =
-    process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+    process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
+  if (!ollamaUrl) {
+    throw new Error(
+      '[LLMProvider] No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_URL in .env'
+    );
+  }
   const ollamaModel = process.env.OLLAMA_MODEL ?? process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
+  console.warn(
+    '[LLMProvider] No cloud API keys found (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY). Falling back to Ollama.'
+  );
   return new OllamaLLMProvider(ollamaUrl, ollamaModel);
 }
 
@@ -221,6 +283,7 @@ export function createLLMProvider(): LLMProvider {
  * Returns which provider would be used, for diagnostics.
  */
 export function detectLLMProviderName(): string {
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
   if (process.env.XAI_API_KEY) return 'xai';
   if (process.env.OPENAI_API_KEY) return 'openai';

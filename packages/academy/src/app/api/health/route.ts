@@ -1,23 +1,27 @@
 import { NextResponse } from 'next/server';
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+/**
+ * GET /api/health
+ *
+ * Cloud-first health check. Detects available AI providers via env vars.
+ * Ollama is an optional local fallback — never required.
+ */
+
+function detectProvider(): { provider: string; connected: boolean } {
+  if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', connected: true };
+  if (process.env.ANTHROPIC_API_KEY) return { provider: 'anthropic', connected: true };
+  if (process.env.OPENAI_API_KEY) return { provider: 'openai', connected: true };
+  if (process.env.OLLAMA_URL) return { provider: 'ollama', connected: true };
+  return { provider: 'none', connected: false };
+}
 
 export async function GET() {
-  try {
-    // Check Ollama
-    const ollamaRes = await fetch(`${OLLAMA_URL}/api/tags`, {
-      signal: AbortSignal.timeout(3000),
-    });
+  const ai = detectProvider();
 
-    if (!ollamaRes.ok) {
-      return NextResponse.json({ ollama: false, models: [] });
-    }
-
-    const data = await ollamaRes.json();
-    const models = (data.models || []).map((m: { name: string }) => m.name);
-
-    return NextResponse.json({ ollama: true, models });
-  } catch {
-    return NextResponse.json({ ollama: false, models: [] });
-  }
+  // Legacy compat: ollama field mirrors ai.connected for old clients
+  return NextResponse.json({
+    ai,
+    ollama: ai.connected,
+    models: ai.provider !== 'none' ? [ai.provider] : [],
+  });
 }

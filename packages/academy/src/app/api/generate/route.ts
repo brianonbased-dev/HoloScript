@@ -47,8 +47,7 @@ export function GET() {
 }
 
 const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
+const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || '';
 
 const SYSTEM_PROMPT = `You are a HoloScript expert. Generate valid HoloScript code from user descriptions.
 
@@ -101,11 +100,15 @@ export async function POST(request: Request) {
     const brittneyResult = await tryBrittneyCloud(fullPrompt);
     if (brittneyResult) return NextResponse.json(brittneyResult);
 
+    // Try cloud providers (OpenRouter > Anthropic > OpenAI)
+    const cloudResult = await tryCloudProvider(fullPrompt);
+    if (cloudResult) return NextResponse.json(cloudResult);
+
     // Try LLM service next
     const llmResult = await tryLLMService(fullPrompt);
     if (llmResult) return NextResponse.json(llmResult);
 
-    // Fall back to direct Ollama
+    // Ollama as optional local fallback (only if OLLAMA_URL is set)
     const ollamaResult = await tryOllama(fullPrompt, model);
     if (ollamaResult) return NextResponse.json(ollamaResult);
 
@@ -139,7 +142,100 @@ async function tryBrittneyCloud(prompt: string) {
   }
 }
 
+async function tryCloudProvider(prompt: string) {
+  const fullPrompt = `${SYSTEM_PROMPT}\n\nUser request: ${prompt}`;
+
+  // Try OpenRouter
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.choices?.[0]?.message?.content || '';
+        const code = extractHoloScript(raw);
+        if (code) return { success: true, code, source: 'openrouter' };
+      }
+    } catch { /* try next */ }
+  }
+
+  // Try Anthropic
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+          max_tokens: 2048,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.content?.[0]?.text || '';
+        const code = extractHoloScript(raw);
+        if (code) return { success: true, code, source: 'anthropic' };
+      }
+    } catch { /* try next */ }
+  }
+
+  // Try OpenAI
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_MODEL || 'gpt-4.1',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.choices?.[0]?.message?.content || '';
+        const code = extractHoloScript(raw);
+        if (code) return { success: true, code, source: 'openai' };
+      }
+    } catch { /* try next */ }
+  }
+
+  return null;
+}
+
 async function tryLLMService(prompt: string) {
+  if (!LLM_SERVICE_URL) return null;
   try {
     const res = await fetch(`${LLM_SERVICE_URL}/api/generate`, {
       method: 'POST',
@@ -159,8 +255,10 @@ async function tryLLMService(prompt: string) {
 }
 
 async function tryOllama(prompt: string, model?: string) {
+  const ollamaUrl = process.env.OLLAMA_URL;
+  if (!ollamaUrl) return null; // Ollama is optional — skip if not configured
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

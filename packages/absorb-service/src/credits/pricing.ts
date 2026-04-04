@@ -82,6 +82,7 @@ export const TIER_LIMITS: Record<
 export const LLM_MARKUP = 1.15;
 
 export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number }> = {
+  openrouter: { input: 3.0, output: 15.0 }, // priced same as anthropic (typical routed model)
   anthropic: { input: 3.0, output: 15.0 },
   xai: { input: 2.0, output: 10.0 },
   openai: { input: 2.5, output: 10.0 },

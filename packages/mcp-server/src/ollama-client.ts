@@ -1,30 +1,47 @@
 /**
- * LLM Client for HoloScript MCP Server
+ * LLM Client for HoloScript MCP Server — Cloud-First
  *
- * Supports multiple providers via LLM_PROVIDER env var:
- *   - 'ollama'    (default) — local Ollama instance
- *   - 'anthropic' — Anthropic Claude API (requires ANTHROPIC_API_KEY)
- *   - 'openai'    — OpenAI API (requires OPENAI_API_KEY)
+ * Auto-detects the best available provider from env vars:
+ *   1. 'openrouter'  — OpenRouter (preferred, best model routing)
+ *   2. 'anthropic'   — Anthropic Claude API direct
+ *   3. 'openai'      — OpenAI API
+ *   4. 'ollama'      — local Ollama instance (fallback only)
  *
- * Used by brittney-lite.ts for AI-backed code generation/review
+ * Override with LLM_PROVIDER env var. Auto-detect runs if not set.
+ *
+ * Used by brittney-lite.ts, generators.ts, and self-improve-tools.ts
  * with graceful fallback to rule-based logic when unavailable.
  */
 
-type LLMProviderName = 'ollama' | 'anthropic' | 'openai';
+type LLMProviderName = 'openrouter' | 'anthropic' | 'openai' | 'ollama';
 
-const LLM_PROVIDER: LLMProviderName = (process.env.LLM_PROVIDER as LLMProviderName) || 'ollama';
+function detectProvider(): LLMProviderName {
+  const explicit = process.env.LLM_PROVIDER as LLMProviderName;
+  if (explicit && ['openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit)) return explicit;
+  // Auto-detect from available keys
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  return 'ollama';
+}
 
-// ── Ollama config ────────────────────────────────────────────────────────────
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
+const LLM_PROVIDER: LLMProviderName = detectProvider();
+
+// ── OpenRouter config ───────────────────────────────────────────────────────
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
 
 // ── Anthropic config ─────────────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 
 // ── OpenAI config ────────────────────────────────────────────────────────────
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+// ── Ollama config (local fallback only) ──────────────────────────────────────
+const OLLAMA_URL = process.env.OLLAMA_URL || ''; // Ollama is optional — empty means disabled
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
 
 const LLM_TIMEOUT = 60_000; // 60s for generation
 
@@ -45,21 +62,29 @@ export const HOLOSCRIPT_SYSTEM_PROMPT = `You are Brittney, an expert HoloScript 
 // PROVIDER IMPLEMENTATIONS
 // =============================================================================
 
-async function queryOllamaProvider(prompt: string, system: string): Promise<string | null> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+async function queryOpenRouterProvider(prompt: string, system: string): Promise<string | null> {
+  if (!OPENROUTER_API_KEY) return null;
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://mcp.holoscript.net',
+      'X-Title': 'HoloScript MCP',
+    },
     body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      prompt,
-      system,
-      stream: false,
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 4096,
     }),
     signal: AbortSignal.timeout(LLM_TIMEOUT),
   });
   if (!res.ok) return null;
-  const data = (await res.json()) as { response: string };
-  return data.response || null;
+  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+  return data.choices?.[0]?.message?.content || null;
 }
 
 async function queryAnthropicProvider(prompt: string, system: string): Promise<string | null> {
@@ -107,20 +132,40 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
   return data.choices?.[0]?.message?.content || null;
 }
 
+async function queryOllamaProvider(prompt: string, system: string): Promise<string | null> {
+  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      prompt,
+      system,
+      stream: false,
+    }),
+    signal: AbortSignal.timeout(LLM_TIMEOUT),
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { response: string };
+  return data.response || null;
+}
+
 // =============================================================================
-// PUBLIC API (backward-compatible)
+// PUBLIC API (backward-compatible — function name kept as queryOllama)
 // =============================================================================
 
 /**
  * Query the configured LLM provider.
  * Returns null if the provider is unavailable or the request fails.
  *
- * Provider selected by LLM_PROVIDER env var (ollama | anthropic | openai).
+ * Auto-detects provider from env vars: OpenRouter → Anthropic → OpenAI → Ollama.
+ * Override with LLM_PROVIDER env var.
  */
 export async function queryOllama(prompt: string, system?: string): Promise<string | null> {
   const sysPrompt = system || HOLOSCRIPT_SYSTEM_PROMPT;
   try {
     switch (LLM_PROVIDER) {
+      case 'openrouter':
+        return await queryOpenRouterProvider(prompt, sysPrompt);
       case 'anthropic':
         return await queryAnthropicProvider(prompt, sysPrompt);
       case 'openai':
@@ -140,6 +185,8 @@ export async function queryOllama(prompt: string, system?: string): Promise<stri
 export async function isOllamaAvailable(): Promise<boolean> {
   try {
     switch (LLM_PROVIDER) {
+      case 'openrouter':
+        return !!OPENROUTER_API_KEY;
       case 'anthropic':
         return !!ANTHROPIC_API_KEY;
       case 'openai':
@@ -159,6 +206,13 @@ export async function isOllamaAvailable(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Get the active LLM provider name (for health endpoints).
+ */
+export function getActiveProvider(): string {
+  return LLM_PROVIDER;
 }
 
 /**

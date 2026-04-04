@@ -14,11 +14,17 @@ export async function generateScene(req: GenerateRequest): Promise<GenerateRespo
   return res.json();
 }
 
+/**
+ * Check if any AI provider is available (cloud-first).
+ * The health endpoint detects OPENROUTER_API_KEY, ANTHROPIC_API_KEY,
+ * OPENAI_API_KEY, or OLLAMA_URL and reports connectivity.
+ */
 export async function checkOllamaHealth(): Promise<boolean> {
   try {
     const res = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return false;
     const data = await res.json();
+    // Legacy: ollama field is true when any AI provider is configured
     return data.ollama === true;
   } catch {
     return false;
@@ -26,19 +32,9 @@ export async function checkOllamaHealth(): Promise<boolean> {
 }
 
 /**
- * Fetches a list of available Ollama models from the health API endpoint.
- * Used by the Studio to populate model selection dropdowns and enable
- * local AI features for code generation and assistance.
+ * Fetches a list of available AI providers/models from the health API endpoint.
  *
- * @returns Promise resolving to array of model names, empty array on error
- *
- * @example
- * ```typescript
- * const models = await listOllamaModels();
- * if (models.length > 0) {
- *   console.log(`Available models: ${models.join(', ')}`);
- * }
- * ```
+ * @returns Promise resolving to array of provider names, empty array on error
  */
 export async function listOllamaModels(): Promise<string[]> {
   try {

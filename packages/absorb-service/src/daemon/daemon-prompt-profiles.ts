@@ -1,4 +1,4 @@
-export type DaemonProvider = 'anthropic' | 'xai' | 'openai' | 'ollama';
+export type DaemonProvider = 'openrouter' | 'anthropic' | 'xai' | 'openai' | 'ollama';
 export type DaemonToolProfile = 'claude-hsplus' | 'grok-hsplus' | 'standard';
 
 export interface DaemonPromptContext {
@@ -31,6 +31,11 @@ const HOLOSCRIPT_GOTCHAS = [
 
 function modelStyleGuideFor(provider: DaemonProvider): string {
   switch (provider) {
+    case 'openrouter':
+      return [
+        'Model profile: OpenRouter (cloud-routed model).',
+        'Use high-precision reasoning but return only constrained, minimal edits.',
+      ].join(' ');
     case 'xai':
       return [
         'Model profile: xAI Grok.',
