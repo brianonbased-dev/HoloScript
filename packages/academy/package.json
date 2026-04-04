@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/academy",
-  "version": "0.1.0",
+  "version": "6.0.2",
   "description": "HoloScript Academy - 3D Learning Platform for HoloScript",
   "private": true,
   "exports": {

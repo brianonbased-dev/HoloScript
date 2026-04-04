@@ -4,6 +4,40 @@ All notable changes to HoloScript are documented here.
 
 ---
 
+## [6.0.2] — 2026-04-02 (Type Safety & Platform Hardening)
+
+7 packages bumped to 6.0.2. Massive type safety sweep, new compilers, security hardening, and 1,100+ new tests.
+
+### Added
+
+- **VRR Runtime & Compiler** — Variable Refresh Rate support for spatial rendering
+- **x402 Payment Protocol** — on-chain verification, replay protection, rate limiting, JWK thumbprint binding
+- **AndroidXR Compiler** — 47 traits for Android XR spatial targeting
+- **Agent-Inference Compiler** — compile HoloScript to agent inference pipelines
+- **MitosisSwarm** — swarm coordination primitive for distributed agent workloads
+- **Debug Attach** — runtime debug attachment for live HoloScript sessions
+- **VRM Mixer** — VRM avatar animation blending and mixing
+- **MCP Board Tools** — task board management via MCP protocol
+- **AIGlasses Compiler** — compile spatial scenes for AI glasses hardware
+- **1,100+ new tests** — 8 previously zero-coverage packages now covered
+- **4 READMEs** — absorb-service, core-types, ui, connector-vscode
+
+### Changed
+
+- **Type safety**: `as any` reduced from 1,748 to 39 (97.8% reduction), zero `catch(any)` remaining
+- **450+ `console.log` calls removed** — replaced with structured logging or removed
+- **100+ TODOs resolved** — backlog cleaned across all packages
+- **ErrorBoundary consolidated** — single shared implementation replaces per-package copies
+
+### Security
+
+- **x402 on-chain verification** — payment proofs validated against chain state
+- **Replay protection** — nonce-based deduplication for x402 payment flows
+- **Rate limiting** — per-key and per-endpoint throttling on payment endpoints
+- **JWK thumbprint** — cryptographic key binding for payment identity
+
+---
+
 ## [6.0.0] — 2026-03-30 (Universal Semantic Platform)
 
 134 commits. Major version: 8 core packages bumped to 6.0.0, HoloMesh V5-V8 shipped, 19 new MCP tools, publishing protocol, multi-tenant auth.
