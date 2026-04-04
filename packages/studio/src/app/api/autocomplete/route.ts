@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 /**
  * POST /api/autocomplete
@@ -9,6 +8,7 @@ import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from 
  *
  * Cloud-first autocomplete. Tries OpenRouter, Anthropic, OpenAI in order.
  * Falls back to Ollama if configured, then returns empty completion gracefully.
+ * Studio pays — uses server-side env keys only.
  */
 
 interface CompletionRequest {
@@ -27,12 +27,12 @@ function buildChatPrompt(prefix: string, suffix: string) {
 
 type Provider = { name: string; call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null> };
 
-function getProviders(userKeys: UserKeys): Provider[] {
+function getProviders(): Provider[] {
   const providers: Provider[] = [];
 
-  const openrouterKey = getApiKey(userKeys, 'openrouter');
-  const anthropicKey = getApiKey(userKeys, 'anthropic');
-  const openaiKey = getApiKey(userKeys, 'openai');
+  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
 
   if (openrouterKey) {
     providers.push({
@@ -139,9 +139,6 @@ function getProviders(userKeys: UserKeys): Provider[] {
 }
 
 export async function POST(request: Request) {
-  const userKeys = extractUserKeys(request);
-  const providerLabel = resolveProviderLabel(userKeys);
-
   let body: CompletionRequest;
   try {
     body = (await request.json()) as CompletionRequest;
@@ -157,7 +154,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ completion: '' });
   }
 
-  const providers = getProviders(userKeys);
+  const providers = getProviders();
 
   for (const provider of providers) {
     try {
@@ -165,7 +162,7 @@ export async function POST(request: Request) {
       if (result) {
         return NextResponse.json(
           { completion: result, provider: provider.name },
-          { headers: { 'x-llm-provider': providerLabel } }
+          { headers: { 'x-llm-provider': 'server' } }
         );
       }
     } catch {
@@ -177,7 +174,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       completion: '',
-      warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env, or provide x-openrouter-key / x-anthropic-key / x-openai-key headers',
+      warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
     },
     { headers: { 'x-llm-provider': 'none' } }
   );

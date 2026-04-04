@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { extractUserKeys, getApiKey, resolveProviderLabel } from '@/lib/byok';
 
 const STARTER_TEMPLATES = [
   {
@@ -69,9 +68,7 @@ Examples:
 Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
 export async function POST(request: Request) {
-  const userKeys = extractUserKeys(request);
-  const providerLabel = resolveProviderLabel(userKeys);
-  const headers = { 'x-llm-provider': providerLabel };
+  const headers = { 'x-llm-provider': 'server' };
 
   try {
     const body = await request.json();
@@ -84,10 +81,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = getApiKey(userKeys, 'anthropic');
+    const apiKey = process.env.ANTHROPIC_API_KEY || '';
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, code: '', error: 'No API key available. Set ANTHROPIC_API_KEY in .env or provide x-anthropic-key header' },
+        { success: false, code: '', error: 'No API key available. Set ANTHROPIC_API_KEY in .env' },
         { status: 500 }
       );
     }

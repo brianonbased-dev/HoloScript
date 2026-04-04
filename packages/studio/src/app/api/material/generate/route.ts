@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from '@/lib/byok';
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
@@ -8,8 +7,6 @@ import { extractUserKeys, getApiKey, resolveProviderLabel, type UserKeys } from 
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
-  const userKeys = extractUserKeys(req);
-  const providerLabel = resolveProviderLabel(userKeys);
 
   let body: { prompt?: string; baseColor?: string; model?: string };
 
@@ -50,8 +47,8 @@ void main() {
 
   const userPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
 
-  // Try cloud providers in order — BYOK keys resolved inside
-  const raw = await tryCloudProviders(systemPrompt, prompt, userKeys) ?? await tryOllamaFallback(userPrompt, body.model);
+  // Try cloud providers in order, then Ollama as optional fallback
+  const raw = await tryCloudProviders(systemPrompt, prompt) ?? await tryOllamaFallback(userPrompt, body.model);
 
   if (!raw) {
     return NextResponse.json(
@@ -69,13 +66,13 @@ void main() {
     return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
   }
 
-  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': providerLabel } });
+  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': 'server' } });
 }
 
-async function tryCloudProviders(systemPrompt: string, prompt: string, userKeys: UserKeys): Promise<string | null> {
-  const openrouterKey = getApiKey(userKeys, 'openrouter');
-  const anthropicKey = getApiKey(userKeys, 'anthropic');
-  const openaiKey = getApiKey(userKeys, 'openai');
+async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
 
   // OpenRouter
   if (openrouterKey) {
