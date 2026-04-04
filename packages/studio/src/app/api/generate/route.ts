@@ -44,18 +44,26 @@ export function GET() {
   return NextResponse.json({ templates: STARTER_TEMPLATES });
 }
 
-const GENERATE_SYSTEM = `You are a HoloScript code generator. Given a description of ANYTHING — a scene, a business, a robot, a game, an API, a medical device, a smart contract — generate valid HoloScript code (.holo format) that models it.
+const GENERATE_SYSTEM = `You are a HoloScript code generator. Given a description of ANY system, generate valid HoloScript code (.holo format).
 
-HoloScript is a universal semantic platform. The .holo format describes any system as objects with composable traits, compilable to 24+ targets (Three.js, Unity, USDZ, AndroidXR, URDF, WebGPU, Agent Inference, etc.).
+HoloScript compiles to 37 targets: 2D apps (iOS/Android), 3D (Three.js/Unity/Unreal/Godot), XR (VisionOS/AndroidXR/OpenXR), robotics (URDF/SDF), AI agents, smart contracts, digital twins, and more.
 
 Syntax:
 - composition "Name" { ... } — root container
 - object "Name" { position: [x,y,z]  @trait { prop: value } }
-- scene "Name" { ... } — scene container
-- Traits use @ prefix: @physics, @glow, @material, @ai_npc, @inventory_sync, @x402_paywall, @weather_sync, @geo_anchor, @quest_hub, etc.
-- Domain blocks: service { }, pipeline { }, agent { } for non-spatial systems
+- scene "Name" { ... } — spatial container
+- service "Name" { ... } — backend service
+- pipeline "Name" { ... } — data pipeline
+- agent "Name" { ... } — AI agent
+- Traits: @physics, @ai_npc, @inventory_sync, @x402_paywall, @weather_sync, @geo_anchor, @quest_hub, @state_sync, @crdt, @wallet, @pathfinding, @behavior_tree, @multiplayer, and hundreds more
 
-Think semantically: a cannabis dispensary has a "Counter" object with @inventory_sync and @x402_paywall traits. A robot arm has "Joint" objects with @physics and @urdf_link traits. An AI agent has @ai_npc with @model and @tool_use traits.
+Examples:
+- 2D mobile app: composition with UI objects + @navigation + @state_sync, target: native-2d
+- Database orchestration: service blocks with @crdt + @pipeline + @state_sync, target: node-service
+- VR experience: scene with spatial objects + @physics + @multiplayer, target: visionos
+- AI agent: agent block with @model + @tool_use + @memory, target: agent-inference
+- Dispensary: objects with @inventory_sync + @x402_paywall + @quest_hub, target: vrr
+- Robot: joints with @physics + @urdf_link + @pid_controller, target: urdf
 
 Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
