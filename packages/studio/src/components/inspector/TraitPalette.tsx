@@ -52,7 +52,7 @@ const TRAIT_CATALOG: Array<{
         name: 'llm_agent',
         description: 'LLM-powered AI agent',
         defaultProps: {
-          model: 'gpt-4',
+          model: 'claude-sonnet-4-20250514',
           system_prompt: '',
           bounded_autonomy: true,
           max_actions_per_turn: 3,
