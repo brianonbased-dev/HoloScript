@@ -19,7 +19,7 @@ import type {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function prop(key: string, value: any): HoloObjectProperty {
+function prop(key: string, value: unknown): HoloObjectProperty {
   return { type: 'ObjectProperty', key, value };
 }
 

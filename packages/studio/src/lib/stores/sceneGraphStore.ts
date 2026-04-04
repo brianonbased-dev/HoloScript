@@ -44,7 +44,7 @@ interface SceneGraphState {
   setTraitProperty: (nodeId: string, traitName: string, key: string, value: unknown) => void;
   /** Transient references to active Three.js objects for 0-frame latency UI updates */
   nodeRefs: Record<string, any>;
-  setNodeRef: (id: string, ref: any) => void;
+  setNodeRef: (id: string, ref: unknown) => void;
   applyTransientTransform: (
     id: string,
     transform: Partial<Pick<SceneNode, 'position' | 'rotation' | 'scale'>>
@@ -141,9 +141,9 @@ export const useSceneGraphStore = create<SceneGraphState>()(
         set((s) => {
           const ref = s.nodeRefs[id];
           if (ref) {
-            ref.traverse((child: any) => {
+            ref.traverse((child: { isMesh?: boolean; material?: Record<string, unknown> | Record<string, unknown>[] }) => {
               if (child.isMesh && child.material) {
-                const applyProps = (mat: any) => {
+                const applyProps = (mat: Record<string, unknown> & { color?: { set: (v: unknown) => void }; emissive?: { set: (v: unknown) => void }; roughness?: number; metalness?: number; opacity?: number; transparent?: boolean; depthWrite?: boolean; emissiveIntensity?: number }) => {
                   if (materialProps.albedo !== undefined) mat.color.set(materialProps.albedo);
                   if (materialProps.roughness !== undefined)
                     mat.roughness = materialProps.roughness;

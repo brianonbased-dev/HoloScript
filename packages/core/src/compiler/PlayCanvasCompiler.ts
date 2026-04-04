@@ -814,7 +814,7 @@ export class PlayCanvasCompiler extends CompilerBase {
 
   // --- Value Conversion Helpers ---
 
-  private toPlayCanvasColor(value: any): string {
+  private toPlayCanvasColor(value: unknown): string {
     if (typeof value === 'string' && value.startsWith('#')) {
       const h = value.slice(1);
       const r = parseInt(h.substring(0, 2), 16) / 255;
@@ -823,9 +823,10 @@ export class PlayCanvasCompiler extends CompilerBase {
       return `new pc.Color(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     if (typeof value === 'object' && value !== null && 'r' in value) {
-      const r = value.r > 1 ? value.r / 255 : value.r;
-      const g = value.g > 1 ? value.g / 255 : value.g;
-      const b = value.b > 1 ? value.b / 255 : value.b;
+      const c = value as { r: number; g: number; b: number };
+      const r = c.r > 1 ? c.r / 255 : c.r;
+      const g = c.g > 1 ? c.g / 255 : c.g;
+      const b = c.b > 1 ? c.b / 255 : c.b;
       return `new pc.Color(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     return 'new pc.Color(1, 1, 1)';

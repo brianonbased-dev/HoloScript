@@ -101,8 +101,8 @@ export interface Conflict {
   id: string;
   nodeId: string;
   property: string;
-  localValue: any;
-  remoteValue: any;
+  localValue: unknown;
+  remoteValue: unknown;
   resolvedWith?: 'local' | 'remote' | 'merged';
   resolvedAt?: number;
 }

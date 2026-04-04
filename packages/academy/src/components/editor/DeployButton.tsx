@@ -53,7 +53,7 @@ interface DeployButtonProps {
   /** Package name for deployment */
   packageName?: string;
   /** MarketplaceRegistry instance to install into (optional) */
-  registry?: any;
+  registry?: unknown;
 }
 
 type DeployStatus = 'idle' | 'deploying' | 'success' | 'blocked' | 'error';

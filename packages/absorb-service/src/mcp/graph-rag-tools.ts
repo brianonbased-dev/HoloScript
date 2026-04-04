@@ -101,13 +101,13 @@ export const graphRagTools: Tool[] = [
 // =============================================================================
 
 // These will be set by codebase-tools.ts when absorb completes
-let cachedEmbeddingIndex: any = null;
-let cachedGraphRAGEngine: any = null;
+let cachedEmbeddingIndex: unknown = null;
+let cachedGraphRAGEngine: unknown = null;
 
 /**
  * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
  */
-export function setGraphRAGState(embeddingIndex: any, ragEngine: any): void {
+export function setGraphRAGState(embeddingIndex: unknown, ragEngine: unknown): void {
   cachedEmbeddingIndex = embeddingIndex;
   cachedGraphRAGEngine = ragEngine;
 }

@@ -201,7 +201,7 @@ export async function handleOracleTool(
   if (kEntries.length > 0) {
     const formatted = kEntries
       .map(
-        (e: any) =>
+        (e: { id?: string; type?: string; content?: string }) =>
           `- **[${e.id || e.type}]** ${e.content?.substring(0, 200) || 'No content'}${e.content?.length > 200 ? '...' : ''}`
       )
       .join('\n');

@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const data = await ollamaRes.json();
-    const models = (data.models || []).map((m: any) => m.name);
+    const models = (data.models || []).map((m: { name: string }) => m.name);
 
     return NextResponse.json({ ollama: true, models });
   } catch {

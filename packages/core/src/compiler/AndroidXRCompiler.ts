@@ -286,13 +286,13 @@ export class AndroidXRCompiler extends CompilerBase {
     return this.lines.join('\n');
   }
 
-  private compileAction(action: any): void {
+  private compileAction(action: { name: string }): void {
     const rawName = this.sanitizeName(action.name);
     const name = rawName.charAt(0).toLowerCase() + rawName.slice(1);
     this.emit(`fun ${name}() {`);
     this.indent();
     this.emit(
-      `android.util.Log.d("HoloScript", "Action: ${this.escapeStringValue(action.name as string, 'Kotlin')}")`
+      `android.util.Log.d("HoloScript", "Action: ${this.escapeStringValue(action.name, 'Kotlin')}")`
     );
     this.emit('// Action implementation');
     this.dedent();

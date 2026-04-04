@@ -71,7 +71,7 @@ export function useHoloSocket(port: number = 8080) {
     };
   }, [port]);
 
-  const sendTimeControl = (command: string, value?: any) => {
+  const sendTimeControl = (command: string, value?: unknown) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(
         JSON.stringify({

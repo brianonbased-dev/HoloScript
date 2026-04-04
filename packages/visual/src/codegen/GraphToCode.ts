@@ -545,7 +545,7 @@ export class GraphToCode {
   /**
    * Format a value for code output
    */
-  private formatValue(value: any): string {
+  private formatValue(value: unknown): string {
     if (value === undefined || value === null) {
       return 'null';
     }

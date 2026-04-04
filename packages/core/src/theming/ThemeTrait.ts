@@ -33,7 +33,7 @@ export const themeTraitHandler: TraitHandler<ThemeTraitConfig> = {
   name: 'theme',
   defaultConfig: {},
 
-  onAttach(node: HSPlusNode, config: ThemeTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, config: ThemeTraitConfig, _context: unknown) {
     if (!sharedStyleResolver) return;
     const style = sharedStyleResolver.resolve(
       node.type || 'entity',
@@ -46,7 +46,7 @@ export const themeTraitHandler: TraitHandler<ThemeTraitConfig> = {
     }
   },
 
-  onUpdate(node: HSPlusNode, config: ThemeTraitConfig, _context: any, _delta: number) {
+  onUpdate(node: HSPlusNode, config: ThemeTraitConfig, _context: unknown, _delta: number) {
     // Re-resolve on state changes
     if (!sharedStyleResolver) return;
     const style = sharedStyleResolver.resolve(

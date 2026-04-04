@@ -12,6 +12,7 @@
 export type NodeStatus = 'success' | 'failure' | 'running';
 
 export interface BTContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic context bag for behavior tree state
   [key: string]: any;
 }
 
@@ -224,6 +225,7 @@ export class BehaviorTree {
     return this.context;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches BTContext index signature
   setContext(key: string, value: any): void {
     this.context[key] = value;
   }

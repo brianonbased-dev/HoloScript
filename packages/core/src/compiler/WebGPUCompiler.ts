@@ -721,7 +721,7 @@ export class WebGPUCompiler extends CompilerBase {
     return obj.properties?.find((p) => p.key === key)?.value;
   }
 
-  private parseColor(value: any): [number, number, number] {
+  private parseColor(value: unknown): [number, number, number] {
     if (typeof value === 'string' && value.startsWith('#')) {
       const h = value.slice(1);
       return [

@@ -90,7 +90,7 @@ export function classifyPublishMode(ast: any): PublishMode {
   const hasOwnContent =
     Array.isArray(body) &&
     body.some(
-      (node: any) =>
+      (node: { type?: string }) =>
         node.type === 'composition' ||
         node.type === 'ObjectDeclaration' ||
         node.type === 'scene' ||

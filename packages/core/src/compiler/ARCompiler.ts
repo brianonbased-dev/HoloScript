@@ -70,17 +70,18 @@ export class ARCompiler extends CompilerBase {
     return this.buildResult();
   }
 
-  private extractNodesWithTrait(astNode: any, traitName: string) {
-    const matched: any[] = [];
+  private extractNodesWithTrait(astNode: unknown, traitName: string) {
+    const matched: Record<string, unknown>[] = [];
     const cleanTraitName = traitName.startsWith('@') ? traitName.slice(1) : traitName;
-    const traverse = (node: any) => {
+    const traverse = (node: unknown) => {
       if (!node || typeof node !== 'object') return;
-      if (node.traits && node.traits.some((t: any) => t.name === cleanTraitName)) {
-        matched.push(node);
+      const n = node as Record<string, unknown>;
+      if (Array.isArray(n.traits) && n.traits.some((t: unknown) => (t as Record<string, unknown>).name === cleanTraitName)) {
+        matched.push(n);
       }
-      for (const key of Object.keys(node)) {
-        if (typeof node[key] === 'object') {
-          traverse(node[key]);
+      for (const key of Object.keys(n)) {
+        if (typeof n[key] === 'object') {
+          traverse(n[key]);
         }
       }
     };
@@ -114,7 +115,7 @@ export class ARCompiler extends CompilerBase {
     this.generatedCode.push(`document.body.appendChild(renderer.domElement);`);
   }
 
-  private generateARHooks(arNodes: any[], overlayNodes: any[]) {
+  private generateARHooks(arNodes: Record<string, unknown>[], overlayNodes: Record<string, unknown>[]) {
     this.generatedCode.push(`\n// Engine Initialization via AR Traits`);
 
     if (this.options.target === 'webxr') {

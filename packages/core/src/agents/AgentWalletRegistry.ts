@@ -65,7 +65,7 @@ export class AgentWalletRegistry {
    * Authorizes an agent transaction using EIP-712 signature fallback
    * (Placeholder for Coinbase AgentKit KMS signing)
    */
-  public async authorizeTransaction(agentId: string, payload: any): Promise<string> {
+  public async authorizeTransaction(agentId: string, payload: unknown): Promise<string> {
     const wallet = this.getWallet(agentId);
     if (!wallet) {
       throw new Error(`[AgentWalletRegistry] No wallet registered for agent ${agentId}`);

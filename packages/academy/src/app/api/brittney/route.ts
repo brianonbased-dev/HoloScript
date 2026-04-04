@@ -86,7 +86,7 @@ async function* streamAnthropicDirect(
 
   // Convert OpenAI tool format to Anthropic format
   const allTools = [...BRITTNEY_TOOLS, ...BRITTNEY_LOOKUP_TOOLS];
-  const anthropicTools = allTools.map((t: any) => ({
+  const anthropicTools = allTools.map((t: { function?: { name?: string; description?: string; parameters?: unknown }; name?: string; description?: string; parameters?: unknown; input_schema?: unknown }) => ({
     name: t.function?.name ?? t.name,
     description: t.function?.description ?? t.description,
     input_schema: t.function?.parameters ?? t.parameters ?? t.input_schema,

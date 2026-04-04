@@ -99,7 +99,7 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     }
   },
 
-  onUpdate(node: HSPlusNode, _config: AudioTraitConfig, _context: any, _delta: number) {
+  onUpdate(node: HSPlusNode, _config: AudioTraitConfig, _context: unknown, _delta: number) {
     const nodeId = node.id!;
     const sourceId = nodeAudioSources.get(nodeId);
     if (!sourceId) return;

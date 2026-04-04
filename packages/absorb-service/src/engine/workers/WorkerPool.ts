@@ -42,7 +42,7 @@ export class WorkerPool {
     for (let i = 0; i < size; i++) {
       const worker = new Worker(this.workerFile);
 
-      worker.on('message', (result: any) => {
+      worker.on('message', (result: { type?: string; jobId?: string; [key: string]: unknown }) => {
         // Handle ready signal
         if (result.type === 'ready') {
           this.availableWorkers.push(worker);

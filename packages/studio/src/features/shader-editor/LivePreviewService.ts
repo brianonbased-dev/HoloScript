@@ -146,7 +146,7 @@ export class LivePreviewService {
   /**
    * Initialize WebGPU device
    */
-  async initialize(device?: any): Promise<void> {
+  async initialize(device?: GPUDevice): Promise<void> {
     if (device) {
       this.device = device;
       return;

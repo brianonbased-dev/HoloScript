@@ -730,12 +730,12 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
   }
 
-  private compileAction(action: any): void {
+  private compileAction(action: { name: string }): void {
     const name = this.sanitizeName(action.name);
     this.emit(`func ${name}() {`);
     this.indentLevel++;
     this.emit(
-      `print("[HoloScript] Action: ${this.escapeStringValue(action.name as string, 'Swift')}")`
+      `print("[HoloScript] Action: ${this.escapeStringValue(action.name, 'Swift')}")`
     );
     this.emit('// Action implementation');
     this.indentLevel--;

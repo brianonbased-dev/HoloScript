@@ -116,9 +116,9 @@ export interface CustomContentType {
   fileExtension: string;
   category: string;
   handler?: {
-    onDownload?: (content: any) => void | Promise<void>;
-    onInstall?: (content: any) => void | Promise<void>;
-    onPreview?: (content: any) => ReactNode;
+    onDownload?: (content: unknown) => void | Promise<void>;
+    onInstall?: (content: unknown) => void | Promise<void>;
+    onPreview?: (content: unknown) => ReactNode;
   };
 }
 
@@ -171,8 +171,8 @@ export interface PluginConfig {
     key: string;
     label: string;
     type: 'string' | 'number' | 'boolean' | 'select' | 'textarea';
-    defaultValue?: any;
-    options?: Array<{ label: string; value: any }>;
+    defaultValue?: unknown;
+    options?: Array<{ label: string; value: unknown }>;
     description?: string;
     required?: boolean;
   }>;

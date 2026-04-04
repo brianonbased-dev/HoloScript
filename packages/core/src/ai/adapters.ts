@@ -255,7 +255,7 @@ export class OpenAIAdapter implements AIAdapter {
     }
 
     const data = await response.json();
-    return data.data.map((item: any) => item.embedding);
+    return data.data.map((item: { embedding: number[] }) => item.embedding);
   }
 }
 
@@ -507,7 +507,7 @@ export class OllamaAdapter implements AIAdapter {
     return this.callAPI(HOLOSCRIPT_SYSTEM_PROMPT, fullMessage);
   }
 
-  private async callAPIWithErrorHandling(apiPath: string, body: any): Promise<Response> {
+  private async callAPIWithErrorHandling(apiPath: string, body: RequestInit): Promise<Response> {
     const response = await fetch(this.baseUrl + apiPath, body);
 
     if (response.status === 429) {

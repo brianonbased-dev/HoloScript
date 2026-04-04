@@ -23,7 +23,7 @@ export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
   name: 'events',
   defaultConfig: {},
 
-  onAttach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, config: EventTraitConfig, _context: unknown) {
     const bus = getSharedEventBus();
     const nodeId = node.id!;
     const ids: number[] = [];
@@ -46,7 +46,7 @@ export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
     }
   },
 
-  onDetach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, config: EventTraitConfig, _context: unknown) {
     const bus = getSharedEventBus();
     const nodeId = node.id!;
 
@@ -59,7 +59,7 @@ export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
     }
   },
 
-  onUpdate(_node: HSPlusNode, _config: EventTraitConfig, _context: any, _delta: number) {
+  onUpdate(_node: HSPlusNode, _config: EventTraitConfig, _context: unknown, _delta: number) {
     // Event-driven; no per-frame work needed
   },
 };

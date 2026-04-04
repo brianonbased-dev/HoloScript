@@ -12,6 +12,16 @@ import {
   type AnesthesiaConfig,
 } from '@/lib/surgicalRehearsal';
 
+/** Demo step shape used in the panel (differs from the core ProcedureStep interface) */
+interface DemoStep {
+  id: string;
+  name: string;
+  durationMin: number;
+  tools: string[];
+  critical: boolean;
+  description: string;
+}
+
 const RISK_COLORS = { low: '#22c55e', moderate: '#f59e0b', high: '#ef4444', critical: '#dc2626' };
 
 const s = {
@@ -57,7 +67,7 @@ const s = {
 };
 
 export function SurgicalRehearsalPanel() {
-  const procedure: any = {
+  const procedure: { id: string; name: string; type: string; bodyRegion: string; steps: DemoStep[]; estimatedDurationMin: number; riskLevel: string } = {
     id: 'proc1',
     name: 'Laparoscopic Cholecystectomy',
     type: 'laparoscopic',
@@ -108,7 +118,7 @@ export function SurgicalRehearsalPanel() {
     riskLevel: 'moderate',
   };
 
-  const patient: any = {
+  const patient: { id: string; age: number; weight: number; height: number; bmi: number; allergies: string[]; bloodType: string; conditions: string[]; asaScore: number } = {
     id: 'pat1',
     age: 55,
     weight: 82,
@@ -172,7 +182,7 @@ export function SurgicalRehearsalPanel() {
             </div>
           ))}
         </div>
-        {procedure.steps.map((step: any) => (
+        {procedure.steps.map((step: DemoStep) => (
           <div
             key={step.id}
             style={{

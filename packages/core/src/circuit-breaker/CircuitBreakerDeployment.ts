@@ -1039,7 +1039,7 @@ export function createDeploymentConfig(
   };
 
   // Apply overrides
-  return deepMerge(config, overrides) as DeploymentConfig;
+  return deepMerge(config as unknown as Record<string, unknown>, overrides as unknown as Record<string, unknown>) as unknown as DeploymentConfig;
 }
 
 // =============================================================================
@@ -1326,10 +1326,10 @@ export class DegradationManager {
 /**
  * Deep merge utility for configuration objects.
  */
-function deepMerge(target: any, source: any): any {
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   if (!source) return target;
 
-  const result = { ...target };
+  const result: Record<string, unknown> = { ...target };
 
   for (const key of Object.keys(source)) {
     if (source[key] === undefined) continue;
@@ -1342,7 +1342,7 @@ function deepMerge(target: any, source: any): any {
       target[key] !== null &&
       !Array.isArray(target[key])
     ) {
-      result[key] = deepMerge(target[key], source[key]);
+      result[key] = deepMerge(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
     } else {
       result[key] = source[key];
     }

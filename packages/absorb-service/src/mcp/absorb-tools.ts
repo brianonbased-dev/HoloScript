@@ -43,7 +43,7 @@ async function studioFetch(
   method: 'GET' | 'POST' | 'DELETE',
   apiKey?: string,
   body?: Record<string, unknown>
-): Promise<{ ok: boolean; status: number; data: any }> {
+): Promise<{ ok: boolean; status: number; data: unknown }> {
   const url = `${getStudioUrl()}${path}`;
   const key = apiKey || getDefaultApiKey();
 

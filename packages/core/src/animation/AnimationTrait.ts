@@ -129,7 +129,7 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
           : SpringPresets.default;
         const mergedConfig = { ...presetConfig, ...(springDef.config || {}) };
 
-        const initial = getNestedProperty(node, springDef.property) ?? 0;
+        const initial = (getNestedProperty(node, springDef.property) as number | undefined) ?? 0;
         const spring = new SpringAnimator(initial, mergedConfig, (value) => {
           setNestedProperty(node, springDef.property, value);
         });
@@ -155,7 +155,7 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     nodeSpringMap.delete(nodeId);
   },
 
-  onUpdate(node: HSPlusNode, _config: AnimationTraitConfig, _context: any, delta: number) {
+  onUpdate(node: HSPlusNode, _config: AnimationTraitConfig, _context: unknown, delta: number) {
     const nodeId = node.id || 'unknown';
 
     // Update springs
@@ -172,26 +172,26 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
 // PROPERTY HELPERS
 // =============================================================================
 
-function setNestedProperty(node: HSPlusNode, path: string, value: any): void {
+function setNestedProperty(node: HSPlusNode, path: string, value: unknown): void {
   if (!node.properties) return;
   const parts = path.split('.');
-  let target: any = node.properties;
+  let target: Record<string, unknown> = node.properties;
 
   for (let i = 0; i < parts.length - 1; i++) {
     if (target[parts[i]] === undefined) target[parts[i]] = {};
-    target = target[parts[i]];
+    target = target[parts[i]] as Record<string, unknown>;
   }
   target[parts[parts.length - 1]] = value;
 }
 
-function getNestedProperty(node: HSPlusNode, path: string): any {
+function getNestedProperty(node: HSPlusNode, path: string): unknown {
   if (!node.properties) return undefined;
   const parts = path.split('.');
-  let target: any = node.properties;
+  let target: unknown = node.properties;
 
   for (const part of parts) {
     if (target === undefined || target === null) return undefined;
-    target = target[part];
+    target = (target as Record<string, unknown>)[part];
   }
   return target;
 }

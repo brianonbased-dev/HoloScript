@@ -519,7 +519,7 @@ export class HoloScriptAgentAPI {
   /**
    * Pushes IDE interaction telemetry to the running uAA2-service Quantum Mesh
    */
-  private broadcastAgentTelemetry(payload: any): void {
+  private broadcastAgentTelemetry(payload: unknown): void {
     const postData = JSON.stringify({
       source: 'vscode-agent-api',
       timestamp: Date.now(),

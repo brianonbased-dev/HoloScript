@@ -606,7 +606,7 @@ dependencies {
 }`;
   }
 
-  private compileAction(action: any): void {
+  private compileAction(action: { name: string }): void {
     const rawName = this.sanitizeName(action.name);
     const name = rawName.charAt(0).toLowerCase() + rawName.slice(1);
     this.emit(`fun ${name}() {`);

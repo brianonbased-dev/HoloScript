@@ -356,7 +356,7 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
   }
 
   // Dynamic import — package may not be installed yet
-  let ElevenLabs: any;
+  let ElevenLabs: unknown;
   try {
     const mod = await import('elevenlabs');
     ElevenLabs = mod.ElevenLabsClient ?? mod.default;

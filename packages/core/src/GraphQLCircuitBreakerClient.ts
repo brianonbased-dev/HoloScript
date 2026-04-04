@@ -101,7 +101,7 @@ export class FallbackDataProvider {
  */
 export class GraphQLCircuitBreakerClient {
   private circuitManager: CircuitBreakerManager;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private cacheHits: Map<string, number> = new Map();
   private cacheTTL: number = 5 * 60 * 1000; // 5 minutes default
 
@@ -301,7 +301,7 @@ export class GraphQLCircuitBreakerClient {
   /**
    * Cache response data
    */
-  private cacheResponse(operationName: string, data: any): void {
+  private cacheResponse(operationName: string, data: unknown): void {
     this.cache.set(operationName, {
       data,
       timestamp: Date.now(),

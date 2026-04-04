@@ -38,15 +38,15 @@ export const syncTraitHandler: TraitHandler<SyncTraitConfig> = {
     authority: 'owner',
   },
 
-  onAttach(node: HSPlusNode, _config: SyncTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, _config: SyncTraitConfig, _context: unknown) {
     syncTimers.set(node.id!, 0);
   },
 
-  onDetach(node: HSPlusNode, _config: SyncTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, _config: SyncTraitConfig, _context: unknown) {
     syncTimers.delete(node.id!);
   },
 
-  onUpdate(node: HSPlusNode, config: SyncTraitConfig, _context: any, delta: number) {
+  onUpdate(node: HSPlusNode, config: SyncTraitConfig, _context: unknown, delta: number) {
     if (!sharedNetworkManager || !sharedNetworkManager.isConnected()) return;
 
     const nodeId = node.id!;

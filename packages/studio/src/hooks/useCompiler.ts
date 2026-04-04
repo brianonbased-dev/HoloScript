@@ -39,7 +39,7 @@ const ALL_TARGETS = [
 ];
 
 /** Minimal HoloComposition AST for demo compilation */
-const DEMO_AST: any = {
+const DEMO_AST: Record<string, unknown> = {
   type: 'CompositionNode',
   name: 'DemoScene',
   objects: [

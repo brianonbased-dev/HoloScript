@@ -670,6 +670,7 @@ export class HoloScriptPlusParser {
   /**
    * Create MaterialTrait from config
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic material config from parsed AST
   private createMaterialTrait(config: any): MaterialTrait {
     const material = new MaterialTrait({
       type: config.type || 'pbr',

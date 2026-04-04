@@ -60,7 +60,7 @@ export async function initializeWasm(
  */
 export interface ParseResult {
   success: boolean;
-  ast?: any;
+  ast?: unknown;
   errors?: string[];
   warnings?: string[];
 }
@@ -90,7 +90,7 @@ export interface WasmInstance {
    * @param ast Abstract syntax tree from parser
    * @returns Validation result with errors/warnings
    */
-  validate(ast: any): ValidationResult;
+  validate(ast: unknown): ValidationResult;
 
   /**
    * Compile to target language
@@ -98,7 +98,7 @@ export interface WasmInstance {
    * @param target Compilation target (e.g., "unity", "unreal", "babylon")
    * @returns Compiled code or errors
    */
-  compile(ast: any, target: string): CompileResult;
+  compile(ast: unknown, target: string): CompileResult;
 
   /**
    * Format HoloScript code
@@ -136,7 +136,7 @@ export interface ValidationError {
 /**
  * Create typed wrapper around raw WASM exports
  */
-function createWasmWrapper(exports: any): WasmInstance {
+function createWasmWrapper(exports: WebAssembly.Exports): WasmInstance {
   return {
     parse(code: string): ParseResult {
       try {
@@ -160,7 +160,7 @@ function createWasmWrapper(exports: any): WasmInstance {
       }
     },
 
-    validate(ast: any): ValidationResult {
+    validate(ast: unknown): ValidationResult {
       try {
         if (exports.validate && typeof exports.validate === 'function') {
           const result = exports.validate(JSON.stringify(ast));
@@ -185,7 +185,7 @@ function createWasmWrapper(exports: any): WasmInstance {
       }
     },
 
-    compile(ast: any, target: string): CompileResult {
+    compile(ast: unknown, target: string): CompileResult {
       try {
         if (exports.compile && typeof exports.compile === 'function') {
           const result = exports.compile(JSON.stringify(ast), target);
@@ -236,7 +236,7 @@ function createWasmWrapper(exports: any): WasmInstance {
 /**
  * Parse WASM parser result into normalized format
  */
-function parseWasmResult(result: any): ParseResult {
+function parseWasmResult(result: unknown): ParseResult {
   if (typeof result === 'string') {
     try {
       return JSON.parse(result);

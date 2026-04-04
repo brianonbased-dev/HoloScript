@@ -10,7 +10,7 @@
  *   - NEXT_PUBLIC_SENTRY_DSN      → Sentry DSN for error tracking
  */
 
-let _posthog: any = null;
+let _posthog: unknown = null;
 let _initialized = false;
 
 /**

@@ -127,7 +127,7 @@ export async function searchSketchfab(
     const data = await response.json();
 
     // Transform results
-    const models: SketchfabModel[] = data.results.map((result: any) => ({
+    const models: SketchfabModel[] = data.results.map((result: Record<string, unknown> & { uid: string; name: string; description: string; thumbnails?: { images?: Array<{ url: string }> }; user?: { username?: string; displayName?: string; profileUrl?: string }; license?: { uid?: string; label?: string; requirements?: string; url?: string }; faceCount?: number; vertexCount?: number; animationCount?: number; viewCount?: number; likeCount?: number; downloadCount?: number; isDownloadable?: boolean; tags?: Array<{ name: string }> }) => ({
       uid: result.uid,
       name: result.name,
       description: result.description,
@@ -152,7 +152,7 @@ export async function searchSketchfab(
       isDownloadable: result.isDownloadable || false,
       viewerUrl: `https://sketchfab.com/models/${result.uid}`,
       embedUrl: `https://sketchfab.com/models/${result.uid}/embed`,
-      tags: result.tags?.map((t: any) => t.name) || [],
+      tags: result.tags?.map((t: { name: string }) => t.name) || [],
     }));
 
     return {

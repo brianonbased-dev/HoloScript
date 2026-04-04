@@ -167,9 +167,9 @@ if (printStats) {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function countObjects(comp: any): number {
+function countObjects(comp: { objects?: Array<{ children?: unknown[] }> }): number {
   let count = 0;
-  function walk(objects: any[]) {
+  function walk(objects: Array<{ children?: Array<{ children?: unknown[] }> }>) {
     if (!objects) return;
     for (const obj of objects) {
       count++;

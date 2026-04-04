@@ -22,6 +22,7 @@ export interface StateTraitConfig {
 // Extended properties interface for state-aware nodes
 interface StateAwareProperties {
   _state?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extensible properties bag
   [key: string]: any;
 }
 
@@ -32,7 +33,7 @@ export const stateTraitHandler: TraitHandler<StateTraitConfig> = {
   name: 'state' as const,
   defaultConfig: { machine: { initialState: 'idle', states: [], transitions: [] } },
 
-  onAttach(node: HSPlusNode, config: StateTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, config: StateTraitConfig, _context: unknown) {
     const nodeId = node.id!;
     const sm = new StateMachine(config.machine);
     nodeStateMachines.set(nodeId, sm);
@@ -43,11 +44,11 @@ export const stateTraitHandler: TraitHandler<StateTraitConfig> = {
     }
   },
 
-  onDetach(node: HSPlusNode, _config: StateTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, _config: StateTraitConfig, _context: unknown) {
     nodeStateMachines.delete(node.id!);
   },
 
-  onUpdate(node: HSPlusNode, _config: StateTraitConfig, _context: any, delta: number) {
+  onUpdate(node: HSPlusNode, _config: StateTraitConfig, _context: unknown, delta: number) {
     const sm = nodeStateMachines.get(node.id!);
     if (!sm) return;
 

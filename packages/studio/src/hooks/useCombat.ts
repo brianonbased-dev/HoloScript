@@ -9,7 +9,7 @@ import { CombatManager } from '@holoscript/core';
 type CombatManagerInstance = InstanceType<typeof CombatManager>;
 export interface ComboChain {
   id: string;
-  steps: any[];
+  steps: Array<{ name: string; [key: string]: unknown }>;
   currentStep: number;
   completed: boolean;
 }

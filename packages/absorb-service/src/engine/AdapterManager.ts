@@ -31,7 +31,7 @@ interface LanguageState {
 export class AdapterManager {
   private languages = new Map<SupportedLanguage, LanguageState>();
   private wasmInitialized = false;
-  private TreeSitterWasm: any = null;
+  private TreeSitterWasm: unknown = null;
 
   /**
    * Parse a source file using the appropriate tree-sitter grammar.

@@ -198,6 +198,6 @@ export function animationsByCategory(category: MixamoCategory): MixamoAnimation[
 /**
  * Get all Mixamo characters (placeholder for actual implementation).
  */
-export function getMixamoCharacters(): any[] {
+export function getMixamoCharacters(): Array<{ id: string; name: string; url: string }> {
   return [];
 }

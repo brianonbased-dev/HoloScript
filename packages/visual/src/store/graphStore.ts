@@ -48,7 +48,7 @@ interface GraphState {
   // Node operations
   addNode: (type: string, position: { x: number; y: number }) => string;
   removeNode: (nodeId: string) => void;
-  updateNodeProperty: (nodeId: string, property: string, value: any) => void;
+  updateNodeProperty: (nodeId: string, property: string, value: unknown) => void;
   duplicateNodes: (nodeIds: string[]) => void;
 
   // Selection

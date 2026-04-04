@@ -992,6 +992,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     optimistic: true,
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node extended with __creditState at runtime
   onAttach(node: any, config: CreditTraitConfig, context: any): void {
     const facilitator = new X402Facilitator({
       recipientAddress: config.recipient,
@@ -1024,6 +1025,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     });
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node extended with __creditState at runtime
   onDetach(node: any, _config: CreditTraitConfig, context: any): void {
     const state = node.__creditState as CreditTraitState | undefined;
     if (state) {
@@ -1038,6 +1040,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     delete node.__creditState;
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node extended with __creditState at runtime
   onUpdate(node: any, _config: CreditTraitConfig, context: any, _delta: number): void {
     const state = node.__creditState as CreditTraitState | undefined;
     if (!state) return;
@@ -1052,6 +1055,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     }
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node extended with __creditState; event is dynamic
   onEvent(node: any, config: CreditTraitConfig, context: any, event: any): void {
     const state = node.__creditState as CreditTraitState | undefined;
     if (!state) return;

@@ -266,7 +266,7 @@ function validateSurface(code: string): DaemonSurfaceValidation {
   try {
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
-    const errors = (result.errors ?? []).map((entry: any) =>
+    const errors = (result.errors ?? []).map((entry: string | { message?: string }) =>
       typeof entry === 'string' ? entry : entry.message || String(entry),
     );
 

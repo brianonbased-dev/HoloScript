@@ -26,7 +26,7 @@ const PORT_COLORS: Record<string, string> = {
  * HoloNode component props
  */
 interface HoloNodeProps extends NodeProps<HoloNodeData> {
-  onPropertyChange?: (nodeId: string, property: string, value: any) => void;
+  onPropertyChange?: (nodeId: string, property: string, value: unknown) => void;
 }
 
 /**

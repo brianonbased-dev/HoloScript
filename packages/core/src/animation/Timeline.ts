@@ -15,7 +15,7 @@ export type TimelineMode = 'sequential' | 'parallel';
 
 export interface TimelineEntry {
   clip: AnimationClip;
-  setter: (value: any) => void;
+  setter: (value: number) => void;
   startOffset?: number; // Manual offset within a parallel group
 }
 
@@ -59,7 +59,7 @@ export class Timeline {
   /**
    * Add an animation to the timeline.
    */
-  add(clip: AnimationClip, setter: (value: any) => void, startOffset?: number): Timeline {
+  add(clip: AnimationClip, setter: (value: number) => void, startOffset?: number): Timeline {
     this.entries.push({ clip, setter, startOffset });
     this.recalcDuration();
     return this; // Chainable

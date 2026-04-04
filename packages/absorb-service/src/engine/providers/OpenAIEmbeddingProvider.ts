@@ -12,13 +12,22 @@
 
 import type { EmbeddingProvider } from './EmbeddingProvider';
 
+/** Minimal interface for dynamically-imported OpenAI client */
+interface OpenAIClient {
+  embeddings: {
+    create(params: { model: string; input: string[] }): Promise<{
+      data: Array<{ embedding: number[] }>;
+    }>;
+  };
+}
+
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   readonly name = 'openai';
 
   private readonly apiKey: string;
   private readonly model: string;
   // Lazily initialised SDK client.
-  private clientPromise: Promise<any> | null = null;
+  private clientPromise: Promise<OpenAIClient> | null = null;
 
   /**
    * @param apiKey - OpenAI API key. Falls back to the `OPENAI_API_KEY` environment
@@ -44,7 +53,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   async getEmbeddings(texts: string[]): Promise<number[][]> {
     const client = await this.getClient();
     const maxRetries = 5;
-    let lastError: Error | null = null;
+    let lastError: unknown = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
@@ -54,7 +63,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
           input: texts,
         });
 
-        return (response.data as Array<{ embedding: number[] }>).map((d) => d.embedding);
+        return response.data.map((d) => d.embedding);
       } catch (error: unknown) {
         lastError = error;
 
@@ -95,15 +104,16 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   // Private
   // ---------------------------------------------------------------------------
 
-  private getClient(): Promise<any> {
+  private getClient(): Promise<OpenAIClient> {
     if (!this.clientPromise) {
       this.clientPromise = this.initClient();
     }
     return this.clientPromise;
   }
 
-  private async initClient(): Promise<any> {
-    let OpenAI: any;
+  private async initClient(): Promise<OpenAIClient> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamically imported constructor
+    let OpenAI: new (opts: { apiKey: string }) => OpenAIClient;
 
     try {
       const m = await import('openai');

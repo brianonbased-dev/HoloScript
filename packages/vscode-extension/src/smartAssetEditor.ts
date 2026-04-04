@@ -46,7 +46,7 @@ export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProv
       }
 
       const jsonContent = entry.getData().toString('utf8');
-      let smartAsset: any;
+      let smartAsset: Record<string, unknown>;
       try {
         smartAsset = JSON.parse(jsonContent);
       } catch (e) {
@@ -80,7 +80,7 @@ export class SmartAssetEditorProvider implements vscode.CustomReadonlyEditorProv
         `;
   }
 
-  private getHtmlForWebview(asset: any): string {
+  private getHtmlForWebview(asset: Record<string, unknown>): string {
     const scriptPreview = asset.script || '// No script provided';
     const metadata = asset.metadata || {};
     const physics = asset.physics || {};

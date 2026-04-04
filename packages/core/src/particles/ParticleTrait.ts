@@ -53,7 +53,7 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
   name: 'particles',
   defaultConfig,
 
-  onAttach(node: HSPlusNode, config: ParticleTraitConfig, _context: any) {
+  onAttach(node: HSPlusNode, config: ParticleTraitConfig, _context: unknown) {
     const nodeId = node.id!;
 
     // Build emitter config from preset + overrides
@@ -93,11 +93,11 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
     nodeSystems.set(nodeId, system);
   },
 
-  onDetach(node: HSPlusNode, _config: ParticleTraitConfig, _context: any) {
+  onDetach(node: HSPlusNode, _config: ParticleTraitConfig, _context: unknown) {
     nodeSystems.delete(node.id!);
   },
 
-  onUpdate(node: HSPlusNode, config: ParticleTraitConfig, _context: any, delta: number) {
+  onUpdate(node: HSPlusNode, config: ParticleTraitConfig, _context: unknown, delta: number) {
     const system = nodeSystems.get(node.id!);
     if (!system) return;
 

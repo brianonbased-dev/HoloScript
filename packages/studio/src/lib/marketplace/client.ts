@@ -104,7 +104,7 @@ export class MarketplaceClient {
   /**
    * Generic POST request (marketplace backend)
    */
-  private async post<T>(endpoint: string, body: any): Promise<T> {
+  private async post<T>(endpoint: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: this.getHeaders(),

@@ -17,9 +17,9 @@ export interface WorkflowCommit {
     email: string;
   };
   snapshot: {
-    nodes: any[];
-    edges: any[];
-    metadata: Record<string, any>;
+    nodes: unknown[];
+    edges: unknown[];
+    metadata: Record<string, unknown>;
   };
   hash: string; // Git commit SHA
   parentHash?: string; // Parent commit SHA
@@ -28,8 +28,8 @@ export interface WorkflowCommit {
 export interface WorkflowDiff {
   type: 'added' | 'removed' | 'modified';
   path: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
 }
 
 export interface VersionControlClient {
@@ -231,7 +231,7 @@ export class LocalVersionControl implements VersionControlClient {
   }
 
   private generateHash(
-    workflow: AgentWorkflow | { nodes: any[]; edges: any[]; metadata: any }
+    workflow: AgentWorkflow | { nodes: unknown[]; edges: unknown[]; metadata: unknown }
   ): string {
     // Simple hash generation (in production, use proper SHA)
     const content = JSON.stringify(workflow);

@@ -3,9 +3,34 @@
  * Powered by constellationStory.ts
  */
 import React, { useState, useMemo } from 'react';
-import { type Star, type ConstellationDef as Constellation } from '@/lib/constellationStory';
+import type { ConstellationDef } from '@/lib/constellationStory';
 
-export function constellationsByMonth(constellations: any[], month: number) {
+/** Extended constellation shape used by the panel demo data */
+interface DemoStar {
+  id: string;
+  name: string;
+  magnitude: number;
+  rightAscension: number;
+  declination: number;
+  constellation: string;
+  spectralClass: string;
+  distanceLy: number;
+}
+
+interface DemoConstellation {
+  id: string;
+  name: string;
+  mythology: string;
+  season: string;
+  bestMonth: number;
+  stars: DemoStar[];
+  lines: Array<[string, string]>;
+  culturalSignificance: number;
+}
+
+type Constellation = DemoConstellation | ConstellationDef;
+
+export function constellationsByMonth(constellations: DemoConstellation[], month: number) {
   // Simple logic: visible if bestMonth is within +/- 2 months
   return constellations.filter((c) => {
     const diff = Math.abs(c.bestMonth - month);
@@ -13,7 +38,7 @@ export function constellationsByMonth(constellations: any[], month: number) {
   });
 }
 
-const DEMO_CONSTELLATIONS: any[] = [
+const DEMO_CONSTELLATIONS: DemoConstellation[] = [
   {
     id: 'ori',
     name: 'Orion',
@@ -217,7 +242,7 @@ export function ConstellationPanel() {
 
       <div style={s.section}>
         <div style={s.sectionTitle}>✨ Stars in {constellation.name}</div>
-        {constellation.stars.map((star: any) => (
+        {constellation.stars.map((star: DemoStar) => (
           <div
             key={star.id}
             style={{

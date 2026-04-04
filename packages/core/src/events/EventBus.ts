@@ -12,7 +12,7 @@
  * - Event history / replay
  */
 
-export type EventCallback = (data: any) => void;
+export type EventCallback = (data: unknown) => void;
 
 interface Listener {
   callback: EventCallback;
@@ -23,7 +23,7 @@ interface Listener {
 
 export class EventBus {
   private listeners: Map<string, Listener[]> = new Map();
-  private history: Array<{ event: string; data: any; timestamp: number }> = [];
+  private history: Array<{ event: string; data: unknown; timestamp: number }> = [];
   private maxHistory: number = 100;
   private nextId: number = 0;
   private paused: boolean = false;
@@ -75,7 +75,7 @@ export class EventBus {
   /**
    * Emit an event to all subscribers.
    */
-  emit(event: string, data?: any): void {
+  emit(event: string, data?: unknown): void {
     if (this.paused) return;
 
     // Record history
@@ -110,7 +110,7 @@ export class EventBus {
   /**
    * Get event history.
    */
-  getHistory(): Array<{ event: string; data: any; timestamp: number }> {
+  getHistory(): Array<{ event: string; data: unknown; timestamp: number }> {
     return [...this.history];
   }
 

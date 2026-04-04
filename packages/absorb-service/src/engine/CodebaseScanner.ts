@@ -28,7 +28,7 @@ import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
 
 // Dynamic import for worker pool (graceful degradation if not available)
-let WorkerPool: any;
+let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   WorkerPool = require('./workers/WorkerPool').WorkerPool;
@@ -75,7 +75,7 @@ const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
-  private workerPool?: any; // WorkerPool instance (if available)
+  private workerPool?: InstanceType<NonNullable<typeof WorkerPool>>; // WorkerPool instance (if available)
   private useWorkers: boolean;
 
   constructor(adapterManager?: AdapterManager, useWorkers = true) {

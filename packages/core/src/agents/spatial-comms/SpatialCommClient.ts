@@ -306,7 +306,7 @@ export class SpatialCommClient extends EventEmitter {
   /**
    * Complete task (Layer 2)
    */
-  async completeTask(taskId: string, success: boolean, result?: any, error?: string) {
+  async completeTask(taskId: string, success: boolean, result?: unknown, error?: string) {
     if (!this.layer2) throw new Error('Layer 2 not initialized');
 
     // Include frame budget metrics

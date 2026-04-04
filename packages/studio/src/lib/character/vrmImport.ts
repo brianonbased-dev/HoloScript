@@ -125,7 +125,7 @@ export async function extractVRMMetadata(file: File): Promise<VRMMetadata | null
 /**
  * Extract thumbnail from GLTF texture reference
  */
-function extractThumbnailFromGLTF(gltf: any, textureIndex: number): string | undefined {
+function extractThumbnailFromGLTF(gltf: { textures?: Array<{ source: number }>; images?: Array<{ uri?: string; mimeType?: string; bufferView?: number }> }, textureIndex: number): string | undefined {
   try {
     const texture = gltf.textures?.[textureIndex];
     if (!texture) return undefined;

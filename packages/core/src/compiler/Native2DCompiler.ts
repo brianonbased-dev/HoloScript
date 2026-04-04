@@ -80,9 +80,9 @@ export default ${safeName}Component;
 `;
   }
 
-  private generateReactNode(obj: any): string {
+  private generateReactNode(obj: Record<string, unknown>): string {
     const traits = this.extractTraits(obj);
-    let tag = traits.theme?.tag || traits.panel?.tag || obj.type?.toLowerCase() || 'div';
+    let tag = traits.theme?.tag || traits.panel?.tag || (typeof obj.type === 'string' ? obj.type.toLowerCase() : undefined) || 'div';
 
     // Default mapping for custom semantic keywords used in HoloScript (nav, section, container)
     if (
@@ -184,8 +184,8 @@ export default ${safeName}Component;
     if (traits.input?.required) props += ` required`;
     if (traits.button?.type) props += ` type="${traits.button.type}"`;
 
-    const childrenMarkup = (obj.children || obj.objects || [])
-      .map((child: any) => this.generateReactNode(child))
+    const childrenMarkup = ((obj.children || obj.objects || []) as Record<string, unknown>[])
+      .map((child: Record<string, unknown>) => this.generateReactNode(child))
       .join('\n');
 
     const content =

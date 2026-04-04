@@ -19,7 +19,7 @@ export interface UseScriptingReturn {
   history: ReplEntry[];
   variables: Array<{ name: string; value: string }>;
   evaluate: (code: string) => Promise<void>;
-  setVariable: (name: string, value: any) => void;
+  setVariable: (name: string, value: unknown) => void;
   clearHistory: () => void;
   reset: () => void;
 }
@@ -73,7 +73,7 @@ export function useScripting(): UseScriptingReturn {
   );
 
   const setVariable = useCallback(
-    (name: string, value: any) => {
+    (name: string, value: unknown) => {
       rtRef.current.setVariable(name, value);
       syncVars();
     },

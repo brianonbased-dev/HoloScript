@@ -19,7 +19,7 @@ const __filename_esm = fileURLToPath(import.meta.url);
 const __dirname_esm = path.dirname(__filename_esm);
 
 // Dynamic import for worker pool (graceful degradation if not available)
-let WorkerPool: any;
+let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   WorkerPool = require('./workers/WorkerPool').WorkerPool;
@@ -100,7 +100,7 @@ export class EmbeddingIndex {
   private batchSize: number;
   private useWorkers: boolean;
   private concurrentBatches: number;
-  private workerPool?: any;
+  private workerPool?: InstanceType<typeof import('./workers/WorkerPool').WorkerPool>;
 
   constructor(options: EmbeddingIndexOptions = {}) {
     if (!options.provider) {
@@ -260,7 +260,7 @@ export class EmbeddingIndex {
         const promise = this.workerPool!.execute({
           texts: batch,
           provider: providerConfig,
-        }).then((result: any) => {
+        }).then((result: { error?: { message: string }; embeddings: number[][] }) => {
           if (result.error) {
             throw new Error(result.error.message);
           }

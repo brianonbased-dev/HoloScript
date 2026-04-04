@@ -133,7 +133,7 @@ export class CircuitBreakerMetrics {
    */
   private calculateAggregateMetrics(
     circuits: CircuitMetricsReport[],
-    systemHealth: any
+    systemHealth: { circuits: { byState: { closed: number; open: number; halfOpen: number } }; cache: { size: number; totalHits: number }; degradedMode: boolean }
   ): AggregateMetrics {
     const totalRequests = circuits.reduce((sum, c) => sum + c.metrics.totalRequests, 0);
     const totalFailures = circuits.reduce((sum, c) => sum + c.metrics.totalFailures, 0);

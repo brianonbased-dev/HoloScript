@@ -160,7 +160,7 @@ export interface DeploymentResponse {
 export interface ExecutionResponse {
   executionId: string;
   status: 'success' | 'error';
-  result?: any;
+  result?: unknown;
   error?: string;
   duration: number;
   logs: ExecutionLog[];

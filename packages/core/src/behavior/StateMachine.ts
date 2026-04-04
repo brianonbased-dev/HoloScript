@@ -16,24 +16,24 @@
 
 export interface StateConfig {
   name: string;
-  onEnter?: (context: any) => void;
-  onUpdate?: (context: any, delta: number) => void;
-  onExit?: (context: any) => void;
+  onEnter?: (context: Record<string, unknown>) => void;
+  onUpdate?: (context: Record<string, unknown>, delta: number) => void;
+  onExit?: (context: Record<string, unknown>) => void;
 }
 
 export interface TransitionConfig {
   from: string;
   to: string;
   event?: string; // Trigger on event
-  guard?: (context: any) => boolean; // Must return true to allow
-  action?: (context: any) => void; // Side effect on transition
+  guard?: (context: Record<string, unknown>) => boolean; // Must return true to allow
+  action?: (context: Record<string, unknown>) => void; // Side effect on transition
 }
 
 export interface StateMachineConfig {
   initialState: string;
   states: StateConfig[];
   transitions: TransitionConfig[];
-  context?: any;
+  context?: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -45,7 +45,7 @@ export class StateMachine {
   private transitions: TransitionConfig[] = [];
   private currentStateName: string = '';
   private previousStateName: string = '';
-  private context: any;
+  private context: Record<string, unknown>;
   private history: string[] = [];
   private maxHistory: number = 50;
 
@@ -79,7 +79,7 @@ export class StateMachine {
   /**
    * Get the shared context.
    */
-  getContext(): any {
+  getContext(): Record<string, unknown> {
     return this.context;
   }
 

@@ -268,12 +268,12 @@ function BrittneyPromptBar() {
     if (!SR) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recog: any = new SR();
+    const recog: SpeechRecognition = new SR();
     recog.continuous = false;
     recog.interimResults = true;
     recog.lang = 'en-US';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recog.onresult = (e: any) => {
+    recog.onresult = (e: SpeechRecognitionEvent) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transcript = Array.from(e.results as Iterable<SpeechRecognitionResult>)
         .map((r: SpeechRecognitionResult) => r[0].transcript)

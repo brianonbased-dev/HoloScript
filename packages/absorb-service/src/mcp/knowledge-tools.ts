@@ -34,7 +34,7 @@ const ProvenanceSchema = z.object({
 
 export interface KnowledgeToolsDeps {
   /** Drizzle DB instance, or null if DB unavailable */
-  db: any;
+  db: unknown;
   /** Credit deduction function: (userId, costCents, description) => boolean */
   deductCredits: (userId: string, costCents: number, description: string) => Promise<boolean>;
   /** Credit addition function: (userId, amountCents, description) => void */
@@ -182,7 +182,7 @@ export async function handleKnowledgeToolCall(
       const { like, eq, and, sql } = await import('drizzle-orm');
 
       // Build conditions
-      const conditions: any[] = [];
+      const conditions: unknown[] = [];
       if (input.workspace_id) {
         conditions.push(eq(knowledgeEntries.workspaceId, input.workspace_id));
       }
@@ -192,7 +192,8 @@ export async function handleKnowledgeToolCall(
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const rows: any[] = await deps.db
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- drizzle DB instance is dynamically typed
+      const rows: Record<string, unknown>[] = await (deps.db as Record<string, unknown> & { select: () => unknown })
         .select()
         .from(knowledgeEntries)
         .where(where)
@@ -201,7 +202,7 @@ export async function handleKnowledgeToolCall(
 
       // x402 gating: premium entries cost credits
       const callerTier = await deps.getTier(callerUserId);
-      const results: any[] = [];
+      const results: Record<string, unknown>[] = [];
       let gatedCount = 0;
       let totalCostCents = 0;
 

@@ -191,7 +191,7 @@ export interface PluginSetting {
   description?: string;
 
   /** Default value */
-  defaultValue?: any;
+  defaultValue?: unknown;
 
   /** Required setting (must be configured before use) */
   required?: boolean;
@@ -419,10 +419,10 @@ export interface CustomContentType {
   category?: string;
 
   /** Import handler (parse file) */
-  import?: (file: File) => Promise<any>;
+  import?: (file: File) => Promise<unknown>;
 
   /** Export handler (serialize to file) */
-  export?: (data: any) => Promise<Blob>;
+  export?: (data: unknown) => Promise<Blob>;
 }
 
 export interface CustomMCPServer {

@@ -84,7 +84,9 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function lerpVec3(a: any, b: any, t: number): any {
+interface Vec3Like { x?: number; y?: number; z?: number }
+
+function lerpVec3(a: Vec3Like, b: Vec3Like, t: number): Vec3Like {
   return {
     x: lerp(a.x ?? 0, b.x ?? 0, t),
     y: lerp(a.y ?? 0, b.y ?? 0, t),
@@ -128,12 +130,12 @@ function interpolateKeyframes(keyframes: Keyframe[], t: number): number {
 
 export class AnimationEngine {
   private animations: Map<string, ActiveAnimation> = new Map();
-  private propertySetters: Map<string, (value: any) => void> = new Map();
+  private propertySetters: Map<string, (value: number) => void> = new Map();
 
   /**
    * Register an animation clip and start playing it.
    */
-  play(clip: AnimationClip, setter: (value: any) => void): void {
+  play(clip: AnimationClip, setter: (value: number) => void): void {
     this.animations.set(clip.id, {
       clip,
       elapsed: -clip.delay, // Negative = waiting for delay
