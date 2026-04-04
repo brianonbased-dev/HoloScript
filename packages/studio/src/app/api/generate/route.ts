@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 
 const STARTER_TEMPLATES = [
   {
@@ -43,12 +44,20 @@ export function GET() {
   return NextResponse.json({ templates: STARTER_TEMPLATES });
 }
 
-const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
+const GENERATE_SYSTEM = `You are a HoloScript code generator. Given a description, generate valid HoloScript code (.holo format).
+
+HoloScript syntax:
+- composition "Name" { ... } — root container
+- object "Name" { position: [x,y,z]  @trait { prop: value } }
+- scene "Name" { ... } — scene container
+- Traits use @ prefix: @physics, @glow, @material, @animation, @light, etc.
+
+Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, existingCode, model } = body;
+    const { prompt, existingCode } = body;
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -57,35 +66,35 @@ export async function POST(request: Request) {
       );
     }
 
-    let fullPrompt = prompt;
-    if (existingCode) {
-      fullPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, code: '', error: 'ANTHROPIC_API_KEY not configured' },
+        { status: 500 }
+      );
     }
 
-    const payload = {
-      prompt: fullPrompt,
-      context: 'holoscript',
-      model
-    };
+    let userPrompt = prompt;
+    if (existingCode) {
+      userPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
+    } else {
+      userPrompt = `Generate a HoloScript scene for: ${prompt}`;
+    }
 
-    const res = await fetch(`${LLM_SERVICE_URL}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BRITTNEY_API_KEY || 'anonymous'}`
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(60_000)
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: process.env.BRITTNEY_MODEL || 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: GENERATE_SYSTEM,
+      messages: [{ role: 'user', content: userPrompt }],
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      return NextResponse.json({ success: false, code: '', error: errorText }, { status: res.status });
-    }
+    const textBlock = response.content.find((b) => b.type === 'text');
+    const code = textBlock ? textBlock.text.trim() : '';
 
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json({ success: false, code: '', error: String(err) }, { status: 500 });
+    return NextResponse.json({ success: true, code });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ success: false, code: '', error: msg }, { status: 500 });
   }
 }
