@@ -210,8 +210,9 @@ export class GossipProtocol {
     this.messageQueue.push(message);
     this.seenMessages.set(messageId, Date.now());
 
-    // Also emit locally
-    this.emitToHandlers(message, this.nodeId);
+    // Also emit locally (async fire-and-forget to allow synchronous handler invocation)
+    // Also emit locally - handlers are called synchronously
+    this.emitToHandlers(message, this.nodeId).catch(() => {});
 
     this.stats.messagesSent++;
     return messageId;
@@ -354,10 +355,14 @@ export class GossipProtocol {
   private async emitToHandlers(message: IGossipMessage, from: string): Promise<void> {
     // Emit to type-specific handlers
     const typeHandlers = this.handlers.get(message.type);
+    const promises: Promise<void>[] = [];
     if (typeHandlers) {
       for (const handler of typeHandlers) {
         try {
-          await handler(message, from);
+          const result = handler(message, from);
+          if (result instanceof Promise) {
+            promises.push(result.catch(() => {}));
+          }
         } catch {
           // Continue on handler error
         }
@@ -369,11 +374,19 @@ export class GossipProtocol {
     if (wildcardHandlers) {
       for (const handler of wildcardHandlers) {
         try {
-          await handler(message, from);
+          const result = handler(message, from);
+          if (result instanceof Promise) {
+            promises.push(result.catch(() => {}));
+          }
         } catch {
           // Continue on handler error
         }
       }
+    }
+    
+    // Wait for any async promises to complete (but don't block synchronous callers)
+    if (promises.length > 0) {
+      Promise.all(promises).catch(() => {});
     }
   }
 
