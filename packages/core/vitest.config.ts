@@ -14,6 +14,7 @@ export default defineConfig({
       '@holoscript/vm-bridge': resolve(__dirname, '../vm-bridge/src/index.ts'),
       '@holoscript/framework/ai': resolve(__dirname, '../framework/src/ai/index.ts'),
       '@holoscript/framework/economy': resolve(__dirname, '../framework/src/economy/index.ts'),
+      '@holoscript/framework/negotiation': resolve(__dirname, '../framework/src/negotiation/index.ts'),
       '@holoscript/framework': resolve(__dirname, '../framework/src/index.ts'),
       '@holoscript/engine': resolve(__dirname, '../engine/src'),
     },

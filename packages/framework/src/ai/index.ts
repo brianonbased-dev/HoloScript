@@ -113,7 +113,12 @@ export { BehaviorSelector } from './BehaviorSelector';
 export { GoalPlanner } from './GoalPlanner';
 
 // Generation pipeline
-export { HoloScriptGenerator, validateBatch } from './HoloScriptGenerator';
+export {
+  HoloScriptGenerator,
+  generateHoloScript as generateHoloScriptWithAdapter,
+  generateBatch,
+  validateBatch,
+} from './HoloScriptGenerator';
 export { GenerationCache, cachedGenerate } from './GenerationCache';
 export { GenerationAnalytics, createAnalytics } from './GenerationAnalytics';
 export { TrainingDataGenerator, createTrainingDataGenerator, ALL_CATEGORIES } from './TrainingDataGenerator';

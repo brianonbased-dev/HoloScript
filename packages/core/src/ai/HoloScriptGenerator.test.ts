@@ -20,7 +20,7 @@ import type {
 } from './adapters';
 import {
   HoloScriptGenerator,
-  generateHoloScript,
+  generateHoloScriptWithAdapter,
   generateBatch,
   validateBatch,
 } from './HoloScriptGenerator';
@@ -502,14 +502,14 @@ describe('Helper Functions', () => {
 
   describe('generateHoloScript', () => {
     it('should generate single code', async () => {
-      const result = await generateHoloScript('create a player', adapter);
+      const result = await generateHoloScriptWithAdapter('create a player', adapter);
 
       expect(result).toBeDefined();
       expect(result.holoScript).toBeDefined();
     });
 
     it('should accept custom config', async () => {
-      const result = await generateHoloScript('test', adapter, {
+      const result = await generateHoloScriptWithAdapter('test', adapter, {
         maxAttempts: 5,
       });
 

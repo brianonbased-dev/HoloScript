@@ -466,12 +466,35 @@ export class Team {
         continue;
       }
 
+      // Proactively claim any associated bounties
+      const taskBounties = this.bounties.byTask(task.id);
+      for (const b of taskBounties) {
+        if (b.status === 'open') {
+          this.claimBountyForAgent(b.id, runtime.name);
+        }
+      }
+
+      // Proactively buy relevant knowledge if cheap enough (e.g. < 5 credits)
+      const activeListings = this.knowledge.marketplace.activeListings();
+      for (const listing of activeListings) {
+        if (listing.price <= 5 && listing.currency === 'credits' && task.title.toLowerCase().includes(listing.preview.domain?.toLowerCase() || '')) {
+          this.knowledge.marketplace.buyKnowledge(listing.id, runtime.name);
+        }
+      }
+
       // Execute locally via LLM
       try {
         const { summary, insights } = await this.executeTask(runtime, task);
 
         // Mark done via API
         await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`, 'PATCH', { action: 'done', summary });
+
+        // Complete the bounty with proof
+        for (const b of taskBounties) {
+          if (b.status === 'claimed' && b.claimedBy === runtime.name) {
+            this.completeBountyWithProof(b.id, { summary });
+          }
+        }
 
         // Publish knowledge locally + compound
         for (const insight of insights) {

@@ -11,14 +11,14 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { LocalRegistry } from '../../../registry/src/LocalRegistry.js';
+import { PackageResolver } from '../../../registry/src/PackageResolver.js';
 import {
-  LocalRegistry,
-  PackageResolver,
   ROLE_PERMISSIONS,
   hasPermission,
   canManageMembers,
   canPublishPackages,
-} from '../../../registry/src/index.js';
+} from '../../../registry/src/types.js';
 
 import {
   SDK_VERSION,
