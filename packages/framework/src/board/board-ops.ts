@@ -94,6 +94,29 @@ export function reopenTask(board: TeamTask[], taskId: string): TaskActionResult 
   return { success: true, task };
 }
 
+/** Delegate a task from a source board to a target board. */
+export function delegateTask(
+  sourceBoard: TeamTask[],
+  targetBoard: TeamTask[],
+  taskId: string
+): { result: TaskActionResult; updatedSource: TeamTask[]; updatedTarget: TeamTask[] } {
+  const task = sourceBoard.find((t) => t.id === taskId);
+  if (!task) return { result: { success: false, error: 'Task not found' }, updatedSource: sourceBoard, updatedTarget: targetBoard };
+
+  const updatedSource = sourceBoard.filter((t) => t.id !== taskId);
+  
+  // Clone task so it's fresh for the new board (unclaimed)
+  const delegatedTask: TeamTask = {
+    ...task,
+    status: 'open',
+    claimedBy: undefined,
+    claimedByName: undefined,
+  };
+  
+  targetBoard.push(delegatedTask);
+  return { result: { success: true, task: delegatedTask }, updatedSource, updatedTarget: targetBoard };
+}
+
 /** Add tasks to a board with dedup against existing + done log. */
 export function addTasksToBoard(
   board: TeamTask[],

@@ -841,6 +841,24 @@ export class Team {
     return { tasks: added };
   }
 
+  // ── Delegation (FW-0.6) ──
+
+  /**
+   * Delegate a task from this team's board to another team's board.
+   * Modifies both boards. Requires connected remote board.
+   */
+  async delegate(otherTeamId: string, taskId: string): Promise<boolean> {
+    if (!this.isRemote) throw new Error('Delegation requires a remote board to communicate with other teams');
+    const teamId = encodeURIComponent(this.name);
+    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(taskId)}`, 'PATCH', { 
+      action: 'delegate', 
+      targetTeamId: otherTeamId 
+    });
+    
+    if (res?.error) throw new Error(String(res.error));
+    return true;
+  }
+
   // ── Presence (FW-0.3 — local-first with optional remote) ──
 
   /**

@@ -59,6 +59,7 @@ export {
   completeTask,
   blockTask,
   reopenTask,
+  delegateTask,
   addTasksToBoard,
   createSuggestion,
   voteSuggestion,
