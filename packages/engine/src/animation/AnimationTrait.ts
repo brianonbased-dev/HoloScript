@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AnimationTrait.ts
  *
  * Declarative animation attachment for HoloScript+ nodes.
@@ -7,22 +7,25 @@
  * @trait animate
  */
 
-// TODO(A.011.01c): These types come from @holoscript/core — verify path after full migration
-import type { TraitHandler } from '@holoscript/core';
-import type { HSPlusNode } from '@holoscript/core';
-import { AnimationEngine, AnimationClip, Easing, Keyframe, EasingFn } from './AnimationEngine';
+import { AnimationEngine, AnimationClip, Easing, EasingFn } from './AnimationEngine';
 import { SpringAnimator, SpringPresets, SpringConfig } from './SpringAnimator';
 
-// =============================================================================
-// CONFIG
-// =============================================================================
+export interface HSPlusNode {
+  id?: string;
+  properties?: Record<string, unknown>;
+}
+
+export interface TraitHandler<TConfig> {
+  name: string;
+  defaultConfig: TConfig;
+  onAttach(node: HSPlusNode, config: TConfig, context: unknown): void;
+  onDetach(node: HSPlusNode, config: TConfig, context: unknown): void;
+  onUpdate(node: HSPlusNode, config: TConfig, context: unknown, delta: number): void;
+}
 
 export interface AnimationTraitConfig {
-  /** Keyframe animation clips to play */
   clips?: AnimationClipDef[];
-  /** Spring-driven properties */
   springs?: SpringDef[];
-  /** Auto-play on attach */
   autoPlay: boolean;
 }
 
@@ -38,13 +41,9 @@ export interface AnimationClipDef {
 export interface SpringDef {
   property: string;
   target: number;
-  preset?: string; // Key into SpringPresets
+  preset?: string;
   config?: Partial<SpringConfig>;
 }
-
-// =============================================================================
-// SINGLETON ENGINE
-// =============================================================================
 
 let sharedEngine: AnimationEngine | null = null;
 
@@ -55,12 +54,7 @@ export function getSharedAnimationEngine(): AnimationEngine {
   return sharedEngine;
 }
 
-// Per-node spring state
 const nodeSpringMap = new Map<string, Map<string, SpringAnimator>>();
-
-// =============================================================================
-// EASING LOOKUP
-// =============================================================================
 
 const easingLookup: Record<string, EasingFn> = {
   linear: Easing.linear,
@@ -82,10 +76,6 @@ function resolveEasing(name?: string): EasingFn {
   return easingLookup[name] || Easing.linear;
 }
 
-// =============================================================================
-// TRAIT HANDLER
-// =============================================================================
-
 export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
   name: 'animate',
   defaultConfig: {
@@ -98,7 +88,6 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     const engine = getSharedAnimationEngine();
     const nodeId = node.id || 'unknown';
 
-    // Register keyframe clips
     if (config.autoPlay && config.clips) {
       for (const clipDef of config.clips) {
         const clip: AnimationClip = {
@@ -121,15 +110,11 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
       }
     }
 
-    // Register springs
     if (config.springs) {
       const springs = new Map<string, SpringAnimator>();
       for (const springDef of config.springs) {
-        const presetConfig = springDef.preset
-          ? SpringPresets[springDef.preset]
-          : SpringPresets.default;
+        const presetConfig = springDef.preset ? SpringPresets[springDef.preset] : SpringPresets.default;
         const mergedConfig = { ...presetConfig, ...(springDef.config || {}) };
-
         const initial = (getNestedProperty(node, springDef.property) as number | undefined) ?? 0;
         const spring = new SpringAnimator(initial, mergedConfig, (value) => {
           setNestedProperty(node, springDef.property, value);
@@ -145,21 +130,17 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     const nodeId = node.id || 'unknown';
     const engine = getSharedAnimationEngine();
 
-    // Stop all clips for this node
     for (const id of engine.getActiveIds()) {
       if (id.startsWith(nodeId)) {
         engine.stop(id);
       }
     }
 
-    // Clean up springs
     nodeSpringMap.delete(nodeId);
   },
 
   onUpdate(node: HSPlusNode, _config: AnimationTraitConfig, _context: unknown, delta: number) {
     const nodeId = node.id || 'unknown';
-
-    // Update springs
     const springs = nodeSpringMap.get(nodeId);
     if (springs) {
       for (const spring of springs.values()) {
@@ -168,10 +149,6 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     }
   },
 };
-
-// =============================================================================
-// PROPERTY HELPERS
-// =============================================================================
 
 function setNestedProperty(node: HSPlusNode, path: string, value: unknown): void {
   if (!node.properties) return;

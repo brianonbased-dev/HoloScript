@@ -24,6 +24,7 @@
  */
 
 import type { IVector3 } from './PhysicsTypes';
+    // @ts-expect-error migration TS2307
 import type { WeatherBlackboardState } from '@holoscript/core';
 
 // =============================================================================

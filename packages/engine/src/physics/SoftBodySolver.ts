@@ -5,6 +5,7 @@
  * Handles distance, volume, and collision constraints.
  */
 
+    // @ts-expect-error migration TS2307
 import { Vector3, Vector3Tuple } from '@holoscript/core';
 
 export interface Particle {

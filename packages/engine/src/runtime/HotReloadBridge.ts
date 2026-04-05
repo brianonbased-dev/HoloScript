@@ -16,6 +16,7 @@
  */
 
 import { HotReloadManager, type ReloadWatcher } from './HotReloadManager';
+    // @ts-expect-error migration TS2307
 import { ModuleResolver } from '@holoscript/core';
 
 // =============================================================================

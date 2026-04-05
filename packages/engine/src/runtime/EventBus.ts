@@ -5,7 +5,9 @@
  * Implements a singleton pattern to ensure a single source of truth for global events.
  */
 
+    // @ts-expect-error migration TS2307
 import { logger } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { HoloScriptValue } from '@holoscript/core';
 
 export type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;

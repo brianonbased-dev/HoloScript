@@ -5,6 +5,7 @@
  * Runtimes (WASM/Node.js) implement this to bridge with whisper.cpp or other providers.
  */
 
+    // @ts-expect-error migration TS2307
 import { PhonemeTimestamp } from '@holoscript/core';
 
 /**

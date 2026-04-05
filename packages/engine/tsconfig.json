@@ -18,9 +18,7 @@
     "isolatedModules": false
   },
   "include": [
-    "src/index.ts",
-    "src/physics/**/*",
-    "src/types/core-stubs.d.ts"
+    "src/**/*"
   ],
   "exclude": ["node_modules", "dist", "**/__tests__/**"]
 }

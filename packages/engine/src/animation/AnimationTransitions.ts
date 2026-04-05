@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AnimationTransitions.ts
  *
  * Ragdoll ↔ Animation blending system.
@@ -7,12 +7,11 @@
  * @module animation
  */
 
-// TODO(A.011.01c): IVector3 comes from @holoscript/core — verify path after physics migration
-import { IVector3 } from '@holoscript/core';
-
-// =============================================================================
-// TYPES
-// =============================================================================
+export interface IVector3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface BonePose {
   boneId: string;
@@ -21,24 +20,20 @@ export interface BonePose {
 }
 
 export interface TransitionConfig {
-  duration: number; // Blend duration in seconds
+  duration: number;
   curve: 'linear' | 'ease_in' | 'ease_out' | 'ease_in_out';
-  settleThreshold: number; // Velocity threshold for "settled" detection
+  settleThreshold: number;
 }
 
 export type TransitionDirection = 'animation_to_ragdoll' | 'ragdoll_to_animation';
 
 export interface BlendState {
   direction: TransitionDirection;
-  progress: number; // 0-1
+  progress: number;
   duration: number;
-  sourcePose: BonePose[]; // Frozen pose at transition start
+  sourcePose: BonePose[];
   isComplete: boolean;
 }
-
-// =============================================================================
-// ANIMATION TRANSITIONS
-// =============================================================================
 
 const DEFAULT_CONFIG: TransitionConfig = {
   duration: 0.5,
@@ -54,13 +49,6 @@ export class AnimationTransitionSystem {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  // ---------------------------------------------------------------------------
-  // Transition Triggers
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Begin transitioning from animation to ragdoll (e.g., death, hit reaction).
-   */
   startAnimToRagdoll(entityId: string, currentPose: BonePose[]): void {
     this.activeBlends.set(entityId, {
       direction: 'animation_to_ragdoll',
@@ -75,9 +63,6 @@ export class AnimationTransitionSystem {
     });
   }
 
-  /**
-   * Begin transitioning from ragdoll to animation (e.g., get-up, recovery).
-   */
   startRagdollToAnim(entityId: string, currentPose: BonePose[]): void {
     this.activeBlends.set(entityId, {
       direction: 'ragdoll_to_animation',
@@ -92,13 +77,6 @@ export class AnimationTransitionSystem {
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Update
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Update all active transitions. Returns blended poses.
-   */
   update(
     dt: number,
     ragdollPoses: Map<string, BonePose[]>,
@@ -114,23 +92,14 @@ export class AnimationTransitionSystem {
 
       const ragdoll = ragdollPoses.get(entityId) || blend.sourcePose;
       const anim = animPoses.get(entityId) || blend.sourcePose;
-
       const blended: BonePose[] = [];
 
       for (let i = 0; i < blend.sourcePose.length; i++) {
         const source = blend.sourcePose[i];
         const ragBone = ragdoll.find((b) => b.boneId === source.boneId) || source;
         const animBone = anim.find((b) => b.boneId === source.boneId) || source;
-
-        let fromBone: BonePose, toBone: BonePose;
-
-        if (blend.direction === 'animation_to_ragdoll') {
-          fromBone = animBone;
-          toBone = ragBone;
-        } else {
-          fromBone = ragBone;
-          toBone = animBone;
-        }
+        const fromBone = blend.direction === 'animation_to_ragdoll' ? animBone : ragBone;
+        const toBone = blend.direction === 'animation_to_ragdoll' ? ragBone : animBone;
 
         blended.push({
           boneId: source.boneId,
@@ -148,10 +117,6 @@ export class AnimationTransitionSystem {
 
     return results;
   }
-
-  // ---------------------------------------------------------------------------
-  // Queries
-  // ---------------------------------------------------------------------------
 
   isTransitioning(entityId: string): boolean {
     const blend = this.activeBlends.get(entityId);
@@ -173,10 +138,6 @@ export class AnimationTransitionSystem {
     }
     return count;
   }
-
-  // ---------------------------------------------------------------------------
-  // Internal: Curves & Math
-  // ---------------------------------------------------------------------------
 
   private applyCurve(t: number): number {
     switch (this.config.curve) {
@@ -205,28 +166,16 @@ export class AnimationTransitionSystem {
     b: { x: number; y: number; z: number; w: number },
     t: number
   ): { x: number; y: number; z: number; w: number } {
-    // Simplified SLERP (nlerp for performance)
     let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-
-    // Handle negative dot (shortest path)
-    let bx = b.x,
-      by = b.y,
-      bz = b.z,
-      bw = b.w;
+    let bx = b.x, by = b.y, bz = b.z, bw = b.w;
     if (dot < 0) {
-      bx = -bx;
-      by = -by;
-      bz = -bz;
-      bw = -bw;
-      dot = -dot;
+      bx = -bx; by = -by; bz = -bz; bw = -bw; dot = -dot;
     }
 
     const rx = a.x + (bx - a.x) * t;
     const ry = a.y + (by - a.y) * t;
     const rz = a.z + (bz - a.z) * t;
     const rw = a.w + (bw - a.w) * t;
-
-    // Normalize
     const len = Math.sqrt(rx * rx + ry * ry + rz * rz + rw * rw) || 1;
     return { x: rx / len, y: ry / len, z: rz / len, w: rw / len };
   }

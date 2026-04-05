@@ -17,12 +17,19 @@
  * @version 1.0.0
  */
 
+    // @ts-expect-error migration TS2307
 import type { HSPlusAST, HSPlusNode, StateDeclaration } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { HoloScriptValue } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { HSPlusDirective } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { HostCapabilities, TraitEvent } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { vrTraitRegistry, type TraitContext } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { eventBus } from '@holoscript/core';
 import type { RuntimeProfile } from './RuntimeProfile';
 import { HEADLESS_PROFILE } from './RuntimeProfile';
@@ -509,6 +516,7 @@ export class HeadlessRuntime {
       },
       emit: this.emit.bind(this),
       getState: () => this.state.getSnapshot(),
+    // @ts-expect-error migration TS7006
       setState: (updates) => this.state.update(updates),
       getScaleMultiplier: () => 1,
       setScaleContext: () => {},

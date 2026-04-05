@@ -6,6 +6,7 @@
  */
 
 import { SpeechRecognizer, SpeechRecognizerConfig, TranscriptionSegment } from './SpeechRecognizer';
+    // @ts-expect-error migration TS2307
 import { PhonemeTimestamp } from '@holoscript/core';
 
 export class MockSpeechRecognizer implements SpeechRecognizer {

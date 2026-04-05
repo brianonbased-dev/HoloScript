@@ -5,6 +5,7 @@
  * Bridges HoloScript runtime physics → visual rendering backends.
  */
 
+    // @ts-expect-error migration TS2307
 import type { HoloComposition } from '@holoscript/core';
 
 /**

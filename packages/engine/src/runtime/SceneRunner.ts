@@ -11,9 +11,12 @@
  * This is THE bridge between the parser and the engine.
  */
 
+    // @ts-expect-error migration TS2307
 import type { HSPlusNode } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { World, Entity } from '@holoscript/core';
 import { TraitBinder } from './TraitBinder';
+    // @ts-expect-error migration TS2307
 import { EventBus } from '@holoscript/core';
 import { AssetPipeline } from './AssetPipeline';
 

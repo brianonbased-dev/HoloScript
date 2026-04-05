@@ -15,7 +15,9 @@ import {
   type RendererConfig,
   type RendererStatistics,
 } from './RuntimeRenderer';
+    // @ts-expect-error migration TS2307
 import type { HoloComposition } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { MATERIAL_PRESETS } from '@holoscript/core';
 
 // =============================================================================

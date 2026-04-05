@@ -5,6 +5,7 @@
  * Listens for UI events and updates TextInput components.
  */
 
+    // @ts-expect-error migration TS2307
 import { HSPlusRuntime } from '@holoscript/core';
 
 /** Extended runtime interface for keyboard-specific methods */

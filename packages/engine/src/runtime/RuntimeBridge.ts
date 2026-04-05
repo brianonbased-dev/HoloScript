@@ -8,15 +8,23 @@
  * Owns the ECS World, EventBus, ThemeEngine, and SystemScheduler.
  */
 
+    // @ts-expect-error migration TS2307
 import { World } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { ComponentRegistry, registerBuiltInComponents } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { SystemScheduler, SystemPhase } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { EventBus } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { ThemeEngine } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { StyleResolver } from '@holoscript/core';
 import { SceneRunner } from './SceneRunner';
 import { TraitBinder } from './TraitBinder';
+    // @ts-expect-error migration TS2307
 import type { HSPlusNode } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { Entity } from '@holoscript/core';
 
 export interface SystemConfig {

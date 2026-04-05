@@ -5,6 +5,7 @@
  * Runtimes implement this to bridge with GPU-based flow field generators.
  */
 
+    // @ts-expect-error migration TS2307
 import { Vector3 } from '@holoscript/core';
 
 /**

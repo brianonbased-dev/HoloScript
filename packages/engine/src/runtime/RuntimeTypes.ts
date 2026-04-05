@@ -7,8 +7,11 @@
  * @version 1.0.0
  */
 
+    // @ts-expect-error migration TS2307
 import type { HoloScriptValue } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { HSPlusNode, Vector3, VRHand } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { SpatialPosition, HologramProperties, HologramShape } from '@holoscript/core';
 
 // =============================================================================

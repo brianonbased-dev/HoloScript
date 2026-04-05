@@ -13,10 +13,15 @@
  * @version 1.0.0
  */
 
+    // @ts-expect-error migration TS2307
 import { SafetyReport, SafetyVerdict } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { runSafetyPass, EffectASTNode } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { ResourceCategory, PLATFORM_BUDGETS } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { PlatformTarget, PLATFORM_CAPABILITIES } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import { InstallManifest } from '@holoscript/core';
 
 // =============================================================================

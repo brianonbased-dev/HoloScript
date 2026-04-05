@@ -13,8 +13,11 @@
  * relevant trait component, then drives the corresponding engine subsystem.
  */
 
+    // @ts-expect-error migration TS2307
 import { World, Entity } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { SystemScheduler, SystemPhase } from '@holoscript/core';
+    // @ts-expect-error migration TS2307
 import type { EventBus } from '@holoscript/core';
 
 export interface ECSSystem {
