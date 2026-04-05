@@ -97,4 +97,8 @@ export interface IOSCompileResult {
   objectCaptureFile?: string;
   /** SharePlay multi-user AR file — emitted when shareplay_* traits are present (iOS 15.4+, GroupActivities) */
   sharePlayFile?: string;
+  /** UWB positioning file — emitted when uwb_* traits are present (iOS 16+, Nearby Interaction) */
+  uwbPositioningFile?: string;
+  /** Spatial audio file — emitted when spatial_audio_*/audio_* traits are present (iOS 15+, AVFoundation PHASE + CMHeadphoneMotionManager) */
+  spatialAudioFile?: string;
 }

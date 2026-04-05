@@ -28,6 +28,7 @@ import { NEARBY_CONNECTIONS_TRAITS } from '../traits/constants/nearby-connection
 import { FOLDABLE_DISPLAY_TRAITS } from '../traits/constants/foldable-display';
 import { SAMSUNG_DEX_TRAITS } from '../traits/constants/samsung-dex';
 import { GOOGLE_LENS_TRAITS } from '../traits/constants/google-lens';
+import { WEBXR_TRAITS } from '../traits/constants/webxr';
 
 export interface AndroidCompilerOptions {
   packageName?: string;
@@ -60,6 +61,8 @@ export interface AndroidCompileResult {
   dexSetup?: string;
   /** Google Lens setup — emitted when lens_* traits are present (M.010.20) */
   lensSetup?: string;
+  /** WebXR setup — emitted when webxr_* traits are present (M.010.19). JavaScript/HTML, not Kotlin. */
+  webxrSetup?: string;
 }
 
 export class AndroidCompiler extends CompilerBase {
@@ -127,6 +130,10 @@ export class AndroidCompiler extends CompilerBase {
 
     if (this.hasLensTraits(composition)) {
       result.lensSetup = this.emitLensSetup(composition);
+    }
+
+    if (this.hasWebXRTraits(composition)) {
+      result.webxrSetup = this.emitWebXRSetup(composition);
     }
 
     return result;
@@ -2934,6 +2941,364 @@ dependencies {
 
     this.indentLevel--;
     this.emit('}');
+
+    return this.lines.join('\n');
+  }
+
+  // =====================================================================
+  // WebXR Browser AR (M.010.19)
+  // Emits JavaScript/HTML — runs in Chrome on Android, no app install.
+  // =====================================================================
+
+  private hasWebXRTraits(composition: HoloComposition): boolean {
+    const names: ReadonlyArray<string> = WEBXR_TRAITS;
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (names.includes(name)) return true;
+      }
+    }
+    return false;
+  }
+
+  private collectWebXRTraits(composition: HoloComposition): Set<string> {
+    const usedTraits = new Set<string>();
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if ((WEBXR_TRAITS as ReadonlyArray<string>).includes(name)) {
+          usedTraits.add(name);
+        }
+      }
+    }
+    return usedTraits;
+  }
+
+  private emitWebXRSetup(composition: HoloComposition): string {
+    this.lines = [];
+    this.indentLevel = 0;
+    const usedTraits = this.collectWebXRTraits(composition);
+    const compositionName = this.escapeStringValue(composition.name as string, 'TypeScript');
+
+    // Determine session type
+    const sessionType = usedTraits.has('webxr_session') ? 'immersive-ar'
+      : usedTraits.has('webxr_inline') ? 'inline'
+      : 'immersive-ar';
+
+    // Determine reference space
+    const refSpace = usedTraits.has('webxr_reference_space') ? 'local-floor' : 'local';
+
+    // Build requiredFeatures array
+    const requiredFeatures: string[] = [];
+    if (usedTraits.has('webxr_hit_test')) requiredFeatures.push('hit-test');
+    if (usedTraits.has('webxr_anchors')) requiredFeatures.push('anchors');
+    if (usedTraits.has('webxr_light_estimation')) requiredFeatures.push('light-estimation');
+    if (usedTraits.has('webxr_dom_overlay')) requiredFeatures.push('dom-overlay');
+    if (usedTraits.has('webxr_depth_sensing')) requiredFeatures.push('depth-sensing');
+    if (usedTraits.has('webxr_hand_tracking')) requiredFeatures.push('hand-tracking');
+    if (usedTraits.has('webxr_layers')) requiredFeatures.push('layers');
+
+    // --- HTML document ---
+    this.emit('<!DOCTYPE html>');
+    this.emit(`<html lang="en">`);
+    this.emit('<head>');
+    this.indentLevel++;
+    this.emit('<meta charset="utf-8">');
+    this.emit('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    this.emit(`<title>${compositionName} — WebXR</title>`);
+    this.emit('<style>');
+    this.indentLevel++;
+    this.emit('body { margin: 0; overflow: hidden; }');
+    this.emit('canvas { display: block; }');
+    if (usedTraits.has('webxr_dom_overlay')) {
+      this.emit('#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }');
+      this.emit('#overlay .ui-panel { pointer-events: auto; background: rgba(0,0,0,0.6); color: #fff; padding: 12px; border-radius: 8px; margin: 16px; font-family: sans-serif; }');
+    }
+    this.emit('#no-xr { display: none; padding: 20px; text-align: center; font-family: sans-serif; }');
+    this.indentLevel--;
+    this.emit('</style>');
+    this.emit('<script type="importmap">');
+    this.emit('{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }');
+    this.emit('</script>');
+    this.indentLevel--;
+    this.emit('</head>');
+    this.emit('<body>');
+    this.indentLevel++;
+    if (usedTraits.has('webxr_dom_overlay')) {
+      this.emit('<div id="overlay">');
+      this.indentLevel++;
+      this.emit(`<div class="ui-panel">${compositionName}</div>`);
+      this.indentLevel--;
+      this.emit('</div>');
+    }
+    this.emit('<div id="no-xr">WebXR not supported on this browser/device.</div>');
+    this.emit('<script type="module">');
+    this.indentLevel++;
+
+    // --- JS imports ---
+    this.emit("import * as THREE from 'three';");
+    this.emit('');
+
+    // --- Capability check ---
+    this.emit('if (!navigator.xr) {');
+    this.indentLevel++;
+    this.emit("document.getElementById('no-xr').style.display = 'block';");
+    this.emit("throw new Error('WebXR not supported');");
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // --- Renderer setup ---
+    this.emit('const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });');
+    this.emit('renderer.setPixelRatio(window.devicePixelRatio);');
+    this.emit('renderer.setSize(window.innerWidth, window.innerHeight);');
+    this.emit('renderer.xr.enabled = true;');
+    this.emit('document.body.appendChild(renderer.domElement);');
+    this.emit('');
+
+    // --- Scene & camera ---
+    this.emit('const scene = new THREE.Scene();');
+    this.emit('const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);');
+    this.emit('');
+
+    // --- Ambient light ---
+    this.emit('scene.add(new THREE.AmbientLight(0xffffff, 0.6));');
+
+    // --- Light estimation ---
+    if (usedTraits.has('webxr_light_estimation')) {
+      this.emit('');
+      this.emit('// WebXR Light Estimation');
+      this.emit('const estimatedLight = new THREE.DirectionalLight(0xffffff, 1.0);');
+      this.emit('estimatedLight.position.set(0.5, 1, 0.5);');
+      this.emit('scene.add(estimatedLight);');
+      this.emit('let xrLightProbe = null;');
+    }
+    this.emit('');
+
+    // --- Scene objects from composition ---
+    this.emit('// Scene objects from HoloScript composition');
+    for (const obj of composition.objects || []) {
+      const objName = obj.name || 'Object';
+      const shape = this.findObjProp(obj, 'shape');
+      const color = this.findObjProp(obj, 'color');
+      const position = this.findObjProp(obj, 'position');
+
+      let geometryClass = 'BoxGeometry(0.1, 0.1, 0.1)';
+      if (shape === 'sphere') geometryClass = 'SphereGeometry(0.05, 32, 32)';
+      else if (shape === 'cylinder') geometryClass = 'CylinderGeometry(0.05, 0.05, 0.1, 32)';
+      else if (shape === 'plane') geometryClass = 'PlaneGeometry(0.2, 0.2)';
+
+      const colorHex = typeof color === 'string' ? color : '#4488ff';
+      const pos = Array.isArray(position) && position.length >= 3 ? position : [0, 0, -1];
+
+      this.emit('{');
+      this.indentLevel++;
+      this.emit(`const geometry = new THREE.${geometryClass};`);
+      this.emit(`const material = new THREE.MeshStandardMaterial({ color: '${colorHex}' });`);
+      this.emit('const mesh = new THREE.Mesh(geometry, material);');
+      this.emit(`mesh.name = '${this.escapeStringValue(objName, 'TypeScript')}';`);
+      this.emit(`mesh.position.set(${pos[0]}, ${pos[1]}, ${pos[2]});`);
+      this.emit('scene.add(mesh);');
+      this.indentLevel--;
+      this.emit('}');
+    }
+    this.emit('');
+
+    // --- Hit test reticle ---
+    if (usedTraits.has('webxr_hit_test')) {
+      this.emit('// Hit test reticle');
+      this.emit('const reticle = new THREE.Mesh(');
+      this.emit('  new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2),');
+      this.emit("  new THREE.MeshBasicMaterial({ color: 0x00ff00 })");
+      this.emit(');');
+      this.emit('reticle.matrixAutoUpdate = false;');
+      this.emit('reticle.visible = false;');
+      this.emit('scene.add(reticle);');
+      this.emit('let hitTestSource = null;');
+      this.emit('');
+    }
+
+    // --- Framebuffer ---
+    if (usedTraits.has('webxr_framebuffer')) {
+      this.emit('let xrFramebuffer = null;');
+      this.emit('');
+    }
+
+    // --- Anchors storage ---
+    if (usedTraits.has('webxr_anchors')) {
+      this.emit('const anchors = new Map();');
+      this.emit('');
+      this.emit('async function createAnchor(frame, refSpace, position) {');
+      this.indentLevel++;
+      this.emit('const anchorPose = new XRRigidTransform(position);');
+      this.emit('const anchor = await frame.createAnchor(anchorPose, refSpace);');
+      this.emit('anchors.set(anchor, position);');
+      this.emit('return anchor;');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // --- Hand tracking ---
+    if (usedTraits.has('webxr_hand_tracking')) {
+      this.emit('function updateHands(frame, refSpace) {');
+      this.indentLevel++;
+      this.emit('for (const source of frame.session.inputSources) {');
+      this.indentLevel++;
+      this.emit('if (!source.hand) continue;');
+      this.emit('for (const [name, jointSpace] of source.hand) {');
+      this.indentLevel++;
+      this.emit('const jointPose = frame.getJointPose(jointSpace, refSpace);');
+      this.emit('if (jointPose) { /* joint position: jointPose.transform.position */ }');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // --- Session options ---
+    this.emit('// Session configuration');
+    this.emit('const sessionOptions = {');
+    this.indentLevel++;
+    if (requiredFeatures.length > 0) {
+      const featStr = requiredFeatures.map(f => `'${f}'`).join(', ');
+      this.emit(`requiredFeatures: [${featStr}],`);
+    }
+    if (usedTraits.has('webxr_dom_overlay')) {
+      this.emit("domOverlay: { root: document.getElementById('overlay') },");
+    }
+    if (usedTraits.has('webxr_depth_sensing')) {
+      this.emit('depthSensing: { usagePreference: ["cpu-optimized"], dataFormatPreference: ["luminance-alpha"] },');
+    }
+    this.indentLevel--;
+    this.emit('};');
+    this.emit('');
+
+    // --- Request session ---
+    this.emit(`navigator.xr.requestSession('${sessionType}', sessionOptions).then(async (session) => {`);
+    this.indentLevel++;
+    this.emit(`const refSpace = await session.requestReferenceSpace('${refSpace}');`);
+    this.emit('renderer.xr.setReferenceSpace(refSpace);');
+    this.emit('renderer.xr.setSession(session);');
+    this.emit('');
+
+    // Hit test source init
+    if (usedTraits.has('webxr_hit_test')) {
+      this.emit("// Initialize hit test source");
+      this.emit("const viewerSpace = await session.requestReferenceSpace('viewer');");
+      this.emit('hitTestSource = await session.requestHitTestSource({ space: viewerSpace });');
+      this.emit('');
+    }
+
+    // Light probe init
+    if (usedTraits.has('webxr_light_estimation')) {
+      this.emit('// Initialize light probe');
+      this.emit('xrLightProbe = await session.requestLightProbe();');
+      this.emit('');
+    }
+
+    // Layers init
+    if (usedTraits.has('webxr_layers')) {
+      this.emit('// XR Layers');
+      this.emit('const xrProjectionLayer = renderer.xr.getBaseLayer();');
+      this.emit('');
+    }
+
+    // --- Render loop ---
+    this.emit('renderer.setAnimationLoop((timestamp, frame) => {');
+    this.indentLevel++;
+    this.emit('if (!frame) return;');
+    this.emit('');
+
+    // Hit test per frame
+    if (usedTraits.has('webxr_hit_test')) {
+      this.emit('if (hitTestSource) {');
+      this.indentLevel++;
+      this.emit('const hitTestResults = frame.getHitTestResults(hitTestSource);');
+      this.emit('if (hitTestResults.length > 0) {');
+      this.indentLevel++;
+      this.emit('const hit = hitTestResults[0];');
+      this.emit('reticle.visible = true;');
+      this.emit('reticle.matrix.fromArray(hit.getPose(refSpace).transform.matrix);');
+      this.indentLevel--;
+      this.emit('} else { reticle.visible = false; }');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // Light estimation per frame
+    if (usedTraits.has('webxr_light_estimation')) {
+      this.emit('if (xrLightProbe) {');
+      this.indentLevel++;
+      this.emit('const estimate = frame.getLightEstimate(xrLightProbe);');
+      this.emit('if (estimate) {');
+      this.indentLevel++;
+      this.emit('const dir = estimate.primaryLightDirection;');
+      this.emit('estimatedLight.position.set(dir.x, dir.y, dir.z);');
+      this.emit('estimatedLight.intensity = estimate.primaryLightIntensity?.y || 1.0;');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // Depth sensing per frame
+    if (usedTraits.has('webxr_depth_sensing')) {
+      this.emit('// Depth sensing');
+      this.emit('const viewerPose = frame.getViewerPose(refSpace);');
+      this.emit('if (viewerPose) {');
+      this.indentLevel++;
+      this.emit('for (const view of viewerPose.views) {');
+      this.indentLevel++;
+      this.emit('const depthInfo = frame.getDepthInformation(view);');
+      this.emit('if (depthInfo) { /* depthInfo.data contains depth buffer */ }');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // Hand tracking per frame
+    if (usedTraits.has('webxr_hand_tracking')) {
+      this.emit('updateHands(frame, refSpace);');
+      this.emit('');
+    }
+
+    // Framebuffer access
+    if (usedTraits.has('webxr_framebuffer')) {
+      this.emit('xrFramebuffer = renderer.xr.getBaseLayer()?.framebuffer || null;');
+      this.emit('');
+    }
+
+    this.emit('renderer.render(scene, camera);');
+    this.indentLevel--;
+    this.emit('});');
+    this.emit('');
+
+    // Session end cleanup
+    this.emit("session.addEventListener('end', () => {");
+    this.indentLevel++;
+    this.emit('renderer.setAnimationLoop(null);');
+    if (usedTraits.has('webxr_hit_test')) {
+      this.emit('hitTestSource = null;');
+    }
+    this.indentLevel--;
+    this.emit('});');
+
+    this.indentLevel--;
+    this.emit("}).catch(err => { console.error('WebXR session failed:', err); document.getElementById('no-xr').style.display = 'block'; });");
+
+    this.indentLevel--;
+    this.emit('</script>');
+    this.indentLevel--;
+    this.emit('</body>');
+    this.emit('</html>');
 
     return this.lines.join('\n');
   }
