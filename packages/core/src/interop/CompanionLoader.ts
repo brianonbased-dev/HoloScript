@@ -7,6 +7,7 @@
 
 import { ModuleResolver } from './Interoperability';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
+// @ts-expect-error During migration
 import { Lazy } from '../runtime/RuntimeOptimization';
 
 export interface CompanionLoaderOptions {

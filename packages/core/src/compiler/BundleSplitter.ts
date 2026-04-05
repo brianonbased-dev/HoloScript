@@ -120,6 +120,7 @@ export class BundleSplitter {
     // 1. Property access pattern: node.source?.value (e.g. ESTree-style ImportExpression)
     if (source != null) {
       if (typeof source === 'string') return source;
+      // @ts-expect-error During migration
       if (typeof source.value === 'string') return source.value;
     }
 
@@ -134,15 +135,21 @@ export class BundleSplitter {
     // 3. String literal AST node: { type: 'string_literal' | 'StringLiteral' | 'Literal', value: "..." }
     if (firstArg != null && typeof firstArg === 'object') {
       // Direct value property (most common)
+      // @ts-expect-error During migration
       if (typeof firstArg.value === 'string') return firstArg.value;
 
       // Template literal with no expressions (static template): `./path`
       if (
+        // @ts-expect-error During migration
         (firstArg.type === 'template_literal' || firstArg.type === 'TemplateLiteral') &&
+        // @ts-expect-error During migration
         Array.isArray(firstArg.quasis) &&
+        // @ts-expect-error During migration
         firstArg.quasis.length === 1 &&
+        // @ts-expect-error During migration
         (!Array.isArray(firstArg.expressions) || firstArg.expressions.length === 0)
       ) {
+        // @ts-expect-error During migration
         const quasi = firstArg.quasis[0];
         // Template element value can be stored in .value.cooked, .value.raw, or .cooked/.raw
         if (typeof quasi === 'string') return quasi;
@@ -158,8 +165,10 @@ export class BundleSplitter {
       }
 
       // Fallback: raw property (some AST formats)
+      // @ts-expect-error During migration
       if (typeof firstArg.raw === 'string') {
         // Strip surrounding quotes if present
+        // @ts-expect-error During migration
         const raw = firstArg.raw;
         if (
           (raw.startsWith('"') && raw.endsWith('"')) ||

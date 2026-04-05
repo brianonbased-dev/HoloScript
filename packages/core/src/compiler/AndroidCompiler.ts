@@ -2272,6 +2272,96 @@ dependencies {
       this.emit('}');
     }
   }
+  // === Spatial Authoring Methods (M.010.08) ===
+
+  private hasAuthoringTraits(composition: HoloComposition): boolean {
+    const authoringNames: ReadonlyArray<string> = SPATIAL_AUTHORING_TRAITS;
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (authoringNames.includes(name)) return true;
+      }
+    }
+    return false;
+  }
+
+  private emitAuthoringSetup(composition: HoloComposition): string {
+    this.lines = [];
+    this.indentLevel = 0;
+
+    this.emit('// === Spatial Authoring Setup (M.010.08) ===');
+    this.emit('');
+
+    const hasGyro = this.compositionHasTrait(composition, 'author_gyro_place');
+    const hasPinch = this.compositionHasTrait(composition, 'author_pinch_scale');
+    const hasSwipe = this.compositionHasTrait(composition, 'author_swipe_browse');
+    const hasVoice = this.compositionHasTrait(composition, 'author_voice_cmd');
+    const hasShake = this.compositionHasTrait(composition, 'author_shake_undo');
+
+    if (hasGyro) {
+      this.emit(`private val gyroFilterAlpha = ${SPATIAL_AUTHORING_DEFAULTS.gyroFilterAlpha}f`);
+      this.emit('private var sensorManager: android.hardware.SensorManager? = null');
+      this.emit('private var rotationSensor: android.hardware.Sensor? = null');
+    }
+    if (hasPinch) {
+      this.emit(`private val pinchScaleMin = ${SPATIAL_AUTHORING_DEFAULTS.pinchScaleMin}f`);
+      this.emit(`private val pinchScaleMax = ${SPATIAL_AUTHORING_DEFAULTS.pinchScaleMax}f`);
+      this.emit('private var scaleGestureDetector: android.view.ScaleGestureDetector? = null');
+    }
+    if (hasSwipe) {
+      this.emit('private var gestureDetector: android.view.GestureDetector? = null');
+    }
+    if (hasVoice) {
+      this.emit(`private val speechLocale = "${SPATIAL_AUTHORING_DEFAULTS.speechLocale}"`);
+      this.emit('private var speechRecognizer: android.speech.SpeechRecognizer? = null');
+    }
+    if (hasShake) {
+      this.emit(`private val shakeThreshold = ${SPATIAL_AUTHORING_DEFAULTS.shakeThreshold}f`);
+      this.emit(`private val undoStackDepth = ${SPATIAL_AUTHORING_DEFAULTS.undoStackDepth}`);
+      this.emit('private val undoStack = ArrayDeque<() -> Unit>()');
+    }
+
+    return this.lines.join('\n');
+  }
+
+  private emitAuthoringInlineSetup(composition: HoloComposition): void {
+    this.emit('');
+    this.emit('// --- Spatial Authoring inline setup (M.010.08) ---');
+
+    if (this.compositionHasTrait(composition, 'author_gyro_place')) {
+      this.emit('private fun setupGyroPlacement() {');
+      this.indentLevel++;
+      this.emit('sensorManager = getSystemService(SENSOR_SERVICE) as android.hardware.SensorManager');
+      this.emit('rotationSensor = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR)');
+      this.indentLevel--;
+      this.emit('}');
+    }
+    if (this.compositionHasTrait(composition, 'author_pinch_scale')) {
+      this.emit('private fun setupPinchScale() {');
+      this.indentLevel++;
+      this.emit('scaleGestureDetector = android.view.ScaleGestureDetector(this, object : android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {');
+      this.indentLevel++;
+      this.emit('override fun onScale(detector: android.view.ScaleGestureDetector): Boolean {');
+      this.indentLevel++;
+      this.emit('val factor = detector.scaleFactor.coerceIn(pinchScaleMin, pinchScaleMax)');
+      this.emit('selectedNode?.localScale = selectedNode?.localScale?.let { it.scaled(factor) }');
+      this.emit('return true');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('})');
+      this.indentLevel--;
+      this.emit('}');
+    }
+    if (this.compositionHasTrait(composition, 'author_shake_undo')) {
+      this.emit('private fun setupShakeUndo() {');
+      this.indentLevel++;
+      this.emit('val accelerometer = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER)');
+      this.emit('// Shake detection triggers undoStack.removeLastOrNull()?.invoke()');
+      this.indentLevel--;
+      this.emit('}');
+    }
+  }
 }
 
 export function compileToAndroid(

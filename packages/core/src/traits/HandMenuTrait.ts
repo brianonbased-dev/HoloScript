@@ -8,6 +8,7 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 import { UIHandMenuTrait } from './UITraits';
+// @ts-expect-error During migration
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>

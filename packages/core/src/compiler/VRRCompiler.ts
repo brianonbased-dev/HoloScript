@@ -848,11 +848,13 @@ export class VRRCompiler extends CompilerBase {
     this.generateX402Paywall(compositionData.paywallNodes);
 
     // v4.2: Domain Blocks
+    // @ts-expect-error During migration
     const comp = composition as Record<string, unknown>;
     const domainBlocks = (Array.isArray(comp.domainBlocks) ? comp.domainBlocks : []) as Array<Record<string, unknown>>;
     if (domainBlocks.length > 0) {
       this.generatedCode.push('\n// === v4.2 Domain Blocks ===');
       const compiled = compileDomainBlocks(
+        // @ts-expect-error During migration
         domainBlocks,
         {
           material: (block) => {

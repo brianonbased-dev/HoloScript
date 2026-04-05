@@ -20,6 +20,7 @@ import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();
   return {
+    // @ts-expect-error During migration
     ...actual,
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };

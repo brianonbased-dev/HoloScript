@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HoloScript Runtime System
  *
  * Central runtime registry and execution system for HoloScript compositions.

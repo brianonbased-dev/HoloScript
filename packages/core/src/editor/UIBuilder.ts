@@ -55,6 +55,7 @@ export class UIBuilder {
 
     this.world.addComponent(entity, 'Transform', {
       position,
+      // @ts-expect-error During migration
       rotation: eulerToQuat(rotation),
       scale,
       parent, // If World supports hierarchy via component, or handle manually

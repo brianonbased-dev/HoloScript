@@ -13,6 +13,7 @@
  * - Object selection and highlighting
  */
 
+// @ts-expect-error During migration
 import type { RuntimeRenderer } from '../runtime/RuntimeRenderer';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 

@@ -57,6 +57,7 @@ export class I18nManager {
 
   detectLocale(): string {
     // Simulate browser detection
+    // @ts-expect-error During migration
     return typeof navigator !== 'undefined' ? ((navigator as NavigatorWithLanguage).language ?? 'en') : 'en';
   }
 

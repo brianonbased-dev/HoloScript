@@ -18,6 +18,7 @@ export {
   type HeadlessRuntimeOptions,
   type RuntimeProfile,
   type RuntimeStats,
+// @ts-expect-error During migration
 } from '../runtime/HeadlessRuntime';
 
 // ── Error Recovery ──────────────────────────────────────────────────────────

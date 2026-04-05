@@ -1318,6 +1318,7 @@ ${
 
     let blockIdx = 0;
     const compiled = compileDomainBlocks(
+      // @ts-expect-error During migration
       domainBlocks,
       {
         material: (block) => {

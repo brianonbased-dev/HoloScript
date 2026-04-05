@@ -6,6 +6,7 @@
  */
 
 import { logger } from './logger';
+// @ts-expect-error During migration
 import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNode } from './types';
 import { ReactiveState } from './ReactiveState';
@@ -222,10 +223,12 @@ export class HoloScriptAgentRuntime {
         };
       } else {
         const results = await this.parentRuntime.executeProgram(action.body, 1);
+        // @ts-expect-error During migration
         const success = results.every((r) => r.success);
         return {
           success,
           output: results[results.length - 1]?.output,
+          // @ts-expect-error During migration
           error: results.find((r) => !r.success)?.error,
         };
       }

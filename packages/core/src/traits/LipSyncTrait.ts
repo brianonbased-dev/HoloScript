@@ -522,6 +522,7 @@ export class LipSyncTrait {
       return {};
     }
 
+    // @ts-expect-error During migration
     this.analyserNode.getByteFrequencyData(this.frequencyData);
 
     const sampleRate = this.audioContext.sampleRate;

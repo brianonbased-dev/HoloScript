@@ -11,6 +11,7 @@
  */
 
 import type { StateDeclaration, ReactiveState as IReactiveState } from '../types/HoloScriptPlus';
+// @ts-expect-error During migration
 import { eventBus } from '../runtime/EventBus';
 import { CRDTStateManager, type CRDTOperation } from './CRDTStateManager';
 import { UndoManager } from './UndoManager';

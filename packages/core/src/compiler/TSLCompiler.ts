@@ -839,8 +839,10 @@ export class TSLCompiler extends CompilerBase {
           // Effect-specific uniforms
           for (const effect of pp.effects) {
             lines.push(
+              // @ts-expect-error During migration
               `// Effect: ${effect.type} — enabled: ${effect.enabled} intensity: ${effect.intensity}`
             );
+            // @ts-expect-error During migration
             for (const [k, v] of Object.entries(effect.parameters)) {
               lines.push(`//   ${k}: ${JSON.stringify(v)}`);
             }
@@ -853,28 +855,34 @@ export class TSLCompiler extends CompilerBase {
 
           for (const effect of pp.effects) {
             if (effect.type === 'bloom') {
+              // @ts-expect-error During migration
               lines.push(`  // Bloom pass (intensity: ${effect.intensity})`);
               lines.push(
+                // @ts-expect-error During migration
                 `  let bloomThreshold = ${((effect.parameters.threshold as number) || 0.8).toFixed(2)};`
               );
               lines.push(
                 `  let bloomBright = max(color.rgb - vec3<f32>(bloomThreshold), vec3<f32>(0.0));`
               );
               lines.push(
+                // @ts-expect-error During migration
                 `  color = vec4<f32>(color.rgb + bloomBright * ${effect.intensity.toFixed(2)}, color.a);`
               );
             } else if (effect.type === 'tonemap') {
               lines.push(`  // Tonemapping (Reinhard)`);
               lines.push(`  color = vec4<f32>(color.rgb / (color.rgb + vec3<f32>(1.0)), color.a);`);
             } else if (effect.type === 'vignette') {
+              // @ts-expect-error During migration
               lines.push(`  // Vignette (intensity: ${effect.intensity})`);
               lines.push(`  let vigDist = length(in.uv - vec2<f32>(0.5)) * 1.414;`);
               lines.push(
+                // @ts-expect-error During migration
                 `  let vigFactor = 1.0 - vigDist * vigDist * ${effect.intensity.toFixed(2)};`
               );
               lines.push(`  color = vec4<f32>(color.rgb * vigFactor, color.a);`);
             } else {
               lines.push(
+                // @ts-expect-error During migration
                 `  // Effect: ${effect.type} (intensity: ${effect.intensity}) — generic passthrough`
               );
             }

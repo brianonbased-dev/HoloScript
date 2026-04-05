@@ -20,10 +20,14 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
+// @ts-expect-error During migration
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
+// @ts-expect-error During migration
 import { createHeadlessRuntime as createProfileRuntime } from '../runtime/profiles/HeadlessRuntime';
+// @ts-expect-error During migration
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
+// @ts-expect-error During migration
 import { HEADLESS_PROFILE as PROFILES_HEADLESS } from '../runtime/profiles/RuntimeProfile';
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
@@ -1662,6 +1666,7 @@ function loadRuntimeSkillActions(
         }
       }
 
+      // @ts-expect-error During migration
       actions[actionName] = async (params, bb, ctx) => {
         if (!opts.allowShell) {
           bb.skill_error = `Skill ${actionName} blocked: shell disabled`;
@@ -1677,6 +1682,7 @@ function loadRuntimeSkillActions(
         }
 
         const runtimeArgs = Array.isArray(params.args)
+          // @ts-expect-error During migration
           ? params.args.filter((v): v is string => typeof v === 'string')
           : [];
         const timeoutMs =

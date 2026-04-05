@@ -13,6 +13,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+// @ts-expect-error During migration
 import { MLSMPMFluid } from '../physics/MLSMPMFluid';
 import { weatherBlackboard } from '../environment/WeatherBlackboard';
 

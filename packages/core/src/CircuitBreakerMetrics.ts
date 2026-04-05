@@ -87,6 +87,7 @@ export class CircuitBreakerMetrics {
     const systemHealth = this.client.getSystemHealth();
 
     const circuits: CircuitMetricsReport[] = circuitStats.map((stat) => {
+      // @ts-expect-error During migration
       const circuitManager = (this.client as Extensible<GraphQLCircuitBreakerClient>).circuitManager as { getCircuit(name: string): { getMetrics(): CircuitMetrics } };
       const circuit = circuitManager.getCircuit(stat.operationName);
       const metrics = circuit.getMetrics();

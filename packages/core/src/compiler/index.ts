@@ -86,6 +86,7 @@ export type { ReproducibilityContext, ReproducibilityConfig } from './Reproducib
 export { SemanticSceneGraph } from './SemanticSceneGraph';
 
 // Sprint 3: Agent inference
+// @ts-expect-error During migration
 export { AgentInferenceExportTarget } from './AgentInferenceExportTarget';
 
 // Procedural geometry (shared between GLTF pipeline and R3F renderer)

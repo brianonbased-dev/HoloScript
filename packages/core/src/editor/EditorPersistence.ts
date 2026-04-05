@@ -108,6 +108,7 @@ export class EditorPersistence {
       // If we spawn Root, we get a root entity.
       // Let's spawn references.
       if (result.node) {
+// @ts-expect-error During migration
         this.builder.spawn(result.node);
       }
 

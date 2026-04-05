@@ -1,6 +1,2 @@
-/**
- * @deprecated Physics subsystem has been extracted to `@holoscript/engine`.
- * Import directly from `@holoscript/engine` or `@holoscript/engine/physics` instead.
- * This re-export will be removed in a future major version.
- */
+// Re-export shim — physics barrel migrated to @holoscript/engine (A.011)
 export * from '@holoscript/engine/physics';

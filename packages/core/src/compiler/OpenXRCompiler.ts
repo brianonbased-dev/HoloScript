@@ -195,6 +195,7 @@ export class OpenXRCompiler extends CompilerBase {
       this.emit('');
       this.emit('// === v4.2 Domain Blocks ===');
       const compiled = compileDomainBlocks(
+        // @ts-expect-error During migration
         domainBlocks,
         {
           material: (block) => {

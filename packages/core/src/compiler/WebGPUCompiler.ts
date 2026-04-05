@@ -491,6 +491,7 @@ export class WebGPUCompiler extends CompilerBase {
         this.emit(
           `const ${v}ParticleCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_PARTICLE_COMPUTE }), entryPoint: "cs_particle_update" } });`
         );
+        // @ts-expect-error During migration
         this.emit(`const ${v}ComputeDispatches = ${Math.ceil(count / 64)};`);
       }
       if (traits.some((t) => t.name === 'gpu_physics')) {

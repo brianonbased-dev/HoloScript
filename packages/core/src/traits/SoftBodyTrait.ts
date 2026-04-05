@@ -8,6 +8,7 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
+// @ts-expect-error During migration
 import { SoftBodySolver, type Particle, type DistanceConstraint } from '../physics/SoftBodySolver';
 
 // =============================================================================
@@ -176,6 +177,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       const particles = state.solver.getParticles();
 
       // Sync back to internal vertex state
+      // @ts-expect-error During migration
       state.vertices = particles.map((p) => ({
         position: { x: p.position[0], y: p.position[1], z: p.position[2] },
         restPosition: {

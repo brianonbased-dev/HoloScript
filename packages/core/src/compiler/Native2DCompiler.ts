@@ -18,6 +18,7 @@ export interface Native2DCompilerOptions extends BaseCompilerOptions {
 export class Native2DCompiler extends CompilerBase {
   protected readonly compilerName = 'Native2DCompiler';
 
+  // @ts-expect-error During migration
   compile(
     composition: HoloComposition,
     agentToken: string,

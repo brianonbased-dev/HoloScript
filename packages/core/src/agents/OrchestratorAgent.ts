@@ -19,7 +19,6 @@ import {
   type AgentIdentity,
   type PhaseResult,
   ProtocolPhase,
-// @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
 } from '@holoscript/agent-protocol';
 import { AgentRegistry, getDefaultRegistry } from './AgentRegistry';
 import { FederatedRegistryAdapter, type FederatedRegistryConfig } from './FederatedRegistryAdapter';

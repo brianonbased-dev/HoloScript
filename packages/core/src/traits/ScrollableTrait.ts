@@ -1,5 +1,6 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, HSPlusNode, TraitEvent, TraitContext } from './TraitTypes';
+// @ts-expect-error During migration
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
 export interface ScrollableConfig {

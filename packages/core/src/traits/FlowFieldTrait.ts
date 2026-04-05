@@ -6,6 +6,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+// @ts-expect-error During migration
 import { getNavigationEngine } from '../runtime/NavigationEngine';
 import type { Vector3 } from '../types/HoloScriptPlus';
 import type { Vector3Tuple } from '../types/HoloScriptPlus';

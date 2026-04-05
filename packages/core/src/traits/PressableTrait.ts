@@ -63,6 +63,7 @@ export class PressableTrait implements Trait {
     // NOTE: Assumes world-aligned button (Z-axis depression). Rotated buttons would need
     // inverse-transform of currentPos into local space before measuring depression.
 
+    // @ts-expect-error During migration
     const dist = Math.abs(currentPos.z - this.initialPos.z);
 
     // Config

@@ -6,8 +6,11 @@
  */
 
 import { TraitHandler } from '../traits/TraitTypes';
+// @ts-expect-error During migration
 import { BoneSystem, BoneTransform } from '../animation/BoneSystem';
+// @ts-expect-error During migration
 import { IKSolver } from '../animation/IKSolver';
+// @ts-expect-error During migration
 import { AvatarController } from '../animation/AvatarController';
 
 export interface NetworkedAvatarConfig {

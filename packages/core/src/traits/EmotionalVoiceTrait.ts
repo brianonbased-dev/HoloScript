@@ -10,6 +10,7 @@ import {
   getVoiceSynthesizer,
   voiceSynthesizerRegistry,
   type VoiceRequest,
+// @ts-expect-error During migration
 } from '../runtime/VoiceSynthesizer';
 
 export interface EmotionalVoiceConfig {

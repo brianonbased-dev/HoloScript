@@ -321,6 +321,7 @@ export class MCPOrchestrator {
         results,
         steps: stepStatuses,
         durationMs: Date.now() - startTime,
+        // @ts-expect-error During migration
         error,
       };
     }

@@ -41,6 +41,46 @@ export * as Runtime from './runtime';
 // Audio subsystem (A.011.01d)
 export * as Audio from './audio';
 
+// VR subsystem (A.011.01f)
+export * as VR from './vr';
+
+// Input subsystem (A.011.01f)
+export * as Input from './input';
+
+// Camera subsystem (A.011.01f)
+export * as Camera from './camera';
+
+// Navigation subsystem (A.011.01f)
+export * as Navigation from './navigation';
+
+// Particle subsystem (A.011.01g)
+export * as Particles from './particles';
+
+// Terrain subsystem (A.011.01g)
+export * as Terrain from './terrain';
+
+// Tilemap subsystem (A.011.01g)
+export * as Tilemap from './tilemap';
+
+// Procedural subsystem (A.011.01g)
+export * as Procedural from './procedural';
+
+// Gameplay subsystem (A.011.01h)
+export * as Combat from './combat';
+export * as Dialogue from './dialogue';
+export * as Gameplay from './gameplay';
+export * as Character from './character';
+
+// Spatial infrastructure subsystem (A.011.01i)
+export * as ECS from './ecs';
+export * as Scene from './scene';
+export * as Environment from './environment';
+export * as World from './world';
+export * as Orbital from './orbital';
+
+// Hologram subsystem (A.011.01j)
+export * as Hologram from './hologram';
+
 // â”€â”€ Subsystems to be migrated from @holoscript/core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Each section will become a re-export once code is moved into src/<subsystem>/
 
