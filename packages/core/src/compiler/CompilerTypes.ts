@@ -81,4 +81,6 @@ export interface IOSCompileResult {
   sceneFile: string;
   stateFile: string;
   infoPlist: string;
+  /** RoomPlan capture session file — emitted when roomplan_scan trait is present (iOS 16+) */
+  roomPlanFile?: string;
 }
