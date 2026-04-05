@@ -10,6 +10,25 @@ graph-enriched context, and runs autonomous improvement cycles. It supports
 TypeScript, Python, Rust, Go, and JavaScript out of the box via tree-sitter
 adapters.
 
+## Ownership Boundary (packages/ vs services/)
+
+There are two `absorb-service` folders in this monorepo by design:
+
+- `packages/absorb-service` (**this package**) — canonical engine and domain logic
+  (scanner, graph, embeddings, pipeline, credits, MCP tool definitions).
+- `services/absorb-service` — deployment host (Express routes, auth, webhooks,
+  DB wiring, Railway runtime) that imports from this package.
+
+To avoid drift and duplicated implementations:
+
+1. New absorb business logic belongs in `packages/absorb-service`.
+2. `services/absorb-service` should stay thin and route-level only.
+3. If logic appears in both places, move shared logic back into the package and
+   keep only orchestration code in the service.
+
+This split keeps one source of truth for absorb behavior while preserving a
+separate deployable API host.
+
 ## Architecture
 
 ```

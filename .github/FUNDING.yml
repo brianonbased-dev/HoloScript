@@ -1,8 +1,7 @@
 # These are supported funding model platforms
 
 github: brianonbased-dev
-# patreon: # Replace with a single Patreon username
-# open_collective: # Replace with a single Open Collective username
+open_collective: holoscript
 # ko_fi: # Replace with a single Ko-fi username
 # tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
 # community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
@@ -12,4 +11,6 @@ github: brianonbased-dev
 # polar: # Replace with a single Polar username
 # buy_me_a_coffee: # Replace with a single Buy Me a Coffee username
 # thanks_dev: # Replace with a single thanks.dev username
-# custom: # Replace with up to 4 custom sponsorship URLs e.g., ['link1', 'link2']
+custom:
+  - https://github.com/sponsors/brianonbased-dev
+  - https://github.com/brianonbased-dev/HoloScript/blob/main/docs/community/FUNDING.md

@@ -23,6 +23,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "@holoscript/framework": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "tsup": "^8.0.1",

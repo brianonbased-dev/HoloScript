@@ -46,6 +46,7 @@ nul
 .env
 .env.local
 .env.*.local
+.local-worker-key
 
 # Logs
 *.log
