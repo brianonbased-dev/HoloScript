@@ -13,17 +13,41 @@ One language. Every platform. Write `.holo`, compile to Unity, Unreal, VisionOS,
 }
 ```
 
-## Try it
+## Quick Start (30 seconds)
+
+**1. Try the API -- no install needed:**
 
 ```bash
-curl -X POST https://mcp.holoscript.net/api/compile \
+curl -s -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
-  -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "r3f"}'
+  -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "unity"}'
 ```
 
-Change `target` to `unity`, `urdf`, `godot`, `node-service`, `native-2d`, `visionos`, or any of the [37 targets](./docs/reference/FULL_README.md#compilation-targets). Same input, different output.
+Returns JSON with platform-ready source code:
 
-The output is platform-ready source code. For example, `r3f` returns a React Three Fiber JSX component you can drop into any React app. `unity` returns a C# MonoBehaviour. Try `native-2d` for an HTML product card you can open directly in a browser:
+```json
+{
+  "success": true,
+  "target": "unity",
+  "output": "using UnityEngine;\n\nnamespace HoloScene {\n    public class GeneratedScene : MonoBehaviour {\n        private void Awake() {\n            var CubeGO = GameObject.CreatePrimitive(PrimitiveType.Cube);\n            CubeGO.transform.localPosition = new Vector3(0f, 1f, 0f);\n            var CubeRB = CubeGO.AddComponent<Rigidbody>();\n        }\n    }\n}"
+}
+```
+
+Change `"target"` to get different platforms from the same input:
+
+| Target | Output |
+|--------|--------|
+| `unity` | C# MonoBehaviour |
+| `r3f` | React Three Fiber scene graph (JSON) |
+| `urdf` | ROS 2 / Gazebo robot XML |
+| `godot` | GDScript scene |
+| `visionos` | RealityKit Swift |
+| `native-2d` | Standalone HTML page |
+| `node-service` | Express.js skeleton |
+
+All [37 targets](./docs/reference/FULL_README.md#compilation-targets) work the same way. Same `.holo` input, different output.
+
+**2. See it in a browser -- one command:**
 
 ```bash
 curl -s -X POST https://mcp.holoscript.net/api/compile \
@@ -32,7 +56,32 @@ curl -s -X POST https://mcp.holoscript.net/api/compile \
   -o demo.html && open demo.html
 ```
 
+**3. Write your first `.holo` file:**
+
+Create `hello.holo`:
+
+```holo
+composition "MyWorld" {
+  object "Cube" {
+    @physics(mass: 2)
+    @grabbable
+    geometry: "box"
+    position: [0, 1, 0]
+  }
+}
+```
+
+Compile it against any target:
+
+```bash
+curl -s -X POST https://mcp.holoscript.net/api/compile \
+  -H "Content-Type: application/json" \
+  -d "{\"code\": \"$(cat hello.holo)\", \"target\": \"r3f\"}"
+```
+
 ## Run locally
+
+**Scaffold a new project (recommended):**
 
 ```bash
 npx create-holoscript-app my-world
@@ -41,7 +90,17 @@ npm install
 npm run dev
 ```
 
-This scaffolds a project with a sample scene and opens a live preview. See the [Getting Started guide](./docs/getting-started/index.md) for more.
+This creates a project with a sample scene and opens a live preview.
+
+**Develop on the core repo:**
+
+```bash
+git clone https://github.com/brianonbased-dev/HoloScript.git
+cd HoloScript
+pnpm install
+pnpm build    # builds core first, then all packages
+pnpm test     # runs 57,000+ tests via vitest
+```
 
 ## Install
 
