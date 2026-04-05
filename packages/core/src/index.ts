@@ -2159,48 +2159,7 @@ export type {
   QuorumState,
 } from './swarm';
 
-export {
-  Vector3 as SwarmVector3,
-  FlockingBehavior,
-  FormationController,
-  ZoneClaiming,
-} from './swarm/spatial';
-
-export type {
-  IBoid,
-  IFlockingConfig,
-  FormationType,
-  IFormationSlot,
-  IFormationConfig,
-  ZoneState,
-  IZone,
-  IZoneClaim,
-  IZoneEvent,
-  IZoneClaimingConfig,
-} from './swarm/spatial';
-
-export { SwarmEventBus, BroadcastChannel, GossipProtocol } from './swarm/messaging';
-
-export type {
-  EventPriority,
-  ISwarmEvent,
-  IEventSubscription,
-  EventHandler,
-  IEventBusConfig,
-  IEventBusStats,
-  IChannelMessage,
-  IChannelSubscriber,
-  IChannelConfig,
-  MessageHandler as SwarmMessageHandler,
-  IGossipMessage,
-  IGossipPeer,
-  IGossipConfig,
-  GossipHandler,
-  PeerSelector,
-} from './swarm/messaging';
-
-export * from './swarm/analytics';
-
+// Swarm module re-exports are consolidated through swarm barrel file
 // =============================================================================
 // Recovery Module (v3.2 Self-Healing Infrastructure)
 // =============================================================================
@@ -2329,47 +2288,7 @@ export { USDZPipeline, type USDZPipelineOptions } from './compiler/USDZPipeline'
 
 // Semantic Caching System
 export {
-  SemanticCache,
-  createSemanticCache,
-  getGlobalSemanticCache,
-  hashSourceCode,
-  hashASTSubtree,
-  serializeASTNode,
-  cacheCompiledModule,
-  getCachedCompiledModule,
-  cacheASTSubtree,
-  getCachedASTSubtree,
-  type SemanticCacheEntryType,
-  type SemanticCacheEntry,
-  type SemanticCacheStats,
-  type SemanticCacheOptions,
-  type RedisClient,
-} from './compiler/SemanticCache';
-
-// =============================================================================
-// HITL Backend Service (v3.3 Sprint 3: Safety & Testing)
-// =============================================================================
-
-export * as hitl from './hitl';
-export {
-  HITLBackendService,
-  getHITLBackend,
-  configureHITLBackend,
-  HITLNotificationService,
-  getNotificationService,
-  configureNotifications,
-} from './hitl';
-
-// =============================================================================
-// Security Utilities (v3.3 Sprint 3: Safety & Testing)
-// =============================================================================
-
-export * as security from './security';
-export {
-  sha256,
-  sha512,
-  hmacSha256,
-  verifyHmacSha256,
+  // Swarm module exports are re-exported through the swarm barrel file above
   encrypt,
   decrypt,
   generateEncryptionKey,
@@ -2378,48 +2297,8 @@ export {
   randomUUID,
   validateWalletAddress,
   validateApiKey,
-  sanitizeInput,
-  validateUrl,
-  checkRateLimit,
-  resetRateLimit,
-} from './security';
 
-// =============================================================================
-// OpenTelemetry Integration (Sprint 9 - Observability)
-// =============================================================================
-
-export {
-  HoloScriptTelemetry,
-  SpanFactory,
-  MetricsCollector,
-  generateTraceId,
-  generateSpanId,
-  createSpanObject,
-  type TelemetryConfig,
-  type Span as TelemetrySpan,
-  type SpanEvent as TelemetrySpanEvent,
-  type Metric as TelemetryMetric,
-  type MetricEntry as TelemetryMetricEntry,
-  type HistogramStats,
-} from './telemetry';
-
-// =============================================================================
-// Messaging & Agent Protocol Bridges (v3.3 Sprint 4: Integration)
-// =============================================================================
-
-export {
-  type EncryptionMode,
-  type MessagePriority as MessagingMessagePriority,
-  type JSONSchema,
-  type ChannelConfig,
-  DEFAULT_CHANNEL_CONFIG,
-  type AgentChannel,
-  type ChannelMember,
-  type MessageStatus,
-  type Message,
-  type MessageAckStatus,
-  type MessageAck,
-  type BroadcastMessage,
+  // Swarm module exports are consolidated through the swarm barrel file above
   type MessageHandler,
   type BroadcastHandler,
   type ChannelEventHandler,
@@ -3724,4 +3603,5 @@ export * from './compiler/platform/ModalitySelector';
 // ============================================================================
 export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
 export type * from './training/SparsityMonitorTypes';
+
 
