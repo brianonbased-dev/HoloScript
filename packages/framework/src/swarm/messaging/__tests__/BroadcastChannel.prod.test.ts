@@ -94,7 +94,7 @@ describe('BroadcastChannel — broadcast', () => {
   it('publisher-role subscriber does not receive', async () => {
     const received: unknown[] = [];
     const c = makeCh();
-    c.subscribe('a1', (m) => { received.push('a1', (m); }, { role: 'publisher' });
+    c.subscribe('a1', (m) => { received.push('a1', m); }, { role: 'publisher' });
     await c.broadcast('sender', 'hi');
     expect(received).toHaveLength(0);
   });

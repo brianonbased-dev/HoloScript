@@ -145,7 +145,7 @@ export class SwarmEventBus {
 
     // Process if not already processing
     if (this.config.asyncProcessing && !this.processing) {
-      this.processQueue();
+      this.processQueue().catch(() => {});
     }
 
     return id;
