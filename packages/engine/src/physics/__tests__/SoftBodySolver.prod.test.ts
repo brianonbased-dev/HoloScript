@@ -5,7 +5,7 @@
  * updateVelocities, getParticles, getConstraints, floor constraint.
  */
 import { describe, it, expect } from 'vitest';
-import { SoftBodySolver, type Particle, type DistanceConstraint } from '../SoftBodySolver';
+import { SoftBodySolver, type Particle, type DistanceConstraint } from '@holoscript/core';
 
 function mkParticle(x: number, y: number, z: number, invMass = 1): Particle {
   return {

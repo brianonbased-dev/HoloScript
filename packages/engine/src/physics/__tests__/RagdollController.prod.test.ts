@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RagdollController } from '../RagdollController';
+import { RagdollController } from '@holoscript/core';
 
 function makeController() {
   return new RagdollController({ gravity: -9.81, damping: 0.99, iterations: 4 });

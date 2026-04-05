@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RagdollController } from '../RagdollController';
+import { RagdollController } from '@holoscript/core';
 
 describe('RagdollController', () => {
   let rc: RagdollController;

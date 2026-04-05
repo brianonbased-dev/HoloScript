@@ -24,7 +24,7 @@
  */
 
 import type { IVector3 } from './PhysicsTypes';
-import type { WeatherBlackboardState } from '../environment/WeatherBlackboard';
+import type { WeatherBlackboardState } from '@holoscript/core';
 
 // =============================================================================
 // Enums

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VehicleSystem, createDefaultCar, createTruck } from '../VehicleSystem';
+import { VehicleSystem, createDefaultCar, createTruck } from '@holoscript/core';
 
 describe('VehicleSystem', () => {
   let sys: VehicleSystem;

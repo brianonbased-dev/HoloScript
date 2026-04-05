@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PhysicsSyncSender, PhysicsSyncReceiver, parsePacketHeader } from '../PhysicsSyncProtocol';
-import { UnifiedParticleBuffer } from '../UnifiedParticleBuffer';
-import { ParticleType } from '../PhysicsTypes';
+import { PhysicsSyncSender, PhysicsSyncReceiver, parsePacketHeader } from '@holoscript/core';
+import { UnifiedParticleBuffer } from '@holoscript/core';
+import { ParticleType } from '@holoscript/core';
 
 function makeBuffer(particleCount = 10): { buf: UnifiedParticleBuffer; range: any } {
   const buf = new UnifiedParticleBuffer(1000);

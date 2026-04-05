@@ -8,8 +8,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { MLSMPMFluid } from '../MLSMPMFluid';
-import type { MLSMPMConfig, MLSMPMStats } from '../MLSMPMFluid';
+import { MLSMPMFluid } from '@holoscript/core';
+import type { MLSMPMConfig, MLSMPMStats } from '@holoscript/core';
 import { GPU_LIVE, testDevice } from './gpu-setup';
 
 describe('MLSMPMFluid', () => {

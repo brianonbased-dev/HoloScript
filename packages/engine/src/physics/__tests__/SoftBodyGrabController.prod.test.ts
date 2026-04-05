@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodyGrabController, GrabConfig } from '../SoftBodyGrabController';
-import type { IVector3 } from '../PhysicsTypes';
+import { SoftBodyGrabController, GrabConfig } from '@holoscript/core';
+import type { IVector3 } from '@holoscript/core';
 
 // =============================================================================
 // MOCK PBDSolverCPU

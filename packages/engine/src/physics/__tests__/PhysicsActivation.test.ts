@@ -13,8 +13,8 @@ import {
   DEFAULT_LOCOMOTION_CONFIG,
   type PhysicsActivationConfig,
   type WindZone,
-} from '../PhysicsActivation';
-import type { WeatherBlackboardState } from '../../environment/WeatherBlackboard';
+} from '@holoscript/core';
+import type { WeatherBlackboardState } from '@holoscript/core';
 
 // =============================================================================
 // VelocitySmoother

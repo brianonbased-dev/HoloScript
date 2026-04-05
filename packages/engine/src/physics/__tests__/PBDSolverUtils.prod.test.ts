@@ -16,7 +16,7 @@ import {
   computeRestLengths,
   generateTetrahedra,
   extractBendingPairs,
-} from '../PBDSolver';
+} from '@holoscript/core';
 
 // Two triangles sharing the edge (1,2): [0,1,2] and [1,3,2]
 const QUAD_INDICES = new Uint32Array([0, 1, 2, 1, 3, 2]);

@@ -6,7 +6,7 @@
  * clear, setConfig.
  */
 import { describe, it, expect } from 'vitest';
-import { FluidSim } from '../FluidSim';
+import { FluidSim } from '@holoscript/core';
 
 describe('FluidSim — Production', () => {
   // ─── Particle Management ──────────────────────────────────────────

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ConstraintSolver } from '../ConstraintSolver';
+import { ConstraintSolver } from '@holoscript/core';
 import type {
   Constraint,
   IRigidBodyState,
   IVector3,
   IDistanceConstraint,
   IFixedConstraint,
-} from '../PhysicsTypes';
+} from '@holoscript/core';
 
 function v3(x = 0, y = 0, z = 0): IVector3 {
   return { x, y, z };

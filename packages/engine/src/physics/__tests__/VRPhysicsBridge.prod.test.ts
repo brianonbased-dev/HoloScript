@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VRPhysicsBridge } from '../VRPhysicsBridge';
-import type { IPhysicsWorld, IVector3, IQuaternion } from '../PhysicsTypes';
-import type { VRHand } from '../../types/HoloScriptPlus';
+import { VRPhysicsBridge } from '@holoscript/core';
+import type { IPhysicsWorld, IVector3, IQuaternion } from '@holoscript/core';
+import type { VRHand } from '@holoscript/core';
 
 // =============================================================================
 // MOCK IPhysicsWorld

@@ -5,7 +5,7 @@
  * getRopeNodes, getRopeLength, getTension, getRopeCount, removeRope.
  */
 import { describe, it, expect } from 'vitest';
-import { RopeSystem } from '../RopeSystem';
+import { RopeSystem } from '@holoscript/core';
 
 describe('RopeSystem — Production', () => {
   // ─── Creation ─────────────────────────────────────────────────────

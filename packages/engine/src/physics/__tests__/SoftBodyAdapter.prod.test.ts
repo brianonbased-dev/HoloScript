@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodyAdapter } from '../SoftBodyAdapter';
+import { SoftBodyAdapter } from '@holoscript/core';
 
 /**
  * Create a minimal mock node with a simple 4-vertex geometry.

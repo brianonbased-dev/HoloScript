@@ -5,7 +5,7 @@
  * setWind, getParticle, getParticleCount, getConstraintCount, getGridSize, getAABB.
  */
 import { describe, it, expect } from 'vitest';
-import { ClothSim } from '../ClothSim';
+import { ClothSim } from '@holoscript/core';
 
 describe('ClothSim — Production', () => {
   // ─── Grid ─────────────────────────────────────────────────────────

@@ -5,13 +5,13 @@
  * warm starting, broken constraints, clear.
  */
 import { describe, it, expect } from 'vitest';
-import { ConstraintSolver } from '../ConstraintSolver';
+import { ConstraintSolver } from '@holoscript/core';
 import type {
   IDistanceConstraint,
   ISpringConstraint,
   IFixedConstraint,
   IRigidBodyState,
-} from '../PhysicsTypes';
+} from '@holoscript/core';
 
 function bodyState(id: string, x = 0, y = 0, z = 0): IRigidBodyState {
   return {

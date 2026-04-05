@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RigidBody } from '../PhysicsBody';
-import { zeroVector, identityQuaternion, COLLISION_GROUPS } from '../PhysicsTypes';
+import { RigidBody } from '@holoscript/core';
+import { zeroVector, identityQuaternion, COLLISION_GROUPS } from '@holoscript/core';
 
 function makeDynamic(overrides: any = {}): RigidBody {
   return new RigidBody({

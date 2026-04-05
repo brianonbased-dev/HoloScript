@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TriggerZoneSystem } from '../TriggerZone';
+import { TriggerZoneSystem } from '@holoscript/core';
 
 function sphereZone(id: string, x = 0, y = 0, z = 0, radius = 1): any {
   return { id, shape: { type: 'sphere', position: { x, y, z }, radius }, enabled: true, tags: [] };

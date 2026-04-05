@@ -5,7 +5,7 @@
  * box/sphere overlap, enable/disable, occupant queries.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { TriggerZoneSystem, type TriggerZoneConfig } from '../TriggerZone';
+import { TriggerZoneSystem, type TriggerZoneConfig } from '@holoscript/core';
 
 function sphereZone(): TriggerZoneConfig {
   return {

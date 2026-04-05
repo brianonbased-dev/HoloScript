@@ -5,7 +5,7 @@
  * Handles distance, volume, and collision constraints.
  */
 
-import { Vector3, Vector3Tuple } from '../types/HoloScriptPlus';
+import { Vector3, Vector3Tuple } from '@holoscript/core';
 
 export interface Particle {
   position: [number, number, number];

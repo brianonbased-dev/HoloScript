@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VRPhysicsBridge } from '../../physics/VRPhysicsBridge';
+import { VRPhysicsBridge } from '@holoscript/core';
 
 // =============================================================================
 // MOCK PHYSICS WORLD

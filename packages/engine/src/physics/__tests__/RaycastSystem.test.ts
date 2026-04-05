@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RaycastSystem } from '../RaycastSystem';
+import { RaycastSystem } from '@holoscript/core';
 
 describe('RaycastSystem', () => {
   let sys: RaycastSystem;

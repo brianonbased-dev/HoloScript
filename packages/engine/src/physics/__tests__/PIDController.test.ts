@@ -25,8 +25,8 @@ import {
   type PIDGains,
   type PIDControllerTraitConfig,
   type PIDArithmetic,
-} from '../PIDController';
-import type { IVector3 } from '../PhysicsTypes';
+} from '@holoscript/core';
+import type { IVector3 } from '@holoscript/core';
 
 // =============================================================================
 // HELPER: simulate N steps

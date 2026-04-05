@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DeformableMesh } from '../DeformableMesh';
+import { DeformableMesh } from '@holoscript/core';
 
 describe('DeformableMesh', () => {
   let mesh: DeformableMesh;

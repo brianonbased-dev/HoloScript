@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ClothSim } from '../ClothSim';
+import { ClothSim } from '@holoscript/core';
 
 describe('ClothSim', () => {
   let cloth: ClothSim;

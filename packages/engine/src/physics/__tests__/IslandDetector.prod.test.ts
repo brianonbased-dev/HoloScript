@@ -4,7 +4,7 @@
  * Covers: addBody, addConnection, detectIslands (DSU), reset.
  */
 import { describe, it, expect } from 'vitest';
-import { IslandDetector } from '../IslandDetector';
+import { IslandDetector } from '@holoscript/core';
 
 describe('IslandDetector — Production', () => {
   it('single body forms one island', () => {

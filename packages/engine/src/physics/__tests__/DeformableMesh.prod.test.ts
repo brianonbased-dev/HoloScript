@@ -6,7 +6,7 @@
  * getVertexCount, getSpringCount, getDisplacement, getMaxDisplacement.
  */
 import { describe, it, expect } from 'vitest';
-import { DeformableMesh } from '../DeformableMesh';
+import { DeformableMesh } from '@holoscript/core';
 
 describe('DeformableMesh — Production', () => {
   function mkMesh() {

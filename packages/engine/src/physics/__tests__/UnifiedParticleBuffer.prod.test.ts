@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { UnifiedParticleBuffer } from '../UnifiedParticleBuffer';
-import { ParticleType } from '../PhysicsTypes';
+import { UnifiedParticleBuffer } from '@holoscript/core';
+import { ParticleType } from '@holoscript/core';
 
 describe('UnifiedParticleBuffer — registration', () => {
   it('registers a particle range and returns handle', () => {
