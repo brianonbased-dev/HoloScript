@@ -59,3 +59,42 @@ export * from './SubscriptionManager';
 export * from './AgentBudgetEnforcer';
 export * from './UnifiedBudgetOptimizer';
 export * from './UsageMeter';
+
+// Bounty system (FW-0.6)
+export {
+  BountyManager,
+  type Bounty,
+  type BountyReward,
+  type BountyCurrency,
+  type BountyStatus,
+  type ClaimResult,
+  type CompletionProof,
+  type PayoutResult,
+  type BountyManagerConfig,
+} from './BountyManager';
+
+// Knowledge marketplace (FW-0.6)
+export {
+  KnowledgeMarketplace,
+  type KnowledgeListing,
+  type ListingStatus,
+  type PurchaseResult,
+  type ListingResult,
+  type PricingFactors,
+} from './KnowledgeMarketplace';
+
+// Revenue splitter (FW-0.6 — moved from core concept into framework)
+export {
+  RevenueSplitter,
+  type SplitRecipient,
+  type SplitResult,
+  type SplitBreakdownEntry,
+} from './RevenueSplitter';
+
+// Invisible wallet stub (FW-0.6 — lightweight framework-side wallet interface)
+export {
+  InvisibleWalletStub,
+  type HexAddress as WalletHexAddress,
+  type InvisibleWalletConfig as WalletConfig,
+  type WalletInfo,
+} from './InvisibleWallet';

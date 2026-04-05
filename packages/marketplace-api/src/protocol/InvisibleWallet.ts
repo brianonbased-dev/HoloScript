@@ -55,6 +55,10 @@ export class InvisibleWalletError extends Error {
 // INVISIBLE WALLET
 // =============================================================================
 
+/**
+ * @deprecated Use `InvisibleWalletStub` from `@holoscript/framework` for lightweight wallet operations,
+ * or continue using this class only when full blockchain signing (viem) is needed.
+ */
 export class InvisibleWallet {
   private publicClient: PublicClient;
   private walletClient: WalletClient<Transport, Chain>;
