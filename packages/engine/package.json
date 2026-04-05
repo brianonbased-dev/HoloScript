@@ -40,11 +40,101 @@
       "types": "./dist/animation/index.d.ts",
       "import": "./dist/animation/index.js",
       "require": "./dist/animation/index.cjs"
+    },
+    "./vr": {
+      "types": "./dist/vr/index.d.ts",
+      "import": "./dist/vr/index.js",
+      "require": "./dist/vr/index.cjs"
+    },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./camera": {
+      "types": "./dist/camera/index.d.ts",
+      "import": "./dist/camera/index.js",
+      "require": "./dist/camera/index.cjs"
+    },
+    "./navigation": {
+      "types": "./dist/navigation/index.d.ts",
+      "import": "./dist/navigation/index.js",
+      "require": "./dist/navigation/index.cjs"
+    },
+    "./particles": {
+      "types": "./dist/particles/index.d.ts",
+      "import": "./dist/particles/index.js",
+      "require": "./dist/particles/index.cjs"
+    },
+    "./terrain": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./tilemap": {
+      "types": "./dist/tilemap/index.d.ts",
+      "import": "./dist/tilemap/index.js",
+      "require": "./dist/tilemap/index.cjs"
+    },
+    "./procedural": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./combat": {
+      "types": "./dist/combat/index.d.ts",
+      "import": "./dist/combat/index.js",
+      "require": "./dist/combat/index.cjs"
+    },
+    "./dialogue": {
+      "types": "./dist/dialogue/index.d.ts",
+      "import": "./dist/dialogue/index.js",
+      "require": "./dist/dialogue/index.cjs"
+    },
+    "./gameplay": {
+      "types": "./dist/gameplay/index.d.ts",
+      "import": "./dist/gameplay/index.js",
+      "require": "./dist/gameplay/index.cjs"
+    },
+    "./character": {
+      "types": "./dist/character/index.d.ts",
+      "import": "./dist/character/index.js",
+      "require": "./dist/character/index.cjs"
+    },
+    "./ecs": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./scene": {
+      "types": "./dist/scene/index.d.ts",
+      "import": "./dist/scene/index.js",
+      "require": "./dist/scene/index.cjs"
+    },
+    "./environment": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./world": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./orbital": {
+      "types": "./dist/orbital/index.d.ts",
+      "import": "./dist/orbital/index.js",
+      "require": "./dist/orbital/index.cjs"
+    },
+    "./hologram": {
+      "types": "./dist/hologram/index.d.ts",
+      "import": "./dist/hologram/index.js",
+      "require": "./dist/hologram/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts --format esm,cjs --dts --watch",
+    "build": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts --format esm,cjs --dts --watch",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"

@@ -451,3 +451,4 @@ export class AudioOcclusionSystem {
     return result?.lowPassCutoff || 22000;
   }
 }
+

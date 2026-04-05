@@ -854,3 +854,4 @@ export class SequencerImpl implements ISequencer {
 export function createSequencer(context: IAudioContext): ISequencer {
   return new SequencerImpl(context);
 }
+

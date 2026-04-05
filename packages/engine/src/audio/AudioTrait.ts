@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AudioTrait.ts
  *
  * Declarative audio attachment for HoloScript+ nodes.
@@ -110,3 +110,4 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     getSharedAudioEngine().setSourcePosition(sourceId, pos);
   },
 };
+

@@ -255,3 +255,4 @@ export class SpatialAudioZoneSystem {
     return 0; // No portal = fully blocked
   }
 }
+

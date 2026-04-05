@@ -218,3 +218,4 @@ export class SynthEngine {
     return this.masterVolume;
   }
 }
+

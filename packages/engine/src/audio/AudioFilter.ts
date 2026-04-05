@@ -121,3 +121,4 @@ export class AudioFilter {
     return [...this.bands.values()].filter((b) => b.enabled).length;
   }
 }
+

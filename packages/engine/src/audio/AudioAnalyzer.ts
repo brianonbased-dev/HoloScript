@@ -296,3 +296,4 @@ export class AudioAnalyzer {
     this.loudness = { rms: 0, peak: 0, lufs: -100, dynamicRange: 0 };
   }
 }
+
