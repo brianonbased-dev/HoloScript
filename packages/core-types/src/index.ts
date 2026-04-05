@@ -5,6 +5,20 @@
  * This package provides type-only imports for consumers that don't need
  * the full @holoscript/core runtime (parsers, compilers, engines).
  *
+ * ## Relationship with @holoscript/core/src/types/
+ *
+ * The **canonical** type definitions live in `packages/core/src/types/` and are
+ * the actively-developed source of truth. This package (`@holoscript/core-types`)
+ * is a **lightweight extraction** — it re-declares the same shapes from scratch
+ * with zero imports from core so that downstream packages (e.g. `semantic-2d`,
+ * `cli`) can consume HoloScript types without pulling in parsers, compilers,
+ * or engines.
+ *
+ * When adding or modifying types:
+ * 1. Make the change in `packages/core/src/types/` first (canonical).
+ * 2. Mirror the change here if external consumers need it.
+ * 3. Keep this package at zero runtime dependencies.
+ *
  * Categories:
  * - composition: .holo declarative format types (HoloComposition, HoloObjectDecl, etc.)
  * - ast: HoloScript+ AST nodes and directives (HSPlusAST, HSPlusNode, etc.)

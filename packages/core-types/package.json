@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core-types",
   "version": "5.4.0",
-  "description": "Pure type definitions for HoloScript — composition, AST, traits, physics, security, hologram types with zero runtime dependencies",
+  "description": "Pure type definitions for HoloScript — lightweight mirror of @holoscript/core types with zero runtime dependencies. Canonical types live in packages/core/src/types/.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

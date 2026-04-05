@@ -1,7 +1,11 @@
 /**
- * Core Types Module
+ * Core Types Module — CANONICAL type definitions for HoloScript.
  *
- * Shared type definitions for HoloScript core.
+ * This is the authoritative source of truth for all HoloScript types.
+ * A lightweight, zero-dependency mirror exists at `@holoscript/core-types`
+ * for consumers that need types without the full core runtime. When adding
+ * or changing types here, mirror the change in `packages/core-types/` if
+ * external consumers need it.
  *
  * @module types
  */
