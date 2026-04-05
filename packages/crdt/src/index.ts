@@ -57,3 +57,12 @@ export * from './network';
 
 // Multiplayer subsystem (A.011.04b — extracted from @holoscript/core)
 export * from './multiplayer';
+
+// Consensus subsystem (A.011.04c)
+export * from './consensus';
+
+// Social subsystem (A.011.04e)
+export * from './social';
+
+// Messaging subsystem (A.011.04e)
+export * from './messaging';
