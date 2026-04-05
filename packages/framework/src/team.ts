@@ -47,6 +47,8 @@ import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';
 import { parseDeriveContent, ROOM_PRESETS } from './board';
+import { MeshDiscovery, SignalService, GossipProtocol } from './mesh';
+import type { PeerMetadata, GossipPacket } from './mesh';
 
 // ── Mode Claim Filters (FW-0.3) ──
 // Each mode defines which SlotRoles can actively claim tasks.
@@ -126,6 +128,11 @@ export class Team {
   private idleTimeoutMs: number;
   private offlineTimeoutMs: number;
 
+  // ── Mesh integration (FW-0.4) ──
+  readonly mesh: MeshDiscovery;
+  readonly signals: SignalService;
+  readonly gossip: GossipProtocol;
+
   constructor(config: TeamConfig) {
     this.config = config;
     this.name = config.name;
@@ -150,6 +157,11 @@ export class Team {
     if (firstAgent?.model) {
       this.decomposer = new SmartMicroPhaseDecomposer(createLLMAdapter(firstAgent.model));
     }
+
+    // Mesh integration (FW-0.4) — peer discovery, signaling, gossip
+    this.mesh = new MeshDiscovery(config.name);
+    this.signals = new SignalService(config.name);
+    this.gossip = new GossipProtocol();
 
     // Initialize agent runtimes
     for (const agent of this.agentConfigs) {
@@ -903,6 +915,56 @@ export class Team {
     if (!res) throw new Error('Failed to send heartbeat — no response from board');
     if (res.error) throw new Error(String(res.error));
     return res as unknown as HeartbeatResult;
+  }
+
+  // ── Mesh Integration (FW-0.4) ──
+
+  /**
+   * Get discovered peers with their metadata.
+   * Prunes stale peers (>15s since last seen) before returning.
+   */
+  peers(): PeerMetadata[] {
+    this.mesh.pruneStalePeers();
+    return this.mesh.getPeers();
+  }
+
+  /**
+   * Register a peer node for multi-team coordination.
+   */
+  registerPeer(peer: PeerMetadata): void {
+    this.mesh.registerPeer(peer);
+  }
+
+  /**
+   * Broadcast this team's capabilities as a mesh signal.
+   * Other teams can discover this signal via `signals.discoverSignals('agent-host')`.
+   */
+  broadcastCapabilities(url?: string): void {
+    const capabilities = new Set<string>();
+    for (const agent of this.agentConfigs) {
+      for (const cap of agent.capabilities) capabilities.add(cap);
+    }
+    this.signals.broadcastSignal({
+      type: 'agent-host',
+      url: url ?? `local://${this.name}`,
+      capabilities: [...capabilities],
+    });
+  }
+
+  /**
+   * Share a knowledge insight via gossip protocol.
+   * Returns the gossip packet for cross-team anti-entropy sync.
+   */
+  shareKnowledge(payload: unknown): GossipPacket {
+    return this.gossip.shareWisdom(this.name, payload);
+  }
+
+  /**
+   * Sync knowledge from a peer's gossip pool.
+   * Returns the number of new entries absorbed.
+   */
+  syncFromPeer(peerPool: Map<string, GossipPacket>): number {
+    return this.gossip.antiEntropySync(peerPool);
   }
 
   // ── Scout ──
