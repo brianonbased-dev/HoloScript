@@ -63,7 +63,7 @@ export * from './runtime';
 // TODO(A.011): world — world streaming, spatial indexing, octree
 // TODO(A.011): orbital — orbital mechanics, celestial bodies, gravity wells
 // TODO(A.011): hologram — depth estimation, quilt compiler, looking glass
-// TODO(A.011): shader — shader graph, custom materials, uniforms
-// TODO(A.011): materials — PBR, toon, unlit, material library
+// DONE(A.011.01a): shader — shader graph, custom materials, uniforms (in rendering)
+// DONE(A.011.01a): materials — PBR, toon, unlit, material library (in rendering)
 // TODO(A.011): lod — level of detail, imposters, distance culling
-// TODO(A.011): postfx — bloom, SSAO, DOF, tone mapping, color grading
+// DONE(A.011.01a): postfx — bloom, SSAO, DOF, tone mapping, color grading (in rendering)
