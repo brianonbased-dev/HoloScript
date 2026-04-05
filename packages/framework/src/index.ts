@@ -50,12 +50,6 @@ export {
   InverterNode,
   RepeaterNode,
   WaitNode,
-  Sequence,
-  Selector,
-  Action,
-  Condition,
-  Inverter,
-  Repeater,
 } from './behavior';
 
 export type { BTNode, BTContext, NodeStatus } from './behavior';
