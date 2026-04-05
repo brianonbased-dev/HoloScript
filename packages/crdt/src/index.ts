@@ -51,3 +51,9 @@ export {
   SyncMessageType,
   PeerState,
 } from './sync/WebRTCSync';
+
+// Network subsystem (A.011.04a — extracted from @holoscript/core)
+export * from './network';
+
+// Multiplayer subsystem (A.011.04b — extracted from @holoscript/core)
+export * from './multiplayer';

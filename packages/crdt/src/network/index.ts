@@ -1,6 +1,4 @@
 /**
- * @deprecated Import from @holoscript/crdt instead.
- *
  * Network Module
  *
  * HoloScript network synchronization system with peer connections,
