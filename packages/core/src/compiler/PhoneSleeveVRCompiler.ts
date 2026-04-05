@@ -39,6 +39,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { WEBXR_TRAITS } from '../traits/constants/webxr';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -119,6 +120,11 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
 
+    // WebXR traits → browser-native AR/VR HTML instead of phone-sleeve stereo
+    if (this.hasWebXRTraits(composition)) {
+      return this.generateWebXRFile(composition);
+    }
+
     const title = this.escapeStringValue(
       (composition.name as string) || this.opts.title,
       'XML'
@@ -128,6 +134,401 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
     const environment = this.compileEnvironment(composition);
 
     return this.buildHTML(title, sceneObjects, lights, environment);
+  }
+
+  // =========================================================================
+  // WebXR detection & codegen (M.010.19)
+  // =========================================================================
+
+  /**
+   * Returns true if any object in the composition uses a webxr_* trait.
+   */
+  hasWebXRTraits(composition: HoloComposition): boolean {
+    const webxrSet = new Set<string>(WEBXR_TRAITS);
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (webxrSet.has(name)) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Generates a self-contained HTML+JS file using Three.js + WebXR Device API.
+   * Shareable via URL — no app install needed.
+   */
+  generateWebXRFile(composition: HoloComposition): string {
+    const title = this.escapeStringValue(
+      (composition.name as string) || 'HoloScript WebXR',
+      'XML'
+    );
+    const traits = this.collectWebXRTraits(composition);
+    const sceneObjects = this.compileSceneObjects(composition);
+    const lights = this.compileLights(composition);
+    const environment = this.compileEnvironment(composition);
+
+    return this.buildWebXRHTML(title, traits, sceneObjects, lights, environment);
+  }
+
+  private collectWebXRTraits(composition: HoloComposition): Set<string> {
+    const webxrSet = new Set<string>(WEBXR_TRAITS);
+    const found = new Set<string>();
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (webxrSet.has(name)) found.add(name);
+      }
+    }
+    return found;
+  }
+
+  private buildWebXRHTML(
+    title: string,
+    traits: Set<string>,
+    sceneObjects: string,
+    lights: string,
+    environment: string,
+  ): string {
+    // Determine session mode
+    const isInline = traits.has('webxr_inline') && !traits.has('webxr_session');
+    const sessionMode = isInline ? 'inline' : 'immersive-ar';
+
+    // Build requiredFeatures from traits
+    const requiredFeatures: string[] = [];
+    if (traits.has('webxr_hit_test')) requiredFeatures.push('hit-test');
+    if (traits.has('webxr_anchors')) requiredFeatures.push('anchors');
+    if (traits.has('webxr_light_estimation')) requiredFeatures.push('light-estimation');
+    if (traits.has('webxr_dom_overlay')) requiredFeatures.push('dom-overlay');
+    if (traits.has('webxr_depth_sensing')) requiredFeatures.push('depth-sensing');
+    if (traits.has('webxr_hand_tracking')) requiredFeatures.push('hand-tracking');
+    if (traits.has('webxr_layers')) requiredFeatures.push('layers');
+
+    // Reference space type
+    const refSpace = traits.has('webxr_reference_space') ? 'local-floor' : 'local';
+
+    // Session options object
+    const sessionOptsEntries: string[] = [];
+    if (requiredFeatures.length > 0) {
+      sessionOptsEntries.push(`requiredFeatures: [${requiredFeatures.map(f => `'${f}'`).join(', ')}]`);
+    }
+    if (traits.has('webxr_dom_overlay')) {
+      sessionOptsEntries.push(`domOverlay: { root: document.getElementById('overlay') }`);
+    }
+    if (traits.has('webxr_depth_sensing')) {
+      sessionOptsEntries.push(`depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha'] }`);
+    }
+    const sessionOptsStr = sessionOptsEntries.length > 0
+      ? `{ ${sessionOptsEntries.join(', ')} }`
+      : '{}';
+
+    // Build per-feature JS blocks
+    const hitTestSetup = traits.has('webxr_hit_test') ? `
+      // --- Hit Test ---
+      let hitTestSource = null;
+      let hitTestSourceRequested = false;
+      const reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.05, 0.07, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+      );
+      reticle.visible = false;
+      reticle.matrixAutoUpdate = false;
+      scene.add(reticle);` : '';
+
+    const hitTestFrame = traits.has('webxr_hit_test') ? `
+        // Hit test per frame
+        if (!hitTestSourceRequested && session) {
+          session.requestReferenceSpace('viewer').then(viewerSpace => {
+            session.requestHitTestSource({ space: viewerSpace }).then(src => {
+              hitTestSource = src;
+            });
+          });
+          hitTestSourceRequested = true;
+        }
+        if (hitTestSource) {
+          const hitResults = frame.getHitTestResults(hitTestSource);
+          if (hitResults.length > 0) {
+            const hit = hitResults[0];
+            reticle.visible = true;
+            reticle.matrix.fromArray(hit.getPose(refSpace).transform.matrix);
+          } else {
+            reticle.visible = false;
+          }
+        }` : '';
+
+    const anchorBlock = traits.has('webxr_anchors') ? `
+      // --- Anchors ---
+      const anchors = [];
+      function createAnchor(frame, pose) {
+        if (frame.createAnchor) {
+          frame.createAnchor(pose, refSpace).then(anchor => {
+            anchors.push(anchor);
+          });
+        }
+      }` : '';
+
+    const lightEstimationSetup = traits.has('webxr_light_estimation') ? `
+      // --- Light Estimation ---
+      let lightProbe = null;
+      let directionalLightEstimate = null;
+      const estimatedLight = new THREE.DirectionalLight(0xffffff, 1);
+      scene.add(estimatedLight);` : '';
+
+    const lightEstimationFrame = traits.has('webxr_light_estimation') ? `
+        // Light estimation per frame
+        if (lightProbe === null && session) {
+          session.requestLightProbe().then(probe => { lightProbe = probe; }).catch(() => {});
+        }
+        if (lightProbe) {
+          const estimate = frame.getLightEstimate(lightProbe);
+          if (estimate) {
+            const intensity = Math.max(
+              estimate.primaryLightIntensity.x,
+              estimate.primaryLightIntensity.y,
+              estimate.primaryLightIntensity.z
+            );
+            estimatedLight.intensity = intensity;
+            estimatedLight.position.set(
+              estimate.primaryLightDirection.x,
+              estimate.primaryLightDirection.y,
+              estimate.primaryLightDirection.z
+            );
+            estimatedLight.color.setRGB(
+              estimate.primaryLightIntensity.x / intensity || 1,
+              estimate.primaryLightIntensity.y / intensity || 1,
+              estimate.primaryLightIntensity.z / intensity || 1
+            );
+          }
+        }` : '';
+
+    const depthSensingFrame = traits.has('webxr_depth_sensing') ? `
+        // Depth sensing per frame
+        const viewerPose = frame.getViewerPose(refSpace);
+        if (viewerPose) {
+          for (const view of viewerPose.views) {
+            const depthInfo = frame.getDepthInformation(view);
+            if (depthInfo) {
+              // depthInfo available for occlusion rendering
+              window.__xrDepthInfo = depthInfo;
+            }
+          }
+        }` : '';
+
+    const handTrackingSetup = traits.has('webxr_hand_tracking') ? `
+      // --- Hand Tracking ---
+      const handModels = { left: null, right: null };
+      function updateHands(frame, inputSources) {
+        for (const source of inputSources) {
+          if (source.hand) {
+            const handedness = source.handedness;
+            for (const [jointName, jointSpace] of source.hand) {
+              const jointPose = frame.getJointPose(jointSpace, refSpace);
+              if (jointPose) {
+                // Joint pose available: jointPose.transform.position, jointPose.radius
+                if (!handModels[handedness]) {
+                  const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.005, 8, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x00ccff })
+                  );
+                  scene.add(sphere);
+                  handModels[handedness] = {};
+                }
+              }
+            }
+          }
+        }
+      }` : '';
+
+    const handTrackingFrame = traits.has('webxr_hand_tracking') ? `
+        // Hand tracking per frame
+        if (session && session.inputSources) {
+          updateHands(frame, session.inputSources);
+        }` : '';
+
+    const layersSetup = traits.has('webxr_layers') ? `
+      // --- XR Layers ---
+      // XRProjectionLayer and XRQuadLayer composition will be initialized when session starts
+      let xrProjectionLayer = null;` : '';
+
+    const framebufferSetup = traits.has('webxr_framebuffer') ? `
+      // --- Custom Framebuffer ---
+      // Direct framebuffer access from XRWebGLLayer for post-processing
+      let xrFramebuffer = null;` : '';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+  <title>${title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #000; font-family: system-ui, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #splash {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0a0a1a; color: #fff;
+    }
+    #splash h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+    #splash p { font-size: 0.9rem; opacity: 0.7; margin-bottom: 2rem; text-align: center; padding: 0 2rem; }
+    #splash button {
+      padding: 1rem 3rem; font-size: 1.1rem; border: 2px solid #00ccff;
+      background: transparent; color: #00ccff; border-radius: 8px; cursor: pointer;
+    }
+    #splash button:active { background: #00ccff22; }
+    #splash button:disabled { opacity: 0.3; cursor: not-allowed; }
+    #splash .error { color: #ff4466; margin-top: 1rem; font-size: 0.85rem; display: none; }
+    #overlay {
+      position: fixed; inset: 0; pointer-events: none; z-index: 10;
+    }
+    #overlay .hud {
+      position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      color: #fff; background: rgba(0,0,0,0.5); padding: 0.5rem 1.5rem;
+      border-radius: 8px; font-size: 0.85rem; pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <h1>HoloScript WebXR</h1>
+    <p>Browser-native XR — no app install needed.<br>Tap below to enter augmented reality.</p>
+    <button id="enter-xr">Enter AR</button>
+    <div class="error" id="xr-error"></div>
+  </div>
+  <div id="overlay">
+    <div class="hud" id="hud" style="display:none;">WebXR Active</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    // =====================================================================
+    // WebXR Feature Detection
+    // =====================================================================
+    const enterBtn = document.getElementById('enter-xr');
+    const errorEl = document.getElementById('xr-error');
+
+    if (!navigator.xr) {
+      enterBtn.disabled = true;
+      errorEl.textContent = 'WebXR not supported in this browser.';
+      errorEl.style.display = 'block';
+    }
+
+    // =====================================================================
+    // Three.js Scene
+    // =====================================================================
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const interactables = [];
+
+    // =====================================================================
+    // Environment
+    // =====================================================================
+    ${environment || '// Transparent background for AR pass-through'}
+
+    // =====================================================================
+    // Lights
+    // =====================================================================
+    ${lights}
+
+    // =====================================================================
+    // Scene objects (from .holo composition)
+    // =====================================================================
+    ${sceneObjects}
+${hitTestSetup}
+${anchorBlock}
+${lightEstimationSetup}
+${depthSensingFrame ? `
+      // Depth sensing declarations` : ''}
+${handTrackingSetup}
+${layersSetup}
+${framebufferSetup}
+
+    // =====================================================================
+    // XR Session
+    // =====================================================================
+    let session = null;
+    let refSpace = null;
+
+    async function startXR() {
+      try {
+        const supported = await navigator.xr.isSessionSupported('${sessionMode}');
+        if (!supported) {
+          ${isInline ? `
+          // Inline fallback
+          session = await navigator.xr.requestSession('inline');`
+          : `
+          // Try inline fallback
+          try {
+            session = await navigator.xr.requestSession('inline');
+          } catch (e) {
+            errorEl.textContent = 'XR not supported: ' + e.message;
+            errorEl.style.display = 'block';
+            return;
+          }`}
+        } else {
+          session = await navigator.xr.requestSession('${sessionMode}', ${sessionOptsStr});
+        }
+
+        await renderer.xr.setSession(session);
+        refSpace = await session.requestReferenceSpace('${refSpace}');
+
+        document.getElementById('splash').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+
+        session.addEventListener('end', () => {
+          session = null;
+          refSpace = null;
+          document.getElementById('splash').style.display = 'flex';
+          document.getElementById('hud').style.display = 'none';
+        });
+
+        renderer.setAnimationLoop((time, frame) => {
+          if (!frame) return;
+${hitTestFrame}
+${lightEstimationFrame}
+${depthSensingFrame}
+${handTrackingFrame}
+
+          renderer.render(scene, camera);
+        });
+
+      } catch (err) {
+        errorEl.textContent = 'Failed to start XR: ' + err.message;
+        errorEl.style.display = 'block';
+      }
+    }
+
+    enterBtn.addEventListener('click', startXR);
+
+    // =====================================================================
+    // Resize (non-XR fallback)
+    // =====================================================================
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>`;
   }
 
   // =========================================================================

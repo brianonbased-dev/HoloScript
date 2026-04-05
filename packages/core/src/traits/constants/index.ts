@@ -128,6 +128,9 @@ import { NPU_SCENE_TRAITS } from './npu-scene';
 // Camera Hand Tracking — MediaPipe/Vision 21-joint (M.010.04)
 import { CAMERA_HAND_TRACKING_TRAITS } from './camera-hand-tracking';
 
+// Spatial Authoring — mobile creation tool (M.010.08)
+import { SPATIAL_AUTHORING_TRAITS } from './spatial-authoring';
+
 // Haptic Holographic Feedback (M.010.05)
 import { HAPTIC_FEEDBACK_TRAITS } from './haptic-feedback';
 
@@ -409,6 +412,9 @@ export const VR_TRAITS = [
 
   // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
   ...ROOMPLAN_TRAITS,
+
+  // Spatial Authoring — mobile creation tool (5 traits — M.010.08)
+  ...SPATIAL_AUTHORING_TRAITS,
 
   // Haptic Holographic Feedback (11 traits — M.010.05)
   ...HAPTIC_FEEDBACK_TRAITS,
@@ -754,6 +760,12 @@ export {
   ROOMPLAN_TRAITS,
   type RoomPlanTraitName,
 } from './roomplan';
+
+// Spatial Authoring (5 traits — M.010.08)
+export {
+  SPATIAL_AUTHORING_TRAITS,
+  type SpatialAuthoringTraitName,
+} from './spatial-authoring';
 
 // Haptic Holographic Feedback (11 traits — M.010.05)
 export {

@@ -91,4 +91,10 @@ export interface IOSCompileResult {
   handTrackingFile?: string;
   /** Portal AR file — emitted when portal_* traits are present (iOS 15+, ARKit depth + scene reconstruction) */
   portalARFile?: string;
+  /** Face tracking file — emitted when face_* traits are present (iOS 11+, ARKit TrueDepth) */
+  faceTrackingFile?: string;
+  /** Object Capture file — emitted when object_capture* traits are present (iOS 17+, RealityKit Object Capture) */
+  objectCaptureFile?: string;
+  /** SharePlay multi-user AR file — emitted when shareplay_* traits are present (iOS 15.4+, GroupActivities) */
+  sharePlayFile?: string;
 }
