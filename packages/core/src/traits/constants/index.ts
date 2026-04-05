@@ -125,6 +125,9 @@ import { GEOSPATIAL_ARCORE_TRAITS } from './geospatial';
 // NPU Scene Understanding — on-device ML inference (M.010.03)
 import { NPU_SCENE_TRAITS } from './npu-scene';
 
+// Portal AR — phone-as-portal magic window (M.010.06)
+import { PORTAL_AR_TRAITS } from './portal-ar';
+
 // LiDAR Scanner — iOS mesh capture (M.010.02a)
 import { LIDAR_SCANNER_TRAITS } from './lidar-scanner';
 
@@ -355,6 +358,9 @@ export const VR_TRAITS = [
 
   // NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
   ...NPU_SCENE_TRAITS,
+
+  // Portal AR — phone-as-portal magic window (15 traits — M.010.06)
+  ...PORTAL_AR_TRAITS,
 
   // LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
   ...LIDAR_SCANNER_TRAITS,
@@ -646,6 +652,12 @@ export {
   NPU_SCENE_TRAITS,
   type NPUSceneTraitName,
 } from './npu-scene';
+
+// Portal AR — phone-as-portal magic window (15 traits — M.010.06)
+export {
+  PORTAL_AR_TRAITS,
+  type PortalARTraitName,
+} from './portal-ar';
 
 // LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
 export {
