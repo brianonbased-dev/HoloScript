@@ -49,6 +49,8 @@ import type { DecompositionResult, TaskDescription } from './protocol/micro-phas
 import { parseDeriveContent, ROOM_PRESETS } from './board';
 import { MeshDiscovery, SignalService, GossipProtocol } from './mesh';
 import type { PeerMetadata, GossipPacket } from './mesh';
+import { BountyManager } from './economy/BountyManager';
+import type { Bounty, BountyReward, ClaimResult as BountyClaimResult, CompletionProof, PayoutResult } from './economy/BountyManager';
 
 // ── Mode Claim Filters (FW-0.3) ──
 // Each mode defines which SlotRoles can actively claim tasks.
@@ -133,6 +135,9 @@ export class Team {
   readonly signals: SignalService;
   readonly gossip: GossipProtocol;
 
+  // ── Bounty system (FW-0.6) ──
+  readonly bounties: BountyManager;
+
   constructor(config: TeamConfig) {
     this.config = config;
     this.name = config.name;
@@ -162,6 +167,9 @@ export class Team {
     this.mesh = new MeshDiscovery(config.name);
     this.signals = new SignalService(config.name);
     this.gossip = new GossipProtocol();
+
+    // Bounty system (FW-0.6)
+    this.bounties = new BountyManager();
 
     // Initialize agent runtimes
     for (const agent of this.agentConfigs) {
@@ -1101,6 +1109,33 @@ export class Team {
     const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/roles`, 'PATCH', { roles });
     if (!res) throw new Error('Failed to assign slots');
     return res as Record<string, unknown>;
+  }
+
+  // ── Bounty System (FW-0.6) ──
+
+  /** Create a bounty for a board task. */
+  createBounty(taskId: string, reward: BountyReward, createdBy: string, deadline?: number): Bounty {
+    // Verify the task exists on the board
+    const task = this.board.find(t => t.id === taskId);
+    if (!task) throw new Error(`Task ${taskId} not found on board`);
+    return this.bounties.createBounty(taskId, reward, createdBy, deadline);
+  }
+
+  /** Claim a bounty for an agent. */
+  claimBountyForAgent(bountyId: string, agentId: string): BountyClaimResult {
+    // Verify agent is on the team
+    if (!this.runtimes.has(agentId)) throw new Error(`Agent ${agentId} not on team`);
+    return this.bounties.claimBounty(bountyId, agentId);
+  }
+
+  /** Complete a bounty with proof. */
+  completeBountyWithProof(bountyId: string, proof: CompletionProof): PayoutResult {
+    return this.bounties.completeBounty(bountyId, proof);
+  }
+
+  /** List bounties, optionally filtered by status. */
+  listBounties(status?: Bounty['status']): Bounty[] {
+    return this.bounties.list(status);
   }
 
   // ── Internal ──
