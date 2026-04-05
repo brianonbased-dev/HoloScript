@@ -131,7 +131,10 @@ export {
   ServiceLifecycle,
   ServiceErrorCode,
   ServiceError,
+  ServiceManager,
 } from './protocol/implementations';
+
+export type { ServiceHealth, ServiceManagerHealth } from './protocol/implementations';
 
 // Board module (absorbed from mcp-server/holomesh — canonical home)
 export {

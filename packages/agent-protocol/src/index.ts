@@ -246,4 +246,7 @@ export {
   ServiceLifecycle,
   ServiceErrorCode,
   ServiceError,
+  ServiceManager,
 } from '@holoscript/framework';
+
+export type { ServiceHealth, ServiceManagerHealth } from '@holoscript/framework';
