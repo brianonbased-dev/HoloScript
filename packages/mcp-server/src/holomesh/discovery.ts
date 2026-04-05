@@ -209,9 +209,18 @@ export class HoloMeshDiscovery {
       const lastSeen = new Date(peer.lastSeen).getTime();
       if (now - lastSeen > STALE_THRESHOLD_MS || peer.failureCount >= MAX_FAILURE_COUNT) {
         this.peers.delete(did);
+        this.peerHealthCache.delete(did); // FW-0.6: Hardened unbounded cache growth
         removed.push(did);
       }
     }
+    
+    // Also prune health cache for any peers that were already removed from this.peers
+    for (const did of this.peerHealthCache.keys()) {
+      if (!this.peers.has(did)) {
+        this.peerHealthCache.delete(did);
+      }
+    }
+    
     if (removed.length > 0) this.savePeerStore();
     return removed;
   }
