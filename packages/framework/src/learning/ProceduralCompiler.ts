@@ -1,4 +1,4 @@
-import { ProceduralSkill } from '../types';
+export interface ProceduralSkill { id: string; name: string; description?: string; code?: string; }
 
 /**
  * ProceduralCompiler

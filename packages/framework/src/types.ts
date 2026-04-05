@@ -215,3 +215,48 @@ export interface PresenceResult {
 export interface HeartbeatResult {
   ok: boolean;
 }
+
+// ── Protocol Agent (FW-0.2) ──
+
+export type ProtocolStyle = 'uaa2' | 'react' | 'plan-exec' | 'debate' | 'swarm';
+
+export type AgentStatus = 'idle' | 'running' | 'paused' | 'cancelled' | 'error';
+
+export interface PhaseHook {
+  before?: (phase: ProtocolPhase, input: unknown) => Promise<unknown> | unknown;
+  after?: (phase: ProtocolPhase, result: PhaseResult) => Promise<PhaseResult> | PhaseResult;
+}
+
+export interface ProtocolAgentConfig extends AgentConfig {
+  /** Protocol style — defaults to 'uaa2' (7-phase cycle). */
+  protocolStyle?: ProtocolStyle;
+  /** Phase hooks — called before/after each phase. */
+  phaseHooks?: PhaseHook;
+  /** Additional LLM overrides for lightweight phases. */
+  lightModel?: Partial<ModelConfig>;
+  /** Team knowledge context injected into phases. */
+  teamKnowledge?: string;
+  /** Maximum phase retries on failure. */
+  maxPhaseRetries?: number;
+}
+
+export interface ProtocolAgentHandle {
+  /** Agent name. */
+  readonly name: string;
+  /** Agent role. */
+  readonly role: AgentRole;
+  /** Current status. */
+  readonly status: AgentStatus;
+  /** Phase execution history. */
+  readonly history: PhaseResult[];
+  /** Execute a task through the full protocol cycle. */
+  execute(task: { title: string; description: string }): Promise<ProtocolCycleResult>;
+  /** Pause execution after the current phase completes. */
+  pause(): void;
+  /** Resume a paused agent. */
+  resume(): void;
+  /** Cancel execution. The current phase will finish but no further phases run. */
+  cancel(): void;
+  /** Reset status to idle and clear history. */
+  reset(): void;
+}

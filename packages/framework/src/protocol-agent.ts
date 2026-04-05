@@ -11,7 +11,16 @@ import type { AgentIdentity, PhaseResult } from './protocol/implementations';
 
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
-import type { AgentConfig, ModelConfig, KnowledgeInsight } from './types';
+import type {
+  AgentConfig,
+  ModelConfig,
+  KnowledgeInsight,
+  ProtocolAgentConfig,
+  ProtocolAgentHandle,
+  AgentStatus,
+  CycleResult as FrameworkCycleResult,
+} from './types';
+import type { ProtocolCycleResult } from './protocol/implementations';
 
 // ── Phase-specific system prompts ──
 
@@ -360,4 +369,302 @@ export async function runProtocolCycle(
     phaseResults: cycleResult.phases,
     totalDurationMs: Date.now() - start,
   };
+}
+
+// ── CycleResult Adapter ──
+// Maps framework CycleResult (team-oriented) ↔ protocol ProtocolCycleResult (agent-oriented).
+
+/**
+ * Convert a protocol ProtocolCycleResult into the framework's team-oriented CycleResult.
+ */
+export function protocolToFrameworkCycleResult(
+  protocol: ProtocolCycleResult,
+  teamName: string,
+  cycle: number
+): FrameworkCycleResult {
+  // Extract insights from compress/reintake phases
+  const reintake = protocol.phases.find(p => p.phase === ProtocolPhase.REINTAKE);
+  const compress = protocol.phases.find(p => p.phase === ProtocolPhase.COMPRESS);
+  const insights: KnowledgeInsight[] =
+    (reintake?.data as { validated?: KnowledgeInsight[] })?.validated ??
+    (compress?.data as { insights?: KnowledgeInsight[] })?.insights ??
+    [];
+
+  const executePhase = protocol.phases.find(p => p.phase === ProtocolPhase.EXECUTE);
+  const summary = (executePhase?.data as { output?: string })?.output?.slice(0, 500) ?? 'Task completed';
+
+  const hasFailed = protocol.status === 'failed';
+
+  return {
+    teamName,
+    cycle,
+    agentResults: [{
+      agentName: protocol.domain, // best available identifier
+      taskId: protocol.cycleId,
+      taskTitle: protocol.task,
+      action: hasFailed ? 'error' : 'completed',
+      summary,
+      knowledge: insights,
+    }],
+    knowledgeProduced: insights,
+    compoundedInsights: insights.length,
+    durationMs: protocol.totalDurationMs,
+  };
+}
+
+/**
+ * Convert a framework CycleResult into a protocol ProtocolCycleResult.
+ */
+export function frameworkToProtocolCycleResult(
+  fw: FrameworkCycleResult,
+  task: string,
+  domain: string
+): ProtocolCycleResult {
+  const now = Date.now();
+  const hasError = fw.agentResults.some(r => r.action === 'error');
+
+  return {
+    cycleId: `cycle_${fw.cycle}_${now.toString(36)}`,
+    task,
+    domain,
+    phases: [], // framework CycleResult doesn't carry per-phase data
+    status: hasError ? 'failed' : 'complete',
+    totalDurationMs: fw.durationMs,
+    startedAt: now - fw.durationMs,
+    completedAt: now,
+  };
+}
+
+// ── defineProtocolAgent() builder ──
+
+/**
+ * Creates a live protocol agent handle backed by LLM calls.
+ *
+ * The returned handle has execute(task), pause/resume/cancel controls,
+ * status tracking, and phase history.
+ *
+ * ```ts
+ * const agent = defineProtocolAgent({
+ *   name: 'researcher',
+ *   role: 'researcher',
+ *   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
+ *   capabilities: ['search', 'summarize'],
+ *   claimFilter: { roles: ['researcher'], maxPriority: 10 },
+ * });
+ * const result = await agent.execute({ title: 'Find X', description: 'Research X' });
+ * ```
+ */
+export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentHandle {
+  // Validate config using same rules as defineAgent
+  if (!config.name || config.name.length < 1) {
+    throw new Error('Agent name is required');
+  }
+  const VALID_ROLES = ['architect', 'coder', 'researcher', 'reviewer'] as const;
+  if (!VALID_ROLES.includes(config.role as typeof VALID_ROLES[number])) {
+    throw new Error(`Invalid role "${config.role}". Valid: ${VALID_ROLES.join(', ')}`);
+  }
+  if (!config.model?.provider || !config.model?.model) {
+    throw new Error('Agent model must specify provider and model');
+  }
+  if (!config.capabilities || config.capabilities.length === 0) {
+    throw new Error('Agent must have at least one capability');
+  }
+
+  const protocolStyle = config.protocolStyle ?? 'uaa2';
+  if (protocolStyle !== 'uaa2') {
+    throw new Error(`Protocol style "${protocolStyle}" is not yet implemented. Only 'uaa2' is supported.`);
+  }
+
+  // Internal mutable state
+  let status: AgentStatus = 'idle';
+  const phaseHistory: PhaseResult[] = [];
+  let pauseRequested = false;
+  let cancelRequested = false;
+  let pauseResolver: (() => void) | null = null;
+
+  const maxRetries = config.maxPhaseRetries ?? 1;
+
+  /**
+   * Run a single phase with hooks, retries, and pause/cancel checks.
+   */
+  async function runPhaseWithControls(
+    agent: ProtocolAgent,
+    phase: ProtocolPhase,
+    phaseFn: (input: unknown) => Promise<PhaseResult>,
+    input: unknown
+  ): Promise<PhaseResult> {
+    // Check cancel
+    if (cancelRequested) {
+      const skipped: PhaseResult = {
+        phase,
+        status: 'skipped',
+        data: 'cancelled',
+        durationMs: 0,
+        timestamp: Date.now(),
+      };
+      phaseHistory.push(skipped);
+      return skipped;
+    }
+
+    // Check pause — wait until resumed
+    if (pauseRequested) {
+      status = 'paused';
+      await new Promise<void>(resolve => {
+        pauseResolver = resolve;
+      });
+      status = 'running';
+    }
+
+    // Before hook
+    let phaseInput = input;
+    if (config.phaseHooks?.before) {
+      phaseInput = (await config.phaseHooks.before(phase, input)) ?? input;
+    }
+
+    // Execute with retries
+    let lastError: unknown;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const start = Date.now();
+        let result = await phaseFn.call(agent, phaseInput);
+        result.durationMs = Date.now() - start;
+
+        // After hook
+        if (config.phaseHooks?.after) {
+          result = (await config.phaseHooks.after(phase, result)) ?? result;
+        }
+
+        phaseHistory.push(result);
+        return result;
+      } catch (err) {
+        lastError = err;
+        if (attempt === maxRetries - 1) break;
+      }
+    }
+
+    // All retries exhausted
+    const failResult: PhaseResult = {
+      phase,
+      status: 'failure',
+      data: lastError instanceof Error ? lastError.message : String(lastError),
+      durationMs: 0,
+      timestamp: Date.now(),
+    };
+    phaseHistory.push(failResult);
+    return failResult;
+  }
+
+  const handle: ProtocolAgentHandle = {
+    get name() { return config.name; },
+    get role() { return config.role; },
+    get status() { return status; },
+    get history() { return [...phaseHistory]; },
+
+    async execute(task: { title: string; description: string }): Promise<ProtocolCycleResult> {
+      if (status === 'running') {
+        throw new Error('Agent is already executing. Await the current execution or cancel() first.');
+      }
+
+      status = 'running';
+      pauseRequested = false;
+      cancelRequested = false;
+
+      const agent = new ProtocolAgent(config, config.teamKnowledge ?? '');
+      if (config.lightModel) {
+        // Apply light model overrides — handled inside ProtocolAgent via lightModel()
+        // The lightModel function in ProtocolAgent already handles this
+      }
+
+      const startedAt = Date.now();
+      const cycleId = `cycle_${startedAt}_${Math.random().toString(36).slice(2, 8)}`;
+
+      try {
+        // Run 7 phases sequentially with controls
+        const phases: Array<[ProtocolPhase, (input: unknown) => Promise<PhaseResult>]> = [
+          [ProtocolPhase.INTAKE, agent.intake],
+          [ProtocolPhase.REFLECT, agent.reflect],
+          [ProtocolPhase.EXECUTE, agent.execute],
+          [ProtocolPhase.COMPRESS, agent.compress],
+          [ProtocolPhase.REINTAKE, agent.reintake],
+          [ProtocolPhase.GROW, agent.grow],
+          [ProtocolPhase.EVOLVE, agent.evolve],
+        ];
+
+        let previousData: unknown = { task: task.title, description: task.description };
+        const phaseResults: PhaseResult[] = [];
+
+        for (const [phase, fn] of phases) {
+          const result = await runPhaseWithControls(agent, phase, fn, previousData);
+          phaseResults.push(result);
+
+          if (cancelRequested && result.status === 'skipped') {
+            // Fill remaining phases as skipped
+            break;
+          }
+
+          previousData = result.data;
+        }
+
+        const hasFailed = phaseResults.some(p => p.status === 'failure');
+        const wasCancelled = cancelRequested;
+
+        status = wasCancelled ? 'cancelled' : (hasFailed ? 'error' : 'idle');
+
+        return {
+          cycleId,
+          task: task.title,
+          domain: agent.identity.domain,
+          phases: phaseResults,
+          status: wasCancelled ? 'partial' : (hasFailed ? 'partial' : 'complete'),
+          totalDurationMs: Date.now() - startedAt,
+          startedAt,
+          completedAt: Date.now(),
+        };
+      } catch (err) {
+        status = 'error';
+        throw err;
+      }
+    },
+
+    pause() {
+      if (status === 'running') {
+        pauseRequested = true;
+      }
+    },
+
+    resume() {
+      if (status === 'paused' || pauseRequested) {
+        pauseRequested = false;
+        if (pauseResolver) {
+          pauseResolver();
+          pauseResolver = null;
+        }
+      }
+    },
+
+    cancel() {
+      cancelRequested = true;
+      // Also resume if paused so the cancel can take effect
+      if (pauseRequested || status === 'paused') {
+        pauseRequested = false;
+        if (pauseResolver) {
+          pauseResolver();
+          pauseResolver = null;
+        }
+      }
+    },
+
+    reset() {
+      if (status === 'running') {
+        throw new Error('Cannot reset while running. Cancel first.');
+      }
+      status = 'idle';
+      phaseHistory.length = 0;
+      pauseRequested = false;
+      cancelRequested = false;
+      pauseResolver = null;
+    },
+  };
+
+  return handle;
 }

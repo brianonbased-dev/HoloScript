@@ -306,116 +306,13 @@ export abstract class BaseService {
 }
 
 // =============================================================================
-// SERVICE MANAGER — Orchestrates startup/shutdown of multiple BaseServices
+// GOAL SYNTHESIZER — Autonomous goal generation (FW-0.2)
 // =============================================================================
+// Canonical implementation moved to ./goal-synthesizer.ts with LLM + KnowledgeStore support.
+// Re-exported here for backward compatibility.
 
-export interface ServiceHealth {
-  name: string;
-  lifecycle: ServiceLifecycle;
-  metrics: ServiceMetrics;
-  ready: boolean;
-}
-
-export interface ServiceManagerHealth {
-  services: ServiceHealth[];
-  allReady: boolean;
-  totalServices: number;
-  readyCount: number;
-}
-
-export class ServiceManager {
-  private services: BaseService[] = [];
-  private started = false;
-
-  /** Register a service for lifecycle management. Services start in registration order. */
-  register(service: BaseService): void {
-    if (this.started) {
-      throw new Error('Cannot register services after startAll() has been called');
-    }
-    this.services.push(service);
-  }
-
-  /** Initialize and start all registered services in order. */
-  async startAll(): Promise<void> {
-    this.started = true;
-    for (const service of this.services) {
-      await service.initialize();
-    }
-  }
-
-  /** Stop all services in reverse registration order (graceful shutdown). */
-  async stopAll(): Promise<void> {
-    const reversed = [...this.services].reverse();
-    for (const service of reversed) {
-      await service.stop();
-    }
-    this.started = false;
-  }
-
-  /** Aggregate health from all managed services. */
-  health(): ServiceManagerHealth {
-    const services: ServiceHealth[] = this.services.map((s) => ({
-      name: s.getMetadata().name,
-      lifecycle: s.getMetadata().lifecycle as ServiceLifecycle,
-      metrics: s.getMetrics(),
-      ready: s.isReady(),
-    }));
-    const readyCount = services.filter((s) => s.ready).length;
-    return {
-      services,
-      allReady: readyCount === services.length && services.length > 0,
-      totalServices: services.length,
-      readyCount,
-    };
-  }
-
-  /** Get count of registered services. */
-  get size(): number {
-    return this.services.length;
-  }
-}
-
-// =============================================================================
-// GOAL SYNTHESIZER — Autonomous goal generation
-// =============================================================================
-
-const GENERIC_GOALS = [
-  'Analyze accumulated wisdom for contradictions',
-  'Refactor internal pattern database for efficiency',
-  'Explore adjacent domain knowledge',
-  'Review recent failures and simulate alternative outcomes',
-  'Update self-documentation and capability manifest',
-  'Ping other agents for potential collaboration',
-  'Optimize internal decision weights',
-  'Study historical logs for anomaly detection',
-];
-
-export class GoalSynthesizer {
-  synthesize(agentDomain: string = 'general', source: Goal['source'] = 'autonomous-boredom'): Goal {
-    let description = GENERIC_GOALS[Math.floor(Math.random() * GENERIC_GOALS.length)];
-
-    if (agentDomain === 'coding') {
-      const codingGoals = [
-        'Refactor legacy modules in the codebase',
-        'Write unit tests for untested components',
-        'Research new design patterns',
-      ];
-      if (Math.random() > 0.5) {
-        description = codingGoals[Math.floor(Math.random() * codingGoals.length)];
-      }
-    }
-
-    return {
-      id: `GOAL-${Date.now().toString(36)}`,
-      description,
-      category: 'self-improvement',
-      priority: 'low',
-      estimatedComplexity: Math.floor(Math.random() * 5) + 1,
-      generatedAt: new Date().toISOString(),
-      source,
-    };
-  }
-}
+export { GoalSynthesizer } from './goal-synthesizer';
+export type { GoalContext, SynthesizedGoal } from './goal-synthesizer';
 
 // =============================================================================
 // MICRO-PHASE DECOMPOSER — Parallel task execution with dependency graph

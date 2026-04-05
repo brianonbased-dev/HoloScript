@@ -7,8 +7,7 @@
  * @trait state
  */
 
-import type { TraitHandler } from '../traits/TraitTypes';
-import type { HSPlusNode } from '../types/HoloScriptPlus';
+import type { TraitHandler, HSPlusNode } from '@holoscript/core';
 import { StateMachine, StateMachineConfig } from './StateMachine';
 
 // =============================================================================

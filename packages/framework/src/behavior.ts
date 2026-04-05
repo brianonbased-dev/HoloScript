@@ -5,4 +5,4 @@
  * Import from '@holoscript/framework/bt' or '@holoscript/framework/behavior'
  */
 
-export * from './behavior';
+export * from './behavior/index';

@@ -12,6 +12,9 @@ import type { AIAdapter } from '../AIAdapter';
 
 function makeGenerateAdapter(overrides: Partial<AIAdapter> = {}): AIAdapter {
   return {
+    id: 'mock-gen',
+    name: 'Mock Generate',
+    isReady: () => true,
     generateHoloScript: vi.fn().mockResolvedValue({
       holoScript: 'scene { @Renderable }',
       objectCount: 3,
@@ -19,11 +22,14 @@ function makeGenerateAdapter(overrides: Partial<AIAdapter> = {}): AIAdapter {
       warnings: [],
     }),
     ...overrides,
-  };
+  } as AIAdapter;
 }
 
 function makeFullAdapter(): AIAdapter {
   return {
+    id: 'mock-full',
+    name: 'Mock Full',
+    isReady: () => true,
     generateHoloScript: vi.fn().mockResolvedValue({
       holoScript: 'scene { @Physics }',
       objectCount: 1,
@@ -39,7 +45,7 @@ function makeFullAdapter(): AIAdapter {
       fixes: [{ line: 5, issue: 'missing type', fix: 'added type' }],
     }),
     chat: vi.fn().mockResolvedValue('HoloScript is a spatial programming language.'),
-  };
+  } as AIAdapter;
 }
 
 // ---------------------------------------------------------------------------

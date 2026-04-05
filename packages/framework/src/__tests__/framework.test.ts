@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { defineAgent } from '../define-agent';
 import { defineTeam } from '../define-team';
 import { KnowledgeStore } from '../knowledge/knowledge-store';
-import { Sequence, Selector, Action, Condition, BehaviorTree } from '../behavior';
+import { SequenceNode, SelectorNode, ActionNode, ConditionNode, BehaviorTree } from '../behavior';
 import type { AgentConfig } from '../types';
 // ── defineAgent ──
 
@@ -216,9 +216,9 @@ describe('KnowledgeStore', () => {
 describe('Behavior Tree', () => {
   it('Sequence succeeds when all children succeed', () => {
     const tree = new BehaviorTree(
-      Sequence([
-        Action('a', () => 'success'),
-        Action('b', () => 'success'),
+      new SequenceNode([
+        new ActionNode('a', () => 'success'),
+        new ActionNode('b', () => 'success'),
       ])
     );
     expect(tree.tick(0)).toBe('success');
@@ -227,9 +227,9 @@ describe('Behavior Tree', () => {
   it('Sequence fails on first failure', () => {
     let bRan = false;
     const tree = new BehaviorTree(
-      Sequence([
-        Action('a', () => 'failure'),
-        Action('b', () => { bRan = true; return 'success'; }),
+      new SequenceNode([
+        new ActionNode('a', () => 'failure'),
+        new ActionNode('b', () => { bRan = true; return 'success'; }),
       ])
     );
     expect(tree.tick(0)).toBe('failure');
@@ -238,10 +238,10 @@ describe('Behavior Tree', () => {
 
   it('Selector succeeds on first success', () => {
     const tree = new BehaviorTree(
-      Selector([
-        Action('a', () => 'failure'),
-        Action('b', () => 'success'),
-        Action('c', () => 'failure'),
+      new SelectorNode([
+        new ActionNode('a', () => 'failure'),
+        new ActionNode('b', () => 'success'),
+        new ActionNode('c', () => 'failure'),
       ])
     );
     expect(tree.tick(0)).toBe('success');
@@ -250,9 +250,9 @@ describe('Behavior Tree', () => {
   it('Condition + Action composes', () => {
     let executed = false;
     const tree = new BehaviorTree(
-      Sequence([
-        Condition('check', () => true),
-        Action('do', () => { executed = true; return 'success'; }),
+      new SequenceNode([
+        new ConditionNode('check', () => true),
+        new ActionNode('do', () => { executed = true; return 'success'; }),
       ])
     );
     tree.tick(0);
@@ -260,9 +260,9 @@ describe('Behavior Tree', () => {
   });
 
   it('convenience builders produce core node types', () => {
-    const seq = Sequence([Action('test', () => 'success')]);
+    const seq = new SequenceNode([new ActionNode('test', () => 'success')]);
     expect(seq.type).toBe('sequence');
-    const sel = Selector([Action('test', () => 'success')]);
+    const sel = new SelectorNode([new ActionNode('test', () => 'success')]);
     expect(sel.type).toBe('selector');
   });
 });

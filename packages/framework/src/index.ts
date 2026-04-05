@@ -89,6 +89,11 @@ export type {
   SlotInfo,
   PresenceResult,
   HeartbeatResult,
+  ProtocolStyle,
+  AgentStatus,
+  PhaseHook,
+  ProtocolAgentConfig,
+  ProtocolAgentHandle,
 } from './types';
 
 // Re-export protocol types
@@ -119,7 +124,13 @@ export {
 } from './types';
 
 // Protocol agent (7-phase lifecycle backed by LLM)
-export { ProtocolAgent, runProtocolCycle } from './protocol-agent';
+export {
+  ProtocolAgent,
+  runProtocolCycle,
+  defineProtocolAgent,
+  protocolToFrameworkCycleResult,
+  frameworkToProtocolCycleResult,
+} from './protocol-agent';
 export type { ProtocolTaskResult } from './protocol-agent';
 
 // Protocol implementations (canonical home — absorbed from agent-protocol)
@@ -131,10 +142,24 @@ export {
   ServiceLifecycle,
   ServiceErrorCode,
   ServiceError,
-  ServiceManager,
 } from './protocol/implementations';
 
-export type { ServiceHealth, ServiceManagerHealth } from './protocol/implementations';
+// Goal synthesizer types (FW-0.2 — autonomous goal creation)
+export type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
+export { GENERIC_GOALS, DOMAIN_GOALS } from './protocol/goal-synthesizer';
+
+// Smart micro-phase decomposer (FW-0.2 — LLM-powered parallel task decomposition)
+export {
+  SmartMicroPhaseDecomposer,
+  createLLMAdapter,
+} from './protocol/micro-phase-decomposer';
+export type {
+  TaskDescription,
+  MicroPhase,
+  WaveExecutionPlan,
+  DecompositionResult,
+  LLMAdapter,
+} from './protocol/micro-phase-decomposer';
 
 // Board module (absorbed from mcp-server/holomesh — canonical home)
 export {
@@ -238,3 +263,6 @@ export * from './training';
 
 // Learning module (A.011.02d)
 export * from './learning';
+
+// Resolve ambiguous exports between swarm and negotiation
+export type { Vote, VotingResult } from './negotiation';

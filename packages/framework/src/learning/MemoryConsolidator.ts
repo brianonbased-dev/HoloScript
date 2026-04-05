@@ -1,4 +1,4 @@
-import { logger } from '@holoscript/core/logger';
+const logger = { info: console.info, error: console.error };
 
 export interface EpisodicMemory {
   id: string;

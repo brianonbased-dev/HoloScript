@@ -32,8 +32,11 @@ import { KnowledgeStore } from './knowledge/knowledge-store';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
-import { GoalSynthesizer } from './protocol/implementations';
+import { GoalSynthesizer } from './protocol/goal-synthesizer';
+import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
+import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
+import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';
 
 // ── Internal Proposal (not exported — use ProposalResult from types) ──
 
@@ -79,7 +82,8 @@ export class Team {
   private cycle = 0;
   private consensusMode: ConsensusMode;
   private proposals: Map<string, InternalProposal> = new Map();
-  private goalSynthesizer = new GoalSynthesizer();
+  private goalSynthesizer: GoalSynthesizer;
+  private decomposer: SmartMicroPhaseDecomposer | null = null;
 
   constructor(config: TeamConfig) {
     this.config = config;
@@ -90,6 +94,19 @@ export class Team {
     this.knowledge = new KnowledgeStore(
       config.knowledge ?? { persist: false }
     );
+
+    // GoalSynthesizer gets knowledge store so it can derive context-aware goals (FW-0.2)
+    // LLM config comes from first agent — all agents on a team typically share a provider.
+    const firstAgent = this.agentConfigs[0];
+    this.goalSynthesizer = new GoalSynthesizer({
+      knowledge: this.knowledge,
+      llm: firstAgent?.model,
+    });
+
+    // SmartMicroPhaseDecomposer — LLM-powered task decomposition (FW-0.2)
+    if (firstAgent?.model) {
+      this.decomposer = new SmartMicroPhaseDecomposer(createLLMAdapter(firstAgent.model));
+    }
 
     // Initialize agent runtimes
     for (const agent of this.agentConfigs) {
@@ -214,12 +231,28 @@ export class Team {
       let task = this.findClaimableTask(agent, claimed);
       let synthesized = false;
 
-      // When no task found and board is sparse, synthesize a goal autonomously
+      // When no task found and board is sparse, synthesize a goal autonomously (FW-0.2)
       if (!task && this.openTasks.length < OPEN_TASK_THRESHOLD) {
         const domain = agent.knowledgeDomains?.[0] ?? 'general';
-        const goal = this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
-        task = this.goalToTask(goal, agent.role);
-        synthesized = true;
+        const goalContext: GoalContext = {
+          domain,
+          teamName: this.name,
+          agentName: runtime.name,
+          capabilities: agent.capabilities,
+          recentCompletedTasks: this.doneLog.slice(-10).map(d => d.title),
+        };
+        try {
+          const goals = await this.goalSynthesizer.synthesizeMultiple(goalContext, 1);
+          if (goals.length > 0) {
+            task = this.goalToTask(goals[0], agent.role);
+            synthesized = true;
+          }
+        } catch {
+          // Fallback to synchronous heuristic
+          const goal = this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
+          task = this.goalToTask(goal, agent.role);
+          synthesized = true;
+        }
       }
 
       if (!task) {
@@ -325,10 +358,22 @@ export class Team {
       });
       let synthesized = false;
 
-      // When no task found and remote board is sparse, synthesize a goal autonomously
+      // When no task found and remote board is sparse, synthesize a goal autonomously (FW-0.2)
       if (!task && openTasks.length < OPEN_TASK_THRESHOLD) {
         const domain = agent.knowledgeDomains?.[0] ?? 'general';
-        const goal = this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
+        let goal: Goal;
+        try {
+          const goals = await this.goalSynthesizer.synthesizeMultiple({
+            domain,
+            teamName: this.name,
+            agentName: runtime.name,
+            capabilities: agent.capabilities,
+            recentCompletedTasks: this.doneLog.slice(-10).map(d => d.title),
+          }, 1);
+          goal = goals[0] ?? this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
+        } catch {
+          goal = this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
+        }
         const addRes = await this.boardFetch(`/api/holomesh/team/${teamId}/board`, 'POST', {
           tasks: [{
             title: goal.description,
@@ -588,6 +633,57 @@ export class Team {
     }
 
     return await this.addTasks(tasks);
+  }
+
+  // ── Task Decomposition (FW-0.2) ──
+
+  /**
+   * Decompose a complex task into parallel micro-phases and distribute
+   * the sub-phases as individual board tasks. Each sub-phase becomes a
+   * separate task that agents can claim independently.
+   *
+   * Returns the decomposition result including the wave-based execution plan.
+   * If no decomposer is available (no LLM configured), falls back to adding
+   * the task as-is.
+   */
+  async decomposeAndDistribute(task: TaskDef): Promise<DecompositionResult | null> {
+    if (!this.decomposer) return null;
+
+    const taskDesc: TaskDescription = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      requiredCapabilities: task.role ? [task.role] : ['coding'],
+    };
+
+    const result = await this.decomposer.decompose(taskDesc);
+
+    if (!result.wasDecomposed) return result;
+
+    // Convert micro-phases into board tasks, preserving wave ordering via priority
+    const subTasks: Array<Omit<TaskDef, 'id' | 'status' | 'createdAt'>> = [];
+    for (let waveIdx = 0; waveIdx < result.plan.waves.length; waveIdx++) {
+      for (const phase of result.plan.waves[waveIdx]) {
+        subTasks.push({
+          title: `[${task.id}/${phase.id}] ${phase.description}`,
+          description: `Sub-phase of "${task.title}" (wave ${waveIdx + 1}/${result.plan.waves.length}). Dependencies: ${phase.dependencies.join(', ') || 'none'}`,
+          priority: Math.max(1, task.priority - 1 + waveIdx), // Earlier waves get higher priority
+          role: (phase.requiredCapabilities[0] as TaskDef['role']) ?? task.role,
+          source: `decomposer:${task.id}`,
+        });
+      }
+    }
+
+    // Remove the original complex task and add sub-tasks
+    this.board = this.board.filter(t => t.id !== task.id);
+    await this.addTasks(subTasks);
+
+    return result;
+  }
+
+  /** Get the decomposer instance for direct use (e.g., manual decomposition). */
+  getDecomposer(): SmartMicroPhaseDecomposer | null {
+    return this.decomposer;
   }
 
   // ── Remote Proxy ──
