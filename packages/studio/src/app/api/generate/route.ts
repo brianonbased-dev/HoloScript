@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit } from '@/lib/rateLimit';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 10;
 
@@ -87,6 +88,10 @@ export async function POST(request: Request) {
 
   const headers = { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) };
 
+  // Credit gate — must pass before any LLM call
+  const gate = await checkCredits(request, 'studio_generate');
+  if (gate.error) return gate.error;
+
   try {
     const body = await request.json();
     const { prompt, existingCode } = body;
@@ -123,6 +128,9 @@ export async function POST(request: Request) {
 
     const textBlock = response.content.find((b) => b.type === 'text');
     const code = textBlock ? textBlock.text.trim() : '';
+
+    // Deduct credits after successful generation (fire-and-forget)
+    deductCredits(gate.userId, 'studio_generate').catch(() => {});
 
     return NextResponse.json({ success: true, code }, { headers });
   } catch (err: unknown) {

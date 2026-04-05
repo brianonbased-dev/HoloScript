@@ -29,6 +29,12 @@ export const OPERATION_COSTS = {
   knowledge_query: { baseCostCents: 0, description: 'Knowledge search (free entries)' },
   knowledge_query_premium: { baseCostCents: 5, description: 'Premium knowledge access (provenance-signed)' },
   knowledge_publish: { baseCostCents: 0, description: 'Publish knowledge entry (free for authors)' },
+
+  // Studio AI operations
+  studio_autocomplete: { baseCostCents: 1, description: 'Code autocomplete (up to 256 tokens)' },
+  studio_generate: { baseCostCents: 5, description: 'Code generation (up to 4096 tokens)' },
+  studio_chat: { baseCostCents: 3, description: 'Brittney chat message (up to 2048 tokens)' },
+  studio_material: { baseCostCents: 2, description: 'Material/asset generation (up to 512 tokens)' },
 } as const;
 
 export type OperationType = keyof typeof OPERATION_COSTS;

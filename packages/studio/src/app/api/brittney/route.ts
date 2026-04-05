@@ -8,6 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { rateLimit } from '@/lib/rateLimit';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 20;
 
@@ -117,6 +118,10 @@ export async function POST(request: Request) {
     });
   }
 
+  // Credit gate — must pass before any LLM call
+  const gate = await checkCredits(request, 'studio_chat');
+  if (gate.error) return gate.error;
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return sseResponse([
@@ -163,6 +168,9 @@ export async function POST(request: Request) {
       }
 
       try {
+        // Deduct credits now that we're committed to the LLM call (fire-and-forget)
+        deductCredits(gate.userId, 'studio_chat').catch(() => {});
+
         // Accumulate tool use blocks during streaming
         let currentToolName = '';
         let currentToolInput = '';

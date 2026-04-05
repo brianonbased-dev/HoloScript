@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rateLimit';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 10;
 
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest) {
       },
     });
   }
+
+  // Credit gate — must pass before any LLM call
+  const gate = await checkCredits(req, 'studio_material');
+  if (gate.error) return gate.error;
 
   let body: { prompt?: string; baseColor?: string; model?: string };
 
@@ -81,6 +86,9 @@ void main() {
   if (!glsl.includes('void main')) {
     return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
   }
+
+  // Deduct credits after successful generation (fire-and-forget)
+  deductCredits(gate.userId, 'studio_material').catch(() => {});
 
   return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } });
 }

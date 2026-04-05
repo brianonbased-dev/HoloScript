@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rateLimit';
+import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 30;
 
@@ -156,6 +157,10 @@ export async function POST(request: Request) {
     });
   }
 
+  // Credit gate — must pass before any LLM call
+  const gate = await checkCredits(request, 'studio_autocomplete');
+  if (gate.error) return gate.error;
+
   let body: CompletionRequest;
   try {
     body = (await request.json()) as CompletionRequest;
@@ -177,6 +182,8 @@ export async function POST(request: Request) {
     try {
       const result = await provider.call(prefix, suffix, maxTokens);
       if (result) {
+        // Deduct credits after successful completion (fire-and-forget)
+        deductCredits(gate.userId, 'studio_autocomplete').catch(() => {});
         return NextResponse.json(
           { completion: result, provider: provider.name },
           { headers: { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } }
