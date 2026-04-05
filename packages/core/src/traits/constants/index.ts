@@ -128,6 +128,39 @@ import { NPU_SCENE_TRAITS } from './npu-scene';
 // Camera Hand Tracking — MediaPipe/Vision 21-joint (M.010.04)
 import { CAMERA_HAND_TRACKING_TRAITS } from './camera-hand-tracking';
 
+// Haptic Holographic Feedback (M.010.05)
+import { HAPTIC_FEEDBACK_TRAITS } from './haptic-feedback';
+
+// iOS Object Capture — photogrammetry (M.010.10)
+import { IOS_OBJECT_CAPTURE_TRAITS } from './ios-object-capture';
+
+// AirPods Spatial Audio (M.010.11)
+import { AIRPODS_SPATIAL_AUDIO_TRAITS } from './airpods-spatial-audio';
+
+// SharePlay Multi-User AR (M.010.12)
+import { SHAREPLAY_TRAITS } from './shareplay';
+
+// Ultra Wideband positioning (M.010.13)
+import { UWB_POSITIONING_TRAITS } from './uwb-positioning';
+
+// TrueDepth Face Tracking (M.010.14)
+import { FACE_TRACKING_TRAITS } from './face-tracking';
+
+// Android Nearby Connections (M.010.16)
+import { NEARBY_CONNECTIONS_TRAITS } from './nearby-connections';
+
+// Android Foldable Display (M.010.17)
+import { FOLDABLE_DISPLAY_TRAITS } from './foldable-display';
+
+// Samsung DeX (M.010.18)
+import { SAMSUNG_DEX_TRAITS } from './samsung-dex';
+
+// Android WebXR Chrome (M.010.19)
+import { WEBXR_TRAITS } from './webxr';
+
+// Google Lens Integration (M.010.20)
+import { GOOGLE_LENS_TRAITS } from './google-lens';
+
 // Portal AR — phone-as-portal magic window (M.010.06)
 import { PORTAL_AR_TRAITS } from './portal-ar';
 
@@ -376,6 +409,39 @@ export const VR_TRAITS = [
 
   // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
   ...ROOMPLAN_TRAITS,
+
+  // Haptic Holographic Feedback (11 traits — M.010.05)
+  ...HAPTIC_FEEDBACK_TRAITS,
+
+  // iOS Object Capture — photogrammetry (8 traits — M.010.10)
+  ...IOS_OBJECT_CAPTURE_TRAITS,
+
+  // AirPods Spatial Audio (7 traits — M.010.11)
+  ...AIRPODS_SPATIAL_AUDIO_TRAITS,
+
+  // SharePlay Multi-User AR (9 traits — M.010.12)
+  ...SHAREPLAY_TRAITS,
+
+  // Ultra Wideband positioning (6 traits — M.010.13)
+  ...UWB_POSITIONING_TRAITS,
+
+  // TrueDepth Face Tracking (11 traits — M.010.14)
+  ...FACE_TRACKING_TRAITS,
+
+  // Android Nearby Connections (9 traits — M.010.16)
+  ...NEARBY_CONNECTIONS_TRAITS,
+
+  // Android Foldable Display (6 traits — M.010.17)
+  ...FOLDABLE_DISPLAY_TRAITS,
+
+  // Samsung DeX (5 traits — M.010.18)
+  ...SAMSUNG_DEX_TRAITS,
+
+  // Android WebXR Chrome (11 traits — M.010.19)
+  ...WEBXR_TRAITS,
+
+  // Google Lens (7 traits — M.010.20)
+  ...GOOGLE_LENS_TRAITS,
 ] as const;
 
 /**
@@ -688,3 +754,69 @@ export {
   ROOMPLAN_TRAITS,
   type RoomPlanTraitName,
 } from './roomplan';
+
+// Haptic Holographic Feedback (11 traits — M.010.05)
+export {
+  HAPTIC_FEEDBACK_TRAITS,
+  type HapticFeedbackTraitName,
+} from './haptic-feedback';
+
+// iOS Object Capture (8 traits — M.010.10)
+export {
+  IOS_OBJECT_CAPTURE_TRAITS,
+  type IOSObjectCaptureTraitName,
+} from './ios-object-capture';
+
+// AirPods Spatial Audio (7 traits — M.010.11)
+export {
+  AIRPODS_SPATIAL_AUDIO_TRAITS,
+  type AirPodsSpatialAudioTraitName,
+} from './airpods-spatial-audio';
+
+// SharePlay Multi-User AR (9 traits — M.010.12)
+export {
+  SHAREPLAY_TRAITS,
+  type SharePlayTraitName,
+} from './shareplay';
+
+// Ultra Wideband positioning (6 traits — M.010.13)
+export {
+  UWB_POSITIONING_TRAITS,
+  type UWBPositioningTraitName,
+} from './uwb-positioning';
+
+// TrueDepth Face Tracking (11 traits — M.010.14)
+export {
+  FACE_TRACKING_TRAITS,
+  type FaceTrackingTraitName,
+} from './face-tracking';
+
+// Android Nearby Connections (9 traits — M.010.16)
+export {
+  NEARBY_CONNECTIONS_TRAITS,
+  type NearbyConnectionsTraitName,
+} from './nearby-connections';
+
+// Android Foldable Display (6 traits — M.010.17)
+export {
+  FOLDABLE_DISPLAY_TRAITS,
+  type FoldableDisplayTraitName,
+} from './foldable-display';
+
+// Samsung DeX (5 traits — M.010.18)
+export {
+  SAMSUNG_DEX_TRAITS,
+  type SamsungDeXTraitName,
+} from './samsung-dex';
+
+// Android WebXR Chrome (11 traits — M.010.19)
+export {
+  WEBXR_TRAITS,
+  type WebXRTraitName,
+} from './webxr';
+
+// Google Lens (7 traits — M.010.20)
+export {
+  GOOGLE_LENS_TRAITS,
+  type GoogleLensTraitName,
+} from './google-lens';
