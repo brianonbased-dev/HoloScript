@@ -78,3 +78,4 @@ export class AttentionEngine {
     return scores.slice(0, k).map((s) => s.entityId);
   }
 }
+

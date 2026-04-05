@@ -544,3 +544,4 @@ export class RayTracer {
     return [r / spp, g / spp, b / spp];
   }
 }
+

@@ -260,3 +260,4 @@ export class TerrainBrush {
     return { min, max };
   }
 }
+

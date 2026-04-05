@@ -82,3 +82,4 @@ export class LocalEmotionDetector implements EmotionDetector {
     return sum / arr.length;
   }
 }
+

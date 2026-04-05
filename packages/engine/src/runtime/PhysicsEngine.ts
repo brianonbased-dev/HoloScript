@@ -103,3 +103,4 @@ export function registerPhysicsEngine(name: string, engine: PhysicsEngine): void
 export function getPhysicsEngine(name: string): PhysicsEngine | undefined {
   return physicsEngineRegistry.get(name);
 }
+

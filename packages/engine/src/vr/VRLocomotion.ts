@@ -111,3 +111,4 @@ export class VRLocomotion {
     return [...this.teleportHistory];
   }
 }
+

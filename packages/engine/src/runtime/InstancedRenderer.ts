@@ -515,3 +515,4 @@ export class InstancedRenderer {
     return Array.from(this.batches.keys());
   }
 }
+

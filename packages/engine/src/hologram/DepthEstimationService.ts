@@ -678,3 +678,4 @@ export class DepthEstimationService {
     this.modelCache.close();
   }
 }
+

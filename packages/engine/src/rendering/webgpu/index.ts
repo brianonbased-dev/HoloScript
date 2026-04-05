@@ -50,3 +50,4 @@ export { WebGPURenderer } from './WebGPURenderer';
 
 // Debug tools
 export { PhysicsDebugDrawer } from './PhysicsDebugDrawer';
+

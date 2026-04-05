@@ -1,6 +1,4 @@
-    // @ts-expect-error migration TS2307
 import { HoloObjectDecl } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { HSPlusRuntime } from '@holoscript/core';
 
 /** Extended runtime interface for chunk loading operations */
@@ -129,3 +127,4 @@ export class ChunkLoader {
     );
   }
 }
+

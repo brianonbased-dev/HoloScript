@@ -196,3 +196,4 @@ export class ProjectManager {
     return { ...this.project };
   }
 }
+

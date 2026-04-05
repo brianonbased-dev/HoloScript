@@ -128,3 +128,4 @@ describe('JointSystem — Production', () => {
     expect(js.getJointsForBody('z').length).toBe(0);
   });
 });
+

@@ -1,4 +1,4 @@
-﻿export * from './ParticleSystem';
+export * from './ParticleSystem';
 export * from './ParticleAffectors';
 export { ParticlePresets } from './ParticlePresets';
 
@@ -47,3 +47,4 @@ export {
   type TraitHandler,
   type ParticleTraitConfig,
 } from './ParticleTrait';
+

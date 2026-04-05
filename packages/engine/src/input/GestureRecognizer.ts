@@ -294,3 +294,4 @@ export class GestureRecognizer {
     Object.assign(this.config, config);
   }
 }
+

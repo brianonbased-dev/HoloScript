@@ -90,3 +90,4 @@ describe('IslandDetector — Production', () => {
     expect(sizes).toEqual([1, 2, 3]);
   });
 });
+

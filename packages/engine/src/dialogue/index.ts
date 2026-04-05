@@ -1,4 +1,4 @@
-﻿export {
+export {
   BarkManager,
   type BarkDefinition,
   type ActiveBark,
@@ -38,3 +38,4 @@ export {
   Localization,
   type LocaleData,
 } from './Localization';
+

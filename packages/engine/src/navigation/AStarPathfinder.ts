@@ -261,3 +261,4 @@ export class AStarPathfinder {
     this.maxIterations = n;
   }
 }
+

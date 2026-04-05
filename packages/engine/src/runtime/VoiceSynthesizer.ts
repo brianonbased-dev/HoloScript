@@ -88,3 +88,4 @@ export function registerVoiceSynthesizer(name: string, synthesizer: VoiceSynthes
 export function getVoiceSynthesizer(name: string): VoiceSynthesizer | undefined {
   return voiceSynthesizerRegistry.get(name);
 }
+

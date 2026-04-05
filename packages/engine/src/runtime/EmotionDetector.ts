@@ -4,8 +4,6 @@
  * Defines the @builtin runtime interface for multimodal affective computing.
  * Runtimes implement this to bridge with ML models (ONNX/TFLite) for emotion inference.
  */
-
-    // @ts-expect-error migration TS2307
 import type { Vector3 as _Vector3 } from '@holoscript/core';
 
 /**
@@ -94,3 +92,4 @@ export function registerEmotionDetector(name: string, detector: EmotionDetector)
 export function getEmotionDetector(name: string): EmotionDetector | undefined {
   return emotionDetectorRegistry.get(name);
 }
+

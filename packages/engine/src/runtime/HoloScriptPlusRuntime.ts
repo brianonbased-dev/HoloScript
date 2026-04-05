@@ -19,21 +19,17 @@ import type {
   StateDeclaration,
   VRHand,
   Vector3,
-    // @ts-expect-error migration TS2307
 } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import type { HSPlusDirective, HoloScriptValue } from '@holoscript/core';
 // duplicate/conflict: import type { HSPlusForDirective } from '@holoscript/core';
 // duplicate/conflict: import type { HoloTemplate, HoloValue } from '@holoscript/core';
 // duplicate/conflict: import type { IRaycastHit } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
 import {
   VRTraitRegistry,
   vrTraitRegistry,
   TraitContext,
   TraitEvent,
-    // @ts-expect-error migration TS2307
 } from '@holoscript/core';
 import { eventBus } from './EventBus';
 import { ChunkLoader } from './loader';
@@ -41,23 +37,16 @@ import { HotReloader, type TemplateInstance as _TemplateInstance } from './HotRe
 // duplicate/conflict: import type { HoloTemplate } from '@holoscript/core';
 // duplicate/conflict: import type { HSPlusForDirective, HSPlusStateDirective, HSPlusExternalApiDirective, HSPlusGenerateDirective } from '@holoscript/core';
 // duplicate/conflict: import type { BodyType, IRaycastHit } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { HSPlusStatement, HSPlusExpression as _HSPlusExpression } from '@holoscript/core';
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
 import { WebXRManager } from './WebXRManager';
-    // @ts-expect-error migration TS2307
 import { PhysicsWorldImpl } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { IVector3, IPhysicsWorld } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { VRPhysicsBridge } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { PhysicsDebugDrawer } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { WebGPURenderer } from '@holoscript/core';
 import { KeyboardSystem } from './KeyboardSystem';
-    // @ts-expect-error migration TS2307
 import { HandMenuSystem } from '@holoscript/core';
 
 // MOCK: StateSync (to resolve cross-repo dependency for visualization)
@@ -228,8 +217,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       gravity: { x: 0, y: -9.81, z: 0 },
       maxSubsteps: 2,
     });
-
-    // @ts-expect-error migration TS7006
     this.vrPhysicsBridge = new VRPhysicsBridge(this.physicsWorld, (hand, intensity, duration) => {
       // Trigger Haptic Pulse via WebXR Manager
       if (this.webXrManager) {
@@ -243,7 +230,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Initialize Keyboard System
-    // @ts-expect-error migration TS2345
     this.keyboardSystem = new KeyboardSystem(this);
     this.handMenuSystem = new HandMenuSystem(this);
 
@@ -377,7 +363,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         migrations:
           ((this.ast as unknown as Record<string, unknown>).migrations as unknown[]) || [],
         state: { properties: [] },
-    // @ts-expect-error migration TS2304
       } as unknown as HoloTemplate);
 
       const stateBridge = this.createStateMapProxy();
@@ -390,7 +375,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         set version(v: number) {
           (self.ast as unknown as Record<string, unknown>).version = v;
         },
-    // @ts-expect-error migration TS2304
         state: stateBridge as Map<string, HoloValue>,
       });
     }
@@ -399,7 +383,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const initialTemplates = this.findAllTemplates(this.ast.root);
     for (const [name, node] of initialTemplates) {
       this.templates.set(name, node);
-    // @ts-expect-error migration TS2304
       this.hotReloader.registerTemplate(node as unknown as HoloTemplate);
     }
 
@@ -453,7 +436,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         // Notify renderer to switch to XR mode (if method exists)
         if (renderer.setXRSession) {
           renderer.setXRSession(
-    // @ts-expect-error migration TS2345
             session,
             this.webXrManager!.getBinding(),
             this.webXrManager!.getProjectionLayer()
@@ -461,7 +443,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         }
 
         // Start the XR render loop
-    // @ts-expect-error migration TS2345
         this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this));
       };
 
@@ -552,7 +533,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // 1. Update Headset Pose
     if (frame) {
-    // @ts-expect-error migration TS2769
       const viewerPose = frame.getViewerPose(refSpace);
       if (viewerPose) {
         const { position, orientation } = viewerPose.transform;
@@ -571,13 +551,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // 2. Update Controllers / Hands
     for (const source of session.inputSources) {
-    // @ts-expect-error migration TS2339
       if (!source.gripSpace) continue; // We need a grip space for position
 
       // If we have a valid frame, get the pose
       let pose: XRPose | undefined;
       if (frame) {
-    // @ts-expect-error migration TS2339
         pose = frame.getPose(source.gripSpace, refSpace) ?? undefined;
       }
 
@@ -847,7 +825,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         set version(v: number) {
           instance.templateVersion = v;
         },
-    // @ts-expect-error migration TS2304
         state: stateBridge as Map<string, HoloValue>,
       });
     }
@@ -977,7 +954,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Process control flow directives
     for (const directive of directives) {
       if (directive.type === 'for') {
-    // @ts-expect-error migration TS2304
         const items = this.evaluateExpression((directive as HSPlusForDirective).iterable as string);
         if (Array.isArray(items)) {
           items.forEach((item, index) => {
@@ -1565,7 +1541,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private processGenerateDirectives(instance: NodeInstance): void {
     if (!instance.node.directives) return;
-    // @ts-expect-error migration TS7006
     const generateDirectives = instance.node.directives.filter((d) => d.type === 'generate');
 
     for (const d of generateDirectives) {
@@ -1609,7 +1584,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private updateExternalApis(instance: NodeInstance, _delta: number): void {
     if (!instance.node.directives) return;
-    // @ts-expect-error migration TS7006
     const apiDirectives = instance.node.directives.filter((d) => d.type === 'external_api');
 
     for (const d of apiDirectives) {
@@ -1675,7 +1649,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       vr: {
         hands: this.vrContext.hands,
         headset: this.vrContext.headset,
-    // @ts-expect-error migration TS2322
         getPointerRay: (hand) => {
           const vrHand = hand === 'left' ? this.vrContext.hands.left : this.vrContext.hands.right;
           if (!vrHand) return null;
@@ -1687,7 +1660,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         getDominantHand: () => this.vrContext.hands.right || this.vrContext.hands.left,
       },
       physics: {
-    // @ts-expect-error migration TS7006
         applyVelocity: (node, velocity) => {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
@@ -1699,7 +1671,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             };
           }
         },
-    // @ts-expect-error migration TS7006
         applyAngularVelocity: (node, angularVelocity) => {
           // this.emit('apply_angular_velocity', { node, angularVelocity });
           const body = this.physicsWorld.getBody(node.id || '');
@@ -1711,7 +1682,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             };
           }
         },
-    // @ts-expect-error migration TS7006
         setKinematic: (node, kinematic) => {
           // this.emit('set_kinematic', { node, kinematic });
           const body = this.physicsWorld.getBody(node.id || '');
@@ -1719,7 +1689,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             body.type = kinematic ? 'kinematic' : 'dynamic';
           }
         },
-    // @ts-expect-error migration TS2322
         raycast: (origin, direction, maxDistance) => {
           const hit = this.physicsWorld.raycastClosest({
             origin: { x: origin[0] as number, y: origin[1] as number, z: origin[2] as number },
@@ -1728,7 +1697,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           });
 
           if (hit) {
-    // @ts-expect-error migration TS2304
             const h = hit as IRaycastHit;
             return {
               point: [h.point.x || 0, h.point.y || 0, h.point.z || 0],
@@ -1740,13 +1708,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           }
           return null;
         },
-    // @ts-expect-error migration TS7006
         getBodyPosition: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
           if (body) return { ...body.position };
           return null;
         },
-    // @ts-expect-error migration TS7006
         getBodyVelocity: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
           if (body) return { ...body.velocity };
@@ -1754,24 +1720,20 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         },
       },
       audio: {
-    // @ts-expect-error migration TS7006
         playSound: (source, options) => {
           this.emit('play_sound', { source, ...options });
         },
       },
       haptics: {
-    // @ts-expect-error migration TS7006
         pulse: (hand, intensity, duration) => {
           this.emit('haptic', { hand, intensity, duration, type: 'pulse' });
         },
-    // @ts-expect-error migration TS7006
         rumble: (hand, intensity) => {
           this.emit('haptic', { hand, intensity, type: 'rumble' });
         },
       },
       emit: this.emit.bind(this),
       getState: () => this.state.getSnapshot(),
-    // @ts-expect-error migration TS7006
       setState: (updates) => this.state.update(updates),
       getScaleMultiplier: () => this.scaleMultiplier,
       setScaleContext: (magnitude: string) => {
@@ -2000,7 +1962,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         (newNode as unknown as Record<string, unknown>).version !==
           (oldNode as unknown as Record<string, unknown>).version
       ) {
-    // @ts-expect-error migration TS2304
         const result = await this.hotReloader.reload(newNode as unknown as HoloTemplate);
         if (result.success) {
           this.templates.set(name, newNode);
@@ -2010,7 +1971,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       } else {
         // Just update the template definition if no version change
         this.templates.set(name, newNode);
-    // @ts-expect-error migration TS2304
         this.hotReloader.registerTemplate(newNode as unknown as HoloTemplate);
       }
     }
@@ -2029,7 +1989,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         properties: [],
         actions: [],
         traits: [],
-    // @ts-expect-error migration TS2304
       } as unknown as HoloTemplate);
 
       if (!result.success) {
@@ -2152,7 +2111,6 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         }
 
         case 'MethodCall': {
-    // @ts-expect-error migration TS7006
           const args = (stmt.arguments || []).map((arg) => this.evaluator.evaluate(String(arg)));
           const method = (this.builtins as unknown as Record<string, unknown>)[stmt.method as string];
           if (typeof method === 'function') {
@@ -2609,3 +2567,4 @@ export function createRuntime(ast: HSPlusAST, options: RuntimeOptions = {}): HSP
 
 // export { HoloScriptPlusRuntimeImpl };
 // export type { NodeInstance, RuntimeOptions, Renderer };
+

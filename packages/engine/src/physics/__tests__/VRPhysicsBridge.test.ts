@@ -218,3 +218,4 @@ describe('VRPhysicsBridge', () => {
     expect(bridge.getHandBodyId('right')).toBeNull();
   });
 });
+

@@ -108,3 +108,4 @@ describe('JointSystem', () => {
     expect(state.currentAngle).toBeCloseTo(1);
   });
 });
+

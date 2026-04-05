@@ -224,3 +224,4 @@ export class SkyRenderer {
     return maxCoverage;
   }
 }
+

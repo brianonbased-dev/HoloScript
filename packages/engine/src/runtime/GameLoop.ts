@@ -124,3 +124,4 @@ export class GameLoop {
     this.onUpdate(delta);
   }
 }
+

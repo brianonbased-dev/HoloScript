@@ -563,3 +563,4 @@ export function applyVignette(
   }
   return output;
 }
+

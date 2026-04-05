@@ -99,3 +99,4 @@ describe('DeformableMesh', () => {
     expect(mesh.getMaxDisplacement()).toBeGreaterThan(0);
   });
 });
+

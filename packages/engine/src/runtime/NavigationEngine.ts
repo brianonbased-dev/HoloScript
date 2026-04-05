@@ -4,8 +4,6 @@
  * Defines the @builtin runtime interface for GPU-accelerated pathfinding.
  * Runtimes implement this to bridge with GPU-based flow field generators.
  */
-
-    // @ts-expect-error migration TS2307
 import { Vector3 } from '@holoscript/core';
 
 /**
@@ -78,3 +76,4 @@ export function registerNavigationEngine(name: string, engine: NavigationEngine)
 export function getNavigationEngine(name: string): NavigationEngine | undefined {
   return navigationEngineRegistry.get(name);
 }
+

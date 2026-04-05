@@ -220,3 +220,4 @@ export class LightingModel {
     return [...this.lights.values()].filter((l) => l.enabled && l.castShadow);
   }
 }
+

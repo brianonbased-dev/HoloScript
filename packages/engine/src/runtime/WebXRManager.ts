@@ -8,8 +8,6 @@
  * - WebGPU Projection Layer creation
  * - Input source tracking
  */
-
-    // @ts-expect-error migration TS2307
 import type { IWebGPUContext } from '@holoscript/core';
 
 // Polyfill types for WebXR + WebGPU
@@ -285,3 +283,4 @@ export class WebXRManager {
     this.onInputSourcesChange?.(event.added, event.removed);
   };
 }
+

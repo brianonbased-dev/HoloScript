@@ -1,4 +1,4 @@
-﻿export {
+export {
   CombatManager,
   type HitBox,
   type HurtBox,
@@ -45,3 +45,4 @@ export {
   type StatModifier,
   type StatusEffect,
 } from './StatusEffects';
+

@@ -9,3 +9,4 @@ export interface HSPlusNode {
   traits?: Map<string, unknown>;
   children?: HSPlusNode[];
 }
+

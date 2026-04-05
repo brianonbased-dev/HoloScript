@@ -108,3 +108,4 @@ export function registerBuiltInComponents(registry: ComponentRegistry): void {
     description: 'UI element properties.',
   });
 }
+

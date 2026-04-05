@@ -167,3 +167,4 @@ export class RenderPass {
     return [...this.passes.values()];
   }
 }
+

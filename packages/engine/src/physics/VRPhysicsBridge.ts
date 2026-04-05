@@ -9,7 +9,6 @@
  */
 
 import { IPhysicsWorld, IRigidBodyConfig, IVector3, IQuaternion } from './PhysicsTypes';
-    // @ts-expect-error migration TS2307
 import { VRHand, Vector3 } from '@holoscript/core';
 
 export class VRPhysicsBridge {
@@ -144,3 +143,4 @@ export class VRPhysicsBridge {
     return this.world.getBody(id) ? id : null;
   }
 }
+

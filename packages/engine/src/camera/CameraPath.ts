@@ -169,3 +169,4 @@ export class CameraPath {
     return this.points.length;
   }
 }
+

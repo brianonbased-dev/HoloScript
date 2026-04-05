@@ -131,3 +131,4 @@ export class BarkManager {
     return this.currentTime - last < def.cooldown;
   }
 }
+

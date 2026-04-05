@@ -453,3 +453,4 @@ export function getPerformanceTelemetry(): PerformanceTelemetry {
   }
   return telemetryInstance;
 }
+

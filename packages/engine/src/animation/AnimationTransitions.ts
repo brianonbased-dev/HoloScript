@@ -1,7 +1,7 @@
-﻿/**
+/**
  * AnimationTransitions.ts
  *
- * Ragdoll ↔ Animation blending system.
+ * Ragdoll ? Animation blending system.
  * Enables seamless transitions between physics-driven ragdoll and keyframed animation.
  *
  * @module animation
@@ -180,3 +180,4 @@ export class AnimationTransitionSystem {
     return { x: rx / len, y: ry / len, z: rz / len, w: rw / len };
   }
 }
+

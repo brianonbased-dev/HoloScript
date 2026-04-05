@@ -182,3 +182,4 @@ export class ProjectileSystem {
     for (const [id, p] of this.projectiles) if (!p.alive) this.projectiles.delete(id);
   }
 }
+

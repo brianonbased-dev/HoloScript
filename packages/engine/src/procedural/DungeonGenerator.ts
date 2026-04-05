@@ -155,3 +155,4 @@ export class DungeonGenerator {
     return this.rooms.length;
   }
 }
+

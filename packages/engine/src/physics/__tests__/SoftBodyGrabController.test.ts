@@ -100,3 +100,4 @@ describe('SoftBodyGrabController', () => {
     expect(solver.pinVertex.mock.calls.length).toBeLessThanOrEqual(2);
   });
 });
+

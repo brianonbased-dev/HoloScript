@@ -241,3 +241,4 @@ export class FluidSim {
     Object.assign(this.config, config);
   }
 }
+

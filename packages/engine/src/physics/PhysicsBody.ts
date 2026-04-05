@@ -563,3 +563,4 @@ export class RigidBody {
     return (a.group & b.mask) !== 0 && (b.group & a.mask) !== 0;
   }
 }
+

@@ -27,3 +27,4 @@ export {
 	type ComponentType,
 	type WorldOp,
 } from './World';
+

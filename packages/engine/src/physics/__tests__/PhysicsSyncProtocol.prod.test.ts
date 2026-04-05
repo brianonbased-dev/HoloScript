@@ -192,3 +192,4 @@ describe('PhysicsSyncReceiver — dispose', () => {
     expect(receiver.getStats().packetsReceived).toBe(0);
   });
 });
+

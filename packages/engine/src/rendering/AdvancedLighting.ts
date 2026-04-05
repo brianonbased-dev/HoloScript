@@ -329,3 +329,4 @@ export class AdvancedLightingManager {
     this.lights.clear();
   }
 }
+

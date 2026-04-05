@@ -81,3 +81,4 @@ export function registerAssetStreamer(name: string, streamer: AssetStreamer): vo
 export function getAssetStreamer(name: string): AssetStreamer | undefined {
   return assetStreamerRegistry.get(name);
 }
+

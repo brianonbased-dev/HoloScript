@@ -2,10 +2,7 @@
  * Headless Runtime for CLI operations
  * Provides headless execution without VR/UI dependencies
  */
-
-    // @ts-expect-error migration TS2307
 import type { HSPlusAST } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import type { HostCapabilities } from '@holoscript/core';
 
 export interface HeadlessRuntimeOptions {
@@ -233,3 +230,4 @@ export function createHeadlessRuntime(
 ): HeadlessRuntime {
   return new HeadlessRuntimeImpl(ast, options);
 }
+

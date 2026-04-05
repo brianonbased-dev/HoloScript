@@ -1,6 +1,4 @@
-    // @ts-expect-error migration TS2307
 import { StateMachineNode } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { logger } from '@holoscript/core';
 
 export interface StateMachineInstance {
@@ -46,7 +44,6 @@ export class StateMachineInterpreter {
     );
 
     // Trigger initial state entry if it exists
-    // @ts-expect-error migration TS7006
     const state = definition.states.find((s) => s.name === definition.initialState);
     if (state && state.onEntry) {
       this.executeHook(id, state.onEntry, instance.context);
@@ -63,7 +60,6 @@ export class StateMachineInterpreter {
     if (!instance) return false;
 
     const transition = instance.definition.transitions.find(
-    // @ts-expect-error migration TS7006
       (t) => t.from === instance.currentState && t.event === event
     );
 
@@ -85,10 +81,8 @@ export class StateMachineInterpreter {
     if (instance.currentState === targetStateName) return;
 
     const currentStateDef = instance.definition.states.find(
-    // @ts-expect-error migration TS7006
       (s) => s.name === instance.currentState
     );
-    // @ts-expect-error migration TS7006
     const targetStateDef = instance.definition.states.find((s) => s.name === targetStateName);
 
     if (!targetStateDef) {
@@ -143,3 +137,4 @@ export class StateMachineInterpreter {
 }
 
 export const stateMachineInterpreter = new StateMachineInterpreter();
+

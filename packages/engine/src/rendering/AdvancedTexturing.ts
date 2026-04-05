@@ -405,3 +405,4 @@ export function getAtlasEfficiency(packer: AtlasPacker): number {
   const used = packer.rects.reduce((s, r) => s + r.width * r.height, 0);
   return used / (packer.atlasWidth * packer.atlasHeight);
 }
+

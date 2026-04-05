@@ -12,6 +12,7 @@ export default defineConfig({
       '@holoscript/uaal': resolve(__dirname, '../uaal/src/index.ts'),
       '@holoscript/holo-vm': resolve(__dirname, '../holo-vm/src/index.ts'),
       '@holoscript/vm-bridge': resolve(__dirname, '../vm-bridge/src/index.ts'),
+      '@holoscript/framework/ai': resolve(__dirname, '../framework/src/ai/index.ts'),
       '@holoscript/framework/economy': resolve(__dirname, '../framework/src/economy/index.ts'),
       '@holoscript/framework': resolve(__dirname, '../framework/src/index.ts'),
       '@holoscript/engine': resolve(__dirname, '../engine/src'),

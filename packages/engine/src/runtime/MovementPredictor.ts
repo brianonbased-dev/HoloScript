@@ -4,8 +4,6 @@
  * Predicts the player's path based on current velocity and orientation.
  * Used by the AssetStreamer to prioritize background loading.
  */
-
-    // @ts-expect-error migration TS2307
 import { Vector3 } from '@holoscript/core';
 
 export interface IntentSignal {
@@ -165,3 +163,4 @@ export class MovementPredictor {
     return windows;
   }
 }
+

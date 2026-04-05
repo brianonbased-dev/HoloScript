@@ -202,3 +202,4 @@ export class CameraEffects {
     this.effects = [];
   }
 }
+

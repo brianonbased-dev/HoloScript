@@ -193,3 +193,4 @@ export class WaveFunction {
     return this.height;
   }
 }
+

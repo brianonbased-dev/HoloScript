@@ -545,3 +545,4 @@ export function parsePacketHeader(data: ArrayBuffer): SyncPacketHeader | null {
     flags: view.getUint8(14),
   };
 }
+

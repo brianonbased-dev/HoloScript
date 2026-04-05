@@ -127,3 +127,4 @@ export class MorphTargetSystem {
     return this.vertexCount;
   }
 }
+

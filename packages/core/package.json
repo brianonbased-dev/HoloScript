@@ -147,6 +147,8 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/core-types": "workspace:*",
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.0",
     "zod": "^3.24.0"

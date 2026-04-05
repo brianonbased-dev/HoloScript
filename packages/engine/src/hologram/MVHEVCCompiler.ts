@@ -347,3 +347,4 @@ extension StereoRenderPipeline {
     ].join(' \\\n  ');
   }
 }
+

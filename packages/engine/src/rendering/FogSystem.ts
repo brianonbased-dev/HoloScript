@@ -146,3 +146,4 @@ export class FogSystem {
     }
   }
 }
+

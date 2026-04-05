@@ -120,6 +120,7 @@ export default defineConfig({
     '@holoscript/absorb-service/engine',
     '@holoscript/absorb-service/self-improvement',
     '@holoscript/absorb-service/daemon',
+    '@holoscript/engine',
     '@holoscript/agent-protocol',
     '@holoscript/mcp-server',
     // loro-crdt is only needed by mcp-server at runtime, but esbuild follows

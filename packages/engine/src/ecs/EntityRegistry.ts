@@ -211,3 +211,4 @@ export class EntityRegistry {
     if (entity) entity.active = active;
   }
 }
+

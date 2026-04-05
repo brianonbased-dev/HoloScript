@@ -491,3 +491,4 @@ export class UnifiedParticleBuffer {
     // Float32Arrays are GC'd — no explicit dispose needed for CPU path
   }
 }
+

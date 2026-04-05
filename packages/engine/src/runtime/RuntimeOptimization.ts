@@ -456,3 +456,4 @@ export function getGlobalProfiler(): PerformanceProfiler {
   }
   return globalProfiler;
 }
+

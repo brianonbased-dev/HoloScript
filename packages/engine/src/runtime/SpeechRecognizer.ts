@@ -4,8 +4,6 @@
  * Defines the @builtin runtime interface for speech-to-text and phoneme recognition.
  * Runtimes (WASM/Node.js) implement this to bridge with whisper.cpp or other providers.
  */
-
-    // @ts-expect-error migration TS2307
 import { PhonemeTimestamp } from '@holoscript/core';
 
 /**
@@ -82,3 +80,4 @@ export function registerSpeechRecognizer(name: string, recognizer: SpeechRecogni
 export function getSpeechRecognizer(name: string): SpeechRecognizer | undefined {
   return speechRecognizerRegistry.get(name);
 }
+

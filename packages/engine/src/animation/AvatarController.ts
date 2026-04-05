@@ -90,3 +90,4 @@ export class AvatarController {
     this.solver.solveAll();
   }
 }
+

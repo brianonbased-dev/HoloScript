@@ -322,3 +322,4 @@ export class NoiseGenerator {
     return table;
   }
 }
+

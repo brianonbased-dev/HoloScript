@@ -128,3 +128,4 @@ export class VoiceManager {
     return await provider.synthesize(text, options || { voiceId: 'default' });
   }
 }
+

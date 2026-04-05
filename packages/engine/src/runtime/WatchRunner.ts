@@ -14,16 +14,11 @@
  * // Ctrl+C to stop
  * ```
  */
-
-    // @ts-expect-error migration TS2307
 import { HotReloadWatcher, type HotReloadConfig } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { ScriptTestRunner } from '@holoscript/core';
 import { createHeadlessRuntime, type HeadlessRuntime } from './HeadlessRuntime';
-    // @ts-expect-error migration TS2307
 import type { HSPlusAST } from '@holoscript/core';
 import * as fs from 'fs';
-    // @ts-expect-error migration TS2307
 import { logger } from '@holoscript/core';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -166,9 +161,7 @@ export class WatchRunner {
         const results = this.testRunner.runTestsFromSource(source, filePath);
 
         if (results.length > 0) {
-    // @ts-expect-error migration TS7006
           const passed = results.filter((r) => r.status === 'passed').length;
-    // @ts-expect-error migration TS7006
           const failed = results.filter((r) => r.status === 'failed').length;
           const total = results.length;
 
@@ -207,3 +200,4 @@ export class WatchRunner {
     }
   }
 }
+

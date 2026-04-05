@@ -23,13 +23,11 @@ import type {
   HapticsContext,
   AccessibilityContext,
   RaycastHit,
-    // @ts-expect-error migration TS2307
 } from '@holoscript/core';
 import type {
   VRHand,
   Vector3,
   HSPlusNode,
-    // @ts-expect-error migration TS2307
 } from '@holoscript/core';
 
 // =============================================================================
@@ -392,3 +390,4 @@ export class TraitContextFactory {
 export function createTraitContextFactory(config?: TraitContextFactoryConfig): TraitContextFactory {
   return new TraitContextFactory(config);
 }
+

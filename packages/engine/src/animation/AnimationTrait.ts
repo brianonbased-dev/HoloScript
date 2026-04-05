@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AnimationTrait.ts
  *
  * Declarative animation attachment for HoloScript+ nodes.
@@ -173,3 +173,4 @@ function getNestedProperty(node: HSPlusNode, path: string): unknown {
   }
   return target;
 }
+

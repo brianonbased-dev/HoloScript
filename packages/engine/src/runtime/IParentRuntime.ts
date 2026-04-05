@@ -4,8 +4,6 @@
  *
  * @module runtime/IParentRuntime
  */
-
-    // @ts-expect-error migration TS2307
 import type { ExecutionResult, HoloScriptValue } from '@holoscript/core';
 
 /**
@@ -57,3 +55,4 @@ export interface IParentRuntime {
    */
   evaluateExpression(expr: unknown): HoloScriptValue;
 }
+

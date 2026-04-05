@@ -145,3 +145,4 @@ export class VolumetricLight {
     return { x: v.x / len, y: v.y / len, z: v.z / len };
   }
 }
+

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HoloScript Runtime System
  *
  * Central runtime registry and execution system for HoloScript compositions.
@@ -17,3 +17,4 @@ export * from './GameLoop';
 export * from './AssetPipeline';
 export * from './HotReloadManager';
 export * from './GameEngine';
+

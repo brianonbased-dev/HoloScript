@@ -109,3 +109,4 @@ describe('SpatialHash', () => {
     expect(hash.getCellCount()).toBe(2);
   });
 });
+

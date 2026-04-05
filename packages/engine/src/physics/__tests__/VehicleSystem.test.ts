@@ -89,3 +89,4 @@ describe('VehicleSystem', () => {
     expect(len).toBeCloseTo(1, 0);
   });
 });
+

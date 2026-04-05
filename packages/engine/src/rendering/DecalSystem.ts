@@ -190,3 +190,4 @@ export class DecalSystem {
     this.decals.clear();
   }
 }
+

@@ -644,3 +644,4 @@ export type IBaseEffectParams = IEffectParams;
  * Alias for IDepthOfFieldParams (API compatibility)
  */
 export type IDOFParams = IDepthOfFieldParams;
+

@@ -188,3 +188,4 @@ export class RewardSystem {
     return [...this.bundles.values()].filter((b) => b.claimed).length;
   }
 }
+

@@ -87,3 +87,4 @@ export class SoftBodyAdapter {
     this.node.geometry.needsUpdate = true;
   }
 }
+

@@ -4,10 +4,7 @@
  * Provides a centralized event system for cross-orb and cross-trait communication.
  * Implements a singleton pattern to ensure a single source of truth for global events.
  */
-
-    // @ts-expect-error migration TS2307
 import { logger } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import type { HoloScriptValue } from '@holoscript/core';
 
 export type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
@@ -104,3 +101,4 @@ export class GlobalEventBus {
  * Convenience export for the singleton
  */
 export const eventBus = GlobalEventBus.getInstance();
+

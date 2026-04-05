@@ -124,3 +124,4 @@ export const ParticlePresets: Record<string, EmitterConfig> = {
     direction: { x: 0, y: 1, z: 0 },
   },
 };
+

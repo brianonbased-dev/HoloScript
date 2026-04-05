@@ -163,3 +163,4 @@ export class ProjectorLight {
     return [...this.projectors.values()].filter((p) => p.enabled);
   }
 }
+

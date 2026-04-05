@@ -205,3 +205,4 @@ export class QuestManager {
     return required.filter((o) => o.completed).length / required.length;
   }
 }
+

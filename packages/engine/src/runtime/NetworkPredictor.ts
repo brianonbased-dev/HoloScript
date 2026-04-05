@@ -105,3 +105,4 @@ export class NetworkPredictor<T extends Record<string, any>> {
     return this.predictedState;
   }
 }
+

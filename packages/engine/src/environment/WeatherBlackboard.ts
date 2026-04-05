@@ -196,3 +196,4 @@ export function computeSunIntensity(sunY: number): number {
   // Smooth ramp with atmospheric scattering falloff near horizon
   return Math.min(1.0, sunY * 2.0) * Math.min(1.0, sunY * 5.0);
 }
+

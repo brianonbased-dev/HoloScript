@@ -79,3 +79,4 @@ describe('SoftBodySolver — Production', () => {
     expect(dist).toBeLessThan(4);
   });
 });
+

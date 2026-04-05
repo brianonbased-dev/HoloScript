@@ -9,10 +9,7 @@
  * syntax (`@turret = @physics + @ai_npc`) and registers them here so they are
  * available to all downstream systems as normal trait lookups.
  */
-
-    // @ts-expect-error migration TS2307
 import type { TraitHandler } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { TraitComposer } from '@holoscript/core';
 
 export class TraitBinder {
@@ -74,7 +71,6 @@ export class TraitBinder {
   registerComposed(
     name: string,
     sourceNames: string[],
-    // @ts-expect-error migration TS2307
     graph?: import('../compiler/TraitDependencyGraph').TraitDependencyGraph
   ): string[] {
     const composer = new TraitComposer(graph);
@@ -85,3 +81,4 @@ export class TraitBinder {
     return result.warnings;
   }
 }
+

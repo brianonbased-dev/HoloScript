@@ -166,3 +166,4 @@ export class TransitionSystem {
     this.engine.update(delta);
   }
 }
+

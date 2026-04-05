@@ -495,3 +495,4 @@ export class RagdollSystem {
     return ragdoll.definition.bones.reduce((sum, bone) => sum + bone.mass, 0);
   }
 }
+

@@ -18,13 +18,8 @@
  *
  * @module TraitRuntimeIntegration
  */
-
-    // @ts-expect-error migration TS2307
 import { VRTraitRegistry } from '@holoscript/core';
-
-    // @ts-expect-error migration TS2307
 import type { HSPlusNode, VRTraitName } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import type { TraitContext, TraitEvent } from '@holoscript/core';
 
 import type { TraitContextFactory } from './TraitContextFactory';
@@ -268,3 +263,4 @@ export class TraitRuntimeIntegration {
 export function createTraitRuntime(contextFactory: TraitContextFactory): TraitRuntimeIntegration {
   return new TraitRuntimeIntegration(contextFactory);
 }
+

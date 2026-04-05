@@ -20,13 +20,9 @@ import {
   EpisodicMemory,
   StigmergicTrace,
   SemanticSOP,
-    // @ts-expect-error migration TS2307
 } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { NormEngine, NormViolation, NormProposal } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { CulturalNorm, NormEnforcement, BUILTIN_NORMS } from '@holoscript/core';
-    // @ts-expect-error migration TS2307
 import { VREffect } from '@holoscript/core';
 
 // =============================================================================
@@ -216,9 +212,7 @@ export class CultureRuntime {
     }
 
     // Determine if action is blocked (hard enforcement)
-    // @ts-expect-error migration TS7006
     const hardViolations = violations.filter((v) => v.severity === 'hard');
-    // @ts-expect-error migration TS7006
     const blocked = this.config.autoEnforce ? hardViolations.map((v) => v.effect) : [];
     const allowed = this.config.autoEnforce ? hardViolations.length === 0 : true;
 
@@ -337,3 +331,4 @@ export class CultureRuntime {
     }
   }
 }
+
