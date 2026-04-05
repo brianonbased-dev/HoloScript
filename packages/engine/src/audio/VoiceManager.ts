@@ -1,7 +1,5 @@
-    // @ts-expect-error migration TS2307
-import { InputBindings } from '@holoscript/core/input/InputBindings';
-    // @ts-expect-error migration TS2307
-import { WebRTCTransport } from '@holoscript/core/network/WebRTCTransport';
+import { InputBindings } from '@holoscript/core';
+import { WebRTCTransport } from '@holoscript/core';
 
 export class VoiceManager {
   private isPttPressed = false;
@@ -57,3 +55,4 @@ export class VoiceManager {
     return this.mutedPeers.has(peerId);
   }
 }
+

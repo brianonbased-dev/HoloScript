@@ -5,7 +5,6 @@
  * Allows Hololand to discover and execute runtimes dynamically.
  */
 
-    // @ts-expect-error migration TS2307
 import type { HoloComposition } from '@holoscript/core';
 
 export interface RuntimeModule {
@@ -258,3 +257,4 @@ export function registerRuntime(runtime: RuntimeModule) {
   RuntimeRegistry.register(runtime);
   return runtime;
 }
+
