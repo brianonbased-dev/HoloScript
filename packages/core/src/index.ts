@@ -2764,8 +2764,8 @@ export { CultureRuntime } from './runtime/CultureRuntime';
 export type { CultureEvent, CultureRuntimeConfig } from './runtime/CultureRuntime';
 
 // â”€â”€ AI: Behavior Tree â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { BehaviorTree } from './ai/BehaviorTree';
-export type { BTContext as BTTreeContext, BTTreeDef } from './ai/BehaviorTree';
+export { BehaviorTree } from './ai';
+export type { BTTreeContext, BTTreeDef } from './ai';
 export {
   BTNode,
   SequenceNode,
@@ -2777,9 +2777,9 @@ export {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from './ai/BTNodes';
-export type { BTStatus } from './ai/BTNodes';
-export { Blackboard } from './ai/Blackboard';
+} from './ai';
+export type { BTStatus } from './ai';
+export { Blackboard } from './ai';
 
 // â”€â”€ Dialogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { DialogueGraph } from './dialogue/DialogueGraph';
@@ -2835,7 +2835,9 @@ export type {
 } from './audio/AudioEngine';
 
 // â”€â”€ TileMap / Procedural â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** @deprecated Use @holoscript/engine Tilemap subsystem instead (A.011.01g) */
 export { TileMap, TileFlags } from './tilemap/TileMap';
+/** @deprecated Use @holoscript/engine Tilemap subsystem instead (A.011.01g) */
 export type { TileData, TileLayer, AutoTileRule } from './tilemap/TileMap';
 
 // â”€â”€ Combat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2850,9 +2852,13 @@ export type {
 } from './combat/CombatManager';
 
 // â”€â”€ Navigation / Pathfinding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export { AStarPathfinder } from './navigation/AStarPathfinder';
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export type { PathNode, PathResult, DynamicObstacle } from './navigation/AStarPathfinder';
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export { NavMesh } from './navigation/NavMesh';
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export type { NavPoint, NavPolygon } from './navigation/NavMesh';
 
 // â”€â”€ Shader Graph (re-export rendering) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2870,11 +2876,15 @@ export type {
 } from './rendering/ShaderGraph';
 
 // â”€â”€ Particles (value re-export) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** @deprecated Use @holoscript/engine Particles subsystem instead (A.011.01g) */
 export { ParticleSystem } from './particles/ParticleSystem';
+/** @deprecated Use @holoscript/engine Particles subsystem instead (A.011.01g) */
 export type { EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
 
 // â”€â”€ Camera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export { CameraController } from './camera/CameraController';
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export type { CameraMode, CameraState, CameraConfig } from './camera/CameraController';
 
 // â”€â”€ Inventory / Gameplay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2990,11 +3000,13 @@ export { LODManager } from './lod/LODManager';
 export type { LODManagerOptions } from './lod/LODManager';
 
 // â”€â”€ AI / State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { StateMachine } from './ai/StateMachine';
-export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai/StateMachine';
+export { StateMachine } from './ai';
+export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai';
 
 // â”€â”€ Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export { InputManager } from './input/InputManager';
+/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
 export type {
   KeyState,
   MouseState,
