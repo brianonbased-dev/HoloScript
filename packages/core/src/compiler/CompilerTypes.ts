@@ -83,4 +83,12 @@ export interface IOSCompileResult {
   infoPlist: string;
   /** RoomPlan capture session file — emitted when roomplan_scan trait is present (iOS 16+) */
   roomPlanFile?: string;
+  /** LiDAR scanner file — emitted when lidar_* traits are present (iOS 15+, LiDAR hardware) */
+  lidarScannerFile?: string;
+  /** NPU scene understanding file — emitted when npu_* traits are present (iOS 15+, Vision + CoreML) */
+  npuSceneFile?: string;
+  /** Hand tracking file — emitted when camera_hand_* traits are present (iOS 14+, Vision framework) */
+  handTrackingFile?: string;
+  /** Portal AR file — emitted when portal_* traits are present (iOS 15+, ARKit depth + scene reconstruction) */
+  portalARFile?: string;
 }
