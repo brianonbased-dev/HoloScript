@@ -62,6 +62,10 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { OPERATION_COSTS } = require('@holoscript/absorb-service/credits') as {
+  OPERATION_COSTS: Record<string, { baseCostCents: number; description: string }>;
+};
 
 /** Revenue distribution result from @holoscript/core (not in dist/index.d.ts, so defined locally) */
 interface RevenueDistributionResult {
@@ -80,18 +84,19 @@ const protocolRecords = new Map<string, Record<string, unknown>>();
 const compileRateMap = new Map<string, number[]>();
 const protocolMetadata = new Map<string, Record<string, unknown>>();
 
-// Initialize token store backend (PostgreSQL if DATABASE_URL is set, otherwise in-memory)
+// Initialize PostgreSQL pool (shared across token store + credit routes)
+let pgPool: import('pg').Pool | undefined;
 let tokenBackend: TokenStoreBackend | undefined;
 if (process.env.DATABASE_URL) {
   try {
     const { Pool } = require('pg') as typeof import('pg');
-    const pool = new Pool({
+    pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
     });
-    tokenBackend = new PostgresTokenStore(pool);
+    tokenBackend = new PostgresTokenStore(pgPool);
   } catch (err) {
-    console.error('[auth] Failed to initialize PostgreSQL token store:', err);
+    console.error('[auth] Failed to initialize PostgreSQL pool:', err);
     console.warn('[auth] Falling back to in-memory token store');
   }
 } else {
@@ -1334,6 +1339,128 @@ const httpServer = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(taskToResponse(task), null, 2));
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CREDIT API ROUTES — used by Studio creditGate.ts
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (url === '/api/credits/check' && req.method === 'POST') {
+    // Auth required
+    const authed = await checkAuth(req);
+    if (!authed) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Authentication required' }));
+      return;
+    }
+    try {
+      const body = await parseJsonBody(req);
+      const userId = body.userId as string;
+      const operation = body.operation as string;
+      if (!userId || !operation) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
+        return;
+      }
+      const opCost = OPERATION_COSTS[operation];
+      if (!opCost) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Unknown operation: ${operation}` }));
+        return;
+      }
+      if (!pgPool) {
+        // No DB — allow all requests (graceful degradation)
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, balance: Infinity, required: opCost.baseCostCents }));
+        return;
+      }
+      const result = await pgPool.query(
+        'SELECT balance_cents FROM credit_accounts WHERE user_id = $1',
+        [userId]
+      );
+      const balance = result.rows[0]?.balance_cents ?? 0;
+      if (balance >= opCost.baseCostCents) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, balance, required: opCost.baseCostCents }));
+      } else {
+        res.writeHead(402, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Insufficient credits',
+          balance,
+          required: opCost.baseCostCents,
+          description: opCost.description,
+        }));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Credit check failed', detail: message }));
+    }
+    return;
+  }
+
+  if (url === '/api/credits/deduct' && req.method === 'POST') {
+    // Auth required
+    const authed = await checkAuth(req);
+    if (!authed) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Authentication required' }));
+      return;
+    }
+    try {
+      const body = await parseJsonBody(req);
+      const userId = body.userId as string;
+      const operation = body.operation as string;
+      if (!userId || !operation) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
+        return;
+      }
+      const opCost = OPERATION_COSTS[operation];
+      if (!opCost) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Unknown operation: ${operation}` }));
+        return;
+      }
+      if (!pgPool) {
+        // No DB — accept deduction silently (graceful degradation)
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents }));
+        return;
+      }
+      // Atomic deduct: only succeeds if balance is sufficient
+      const result = await pgPool.query(
+        `UPDATE credit_accounts
+         SET balance_cents = balance_cents - $1,
+             lifetime_spent_cents = lifetime_spent_cents + $1,
+             updated_at = NOW()
+         WHERE user_id = $2 AND balance_cents >= $1
+         RETURNING balance_cents`,
+        [opCost.baseCostCents, userId]
+      );
+      if (result.rowCount === 0) {
+        res.writeHead(402, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Insufficient credits',
+          required: opCost.baseCostCents,
+          description: opCost.description,
+        }));
+        return;
+      }
+      // Record transaction (fire-and-forget, don't block response)
+      pgPool.query(
+        `INSERT INTO credit_transactions (user_id, type, amount_cents, balance_after_cents, description, metadata)
+         VALUES ($1, 'usage', $2, $3, $4, $5)`,
+        [userId, -opCost.baseCostCents, result.rows[0].balance_cents, opCost.description, JSON.stringify({ operation })]
+      ).catch((txErr: unknown) => console.error('[credits] Failed to record transaction:', txErr));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents, balance: result.rows[0].balance_cents }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Credit deduction failed', detail: message }));
+    }
     return;
   }
 
