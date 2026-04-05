@@ -12,6 +12,8 @@
 
 import type { TeamAgentProfile, SlotRole } from './team-agents';
 import { TEAM_AGENT_PROFILES, getAllProfiles } from './team-agents';
+import { Team as FrameworkTeam } from '@holoscript/framework';
+import type { CycleResult as FrameworkCycleResult } from '@holoscript/framework';
 
 // ── Types ──
 
@@ -88,35 +90,6 @@ function getApiKey(): string {
   return process.env.HOLOMESH_API_KEY || process.env.MCP_API_KEY || '';
 }
 
-async function teamFetch(
-  path: string,
-  method: 'GET' | 'POST' | 'PATCH',
-  body?: Record<string, unknown>
-): Promise<Record<string, unknown>> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return { error: 'No API key configured. Set HOLOMESH_API_KEY or MCP_API_KEY.' };
-  }
-
-  const url = `${getServerUrl()}${path}`;
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return (await res.json()) as Record<string, unknown>;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { error: `HTTP request failed: ${message}` };
-  }
-}
-
 // ── Core Functions ──
 
 /**
@@ -191,7 +164,9 @@ function mapAgentRoleToSlot(role: string): SlotRole {
 
 /**
  * Execute one work cycle for all agents in a room.
- * Each agent: check board -> find claimable task -> claim -> simulate execution -> mark done.
+ * Delegates to @holoscript/framework Team.runCycle() for the core
+ * claim/execute/done loop. Adapts the result back to the coordinator's
+ * CycleResult[] shape for backward compatibility.
  */
 export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
   const slots = roomAgents.get(roomId);
@@ -199,214 +174,87 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
     return [];
   }
 
-  // Fetch the board once for the room
-  const boardData = await teamFetch(
-    `/api/holomesh/team/${encodeURIComponent(roomId)}/board`,
-    'GET'
-  );
+  // Build a Framework Team from the registered agent profiles
+  const agentConfigs = Array.from(slots.values())
+    .map(slot => {
+      const profile = TEAM_AGENT_PROFILES.get(slot.agentId);
+      if (!profile) return null;
+      return {
+        name: profile.name,
+        role: profile.role as 'architect' | 'coder' | 'researcher' | 'reviewer',
+        model: { provider: profile.provider as 'anthropic' | 'openai' | 'xai', model: profile.model },
+        capabilities: profile.capabilities,
+        claimFilter: { roles: profile.claimFilter.roles, maxPriority: profile.claimFilter.maxPriority },
+        systemPrompt: profile.systemPrompt,
+        knowledgeDomains: profile.knowledgeDomains,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
-  if (boardData.error) {
-    return Array.from(slots.values()).map((slot) => ({
+  if (agentConfigs.length === 0) {
+    return Array.from(slots.values()).map(slot => ({
       roomId,
       agentId: slot.agentId,
       agentName: slot.agentName,
       taskId: null,
       taskTitle: null,
-      action: 'error' as const,
-      summary: `Board fetch failed: ${String(boardData.error)}`,
+      action: 'skipped' as const,
+      summary: 'No profile found for agent',
       knowledgeEntries: [],
     }));
   }
 
-  const board = boardData.board as Record<string, unknown> | undefined;
-  const openTasks = ((board?.open as BoardTask[]) || []).sort(
-    (a, b) => a.priority - b.priority
-  );
+  const serverUrl = getServerUrl();
+  const apiKey = getApiKey();
 
-  const results: CycleResult[] = [];
-  const claimedInCycle = new Set<string>();
+  const frameworkTeam = new FrameworkTeam({
+    name: roomId,
+    agents: agentConfigs,
+    boardUrl: serverUrl,
+    boardApiKey: apiKey,
+  });
 
-  for (const [agentId, slot] of slots) {
-    const profile = TEAM_AGENT_PROFILES.get(agentId);
-    if (!profile) {
-      results.push({
-        roomId,
-        agentId,
-        agentName: slot.agentName,
-        taskId: null,
-        taskTitle: null,
-        action: 'skipped',
-        summary: 'No profile found for agent',
-        knowledgeEntries: [],
-      });
-      continue;
+  // Run the framework cycle (handles claim/execute/done via API)
+  const fwResult: FrameworkCycleResult = await frameworkTeam.runCycle();
+
+  // Adapt framework results → coordinator CycleResult[]
+  const results: CycleResult[] = fwResult.agentResults.map(ar => {
+    const slot = Array.from(slots.values()).find(s => s.agentName === ar.agentName);
+    const agentId = slot?.agentId || ar.agentName;
+
+    // Update slot stats
+    if (slot && ar.action === 'completed') {
+      slot.tasksCompleted += 1;
+      slot.knowledgePublished += ar.knowledge.length;
+      slot.lastActiveAt = new Date().toISOString();
     }
 
-    // Find a matching task for this agent
-    const matchingTask = findClaimableTask(openTasks, profile, claimedInCycle);
-
-    if (!matchingTask) {
-      results.push({
-        roomId,
-        agentId,
-        agentName: slot.agentName,
-        taskId: null,
-        taskTitle: null,
-        action: 'skipped',
-        summary: 'No matching open tasks for this agent',
-        knowledgeEntries: [],
-      });
-      continue;
-    }
-
-    claimedInCycle.add(matchingTask.id);
-
-    // Claim the task
-    const claimResult = await teamFetch(
-      `/api/holomesh/team/${encodeURIComponent(roomId)}/board/${encodeURIComponent(matchingTask.id)}`,
-      'PATCH',
-      { action: 'claim' }
-    );
-
-    if (claimResult.error) {
-      results.push({
-        roomId,
-        agentId,
-        agentName: slot.agentName,
-        taskId: matchingTask.id,
-        taskTitle: matchingTask.title,
-        action: 'error',
-        summary: `Claim failed: ${String(claimResult.error)}`,
-        knowledgeEntries: [],
-      });
-      continue;
-    }
-
-    // Generate knowledge insight from the task
-    const insights = generateInsights(profile, matchingTask);
-
-    // Mark task as done
-    const completeResult = await teamFetch(
-      `/api/holomesh/team/${encodeURIComponent(roomId)}/board/${encodeURIComponent(matchingTask.id)}`,
-      'PATCH',
-      {
-        action: 'done',
-        summary: `Completed by ${profile.name} (${profile.role}): ${matchingTask.title}`,
-      }
-    );
-
-    if (completeResult.error) {
-      results.push({
-        roomId,
-        agentId,
-        agentName: slot.agentName,
-        taskId: matchingTask.id,
-        taskTitle: matchingTask.title,
-        action: 'error',
-        summary: `Complete failed: ${String(completeResult.error)}`,
-        knowledgeEntries: insights,
-      });
-      continue;
-    }
-
-    slot.tasksCompleted += 1;
-    slot.knowledgePublished += insights.length;
-    slot.lastActiveAt = new Date().toISOString();
-
-    results.push({
+    return {
       roomId,
       agentId,
-      agentName: slot.agentName,
-      taskId: matchingTask.id,
-      taskTitle: matchingTask.title,
-      action: 'completed',
-      summary: `Task "${matchingTask.title}" completed. ${insights.length} insight(s) generated.`,
-      knowledgeEntries: insights,
-    });
-  }
+      agentName: ar.agentName,
+      taskId: ar.taskId,
+      taskTitle: ar.taskTitle,
+      action: ar.action,
+      summary: ar.summary,
+      knowledgeEntries: ar.knowledge.map(k => ({
+        type: k.type,
+        content: k.content,
+        domain: k.domain,
+        confidence: k.confidence,
+      })),
+    };
+  });
 
   // Store cycle history
   const history = roomCycleHistory.get(roomId) || [];
   history.push(...results);
-  // Keep last 100 results per room
   if (history.length > 100) {
     history.splice(0, history.length - 100);
   }
   roomCycleHistory.set(roomId, history);
 
   return results;
-}
-
-/**
- * Find the best claimable task for an agent based on its claim filter.
- */
-function findClaimableTask(
-  openTasks: BoardTask[],
-  profile: TeamAgentProfile,
-  alreadyClaimed: Set<string>
-): BoardTask | undefined {
-  return openTasks.find((task) => {
-    if (alreadyClaimed.has(task.id)) return false;
-    if (task.priority > profile.claimFilter.maxPriority) return false;
-
-    // If the task has a preferred role, the agent must claim that role
-    if (task.role) {
-      return profile.claimFilter.roles.includes(task.role);
-    }
-
-    // No role specified on task — any agent with a matching capability can claim
-    return true;
-  });
-}
-
-/**
- * Generate knowledge insights from a completed task based on the agent profile.
- * In a real system, this would call an LLM. Here we generate structured placeholders.
- */
-function generateInsights(
-  profile: TeamAgentProfile,
-  task: BoardTask
-): KnowledgeInsight[] {
-  const insights: KnowledgeInsight[] = [];
-  const primaryDomain = profile.knowledgeDomains[0] || 'general';
-
-  // Each role generates different insight types
-  switch (profile.role) {
-    case 'architect':
-      insights.push({
-        type: 'pattern',
-        content: `Architectural pattern from "${task.title}": ${profile.name} identified a composition opportunity.`,
-        domain: primaryDomain,
-        confidence: 0.8,
-      });
-      break;
-    case 'coder':
-      insights.push({
-        type: 'gotcha',
-        content: `Implementation note for "${task.title}": ${profile.name} found a type constraint worth documenting.`,
-        domain: primaryDomain,
-        confidence: 0.7,
-      });
-      break;
-    case 'researcher':
-      insights.push({
-        type: 'wisdom',
-        content: `Research finding from "${task.title}": ${profile.name} extracted a reusable insight.`,
-        domain: primaryDomain,
-        confidence: 0.6,
-      });
-      break;
-    case 'reviewer':
-      insights.push({
-        type: 'pattern',
-        content: `Review pattern from "${task.title}": ${profile.name} identified a consistency rule.`,
-        domain: primaryDomain,
-        confidence: 0.9,
-      });
-      break;
-  }
-
-  return insights;
 }
 
 /**

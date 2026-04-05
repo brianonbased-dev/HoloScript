@@ -13,6 +13,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { Team } from '@holoscript/framework';
 
 // ── Server URL Resolution ──
 
@@ -56,6 +57,15 @@ async function boardFetch(
     const message = err instanceof Error ? err.message : String(err);
     return { error: `HTTP request failed: ${message}` };
   }
+}
+
+function getFrameworkTeam(teamId: string): Team {
+  return new Team({
+    name: teamId,
+    agents: [],
+    boardUrl: getServerUrl(),
+    boardApiKey: getApiKey(),
+  });
 }
 
 // ── MCP Tool Definitions ──
@@ -213,6 +223,41 @@ export const boardTools: Tool[] = [
     },
   },
   {
+    name: 'holomesh_scout',
+    description:
+      'Trigger an on-demand scout scan to populate the board when it is empty. Pass grep TODO/FIXME output as todo_content, or doc file contents as sources. Any agent can call this — it does NOT consume a team slot.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        todo_content: {
+          type: 'string',
+          description: 'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
+        },
+        sources: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Source file name (e.g., ROADMAP.md)' },
+              content: { type: 'string', description: 'File content to derive tasks from' },
+            },
+            required: ['name', 'content'],
+          },
+          description: 'Doc files to derive tasks from (checkboxes, headers, TODOs)',
+        },
+        max_tasks: {
+          type: 'number',
+          description: 'Max tasks to create (default 50, max 100)',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
+  {
     name: 'holomesh_suggest',
     description:
       'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
@@ -317,6 +362,8 @@ export async function handleBoardTool(
       return handleSlotAssign(args);
     case 'holomesh_mode_set':
       return handleModeSet(args);
+    case 'holomesh_scout':
+      return handleScout(args);
     case 'holomesh_suggest':
       return handleSuggest(args);
     case 'holomesh_suggest_vote':
@@ -353,11 +400,15 @@ async function handleBoardAdd(
     return { error: '"tasks" must be a non-empty array of task objects.' };
   }
 
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/board`,
-    'POST',
-    { tasks }
-  );
+  try {
+    // Thin wrapper: delegate to Framework Team
+    const team = getFrameworkTeam(teamId);
+    // @ts-expect-error type variance on task properties
+    const added = await team.addTasks(tasks);
+    return { tasks: added };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleBoardClaim(
@@ -444,6 +495,25 @@ async function handleModeSet(
     'POST',
     { mode }
   );
+}
+
+async function handleScout(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) {
+    return { error: '"team_id" is required.' };
+  }
+
+  try {
+    // Thin wrapper: delegate to Framework Team
+    const team = getFrameworkTeam(teamId);
+    if (!args.todo_content) return { error: 'todo_content is required for scout' };
+    const tasks = await team.scoutFromTodos(args.todo_content as string);
+    return { tasks };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleSuggest(
