@@ -23,12 +23,10 @@ import { randomUUID } from 'crypto';
 // @ts-expect-error During migration
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
 // @ts-expect-error During migration
-import { createHeadlessRuntime as createProfileRuntime } from '../runtime/profiles/HeadlessRuntime';
-// @ts-expect-error During migration
-import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+import { createHeadlessRuntime as createProfileRuntime, type ActionHandler } from '../runtime/profiles';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 // @ts-expect-error During migration
-import { HEADLESS_PROFILE as PROFILES_HEADLESS } from '../runtime/profiles/RuntimeProfile';
+const PROFILES_HEADLESS = HEADLESS_PROFILE;
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
