@@ -2904,7 +2904,9 @@ export type {
 export { ComponentType } from './traits/ECSWorldTrait';
 
 // ── Animation Engine ───────────────────────────────────────────────
+/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
 export { AnimationEngine, Easing } from './animation/AnimationEngine';
+/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
 export type {
   Keyframe,
   AnimationClip,
@@ -3092,7 +3094,9 @@ export { NetworkManager } from './network/NetworkManager';
 export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
 
 // ── Animation Timeline ─────────────────────────────────────────────
+/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
 export { Timeline } from './animation/Timeline';
+/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
 export type { TimelineMode, TimelineEntry, TimelineConfig } from './animation/Timeline';
 
 // ── Scene Manager ──────────────────────────────────────────────────
