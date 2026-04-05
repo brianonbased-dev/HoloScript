@@ -1,2 +1,2 @@
 // Re-export shim — module migrated to @holoscript/engine (A.011)
-export * from '@holoscript/engine/runtime/PerformanceTelemetry';
+export * from '../../../engine/src/runtime/PerformanceTelemetry';

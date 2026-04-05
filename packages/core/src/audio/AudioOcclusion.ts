@@ -1,2 +1,2 @@
 // Re-export shim — module migrated to @holoscript/engine (A.011)
-export * from '@holoscript/engine/audio/AudioOcclusion';
+export * from '../../../engine/src/audio/AudioOcclusion';

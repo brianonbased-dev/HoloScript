@@ -1,2 +1,2 @@
 // Re-export shim — module migrated to @holoscript/engine (A.011)
-export * from '@holoscript/engine/animation/AnimationEngine';
+export * from '../../../engine/src/animation/AnimationEngine';

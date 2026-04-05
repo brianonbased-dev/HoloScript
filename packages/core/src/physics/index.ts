@@ -1,2 +1,3 @@
 // Re-export shim — physics barrel migrated to @holoscript/engine (A.011)
-export * from '@holoscript/engine/physics';
+export * from '../../../engine/src/physics';
+

@@ -1,2 +1,2 @@
 // Re-export shim — module migrated to @holoscript/engine (A.011)
-export * from '@holoscript/engine/rendering/postprocess/PostProcessTypes';
+export * from '../../../../engine/src/rendering/postprocess/PostProcessTypes';
