@@ -37,6 +37,14 @@
     "./learning": {
       "import": "./dist/learning/index.js",
       "types": "./dist/learning/index.d.ts"
+    },
+    "./skills": {
+      "import": "./dist/skills/index.js",
+      "types": "./dist/skills/index.d.ts"
+    },
+    "./negotiation": {
+      "import": "./dist/negotiation/index.js",
+      "types": "./dist/negotiation/index.d.ts"
     }
   },
   "scripts": {

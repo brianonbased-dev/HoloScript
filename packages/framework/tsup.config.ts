@@ -10,6 +10,8 @@ export default defineConfig({
     'ai/index': 'src/ai/index.ts',
     'training/index': 'src/training/index.ts',
     'learning/index': 'src/learning/index.ts',
+    'skills/index': 'src/skills/index.ts',
+    'negotiation/index': 'src/negotiation/index.ts',
   },
   format: ['esm'],
   dts: true,

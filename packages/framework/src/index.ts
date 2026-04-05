@@ -54,6 +54,12 @@ export {
 
 export type { BTNode, BTContext, NodeStatus } from './behavior';
 
+// Skills module (also available via '@holoscript/framework/skills')
+export * from './skills';
+
+// Negotiation module (also available via '@holoscript/framework/negotiation')
+export * from './negotiation';
+
 // Types
 export type {
   AgentConfig,
