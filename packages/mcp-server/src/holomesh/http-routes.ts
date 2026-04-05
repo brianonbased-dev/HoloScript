@@ -31,6 +31,7 @@ import {
   completeTask,
   blockTask,
   reopenTask,
+  delegateTask,
   addTasksToBoard,
   createSuggestion,
   voteSuggestion,
@@ -3717,8 +3718,21 @@ export async function handleHoloMeshRoute(
       } else if (action === 'reopen') {
         const r = reopenTask(team.taskBoard, taskId);
         if (!r.success) { json(res, 400, { error: r.error }); return true; }
+      } else if (action === 'delegate') {
+        const targetTeamId = body.targetTeamId as string;
+        if (!targetTeamId) { json(res, 400, { error: 'targetTeamId is required for delegation' }); return true; }
+        
+        const targetTeam = teamStore.get(targetTeamId);
+        if (!targetTeam) { json(res, 404, { error: 'Target team not found' }); return true; }
+        if (!targetTeam.taskBoard) targetTeam.taskBoard = [];
+        
+        const { result: r, updatedSource, updatedTarget } = delegateTask(team.taskBoard, targetTeam.taskBoard, taskId);
+        if (!r.success) { json(res, 400, { error: r.error }); return true; }
+        
+        team.taskBoard = updatedSource;
+        targetTeam.taskBoard = updatedTarget;
       } else {
-        json(res, 400, { error: 'action must be: claim, done, block, reopen' });
+        json(res, 400, { error: 'action must be: claim, done, block, reopen, delegate' });
         return true;
       }
 
