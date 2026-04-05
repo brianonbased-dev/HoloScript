@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/snn-poc",
   "version": "1.0.0",
-  "description": "Standalone WebGPU compute shader proof-of-concept for LIF spiking neural network simulation with CPU reference validation",
+  "description": "@deprecated — Superseded by @holoscript/snn-webgpu. CPU reference utilities preserved in snn-webgpu/src/poc/.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

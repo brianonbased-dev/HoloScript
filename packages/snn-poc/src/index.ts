@@ -1,4 +1,8 @@
 /**
+ * @deprecated This package is superseded by @holoscript/snn-webgpu.
+ * CPU reference utilities have been preserved in @holoscript/snn-webgpu/src/poc/.
+ * Use `import { CPUReferenceSimulator, generateSynapticInput } from '@holoscript/snn-webgpu'` instead.
+ *
  * @holoscript/snn-poc
  *
  * Standalone WebGPU compute shader proof-of-concept for LIF spiking

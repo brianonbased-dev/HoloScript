@@ -218,7 +218,7 @@ describe('GossipProtocol — subscribe / unsubscribe', () => {
   it('unsubscribe stops future deliveries', () => {
     const n = mkNode();
     const calls: number[] = [];
-    const unsub = n.subscribe('data', () => { calls.push(); });
+    const unsub = n.subscribe('data', () => { calls.push(1); });
     n.publish({ x: 1 }, 'data');
     unsub();
     n.publish({ x: 2 }, 'data');
@@ -227,7 +227,7 @@ describe('GossipProtocol — subscribe / unsubscribe', () => {
   it('wildcard receives all message types', async () => {
     const n = mkNode();
     const types: string[] = [];
-    n.subscribe('*', (msg) => { types.push(); });
+    n.subscribe('*', (msg) => { types.push(msg.type); });
     n.publish({}, 'data');
     n.publish({}, 'heartbeat');
     n.publish({}, 'membership');

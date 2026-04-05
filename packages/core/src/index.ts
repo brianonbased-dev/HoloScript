@@ -49,7 +49,7 @@ export {
   type CollisionEvent,
   type CollisionCallback,
 } from '@holoscript/engine';
-export * as Animation from '../../../engine/src/animation';
+export * as Animation from '../../engine/src/animation';
 
 // Composition Parser (Tier 3 migration from Hololand â€” pure language-level AST traversal)
 export {
