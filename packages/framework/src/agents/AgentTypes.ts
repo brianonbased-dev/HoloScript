@@ -226,7 +226,8 @@ export type AgentCategory =
   | 'quest_creator'
   | 'librarian'
   | 'twin_manager'
-  | 'payment_handler';
+  | 'payment_handler'
+  | 'autonomous';
 
 /**
  * Agent position in the Lotus Flower Architecture

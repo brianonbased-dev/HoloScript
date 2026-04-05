@@ -16,6 +16,28 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Board types + logic absorbed into @holoscript/framework
+import {
+  type TeamTask as FwTeamTask,
+  type TeamSuggestion as FwTeamSuggestion,
+  type SuggestionCategory as FwSuggestionCategory,
+  ROOM_PRESETS as FW_ROOM_PRESETS,
+  normalizeTitle,
+  generateTaskId,
+  inferFixPriority,
+  parseDeriveContent,
+  auditDoneLog,
+  claimTask,
+  completeTask,
+  blockTask,
+  reopenTask,
+  addTasksToBoard,
+  createSuggestion,
+  voteSuggestion,
+  promoteSuggestion,
+  dismissSuggestion,
+} from '@holoscript/framework';
+
 // ── x402 Premium Entry Payment Gate ──
 
 /** Tracks which agents have paid for which entries: "agentId:entryId" → true */
@@ -210,7 +232,7 @@ const PRIVATE_KNOWLEDGE_DOMAINS = [
 
 // ── Enterprise Team Workspaces ──
 
-type TeamRole = 'owner' | 'admin' | 'member' | 'viewer';
+type TeamRole = 'owner' | 'admin' | 'member' | 'viewer' | 'infrastructure';
 
 const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
   owner: [
@@ -234,6 +256,7 @@ const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
   ],
   member: ['knowledge:write', 'knowledge:read', 'absorb:run', 'messages:write', 'messages:read'],
   viewer: ['knowledge:read', 'messages:read'],
+  infrastructure: ['knowledge:write', 'knowledge:read', 'messages:write', 'messages:read'],
 };
 
 interface TeamMember {
@@ -283,94 +306,19 @@ interface RoomConfig {
   spawnTemplate?: { traits: string[]; ideType?: string };
 }
 
-// ── Task Board (structured work tracking — not chat) ──
+// Board types — canonical source is @holoscript/framework
+// TaskStatus, SlotRole, TeamTask, DoneLogEntry, SuggestionCategory,
+// SuggestionVote, TeamSuggestion all imported at top of file.
+type TaskStatus = import('@holoscript/framework').TaskStatus;
+type SlotRole = import('@holoscript/framework').SlotRole;
+type TeamTask = import('@holoscript/framework').TeamTask;
+type DoneLogEntry = import('@holoscript/framework').DoneLogEntry;
+type SuggestionCategory = import('@holoscript/framework').SuggestionCategory;
+type SuggestionVote = import('@holoscript/framework').SuggestionVote;
+type TeamSuggestion = import('@holoscript/framework').TeamSuggestion;
 
-type TaskStatus = 'open' | 'claimed' | 'done' | 'blocked';
-type SlotRole = 'coder' | 'tester' | 'researcher' | 'reviewer' | 'flex';
-
-interface TeamTask {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  claimedBy?: string;       // agent ID
-  claimedByName?: string;
-  completedBy?: string;
-  commitHash?: string;
-  source?: string;          // "STUDIO_AUDIT.md" or "ROADMAP.md" or "manual"
-  priority: number;         // 1=highest
-  role?: SlotRole;          // preferred slot role
-  createdAt: string;
-  completedAt?: string;
-}
-
-interface DoneLogEntry {
-  taskId: string;
-  title: string;
-  completedBy: string;
-  commitHash?: string;
-  timestamp: string;
-  summary: string;
-}
-
-// ── Team Suggestions (agent-proposed improvements) ──
-
-type SuggestionCategory = 'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other';
-
-interface SuggestionVote {
-  agentId: string;
-  agentName: string;
-  value: 1 | -1;
-  reason?: string;
-  votedAt: string;
-}
-
-interface TeamSuggestion {
-  id: string;
-  title: string;
-  description: string;
-  category: SuggestionCategory;
-  /** Agent who proposed it */
-  proposedBy: string;
-  proposedByName: string;
-  /** Votes from team members */
-  votes: SuggestionVote[];
-  /** Net score (sum of vote values) */
-  score: number;
-  /** Status lifecycle */
-  status: 'open' | 'promoted' | 'dismissed';
-  /** If promoted, the resulting board task ID */
-  promotedTaskId?: string;
-  /** Optional: what the agent observed that led to this suggestion */
-  evidence?: string;
-  createdAt: string;
-  resolvedAt?: string;
-}
-
-// ── Room Presets (switch workload with one command) ──
-
-const ROOM_PRESETS: Record<string, { objective: string; taskSources: string[]; rules: string[] }> = {
-  audit: {
-    objective: 'Fix audit issues — split oversized components, add error handling, close security gaps, add tests',
-    taskSources: ['STUDIO_AUDIT.md'],
-    rules: ['Screenshot before and after visual changes', 'Run tsc --noEmit before committing', 'One task at a time'],
-  },
-  research: {
-    objective: 'Compound knowledge — read research files, synthesize findings, contribute wisdom/patterns/gotchas',
-    taskSources: ['research/*.md', 'ROADMAP.md'],
-    rules: ['Query knowledge store before writing', 'Contribute findings to team workspace', 'Cite sources'],
-  },
-  build: {
-    objective: 'Ship features — implement roadmap items, write code, add tests, deploy',
-    taskSources: ['ROADMAP.md', 'TODO.md'],
-    rules: ['Run tests before committing', 'Sectioned commits by scope', 'Update docs if adding public API'],
-  },
-  review: {
-    objective: 'Quality gate — review recent changes, check for regressions, verify test coverage',
-    taskSources: ['git log --oneline -20'],
-    rules: ['Read the diff before commenting', 'Check test coverage', 'Verify no new console.log in production code'],
-  },
-};
+// Room presets — canonical source is @holoscript/framework
+const ROOM_PRESETS = FW_ROOM_PRESETS;
 
 interface Team {
   id: string;
@@ -3475,9 +3423,15 @@ export async function handleHoloMeshRoute(
         joinedAt: new Date().toISOString(),
       };
 
-      // Slot enforcement — if team is full, add to waitlist
+      // Infrastructure agents (scouts, daemons) bypass slot limits
+      const joinIdeType = ideType || '';
+      const isInfraAgent = joinIdeType === 'infrastructure' || /scout|daemon|worker|heartbeat/i.test(caller.name);
+      if (isInfraAgent) newMember.role = 'infrastructure';
+
+      // Slot enforcement — if team is full, add to waitlist (infra agents bypass)
       const maxSlots = team.maxSlots || DEFAULT_MAX_SLOTS;
-      if (team.members.length >= maxSlots) {
+      const memberSlotCount = team.members.filter((m) => m.role !== 'infrastructure').length;
+      if (memberSlotCount >= maxSlots && !isInfraAgent) {
         // Already on waitlist?
         if (team.waitlist?.find((w) => w.agentId === caller.id)) {
           json(res, 409, { error: 'Already on waitlist for this team' });
@@ -3696,33 +3650,9 @@ export async function handleHoloMeshRoute(
 
       const body = await parseJsonBody(req);
       const tasks = Array.isArray(body.tasks) ? body.tasks : [body];
-      const added: TeamTask[] = [];
 
-      // Fuzzy dedup against existing board + done log
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
-      const existingNorm = new Set([
-        ...team.taskBoard.map((t) => normalize(t.title)),
-        ...(team.doneLog || []).map((d) => normalize(d.title)),
-      ]);
-
-      for (const t of tasks) {
-        const title = String(t.title || '').slice(0, 200);
-        if (!title || existingNorm.has(normalize(title))) continue; // skip empty or duplicate
-
-        const task: TeamTask = {
-          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          title,
-          description: String(t.description || '').slice(0, 1000),
-          status: 'open',
-          source: String(t.source || 'manual'),
-          priority: parseInt(String(t.priority)) || 5,
-          role: t.role as SlotRole || undefined,
-          createdAt: new Date().toISOString(),
-        };
-        team.taskBoard.push(task);
-        existingNorm.add(normalize(title)); // prevent intra-batch dupes
-        added.push(task);
-      }
+      // Add tasks via framework (dedup + ID generation)
+      const { added } = addTasksToBoard(team.taskBoard, team.doneLog || [], tasks);
       persistTeamStore();
       json(res, 201, { success: true, added: added.length, tasks: added });
       return true;
@@ -3768,37 +3698,25 @@ export async function handleHoloMeshRoute(
       const body = await parseJsonBody(req);
       const action = body.action as string;
 
+      // Board CRUD via framework (absorbed from this file)
       if (action === 'claim') {
-        if (task.status !== 'open') {
-          json(res, 409, { error: `Task is ${task.status}, not open` });
-          return true;
-        }
-        task.status = 'claimed';
-        task.claimedBy = caller.id;
-        task.claimedByName = caller.name;
+        const r = claimTask(team.taskBoard, taskId, caller.id, caller.name);
+        if (!r.success) { json(res, 409, { error: r.error }); return true; }
       } else if (action === 'done') {
-        task.status = 'done';
-        task.completedBy = caller.name;
-        task.commitHash = (body.commit as string) || undefined;
-        task.completedAt = new Date().toISOString();
-        // Add to done log
         if (!team.doneLog) team.doneLog = [];
-        team.doneLog.push({
-          taskId: task.id,
-          title: task.title,
-          completedBy: caller.name,
-          commitHash: task.commitHash,
-          timestamp: task.completedAt,
+        const { result: r, updatedBoard } = completeTask(team.taskBoard, taskId, caller.name, {
+          commit: body.commit as string | undefined,
           summary: String(body.summary || task.title),
         });
-        // Remove from active board
-        team.taskBoard = team.taskBoard.filter((t) => t.id !== taskId);
+        if (!r.success) { json(res, 400, { error: r.error }); return true; }
+        team.taskBoard = updatedBoard;
+        if (r.doneEntry) team.doneLog.push(r.doneEntry);
       } else if (action === 'block') {
-        task.status = 'blocked';
+        const r = blockTask(team.taskBoard, taskId);
+        if (!r.success) { json(res, 400, { error: r.error }); return true; }
       } else if (action === 'reopen') {
-        task.status = 'open';
-        task.claimedBy = undefined;
-        task.claimedByName = undefined;
+        const r = reopenTask(team.taskBoard, taskId);
+        if (!r.success) { json(res, 400, { error: r.error }); return true; }
       } else {
         json(res, 400, { error: 'action must be: claim, done, block, reopen' });
         return true;
@@ -3835,102 +3753,152 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
-      // Parse tasks from content — look for actionable items
-      // Patterns: markdown checkboxes, section headers, and TODO/FIXME markers
-      // including grep-style output: path:line:// FIXME: message
-      const lines = content.split('\n');
-      const derived: TeamTask[] = [];
-      const derivedNorm = new Set<string>();
-      let priority = 5;
-
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
-      const pushDerived = (titleRaw: string, descriptionRaw = '', taskPriority = priority) => {
-        const title = String(titleRaw || '').trim().slice(0, 200);
-        if (!title) return;
-        const norm = normalize(title);
-        if (derivedNorm.has(norm)) return;
-        derivedNorm.add(norm);
-        derived.push({
-          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          title,
-          description: String(descriptionRaw || '').slice(0, 1000),
-          status: 'open',
-          source,
-          priority: taskPriority,
-          createdAt: new Date().toISOString(),
-        });
-      };
-
-      const inferFixPriority = (kind: string, text: string): number => {
-        const upper = `${kind} ${text}`.toUpperCase();
-        if (/SECURITY|VULN|INJECTION|AUTH|CRITICAL/.test(upper)) return 1;
-        if (/FIXME|BUG|BROKEN|FAIL|ERROR|REGRESSION/.test(upper)) return 2;
-        if (/TODO|HACK|TECH\s*DEBT|CLEANUP|REFACTOR/.test(upper)) return 3;
-        return 4;
-      };
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-
-        // Priority markers
-        if (trimmed.match(/^#+\s*(CRITICAL|SEC-)/i)) priority = 1;
-        else if (trimmed.match(/^#+\s*(HIGH|PERF-|MEM-|TYPE-|ERR-|TEST-)/i)) priority = 2;
-        else if (trimmed.match(/^#+\s*(MEDIUM|LOG-|TODO-|STORE-|UNUSED-)/i)) priority = 3;
-
-        // Markdown checkboxes
-        if (trimmed.match(/^\-\s*\[\s*\]\s+.+/)) {
-          const title = trimmed.replace(/^\-\s*\[\s*\]\s+/, '');
-          pushDerived(title, '', priority);
-          continue;
-        }
-
-        // Section headers as tasks
-        if (trimmed.match(/^###\s+\w+-\d+:.+/)) {
-          const title = trimmed.replace(/^###\s+/, '');
-          pushDerived(title, '', priority);
-          continue;
-        }
-
-        // grep-style TODO/FIXME/HACK lines:
-        //   path/to/file.ts:123: // FIXME: actual issue
-        const grepFix = trimmed.match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
-        if (grepFix) {
-          const file = grepFix[1].trim();
-          const lineNo = grepFix[2].trim();
-          const kind = grepFix[3].toUpperCase();
-          const detail = grepFix[4].trim().replace(/^[-:\s]+/, '').slice(0, 180);
-          const title = `${kind}: ${detail || `${file}:${lineNo}`}`.slice(0, 200);
-          const desc = `Source: ${file}:${lineNo}`;
-          pushDerived(title, desc, inferFixPriority(kind, detail));
-          continue;
-        }
-
-        // Plain TODO/FIXME/HACK lines
-        const inlineFix = trimmed.match(/^(?:[-*]\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
-        if (inlineFix) {
-          const kind = inlineFix[1].toUpperCase();
-          const detail = inlineFix[2].trim().replace(/^[-:\s]+/, '').slice(0, 180);
-          const title = `${kind}: ${detail}`.slice(0, 200);
-          pushDerived(title, '', inferFixPriority(kind, detail));
-        }
-      }
-
-      // Dedup against existing board + done log (fuzzy: normalize titles)
-      const existingNorm = new Set([
-        ...team.taskBoard.map((t) => normalize(t.title)),
-        ...(team.doneLog || []).map((d) => normalize(d.title)),
-      ]);
-      const fresh = derived.filter((t) => !existingNorm.has(normalize(t.title)));
-
-      team.taskBoard.push(...fresh);
+      // Parse + add via framework (parse, dedup, ID generation all in one)
+      const parsed = parseDeriveContent(content, source);
+      const { added: fresh } = addTasksToBoard(team.taskBoard, team.doneLog || [], parsed);
       persistTeamStore();
 
       json(res, 201, {
         success: true,
         derived: fresh.length,
-        skipped_existing: derived.length - fresh.length,
+        skipped_existing: parsed.length - fresh.length,
         source,
         tasks: fresh,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/board/scout — On-demand scout: scan codebase + derive tasks
+    // Any agent can call this when the board is empty. Does NOT consume a slot.
+    // Accepts optional body: { sources: string[], todo_scan: boolean, max_tasks: number }
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/scout$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.taskBoard) team.taskBoard = [];
+
+      const body = await parseJsonBody(req);
+      const maxTasks = Math.min(parseInt(String(body.max_tasks)) || 50, 100);
+      const todoScan = body.todo_scan !== false; // default true
+      const sources = Array.isArray(body.sources) ? body.sources as Array<Record<string, unknown>> : [];
+
+      const existingNorm = new Set([
+        ...team.taskBoard.map((t) => normalizeTitle(t.title)),
+        ...(team.doneLog || []).map((d) => normalizeTitle(d.title)),
+      ]);
+
+      const scouted: TeamTask[] = [];
+      const scoutResults: { source: string; found: number; added: number }[] = [];
+
+      const pushTask = (title: string, description: string, priority: number, source: string, role?: SlotRole) => {
+        if (scouted.length >= maxTasks) return;
+        const t = String(title).trim().slice(0, 200);
+        if (!t) return;
+        const norm = normalizeTitle(t);
+        if (existingNorm.has(norm)) return;
+        existingNorm.add(norm);
+        scouted.push({
+          id: generateTaskId(),
+          title: t,
+          description: String(description).slice(0, 1000),
+          status: 'open',
+          source: `scout:${source}`,
+          priority,
+          role,
+          createdAt: new Date().toISOString(),
+        });
+      };
+
+      // ── Phase 1: TODO/FIXME scan from supplied content ──
+      if (todoScan && body.todo_content) {
+        const lines = String(body.todo_content).split('\n');
+        let found = 0;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          // grep-style: path:line: // TODO: message
+          const grepMatch = trimmed.match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+          if (grepMatch) {
+            found++;
+            const file = grepMatch[1].trim();
+            const lineNo = grepMatch[2];
+            const kind = grepMatch[3].toUpperCase();
+            const detail = grepMatch[4].trim().slice(0, 180);
+            const upper = `${kind} ${detail}`.toUpperCase();
+            const pri = /SECURITY|VULN|AUTH|CRITICAL/.test(upper) ? 1
+              : /FIXME|BUG|BROKEN|ERROR/.test(upper) ? 2
+              : /TODO|HACK|REFACTOR/.test(upper) ? 3 : 4;
+            pushTask(`${kind}: ${detail}`, `${file}:${lineNo}`, pri, 'todo-scan', 'coder');
+          }
+        }
+        scoutResults.push({ source: 'todo-scan', found, added: scouted.length });
+      }
+
+      // ── Phase 2: Derive from doc sources (same as /derive but multi-source) ──
+      if (sources.length > 0) {
+        for (const src of sources.slice(0, 5)) {
+          const srcContent = String(src.content || src || '');
+          const srcName = String(src.name || src.source || 'doc');
+          if (!srcContent || srcContent.length < 20) continue;
+
+          let found = 0;
+          for (const line of srcContent.split('\n')) {
+            const trimmed = line.trim();
+            // Checkboxes
+            if (trimmed.match(/^\-\s*\[\s*\]\s+.+/)) {
+              found++;
+              pushTask(trimmed.replace(/^\-\s*\[\s*\]\s+/, ''), '', 4, srcName);
+            }
+            // Section headers as tasks
+            if (trimmed.match(/^###\s+\w+-\d+:.+/)) {
+              found++;
+              pushTask(trimmed.replace(/^###\s+/, ''), '', 3, srcName);
+            }
+          }
+          scoutResults.push({ source: srcName, found, added: scouted.length });
+        }
+      }
+
+      // ── Phase 3: Auto-populate from team mode if no sources given ──
+      if (sources.length === 0 && !body.todo_content && team.mode) {
+        const preset = ROOM_PRESETS[team.mode];
+        if (preset) {
+          pushTask(
+            `Scout: board empty — run /room scout with sources from ${preset.taskSources.join(', ')}`,
+            `The board is empty. Team mode is "${team.mode}" (${preset.objective}). Use /room scout with sources from: ${preset.taskSources.join(', ')}`,
+            5,
+            'scout-hint',
+            'flex',
+          );
+        }
+      }
+
+      team.taskBoard.push(...scouted);
+      persistTeamStore();
+
+      // Broadcast
+      if (scouted.length > 0) {
+        const messages = teamMessageStore.get(teamId) || [];
+        messages.push({
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          teamId,
+          fromAgentId: caller.id,
+          fromAgentName: caller.name,
+          content: `[scout] ${caller.name} triggered scout: ${scouted.length} tasks added. Sources: ${scoutResults.map((r) => `${r.source} (${r.added})`).join(', ') || 'auto'}`,
+          messageType: 'text',
+          createdAt: new Date().toISOString(),
+        });
+        teamMessageStore.set(teamId, messages.slice(-500));
+      }
+
+      json(res, 201, {
+        success: true,
+        tasks_added: scouted.length,
+        scan_results: scoutResults,
+        tasks: scouted.slice(0, 20),
+        hint: scouted.length === 0
+          ? 'No new tasks found. Try passing todo_content (grep output) or sources (doc content).'
+          : `${scouted.length} tasks on the board. Claim one with PATCH .../board/{taskId}`,
       });
       return true;
     }
@@ -3988,7 +3956,7 @@ export async function handleHoloMeshRoute(
         objective: preset.objective,
         rules: preset.rules,
         taskSources: preset.taskSources,
-        hint: `Derive tasks: POST /api/holomesh/team/${teamId}/board/derive with content from ${preset.taskSources[0]}`,
+        hint: `Scout tasks: POST /api/holomesh/team/${teamId}/board/scout with sources[] and/or todo_content (e.g. from ${preset.taskSources[0]})`,
       });
       return true;
     }
@@ -4051,57 +4019,22 @@ export async function handleHoloMeshRoute(
       const team = teamStore.get(teamId)!;
       const doneLog = team.doneLog || [];
 
-      const isLikelyReportEntry = (entry: { title?: string; summary?: string }): boolean => {
-        const title = (entry.title || '').toLowerCase();
-        const summary = (entry.summary || '').toLowerCase();
-        return title.startsWith('[report]') || summary.startsWith('session end');
-      };
-
-      const isCommitProof = (commitHash?: string): boolean => {
-        if (!commitHash) return false;
-        const hash = commitHash.trim();
-        if (!hash) return false;
-        if (['uncommit', 'local-uncommitted', 'local_uncommitted', 'none', 'n/a', 'na'].includes(hash.toLowerCase())) {
-          return false;
-        }
-        return /^[0-9a-f]{7,40}$/i.test(hash);
-      };
-
-      const proofRequired = doneLog.filter((e) => !isLikelyReportEntry(e));
-      const nonProofEntries = doneLog.filter((e) => isLikelyReportEntry(e));
-
-      const verified = proofRequired.filter((e) => isCommitProof(e.commitHash));
-      const unverified = proofRequired.filter((e) => !isCommitProof(e.commitHash));
-      const duplicates = new Map<string, number>();
-      for (const e of doneLog) {
-        duplicates.set(e.title, (duplicates.get(e.title) || 0) + 1);
-      }
-      const duped = [...duplicates.entries()].filter(([, count]) => count > 1).map(([title, count]) => ({ title, count }));
-
-      const denominator = proofRequired.length;
-      const verificationRate = denominator > 0 ? Math.round((verified.length / denominator) * 100) : 100;
+      // Audit via framework (absorbed from this file)
+      const audit = auditDoneLog(doneLog);
 
       json(res, 200, {
         success: true,
-        total: doneLog.length,
-        proof_required_total: proofRequired.length,
-        non_proof_entries: nonProofEntries.length,
-        verified: verified.length,
-        unverified: unverified.length,
-        duplicates: duped.length,
-        unverified_tasks: unverified.map((e) => ({
-          taskId: e.taskId,
-          title: e.title,
-          completedBy: e.completedBy,
-          summary: e.summary,
-          timestamp: e.timestamp,
-        })),
-        duplicate_tasks: duped,
+        total: audit.total,
+        proof_required_total: audit.proofRequiredTotal,
+        non_proof_entries: audit.nonProofEntries,
+        verified: audit.verified,
+        unverified: audit.unverified,
+        duplicates: audit.duplicates,
+        unverified_tasks: audit.unverifiedTasks,
+        duplicate_tasks: audit.duplicateTasks,
         health: {
-          verification_rate: verificationRate,
-          message: unverified.length === 0
-            ? 'All tasks have commit proof.'
-            : `${unverified.length} tasks need verification — missing or invalid commit proof.`,
+          verification_rate: audit.health.verificationRate,
+          message: audit.health.message,
         },
       });
       return true;
@@ -4182,43 +4115,26 @@ export async function handleHoloMeshRoute(
       if (!team.suggestions) team.suggestions = [];
 
       const body = await parseJsonBody(req);
-      const title = String(body.title || '').trim().slice(0, 200);
-      const description = String(body.description || '').trim().slice(0, 2000);
       const category = (['process', 'tooling', 'architecture', 'testing', 'docs', 'performance', 'other']
         .includes(body.category as string) ? body.category : 'other') as SuggestionCategory;
-      const evidence = body.evidence ? String(body.evidence).slice(0, 1000) : undefined;
 
-      if (!title) {
-        json(res, 400, { error: 'title is required' });
-        return true;
-      }
-
-      // Dedup: don't allow near-identical open suggestions
-      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
-      const existingNorm = new Set(
-        team.suggestions.filter((s) => s.status === 'open').map((s) => normalize(s.title))
-      );
-      if (existingNorm.has(normalize(title))) {
-        json(res, 409, { error: 'A similar open suggestion already exists' });
-        return true;
-      }
-
-      const suggestion: TeamSuggestion = {
-        id: `sug_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        title,
-        description,
+      // Create via framework (dedup + ID generation)
+      const r = createSuggestion(team.suggestions!, {
+        title: String(body.title || '').trim(),
+        description: String(body.description || '').trim(),
         category,
+        evidence: body.evidence ? String(body.evidence) : undefined,
         proposedBy: caller.id,
         proposedByName: caller.name,
-        votes: [],
-        score: 0,
-        status: 'open',
-        evidence,
-        createdAt: new Date().toISOString(),
-      };
-      team.suggestions.push(suggestion);
+      });
+      if (!r.success) {
+        const code = r.error?.includes('already exists') ? 409 : 400;
+        json(res, code, { error: r.error });
+        return true;
+      }
       persistTeamStore();
 
+      const suggestion = r.suggestion!;
       // Broadcast to team chat
       const messages = teamMessageStore.get(teamId) || [];
       messages.push({
@@ -4226,7 +4142,7 @@ export async function handleHoloMeshRoute(
         teamId,
         fromAgentId: caller.id,
         fromAgentName: caller.name,
-        content: `New suggestion from ${caller.name}: "${title}" [${category}]. Vote with PATCH /api/holomesh/team/${teamId}/suggestions/${suggestion.id}`,
+        content: `New suggestion from ${caller.name}: "${suggestion.title}" [${suggestion.category}]. Vote with PATCH /api/holomesh/team/${teamId}/suggestions/${suggestion.id}`,
         messageType: 'text',
         createdAt: new Date().toISOString(),
       });
@@ -4286,121 +4202,63 @@ export async function handleHoloMeshRoute(
       const body = await parseJsonBody(req);
       const action = body.action as string;
 
-      // ── Vote on a suggestion ──
+      // ── Vote on a suggestion (via framework) ──
       if (action === 'vote') {
-        if (suggestion.status !== 'open') {
-          json(res, 409, { error: `Suggestion is ${suggestion.status}, voting closed` });
-          return true;
-        }
         const value = body.value === -1 ? -1 : 1;
         const reason = body.reason ? String(body.reason).slice(0, 500) : undefined;
+        if (!team.taskBoard) team.taskBoard = [];
 
-        // Replace previous vote from same agent
-        suggestion.votes = suggestion.votes.filter((v) => v.agentId !== caller.id);
-        suggestion.votes.push({
-          agentId: caller.id,
-          agentName: caller.name,
-          value: value as 1 | -1,
-          reason,
-          votedAt: new Date().toISOString(),
-        });
-        suggestion.score = suggestion.votes.reduce((sum, v) => sum + v.value, 0);
+        const r = voteSuggestion(team.suggestions!, team.taskBoard, sugId, caller.id, caller.name, value as 1 | -1, team.maxSlots, reason);
+        if (!r.success) { json(res, 409, { error: r.error }); return true; }
 
-        // Auto-promote if score reaches threshold (majority of team slots)
-        const promoteThreshold = Math.ceil(team.maxSlots / 2);
-        if (suggestion.score >= promoteThreshold && suggestion.status === 'open') {
-          suggestion.status = 'promoted';
-          suggestion.resolvedAt = new Date().toISOString();
-
-          // Create a real board task from the suggestion
-          if (!team.taskBoard) team.taskBoard = [];
-          const task: TeamTask = {
-            id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            title: suggestion.title,
-            description: `${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`,
-            status: 'open',
-            source: `suggestion:${suggestion.id}`,
-            priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
-            createdAt: new Date().toISOString(),
-          };
-          team.taskBoard.push(task);
-          suggestion.promotedTaskId = task.id;
-
+        // Broadcast if promoted
+        if (r.promotedTask) {
           const messages = teamMessageStore.get(teamId) || [];
           messages.push({
             id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
             teamId,
             fromAgentId: 'room',
             fromAgentName: `Room: ${team.name}`,
-            content: `Suggestion promoted to task! "${suggestion.title}" (score: ${suggestion.score}/${promoteThreshold}). Task ${task.id} added to board.`,
+            content: `Suggestion promoted to task! "${r.suggestion!.title}" (score: ${r.suggestion!.score}). Task ${r.promotedTask.id} added to board.`,
             messageType: 'text',
             createdAt: new Date().toISOString(),
           });
           teamMessageStore.set(teamId, messages.slice(-500));
         }
 
-        // Auto-dismiss if score drops below negative threshold
-        const dismissThreshold = -Math.ceil(team.maxSlots / 2);
-        if (suggestion.score <= dismissThreshold && suggestion.status === 'open') {
-          suggestion.status = 'dismissed';
-          suggestion.resolvedAt = new Date().toISOString();
-        }
-
         persistTeamStore();
-        json(res, 200, { success: true, suggestion });
+        json(res, 200, { success: true, suggestion: r.suggestion });
         return true;
       }
 
-      // ── Promote manually (owner/admin) ──
+      // ── Promote manually (owner/admin, via framework) ──
       if (action === 'promote') {
-        if (suggestion.status !== 'open') {
-          json(res, 409, { error: `Suggestion is already ${suggestion.status}` });
-          return true;
-        }
         if (!hasTeamPermission(team, caller.id, 'team:settings')) {
           json(res, 403, { error: 'Only owner/admin can manually promote' });
           return true;
         }
-
-        suggestion.status = 'promoted';
-        suggestion.resolvedAt = new Date().toISOString();
-
         if (!team.taskBoard) team.taskBoard = [];
-        const task: TeamTask = {
-          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          title: suggestion.title,
-          description: `${suggestion.description}\n\n[Promoted by ${caller.name} from suggestion by ${suggestion.proposedByName}]`,
-          status: 'open',
-          source: `suggestion:${suggestion.id}`,
-          priority: parseInt(String(body.priority)) || 3,
+        const r = promoteSuggestion(team.suggestions!, team.taskBoard, sugId, caller.name, {
+          priority: parseInt(String(body.priority)) || undefined,
           role: body.role as SlotRole || undefined,
-          createdAt: new Date().toISOString(),
-        };
-        team.taskBoard.push(task);
-        suggestion.promotedTaskId = task.id;
+        });
+        if (!r.success) { json(res, 409, { error: r.error }); return true; }
         persistTeamStore();
-
-        json(res, 200, { success: true, suggestion, task });
+        json(res, 200, { success: true, suggestion: r.suggestion, task: r.promotedTask });
         return true;
       }
 
-      // ── Dismiss manually (owner/admin or original proposer) ──
+      // ── Dismiss (owner/admin or proposer, via framework) ──
       if (action === 'dismiss') {
-        if (suggestion.status !== 'open') {
-          json(res, 409, { error: `Suggestion is already ${suggestion.status}` });
-          return true;
-        }
         const canDismiss = hasTeamPermission(team, caller.id, 'team:settings') || caller.id === suggestion.proposedBy;
         if (!canDismiss) {
           json(res, 403, { error: 'Only owner/admin or original proposer can dismiss' });
           return true;
         }
-
-        suggestion.status = 'dismissed';
-        suggestion.resolvedAt = new Date().toISOString();
+        const r = dismissSuggestion(team.suggestions!, sugId);
+        if (!r.success) { json(res, 409, { error: r.error }); return true; }
         persistTeamStore();
-
-        json(res, 200, { success: true, suggestion, message: 'Suggestion dismissed.' });
+        json(res, 200, { success: true, suggestion: r.suggestion, message: 'Suggestion dismissed.' });
         return true;
       }
 

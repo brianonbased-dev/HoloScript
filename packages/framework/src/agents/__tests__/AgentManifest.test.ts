@@ -52,9 +52,9 @@ describe('AgentManifestBuilder', () => {
   });
 
   it('classify sets categories/position/section', () => {
-    const m = minimalBuilder().classify(['autonomous'], 'frontend', 'strings').build();
+    const m = minimalBuilder().classify(['autonomous'], 'infrastructure', 'strings').build();
     expect(m.categories).toContain('autonomous');
-    expect(m.position).toBe('frontend');
+    expect(m.position).toBe('infrastructure');
   });
 
   it('addCapabilities adds multiple', () => {

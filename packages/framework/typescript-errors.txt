@@ -1,0 +1,22 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+src/agents/__tests__/AgentManifest.test.ts(55,42): error TS2322: Type '"autonomous"' is not assignable to type 'AgentCategory'.
+src/agents/__tests__/CapabilityMatcher.prod.test.ts(100,13): error TS2341: Property 'sortMatches' is private and only accessible within class 'CapabilityMatcher'.
+src/agents/__tests__/CapabilityMatcher.prod.test.ts(112,13): error TS2341: Property 'sortMatches' is private and only accessible within class 'CapabilityMatcher'.
+src/agents/__tests__/NormEngine.test.ts(8,10): error TS2614: Module '"@holoscript/core"' has no exported member 'BUILTIN_NORMS'. Did you mean to use 'import BUILTIN_NORMS from "@holoscript/core"' instead?
+src/agents/__tests__/NormEngine.test.ts(8,25): error TS2614: Module '"@holoscript/core"' has no exported member 'criticalMassForChange'. Did you mean to use 'import criticalMassForChange from "@holoscript/core"' instead?
+src/agents/__tests__/NormEngine.test.ts(31,27): error TS2345: Argument of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/dist/index").CulturalNorm' is not assignable to parameter of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/framework/src/agents/NormEngine").CulturalNorm'.
+  Type 'CulturalNorm' is missing the following properties from type 'CulturalNorm': id, scope, enforcement
+src/agents/__tests__/NormEngine.test.ts(111,9): error TS2322: Type '"hard"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(130,9): error TS2322: Type '"hard"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(148,9): error TS2322: Type '"safety"' is not assignable to type 'NormCategory | undefined'.
+src/agents/__tests__/NormEngine.test.ts(150,9): error TS2322: Type '"soft"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(166,9): error TS2322: Type '"cooperation"' is not assignable to type 'NormCategory | undefined'.
+src/agents/__tests__/NormEngine.test.ts(168,9): error TS2322: Type '"soft"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(186,9): error TS2322: Type '"authority"' is not assignable to type 'NormCategory | undefined'.
+src/agents/__tests__/NormEngine.test.ts(188,9): error TS2322: Type '"hard"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(189,9): error TS2322: Type '"world"' is not assignable to type 'NormScope'.
+src/agents/__tests__/NormEngine.test.ts(217,9): error TS2322: Type '"hard"' is not assignable to type 'NormEnforcement'.
+src/agents/__tests__/NormEngine.test.ts(263,44): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/agents/__tests__/NormEngine.test.ts(268,46): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/agents/__tests__/NormEngine.test.ts(273,43): error TS7006: Parameter 'n' implicitly has an 'any' type.

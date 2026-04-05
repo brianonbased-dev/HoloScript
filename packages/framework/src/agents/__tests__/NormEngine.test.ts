@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { NormEngine } from '../NormEngine';
+import { NormEngine, BUILTIN_NORMS, criticalMassForChange } from '../NormEngine';
 import type { CulturalNorm } from '@holoscript/core';
-import { BUILTIN_NORMS, criticalMassForChange } from '@holoscript/core';
 
 describe('NormEngine', () => {
   // ── Norm Registration ────────────────────────────────────────────────────

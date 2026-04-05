@@ -843,6 +843,9 @@ importers:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../engine
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@pixiv/three-vrm':
         specifier: ^2.0.0
         version: 2.1.3(@types/three@0.170.0)(three@0.182.0)

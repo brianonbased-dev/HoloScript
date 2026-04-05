@@ -377,7 +377,7 @@ export class CapabilityMatcher {
   /**
    * Sort matches by criteria
    */
-  private sortMatches(
+  public sortMatches(
     matches: AgentMatch[],
     sortBy: 'latency' | 'trust' | 'priority' | 'name' | 'score',
     sortOrder: 'asc' | 'desc'

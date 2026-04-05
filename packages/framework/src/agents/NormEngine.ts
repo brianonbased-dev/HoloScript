@@ -19,17 +19,66 @@
  */
 
 import type {
-  CulturalNorm,
   NormEnforcement,
   NormScope,
   NormCategory,
-  VREffect,
+  CulturalNorm,
 } from '@holoscript/core';
-import {
-  BUILTIN_NORMS,
-  criticalMassForChange,
-  EffectRow,
-} from '@holoscript/core';
+
+export const BUILTIN_NORMS: CulturalNorm[] = [
+  {
+    id: 'no_griefing',
+    name: 'No Griefing',
+    category: 'safety',
+    description: 'Do not cause harm to others',
+    enforcement: 'hard',
+    scope: 'world',
+    activationThreshold: 0.1,
+    strength: 'strong',
+    forbiddenEffects: ['agent:kill', 'inventory:steal'],
+  },
+  {
+    id: 'resource_sharing',
+    name: 'Resource Sharing',
+    category: 'cooperation',
+    description: 'Share resources when abundant',
+    enforcement: 'soft',
+    scope: 'world',
+    activationThreshold: 0.5,
+    strength: 'moderate',
+    forbiddenEffects: ['inventory:hoard', 'inventory:horde'],
+  },
+  {
+    id: 'fair_trade',
+    name: 'Fair Trade',
+    category: 'economy',
+    description: 'Trade at mutually agreeable values',
+    enforcement: 'soft',
+    scope: 'world',
+    activationThreshold: 0.3,
+    strength: 'weak',
+    forbiddenEffects: ['trade:scam', 'trade:extort'],
+  }
+];
+
+export function criticalMassForChange(norm: CulturalNorm, populationSize: number): number {
+  if (norm.strength === 'strong') return populationSize * 0.5;
+  if (norm.strength === 'moderate') return populationSize * 0.25;
+  return populationSize * 0.02;
+}
+
+export type { NormEnforcement, NormScope, NormCategory, CulturalNorm };
+export type VREffect = string;
+
+export class EffectRow {
+  private effects: Set<string>;
+  constructor(effects: string[]) {
+    this.effects = new Set(effects);
+  }
+  has(effect: string): boolean {
+    return this.effects.has(effect);
+  }
+}
 
 // =============================================================================
 // NORM STATE

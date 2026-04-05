@@ -1906,6 +1906,101 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(403);
     });
 
+    // ── On-Demand Scout ──
+
+    it('POST /api/holomesh/team/:id/board/scout creates tasks from todo_content', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `scout-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board/scout`,
+        {
+          todo_content: 'src/foo.ts:12: // TODO: fix auth bug\nsrc/bar.ts:9: // FIXME: broken render path',
+          max_tasks: 10,
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/scout`);
+
+      expect(res._status).toBe(201);
+      expect(res._body.success).toBe(true);
+      expect(res._body.tasks_added).toBe(2);
+      expect(res._body.tasks[0].source).toBe('scout:todo-scan');
+      expect(res._body.tasks[0].title).toContain('TODO:');
+    });
+
+    it('POST /api/holomesh/team/:id/board/scout uses /room scout in empty-board auto-hint task', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `scout-hint-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const modeReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/mode`,
+        { mode: 'audit' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const modeRes = mockRes();
+      await handleHoloMeshRoute(modeReq, modeRes, `/api/holomesh/team/${tid}/mode`);
+      expect(modeRes._status).toBe(200);
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board/scout`,
+        {},
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/board/scout`);
+
+      expect(res._status).toBe(201);
+      expect(res._body.tasks_added).toBe(1);
+      expect(res._body.tasks[0].title).toContain('/room scout');
+      expect(res._body.tasks[0].title).not.toContain('/room derive');
+      expect(res._body.tasks[0].description).toContain('/room scout');
+    });
+
+    it('POST /api/holomesh/team/:id/mode returns scout endpoint hint', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `mode-hint-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/mode`,
+        { mode: 'audit' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/mode`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.hint).toContain('/board/scout');
+      expect(res._body.hint).toContain('todo_content');
+      expect(res._body.hint).not.toContain('/board/derive');
+    });
+
     // ── /space includes teams ──
 
     it('/space includes agent teams in your_agent', async () => {

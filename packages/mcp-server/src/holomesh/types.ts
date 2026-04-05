@@ -2,9 +2,29 @@
  * HoloMesh Type Definitions
  *
  * Core types for the decentralized knowledge exchange mesh.
- * Agents discover each other via MCP Orchestrator, exchange W/P/G
- * knowledge entries with provenance, and earn reputation from utility.
+ * Knowledge brain types (domains, consolidation, excitability, half-lives)
+ * now live in @holoscript/framework. Re-exported here for backward compat.
  */
+
+// Knowledge brain — canonical source is @holoscript/framework
+export type {
+  KnowledgeDomain,
+  DomainConsolidationConfig,
+  HotBufferEntry,
+  ExcitabilityMetadata,
+  ConsolidationResult,
+  ReconsolidationEvent,
+} from '@holoscript/framework';
+
+export {
+  KNOWLEDGE_DOMAINS,
+  DOMAIN_CONSOLIDATION,
+  DOMAIN_HALF_LIVES,
+  computeExcitability,
+  applyHalfLifeDecay,
+  RECONSOLIDATION_WINDOW_MS,
+  triggerReconsolidation,
+} from '@holoscript/framework';
 
 // --- Agent Identity ---
 
@@ -295,158 +315,7 @@ export interface GossipDeltaResponse {
   responderHealth?: GossipHealthMetadata;
 }
 
-// --- V2 Knowledge Domains ---
-
-export const KNOWLEDGE_DOMAINS = [
-  'security',
-  'rendering',
-  'agents',
-  'compilation',
-  'general',
-] as const;
-export type KnowledgeDomain = (typeof KNOWLEDGE_DOMAINS)[number];
-
-// --- V9: Neuroscience Memory Consolidation ---
-
-/** Domain-specific consolidation parameters (different "brain regions" consolidate at different rates) */
-export interface DomainConsolidationConfig {
-  /** How long entries stay in hot buffer before eligible for consolidation (ms) */
-  hotBufferTTL: number;
-  /** How often sleep/consolidation cycles run (ms) */
-  sleepFrequencyMs: number;
-  /** Max entries in cold store per domain — capacity limit drives competition */
-  maxEntries: number;
-  /** What metric drives engram competition when domain is full */
-  competitionMetric: 'citation_count' | 'query_frequency' | 'peer_corroboration';
-  /** Proportional score reduction during downscaling (0-1, lower = more aggressive) */
-  downscaleFactor: number;
-  /** Min corroborations from independent peers to promote from hot → cold */
-  minCorroborations: number;
-}
-
-/** Default consolidation configs per domain */
-export const DOMAIN_CONSOLIDATION: Record<KnowledgeDomain, DomainConsolidationConfig> = {
-  security: {
-    hotBufferTTL: 1 * 60 * 60 * 1000,       // 1 hour
-    sleepFrequencyMs: 6 * 60 * 60 * 1000,    // 6 hours
-    maxEntries: 50,
-    competitionMetric: 'peer_corroboration',
-    downscaleFactor: 0.85,
-    minCorroborations: 2,
-  },
-  rendering: {
-    hotBufferTTL: 24 * 60 * 60 * 1000,      // 24 hours
-    sleepFrequencyMs: 24 * 60 * 60 * 1000,   // 24 hours
-    maxEntries: 200,
-    competitionMetric: 'query_frequency',
-    downscaleFactor: 0.95,
-    minCorroborations: 1,
-  },
-  agents: {
-    hotBufferTTL: 12 * 60 * 60 * 1000,      // 12 hours
-    sleepFrequencyMs: 12 * 60 * 60 * 1000,   // 12 hours
-    maxEntries: 150,
-    competitionMetric: 'query_frequency',
-    downscaleFactor: 0.90,
-    minCorroborations: 1,
-  },
-  compilation: {
-    hotBufferTTL: 12 * 60 * 60 * 1000,      // 12 hours
-    sleepFrequencyMs: 12 * 60 * 60 * 1000,   // 12 hours
-    maxEntries: 100,
-    competitionMetric: 'citation_count',
-    downscaleFactor: 0.90,
-    minCorroborations: 1,
-  },
-  general: {
-    hotBufferTTL: 6 * 60 * 60 * 1000,       // 6 hours
-    sleepFrequencyMs: 12 * 60 * 60 * 1000,   // 12 hours
-    maxEntries: 300,
-    competitionMetric: 'query_frequency',
-    downscaleFactor: 0.92,
-    minCorroborations: 1,
-  },
-};
-
-// --- V11: Domain-Specific Reputation Half-Lives ---
-
-/**
- * Domain-specific reputation decay half-lives (ms).
- * Based on Arbesman 2012 (The Half-Life of Facts) and
- * Machlup 1962 (knowledge decay rates by domain).
- * Security decays fastest; compilation theory is most durable.
- */
-export const DOMAIN_HALF_LIVES: Record<KnowledgeDomain, number> = {
-  security: 2 * 24 * 60 * 60 * 1000, // 2 days
-  rendering: 14 * 24 * 60 * 60 * 1000, // 14 days
-  agents: 7 * 24 * 60 * 60 * 1000, // 7 days
-  compilation: 21 * 24 * 60 * 60 * 1000, // 21 days
-  general: 7 * 24 * 60 * 60 * 1000, // 7 days (legacy default)
-};
-
-/** A hot buffer entry — raw gossip awaiting consolidation (hippocampus) */
-export interface HotBufferEntry {
-  id: string;
-  domain: KnowledgeDomain;
-  content: string;
-  type: string;
-  authorDid: string;
-  tags: string[];
-  /** When it entered the hot buffer */
-  ingestedAt: number;
-  /** Independent peers that corroborated this entry */
-  corroborations: string[];
-  /** Source peer that gossiped this entry */
-  sourcePeerDid: string;
-}
-
-/** Excitability metadata stored alongside knowledge entries in cold store */
-export interface ExcitabilityMetadata {
-  /** How often this entry has been retrieved (retrieval practice effect) */
-  queryCount: number;
-  /** How many other entries cite this one */
-  citationCount: number;
-  /** Independent peers that corroborated */
-  corroborationCount: number;
-  /** Composite excitability score (computed) */
-  excitability: number;
-  /** Last retrieval timestamp (for reconsolidation window) */
-  lastRetrievedAt: number;
-  /** Last reconsolidation timestamp */
-  lastReconsolidatedAt: number;
-  /** Times this entry survived a sleep cycle */
-  consolidationSurvivals: number;
-}
-
-/** Result of a consolidation (sleep) cycle */
-export interface ConsolidationResult {
-  domain: KnowledgeDomain;
-  /** Entries promoted from hot buffer to cold store */
-  promoted: number;
-  /** Entries merged (deduplicated) in cold store */
-  merged: number;
-  /** Entries evicted from cold store by competition */
-  evicted: number;
-  /** Entries dropped from hot buffer (unvalidated) */
-  dropped: number;
-  /** Downscaling factor applied */
-  downscaleFactor: number;
-  /** Timestamp of consolidation */
-  consolidatedAt: number;
-}
-
-/** Reconsolidation event — triggered when knowledge is retrieved */
-export interface ReconsolidationEvent {
-  entryId: string;
-  domain: KnowledgeDomain;
-  retrievedAt: number;
-  /** How the entry's excitability changed */
-  excitabilityDelta: number;
-  /** Whether the reconsolidation window is open (5 min) */
-  windowOpen: boolean;
-  /** Window closes at this timestamp */
-  windowClosesAt: number;
-}
+// Knowledge brain types re-exported from @holoscript/framework at top of file.
 
 // --- Daemon State ---
 

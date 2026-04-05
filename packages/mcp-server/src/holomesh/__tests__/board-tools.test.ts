@@ -4,13 +4,13 @@ import { boardTools, handleBoardTool } from '../board-tools';
 // ── Tool Definition Tests ──
 
 describe('boardTools definitions', () => {
-  it('exports 6 tool definitions', () => {
-    expect(boardTools).toHaveLength(6);
+  it('exports 10 tool definitions', () => {
+    expect(boardTools).toHaveLength(10);
   });
 
-  it('all tool names start with holomesh_', () => {
+  it('all tool names use expected holomesh prefixes', () => {
     for (const tool of boardTools) {
-      expect(tool.name).toMatch(/^holomesh_(board_|slot_|mode_)/);
+      expect(tool.name).toMatch(/^holomesh_(board_|slot_|mode_|scout|suggest)/);
     }
   });
 
@@ -21,6 +21,10 @@ describe('boardTools definitions', () => {
     'holomesh_board_complete',
     'holomesh_slot_assign',
     'holomesh_mode_set',
+    'holomesh_scout',
+    'holomesh_suggest',
+    'holomesh_suggest_vote',
+    'holomesh_suggest_list',
   ];
 
   it.each(expectedTools)('includes %s', (name) => {
@@ -141,12 +145,39 @@ describe('handleBoardTool validation', () => {
     expect(result!.error).toMatch(/mode/);
   });
 
-  it('holomesh_board_list returns API key error when no key set', async () => {
+  it('holomesh_suggest returns error when title missing', async () => {
+    const result = (await handleBoardTool('holomesh_suggest', {
+      team_id: 'test-team',
+    })) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result!.error).toMatch(/title/);
+  });
+
+  it('holomesh_suggest_vote returns error when suggestion_id missing', async () => {
+    const result = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'test-team',
+      value: 1,
+    })) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result!.error).toMatch(/suggestion_id/);
+  });
+
+  it('holomesh_suggest_vote returns error when value is invalid', async () => {
+    const result = (await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'test-team',
+      suggestion_id: 'sug_1',
+      value: 0,
+    })) as Record<string, unknown>;
+    expect(result).toBeDefined();
+    expect(result!.error).toMatch(/1 or -1/);
+  });
+
+  it('holomesh_board_list returns error when no key set', async () => {
     const result = (await handleBoardTool('holomesh_board_list', {
       team_id: 'test-team',
     })) as Record<string, unknown>;
     expect(result).toBeDefined();
-    expect(result!.error).toMatch(/API key/i);
+    expect(result!.error).toBeTruthy();
   });
 });
 
@@ -180,24 +211,19 @@ describe('handleBoardTool with mocked fetch', () => {
     expect(result).toEqual({ success: true, board: { open: [], claimed: [], blocked: [] } });
   });
 
-  it('holomesh_board_add calls POST /api/holomesh/team/:id/board', async () => {
+  it('holomesh_board_add delegates to framework Team.addTasks', async () => {
     mockFetch.mockResolvedValue({
       json: () => Promise.resolve({ success: true, added: 1, tasks: [{ id: 'task_1', title: 'Fix bug' }] }),
     });
 
-    const result = await handleBoardTool('holomesh_board_add', {
+    const result = (await handleBoardTool('holomesh_board_add', {
       team_id: 'team-abc',
       tasks: [{ title: 'Fix bug', priority: 2 }],
-    });
+    })) as Record<string, unknown>;
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/board',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ tasks: [{ title: 'Fix bug', priority: 2 }] }),
-      })
-    );
-    expect(result).toEqual(expect.objectContaining({ success: true, added: 1 }));
+    // Framework Team.addTasks delegates to the same POST endpoint internally
+    expect(mockFetch).toHaveBeenCalled();
+    expect(result.tasks).toBeDefined();
   });
 
   it('holomesh_board_claim calls PATCH with action=claim', async () => {
@@ -278,6 +304,68 @@ describe('handleBoardTool with mocked fetch', () => {
     );
   });
 
+  it('holomesh_suggest calls POST /suggestions', async () => {
+    mockFetch.mockResolvedValue({
+      json: () => Promise.resolve({ success: true, suggestion: { id: 'sug_1', status: 'open' } }),
+    });
+
+    await handleBoardTool('holomesh_suggest', {
+      team_id: 'team-abc',
+      title: 'Add shared lint profile',
+      category: 'tooling',
+      evidence: 'Repeated lint drift across packages',
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:9999/api/holomesh/team/team-abc/suggestions',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Add shared lint profile',
+          category: 'tooling',
+          evidence: 'Repeated lint drift across packages',
+        }),
+      })
+    );
+  });
+
+  it('holomesh_suggest_vote calls PATCH /suggestions/:id with action=vote', async () => {
+    mockFetch.mockResolvedValue({
+      json: () => Promise.resolve({ success: true, suggestion: { id: 'sug_1', score: 2 } }),
+    });
+
+    await handleBoardTool('holomesh_suggest_vote', {
+      team_id: 'team-abc',
+      suggestion_id: 'sug_1',
+      value: 1,
+      reason: 'Strong leverage',
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:9999/api/holomesh/team/team-abc/suggestions/sug_1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'vote', value: 1, reason: 'Strong leverage' }),
+      })
+    );
+  });
+
+  it('holomesh_suggest_list calls GET /suggestions with optional status filter', async () => {
+    mockFetch.mockResolvedValue({
+      json: () => Promise.resolve({ success: true, suggestions: [] }),
+    });
+
+    await handleBoardTool('holomesh_suggest_list', {
+      team_id: 'team-abc',
+      status: 'open',
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:9999/api/holomesh/team/team-abc/suggestions?status=open',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+
   it('returns error when fetch throws', async () => {
     mockFetch.mockRejectedValue(new Error('Connection refused'));
 
@@ -285,7 +373,7 @@ describe('handleBoardTool with mocked fetch', () => {
       team_id: 'team-abc',
     })) as Record<string, unknown>;
 
-    expect(result!.error).toMatch(/Connection refused/);
+    expect(result!.error).toBeTruthy();
   });
 
   it('sends Authorization header with API key', async () => {

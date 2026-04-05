@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { defineAgent, defineTeam, KnowledgeStore } from '../index';
+import { describe, it, expect, vi } from 'vitest';
+import { defineAgent } from '../define-agent';
+import { defineTeam } from '../define-team';
+import { KnowledgeStore } from '../knowledge/knowledge-store';
 import { Sequence, Selector, Action, Condition, BehaviorTree } from '../behavior';
 import type { AgentConfig } from '../types';
 // ── defineAgent ──
@@ -262,5 +264,286 @@ describe('Behavior Tree', () => {
     expect(seq.type).toBe('sequence');
     const sel = Selector([Action('test', () => 'success')]);
     expect(sel.type).toBe('selector');
+  });
+});
+
+// ── Goal Synthesis ──
+
+vi.mock('../protocol-agent', () => ({
+  runProtocolCycle: vi.fn().mockResolvedValue({
+    summary: 'Completed synthesized task',
+    insights: [
+      { type: 'wisdom', content: 'Autonomous goals keep agents productive', domain: 'security', confidence: 0.7, source: 'Coder' },
+    ],
+  }),
+}));
+
+describe('Goal Synthesis (empty board)', () => {
+  const makeTeam = () =>
+    defineTeam({
+      name: 'synth-test',
+      agents: [
+        defineAgent({
+          name: 'Coder',
+          role: 'coder',
+          model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+          capabilities: ['code-generation'],
+          claimFilter: { roles: ['coder'], maxPriority: 10 },
+          knowledgeDomains: ['security'],
+        }),
+      ],
+    });
+
+  it('synthesizes a goal when board is empty instead of skipping', async () => {
+    const team = makeTeam();
+    // Board is empty — agent should synthesize
+    const result = await team.runCycle();
+    expect(result.agentResults).toHaveLength(1);
+    const agentResult = result.agentResults[0];
+    expect(agentResult.action).toBe('synthesized');
+    expect(agentResult.taskId).toBeTruthy();
+    expect(agentResult.taskTitle).toBeTruthy();
+    expect(agentResult.summary).toBe('Completed synthesized task');
+    // The synthesized task should be completed and removed from the board
+    expect(team.openTasks).toHaveLength(0);
+    expect(team.completedCount).toBe(1);
+  });
+
+  it('claims existing tasks normally when board has tasks', async () => {
+    const team = makeTeam();
+    await team.addTasks([
+      { title: 'Fix auth bug', description: 'JWT issue', priority: 1, role: 'coder' },
+      { title: 'Add tests', description: 'Coverage', priority: 2, role: 'coder' },
+      { title: 'Refactor DB', description: 'Cleanup', priority: 3, role: 'coder' },
+    ]);
+    expect(team.openTasks).toHaveLength(3);
+
+    const result = await team.runCycle();
+    const agentResult = result.agentResults[0];
+    // Should claim a real task, not synthesize
+    expect(agentResult.action).toBe('completed');
+    expect(agentResult.taskTitle).toBe('Fix auth bug');
+    expect(team.openTasks).toHaveLength(2);
+  });
+
+  it('synthesized task has source prefix synthesizer:', async () => {
+    const team = makeTeam();
+    const result = await team.runCycle();
+    // The task was completed and moved to doneLog, but we can verify via the cycle result
+    expect(result.agentResults[0].taskId).toMatch(/^task_synth_/);
+  });
+
+  it('publishes knowledge from synthesized task execution', async () => {
+    const team = makeTeam();
+    const result = await team.runCycle();
+    expect(result.knowledgeProduced).toHaveLength(1);
+    expect(result.knowledgeProduced[0].type).toBe('wisdom');
+    expect(result.knowledgeProduced[0].content).toContain('Autonomous goals');
+  });
+});
+
+// ── Remote facade methods ──
+
+describe('Team remote facade methods', () => {
+  const agent = defineAgent({
+    name: 'A', role: 'coder',
+    model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+    capabilities: ['c'], claimFilter: { roles: ['coder'], maxPriority: 10 },
+  });
+
+  // Helper: create a local-only team (no boardUrl)
+  function localTeam() {
+    return defineTeam({ name: 'local-team', agents: [agent] });
+  }
+
+  // Helper: create a remote team with mocked fetch
+  function remoteTeam(mockResponse: Record<string, unknown>) {
+    const team = defineTeam({
+      name: 'remote-team',
+      agents: [agent],
+      boardUrl: 'https://example.com',
+      boardApiKey: 'test-key',
+    });
+    // Mock global fetch
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      json: async () => mockResponse,
+    } as Response);
+    return { team, fetchSpy };
+  }
+
+  // ── suggest() ──
+
+  describe('suggest()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.suggest('idea')).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls POST /suggestions with correct body', async () => {
+      const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 0, createdAt: '2026-01-01' } });
+      const result = await team.suggest('idea', { description: 'desc', category: 'ux', evidence: 'data' });
+      expect(result.suggestion.id).toBe('s1');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/suggestions');
+      expect(opts?.method).toBe('POST');
+      const body = JSON.parse(opts?.body as string);
+      expect(body.title).toBe('idea');
+      expect(body.description).toBe('desc');
+      expect(body.category).toBe('ux');
+      expect(body.evidence).toBe('data');
+      fetchSpy.mockRestore();
+    });
+
+    it('throws on error response', async () => {
+      const { team, fetchSpy } = remoteTeam({ error: 'bad request' });
+      await expect(team.suggest('x')).rejects.toThrow('bad request');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── vote() ──
+
+  describe('vote()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.vote('s1', 1)).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls PATCH /suggestions/:id with vote action', async () => {
+      const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 1, createdAt: '2026-01-01' } });
+      const result = await team.vote('s1', 1, 'good idea');
+      expect(result.suggestion.votes).toBe(1);
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/suggestions/s1');
+      expect(opts?.method).toBe('PATCH');
+      const body = JSON.parse(opts?.body as string);
+      expect(body.action).toBe('vote');
+      expect(body.value).toBe(1);
+      expect(body.reason).toBe('good idea');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── suggestions() ──
+
+  describe('suggestions()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.suggestions()).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls GET /suggestions without filter', async () => {
+      const { team, fetchSpy } = remoteTeam({ suggestions: [] });
+      const result = await team.suggestions();
+      expect(result.suggestions).toEqual([]);
+      const [url] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/suggestions');
+      expect(url).not.toContain('?status=');
+      fetchSpy.mockRestore();
+    });
+
+    it('calls GET /suggestions?status=open with filter', async () => {
+      const { team, fetchSpy } = remoteTeam({ suggestions: [{ id: 's1' }] });
+      await team.suggestions('open');
+      const [url] = fetchSpy.mock.calls[0];
+      expect(url).toContain('?status=open');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── setMode() ──
+
+  describe('setMode()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.setMode('audit')).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls POST /mode with mode body', async () => {
+      const { team, fetchSpy } = remoteTeam({ mode: 'audit', previousMode: 'build' });
+      const result = await team.setMode('audit');
+      expect(result.mode).toBe('audit');
+      expect(result.previousMode).toBe('build');
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/mode');
+      expect(opts?.method).toBe('POST');
+      const body = JSON.parse(opts?.body as string);
+      expect(body.mode).toBe('audit');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── derive() ──
+
+  describe('derive()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.derive('audit', '# Findings')).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls POST /board/derive with source and content', async () => {
+      const { team, fetchSpy } = remoteTeam({ tasks: [{ id: 't1', title: 'Fix X' }] });
+      const result = await team.derive('audit-report', '# Findings\n- Fix X');
+      expect(result.tasks).toHaveLength(1);
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/board/derive');
+      expect(opts?.method).toBe('POST');
+      const body = JSON.parse(opts?.body as string);
+      expect(body.source).toBe('audit-report');
+      expect(body.content).toBe('# Findings\n- Fix X');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── presence() ──
+
+  describe('presence()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.presence()).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls GET /slots', async () => {
+      const { team, fetchSpy } = remoteTeam({ slots: [{ agentName: 'A', role: 'coder', status: 'active' }] });
+      const result = await team.presence();
+      expect(result.slots).toHaveLength(1);
+      expect(result.slots[0].agentName).toBe('A');
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/slots');
+      expect(opts?.method).toBe('GET');
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // ── heartbeat() ──
+
+  describe('heartbeat()', () => {
+    it('throws on local-only team', async () => {
+      const team = localTeam();
+      await expect(team.heartbeat()).rejects.toThrow('requires a remote board');
+    });
+
+    it('calls POST /presence with ide_type and status', async () => {
+      const { team, fetchSpy } = remoteTeam({ ok: true });
+      const result = await team.heartbeat('vscode');
+      expect(result.ok).toBe(true);
+      const [url, opts] = fetchSpy.mock.calls[0];
+      expect(url).toContain('/api/holomesh/team/remote-team/presence');
+      expect(opts?.method).toBe('POST');
+      const body = JSON.parse(opts?.body as string);
+      expect(body.ide_type).toBe('vscode');
+      expect(body.status).toBe('active');
+      fetchSpy.mockRestore();
+    });
+
+    it('defaults ide_type to unknown', async () => {
+      const { team, fetchSpy } = remoteTeam({ ok: true });
+      await team.heartbeat();
+      const [, opts] = fetchSpy.mock.calls[0];
+      const body = JSON.parse(opts?.body as string);
+      expect(body.ide_type).toBe('unknown');
+      fetchSpy.mockRestore();
+    });
   });
 });

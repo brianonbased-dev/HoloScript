@@ -1,7 +1,7 @@
 {
   "name": "absorb-service",
   "version": "6.0.0",
-  "description": "Codebase Intelligence and Recursive Agent Pipeline Service",
+  "description": "HTTP/MCP host service for @holoscript/absorb-service (engine logic lives in package)",
   "private": true,
   "type": "module",
   "main": "dist/server.js",

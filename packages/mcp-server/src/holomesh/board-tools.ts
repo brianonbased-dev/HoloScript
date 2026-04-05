@@ -381,10 +381,13 @@ async function handleBoardList(
   args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
+  if (!teamId) return { error: '"team_id" is required.' };
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.listBoard();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
   }
-  return boardFetch(`/api/holomesh/team/${encodeURIComponent(teamId)}/board`, 'GET');
 }
 
 async function handleBoardAdd(
@@ -393,15 +396,12 @@ async function handleBoardAdd(
   const teamId = args.team_id as string;
   const tasks = args.tasks as Array<Record<string, unknown>> | undefined;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
   if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
     return { error: '"tasks" must be a non-empty array of task objects.' };
   }
 
   try {
-    // Thin wrapper: delegate to Framework Team
     const team = getFrameworkTeam(teamId);
     // @ts-expect-error type variance on task properties
     const added = await team.addTasks(tasks);
@@ -417,18 +417,15 @@ async function handleBoardClaim(
   const teamId = args.team_id as string;
   const taskId = args.task_id as string;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
-  if (!taskId) {
-    return { error: '"task_id" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!taskId) return { error: '"task_id" is required.' };
 
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/board/${encodeURIComponent(taskId)}`,
-    'PATCH',
-    { action: 'claim' }
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.claimTask(taskId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleBoardComplete(
@@ -439,22 +436,15 @@ async function handleBoardComplete(
   const commit = args.commit as string | undefined;
   const summary = args.summary as string | undefined;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
-  if (!taskId) {
-    return { error: '"task_id" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!taskId) return { error: '"task_id" is required.' };
 
-  const body: Record<string, unknown> = { action: 'done' };
-  if (commit) body.commit = commit;
-  if (summary) body.summary = summary;
-
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/board/${encodeURIComponent(taskId)}`,
-    'PATCH',
-    body
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.completeTask(taskId, commit, summary);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleSlotAssign(
@@ -463,18 +453,17 @@ async function handleSlotAssign(
   const teamId = args.team_id as string;
   const roles = args.roles as string[] | undefined;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
   if (!roles || !Array.isArray(roles) || roles.length === 0) {
     return { error: '"roles" must be a non-empty array of role strings.' };
   }
 
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/roles`,
-    'PATCH',
-    { roles }
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.assignSlots(roles);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleModeSet(
@@ -483,32 +472,27 @@ async function handleModeSet(
   const teamId = args.team_id as string;
   const mode = args.mode as string;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
-  if (!mode) {
-    return { error: '"mode" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!mode) return { error: '"mode" is required.' };
 
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/mode`,
-    'POST',
-    { mode }
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    // @ts-expect-error simple proxy
+    return await team.setMode(mode);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleScout(
   args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!args.todo_content) return { error: 'todo_content is required for scout' };
 
   try {
-    // Thin wrapper: delegate to Framework Team
     const team = getFrameworkTeam(teamId);
-    if (!args.todo_content) return { error: 'todo_content is required for scout' };
     const tasks = await team.scoutFromTodos(args.todo_content as string);
     return { tasks };
   } catch (err) {
@@ -522,23 +506,19 @@ async function handleSuggest(
   const teamId = args.team_id as string;
   const title = args.title as string;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
-  if (!title) {
-    return { error: '"title" is required.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!title) return { error: '"title" is required.' };
 
-  const body: Record<string, unknown> = { title };
-  if (args.description) body.description = args.description;
-  if (args.category) body.category = args.category;
-  if (args.evidence) body.evidence = args.evidence;
-
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions`,
-    'POST',
-    body
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.suggest(title, {
+      description: args.description as string | undefined,
+      category: args.category as string | undefined,
+      evidence: args.evidence as string | undefined,
+    }) as unknown as Record<string, unknown>;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleSuggestVote(
@@ -548,38 +528,29 @@ async function handleSuggestVote(
   const sugId = args.suggestion_id as string;
   const value = args.value as number;
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
-  }
-  if (!sugId) {
-    return { error: '"suggestion_id" is required.' };
-  }
-  if (value !== 1 && value !== -1) {
-    return { error: '"value" must be 1 or -1.' };
-  }
+  if (!teamId) return { error: '"team_id" is required.' };
+  if (!sugId) return { error: '"suggestion_id" is required.' };
+  if (value !== 1 && value !== -1) return { error: '"value" must be 1 or -1.' };
 
-  const body: Record<string, unknown> = { action: 'vote', value };
-  if (args.reason) body.reason = args.reason;
-
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions/${encodeURIComponent(sugId)}`,
-    'PATCH',
-    body
-  );
+  try {
+    const team = getFrameworkTeam(teamId);
+    return await team.vote(sugId, value as 1 | -1, args.reason as string | undefined) as unknown as Record<string, unknown>;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function handleSuggestList(
   args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
+  if (!teamId) return { error: '"team_id" is required.' };
 
-  if (!teamId) {
-    return { error: '"team_id" is required.' };
+  try {
+    const team = getFrameworkTeam(teamId);
+    // @ts-expect-error simple proxy
+    return await team.suggestions(args.status as any);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
   }
-
-  const statusFilter = args.status ? `?status=${encodeURIComponent(args.status as string)}` : '';
-  return boardFetch(
-    `/api/holomesh/team/${encodeURIComponent(teamId)}/suggestions${statusFilter}`,
-    'GET'
-  );
 }
