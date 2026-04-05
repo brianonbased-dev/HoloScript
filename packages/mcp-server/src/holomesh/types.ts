@@ -364,6 +364,12 @@ export interface HoloMeshDaemonState {
   profileBio: string;
   profileCustomTitle: string;
   profileThemeColor: string;
+  // V6 daemon discovery / query fields
+  knownPeerCount: number;
+  lastDiscoveryAt: string | null;
+  unreadMessages: number;
+  totalQueriesAnswered: number;
+  lastContributionAt: string | null;
   // V7 team message dedup
   processedMessageIds: string[];
   // V11 resource pressure (L4 Blueprint 1: wire rendering to budget gate)
@@ -394,6 +400,11 @@ export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   cycles: 0,
   lastCycleAt: null,
   errors: 0,
+  knownPeerCount: 0,
+  lastDiscoveryAt: null,
+  unreadMessages: 0,
+  totalQueriesAnswered: 0,
+  lastContributionAt: null,
   processedMessageIds: [],
   v2Enabled: false,
   p2pPeerCount: 0,

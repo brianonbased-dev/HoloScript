@@ -37,6 +37,9 @@ import {
   voteSuggestion,
   promoteSuggestion,
   dismissSuggestion,
+  KnowledgeMarketplace,
+  BountyManager,
+  type BountyCurrency
 } from '@holoscript/framework';
 
 // ── x402 Premium Entry Payment Gate ──
@@ -82,6 +85,9 @@ function recordTransaction(tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>): 
 /** Lazy-loaded PaymentGateway from @holoscript/core economy module */
 interface PaymentGatewayInstance {
   create402Response(params: { entryId: string; priceUSDC: number; metadata?: Record<string, unknown> }): Record<string, unknown>;
+  verifyPayment(header: string, amount: string): { isValid: boolean; decodedPayload?: unknown };
+  settlePayment(payload: unknown, path: string, amount: string): Promise<{ success: boolean }>;
+  createPaymentAuthorization(path: string, price: number, description: string): Record<string, unknown>;
 }
 let paymentGateway: PaymentGatewayInstance | null = null;
 
@@ -340,6 +346,8 @@ interface Team {
   slotRoles?: SlotRole[];     // roles for slots 0..maxSlots-1
   mode?: string;              // current preset: 'audit' | 'research' | 'build' | 'review'
   suggestions?: TeamSuggestion[]; // agent-proposed improvements
+  knowledgeMarketplace?: KnowledgeMarketplace; // FW-0.6
+  bounties?: BountyManager; // FW-0.6
 }
 
 const teamStore: Map<string, Team> = new Map(); // teamId → Team
@@ -1002,7 +1010,7 @@ export async function handleHoloMeshRoute(
     // GET /api/holomesh/feed — Knowledge feed with ranking + following mode + cursor pagination
     // ?sort=ranked|chronological|top|following  ?cursor=<token>  ?limit=20
     if (pathname === '/api/holomesh/feed' && method === 'GET') {
-      const { rankFeed, getFollowing, paginate, type: _t, ...socialMod } = await import('./social');
+      const { rankFeed, getFollowing, paginate, ...socialMod } = await import('./social');
       const q = parseQuery(url);
       const search = q.get('q') || '*';
       const type = q.get('type') || undefined;
@@ -2620,7 +2628,7 @@ export async function handleHoloMeshRoute(
         const content = String(e.content || '').trim();
         const entryType = (e.type as string) || 'wisdom';
         const entryId =
-          e.id || `${entryType.charAt(0).toUpperCase()}.${caller.name}.priv.${Date.now()}.${i}`;
+          (e.id as string) || `${entryType.charAt(0).toUpperCase()}.${caller.name}.priv.${Date.now()}.${i}`;
 
         return {
           id: entryId,
@@ -2636,7 +2644,7 @@ export async function handleHoloMeshRoute(
           domain: (e.domain as string) || 'general',
           tags: [...((e.tags as string[]) || []), 'private'],
           confidence: (e.confidence as number) || 0.9,
-          createdAt: e.createdAt || new Date().toISOString(),
+          createdAt: (e.createdAt as string) || new Date().toISOString(),
         };
       });
 
@@ -3659,6 +3667,82 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // ── Bounty Management API (FW-0.6) ──
+
+    // GET /api/holomesh/team/:id/bounties — List all bounties
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/bounties$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { team } = access;
+      if (!team.bounties) team.bounties = new BountyManager();
+      
+      const allBounties = team.taskBoard?.map(t => team.bounties!.byTask(t.id)).flat() || [];
+      json(res, 200, { success: true, bounties: allBounties });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/bounties — Create a bounty
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/bounties$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, team } = access;
+      if (!team.bounties) team.bounties = new BountyManager();
+
+      const body = await parseJsonBody(req);
+      if (!body.taskId || !body.amount || !body.currency) {
+         json(res, 400, { error: 'Missing taskId, amount, or currency' });
+         return true;
+      }
+      
+      const task = team.taskBoard?.find(t => t.id === body.taskId);
+      if (!task) { json(res, 404, { error: 'Task not found' }); return true; }
+
+      const bounty = team.bounties.createBounty(
+        body.taskId as string,
+        { amount: Number(body.amount), currency: body.currency as BountyCurrency },
+        caller.name,
+        body.deadline ? Number(body.deadline) : undefined
+      );
+      
+      persistTeamStore();
+      json(res, 201, { success: true, bounty });
+      return true;
+    }
+
+    // ── Knowledge Marketplace API (FW-0.6) ──
+
+    // GET /api/holomesh/team/:id/knowledge/listings — List active items for sale
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/knowledge\/listings$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url, 'knowledge:read');
+      if (!access) return true;
+      const { team } = access;
+      if (!team.knowledgeMarketplace) team.knowledgeMarketplace = new KnowledgeMarketplace();
+      
+      const listings = team.knowledgeMarketplace.activeListings();
+      json(res, 200, { success: true, listings });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/knowledge/buy — Buy a listed entry
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/knowledge\/buy$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url, 'knowledge:write');
+      if (!access) return true;
+      const { caller, team } = access;
+      if (!team.knowledgeMarketplace) team.knowledgeMarketplace = new KnowledgeMarketplace();
+      
+      const body = await parseJsonBody(req);
+      const { listingId } = body;
+      
+      const result = team.knowledgeMarketplace.buyKnowledge(listingId as string, caller.name);
+      if (!result.success) {
+         json(res, 400, { error: result.error });
+         return true;
+      }
+      persistTeamStore();
+      json(res, 200, result);
+      return true;
+    }
+
     // GET /api/holomesh/team/:id/board/:taskId — Get specific task details
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'GET') {
       const access = requireTeamAccess(req, res, url);
@@ -4493,7 +4577,7 @@ export async function handleHoloMeshRoute(
         const content = String(e.content || '').trim();
         const entryType = (e.type as string) || 'wisdom';
         const entryId =
-          e.id ||
+          (e.id as string) ||
           `${entryType.charAt(0).toUpperCase()}.${team.name}.${caller.name}.${Date.now()}.${i}`;
 
         return {
@@ -4510,7 +4594,7 @@ export async function handleHoloMeshRoute(
           domain: (e.domain as string) || 'general',
           tags: [...((e.tags as string[]) || []), 'team', team.name],
           confidence: (e.confidence as number) || 0.9,
-          createdAt: e.createdAt || new Date().toISOString(),
+          createdAt: (e.createdAt as string) || new Date().toISOString(),
         };
       });
 

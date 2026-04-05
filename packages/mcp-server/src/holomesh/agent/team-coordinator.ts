@@ -64,7 +64,7 @@ export interface CycleResult {
   agentName: string;
   taskId: string | null;
   taskTitle: string | null;
-  action: 'claimed' | 'completed' | 'skipped' | 'error';
+  action: 'claimed' | 'completed' | 'skipped' | 'error' | 'synthesized';
   summary: string;
   knowledgeEntries: KnowledgeInsight[];
 }

@@ -262,8 +262,8 @@ export function createHoloMeshDaemonActions(
   };
 
   const mesh_reply_queries: ActionHandler = async (_params, blackboard) => {
-    const messages = blackboard.inbox_messages || [];
-    const queries = messages.filter((m: any) => {
+    const messages = (blackboard.inbox_messages || []) as Array<Record<string, unknown>>;
+    const queries = messages.filter((m: Record<string, unknown>) => {
       try {
         const content = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
         return content?.type === 'query';
@@ -350,7 +350,7 @@ export function createHoloMeshDaemonActions(
       if (state.receivedIds.length > 500) state.receivedIds = state.receivedIds.slice(-500);
 
       blackboard.query_results = newResults;
-      blackboard.queries_this_cycle = (blackboard.queries_this_cycle || 0) + 1;
+      blackboard.queries_this_cycle = ((blackboard.queries_this_cycle as number) || 0) + 1;
       saveCurrentState();
       log(`Queried "${topic}": ${newResults.length} new results`);
       return newResults.length > 0;
@@ -361,7 +361,7 @@ export function createHoloMeshDaemonActions(
   };
 
   const mesh_collect_premium: ActionHandler = async (_params, blackboard) => {
-    const results: MeshKnowledgeEntry[] = blackboard.query_results || [];
+    const results: MeshKnowledgeEntry[] = (blackboard.query_results || []) as MeshKnowledgeEntry[];
     const premium = results.filter((r) => r.price > 0);
     if (premium.length === 0) return false;
 

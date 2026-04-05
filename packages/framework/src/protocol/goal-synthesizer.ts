@@ -83,6 +83,31 @@ const DOMAIN_GOALS: Record<string, string[]> = {
     'Verify documentation matches implementation',
     'Identify code duplication opportunities',
   ],
+  testing: [
+    'Create automated integration test for recent scenarios',
+    'Design fuzzing scenarios for core protocol serializers',
+    'Update legacy snapshots with modern state data',
+    'Verify deterministic behavior of CRDT synchronization',
+    'Set up load-testing harness for agent autonomous loop',
+  ],
+  architecture: [
+    'Analyze service boundaries for proper decoupling',
+    'Evaluate event schemas against backward compatibility',
+    'Design migration path for deprecated APIs',
+    'Document implicit domain knowledge into architecture guidelines',
+    'Evaluate storage engine scalability under node churn',
+  ],
+  performance: [
+    'Profile and optimize hot code paths',
+    'Reduce bundle size or optimize build times',
+    'Identify and resolve memory leaks in background daemon',
+    'Benchmark network latency in cross-region mesh',
+  ],
+  devops: [
+    'Review and refine CI/CD pipeline efficiency',
+    'Automate environment provisioning for local scenario tests',
+    'Evaluate telemetry logging cardinality and storage costs',
+  ]
 };
 
 // ── GoalSynthesizer ──

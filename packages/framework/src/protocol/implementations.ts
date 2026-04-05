@@ -332,7 +332,7 @@ export class ServiceManager {
     }
   }
 
-  health() {
+  health(): ServiceManagerHealth {
     const ready = this.services.filter(s => s.isReady());
     return {
       totalServices: this.services.length,
@@ -345,6 +345,21 @@ export class ServiceManager {
       }))
     };
   }
+}
+
+/** Health status of a single service */
+export interface ServiceHealth {
+  name: string;
+  ready: boolean;
+  lifecycle: string;
+}
+
+/** Aggregate health status from ServiceManager */
+export interface ServiceManagerHealth {
+  totalServices: number;
+  readyCount: number;
+  allReady: boolean;
+  services: ServiceHealth[];
 }
 
 // =============================================================================

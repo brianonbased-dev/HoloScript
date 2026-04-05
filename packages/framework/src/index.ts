@@ -158,7 +158,10 @@ export {
   ServiceLifecycle,
   ServiceErrorCode,
   ServiceError,
+  ServiceManager,
 } from './protocol/implementations';
+
+export type { ServiceHealth, ServiceManagerHealth } from './protocol/implementations';
 
 // Goal synthesizer types (FW-0.2 — autonomous goal creation)
 export type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
