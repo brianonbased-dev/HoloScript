@@ -1,19 +1,4 @@
 /**
- * UnifiedBudgetOptimizer — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated UnifiedBudgetOptimizer has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  UnifiedBudgetOptimizer,
-  DEFAULT_TRAIT_UTILITIES,
-  DEFAULT_COST_FLOOR,
-  DEFAULT_LOD_SCALING,
-  PLATFORM_LOD_SCALING,
-  type TraitUtility,
-  type TraitCategory,
-  type TraitAllocation,
-  type ResourceCostFloor,
-  type UnifiedBudgetState,
-  type UnifiedOptimizerConfig,
-} from '@holoscript/framework/economy';

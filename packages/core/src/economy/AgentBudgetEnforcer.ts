@@ -1,16 +1,4 @@
 /**
- * AgentBudgetEnforcer — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated AgentBudgetEnforcer has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  AgentBudgetEnforcer,
-  type EnforcementMode,
-  type BudgetPeriod,
-  type AgentBudget,
-  type BudgetState,
-  type CircuitBreakerState,
-  type SpendAuthorizationResult,
-  type BudgetEnforcerConfig,
-} from '@holoscript/framework/economy';

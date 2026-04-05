@@ -1,6 +1,8 @@
 /**
- * @deprecated This module has moved to `@holoscript/framework/negotiation`.
- * Import from `@holoscript/framework` or `@holoscript/framework/negotiation` instead.
- * This re-export shim will be removed in a future release.
+ * @holoscript/core - Negotiation Module
+ *
+ * Multi-agent negotiation, voting, and consensus protocols.
  */
-export * from '@holoscript/framework/negotiation';
+export * from './NegotiationTypes';
+export * from './NegotiationProtocol';
+export * from './VotingMechanisms';

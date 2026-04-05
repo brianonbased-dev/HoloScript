@@ -1,6 +1,6 @@
 /**
- * @deprecated This module has moved to `@holoscript/framework/skills`.
- * Import from `@holoscript/framework` or `@holoscript/framework/skills` instead.
- * This re-export shim will be removed in a future release.
+ * @holoscript/core - Skills Module
+ *
+ * Skill-MD bridge and portable skill format support.
  */
-export * from '@holoscript/framework/skills';
+export * from './skill-md-bridge';

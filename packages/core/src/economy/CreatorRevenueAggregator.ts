@@ -1,15 +1,4 @@
 /**
- * CreatorRevenueAggregator — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated CreatorRevenueAggregator has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  CreatorRevenueAggregator,
-  type RevenueEvent,
-  type CreatorEarnings,
-  type PluginRevenue,
-  type PayoutRecord,
-  type RevenuePeriod,
-  type RevenueAggregatorConfig,
-} from '@holoscript/framework/economy';

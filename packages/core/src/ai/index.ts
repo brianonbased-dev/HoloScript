@@ -1,6 +1,5 @@
 /**
- * @deprecated This module has moved to `@holoscript/framework/ai`.
+ * @deprecated AI module has moved to `@holoscript/framework/ai`.
  * Import from `@holoscript/framework` or `@holoscript/framework/ai` instead.
- * This re-export shim will be removed in a future release.
+ * This stub is retained for backward compatibility during migration.
  */
-export * from '@holoscript/framework/ai';

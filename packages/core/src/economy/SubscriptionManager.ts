@@ -1,15 +1,4 @@
 /**
- * SubscriptionManager — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated SubscriptionManager has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  SubscriptionManager,
-  type SubscriptionState,
-  type BillingInterval,
-  type Subscription,
-  type SubscriptionPlan,
-  type SubscriptionManagerConfig,
-  type RenewalResult,
-} from '@holoscript/framework/economy';

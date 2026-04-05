@@ -182,15 +182,10 @@ export type {
   CompiledRobotics,
 } from './parser/HoloCompositionTypes';
 
-// HoloScript+ Enhanced Parser with Trait Annotations (Phase 3 alias)
-// @deprecated Use `HoloScriptPlusParser` from './parser/HoloScriptPlusParser' directly.
-export {
-  HoloScriptPlusParser as HoloScriptTraitAnnotationParser,
-  type MaterialTraitAnnotation,
-  type LightingTraitAnnotation,
-  type RenderingTraitAnnotation,
-  type GraphicsConfiguration,
-} from './HoloScriptPlusParser';
+// HoloScript+ Enhanced Parser with Trait Annotations
+// NOTE: HoloScriptTraitAnnotationParser alias removed (deprecated, no consumers).
+// MaterialTraitAnnotation, LightingTraitAnnotation, RenderingTraitAnnotation,
+// GraphicsConfiguration are available via direct import from './HoloScriptPlusParser'.
 
 // Advanced AST Types (from the new structural parser)
 export type {
@@ -2106,29 +2101,20 @@ export * from './negotiation';
 
 // =============================================================================
 // Swarm Module (v3.2 Autonomous Agent Swarms)
+// NOTE: Higher-level swarm primitives (SwarmCoordinator, PSOEngine,
+// CollectiveIntelligence, VotingRound, ContributionSynthesizer,
+// SwarmMembership, QuorumPolicy) have moved to `@holoscript/framework`.
 // =============================================================================
 
 export * as swarm from './swarm';
 
 export {
-  SwarmCoordinator,
-  PSOEngine,
   ACOEngine,
   LeaderElection,
-  CollectiveIntelligence,
-  VotingRound,
-  ContributionSynthesizer,
   SwarmManager,
-  SwarmMembership,
-  QuorumPolicy,
 } from './swarm';
 
 export type {
-  AgentInfo,
-  TaskInfo,
-  PSOConfig,
-  PSOResult,
-  Particle,
   ACOConfig,
   ACOResult,
   LeaderElectionConfig,
@@ -2138,28 +2124,12 @@ export type {
   VoteRequestMessage,
   VoteResponseMessage,
   HeartbeatMessage as SwarmHeartbeatMessage,
-  CollectiveIntelligenceConfig,
-  Vote as SwarmVote,
-  VotingResult as SwarmVotingResult,
-  VotingRoundConfig,
-  SynthesisResult,
-  SynthesizerConfig,
   SwarmInfo,
   CreateSwarmRequest,
   DisbandOptions,
   SwarmManagerConfig,
   SwarmEvent,
-  MemberInfo,
-  JoinRequest,
-  LeaveRequest,
-  MembershipEvent,
-  SwarmMembershipConfig,
-  QuorumConfig,
-  QuorumStatus,
-  QuorumState,
 } from './swarm';
-
-// Swarm module re-exports are consolidated through swarm barrel file
 // =============================================================================
 // Recovery Module (v3.2 Self-Healing Infrastructure)
 // =============================================================================
@@ -2811,100 +2781,28 @@ export type {
 export { ComponentType } from './traits/ECSWorldTrait';
 
 // â”€â”€ Animation Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
+// Engine Subsystem Shims (A.011 migration) — consolidated wildcard re-exports.
+// These barrel files point through local shims to @holoscript/engine.
+// Migrate your imports to '@holoscript/engine' directly when possible.
 // @ts-expect-error During migration
-export { AnimationEngine, Easing } from './animation/AnimationEngine';
-/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
-export type {
-  Keyframe,
-  AnimationClip,
-  ActiveAnimation,
-  EasingFn,
+export * from './animation';
 // @ts-expect-error During migration
-} from './animation/AnimationEngine';
-
-// â”€â”€ Audio Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export * from './tilemap';
 // @ts-expect-error During migration
-export { AudioEngine } from './audio/AudioEngine';
-export type {
-  AudioSourceConfig,
-  AudioSource,
-  ListenerState,
-  DistanceModel,
+export * from './combat';
 // @ts-expect-error During migration
-} from './audio/AudioEngine';
-
-// â”€â”€ TileMap / Procedural â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Use @holoscript/engine Tilemap subsystem instead (A.011.01g) */
-export { TileMap, TileFlags } from './tilemap/TileMap';
-/** @deprecated Use @holoscript/engine Tilemap subsystem instead (A.011.01g) */
-export type { TileData, TileLayer, AutoTileRule } from './tilemap/TileMap';
-
-// â”€â”€ Combat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { CombatManager } from './combat/CombatManager';
-export type {
-  HitBox,
-  HurtBox,
-  ComboStep,
-  ComboChain,
-  Cooldown,
-  CombatTarget,
-} from './combat/CombatManager';
-
-// â”€â”€ Navigation / Pathfinding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export { AStarPathfinder } from './navigation/AStarPathfinder';
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export type { PathNode, PathResult, DynamicObstacle } from './navigation/AStarPathfinder';
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export { NavMesh } from './navigation/NavMesh';
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export type { NavPoint, NavPolygon } from './navigation/NavMesh';
-
-// â”€â”€ Shader Graph (re-export rendering) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export * from './navigation';
 // @ts-expect-error During migration
-export { ShaderGraph, SHADER_NODES } from './rendering/ShaderGraph';
-export type {
-  ShaderNode,
-  ShaderConnection,
-  ShaderNodeDef,
-  ShaderPort,
-  ShaderDataType,
-  CompiledShader,
-  ShaderUniform,
+export * from './particles';
 // @ts-expect-error During migration
-} from './rendering/ShaderGraph';
-
-// â”€â”€ Particles (value re-export) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Use @holoscript/engine Particles subsystem instead (A.011.01g) */
-export { ParticleSystem } from './particles/ParticleSystem';
-/** @deprecated Use @holoscript/engine Particles subsystem instead (A.011.01g) */
-export type { EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
-
-// â”€â”€ Camera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export { CameraController } from './camera/CameraController';
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export type { CameraMode, CameraState, CameraConfig } from './camera/CameraController';
-
-// â”€â”€ Inventory / Gameplay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { InventorySystem } from './gameplay/InventorySystem';
-export type { ItemDef, ItemCategory, ItemRarity, InventorySlot } from './gameplay/InventorySystem';
-
-// â”€â”€ Terrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { TerrainSystem } from './environment/TerrainSystem';
-export type {
-  TerrainConfig,
-  TerrainLayer,
-  TerrainVertex,
-  TerrainChunk,
-} from './environment/TerrainSystem';
-
-// â”€â”€ Lighting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export * from './camera';
 // @ts-expect-error During migration
-export { LightingModel } from './rendering/LightingModel';
+export * from './gameplay';
 // @ts-expect-error During migration
-export type { Light, AmbientConfig, GIProbe } from './rendering/LightingModel';
+export * from './environment';
+// NOTE: Audio (export * from './audio'), Rendering (export * from './rendering'),
+// and LOD (export * from './lod') already have wildcard re-exports above.
+// Duplicate explicit re-exports for AudioEngine, ShaderGraph, LightingModel, LODManager removed.
 
 // â”€â”€ Cinematic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { CinematicDirector } from './cinematic/CinematicDirector';
@@ -3407,104 +3305,12 @@ export type {
   HybridCryptoConfig,
 } from './crypto/HybridCryptoProvider';
 
-// â”€â”€ x402 Payment Protocol (HTTP 402 + USDC Settlement) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export {
-  X402Facilitator,
-  MicroPaymentLedger,
-  PaymentGateway,
-  creditTraitHandler,
-  X402_VERSION,
-  USDC_CONTRACTS,
-  MICRO_PAYMENT_THRESHOLD,
-  CHAIN_IDS,
-  CHAIN_ID_TO_NETWORK,
-} from './economy/x402-facilitator';
-export type {
-  X402PaymentRequired,
-  X402PaymentOption,
-  X402PaymentPayload,
-  X402SettlementResult,
-  X402VerificationResult,
-  X402FacilitatorConfig,
-  CreditTraitConfig,
-  LedgerEntry,
-  SettlementChain,
-  SettlementMode,
-  PaymentScheme,
-  SettlementEventType,
-  SettlementEvent,
-  SettlementEventListener,
-  RefundRequest,
-  RefundResult,
-} from './economy/x402-facilitator';
-
-// â”€â”€ v5.8 Live Economy (Webhooks, Usage, Budget, Revenue, Subscriptions) â”€â”€
-export { PaymentWebhookService } from './economy/PaymentWebhookService';
-export type {
-  WebhookProvider,
-  WebhookEventType,
-  WebhookPayload,
-  WebhookVerificationResult,
-  WebhookProcessingResult,
-  WebhookHandler,
-  WebhookServiceConfig,
-} from './economy/PaymentWebhookService';
-
-export { UsageMeter } from './economy/UsageMeter';
-export type {
-  UsagePeriod,
-  UsageEvent,
-  UsageAggregate,
-  AgentUsageSummary,
-  FreeTierConfig,
-  UsageMeterConfig,
-} from './economy/UsageMeter';
-
-export { AgentBudgetEnforcer } from './economy/AgentBudgetEnforcer';
-export type {
-  EnforcementMode,
-  BudgetPeriod,
-  AgentBudget,
-  BudgetState,
-  CircuitBreakerState as BudgetCircuitBreakerState,
-  SpendAuthorizationResult,
-  BudgetEnforcerConfig,
-} from './economy/AgentBudgetEnforcer';
-
-export {
-  UnifiedBudgetOptimizer,
-  DEFAULT_TRAIT_UTILITIES,
-  DEFAULT_COST_FLOOR,
-  DEFAULT_LOD_SCALING,
-  PLATFORM_LOD_SCALING,
-} from './economy/UnifiedBudgetOptimizer';
-export type {
-  TraitUtility,
-  TraitAllocation,
-  ResourceCostFloor,
-  UnifiedBudgetState,
-  UnifiedOptimizerConfig,
-} from './economy/UnifiedBudgetOptimizer';
-
-export { CreatorRevenueAggregator } from './economy/CreatorRevenueAggregator';
-export type {
-  RevenueEvent,
-  CreatorEarnings,
-  PluginRevenue,
-  PayoutRecord,
-  RevenuePeriod,
-  RevenueAggregatorConfig,
-} from './economy/CreatorRevenueAggregator';
-
-export { SubscriptionManager } from './economy/SubscriptionManager';
-export type {
-  SubscriptionState,
-  BillingInterval,
-  Subscription,
-  SubscriptionPlan,
-  SubscriptionManagerConfig,
-  RenewalResult,
-} from './economy/SubscriptionManager';
+// -- Economy Module ----------------------------------------------------------
+// NOTE: Economy implementations (X402Facilitator, PaymentWebhookService,
+// UsageMeter, AgentBudgetEnforcer, UnifiedBudgetOptimizer,
+// CreatorRevenueAggregator, SubscriptionManager) have moved to
+// `@holoscript/framework/economy`. Import from there instead.
+// ----------------------------------------------------------------------------
 
 // --- Web3 Connector Protocol ---
 export { MockWeb3Connector, createWeb3EventBridge } from './web3/Web3Connector';

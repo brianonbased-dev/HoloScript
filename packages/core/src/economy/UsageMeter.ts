@@ -1,15 +1,4 @@
 /**
- * UsageMeter — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated UsageMeter has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  UsageMeter,
-  type UsagePeriod,
-  type UsageEvent,
-  type UsageAggregate,
-  type AgentUsageSummary,
-  type FreeTierConfig,
-  type UsageMeterConfig,
-} from '@holoscript/framework/economy';

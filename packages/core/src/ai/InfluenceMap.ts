@@ -1,1 +1,1 @@
-export * from '@holoscript/framework/ai';
+/** @deprecated Moved to `@holoscript/framework/ai`. */

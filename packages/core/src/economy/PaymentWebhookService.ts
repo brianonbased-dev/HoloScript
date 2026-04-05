@@ -1,16 +1,4 @@
 /**
- * PaymentWebhookService — RE-EXPORT SHIM
- *
- * Canonical implementation lives in @holoscript/framework/economy.
+ * @deprecated PaymentWebhookService has moved to `@holoscript/framework/economy`.
+ * This file is a stub retained for backward compatibility.
  */
-
-export {
-  PaymentWebhookService,
-  type WebhookProvider,
-  type WebhookEventType,
-  type WebhookPayload,
-  type WebhookVerificationResult,
-  type WebhookProcessingResult,
-  type WebhookHandler,
-  type WebhookServiceConfig,
-} from '@holoscript/framework/economy';
