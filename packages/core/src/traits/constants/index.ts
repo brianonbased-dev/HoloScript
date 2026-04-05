@@ -125,6 +125,9 @@ import { GEOSPATIAL_ARCORE_TRAITS } from './geospatial';
 // NPU Scene Understanding — on-device ML inference (M.010.03)
 import { NPU_SCENE_TRAITS } from './npu-scene';
 
+// Camera Hand Tracking — MediaPipe/Vision 21-joint (M.010.04)
+import { CAMERA_HAND_TRACKING_TRAITS } from './camera-hand-tracking';
+
 // Portal AR — phone-as-portal magic window (M.010.06)
 import { PORTAL_AR_TRAITS } from './portal-ar';
 
@@ -358,6 +361,9 @@ export const VR_TRAITS = [
 
   // NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
   ...NPU_SCENE_TRAITS,
+
+  // Camera Hand Tracking — MediaPipe/Vision (9 traits — M.010.04)
+  ...CAMERA_HAND_TRACKING_TRAITS,
 
   // Portal AR — phone-as-portal magic window (15 traits — M.010.06)
   ...PORTAL_AR_TRAITS,
@@ -652,6 +658,12 @@ export {
   NPU_SCENE_TRAITS,
   type NPUSceneTraitName,
 } from './npu-scene';
+
+// Camera Hand Tracking (9 traits — M.010.04)
+export {
+  CAMERA_HAND_TRACKING_TRAITS,
+  type CameraHandTrackingTraitName,
+} from './camera-hand-tracking';
 
 // Portal AR — phone-as-portal magic window (15 traits — M.010.06)
 export {
