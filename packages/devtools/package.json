@@ -1,0 +1,147 @@
+{
+  "name": "@holoscript/devtools",
+  "version": "6.0.0",
+  "description": "Developer tools extracted from @holoscript/core — circuit-breaker, rate limiting, telemetry, monitoring, profiling, debugging, logging, security, resilience, recovery, migration, deploy, build, and testing.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./circuit-breaker": {
+      "types": "./dist/circuit-breaker/index.d.ts",
+      "import": "./dist/circuit-breaker/index.js",
+      "require": "./dist/circuit-breaker/index.cjs"
+    },
+    "./ratelimit": {
+      "types": "./dist/ratelimit/index.d.ts",
+      "import": "./dist/ratelimit/index.js",
+      "require": "./dist/ratelimit/index.cjs"
+    },
+    "./telemetry": {
+      "types": "./dist/telemetry/index.d.ts",
+      "import": "./dist/telemetry/index.js",
+      "require": "./dist/telemetry/index.cjs"
+    },
+    "./monitoring": {
+      "types": "./dist/monitoring/index.d.ts",
+      "import": "./dist/monitoring/index.js",
+      "require": "./dist/monitoring/index.cjs"
+    },
+    "./profiling": {
+      "types": "./dist/profiling/index.d.ts",
+      "import": "./dist/profiling/index.js",
+      "require": "./dist/profiling/index.cjs"
+    },
+    "./performance": {
+      "types": "./dist/performance/index.d.ts",
+      "import": "./dist/performance/index.js",
+      "require": "./dist/performance/index.cjs"
+    },
+    "./debug": {
+      "types": "./dist/debug/index.d.ts",
+      "import": "./dist/debug/index.js",
+      "require": "./dist/debug/index.cjs"
+    },
+    "./logging": {
+      "types": "./dist/logging/index.d.ts",
+      "import": "./dist/logging/index.js",
+      "require": "./dist/logging/index.cjs"
+    },
+    "./audit": {
+      "types": "./dist/audit/index.d.ts",
+      "import": "./dist/audit/index.js",
+      "require": "./dist/audit/index.cjs"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.js",
+      "require": "./dist/security/index.cjs"
+    },
+    "./resilience": {
+      "types": "./dist/resilience/index.d.ts",
+      "import": "./dist/resilience/index.js",
+      "require": "./dist/resilience/index.cjs"
+    },
+    "./recovery": {
+      "types": "./dist/recovery/index.d.ts",
+      "import": "./dist/recovery/index.js",
+      "require": "./dist/recovery/index.cjs"
+    },
+    "./migration": {
+      "types": "./dist/migration/index.d.ts",
+      "import": "./dist/migration/index.js",
+      "require": "./dist/migration/index.cjs"
+    },
+    "./deploy": {
+      "types": "./dist/deploy/index.d.ts",
+      "import": "./dist/deploy/index.js",
+      "require": "./dist/deploy/index.cjs"
+    },
+    "./build": {
+      "types": "./dist/build/index.d.ts",
+      "import": "./dist/build/index.js",
+      "require": "./dist/build/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/circuit-breaker/index.ts src/ratelimit/index.ts src/telemetry/index.ts src/monitoring/index.ts src/profiling/index.ts src/performance/index.ts src/debug/index.ts src/logging/index.ts src/audit/index.ts src/security/index.ts src/resilience/index.ts src/recovery/index.ts src/migration/index.ts src/deploy/index.ts src/build/index.ts src/testing/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "devtools",
+    "circuit-breaker",
+    "ratelimit",
+    "telemetry",
+    "monitoring",
+    "profiling",
+    "debugging",
+    "logging",
+    "security",
+    "resilience",
+    "testing"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/devtools"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.3",
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
