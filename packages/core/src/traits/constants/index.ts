@@ -116,6 +116,15 @@ import { UNIVERSAL_V6_TRAITS } from './universal-service';
 // Phone Sleeve VR (smartphone-as-headset)
 import { PHONE_SLEEVE_VR_TRAITS } from './phone-sleeve-vr';
 
+// Geo-Anchored Holograms (GPS-pinned persistent scenes)
+import { GEO_ANCHOR_TRAITS } from './geo-anchor';
+
+// ARCore Geospatial API (6 traits — M.010.15)
+import { GEOSPATIAL_ARCORE_TRAITS } from './geospatial';
+
+// RoomPlan — iOS spatial scanning (iOS 16+)
+import { ROOMPLAN_TRAITS } from './roomplan';
+
 // Character Pipeline & GPU Geometry (Phase R4)
 import { INSTANCING_GEOMETRY_TRAITS } from './instancing-geometry';
 import { CHARACTER_PIPELINE_TRAITS } from './character-pipeline';
@@ -328,6 +337,15 @@ export const VR_TRAITS = [
 
   // Phone Sleeve VR — smartphone-as-headset (25 traits)
   ...PHONE_SLEEVE_VR_TRAITS,
+
+  // Geo-Anchored Holograms — GPS-pinned persistent scenes (12 traits)
+  ...GEO_ANCHOR_TRAITS,
+
+  // ARCore Geospatial API — VPS street-level geo-anchoring (6 traits — M.010.15)
+  ...GEOSPATIAL_ARCORE_TRAITS,
+
+  // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
+  ...ROOMPLAN_TRAITS,
 ] as const;
 
 /**
@@ -579,6 +597,12 @@ export {
   type PhoneSleeveVRTraitName,
 } from './phone-sleeve-vr';
 
+// Geo-Anchored Holograms (12 traits)
+export {
+  GEO_ANCHOR_TRAITS,
+  type GeoAnchorTraitName,
+} from './geo-anchor';
+
 // v6 Universal Semantic Platform (35 traits)
 export {
   UNIVERSAL_V6_TRAITS,
@@ -592,3 +616,15 @@ export {
   UNIVERSAL_RESILIENCE_TRAITS,
   type UniversalV6TraitName,
 } from './universal-service';
+
+// ARCore Geospatial API (6 traits — M.010.15)
+export {
+  GEOSPATIAL_ARCORE_TRAITS,
+  type GeospatialARCoreTraitName,
+} from './geospatial';
+
+// RoomPlan — iOS spatial scanning (22 traits — M.010.09)
+export {
+  ROOMPLAN_TRAITS,
+  type RoomPlanTraitName,
+} from './roomplan';

@@ -24,6 +24,7 @@ import type {
   HoloAudio,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import { ROOMPLAN_TRAITS } from '../traits/constants/roomplan';
 
 export interface IOSCompilerOptions {
   className?: string;
@@ -66,12 +67,18 @@ export class IOSCompiler extends CompilerBase {
     outputPath?: string
   ): IOSCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
-    return {
+    const result: IOSCompileResult = {
       viewFile: this.generateViewFile(composition),
       sceneFile: this.generateSceneFile(composition),
       stateFile: this.generateStateFile(composition),
       infoPlist: this.generateInfoPlist(composition),
     };
+
+    if (this.hasRoomPlanTraits(composition)) {
+      result.roomPlanFile = this.generateRoomPlanFile(composition);
+    }
+
+    return result;
   }
 
   private generateViewFile(composition: HoloComposition): string {
@@ -90,6 +97,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('import SceneKit');
     if (this.options.useCombine) {
       this.emit('import Combine');
+    }
+    if (this.hasGeoTraits(composition)) {
+      this.emit('import CoreLocation');
     }
     this.emit('');
 
@@ -531,6 +541,11 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('}');
 
+    // Geo-anchor methods
+    if (this.hasGeoTraits(composition)) {
+      this.emitGeoAnchorMethods(composition);
+    }
+
     // Actions from composition state
     if (composition.logic?.actions) {
       this.emit('');
@@ -547,16 +562,30 @@ export class IOSCompiler extends CompilerBase {
   }
 
   private generateInfoPlist(composition: HoloComposition): string {
+    const hasGeo = this.hasGeoTraits(composition);
+
+    const geoKeys = hasGeo
+      ? `
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app uses your location to anchor holographic scenes to real-world GPS coordinates.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app uses your location to anchor holographic scenes to real-world GPS coordinates.</string>`
+      : '';
+
+    const geoCapabilities = hasGeo ? `
+        <string>location-services</string>
+        <string>gps</string>` : '';
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>NSCameraUsageDescription</key>
-    <string>This app uses the camera for augmented reality experiences.</string>
+    <string>This app uses the camera for augmented reality experiences.</string>${geoKeys}
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arkit</string>
-        <string>arm64</string>
+        <string>arm64</string>${geoCapabilities}
     </array>
     <key>UIApplicationSceneManifest</key>
     <dict>
@@ -741,6 +770,643 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('}');
     this.emit('');
+  }
+
+  // === Geo-Anchor Methods ===
+
+  private hasGeoTraits(composition: HoloComposition): boolean {
+    const geoTraitNames = [
+      'geo_anchor', 'geo_persist', 'geo_radius', 'geo_compass_heading',
+      'geo_altitude', 'geo_cloud_anchor', 'geo_terrain_snap',
+      'geo_session_continuity', 'geo_proximity_trigger', 'geo_discoverable',
+      'geo_arcore_geospatial', 'geo_arkit_geo_anchor',
+    ];
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (geoTraitNames.includes(name)) return true;
+      }
+    }
+    return false;
+  }
+
+  private compositionHasTrait(composition: HoloComposition, traitName: string): boolean {
+    for (const obj of composition.objects || []) {
+      for (const trait of obj.traits || []) {
+        const name = typeof trait === 'string' ? trait : trait.name;
+        if (name === traitName) return true;
+      }
+    }
+    return false;
+  }
+
+  private emitGeoAnchorMethods(composition: HoloComposition): void {
+    this.emit('');
+    this.emit('// === Geo-Anchor: GPS-pinned persistent holograms ===');
+    this.emit('private let locationManager = CLLocationManager()');
+    this.emit('var geoAnchors: [String: ARAnchor] = [:]');
+    this.emit('');
+
+    // setupGeoAnchors
+    this.emit('func setupGeoAnchors() {');
+    this.indentLevel++;
+    this.emit('locationManager.requestWhenInUseAuthorization()');
+    this.emit('locationManager.startUpdatingLocation()');
+    this.emit('');
+
+    const usesARGeoAnchor = this.compositionHasTrait(composition, 'geo_arkit_geo_anchor');
+    if (usesARGeoAnchor) {
+      this.emit('// Check ARGeoTrackingConfiguration availability');
+      this.emit('ARGeoTrackingConfiguration.checkAvailability { available, error in');
+      this.indentLevel++;
+      this.emit('if available {');
+      this.indentLevel++;
+      this.emit('print("[HoloScript] ARGeoTracking available")');
+      this.indentLevel--;
+      this.emit('} else {');
+      this.indentLevel++;
+      this.emit('print("[HoloScript] ARGeoTracking not available: \\(error?.localizedDescription ?? \\"unknown\\")")');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // Emit anchor creation for geo_anchor objects
+    for (const obj of composition.objects || []) {
+      const traits = obj.traits || [];
+      const hasGeoAnchor = traits.some((t) => {
+        const n = typeof t === 'string' ? t : t.name;
+        return n === 'geo_anchor';
+      });
+      if (!hasGeoAnchor) continue;
+
+      const geoAnchorTrait = traits.find((t) => {
+        const n = typeof t === 'string' ? t : t.name;
+        return n === 'geo_anchor';
+      });
+      const config = typeof geoAnchorTrait === 'string' ? {} : (geoAnchorTrait?.config || {});
+      const lat = (config as Record<string, unknown>).latitude ?? 0.0;
+      const lng = (config as Record<string, unknown>).longitude ?? 0.0;
+
+      const altTrait = traits.find((t) => {
+        const n = typeof t === 'string' ? t : t.name;
+        return n === 'geo_altitude';
+      });
+      const altConfig = typeof altTrait === 'string' ? {} : (altTrait?.config || {});
+      const alt = (altConfig as Record<string, unknown>).meters ?? 0.0;
+
+      const headingTrait = traits.find((t) => {
+        const n = typeof t === 'string' ? t : t.name;
+        return n === 'geo_compass_heading';
+      });
+      const headingConfig = typeof headingTrait === 'string' ? {} : (headingTrait?.config || {});
+      const heading = (headingConfig as Record<string, unknown>).degrees ?? 0.0;
+
+      this.emit(`// Geo-anchor: ${this.escapeStringValue(obj.name, 'Swift')}`);
+      if (usesARGeoAnchor) {
+        this.emit(`createGeoAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt}, heading: ${heading})`);
+      } else {
+        this.emit(`createLocationAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt})`);
+      }
+    }
+
+    // Restore persisted anchors
+    const usesPersist = this.compositionHasTrait(composition, 'geo_persist');
+    if (usesPersist) {
+      this.emit('');
+      this.emit('// Restore persisted ARWorldMap');
+      this.emit('restoreWorldMap()');
+    }
+
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // createGeoAnchor (ARGeoAnchor for iOS 14+)
+    if (usesARGeoAnchor) {
+      this.emit('func createGeoAnchor(name: String, latitude: Double, longitude: Double, altitude: Double, heading: Double) {');
+      this.indentLevel++;
+      this.emit('guard let arView = arView else { return }');
+      this.emit('let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)');
+      this.emit('let geoAnchor = ARGeoAnchor(coordinate: coordinate, altitude: altitude)');
+      this.emit('geoAnchor.name = name');
+      this.emit('arView.session.add(anchor: geoAnchor)');
+      this.emit('geoAnchors[name] = geoAnchor');
+      this.emit('print("[HoloScript] Geo-anchored: \\(name) at (\\(latitude), \\(longitude), \\(altitude))")');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+
+    // createLocationAnchor (fallback using CLLocation + local anchor)
+    this.emit('func createLocationAnchor(name: String, latitude: Double, longitude: Double, altitude: Double) {');
+    this.indentLevel++;
+    this.emit('guard let arView = arView else { return }');
+    this.emit('let _ = CLLocation(latitude: latitude, longitude: longitude)');
+    this.emit('');
+    this.emit('// Create anchor at current camera position as placeholder');
+    this.emit('guard let frame = arView.session.currentFrame else { return }');
+    this.emit('var translation = matrix_identity_float4x4');
+    this.emit('translation.columns.3.z = -1.0 // 1 meter in front');
+    this.emit('let transform = simd_mul(frame.camera.transform, translation)');
+    this.emit('let anchor = ARAnchor(name: name, transform: transform)');
+    this.emit('arView.session.add(anchor: anchor)');
+    this.emit('geoAnchors[name] = anchor');
+    this.emit('print("[HoloScript] Location-anchored: \\(name) at (\\(latitude), \\(longitude))")');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // ARWorldMap persistence
+    if (usesPersist) {
+      this.emit('func saveWorldMap() {');
+      this.indentLevel++;
+      this.emit('guard let arView = arView else { return }');
+      this.emit('arView.session.getCurrentWorldMap { worldMap, error in');
+      this.indentLevel++;
+      this.emit('guard let map = worldMap else {');
+      this.indentLevel++;
+      this.emit('print("[HoloScript] Failed to get world map: \\(error?.localizedDescription ?? \\"unknown\\")")');
+      this.emit('return');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+      this.emit('do {');
+      this.indentLevel++;
+      this.emit('let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)');
+      this.emit('let url = self.worldMapURL()');
+      this.emit('try data.write(to: url)');
+      this.emit('print("[HoloScript] World map saved to \\(url)")');
+      this.indentLevel--;
+      this.emit('} catch {');
+      this.indentLevel++;
+      this.emit('print("[HoloScript] Failed to save world map: \\(error)")');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+
+      this.emit('func restoreWorldMap() {');
+      this.indentLevel++;
+      this.emit('let url = worldMapURL()');
+      this.emit('guard let data = try? Data(contentsOf: url),');
+      this.emit('      let worldMap = try? NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data) else {');
+      this.indentLevel++;
+      this.emit('print("[HoloScript] No saved world map found")');
+      this.emit('return');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+      this.emit('guard let arView = arView else { return }');
+      this.emit('let configuration = ARWorldTrackingConfiguration()');
+      this.emit('configuration.planeDetection = [.horizontal, .vertical]');
+      this.emit('configuration.initialWorldMap = worldMap');
+      this.emit('arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])');
+      this.emit('print("[HoloScript] World map restored with \\(worldMap.anchors.count) anchors")');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+
+      this.emit('private func worldMapURL() -> URL {');
+      this.indentLevel++;
+      this.emit('let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!');
+      this.emit('return documentsPath.appendingPathComponent("holoscript_worldmap.arworldmap")');
+      this.indentLevel--;
+      this.emit('}');
+      this.emit('');
+    }
+  }
+
+  // === RoomPlan (iOS 16+) ===
+
+  /**
+   * Check whether the composition references any roomplan_* traits.
+   */
+  private hasRoomPlanTraits(composition: HoloComposition): boolean {
+    const roomplanNames: ReadonlyArray<string> = ROOMPLAN_TRAITS;
+    for (const obj of composition.objects || []) {
+      if (obj.traits?.some((t) => roomplanNames.includes(t.name))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Emit a standalone Swift file that wraps Apple's RoomPlan framework.
+   *
+   * The generated code:
+   *   1. Imports RoomPlan (iOS 16+)
+   *   2. Creates a RoomCaptureSession with RoomCaptureSessionDelegate
+   *   3. Handles CapturedRoom → surfaces (walls, doors, windows, floors,
+   *      ceilings, openings) and objects (furniture, appliances, fixtures)
+   *   4. Maps each detected element to a HoloScript entity with semantic labels
+   *   5. Outputs a .holo-compatible scene graph
+   */
+  private generateRoomPlanFile(composition: HoloComposition): string {
+    this.lines = [];
+    this.indentLevel = 0;
+
+    const cls = this.options.className;
+
+    this.emit('// Auto-generated by HoloScript IOSCompiler — RoomPlan integration');
+    this.emit(
+      `// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`
+    );
+    this.emit('// Requires iOS 16.0+, RoomPlan framework');
+    this.emit('// Do not edit manually — regenerate from .holo source');
+    this.emit('');
+    this.emit('import Foundation');
+    this.emit('import RoomPlan');
+    this.emit('import SceneKit');
+    this.emit('import SwiftUI');
+    this.emit('');
+
+    // HoloEntity model
+    this.emit(
+      '/// A single entity in the HoloScript scene graph produced from a RoomPlan scan.'
+    );
+    this.emit('struct HoloEntity: Identifiable {');
+    this.indentLevel++;
+    this.emit('let id: UUID');
+    this.emit('let label: String');
+    this.emit('let category: String');
+    this.emit('let position: simd_float3');
+    this.emit('let dimensions: simd_float3');
+    this.emit('let transform: simd_float4x4');
+    this.emit('let traits: [String]');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // RoomPlanManager class
+    this.emit(`class ${cls}RoomPlanManager: NSObject, ObservableObject {`);
+    this.indentLevel++;
+    this.emit('@Published var isScanning: Bool = false');
+    this.emit('@Published var entities: [HoloEntity] = []');
+    this.emit('@Published var capturedRoom: CapturedRoom?');
+    this.emit('');
+    this.emit('private var captureSession: RoomCaptureSession?');
+    this.emit('private var sessionConfig: RoomCaptureSession.Configuration');
+    this.emit('');
+
+    // init
+    this.emit('override init() {');
+    this.indentLevel++;
+    this.emit('self.sessionConfig = RoomCaptureSession.Configuration()');
+    this.emit('super.init()');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // startScan
+    this.emit('/// Begin a RoomPlan capture session.');
+    this.emit('func startScan() {');
+    this.indentLevel++;
+    this.emit('guard RoomCaptureSession.isSupported else {');
+    this.indentLevel++;
+    this.emit('print("[HoloScript] RoomPlan is not supported on this device")');
+    this.emit('return');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+    this.emit('let session = RoomCaptureSession()');
+    this.emit('session.delegate = self');
+    this.emit('captureSession = session');
+    this.emit('session.run(configuration: sessionConfig)');
+    this.emit('isScanning = true');
+    this.emit('print("[HoloScript] RoomPlan scan started")');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // stopScan
+    this.emit('/// Stop the active capture session.');
+    this.emit('func stopScan() {');
+    this.indentLevel++;
+    this.emit('captureSession?.stop()');
+    this.emit('isScanning = false');
+    this.emit('print("[HoloScript] RoomPlan scan stopped")');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // Surface mapping
+    this.emit('// MARK: - Surface mapping');
+    this.emit('');
+    this.emit(
+      'private func mapSurface(_ surface: CapturedRoom.Surface) -> HoloEntity {'
+    );
+    this.indentLevel++;
+    this.emit('let (label, category, traits) = surfaceMeta(surface)');
+    this.emit('return HoloEntity(');
+    this.indentLevel++;
+    this.emit('id: surface.identifier,');
+    this.emit('label: label,');
+    this.emit('category: category,');
+    this.emit('position: simd_make_float3(surface.transform.columns.3),');
+    this.emit('dimensions: surface.dimensions,');
+    this.emit('transform: surface.transform,');
+    this.emit('traits: traits');
+    this.indentLevel--;
+    this.emit(')');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    this.emit(
+      'private func surfaceMeta(_ s: CapturedRoom.Surface) -> (String, String, [String]) {'
+    );
+    this.indentLevel++;
+    this.emit('switch s.category {');
+    this.emit('case .wall:');
+    this.indentLevel++;
+    this.emit('return ("Wall", "structure", ["roomplan_wall"])');
+    this.indentLevel--;
+    this.emit('case .floor:');
+    this.indentLevel++;
+    this.emit('return ("Floor", "structure", ["roomplan_floor"])');
+    this.indentLevel--;
+    this.emit('case .ceiling:');
+    this.indentLevel++;
+    this.emit('return ("Ceiling", "structure", ["roomplan_ceiling"])');
+    this.indentLevel--;
+    this.emit('case .door:');
+    this.indentLevel++;
+    this.emit('return ("Door", "opening", ["roomplan_door"])');
+    this.indentLevel--;
+    this.emit('case .window:');
+    this.indentLevel++;
+    this.emit('return ("Window", "opening", ["roomplan_window"])');
+    this.indentLevel--;
+    this.emit('case .opening:');
+    this.indentLevel++;
+    this.emit('return ("Opening", "opening", ["roomplan_opening"])');
+    this.indentLevel--;
+    this.emit('default:');
+    this.indentLevel++;
+    this.emit('return ("Surface", "structure", ["roomplan_wall"])');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // Object mapping
+    this.emit('// MARK: - Object mapping');
+    this.emit('');
+    this.emit(
+      'private func mapObject(_ object: CapturedRoom.Object) -> HoloEntity {'
+    );
+    this.indentLevel++;
+    this.emit('let (label, traits) = objectMeta(object)');
+    this.emit('return HoloEntity(');
+    this.indentLevel++;
+    this.emit('id: object.identifier,');
+    this.emit('label: label,');
+    this.emit('category: "furniture",');
+    this.emit('position: simd_make_float3(object.transform.columns.3),');
+    this.emit('dimensions: object.dimensions,');
+    this.emit('transform: object.transform,');
+    this.emit('traits: traits');
+    this.indentLevel--;
+    this.emit(')');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    this.emit(
+      'private func objectMeta(_ o: CapturedRoom.Object) -> (String, [String]) {'
+    );
+    this.indentLevel++;
+    this.emit('switch o.category {');
+    this.emit('case .table:');
+    this.indentLevel++;
+    this.emit('return ("Table", ["roomplan_furniture", "roomplan_table"])');
+    this.indentLevel--;
+    this.emit('case .chair:');
+    this.indentLevel++;
+    this.emit('return ("Chair", ["roomplan_furniture", "roomplan_chair"])');
+    this.indentLevel--;
+    this.emit('case .sofa:');
+    this.indentLevel++;
+    this.emit('return ("Sofa", ["roomplan_furniture", "roomplan_sofa"])');
+    this.indentLevel--;
+    this.emit('case .bed:');
+    this.indentLevel++;
+    this.emit('return ("Bed", ["roomplan_furniture", "roomplan_bed"])');
+    this.indentLevel--;
+    this.emit('case .storage:');
+    this.indentLevel++;
+    this.emit('return ("Storage", ["roomplan_furniture", "roomplan_storage"])');
+    this.indentLevel--;
+    this.emit('case .fireplace:');
+    this.indentLevel++;
+    this.emit('return ("Fireplace", ["roomplan_furniture", "roomplan_fireplace"])');
+    this.indentLevel--;
+    this.emit('case .television:');
+    this.indentLevel++;
+    this.emit('return ("Television", ["roomplan_furniture", "roomplan_screen"])');
+    this.indentLevel--;
+    this.emit('case .toilet, .bathtub, .sink:');
+    this.indentLevel++;
+    this.emit('return ("Fixture", ["roomplan_furniture", "roomplan_fixture"])');
+    this.indentLevel--;
+    this.emit('case .oven, .dishwasher, .refrigerator, .washerDryer:');
+    this.indentLevel++;
+    this.emit('return ("Appliance", ["roomplan_furniture", "roomplan_appliance"])');
+    this.indentLevel--;
+    this.emit('default:');
+    this.indentLevel++;
+    this.emit('return ("Furniture", ["roomplan_furniture"])');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // Process captured room
+    this.emit('// MARK: - Room processing');
+    this.emit('');
+    this.emit('func processRoom(_ room: CapturedRoom) {');
+    this.indentLevel++;
+    this.emit('self.capturedRoom = room');
+    this.emit('var result: [HoloEntity] = []');
+    this.emit('');
+    this.emit(
+      'for surface in room.walls + room.doors + room.windows + room.openings {'
+    );
+    this.indentLevel++;
+    this.emit('result.append(mapSurface(surface))');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+    this.emit('for surface in room.floors {');
+    this.indentLevel++;
+    this.emit('result.append(mapSurface(surface))');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+    this.emit('for object in room.objects {');
+    this.indentLevel++;
+    this.emit('result.append(mapObject(object))');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+    this.emit('self.entities = result');
+    this.emit(
+      'print("[HoloScript] Processed \\(result.count) entities from RoomPlan scan")'
+    );
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // Export to .holo
+    this.emit('// MARK: - .holo export');
+    this.emit('');
+    this.emit(
+      '/// Serialize captured entities to a HoloScript .holo scene string.'
+    );
+    this.emit('func exportToHolo() -> String {');
+    this.indentLevel++;
+    this.emit('var lines: [String] = []');
+    this.emit('lines.append("composition RoomScan {")');
+    this.emit('for entity in entities {');
+    this.indentLevel++;
+    this.emit(
+      'lines.append("  object \\(entity.label)_\\(entity.id.uuidString.prefix(8)) {")'
+    );
+    this.emit(
+      'lines.append("    position: [\\(entity.position.x), \\(entity.position.y), \\(entity.position.z)]")'
+    );
+    this.emit(
+      'lines.append("    dimensions: [\\(entity.dimensions.x), \\(entity.dimensions.y), \\(entity.dimensions.z)]")'
+    );
+    this.emit(
+      'lines.append("    category: \\\"\\(entity.category)\\\"")'
+    );
+    this.emit('for trait in entity.traits {');
+    this.indentLevel++;
+    this.emit('lines.append("    trait \\(trait)")');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('lines.append("  }")');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('lines.append("}")');
+    this.emit('return lines.joined(separator: "\\n")');
+    this.indentLevel--;
+    this.emit('}');
+
+    // Close manager class
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // RoomCaptureSessionDelegate extension
+    this.emit(
+      `extension ${cls}RoomPlanManager: RoomCaptureSessionDelegate {`
+    );
+    this.indentLevel++;
+
+    this.emit(
+      'func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {'
+    );
+    this.indentLevel++;
+    this.emit('DispatchQueue.main.async { [weak self] in');
+    this.indentLevel++;
+    this.emit('self?.processRoom(room)');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    this.emit(
+      'func captureSession(_ session: RoomCaptureSession, didEndWith data: CapturedRoomData, error: (any Error)?) {'
+    );
+    this.indentLevel++;
+    this.emit('DispatchQueue.main.async { [weak self] in');
+    this.indentLevel++;
+    this.emit('self?.isScanning = false');
+    this.emit('if let error = error {');
+    this.indentLevel++;
+    this.emit(
+      'print("[HoloScript] RoomPlan error: \\(error.localizedDescription)")'
+    );
+    this.emit('return');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('let finalRoom = data.finalResults');
+    this.emit('self?.processRoom(finalRoom)');
+    this.emit('print("[HoloScript] RoomPlan scan complete")');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+
+    // SwiftUI scanning view
+    this.emit(`struct ${cls}RoomPlanView: View {`);
+    this.indentLevel++;
+    this.emit(
+      `@StateObject private var manager = ${cls}RoomPlanManager()`
+    );
+    this.emit('');
+    this.emit('var body: some View {');
+    this.indentLevel++;
+    this.emit('VStack {');
+    this.indentLevel++;
+    this.emit('Text("Room Scanner")');
+    this.emit('    .font(.title)');
+    this.emit('');
+    this.emit('if manager.isScanning {');
+    this.indentLevel++;
+    this.emit('Text("Scanning... Move around the room")');
+    this.emit('    .foregroundColor(.secondary)');
+    this.emit('Button("Stop Scan") { manager.stopScan() }');
+    this.emit('    .buttonStyle(.borderedProminent)');
+    this.emit('    .tint(.red)');
+    this.indentLevel--;
+    this.emit('} else {');
+    this.indentLevel++;
+    this.emit('Text("\\(manager.entities.count) entities detected")');
+    this.emit('Button("Start Scan") { manager.startScan() }');
+    this.emit('    .buttonStyle(.borderedProminent)');
+    this.indentLevel--;
+    this.emit('}');
+    this.emit('');
+    this.emit('List(manager.entities) { entity in');
+    this.indentLevel++;
+    this.emit('VStack(alignment: .leading) {');
+    this.indentLevel++;
+    this.emit('Text(entity.label).font(.headline)');
+    this.emit(
+      'Text(entity.category).font(.caption).foregroundColor(.secondary)'
+    );
+    this.emit(
+      'Text(entity.traits.joined(separator: ", ")).font(.caption2)'
+    );
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+    this.indentLevel--;
+    this.emit('}');
+
+    return this.lines.join('\n');
   }
 
   // === Utility Methods ===
