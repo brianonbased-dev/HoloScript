@@ -440,9 +440,11 @@ describe('Team remote facade methods', () => {
   // ── setMode() ──
 
   describe('setMode()', () => {
-    it('throws on local-only team', async () => {
+    it('changes mode locally on local-only team', async () => {
       const team = localTeam();
-      await expect(team.setMode('audit')).rejects.toThrow('requires a remote board');
+      const result = await team.setMode('audit');
+      expect(result.mode).toBe('audit');
+      expect((team as any).currentMode).toBe('audit');
     });
 
     it('calls POST /mode with mode body', async () => {
@@ -462,9 +464,11 @@ describe('Team remote facade methods', () => {
   // ── derive() ──
 
   describe('derive()', () => {
-    it('throws on local-only team', async () => {
+    it('derives tasks locally on local-only team', async () => {
       const team = localTeam();
-      await expect(team.derive('audit', '# Findings')).rejects.toThrow('requires a remote board');
+      const result = await team.derive('audit', '# Findings\n- [ ] Fix Y');
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].title).toBe('Fix Y');
     });
 
     it('calls POST /board/derive with source and content', async () => {

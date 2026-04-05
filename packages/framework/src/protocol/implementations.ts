@@ -305,6 +305,48 @@ export abstract class BaseService {
   protected async onStop(): Promise<void> {}
 }
 
+export class ServiceManager {
+  private services: BaseService[] = [];
+  private started = false;
+
+  register(service: BaseService): void {
+    if (this.started) throw new Error('Cannot register service after starting manager');
+    this.services.push(service);
+  }
+
+  get size(): number {
+    return this.services.length;
+  }
+
+  async startAll(): Promise<void> {
+    this.started = true;
+    for (const svc of this.services) {
+      await svc.initialize();
+    }
+  }
+
+  async stopAll(): Promise<void> {
+    // Stop in reverse order
+    for (let i = this.services.length - 1; i >= 0; i--) {
+      await this.services[i].stop();
+    }
+  }
+
+  health() {
+    const ready = this.services.filter(s => s.isReady());
+    return {
+      totalServices: this.services.length,
+      readyCount: ready.length,
+      allReady: this.services.length > 0 && ready.length === this.services.length,
+      services: this.services.map(s => ({
+        name: s.getMetadata().name,
+        ready: s.isReady(),
+        lifecycle: s.getMetadata().lifecycle
+      }))
+    };
+  }
+}
+
 // =============================================================================
 // GOAL SYNTHESIZER — Autonomous goal generation (FW-0.2)
 // =============================================================================
