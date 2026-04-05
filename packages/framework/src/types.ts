@@ -110,6 +110,8 @@ export interface TeamConfig {
   /** Remote board API — when set, board ops delegate to HoloMesh HTTP API */
   boardUrl?: string;
   boardApiKey?: string;
+  /** Local presence tracking configuration (FW-0.3). */
+  presence?: PresenceConfig;
 }
 
 // ── Work Cycle ──
@@ -159,16 +161,32 @@ export interface ProposalResult<T = unknown> {
 
 export type SuggestionStatus = 'open' | 'promoted' | 'dismissed';
 
+export interface SuggestionVoteEntry {
+  agent: string;
+  vote: 'up' | 'down';
+  reason?: string;
+  votedAt: string;
+}
+
 export interface Suggestion {
   id: string;
   title: string;
   description?: string;
   category?: string;
   evidence?: string;
+  proposedBy: string;
   status: SuggestionStatus;
-  votes: number;
-  createdBy?: string;
+  votes: SuggestionVoteEntry[];
+  /** Net score (upvotes minus downvotes) */
+  score: number;
   createdAt: string;
+  resolvedAt?: string;
+  /** When upvotes >= this threshold, auto-promote to board task */
+  autoPromoteThreshold?: number;
+  /** When downvotes >= this threshold, auto-dismiss */
+  autoDismissThreshold?: number;
+  /** If promoted, the resulting task ID */
+  promotedTaskId?: string;
 }
 
 export interface SuggestionCreateResult {
@@ -177,6 +195,8 @@ export interface SuggestionCreateResult {
 
 export interface SuggestionVoteResult {
   suggestion: Suggestion;
+  /** Set when a suggestion was auto-promoted via threshold */
+  promotedTaskId?: string;
 }
 
 export interface SuggestionListResult {
@@ -214,6 +234,25 @@ export interface PresenceResult {
 
 export interface HeartbeatResult {
   ok: boolean;
+}
+
+// ── Local Presence Tracking (FW-0.3) ──
+
+export type AgentPresenceStatus = 'online' | 'idle' | 'offline';
+
+export interface AgentPresence {
+  name: string;
+  status: AgentPresenceStatus;
+  lastSeen: number;
+  currentTask?: string;
+  uptime: number;  // ms since first heartbeat
+}
+
+export interface PresenceConfig {
+  /** Milliseconds without heartbeat before agent is marked idle (default 60_000). */
+  idleTimeoutMs?: number;
+  /** Milliseconds without heartbeat before agent is marked offline (default 300_000). */
+  offlineTimeoutMs?: number;
 }
 
 // ── Protocol Agent (FW-0.2) ──

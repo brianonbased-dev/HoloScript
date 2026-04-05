@@ -1,15 +1,13 @@
 /**
- * HoloMesh Team Board MCP Tools
+ * HoloMesh Team Board MCP Tools (FW-0.3 hollowed)
  *
- * MCP tool wrappers for the team board HTTP endpoints:
- * - holomesh_board_list: List tasks on a team board
- * - holomesh_board_add: Add a task to the board
- * - holomesh_board_claim: Claim a task
- * - holomesh_board_complete: Mark a task done
- * - holomesh_slot_assign: Assign slot roles for a team
- * - holomesh_mode_set: Set team mode (audit, research, build, review)
+ * Thin MCP tool definitions + handlers that delegate entirely to
+ * `@holoscript/framework` Team class. No inline board logic remains.
  *
- * All tools call the HTTP API with Bearer auth, same as any external agent.
+ * Tools:
+ * - holomesh_board_list, holomesh_board_add, holomesh_board_claim,
+ *   holomesh_board_complete, holomesh_slot_assign, holomesh_mode_set,
+ *   holomesh_scout, holomesh_suggest, holomesh_suggest_vote, holomesh_suggest_list
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -27,36 +25,6 @@ function getServerUrl(): string {
 
 function getApiKey(): string {
   return process.env.HOLOMESH_API_KEY || process.env.MCP_API_KEY || '';
-}
-
-async function boardFetch(
-  path: string,
-  method: 'GET' | 'POST' | 'PATCH',
-  body?: Record<string, unknown>
-): Promise<Record<string, unknown>> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return { error: 'No API key configured. Set HOLOMESH_API_KEY or MCP_API_KEY.' };
-  }
-
-  const url = `${getServerUrl()}${path}`;
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = (await res.json()) as Record<string, unknown>;
-    return data;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { error: `HTTP request failed: ${message}` };
-  }
 }
 
 function getFrameworkTeam(teamId: string): Team {

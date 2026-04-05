@@ -371,14 +371,9 @@ describe('Team remote facade methods', () => {
     return { team, fetchSpy };
   }
 
-  // ── suggest() ──
+  // ── suggest() (remote) ──
 
-  describe('suggest()', () => {
-    it('throws on local-only team', async () => {
-      const team = localTeam();
-      await expect(team.suggest('idea')).rejects.toThrow('requires a remote board');
-    });
-
+  describe('suggest() remote', () => {
     it('calls POST /suggestions with correct body', async () => {
       const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 0, createdAt: '2026-01-01' } });
       const result = await team.suggest('idea', { description: 'desc', category: 'ux', evidence: 'data' });
@@ -402,14 +397,9 @@ describe('Team remote facade methods', () => {
     });
   });
 
-  // ── vote() ──
+  // ── vote() (remote) ──
 
-  describe('vote()', () => {
-    it('throws on local-only team', async () => {
-      const team = localTeam();
-      await expect(team.vote('s1', 1)).rejects.toThrow('requires a remote board');
-    });
-
+  describe('vote() remote', () => {
     it('calls PATCH /suggestions/:id with vote action', async () => {
       const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 1, createdAt: '2026-01-01' } });
       const result = await team.vote('s1', 1, 'good idea');
@@ -425,14 +415,9 @@ describe('Team remote facade methods', () => {
     });
   });
 
-  // ── suggestions() ──
+  // ── suggestions() (remote) ──
 
-  describe('suggestions()', () => {
-    it('throws on local-only team', async () => {
-      const team = localTeam();
-      await expect(team.suggestions()).rejects.toThrow('requires a remote board');
-    });
-
+  describe('suggestions() remote', () => {
     it('calls GET /suggestions without filter', async () => {
       const { team, fetchSpy } = remoteTeam({ suggestions: [] });
       const result = await team.suggestions();
@@ -544,6 +529,264 @@ describe('Team remote facade methods', () => {
       const body = JSON.parse(opts?.body as string);
       expect(body.ide_type).toBe('unknown');
       fetchSpy.mockRestore();
+    });
+  });
+});
+
+// ── Local Suggestions (FW-0.3) ──
+
+describe('Team local suggestions', () => {
+  const agent1 = defineAgent({
+    name: 'Alice', role: 'coder',
+    model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+    capabilities: ['code-generation'], claimFilter: { roles: ['coder'], maxPriority: 10 },
+  });
+  const agent2 = defineAgent({
+    name: 'Bob', role: 'researcher',
+    model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+    capabilities: ['research'], claimFilter: { roles: ['researcher'], maxPriority: 10 },
+  });
+
+  function makeTeam() {
+    return defineTeam({ name: 'test-team', agents: [agent1, agent2] });
+  }
+
+  describe('suggest()', () => {
+    it('creates a local suggestion with defaults', async () => {
+      const team = makeTeam();
+      const result = await team.suggest('Add caching layer');
+      expect(result.suggestion.id).toMatch(/^sug_/);
+      expect(result.suggestion.title).toBe('Add caching layer');
+      expect(result.suggestion.status).toBe('open');
+      expect(result.suggestion.proposedBy).toBe('anonymous');
+      expect(result.suggestion.votes).toEqual([]);
+      expect(result.suggestion.score).toBe(0);
+    });
+
+    it('creates a suggestion with all options', async () => {
+      const team = makeTeam();
+      const result = await team.suggest('Refactor parser', {
+        description: 'The parser is too complex',
+        category: 'architecture',
+        evidence: 'Cyclomatic complexity > 20',
+        proposedBy: 'Alice',
+        autoPromoteThreshold: 3,
+        autoDismissThreshold: 2,
+      });
+      const s = result.suggestion;
+      expect(s.description).toBe('The parser is too complex');
+      expect(s.category).toBe('architecture');
+      expect(s.evidence).toBe('Cyclomatic complexity > 20');
+      expect(s.proposedBy).toBe('Alice');
+      expect(s.autoPromoteThreshold).toBe(3);
+      expect(s.autoDismissThreshold).toBe(2);
+    });
+
+    it('throws on empty title', async () => {
+      const team = makeTeam();
+      await expect(team.suggest('   ')).rejects.toThrow('title is required');
+    });
+
+    it('deduplicates against open suggestions', async () => {
+      const team = makeTeam();
+      await team.suggest('Add caching');
+      await expect(team.suggest('add  CACHING')).rejects.toThrow('similar open suggestion');
+    });
+
+    it('allows resubmission after dismiss', async () => {
+      const team = makeTeam();
+      const { suggestion } = (await team.suggest('Add caching'));
+      team.dismissSuggestion(suggestion.id);
+      // Should not throw — dismissed suggestions don't block new ones
+      const result = await team.suggest('Add caching');
+      expect(result.suggestion.status).toBe('open');
+    });
+  });
+
+  describe('vote()', () => {
+    it('records an upvote', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Idea');
+      const result = await team.vote(suggestion.id, 'Alice', 'up');
+      expect(result.suggestion.votes).toHaveLength(1);
+      expect(result.suggestion.votes[0].agent).toBe('Alice');
+      expect(result.suggestion.votes[0].vote).toBe('up');
+      expect(result.suggestion.score).toBe(1);
+    });
+
+    it('records a downvote', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Bad idea');
+      const result = await team.vote(suggestion.id, 'Bob', 'down', 'not useful');
+      expect(result.suggestion.votes[0].vote).toBe('down');
+      expect(result.suggestion.votes[0].reason).toBe('not useful');
+      expect(result.suggestion.score).toBe(-1);
+    });
+
+    it('replaces previous vote from same agent', async () => {
+      const team = makeTeam();
+      // High threshold so first vote doesn't auto-promote
+      const { suggestion } = await team.suggest('Idea', { autoPromoteThreshold: 10 });
+      await team.vote(suggestion.id, 'Alice', 'up');
+      const result = await team.vote(suggestion.id, 'Alice', 'down');
+      expect(result.suggestion.votes).toHaveLength(1);
+      expect(result.suggestion.votes[0].vote).toBe('down');
+      expect(result.suggestion.score).toBe(-1);
+    });
+
+    it('throws on unknown suggestion', async () => {
+      const team = makeTeam();
+      await expect(team.vote('nonexistent', 'Alice', 'up')).rejects.toThrow('Suggestion not found');
+    });
+
+    it('throws on closed suggestion', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Idea');
+      team.dismissSuggestion(suggestion.id);
+      await expect(team.vote(suggestion.id, 'Alice', 'up')).rejects.toThrow('voting closed');
+    });
+
+    it('auto-promotes when upvotes reach threshold', async () => {
+      const team = makeTeam();
+      // Default threshold = ceil(2 agents / 2) = 1
+      const { suggestion } = await team.suggest('Ship it', { proposedBy: 'Alice' });
+      const result = await team.vote(suggestion.id, 'Alice', 'up');
+      expect(result.suggestion.status).toBe('promoted');
+      expect(result.promotedTaskId).toBeDefined();
+      expect(result.promotedTaskId).toMatch(/^task_/);
+      // Verify task was added to board
+      expect(team.openTasks.some(t => t.source === `suggestion:${suggestion.id}`)).toBe(true);
+    });
+
+    it('auto-dismisses when downvotes reach threshold', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Bad plan');
+      const result = await team.vote(suggestion.id, 'Bob', 'down');
+      expect(result.suggestion.status).toBe('dismissed');
+      expect(result.suggestion.resolvedAt).toBeDefined();
+    });
+
+    it('respects custom autoPromoteThreshold', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Needs consensus', { autoPromoteThreshold: 2 });
+      // First vote: not enough
+      const r1 = await team.vote(suggestion.id, 'Alice', 'up');
+      expect(r1.suggestion.status).toBe('open');
+      // Second vote: reaches threshold
+      const r2 = await team.vote(suggestion.id, 'Bob', 'up');
+      expect(r2.suggestion.status).toBe('promoted');
+      expect(r2.promotedTaskId).toBeDefined();
+    });
+
+    it('respects custom autoDismissThreshold', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Maybe bad', { autoDismissThreshold: 2 });
+      const r1 = await team.vote(suggestion.id, 'Alice', 'down');
+      expect(r1.suggestion.status).toBe('open');
+      const r2 = await team.vote(suggestion.id, 'Bob', 'down');
+      expect(r2.suggestion.status).toBe('dismissed');
+    });
+  });
+
+  describe('suggestions()', () => {
+    it('returns empty list initially', async () => {
+      const team = makeTeam();
+      const result = await team.suggestions();
+      expect(result.suggestions).toEqual([]);
+    });
+
+    it('returns all suggestions', async () => {
+      const team = makeTeam();
+      await team.suggest('A');
+      await team.suggest('B');
+      const result = await team.suggestions();
+      expect(result.suggestions).toHaveLength(2);
+    });
+
+    it('filters by status', async () => {
+      const team = makeTeam();
+      const { suggestion: s1 } = await team.suggest('Keep');
+      await team.suggest('Dismiss me');
+      const list = await team.suggestions();
+      team.dismissSuggestion(list.suggestions[1].id);
+
+      const open = await team.suggestions('open');
+      expect(open.suggestions).toHaveLength(1);
+      expect(open.suggestions[0].id).toBe(s1.id);
+
+      const dismissed = await team.suggestions('dismissed');
+      expect(dismissed.suggestions).toHaveLength(1);
+    });
+  });
+
+  describe('promoteSuggestion()', () => {
+    it('promotes and creates a board task', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Build widget', {
+        description: 'We need a widget',
+        proposedBy: 'Alice',
+      });
+      const result = await team.promoteSuggestion(suggestion.id, 'Bob');
+      expect(result.suggestion.status).toBe('promoted');
+      expect(result.promotedTaskId).toBeDefined();
+      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      expect(task).toBeDefined();
+      expect(task!.title).toBe('Build widget');
+      expect(task!.description).toContain('Promoted by Bob');
+      expect(task!.source).toBe(`suggestion:${suggestion.id}`);
+    });
+
+    it('throws on already promoted', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('X');
+      await team.promoteSuggestion(suggestion.id);
+      await expect(team.promoteSuggestion(suggestion.id)).rejects.toThrow('already promoted');
+    });
+
+    it('throws on not found', async () => {
+      const team = makeTeam();
+      await expect(team.promoteSuggestion('nope')).rejects.toThrow('not found');
+    });
+
+    it('assigns priority 2 for architecture category', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Restructure', { category: 'architecture' });
+      const result = await team.promoteSuggestion(suggestion.id);
+      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      expect(task!.priority).toBe(2);
+    });
+
+    it('assigns priority 3 for testing category', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Add tests', { category: 'testing' });
+      const result = await team.promoteSuggestion(suggestion.id);
+      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      expect(task!.priority).toBe(3);
+    });
+  });
+
+  describe('dismissSuggestion()', () => {
+    it('dismisses an open suggestion', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Nah');
+      const result = team.dismissSuggestion(suggestion.id);
+      expect(result.suggestion.status).toBe('dismissed');
+      expect(result.suggestion.resolvedAt).toBeDefined();
+    });
+
+    it('throws on already dismissed', async () => {
+      const team = makeTeam();
+      const { suggestion } = await team.suggest('Gone');
+      team.dismissSuggestion(suggestion.id);
+      expect(() => team.dismissSuggestion(suggestion.id)).toThrow('already dismissed');
+    });
+
+    it('throws on remote team', async () => {
+      const team = defineTeam({
+        name: 'remote', agents: [agent1],
+        boardUrl: 'https://example.com', boardApiKey: 'key',
+      });
+      expect(() => team.dismissSuggestion('s1')).toThrow('not supported in remote mode');
     });
   });
 });

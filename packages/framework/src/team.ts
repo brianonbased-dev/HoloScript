@@ -18,6 +18,8 @@ import type {
   ConsensusMode,
   ProposalResult,
   ReputationTier,
+  Suggestion,
+  SuggestionVoteEntry,
   SuggestionCreateResult,
   SuggestionVoteResult,
   SuggestionListResult,
@@ -27,8 +29,15 @@ import type {
   DeriveResult,
   PresenceResult,
   HeartbeatResult,
+  AgentPresence,
+  AgentPresenceStatus,
+  PresenceConfig,
+  SlotRole,
 } from './types';
 import { KnowledgeStore } from './knowledge/knowledge-store';
+import { DoneLogAuditor } from './board/audit';
+import type { FullAuditResult } from './board/audit';
+import type { DoneLogEntry } from './board/board-types';
 import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
@@ -37,6 +46,18 @@ import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';
+import { parseDeriveContent, ROOM_PRESETS } from './board';
+
+// ── Mode Claim Filters (FW-0.3) ──
+// Each mode defines which SlotRoles can actively claim tasks.
+// Agents whose claimFilter.roles don't overlap with the active set are deprioritized.
+
+const MODE_CLAIM_ROLES: Record<TeamMode, SlotRole[]> = {
+  audit: ['researcher', 'reviewer', 'tester'],
+  build: ['coder', 'tester'],
+  research: ['researcher'],
+  review: ['reviewer', 'researcher'],
+};
 
 // ── Internal Proposal (not exported — use ProposalResult from types) ──
 
@@ -70,6 +91,17 @@ function computeTier(score: number): ReputationTier {
 /** When fewer than this many open tasks exist, agents synthesize goals instead of skipping. */
 const OPEN_TASK_THRESHOLD = 3;
 
+/** Default presence timeouts (FW-0.3). */
+const DEFAULT_IDLE_TIMEOUT_MS = 60_000;   // 60 seconds
+const DEFAULT_OFFLINE_TIMEOUT_MS = 300_000; // 5 minutes
+
+/** Internal record for tracking an agent's presence state. */
+interface PresenceRecord {
+  firstSeen: number;
+  lastSeen: number;
+  currentTask?: string;
+}
+
 export class Team {
   readonly name: string;
   readonly knowledge: KnowledgeStore;
@@ -82,14 +114,25 @@ export class Team {
   private cycle = 0;
   private consensusMode: ConsensusMode;
   private proposals: Map<string, InternalProposal> = new Map();
+  private localSuggestions: Suggestion[] = [];
+  private currentMode: TeamMode = 'build';
+  private modeObjective: string = ROOM_PRESETS['build'].objective;
+  private modeRules: string[] = ROOM_PRESETS['build'].rules;
   private goalSynthesizer: GoalSynthesizer;
   private decomposer: SmartMicroPhaseDecomposer | null = null;
+
+  // ── Local presence tracking (FW-0.3) ──
+  private presenceRecords: Map<string, PresenceRecord> = new Map();
+  private idleTimeoutMs: number;
+  private offlineTimeoutMs: number;
 
   constructor(config: TeamConfig) {
     this.config = config;
     this.name = config.name;
     this.agentConfigs = config.agents;
     this.consensusMode = config.consensus ?? 'simple_majority';
+    this.idleTimeoutMs = config.presence?.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+    this.offlineTimeoutMs = config.presence?.offlineTimeoutMs ?? DEFAULT_OFFLINE_TIMEOUT_MS;
 
     this.knowledge = new KnowledgeStore(
       config.knowledge ?? { persist: false }
@@ -228,7 +271,7 @@ export class Team {
       const agent = runtime.config;
 
       // Find a matching task
-      let task = this.findClaimableTask(agent, claimed);
+      let task = this.findClaimableTask(runtime, claimed);
       let synthesized = false;
 
       // When no task found and board is sparse, synthesize a goal autonomously (FW-0.2)
@@ -270,6 +313,9 @@ export class Team {
       claimed.add(task.id);
       task.status = 'claimed';
       task.claimedBy = runtime.name;
+
+      // Auto-heartbeat: record agent as alive with current task (FW-0.3)
+      this.localHeartbeat(runtime.name, task.title);
 
       // Execute via LLM
       try {
@@ -350,12 +396,7 @@ export class Team {
       const agent = runtime.config;
 
       // Find matching task from remote board
-      let task = openTasks.find(t => {
-        if (claimed.has(t.id)) return false;
-        if (t.priority > agent.claimFilter.maxPriority) return false;
-        if (t.role) return agent.claimFilter.roles.includes(t.role);
-        return true;
-      });
+      let task = this.findClaimableTask(runtime, claimed, openTasks);
       let synthesized = false;
 
       // When no task found and remote board is sparse, synthesize a goal autonomously (FW-0.2)
@@ -394,6 +435,9 @@ export class Team {
       }
 
       claimed.add(task.id);
+
+      // Auto-heartbeat: record agent as alive with current task (FW-0.3)
+      this.localHeartbeat(runtime.name, task.title);
 
       // Claim via API
       const claimRes = await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`, 'PATCH', { action: 'claim' });
@@ -507,76 +551,336 @@ export class Team {
     return this.runtimes.get(name);
   }
 
-  // ── Suggestions ──
+  // ── Audit (FW-0.3) ──
 
-  /** Create a suggestion for the team. Requires remote board. */
+  /**
+   * Audit the done log: check for missing fields, duplicates, non-monotonic
+   * timestamps, and return aggregate statistics.
+   *
+   * Works in both local and remote modes. In local mode, the internal doneLog
+   * is converted to DoneLogEntry format. In remote mode, fetches the board
+   * and extracts the done log from the response.
+   */
+  async audit(): Promise<FullAuditResult> {
+    let entries: DoneLogEntry[];
+
+    if (this.isRemote) {
+      const boardData = await this.listBoard();
+      const board = boardData.board as Record<string, unknown> | undefined;
+      const rawDone = (board?.done_log ?? board?.doneLog ?? []) as Array<Record<string, unknown>>;
+      entries = rawDone.map((d) => ({
+        taskId: String(d.taskId ?? d.task_id ?? ''),
+        title: String(d.title ?? ''),
+        completedBy: String(d.completedBy ?? d.completed_by ?? ''),
+        commitHash: d.commitHash as string | undefined ?? d.commit_hash as string | undefined,
+        timestamp: String(d.timestamp ?? d.completedAt ?? ''),
+        summary: String(d.summary ?? ''),
+      }));
+    } else {
+      entries = this.doneLog.map((d) => ({
+        taskId: d.taskId,
+        title: d.title,
+        completedBy: d.completedBy,
+        timestamp: d.timestamp,
+        summary: '',
+      }));
+    }
+
+    const auditor = new DoneLogAuditor(entries);
+    return auditor.fullAudit();
+  }
+
+  // ── Suggestions (FW-0.3 — local-first with optional remote) ──
+
+  /**
+   * Create a suggestion for the team.
+   * Works locally (in-memory) and remotely (delegates to HoloMesh API).
+   */
   async suggest(
     title: string,
-    opts?: { description?: string; category?: string; evidence?: string }
+    opts?: {
+      description?: string;
+      category?: string;
+      evidence?: string;
+      proposedBy?: string;
+      autoPromoteThreshold?: number;
+      autoDismissThreshold?: number;
+    }
   ): Promise<SuggestionCreateResult> {
-    if (!this.isRemote) throw new Error('suggest() requires a remote board (boardUrl + boardApiKey)');
-    const teamId = encodeURIComponent(this.name);
-    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/suggestions`, 'POST', {
-      title,
-      description: opts?.description,
-      category: opts?.category,
-      evidence: opts?.evidence,
-    });
-    if (!res) throw new Error('Failed to create suggestion — no response from board');
-    if (res.error) throw new Error(String(res.error));
-    return res as unknown as SuggestionCreateResult;
-  }
+    if (this.isRemote) {
+      const teamId = encodeURIComponent(this.name);
+      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/suggestions`, 'POST', {
+        title,
+        description: opts?.description,
+        category: opts?.category,
+        evidence: opts?.evidence,
+      });
+      if (!res) throw new Error('Failed to create suggestion — no response from board');
+      if (res.error) throw new Error(String(res.error));
+      return res as unknown as SuggestionCreateResult;
+    }
 
-  /** Vote on an existing suggestion. Requires remote board. */
-  async vote(suggestionId: string, value: 1 | -1, reason?: string): Promise<SuggestionVoteResult> {
-    if (!this.isRemote) throw new Error('vote() requires a remote board (boardUrl + boardApiKey)');
-    const teamId = encodeURIComponent(this.name);
-    const res = await this.boardFetch(
-      `/api/holomesh/team/${teamId}/suggestions/${encodeURIComponent(suggestionId)}`,
-      'PATCH',
-      { action: 'vote', value, reason }
+    const trimmedTitle = title.trim().slice(0, 200);
+    if (!trimmedTitle) throw new Error('title is required');
+
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const existingNorm = new Set(
+      this.localSuggestions.filter(s => s.status === 'open').map(s => normalize(s.title))
     );
-    if (!res) throw new Error('Failed to vote — no response from board');
-    if (res.error) throw new Error(String(res.error));
-    return res as unknown as SuggestionVoteResult;
+    if (existingNorm.has(normalize(trimmedTitle))) {
+      throw new Error('A similar open suggestion already exists');
+    }
+
+    const suggestion: Suggestion = {
+      id: `sug_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: trimmedTitle,
+      description: opts?.description?.slice(0, 2000),
+      category: opts?.category,
+      evidence: opts?.evidence?.slice(0, 1000),
+      proposedBy: opts?.proposedBy ?? 'anonymous',
+      status: 'open',
+      votes: [],
+      score: 0,
+      createdAt: new Date().toISOString(),
+      autoPromoteThreshold: opts?.autoPromoteThreshold,
+      autoDismissThreshold: opts?.autoDismissThreshold,
+    };
+    this.localSuggestions.push(suggestion);
+    return { suggestion };
   }
 
-  /** List suggestions, optionally filtered by status. Requires remote board. */
+  /**
+   * Vote on an existing suggestion.
+   * Local mode: vote(id, agentName, 'up'|'down', reason?).
+   * Remote mode: vote(id, 1|-1, reason?) for backward compatibility.
+   */
+  async vote(suggestionId: string, agentNameOrValue: string | 1 | -1, voteOrReason?: 'up' | 'down' | string, reason?: string): Promise<SuggestionVoteResult> {
+    if (this.isRemote) {
+      const value = typeof agentNameOrValue === 'number' ? agentNameOrValue : (voteOrReason === 'down' ? -1 : 1);
+      const remoteReason = typeof agentNameOrValue === 'number' ? (voteOrReason as string | undefined) : reason;
+      const teamId = encodeURIComponent(this.name);
+      const res = await this.boardFetch(
+        `/api/holomesh/team/${teamId}/suggestions/${encodeURIComponent(suggestionId)}`,
+        'PATCH',
+        { action: 'vote', value, reason: remoteReason }
+      );
+      if (!res) throw new Error('Failed to vote — no response from board');
+      if (res.error) throw new Error(String(res.error));
+      return res as unknown as SuggestionVoteResult;
+    }
+
+    const agentName = String(agentNameOrValue);
+    const voteDir: 'up' | 'down' = (voteOrReason === 'up' || voteOrReason === 'down') ? voteOrReason : 'up';
+
+    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    if (!suggestion) throw new Error('Suggestion not found');
+    if (suggestion.status !== 'open') throw new Error(`Suggestion is ${suggestion.status}, voting closed`);
+
+    suggestion.votes = suggestion.votes.filter(v => v.agent !== agentName);
+    suggestion.votes.push({ agent: agentName, vote: voteDir, reason, votedAt: new Date().toISOString() });
+
+    const upvotes = suggestion.votes.filter(v => v.vote === 'up').length;
+    const downvotes = suggestion.votes.filter(v => v.vote === 'down').length;
+    suggestion.score = upvotes - downvotes;
+
+    let promotedTaskId: string | undefined;
+
+    const promoteThreshold = suggestion.autoPromoteThreshold ?? Math.ceil(this.agentConfigs.length / 2);
+    if (upvotes >= promoteThreshold && suggestion.status === 'open') {
+      suggestion.status = 'promoted';
+      suggestion.resolvedAt = new Date().toISOString();
+      const promoted = await this.addTasks([{
+        title: suggestion.title,
+        description: `${suggestion.description ?? ''}\n\n[Auto-promoted from suggestion by ${suggestion.proposedBy} with ${suggestion.score} net votes]`.trim(),
+        priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+        source: `suggestion:${suggestion.id}`,
+      }]);
+      if (promoted.length > 0) {
+        promotedTaskId = promoted[0].id;
+        suggestion.promotedTaskId = promotedTaskId;
+      }
+    }
+
+    const dismissThreshold = suggestion.autoDismissThreshold ?? Math.ceil(this.agentConfigs.length / 2);
+    if (downvotes >= dismissThreshold && suggestion.status === 'open') {
+      suggestion.status = 'dismissed';
+      suggestion.resolvedAt = new Date().toISOString();
+    }
+
+    return { suggestion, promotedTaskId };
+  }
+
+  /**
+   * List suggestions, optionally filtered by status.
+   * Works locally (in-memory) and remotely (delegates to HoloMesh API).
+   */
   async suggestions(status?: SuggestionStatus): Promise<SuggestionListResult> {
-    if (!this.isRemote) throw new Error('suggestions() requires a remote board (boardUrl + boardApiKey)');
-    const teamId = encodeURIComponent(this.name);
-    const query = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/suggestions${query}`, 'GET');
-    if (!res) throw new Error('Failed to list suggestions — no response from board');
-    if (res.error) throw new Error(String(res.error));
-    return res as unknown as SuggestionListResult;
+    if (this.isRemote) {
+      const teamId = encodeURIComponent(this.name);
+      const query = status ? `?status=${encodeURIComponent(status)}` : '';
+      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/suggestions${query}`, 'GET');
+      if (!res) throw new Error('Failed to list suggestions — no response from board');
+      if (res.error) throw new Error(String(res.error));
+      return res as unknown as SuggestionListResult;
+    }
+
+    const filtered = status
+      ? this.localSuggestions.filter(s => s.status === status)
+      : [...this.localSuggestions];
+    return { suggestions: filtered };
+  }
+
+  /** Promote a suggestion to a board task manually. Local-only. */
+  async promoteSuggestion(suggestionId: string, promoterName?: string): Promise<SuggestionVoteResult> {
+    if (this.isRemote) throw new Error('promoteSuggestion() is not supported in remote mode — use the board API');
+
+    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    if (!suggestion) throw new Error('Suggestion not found');
+    if (suggestion.status !== 'open') throw new Error(`Suggestion is already ${suggestion.status}`);
+
+    suggestion.status = 'promoted';
+    suggestion.resolvedAt = new Date().toISOString();
+
+    const promoted = await this.addTasks([{
+      title: suggestion.title,
+      description: `${suggestion.description ?? ''}\n\n[Promoted by ${promoterName ?? 'team'} from suggestion by ${suggestion.proposedBy}]`.trim(),
+      priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+      source: `suggestion:${suggestion.id}`,
+    }]);
+
+    const promotedTaskId = promoted.length > 0 ? promoted[0].id : undefined;
+    suggestion.promotedTaskId = promotedTaskId;
+    return { suggestion, promotedTaskId };
+  }
+
+  /** Dismiss a suggestion. Local-only. */
+  dismissSuggestion(suggestionId: string): SuggestionVoteResult {
+    if (this.isRemote) throw new Error('dismissSuggestion() is not supported in remote mode — use the board API');
+
+    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    if (!suggestion) throw new Error('Suggestion not found');
+    if (suggestion.status !== 'open') throw new Error(`Suggestion is already ${suggestion.status}`);
+
+    suggestion.status = 'dismissed';
+    suggestion.resolvedAt = new Date().toISOString();
+    return { suggestion };
   }
 
   // ── Mode ──
 
-  /** Switch the team's operating mode. Requires remote board. */
+  /** Get the current operating mode. */
+  get mode(): TeamMode {
+    return this.currentMode;
+  }
+
+  /** Get the current mode's objective string. */
+  get objective(): string {
+    return this.modeObjective;
+  }
+
+  /** Get the current mode's rules. */
+  get rules(): string[] {
+    return [...this.modeRules];
+  }
+
+  /** Switch the team's operating mode. Local-first with optional remote sync. */
   async setMode(mode: TeamMode): Promise<SetModeResult> {
-    if (!this.isRemote) throw new Error('setMode() requires a remote board (boardUrl + boardApiKey)');
-    const teamId = encodeURIComponent(this.name);
-    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/mode`, 'POST', { mode });
-    if (!res) throw new Error('Failed to set mode — no response from board');
-    if (res.error) throw new Error(String(res.error));
-    return res as unknown as SetModeResult;
+    const preset = ROOM_PRESETS[mode];
+    if (!preset) throw new Error(`Unknown mode: ${mode}. Valid: ${Object.keys(ROOM_PRESETS).join(', ')}`);
+
+    const previousMode = this.currentMode;
+    this.currentMode = mode;
+    this.modeObjective = preset.objective;
+    this.modeRules = preset.rules;
+
+    // Sync to remote if connected
+    if (this.isRemote) {
+      const teamId = encodeURIComponent(this.name);
+      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/mode`, 'POST', { mode });
+      if (res?.error) throw new Error(String(res.error));
+    }
+
+    return { mode, previousMode };
   }
 
-  // ── Derive ──
+  // ── Derive (local-first with optional remote sync) ──
 
-  /** Derive tasks from a source document (audit, roadmap, etc.). Requires remote board. */
+  /**
+   * Derive tasks from a source document (audit, roadmap, grep output, etc.).
+   * Parses markdown checkboxes, section headers, and TODO/FIXME patterns.
+   * Deduplicates against existing board and done log.
+   * Works locally and remotely.
+   */
   async derive(source: string, content: string): Promise<DeriveResult> {
-    if (!this.isRemote) throw new Error('derive() requires a remote board (boardUrl + boardApiKey)');
-    const teamId = encodeURIComponent(this.name);
-    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/derive`, 'POST', { source, content });
-    if (!res) throw new Error('Failed to derive tasks — no response from board');
-    if (res.error) throw new Error(String(res.error));
-    return res as unknown as DeriveResult;
+    if (this.isRemote) {
+      const teamId = encodeURIComponent(this.name);
+      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/derive`, 'POST', { source, content });
+      if (!res) throw new Error('Failed to derive tasks — no response from board');
+      if (res.error) throw new Error(String(res.error));
+      return res as unknown as DeriveResult;
+    }
+
+    // Parse content into task candidates using the framework's derive parser
+    const candidates = parseDeriveContent(content, source);
+    if (candidates.length === 0) return { tasks: [] };
+
+    // Add to board with dedup
+    const added = await this.addTasks(candidates);
+    return { tasks: added };
   }
 
-  // ── Presence ──
+  // ── Presence (FW-0.3 — local-first with optional remote) ──
+
+  /**
+   * Record that an agent is alive. Updates lastSeen timestamp.
+   * Works locally on all teams. Optionally pass the task the agent is working on.
+   */
+  localHeartbeat(agentName: string, currentTask?: string): void {
+    const now = Date.now();
+    const existing = this.presenceRecords.get(agentName);
+    if (existing) {
+      existing.lastSeen = now;
+      existing.currentTask = currentTask;
+    } else {
+      this.presenceRecords.set(agentName, {
+        firstSeen: now,
+        lastSeen: now,
+        currentTask,
+      });
+    }
+  }
+
+  /**
+   * Return the presence status of all known agents.
+   * Agents not heartbeating within idleTimeoutMs → 'idle'.
+   * Agents not heartbeating within offlineTimeoutMs → 'offline'.
+   */
+  localPresence(): AgentPresence[] {
+    const now = Date.now();
+    const result: AgentPresence[] = [];
+
+    for (const [name, record] of this.presenceRecords) {
+      const elapsed = now - record.lastSeen;
+      let status: AgentPresenceStatus;
+      if (elapsed >= this.offlineTimeoutMs) {
+        status = 'offline';
+      } else if (elapsed >= this.idleTimeoutMs) {
+        status = 'idle';
+      } else {
+        status = 'online';
+      }
+
+      result.push({
+        name,
+        status,
+        lastSeen: record.lastSeen,
+        currentTask: record.currentTask,
+        uptime: now - record.firstSeen,
+      });
+    }
+
+    return result;
+  }
 
   /** Get presence/slot info for the team. Requires remote board. */
   async presence(): Promise<PresenceResult> {
@@ -737,13 +1041,37 @@ export class Team {
     return task;
   }
 
-  private findClaimableTask(agent: AgentConfig, alreadyClaimed: Set<string>): TaskDef | undefined {
-    return this.openTasks.find(task => {
+  private findClaimableTask(runtime: AgentRuntime, alreadyClaimed: Set<string>, pool?: TaskDef[]): TaskDef | undefined {
+    const tasks = pool ?? this.openTasks;
+    const agent = runtime.config;
+
+    const validTasks = tasks.filter(task => {
       if (alreadyClaimed.has(task.id)) return false;
       if (task.priority > agent.claimFilter.maxPriority) return false;
       if (task.role) return agent.claimFilter.roles.includes(task.role);
       return true;
     });
+
+    if (validTasks.length === 0) return undefined;
+
+    // Score and pick highest
+    return validTasks.map(task => {
+      let score = (10 - task.priority) * 10; // Prioritize higher priority
+      score += runtime.reputationScore;
+
+      const fullText = `${task.title} ${task.description}`.toLowerCase();
+      for (const cap of agent.capabilities || []) {
+        if (fullText.includes(cap.toLowerCase())) {
+          score += 15; // Capability match bonus
+        }
+      }
+
+      if (task.role && agent.role === task.role) {
+        score += 20; // Exact role match bonus
+      }
+
+      return { task, score };
+    }).sort((a, b) => b.score - a.score)[0]?.task;
   }
 
   private async executeTask(

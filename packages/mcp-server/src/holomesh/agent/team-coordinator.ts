@@ -1,6 +1,25 @@
 /**
  * HoloMesh Team Coordinator
  *
+ * @deprecated FW-0.3 — This module is scheduled for removal. All work-cycle
+ * logic has already been delegated to `@holoscript/framework` Team.runCycle().
+ *
+ * **Remaining unique logic that must migrate to framework before deletion:**
+ * 1. In-memory room→agent slot store (`roomAgents` Map) — framework Team
+ *    takes agents at construction time; need a `team.addAgent()` / `team.removeAgent()` API.
+ * 2. `assignAgentsToRoom()` — maps TeamAgentProfile → RoomAgentSlot with
+ *    role mapping and dedup. Framework needs an equivalent load-from-profile helper.
+ * 3. `compoundKnowledge()` — cross-references insights by knowledge domain
+ *    across agents. Framework has `knowledge.compound()` but not the per-agent
+ *    domain-overlap scoring done here.
+ * 4. Room lifecycle helpers (`clearRoom`, `removeAgentFromRoom`, `getRoomAgents`,
+ *    `getRoomCycleHistory`) — framework Team has no multi-room management.
+ *
+ * Once these migrate, delete this file and update imports in:
+ * - `./team-agent-tools.ts`
+ * - `../index.ts`
+ * - `../__tests__/team-agents.test.ts`
+ *
  * Manages agent lifecycle within team rooms:
  * - Load agent profiles into rooms (register in slots)
  * - Execute work cycles (check board -> claim -> execute -> done -> publish)
@@ -96,6 +115,7 @@ function getApiKey(): string {
  * Load agent profiles into a team room.
  * Each profile is mapped to a slot role based on its primary role.
  * Skips agents whose role slot is already occupied.
+ * @deprecated FW-0.3 — migrate to framework Team constructor + addAgent() API
  */
 export function assignAgentsToRoom(
   roomId: string,
@@ -167,6 +187,7 @@ function mapAgentRoleToSlot(role: string): SlotRole {
  * Delegates to @holoscript/framework Team.runCycle() for the core
  * claim/execute/done loop. Adapts the result back to the coordinator's
  * CycleResult[] shape for backward compatibility.
+ * @deprecated FW-0.3 — use framework Team.runCycle() directly
  */
 export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
   const slots = roomAgents.get(roomId);
@@ -260,6 +281,7 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
 /**
  * After a cycle, agents cross-pollinate findings.
  * Each agent's insights are shared with agents in overlapping knowledge domains.
+ * @deprecated FW-0.3 — migrate domain-overlap scoring to framework KnowledgeStore.compound()
  */
 export function compoundKnowledge(roomId: string): CompoundResult {
   const history = roomCycleHistory.get(roomId) || [];
@@ -313,25 +335,25 @@ export function compoundKnowledge(roomId: string): CompoundResult {
 
 // ── Query Functions ──
 
-/** Get all agent slots in a room */
+/** Get all agent slots in a room @deprecated FW-0.3 */
 export function getRoomAgents(roomId: string): RoomAgentSlot[] {
   const slots = roomAgents.get(roomId);
   return slots ? Array.from(slots.values()) : [];
 }
 
-/** Get cycle history for a room */
+/** Get cycle history for a room @deprecated FW-0.3 */
 export function getRoomCycleHistory(roomId: string): CycleResult[] {
   return roomCycleHistory.get(roomId) || [];
 }
 
-/** Remove an agent from a room */
+/** Remove an agent from a room @deprecated FW-0.3 */
 export function removeAgentFromRoom(roomId: string, agentId: string): boolean {
   const slots = roomAgents.get(roomId);
   if (!slots) return false;
   return slots.delete(agentId);
 }
 
-/** Clear all agents and history for a room */
+/** Clear all agents and history for a room @deprecated FW-0.3 */
 export function clearRoom(roomId: string): void {
   roomAgents.delete(roomId);
   roomCycleHistory.delete(roomId);

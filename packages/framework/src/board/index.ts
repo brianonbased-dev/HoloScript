@@ -38,9 +38,16 @@ export {
 
 export {
   type AuditResult,
+  type AuditViolation,
+  type AgentStats,
+  type SourceStats,
+  type CompletionBucket,
+  type DoneLogStats,
+  type FullAuditResult,
   isLikelyReportEntry,
   isCommitProof,
   auditDoneLog,
+  DoneLogAuditor,
 } from './audit';
 
 export {
