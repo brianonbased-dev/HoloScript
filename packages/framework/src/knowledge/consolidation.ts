@@ -506,4 +506,76 @@ export class ConsolidationEngine {
   getDomainConfig(domain: KnowledgeDomain): DomainConsolidationConfig {
     return { ...DOMAIN_CONSOLIDATION[domain] };
   }
+
+  // ── Cross-Domain Pattern Surfacing (FW-0.5) ──
+
+  /**
+   * Surface entries that appear across multiple domains, indicating cross-cutting patterns.
+   * Uses token overlap to find similar entries in different domains.
+   * Returns pairs of entries whose content overlaps above the threshold.
+   */
+  surfaceCrossDomainPatterns(minOverlap: number = 0.3): CrossDomainMatch[] {
+    const matches: CrossDomainMatch[] = [];
+    const domainEntries: Array<{ domain: KnowledgeDomain; entries: ColdStoreEntry[] }> = [];
+
+    for (const domain of KNOWLEDGE_DOMAINS) {
+      const store = this.coldStores.get(domain);
+      if (store && store.size > 0) {
+        domainEntries.push({ domain, entries: Array.from(store.values()) });
+      }
+    }
+
+    // Compare entries across all domain pairs
+    for (let i = 0; i < domainEntries.length; i++) {
+      for (let j = i + 1; j < domainEntries.length; j++) {
+        const domA = domainEntries[i];
+        const domB = domainEntries[j];
+
+        for (const a of domA.entries) {
+          const tokensA = tokenize(a.content);
+          if (tokensA.size < 3) continue;
+
+          for (const b of domB.entries) {
+            const tokensB = tokenize(b.content);
+            if (tokensB.size < 3) continue;
+
+            const overlap = setOverlap(tokensA, tokensB);
+            if (overlap >= minOverlap) {
+              matches.push({
+                entryA: { id: a.id, domain: domA.domain, content: a.content },
+                entryB: { id: b.id, domain: domB.domain, content: b.content },
+                overlap,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return matches.sort((a, b) => b.overlap - a.overlap);
+  }
+}
+
+// ── Cross-Domain Types ──
+
+export interface CrossDomainMatch {
+  entryA: { id: string; domain: KnowledgeDomain; content: string };
+  entryB: { id: string; domain: KnowledgeDomain; content: string };
+  overlap: number;
+}
+
+/** Tokenize content into a set of lowercase words (3+ chars). */
+function tokenize(content: string): Set<string> {
+  return new Set(
+    content.toLowerCase().match(/[a-z0-9]{3,}/g) || []
+  );
+}
+
+/** Jaccard overlap between two sets. */
+function setOverlap(a: Set<string>, b: Set<string>): number {
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection++;
+  }
+  return intersection / (a.size + b.size - intersection);
 }

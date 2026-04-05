@@ -13,7 +13,7 @@ export { defineTeam } from './define-team';
 // Core classes
 export { Team } from './team';
 export { KnowledgeStore } from './knowledge/knowledge-store';
-export type { StoredEntry } from './knowledge/knowledge-store';
+export type { StoredEntry, EmbedResult, SemanticSearchOptions } from './knowledge/knowledge-store';
 
 // Knowledge brain (absorbed from mcp-server/holomesh — neuroscience consolidation model)
 export {
@@ -34,7 +34,19 @@ export {
 
 // Consolidation engine (absorbed from mcp-server/holomesh/crdt-sync — pure state machine)
 export { ConsolidationEngine } from './knowledge/consolidation';
-export type { ColdStoreEntry } from './knowledge/consolidation';
+export type { ColdStoreEntry, CrossDomainMatch } from './knowledge/consolidation';
+
+// Knowledge consolidator (FW-0.5 — tiered sleep/wake, cross-domain, contradictions, provenance)
+export { KnowledgeConsolidator } from './knowledge/knowledge-consolidator';
+export type {
+  KnowledgeTier,
+  TieredEntry,
+  ProvenanceNode,
+  CrossDomainPattern,
+  Contradiction,
+  ConsolidationStats,
+  ConsolidatorConfig,
+} from './knowledge/knowledge-consolidator';
 
 // LLM adapter
 export { callLLM } from './llm/llm-adapter';
@@ -246,9 +258,49 @@ export {
   MICRO_PAYMENT_THRESHOLD,
   CHAIN_IDS,
   CHAIN_ID_TO_NETWORK,
+  // Bounty system (FW-0.6)
+  BountyManager,
+  // Knowledge marketplace (FW-0.6)
+  KnowledgeMarketplace,
+  // Revenue splitter + wallet stub (FW-0.6)
+  RevenueSplitter,
+  InvisibleWalletStub,
 } from './economy';
 
-// Self-improvement module (v1.0 — the framework evolves itself)
+// Distributed claiming (FW-0.6)
+export { DistributedClaimer } from './distributed-claimer';
+export type { ClaimResult as DistributedClaimResult, ClaimRecord, DistributedClaimerConfig } from './distributed-claimer';
+
+// Skill-based routing (FW-0.6)
+export { SkillRouter } from './skill-router';
+export type { RoutingResult, ScoredCandidate, RoutingPolicy } from './skill-router';
+
+// Cross-team delegation (FW-0.6)
+export { DelegationManager, InProcessBoardAdapter } from './delegation';
+export type { DelegationResult, DelegationRecord, DelegationPolicy, TeamBoardAdapter } from './delegation';
+
+// Bounty types (FW-0.6)
+export type {
+  Bounty,
+  BountyReward,
+  BountyCurrency,
+  BountyStatus,
+  ClaimResult,
+  CompletionProof,
+  PayoutResult,
+  BountyManagerConfig,
+} from './economy';
+
+// Knowledge marketplace types (FW-0.6)
+export type {
+  KnowledgeListing,
+  ListingStatus,
+  PurchaseResult,
+  ListingResult,
+  PricingFactors,
+} from './economy';
+
+// Self-improvement module (FW-1.0 — the framework evolves itself)
 export {
   type AbsorbScanConfig,
   type ScanResult,
@@ -259,6 +311,18 @@ export {
   type EvolutionConfig,
   type EvolutionResult,
   evolve,
+  FrameworkAbsorber,
+  type AbsorberConfig,
+  type CodebaseGraph,
+  type Improvement,
+  TestGenerator,
+  type TestGeneratorConfig,
+  type GeneratedTest,
+  PromptOptimizer,
+  type ABTestConfig,
+  type ABTestResult,
+  type PromptVariantResult,
+  type EvaluationCriteria,
 } from './self-improve';
 
 // Agent orchestration available via '@holoscript/framework/agents'
