@@ -25,12 +25,21 @@ export {
   type CollisionCallback,
 } from './PhysicsStep';
 
+// Rendering subsystem (A.011.01a)
+export * as Rendering from './rendering';
+export * from './rendering';
+
+// Animation subsystem (A.011.01c)
+export * as Animation from './animation';
+export * from './animation';
+
+// Physics subsystem (A.011.01b)
+export * as Physics from './physics';
+export * from './physics';
+
 // ── Subsystems to be migrated from @holoscript/core ───────────────────
 // Each section will become a re-export once code is moved into src/<subsystem>/
 
-// TODO(A.011): rendering — R3F renderers, render strategy, draw calls
-// TODO(A.011): physics — MLS-MPM, PBD, rigid body, collision detection
-// TODO(A.011): animation — keyframe, skeletal, blend trees, IK
 // TODO(A.011): audio — spatial audio, audio graph, listener
 // TODO(A.011): runtime — frame loop, system scheduler, tick pipeline
 // TODO(A.011): vr — WebXR session, controllers, hand tracking, haptics
