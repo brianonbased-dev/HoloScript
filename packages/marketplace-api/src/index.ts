@@ -174,3 +174,9 @@ export {
   createKeystore,
 } from './protocol/InvisibleWallet.js';
 export type { InvisibleWalletConfig } from './protocol/InvisibleWallet.js';
+
+// ─── Extracted from core (A.011.03a+b+e) ───────────────────────────────────
+export * from './core-marketplace';
+export * from './economy';
+export * from './contracts';
+export * from './core-web3';
