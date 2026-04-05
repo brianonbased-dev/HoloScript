@@ -37,11 +37,14 @@ export * from './animation';
 export * as Physics from './physics';
 export * from './physics';
 
+// Runtime subsystem (A.011.01e)
+export * as Runtime from './runtime';
+export * from './runtime';
+
 // ── Subsystems to be migrated from @holoscript/core ───────────────────
 // Each section will become a re-export once code is moved into src/<subsystem>/
 
 // TODO(A.011): audio — spatial audio, audio graph, listener
-// TODO(A.011): runtime — frame loop, system scheduler, tick pipeline
 // TODO(A.011): vr — WebXR session, controllers, hand tracking, haptics
 // TODO(A.011): input — keyboard, mouse, gamepad, touch, gesture
 // TODO(A.011): camera — orbit, fly, follow, cinematic cameras

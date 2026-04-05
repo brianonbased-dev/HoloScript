@@ -2,9 +2,6 @@
  * HoloScript Runtime System
  *
  * Central runtime registry and execution system for HoloScript compositions.
- *
- * @deprecated This module has been extracted to @holoscript/engine.
- * Import from '@holoscript/engine' instead. This re-export will be removed in v7.
  */
 
 export * from './RuntimeRegistry';

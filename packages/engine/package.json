@@ -15,11 +15,26 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./rendering": {
+      "types": "./dist/rendering/index.d.ts",
+      "import": "./dist/rendering/index.js",
+      "require": "./dist/rendering/index.cjs"
+    },
+    "./physics": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts --format esm,cjs --dts --watch",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
@@ -56,6 +71,8 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^22.18.3",
+    "@webgpu/types": "^0.1.40",
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
