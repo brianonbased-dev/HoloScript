@@ -40,7 +40,11 @@ export class KnowledgeStore {
   }
 
   /** Publish a knowledge entry. Deduplicates by normalized content. */
-  publish(insight: KnowledgeInsight, authorAgent: string): StoredEntry {
+  publish(
+    insight: KnowledgeInsight, 
+    authorAgent: string, 
+    provenance?: { taskId?: string; cycleId?: string; verifierId?: string; provenanceHash?: string }
+  ): StoredEntry {
     const prefix = insight.type === 'wisdom' ? 'W' : insight.type === 'pattern' ? 'P' : 'G';
     const domain = insight.domain.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
     const id = `${prefix}.${domain}.${String(this.nextId++).padStart(3, '0')}`;
@@ -58,6 +62,10 @@ export class KnowledgeStore {
       reuseCount: 0,
       createdAt: new Date().toISOString(),
       authorAgent,
+      taskId: provenance?.taskId,
+      cycleId: provenance?.cycleId,
+      verifierId: provenance?.verifierId,
+      provenanceHash: provenance?.provenanceHash,
     };
     this.entries.set(id, entry);
     this.persistIfEnabled();
@@ -138,7 +146,11 @@ export class KnowledgeStore {
           queryCount: Number(e.queryCount || 0),
           reuseCount: Number(e.reuseCount || 0),
           createdAt: String(e.createdAt || new Date().toISOString()),
-          authorAgent: String(e.authorName || 'remote'),
+          authorAgent: String(e.authorName || meta.source || 'remote'),
+          taskId: e.taskId ? String(e.taskId) : (meta.taskId ? String(meta.taskId) : undefined),
+          cycleId: e.cycleId ? String(e.cycleId) : (meta.cycleId ? String(meta.cycleId) : undefined),
+          verifierId: e.verifierId ? String(e.verifierId) : (meta.verifierId ? String(meta.verifierId) : undefined),
+          provenanceHash: e.provenanceHash ? String(e.provenanceHash) : (meta.provenanceHash ? String(meta.provenanceHash) : undefined),
         };
       });
     } catch {
@@ -154,7 +166,15 @@ export class KnowledgeStore {
       workspace_id: 'ai-ecosystem',
       type: e.type,
       content: e.content,
-      metadata: { domain: e.domain, confidence: e.confidence, source: e.authorAgent },
+      provenanceHash: e.provenanceHash || '',
+      metadata: { 
+        domain: e.domain, 
+        confidence: e.confidence, 
+        source: e.authorAgent,
+        taskId: e.taskId,
+        cycleId: e.cycleId,
+        verifierId: e.verifierId
+      },
     }));
     if (entries.length === 0) return 0;
     try {
