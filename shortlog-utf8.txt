@@ -1,0 +1,20 @@
+ eb752831 - feat: rate limit all AI routes — protect against abuse
+ 5c36beee - fix(studio): revert BYOK on Studio routes — platform pays for building
+ 355c9223 - fix(tree-sitter): achieve 100% grammar accuracy for HoloScript v6
+ a9d415e5 - feat: BYOK support for Academy + Studio build routes, fix hardcoded key
+ bad6f13d - feat(studio): project workspace scaffolder — every user gets full Claude structure
+ 4dcf7ff1 - feat: cloud-first LLM stack — remove Ollama as default across 25 files
+ f0a5cdb6 - feat: Brittney handles two user paths — legacy codebases and fresh ideas
+ 6a34f728 - feat: Brittney knows all 19 skills, hooks, and the founder loop
+ 5db4af3b - feat: Brittney knows the full platform — 37 compilers, scaffold, orchestrate
+ f2eb0f11 - test(connector-railway): fix spy assertion failures by cleaning Node env vars and updating url expectation
+ e7dcb23e - feat: upgrade Brittney to universal semantic assistant
+ a5e617ee - feat(scout): upgrade team scout from rule-based to Claude API
+ 132b24ed - feat(holomesh): team room agent system — Brittney, Daemon, Absorb, Oracle
+ f3d8df08 - fix(studio): resolve property access TS errors in stores and compiler
+ 472b33ba - fix(studio): resolve structural type mismatches and implicit any in UI components
+ a47a1548 - fix(studio): update PageProps to Promise and unwrap via use() for Next.js 15 routing
+ 3653d89d - fix(studio): resolve TS errors in react hooks and discord integrations
+ ee823877 - fix(studio): update llm_agent trait default model to Claude
+ c0d9a697 - feat(studio): wire Brittney AI to Claude via Anthropic SDK
+ 70e6e8b3 - chore: clean 60+ test artifacts and update .gitignore

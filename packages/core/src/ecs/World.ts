@@ -1,2 +1,2 @@
-export * from '@holoscript/engine/ecs';
-export type { WorldEntity as Entity } from '@holoscript/engine/ecs';
+export * from '../../../engine/src/ecs';
+export type { WorldEntity as Entity } from '../../../engine/src/ecs';

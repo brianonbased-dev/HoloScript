@@ -18,6 +18,9 @@ export interface StoredEntry extends KnowledgeInsight {
   reuseCount: number;
   createdAt: string;
   authorAgent: string;
+  taskId?: string;
+  cycleId?: string;
+  verifierId?: string;
   /** Provenance hash — chain of custody */
   provenanceHash?: string;
   /** Excitability metadata for brain-aware ranking */

@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/dialogue';
+export * from '../../../engine/src/dialogue';

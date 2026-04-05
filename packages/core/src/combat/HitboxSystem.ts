@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/combat';
+export * from '../../../engine/src/combat';

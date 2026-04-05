@@ -1,0 +1,303 @@
+﻿
+[35m[Region: us-west1][0m
+[35m=========================
+Using Detected Dockerfile
+=========================
+[0m
+context: 5dt6-gjDa
+[INFO] [internal] load build definition from Dockerfile.mcp-server
+[INFO] [internal] load build definition from Dockerfile.mcp-server
+[INFO] [internal] load build definition from Dockerfile.mcp-server
+[INFO] [internal] load build definition from Dockerfile.mcp-server
+[INFO] [internal] load build definition from Dockerfile.mcp-server
+[INFO] [internal] load metadata for docker.io/library/node:20-alpine
+[INFO] [internal] load metadata for docker.io/library/node:20-alpine
+[INFO] [internal] load .dockerignore
+[INFO] [internal] load .dockerignore
+[INFO] [internal] load .dockerignore
+[INFO] [internal] load .dockerignore
+[INFO] [stage-1  9/24] COPY packages/core/package.json packages/core/
+[INFO] [stage-1  8/24] COPY packages/agent-protocol/package.json packages/agent-protocol/
+[INFO] [stage-1  7/24] COPY packages/crdt/package.json packages/crdt/
+[INFO] [stage-1  6/24] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[INFO] [internal] load build context
+[INFO] [stage-1  5/24] RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 nodejs
+[INFO] [stage-1  4/24] WORKDIR /app
+[INFO] [stage-1  3/24] RUN corepack enable && corepack prepare pnpm@latest --activate
+[INFO] [stage-1  2/24] RUN apk add --no-cache su-exec chromium nss freetype harfbuzz ca-certificates ttf-freefont
+[INFO] [builder  1/25] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+[INFO] [stage-1 14/24] RUN pnpm install --frozen-lockfile --ignore-scripts
+[INFO] [stage-1 13/24] COPY packages/mcp-server/package.json packages/mcp-server/
+[INFO] [stage-1 12/24] COPY packages/absorb-service/package.json packages/absorb-service/
+[INFO] [stage-1 11/24] COPY packages/llm-provider/package.json packages/llm-provider/
+[INFO] [stage-1 10/24] COPY packages/cli/package.json packages/cli/
+[INFO] [builder 11/25] COPY packages/mcp-server/package.json packages/mcp-server/
+[INFO] [builder 10/25] COPY packages/absorb-service/package.json packages/absorb-service/
+[INFO] [builder  9/25] COPY packages/llm-provider/package.json packages/llm-provider/
+[INFO] [builder  8/25] COPY packages/cli/package.json packages/cli/
+[INFO] [builder  7/25] COPY packages/core/package.json packages/core/
+[INFO] [builder  6/25] COPY packages/agent-protocol/package.json packages/agent-protocol/
+[INFO] [builder  5/25] COPY packages/crdt/package.json packages/crdt/
+[INFO] [builder  4/25] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[INFO] [builder  3/25] WORKDIR /app
+[INFO] [builder  2/25] RUN corepack enable && corepack prepare pnpm@latest --activate
+[INFO] [builder 14/25] COPY packages/agent-protocol/ packages/agent-protocol/
+[INFO] [builder 13/25] COPY packages/crdt/ packages/crdt/
+[INFO] [builder 12/25] RUN pnpm install --frozen-lockfile --ignore-scripts
+[INFO] [builder 24/25] RUN cd packages/absorb-service && npx tsup
+[INFO] [builder 23/25] RUN cd packages/llm-provider && npx tsup --no-dts
+[INFO] [builder 22/25] RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
+[INFO] [builder 21/25] RUN cd packages/agent-protocol && npx tsup --no-dts
+[INFO] [builder 20/25] RUN cd packages/crdt && npx tsup --no-dts
+[INFO] [builder 19/25] COPY packages/mcp-server/ packages/mcp-server/
+[INFO] [builder 18/25] COPY packages/absorb-service/ packages/absorb-service/
+[INFO] [builder 17/25] COPY packages/llm-provider/ packages/llm-provider/
+[INFO] [builder 16/25] COPY packages/cli/ packages/cli/
+[INFO] [builder 15/25] COPY packages/core/ packages/core/
+[INFO] [stage-1 18/24] COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
+[INFO] [stage-1 17/24] COPY --from=builder /app/packages/core/dist packages/core/dist
+[INFO] [stage-1 16/24] COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
+[INFO] [stage-1 15/24] COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
+[INFO] [builder 25/25] RUN cd packages/mcp-server && npx tsup
+[INFO] [stage-1 21/24] COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
+[INFO] [stage-1 20/24] COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
+[INFO] [stage-1 19/24] COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
+[INFO] [stage-1 22/24] RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh
+[INFO] [stage-1 24/24] RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
+[INFO] [stage-1 23/24] RUN chown -R nodejs:nodejs /app
+[INFO] [internal] load build context
+[INFO] [builder  1/25] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+[INFO] [builder  1/25] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+[INFO] [builder  1/25] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+[INFO] [internal] load build context
+[INFO] [builder  2/25] RUN corepack enable && corepack prepare pnpm@latest --activate
+[INFO] [stage-1  2/24] RUN apk add --no-cache su-exec chromium nss freetype harfbuzz ca-certificates ttf-freefont
+[INFO] Preparing pnpm@latest for immediate activation...
+
+[INFO] (  1/189) Installing ca-certificates (20251003-r0)
+
+[INFO] [internal] load build context
+[INFO] (  2/189) Installing libxau (1.0.12-r0)
+
+[INFO] (  3/189) Installing libmd (1.1.0-r0)
+
+[INFO] (  4/189) Installing libbsd (0.12.2-r0)
+
+[INFO] (  5/189) Installing libxdmcp (1.1.5-r1)
+
+[INFO] (  6/189) Installing libxcb (1.17.0-r1)
+
+[INFO] (  7/189) Installing libx11 (1.8.12-r1)
+
+[INFO] (  8/189) Installing libxext (1.3.6-r2)
+
+[INFO] (  9/189) Installing hwdata-pci (0.401-r0)
+
+[INFO] ( 10/189) Installing libpciaccess (0.18.1-r1)
+
+[INFO] ( 11/189) Installing libdrm (2.4.131-r0)
+
+[INFO] ( 12/189) Installing chromium-angle (146.0.7680.177-r0)
+
+[INFO] ( 13/189) Installing chromium-common (146.0.7680.177-r0)
+
+[INFO] ( 14/189) Installing libexpat (2.7.5-r0)
+
+[INFO] ( 15/189) Installing brotli-libs (1.2.0-r0)
+
+[INFO] ( 16/189) Installing libbz2 (1.0.8-r6)
+
+[INFO] ( 17/189) Installing libpng (1.6.56-r0)
+
+[INFO] ( 18/189) Installing freetype (2.14.1-r0)
+
+[INFO] ( 19/189) Installing fontconfig (2.17.1-r0)
+
+[INFO] ( 20/189) Installing libfontenc (1.1.8-r0)
+
+[INFO] ( 21/189) Installing mkfontscale (1.2.3-r1)
+
+[INFO] ( 22/189) Installing font-opensans (0_git20210927-r1)
+
+[INFO] ( 23/189) Installing libffi (3.5.2-r0)
+
+[INFO] ( 24/189) Installing libintl (0.24.1-r1)
+
+[INFO] ( 25/189) Installing libeconf (0.8.3-r0)
+
+[INFO] ( 26/189) Installing libblkid (2.41.2-r0)
+
+[INFO] ( 27/189) Installing libmount (2.41.2-r0)
+
+[INFO] ( 28/189) Installing pcre2 (10.47-r0)
+
+[INFO] ( 29/189) Installing glib (2.86.3-r0)
+
+[INFO] ( 30/189) Installing gobject-introspection (1.86.0-r0)
+
+[INFO] ( 31/189) Installing pkgconf (2.5.1-r0)
+
+[INFO] ( 32/189) Installing hicolor-icon-theme (0.18-r0)
+
+[INFO] ( 33/189) Installing xz-libs (5.8.2-r0)
+
+[INFO] ( 34/189) Installing libxml2 (2.13.9-r0)
+
+[INFO] ( 35/189) Installing shared-mime-info (2.4-r6)
+
+[INFO] ( 36/189) Installing libjpeg-turbo (3.1.2-r0)
+
+[INFO] ( 37/189) Installing libsharpyuv (1.6.0-r0)
+
+[INFO] ( 38/189) Installing libwebp (1.6.0-r0)
+
+[INFO] ( 39/189) Installing zstd-libs (1.5.7-r2)
+
+[INFO] ( 40/189) Installing tiff (4.7.1-r0)
+
+[INFO] ( 41/189) Installing gdk-pixbuf (2.44.4-r0)
+
+[INFO] ( 42/189) Installing gtk-update-icon-cache (3.24.51-r0)
+
+[INFO] ( 43/189) Installing libxcomposite (0.4.6-r5)
+
+[INFO] ( 44/189) Installing libxfixes (6.0.2-r0)
+
+[INFO] ( 45/189) Installing libxrender (0.9.12-r0)
+
+[INFO] ( 46/189) Installing libxcursor (1.2.3-r0)
+
+[INFO] ( 47/189) Installing libxdamage (1.1.6-r5)
+
+[INFO] ( 48/189) Installing libxi (1.8.2-r0)
+
+[INFO] ( 49/189) Installing libxinerama (1.1.5-r4)
+
+[INFO] ( 50/189) Installing libxrandr (1.5.4-r1)
+
+[INFO] ( 51/189) Installing libatk-1.0 (2.58.3-r0)
+
+[INFO] ( 52/189) Installing dbus-libs (1.16.2-r1)
+
+[INFO] ( 53/189) Installing at-spi2-core-libs (2.58.3-r0)
+
+[INFO] ( 54/189) Installing gdbm (1.26-r0)
+
+[INFO] ( 55/189) Installing mpdecimal (4.0.1-r0)
+
+[INFO] ( 56/189) Installing ncurses-terminfo-base (6.5_p20251123-r0)
+
+[INFO] ( 57/189) Installing libncursesw (6.5_p20251123-r0)
+
+[INFO] ( 58/189) Installing libpanelw (6.5_p20251123-r0)
+
+[INFO] [builder  2/25] RUN corepack enable && corepack prepare pnpm@latest --activate
+[INFO] [builder  3/25] WORKDIR /app
+[INFO] ( 59/189) Installing readline (8.3.1-r0)
+
+[INFO] ( 60/189) Installing sqlite-libs (3.51.2-r0)
+
+[INFO] [builder  3/25] WORKDIR /app
+[INFO] [builder  4/25] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[INFO] ( 61/189) Installing python3 (3.12.12-r0)
+
+[INFO] [builder  4/25] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[INFO] [builder  5/25] COPY packages/crdt/package.json packages/crdt/
+[INFO] [builder  5/25] COPY packages/crdt/package.json packages/crdt/
+[INFO] [builder  6/25] COPY packages/agent-protocol/package.json packages/agent-protocol/
+[INFO] [builder  6/25] COPY packages/agent-protocol/package.json packages/agent-protocol/
+[INFO] [builder  7/25] COPY packages/core/package.json packages/core/
+[INFO] [builder  7/25] COPY packages/core/package.json packages/core/
+[INFO] [builder  8/25] COPY packages/cli/package.json packages/cli/
+[INFO] [builder  8/25] COPY packages/cli/package.json packages/cli/
+[INFO] [builder  9/25] COPY packages/llm-provider/package.json packages/llm-provider/
+[INFO] [builder  9/25] COPY packages/llm-provider/package.json packages/llm-provider/
+[INFO] [builder 10/25] COPY packages/absorb-service/package.json packages/absorb-service/
+[INFO] [builder 10/25] COPY packages/absorb-service/package.json packages/absorb-service/
+[INFO] [builder 11/25] COPY packages/mcp-server/package.json packages/mcp-server/
+[INFO] [builder 11/25] COPY packages/mcp-server/package.json packages/mcp-server/
+[INFO] [builder 12/25] RUN pnpm install --frozen-lockfile --ignore-scripts
+[INFO] ( 62/189) Installing python3-pycache-pyc0 (3.12.12-r0)
+
+[INFO] ( 63/189) Installing pyc (3.12.12-r0)
+( 64/189) Installing python3-pyc (3.12.12-r0)
+( 65/189) Installing libxtst (1.2.5-r0)
+
+[INFO] ( 66/189) Installing at-spi2-core (2.58.3-r0)
+
+[INFO] ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-8.12.0.tgz
+
+[INFO] ( 67/189) Installing libatk-bridge-2.0 (2.58.3-r0)
+
+[INFO] ( 68/189) Installing pixman (0.46.4-r0)
+
+[INFO] ( 69/189) Installing cairo (1.18.4-r0)
+
+[INFO] ( 70/189) Installing cairo-gobject (1.18.4-r0)
+
+[INFO] ( 71/189) Installing avahi-libs (0.8-r23)
+
+[INFO] ( 72/189) Installing gmp (6.3.0-r4)
+
+[INFO] ( 73/189) Installing nettle (3.10.2-r0)
+
+[INFO] ( 74/189) Installing libunistring (1.4.1-r0)
+
+[INFO] ( 75/189) Installing libidn2 (2.3.8-r0)
+
+[INFO] ( 76/189) Installing libtasn1 (4.21.0-r0)
+
+[INFO] ( 77/189) Installing p11-kit (0.25.5-r2)
+
+[INFO] ( 78/189) Installing gnutls (3.8.12-r0)
+
+[INFO] ( 79/189) Installing cups-libs (2.4.16-r0)
+
+[INFO] ( 80/189) Installing libepoxy (1.5.10-r1)
+
+[INFO] ( 81/189) Installing fribidi (1.0.16-r2)
+
+[INFO] ( 82/189) Installing graphite2 (1.3.14-r6)
+
+[INFO] ( 83/189) Installing harfbuzz (12.2.0-r0)
+
+[INFO] ( 84/189) Installing libxft (2.3.9-r0)
+
+[INFO] ( 85/189) Installing pango (1.56.4-r0)
+
+[INFO] ( 86/189) Installing wayland-libs-client (1.24.0-r0)
+
+[INFO] ( 87/189) Installing wayland-libs-cursor (1.24.0-r0)
+
+[INFO] ( 88/189) Installing wayland-libs-egl (1.24.0-r0)
+
+[INFO] ( 89/189) Installing xkeyboard-config (2.46-r0)
+
+[INFO] ( 90/189) Installing libxkbcommon (1.12.2-r0)
+
+[INFO] ( 91/189) Installing gtk+3.0 (3.24.51-r0)
+
+[INFO] ( 92/189) Installing icu-data-full (76.1-r1)
+
+[INFO] ( 93/189) Installing llvm21-libs (21.1.2-r1)
+
+[INFO] Scope: all 8 workspace projects
+
+[INFO] ΓÇëERR_PNPM_OUTDATED_LOCKFILEΓÇë Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with packages/core/package.json
+
+Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+
+    Failure reason:
+    specifiers in the lockfile ({"@holoscript/agent-protocol":"workspace:*","@pixiv/three-vrm":"^2.0.0","ioredis":"^5.3.0","jose":"^6.2.2","jsonwebtoken":"^9.0.0","puppeteer":"^23.0.0","react":"^18.0.0 || ^19.0.0","zod":"^3.24.0","@types/pixelmatch":"^5.2.6","@types/pngjs":"^6.0.5","@types/three":"^0.170.0","@types/ws":"^8.5.10","@vitest/coverage-v8":"^4.0.18","@webgpu/types":"^0.1.40","tsup":"^8.0.1","typedoc":"^0.28.17","typescript":"~5.9.3","vitest":"^4.1.0","@gltf-transform/core":"^3.7.0","@gltf-transform/extensions":"^3.7.0","@gltf-transform/functions":"^3.7.0","@huggingface/transformers":"^3.8.1","@noble/post-quantum":"^0.5.4","basis_universal":"^1.0.0","discord.js":"^14.21.0","dotenv":"^16.4.5","draco3d":"^1.5.6","ipfs-http-client":"^60.0.1","openai":"^6.32.0","pixelmatch":"^5.3.0","pngjs":"^7.0.0","three":"^0.182.0","tree-sitter":"0.22.4","tree-sitter-go":"^0.23.4","tree-sitter-javascript":"^0.23.1","tree-sitter-python":"^0.23.6","tree-sitter-rust":"^0.24.0","tree-sitter-typescript":"^0.23.2","web-tree-sitter":"^0.24.0","ws":"^8.16.0"}) don't match specs in package.json ({"@pixiv/three-vrm":"^2.0.0","ioredis":"^5.3.0","puppeteer":"^23.0.0","react":"^18.0.0 || ^19.0.0","@types/pixelmatch":"^5.2.6","@types/pngjs":"^6.0.5","@types/three":"^0.170.0","@types/ws":"^8.5.10","@vitest/coverage-v8":"^4.0.18","@webgpu/types":"^0.1.40","tsup":"^8.0.1","typedoc":"^0.28.17","typescript":"~5.9.3","vitest":"^4.1.0","@holoscript/agent-protocol":"workspace:*","@holoscript/core-types":"workspace:*","jose":"^6.2.2","jsonwebtoken":"^9.0.0","zod":"^3.24.0","@gltf-transform/core":"^3.7.0","@gltf-transform/extensions":"^3.7.0","@gltf-transform/functions":"^3.7.0","@huggingface/transformers":"^3.8.1","@noble/post-quantum":"^0.5.4","basis_universal":"^1.0.0","discord.js":"^14.21.0","dotenv":"^16.4.5","draco3d":"^1.5.6","ipfs-http-client":"^60.0.1","openai":"^6.32.0","pixelmatch":"^5.3.0","pngjs":"^7.0.0","three":"^0.182.0","tree-sitter":"0.22.4","tree-sitter-go":"^0.23.4","tree-sitter-javascript":"^0.23.1","tree-sitter-python":"^0.23.6","tree-sitter-rust":"^0.24.0","tree-sitter-typescript":"^0.23.2","web-tree-sitter":"^0.24.0","ws":"^8.16.0"})
+
+[ERRO] [builder 12/25] RUN pnpm install --frozen-lockfile --ignore-scripts
+[ERRO] [stage-1  2/24] RUN apk add --no-cache su-exec chromium nss freetype harfbuzz ca-certificates ttf-freefont
+Dockerfile.mcp-server:26
+-------------------
+24 |
+25 |     # Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
+26 | >>> RUN pnpm install --frozen-lockfile --ignore-scripts
+27 |
+28 |     # Copy source code
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --ignore-scripts" did not complete successfully: exit code: 1

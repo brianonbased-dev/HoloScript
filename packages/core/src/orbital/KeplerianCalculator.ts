@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/orbital';
+export * from '../../../engine/src/orbital';

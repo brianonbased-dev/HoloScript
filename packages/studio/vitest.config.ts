@@ -68,6 +68,9 @@ export default defineConfig({
       idb: path.resolve(__dirname, 'src/__mocks__/idb.ts'),
       // Route @aztec/bb.js → stub (WASM bindings fail in Node/jsdom test env)
       '@aztec/bb.js': path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts'),
+      // Cross-package resolution (A.011 extraction)
+      '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
+      '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
     },
   },
 });

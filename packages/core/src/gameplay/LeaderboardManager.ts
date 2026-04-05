@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/gameplay';
+export * from '../../../engine/src/gameplay';

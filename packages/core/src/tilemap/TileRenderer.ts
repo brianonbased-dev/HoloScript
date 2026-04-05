@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/tilemap';
+export * from '../../../engine/src/tilemap';

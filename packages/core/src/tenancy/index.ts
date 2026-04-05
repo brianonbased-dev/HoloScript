@@ -1,4 +1,6 @@
 /**
+ * @deprecated A.011.03d — Intended destination: @holoscript/platform.
+ *
  * Multi-Tenant Isolation Module
  *
  * Provides tenant management, context isolation, namespace management,

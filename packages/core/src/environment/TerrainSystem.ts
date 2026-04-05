@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/environment';
+export * from '../../../engine/src/environment';

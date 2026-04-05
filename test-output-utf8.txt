@@ -1,0 +1,401 @@
+﻿
+> @holoscript/connector-railway@1.0.0 test C:\Users\josep\Documents\GitHub\HoloScript\packages\connector-railway
+> vitest run
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/connector-railway[39m
+
+[90mstdout[2m | src/__tests__/RailwayConnector.test.ts[2m > [22m[2mRailwayConnector[2m > [22m[2mconnect()[2m > [22m[2mshould handle missing token gracefully
+[22m[39m[Circuit] FATAL: All fallback endpoints failed for path /register.
+
+node.exe : [90mstderr[2m | src/_
+_tests__/RailwayConnector.test.ts
+[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mconnect()[2m > 
+[22m[2mshould handle missing 
+token gracefully
+At C:\Users\josep\AppData\Roaming\
+npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node
+_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: ([90mstderr[2m..  
+  .oken gracefully:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+[22m[39m[McpRegistrar] Failed 
+to auto-register connector to the 
+mesh orchestrator: Error: 
+Orchestrator Fetch Failed. Tried 
+3 endpoints: Cannot read 
+properties of undefined (reading 
+'ok'), Cannot read properties of 
+undefined (reading 'ok'), Cannot 
+read properties of undefined 
+(reading 'ok')
+    at ResilientOrchestratorFetch.
+fetchWithFailover (C:\Users\josep\
+Documents\GitHub\HoloScript\packag
+es\connector-core\src\ResilientOrc
+hestratorFetch.ts:104:11)
+[90m    at 
+processTicksAndRejections (node:in
+ternal/process/task_queues:105:5)
+[39m
+    at McpRegistrar.register (C:\U
+sers\josep\Documents\GitHub\HoloSc
+ript\packages\connector-core\src\M
+cpRegistrar.ts:17:28)
+    at RailwayConnector.connect [
+90m(C:\Users\josep\Documents\GitHu
+b\HoloScript\packages\connector-ra
+ilway\[39msrc\RailwayConnector.ts
+:23:7[90m)[39m
+    at [90mC:\Users\josep\Documen
+ts\GitHub\HoloScript\packages\conn
+ector-railway\[39msrc\__tests__\R
+ailwayConnector.test.ts:63:7
+    at file:///C:/Users/josep/Docu
+ments/GitHub/HoloScript/node_modul
+es/[4m.pnpm[24m/@vitest+runner@2
+.1.9/node_modules/[4m@vitest/runn
+er[24m/dist/index.js:533:5
+    at runTest (file:///C:/Users/j
+osep/Documents/GitHub/HoloScript/n
+ode_modules/[4m.pnpm[24m/@vitest
++runner@2.1.9/node_modules/[4m@vi
+test/runner[24m/dist/index.js:105
+6:11)
+    at runSuite (file:///C:/Users/
+josep/Documents/GitHub/HoloScript/
+node_modules/[4m.pnpm[24m/@vites
+t+runner@2.1.9/node_modules/[4m@v
+itest/runner[24m/dist/index.js:12
+05:15)
+    at runSuite (file:///C:/Users/
+josep/Documents/GitHub/HoloScript/
+node_modules/[4m.pnpm[24m/@vites
+t+runner@2.1.9/node_modules/[4m@v
+itest/runner[24m/dist/index.js:12
+05:15)
+    at runSuite (file:///C:/Users/
+josep/Documents/GitHub/HoloScript/
+node_modules/[4m.pnpm[24m/@vites
+t+runner@2.1.9/node_modules/[4m@v
+itest/runner[24m/dist/index.js:12
+05:15)
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould retry on 429 
+status with exponential backoff
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 1000ms
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould retry when 
+X-RateLimit-Remaining is 0
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 1000ms
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould throw after max 
+retries exhausted
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 1000ms
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould throw after max 
+retries exhausted
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 2000ms
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould throw after max 
+retries exhausted
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 4000ms
+
+[90mstderr[2m | src/__tests__/Ra
+ilwayConnector.test.ts[2m > 
+[22m[2mRailwayConnector[2m > 
+[22m[2mRate Limiting[2m > 
+[22m[2mshould use exponential 
+backoff (1s, 2s, 4s)
+[22m[39m[RailwayConnector] Rate 
+limited. Backing off for 1000ms
+[RailwayConnector] Rate limited. 
+Backing off for 2000ms
+[RailwayConnector] Rate limited. 
+Backing off for 4000ms
+
+ [31mΓ¥»[39m src/__tests__/RailwayConnector.test.ts [2m([22m[2m19 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 9079[2mms[22m[39m
+[31m   [31m├ù[31m RailwayConnector[2m > [22mconnect()[2m > [22mshould register with MCP orchestrator[90m 11[2mms[22m[31m[39m
+[31m     ΓåÆ expected "spy" to be called with arguments: [ ΓÇª(2) ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[32m-   "https://mcp-orchestrator-production-45f9.up.railway.app/register",[90m
+[32m-   ObjectContaining {[90m
+[32m-     "body": StringContaining "holoscript-railway",[90m
+[31m+   "http://mcp-orchestrator.railway.internal/register",[90m
+[31m+   Object {[90m
+[31m+     "body": "{\"name\":\"holoscript-railway\",\"url\":\"http://localhost:0\",\"tools\":[\"railway_project_create\",\"railway_service_create\",\"railway_deploy\",\"railway_variable_set\",\"railway_domain_add\",\"railway_deployment_status\"]}",[90m
+[2m      "headers": Object {[22m
+[2m        "Content-Type": "application/json",[22m
+[2m      },[22m
+[2m      "method": "POST",[22m
+[2m    },[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[31m   [31m├ù[31m RailwayConnector[2m > [22mconnect()[2m > [22mshould handle missing token gracefully[90m 4[2mms[22m[31m[39m
+[31m     ΓåÆ expected true to be false // Object.is equality[39m
+[31m   [31m├ù[31m RailwayConnector[2m > [22mexecuteTool()[2m > [22mrailway_project_create[2m > [22mshould create project with GraphQL mutation[90m 2[2mms[22m[31m[39m
+[31m     ΓåÆ expected "spy" to be called with arguments: [ ΓÇª(2) ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "https://backboard.railway.com/graphql/v2",[22m
+[32m-   ObjectContaining {[90m
+[32m-     "body": StringContaining "projectCreate",[90m
+[31m+   Object {[90m
+[31m+     "body": "{\"query\":\"mutation CreateProject($name: String!) { projectCreate(input: {name: $name}) { id name } }\",\"variables\":{\"name\":\"test-project\"}}",[90m
+[2m      "headers": Object {[22m
+[32m-       "Authorization": "Bearer test-railway-token",[90m
+[31m+       "Authorization": "Bearer 3fb3c29a-4b00-4038-8c8f-4bd631c7f6d1",[90m
+[2m        "Content-Type": "application/json",[22m
+[2m      },[22m
+[2m      "method": "POST",[22m
+[2m    },[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+   [33m[2mΓ£ô[22m[39m RailwayConnector[2m > [22mRate Limiting[2m > [22mshould retry on 429 status with exponential backoff [33m1013[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m RailwayConnector[2m > [22mRate Limiting[2m > [22mshould retry when X-RateLimit-Remaining is 0 [33m1002[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m RailwayConnector[2m > [22mRate Limiting[2m > [22mshould throw after max retries exhausted [33m7035[2mms[22m[39m
+
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1m[7m
+ Failed Tests 3 [27m[22mΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src/__tests__/Rail
+wayConnector.test.ts[2m > 
+[22mRailwayConnector[2m > 
+[22mconnect()[2m > [22mshould 
+register with MCP orchestrator
+[31m[1mAssertionError[22m: 
+expected "spy" to be called with 
+arguments: [ ΓÇª(2) ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[32m-   "https://mcp-orchestrator
+-production-45f9.up.railway.app/re
+gister",[90m
+[32m-   ObjectContaining {[90m
+[32m-     "body": 
+StringContaining 
+"holoscript-railway",[90m
+[31m+   "http://mcp-orchestrator.
+railway.internal/register",[90m
+[31m+   Object {[90m
+[31m+     "body": "{\"name\":\"ho
+loscript-railway\",\"url\":\"http:
+//localhost:0\",\"tools\":[\"railw
+ay_project_create\",\"railway_serv
+ice_create\",\"railway_deploy\",\"
+railway_variable_set\",\"railway_d
+omain_add\",\"railway_deployment_s
+tatus\"]}",[90m
+[2m      "headers": Object {[22m
+[2m        "Content-Type": 
+"application/json",[22m
+[2m      },[22m
+[2m      "method": "POST",[22m
+[2m    },[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2mΓ¥»[22m src/__tests__/R
+ailwayConnector.test.ts:[2m50:28
+[22m[39m
+    [90m 48| [39m      
+[35mawait[39m connector[33m.[3
+9m[34mconnect[39m()[33m;[39m
+    [90m 49| [39m
+    [90m 50| [39m      [34mexpe
+ct[39m(global[33m.[39mfetch)[3
+3m.[39m[34mtoHaveBeenCalledWith
+[39m(
+    [90m   | [39m               
+            [31m^[39m
+    [90m 51| [39m        [32m'h
+ttps://mcp-orchestrator-production
+-45f9.up.railway.app/regis[39mΓÇª
+    [90m 52| [39m        expect
+[33m.[39m[34mobjectContaining[3
+9m({
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»Γ
+Ä»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/3]ΓÄ»[22m[39m
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src/__tests__/Rail
+wayConnector.test.ts[2m > 
+[22mRailwayConnector[2m > 
+[22mconnect()[2m > [22mshould 
+handle missing token gracefully
+[31m[1mAssertionError[22m: 
+expected true to be false // 
+Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+[36m [2mΓ¥»[22m src/__tests__/R
+ailwayConnector.test.ts:[2m64:43
+[22m[39m
+    [90m 62| [39m      
+[35mconst[39m newConnector 
+[33m=[39m [35mnew[39m [33mRai
+lwayConnector[39m()[33m;[39m
+    [90m 63| [39m      
+[35mawait[39m newConnector[33m.
+[39m[34mconnect[39m()[33m;[39
+m
+    [90m 64| [39m      
+[34mexpect[39m([35mawait[39m n
+ewConnector[33m.[39m[34mhealth
+[39m())[33m.[39m[34mtoBe[39m(
+[35mfalse[39m)[33m;[39m
+    [90m   | [39m               
+                           
+[31m^[39m
+    [90m 65| [39m    
+})[33m;[39m
+    [90m 66| [39m  })[33m;[39m
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»Γ
+Ä»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/3]ΓÄ»[22m[39m
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src/__tests__/Rail
+wayConnector.test.ts[2m > 
+[22mRailwayConnector[2m > 
+[22mexecuteTool()[2m > 
+[22mrailway_project_create[2m > 
+[22mshould create project with 
+GraphQL mutation
+[31m[1mAssertionError[22m: 
+expected "spy" to be called with 
+arguments: [ ΓÇª(2) ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "https://backboard.railway
+.com/graphql/v2",[22m
+[32m-   ObjectContaining {[90m
+[32m-     "body": 
+StringContaining 
+"projectCreate",[90m
+[31m+   Object {[90m
+[31m+     "body": 
+"{\"query\":\"mutation 
+CreateProject($name: String!) { 
+projectCreate(input: {name: 
+$name}) { id name } }\",\"variable
+s\":{\"name\":\"test-project\"}}",
+[90m
+[2m      "headers": Object {[22m
+[32m-       "Authorization": 
+"Bearer test-railway-token",[90m
+[31m+       "Authorization": 
+"Bearer 3fb3c29a-4b00-4038-8c8f-4b
+d631c7f6d1",[90m
+[2m        "Content-Type": 
+"application/json",[22m
+[2m      },[22m
+[2m      "method": "POST",[22m
+[2m    },[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2mΓ¥»[22m src/__tests__/R
+ailwayConnector.test.ts:[2m139:30
+[22m[39m
+    [90m137| [39m
+    [90m138| [39m        [34mex
+pect[39m(result)[33m.[39m[34mt
+oEqual[39m(mockResponse)[33m;[3
+9m
+    [90m139| [39m        [34mex
+pect[39m(global[33m.[39mfetch)
+[33m.[39m[34mtoHaveBeenCalledWit
+h[39m(
+    [90m   | [39m               
+              [31m^[39m
+    [90m140| [39m          [32m
+'https://backboard.railway.com/gra
+phql/v2'[39m[33m,[39m
+    [90m141| [39m          expec
+t[33m.[39m[34mobjectContaining
+[39m({
+
+[31m[2mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»Γ
+Ä»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/3]ΓÄ»[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m16 passed[39m[22m[90m (19)[39m
+[2m   Start at [22m 11:38:50
+[2m   Duration [22m 9.68s[2m (transform 84ms, setup 0ms, collect 87ms, tests 9.08s, environment 0ms, prepare 224ms)[22m
+
+C:\Users\josep\Documents\GitHub\HoloScript\packages\connector-railway:
+ΓÇëERR_PNPM_RECURSIVE_RUN_FIRST_FAILΓÇë @holoscript/connector-railway@1.0.0 test: `vitest run`
+Exit status 1

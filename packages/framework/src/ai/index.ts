@@ -115,8 +115,8 @@ export { GoalPlanner } from './GoalPlanner';
 // Generation pipeline
 export { HoloScriptGenerator, validateBatch } from './HoloScriptGenerator';
 export { GenerationCache, cachedGenerate } from './GenerationCache';
-export { GenerationAnalytics } from './GenerationAnalytics';
-export { TrainingDataGenerator } from './TrainingDataGenerator';
+export { GenerationAnalytics, createAnalytics } from './GenerationAnalytics';
+export { TrainingDataGenerator, createTrainingDataGenerator, ALL_CATEGORIES } from './TrainingDataGenerator';
 export { PromptTemplateSystem, QuickPrompts } from './PromptTemplates';
 export type { PromptTemplate, TemplateContext } from './PromptTemplates';
 

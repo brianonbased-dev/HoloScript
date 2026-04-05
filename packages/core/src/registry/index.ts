@@ -1,4 +1,6 @@
 /**
+ * @deprecated A.011.03c — This module is superseded by @holoscript/registry.
+ *
  * Package Registry Module
  *
  * Sprint 5 Priority 5: Package Registry MVP

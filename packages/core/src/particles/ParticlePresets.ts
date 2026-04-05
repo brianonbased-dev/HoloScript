@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/particles';
+export * from '../../../engine/src/particles';

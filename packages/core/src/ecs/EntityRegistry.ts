@@ -1,1 +1,1 @@
-export * from '@holoscript/engine/ecs';
+export * from '../../../engine/src/ecs';

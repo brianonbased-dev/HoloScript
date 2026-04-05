@@ -22,9 +22,11 @@ import {
 import { TraitCompositionTreeProvider, registerTraitTreeCommands } from './traitTree';
 import { HoloScriptInlineDebugAdapterFactory, HoloScriptDebugConfigurationProvider } from './debug';
 import { HoloScriptMcpProvider } from './services/HoloScriptMcpProvider';
+import { TeamBridge } from './services/TeamBridge';
 
 let client: LanguageClient | undefined;
 let traitTreeProvider: TraitCompositionTreeProvider | undefined;
+let teamBridge: TeamBridge | undefined;
 
 export function activate(context: ExtensionContext) {
   // ── Preview Commands ──────────────────────────────────────────────────────
@@ -437,6 +439,11 @@ export function activate(context: ExtensionContext) {
     }
   }
 
+  // ── HoloMesh Team Bridge ──────────────────────────────────────────────────
+
+  teamBridge = TeamBridge.getInstance();
+  teamBridge.activate(context);
+
 }
 
 function isHoloScriptFile(document: TextDocument): boolean {
@@ -445,6 +452,11 @@ function isHoloScriptFile(document: TextDocument): boolean {
 }
 
 export function deactivate(): Thenable<void> | undefined {
+  if (teamBridge) {
+    teamBridge.deactivate();
+    teamBridge = undefined;
+  }
+
   if (traitTreeProvider) {
     traitTreeProvider.dispose();
     traitTreeProvider = undefined;

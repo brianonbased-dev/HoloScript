@@ -1,0 +1,74 @@
+﻿On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   packages/framework/src/swarm/messaging/__tests__/BroadcastChannel.prod.test.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.local-worker-key.legacy.1775327969021.json
+	audit-after-overrides.json
+	audit-current.json
+	board-recent-utf8.json
+	board-recent.json
+	board-utf8.json
+	board2.json
+	board_close_a02d.json
+	board_utf8.json
+	clean-check.txt
+	core-fail.txt
+	core-fail2.txt
+	core-fail3.txt
+	diff.patch
+	engine-fail.txt
+	engine-fail2.txt
+	engine-physics-fail.txt
+	errors.txt
+	fail.txt
+	final-fail.txt
+	final_board.json
+	fix_package_exports.py
+	format_build_log.txt
+	framework_ai_tests.txt
+	framework_ai_tests2.txt
+	framework_ai_tests2_utf8.txt
+	framework_ai_tests_utf8.txt
+	framework_build_log.txt
+	framework_err.txt
+	framework_err2.txt
+	framework_err3.txt
+	framework_tsc_check.txt
+	framework_tsc_check_utf8.txt
+	framework_tsc_fail.txt
+	framework_tsc_fail2.txt
+	framework_tsc_fail2_utf8.txt
+	framework_tsc_fail_utf8.txt
+	full_framework_test.txt
+	full_framework_test_utf8.txt
+	git_status.txt
+	ls-files.txt
+	migrate_behavior.py
+	migrate_skills_negotiation.py
+	railway_logs.txt
+	railway_logs_utf8.txt
+	services/export-api/src/services/apiKeyStore.ts
+	shortlog-utf8.txt
+	shortlog.txt
+	team_board.json
+	temp_board.json
+	test-output-2-utf8.txt
+	test-output-2.txt
+	test-output-utf8.txt
+	ts-test-output-final-utf8.txt
+	ts-test-output-final.txt
+	ts-test-output-new-utf8.txt
+	ts-test-output-new.txt
+	ts-test-output-utf8.txt
+	ts-test-output.txt
+	ts-test-verify.txt
+	vitest-result.json
+
+no changes added to commit (use "git add" and/or "git commit -a")
