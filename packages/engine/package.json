@@ -1,0 +1,64 @@
+{
+  "name": "@holoscript/engine",
+  "version": "6.0.0",
+  "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "engine",
+    "spatial",
+    "physics",
+    "rendering",
+    "ecs",
+    "animation",
+    "vr",
+    "xr",
+    "runtime"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/engine"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
