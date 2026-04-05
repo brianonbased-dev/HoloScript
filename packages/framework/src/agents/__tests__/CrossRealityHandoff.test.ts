@@ -29,7 +29,14 @@ import {
   mergeStates,
   DID,
 } from '../AuthenticatedCRDT';
-import { XR_PLATFORM_CAPABILITIES as PLATFORM_CAPABILITIES } from '@holoscript/core';
+import type { PlatformCapabilities } from '../CrossRealityHandoff';
+
+const PLATFORM_CAPABILITIES: Record<string, PlatformCapabilities> = {
+  'quest3': { spatialTracking: true, handTracking: true, gpu3D: true, spatialAudio: true },
+  'android': { gps: true, camera: true, touchScreen: true, gpu3D: true },
+  'android-auto': { gps: true, spatialAudio: true, voiceControl: true },
+  'pcvr': { spatialTracking: true, handTracking: true, gpu3D: true, spatialAudio: true, highFidelity: true },
+};
 
 // ── Test Fixtures ──────────────────────────────────────────────────────────
 

@@ -17,16 +17,35 @@
  * @version 1.0.0
  */
 
-import type {
-  XRPlatformTarget as PlatformTarget,
-  XRPlatformCapabilities as PlatformCapabilities,
-  EmbodimentType,
-} from '@holoscript/core';
-import {
-  XR_PLATFORM_CAPABILITIES as PLATFORM_CAPABILITIES,
-  embodimentFor,
-  platformCategory,
-} from '@holoscript/core';
+export type PlatformTarget = string;
+export type PlatformCapabilities = {
+  spatialTracking?: boolean;
+  handTracking?: boolean;
+  eyeTracking?: boolean;
+  haptics?: boolean;
+  spatialAudio?: boolean;
+  gpu3D?: boolean;
+  arCamera?: boolean;
+  gps?: boolean;
+  npu?: boolean;
+  webxrSupport?: boolean;
+  [key: string]: boolean | undefined;
+};
+export type EmbodimentType = 'Avatar3D' | 'VoiceHUD' | 'UI2D' | 'DataStream' | string;
+
+export const PLATFORM_CAPABILITIES: Record<string, PlatformCapabilities> = {};
+export const embodimentFor = (platform: PlatformTarget): EmbodimentType => {
+  if (platform === 'quest3' || platform === 'pcvr') return 'Avatar3D';
+  if (platform === 'android-auto') return 'VoiceHUD';
+  return 'UI2D';
+};
+
+export const platformCategory = (platform: PlatformTarget): string => {
+  if (platform.includes('android-auto')) return 'automotive';
+  if (platform.includes('android') || platform.includes('ios')) return 'mobile';
+  if (platform.includes('quest') || platform.includes('pcvr')) return 'vr';
+  return 'desktop';
+};
 
 // =============================================================================
 // MVC PAYLOAD — The 5 Typed Objects

@@ -27,7 +27,6 @@
   "keywords": ["holoscript", "agent", "framework", "multi-agent", "knowledge", "mcp"],
   "license": "MIT",
   "dependencies": {
-    "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/core": "workspace:*"
   },
   "devDependencies": {
