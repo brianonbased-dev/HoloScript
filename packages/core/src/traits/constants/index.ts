@@ -122,6 +122,15 @@ import { GEO_ANCHOR_TRAITS } from './geo-anchor';
 // ARCore Geospatial API (6 traits — M.010.15)
 import { GEOSPATIAL_ARCORE_TRAITS } from './geospatial';
 
+// NPU Scene Understanding — on-device ML inference (M.010.03)
+import { NPU_SCENE_TRAITS } from './npu-scene';
+
+// LiDAR Scanner — iOS mesh capture (M.010.02a)
+import { LIDAR_SCANNER_TRAITS } from './lidar-scanner';
+
+// Depth Scanner — Android ARCore/ToF/stereo (M.010.02b)
+import { DEPTH_SCANNER_TRAITS } from './depth-scanner';
+
 // RoomPlan — iOS spatial scanning (iOS 16+)
 import { ROOMPLAN_TRAITS } from './roomplan';
 
@@ -343,6 +352,15 @@ export const VR_TRAITS = [
 
   // ARCore Geospatial API — VPS street-level geo-anchoring (6 traits — M.010.15)
   ...GEOSPATIAL_ARCORE_TRAITS,
+
+  // NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
+  ...NPU_SCENE_TRAITS,
+
+  // LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
+  ...LIDAR_SCANNER_TRAITS,
+
+  // Depth Scanner — Android ARCore/ToF/stereo (10 traits — M.010.02b)
+  ...DEPTH_SCANNER_TRAITS,
 
   // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
   ...ROOMPLAN_TRAITS,
@@ -622,6 +640,24 @@ export {
   GEOSPATIAL_ARCORE_TRAITS,
   type GeospatialARCoreTraitName,
 } from './geospatial';
+
+// NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
+export {
+  NPU_SCENE_TRAITS,
+  type NPUSceneTraitName,
+} from './npu-scene';
+
+// LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
+export {
+  LIDAR_SCANNER_TRAITS,
+  type LiDARScannerTraitName,
+} from './lidar-scanner';
+
+// Depth Scanner — Android ARCore/ToF/stereo (10 traits — M.010.02b)
+export {
+  DEPTH_SCANNER_TRAITS,
+  type DepthScannerTraitName,
+} from './depth-scanner';
 
 // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
 export {
