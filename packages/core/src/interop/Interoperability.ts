@@ -288,7 +288,12 @@ export class AsyncFunctionHandler {
 }
 
 /**
- * Error boundary for isolation
+ * Error boundary for isolation (non-React, interop-specific).
+ *
+ * NOTE(A.011.06e): This is NOT a React ErrorBoundary. It is a plain
+ * error-collection utility for the interop layer. The canonical React
+ * ErrorBoundary lives at @holoscript/ui. No consolidation needed — different
+ * purpose. Consider renaming to InteropErrorCollector to reduce confusion.
  */
 export class ErrorBoundary {
   private errors: Error[] = [];

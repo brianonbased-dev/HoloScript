@@ -2,6 +2,12 @@
  * @hololand/react-agent-sdk - AgentErrorBoundary Component
  *
  * Error boundary for agent failures
+ *
+ * TODO(A.011.06e): Consolidate — canonical ErrorBoundary lives at
+ * @holoscript/ui (packages/ui/src/components/ErrorBoundary.tsx).
+ * This component duplicates that logic with agent-specific styling.
+ * Should be refactored to wrap the canonical one with agent-specific
+ * fallback UI, similar to OrchestrationErrorBoundary.
  */
 
 import React, { Component, ReactNode } from 'react';

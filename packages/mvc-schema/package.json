@@ -2,6 +2,7 @@
   "name": "@holoscript/mvc-schema",
   "version": "1.0.0",
   "description": "Minimal Viable Context (MVC) schema for cross-reality agent state synchronization with authenticated CRDTs",
+  "_architectureNote": "A.011.06f: Canonical home decision — mvc-schema belongs with the networking/crdt layer. It depends on @holoscript/crdt, defines CRDT-compatible schemas (G-Set, OR-Set, LWW-Map), and has zero external consumers outside its own package. If consolidated, merge into @holoscript/crdt as a 'schemas' sub-export rather than moving to marketplace-api.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

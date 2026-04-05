@@ -24,7 +24,9 @@ interface State {
 }
 
 /**
- * ErrorBoundary — Canonical error boundary for the HoloScript UI layer.
+ * ErrorBoundary — CANONICAL error boundary for the HoloScript UI layer.
+ * (A.011.06e: This is the single source of truth. All other React ErrorBoundary
+ * implementations should wrap or re-export this one.)
  *
  * Features:
  * - `label` for contextual crash messages ("Viewport crashed" vs generic)

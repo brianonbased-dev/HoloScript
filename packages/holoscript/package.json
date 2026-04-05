@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/sdk",
-  "version": "3.1.0",
-  "description": "HoloScript SDK: Smart Assets, Runtime, and Tools",
+  "version": "6.0.0",
+  "description": "@deprecated — Use @holoscript/core directly. This package is a thin re-export shim kept for backward compatibility. Will be removed in a future major release. (A.011.06d)",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
