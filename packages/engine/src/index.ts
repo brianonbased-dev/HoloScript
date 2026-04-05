@@ -81,6 +81,12 @@ export * as Orbital from './orbital';
 // Hologram subsystem (A.011.01j)
 export * as Hologram from './hologram';
 
+// VM subsystem (A.011.01k) — merged from @holoscript/holo-vm
+export * as VM from './vm';
+
+// VM Bridge subsystem (A.011.01k) — merged from @holoscript/vm-bridge
+export * as VMBridge from './vm-bridge';
+
 // ── Subsystems to be migrated from @holoscript/core ───────────────────
 // Each section will become a re-export once code is moved into src/<subsystem>/
 

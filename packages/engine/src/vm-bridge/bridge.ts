@@ -1,11 +1,16 @@
 /**
- * @holoscript/vm-bridge
- *
- * @deprecated This package has been merged into @holoscript/engine (A.011.01k).
- * Use `import { VMBridge } from '@holoscript/engine'` or `import { SpatialCognitiveAgent, ... } from '@holoscript/engine/vm-bridge'` instead.
+ * VM Bridge
  *
  * Bridges the HoloVM (spatial scene execution at 60fps) with the uAAL VM
  * (cognitive agent cycles via the 7-phase protocol).
+ *
+ * Key concepts:
+ *   - SceneSnapshot: serializable view of the ECS world
+ *   - AgentAction: typed mutation the agent wants to apply to the scene
+ *   - SpatialCognitiveAgent: the core bridge — perceive → decide → mutate
+ *   - registerSpatialHandlers: wires uAAL spatial opcodes to HoloVM
+ *
+ * @packageDocumentation
  */
 
 import type {
@@ -17,7 +22,7 @@ import type {
   MaterialComponent,
   RigidBodyComponent,
   Vec3,
-} from '@holoscript/holo-vm';
+} from '../vm/executor';
 
 import type { UAALVirtualMachine, UAALOperand, VMProxy } from '@holoscript/uaal';
 

@@ -1,12 +1,9 @@
 /**
- * @holoscript/holo-vm
+ * HOLO VM - HoloScript native bytecode execution engine
  *
- * @deprecated This package has been merged into @holoscript/engine (A.011.01k).
- * Use `import { VM } from '@holoscript/engine'` or `import { HoloVM, ... } from '@holoscript/engine/vm'` instead.
+ * Merged from @holoscript/holo-vm into @holoscript/engine (A.011.01k).
  *
- * HOLO VM — HoloScript's native bytecode execution engine for spatial computing.
- *
- * Compile .holo/.hsplus/.hs → .holob bytecode → run anywhere via WASM.
+ * @packageDocumentation
  */
 
 // Opcodes
