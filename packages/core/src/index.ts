@@ -35,6 +35,20 @@
 import { HoloScriptParser } from './HoloScriptParser';
 import { HoloScriptRuntime } from './HoloScriptRuntime';
 
+// Engine extraction compatibility layer (A.011.01z)
+export {
+  SpatialEngine,
+  PhysicsStep,
+  type EngineConfig,
+  type EngineMetrics,
+  type EngineState,
+  type EngineSystem,
+  type Vec3,
+  type PhysicsBodyState,
+  type CollisionEvent,
+  type CollisionCallback,
+} from '@holoscript/engine';
+
 // Composition Parser (Tier 3 migration from Hololand — pure language-level AST traversal)
 export {
   ParsedObject,
@@ -2745,7 +2759,7 @@ export {
   normsByCategory,
   criticalMassForChange,
 } from './traits/CultureTraits';
-export type { CulturalNorm, NormCategory, NormEnforcement } from './traits/CultureTraits';
+export type { CulturalNorm, NormCategory, NormEnforcement, NormScope } from './traits/CultureTraits';
 
 export { CulturalMemory } from './agents/CulturalMemory';
 export type { EpisodicMemory, StigmergicTrace, SemanticSOP } from './agents/CulturalMemory';

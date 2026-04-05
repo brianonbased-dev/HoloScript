@@ -1,0 +1,38 @@
+{
+  "name": "@holoscript/framework",
+  "version": "0.1.0",
+  "description": "The framework where agents remember, learn, and earn. Knowledge-compounding team orchestration.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./bt": {
+      "import": "./dist/behavior.js",
+      "types": "./dist/behavior.d.ts"
+    },
+    "./agents": {
+      "import": "./dist/agents/index.js",
+      "types": "./dist/agents/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "keywords": ["holoscript", "agent", "framework", "multi-agent", "knowledge", "mcp"],
+  "license": "MIT",
+  "dependencies": {
+    "@holoscript/agent-protocol": "workspace:*",
+    "@holoscript/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

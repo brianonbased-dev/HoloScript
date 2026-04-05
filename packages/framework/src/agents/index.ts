@@ -1,19 +1,8 @@
 /**
- * @holoscript/core - Agents Module
+ * @holoscript/framework - Agents Module
  *
- * @deprecated The canonical agents module has moved to `@holoscript/framework`.
- * These re-exports exist to avoid breaking existing consumers.
- * Migrate your imports to `@holoscript/framework`:
- *
- * ```ts
- * // Before
- * import { AgentRegistry } from '@holoscript/core';
- *
- * // After
- * import { AgentRegistry } from '@holoscript/framework';
- * ```
- *
- * This shim will be removed in a future major version.
+ * Multi-agent orchestration and choreography system.
+ * Migrated from @holoscript/core as part of A.011.02a.
  */
 
 // Agent Types (uAA2++ Protocol)
@@ -96,5 +85,20 @@ export {
 // Orchestrator Agent (v5.5 First Concrete BaseAgent)
 export { OrchestratorAgent, type OrchestratorConfig } from './OrchestratorAgent';
 
-// AgentKit Integration moved to @holoscript/marketplace-api/agents
-// Import from '@holoscript/marketplace-api' instead.
+// Agent Wallet Registry (Autonomous wallet management)
+export { AgentWalletRegistry, type AgentWallet } from './AgentWalletRegistry';
+
+// Authenticated CRDT (DID-signed conflict-free state sync)
+export * from './AuthenticatedCRDT';
+
+// Cross-Reality Handoff Protocol
+export * from './CrossRealityHandoff';
+
+// Cultural Memory (Dual memory architecture)
+export * from './CulturalMemory';
+
+// Norm Engine (CRSEC norm lifecycle)
+export * from './NormEngine';
+
+// Spatial Communication Stack
+export * from './spatial-comms';
