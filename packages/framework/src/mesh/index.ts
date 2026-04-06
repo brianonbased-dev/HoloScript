@@ -1,8 +1,8 @@
 /**
  * Mesh Module — Peer discovery, signaling, gossip, and A2A interoperability.
  *
- * Absorbed from @holoscript/agent-sdk. The agent-sdk package
- * becomes a re-export shim after this migration.
+ * Canonical home for mesh primitives (previously in @holoscript/agent-sdk,
+ * which has been deleted).
  */
 
 import { EventEmitter } from 'events';
