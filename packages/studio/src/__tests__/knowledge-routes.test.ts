@@ -4,15 +4,22 @@
  * Gaps 3, 4, 6: Validates standalone API routes exist with correct exports,
  * and that the publish endpoint validates input correctly.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock fetch globally for route tests
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 describe('Knowledge API Routes', () => {
+  const originalKey = process.env.HOLOMESH_API_KEY;
+
   beforeEach(() => {
+    process.env.HOLOMESH_API_KEY = 'test_key';
     mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    process.env.HOLOMESH_API_KEY = originalKey;
   });
 
   describe('knowledge extraction route', () => {

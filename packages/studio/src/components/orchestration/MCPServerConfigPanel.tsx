@@ -78,10 +78,10 @@ function useMCPServerHealth(config: MCPServerConfig | null) {
   return { status, isChecking, checkHealth };
 }
 
-function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
+function useSessionStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => {
     try {
-      const stored = localStorage.getItem(key);
+      const stored = sessionStorage.getItem(key);
       return stored ? JSON.parse(stored) : defaultValue;
     } catch {
       return defaultValue;
@@ -92,9 +92,9 @@ function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => voi
     (newValue: T) => {
       try {
         setValue(newValue);
-        localStorage.setItem(key, JSON.stringify(newValue));
+        sessionStorage.setItem(key, JSON.stringify(newValue));
       } catch (error) {
-        logger.error(`[MCPServerConfigPanel] Failed to persist ${key}:`, error);
+        logger.error(`[MCPServerConfigPanel] Failed to persist ${key} in sessionStorage:`, error);
       }
     },
     [key]
@@ -426,7 +426,7 @@ export function MCPServerConfigPanel({ onClose }: MCPServerConfigPanelProps) {
   const addMCPServer = useOrchestrationStore((s) => s.addMCPServer);
   const updateMCPServer = useOrchestrationStore((s) => s.updateMCPServer);
 
-  const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', '');
+  const [apiKey, setApiKey] = useSessionStorage('mcp-api-key', '');
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
   const [showAddServer, setShowAddServer] = useState(false);
 

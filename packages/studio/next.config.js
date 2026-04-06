@@ -14,6 +14,19 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cdn.polyhaven.com' },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:;",
+          },
+        ],
+      },
+    ];
+  },
   // Enable standard Next.js build checks
   eslint: { ignoreDuringBuilds: false },
   typescript: { ignoreBuildErrors: false },
