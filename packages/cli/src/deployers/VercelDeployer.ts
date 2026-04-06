@@ -6,6 +6,10 @@
  * and serverless function configuration.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+
 import {
   BaseDeployer,
   DeployConfig,
@@ -330,54 +334,171 @@ export class VercelDeployer extends BaseDeployer {
 
   /**
    * Sync environment variables to the Vercel project.
+   * Uses the Vercel Environment Variables API to upsert each variable.
    */
   private async syncEnvVars(config: DeployConfig): Promise<void> {
     if (this.envVars.length === 0) return;
 
-    // Stubbed: In production, POST to /v10/projects/:projectId/env
-    // for each environment variable.
-    void config;
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+
+    for (const envVar of this.envVars) {
+      try {
+        // Try to create the env var
+        await this.apiRequest(
+          'POST',
+          `/v10/projects/${config.projectName}/env${teamQuery}`,
+          {
+            key: envVar.key,
+            value: envVar.value,
+            target: envVar.target,
+            type: envVar.type || 'encrypted',
+          }
+        );
+      } catch (error) {
+        // If it already exists, update it via PATCH
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('already exist') || message.includes('ENV_ALREADY_EXISTS')) {
+          await this.apiRequest(
+            'PATCH',
+            `/v10/projects/${config.projectName}/env/${envVar.key}${teamQuery}`,
+            {
+              value: envVar.value,
+              target: envVar.target,
+              type: envVar.type || 'encrypted',
+            }
+          );
+        } else {
+          throw error;
+        }
+      }
+    }
   }
 
   /**
    * Upload build files to Vercel.
+   * Computes SHA1 digests and uploads each file via the Vercel File API.
+   * Stores file metadata for use in createDeployment.
    */
-  private async uploadFiles(_config: DeployConfig, _buildOutput: BuildOutput): Promise<void> {
-    // Stubbed: In production, this would:
-    // 1. Compute SHA1 hashes for each file
-    // 2. POST /v2/files to upload each file
-    // 3. Create deployment referencing the uploaded files
+  private async uploadFiles(_config: DeployConfig, buildOutput: BuildOutput): Promise<void> {
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+    this._uploadedFiles = [];
+
+    for (const filePath of buildOutput.files) {
+      const fullPath = path.join(buildOutput.outputDir, filePath);
+      const content = await fs.promises.readFile(fullPath);
+
+      // Compute SHA1 digest (Vercel uses this to deduplicate)
+      const sha = crypto.createHash('sha1').update(content).digest('hex');
+      const size = content.length;
+
+      // Upload file content with SHA1 digest header
+      const url = `${this.apiBaseUrl}/v2/files${teamQuery}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiToken}`,
+          'Content-Type': 'application/octet-stream',
+          'x-vercel-digest': sha,
+          'Content-Length': String(size),
+        },
+        body: content,
+      });
+
+      if (!response.ok) {
+        // 409 means file already uploaded (deduplication) — that's fine
+        if (response.status !== 409) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = (errData as VercelApiResponse).error?.message || response.statusText;
+          throw new Error(`Vercel file upload failed for ${filePath} (${response.status}): ${errMsg}`);
+        }
+      }
+
+      this._uploadedFiles.push({
+        file: filePath.replace(/\\/g, '/'),
+        sha,
+        size,
+      });
+    }
   }
 
+  // Transient state: files uploaded in uploadFiles, consumed by createDeployment
+  private _uploadedFiles: Array<{ file: string; sha: string; size: number }> = [];
+
   /**
-   * Create a deployment on Vercel.
+   * Create a deployment on Vercel referencing previously uploaded files.
    */
   private async createDeployment(config: DeployConfig, _deploymentId: string): Promise<string> {
-    // Stubbed: In production this creates the deployment via API.
-    const url = config.customDomain
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+
+    // Build the files array for the deployment API
+    const files = this._uploadedFiles.map((f) => ({
+      file: f.file,
+      sha: f.sha,
+      size: f.size,
+    }));
+
+    // Build project settings including serverless config
+    const projectSettings: Record<string, unknown> = {};
+    if (this.serverlessConfig.runtime === 'edge') {
+      projectSettings.framework = null;
+    }
+
+    const deployPayload: Record<string, unknown> = {
+      name: config.projectName,
+      files,
+      target: config.environment === 'production' ? 'production' : undefined,
+      projectSettings,
+    };
+
+    // Add serverless function config if applicable
+    if (this.serverlessConfig) {
+      deployPayload.functions = {
+        'api/**/*.js': {
+          runtime: this.serverlessConfig.runtime,
+          memory: this.serverlessConfig.memory,
+          maxDuration: this.serverlessConfig.maxDuration,
+        },
+      };
+      if (this.serverlessConfig.regions && this.serverlessConfig.regions.length > 0) {
+        deployPayload.regions = this.serverlessConfig.regions;
+      }
+    }
+
+    const response = await this.apiRequest(
+      'POST',
+      `/v13/deployments${teamQuery}`,
+      deployPayload
+    );
+
+    // Clean up transient state
+    this._uploadedFiles = [];
+
+    // Return the deployment URL
+    if (response.url) {
+      return `https://${response.url}`;
+    }
+
+    return config.customDomain
       ? `https://${config.customDomain}`
       : `https://${config.projectName}.vercel.app`;
-
-    return url;
   }
 
   /**
-   * Configure serverless function settings.
+   * Configure serverless function settings via the Vercel project API.
+   * Updates the project's serverless function configuration (runtime, memory, maxDuration).
    */
-  private async configureServerless(_config: DeployConfig): Promise<void> {
-    // Stubbed: In production, this writes vercel.json or uses the API
-    // to configure serverless function runtime, memory, and max duration.
-    //
-    // vercel.json:
-    // {
-    //   "functions": {
-    //     "api/**/*.js": {
-    //       "runtime": this.serverlessConfig.runtime,
-    //       "memory": this.serverlessConfig.memory,
-    //       "maxDuration": this.serverlessConfig.maxDuration
-    //     }
-    //   }
-    // }
+  private async configureServerless(config: DeployConfig): Promise<void> {
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+
+    await this.apiRequest(
+      'PATCH',
+      `/v9/projects/${config.projectName}${teamQuery}`,
+      {
+        serverlessFunctionRegion: this.serverlessConfig.regions?.[0] || undefined,
+      }
+    );
+    // Note: per-function runtime/memory/maxDuration are set via the functions
+    // field in the deployment payload (handled in createDeployment).
   }
 
   /**
@@ -386,56 +507,79 @@ export class VercelDeployer extends BaseDeployer {
   private async setAlias(config: DeployConfig, deploymentId: string): Promise<void> {
     if (!config.customDomain) return;
 
-    // Stubbed: POST /v2/deployments/:id/aliases
-    void deploymentId;
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+
+    await this.apiRequest(
+      'POST',
+      `/v2/deployments/${deploymentId}/aliases${teamQuery}`,
+      { alias: config.customDomain }
+    );
   }
 
   /**
    * Configure edge-specific settings (cache-control, headers).
+   * Updates the project's headers configuration via the Vercel API.
    */
-  private async configureEdge(_config: DeployConfig): Promise<void> {
-    // Stubbed: In production, this writes a vercel.json headers config:
-    // {
-    //   "headers": [
-    //     {
-    //       "source": "/(.*)",
-    //       "headers": [
-    //         { "key": "Cache-Control", "value": config.edgeConfig.cacheControl },
-    //         ...Object.entries(config.edgeConfig.headers).map(...)
-    //       ]
-    //     }
-    //   ]
-    // }
+  private async configureEdge(config: DeployConfig): Promise<void> {
+    if (!config.edgeConfig) return;
+
+    const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
+
+    // Build headers array for the Vercel project config
+    const headerEntries: Array<{ key: string; value: string }> = [];
+
+    if (config.edgeConfig.cacheControl) {
+      headerEntries.push({ key: 'Cache-Control', value: config.edgeConfig.cacheControl });
+    }
+
+    for (const [key, value] of Object.entries(config.edgeConfig.headers)) {
+      headerEntries.push({ key, value });
+    }
+
+    // Update the project with header configuration
+    await this.apiRequest(
+      'PATCH',
+      `/v9/projects/${config.projectName}${teamQuery}`,
+      {
+        headers: [
+          {
+            source: '/(.*)',
+            headers: headerEntries,
+          },
+        ],
+      }
+    );
   }
 
   /**
-   * Make a Vercel API request. Stubbed for real HTTP calls.
+   * Make a Vercel API request using fetch().
    */
   private async apiRequest(
     method: string,
     endpoint: string,
-    _body?: unknown
+    body?: unknown
   ): Promise<VercelApiResponse> {
-    // Stubbed: In production, this would use fetch():
-    //
-    // const response = await fetch(`${this.apiBaseUrl}${endpoint}`, {
-    //   method,
-    //   headers: {
-    //     'Authorization': `Bearer ${this.apiToken}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: body ? JSON.stringify(body) : undefined,
-    // });
-    // return await response.json();
+    const url = `${this.apiBaseUrl}${endpoint}`;
 
-    void method;
-    void endpoint;
-
-    return {
-      id: this.generateDeploymentId(),
-      url: `${this.projectName}.vercel.app`,
-      readyState: 'READY',
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.apiToken}`,
+      'Content-Type': 'application/json',
     };
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const data: VercelApiResponse = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = data.error?.message || response.statusText;
+      throw new Error(`Vercel API error (${response.status}): ${errorMsg}`);
+    }
+
+    return data;
   }
 
   /**
