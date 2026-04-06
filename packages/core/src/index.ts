@@ -2085,36 +2085,12 @@ export * from './choreography';
 export * from './negotiation';
 
 // =============================================================================
-// Swarm Module (v3.2 Autonomous Agent Swarms)
-// NOTE: Higher-level swarm primitives (SwarmCoordinator, PSOEngine,
-// CollectiveIntelligence, VotingRound, ContributionSynthesizer,
-// SwarmMembership, QuorumPolicy) have moved to `@holoscript/framework`.
+// Swarm Module — MOVED to @holoscript/framework (v6.0)
+// All swarm primitives (ACOEngine, LeaderElection, SwarmManager,
+// SwarmCoordinator, PSOEngine, CollectiveIntelligence, VotingRound,
+// ContributionSynthesizer, SwarmMembership, QuorumPolicy) now live in
+// `@holoscript/framework`. Import from there directly.
 // =============================================================================
-
-export * as swarm from './swarm';
-
-export {
-  ACOEngine,
-  LeaderElection,
-  SwarmManager,
-} from './swarm';
-
-export type {
-  ACOConfig,
-  ACOResult,
-  LeaderElectionConfig,
-  ElectionRole,
-  ElectionState,
-  ElectionMessage,
-  VoteRequestMessage,
-  VoteResponseMessage,
-  HeartbeatMessage as SwarmHeartbeatMessage,
-  SwarmInfo,
-  CreateSwarmRequest,
-  DisbandOptions,
-  SwarmManagerConfig,
-  SwarmEvent,
-} from './swarm';
 // =============================================================================
 // Recovery Module (v3.2 Self-Healing Infrastructure)
 // =============================================================================
@@ -2239,7 +2215,6 @@ export { USDZPipeline, type USDZPipelineOptions } from './compiler/USDZPipeline'
 
 // Semantic Caching System
 export {
-  // Swarm module exports are re-exported through the swarm barrel file above
   encrypt,
   decrypt,
   generateEncryptionKey,
@@ -2249,7 +2224,6 @@ export {
   validateWalletAddress,
   validateApiKey,
 
-  // Swarm module exports are consolidated through the swarm barrel file above
   type MessageHandler,
   type BroadcastHandler,
   type ChannelEventHandler,
