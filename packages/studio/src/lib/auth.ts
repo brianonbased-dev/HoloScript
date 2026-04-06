@@ -68,10 +68,20 @@ export function buildAuthOptions(): NextAuthOptions {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
+      async jwt({ token, profile }) {
+        // Persist GitHub username in JWT for admin bypass
+        if (profile && 'login' in profile) {
+          token.githubUsername = (profile as { login: string }).login;
+        }
+        return token;
+      },
       async session({ session, user, token }) {
         if (session.user) {
           // Database sessions have user object, JWT sessions have token
           session.user.id = user?.id ?? token?.sub ?? '';
+          // Expose GitHub username for admin checks
+          (session.user as Record<string, unknown>).githubUsername =
+            token?.githubUsername ?? (user as Record<string, unknown>)?.githubUsername ?? '';
         }
         return session;
       },

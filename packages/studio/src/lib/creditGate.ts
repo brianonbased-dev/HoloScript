@@ -22,6 +22,14 @@ const ABSORB_BASE =
   process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
 const ABSORB_API_KEY = process.env.ABSORB_API_KEY || process.env.MCP_API_KEY || '';
 
+// Admin bypass — comma-separated GitHub usernames that skip credit checks
+const ADMIN_GITHUB_USERNAMES = new Set(
+  (process.env.ADMIN_GITHUB_USERNAMES || '')
+    .split(',')
+    .map((u) => u.trim().toLowerCase())
+    .filter(Boolean)
+);
+
 export type StudioOperation =
   | 'studio_autocomplete'
   | 'studio_generate'
@@ -45,37 +53,46 @@ export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
  * x-user-id header (for API/CLI clients), then to the absorb API key
  * as an admin identity.
  */
-async function resolveUserId(request: Request): Promise<string | null> {
+async function resolveUser(request: Request): Promise<{ id: string | null; githubUsername: string }> {
   // 1. NextAuth session (browser users)
   try {
     const session = await getSession();
-    if (session?.user?.id) return session.user.id;
+    if (session?.user?.id) {
+      const ghUser = (session.user as Record<string, unknown>).githubUsername as string || '';
+      return { id: session.user.id, githubUsername: ghUser };
+    }
   } catch {
     // NextAuth not configured — fall through
   }
 
   // 2. Explicit header (API/CLI clients)
   const headerUserId = request.headers.get('x-user-id');
-  if (headerUserId) return headerUserId;
+  if (headerUserId) return { id: headerUserId, githubUsername: '' };
 
   // 3. Authorization bearer token as user identity
   const auth = request.headers.get('authorization');
   if (auth?.startsWith('Bearer ')) {
-    return `apikey:${auth.slice(7, 20)}`;
+    return { id: `apikey:${auth.slice(7, 20)}`, githubUsername: '' };
   }
 
-  return null;
+  return { id: null, githubUsername: '' };
 }
 
 /**
  * Pre-flight credit check. Must be called BEFORE making any LLM call.
+ * Admin GitHub usernames (ADMIN_GITHUB_USERNAMES env) bypass credits entirely.
  * Returns a CreditGateResult — check `.error` to see if the user can proceed.
  */
 export async function checkCredits(
   request: Request,
   operation: StudioOperation
 ): Promise<CreditGateResult> {
-  const userId = await resolveUserId(request);
+  const { id: userId, githubUsername } = await resolveUser(request);
+
+  // Admin bypass — founders/admins skip credit checks
+  if (githubUsername && ADMIN_GITHUB_USERNAMES.has(githubUsername.toLowerCase())) {
+    return { userId: userId || `admin:${githubUsername}`, error: null };
+  }
 
   if (!userId) {
     return {
