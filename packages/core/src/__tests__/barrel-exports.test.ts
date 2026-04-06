@@ -32,10 +32,7 @@ import {
   createSubmission,
   verifySubmission,
   publishSubmission,
-  // Runtime
-  gateCheck,
-  RuntimeMonitor,
-  CultureRuntime,
+  // Runtime (moved to @holoscript/engine — import stubs for compat check)
 } from '../index';
 
 // =============================================================================
@@ -166,40 +163,5 @@ describe('Barrel Export Verification', () => {
     });
   });
 
-  describe('Runtime exports', () => {
-    it('RuntimeMonitor works', () => {
-      const monitor = new RuntimeMonitor('quest3');
-      const snap = monitor.report({ particles: 100 });
-      expect(snap.overBudget).toBe(false);
-      expect(monitor.getFrameBudget().frameBudgetMs).toBe(11.1);
-    });
-
-    it('CultureRuntime works', () => {
-      const runtime = new CultureRuntime();
-      runtime.agentJoin('agent1');
-      expect(runtime.dashboard().agents).toBe(1);
-      runtime.tick();
-      expect(runtime.dashboard().tickCount).toBe(1);
-    });
-
-    it('gateCheck works', () => {
-      const manifest = {
-        packageId: '@test/gate',
-        version: { major: 1, minor: 0, patch: 0 },
-        safetyVerdict: 'safe' as const,
-        dangerScore: 2,
-        installedAt: '2026-01-01',
-        targetPlatforms: ['quest3'],
-      };
-      const report = {
-        verdict: 'safe' as const,
-        dangerScore: 2,
-        effects: { categories: [], totalEffects: 0, violations: [] },
-        budget: { diagnostics: [] },
-        capabilities: { missing: [] },
-      };
-      const decision = gateCheck(manifest, report, 0);
-      expect(decision.allowed).toBe(true);
-    });
-  });
+  // Runtime exports moved to @holoscript/engine — tests live there now
 });
