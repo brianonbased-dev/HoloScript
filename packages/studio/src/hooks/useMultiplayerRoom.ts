@@ -90,7 +90,10 @@ export function useMultiplayerRoom({
             text: evt.payload!.text!,
             ts: evt.ts ?? Date.now(),
           };
-          setChat((prev) => [...prev.slice(-99), msg]);
+          setChat((prev) => {
+            const next = [...prev, msg];
+            return next.length > 100 ? next.slice(-100) : next;
+          });
         }
         setPeers((prev) => {
           const next = new Map(prev);

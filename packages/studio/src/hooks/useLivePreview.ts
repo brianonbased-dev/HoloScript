@@ -55,6 +55,7 @@ export function useLivePreview(options?: LivePreviewOptions) {
     es.onopen = () => setStatus('connected');
     es.onerror = () => {
       setStatus('error');
+      es.close();
       esRef.current = null;
     };
   }, [sceneId]);

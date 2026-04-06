@@ -64,15 +64,11 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     [enabled]
   );
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
   // Poll for connected users
   useEffect(() => {
     if (!enabled) return;
 
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       try {
         const client = getCollaborationClient();
         const connectedUsers = client.getConnectedUsers();
@@ -83,8 +79,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     }, 1000); // Update every second
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = null;
+      clearInterval(interval);
     };
   }, [enabled]);
 
