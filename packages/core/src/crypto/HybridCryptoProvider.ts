@@ -434,18 +434,10 @@ export class HybridCryptoProvider {
   async generateKEMKeyPair(): Promise<HybridKeyPair> {
     const pq = await this.loadPQModule();
 
-    // Generate classical X25519 key pair
-    let classicalPrivKey: Uint8Array;
-    let classicalPubKey: Uint8Array;
-
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      classicalPrivKey = new Uint8Array(32);
-      crypto.getRandomValues(classicalPrivKey);
-    } else {
-      const nodeCrypto = await import('crypto');
-      classicalPrivKey = new Uint8Array(nodeCrypto.randomBytes(32));
-    }
-    classicalPubKey = classicalPrivKey.slice(); // Placeholder
+    // Generate classical X25519 key pair via Node.js crypto
+    const x25519Pair = await generateX25519KeyPair();
+    const classicalPubKey = x25519Pair.publicKey;
+    const classicalPrivKey = x25519Pair.privateKey;
 
     // Generate post-quantum ML-KEM key pair
     let pqKeyPair: { publicKey: Uint8Array; secretKey: Uint8Array };
@@ -479,13 +471,9 @@ export class HybridCryptoProvider {
   async sign(message: Uint8Array, keyPair: HybridKeyPair): Promise<HybridSignature> {
     const pq = await this.loadPQModule();
 
-    // Classical signature (placeholder -- in production use @noble/ed25519)
+    // Classical Ed25519 signature via Node.js crypto
     const classicalPrivKey = fromBase64(keyPair.classicalPrivateKey);
-    // Simplified: hash the message with the key
-    const classicalSig = new Uint8Array(64);
-    for (let i = 0; i < 64; i++) {
-      classicalSig[i] = message[i % message.length] ^ classicalPrivKey[i % classicalPrivKey.length];
-    }
+    const classicalSig = await ed25519Sign(message, classicalPrivKey);
 
     // Post-quantum signature
     const pqPrivKey = fromBase64(keyPair.pqPrivateKey);
@@ -529,14 +517,12 @@ export class HybridCryptoProvider {
   ): Promise<HybridVerificationResult> {
     const pq = await this.loadPQModule();
 
-    // Verify classical signature
+    // Verify classical Ed25519 signature via Node.js crypto
     let classicalValid = false;
     try {
-      // Placeholder verification
       const classicalSig = fromBase64(signature.classicalSignature);
       const classicalPubKey = fromBase64(publicKeys.classicalPublicKey);
-      // In production, use @noble/ed25519.verify()
-      classicalValid = classicalSig.length > 0 && classicalPubKey.length > 0;
+      classicalValid = await ed25519Verify(message, classicalSig, classicalPubKey);
     } catch (e) {
       classicalValid = false;
     }
@@ -579,14 +565,17 @@ export class HybridCryptoProvider {
   }): Promise<HybridEncapsulation> {
     const pq = await this.loadPQModule();
 
-    // Classical key exchange (placeholder)
-    const classicalPubKey = fromBase64(recipientPublicKeys.classicalPublicKey);
-    const classicalCiphertext = new Uint8Array(32);
-    const classicalSecret = new Uint8Array(32);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      crypto.getRandomValues(classicalCiphertext);
-      crypto.getRandomValues(classicalSecret);
-    }
+    // Classical X25519 Diffie-Hellman key exchange via Node.js crypto
+    // Generate an ephemeral X25519 key pair for this encapsulation
+    const ephemeral = await generateX25519KeyPair();
+    const recipientClassicalPubKey = fromBase64(recipientPublicKeys.classicalPublicKey);
+    // The "ciphertext" in KEM terms is our ephemeral public key
+    const classicalCiphertext = ephemeral.publicKey;
+    // Derive shared secret: ephemeral private + recipient public
+    const classicalSecret = await x25519DeriveSecret(
+      ephemeral.privateKey,
+      recipientClassicalPubKey
+    );
 
     // Post-quantum key encapsulation
     const pqPubKey = fromBase64(recipientPublicKeys.pqPublicKey);
@@ -613,6 +602,78 @@ export class HybridCryptoProvider {
       pqCiphertext: toBase64(pqResult.cipherText),
       sharedSecret: toBase64(combinedSecret),
     };
+  }
+
+  /**
+   * Decapsulate -- recover the shared secret from encapsulation ciphertexts
+   * using the recipient's private KEM key pair.
+   */
+  async decapsulate(
+    encapsulation: HybridEncapsulation,
+    recipientKeyPair: HybridKeyPair
+  ): Promise<Uint8Array> {
+    const pq = await this.loadPQModule();
+
+    // Classical: derive shared secret from sender's ephemeral public key
+    const senderEphemeralPub = fromBase64(encapsulation.classicalCiphertext);
+    const ourPrivKey = fromBase64(recipientKeyPair.classicalPrivateKey);
+    const classicalSecret = await x25519DeriveSecret(ourPrivKey, senderEphemeralPub);
+
+    // Post-quantum decapsulation
+    const pqCiphertext = fromBase64(encapsulation.pqCiphertext);
+    const pqSecretKey = fromBase64(recipientKeyPair.pqPrivateKey);
+    let pqSecret: Uint8Array;
+
+    switch (this.config.pqKeyExchangeAlgorithm) {
+      case 'ml-kem-768':
+        pqSecret = pq.ml_kem768.decapsulate(pqCiphertext, pqSecretKey);
+        break;
+      case 'ml-kem-1024':
+        pqSecret = pq.ml_kem1024.decapsulate(pqCiphertext, pqSecretKey);
+        break;
+      default:
+        throw new Error(`Unsupported PQ KEM: ${this.config.pqKeyExchangeAlgorithm}`);
+    }
+
+    const combined = await combineSecrets(classicalSecret, pqSecret);
+    this.config.logger('[HybridCrypto] Hybrid key decapsulation completed');
+    return combined;
+  }
+
+  /**
+   * Encrypt plaintext using a hybrid-derived shared secret (AES-256-GCM).
+   *
+   * The sharedSecret should be the base64-encoded output from encapsulate().
+   * Returns base64-encoded ciphertext (iv + authTag + encrypted data).
+   */
+  async encrypt(plaintext: Uint8Array, sharedSecretB64: string): Promise<string> {
+    const key = fromBase64(sharedSecretB64);
+    if (key.length !== 32) {
+      throw new Error(`Encryption key must be 32 bytes, got ${key.length}`);
+    }
+    const packed = await aes256GcmEncrypt(plaintext, key);
+    this.config.logger(`[HybridCrypto] Encrypted ${plaintext.length} bytes`);
+    return toBase64(packed);
+  }
+
+  /**
+   * Decrypt ciphertext using a hybrid-derived shared secret (AES-256-GCM).
+   *
+   * The ciphertextB64 should be the base64 string returned from encrypt().
+   * The sharedSecretB64 should match the key used for encryption.
+   */
+  async decrypt(ciphertextB64: string, sharedSecretB64: string): Promise<Uint8Array> {
+    const key = fromBase64(sharedSecretB64);
+    if (key.length !== 32) {
+      throw new Error(`Decryption key must be 32 bytes, got ${key.length}`);
+    }
+    const packed = fromBase64(ciphertextB64);
+    if (packed.length < 28) {
+      throw new Error('Ciphertext too short (must include IV + authTag)');
+    }
+    const plaintext = await aes256GcmDecrypt(packed, key);
+    this.config.logger(`[HybridCrypto] Decrypted ${plaintext.length} bytes`);
+    return plaintext;
   }
 
   /**
