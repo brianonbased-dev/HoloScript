@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit } from '@/lib/rateLimit';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 
@@ -71,6 +70,15 @@ Examples:
 
 Return ONLY the HoloScript code — no markdown fences, no explanation.`;
 
+const MOCK_SCENE_TEMPLATE = `composition "CloudFallbackScene" {
+  scene "Main" {
+    object "Placeholder" {
+      position: [0, 1, 0]
+      @glowing { intensity: 0.6 }
+    }
+  }
+}`;
+
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
@@ -103,14 +111,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY || '';
-    if (!apiKey) {
-      return NextResponse.json(
-        { success: false, code: '', error: 'No API key available. Set ANTHROPIC_API_KEY in .env' },
-        { status: 500 }
-      );
-    }
-
     let userPrompt = prompt;
     if (existingCode) {
       userPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
@@ -118,23 +118,156 @@ export async function POST(request: Request) {
       userPrompt = `Generate a HoloScript scene for: ${prompt}`;
     }
 
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: process.env.BRITTNEY_MODEL || 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: GENERATE_SYSTEM,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    // Cloud-first provider rotation: OpenRouter → Anthropic → OpenAI.
+    // Optional local fallback: Ollama (if configured).
+    const generated =
+      (await tryCloudProviders(GENERATE_SYSTEM, userPrompt)) ??
+      (await tryOllamaFallback(userPrompt));
 
-    const textBlock = response.content.find((b) => b.type === 'text');
-    const code = textBlock ? textBlock.text.trim() : '';
+    const code = generated?.trim();
+
+    // Graceful cloud-first fallback for pre-launch/dev environments
+    if (!code) {
+      deductCredits(gate.userId, 'studio_generate').catch(() => {});
+      return NextResponse.json(
+        {
+          success: true,
+          code: MOCK_SCENE_TEMPLATE,
+          source: 'mock',
+          warning:
+            'Using template fallback (cloud AI unavailable). Configure OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for live generation.',
+        },
+        { headers }
+      );
+    }
 
     // Deduct credits after successful generation (fire-and-forget)
     deductCredits(gate.userId, 'studio_generate').catch(() => {});
 
-    return NextResponse.json({ success: true, code }, { headers });
+    return NextResponse.json({ success: true, code, source: 'cloud' }, { headers });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, code: '', error: msg }, { status: 500 });
+  }
+}
+
+async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
+  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+
+  // OpenRouter
+  if (openrouterKey) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openrouterKey}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 4096,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch {
+      // try next provider
+    }
+  }
+
+  // Anthropic
+  if (anthropicKey) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { content?: Array<{ text?: string }> };
+        const text = data.content?.[0]?.text;
+        if (text) return text;
+      }
+    } catch {
+      // try next provider
+    }
+  }
+
+  // OpenAI
+  if (openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_MODEL || 'gpt-4.1',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 4096,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch {
+      // no-op, fallback to local if configured
+    }
+  }
+
+  return null;
+}
+
+async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
+  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
+  if (!ollamaUrl) return null; // Optional local fallback
+
+  try {
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest',
+        prompt: `${GENERATE_SYSTEM}\n\n${fullPrompt}`,
+        stream: false,
+        options: { temperature: 0.7, num_predict: 2048 },
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { response?: string };
+    return data.response ?? null;
+  } catch {
+    return null;
   }
 }

@@ -307,7 +307,7 @@ describe('useSceneGenerator', () => {
       });
 
       expect(result.current.status).toBe('done');
-      expect(result.current.warning).toBe('Using template fallback (Ollama unavailable)');
+      expect(result.current.warning).toBe('Using template fallback (cloud AI unavailable)');
     });
 
     it('should prefer custom warning over mock warning', async () => {

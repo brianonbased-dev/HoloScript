@@ -38,7 +38,7 @@ export function useSceneGenerator() {
       }
       setGeneratedCode(data.code ?? '');
       if (data.warning || data.source === 'mock') {
-        setWarning(data.warning ?? 'Using template fallback (Ollama unavailable)');
+        setWarning(data.warning ?? 'Using template fallback (cloud AI unavailable)');
       }
       setStatus('done');
     } catch (err) {
