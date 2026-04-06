@@ -1,5 +1,5 @@
 /**
- * @holoscript/core - Orchestrator Agent
+ * @holoscript/framework - Orchestrator Agent
  *
  * First concrete implementation of BaseAgent from the uAA2++ protocol.
  * Maps the 7-phase protocol to agent orchestration concerns:

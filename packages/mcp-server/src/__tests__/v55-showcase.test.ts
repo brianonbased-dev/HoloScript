@@ -23,7 +23,7 @@ import {
   FederatedRegistryAdapter,
   TaskDelegationService,
   SkillWorkflowEngine,
-} from '@holoscript/core';
+} from '@holoscript/framework';
 
 // =============================================================================
 // FIXTURES

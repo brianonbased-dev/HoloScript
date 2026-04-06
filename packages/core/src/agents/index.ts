@@ -94,7 +94,8 @@ export {
 } from './SkillWorkflowEngine';
 
 // Orchestrator Agent (v5.5 First Concrete BaseAgent)
-export { OrchestratorAgent, type OrchestratorConfig } from './OrchestratorAgent';
+// Canonical source: @holoscript/framework — re-exported here for backward compat
+export { OrchestratorAgent, type OrchestratorConfig } from '@holoscript/framework';
 
 // AgentKit Integration moved to @holoscript/marketplace-api/agents
 // Import from '@holoscript/marketplace-api' instead.
