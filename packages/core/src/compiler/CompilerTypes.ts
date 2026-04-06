@@ -99,6 +99,6 @@ export interface IOSCompileResult {
   sharePlayFile?: string;
   /** UWB positioning file — emitted when uwb_* traits are present (iOS 16+, Nearby Interaction) */
   uwbPositioningFile?: string;
-  /** Spatial audio file — emitted when spatial_audio_*/audio_* traits are present (iOS 15+, AVFoundation PHASE + CMHeadphoneMotionManager) */
+  /** Spatial audio file — emitted when spatial_audio or audio traits are present (iOS 15+, AVFoundation PHASE + CMHeadphoneMotionManager) */
   spatialAudioFile?: string;
 }
