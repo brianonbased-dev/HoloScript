@@ -480,12 +480,6 @@
     "private": true
   },
   {
-    "name": "@holoscript/render-service",
-    "version": "4.0.0",
-    "path": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\services\\render-service",
-    "private": false
-  },
-  {
     "name": "@holoscript/studio-api",
     "version": "1.0.0",
     "path": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\services\\studio-api",

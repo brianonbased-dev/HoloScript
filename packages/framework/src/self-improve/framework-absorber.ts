@@ -75,29 +75,76 @@ export class FrameworkAbsorber {
    * Scan the framework codebase via the absorb service.
    * Returns a CodebaseGraph with module/dependency info.
    *
-   * TODO: Call absorb_run_absorb MCP tool for full graph analysis
-   * Currently uses knowledge store scan as a proxy.
+   * Calls absorb_run_absorb MCP tool via JSON-RPC for full graph analysis.
+   * Falls back to knowledge store scan if the absorb service is unreachable.
    */
   async scanSelf(): Promise<CodebaseGraph> {
     const absorbUrl = this.config.absorbUrl || DEFAULT_ABSORB_URL;
     const apiKey = this.config.absorbApiKey || '';
 
-    // Try absorb service first
+    // Try absorb service via MCP JSON-RPC
     if (apiKey) {
       try {
-        const res = await fetch(`${absorbUrl}/health`, {
-          signal: AbortSignal.timeout(5_000),
+        const repoUrl = this.config.codebasePath || 'packages/framework';
+        const rpcPayload = {
+          jsonrpc: '2.0' as const,
+          id: `absorb-scan-${Date.now()}`,
+          method: 'tools/call',
+          params: {
+            name: 'absorb_run_absorb',
+            arguments: { repo_url: repoUrl },
+          },
+        };
+
+        const res = await fetch(`${absorbUrl}/mcp`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(rpcPayload),
+          signal: AbortSignal.timeout(30_000),
         });
+
         if (res.ok) {
-          const health = (await res.json()) as Record<string, unknown>;
-          // TODO: POST to /mcp with absorb_run_absorb tool call
-          // For now, return health-derived graph stub
-          return {
-            fileCount: typeof health.files === 'number' ? health.files : 0,
-            edgeCount: typeof health.edges === 'number' ? health.edges : 0,
-            modules: Array.isArray(health.modules) ? health.modules as string[] : [],
-            raw: health,
+          const rpcResult = (await res.json()) as {
+            result?: {
+              content?: Array<{ text?: string }>;
+            };
+            error?: { message?: string };
           };
+
+          if (rpcResult.result?.content) {
+            // Parse the absorb graph from the MCP response
+            const raw = rpcResult.result.content;
+            const textContent = raw.find(c => c.text)?.text;
+            let parsed: Record<string, unknown> = {};
+            if (textContent) {
+              try {
+                parsed = JSON.parse(textContent) as Record<string, unknown>;
+              } catch {
+                // Text response not JSON — use as-is
+                parsed = { text: textContent };
+              }
+            }
+
+            return {
+              fileCount: typeof parsed.file_count === 'number'
+                ? parsed.file_count
+                : typeof parsed.files === 'number'
+                  ? parsed.files
+                  : 0,
+              edgeCount: typeof parsed.edge_count === 'number'
+                ? parsed.edge_count
+                : typeof parsed.edges === 'number'
+                  ? parsed.edges
+                  : 0,
+              modules: Array.isArray(parsed.modules)
+                ? parsed.modules as string[]
+                : [],
+              raw: parsed,
+            };
+          }
         }
       } catch {
         // Absorb service unreachable — fall through to knowledge store

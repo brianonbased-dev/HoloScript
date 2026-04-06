@@ -6,10 +6,10 @@
  *
  * Protocol styles:
  * - uaa2: 7-phase (INTAKE→REFLECT→EXECUTE→COMPRESS→REINTAKE→GROW→EVOLVE)
- * - react: ReAct loop (think→act→observe) [planned]
- * - plan-exec: Plan-and-execute (plan→step→replan) [planned]
- * - debate: Multi-agent debate (propose→challenge→defend→resolve) [planned]
- * - swarm: Swarm consensus (broadcast→vote→converge) [planned]
+ * - react: ReAct loop (think→act→observe)
+ * - plan-exec: Plan-and-execute (plan→step→replan)
+ * - debate: Multi-agent debate (propose→challenge→defend→resolve)
+ * - swarm: Swarm consensus (broadcast→vote→converge)
  */
 
 // =============================================================================
@@ -250,3 +250,48 @@ export {
 } from '@holoscript/framework';
 
 export type { ServiceHealth, ServiceManagerHealth } from '@holoscript/framework';
+
+// =============================================================================
+// PROTOCOL IMPLEMENTATIONS
+// =============================================================================
+
+export { ReactAgent } from './react-protocol';
+export type {
+  ReactLLMAdapter,
+  ReactToolExecutor,
+  Thought,
+  Observation,
+  ReactStep,
+  ReactResult,
+} from './react-protocol';
+
+export { PlanExecuteAgent } from './plan-execute-protocol';
+export type {
+  PlanLLMAdapter,
+  PlanStepExecutor,
+  PlanStep,
+  Plan,
+  StepResult as PlanStepResult,
+  PlanExecResult,
+} from './plan-execute-protocol';
+
+export { DebateOrchestrator } from './debate-protocol';
+export type {
+  DebateParticipant,
+  DebateJudge,
+  Position,
+  Challenge,
+  Defense,
+  DebateRound,
+  Resolution,
+  DebateResult,
+} from './debate-protocol';
+
+export { SwarmOrchestrator } from './swarm-protocol';
+export type {
+  SwarmParticipant,
+  Signal,
+  Vote,
+  SwarmRound,
+  SwarmResult,
+} from './swarm-protocol';

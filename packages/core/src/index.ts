@@ -2013,10 +2013,8 @@ export {
 } from './sync';
 
 // =============================================================================
-// LOD Module (v3.3 Level of Detail System)
+// LOD Module — MOVED to @holoscript/engine (A.011 migration)
 // =============================================================================
-
-export * from './lod';
 
 // =============================================================================
 // Trait Visual System (Trait-to-PBR Mapping)
@@ -2577,8 +2575,8 @@ export { ComponentType } from './traits/ECSWorldTrait';
 
 // ── Animation Engine ───────────────────────────────────────────────
 // Engine Subsystem Shims (A.011 migration) � consolidated wildcard re-exports.
-// and LOD (export * from './lod') already have wildcard re-exports above.
-// Duplicate explicit re-exports for AudioEngine, ShaderGraph, LightingModel, LODManager removed.
+// LOD moved to @holoscript/engine (A.011 migration).
+// Duplicate explicit re-exports for AudioEngine, ShaderGraph, LightingModel removed.
 
 // ── Cinematic ──────────────────────────────────────────────────────
 export { CinematicDirector } from './cinematic/CinematicDirector';
@@ -2669,8 +2667,7 @@ export type {
   WaterfallRendererConfig,
 } from './debug/TraceWaterfallRenderer';
 
-// ── LOD ────────────────────────────────────────────────────────────
-// LODManager already exported via `export * from './lod'` above
+// ── LOD ── MOVED to @holoscript/engine (A.011) ──────────────────────
 
 // ── AI / State Machine ─────────────────────────────────────────────
 export { StateMachine } from './ai';

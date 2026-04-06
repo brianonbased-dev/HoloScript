@@ -75,12 +75,10 @@
     },
     {
       "name": "infra-v4",
-      "description": "Infra package lane currently on major 4",
+      "description": "Infra package lane currently on major 4 (render-service removed)",
       "enforce": "major",
       "targetMajor": 4,
-      "packages": [
-        "@holoscript/render-service"
-      ]
+      "packages": []
     },
     {
       "name": "experimental-v0",

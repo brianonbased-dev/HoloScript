@@ -39,7 +39,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
-import { WEBXR_TRAITS } from '../traits/constants/webxr';
+import { WEBXR_TRAITS } from '../traits/constants/mobile/webxr';
 
 // ---------------------------------------------------------------------------
 // Types

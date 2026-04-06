@@ -17,18 +17,18 @@
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
-import { GEOSPATIAL_DEFAULTS } from '../traits/constants/geospatial';
-import { DEPTH_SCANNER_TRAITS, DEPTH_SCANNER_DEFAULTS } from '../traits/constants/depth-scanner';
-import { PORTAL_AR_TRAITS } from '../traits/constants/portal-ar';
-import { CAMERA_HAND_TRACKING_TRAITS } from '../traits/constants/camera-hand-tracking';
-import { NPU_SCENE_TRAITS, NPU_SCENE_DEFAULTS } from '../traits/constants/npu-scene';
-import { SPATIAL_AUTHORING_TRAITS, SPATIAL_AUTHORING_DEFAULTS } from '../traits/constants/spatial-authoring';
-import { HAPTIC_FEEDBACK_TRAITS } from '../traits/constants/haptic-feedback';
-import { NEARBY_CONNECTIONS_TRAITS } from '../traits/constants/nearby-connections';
-import { FOLDABLE_DISPLAY_TRAITS } from '../traits/constants/foldable-display';
-import { SAMSUNG_DEX_TRAITS } from '../traits/constants/samsung-dex';
-import { GOOGLE_LENS_TRAITS } from '../traits/constants/google-lens';
-import { WEBXR_TRAITS } from '../traits/constants/webxr';
+import { GEOSPATIAL_DEFAULTS } from '../traits/constants/mobile/geospatial';
+import { DEPTH_SCANNER_TRAITS, DEPTH_SCANNER_DEFAULTS } from '../traits/constants/mobile/depth-scanner';
+import { PORTAL_AR_TRAITS } from '../traits/constants/mobile/portal-ar';
+import { CAMERA_HAND_TRACKING_TRAITS } from '../traits/constants/mobile/camera-hand-tracking';
+import { NPU_SCENE_TRAITS, NPU_SCENE_DEFAULTS } from '../traits/constants/mobile/npu-scene';
+import { SPATIAL_AUTHORING_TRAITS, SPATIAL_AUTHORING_DEFAULTS } from '../traits/constants/mobile/spatial-authoring';
+import { HAPTIC_FEEDBACK_TRAITS } from '../traits/constants/mobile/haptic-feedback';
+import { NEARBY_CONNECTIONS_TRAITS } from '../traits/constants/mobile/nearby-connections';
+import { FOLDABLE_DISPLAY_TRAITS } from '../traits/constants/mobile/foldable-display';
+import { SAMSUNG_DEX_TRAITS } from '../traits/constants/mobile/samsung-dex';
+import { GOOGLE_LENS_TRAITS } from '../traits/constants/mobile/google-lens';
+import { WEBXR_TRAITS } from '../traits/constants/mobile/webxr';
 
 export interface AndroidCompilerOptions {
   packageName?: string;

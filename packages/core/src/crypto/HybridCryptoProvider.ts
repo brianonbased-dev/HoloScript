@@ -110,6 +110,154 @@ export interface HybridCryptoConfig {
 }
 
 // =============================================================================
+// NODE CRYPTO HELPERS (classical operations)
+// =============================================================================
+
+/**
+ * Lazily imported Node.js crypto module.
+ * Kept at module scope so it's loaded once and shared.
+ */
+let _nodeCrypto: typeof import('crypto') | null = null;
+
+async function getNodeCrypto(): Promise<typeof import('crypto')> {
+  if (_nodeCrypto) return _nodeCrypto;
+  _nodeCrypto = await import('crypto');
+  return _nodeCrypto;
+}
+
+/**
+ * Generate an Ed25519 key pair via Node.js crypto.
+ * Returns raw 32-byte public key and PKCS8-encoded private key.
+ */
+async function generateEd25519KeyPair(): Promise<{
+  publicKey: Uint8Array;
+  privateKey: Uint8Array;
+  publicKeyObj: import('crypto').KeyObject;
+  privateKeyObj: import('crypto').KeyObject;
+}> {
+  const nc = await getNodeCrypto();
+  const { publicKey, privateKey } = nc.generateKeyPairSync('ed25519');
+  const pubRaw = publicKey.export({ type: 'spki', format: 'der' });
+  const privRaw = privateKey.export({ type: 'pkcs8', format: 'der' });
+  return {
+    publicKey: new Uint8Array(pubRaw),
+    privateKey: new Uint8Array(privRaw),
+    publicKeyObj: publicKey,
+    privateKeyObj: privateKey,
+  };
+}
+
+/**
+ * Sign a message with Ed25519 using a DER-encoded private key.
+ */
+async function ed25519Sign(message: Uint8Array, derPrivateKey: Uint8Array): Promise<Uint8Array> {
+  const nc = await getNodeCrypto();
+  const keyObj = nc.createPrivateKey({
+    key: Buffer.from(derPrivateKey),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  const sig = nc.sign(null, message, keyObj);
+  return new Uint8Array(sig);
+}
+
+/**
+ * Verify an Ed25519 signature using a DER-encoded public key.
+ */
+async function ed25519Verify(
+  message: Uint8Array,
+  signature: Uint8Array,
+  derPublicKey: Uint8Array
+): Promise<boolean> {
+  const nc = await getNodeCrypto();
+  const keyObj = nc.createPublicKey({
+    key: Buffer.from(derPublicKey),
+    format: 'der',
+    type: 'spki',
+  });
+  return nc.verify(null, message, keyObj, signature);
+}
+
+/**
+ * Generate an X25519 key pair via Node.js crypto.
+ * Returns raw public and PKCS8-encoded private key bytes.
+ */
+async function generateX25519KeyPair(): Promise<{
+  publicKey: Uint8Array;
+  privateKey: Uint8Array;
+}> {
+  const nc = await getNodeCrypto();
+  const { publicKey, privateKey } = nc.generateKeyPairSync('x25519');
+  const pubRaw = publicKey.export({ type: 'spki', format: 'der' });
+  const privRaw = privateKey.export({ type: 'pkcs8', format: 'der' });
+  return {
+    publicKey: new Uint8Array(pubRaw),
+    privateKey: new Uint8Array(privRaw),
+  };
+}
+
+/**
+ * Perform X25519 Diffie-Hellman: derive shared secret from our private key
+ * and the recipient's public key.
+ */
+async function x25519DeriveSecret(
+  ourPrivateKeyDer: Uint8Array,
+  theirPublicKeyDer: Uint8Array
+): Promise<Uint8Array> {
+  const nc = await getNodeCrypto();
+  const privObj = nc.createPrivateKey({
+    key: Buffer.from(ourPrivateKeyDer),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  const pubObj = nc.createPublicKey({
+    key: Buffer.from(theirPublicKeyDer),
+    format: 'der',
+    type: 'spki',
+  });
+  const secret = nc.diffieHellman({ privateKey: privObj, publicKey: pubObj });
+  return new Uint8Array(secret);
+}
+
+/**
+ * Encrypt plaintext with AES-256-GCM using a 32-byte key.
+ * Returns iv (12 bytes) || authTag (16 bytes) || ciphertext.
+ */
+async function aes256GcmEncrypt(
+  plaintext: Uint8Array,
+  key: Uint8Array
+): Promise<Uint8Array> {
+  const nc = await getNodeCrypto();
+  const iv = nc.randomBytes(12);
+  const cipher = nc.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  // Pack: iv (12) + authTag (16) + ciphertext
+  const result = new Uint8Array(12 + 16 + encrypted.length);
+  result.set(iv, 0);
+  result.set(authTag, 12);
+  result.set(new Uint8Array(encrypted), 28);
+  return result;
+}
+
+/**
+ * Decrypt AES-256-GCM ciphertext (iv || authTag || ciphertext) with a 32-byte key.
+ */
+async function aes256GcmDecrypt(
+  packed: Uint8Array,
+  key: Uint8Array
+): Promise<Uint8Array> {
+  const nc = await getNodeCrypto();
+  const iv = packed.slice(0, 12);
+  const authTag = packed.slice(12, 28);
+  const ciphertext = packed.slice(28);
+  const decipher = nc.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return new Uint8Array(decrypted);
+}
+
+// =============================================================================
 // IMPLEMENTATION
 // =============================================================================
 
@@ -242,21 +390,10 @@ export class HybridCryptoProvider {
   async generateSigningKeyPair(): Promise<HybridKeyPair> {
     const pq = await this.loadPQModule();
 
-    // Generate classical Ed25519 key pair
-    let classicalPrivKey: Uint8Array;
-    let classicalPubKey: Uint8Array;
-
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      classicalPrivKey = new Uint8Array(32);
-      crypto.getRandomValues(classicalPrivKey);
-    } else {
-      const nodeCrypto = await import('crypto');
-      classicalPrivKey = new Uint8Array(nodeCrypto.randomBytes(32));
-    }
-
-    // For Ed25519, the public key is derived from the private key
-    // In a real implementation this would use @noble/ed25519
-    classicalPubKey = classicalPrivKey.slice(); // Placeholder
+    // Generate classical Ed25519 key pair via Node.js crypto
+    const ed25519Pair = await generateEd25519KeyPair();
+    const classicalPubKey = ed25519Pair.publicKey;
+    const classicalPrivKey = ed25519Pair.privateKey;
 
     // Generate post-quantum ML-DSA key pair
     let pqKeyPair: { publicKey: Uint8Array; secretKey: Uint8Array };

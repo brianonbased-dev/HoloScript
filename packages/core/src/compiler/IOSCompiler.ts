@@ -24,16 +24,16 @@ import type {
   HoloAudio,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
-import { ROOMPLAN_TRAITS } from '../traits/constants/roomplan';
-import { LIDAR_SCANNER_TRAITS } from '../traits/constants/lidar-scanner';
-import { NPU_SCENE_TRAITS, NPU_SCENE_DEFAULTS } from '../traits/constants/npu-scene';
-import { PORTAL_AR_TRAITS } from '../traits/constants/portal-ar';
-import { CAMERA_HAND_TRACKING_TRAITS } from '../traits/constants/camera-hand-tracking';
-import { FACE_TRACKING_TRAITS } from '../traits/constants/face-tracking';
-import { IOS_OBJECT_CAPTURE_TRAITS } from '../traits/constants/ios-object-capture';
-import { SHAREPLAY_TRAITS } from '../traits/constants/shareplay';
-import { UWB_POSITIONING_TRAITS } from '../traits/constants/uwb-positioning';
-import { AIRPODS_SPATIAL_AUDIO_TRAITS } from '../traits/constants/airpods-spatial-audio';
+import { ROOMPLAN_TRAITS } from '../traits/constants/mobile/roomplan';
+import { LIDAR_SCANNER_TRAITS } from '../traits/constants/mobile/lidar-scanner';
+import { NPU_SCENE_TRAITS, NPU_SCENE_DEFAULTS } from '../traits/constants/mobile/npu-scene';
+import { PORTAL_AR_TRAITS } from '../traits/constants/mobile/portal-ar';
+import { CAMERA_HAND_TRACKING_TRAITS } from '../traits/constants/mobile/camera-hand-tracking';
+import { FACE_TRACKING_TRAITS } from '../traits/constants/mobile/face-tracking';
+import { IOS_OBJECT_CAPTURE_TRAITS } from '../traits/constants/mobile/ios-object-capture';
+import { SHAREPLAY_TRAITS } from '../traits/constants/mobile/shareplay';
+import { UWB_POSITIONING_TRAITS } from '../traits/constants/mobile/uwb-positioning';
+import { AIRPODS_SPATIAL_AUDIO_TRAITS } from '../traits/constants/mobile/airpods-spatial-audio';
 
 export interface IOSCompilerOptions {
   className?: string;

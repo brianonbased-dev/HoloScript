@@ -9,7 +9,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { getDefaultAIAdapter } from '../ai/AIAdapter';
+import { getDefaultAIAdapter } from '@holoscript/framework/ai';
 
 // =============================================================================
 // TYPES
