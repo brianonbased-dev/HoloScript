@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { emotionalVoiceHandler } from '../traits/EmotionalVoiceTrait';
-import { registerVoiceSynthesizer, type VoiceSynthesizer } from '../runtime/VoiceSynthesizer';
+import { registerVoiceSynthesizer, type VoiceSynthesizer } from '@holoscript/engine/runtime/VoiceSynthesizer';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 describe('EmotionalVoiceTrait - Phase 20 (Procedural Voice)', () => {

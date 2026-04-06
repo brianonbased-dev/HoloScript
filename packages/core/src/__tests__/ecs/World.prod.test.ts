@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { World } from '../../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 
 function makeWorld() {
   return new World();

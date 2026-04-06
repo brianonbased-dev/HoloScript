@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EditorPersistence } from '../../editor/EditorPersistence';
-import { World } from '../../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 
 // ── localStorage mock ──────────────────────────────────────────────────────
 class MockLocalStorage {

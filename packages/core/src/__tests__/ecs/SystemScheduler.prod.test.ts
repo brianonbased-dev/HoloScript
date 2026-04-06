@@ -9,8 +9,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { SystemScheduler } from '../../ecs/SystemScheduler';
-import type { SystemPhase } from '../../ecs/SystemScheduler';
+import { SystemScheduler } from '@holoscript/engine/ecs/SystemScheduler';
+import type { SystemPhase } from '@holoscript/engine/ecs/SystemScheduler';
 
 function makeSS() {
   return new SystemScheduler();

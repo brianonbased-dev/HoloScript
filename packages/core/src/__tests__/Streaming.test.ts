@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MovementPredictor } from '../runtime/MovementPredictor';
+import { MovementPredictor } from '@holoscript/engine/runtime/MovementPredictor';
 
 describe('MovementPredictor - Phase 19 (Infinite Streaming)', () => {
   let predictor: MovementPredictor;

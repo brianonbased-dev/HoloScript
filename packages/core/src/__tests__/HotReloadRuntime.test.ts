@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
-import { HoloScriptPlusRuntimeImpl } from '../runtime/HoloScriptPlusRuntime';
+import { HoloScriptPlusRuntimeImpl } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
 
 describe('Hot-Reload Runtime Migration', () => {
   let parser: HoloScriptPlusParser;

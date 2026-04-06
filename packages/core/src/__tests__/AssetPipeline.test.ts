@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { AssetManager } from '../editor/AssetManager';
 import { AssetBrowserPanel } from '../editor/AssetBrowserPanel';
 import { UIBuilder } from '../editor/UIBuilder';

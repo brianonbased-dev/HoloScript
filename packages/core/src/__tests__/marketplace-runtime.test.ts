@@ -12,8 +12,8 @@ import {
   Publisher,
 } from '../marketplace/MarketplaceSubmission';
 import { MarketplaceRegistry } from '../marketplace/MarketplaceRegistry';
-import { gateCheck, RuntimeMonitor } from '../runtime/SafetyGate';
-import { CultureRuntime } from '../runtime/CultureRuntime';
+import { gateCheck, RuntimeMonitor } from '@holoscript/engine/runtime/SafetyGate';
+import { CultureRuntime } from '@holoscript/engine/runtime/CultureRuntime';
 import { EffectASTNode } from '../compiler/safety/CompilerSafetyPass';
 
 // ── Fixtures ───────────────────────────────────────────────────────────────

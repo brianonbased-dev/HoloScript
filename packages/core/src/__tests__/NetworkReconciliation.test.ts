@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NetworkPredictor } from '../runtime/NetworkPredictor';
+import { NetworkPredictor } from '@holoscript/engine/runtime/NetworkPredictor';
 
 describe('NetworkPredictor', () => {
   let predictor: NetworkPredictor<any>;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { effect } from '../state/ReactiveState';
 
 describe('Reactive ECS', () => {

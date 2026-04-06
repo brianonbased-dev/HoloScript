@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EntityRegistry } from '../ecs/EntityRegistry';
-import { ComponentStore } from '../ecs/ComponentStore';
-import { SystemScheduler } from '../ecs/SystemScheduler';
+import { EntityRegistry } from '@holoscript/engine/ecs/EntityRegistry';
+import { ComponentStore } from '@holoscript/engine/ecs/ComponentStore';
+import { SystemScheduler } from '@holoscript/engine/ecs/SystemScheduler';
 
 describe('Cycle 124: Entity Component System', () => {
   // -------------------------------------------------------------------------

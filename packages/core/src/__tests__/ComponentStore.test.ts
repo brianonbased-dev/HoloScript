@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ComponentStore } from '../ecs/ComponentStore';
+import { ComponentStore } from '@holoscript/engine/ecs/ComponentStore';
 
 // =============================================================================
 // C251 — Component Store

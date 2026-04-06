@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HoloScriptPlusRuntimeImpl } from '../runtime/HoloScriptPlusRuntime'; // Assuming export availability
+import { HoloScriptPlusRuntimeImpl } from '@holoscript/engine/runtime/HoloScriptPlusRuntime'; // Assuming export availability
 // Note: HoloScriptPlusRuntimeImpl is not exported in the file. I might need to export it or use a factory.
 // Checking file... It's `class HoloScriptPlusRuntimeImpl implements HSPlusRuntime`.
 // I need it to be exported.

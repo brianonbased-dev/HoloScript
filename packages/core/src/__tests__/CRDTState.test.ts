@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createState } from '../state/ReactiveState';
-import { eventBus } from '../runtime/EventBus';
+import { eventBus } from '@holoscript/engine/runtime/EventBus';
 
 describe('CRDT State Synchronization', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HoloScriptPlusRuntimeImpl } from '../runtime/HoloScriptPlusRuntime';
+import { HoloScriptPlusRuntimeImpl } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
 import { createVirtualKeyboard } from '../ui/VirtualKeyboard';
 import { createTextInput } from '../ui/UIComponents';
 

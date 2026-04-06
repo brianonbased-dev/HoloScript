@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Inspector } from '../Inspector';
-import { World } from '../../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from '../SelectionManager';
 
 // =============================================================================

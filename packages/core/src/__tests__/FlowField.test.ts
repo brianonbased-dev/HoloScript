@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flowFieldHandler } from '../traits/FlowFieldTrait';
-import { registerNavigationEngine, type NavigationEngine } from '../runtime/NavigationEngine';
+import { registerNavigationEngine, type NavigationEngine } from '@holoscript/engine/runtime/NavigationEngine';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 describe('FlowFieldTrait - Phase 18 (NPC Pathfinding)', () => {

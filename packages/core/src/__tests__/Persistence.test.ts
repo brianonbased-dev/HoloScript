@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { EditorUI } from '../editor/EditorUI';
 
 // Mock localStorage

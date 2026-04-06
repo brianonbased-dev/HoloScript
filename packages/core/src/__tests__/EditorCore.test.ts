@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from '../editor/SelectionManager';
 import { GizmoSystem } from '../editor/GizmoSystem';
 import { effect } from '../state/ReactiveState';

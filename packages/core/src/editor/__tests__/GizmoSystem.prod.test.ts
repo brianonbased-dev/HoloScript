@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GizmoSystem } from '../../editor/GizmoSystem';
-import { World } from '../../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from '../../editor/SelectionManager';
 
 function makeSetup() {

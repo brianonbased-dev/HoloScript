@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EntityRegistry } from '../ecs/EntityRegistry';
+import { EntityRegistry } from '@holoscript/engine/ecs/EntityRegistry';
 
 // =============================================================================
 // C292 — Entity Registry

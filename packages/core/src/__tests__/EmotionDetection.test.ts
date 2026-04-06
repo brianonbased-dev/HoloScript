@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { userMonitorHandler } from '../traits/UserMonitorTrait';
-import { registerEmotionDetector, type EmotionDetector } from '../runtime/EmotionDetector';
+import { registerEmotionDetector, type EmotionDetector } from '@holoscript/engine/runtime/EmotionDetector';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 describe('UserMonitorTrait - Phase 21 (Frustration Detection)', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MovementPredictor } from '../runtime/MovementPredictor';
+import { MovementPredictor } from '@holoscript/engine/runtime/MovementPredictor';
 import { Vector3 } from '../types/HoloScriptPlus';
 
 describe('MovementPredictor', () => {

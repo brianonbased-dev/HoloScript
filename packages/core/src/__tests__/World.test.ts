@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 
 // =============================================================================
 // C298 — World (ECS Core)

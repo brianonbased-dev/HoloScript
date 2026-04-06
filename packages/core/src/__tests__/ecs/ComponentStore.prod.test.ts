@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ComponentStore } from '../../ecs/ComponentStore';
+import { ComponentStore } from '@holoscript/engine/ecs/ComponentStore';
 
 function makeCS() {
   return new ComponentStore();

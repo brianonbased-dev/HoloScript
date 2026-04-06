@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SystemScheduler } from '../ecs/SystemScheduler';
+import { SystemScheduler } from '@holoscript/engine/ecs/SystemScheduler';
 
 // =============================================================================
 // C247 — System Scheduler

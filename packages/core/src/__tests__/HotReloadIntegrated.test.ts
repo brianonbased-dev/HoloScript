@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
-import { createRuntime, NodeInstance } from '../runtime/HoloScriptPlusRuntime';
+import { createRuntime, NodeInstance } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
 
 describe('HotReloadIntegrated', () => {
   let parser: HoloScriptPlusParser;
