@@ -2,7 +2,7 @@
  * Integration Test: Agent Protocol Message Flow
  *
  * Tests the full cross-package data flow through the agent ecosystem:
- *   agent-sdk (MeshDiscovery, SignalService, GossipProtocol, AgentCard)
+ *   framework/mesh (MeshDiscovery, SignalService, GossipProtocol, AgentCard)
  *     -> agent-protocol (BaseAgent, BaseService, ProtocolPhase, GoalSynthesizer)
  *     -> uaal (UAALVirtualMachine, UAALCompiler, UAALOpCode)
  *     -> vm-bridge (SpatialCognitiveAgent, captureSceneSnapshot, applyActions)
@@ -13,20 +13,20 @@
  * to spatial scene mutation.
  *
  * Packages exercised:
- *   agent-sdk, agent-protocol, uaal, vm-bridge, holo-vm
+ *   framework, agent-protocol, uaal, vm-bridge, holo-vm
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-// agent-sdk
+// framework/mesh (formerly agent-sdk)
 import {
   MeshDiscovery,
   SignalService,
   GossipProtocol,
   createAgentCard,
   validateAgentCard,
-} from '@holoscript/agent-sdk';
-import type { PeerMetadata, GossipPacket } from '@holoscript/agent-sdk';
+} from '@holoscript/framework';
+import type { PeerMetadata, GossipPacket } from '@holoscript/framework';
 
 // agent-protocol
 import {

@@ -1,6 +1,6 @@
 import { AssetRegistry } from '../assets/AssetRegistry';
 import type { AssetType } from '../assets/AssetMetadata';
-import { World } from '../ecs/World';
+import { World } from '@holoscript/engine/ecs/World';
 
 /**
  * AssetManager

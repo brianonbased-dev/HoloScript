@@ -1,5 +1,5 @@
 import { trigger, track } from '../state/ReactiveState';
-import { Entity } from '../ecs/World';
+import { Entity } from '@holoscript/engine/ecs/World';
 
 /**
  * SelectionManager

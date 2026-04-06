@@ -1,8 +1,8 @@
-import { World } from '../ecs/World';
-import { SceneSerializer } from '../scene/SceneSerializer';
-import { SceneDeserializer } from '../scene/SceneDeserializer';
+import { World } from '@holoscript/engine/ecs/World';
+import { SceneSerializer } from '@holoscript/engine/scene/SceneSerializer';
+import { SceneDeserializer } from '@holoscript/engine/scene/SceneDeserializer';
 import { UIBuilder } from './UIBuilder';
-import { SerializedScene } from '../scene/SceneSerializer';
+import { SerializedScene } from '@holoscript/engine/scene/SceneSerializer';
 
 /**
  * EditorPersistence

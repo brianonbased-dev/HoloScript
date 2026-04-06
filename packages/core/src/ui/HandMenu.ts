@@ -2,9 +2,9 @@ import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode } from '../types/HoloSc
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
 // @ts-expect-error During migration
-import { TransitionSystem } from '../animation/TransitionSystem';
+import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
 // @ts-expect-error During migration
-import { AnimationEngine } from '../animation/AnimationEngine';
+import { AnimationEngine } from '@holoscript/engine/animation/AnimationEngine';
 
 export class HandMenuSystem {
   private menuNodeId: string | null = null;

@@ -1,4 +1,4 @@
-import { World, Entity, ComponentType } from '../ecs/World';
+import { World, Entity, ComponentType } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from './SelectionManager';
 import { effect, computed } from '../state/ReactiveState';
 

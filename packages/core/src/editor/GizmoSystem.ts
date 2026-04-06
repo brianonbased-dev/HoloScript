@@ -1,4 +1,4 @@
-import { World, Entity } from '../ecs/World';
+import { World, Entity } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from './SelectionManager';
 import { effect } from '../state/ReactiveState';
 import { Vector3 } from '../types/HoloScriptPlus';

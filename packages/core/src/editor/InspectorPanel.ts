@@ -1,4 +1,4 @@
-import { World, Entity } from '../ecs/World';
+import { World, Entity } from '@holoscript/engine/ecs/World';
 import { Inspector } from './Inspector';
 import { UIBuilder } from './UIBuilder';
 import { createPanel, createButton, createTextInput, createSlider } from '../ui/UIComponents';

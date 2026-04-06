@@ -1,4 +1,4 @@
-import { World, Entity } from '../ecs/World';
+import { World, Entity } from '@holoscript/engine/ecs/World';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 /** Convert Euler angles (radians) to quaternion { x, y, z, w }. */

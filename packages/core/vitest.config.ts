@@ -7,7 +7,7 @@ export default defineConfig({
       // Allow sibling packages that import @holoscript/core to resolve it locally
       '@holoscript/core': resolve(__dirname, 'src/index.ts'),
       // Cross-package aliases for integration tests
-      '@holoscript/agent-sdk': resolve(__dirname, '../agent-sdk/src/index.ts'),
+      // agent-sdk shim removed — imports now resolve to @holoscript/framework directly
       '@holoscript/agent-protocol': resolve(__dirname, '../agent-protocol/src/index.ts'),
       '@holoscript/uaal': resolve(__dirname, '../uaal/src/index.ts'),
       '@holoscript/holo-vm': resolve(__dirname, '../holo-vm/src/index.ts'),

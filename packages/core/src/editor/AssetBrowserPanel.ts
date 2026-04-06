@@ -1,4 +1,4 @@
-import { World, Entity } from '../ecs/World';
+import { World, Entity } from '@holoscript/engine/ecs/World';
 import { AssetManager } from './AssetManager';
 import { UIBuilder } from './UIBuilder';
 import { AssetMetadata, AssetType } from '../assets/AssetMetadata';

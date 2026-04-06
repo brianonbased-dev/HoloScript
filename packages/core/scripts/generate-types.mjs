@@ -2791,6 +2791,62 @@ export function resolvePlatforms(criteria: any): any;
 
 export interface HoloCamera { [key: string]: any; }
 export type HoloValue = any;
+
+export declare class ComplexityAnalyzer { [key: string]: any; }
+export declare function generateProvenance(code: string, ast: any, options: any): any;
+export declare function calculateRevenueDistribution(priceWei: string|bigint, author: string, importChain: any[], options?: any): any;
+export declare function formatRevenueDistribution(dist: any): any;
+export declare function ethToWei(eth: string): string;
+export declare const PROTOCOL_CONSTANTS: any;
+export class URDFCompiler { [key: string]: any; }
+export class SDFCompiler { [key: string]: any; }
+export class OpenXRCompiler { [key: string]: any; }
+export class AndroidCompiler { [key: string]: any; }
+export class AndroidXRCompiler { [key: string]: any; }
+export class IOSCompiler { [key: string]: any; }
+export class ARCompiler { [key: string]: any; }
+export class BabylonCompiler { [key: string]: any; }
+export class WebGPUCompiler { [key: string]: any; }
+export class WASMCompiler { [key: string]: any; }
+export class PlayCanvasCompiler { [key: string]: any; }
+export class DTDLCompiler { [key: string]: any; }
+export class VRRCompiler { [key: string]: any; }
+export class MultiLayerCompiler { [key: string]: any; }
+
+export declare const VR_TRAITS: any;
+export declare const BUILTIN_CONSTRAINTS: any;
+export class CircuitBreakerRegistry { [key: string]: any; }
+export class CircuitState { [key: string]: any; }
+export class ExportManager { [key: string]: any; }
+export declare function getExportManager(): any;
+export class ExportTarget { [key: string]: any; }
+export class ExportOptions { [key: string]: any; }
+export declare function selectModality(): any;
+export declare function selectModalityForAll(): any;
+export declare function bestCategoryForTraits(): any;
+export declare function compileHealthcareBlock(): any;
+export declare function compileRoboticsBlock(): any;
+export declare function compileIoTBlock(): any;
+export declare function compileEducationBlock(): any;
+export declare function compileMusicBlock(): any;
+export class TraceWaterfallRenderer { [key: string]: any; }
+export class TraceSpan { [key: string]: any; }
+export declare function getTelemetryCollector(): any;
+export declare function getPrometheusMetrics(prefix?: string): any;
+export class PrometheusMetricsRegistry { [key: string]: any; }
+export declare function getDefaultRegistry(): any;
+export class OTLPExporter { [key: string]: any; }
+export interface OTLPExporterConfig { [key: string]: any; }
+export declare const telemetry: any;
+export declare function getPluginLifecycleManager(): any;
+export interface InstallPluginOptions { [key: string]: any; }
+export type SandboxPermission = string;
+export type PluginLifecycleState = string;
+export class HoloDomainBlock { [key: string]: any; }
+export type HoloDomainType = string;
+export class TraitConstraint { [key: string]: any; }
+export interface ISignalingBridge { [key: string]: any; }
+export interface NeuralSignalPayload { [key: string]: any; }
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

@@ -526,11 +526,10 @@ export async function handleSparsityCheck(args: Record<string, unknown>): Promis
 }
 
 /**
- * Handle holo_agent_create: create an agent via the agent-sdk.
+ * Handle holo_agent_create: create an agent card inline.
  *
- * Dynamically imports from @holoscript/agent-sdk to avoid hard dependency
- * at the core package level. Falls back to a minimal inline implementation
- * if the agent-sdk is not installed.
+ * Agent card creation logic lives here directly (the @holoscript/agent-sdk
+ * shim has been removed; canonical mesh types are in @holoscript/framework).
  */
 export async function handleAgentCreate(args: Record<string, unknown>): Promise<MCPToolResult> {
   try {
