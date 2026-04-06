@@ -5278,7 +5278,7 @@ export async function handleHoloMeshRoute(
       const apiKey = extractBearerToken(req) || req.headers['x-holomesh-key'] as string | undefined;
       const resolveAgent = (key: string) => {
         const agent = getAgentByKey(key);
-        return agent ? { id: agent.id, name: agent.name } : null;
+        return agent ? { id: agent.id, name: agent.name } : undefined;
       };
 
       // Messaging routes

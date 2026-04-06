@@ -165,11 +165,7 @@ async function handlePublish(args: Record<string, unknown>) {
   const mintAsNFT = (args.mintAsNFT as boolean) || false;
 
   // Dynamic imports to avoid circular deps
-  const { generateProvenance } = await import('@holoscript/core/deploy/provenance');
-  const { parse } = await import('@holoscript/core/parser/HoloScriptPlusParser');
-  const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
-    await import('@holoscript/core/deploy/revenue-splitter');
-  const { PROTOCOL_CONSTANTS } = await import('@holoscript/core/deploy/protocol-types');
+  const { generateProvenance, calculateRevenueDistribution, formatRevenueDistribution, ethToWei, PROTOCOL_CONSTANTS, parse } = await import('@holoscript/core');
 
   // Parse and generate provenance
   const ast = parse(code);
@@ -297,7 +293,7 @@ async function handleCollect(args: Record<string, unknown>) {
 
 async function handleRevenue(args: Record<string, unknown>) {
   const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
-    await import('@holoscript/core/deploy/revenue-splitter');
+    await import('@holoscript/core');
 
   const price = args.price as string;
   const author = args.author as string;
@@ -323,7 +319,7 @@ async function handleRevenue(args: Record<string, unknown>) {
   return {
     status: 'success',
     totalPrice: price,
-    flows: dist.flows.map((f) => ({
+    flows: dist.flows.map((f: any) => ({
       recipient: f.recipient,
       amount: f.amount.toString(),
       reason: f.reason,

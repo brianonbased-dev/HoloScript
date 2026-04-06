@@ -13,7 +13,7 @@ import {
   CreatorRevenueAggregator,
   UnifiedBudgetOptimizer,
   DEFAULT_COST_FLOOR,
-} from '@holoscript/core';
+} from '@holoscript/framework/economy';
 import type {
   BudgetState,
   AgentUsageSummary,
@@ -23,8 +23,8 @@ import type {
   UnifiedOptimizerConfig,
   TraitAllocation,
   UnifiedBudgetState,
-} from '@holoscript/core';
-import type { ResourceUsageNode } from '@holoscript/core';
+} from '@holoscript/framework/economy';
+import type { ResourceUsageNode } from '@holoscript/framework/economy';
 
 // =============================================================================
 // SINGLETONS
@@ -383,7 +383,7 @@ function handleGetCreatorEarnings(args: Record<string, unknown>): {
       eventCount: earnings.eventCount,
       byPlugin,
     },
-    payouts: payouts.map((p) => ({
+    payouts: payouts.map((p: any) => ({
       id: p.id,
       amount: p.amount,
       status: p.status,
@@ -431,9 +431,9 @@ function handleOptimizeSceneBudget(args: Record<string, unknown>): {
   const optimizer = new UnifiedBudgetOptimizer(config);
   const allocations = optimizer.allocate(nodes, maxLOD);
 
-  const included = allocations.filter((a) => a.included);
-  const excluded = allocations.filter((a) => !a.included);
-  const degraded = included.filter((a) => a.lodLevel > 0);
+  const included = allocations.filter((a: any) => a.included);
+  const excluded = allocations.filter((a: any) => !a.included);
+  const degraded = included.filter((a: any) => a.lodLevel > 0);
 
   return {
     platform,

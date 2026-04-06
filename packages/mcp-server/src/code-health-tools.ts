@@ -11,7 +11,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { ComplexityAnalyzer } from '../../core/src/analysis/ComplexityMetrics';
+import { ComplexityAnalyzer } from '@holoscript/core';
 
 /**
  * Tool definition for holoscript_code_health

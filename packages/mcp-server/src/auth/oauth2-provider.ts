@@ -143,6 +143,7 @@ export interface OAuth2TokenResponse {
   expires_in: number;
   refresh_token?: string;
   scope: string;
+  [key: string]: unknown;
 }
 
 // ── OAuth 2.1 Provider ───────────────────────────────────────────────────────

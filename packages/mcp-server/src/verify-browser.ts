@@ -22,15 +22,12 @@ async function run() {
     height: 720,
   });
 
-  if (launchResult.isError) {
-    console.error('Launch failed raw:', launchResult.content[0].text);
-    const errorData = JSON.parse(launchResult.content[0].text);
-    console.error('Error details:', errorData.error);
+  if (!launchResult.success) {
+    console.error('Launch failed raw:', launchResult.message);
     process.exit(1);
   }
 
-  const launchData = JSON.parse(launchResult.content[0].text);
-  const sessionId = launchData.sessionId;
+  const sessionId = launchResult.sessionId;
   console.log('Launch successful. Session:', sessionId);
 
   // 2. Execute
@@ -44,10 +41,9 @@ async function run() {
     captureConsole: true,
   });
 
-  const execData = JSON.parse(execResult.content[0].text);
-  console.log('Execute result:', execData);
+  console.log('Execute result:', execResult);
 
-  if (!execData.result) {
+  if (!execResult.success) {
     console.error('Execution failed or returned empty');
   }
 
@@ -57,10 +53,12 @@ async function run() {
   const screenResult = await browserTools.browser_screenshot.handler({
     sessionId,
     outputPath: screenPath,
+    type: 'png',
+    quality: 100,
+    fullPage: false,
   });
 
-  const screenData = JSON.parse(screenResult.content[0].text);
-  console.log('Screenshot saved to:', screenData.outputPath);
+  console.log('Screenshot saved to:', screenResult.outputPath);
 
   if (fs.existsSync(screenPath)) {
     console.log('Screenshot file verified.');

@@ -25,7 +25,7 @@ import {
   type WorkflowStep,
   type WorkflowInput,
   type CapabilityQuery,
-} from '@holoscript/core';
+} from '@holoscript/framework/agents';
 
 // =============================================================================
 // TOOL DEFINITIONS
