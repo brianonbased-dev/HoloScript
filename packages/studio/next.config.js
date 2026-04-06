@@ -47,11 +47,11 @@ const nextConfig = {
     'isomorphic-git',
     '@jsonjoy.com/fs-node',
     '@jsonjoy.com/fs-node-builtins',
+    '@holoscript/engine',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',
     'three',
-    '@holoscript/core',
     '@holoscript/std',
     '@holoscript/r3f-renderer',
   ],

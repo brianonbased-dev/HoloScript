@@ -11,8 +11,7 @@
  */
 
 import type { StateDeclaration, ReactiveState as IReactiveState } from '../types/HoloScriptPlus';
-// @ts-expect-error During migration
-import { eventBus } from '@holoscript/engine/runtime/EventBus';
+import { getSharedEventBus } from '../events/EventBus';
 import { CRDTStateManager, type CRDTOperation } from './CRDTStateManager';
 import { UndoManager } from './UndoManager';
 
@@ -257,7 +256,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
 
   private setupSync(): void {
     // Listen for remote updates
-    eventBus.on(`state_sync:${this.syncId}`, (data: unknown) => {
+    getSharedEventBus().on(`state_sync:${this.syncId}`, (data: unknown) => {
       const syncData = data as { op: CRDTOperation };
       const op = syncData.op;
       if (op.clientId === this.clientId) return;
@@ -277,7 +276,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
 
   private broadcastOperation(op: CRDTOperation): void {
     if (this.syncId && !this.isApplyingSync) {
-      eventBus.emit(`state_sync:${this.syncId}`, {
+      getSharedEventBus().emit(`state_sync:${this.syncId}`, {
         source: 'local',
         op,
       } as unknown as import('../types').HoloScriptValue);

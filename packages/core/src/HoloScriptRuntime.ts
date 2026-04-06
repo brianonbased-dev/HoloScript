@@ -19,7 +19,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 // Engine modules (moved from core in A.011 extraction)
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
-import { eventBus } from '@holoscript/engine/runtime/EventBus';
+import { getSharedEventBus } from './events/EventBus';
 import { StateSynchronizer } from './network/StateSynchronizer';
 import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
@@ -2165,7 +2165,7 @@ export class HoloScriptRuntime {
     }
 
     // Global bus broadcast
-    await eventBus.emit(event, data as HoloScriptValue);
+    await getSharedEventBus().emit(event, data as HoloScriptValue);
 
     // Phase 13: State Machine transitions
     if (data && typeof data === 'object' && (data as Record<string, unknown>).id) {

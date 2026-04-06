@@ -140,6 +140,11 @@
       "types": "./dist/vm-bridge/index.d.ts",
       "import": "./dist/vm-bridge/index.js",
       "require": "./dist/vm-bridge/index.cjs"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "require": "./dist/*.cjs"
     }
   },
   "scripts": {
