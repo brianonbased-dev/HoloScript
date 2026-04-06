@@ -287,7 +287,7 @@ export function createHoloMeshDaemonActions(
         const results = await client.queryKnowledge(searchTerm, { limit: 3 });
 
         if (results.length > 0) {
-          await client.sendMessage(query.from || query.from_agent_id, {
+          await client.sendMessage((query.from || query.from_agent_id) as string, {
             type: 'response',
             payload: { results, query: searchTerm },
             timestamp: new Date().toISOString(),
@@ -296,7 +296,7 @@ export function createHoloMeshDaemonActions(
         }
 
         // Mark as processed
-        if (query.id) state.processedMessageIds.push(query.id);
+        if (query.id) state.processedMessageIds.push(query.id as string);
       } catch {
         /* skip failed responses */
       }
