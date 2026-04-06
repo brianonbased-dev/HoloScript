@@ -8,46 +8,62 @@ import {
   detectLLMProviderName,
 } from '../llmProvider';
 
+/** All env vars that influence provider detection/creation. */
+const PROVIDER_ENV_KEYS = [
+  'OPENROUTER_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'XAI_API_KEY',
+  'OPENAI_API_KEY',
+  'OLLAMA_URL',
+  'OLLAMA_BASE_URL',
+  'OPENROUTER_MODEL',
+  'ANTHROPIC_MODEL',
+  'XAI_MODEL',
+  'OPENAI_MODEL',
+  'OLLAMA_MODEL',
+  'BRITTNEY_MODEL',
+] as const;
+
+/** Remove all provider env vars so each test starts from a clean slate. */
+function clearProviderEnv(): void {
+  for (const key of PROVIDER_ENV_KEYS) {
+    delete process.env[key];
+  }
+}
+
 // ─── Provider Detection ──────────────────────────────────────────────────────
 
 describe('detectLLMProviderName', () => {
   const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    clearProviderEnv();
+  });
 
   afterEach(() => {
     process.env = { ...originalEnv };
   });
 
   it('returns anthropic when ANTHROPIC_API_KEY is set', () => {
-    delete process.env.OPENROUTER_API_KEY;
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     expect(detectLLMProviderName()).toBe('anthropic');
   });
 
   it('returns xai when XAI_API_KEY is set (no anthropic)', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
     process.env.XAI_API_KEY = 'xai-test';
     expect(detectLLMProviderName()).toBe('xai');
   });
 
   it('returns openai when OPENAI_API_KEY is set (no anthropic/xai)', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.XAI_API_KEY;
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('openai');
   });
 
   it('returns ollama as fallback', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.XAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
     expect(detectLLMProviderName()).toBe('ollama');
   });
 
   it('prefers anthropic over xai and openai', () => {
-    delete process.env.OPENROUTER_API_KEY;
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.XAI_API_KEY = 'xai-test';
     process.env.OPENAI_API_KEY = 'sk-test';
@@ -55,8 +71,6 @@ describe('detectLLMProviderName', () => {
   });
 
   it('prefers xai over openai', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
     process.env.XAI_API_KEY = 'xai-test';
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(detectLLMProviderName()).toBe('xai');
@@ -68,51 +82,39 @@ describe('detectLLMProviderName', () => {
 describe('createLLMProvider', () => {
   const originalEnv = { ...process.env };
 
+  beforeEach(() => {
+    clearProviderEnv();
+  });
+
   afterEach(() => {
     process.env = { ...originalEnv };
   });
 
   it('creates AnthropicLLMProvider when ANTHROPIC_API_KEY is set', () => {
-    delete process.env.OPENROUTER_API_KEY;
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     const provider = createLLMProvider();
     expect(provider).toBeInstanceOf(AnthropicLLMProvider);
   });
 
   it('creates XAILLMProvider when XAI_API_KEY is set', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
     process.env.XAI_API_KEY = 'xai-test';
     const provider = createLLMProvider();
     expect(provider).toBeInstanceOf(XAILLMProvider);
   });
 
   it('creates OpenAILLMProvider when OPENAI_API_KEY is set', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.XAI_API_KEY;
     process.env.OPENAI_API_KEY = 'sk-test';
     const provider = createLLMProvider();
     expect(provider).toBeInstanceOf(OpenAILLMProvider);
   });
 
   it('creates OllamaLLMProvider as fallback', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.XAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
     process.env.OLLAMA_URL = 'http://localhost:11434';
     const provider = createLLMProvider();
     expect(provider).toBeInstanceOf(OllamaLLMProvider);
   });
 
   it('throws when no provider env vars are set', () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.XAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.OLLAMA_URL;
-    delete process.env.OLLAMA_BASE_URL;
     expect(() => createLLMProvider()).toThrow('No AI provider configured');
   });
 });

@@ -1,160 +1,115 @@
 # HoloScript Architecture
 
-> 66 packages in a pnpm monorepo. Build order: Layer 1 first, then 2, then 3.
+> Package dependency graph and layer rules for the monorepo.
 
 ## Dependency Graph
 
-```
-Layer 3: Applications
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  studio ─► core, r3f-renderer, absorb-service, ui, std,        │
-  │            connector-*, studio-plugin-sdk                       │
-  │  mcp-server ─► core, absorb-service                            │
-  │  cli ─► core, core-types, llm-provider, sdk                    │
-  │  lsp ─► core, linter                                           │
-  │  marketplace-web ─► (standalone Next.js)                       │
-  │  playground ─► (standalone)                                    │
-  └───────────────────────────┬────────────────────────────────────┘
-                              │ depends on
-Layer 2: Domain Packages      ▼
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  engine ─► core, uaal                                          │
-  │  framework ─► core                                             │
-  │  crdt ─► (no @holoscript deps)                                 │
-  │  crdt-spatial ─► (no @holoscript deps)                         │
-  │  marketplace-api ─► core, auth, registry                       │
-  │  r3f-renderer ─► core                                          │
-  │  absorb-service ─► core                                        │
-  │  linter ─► (standalone)                                        │
-  │  formatter ─► (standalone)                                     │
-  │  agent-protocol ─► framework                                   │
-  │  agent-sdk ─► framework (deprecated shim)                      │
-  │  sdk (@holoscript/sdk) ─► core (deprecated shim)               │
-  └───────────────────────────┬────────────────────────────────────┘
-                              │ depends on
-Layer 1: Language Substrate    ▼
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  core ─► core-types, engine, agent-protocol                    │
-  │  core-types ─► (zero deps)                                     │
-  │  uaal ─► (zero deps)                                           │
-  └──────────────────────────────────────────────────────────────────┘
-```
+```mermaid
+graph TB
+  subgraph "L0 — Foundation"
+    core-types["@holoscript/core-types<br/>Pure type definitions, zero runtime"]
+    core["@holoscript/core<br/>Parser, AST, compilers, traits, identity"]
+  end
 
-> **Note:** `core` has a circular peer-dep on `engine` because engine was
-> extracted from core (A.011). The re-exports in `core/src/index.ts` are
-> compatibility shims being removed over time.
+  subgraph "L1 — Extracted Engine & Framework"
+    engine["@holoscript/engine<br/>Rendering, physics, animation, ECS"]
+    framework["@holoscript/framework<br/>Agent orchestration, BT, economy, swarm"]
+    auth["@holoscript/auth<br/>Shared JWT auth for APIs"]
+    agent-protocol["@holoscript/agent-protocol<br/>uAA2++ lifecycle, BaseService, PWG"]
+  end
 
-## Package Inventory
+  subgraph "L2 — Language Tools"
+    linter["@holoscript/linter<br/>Static analysis for .holo/.hsplus"]
+    formatter["@holoscript/formatter<br/>Code formatting"]
+    lsp["@holoscript/lsp<br/>Language Server Protocol"]
+    wasm["@holoscript/wasm<br/>Rust WASM parser"]
+  end
 
-### Layer 1 — Language Substrate (no or minimal @holoscript deps)
+  subgraph "L3 — Runtime & Rendering"
+    runtime["@holoscript/runtime<br/>Browser runtime, R3F, physics, events"]
+    r3f["@holoscript/r3f-renderer<br/>Shared R3F components"]
+    crdt["@holoscript/crdt<br/>Authenticated CRDTs for agent state"]
+    snn["@holoscript/snn-webgpu<br/>GPU spiking neural networks"]
+  end
 
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `core` | @holoscript/core | Parser, AST, 24 compilers, 150+ traits, type system |
-| `core-types` | @holoscript/core-types | Lightweight type mirror for external consumers (zero runtime) |
-| `uaal` | @holoscript/uaal | Unity-as-a-Library bridge types |
-| `compiler-wasm` | @holoscript/wasm | Rust WASM parser for high-performance edge parsing |
+  subgraph "L4 — Platform Services"
+    absorb["@holoscript/absorb-service<br/>Codebase intelligence & self-improvement"]
+    marketplace["@holoscript/marketplace-api<br/>Trait publishing & discovery"]
+    collab["@holoscript/collab-server<br/>WebSocket relay for collaboration"]
+    sandbox["@holoscript/security-sandbox<br/>VM sandbox for code execution"]
+  end
 
-### Layer 2 — Domain Packages (depend on Layer 1)
+  subgraph "L5 — Developer Surface"
+    mcp["@holoscript/mcp-server<br/>MCP tools + JSON-RPC + REST"]
+    cli["@holoscript/cli<br/>CLI: compile, validate, dev-serve"]
+    studio["@holoscript/studio<br/>Next.js AI-powered 3D scene builder"]
+    create["create-holoscript-app<br/>Zero-config project scaffolding"]
+  end
 
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `engine` | @holoscript/engine | Rendering, physics, animation, audio, ECS, VR runtime |
-| `framework` | @holoscript/framework | Agents, teams, knowledge, economy, self-improvement |
-| `crdt` | @holoscript/crdt | CRDT primitives, network, multiplayer, consensus |
-| `crdt-spatial` | @holoscript/crdt-spatial | Spatial CRDT extensions |
-| `marketplace-api` | @holoscript/marketplace-api | Marketplace, economy, web3, payment endpoints |
-| `r3f-renderer` | @holoscript/r3f-renderer | React Three Fiber rendering components |
-| `absorb-service` | @holoscript/absorb-service | Codebase intelligence, GraphRAG, knowledge extraction |
-| `agent-protocol` | @holoscript/agent-protocol | Protocol type contracts for agent communication |
-| `agent-sdk` | @holoscript/agent-sdk | Deprecated shim, use @holoscript/framework |
-| `sdk` | @holoscript/sdk | Deprecated shim, use @holoscript/core |
-| `linter` | @holoscript/linter | HoloScript linting rules |
-| `formatter` | @holoscript/formatter | HoloScript code formatter |
-| `auth` | @holoscript/auth | Authentication primitives |
-| `registry` | @holoscript/registry | Package registry client |
-| `llm-provider` | @holoscript/llm-provider | Provider-agnostic LLM adapter |
-| `std` | @holoscript/std | Standard library (I/O action handlers) |
-| `runtime` | @holoscript/runtime | Standalone runtime package |
-| `snn-webgpu` | @holoscript/snn-webgpu | GPU spiking neural networks |
-| `snn-poc` | @holoscript/snn-poc | SNN proof-of-concept |
-| `spatial-index` | @holoscript/spatial-index | Spatial indexing (R-tree, octree) |
-| `holo-vm` | @holoscript/holo-vm | HoloScript virtual machine |
-| `vm-bridge` | @holoscript/vm-bridge | VM ↔ host bridge |
-| `security-sandbox` | @holoscript/security-sandbox | Sandboxed execution environment |
-| `graphql-api` | @holoscript/graphql-api | GraphQL schema and resolvers |
-| `mvc-schema` | @holoscript/mvc-schema | MVC schema definitions |
-| `semantic-2d` | @holoscript/semantic-2d | 2D semantic layout engine |
-| `animation-presets` | @holoscript/animation-presets | Pre-built animation libraries |
-| `ai-validator` | @holoscript/ai-validator | AI output validation |
+  %% L0 internal
+  core-types --> core
 
-### Layer 2.5 — Connectors (adapter pattern, minimal deps)
+  %% L0 → L1
+  core --> engine
+  core --> framework
+  framework --> agent-protocol
 
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `connector-core` | @holoscript/connector-core | Base connector interface |
-| `connector-github` | @holoscript/connector-github | GitHub integration |
-| `connector-railway` | @holoscript/connector-railway | Railway deployment |
-| `connector-upstash` | @holoscript/connector-upstash | Upstash Redis/Kafka |
-| `connector-vscode` | @holoscript/connector-vscode | VS Code extension bridge |
-| `connector-appstore` | @holoscript/connector-appstore | App store connector |
-| `adapter-postgres` | @holoscript/adapter-postgres | PostgreSQL adapter |
+  %% L0 → L2
+  core --> linter
+  core --> formatter
+  core --> lsp
 
-### Layer 2.5 — Plugins (domain extensions)
+  %% L0/L1 → L3
+  core --> runtime
+  core --> r3f
 
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `plugins/robotics-plugin` | @holoscript/robotics-plugin | URDF/ROS2 robotics |
-| `plugins/medical-plugin` | @holoscript/medical-plugin | DICOM/HL7 medical imaging |
-| `plugins/scientific-plugin` | @holoscript/narupa-plugin | Molecular dynamics (Narupa) |
-| `plugins/alphafold-plugin` | @holoscript/alphafold-plugin | Protein structure prediction |
-| `plugins/domain-plugin-template` | @holoscript/domain-plugin-template | Starter template for new plugins |
+  %% L0/L1 → L4
+  core --> absorb
+  core --> marketplace
+  auth --> marketplace
 
-### Layer 3 — Applications (depend on Layer 1 + 2)
-
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `studio` | @holoscript/studio | Universal Point of Entry (Next.js, 34 pages, 74 API routes) |
-| `mcp-server` | @holoscript/mcp-server | MCP tools + HoloMesh API + REST endpoints |
-| `cli` | @holoscript/cli | CLI tool (`holoscript` command) |
-| `lsp` | @holoscript/lsp | Language Server Protocol implementation |
-| `marketplace-web` | @holoscript/marketplace-web | Marketplace web frontend |
-| `playground` | @holoscript/playground | Interactive playground |
-| `academy` | @holoscript/academy | Tutorial and learning platform |
-| `holoscript-cdn` | @holoscript/cdn | CDN distribution bundle |
-| `create-holoscript-app` | create-holoscript-app | Project scaffolding CLI |
-| `vscode-extension` | — | VS Code extension |
-| `tree-sitter-holoscript` | — | Tree-sitter grammar |
-
-### Layer 3 — UI & Rendering
-
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `ui` | @holoscript/ui | Shared React UI components |
-| `visual` | @holoscript/visual | Visual programming interface |
-| `visualizer-client` | @holoscript/visualizer-client | Remote visualizer client |
-| `preview-component` | @holoscript/preview-component | Embeddable preview widget |
-| `studio-bridge` | @holoscript/studio-bridge | Studio ↔ renderer communication |
-| `studio-plugin-sdk` | @holoscript/studio-plugin-sdk | SDK for Studio plugins |
-| `react-agent-sdk` | @holoscript/react-agent-sdk | React hooks for agent integration |
-| `video-tutorials` | @holoscript/video-tutorials | Remotion-based tutorial videos |
-
-### Supporting
-
-| Package | npm name | Description |
-|---------|----------|-------------|
-| `benchmark` | @holoscript/benchmark | Performance benchmarks |
-| `comparative-benchmarks` | @holoscript/comparative-benchmarks | Cross-platform comparison benchmarks |
-| `partner-sdk` | @holoscript/partner-sdk | Partner integration SDK |
-| `collab-server` | @holoscript/collab-server | Collaboration server (CRDT relay) |
-| `fs` | @holoscript/fs | File system abstraction |
-
-## Build Order
-
-```bash
-pnpm build          # Builds all packages in topological order
-pnpm test           # Runs vitest across the monorepo
-pnpm bench          # Performance benchmarks
+  %% L0-L4 → L5
+  core --> mcp
+  framework --> mcp
+  absorb --> mcp
+  core --> cli
+  core --> studio
+  absorb --> studio
+  r3f --> studio
 ```
 
-Core must build first. Engine depends on core. Everything else depends on one or both.
+## Package Index
+
+| Layer | Package | Version | Description |
+|-------|---------|---------|-------------|
+| L0 | `@holoscript/core-types` | 5.4.0 | Pure type definitions, zero runtime deps |
+| L0 | `@holoscript/core` | 6.0.2 | Parser, AST, 24 compilers, trait system |
+| L1 | `@holoscript/engine` | 6.0.0 | Rendering, physics, animation, ECS (extracted from core) |
+| L1 | `@holoscript/framework` | 6.0.0 | Agent orchestration, BT, economy (extracted from core) |
+| L1 | `@holoscript/auth` | 6.0.0 | JWT auth library (extracted from core) |
+| L1 | `@holoscript/agent-protocol` | 6.0.0 | uAA2++ agent lifecycle (extracted from core) |
+| L2 | `@holoscript/linter` | 3.1.0 | Static analysis for .holo/.hsplus |
+| L2 | `@holoscript/formatter` | 3.1.0 | Code formatting |
+| L2 | `@holoscript/lsp` | 3.7.0 | Language Server Protocol |
+| L2 | `@holoscript/wasm` | 3.7.0 | Rust WASM parser |
+| L3 | `@holoscript/runtime` | 6.0.2 | Browser runtime with R3F integration |
+| L3 | `@holoscript/r3f-renderer` | 0.1.0 | Shared React Three Fiber components |
+| L3 | `@holoscript/crdt` | 1.0.0 | Authenticated CRDTs for distributed state |
+| L3 | `@holoscript/snn-webgpu` | 6.0.0 | GPU spiking neural networks |
+| L4 | `@holoscript/absorb-service` | 6.0.0 | Codebase intelligence pipeline |
+| L4 | `@holoscript/marketplace-api` | 1.2.1 | Trait marketplace |
+| L4 | `@holoscript/collab-server` | 1.0.0 | WebSocket collaboration relay |
+| L4 | `@holoscript/security-sandbox` | 1.2.0 | VM sandbox for safe execution |
+| L5 | `@holoscript/mcp-server` | 6.0.2 | MCP tools + REST API |
+| L5 | `@holoscript/cli` | 6.0.2 | CLI: compile, validate, dev-serve |
+| L5 | `@holoscript/studio` | 6.0.2 | Next.js scene builder (private) |
+| L5 | `create-holoscript-app` | 1.1.0 | Zero-config scaffolding |
+
+## Dependency Rules
+
+1. **No cycles.** Layers only depend downward (L5 -> L4 -> ... -> L0).
+2. **`core-types` is the bottom.** Pure types, zero runtime. Everything can depend on it.
+3. **`core` is the gravity well.** Most packages depend on it. Keep it lean.
+4. **Extracted packages (L1) match core's major version** (currently 6.x).
+5. **Domain vocabulary stays in plugins**, never in core (`packages/plugins/`).
+6. **`workspace:*`** for internal deps. Never pin internal versions.

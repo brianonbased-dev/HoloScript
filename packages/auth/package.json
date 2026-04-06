@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/auth",
-  "version": "0.1.0",
+  "version": "6.0.0",
   "description": "Shared JWT authentication library for HoloScript APIs (GraphQL + Marketplace)",
   "type": "module",
   "main": "./dist/index.cjs",
