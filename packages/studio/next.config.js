@@ -92,6 +92,18 @@ const nextConfig = {
       '@xenova/transformers': false,
       // Externalize blockchain/wallet packages that don't work in browser
       '@coinbase/agentkit': false,
+      // Stub engine + framework deep imports (pulled in via @holoscript/core barrel)
+      ...Object.fromEntries(
+        ['@holoscript/engine', '@holoscript/framework'].flatMap(pkg => {
+          // Generate false aliases for the base package and common subpaths
+          const subs = ['', '/ai', '/networking', '/multiplayer', '/runtime', '/physics',
+            '/animation', '/rendering', '/scene', '/ecs', '/dialogue', '/environment',
+            '/camera', '/input', '/vr', '/orbital', '/hologram', '/navigation',
+            '/combat', '/character', '/gameplay', '/particles', '/terrain',
+            '/tilemap', '/procedural', '/world', '/vm', '/vm-bridge'];
+          return subs.map(s => [`${pkg}${s}`, false]);
+        })
+      ),
       '@holoscript/mcp-server': false,
       '@holoscript/mcp-server/compiler-tools': false,
       '@holoscript/mcp-server/networking-tools': false,
@@ -112,6 +124,14 @@ const nextConfig = {
       memfs: false,
       'isomorphic-git': false,
     };
+
+    // Catch-all: any @holoscript/engine or @holoscript/framework deep import not covered above
+    config.plugins.push(
+      new (require('webpack')).NormalModuleReplacementPlugin(
+        /^@holoscript\/(engine|framework)(\/.*)?$/,
+        require.resolve('./src/lib/empty-module.js')
+      )
+    );
 
     return config;
   },

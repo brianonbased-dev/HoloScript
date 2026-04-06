@@ -9,7 +9,10 @@ import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
 import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
-import { DevToolsInit } from '../components/DevToolsInit';
+const DevToolsInit = dynamic(
+  () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),
+  { ssr: false }
+);
 import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
 import { WebVitals } from '../components/WebVitals';
