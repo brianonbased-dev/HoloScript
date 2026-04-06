@@ -24,6 +24,8 @@ export interface TrainingExampleMetadata {
   version: string;
 }
 
+export type TrainingCategory = string;
+
 export interface TrainingExample {
   /** Human-readable instruction prompt */
   instruction: string;

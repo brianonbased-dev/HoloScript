@@ -384,7 +384,7 @@ async function handleParseHs(args: Record<string, unknown>) {
         ast: cleanAst,
         errors: result.errors || [],
         warnings: result.warnings || [],
-        ...(args.includeSourceMap ? { sourceMap: result.sourceMap } : {}),
+        ...(args.includeSourceMap ? { sourceMap: (result as any).sourceMap } : {}),
       };
     }
 
@@ -393,7 +393,7 @@ async function handleParseHs(args: Record<string, unknown>) {
       ast,
       errors: result.errors || [],
       warnings: result.warnings || [],
-      ...(args.includeSourceMap ? { sourceMap: result.sourceMap } : {}),
+      ...(args.includeSourceMap ? { sourceMap: (result as any).sourceMap } : {}),
     };
   } catch (error) {
     return {
@@ -1048,7 +1048,7 @@ function generateExplanation(parsed: unknown, detail: string): string {
       sections.push(`Composition name: **${ast.name}**`);
     }
   } else if (ast?.nodes || ast?.ast?.nodes) {
-    const nodes = ast.nodes || ast.ast.nodes;
+    const nodes = ast.nodes || ast.ast?.nodes;
     sections.push('This is a **.hsplus** (HoloScript Plus) file with VR traits.');
     sections.push(`Contains **${nodes?.length || 0}** top-level declarations.`);
   } else {
