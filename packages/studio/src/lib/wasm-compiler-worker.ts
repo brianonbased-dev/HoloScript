@@ -206,30 +206,41 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   // .core.wasm files relative to its own import.meta.url. No need to
   // pre-fetch the raw WASM binary for this path.
   try {
-    const jsUrl = wasmUrl.replace('.component.wasm', '.js').replace('.wasm', '.js');
-    const module = (await import(
-      /* webpackIgnore: true */ /* @vite-ignore */ jsUrl
-    )) as HoloScriptModule;
-    wasmModule = module;
-    loadedWorld = world;
+    const jsCandidates = wasmUrl.endsWith('.js')
+      ? [wasmUrl]
+      : [wasmUrl.replace('.component.wasm', '.js').replace('.wasm', '.js')];
 
-    // Get binary size from the companion .core.wasm (informational only)
-    try {
-      const coreUrl = jsUrl.replace('.js', '.core.wasm');
-      const sizeResp = await fetch(coreUrl, { method: 'HEAD' });
-      binarySize = Number(sizeResp.headers.get('content-length') || 0);
-    } catch {
-      binarySize = 0;
+    for (const jsUrl of jsCandidates) {
+      try {
+        const module = (await import(
+          /* webpackIgnore: true */ /* @vite-ignore */ jsUrl
+        )) as HoloScriptModule;
+        wasmModule = module;
+        loadedWorld = world;
+
+        // Get binary size from the companion .core.wasm (informational only)
+        try {
+          const coreUrl = jsUrl.replace('.js', '.core.wasm');
+          const sizeResp = await fetch(coreUrl, { method: 'HEAD' });
+          binarySize = Number(sizeResp.headers.get('content-length') || 0);
+        } catch {
+          binarySize = 0;
+        }
+
+        return {
+          backend: 'wasm-component' as const,
+          wasmLoaded: true,
+          binarySize,
+          loadTimeMs: 0, // Measured by caller
+          world,
+          version: safeCall(() => wasmModule!.compiler.version(), '0.8.0'),
+        };
+      } catch {
+        // keep trying next JS candidate
+      }
     }
 
-    return {
-      backend: 'wasm-component' as const,
-      wasmLoaded: true,
-      binarySize,
-      loadTimeMs: 0, // Measured by caller
-      world,
-      version: safeCall(() => wasmModule!.compiler.version(), '0.8.0'),
-    };
+    throw new Error(`No jco JS candidate loaded for ${wasmUrl}`);
   } catch (err) {
     jcoError = err;
     logger.warn('[WASM Worker] jco JS module not available, trying raw WebAssembly:', err);
@@ -238,28 +249,40 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   // Option 2: Try raw WebAssembly instantiation (non-component, legacy fallback)
   // This path works if the WASM was built via wasm-pack (compiler-wasm crate)
   try {
-    const response = await fetch(wasmUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch WASM: ${response.status} ${response.statusText} (${wasmUrl})`
-      );
+    const rawCandidates = wasmUrl.endsWith('.js')
+      ? [wasmUrl.replace('.js', '.wasm'), wasmUrl.replace('.js', '.component.wasm')]
+      : [wasmUrl, '/wasm/holoscript.wasm', '/wasm/holoscript.component.wasm'];
+
+    let rawLastError: unknown;
+
+    for (const rawUrl of rawCandidates) {
+      try {
+        const response = await fetch(rawUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText} (${rawUrl})`);
+        }
+        const wasmBytes = await response.arrayBuffer();
+        binarySize = wasmBytes.byteLength;
+
+        const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+        const exports = instance.exports as unknown as HoloScriptModule;
+        wasmModule = exports;
+        loadedWorld = world;
+
+        return {
+          backend: 'wasm-legacy' as const,
+          wasmLoaded: true,
+          binarySize,
+          loadTimeMs: 0,
+          world,
+          version: safeCall(() => wasmModule!.compiler.version(), 'legacy'),
+        };
+      } catch (candidateError) {
+        rawLastError = candidateError;
+      }
     }
-    const wasmBytes = await response.arrayBuffer();
-    binarySize = wasmBytes.byteLength;
 
-    const { instance } = await WebAssembly.instantiate(wasmBytes, {});
-    const exports = instance.exports as unknown as HoloScriptModule;
-    wasmModule = exports;
-    loadedWorld = world;
-
-    return {
-      backend: 'wasm-legacy' as const,
-      wasmLoaded: true,
-      binarySize,
-      loadTimeMs: 0,
-      world,
-      version: safeCall(() => wasmModule!.compiler.version(), 'legacy'),
-    };
+    throw rawLastError instanceof Error ? rawLastError : new Error(String(rawLastError));
   } catch (rawError) {
     throw new Error(
       `Failed to load WASM component:\n` +

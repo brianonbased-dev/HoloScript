@@ -219,7 +219,7 @@ export class CompilerBridge {
    * @param world - Which WIT world to instantiate (default: 'holoscript-runtime')
    */
   async init(
-    wasmUrl = '/wasm/holoscript.wasm', // Raw WASM module (fallback) or .js for jco-transpiled
+    wasmUrl = '/wasm/holoscript.js', // jco-transpiled JS wrapper (preferred) or raw/component .wasm
     world:
       | 'holoscript-runtime'
       | 'holoscript-parser'
@@ -268,8 +268,28 @@ export class CompilerBridge {
         }
       });
 
-      // Initialize WASM in worker
-      const result = await this._send<CompilerBridgeStatus>('init', { wasmUrl, world });
+      // Initialize WASM in worker. Try a short candidate list in order so Studio
+      // works across environments that publish either .js, .component.wasm, or .wasm.
+      const initCandidates = wasmUrl.endsWith('.js')
+        ? [wasmUrl, wasmUrl.replace(/\.js$/, '.component.wasm'), wasmUrl.replace(/\.js$/, '.wasm')]
+        : [wasmUrl, '/wasm/holoscript.js', '/wasm/holoscript.component.wasm', '/wasm/holoscript.wasm'];
+
+      let lastInitError: unknown;
+      let result: CompilerBridgeStatus | null = null;
+
+      for (const candidate of initCandidates) {
+        try {
+          result = await this._send<CompilerBridgeStatus>('init', { wasmUrl: candidate, world });
+          break;
+        } catch (err) {
+          lastInitError = err;
+          logger.warn(`[CompilerBridge] init candidate failed: ${candidate}`, err);
+        }
+      }
+
+      if (!result) {
+        throw lastInitError instanceof Error ? lastInitError : new Error(String(lastInitError));
+      }
 
       this.status = {
         ...result,
