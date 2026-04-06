@@ -223,9 +223,9 @@ describe('BaseService (extended)', () => {
 
   it('metrics recording', async () => {
     await svc.initialize();
-    svc.recordRequest(10);
-    svc.recordRequest(20);
-    svc.recordRequest(30);
+    (svc as any).recordRequest(10);
+    (svc as any).recordRequest(20);
+    (svc as any).recordRequest(30);
 
     const metrics = svc.getMetrics();
     expect(metrics.requestCount).toBe(3);
@@ -234,7 +234,7 @@ describe('BaseService (extended)', () => {
 
   it('error recording', async () => {
     await svc.initialize();
-    svc.recordError(new Error('Test error'));
+    (svc as any).recordError(new Error('Test error'));
 
     const metrics = svc.getMetrics();
     expect(metrics.errorCount).toBe(1);
@@ -243,7 +243,7 @@ describe('BaseService (extended)', () => {
 
   it('executeWithMetrics tracks performance', async () => {
     await svc.initialize();
-    const result = await svc.executeWithMetrics(async () => 42);
+    const result = await (svc as any).executeWithMetrics(async () => 42);
     expect(result).toBe(42);
     expect(svc.getMetrics().requestCount).toBe(1);
   });
@@ -251,7 +251,7 @@ describe('BaseService (extended)', () => {
   it('executeWithMetrics records errors', async () => {
     await svc.initialize();
     await expect(
-      svc.executeWithMetrics(async () => {
+      (svc as any).executeWithMetrics(async () => {
         throw new Error('boom');
       })
     ).rejects.toThrow('boom');

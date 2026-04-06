@@ -71,10 +71,15 @@ describe('FrameworkAbsorber', () => {
     expect(Array.isArray(graph.modules)).toBe(true);
   });
 
-  it('scanSelf returns graph from absorb health when reachable', async () => {
+  it('scanSelf returns graph from absorb MCP when reachable', async () => {
+    // Mock the MCP JSON-RPC response from absorb_run_absorb
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ files: 42, edges: 100, modules: ['core', 'self-improve'] }),
+      json: async () => ({
+        result: {
+          content: [{ type: 'text', text: JSON.stringify({ file_count: 42, edge_count: 100, modules: ['core', 'self-improve'] }) }],
+        },
+      }),
     });
 
     const absorber = new FrameworkAbsorber({ absorbApiKey: 'test-key' });
