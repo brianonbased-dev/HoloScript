@@ -8,14 +8,29 @@
 // Re-export THREE.js IK solver class
 export { IKSolver } from './sculpt/ikSolver';
 
-import {
-  vec3Normalize,
-  vec3Length,
-  vec3Distance,
-  vec3Sub,
-  vec3Add,
-  vec3Scale,
-} from '@holoscript/core/math/vec3.js';
+function vec3Distance(a: Vec3, b: Vec3): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx*dx + dy*dy + dz*dz);
+}
+function vec3Sub(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+function vec3Add(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+function vec3Scale(a: Vec3, s: number): Vec3 {
+  return { x: a.x * s, y: a.y * s, z: a.z * s };
+}
+function vec3Length(a: Vec3): number {
+  return Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z);
+}
+function vec3Normalize(a: Vec3): Vec3 {
+  const len = vec3Length(a);
+  if (len === 0) return { x: 0, y: 0, z: 0 };
+  return vec3Scale(a, 1/len);
+}
 
 /*
  */

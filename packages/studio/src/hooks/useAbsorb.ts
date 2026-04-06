@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { handleError } from '@/lib/error';
 import type { CodebaseVisualizationData } from '@/components/visualization/CodebaseVisualizationPanel';
 
 // ─── Types from /api/daemon/absorb ────────────────────────────────────────────
@@ -160,7 +161,7 @@ export function useAbsorb({
         });
 
         if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: res.statusText }));
+          const body = await res.json().catch((e) => ({ error: res.statusText, _orig: handleError('useAbsorb:res.json', e) }));
           throw new Error(body.error ?? `HTTP ${res.status}`);
         }
 
@@ -187,7 +188,8 @@ export function useAbsorb({
         setCacheStatus(status);
         return status;
       }
-    } catch {
+    } catch (err) {
+      handleError('useAbsorb:checkCache', err);
       // cache check is best-effort
     }
     return null;

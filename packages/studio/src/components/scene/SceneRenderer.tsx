@@ -1,18 +1,19 @@
 'use client';
 
-import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
   Grid,
   Stars,
   Environment,
-  TransformControls,
   Stats,
 } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
+import { GizmoController } from './GizmoController';
+import { PlacementPlane } from './PlacementSystem';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import type { SceneNode } from '@/lib/stores';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
@@ -25,14 +26,12 @@ import { usePhysicsStore } from '@/lib/physicsStore';
 import { SketchCanvas } from '@/components/sketch/SketchCanvas';
 import { SketchToolbar } from '@/components/sketch/SketchToolbar';
 import { useSceneGraphSync } from '@/hooks/useSceneGraphSync';
-import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
 import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useLOD } from '@/hooks/useLOD';
 import { useStudioBus } from '@/hooks/useStudioBus';
 import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
-import * as THREE from 'three';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -86,164 +85,6 @@ function EmptyScene() {
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
       <Environment preset="studio" background={false} />
     </group>
-  );
-}
-
-// ─── Gizmo Controller ─────────────────────────────────────────────────────────
-
-/**
- * GizmoController — attaches drei TransformControls to the selected mesh.
- * Traverses the R3F scene to find the Object3D tagged with userData.nodeId.
- */
-
-function GizmoController() {
-  const { scene } = useThree();
-  const selectedId = useEditorStore((s) => s.selectedObjectId);
-  const gizmoMode = useEditorStore((s) => s.gizmoMode);
-  const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
-  const gridSnap = useBuilderStore((s) => s.gridSnap);
-  const gridSize = useBuilderStore((s) => s.gridSize);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const controlsRef = useRef<any>(null);
-
-  // Find the Three.js object whose userData.nodeId matches the selection
-  const target: THREE.Object3D | null = selectedId
-    ? (() => {
-        let found: THREE.Object3D | null = null;
-        scene.traverse((obj: THREE.Object3D) => {
-          if (!found && obj.userData?.nodeId === selectedId) found = obj as THREE.Object3D;
-        });
-        return found;
-      })()
-    : null;
-
-  const handleChange = useCallback(() => {
-    if (!target || !selectedId) return;
-    const t = target as THREE.Object3D;
-    updateNodeTransform(selectedId, {
-      position: [t.position.x, t.position.y, t.position.z],
-      rotation: [t.rotation.x, t.rotation.y, t.rotation.z],
-      scale: [t.scale.x, t.scale.y, t.scale.z],
-    });
-  }, [target, selectedId, updateNodeTransform]);
-
-  if (!target) return null;
-  return (
-    <TransformControls
-      ref={controlsRef}
-      object={target}
-      mode={gizmoMode}
-      translationSnap={gridSnap ? gridSize : undefined}
-      rotationSnap={gridSnap ? Math.PI / 12 : undefined}
-      scaleSnap={gridSnap ? 0.25 : undefined}
-      onMouseUp={handleChange}
-    />
-  );
-}
-
-// ─── Placement System ────────────────────────────────────────────────────────
-
-/**
- * GhostPreview — semi-transparent shape that follows the mouse on the ground
- */
-function GhostPreview({ position }: { position: [number, number, number] }) {
-  const activeShape = useBuilderStore((s) => s.hotbarSlots[s.activeSlot]);
-  const builderMode = useBuilderStore((s) => s.builderMode);
-
-  if (builderMode !== 'place') return null;
-
-  const getGhostGeometry = () => {
-    switch (activeShape.geometry) {
-      case 'sphere':
-        return <sphereGeometry args={[0.5, 32, 32]} />;
-      case 'cylinder':
-        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-      case 'cone':
-        return <coneGeometry args={[0.5, 1, 4]} />;
-      case 'torus':
-        return <torusGeometry args={[0.5, 0.15, 16, 32]} />;
-      case 'capsule':
-        return <capsuleGeometry args={[0.3, 0.5, 4, 16]} />;
-      case 'plane':
-        return <planeGeometry args={[1, 1]} />;
-      case 'ring':
-        return <ringGeometry args={[0.3, 0.5, 32]} />;
-      default:
-        return <boxGeometry args={[1, 1, 1]} />;
-    }
-  };
-
-  return (
-    <mesh position={position}>
-      {getGhostGeometry()}
-      <meshBasicMaterial color={activeShape.color} transparent opacity={0.35} wireframe={false} />
-    </mesh>
-  );
-}
-
-/**
- * PlacementPlane — invisible ground plane for click-to-place.
- * In 'place' mode: click → create shape at snapped grid position.
- * In 'break' mode: handled by MeshNode.
- */
-function PlacementPlane() {
-  const builderMode = useBuilderStore((s) => s.builderMode);
-  const gridSnap = useBuilderStore((s) => s.gridSnap);
-  const gridSize = useBuilderStore((s) => s.gridSize);
-  const addNode = useSceneGraphStore((s) => s.addNode);
-  const getActiveShape = useBuilderStore((s) => s.getActiveShape);
-  const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
-
-  const handlePointerMove = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      if (builderMode !== 'place') return;
-      e.stopPropagation();
-      const point = e.point;
-      const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
-      const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
-      setGhostPos([x, 0.5, z]);
-    },
-    [builderMode, gridSnap, gridSize]
-  );
-
-  const handleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      if (builderMode !== 'place') return;
-      e.stopPropagation();
-      const shape = getActiveShape();
-      const point = e.point;
-      const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
-      const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
-      const nodeId = `placed-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      addNode({
-        id: nodeId,
-        name: `${shape.label}-${nodeId.slice(-4)}`,
-        type: 'mesh',
-        parentId: null,
-        traits: [],
-        position: [x, 0.5, z],
-        rotation: [0, 0, 0],
-        scale: [1, 1, 1],
-      });
-    },
-    [builderMode, gridSnap, gridSize, addNode, getActiveShape]
-  );
-
-  return (
-    <>
-      {/* Invisible ground plane for raycasting */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0, 0]}
-        onPointerMove={handlePointerMove}
-        onClick={handleClick}
-        visible={false}
-      >
-        <planeGeometry args={[100, 100]} />
-        <meshBasicMaterial />
-      </mesh>
-      <GhostPreview position={ghostPos} />
-    </>
   );
 }
 
@@ -405,6 +246,8 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   return (
     <div
       className="relative h-full w-full"
+      role="region"
+      aria-label="Scene Canvas Drop Zone"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -482,7 +325,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       <ContentCameraUI />
 
       {/* Gizmo mode toolbar — top-left overlay */}
-      <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur">
+      <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur" role="toolbar" aria-label="Transform Tools">
         {(['translate', 'rotate', 'scale'] as const).map((m) => (
           <button
             key={m}

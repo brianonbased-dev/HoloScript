@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { handleError } from '@/lib/error';
 
 export type AssetCategory = 'model' | 'hdr' | 'texture' | 'audio';
 
@@ -59,6 +60,7 @@ export function useAssetLibrary() {
         setQuery(nextQ);
         setCategory(nextCat);
       } catch (e) {
+        handleError('useAssetLibrary:search', e);
         setError(e instanceof Error ? e.message : 'Search failed');
       } finally {
         setLoading(false);
