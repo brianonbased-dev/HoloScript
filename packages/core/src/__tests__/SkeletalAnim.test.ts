@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { BoneSystem } from '../animation/BoneSystem';
-import { SkeletalBlender, type AnimPose } from '../animation/SkeletalBlender';
-import { MorphTargetSystem } from '../animation/MorphTargets';
+import { BoneSystem } from '@holoscript/engine/animation/BoneSystem';
+import { SkeletalBlender, type AnimPose } from '@holoscript/engine/animation/SkeletalBlender';
+import { MorphTargetSystem } from '@holoscript/engine/animation/MorphTargets';
 
 describe('Cycle 156: Skeletal Animation', () => {
   // -------------------------------------------------------------------------

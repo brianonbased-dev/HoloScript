@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NoiseGenerator } from '../procedural/NoiseGenerator';
-import { DungeonGenerator } from '../procedural/DungeonGenerator';
-import { WaveFunction } from '../procedural/WaveFunction';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
+import { DungeonGenerator } from '@holoscript/engine/procedural/DungeonGenerator';
+import { WaveFunction } from '@holoscript/engine/procedural/WaveFunction';
 
 describe('Procedural Generation v2 (Cycle 185)', () => {
   describe('NoiseGenerator', () => {

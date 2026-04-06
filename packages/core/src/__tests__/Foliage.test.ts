@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { FoliageSystem } from '../environment/FoliageSystem';
-import { GrassRenderer } from '../environment/GrassRenderer';
-import { TreePlacer } from '../environment/TreePlacer';
+import { FoliageSystem } from '@holoscript/engine/environment/FoliageSystem';
+import { GrassRenderer } from '@holoscript/engine/environment/GrassRenderer';
+import { TreePlacer } from '@holoscript/engine/environment/TreePlacer';
 
 describe('Cycle 139: Foliage & Vegetation', () => {
   // -------------------------------------------------------------------------

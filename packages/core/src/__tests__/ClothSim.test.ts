@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ClothSim } from '../physics/ClothSim';
+import { ClothSim } from '@holoscript/engine/physics/ClothSim';
 
 // =============================================================================
 // C290 — Cloth Simulation

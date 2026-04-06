@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AvatarController, AvatarInput } from '../animation/AvatarController';
+import { AvatarController, AvatarInput } from '@holoscript/engine/animation/AvatarController';
 import { avatarEmbodimentHandler, AvatarEmbodimentState } from '../traits/AvatarEmbodimentTrait';
 import { AvatarPersistence, AvatarConfig } from '../social/AvatarPersistence';
-import { BoneSystem } from '../animation/BoneSystem';
-import { IKSolver } from '../animation/IKSolver';
+import { BoneSystem } from '@holoscript/engine/animation/BoneSystem';
+import { IKSolver } from '@holoscript/engine/animation/IKSolver';
 
 // =============================================================================
 // HELPERS

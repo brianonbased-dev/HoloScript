@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DungeonGenerator } from '../procedural/DungeonGenerator';
+import { DungeonGenerator } from '@holoscript/engine/procedural/DungeonGenerator';
 
 // =============================================================================
 // C225 — Dungeon Generator

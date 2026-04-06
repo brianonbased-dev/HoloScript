@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { ConstraintSolver } from '../physics/ConstraintSolver';
-import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '../physics/RagdollSystem';
-import { VehicleSystem, createDefaultCar, createTruck } from '../physics/VehicleSystem';
+import { ConstraintSolver } from '@holoscript/engine/physics/ConstraintSolver';
+import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '@holoscript/engine/physics/RagdollSystem';
+import { VehicleSystem, createDefaultCar, createTruck } from '@holoscript/engine/physics/VehicleSystem';
 import {
   IRigidBodyState,
   IDistanceConstraint,
   ISpringConstraint,
   IHingeConstraint,
-} from '../physics/PhysicsTypes';
+} from '@holoscript/engine/physics/PhysicsTypes';
 
 // =============================================================================
 // HELPERS

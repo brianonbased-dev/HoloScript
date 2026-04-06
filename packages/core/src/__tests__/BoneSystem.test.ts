@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BoneSystem } from '../animation/BoneSystem';
+import { BoneSystem } from '@holoscript/engine/animation/BoneSystem';
 
 // =============================================================================
 // C258 — Bone System

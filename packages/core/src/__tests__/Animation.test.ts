@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AnimationEngine, Easing } from '../animation/AnimationEngine';
-import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
-import { Timeline } from '../animation/Timeline';
-import { TransitionSystem } from '../animation/TransitionSystem';
+import { AnimationEngine, Easing } from '@holoscript/engine/animation/AnimationEngine';
+import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
+import { Timeline } from '@holoscript/engine/animation/Timeline';
+import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
 
 describe('Animation System', () => {
   describe('AnimationEngine', () => {

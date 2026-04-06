@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { DayNightCycle } from '../environment/DayNightCycle';
+import { DayNightCycle } from '@holoscript/engine/environment/DayNightCycle';
 
 // =============================================================================
 // C227 — Day/Night Cycle

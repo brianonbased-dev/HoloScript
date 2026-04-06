@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AnimClip, ClipTrack } from '../animation/AnimationClip';
+import { AnimClip, ClipTrack } from '@holoscript/engine/animation/AnimationClip';
 
 describe('AnimClip', () => {
   let clip: AnimClip;

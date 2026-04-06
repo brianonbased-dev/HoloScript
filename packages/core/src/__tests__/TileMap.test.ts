@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { TileMap, TileFlags } from '../tilemap/TileMap';
-import { TilePhysics } from '../tilemap/TilePhysics';
-import { TileRenderer } from '../tilemap/TileRenderer';
+import { TileMap, TileFlags } from '@holoscript/engine/tilemap/TileMap';
+import { TilePhysics } from '@holoscript/engine/tilemap/TilePhysics';
+import { TileRenderer } from '@holoscript/engine/tilemap/TileRenderer';
 
 describe('Cycle 159: Tile Map System', () => {
   // -------------------------------------------------------------------------

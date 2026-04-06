@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GrassRenderer } from '../environment/GrassRenderer';
+import { GrassRenderer } from '@holoscript/engine/environment/GrassRenderer';
 
 // =============================================================================
 // C311 — GrassRenderer

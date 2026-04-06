@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WaveFunction, type WFCTile } from '../procedural/WaveFunction';
+import { WaveFunction, type WFCTile } from '@holoscript/engine/procedural/WaveFunction';
 
 // =============================================================================
 // C307 — WaveFunction Collapse

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { networkedAvatarHandler } from '../traits/NetworkedAvatarTrait';
-import { BoneSystem } from '../animation/BoneSystem';
-import { IKSolver } from '../animation/IKSolver';
+import { BoneSystem } from '@holoscript/engine/animation/BoneSystem';
+import { IKSolver } from '@holoscript/engine/animation/IKSolver';
 
 describe('Avatar System', () => {
   let mockNode: any;

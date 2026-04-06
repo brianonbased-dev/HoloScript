@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { InputBindings } from '../input/InputBindings';
+import { InputBindings } from '@holoscript/engine/input/InputBindings';
 
 // =============================================================================
 // C249 — Input Bindings

@@ -58,11 +58,11 @@ import type { EmitterConfig as EmitterCfg2 } from '../particles/ParticleEmitter.
 import { ParticleForceSystem } from '../particles/ParticleForces.js';
 
 // TerrainPaintLayer
-import { TerrainPaintLayer } from '../terrain/TerrainPaintLayer.js';
-import type { PaintLayer } from '../terrain/TerrainPaintLayer.js';
+import { TerrainPaintLayer } from '@holoscript/engine/terrain/TerrainPaintLayer.js';
+import type { PaintLayer } from '@holoscript/engine/terrain/TerrainPaintLayer.js';
 
 // ErosionSim
-import { ErosionSim } from '../terrain/ErosionSim.js';
+import { ErosionSim } from '@holoscript/engine/terrain/ErosionSim.js';
 
 // =============================================================================
 // Helper constants

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TransitionSystem } from '../animation/TransitionSystem';
+import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
 
 // =============================================================================
 // C265 — Transition System

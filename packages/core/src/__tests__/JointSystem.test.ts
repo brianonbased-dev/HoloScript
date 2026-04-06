@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JointSystem } from '../physics/JointSystem';
+import { JointSystem } from '@holoscript/engine/physics/JointSystem';
 
 // =============================================================================
 // C294 — Joint System

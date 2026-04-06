@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RagdollController } from '../physics/RagdollController';
+import { RagdollController } from '@holoscript/engine/physics/RagdollController';
 
 // =============================================================================
 // C268 — Ragdoll Controller

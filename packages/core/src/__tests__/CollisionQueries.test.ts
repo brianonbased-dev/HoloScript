@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RaycastSystem } from '../physics/RaycastSystem';
-import { SpatialHash } from '../physics/SpatialHash';
-import { TriggerZoneSystem, type TriggerEvent } from '../physics/TriggerZone';
+import { RaycastSystem } from '@holoscript/engine/physics/RaycastSystem';
+import { SpatialHash } from '@holoscript/engine/physics/SpatialHash';
+import { TriggerZoneSystem, type TriggerEvent } from '@holoscript/engine/physics/TriggerZone';
 
 describe('Cycle 151: Collision Queries', () => {
   // -------------------------------------------------------------------------

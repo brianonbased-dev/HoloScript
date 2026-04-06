@@ -11,13 +11,13 @@ import { NodeGraph, BUILT_IN_TYPES } from '../logic/NodeGraph';
 import { NodeGraphCompiler } from '../logic/NodeGraphCompiler';
 
 // Environment layer
-import { TerrainSystem } from '../environment/TerrainSystem';
-import { EnvironmentManager, PRESET_SUNNY_DAY } from '../environment/EnvironmentPresets';
-import { TerrainBrush } from '../environment/TerrainBrush';
+import { TerrainSystem } from '@holoscript/engine/environment/TerrainSystem';
+import { EnvironmentManager, PRESET_SUNNY_DAY } from '@holoscript/engine/environment/EnvironmentPresets';
+import { TerrainBrush } from '@holoscript/engine/environment/TerrainBrush';
 
 // Physics layer
-import { ConstraintSolver } from '../physics/ConstraintSolver';
-import { VehicleSystem, createDefaultCar } from '../physics/VehicleSystem';
+import { ConstraintSolver } from '@holoscript/engine/physics/ConstraintSolver';
+import { VehicleSystem, createDefaultCar } from '@holoscript/engine/physics/VehicleSystem';
 
 // Multiplayer layer
 import { EntityAuthority } from '../multiplayer/EntityAuthority';
@@ -25,13 +25,13 @@ import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation';
 import { ReplicationManager } from '../multiplayer/ReplicationManager';
 
 // Procedural layer
-import { NoiseGenerator } from '../procedural/NoiseGenerator';
-import { LSystemGenerator, TREE_SIMPLE } from '../procedural/LSystemGenerator';
-import { BuildingGenerator } from '../procedural/BuildingGenerator';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
+import { LSystemGenerator, TREE_SIMPLE } from '@holoscript/engine/procedural/LSystemGenerator';
+import { BuildingGenerator } from '@holoscript/engine/procedural/BuildingGenerator';
 
 // Animation layer
-import { AnimationGraph, AnimationClip } from '../animation/AnimationGraph';
-import { CutsceneTimeline, CutsceneBuilder } from '../animation/CutsceneTimeline';
+import { AnimationGraph, AnimationClip } from '@holoscript/engine/animation/AnimationGraph';
+import { CutsceneTimeline, CutsceneBuilder } from '@holoscript/engine/animation/CutsceneTimeline';
 
 describe('Cycle 110: Integration Tests', () => {
   // -------------------------------------------------------------------------

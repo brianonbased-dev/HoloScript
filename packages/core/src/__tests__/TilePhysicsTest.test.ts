@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { TileMap, TileFlags } from '../tilemap/TileMap';
-import { TilePhysics } from '../tilemap/TilePhysics';
-import type { AABB2D } from '../tilemap/TilePhysics';
+import { TileMap, TileFlags } from '@holoscript/engine/tilemap/TileMap';
+import { TilePhysics } from '@holoscript/engine/tilemap/TilePhysics';
+import type { AABB2D } from '@holoscript/engine/tilemap/TilePhysics';
 
 // =============================================================================
 // C208 — Tile Physics

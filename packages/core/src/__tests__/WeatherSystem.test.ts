@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WeatherSystem } from '../environment/WeatherSystem';
+import { WeatherSystem } from '@holoscript/engine/environment/WeatherSystem';
 
 describe('WeatherSystem', () => {
   let ws: WeatherSystem;

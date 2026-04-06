@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ConstraintSolver } from '../physics/ConstraintSolver';
+import { ConstraintSolver } from '@holoscript/engine/physics/ConstraintSolver';
 import type {
   IDistanceConstraint,
   ISpringConstraint,
   IRigidBodyState,
-} from '../physics/PhysicsTypes';
+} from '@holoscript/engine/physics/PhysicsTypes';
 
 // =============================================================================
 // C257 — Constraint Solver

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AnimationTransitionSystem, BonePose } from '../animation/AnimationTransitions';
+import { AnimationTransitionSystem, BonePose } from '@holoscript/engine/animation/AnimationTransitions';
 
 describe('AnimationTransitionSystem', () => {
   let sys: AnimationTransitionSystem;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerrainLOD } from '../terrain/TerrainLOD';
+import { TerrainLOD } from '@holoscript/engine/terrain/TerrainLOD';
 
 // =============================================================================
 // C248 — Terrain LOD

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CutsceneTimeline, CutsceneBuilder } from '../animation/CutsceneTimeline';
+import { CutsceneTimeline, CutsceneBuilder } from '@holoscript/engine/animation/CutsceneTimeline';
 
 // =============================================================================
 // C263 — Cutscene Timeline

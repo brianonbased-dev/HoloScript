@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { TerrainSystem } from '../environment/TerrainSystem';
+import { TerrainSystem } from '@holoscript/engine/environment/TerrainSystem';
 import {
   EnvironmentManager,
   PRESET_SUNNY_DAY,
   PRESET_NIGHT,
   ALL_PRESETS,
-} from '../environment/EnvironmentPresets';
-import { TerrainBrush } from '../environment/TerrainBrush';
+} from '@holoscript/engine/environment/EnvironmentPresets';
+import { TerrainBrush } from '@holoscript/engine/environment/TerrainBrush';
 
 describe('Cycle 106: Terrain & Environment System', () => {
   // -------------------------------------------------------------------------

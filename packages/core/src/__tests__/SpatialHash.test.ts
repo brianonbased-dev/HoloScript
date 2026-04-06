@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpatialHash } from '../physics/SpatialHash';
-import type { SpatialEntry } from '../physics/SpatialHash';
+import { SpatialHash } from '@holoscript/engine/physics/SpatialHash';
+import type { SpatialEntry } from '@holoscript/engine/physics/SpatialHash';
 
 // =============================================================================
 // C235 — Spatial Hash

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { NoiseGenerator } from '../procedural/NoiseGenerator';
-import { LSystemGenerator, TREE_SIMPLE, TREE_BINARY, FERN } from '../procedural/LSystemGenerator';
-import { BuildingGenerator, BuildingConfig } from '../procedural/BuildingGenerator';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
+import { LSystemGenerator, TREE_SIMPLE, TREE_BINARY, FERN } from '@holoscript/engine/procedural/LSystemGenerator';
+import { BuildingGenerator, BuildingConfig } from '@holoscript/engine/procedural/BuildingGenerator';
 
 describe('Cycle 109: Procedural Generation', () => {
   // -------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RaycastSystem, type Ray, type Collider } from '../physics/RaycastSystem';
+import { RaycastSystem, type Ray, type Collider } from '@holoscript/engine/physics/RaycastSystem';
 
 // =============================================================================
 // C295 — Raycast System

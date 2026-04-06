@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TriggerZoneSystem } from '../physics/TriggerZone';
-import type { TriggerZoneConfig } from '../physics/TriggerZone';
+import { TriggerZoneSystem } from '@holoscript/engine/physics/TriggerZone';
+import type { TriggerZoneConfig } from '@holoscript/engine/physics/TriggerZone';
 
 // =============================================================================
 // C236 — Trigger Zone

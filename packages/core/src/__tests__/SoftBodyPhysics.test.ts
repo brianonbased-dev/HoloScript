@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodySolver, type Particle, type DistanceConstraint } from '../physics/SoftBodySolver';
+import { SoftBodySolver, type Particle, type DistanceConstraint } from '@holoscript/engine/physics/SoftBodySolver';
 
 describe('SoftBodySolver', () => {
   let solver: SoftBodySolver;

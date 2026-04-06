@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IslandDetector } from '../physics/IslandDetector';
+import { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
 
 // =============================================================================
 // C237 — Island Detector (DSU)

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RopeSystem } from '../physics/RopeSystem';
-import { DeformableMesh } from '../physics/DeformableMesh';
-import { FluidSim } from '../physics/FluidSim';
+import { RopeSystem } from '@holoscript/engine/physics/RopeSystem';
+import { DeformableMesh } from '@holoscript/engine/physics/DeformableMesh';
+import { FluidSim } from '@holoscript/engine/physics/FluidSim';
 
 describe('Cycle 146: Rope, Deformable & Fluid', () => {
   // -------------------------------------------------------------------------

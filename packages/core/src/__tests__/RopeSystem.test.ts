@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RopeSystem } from '../physics/RopeSystem';
+import { RopeSystem } from '@holoscript/engine/physics/RopeSystem';
 
 // =============================================================================
 // C239 — Rope System (Verlet)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GestureRecognizer } from '../input/GestureRecognizer';
+import { GestureRecognizer } from '@holoscript/engine/input/GestureRecognizer';
 
 // =============================================================================
 // C246 — Gesture Recognizer

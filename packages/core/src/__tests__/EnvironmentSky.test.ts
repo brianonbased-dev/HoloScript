@@ -4,9 +4,9 @@
  * Tests for DayNightCycle, WeatherSystem, and SkyRenderer.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DayNightCycle } from '../environment/DayNightCycle';
-import { WeatherSystem } from '../environment/WeatherSystem';
-import { SkyRenderer } from '../environment/SkyRenderer';
+import { DayNightCycle } from '@holoscript/engine/environment/DayNightCycle';
+import { WeatherSystem } from '@holoscript/engine/environment/WeatherSystem';
+import { SkyRenderer } from '@holoscript/engine/environment/SkyRenderer';
 
 describe('DayNightCycle', () => {
   let dnc: DayNightCycle;

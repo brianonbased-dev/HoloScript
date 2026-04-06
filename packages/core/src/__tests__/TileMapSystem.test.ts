@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TileMap, TileFlags } from '../tilemap/TileMap';
+import { TileMap, TileFlags } from '@holoscript/engine/tilemap/TileMap';
 
 // =============================================================================
 // C207 — Tile Map

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerrainBrush } from '../terrain/TerrainBrush';
+import { TerrainBrush } from '@holoscript/engine/terrain/TerrainBrush';
 
 // =============================================================================
 // C293 — Terrain Brush

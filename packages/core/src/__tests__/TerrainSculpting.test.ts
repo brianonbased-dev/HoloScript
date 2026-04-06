@@ -4,8 +4,8 @@
  * Tests for TerrainBrush and ErosionSim.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerrainBrush } from '../terrain/TerrainBrush';
-import { ErosionSim } from '../terrain/ErosionSim';
+import { TerrainBrush } from '@holoscript/engine/terrain/TerrainBrush';
+import { ErosionSim } from '@holoscript/engine/terrain/ErosionSim';
 
 // =============================================================================
 // TERRAIN BRUSH

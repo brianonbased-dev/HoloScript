@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { InputManager } from '../input/InputManager';
-import { InputBindings } from '../input/InputBindings';
-import { GestureRecognizer } from '../input/GestureRecognizer';
+import { InputManager } from '@holoscript/engine/input/InputManager';
+import { InputBindings } from '@holoscript/engine/input/InputBindings';
+import { GestureRecognizer } from '@holoscript/engine/input/GestureRecognizer';
 
 describe('Cycle 116: Input System', () => {
   // -------------------------------------------------------------------------

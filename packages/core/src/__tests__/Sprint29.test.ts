@@ -23,7 +23,7 @@ import { QuestManager } from '../gameplay/QuestManager.js';
 import { AchievementSystem } from '../gameplay/AchievementSystem.js';
 import { DamageSystem } from '../combat/DamageSystem.js';
 import { CombatManager } from '../combat/CombatManager.js';
-import { InputManager } from '../input/InputManager.js';
+import { InputManager } from '@holoscript/engine/input/InputManager.js';
 import { NavMesh } from '../navigation/NavMesh.js';
 import { DialogueGraph } from '../dialogue/DialogueGraph.js';
 import { EmotionSystem } from '../dialogue/EmotionSystem.js';

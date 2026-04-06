@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SkeletalBlender, type AnimLayer, type AnimPose } from '../animation/SkeletalBlender';
+import { SkeletalBlender, type AnimLayer, type AnimPose } from '@holoscript/engine/animation/SkeletalBlender';
 
 // =============================================================================
 // C296 — Skeletal Blender

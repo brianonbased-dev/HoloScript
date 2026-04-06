@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VehicleSystem, createDefaultCar, createTruck } from '../physics/VehicleSystem';
+import { VehicleSystem, createDefaultCar, createTruck } from '@holoscript/engine/physics/VehicleSystem';
 
 // =============================================================================
 // C255 — Vehicle System

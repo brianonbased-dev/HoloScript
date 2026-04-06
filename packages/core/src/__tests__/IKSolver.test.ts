@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IKSolver, type IKChain, type IKBone } from '../animation/IKSolver';
+import { IKSolver, type IKChain, type IKBone } from '@holoscript/engine/animation/IKSolver';
 
 // =============================================================================
 // C275 — IK Solver

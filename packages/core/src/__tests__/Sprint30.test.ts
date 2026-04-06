@@ -15,17 +15,17 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { NoiseGenerator } from '../procedural/NoiseGenerator.js';
-import { DungeonGenerator } from '../procedural/DungeonGenerator.js';
-import { WaveFunction } from '../procedural/WaveFunction.js';
-import { WorldStreamer } from '../world/WorldStreamer.js';
-import { LODManager } from '../world/LODManager.js';
-import { OcclusionCulling } from '../world/OcclusionCulling.js';
-import { WeatherSystem } from '../environment/WeatherSystem.js';
-import { DayNightCycle } from '../environment/DayNightCycle.js';
-import { TileMap } from '../tilemap/TileMap.js';
-import { TerrainSystem } from '../environment/TerrainSystem.js';
-import { TerrainBrush } from '../environment/TerrainBrush.js';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator.js';
+import { DungeonGenerator } from '@holoscript/engine/procedural/DungeonGenerator.js';
+import { WaveFunction } from '@holoscript/engine/procedural/WaveFunction.js';
+import { WorldStreamer } from '@holoscript/engine/world/WorldStreamer.js';
+import { LODManager } from '@holoscript/engine/world/LODManager.js';
+import { OcclusionCulling } from '@holoscript/engine/world/OcclusionCulling.js';
+import { WeatherSystem } from '@holoscript/engine/environment/WeatherSystem.js';
+import { DayNightCycle } from '@holoscript/engine/environment/DayNightCycle.js';
+import { TileMap } from '@holoscript/engine/tilemap/TileMap.js';
+import { TerrainSystem } from '@holoscript/engine/environment/TerrainSystem.js';
+import { TerrainBrush } from '@holoscript/engine/environment/TerrainBrush.js';
 
 // =============================================================================
 // FEATURE 1: procedural/NoiseGenerator

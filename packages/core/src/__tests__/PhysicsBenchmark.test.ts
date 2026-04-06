@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PBDSolverCPU } from '../physics/PBDSolver';
-import type { ISoftBodyConfig } from '../physics/PhysicsTypes';
+import { PBDSolverCPU } from '@holoscript/engine/physics/PBDSolver';
+import type { ISoftBodyConfig } from '@holoscript/engine/physics/PhysicsTypes';
 
 describe('Physics Mass Benchmark', () => {
   const runBenchmark = (numParticles: number) => {

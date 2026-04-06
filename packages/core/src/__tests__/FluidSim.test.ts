@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FluidSim } from '../physics/FluidSim';
+import { FluidSim } from '@holoscript/engine/physics/FluidSim';
 
 // =============================================================================
 // C262 — Fluid Sim

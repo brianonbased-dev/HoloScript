@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { JointSystem } from '../physics/JointSystem';
-import { RagdollController } from '../physics/RagdollController';
-import { ClothSim } from '../physics/ClothSim';
+import { JointSystem } from '@holoscript/engine/physics/JointSystem';
+import { RagdollController } from '@holoscript/engine/physics/RagdollController';
+import { ClothSim } from '@holoscript/engine/physics/ClothSim';
 
 describe('Cycle 128: Physics Joints & Constraints', () => {
   // -------------------------------------------------------------------------

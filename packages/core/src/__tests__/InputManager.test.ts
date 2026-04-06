@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InputManager } from '../input/InputManager';
+import { InputManager } from '@holoscript/engine/input/InputManager';
 
 // =============================================================================
 // C289 — Input Manager

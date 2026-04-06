@@ -9,18 +9,18 @@ import { describe, it, expect } from 'vitest';
 // All modules
 import { NodeGraph } from '../logic/NodeGraph';
 import { NodeGraphCompiler } from '../logic/NodeGraphCompiler';
-import { TerrainSystem } from '../environment/TerrainSystem';
-import { TerrainBrush } from '../environment/TerrainBrush';
-import { EnvironmentManager } from '../environment/EnvironmentPresets';
-import { AnimationGraph } from '../animation/AnimationGraph';
-import { AnimationTransitionSystem } from '../animation/AnimationTransitions';
-import { CutsceneTimeline, CutsceneBuilder } from '../animation/CutsceneTimeline';
+import { TerrainSystem } from '@holoscript/engine/environment/TerrainSystem';
+import { TerrainBrush } from '@holoscript/engine/environment/TerrainBrush';
+import { EnvironmentManager } from '@holoscript/engine/environment/EnvironmentPresets';
+import { AnimationGraph } from '@holoscript/engine/animation/AnimationGraph';
+import { AnimationTransitionSystem } from '@holoscript/engine/animation/AnimationTransitions';
+import { CutsceneTimeline, CutsceneBuilder } from '@holoscript/engine/animation/CutsceneTimeline';
 import { EntityAuthority } from '../multiplayer/EntityAuthority';
 import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation';
 import { ReplicationManager } from '../multiplayer/ReplicationManager';
-import { NoiseGenerator } from '../procedural/NoiseGenerator';
-import { LSystemGenerator } from '../procedural/LSystemGenerator';
-import { BuildingGenerator } from '../procedural/BuildingGenerator';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
+import { LSystemGenerator } from '@holoscript/engine/procedural/LSystemGenerator';
+import { BuildingGenerator } from '@holoscript/engine/procedural/BuildingGenerator';
 
 describe('Cycle 110: Edge Case Tests', () => {
   // -------------------------------------------------------------------------

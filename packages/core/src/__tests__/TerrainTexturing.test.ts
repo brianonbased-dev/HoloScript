@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerrainTexturing } from '../terrain/TerrainTexturing';
+import { TerrainTexturing } from '@holoscript/engine/terrain/TerrainTexturing';
 
 // =============================================================================
 // C299 — Terrain Texturing

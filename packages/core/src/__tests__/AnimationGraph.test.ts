@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AnimationGraph, AnimationClip } from '../animation/AnimationGraph';
-import { AnimationTransitionSystem, BonePose } from '../animation/AnimationTransitions';
-import { CutsceneTimeline, CutsceneBuilder } from '../animation/CutsceneTimeline';
+import { AnimationGraph, AnimationClip } from '@holoscript/engine/animation/AnimationGraph';
+import { AnimationTransitionSystem, BonePose } from '@holoscript/engine/animation/AnimationTransitions';
+import { CutsceneTimeline, CutsceneBuilder } from '@holoscript/engine/animation/CutsceneTimeline';
 
 // =============================================================================
 // HELPERS

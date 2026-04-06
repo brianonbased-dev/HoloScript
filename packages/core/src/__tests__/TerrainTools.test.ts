@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TerrainBrush } from '../terrain/TerrainBrush';
-import { TerrainPaintLayer } from '../terrain/TerrainPaintLayer';
-import { ErosionBrush } from '../terrain/ErosionBrush';
+import { TerrainBrush } from '@holoscript/engine/terrain/TerrainBrush';
+import { TerrainPaintLayer } from '@holoscript/engine/terrain/TerrainPaintLayer';
+import { ErosionBrush } from '@holoscript/engine/terrain/ErosionBrush';
 
 describe('Terrain Tools (Cycle 174)', () => {
   describe('TerrainBrush', () => {

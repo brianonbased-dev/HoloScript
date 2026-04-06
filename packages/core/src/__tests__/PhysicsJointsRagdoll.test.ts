@@ -4,8 +4,8 @@
  * Tests for JointSystem and RagdollSystem.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JointSystem } from '../physics/JointSystem';
-import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '../physics/RagdollSystem';
+import { JointSystem } from '@holoscript/engine/physics/JointSystem';
+import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '@holoscript/engine/physics/RagdollSystem';
 
 // =============================================================================
 // JOINT SYSTEM

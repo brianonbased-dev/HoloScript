@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ErosionSim } from '../terrain/ErosionSim';
+import { ErosionSim } from '@holoscript/engine/terrain/ErosionSim';
 
 // =============================================================================
 // C250 — Erosion Sim

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WorldStreamer } from '../world/WorldStreamer';
+import { WorldStreamer } from '@holoscript/engine/world/WorldStreamer';
 
 // =============================================================================
 // C212 — World Streaming

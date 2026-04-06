@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IslandDetector } from '../physics/IslandDetector';
+import { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
 
 describe('IslandDetector - Phase 17 (Mass Physics)', () => {
   let detector: IslandDetector;

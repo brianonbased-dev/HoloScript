@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { WeatherSystem } from '../environment/WeatherSystem';
-import { DayNightCycle } from '../environment/DayNightCycle';
-import { SkyRenderer } from '../environment/SkyRenderer';
+import { WeatherSystem } from '@holoscript/engine/environment/WeatherSystem';
+import { DayNightCycle } from '@holoscript/engine/environment/DayNightCycle';
+import { SkyRenderer } from '@holoscript/engine/environment/SkyRenderer';
 
 describe('Cycle 132: Weather & Time of Day', () => {
   // -------------------------------------------------------------------------

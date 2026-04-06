@@ -14,14 +14,14 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { RigidBody } from '../physics/PhysicsBody.js';
-import type { IRigidBodyConfig } from '../physics/PhysicsTypes.js';
-import { COLLISION_GROUPS } from '../physics/PhysicsTypes.js';
-import { RaycastSystem, type Collider } from '../physics/RaycastSystem.js';
-import { TriggerZoneSystem } from '../physics/TriggerZone.js';
-import { SpatialHash } from '../physics/SpatialHash.js';
-import { AnimClip } from '../animation/AnimationClip.js';
-import type { ClipTrack } from '../animation/AnimationClip.js';
+import { RigidBody } from '@holoscript/engine/physics/PhysicsBody.js';
+import type { IRigidBodyConfig } from '@holoscript/engine/physics/PhysicsTypes.js';
+import { COLLISION_GROUPS } from '@holoscript/engine/physics/PhysicsTypes.js';
+import { RaycastSystem, type Collider } from '@holoscript/engine/physics/RaycastSystem.js';
+import { TriggerZoneSystem } from '@holoscript/engine/physics/TriggerZone.js';
+import { SpatialHash } from '@holoscript/engine/physics/SpatialHash.js';
+import { AnimClip } from '@holoscript/engine/animation/AnimationClip.js';
+import type { ClipTrack } from '@holoscript/engine/animation/AnimationClip.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

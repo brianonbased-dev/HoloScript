@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { AnimClip } from '../animation/AnimationClip';
-import { IKSolver, IKBone, IKChain } from '../animation/IKSolver';
+import { AnimClip } from '@holoscript/engine/animation/AnimationClip';
+import { IKSolver, IKBone, IKChain } from '@holoscript/engine/animation/IKSolver';
 
 describe('Cycle 137: AnimationClip & IKSolver', () => {
   // -------------------------------------------------------------------------

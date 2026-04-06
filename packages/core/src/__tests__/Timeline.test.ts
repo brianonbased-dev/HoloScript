@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Timeline } from '../animation/Timeline';
-import type { AnimationClip } from '../animation/AnimationEngine';
+import { Timeline } from '@holoscript/engine/animation/Timeline';
+import type { AnimationClip } from '@holoscript/engine/animation/AnimationEngine';
 
 // =============================================================================
 // C297 — Timeline

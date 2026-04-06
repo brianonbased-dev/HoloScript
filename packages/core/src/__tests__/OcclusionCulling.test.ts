@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { OcclusionCulling } from '../world/OcclusionCulling';
-import type { AABB, FrustumPlane } from '../world/OcclusionCulling';
+import { OcclusionCulling } from '@holoscript/engine/world/OcclusionCulling';
+import type { AABB, FrustumPlane } from '@holoscript/engine/world/OcclusionCulling';
 
 // =============================================================================
 // C213 — Occlusion Culling

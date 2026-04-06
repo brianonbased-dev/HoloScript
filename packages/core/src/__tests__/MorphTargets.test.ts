@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MorphTargetSystem } from '../animation/MorphTargets';
-import type { MorphDelta } from '../animation/MorphTargets';
+import { MorphTargetSystem } from '@holoscript/engine/animation/MorphTargets';
+import type { MorphDelta } from '@holoscript/engine/animation/MorphTargets';
 
 // =============================================================================
 // C244 — Morph Targets

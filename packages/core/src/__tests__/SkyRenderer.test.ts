@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SkyRenderer } from '../environment/SkyRenderer';
+import { SkyRenderer } from '@holoscript/engine/environment/SkyRenderer';
 
 // =============================================================================
 // C306 — SkyRenderer

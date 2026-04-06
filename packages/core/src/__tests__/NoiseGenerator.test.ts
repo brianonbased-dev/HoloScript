@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NoiseGenerator } from '../procedural/NoiseGenerator';
+import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
 
 // =============================================================================
 // C304 — NoiseGenerator
