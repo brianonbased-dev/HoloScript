@@ -947,12 +947,12 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const emotionDirectiveHandler = {
   name: 'emotion_directive',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
     const instance = new EmotionDirectiveTrait(config);
     node.__emotion_directive_instance = instance;
     ctx.emit('emotion_directive_attached', { node, config });
   },
-  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+  onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {
     const instance = node.__emotion_directive_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
@@ -962,7 +962,7 @@ export const emotionDirectiveHandler = {
     ctx.emit('emotion_directive_detached', { node });
     delete node.__emotion_directive_instance;
   },
-  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__emotion_directive_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
@@ -972,7 +972,7 @@ export const emotionDirectiveHandler = {
       ctx.emit('emotion_directive_configured', { node });
     }
   },
-  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+  onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__emotion_directive_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);

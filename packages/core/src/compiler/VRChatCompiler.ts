@@ -607,7 +607,7 @@ export class VRChatCompiler extends CompilerBase {
     }
   }
 
-  private compileZoneTriggers(zone: any): void {
+  private compileZoneTriggers(zone: unknown): void {
     const varName = this.sanitizeName(zone.name);
     this.emit(`// Zone: ${this.escapeStringValue(zone.name as string, 'CSharp')}`);
     this.emit(`public void On${varName}Enter(VRCPlayerApi player)`);

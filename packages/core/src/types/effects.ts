@@ -237,7 +237,7 @@ export class EffectRow {
     return true;
   }
 
-  /** Check if this row has any effects from a given category */
+  /** Check if this row has unknown effects from a given category */
   hasCategory(cat: EffectCategory): boolean {
     for (const e of this.effects) {
       if (effectCategory(e) === cat) return true;

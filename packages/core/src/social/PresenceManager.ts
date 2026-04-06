@@ -12,7 +12,7 @@ import { WebRTCTransport } from '../network/WebRTCTransport';
 
 export class PresenceManager {
   private localStatus: UserStatus = 'online';
-  private heartbeatInterval: any = null;
+  private heartbeatInterval: unknown = null;
 
   constructor(
     private graph: SocialGraph,
@@ -23,7 +23,7 @@ export class PresenceManager {
     }
   }
 
-  private onNetworkMessage(packet: any) {
+  private onNetworkMessage(packet: unknown) {
     if (packet.type === 'SOCIAL_STATUS') {
       const { userId, status, activity } = packet.payload;
       this.handlePresenceUpdate(userId, status, activity);

@@ -19,15 +19,15 @@ export interface IotGateway {
   /**
    * Send a command or property update to the device
    */
-  sendUpdate(deviceId: string, property: string, value: any): void;
+  sendUpdate(deviceId: string, property: string, value: unknown): void;
 
   /**
    * Subscribe to gateway events
    */
-  on(event: 'telemetry' | 'connected' | 'disconnected' | 'error', listener: (data: any) => void): void;
+  on(event: 'telemetry' | 'connected' | 'disconnected' | 'error', listener: (data: unknown) => void): void;
 
   /**
    * Unsubscribe
    */
-  off(event: string, listener: (data: any) => void): void;
+  off(event: string, listener: (data: unknown) => void): void;
 }

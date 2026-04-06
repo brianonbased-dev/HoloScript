@@ -194,7 +194,7 @@ export type SocialPacketType =
 
 export interface SocialPacket {
   type: SocialPacketType;
-  payload: any;
+  payload: unknown;
   fromPeerId?: string;
 }
 
@@ -215,11 +215,11 @@ export class WebRTCTransport {
 
   // Batching
   private socialBatchQueue: SocialPacket[] = [];
-  private batchInterval: any = null;
+  private batchInterval: unknown = null;
   private readonly BATCH_DELAY_MS = 50;
 
   private localStream: MediaStream | null = null;
-  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
+  private eventHandlers: Map<string, ((...args: unknown[]) => void)[]> = new Map();
 
   constructor(config: WebRTCTransportConfig) {
     this.config = config;
@@ -256,14 +256,14 @@ export class WebRTCTransport {
   /**
    * Register event handler
    */
-  on(event: string, handler: (...args: any[]) => void): void {
+  on(event: string, handler: (...args: unknown[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
     this.eventHandlers.get(event)!.push(handler);
   }
 
-  private emit(event: string, ...args: any[]): void {
+  private emit(event: string, ...args: unknown[]): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach((h) => h(...args));
@@ -505,7 +505,7 @@ export class WebRTCTransport {
 
   // Private helpers
 
-  private handleSignalingMessage(msg: any): void {
+  private handleSignalingMessage(msg: unknown): void {
     switch (msg.type) {
       case 'offer': {
         this.handleOffer(msg.from, msg.offer);

@@ -604,7 +604,7 @@ export class AIGlassesCompiler extends CompilerBase {
 
   private emitGlimmerUIElement(el: {
     name: string;
-    properties: Array<{ key: string; value: any }>;
+    properties: Array<{ key: string; value: unknown }>;
   }): void {
     const vn = this.sanitizeName(el.name);
     const text = el.properties.find((p) => p.key === 'text')?.value;

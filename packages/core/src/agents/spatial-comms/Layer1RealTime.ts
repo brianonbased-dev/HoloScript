@@ -300,7 +300,7 @@ export interface RealTimeTransport {
  */
 export class UDPRealTimeTransport implements RealTimeTransport {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dgram.Socket dynamically imported at runtime
-  private socket?: any;
+  private socket?: unknown;
   private port: number;
   private targetHost: string = 'localhost';
 

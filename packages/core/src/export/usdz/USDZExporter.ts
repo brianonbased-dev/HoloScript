@@ -159,7 +159,7 @@ export class USDZExporter {
   // ========================================================================
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested scene graph node access
-  private convertNode(node: any, parentPrim: IUSDPrim, sceneGraph: ISceneGraph, depth = 0): void {
+  private convertNode(node: unknown, parentPrim: IUSDPrim, sceneGraph: ISceneGraph, depth = 0): void {
     if (!node || depth > 100) return; // Prevent infinite recursion
 
     const nodeName = sanitizeUSDName(node.name || `Node_${this.primCounter++}`);
@@ -179,7 +179,7 @@ export class USDZExporter {
 
     // Check for mesh component
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const meshComp = node.components?.find((c: any) => c.type === 'mesh');
+    const meshComp = node.components?.find((c: unknown) => c.type === 'mesh');
     if (meshComp?.meshRef) {
       const meshPath = this.meshMap.get(meshComp.meshRef);
       if (meshPath) {
@@ -202,7 +202,7 @@ export class USDZExporter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested transform object access (position.x/y/z, rotation.x/y/z/w, scale.x/y/z)
-  private addTransform(prim: IUSDPrim, transform: any): void {
+  private addTransform(prim: IUSDPrim, transform: unknown): void {
     const ops: IUSDXformOp[] = [];
 
     // Translation
@@ -410,7 +410,7 @@ export class USDZExporter {
 
   private async convertMeshPrimitive(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested mesh primitive access (attributes.POSITION, etc.)
-    primitive: any,
+    primitive: unknown,
     name: string,
     path: string,
     sceneGraph: ISceneGraph

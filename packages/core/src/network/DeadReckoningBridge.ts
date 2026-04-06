@@ -428,7 +428,7 @@ export class PhysicsAuthorityResolver {
    */
   requestAuthority(entityId: string, requesterId: string, mode: AuthorityMode): boolean {
     if (mode === 'owner') {
-      // Owner mode: any peer can claim unowned or transfer from current owner
+      // Owner mode: unknown peer can claim unowned or transfer from current owner
       this.ownership.set(entityId, requesterId);
       return true;
     }

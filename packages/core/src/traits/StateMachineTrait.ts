@@ -11,7 +11,7 @@ export interface StateMachineConfig {
 export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
   name: 'state_machine',
   defaultConfig: { initial_state: 'idle' },
-  onAttach(node: HSPlusNode, config: any): void {
+  onAttach(node: HSPlusNode, config: unknown): void {
     node.__smState = {
       current: config.initial_state || 'idle',
       transitions: 0,

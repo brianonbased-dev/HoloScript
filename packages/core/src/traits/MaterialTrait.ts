@@ -630,12 +630,12 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const materialHandler = {
   name: 'material',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
     const instance = new MaterialTrait(config);
     node.__material_instance = instance;
     ctx.emit('material_attached', { node, config });
   },
-  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+  onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {
     const instance = node.__material_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
@@ -645,7 +645,7 @@ export const materialHandler = {
     ctx.emit('material_detached', { node });
     delete node.__material_instance;
   },
-  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__material_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
@@ -655,7 +655,7 @@ export const materialHandler = {
       ctx.emit('material_configured', { node });
     }
   },
-  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+  onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__material_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);

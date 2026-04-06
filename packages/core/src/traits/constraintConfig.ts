@@ -39,7 +39,7 @@ interface ConstraintConfig {
  * Load custom constraints from a parsed config object.
  * Validates each entry and returns only valid TraitConstraint objects.
  */
-export function loadConstraintsFromConfig(config: any): TraitConstraint[] {
+export function loadConstraintsFromConfig(config: unknown): TraitConstraint[] {
   if (!config || typeof config !== 'object') return [];
 
   const raw = config as ConstraintConfig;

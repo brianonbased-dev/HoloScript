@@ -204,7 +204,7 @@ export class CompositionParser {
     for (const action of template.actions || []) {
       def.actions.set(action.name, {
         name: action.name,
-        params: action.parameters?.map((p: any) => p.name) || [],
+        params: action.parameters?.map((p: unknown) => p.name) || [],
         body: action.body,
       });
     }
@@ -272,7 +272,7 @@ export class CompositionParser {
     for (const action of logic.actions || []) {
       this.logic.actions.set(action.name, {
         name: action.name,
-        params: action.parameters?.map((p: any) => p.name) || [],
+        params: action.parameters?.map((p: unknown) => p.name) || [],
         body: action.body,
       });
     }
@@ -289,7 +289,7 @@ export class CompositionParser {
       } else {
         this.logic.eventHandlers.set(handler.event, {
           name: handler.event,
-          params: handler.parameters?.map((p: any) => p.name) || ['event'],
+          params: handler.parameters?.map((p: unknown) => p.name) || ['event'],
           body: handler.body,
         });
       }
@@ -298,7 +298,7 @@ export class CompositionParser {
 
   // ─── .hsplus processing ─────────────────────────────────────────────
 
-  private processHsPlusAST(ast: any): void {
+  private processHsPlusAST(ast: unknown): void {
     const directives = ast.body || ast.root?.directives || [];
 
     for (const d of directives) {
@@ -310,7 +310,7 @@ export class CompositionParser {
     }
   }
 
-  private processHsPlusObject(d: any): ParsedObject {
+  private processHsPlusObject(d: unknown): ParsedObject {
     return {
       id: d.name,
       type: d.type === 'orb' ? 'sphere' : d.props?.geometry || 'box',

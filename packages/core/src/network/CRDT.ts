@@ -247,6 +247,6 @@ export class ORSet<T> {
  * }
  * ```
  */
-export function isCRDT(obj: any): boolean {
+export function isCRDT(obj: unknown): boolean {
   return obj && typeof obj === 'object' && typeof obj.merge === 'function';
 }

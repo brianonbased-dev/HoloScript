@@ -1,5 +1,5 @@
 /**
- * Shared utility types for eliminating `as any` patterns.
+ * Shared utility types for eliminating `as unknown` patterns.
  *
  * These are the subset of @holoscript/core-types/utility used within @holoscript/core.
  * When workspace linking is configured, this file can be replaced with:
@@ -12,7 +12,7 @@
 
 /**
  * Type-safe way to describe a global object with known extra properties.
- * Use with `globalThis` to avoid `(global as any)`.
+ * Use with `globalThis` to avoid `(global as unknown)`.
  *
  * @example
  * ```ts

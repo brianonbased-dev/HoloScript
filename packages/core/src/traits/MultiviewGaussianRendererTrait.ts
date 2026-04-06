@@ -110,12 +110,12 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const multiviewGaussianRendererHandler = {
   name: 'multiview_gaussian_renderer',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
     const instance = new MultiviewGaussianRendererTrait(config);
     node.__multiview_gaussian_renderer_instance = instance;
     ctx.emit('multiview_gaussian_renderer_attached', { node, config });
   },
-  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+  onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {
     const instance = node.__multiview_gaussian_renderer_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
@@ -125,7 +125,7 @@ export const multiviewGaussianRendererHandler = {
     ctx.emit('multiview_gaussian_renderer_detached', { node });
     delete node.__multiview_gaussian_renderer_instance;
   },
-  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__multiview_gaussian_renderer_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
@@ -135,7 +135,7 @@ export const multiviewGaussianRendererHandler = {
       ctx.emit('multiview_gaussian_renderer_configured', { node });
     }
   },
-  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+  onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__multiview_gaussian_renderer_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);

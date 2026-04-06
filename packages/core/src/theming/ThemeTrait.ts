@@ -10,7 +10,7 @@ import { ThemeEngine } from './ThemeEngine';
 import { StyleResolver } from './StyleResolver';
 
 interface NodeWithStyle {
-  properties?: Record<string, any> & { _style?: any };
+  properties?: Record<string, any> & { _style?: unknown };
 }
 
 export interface ThemeTraitConfig {

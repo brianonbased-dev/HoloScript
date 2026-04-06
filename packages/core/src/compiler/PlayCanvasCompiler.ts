@@ -303,7 +303,7 @@ export class PlayCanvasCompiler extends CompilerBase {
     let geom = 'cube',
       modelSrc: string | undefined,
       textContent: string | undefined;
-    let position: any[] | undefined, rotation: any[] | undefined, scale: any, size: any;
+    let position: unknown[] | undefined, rotation: unknown[] | undefined, scale: unknown, size: unknown;
     const mat: Record<string, any> = {};
 
     for (const p of obj.properties) {
@@ -450,7 +450,7 @@ export class PlayCanvasCompiler extends CompilerBase {
 
     // TraitCompositor batch composition
     if (obj.traits && Array.isArray(obj.traits) && obj.traits.length > 0) {
-      const traitNames = obj.traits.map((t: any) => t.name as string);
+      const traitNames = obj.traits.map((t: unknown) => t.name as string);
       const compositor = new TraitCompositor();
       const composed = compositor.compose(traitNames);
       if (Object.keys(composed).length > 0) {
@@ -512,8 +512,8 @@ export class PlayCanvasCompiler extends CompilerBase {
 
   private emitLight(light: HoloLight): void {
     const v = this.sanitizeName(light.name);
-    let pos: any[] | undefined, color: any, intensity: number | undefined;
-    let dir: any[] | undefined,
+    let pos: unknown[] | undefined, color: unknown, intensity: number | undefined;
+    let dir: unknown[] | undefined,
       castShadow = false,
       angle: number | undefined,
       dist: number | undefined;
@@ -552,7 +552,7 @@ export class PlayCanvasCompiler extends CompilerBase {
   // --- Camera ---
 
   private emitCamera(cam: HoloCamera): void {
-    let fov: number | undefined, pos: any[] | undefined, lookAt: any[] | undefined;
+    let fov: number | undefined, pos: unknown[] | undefined, lookAt: unknown[] | undefined;
     let near: number | undefined, far: number | undefined;
     for (const p of cam.properties) {
       if (p.key === 'fov' || p.key === 'field_of_view') fov = p.value as number;
@@ -614,7 +614,7 @@ export class PlayCanvasCompiler extends CompilerBase {
       volume = 1,
       loop = false,
       spatial = false;
-    let position: any[] | undefined, dist: number | undefined;
+    let position: unknown[] | undefined, dist: number | undefined;
     for (const p of audio.properties) {
       if (p.key === 'src' || p.key === 'source') src = String(p.value);
       else if (p.key === 'volume') volume = p.value as number;
@@ -647,8 +647,8 @@ export class PlayCanvasCompiler extends CompilerBase {
   private emitZone(zone: HoloZone): void {
     const v = this.sanitizeName(zone.name);
     let shape = 'box',
-      position: any[] | undefined,
-      size: any,
+      position: unknown[] | undefined,
+      size: unknown,
       radius: number | undefined;
     for (const p of zone.properties) {
       if (p.key === 'shape') shape = String(p.value);
@@ -678,7 +678,7 @@ export class PlayCanvasCompiler extends CompilerBase {
               ? 'triggerleave'
               : h.event;
         this.emit(
-          `${v}.collision!.on("${event}", (result: any) => { /* ${this.escapeStringValue(h.event as string, 'TypeScript')} */ });`
+          `${v}.collision!.on("${event}", (result: unknown) => { /* ${this.escapeStringValue(h.event as string, 'TypeScript')} */ });`
         );
       }
     }
@@ -855,7 +855,7 @@ export class PlayCanvasCompiler extends CompilerBase {
     }
   }
 
-  private directionToEuler(dir: any[]): string {
+  private directionToEuler(dir: unknown[]): string {
     // Simplified: direction vector to Euler angles
     const x = dir[0] || 0,
       y = dir[1] || 0,

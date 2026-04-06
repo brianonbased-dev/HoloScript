@@ -36,7 +36,7 @@ export class UserProfileCard {
       traits: new Map([
         ['render', { type: 'sphere', color: '#0984e3', radius: 0.05 }], // Simple avatar
       ]),
-    } as any);
+    } as unknown);
 
     // Name
     panel.children?.push({
@@ -47,7 +47,7 @@ export class UserProfileCard {
         fontSize: 0.05,
         color: '#ffffff',
       },
-    } as any);
+    } as unknown);
 
     // Status
     const statusColors: Record<string, string> = {
@@ -66,7 +66,7 @@ export class UserProfileCard {
         fontSize: 0.03,
         color: statusColors[user.status] || '#b2bec3',
       },
-    } as any);
+    } as unknown);
 
     // Actions
     let actionY = -0.05;
@@ -85,7 +85,7 @@ export class UserProfileCard {
       // In a real system, we'd bind the onClick event properly.
       // For now, we assume the runtime handles the event mapping via ID or a specific trait property we'd set here.
       // We'll simulate it by attaching a custom property or just verifying the structure.
-      (btn.properties as any).onClickHandler = () => onClick(user.id);
+      (btn.properties as unknown).onClickHandler = () => onClick(user.id);
 
       panel.children?.push(btn);
       actionY -= btnHeight + gap;

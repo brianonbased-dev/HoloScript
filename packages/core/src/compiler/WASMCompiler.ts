@@ -807,7 +807,7 @@ export class WASMCompiler extends CompilerBase {
     lines.push('export class HoloScriptWASM {');
     lines.push('  private instance: WebAssembly.Instance | null = null;');
     lines.push('  private memory: WebAssembly.Memory | null = null;');
-    lines.push('  private eventHandlers: Map<string, Set<(payload: any) => void>> = new Map();');
+    lines.push('  private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();');
     lines.push('');
 
     // Event IDs
@@ -865,7 +865,7 @@ export class WASMCompiler extends CompilerBase {
     lines.push('');
 
     // Event handling
-    lines.push('  on(event: string, handler: (payload: any) => void): () => void {');
+    lines.push('  on(event: string, handler: (payload: unknown) => void): () => void {');
     lines.push('    if (!this.eventHandlers.has(event)) {');
     lines.push('      this.eventHandlers.set(event, new Set());');
     lines.push('    }');
@@ -885,7 +885,7 @@ export class WASMCompiler extends CompilerBase {
     lines.push('    }');
     lines.push('  }');
     lines.push('');
-    lines.push('  private decodePayload(ptr: number): any {');
+    lines.push('  private decodePayload(ptr: number): unknown {');
     lines.push('    if (!this.instance || ptr === 0) return {};');
     lines.push('    const memory = this.instance.exports.memory as WebAssembly.Memory;');
     lines.push('    const view = new DataView(memory.buffer);');

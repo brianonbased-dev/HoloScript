@@ -307,7 +307,7 @@ export class ErrorBoundary {
    * Wrap function with error boundary
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  wrap<T extends (...args: any[]) => any>(fn: T): T {
+  wrap<T extends (...args: unknown[]) => any>(fn: T): T {
     return ((...args: unknown[]) => {
       try {
         const result = fn(...args);
@@ -332,7 +332,7 @@ export class ErrorBoundary {
    * Wrap async function with error boundary
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  wrapAsync<T extends (...args: any[]) => Promise<any>>(fn: T): T {
+  wrapAsync<T extends (...args: unknown[]) => Promise<any>>(fn: T): T {
     return (async (...args: unknown[]) => {
       try {
         return await fn(...args);

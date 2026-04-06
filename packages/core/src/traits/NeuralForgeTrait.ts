@@ -19,7 +19,7 @@ export interface NeuralShard {
   sourceId: string;
   timestamp: number;
   type: 'memory' | 'skill' | 'personality';
-  data: any;
+  data: unknown;
   weight: number; // Influence strength (0.0 - 1.0)
 }
 

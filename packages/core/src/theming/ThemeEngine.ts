@@ -159,10 +159,10 @@ export class ThemeEngine {
   }
 
   /** Resolve a token path like 'colors.primary' */
-  resolve(path: string): any {
+  resolve(path: string): unknown {
     const tokens = this.getTokens();
     const parts = path.split('.');
-    let current: any = tokens;
+    let current: unknown = tokens;
     for (const part of parts) {
       if (current === undefined) return undefined;
       current = current[part];

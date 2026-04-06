@@ -26,7 +26,7 @@ export interface NetworkMessage {
   type: MessageType;
   senderId: string;
   timestamp: number;
-  payload: any;
+  payload: unknown;
 }
 
 export interface PeerInfo {
@@ -173,7 +173,7 @@ export class NetworkManager {
    * Send a message to all peers.
    * Routes through transport when attached, otherwise uses outbox.
    */
-  broadcast(type: MessageType, payload: any): void {
+  broadcast(type: MessageType, payload: unknown): void {
     if (!this.connected) return;
 
     if (this.transport) {
@@ -194,7 +194,7 @@ export class NetworkManager {
    * W.NET.02: Send a message only to peers within the entity's Area of Interest.
    * 95% bandwidth reduction for 200 entities → each player sees 20-40.
    */
-  broadcastToAOI(entityId: string, type: MessageType, payload: any): void {
+  broadcastToAOI(entityId: string, type: MessageType, payload: unknown): void {
     if (!this.connected) return;
 
     const interestedPeers = this.spatialGrid.getPeersInterestedIn(entityId);
@@ -209,7 +209,7 @@ export class NetworkManager {
    * Send a message to a specific peer.
    * Routes through transport when attached, otherwise uses outbox.
    */
-  sendTo(peerId: string, type: MessageType, payload: any): void {
+  sendTo(peerId: string, type: MessageType, payload: unknown): void {
     if (!this.connected || !this.peers.has(peerId)) return;
 
     if (this.transport) {

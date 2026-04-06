@@ -130,7 +130,7 @@ export interface LazyMintingConfig {
 
 export interface ValidationRule {
   type: 'minPrice' | 'maxSupply' | 'whitelist' | 'custom';
-  value: any;
+  value: unknown;
   errorMessage?: string;
 }
 
@@ -171,7 +171,7 @@ export interface NFTMarketplaceCompilationOutput {
 export interface CompiledContract {
   name: string;
   solidity: string;
-  abi: any[];
+  abi: unknown[];
   bytecode?: string;
   sourceMap?: string;
 }
@@ -184,7 +184,7 @@ export interface DeploymentScript {
 
 export interface VerificationConfig {
   contractName: string;
-  constructorArgs: any[];
+  constructorArgs: unknown[];
   apiKey?: string;
 }
 

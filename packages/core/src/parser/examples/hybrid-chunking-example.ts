@@ -265,7 +265,7 @@ const files = [
   { path: 'game.hsplus', content: holoscriptCode },
 ];
 
-const allChunks: any[] = [];
+const allChunks: unknown[] = [];
 const startTime = performance.now();
 
 files.forEach((file) => {

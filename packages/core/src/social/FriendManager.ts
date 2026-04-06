@@ -10,7 +10,7 @@
 import { SocialGraph, SocialUser, RelationshipType } from './SocialGraph';
 import { WebRTCTransport } from '../network/WebRTCTransport';
 
-type SocialEventListener = (event: string, data: any) => void;
+type SocialEventListener = (event: string, data: unknown) => void;
 
 export class FriendManager {
   private listeners: Set<SocialEventListener> = new Set();
@@ -24,7 +24,7 @@ export class FriendManager {
     }
   }
 
-  private handleNetworkMessage(packet: any) {
+  private handleNetworkMessage(packet: unknown) {
     // payload structure depends on packet type
     const { type, payload } = packet;
 
@@ -46,7 +46,7 @@ export class FriendManager {
     this.listeners.add(listener);
   }
 
-  private emit(event: string, data: any): void {
+  private emit(event: string, data: unknown): void {
     this.listeners.forEach((l) => l(event, data));
   }
 

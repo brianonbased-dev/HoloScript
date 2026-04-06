@@ -23,7 +23,7 @@ export const sqlQueryHandler: TraitHandler<SqlQueryConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    const state = node.__sqlState as { queries: number; results: any[] } | undefined;
+    const state = node.__sqlState as { queries: number; results: unknown[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

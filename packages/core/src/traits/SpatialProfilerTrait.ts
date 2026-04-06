@@ -26,7 +26,7 @@ export const spatialProfilerHandler: TraitHandler<SpatialProfilerConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    const state = node.__profState as { samples: any[]; recording: boolean } | undefined;
+    const state = node.__profState as { samples: unknown[]; recording: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {
@@ -50,7 +50,7 @@ export const spatialProfilerHandler: TraitHandler<SpatialProfilerConfig> = {
         context.emit?.('prof:report', {
           samples: state.samples.length,
           avgFps: state.samples.length
-            ? state.samples.reduce((s: number, x: any) => s + x.fps, 0) / state.samples.length
+            ? state.samples.reduce((s: number, x: unknown) => s + x.fps, 0) / state.samples.length
             : 0,
         });
         break;

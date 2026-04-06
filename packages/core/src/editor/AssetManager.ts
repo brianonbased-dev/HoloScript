@@ -28,7 +28,7 @@ export class AssetManager {
 
   private registerDefaultAssets() {
     // Mock standard library for testing
-    const defaults: any[] = [
+    const defaults: unknown[] = [
       {
         id: 'std_cube',
         name: 'Standard Cube',
@@ -80,8 +80,8 @@ export class AssetManager {
   /**
    * Get all available assets (Registry + Session)
    */
-  getAllAssets(): any[] {
-    const registryAssets: any[] = [];
+  getAllAssets(): unknown[] {
+    const registryAssets: unknown[] = [];
     // registry.search('') returns all unique?
 
     // This is inefficient but functional for MVP
@@ -91,7 +91,7 @@ export class AssetManager {
     return [...all, ...Array.from(this.sessionAssets.values())];
   }
 
-  getAssetsByType(type: string): any[] {
+  getAssetsByType(type: string): unknown[] {
     const registryAssets = this.registry.findByType(type as AssetType);
     const sessionAssets = Array.from(this.sessionAssets.values()).filter(
       (a) => a.assetType === type
@@ -99,7 +99,7 @@ export class AssetManager {
     return [...registryAssets, ...sessionAssets];
   }
 
-  getAsset(id: string): any | undefined {
+  getAsset(id: string): unknown | undefined {
     return this.sessionAssets.get(id) || this.registry.getAsset(id);
   }
 
@@ -109,7 +109,7 @@ export class AssetManager {
    */
   importFile(name: string, url: string, type: string) {
     const id = `local_${Date.now()}_${name}`;
-    const asset: any = {
+    const asset: unknown = {
       id,
       name,
       assetType: type,

@@ -249,7 +249,7 @@ export class Bulkhead {
   private running = 0;
   private queue: Array<{
     fn: () => Promise<any>;
-    resolve: (value: any) => void;
+    resolve: (value: unknown) => void;
     reject: (error: Error) => void;
     timeoutId: ReturnType<typeof setTimeout>;
   }> = [];

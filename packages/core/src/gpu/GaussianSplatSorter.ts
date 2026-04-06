@@ -895,7 +895,7 @@ export class GaussianSplatSorter {
  * ```
  */
 export async function createGaussianSplatSorter(
-  options: GaussianSplatSorterOptions & { contextOptions?: any }
+  options: GaussianSplatSorterOptions & { contextOptions?: unknown }
 ): Promise<GaussianSplatSorter> {
   const { WebGPUContext } = await import('./WebGPUContext.js');
 

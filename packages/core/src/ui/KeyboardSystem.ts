@@ -5,10 +5,10 @@ export class KeyboardSystem {
   private symbolState: boolean = false;
   private shiftState: boolean = false;
 
-  constructor(private context: any) {}
+  constructor(private context: unknown) {}
 
   // Called by Runtime
-  handleEvent(event: string, payload: any) {
+  handleEvent(event: string, payload: unknown) {
     if (event === 'ui_press_start') {
       this.onKeyPress(payload.nodeId);
     }
@@ -68,7 +68,7 @@ export class KeyboardSystem {
     this.inputChar(char);
   }
 
-  private getFocusedData(): any {
+  private getFocusedData(): unknown {
     if (!this.focusedNodeId) return null;
     const node = this.context.getNode(this.focusedNodeId);
     if (!node || !node.properties.data) return null;

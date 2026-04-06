@@ -35,9 +35,9 @@ export interface StateChange {
   /** Property path that changed */
   property: string;
   /** Previous value */
-  oldValue: any;
+  oldValue: unknown;
   /** New value */
-  newValue: any;
+  newValue: unknown;
   /** Change timestamp */
   timestamp: number;
 }
@@ -169,7 +169,7 @@ export class AgentInspector extends EventEmitter {
   /**
    * Set a single state value
    */
-  setState(agentId: string, property: string, value: any): void {
+  setState(agentId: string, property: string, value: unknown): void {
     this.updateState(agentId, { [property]: value });
   }
 
@@ -187,15 +187,15 @@ export class AgentInspector extends EventEmitter {
   /**
    * Get a specific state value
    */
-  getStateValue(agentId: string, property: string): any {
+  getStateValue(agentId: string, property: string): unknown {
     return this.getState(agentId)[property];
   }
 
   private recordStateChange(
     agentId: string,
     property: string,
-    oldValue: any,
-    newValue: any,
+    oldValue: unknown,
+    newValue: unknown,
     timestamp: number
   ): void {
     const change: StateChange = {

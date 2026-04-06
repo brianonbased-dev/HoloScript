@@ -11,7 +11,7 @@ export interface TimezoneConfig {
 export const timezoneHandler: TraitHandler<TimezoneConfig> = {
   name: 'timezone',
   defaultConfig: { default_tz: 'UTC' },
-  onAttach(node: HSPlusNode, config: any): void {
+  onAttach(node: HSPlusNode, config: unknown): void {
     node.__tzState = { current: config.default_tz || 'UTC' };
   },
   onDetach(node: HSPlusNode): void {

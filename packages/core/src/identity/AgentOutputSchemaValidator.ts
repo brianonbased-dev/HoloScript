@@ -479,7 +479,7 @@ export class AgentOutputSchemaValidator {
    */
   private resolvePath(obj: Record<string, any>, path: string): unknown {
     const parts = path.split('.');
-    let current: any = obj;
+    let current: unknown = obj;
     for (const part of parts) {
       if (current === undefined || current === null) return undefined;
       current = current[part];

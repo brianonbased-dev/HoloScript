@@ -368,7 +368,7 @@ export interface HoloTemplate extends HoloNode {
   state?: HoloState;
   actions: HoloAction[];
   traits: HoloObjectTrait[];
-  directives?: any[]; // For lifecycle hooks, etc.
+  directives?: unknown[]; // For lifecycle hooks, etc.
   /** @platform() conditional compilation constraint */
   platformConstraint?: PlatformConstraint;
 }
@@ -376,7 +376,7 @@ export interface HoloTemplate extends HoloNode {
 export interface HoloMigration extends HoloNode {
   type: 'Migration';
   fromVersion: number;
-  body: any; // Statement list or raw code string
+  body: unknown; // Statement list or raw code string
 }
 
 export interface HoloTemplateProperty extends HoloNode {
@@ -397,7 +397,7 @@ export interface HoloObjectDecl extends HoloNode {
   properties: HoloObjectProperty[];
   state?: HoloState;
   traits: HoloObjectTrait[];
-  directives?: any[]; // for compatibility with newer runtime
+  directives?: unknown[]; // for compatibility with newer runtime
   children?: HoloObjectDecl[];
   subOrbs?: HoloSubOrb[];
   /** @platform() conditional compilation constraint */

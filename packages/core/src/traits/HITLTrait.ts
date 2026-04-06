@@ -82,7 +82,7 @@ interface AuditLogEntry {
   rollbackAvailable: boolean;
   rollbackId?: string;
   isViolation?: boolean;
-  violations?: any[];
+  violations?: unknown[];
 }
 
 interface RollbackCheckpoint {
@@ -507,7 +507,7 @@ interface EvaluationResult {
   reason: string;
   escalationLevel: EscalationLevel;
   isViolation?: boolean;
-  violations?: any[];
+  violations?: unknown[];
 }
 
 function evaluateAction(
@@ -653,7 +653,7 @@ function logAction(
     approver?: string;
     reason?: string;
     isViolation?: boolean;
-    violations?: any[];
+    violations?: unknown[];
   }
 ): void {
   const entry: AuditLogEntry = {

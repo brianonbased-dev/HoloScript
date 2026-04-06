@@ -23,7 +23,7 @@ export interface GraphQLClientOptions {
   /** Maximum retry attempts */
   maxRetries?: number;
   /** Circuit breaker configuration */
-  circuitBreakerConfig?: any;
+  circuitBreakerConfig?: unknown;
 }
 
 export interface GraphQLRequest {
@@ -34,12 +34,12 @@ export interface GraphQLRequest {
   /** Operation name (for circuit tracking) */
   operationName?: string;
   /** Context for cache/extensions */
-  context?: any;
+  context?: unknown;
 }
 
 export interface GraphQLResponse<T = any> {
   data?: T;
-  errors?: Array<{ message: string; extensions?: any }>;
+  errors?: Array<{ message: string; extensions?: unknown }>;
 }
 
 export interface CircuitBreakerStats {
@@ -60,14 +60,14 @@ export class FallbackDataProvider {
   /**
    * Register fallback data for an operation
    */
-  static register(operationName: string, fallbackData: any): void {
+  static register(operationName: string, fallbackData: unknown): void {
     this.fallbacks.set(operationName, fallbackData);
   }
 
   /**
    * Get fallback data for an operation
    */
-  static get(operationName: string): any {
+  static get(operationName: string): unknown {
     return (
       this.fallbacks.get(operationName) || {
         data: null,
@@ -132,7 +132,7 @@ export class GraphQLCircuitBreakerClient {
   private async executeWithRetries<T>(
     request: GraphQLRequest,
     operationName: string,
-    circuit: any,
+    circuit: unknown,
     attemptNumber: number = 0
   ): Promise<RequestResult<T>> {
     try {
@@ -284,7 +284,7 @@ export class GraphQLCircuitBreakerClient {
   /**
    * Check if GraphQL errors are retriable
    */
-  private isRetriableError(errors: Array<{ message: string; extensions?: any }>): boolean {
+  private isRetriableError(errors: Array<{ message: string; extensions?: unknown }>): boolean {
     const retriableCodes = [
       'INTERNAL_SERVER_ERROR',
       'SERVICE_UNAVAILABLE',
@@ -419,7 +419,7 @@ export function createApolloCircuitBreakerLink(client: GraphQLCircuitBreakerClie
   // This would integrate with Apollo Client's link chain
   // Full implementation depends on Apollo Client version
   return {
-    request: async (operation: any) => {
+    request: async (operation: unknown) => {
       const result = await client.query({
         query: operation.query,
         variables: operation.variables,
@@ -436,7 +436,7 @@ export function createApolloCircuitBreakerLink(client: GraphQLCircuitBreakerClie
  */
 export function createUrqlCircuitBreakerExchange(client: GraphQLCircuitBreakerClient) {
   // This would integrate with URQL's exchange pipeline
-  return (options: any) => (ops$: any) => {
+  return (options: unknown) => (ops$: unknown) => {
     // Implementation depends on URQL version
     // Would wrap operations with circuit breaker logic
   };

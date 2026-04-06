@@ -263,7 +263,7 @@ export class PlatformPerformanceOptimizer {
   /**
    * Optimize for device - returns recommended rendering settings
    */
-  optimizeForDevice(): any {
+  optimizeForDevice(): unknown {
     const { platform, gpuMemory, isLowPowerMode } = this.deviceInfo;
     const quality = this.profile.qualityLevel;
 

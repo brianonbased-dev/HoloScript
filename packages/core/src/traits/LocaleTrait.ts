@@ -12,7 +12,7 @@ export interface LocaleConfig {
 export const localeHandler: TraitHandler<LocaleConfig> = {
   name: 'locale',
   defaultConfig: { default_locale: 'en-US', supported: ['en-US', 'es', 'fr', 'de', 'ja', 'zh'] },
-  onAttach(node: HSPlusNode, config: any): void {
+  onAttach(node: HSPlusNode, config: unknown): void {
     node.__localeState = { current: config.default_locale || 'en-US' };
   },
   onDetach(node: HSPlusNode): void {

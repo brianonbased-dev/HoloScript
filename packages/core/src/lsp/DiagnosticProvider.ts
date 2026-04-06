@@ -32,10 +32,10 @@ export interface DiagnosticContext {
   nodes: Array<{
     type: string;
     name?: string;
-    directives?: Array<{ name: string; args?: any }>;
+    directives?: Array<{ name: string; args?: unknown }>;
     properties?: Record<string, any>;
     loc?: { start: { line: number; column: number }; end: { line: number; column: number } };
-    children?: any[];
+    children?: unknown[];
     domain?: string;
     keyword?: string;
     /** Collider shape (box, sphere, capsule, mesh, convex, cylinder, heightfield) */

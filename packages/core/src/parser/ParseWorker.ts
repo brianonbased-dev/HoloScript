@@ -33,13 +33,13 @@ export interface ParseTaskResult {
   /** File path */
   filePath: string;
   /** Parsed AST */
-  ast: any;
+  ast: unknown;
   /** Whether parsing was successful */
   success: boolean;
   /** Parse errors */
-  errors: any[];
+  errors: unknown[];
   /** Parse warnings */
-  warnings: any[];
+  warnings: unknown[];
   /** Symbols exported from this file */
   exports: string[];
   /** Symbols imported by this file */
@@ -51,7 +51,7 @@ export interface ParseTaskResult {
 interface WorkerMessage {
   taskId: string;
   type: string;
-  data: any;
+  data: unknown;
 }
 
 /**
@@ -116,7 +116,7 @@ class ParseWorkerInstance {
   /**
    * Extract exported symbols from AST
    */
-  private extractExports(ast: any): string[] {
+  private extractExports(ast: unknown): string[] {
     const exports: string[] = [];
 
     if (!ast) return exports;
@@ -147,7 +147,7 @@ class ParseWorkerInstance {
   /**
    * Extract imported symbols from AST
    */
-  private extractImports(ast: any): Array<{ path: string; symbols: string[] }> {
+  private extractImports(ast: unknown): Array<{ path: string; symbols: string[] }> {
     const imports: Array<{ path: string; symbols: string[] }> = [];
 
     if (!ast) return imports;

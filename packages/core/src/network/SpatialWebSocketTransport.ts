@@ -98,5 +98,5 @@ export class SpatialWebSocketTransport extends NetworkTransport {
   }
 
   // Custom Callback for direct JSON payloads
-  public onInboundState?: (payload: any) => void;
+  public onInboundState?: (payload: unknown) => void;
 }

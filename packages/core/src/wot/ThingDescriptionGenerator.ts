@@ -277,7 +277,7 @@ export class ThingDescriptionGenerator {
 
     return (
       node.directives.find(
-        (d: any) =>
+        (d: unknown) =>
           (d.type === 'trait' && d.name === 'wot_thing') ||
           (d.type === 'directive' && d.name === 'wot_thing')
       ) || null

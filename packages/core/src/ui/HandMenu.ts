@@ -8,7 +8,7 @@ import { AnimationEngine } from '@holoscript/engine/animation/AnimationEngine';
 
 export class HandMenuSystem {
   private menuNodeId: string | null = null;
-  private menuNode: any = null;
+  private menuNode: unknown = null;
   private isMenuVisible: boolean = false;
   private isTransitioning: boolean = false;
   private lastToggleTime: number = 0;

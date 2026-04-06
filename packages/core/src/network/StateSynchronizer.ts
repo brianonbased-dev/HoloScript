@@ -69,7 +69,7 @@ export class StateSynchronizer {
     this.transport.connect();
 
     // Route inbound traffic from the server into the subscriber loops
-    this.transport.onMessage('state-sync', (msg: any) => {
+    this.transport.onMessage('state-sync', (msg: unknown) => {
       const payload = msg.payload;
       if (payload && payload.agent_updates && Array.isArray(payload.agent_updates)) {
         // Reconstruct native TS Deltas from the Rust AgentDelta structs

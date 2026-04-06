@@ -185,12 +185,12 @@ export class SceneInspector {
         parentId: null, // HoloScript doesn't have hierarchy yet, all root-level
         childrenIds: [],
         transform: {
-          position: pos ? [pos[0], pos[1], pos[2]] as any : [0, 0, 0],
-          rotation: rot ? [rot[0], rot[1], rot[2]] as any : [0, 0, 0],
-          scale: scl ? [scl[0], scl[1], scl[2]] as any : [1, 1, 1],
+          position: pos ? [pos[0], pos[1], pos[2]] as unknown : [0, 0, 0],
+          rotation: rot ? [rot[0], rot[1], rot[2]] as unknown : [0, 0, 0],
+          scale: scl ? [scl[0], scl[1], scl[2]] as unknown : [1, 1, 1],
         },
         properties: this.extractProperties(obj),
-        traits: obj.traits?.map((t: any) => t.name) || [],
+        traits: obj.traits?.map((t: unknown) => t.name) || [],
         visible: true,
         active: true,
       };
@@ -202,7 +202,7 @@ export class SceneInspector {
   /**
    * Extract properties from entity
    */
-  private extractProperties(entity: any): Record<string, any> {
+  private extractProperties(entity: unknown): Record<string, any> {
     const props: Record<string, any> = {};
 
     // Extract basic properties
@@ -296,13 +296,13 @@ export class SceneInspector {
   /**
    * Update entity property (live editing)
    */
-  public updateEntityProperty(id: string, path: string, value: any): boolean {
+  public updateEntityProperty(id: string, path: string, value: unknown): boolean {
     const entity = this.entities.get(id);
     if (!entity) return false;
 
     // Parse property path (e.g., "transform.position.0")
     const parts = path.split('.');
-    let target: any = entity;
+    let target: unknown = entity;
 
     for (let i = 0; i < parts.length - 1; i++) {
       target = target[parts[i]];

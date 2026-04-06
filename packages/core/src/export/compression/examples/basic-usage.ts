@@ -178,7 +178,7 @@ export async function monitorCompressionPerformance() {
 /**
  * Example 8: Batch compression
  */
-export async function batchCompression(documents: any[]) {
+export async function batchCompression(documents: unknown[]) {
   const compressor = new AdvancedCompression({
     qualityPreset: 'balanced',
   });

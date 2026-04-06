@@ -18,7 +18,7 @@ export interface AuditEntry {
   approver?: string;
   reason?: string;
   isViolation?: boolean;
-  violations?: any[];
+  violations?: unknown[];
 }
 
 export class HITLAuditLogger {

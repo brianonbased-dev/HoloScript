@@ -9,7 +9,7 @@ export interface CRDTOperation {
   clientId: string;
   clock: number;
   key: string;
-  value: any;
+  value: unknown;
 }
 
 export class CRDTStateManager {
@@ -25,7 +25,7 @@ export class CRDTStateManager {
   /**
    * Create an operation for a local update.
    */
-  public createOperation(key: string, value: any): CRDTOperation {
+  public createOperation(key: string, value: unknown): CRDTOperation {
     const currentClock = (this.stateVector.get(this.clientId) || 0) + 1;
     this.stateVector.set(this.clientId, currentClock);
 

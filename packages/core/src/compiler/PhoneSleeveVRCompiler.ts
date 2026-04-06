@@ -1057,7 +1057,7 @@ ${handTrackingFrame}
   // Helpers
   // =========================================================================
 
-  private getProp(properties: { key: string, value: any }[] | undefined, key: string): any {
+  private getProp(properties: { key: string, value: unknown }[] | undefined, key: string): unknown {
     if (!properties) return undefined;
     const prop = properties.find(p => p.key === key);
     return prop ? prop.value : undefined;

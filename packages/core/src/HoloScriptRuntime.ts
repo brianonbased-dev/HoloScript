@@ -105,7 +105,7 @@ type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
 
 /**
  * Runtime orb data — the shape of an orb stored in context.variables.
- * Used to avoid `as any` casts when reading dynamic orb state.
+ * Used to avoid `as unknown` casts when reading dynamic orb state.
  */
 interface OrbData {
   __type: 'orb';
@@ -935,7 +935,7 @@ export class HoloScriptRuntime {
       try {
         // The function is already wrapped to accept spread args, but callFunction passes array
         // We need to unwrap or call it correctly.
-        // Wait, initBuiltins wraps it as: ((...spreadArgs: any[]) => fn(spreadArgs))
+        // Wait, initBuiltins wraps it as: ((...spreadArgs: unknown[]) => fn(spreadArgs))
         // So we should call it as func(...args)
         const result = await (func as Function)(...args);
         return {

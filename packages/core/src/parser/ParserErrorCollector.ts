@@ -86,7 +86,7 @@ export class ParserErrorCollector {
 
     if (typeof error === 'string') {
       // Detect error type from message
-      let errorCode: any = 'SYNTAX_ERROR';
+      let errorCode: unknown = 'SYNTAX_ERROR';
       if (/missing.*brace/i.test(error)) {
         errorCode = 'MISSING_BRACE';
       } else if (/missing.*colon/i.test(error)) {
@@ -228,7 +228,7 @@ export class ParserErrorCollector {
   /**
    * Get JSON representation for LSP/IDE integration
    */
-  toJSON(): any {
+  toJSON(): unknown {
     return {
       success: !this.hasErrors(),
       errors: this.errors.length,
@@ -365,7 +365,7 @@ export class SynchronizationStrategies {
   /**
    * Skip to next statement boundary (semicolon or newline)
    */
-  static skipToStatement(tokens: any[], current: number): number {
+  static skipToStatement(tokens: unknown[], current: number): number {
     while (current < tokens.length) {
       if (tokens[current].type === 'SEMICOLON' || tokens[current].type === 'NEWLINE') {
         return current + 1;
@@ -378,7 +378,7 @@ export class SynchronizationStrategies {
   /**
    * Skip to next block boundary (matching brace)
    */
-  static skipToBlockEnd(tokens: any[], current: number): number {
+  static skipToBlockEnd(tokens: unknown[], current: number): number {
     let braceCount = 1;
     current++;
 
@@ -397,7 +397,7 @@ export class SynchronizationStrategies {
   /**
    * Skip to next keyword
    */
-  static skipToKeyword(tokens: any[], current: number, keywords: string[]): number {
+  static skipToKeyword(tokens: unknown[], current: number, keywords: string[]): number {
     while (current < tokens.length) {
       if (keywords.includes(tokens[current].value)) {
         return current;
@@ -411,7 +411,7 @@ export class SynchronizationStrategies {
    * Find matching closing bracket
    */
   static findMatchingBracket(
-    tokens: any[],
+    tokens: unknown[],
     current: number,
     openType: string,
     closeType: string

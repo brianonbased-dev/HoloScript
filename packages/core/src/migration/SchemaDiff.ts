@@ -60,7 +60,7 @@ export interface MigrationChain {
 
 export interface MigrationStep {
   fromVersion: number;
-  body: any; // Statement list or raw code string
+  body: unknown; // Statement list or raw code string
 }
 
 // =============================================================================

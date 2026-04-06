@@ -340,7 +340,7 @@ export class ComputePipeline {
 export async function createGPUPhysicsSimulation(options: {
   particleCount: number;
   shaderCode: string;
-  contextOptions?: any;
+  contextOptions?: unknown;
   workgroupSize?: number;
 }): Promise<{
   context: WebGPUContext;

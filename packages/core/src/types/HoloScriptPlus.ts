@@ -14,7 +14,7 @@ export type Vector3 = {
   0?: number;
   1?: number;
   2?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export interface Color {
@@ -68,7 +68,7 @@ export interface HSPlusRuntime {
   execute?(ast: unknown): unknown;
   callMethod?(name: string, args: unknown[]): unknown;
   destroy?(): void;
-  state?: any; // Reconciled for ReactiveState implementations
+  state?: unknown; // Reconciled for ReactiveState implementations
   props?: Record<string, unknown>;
   refs?: Record<string, unknown>;
 }
@@ -135,7 +135,7 @@ export interface HSPlusNode extends ASTNode {
    */
   inferredType?: HSPlusType;
   /** Trait private state — `__`-prefixed keys are reserved for trait handlers. */
-  [key: `__${string}`]: any;
+  [key: `__${string}`]: unknown;
 }
 
 export interface HSPlusAST {

@@ -151,7 +151,7 @@ export class PinataProvider implements IIPFSProvider {
     }
 
     const data = await response.json();
-    return data.rows.map((pin: any) => ({
+    return data.rows.map((pin: unknown) => ({
       cid: pin.ipfs_pin_hash,
       name: pin.metadata?.name || pin.ipfs_pin_hash,
       size: pin.size,
@@ -259,7 +259,7 @@ export class NFTStorageProvider implements IIPFSProvider {
     }
 
     const data = await response.json();
-    return data.value.map((item: any) => ({
+    return data.value.map((item: unknown) => ({
       cid: item.cid,
       name: item.name || item.cid,
       size: item.size,

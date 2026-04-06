@@ -533,7 +533,7 @@ function buildPredicateParams(config: ZkPrivateConfig): Record<string, unknown> 
  * Falls back to mock when @aztec/bb.js is unavailable.
  */
 class BarretenbergBackend {
-  private bb: any = null;
+  private bb: unknown = null;
   private compiledCircuits: Map<string, { acir: Uint8Array; verificationKey: Uint8Array }> =
     new Map();
 

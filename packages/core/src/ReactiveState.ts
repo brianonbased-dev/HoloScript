@@ -78,7 +78,7 @@ export class ExpressionEvaluator {
     this.context = context;
   }
 
-  evaluate(expression: string): any {
+  evaluate(expression: string): unknown {
     if (typeof expression !== 'string') return expression;
 
     // Security: Block dangerous patterns including prototype-chain escape vectors.

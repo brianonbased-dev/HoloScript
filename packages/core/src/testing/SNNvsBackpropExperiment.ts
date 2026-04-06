@@ -784,7 +784,7 @@ export class SNNvsBackpropExperiment {
           correctRate: number;
           count: number;
         }
-      > = {} as any;
+      > = {} as unknown;
 
       for (const cat of categories) {
         const catPromptIds = this.config.prompts.filter((p) => p.category === cat).map((p) => p.id);

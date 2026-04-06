@@ -12,7 +12,7 @@ export interface SocialMessage {
 
 export class ConversationManager {
   private conversations: Map<string, SocialMessage[]> = new Map();
-  private listeners: Set<(event: string, data: any) => void> = new Set();
+  private listeners: Set<(event: string, data: unknown) => void> = new Set();
 
   constructor(
     private graph: SocialGraph,
@@ -22,7 +22,7 @@ export class ConversationManager {
     this.transport.onSocialMessage(this.handleNetworkMessage.bind(this));
   }
 
-  private handleNetworkMessage(packet: any) {
+  private handleNetworkMessage(packet: unknown) {
     if (packet.type === 'SOCIAL_MESSAGE') {
       const { senderId, text, id, timestamp } = packet.payload;
 
@@ -103,11 +103,11 @@ export class ConversationManager {
     this.conversations.get(userId)!.sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  onEvent(listener: (event: string, data: any) => void) {
+  onEvent(listener: (event: string, data: unknown) => void) {
     this.listeners.add(listener);
   }
 
-  private emit(event: string, data: any) {
+  private emit(event: string, data: unknown) {
     this.listeners.forEach((l) => l(event, data));
   }
 }

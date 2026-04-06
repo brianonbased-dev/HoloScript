@@ -53,7 +53,7 @@ export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
         break;
       }
       case 'change:query': {
-        const results = state.history.filter((e: any) => e.entityId === (event.entityId as string));
+        const results = state.history.filter((e: unknown) => e.entityId === (event.entityId as string));
         context.emit?.('change:history', { entityId: event.entityId, changes: results });
         break;
       }

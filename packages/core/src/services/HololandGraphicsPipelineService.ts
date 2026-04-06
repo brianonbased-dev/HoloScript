@@ -139,7 +139,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Initialize materials from configuration
    */
-  private initializeMaterials(materialConfig: any): void {
+  private initializeMaterials(materialConfig: unknown): void {
     // Create material assets
     const material = this.createMaterialAsset(materialConfig);
     this.materialCache.set(material.id, material);
@@ -158,7 +158,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Initialize lighting from configuration
    */
-  private initializeLighting(lightingConfig: any): void {
+  private initializeLighting(lightingConfig: unknown): void {
     // Configure shadow mapping
     if (lightingConfig.shadows) {
       this.setupShadowMapping(lightingConfig);
@@ -173,7 +173,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Initialize rendering from configuration
    */
-  private initializeRendering(renderingConfig: any): void {
+  private initializeRendering(renderingConfig: unknown): void {
     // Apply quality preset
     if (renderingConfig.quality) {
       this.applyQualityPreset(renderingConfig.quality);
@@ -201,7 +201,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Create material asset from configuration
    */
-  private createMaterialAsset(config: any): MaterialAsset {
+  private createMaterialAsset(config: unknown): MaterialAsset {
     const id = `mat_${Date.now()}_${Math.random()}`;
 
     const asset: MaterialAsset = {
@@ -225,7 +225,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Generate shaders from material configuration
    */
-  private generateShaders(config: any): ShaderProgram[] {
+  private generateShaders(config: unknown): ShaderProgram[] {
     const shaders: ShaderProgram[] = [];
 
     // Generate PBR shader
@@ -239,7 +239,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Generate PBR shader program
    */
-  private generatePBRShader(_config: any): ShaderProgram {
+  private generatePBRShader(_config: unknown): ShaderProgram {
     const vertexShader = `
       #version 300 es
       precision highp float;
@@ -351,11 +351,11 @@ export class HololandGraphicsPipelineService {
   /**
    * Load textures from configuration
    */
-  private loadTexturesFromConfig(config: any): TextureAsset[] {
+  private loadTexturesFromConfig(config: unknown): TextureAsset[] {
     const textures: TextureAsset[] = [];
 
     if (config.textures) {
-      config.textures.forEach((tex: any) => {
+      config.textures.forEach((tex: unknown) => {
         textures.push({
           id: `tex_${Date.now()}_${Math.random()}`,
           path: tex.path,
@@ -465,7 +465,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Setup shadow mapping
    */
-  private setupShadowMapping(_config: any): void {
+  private setupShadowMapping(_config: unknown): void {
     // Configure shadow map resolution and filtering
     // const shadowQuality = this.platformConfig.shadowQuality;
     // const _shadowResolution = this.shadowResolutionForQuality(shadowQuality);
@@ -494,7 +494,7 @@ export class HololandGraphicsPipelineService {
   /**
    * Setup global illumination
    */
-  private setupGlobalIllumination(__config: any): void {
+  private setupGlobalIllumination(__config: unknown): void {
     // Create light probes for indirect lighting
     // const _probeCount = __config.probes || 16;
     // Allocate GPU memory for probes

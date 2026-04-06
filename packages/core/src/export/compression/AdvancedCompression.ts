@@ -231,7 +231,7 @@ export class AdvancedCompression {
   /**
    * Compress mesh data with Draco
    */
-  private async compressWithDraco(meshData: any, options: DracoOptions): Promise<CompressedMesh> {
+  private async compressWithDraco(meshData: unknown, options: DracoOptions): Promise<CompressedMesh> {
     // Simulate Draco compression (in production, use draco3d)
     const compressed = this.simulateDracoCompression(meshData, options);
 
@@ -376,7 +376,7 @@ export class AdvancedCompression {
   /**
    * Extract mesh data from primitive
    */
-  private extractMeshData(primitive: any, gltfDoc: IGLTFDocument): any | null {
+  private extractMeshData(primitive: unknown, gltfDoc: IGLTFDocument): unknown | null {
     // In production, extract actual mesh data
     // For now, simulate extraction
     return {
@@ -412,7 +412,7 @@ export class AdvancedCompression {
    * Simulate Draco compression
    * In production, replace with actual draco3d encoder
    */
-  private simulateDracoCompression(meshData: any, options: DracoOptions): Uint8Array {
+  private simulateDracoCompression(meshData: unknown, options: DracoOptions): Uint8Array {
     // Calculate compression ratio based on compression level
     // Higher compression level = smaller size (better compression)
     const baseRatio = 0.3; // 70% reduction base

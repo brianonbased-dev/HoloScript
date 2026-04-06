@@ -345,8 +345,8 @@ function generateId(): string {
  */
 export class HybridCryptoProvider {
   private config: Required<HybridCryptoConfig>;
-  private pqModule: any = null;
-  private classicalModule: any = null;
+  private pqModule: unknown = null;
+  private classicalModule: unknown = null;
 
   constructor(config: HybridCryptoConfig = {}) {
     this.config = {

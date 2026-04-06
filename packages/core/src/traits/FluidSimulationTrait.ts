@@ -470,12 +470,12 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const fluidSimulationHandler = {
   name: 'fluid_simulation',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
     const instance = new SpatialHash(config);
     node.__fluid_simulation_instance = instance;
     ctx.emit('fluid_simulation_attached', { node, config });
   },
-  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+  onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {
     const instance = node.__fluid_simulation_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
@@ -485,7 +485,7 @@ export const fluidSimulationHandler = {
     ctx.emit('fluid_simulation_detached', { node });
     delete node.__fluid_simulation_instance;
   },
-  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__fluid_simulation_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
@@ -495,7 +495,7 @@ export const fluidSimulationHandler = {
       ctx.emit('fluid_simulation_configured', { node });
     }
   },
-  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+  onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__fluid_simulation_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);

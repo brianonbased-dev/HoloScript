@@ -39,7 +39,7 @@ export interface WatcherState {
   lastChange: number;
   changeCount: number;
   debounceTimer: ReturnType<typeof setTimeout> | null;
-  watchers: any[]; // fs.FSWatcher references
+  watchers: unknown[]; // fs.FSWatcher references
   stateUnsubscribers: Array<() => void>;
 }
 

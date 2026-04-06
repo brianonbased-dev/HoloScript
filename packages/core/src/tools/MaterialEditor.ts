@@ -76,10 +76,10 @@ export class MaterialEditor {
   private currentMaterialId: string | null = null;
   private container: HTMLElement | null = null;
   private previewCanvas: HTMLCanvasElement | null = null;
-  private previewRenderer: any = null; // THREE.WebGLRenderer
-  private previewScene: any = null; // THREE.Scene
-  private previewCamera: any = null; // THREE.Camera
-  private previewSphere: any = null; // THREE.Mesh
+  private previewRenderer: unknown = null; // THREE.WebGLRenderer
+  private previewScene: unknown = null; // THREE.Scene
+  private previewCamera: unknown = null; // THREE.Camera
+  private previewSphere: unknown = null; // THREE.Mesh
 
   // Material presets (using unified MaterialDef schema)
   private static readonly PRESETS: MaterialEditorPreset[] = [

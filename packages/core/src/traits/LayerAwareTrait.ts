@@ -19,11 +19,11 @@ export const layerAwareHandler: TraitHandler<LayerAwareTrait> = {
       activeLayers: config.layers,
       fallbackMode: config.fallback,
     };
-    (node as unknown as { __layerAwareState: any }).__layerAwareState = state;
+    (node as unknown as { __layerAwareState: unknown }).__layerAwareState = state;
   },
 
   onDetach(node) {
-    delete (node as unknown as { __layerAwareState?: any }).__layerAwareState;
+    delete (node as unknown as { __layerAwareState?: unknown }).__layerAwareState;
   },
 
   onUpdate(node, config, context, _delta) {

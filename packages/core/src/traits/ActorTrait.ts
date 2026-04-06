@@ -18,7 +18,7 @@ export const actorHandler: TraitHandler<ActorConfig> = {
   },
   onUpdate(): void {},
   onEvent(node: HSPlusNode, config: ActorConfig, context: TraitContext, event: TraitEvent): void {
-    const state = node.__actorState as { mailbox: any[]; processed: number } | undefined;
+    const state = node.__actorState as { mailbox: unknown[]; processed: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

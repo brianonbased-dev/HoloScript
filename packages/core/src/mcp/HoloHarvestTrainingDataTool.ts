@@ -41,7 +41,7 @@ export const TOOL_DEFINITION = {
 };
 
 export class HoloHarvestTrainingDataHandler {
-  private harvester: any; // Lazy import to avoid circular deps
+  private harvester: unknown; // Lazy import to avoid circular deps
 
   async handle(input: HarvestToolInput): Promise<HarvestToolOutput> {
     if (!this.harvester) {

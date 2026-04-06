@@ -330,7 +330,7 @@ export class MCPOrchestrator {
   /**
    * Run tools purely (helper for test compatibility?)
    */
-  async runTools(tools: { agentId: string; toolName: string; params: any }[]): Promise<any[]> {
+  async runTools(tools: { agentId: string; toolName: string; params: unknown }[]): Promise<any[]> {
     const results = await Promise.all(
       tools.map((t) => this.executeTool(t.agentId, t.toolName, t.params))
     );
@@ -427,7 +427,7 @@ export class MCPOrchestrator {
     }
   }
 
-  private recordMetric(name: string, data: any): void {
+  private recordMetric(name: string, data: unknown): void {
     const key = `${name}-${Date.now()}-${Math.random()}`;
     this.metrics.set(key, data);
 

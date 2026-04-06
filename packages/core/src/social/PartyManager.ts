@@ -15,7 +15,7 @@ export interface Party {
 
 export class PartyManager {
   private currentParty: Party | null = null;
-  private listeners: Set<(event: string, data: any) => void> = new Set();
+  private listeners: Set<(event: string, data: unknown) => void> = new Set();
 
   constructor(
     private graph: SocialGraph,
@@ -24,7 +24,7 @@ export class PartyManager {
     this.transport.onSocialMessage(this.handleNetworkMessage.bind(this));
   }
 
-  private handleNetworkMessage(packet: any) {
+  private handleNetworkMessage(packet: unknown) {
     switch (packet.type) {
       case 'PARTY_INVITE':
         this.emit('party_invite', packet.payload);
@@ -96,11 +96,11 @@ export class PartyManager {
     this.emit('party_left', {});
   }
 
-  onEvent(listener: (event: string, data: any) => void) {
+  onEvent(listener: (event: string, data: unknown) => void) {
     this.listeners.add(listener);
   }
 
-  private emit(event: string, data: any) {
+  private emit(event: string, data: unknown) {
     this.listeners.forEach((l) => l(event, data));
   }
 }

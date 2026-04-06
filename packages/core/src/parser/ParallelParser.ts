@@ -24,9 +24,9 @@ const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'u
 
 // Simple EventEmitter implementation for browser compatibility
 class SimpleEventEmitter {
-  private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+  private listeners: Map<string, Array<(...args: unknown[]) => void>> = new Map();
 
-  on(event: string, callback: (...args: any[]) => void): this {
+  on(event: string, callback: (...args: unknown[]) => void): this {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
@@ -34,7 +34,7 @@ class SimpleEventEmitter {
     return this;
   }
 
-  off(event: string, callback: (...args: any[]) => void): this {
+  off(event: string, callback: (...args: unknown[]) => void): this {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       const index = eventListeners.indexOf(callback);
@@ -45,7 +45,7 @@ class SimpleEventEmitter {
     return this;
   }
 
-  emit(event: string, ...args: any[]): boolean {
+  emit(event: string, ...args: unknown[]): boolean {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       for (const listener of eventListeners) {

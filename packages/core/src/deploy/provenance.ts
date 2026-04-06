@@ -79,7 +79,7 @@ export function computeContentHash(source: string): string {
  *
  * The compiler auto-classifies this — creators cannot override.
  */
-export function classifyPublishMode(ast: any): PublishMode {
+export function classifyPublishMode(ast: unknown): PublishMode {
   const imports = ast?.imports ?? ast?.ast?.imports ?? [];
   const hasImports = Array.isArray(imports) && imports.length > 0;
 
@@ -110,12 +110,12 @@ export function classifyPublishMode(ast: any): PublishMode {
 /**
  * Extract import metadata from AST for provenance tracking.
  */
-export function extractImports(ast: any): ProvenanceImport[] {
+export function extractImports(ast: unknown): ProvenanceImport[] {
   const imports = ast?.imports ?? ast?.ast?.imports ?? [];
   if (!Array.isArray(imports)) return [];
 
   return imports
-    .map((imp: any) => ({
+    .map((imp: unknown) => ({
       path: imp.path ?? imp.source ?? '',
       hash: imp.hash,
       author: imp.author,
@@ -136,7 +136,7 @@ export function extractImports(ast: any): ProvenanceImport[] {
  */
 export function generateProvenance(
   source: string,
-  ast: any,
+  ast: unknown,
   options: ProvenanceOptions
 ): ProvenanceBlock {
   return {

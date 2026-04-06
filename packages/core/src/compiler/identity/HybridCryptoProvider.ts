@@ -274,7 +274,7 @@ export class MLDSACryptoProvider implements ICryptoProvider {
    *
    * Caches the module after first successful import to avoid repeated dynamic imports.
    */
-  private mlDsaModule: any = null;
+  private mlDsaModule: unknown = null;
 
   private async getModule(): Promise<any> {
     if (this.mlDsaModule) {

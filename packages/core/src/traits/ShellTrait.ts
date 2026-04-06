@@ -144,7 +144,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
               timeoutMs: config.timeout_ms,
             })
           )
-            .then((result: any) => {
+            .then((result: unknown) => {
               const stdout = (result?.stdout as string | undefined) ?? '';
               const stderr = (result?.stderr as string | undefined) ?? '';
               const code = (result?.code as number | null | undefined) ?? null;

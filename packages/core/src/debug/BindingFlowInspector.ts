@@ -6,7 +6,7 @@ export interface BindingInfo {
   targetId: string;
   property: string;
   expression: string;
-  lastValue: any;
+  lastValue: unknown;
   updateCount: number;
 }
 
@@ -42,7 +42,7 @@ export class BindingFlowInspector {
   /**
    * Track an update to a binding
    */
-  public trackUpdate(bindingId: string, value: any): void {
+  public trackUpdate(bindingId: string, value: unknown): void {
     if (!this.enabled) return;
 
     const binding = this.bindings.get(bindingId);

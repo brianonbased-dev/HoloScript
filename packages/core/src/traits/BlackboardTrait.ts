@@ -18,7 +18,7 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface BlackboardEntry {
   id: string;
   key: string;
-  value: any;
+  value: unknown;
   authorId: string;
   timestamp: number;
   ttl: number; // Time-to-live in milliseconds

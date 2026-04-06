@@ -633,7 +633,7 @@ export class GaussianBakingClient {
    */
   async getOutputs(jobId: string): Promise<BakingOutput[]> {
     const response = await this.apiCall(`/gaussian/bake/${jobId}/outputs`, 'GET');
-    return (response.outputs ?? []).map((o: any) => ({
+    return (response.outputs ?? []).map((o: unknown) => ({
       type: o.type,
       url: o.url,
       format: o.format,
@@ -881,7 +881,7 @@ export class BakingProgressTracker {
   on(event: 'stageTransition', cb: StageTransitionCallback): this;
   on(event: 'complete', cb: (state: BakingJobState) => void): this;
   on(event: 'error', cb: (error: BakingPipelineError, state: BakingJobState) => void): this;
-  on(event: string, cb: any): this {
+  on(event: string, cb: unknown): this {
     switch (event) {
       case 'progress':
         this.onProgress = cb;
@@ -1407,7 +1407,7 @@ function computeOverallProgress(state: BakingJobState): number {
   return totalWeight > 0 ? Math.round((weightedProgress / totalWeight) * 100) : 0;
 }
 
-function parseBakingJobStatus(response: any): BakingJobStatus {
+function parseBakingJobStatus(response: unknown): BakingJobStatus {
   return {
     stage: response.stage ?? 'idle',
     stageProgress: response.stage_progress,
@@ -1449,7 +1449,7 @@ function parseBakingJobStatus(response: any): BakingJobStatus {
         }
       : undefined,
     actualCost: response.actual_cost,
-    outputs: response.outputs?.map((o: any) => ({
+    outputs: response.outputs?.map((o: unknown) => ({
       type: o.type,
       url: o.url,
       format: o.format,

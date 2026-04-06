@@ -215,7 +215,7 @@ export default ${safeName}Component;
   // HTML GENERATION
   // ============================================================================
 
-  private generateHTMLPage(name: string, objects: any[], composition: HoloComposition): string {
+  private generateHTMLPage(name: string, objects: unknown[], composition: HoloComposition): string {
     const content = objects.map((obj) => this.generateHTMLNode(obj)).join('\n      ');
 
     let bgColor = '#ffffff';
@@ -261,7 +261,7 @@ export default ${safeName}Component;
 </html>`;
   }
 
-  private generateHTMLNode(obj: any): string {
+  private generateHTMLNode(obj: unknown): string {
     const traits = this.extractTraits(obj);
     let tag = traits.theme?.tag || traits.panel?.tag || obj.type?.toLowerCase() || 'div';
 
@@ -344,7 +344,7 @@ export default ${safeName}Component;
     if (traits.input?.required) props += ` required`;
 
     const childrenMarkup = (obj.children || obj.objects || [])
-      .map((child: any) => this.generateHTMLNode(child))
+      .map((child: unknown) => this.generateHTMLNode(child))
       .join('\n');
 
     const content =
@@ -364,7 +364,7 @@ export default ${safeName}Component;
   // UTILITIES
   // ============================================================================
 
-  private extractTraits(obj: any): Record<string, any> {
+  private extractTraits(obj: unknown): Record<string, any> {
     const map: Record<string, any> = {};
     if (!obj.traits) return map;
     for (const t of obj.traits) {

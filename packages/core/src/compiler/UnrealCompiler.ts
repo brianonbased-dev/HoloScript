@@ -601,7 +601,7 @@ export class UnrealCompiler extends CompilerBase {
     }
   }
 
-  private compileZoneSetup(zone: any): void {
+  private compileZoneSetup(zone: unknown): void {
     const varName = this.sanitizeName(zone.name);
     this.emitS(
       `// Zone: ${this.escapeStringValue(zone.name as string, 'TypeScript')} — bind overlap events`
@@ -614,7 +614,7 @@ export class UnrealCompiler extends CompilerBase {
     );
   }
 
-  private compileZoneHandlers(zone: any): void {
+  private compileZoneHandlers(zone: unknown): void {
     const varName = this.sanitizeName(zone.name);
 
     this.emitS(
@@ -674,7 +674,7 @@ export class UnrealCompiler extends CompilerBase {
     this.emitS('');
   }
 
-  private compileActionFunction(action: any): void {
+  private compileActionFunction(action: unknown): void {
     const name = this.sanitizeName(action.name);
     this.emitS(`void ${this.options.className}::${name}()`);
     this.emitS('{');

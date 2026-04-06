@@ -52,7 +52,7 @@ export class Inspector {
    * Get the data for a specific component.
    * Returns the reactive proxy, so setting properties triggers Undo/Redo.
    */
-  getComponentData(type: ComponentType): any {
+  getComponentData(type: ComponentType): unknown {
     const entity = this.activeEntity;
     if (entity === undefined) return undefined;
     return this.world.getComponent(entity, type);
@@ -62,7 +62,7 @@ export class Inspector {
    * Set a property on a component.
    * (Optional wrapper, UI can also set directly on data returned by getComponentData)
    */
-  setProperty(type: ComponentType, key: string, value: any) {
+  setProperty(type: ComponentType, key: string, value: unknown) {
     const data = this.getComponentData(type);
     if (data) {
       data[key] = value;

@@ -32,7 +32,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     useSpringBounce: true,
   },
 
-  onAttach(node: HSPlusNode, config: any, context: TraitContext) {
+  onAttach(node: HSPlusNode, config: unknown, context: TraitContext) {
     const spring = config.useSpringBounce
       ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })
       : null;
@@ -46,11 +46,11 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     });
   },
 
-  onDetach(node: HSPlusNode, config: any, context: TraitContext) {
+  onDetach(node: HSPlusNode, config: unknown, context: TraitContext) {
     scrollStates.delete(node.id!);
   },
 
-  onUpdate(node: HSPlusNode, config: any, context: TraitContext, delta: number) {
+  onUpdate(node: HSPlusNode, config: unknown, context: TraitContext, delta: number) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 
@@ -107,7 +107,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: any, context: TraitContext, event: TraitEvent) {
+  onEvent(node: HSPlusNode, config: unknown, context: TraitContext, event: TraitEvent) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 

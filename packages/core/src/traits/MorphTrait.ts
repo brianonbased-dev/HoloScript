@@ -845,12 +845,12 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const morphHandler = {
   name: 'morph',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
     const instance = new MorphTrait(config);
     node.__morph_instance = instance;
     ctx.emit('morph_attached', { node, config });
   },
-  onDetach(node: HSPlusNode, _config: any, ctx: TraitContext): void {
+  onDetach(node: HSPlusNode, _config: unknown, ctx: TraitContext): void {
     const instance = node.__morph_instance as TraitInstanceDelegate;
     if (instance) {
       if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
@@ -860,7 +860,7 @@ export const morphHandler = {
     ctx.emit('morph_detached', { node });
     delete node.__morph_instance;
   },
-  onEvent(node: HSPlusNode, _config: any, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
     const instance = node.__morph_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onEvent === 'function') instance.onEvent(event);
@@ -870,7 +870,7 @@ export const morphHandler = {
       ctx.emit('morph_configured', { node });
     }
   },
-  onUpdate(node: HSPlusNode, _config: any, ctx: TraitContext, dt: number): void {
+  onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__morph_instance as TraitInstanceDelegate;
     if (!instance) return;
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);

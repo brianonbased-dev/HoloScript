@@ -1,8 +1,8 @@
 export interface StateDelta {
   entityId: string;
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   timestamp: number;
 }
 

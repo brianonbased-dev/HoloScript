@@ -13,7 +13,7 @@ export interface StyleRule {
 }
 
 export interface ResolvedStyle {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class StyleResolver {

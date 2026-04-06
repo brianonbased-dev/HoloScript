@@ -130,7 +130,7 @@ export interface RedisClient {
   keys(pattern: string): Promise<string[]>;
   ping(): Promise<string>;
   quit(): Promise<void>;
-  on(event: string, listener: (...args: any[]) => void): void;
+  on(event: string, listener: (...args: unknown[]) => void): void;
 }
 
 // ============================================================================

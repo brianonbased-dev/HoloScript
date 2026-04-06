@@ -382,7 +382,7 @@ export async function example9_DebugStage(): Promise<void> {
   const result = await exporter.export(sceneGraph);
 
   // Traverse and print USD structure
-  function printPrim(prim: any, depth = 0) {
+  function printPrim(prim: unknown, depth = 0) {
     const indent = '  '.repeat(depth);
     console.log(`${indent}${prim.type}: ${prim.name} (${prim.path})`);
 

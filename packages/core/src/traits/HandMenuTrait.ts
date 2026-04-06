@@ -71,7 +71,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
 
     // Position: Smooth follow via lerp
     const targetPos = add(hand.position, config.offset || { x: 0, y: 0.2, z: 0 });
-    const currentPos: any = node.properties?.position || targetPos;
+    const currentPos: unknown = node.properties?.position || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
     const newPos = {
       x: (currentPos.x ?? 0) + ((targetPos.x ?? 0) - (currentPos.x ?? 0)) * lerpFactor,
