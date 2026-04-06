@@ -17,11 +17,11 @@
 import { logger } from './logger';
 import { WebSocketServer, WebSocket } from 'ws';
 // Engine modules (moved from core in A.011 extraction)
-import { TimeManager } from '@holoscript/engine/orbital/TimeManager';
+import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
 import { eventBus } from '@holoscript/engine/runtime/EventBus';
 import { StateSynchronizer } from './network/StateSynchronizer';
-import { AttentionEngine } from '@holoscript/engine/orbital/AttentionEngine';
+import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
 import { stateMachineInterpreter } from '@holoscript/engine/runtime/StateMachineInterpreter';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
