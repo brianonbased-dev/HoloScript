@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InfluenceMap } from '../InfluenceMap';
+import { InfluenceMap } from '@holoscript/framework/ai';
 
 describe('InfluenceMap', () => {
   let map: InfluenceMap;

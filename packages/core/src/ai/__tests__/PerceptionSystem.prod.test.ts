@@ -5,7 +5,7 @@
  * (sight/hearing/smell), range/FOV checks, memory/decay, queries.
  */
 import { describe, it, expect } from 'vitest';
-import { PerceptionSystem, type SenseConfig, type Stimulus } from '../PerceptionSystem';
+import { PerceptionSystem, type SenseConfig, type Stimulus } from '@holoscript/framework/ai';
 
 function sightSense(range = 50, fov = 360, sensitivity = 1): SenseConfig {
   return { type: 'sight', range, fov, sensitivity };

@@ -23,8 +23,8 @@ import {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from '../BTNodes';
-import type { BTContext, BTStatus } from '../BTNodes';
+} from '@holoscript/framework/ai';
+import type { BTContext, BTStatus } from '@holoscript/framework/ai';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CreatorRevenueAggregator } from '../CreatorRevenueAggregator';
+import { CreatorRevenueAggregator } from '@holoscript/framework/economy';
 
 describe('CreatorRevenueAggregator', () => {
   let aggregator: CreatorRevenueAggregator;

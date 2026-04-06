@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { UsageMeter } from '../UsageMeter';
+import { UsageMeter } from '@holoscript/framework/economy';
 
 describe('UsageMeter', () => {
   let meter: UsageMeter;

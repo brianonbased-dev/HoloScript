@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PerceptionSystem, type SenseConfig, type Stimulus } from '../PerceptionSystem';
+import { PerceptionSystem, type SenseConfig, type Stimulus } from '@holoscript/framework/ai';
 
 describe('PerceptionSystem', () => {
   let ps: PerceptionSystem;

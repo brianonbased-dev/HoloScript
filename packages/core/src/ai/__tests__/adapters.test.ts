@@ -7,7 +7,7 @@ import {
   GeminiAdapter,
   XAIAdapter,
   TogetherAdapter,
-} from '../adapters';
+} from '@holoscript/framework/ai';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

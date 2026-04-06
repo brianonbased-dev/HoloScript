@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { AIAdapter } from './AIAdapter';
-import { HoloScriptGenerator } from './HoloScriptGenerator';
+import { HoloScriptGenerator } from '@holoscript/framework/ai';
 
 // =============================================================================
 // MOCK ADAPTER FOR E2E TESTS

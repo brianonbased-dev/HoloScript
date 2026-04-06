@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GenerationCache, cachedGenerate } from '../GenerationCache';
+import { GenerationCache, cachedGenerate } from '@holoscript/framework/ai';
 
 describe('GenerationCache', () => {
   let cache: GenerationCache;

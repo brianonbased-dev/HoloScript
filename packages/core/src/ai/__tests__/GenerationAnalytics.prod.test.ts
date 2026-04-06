@@ -10,7 +10,7 @@ import {
   GenerationAnalytics,
   createAnalytics,
   type GenerationMetrics,
-} from '../GenerationAnalytics';
+} from '@holoscript/framework/ai';
 
 function metric(overrides: Partial<GenerationMetrics> = {}): GenerationMetrics {
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehavior, SteeringAgent, SteeringOutput, Vec2 } from '../SteeringBehavior';
+import { SteeringBehavior, SteeringAgent, SteeringOutput, Vec2 } from '@holoscript/framework/ai';
 
 function agent(pos: Vec2 = { x: 0, z: 0 }, vel: Vec2 = { x: 0, z: 0 }): SteeringAgent {
   return { position: pos, velocity: vel, maxSpeed: 10, maxForce: 5, mass: 1 };

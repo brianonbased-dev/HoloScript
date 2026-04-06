@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NavMesh } from '../NavMesh';
+import { NavMesh } from '@holoscript/framework/ai';
 
 function tri(cx: number, cz: number): { x: number; z: number }[] {
   return [

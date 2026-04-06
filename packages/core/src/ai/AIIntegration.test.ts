@@ -22,7 +22,7 @@ import {
   NVIDIAAdapter,
   type AIAdapter,
   type GenerateResult,
-} from './adapters';
+} from '@holoscript/framework/ai';
 
 // =============================================================================
 // TEST SETUP & MOCKS

@@ -19,9 +19,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BehaviorTree } from '../BehaviorTree';
-import { ActionNode, SequenceNode } from '../BTNodes';
-import type { BTStatus } from '../BTNodes';
+import { BehaviorTree } from '@holoscript/framework/ai';
+import { ActionNode, SequenceNode } from '@holoscript/framework/ai';
+import type { BTStatus } from '@holoscript/framework/ai';
 
 // ---------------------------------------------------------------------------
 // Helpers

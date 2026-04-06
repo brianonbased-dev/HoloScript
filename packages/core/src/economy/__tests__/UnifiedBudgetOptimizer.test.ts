@@ -14,7 +14,7 @@ import {
   PLATFORM_LOD_SCALING,
   type UnifiedOptimizerConfig,
   type TraitUtility,
-} from '../UnifiedBudgetOptimizer';
+} from '@holoscript/framework/economy';
 import type { ResourceUsageNode } from '../../compiler/safety/ResourceBudgetAnalyzer';
 
 // =============================================================================

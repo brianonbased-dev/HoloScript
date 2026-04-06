@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Blackboard } from '../Blackboard';
+import { Blackboard } from '@holoscript/framework/ai';
 
 let bb: Blackboard;
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AICopilot } from '../AICopilot';
-import type { AIAdapter } from '../AIAdapter';
+import { AICopilot } from '@holoscript/framework/ai';
+import type { AIAdapter } from '@holoscript/framework/ai';
 
 function mockAdapter(overrides = {}): AIAdapter {
   return {

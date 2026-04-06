@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BehaviorTree } from '../BehaviorTree';
-import { ActionNode, SequenceNode, SelectorNode, ConditionNode, WaitNode } from '../BTNodes';
-import { Blackboard } from '../Blackboard';
+import { BehaviorTree } from '@holoscript/framework/ai';
+import { ActionNode, SequenceNode, SelectorNode, ConditionNode, WaitNode } from '@holoscript/framework/ai';
+import { Blackboard } from '@holoscript/framework/ai';
 
 describe('BehaviorTree', () => {
   let bt: BehaviorTree;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { GoalPlanner, type WorldState, type PlanAction, type Goal } from '../GoalPlanner';
+import { GoalPlanner, type WorldState, type PlanAction, type Goal } from '@holoscript/framework/ai';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

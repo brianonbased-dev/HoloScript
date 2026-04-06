@@ -11,7 +11,7 @@ import {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from '../BTNodes';
+} from '@holoscript/framework/ai';
 
 const ctx = (dt = 0.016): BTContext => ({
   blackboard: { get: vi.fn(), set: vi.fn() },

@@ -28,7 +28,7 @@ import {
   type X402FacilitatorConfig,
   type SettlementChain,
   type SettlementEvent,
-} from '../x402-facilitator';
+} from '@holoscript/framework/economy';
 import {
   createMockContext,
   createMockNode,

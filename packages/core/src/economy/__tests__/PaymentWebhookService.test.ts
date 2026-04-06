@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PaymentWebhookService } from '../PaymentWebhookService';
-import type { WebhookPayload } from '../PaymentWebhookService';
+import { PaymentWebhookService } from '@holoscript/framework/economy';
+import type { WebhookPayload } from '@holoscript/framework/economy';
 
 function makePayload(overrides: Partial<WebhookPayload> = {}): WebhookPayload {
   return {

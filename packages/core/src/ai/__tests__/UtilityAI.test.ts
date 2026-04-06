@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { UtilityAI, type UtilityAction, type Consideration } from '../UtilityAI';
+import { UtilityAI, type UtilityAction, type Consideration } from '@holoscript/framework/ai';
 
 function makeAction(id: string, overrides: Partial<UtilityAction> = {}): UtilityAction {
   return {

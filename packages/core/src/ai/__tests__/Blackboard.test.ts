@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Blackboard } from '../Blackboard';
+import { Blackboard } from '@holoscript/framework/ai';
 
 describe('Blackboard', () => {
   let bb: Blackboard;

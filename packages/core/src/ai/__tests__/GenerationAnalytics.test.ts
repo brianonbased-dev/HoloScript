@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GenerationAnalytics } from '../GenerationAnalytics';
-import type { GenerationMetrics } from '../GenerationAnalytics';
+import { GenerationAnalytics } from '@holoscript/framework/ai';
+import type { GenerationMetrics } from '@holoscript/framework/ai';
 
 function makeMetric(overrides: Partial<GenerationMetrics> = {}): GenerationMetrics {
   return {

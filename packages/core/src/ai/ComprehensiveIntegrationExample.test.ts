@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { AIAdapter } from './AIAdapter';
-import { HoloScriptGenerator } from './HoloScriptGenerator';
+import { HoloScriptGenerator } from '@holoscript/framework/ai';
 import { PromptTemplateSystem } from './PromptTemplates';
 import { GenerationCache } from './GenerationCache';
 

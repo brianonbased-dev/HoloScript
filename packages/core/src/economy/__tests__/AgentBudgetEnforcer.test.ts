@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AgentBudgetEnforcer } from '../AgentBudgetEnforcer';
+import { AgentBudgetEnforcer } from '@holoscript/framework/economy';
 
 describe('AgentBudgetEnforcer', () => {
   let enforcer: AgentBudgetEnforcer;

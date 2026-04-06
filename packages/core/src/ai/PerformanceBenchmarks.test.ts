@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HoloScriptGenerator } from './HoloScriptGenerator';
+import { HoloScriptGenerator } from '@holoscript/framework/ai';
 import { GenerationCache, cachedGenerate } from './GenerationCache';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 

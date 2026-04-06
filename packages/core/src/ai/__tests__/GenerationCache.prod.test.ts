@@ -8,7 +8,7 @@
  * which Vitest supports natively.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GenerationCache } from '../GenerationCache';
+import { GenerationCache } from '@holoscript/framework/ai';
 
 describe('GenerationCache — Production', () => {
   // Helper function to mock Date.now with offset or counter

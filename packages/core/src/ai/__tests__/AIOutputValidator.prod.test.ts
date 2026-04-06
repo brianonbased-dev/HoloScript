@@ -3,7 +3,7 @@
  * Sprint CLXVI — validateAIOutput, isAISafe, confidence scoring
  */
 import { describe, it, expect } from 'vitest';
-import { validateAIOutput, isAISafe } from '../AIOutputValidator';
+import { validateAIOutput, isAISafe } from '@holoscript/framework/ai';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -5,7 +5,7 @@
  * preconditions, effects, cost optimization, plan execution, queries.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { GoalPlanner, type PlanAction, type Goal, type WorldState } from '../GoalPlanner';
+import { GoalPlanner, type PlanAction, type Goal, type WorldState } from '@holoscript/framework/ai';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeAction(

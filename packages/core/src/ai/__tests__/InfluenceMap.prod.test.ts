@@ -6,7 +6,7 @@
  * clear, clearAll, bounds checking.
  */
 import { describe, it, expect } from 'vitest';
-import { InfluenceMap } from '../InfluenceMap';
+import { InfluenceMap } from '@holoscript/framework/ai';
 
 const DEFAULT_CONFIG = {
   width: 10,

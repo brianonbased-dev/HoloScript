@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HoloScriptGenerator, validateBatch } from '../HoloScriptGenerator';
-import type { AIAdapter } from '../AIAdapter';
+import { HoloScriptGenerator, validateBatch } from '@holoscript/framework/ai';
+import type { AIAdapter } from '@holoscript/framework/ai';
 
 function mockAdapter(): AIAdapter {
   return {

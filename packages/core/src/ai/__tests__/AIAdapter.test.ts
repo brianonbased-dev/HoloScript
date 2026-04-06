@@ -9,7 +9,7 @@ import {
   generateHoloScript,
   explainHoloScript,
   type AIAdapter,
-} from '../AIAdapter';
+} from '@holoscript/framework/ai';
 
 function mockAdapter(id: string, name = id): AIAdapter {
   return {

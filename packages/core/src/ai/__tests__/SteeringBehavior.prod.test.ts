@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SteeringBehavior } from '../SteeringBehavior';
-import type { SteeringAgent } from '../SteeringBehavior';
+import { SteeringBehavior } from '@holoscript/framework/ai';
+import type { SteeringAgent } from '@holoscript/framework/ai';
 
 function makeAgent(overrides: Partial<SteeringAgent> = {}): SteeringAgent {
   return {

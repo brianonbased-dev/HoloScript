@@ -18,7 +18,7 @@ import {
   useAnthropic,
   useOllama,
   useLMStudio,
-} from '../adapters';
+} from '@holoscript/framework/ai';
 
 // =============================================================================
 // OpenAIAdapter

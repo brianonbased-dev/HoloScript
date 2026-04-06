@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { UtilityAI } from '../UtilityAI';
-import type { UtilityAction, Consideration } from '../UtilityAI';
+import { UtilityAI } from '@holoscript/framework/ai';
+import type { UtilityAction, Consideration } from '@holoscript/framework/ai';
 
 // ---------------------------------------------------------------------------
 // Helpers

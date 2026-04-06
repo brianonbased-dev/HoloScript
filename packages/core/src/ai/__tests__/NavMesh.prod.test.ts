@@ -5,7 +5,7 @@
  * path smoothing, walkability, cost, queries.
  */
 import { describe, it, expect } from 'vitest';
-import { NavMesh } from '../NavMesh';
+import { NavMesh } from '@holoscript/framework/ai';
 
 function tri(x: number, z: number): { x: number; z: number }[] {
   return [

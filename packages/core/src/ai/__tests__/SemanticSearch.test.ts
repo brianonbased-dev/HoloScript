@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SemanticSearchService } from '../SemanticSearchService';
-import type { AIAdapter } from '../AIAdapter';
+import { SemanticSearchService } from '@holoscript/framework/ai';
+import type { AIAdapter } from '@holoscript/framework/ai';
 
 describe('SemanticSearchService', () => {
   const mockTraits = [

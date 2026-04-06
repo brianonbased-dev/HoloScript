@@ -5,7 +5,7 @@
  * conditions, lockouts, fallbacks, execution, history tracking.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { BehaviorSelector, type Behavior } from '../BehaviorSelector';
+import { BehaviorSelector, type Behavior } from '@holoscript/framework/ai';
 
 function makeBehavior(id: string, opts: Partial<Behavior> = {}): Behavior {
   return {

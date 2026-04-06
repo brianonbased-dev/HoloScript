@@ -26,7 +26,7 @@ import {
   type ExplainResult,
   type OptimizeResult,
   type FixResult,
-} from '../AIAdapter';
+} from '@holoscript/framework/ai';
 
 let _counter = 0;
 function uniqueId(): string {

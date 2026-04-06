@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BehaviorSelector, type Behavior } from '../BehaviorSelector';
+import { BehaviorSelector, type Behavior } from '@holoscript/framework/ai';
 
 function beh(
   id: string,

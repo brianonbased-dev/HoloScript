@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SubscriptionManager } from '../SubscriptionManager';
+import { SubscriptionManager } from '@holoscript/framework/economy';
 
 describe('SubscriptionManager', () => {
   let manager: SubscriptionManager;
