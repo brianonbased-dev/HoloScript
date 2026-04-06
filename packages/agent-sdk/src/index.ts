@@ -1,6 +1,9 @@
 /**
  * @holoscript/agent-sdk
  *
+ * @deprecated Use @holoscript/framework directly. This package is a
+ * backward-compatibility shim and will be removed in a future major version.
+ *
  * SHED: All implementations now live in @holoscript/framework.
  * This file re-exports for backward compatibility.
  */

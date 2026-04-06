@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/agent-sdk",
   "version": "6.0.0",
-  "description": "uAA2++ Agent SDK — Mesh discovery, gossip protocol, signal service, MCP tools, and Agent Card schema",
+  "description": "@deprecated Use @holoscript/framework directly. This package is a backward-compatibility shim that re-exports from @holoscript/framework.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
