@@ -37,19 +37,18 @@ import { HoloScriptRuntime } from './HoloScriptRuntime';
 
 // Engine extraction compatibility layer (A.011.01z)
 export {
-  SpatialEngine,
-  PhysicsStep,
+  type SpatialEngine,
+  type PhysicsStep,
   type EngineConfig,
   type EngineMetrics,
   type EngineState,
   type EngineSystem,
   type Vec3,
   type PhysicsBodyState,
-  // @ts-expect-error During migration
   type CollisionEvent,
   type CollisionCallback,
 } from '@holoscript/engine';
-export * as Animation from '../../engine/src/animation';
+// Animation re-export removed — import from '@holoscript/engine' directly
 
 // Composition Parser (Tier 3 migration from Hololand â€” pure language-level AST traversal)
 export {

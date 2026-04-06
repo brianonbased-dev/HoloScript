@@ -172,14 +172,13 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/engine"
   },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  },
   "peerDependencies": {
-    "@holoscript/core": "workspace:*",
     "@holoscript/uaal": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@holoscript/core": {
-      "optional": true
-    },
     "@holoscript/uaal": {
       "optional": true
     }

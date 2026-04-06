@@ -1,12 +1,7 @@
 /**
- * @holoscript/core - Swarm Module
+ * @holoscript/core - Swarm Module (deprecated)
  *
- * Autonomous agent swarm coordination: ACO, leader election, swarm management.
- *
- * NOTE: Higher-level swarm primitives (SwarmCoordinator, PSOEngine,
- * CollectiveIntelligence, VotingRound, ContributionSynthesizer,
- * SwarmMembership, QuorumPolicy) have moved to `@holoscript/framework`.
+ * All swarm primitives have moved to `@holoscript/framework`.
+ * Import from '@holoscript/framework' directly.
  */
-export * from './ACOEngine';
-export * from './LeaderElection';
-export * from './SwarmManager';
+// Shim files removed — no runtime re-exports to avoid circular deps.
