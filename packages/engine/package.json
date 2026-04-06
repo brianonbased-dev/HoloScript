@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.0.0",
+  "version": "6.0.2",
   "description": "Engine runtime extracted from @holoscript/core \u2014 rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",

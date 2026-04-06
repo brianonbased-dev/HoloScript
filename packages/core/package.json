@@ -147,7 +147,6 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/core-types": "workspace:*",
-    "@holoscript/engine": "workspace:*",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.0",
     "zod": "^3.24.0"
@@ -177,12 +176,16 @@
     "ws": "^8.16.0"
   },
   "peerDependencies": {
+    "@holoscript/engine": "workspace:*",
     "@pixiv/three-vrm": "^2.0.0",
     "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0",
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
+    "@holoscript/engine": {
+      "optional": true
+    },
     "@pixiv/three-vrm": {
       "optional": true
     },
