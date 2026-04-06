@@ -1,6 +1,11 @@
 /**
  * Self-Improvement Module — The framework evolves itself.
  *
+ * @experimental All exports in this module are scaffolds (FW-1.0).
+ * They compile and have correct type signatures but require a live
+ * absorb service connection and/or LLM provider to do real work.
+ * Do not treat these as production-ready.
+ *
  * FW-1.0: absorb integration, self-evolution, auto-test generation,
  * prompt optimization via A/B testing.
  */

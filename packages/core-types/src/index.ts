@@ -14,7 +14,15 @@
  * `cli`) can consume HoloScript types without pulling in parsers, compilers,
  * or engines.
  *
- * When adding or modifying types:
+ * ## Sync Protocol (future: `pnpm sync`)
+ *
+ * Today this package is manually maintained. The planned `sync` script will:
+ * 1. Read all `export type` / `export interface` declarations from `packages/core/src/types/`.
+ * 2. Strip any runtime imports (parsers, compilers, engines).
+ * 3. Write the pure type-only declarations into this package's `src/` modules.
+ * 4. Run `tsc --noEmit` to verify the result compiles with zero runtime deps.
+ *
+ * Until the script exists, follow this manual process:
  * 1. Make the change in `packages/core/src/types/` first (canonical).
  * 2. Mirror the change here if external consumers need it.
  * 3. Keep this package at zero runtime dependencies.

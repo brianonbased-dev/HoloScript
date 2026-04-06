@@ -1,5 +1,8 @@
+// STATUS: Scaffold — requires absorb service connection and LLM provider for production use
 /**
  * TestGenerator — Auto-generate tests for framework source files.
+ *
+ * @experimental
  *
  * Uses the LLM adapter to generate vitest test files from source code.
  * Part of FW-1.0 self-evolution: the framework writes its own tests.
@@ -54,6 +57,8 @@ const JEST_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
 
 /**
  * TestGenerator — generates test files from source code via LLM.
+ *
+ * @experimental
  *
  * Usage:
  * ```ts

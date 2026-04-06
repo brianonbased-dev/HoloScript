@@ -1,5 +1,8 @@
+// STATUS: Scaffold — requires absorb service connection and LLM provider for production use
 /**
  * FrameworkAbsorber — Class-based absorb integration for framework self-scanning.
+ *
+ * @experimental
  *
  * Wraps the absorb service (https://absorb.holoscript.net) to scan the
  * framework codebase, query for code health, and surface improvements.
@@ -46,6 +49,8 @@ const DEFAULT_ABSORB_URL = 'https://absorb.holoscript.net';
 
 /**
  * FrameworkAbsorber — scans the framework codebase for improvements.
+ *
+ * @experimental
  *
  * Usage:
  * ```ts

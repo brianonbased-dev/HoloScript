@@ -1,5 +1,8 @@
+// STATUS: Scaffold — requires absorb service connection and LLM provider for production use
 /**
  * PromptOptimizer — A/B test prompts to find the most effective phrasing.
+ *
+ * @experimental
  *
  * Part of FW-1.0 self-evolution: the framework optimizes its own prompts
  * by running controlled experiments and measuring quality metrics.
@@ -61,6 +64,8 @@ const JUDGE_SYSTEM = `You are a prompt quality evaluator. Score the following re
 
 /**
  * PromptOptimizer — A/B tests prompt variants to find the best one.
+ *
+ * @experimental
  *
  * Usage:
  * ```ts
