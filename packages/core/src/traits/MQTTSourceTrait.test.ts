@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mqttSourceHandler, MQTTSourceConfig } from './MQTTSourceTrait';
-import * as MQTTClientModule from '../runtime/protocols/MQTTClient';
+import * as MQTTClientModule from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // Mock MQTT Client Module
 vi.mock('../runtime/protocols/MQTTClient', () => ({

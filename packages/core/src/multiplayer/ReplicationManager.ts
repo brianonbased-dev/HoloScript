@@ -8,7 +8,7 @@
  */
 
 // @ts-expect-error During migration
-import { IVector3 } from '../physics/PhysicsTypes';
+import { IVector3 } from '@holoscript/engine/physics/PhysicsTypes';
 
 // =============================================================================
 // TYPES

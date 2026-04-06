@@ -11,7 +11,7 @@ import {
   voiceSynthesizerRegistry,
   type VoiceRequest,
 // @ts-expect-error During migration
-} from '../runtime/VoiceSynthesizer';
+} from '@holoscript/engine/runtime/VoiceSynthesizer';
 
 export interface EmotionalVoiceConfig {
   /** Default voice ID to use for this NPC */

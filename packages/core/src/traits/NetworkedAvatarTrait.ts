@@ -7,11 +7,11 @@
 
 import { TraitHandler } from '../traits/TraitTypes';
 // @ts-expect-error During migration
-import { BoneSystem, BoneTransform } from '../animation/BoneSystem';
+import { BoneSystem, BoneTransform } from '@holoscript/engine/animation/BoneSystem';
 // @ts-expect-error During migration
-import { IKSolver } from '../animation/IKSolver';
+import { IKSolver } from '@holoscript/engine/animation/IKSolver';
 // @ts-expect-error During migration
-import { AvatarController } from '../animation/AvatarController';
+import { AvatarController } from '@holoscript/engine/animation/AvatarController';
 
 export interface NetworkedAvatarConfig {
   /** Peer ID of the avatar owner */

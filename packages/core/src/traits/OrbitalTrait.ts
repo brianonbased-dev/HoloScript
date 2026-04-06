@@ -6,7 +6,7 @@
  */
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
-import { calculatePosition, type OrbitalElements } from '../orbital/KeplerianCalculator';
+import { calculatePosition, type OrbitalElements } from '@holoscript/engine/orbital/KeplerianCalculator';
 import { logger } from '../logger';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 

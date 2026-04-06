@@ -198,11 +198,9 @@ export type {
 // Runtime
 export { HoloScriptRuntime } from './HoloScriptRuntime';
 
-// HoloScript+ Runtime (NEW)
-// @ts-expect-error During migration
-export { HoloScriptPlusRuntimeImpl, createRuntime } from './runtime/HoloScriptPlusRuntime';
-// @ts-expect-error During migration
-export type { RuntimeOptions, Renderer, NodeInstance } from './runtime/HoloScriptPlusRuntime';
+// HoloScript+ Runtime (moved to @holoscript/engine in A.011)
+export { HoloScriptPlusRuntimeImpl, createRuntime } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
+export type { RuntimeOptions, Renderer, NodeInstance } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
 
 // Headless Runtime â€” see './runtime/profiles' re-export block below (line ~1929)
 
@@ -214,8 +212,7 @@ export {
   type SpeechRecognizer,
   type SpeechRecognizerConfig,
   type TranscriptionSegment,
-// @ts-expect-error During migration
-} from './runtime/SpeechRecognizer';
+} from '@holoscript/engine/runtime/SpeechRecognizer';
 
 // HoloScript+ Physics (NEW - Phase 17)
 export {
@@ -226,11 +223,9 @@ export {
   type BodyProps,
   type BodyState,
   type PhysicsEngine,
-// @ts-expect-error During migration
-} from './runtime/PhysicsEngine';
+} from '@holoscript/engine/runtime/PhysicsEngine';
 
-// @ts-expect-error During migration
-export { IslandDetector, type BodyConnection } from './physics/IslandDetector';
+export { IslandDetector, type BodyConnection } from '@holoscript/engine/physics/IslandDetector';
 
 // HoloScript+ Navigation (NEW - Phase 18)
 export {
@@ -240,8 +235,7 @@ export {
   type NavigationConfig,
   type NavDestination,
   type NavigationEngine,
-// @ts-expect-error During migration
-} from './runtime/NavigationEngine';
+} from '@holoscript/engine/runtime/NavigationEngine';
 
 export { flowFieldHandler, type FlowFieldConfig } from './traits/FlowFieldTrait';
 
@@ -272,11 +266,9 @@ export {
   type AssetStreamRequest,
   type StreamStatus,
   type AssetStreamer,
-// @ts-expect-error During migration
-} from './runtime/AssetStreamer';
+} from '@holoscript/engine/runtime/AssetStreamer';
 
-// @ts-expect-error During migration
-export { MovementPredictor, type PredictiveWindow } from './runtime/MovementPredictor';
+export { MovementPredictor, type PredictiveWindow } from '@holoscript/engine/runtime/MovementPredictor';
 
 // HoloScript+ Synthesis (NEW - Phase 20)
 export {
@@ -287,8 +279,7 @@ export {
   type VoiceRequest,
   type VoiceInfo,
   type VoiceSynthesizer,
-// @ts-expect-error During migration
-} from './runtime/VoiceSynthesizer';
+} from '@holoscript/engine/runtime/VoiceSynthesizer';
 
 export { emotionalVoiceHandler, type EmotionalVoiceConfig } from './traits/EmotionalVoiceTrait';
 
@@ -301,8 +292,7 @@ export {
   type EmotionSignals,
   type EmotionInference,
   type EmotionDetector,
-// @ts-expect-error During migration
-} from './runtime/EmotionDetector';
+} from '@holoscript/engine/runtime/EmotionDetector';
 
 export { userMonitorHandler, type UserMonitorConfig } from './traits/UserMonitorTrait';
 
@@ -1254,8 +1244,7 @@ export {
   type FrameTiming,
   type MemorySnapshot,
   type AnalyticsExporter,
-// @ts-expect-error During migration
-} from './runtime/PerformanceTelemetry';
+} from '@holoscript/engine/runtime/PerformanceTelemetry';
 
 // Hololand Graphics Pipeline Service (NEW - Phase 4)
 export {
@@ -1348,7 +1337,6 @@ export type {
   Transform,
   VRHand,
   ThrowVelocity,
-  // @ts-expect-error During migration
   CollisionEvent,
 
   // VR Traits (Core)
@@ -1935,8 +1923,7 @@ export {
   type MQTTPublishOptions,
   type MQTTClientState,
   type MQTTClientEvents,
-// @ts-expect-error During migration
-} from './runtime/protocols';
+} from '@holoscript/engine/runtime/protocols';
 
 // MQTT Source Trait Handler
 export {
@@ -1992,8 +1979,7 @@ export {
   type HeadlessRuntimeOptions,
   type HeadlessRuntimeStats,
   type HeadlessNodeInstance,
-// @ts-expect-error During migration
-} from './runtime/profiles';
+} from '@holoscript/engine/runtime/profiles';
 
 // =============================================================================
 // Real-time Sync Protocol (Sprint 3 - Priority 7)
@@ -2139,8 +2125,7 @@ export * from './recovery';
 // Render Module (v3.3 WebGPU Rendering)
 // =============================================================================
 
-// @ts-expect-error During migration
-export * from './rendering';
+export * from '@holoscript/engine/rendering';
 
 // =============================================================================
 // Shader Module (v3.3 Visual Shader Graph)
@@ -2160,18 +2145,15 @@ export * from './postfx';
 
 // Explicit re-exports to resolve conflicts between physics and audio modules
 // (both define IVector3 and zeroVector â€” physics is canonical source)
-// @ts-expect-error During migration
-export { type IVector3, zeroVector } from './physics/PhysicsTypes';
+export { type IVector3, zeroVector } from '@holoscript/engine/physics/PhysicsTypes';
 
-// @ts-expect-error During migration
-export * from './physics';
+export * from '@holoscript/engine/physics';
 
 // =============================================================================
 // Audio Module (v3.3 Spatial Audio & Sequencing)
 // =============================================================================
 
-// @ts-expect-error During migration
-export * from './audio';
+export * from '@holoscript/engine/audio';
 
 // =============================================================================
 // Network Module (v3.3 State Synchronization)
@@ -2722,15 +2704,11 @@ export type {
 // HoloLand Runtime Integration
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// @ts-expect-error During migration
-export { gateCheck, RuntimeMonitor } from './runtime/SafetyGate';
-// @ts-expect-error During migration
-export type { GateDecision, WorldSafetyPolicy, ResourceSnapshot } from './runtime/SafetyGate';
+export { gateCheck, RuntimeMonitor } from '@holoscript/engine/runtime/SafetyGate';
+export type { GateDecision, WorldSafetyPolicy, ResourceSnapshot } from '@holoscript/engine/runtime/SafetyGate';
 
-// @ts-expect-error During migration
-export { CultureRuntime } from './runtime/CultureRuntime';
-// @ts-expect-error During migration
-export type { CultureEvent, CultureRuntimeConfig } from './runtime/CultureRuntime';
+export { CultureRuntime } from '@holoscript/engine/runtime/CultureRuntime';
+export type { CultureEvent, CultureRuntimeConfig } from '@holoscript/engine/runtime/CultureRuntime';
 
 // â”€â”€ AI: Behavior Tree â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { BehaviorTree } from './ai';
@@ -2751,21 +2729,17 @@ export type { BTStatus } from './ai';
 export { Blackboard } from './ai';
 
 // â”€â”€ Dialogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { DialogueGraph } from './dialogue/DialogueGraph';
+export { DialogueGraph } from '@holoscript/engine/dialogue/DialogueGraph';
 export type {
-  // @ts-expect-error During migration
   DialogueNode as DialogueGraphNode,
-  // @ts-expect-error During migration
   DialogueNodeType as DialogueGraphNodeType,
   DialogueState,
-} from './dialogue/DialogueGraph';
-export { DialogueRunner } from './dialogue/DialogueRunner';
+} from '@holoscript/engine/dialogue/DialogueGraph';
+export { DialogueRunner } from '@holoscript/engine/dialogue/DialogueRunner';
 export type {
-  // @ts-expect-error During migration
   DialogueNode as DialogueRunnerNode,
-  // @ts-expect-error During migration
   DialogueNodeType as DialogueRunnerNodeType,
-} from './dialogue/DialogueRunner';
+} from '@holoscript/engine/dialogue/DialogueRunner';
 
 // â”€â”€ ECS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { ECSWorld } from './traits/ECSWorldTrait';
@@ -2783,23 +2757,15 @@ export { ComponentType } from './traits/ECSWorldTrait';
 // Engine Subsystem Shims (A.011 migration) — consolidated wildcard re-exports.
 // These barrel files point through local shims to @holoscript/engine.
 // Migrate your imports to '@holoscript/engine' directly when possible.
-// @ts-expect-error During migration
-export * from './animation';
-// @ts-expect-error During migration
-export * from './tilemap';
-// @ts-expect-error During migration
-export * from './combat';
-// @ts-expect-error During migration
-export * from './navigation';
-// @ts-expect-error During migration
-export * from './particles';
-// @ts-expect-error During migration
-export * from './camera';
-// @ts-expect-error During migration
-export * from './gameplay';
-// @ts-expect-error During migration
-export * from './environment';
-// NOTE: Audio (export * from './audio'), Rendering (export * from './rendering'),
+export * from '@holoscript/engine/animation';
+export * from '@holoscript/engine/tilemap';
+export * from '@holoscript/engine/combat';
+export * from '@holoscript/engine/navigation';
+export * from '@holoscript/engine/particles';
+export * from '@holoscript/engine/camera';
+export * from '@holoscript/engine/gameplay';
+export * from '@holoscript/engine/environment';
+// NOTE: Audio (export * from '@holoscript/engine/audio'), Rendering (export * from '@holoscript/engine/rendering'),
 // and LOD (export * from './lod') already have wildcard re-exports above.
 // Duplicate explicit re-exports for AudioEngine, ShaderGraph, LightingModel, LODManager removed.
 
@@ -2893,45 +2859,28 @@ export type {
 } from './debug/TraceWaterfallRenderer';
 
 // â”€â”€ LOD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { LODManager } from './lod/LODManager';
-export type { LODManagerOptions } from './lod/LODManager';
+// LODManager already exported via `export * from './lod'` above
 
 // â”€â”€ AI / State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { StateMachine } from './ai';
 export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai';
 
 // â”€â”€ Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export { InputManager } from './input/InputManager';
-/** @deprecated Moved to @holoscript/engine — import from '@holoscript/engine' instead (A.011.01f) */
-export type {
-  KeyState,
-  MouseState,
-  GamepadState,
-  InputAction,
-  InputSnapshot,
-  InputDeviceType,
-} from './input/InputManager';
+// InputManager removed — import from '@holoscript/engine' (A.011.01f)
 
 // â”€â”€ Network â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { NetworkManager } from './network/NetworkManager';
 export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
 
 // â”€â”€ Animation Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
-// @ts-expect-error During migration
-export { Timeline } from './animation/Timeline';
-/** @deprecated Use @holoscript/engine Animation subsystem instead (A.011.01c) */
-// @ts-expect-error During migration
-export type { TimelineMode, TimelineEntry, TimelineConfig } from './animation/Timeline';
+// Timeline removed — import from '@holoscript/engine' (A.011.01c)
 
 // â”€â”€ Scene Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { SceneManager } from './scene/SceneManager';
-export type { SavedScene, SceneListEntry } from './scene/SceneManager';
+export { SceneManager } from '@holoscript/engine/scene/SceneManager';
+export type { SavedScene, SceneListEntry } from '@holoscript/engine/scene/SceneManager';
 
 // â”€â”€ Asset Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export { AssetRegistry } from './assets/AssetRegistry';
-export type { AssetEvent, AssetEventType, RegistryConfig } from './assets/AssetRegistry';
+// AssetRegistry already exported via `export * from './assets'` above
 
 // =============================================================================
 // Material Parser (migrated from Hololand renderer)
@@ -3036,8 +2985,7 @@ export type {
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================
 
-// @ts-expect-error During migration
-export { TraitContextFactory, createTraitContextFactory } from './runtime/TraitContextFactory';
+export { TraitContextFactory, createTraitContextFactory } from '@holoscript/engine/runtime/TraitContextFactory';
 
 export type {
   PhysicsProvider,
@@ -3048,14 +2996,11 @@ export type {
   NetworkProvider,
   RendererProvider,
   TraitContextFactoryConfig,
-// @ts-expect-error During migration
-} from './runtime/TraitContextFactory';
+} from '@holoscript/engine/runtime/TraitContextFactory';
 
-// @ts-expect-error During migration
-export { TraitRuntimeIntegration, createTraitRuntime } from './runtime/TraitRuntimeIntegration';
+export { TraitRuntimeIntegration, createTraitRuntime } from '@holoscript/engine/runtime/TraitRuntimeIntegration';
 
-// @ts-expect-error During migration
-export type { TrackedNode, TraitRuntimeStats } from './runtime/TraitRuntimeIntegration';
+export type { TrackedNode, TraitRuntimeStats } from '@holoscript/engine/runtime/TraitRuntimeIntegration';
 
 // Mathematical utilities
 export {
@@ -3066,9 +3011,8 @@ export {
 } from './utils/math';
 
 // â”€â”€ Headless Runtime (CLI & Server-Side Execution) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// HeadlessRuntime, HeadlessRuntimeOptions, RuntimeProfile already exported from './runtime/profiles' above
-// @ts-expect-error During migration
-export { type RuntimeStats } from './runtime/HeadlessRuntime';
+// HeadlessRuntime, HeadlessRuntimeOptions, RuntimeProfile already exported from '@holoscript/engine/runtime/profiles' above
+export { type RuntimeStats } from '@holoscript/engine/runtime/HeadlessRuntime';
 
 // â”€â”€ Error Recovery (Parser Error-Handling & Suggestions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export {
@@ -3103,7 +3047,7 @@ export {
   QuiltCompiler,
   MVHEVCCompiler,
   WebCodecsDepthPipeline,
-} from './hologram';
+} from '@holoscript/engine/hologram';
 export type {
   DepthBackend,
   DepthEstimationConfig,
@@ -3119,7 +3063,7 @@ export type {
   MVHEVCCompilationResult,
   WebCodecsDepthConfig,
   WebCodecsDepthStats,
-} from './hologram';
+} from '@holoscript/engine/hologram';
 
 // â”€â”€ @script_test Trait (Headless Unit Testing for .hs Logic) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export {
@@ -3233,8 +3177,7 @@ export {
 } from './traits/PerformanceRegressionMonitor';
 
 // â”€â”€ Headless Runtime + Watch Runner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// @ts-expect-error During migration
-export { WatchRunner, type WatchRunnerOptions, type WatchEvent } from './runtime/WatchRunner';
+export { WatchRunner, type WatchRunnerOptions, type WatchEvent } from '@holoscript/engine/runtime/WatchRunner';
 
 // â”€â”€ Plugin System (Sandboxing, API, Lifecycle Management) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export { PluginSandbox, createPluginSandbox } from './plugins/PluginSandbox';
@@ -3413,7 +3356,7 @@ export {
   type ExtractorOptions,
 } from './gpu/GaussianSplatExtractor';
 
-export * from './compiler/platform/ModalitySelector';
+// ModalitySelector already exported explicitly above (~line 2605)
 
 // ============================================================================
 // SNN Sparsity Monitoring (Self-Improvement)

@@ -30,14 +30,14 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import { WeatherSystem, type WeatherType } from '../environment/WeatherSystem';
+import { WeatherSystem, type WeatherType } from '@holoscript/engine/environment/WeatherSystem';
 import {
   weatherBlackboard,
   updateWeatherBlackboard,
   computeSunPosition,
   computeSunIntensity,
   type PrecipitationType,
-} from '../environment/WeatherBlackboard';
+} from '@holoscript/engine/environment/WeatherBlackboard';
 
 // =============================================================================
 // Config

@@ -9,7 +9,7 @@
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
 // @ts-expect-error During migration
-import { SoftBodySolver, type Particle, type DistanceConstraint } from '../physics/SoftBodySolver';
+import { SoftBodySolver, type Particle, type DistanceConstraint } from '@holoscript/engine/physics/SoftBodySolver';
 
 // =============================================================================
 // TYPES

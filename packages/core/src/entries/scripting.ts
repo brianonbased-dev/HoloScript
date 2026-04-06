@@ -18,8 +18,7 @@ export {
   type HeadlessRuntimeOptions,
   type RuntimeProfile,
   type RuntimeStats,
-// @ts-expect-error During migration
-} from '../runtime/HeadlessRuntime';
+} from '@holoscript/engine/runtime/HeadlessRuntime';
 
 // ── Error Recovery ──────────────────────────────────────────────────────────
 export {

@@ -15,7 +15,7 @@ import {
   registerMQTTClient,
   type QoS,
 // @ts-expect-error During migration
-} from '../runtime/protocols/MQTTClient';
+} from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // =============================================================================
 // TYPES

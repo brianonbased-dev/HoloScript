@@ -14,7 +14,7 @@
 
 import path from 'path';
 // @ts-expect-error During migration
-import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+import type { ActionHandler } from '@holoscript/engine/runtime/profiles/HeadlessRuntime';
 import type { HostCapabilities } from '../traits/TraitTypes';
 
 // ── Policy Interface ──────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { weatherBlackboard } from '../environment/WeatherBlackboard';
+import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
 
 interface DeformableTerrainConfig {
   /** Heightmap resolution (default: 256) */

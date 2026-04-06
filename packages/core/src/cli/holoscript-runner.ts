@@ -20,10 +20,8 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-// @ts-expect-error During migration
-import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
-// @ts-expect-error During migration
-import { createHeadlessRuntime as createProfileRuntime, type ActionHandler } from '../runtime/profiles';
+import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '@holoscript/engine/runtime/HeadlessRuntime';
+import { createHeadlessRuntime as createProfileRuntime, type ActionHandler } from '@holoscript/engine/runtime/profiles';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 // @ts-expect-error During migration
 const PROFILES_HEADLESS = HEADLESS_PROFILE;

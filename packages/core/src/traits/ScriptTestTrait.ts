@@ -334,7 +334,7 @@ export class ScriptTestRunner {
    *
    * Usage:
    * ```ts
-   * import { createHeadlessRuntime } from '../runtime/HeadlessRuntime';
+   * import { createHeadlessRuntime } from '@holoscript/engine/runtime/HeadlessRuntime';
    * const runtime = createHeadlessRuntime(ast);
    * runtime.setState('balance', 500);
    * runner.bindHeadlessRuntime(runtime);

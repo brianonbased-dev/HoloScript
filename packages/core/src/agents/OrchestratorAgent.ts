@@ -19,7 +19,7 @@ import {
   type AgentIdentity,
   type PhaseResult,
   ProtocolPhase,
-} from '@holoscript/agent-protocol';
+} from '@holoscript/framework';
 import { AgentRegistry, getDefaultRegistry } from './AgentRegistry';
 import { FederatedRegistryAdapter, type FederatedRegistryConfig } from './FederatedRegistryAdapter';
 import { TaskDelegationService, type DelegationResult } from './TaskDelegationService';

@@ -11,7 +11,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { weatherBlackboard } from '../environment/WeatherBlackboard';
+import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
 
 interface GodRaysConfig {
   /** Light decay per sample (default: 0.96) */

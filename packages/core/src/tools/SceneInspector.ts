@@ -14,7 +14,7 @@
  */
 
 // @ts-expect-error During migration
-import type { RuntimeRenderer } from '../runtime/RuntimeRenderer';
+import type { RuntimeRenderer } from '@holoscript/engine/runtime/RuntimeRenderer';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 
 export interface InspectorEntity {

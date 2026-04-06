@@ -10,7 +10,7 @@
 
 import type { TraitHandler } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { weatherBlackboard } from '../environment/WeatherBlackboard';
+import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
 
 interface VolumetricCloudsConfig {
   /** Cloud layer altitude in world units (default: 500) */

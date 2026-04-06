@@ -16,16 +16,14 @@
 
 import { logger } from './logger';
 import { WebSocketServer, WebSocket } from 'ws';
-import { TimeManager } from './orbital/TimeManager';
+// Engine modules (moved from core in A.011 extraction)
+import { TimeManager } from '@holoscript/engine/orbital/TimeManager';
 import { ExpressionEvaluator, createState } from './ReactiveState';
-// @ts-expect-error During migration
-import { eventBus } from './runtime/EventBus';
+import { eventBus } from '@holoscript/engine/runtime/EventBus';
 import { StateSynchronizer } from './network/StateSynchronizer';
-// @ts-expect-error During migration
-import { AttentionEngine } from './orbital/AttentionEngine';
+import { AttentionEngine } from '@holoscript/engine/orbital/AttentionEngine';
 import { telemetry } from './monitoring/telemetry';
-// @ts-expect-error During migration
-import { stateMachineInterpreter } from './runtime/StateMachineInterpreter';
+import { stateMachineInterpreter } from '@holoscript/engine/runtime/StateMachineInterpreter';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
@@ -43,20 +41,13 @@ import type {
   HoloStatement,
   HoloExpression,
 } from './parser/HoloCompositionTypes';
-// @ts-expect-error During migration
-import { BaseVoiceSynthesizer } from './runtime/BaseVoiceSynthesizer';
-// @ts-expect-error During migration
-import { registerVoiceSynthesizer } from './runtime/VoiceSynthesizer';
-// @ts-expect-error During migration
-import { LocalEmotionDetector } from './runtime/LocalEmotionDetector';
-// @ts-expect-error During migration
-import { registerEmotionDetector } from './runtime/EmotionDetector';
-// @ts-expect-error During migration
-import { MockSpeechRecognizer } from './runtime/MockSpeechRecognizer';
-// @ts-expect-error During migration
-import { registerSpeechRecognizer } from './runtime/SpeechRecognizer';
-// @ts-expect-error During migration
-import { MethodMemoize, ObjectPool } from './runtime/RuntimeOptimization';
+import { BaseVoiceSynthesizer } from '@holoscript/engine/runtime/BaseVoiceSynthesizer';
+import { registerVoiceSynthesizer } from '@holoscript/engine/runtime/VoiceSynthesizer';
+import { LocalEmotionDetector } from '@holoscript/engine/runtime/LocalEmotionDetector';
+import { registerEmotionDetector } from '@holoscript/engine/runtime/EmotionDetector';
+import { MockSpeechRecognizer } from '@holoscript/engine/runtime/MockSpeechRecognizer';
+import { registerSpeechRecognizer } from '@holoscript/engine/runtime/SpeechRecognizer';
+import { MethodMemoize, ObjectPool } from '@holoscript/engine/runtime/RuntimeOptimization';
 import type {
   ASTNode,
   OrbNode,
