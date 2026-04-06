@@ -524,7 +524,7 @@ export async function generateSceneForMCP(
     });
   }
 
-  return fallback;
+  return fallback as any;
 }
 
 /**

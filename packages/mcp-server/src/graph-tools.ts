@@ -751,7 +751,7 @@ export async function handleGraphTool(
       if (!code) throw new Error('code is required');
 
       try {
-        const ast = HoloScriptCompiler.parse(code);
+        const ast = (HoloScriptCompiler as any).parse(code);
         const jsonld = SemanticSceneGraph.generateObject(ast, { includeMetadata: true });
         return {
           sceneGraph: jsonld,

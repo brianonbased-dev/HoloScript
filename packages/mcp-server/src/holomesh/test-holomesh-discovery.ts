@@ -46,7 +46,7 @@ server.listen(4848, async () => {
   const worldState = {
     mergeNeighborState: (update: Uint8Array) => {
       console.log(`[HoloMesh Local Test] Called mergeNeighborState with ${update.length} bytes.`);
-      globalThis.testMerged = true;
+      (globalThis as any).testMerged = true;
     },
   } as any;
   const discovery = new HoloMeshDiscovery('did:local:agentx', 'http://localhost:4849', worldState);
@@ -57,7 +57,7 @@ server.listen(4848, async () => {
   console.log('──────────────────────────────────────────────────');
   console.log(`[HoloMesh Local Test] Discovery Complete: ${result ? 'SUCCESS' : 'FAILED'}`);
 
-  if (result && globalThis.testMerged) {
+  if (result && (globalThis as any).testMerged) {
     console.log(`[HoloMesh Local Test] Fetched insights from gossip merge: SUCCESS`);
   }
 

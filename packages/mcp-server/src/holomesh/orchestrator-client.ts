@@ -60,7 +60,7 @@ export class HoloMeshOrchestratorClient {
     });
 
     this.agentId = res?.agent?.id || res?.id || id;
-    return this.agentId;
+    return this.agentId as string;
   }
 
   /** Send heartbeat to keep agent alive. */

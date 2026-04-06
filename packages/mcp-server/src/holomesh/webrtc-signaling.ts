@@ -17,7 +17,7 @@ export class WebRTCSignalingServer {
 
           if (data.type === 'identify' && data.peerId) {
             currentPeerId = data.peerId;
-            this.peers.set(currentPeerId, ws);
+            this.peers.set(currentPeerId as string, ws);
             return;
           }
 

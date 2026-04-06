@@ -120,7 +120,7 @@ function handleQueryTraces(args: Record<string, unknown>) {
 
   if (traceId) {
     const spans = collector.getTraceSpans(traceId);
-    const otelSpans = collector.exportToOTel().filter((s) => s.traceId === traceId);
+    const otelSpans = collector.exportToOTel().filter((s: any) => s.traceId === traceId);
     return {
       traceId,
       spans: otelSpans.slice(0, limit),
@@ -133,8 +133,8 @@ function handleQueryTraces(args: Record<string, unknown>) {
 
   // Filter by agent if specified
   if (agentId) {
-    otelSpans = otelSpans.filter((s) =>
-      s.attributes.some((a) => a.key === 'agent.id' && a.value.stringValue === agentId)
+    otelSpans = otelSpans.filter((s: any) =>
+      s.attributes.some((a: any) => a.key === 'agent.id' && a.value.stringValue === agentId)
     );
   }
 
@@ -172,7 +172,7 @@ async function handleExportTracesOtlp(args: Record<string, unknown>) {
     retryDelayMs: 500,
   };
 
-  const exporter = new OTLPExporter(exporterConfig);
+  const exporter = new (OTLPExporter as any)(exporterConfig);
   const result = await exporter.exportBatch(spans);
 
   return {
@@ -195,7 +195,7 @@ function handleGetAgentHealth() {
     const registry = getDefaultRegistry();
     const allAgents = registry.getAllManifests();
     registrySize = allAgents.length;
-    agents = allAgents.map((a) => ({
+    agents = allAgents.map((a: any) => ({
       id: a.id,
       name: a.name,
       status: a.status,

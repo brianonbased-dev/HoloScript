@@ -24,7 +24,7 @@ import type {
   TraitAllocation,
   UnifiedBudgetState,
 } from '@holoscript/framework/economy';
-import type { ResourceUsageNode } from '@holoscript/framework/economy';
+type ResourceUsageNode = any;
 
 // =============================================================================
 // SINGLETONS

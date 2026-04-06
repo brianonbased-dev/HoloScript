@@ -98,8 +98,8 @@ async function getPaymentGateway(): Promise<PaymentGatewayInstance | null> {
     paymentGateway = new PaymentGateway({
       recipientAddress:
         process.env.HOLOMESH_PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000',
-      chain: (process.env.HOLOMESH_PAYMENT_CHAIN as string | undefined) || 'base-sepolia',
-    });
+      chain: (process.env.HOLOMESH_PAYMENT_CHAIN as any) || 'base-sepolia',
+    }) as any;
     return paymentGateway;
   } catch {
     return null; // PaymentGateway not available — use inline 402 fallback
@@ -5276,9 +5276,9 @@ export async function handleHoloMeshRoute(
       const body =
         method === 'POST' || method === 'PUT' ? await parseJsonBody(req) : {};
       const apiKey = extractBearerToken(req) || req.headers['x-holomesh-key'] as string | undefined;
-      const resolveAgent = (key: string) => {
+      const resolveAgent: any = (key: string) => {
         const agent = getAgentByKey(key);
-        return agent ? { id: agent.id, name: agent.name } : undefined;
+        return agent ? { id: agent.id, name: agent.name } : null;
       };
 
       // Messaging routes

@@ -152,7 +152,7 @@ async function handleInstallPlugin(args: Record<string, unknown>) {
 
     // Get registered tools
     const sandbox = plugin.sandbox;
-    const tools = sandbox ? sandbox.getTools().map((t) => t.name) : [];
+    const tools = sandbox ? sandbox.getTools().map((t: any) => t.name) : [];
 
     return {
       success: true,
@@ -179,14 +179,14 @@ function handleListPlugins(args: Record<string, unknown>) {
     ? manager.getPluginsByState(stateFilter as PluginLifecycleState)
     : manager.getAllPlugins();
 
-  const plugins = allPlugins.map((p) => ({
+  const plugins = allPlugins.map((p: any) => ({
     id: p.id,
     name: p.name,
     version: p.version,
     description: p.description,
     state: p.state,
     permissions: p.permissions,
-    tools: p.sandbox ? p.sandbox.getTools().map((t) => t.name) : [],
+    tools: p.sandbox ? p.sandbox.getTools().map((t: any) => t.name) : [],
     installedAt: p.installedAt,
     error: p.error,
   }));

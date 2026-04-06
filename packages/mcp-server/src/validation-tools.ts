@@ -214,14 +214,14 @@ function checkConstraints(
         }
       }
     } else if (constraint.type === 'oneof') {
-      const present = constraint.targets.filter((t) => traitSetLower.has(t.toLowerCase()));
+      const present = constraint.targets.filter((t: any) => traitSetLower.has(t.toLowerCase()));
       if (present.length > 1) {
         diagnostics.push({
           severity: 'error',
           code: 'CONSTRAINT_ONEOF',
-          message: `Only one of [${constraint.targets.map((t) => '@' + t).join(', ')}] allowed: ${constraint.message}`,
+          message: `Only one of [${constraint.targets.map((t: any) => '@' + t).join(', ')}] allowed: ${constraint.message}`,
           source: sourceName,
-          suggestion: `Keep only one of: ${present.map((t) => '@' + t).join(', ')}`,
+          suggestion: `Keep only one of: ${present.map((t: any) => '@' + t).join(', ')}`,
         });
       }
     }

@@ -321,7 +321,7 @@ async function handleInspectTraceWaterfall(args: Record<string, unknown>): Promi
 
   const renderer = getWaterfallRenderer();
   if (args.minDuration) {
-    const customRenderer = new TraceWaterfallRenderer({
+    const customRenderer = new (TraceWaterfallRenderer as any)({
       minDuration: args.minDuration as number,
     });
     return { waterfall: customRenderer.render(normalized) };

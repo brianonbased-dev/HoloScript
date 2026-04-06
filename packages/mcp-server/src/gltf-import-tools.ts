@@ -271,7 +271,7 @@ function inferTraits(node: GltfNode, gltf: GltfData): string[] {
   // Extension-based inference
   const ext = node.extensions || {};
   if (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) {
-    const rb = ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies'];
+    const rb = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as any;
     if (rb?.isKinematic) {
       traits.push('@kinematic');
     } else {
@@ -279,8 +279,8 @@ function inferTraits(node: GltfNode, gltf: GltfData): string[] {
     }
     traits.push('@collidable');
   }
-  if (ext['MSFT_physics']?.rigidBody) {
-    const rb = ext['MSFT_physics'].rigidBody;
+  if ((ext['MSFT_physics'] as any)?.rigidBody) {
+    const rb = (ext['MSFT_physics'] as any).rigidBody;
     traits.push(rb.isKinematic ? '@kinematic' : '@physics');
     traits.push('@collidable');
   }
@@ -379,7 +379,7 @@ function extractPhysicsParams(node: GltfNode): string[] {
   const params: string[] = [];
   const ext = node.extensions || {};
 
-  const rigid = ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies'];
+  const rigid = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as any;
   if (rigid) {
     if (rigid.mass !== undefined) params.push(`mass: ${rigid.mass}`);
     if (rigid.linearVelocity) params.push(`linear_velocity: ${formatVec3(rigid.linearVelocity)}`);
@@ -387,7 +387,7 @@ function extractPhysicsParams(node: GltfNode): string[] {
       params.push(`angular_velocity: ${formatVec3(rigid.angularVelocity)}`);
   }
 
-  const msft = ext['MSFT_physics'];
+  const msft = ext['MSFT_physics'] as any;
   if (msft?.rigidBody) {
     const rb = msft.rigidBody;
     if (rb.mass !== undefined) params.push(`mass: ${rb.mass}`);
@@ -515,8 +515,8 @@ function buildHoloComposition(gltf: GltfData, sourceName: string): string {
   lines.push('    skybox: "gradient"');
   lines.push('    ambient_light: 0.4');
 
-  if (gltf.extensions?.['KHR_lights_punctual']?.lights) {
-    const lights = gltf.extensions['KHR_lights_punctual'].lights;
+  if ((gltf.extensions?.['KHR_lights_punctual'] as any)?.lights) {
+    const lights = (gltf.extensions?.['KHR_lights_punctual'] as any).lights;
     const directionalLight = lights.find((l: any) => l.type === 'directional');
     if (directionalLight) {
       const color = directionalLight.color || [1, 1, 1];
