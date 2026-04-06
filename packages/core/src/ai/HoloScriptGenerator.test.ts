@@ -17,13 +17,13 @@ import type {
   ExplainResult,
   FixResult,
   OptimizeResult,
-} from './adapters';
+} from '@holoscript/framework/ai';
 import {
   HoloScriptGenerator,
   generateHoloScriptWithAdapter,
   generateBatch,
   validateBatch,
-} from './HoloScriptGenerator';
+} from '@holoscript/framework/ai';
 
 // =============================================================================
 // MOCK ADAPTER
