@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { GoalSynthesizer, DOMAIN_GOALS } from '../protocol/goal-synthesizer';
+import { GoalSynthesizer, DOMAIN_GOALS, GENERIC_GOALS } from '../protocol/goal-synthesizer';
 import type { KnowledgeStore, StoredEntry } from '../knowledge/knowledge-store';
 
 // Mock KnowledgeStore
@@ -85,7 +85,7 @@ describe('Scenario-Driven Todo Generation', () => {
     
     // The description should match an architecture domain or generic fallback
     const archDomains = DOMAIN_GOALS['architecture'];
-    expect(archDomains.includes(architectGoal.description) || architectGoal.description.includes('Analyze') || architectGoal.description.includes('efficiency')).toBeTruthy();
+    expect(archDomains.includes(architectGoal.description) || GENERIC_GOALS.includes(architectGoal.description)).toBeTruthy();
   });
 
   it('Scenario 4: Security agent triages code injection vulnerability knowledge', async () => {
