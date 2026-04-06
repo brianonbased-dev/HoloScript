@@ -35,21 +35,6 @@
 import { HoloScriptParser } from './HoloScriptParser';
 import { HoloScriptRuntime } from './HoloScriptRuntime';
 
-// Engine extraction compatibility layer (A.011.01z)
-export {
-  type SpatialEngine,
-  type PhysicsStep,
-  type EngineConfig,
-  type EngineMetrics,
-  type EngineState,
-  type EngineSystem,
-  type Vec3,
-  type PhysicsBodyState,
-  type CollisionEvent,
-  type CollisionCallback,
-} from '@holoscript/engine';
-// Animation re-export removed � import from '@holoscript/engine' directly
-
 // Composition Parser (Tier 3 migration from Hololand — pure language-level AST traversal)
 export {
   ParsedObject,
@@ -198,44 +183,7 @@ export type {
 // Runtime
 export { HoloScriptRuntime } from './HoloScriptRuntime';
 
-// HoloScript+ Runtime (moved to @holoscript/engine in A.011)
-export { HoloScriptPlusRuntimeImpl, createRuntime } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
-export type { RuntimeOptions, Renderer, NodeInstance } from '@holoscript/engine/runtime/HoloScriptPlusRuntime';
-
 // Headless Runtime — see './runtime/profiles' re-export block below (line ~1929)
-
-// HoloScript+ Speech Recognition (NEW - Phase 16)
-export {
-  speechRecognizerRegistry,
-  registerSpeechRecognizer,
-  getSpeechRecognizer,
-  type SpeechRecognizer,
-  type SpeechRecognizerConfig,
-  type TranscriptionSegment,
-} from '@holoscript/engine/runtime/SpeechRecognizer';
-
-// HoloScript+ Physics (NEW - Phase 17)
-export {
-  physicsEngineRegistry,
-  registerPhysicsEngine,
-  getPhysicsEngine,
-  type PhysicsConfig,
-  type BodyProps,
-  type BodyState,
-  type PhysicsEngine,
-} from '@holoscript/engine/runtime/PhysicsEngine';
-
-export { IslandDetector, type BodyConnection } from '@holoscript/engine/physics/IslandDetector';
-
-// HoloScript+ Navigation (NEW - Phase 18)
-export {
-  navigationEngineRegistry,
-  registerNavigationEngine,
-  getNavigationEngine,
-  type NavigationConfig,
-  type NavDestination,
-  type NavigationEngine,
-} from '@holoscript/engine/runtime/NavigationEngine';
 
 export { flowFieldHandler, type FlowFieldConfig } from './traits/FlowFieldTrait';
 
@@ -257,42 +205,7 @@ export {
   type CapabilityCheckResult,
 } from './traits/RBACTrait';
 
-// HoloScript+ Streaming (NEW - Phase 19)
-export {
-  assetStreamerRegistry,
-  registerAssetStreamer,
-  getAssetStreamer,
-  StreamPriority,
-  type AssetStreamRequest,
-  type StreamStatus,
-  type AssetStreamer,
-} from '@holoscript/engine/runtime/AssetStreamer';
-
-export { MovementPredictor, type PredictiveWindow } from '@holoscript/engine/runtime/MovementPredictor';
-
-// HoloScript+ Synthesis (NEW - Phase 20)
-export {
-  voiceSynthesizerRegistry,
-  registerVoiceSynthesizer,
-  getVoiceSynthesizer,
-  type VoiceConfig,
-  type VoiceRequest,
-  type VoiceInfo,
-  type VoiceSynthesizer,
-} from '@holoscript/engine/runtime/VoiceSynthesizer';
-
 export { emotionalVoiceHandler, type EmotionalVoiceConfig } from './traits/EmotionalVoiceTrait';
-
-// HoloScript+ Affective Computing (NEW - Phase 21)
-export {
-  emotionDetectorRegistry,
-  registerEmotionDetector,
-  getEmotionDetector,
-  type EmotionConfig,
-  type EmotionSignals,
-  type EmotionInference,
-  type EmotionDetector,
-} from '@holoscript/engine/runtime/EmotionDetector';
 
 export { userMonitorHandler, type UserMonitorConfig } from './traits/UserMonitorTrait';
 
@@ -1233,19 +1146,6 @@ export type {
   AvatarEmbodimentEvent,
 } from './traits/AvatarEmbodimentTrait';
 
-// Performance Telemetry (NEW - Phase 1)
-export {
-  PerformanceTelemetry,
-  getPerformanceTelemetry,
-  type Metric,
-  type MetricType as TelemetryMetricType,
-  type SeverityLevel,
-  type PerformanceBudget,
-  type FrameTiming,
-  type MemorySnapshot,
-  type AnalyticsExporter,
-} from '@holoscript/engine/runtime/PerformanceTelemetry';
-
 // Hololand Graphics Pipeline Service (NEW - Phase 4)
 export {
   HololandGraphicsPipelineService,
@@ -1909,22 +1809,6 @@ export {
 // MQTT Protocol Bindings (Sprint 3 - Priority 2)
 // =============================================================================
 
-export {
-  MQTTClient,
-  createMQTTClient,
-  registerMQTTClient,
-  getMQTTClient,
-  unregisterMQTTClient,
-  type QoS,
-  type MQTTVersion,
-  type MQTTClientConfig,
-  type MQTTMessage,
-  type MQTTSubscription,
-  type MQTTPublishOptions,
-  type MQTTClientState,
-  type MQTTClientEvents,
-} from '@holoscript/engine/runtime/protocols';
-
 // MQTT Source Trait Handler
 export {
   mqttSourceHandler,
@@ -1951,35 +1835,6 @@ export {
 // =============================================================================
 // Runtime Profiles (Sprint 3 - Priority 3)
 // =============================================================================
-
-export {
-  // Profile types
-  type RuntimeProfile,
-  type RuntimeProfileName,
-  type RenderingConfig,
-  type PhysicsConfig as ProfilePhysicsConfig,
-  type AudioConfig as ProfileAudioConfig,
-  type NetworkConfig as ProfileNetworkConfig,
-  type InputConfig as ProfileInputConfig,
-  type ProtocolConfig,
-  // Predefined profiles
-  HEADLESS_PROFILE,
-  MINIMAL_PROFILE,
-  STANDARD_PROFILE,
-  VR_PROFILE,
-  // Profile utilities
-  getProfile,
-  registerProfile,
-  getAvailableProfiles,
-  createCustomProfile,
-  // Headless runtime
-  HeadlessRuntime,
-  createHeadlessRuntime,
-  type ActionHandler,
-  type HeadlessRuntimeOptions,
-  type HeadlessRuntimeStats,
-  type HeadlessNodeInstance,
-} from '@holoscript/engine/runtime/profiles';
 
 // =============================================================================
 // Real-time Sync Protocol (Sprint 3 - Priority 7)
@@ -2085,7 +1940,7 @@ export * from './choreography';
 export * from './negotiation';
 
 // =============================================================================
-// Swarm Module � MOVED to @holoscript/framework (v6.0)
+// Swarm Module � MOVED to @holoscript/framework (v6.0)
 // All swarm primitives (ACOEngine, LeaderElection, SwarmManager,
 // SwarmCoordinator, PSOEngine, CollectiveIntelligence, VotingRound,
 // ContributionSynthesizer, SwarmMembership, QuorumPolicy) now live in
@@ -2100,8 +1955,6 @@ export * from './recovery';
 // =============================================================================
 // Render Module (v3.3 WebGPU Rendering)
 // =============================================================================
-
-export * from '@holoscript/engine/rendering';
 
 // =============================================================================
 // Shader Module (v3.3 Visual Shader Graph)
@@ -2121,15 +1974,10 @@ export * from './postfx';
 
 // Explicit re-exports to resolve conflicts between physics and audio modules
 // (both define IVector3 and zeroVector — physics is canonical source)
-export { type IVector3, zeroVector } from '@holoscript/engine/physics/PhysicsTypes';
-
-export * from '@holoscript/engine/physics';
 
 // =============================================================================
 // Audio Module (v3.3 Spatial Audio & Sequencing)
 // =============================================================================
-
-export * from '@holoscript/engine/audio';
 
 // =============================================================================
 // Network Module (v3.3 State Synchronization)
@@ -2686,12 +2534,6 @@ export type {
 // HoloLand Runtime Integration
 // ═══════════════════════════════════════════════════════════════════
 
-export { gateCheck, RuntimeMonitor } from '@holoscript/engine/runtime/SafetyGate';
-export type { GateDecision, WorldSafetyPolicy, ResourceSnapshot } from '@holoscript/engine/runtime/SafetyGate';
-
-export { CultureRuntime } from '@holoscript/engine/runtime/CultureRuntime';
-export type { CultureEvent, CultureRuntimeConfig } from '@holoscript/engine/runtime/CultureRuntime';
-
 // ── AI: Behavior Tree ──────────────────────────────────────────────
 export { BehaviorTree } from './ai';
 export type { BTTreeContext, BTTreeDef } from './ai';
@@ -2711,13 +2553,11 @@ export type { BTStatus } from './ai';
 export { Blackboard } from './ai';
 
 // ── Dialogue ───────────────────────────────────────────────────────
-export { DialogueGraph } from '@holoscript/engine/dialogue/DialogueGraph';
 export type {
   DialogueNode as DialogueGraphNode,
   DialogueNodeType as DialogueGraphNodeType,
   DialogueState,
 } from '@holoscript/engine/dialogue/DialogueGraph';
-export { DialogueRunner } from '@holoscript/engine/dialogue/DialogueRunner';
 export type {
   DialogueNode as DialogueRunnerNode,
   DialogueNodeType as DialogueRunnerNodeType,
@@ -2736,18 +2576,7 @@ export type {
 export { ComponentType } from './traits/ECSWorldTrait';
 
 // ── Animation Engine ───────────────────────────────────────────────
-// Engine Subsystem Shims (A.011 migration) � consolidated wildcard re-exports.
-// These barrel files point through local shims to @holoscript/engine.
-// Migrate your imports to '@holoscript/engine' directly when possible.
-export * from '@holoscript/engine/animation';
-export * from '@holoscript/engine/tilemap';
-export * from '@holoscript/engine/combat';
-export * from '@holoscript/engine/navigation';
-export * from '@holoscript/engine/particles';
-export * from '@holoscript/engine/camera';
-export * from '@holoscript/engine/gameplay';
-export * from '@holoscript/engine/environment';
-// NOTE: Audio (export * from '@holoscript/engine/audio'), Rendering (export * from '@holoscript/engine/rendering'),
+// Engine Subsystem Shims (A.011 migration) � consolidated wildcard re-exports.
 // and LOD (export * from './lod') already have wildcard re-exports above.
 // Duplicate explicit re-exports for AudioEngine, ShaderGraph, LightingModel, LODManager removed.
 
@@ -2848,19 +2677,14 @@ export { StateMachine } from './ai';
 export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai';
 
 // ── Input ──────────────────────────────────────────────────────────
-// InputManager removed � import from '@holoscript/engine' (A.011.01f)
-export { InputManager } from '@holoscript/engine/input/InputManager';
 
 // ── Network ────────────────────────────────────────────────────────
 export { NetworkManager } from './network/NetworkManager';
 export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
 
 // ── Animation Timeline ─────────────────────────────────────────────
-// Timeline removed � import from '@holoscript/engine' (A.011.01c)
 
 // ── Scene Manager ──────────────────────────────────────────────────
-export { SceneManager } from '@holoscript/engine/scene/SceneManager';
-export type { SavedScene, SceneListEntry } from '@holoscript/engine/scene/SceneManager';
 
 // ── Asset Registry ─────────────────────────────────────────────────
 // AssetRegistry already exported via `export * from './assets'` above
@@ -2968,8 +2792,6 @@ export type {
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================
 
-export { TraitContextFactory, createTraitContextFactory } from '@holoscript/engine/runtime/TraitContextFactory';
-
 export type {
   PhysicsProvider,
   AudioProvider,
@@ -2981,10 +2803,6 @@ export type {
   TraitContextFactoryConfig,
 } from '@holoscript/engine/runtime/TraitContextFactory';
 
-export { TraitRuntimeIntegration, createTraitRuntime } from '@holoscript/engine/runtime/TraitRuntimeIntegration';
-
-export type { TrackedNode, TraitRuntimeStats } from '@holoscript/engine/runtime/TraitRuntimeIntegration';
-
 // Mathematical utilities
 export {
   calculateAverage,
@@ -2994,8 +2812,6 @@ export {
 } from './utils/math';
 
 // ── Headless Runtime (CLI & Server-Side Execution) ──────────────────────────
-// HeadlessRuntime, HeadlessRuntimeOptions, RuntimeProfile already exported from '@holoscript/engine/runtime/profiles' above
-export { type RuntimeStats } from '@holoscript/engine/runtime/HeadlessRuntime';
 
 // ── Error Recovery (Parser Error-Handling & Suggestions) ────────────────────
 export {
@@ -3018,19 +2834,6 @@ export {
 } from './stdlib';
 export type { StdlibPolicy, StdlibOptions } from './stdlib';
 
-// ── Hologram Media Pipeline (2D-to-3D) ─────────────────────────────────────
-export {
-  DepthEstimationService,
-  TemporalSmoother,
-  GIFDecomposer,
-  ModelCache,
-  depthToNormalMap,
-  detectBestBackend,
-  GIFDisposalMethod,
-  QuiltCompiler,
-  MVHEVCCompiler,
-  WebCodecsDepthPipeline,
-} from '@holoscript/engine/hologram';
 export type {
   DepthBackend,
   DepthEstimationConfig,
@@ -3160,7 +2963,6 @@ export {
 } from './traits/PerformanceRegressionMonitor';
 
 // ── Headless Runtime + Watch Runner ─────────────────────────────────────────
-export { WatchRunner, type WatchRunnerOptions, type WatchEvent } from '@holoscript/engine/runtime/WatchRunner';
 
 // ── Plugin System (Sandboxing, API, Lifecycle Management) ─────────────────
 export { PluginSandbox, createPluginSandbox } from './plugins/PluginSandbox';
@@ -3346,5 +3148,4 @@ export {
 // ============================================================================
 export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
 export type * from './training/SparsityMonitorTypes';
-
 
