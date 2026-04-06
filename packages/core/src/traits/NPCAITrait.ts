@@ -87,11 +87,11 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
       if (adapter && adapter.chat) {
         adapter
           .chat(prompt, undefined, state.conversationHistory.slice(0, -1))
-          .then((response) => {
+          .then((response: string) => {
             // Re-emit as AI response event
             context.emit?.('npc_ai_response', { node, text: response });
           })
-          .catch((error) => {
+          .catch((error: Error) => {
             state.isThinking = false;
             context.emit?.('npc_ai_error', { node, error: error.message });
           });
