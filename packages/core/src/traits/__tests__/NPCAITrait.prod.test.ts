@@ -28,9 +28,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock AIAdapter ───────────────────────────────────────────────────────────
 let _mockAdapter: any = null;
-vi.mock('../../ai/AIAdapter', () => ({
-  getDefaultAIAdapter: () => _mockAdapter,
-}));
+vi.mock('@holoscript/framework/ai', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, getDefaultAIAdapter: () => _mockAdapter };
+});
 
 import { npcAIHandler } from '../NPCAITrait';
 
@@ -175,11 +176,10 @@ describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
       type: 'npc_ai_prompt',
       prompt: 'How are you?',
     });
-    await vi.waitFor(() =>
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'npc_ai_response',
-        expect.objectContaining({ text: 'I am well.' })
-      )
+    await new Promise((r) => setTimeout(r, 0));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'npc_ai_response',
+      expect.objectContaining({ text: 'I am well.' })
     );
   });
 
@@ -191,11 +191,10 @@ describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
       type: 'npc_ai_prompt',
       prompt: 'Fail test',
     });
-    await vi.waitFor(() =>
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'npc_ai_error',
-        expect.objectContaining({ error: 'adapter_down' })
-      )
+    await new Promise((r) => setTimeout(r, 0));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'npc_ai_error',
+      expect.objectContaining({ error: 'adapter_down' })
     );
     expect(getState(node).isThinking).toBe(false);
   });
