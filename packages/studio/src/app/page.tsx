@@ -10,8 +10,9 @@
  * (moved to wizard), secondary nav (already in layout).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
 
@@ -277,6 +278,23 @@ function CompileTargetStrip() {
 
 export default function HomePage() {
   const [showWizard, setShowWizard] = useState(false);
+  const router = useRouter();
+
+  // Redirect new users to /start (Brittney-first experience)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasVisited = localStorage.getItem('holoscript-returning-user');
+    if (!hasVisited) {
+      router.replace('/start');
+    }
+  }, [router]);
+
+  // Mark the user as returning once they reach the landing page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('holoscript-returning-user', '1');
+    }
+  }, []);
 
   return (
     <main className="min-h-screen flex flex-col items-center px-4 py-16 gap-16 bg-gradient-to-b from-[#0a0a1a] via-[#0d1117] to-[#0a0a1a]">
@@ -291,14 +309,20 @@ export default function HomePage() {
         <p className="text-xl text-white/60">
           One language. Every platform. Describe it, import it, or build from scratch.
         </p>
-        {/* Primary CTA -- the ONE action on this page */}
-        <div className="pt-4">
+        {/* Primary CTA -- Brittney-first experience */}
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/start"
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20 inline-block"
+          >
+            Start Building
+          </Link>
           <button onClick={() => setShowWizard(true)}
-            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20">
-            Get Started
+            className="px-6 py-3 border border-white/10 hover:border-white/20 rounded-xl text-white/60 hover:text-white font-medium transition-all">
+            Import Project
           </button>
-          <p className="text-white/30 text-sm mt-2">Free tier included. No credit card required.</p>
         </div>
+        <p className="text-white/30 text-sm mt-1">Free tier included. No credit card required.</p>
       </section>
 
       {/* Live code demo -- the pitch */}

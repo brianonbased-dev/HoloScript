@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { X, Upload, Sparkles, MessageSquare, ArrowRight } from 'lucide-react';
 import { ImportRepoWizard } from './ImportRepoWizard';
 import { StudioSetupWizard } from './StudioSetupWizard';
+import { BrittneyWizard } from './BrittneyWizard';
 
 type OnboardingPath = null | 'import' | 'create' | 'describe';
 
@@ -73,12 +74,7 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
   }
 
   if (path === 'describe') {
-    // For now, route to absorb page with describe mode
-    // Brittney wizard will be built as a separate component
-    if (typeof window !== 'undefined') {
-      window.location.href = '/absorb?tab=dashboard&mode=describe';
-    }
-    return null;
+    return <BrittneyWizard onClose={onClose} />;
   }
 
   // Step 0: Choose your path

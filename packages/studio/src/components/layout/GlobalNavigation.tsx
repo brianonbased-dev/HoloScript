@@ -3,13 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderGit2, Wand2, Workflow, Settings, PanelsTopLeft } from 'lucide-react';
+import { Home, MessageCircle, FolderGit2, Wand2, Workflow, Settings, PanelsTopLeft } from 'lucide-react';
 
 export function GlobalNavigation() {
   const pathname = usePathname();
 
   const navItems = [
     { label: 'Studio', href: '/', icon: Home, exact: true },
+    { label: 'Start', href: '/start', icon: MessageCircle, exact: true },
     { label: 'Workspace', href: '/workspace', icon: FolderGit2, exact: false },
     { label: 'Generator', href: '/create', icon: Wand2, exact: false },
     { label: 'Integrations', href: '/integrations', icon: Workflow, exact: false },

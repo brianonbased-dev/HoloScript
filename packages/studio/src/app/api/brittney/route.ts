@@ -7,6 +7,10 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
+import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
+import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
+import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
+import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { rateLimit } from '@/lib/rateLimit';
 
 const MAX_REQUESTS_PER_MIN = 20;
@@ -95,11 +99,32 @@ Physics (@physics, @rigid_body, @soft_body, @fluid, @cloth) | AI (@ai_npc, @path
 - For fresh projects: model immediately, ask at most one clarifying question.`;
 
 function convertToolsToClaudeFormat(): Anthropic.Tool[] {
-  return BRITTNEY_TOOLS.map((t) => ({
+  const sceneTtools = BRITTNEY_TOOLS.map((t) => ({
     name: t.function.name,
     description: t.function.description,
     input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
   }));
+  const apiTools = STUDIO_API_TOOLS.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+  }));
+  const mcpTools = MCP_TOOLS.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+  }));
+  return [...sceneTtools, ...apiTools, ...mcpTools];
+}
+
+/**
+ * Resolve the base URL for internal API calls.
+ * In production Next.js, internal fetch needs the full origin.
+ */
+function getBaseUrl(request: Request): string {
+  const proto = request.headers.get('x-forwarded-proto') || 'http';
+  const host = request.headers.get('host') || 'localhost:3000';
+  return `${proto}://${host}`;
 }
 
 export async function POST(request: Request) {
@@ -154,6 +179,15 @@ export async function POST(request: Request) {
     ? `${SYSTEM_PROMPT}\n\n--- Current Scene ---\n${sceneContext}`
     : SYSTEM_PROMPT;
 
+  const baseUrl = getBaseUrl(request);
+
+  // Forward auth-related headers so Studio API calls inherit the session
+  const forwardHeaders: Record<string, string> = {};
+  const cookie = request.headers.get('cookie');
+  if (cookie) forwardHeaders['cookie'] = cookie;
+  const authHeader = request.headers.get('authorization');
+  if (authHeader) forwardHeaders['authorization'] = authHeader;
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -163,50 +197,128 @@ export async function POST(request: Request) {
       }
 
       try {
-        // Accumulate tool use blocks during streaming
-        let currentToolName = '';
-        let currentToolInput = '';
+        const MAX_TOOL_ROUNDS = 5;
+        let roundMessages = [...claudeMessages];
 
-        const response = await client.messages.create({
-          model: process.env.BRITTNEY_MODEL || 'claude-sonnet-4-20250514',
-          max_tokens: 2048,
-          system: systemPrompt,
-          messages: claudeMessages,
-          tools: convertToolsToClaudeFormat(),
-          stream: true,
-        });
+        for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+          // Accumulate tool use blocks during streaming
+          let currentToolName = '';
+          let currentToolInput = '';
+          let currentToolId = '';
+          const pendingToolCalls: Array<{
+            id: string;
+            name: string;
+            input: Record<string, unknown>;
+          }> = [];
 
-        for await (const event of response) {
-          switch (event.type) {
-            case 'content_block_start':
-              if (event.content_block.type === 'tool_use') {
-                currentToolName = event.content_block.name;
-                currentToolInput = '';
-              }
-              break;
+          const response = await client.messages.create({
+            model: process.env.BRITTNEY_MODEL || 'claude-sonnet-4-20250514',
+            max_tokens: 2048,
+            system: systemPrompt,
+            messages: roundMessages,
+            tools: convertToolsToClaudeFormat(),
+            stream: true,
+          });
 
-            case 'content_block_delta':
-              if ('text' in event.delta && event.delta.text) {
-                send({ type: 'text', payload: event.delta.text });
-              }
-              if ('partial_json' in event.delta && event.delta.partial_json) {
-                currentToolInput += event.delta.partial_json;
-              }
-              break;
+          let stopReason: string | null = null;
 
-            case 'content_block_stop':
-              if (currentToolName) {
-                try {
-                  const args = currentToolInput ? JSON.parse(currentToolInput) : {};
-                  send({ type: 'tool_call', payload: { name: currentToolName, arguments: args } });
-                } catch {
-                  send({ type: 'tool_call', payload: { name: currentToolName, arguments: {} } });
+          for await (const event of response) {
+            switch (event.type) {
+              case 'content_block_start':
+                if (event.content_block.type === 'tool_use') {
+                  currentToolName = event.content_block.name;
+                  currentToolId = event.content_block.id;
+                  currentToolInput = '';
                 }
-                currentToolName = '';
-                currentToolInput = '';
-              }
-              break;
+                break;
+
+              case 'content_block_delta':
+                if ('text' in event.delta && event.delta.text) {
+                  send({ type: 'text', payload: event.delta.text });
+                }
+                if ('partial_json' in event.delta && event.delta.partial_json) {
+                  currentToolInput += event.delta.partial_json;
+                }
+                break;
+
+              case 'content_block_stop':
+                if (currentToolName) {
+                  const parsedArgs: Record<string, unknown> = currentToolInput
+                    ? (JSON.parse(currentToolInput) as Record<string, unknown>)
+                    : {};
+
+                  if (STUDIO_API_TOOL_NAMES.has(currentToolName) || MCP_TOOL_NAMES.has(currentToolName)) {
+                    // Studio API or MCP tool — execute server-side and collect for tool_result
+                    pendingToolCalls.push({
+                      id: currentToolId,
+                      name: currentToolName,
+                      input: parsedArgs,
+                    });
+                    // Notify the client that a tool is being executed
+                    send({
+                      type: 'tool_call',
+                      payload: { name: currentToolName, arguments: parsedArgs, serverExecuted: true },
+                    });
+                  } else {
+                    // Scene manipulation tool — send to client for execution
+                    send({ type: 'tool_call', payload: { name: currentToolName, arguments: parsedArgs } });
+                  }
+                  currentToolName = '';
+                  currentToolInput = '';
+                  currentToolId = '';
+                }
+                break;
+
+              case 'message_delta':
+                if ('stop_reason' in event.delta) {
+                  stopReason = event.delta.stop_reason;
+                }
+                break;
+            }
           }
+
+          // If Claude stopped for tool_use AND there are server-side tools to execute,
+          // run them and feed results back for another round
+          if (stopReason === 'tool_use' && pendingToolCalls.length > 0) {
+            // Execute all pending tool calls in parallel — route to correct executor
+            const results = await Promise.all(
+              pendingToolCalls.map(async (tc) => {
+                const result = MCP_TOOL_NAMES.has(tc.name)
+                  ? await executeMCPTool(tc.name, tc.input)
+                  : await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
+                send({
+                  type: 'tool_result',
+                  payload: { name: tc.name, success: result.success, data: result.data, error: result.error },
+                });
+                return { id: tc.id, result };
+              })
+            );
+
+            // Build the assistant message with tool_use blocks + tool results
+            const assistantContent: Anthropic.ContentBlockParam[] = pendingToolCalls.map((tc) => ({
+              type: 'tool_use' as const,
+              id: tc.id,
+              name: tc.name,
+              input: tc.input as Record<string, unknown>,
+            }));
+
+            const toolResultContent: Anthropic.ToolResultBlockParam[] = results.map((r) => ({
+              type: 'tool_result' as const,
+              tool_use_id: r.id,
+              content: JSON.stringify(r.result.success ? r.result.data : { error: r.result.error }),
+            }));
+
+            roundMessages = [
+              ...roundMessages,
+              { role: 'assistant' as const, content: assistantContent },
+              { role: 'user' as const, content: toolResultContent },
+            ];
+            // Continue to next round — Claude will process the tool results
+            continue;
+          }
+
+          // No more tool calls or all remaining are client-side — done
+          break;
         }
 
         send({ type: 'done', payload: null });
