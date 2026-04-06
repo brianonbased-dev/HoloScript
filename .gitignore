@@ -355,3 +355,4 @@ packages/core/test_out_*.json
 packages/core/test_parse.ts
 packages/core/test_parse_out_utf8.json
 packages/core/vitest_report.json
+scripts/pitch-stats.md
