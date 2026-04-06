@@ -114,67 +114,67 @@ import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 
 // Phone Sleeve VR (smartphone-as-headset)
-import { PHONE_SLEEVE_VR_TRAITS } from './phone-sleeve-vr';
+import { PHONE_SLEEVE_VR_TRAITS } from './mobile/phone-sleeve-vr';
 
 // Geo-Anchored Holograms (GPS-pinned persistent scenes)
-import { GEO_ANCHOR_TRAITS } from './geo-anchor';
+import { GEO_ANCHOR_TRAITS } from './mobile/geo-anchor';
 
 // ARCore Geospatial API (6 traits — M.010.15)
-import { GEOSPATIAL_ARCORE_TRAITS } from './geospatial';
+import { GEOSPATIAL_ARCORE_TRAITS } from './mobile/geospatial';
 
 // NPU Scene Understanding — on-device ML inference (M.010.03)
-import { NPU_SCENE_TRAITS } from './npu-scene';
+import { NPU_SCENE_TRAITS } from './mobile/npu-scene';
 
 // Camera Hand Tracking — MediaPipe/Vision 21-joint (M.010.04)
-import { CAMERA_HAND_TRACKING_TRAITS } from './camera-hand-tracking';
+import { CAMERA_HAND_TRACKING_TRAITS } from './mobile/camera-hand-tracking';
 
 // Spatial Authoring — mobile creation tool (M.010.08)
-import { SPATIAL_AUTHORING_TRAITS } from './spatial-authoring';
+import { SPATIAL_AUTHORING_TRAITS } from './mobile/spatial-authoring';
 
 // Haptic Holographic Feedback (M.010.05)
-import { HAPTIC_FEEDBACK_TRAITS } from './haptic-feedback';
+import { HAPTIC_FEEDBACK_TRAITS } from './mobile/haptic-feedback';
 
 // iOS Object Capture — photogrammetry (M.010.10)
-import { IOS_OBJECT_CAPTURE_TRAITS } from './ios-object-capture';
+import { IOS_OBJECT_CAPTURE_TRAITS } from './mobile/ios-object-capture';
 
 // AirPods Spatial Audio (M.010.11)
-import { AIRPODS_SPATIAL_AUDIO_TRAITS } from './airpods-spatial-audio';
+import { AIRPODS_SPATIAL_AUDIO_TRAITS } from './mobile/airpods-spatial-audio';
 
 // SharePlay Multi-User AR (M.010.12)
-import { SHAREPLAY_TRAITS } from './shareplay';
+import { SHAREPLAY_TRAITS } from './mobile/shareplay';
 
 // Ultra Wideband positioning (M.010.13)
-import { UWB_POSITIONING_TRAITS } from './uwb-positioning';
+import { UWB_POSITIONING_TRAITS } from './mobile/uwb-positioning';
 
 // TrueDepth Face Tracking (M.010.14)
-import { FACE_TRACKING_TRAITS } from './face-tracking';
+import { FACE_TRACKING_TRAITS } from './mobile/face-tracking';
 
 // Android Nearby Connections (M.010.16)
-import { NEARBY_CONNECTIONS_TRAITS } from './nearby-connections';
+import { NEARBY_CONNECTIONS_TRAITS } from './mobile/nearby-connections';
 
 // Android Foldable Display (M.010.17)
-import { FOLDABLE_DISPLAY_TRAITS } from './foldable-display';
+import { FOLDABLE_DISPLAY_TRAITS } from './mobile/foldable-display';
 
 // Samsung DeX (M.010.18)
-import { SAMSUNG_DEX_TRAITS } from './samsung-dex';
+import { SAMSUNG_DEX_TRAITS } from './mobile/samsung-dex';
 
 // Android WebXR Chrome (M.010.19)
-import { WEBXR_TRAITS } from './webxr';
+import { WEBXR_TRAITS } from './mobile/webxr';
 
 // Google Lens Integration (M.010.20)
-import { GOOGLE_LENS_TRAITS } from './google-lens';
+import { GOOGLE_LENS_TRAITS } from './mobile/google-lens';
 
 // Portal AR — phone-as-portal magic window (M.010.06)
-import { PORTAL_AR_TRAITS } from './portal-ar';
+import { PORTAL_AR_TRAITS } from './mobile/portal-ar';
 
 // LiDAR Scanner — iOS mesh capture (M.010.02a)
-import { LIDAR_SCANNER_TRAITS } from './lidar-scanner';
+import { LIDAR_SCANNER_TRAITS } from './mobile/lidar-scanner';
 
 // Depth Scanner — Android ARCore/ToF/stereo (M.010.02b)
-import { DEPTH_SCANNER_TRAITS } from './depth-scanner';
+import { DEPTH_SCANNER_TRAITS } from './mobile/depth-scanner';
 
 // RoomPlan — iOS spatial scanning (iOS 16+)
-import { ROOMPLAN_TRAITS } from './roomplan';
+import { ROOMPLAN_TRAITS } from './mobile/roomplan';
 
 // Character Pipeline & GPU Geometry (Phase R4)
 import { INSTANCING_GEOMETRY_TRAITS } from './instancing-geometry';
@@ -697,13 +697,13 @@ export { CHARACTER_MATERIAL_TRAITS, type CharacterMaterialTraitName } from './ch
 export {
   PHONE_SLEEVE_VR_TRAITS,
   type PhoneSleeveVRTraitName,
-} from './phone-sleeve-vr';
+} from './mobile/phone-sleeve-vr';
 
 // Geo-Anchored Holograms (12 traits)
 export {
   GEO_ANCHOR_TRAITS,
   type GeoAnchorTraitName,
-} from './geo-anchor';
+} from './mobile/geo-anchor';
 
 // v6 Universal Semantic Platform (35 traits)
 export {
@@ -723,112 +723,112 @@ export {
 export {
   GEOSPATIAL_ARCORE_TRAITS,
   type GeospatialARCoreTraitName,
-} from './geospatial';
+} from './mobile/geospatial';
 
 // NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
 export {
   NPU_SCENE_TRAITS,
   type NPUSceneTraitName,
-} from './npu-scene';
+} from './mobile/npu-scene';
 
 // Camera Hand Tracking (9 traits — M.010.04)
 export {
   CAMERA_HAND_TRACKING_TRAITS,
   type CameraHandTrackingTraitName,
-} from './camera-hand-tracking';
+} from './mobile/camera-hand-tracking';
 
 // Portal AR — phone-as-portal magic window (15 traits — M.010.06)
 export {
   PORTAL_AR_TRAITS,
   type PortalARTraitName,
-} from './portal-ar';
+} from './mobile/portal-ar';
 
 // LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
 export {
   LIDAR_SCANNER_TRAITS,
   type LiDARScannerTraitName,
-} from './lidar-scanner';
+} from './mobile/lidar-scanner';
 
 // Depth Scanner — Android ARCore/ToF/stereo (10 traits — M.010.02b)
 export {
   DEPTH_SCANNER_TRAITS,
   type DepthScannerTraitName,
-} from './depth-scanner';
+} from './mobile/depth-scanner';
 
 // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
 export {
   ROOMPLAN_TRAITS,
   type RoomPlanTraitName,
-} from './roomplan';
+} from './mobile/roomplan';
 
 // Spatial Authoring (5 traits — M.010.08)
 export {
   SPATIAL_AUTHORING_TRAITS,
   type SpatialAuthoringTraitName,
-} from './spatial-authoring';
+} from './mobile/spatial-authoring';
 
 // Haptic Holographic Feedback (11 traits — M.010.05)
 export {
   HAPTIC_FEEDBACK_TRAITS,
   type HapticFeedbackTraitName,
-} from './haptic-feedback';
+} from './mobile/haptic-feedback';
 
 // iOS Object Capture (8 traits — M.010.10)
 export {
   IOS_OBJECT_CAPTURE_TRAITS,
   type IOSObjectCaptureTraitName,
-} from './ios-object-capture';
+} from './mobile/ios-object-capture';
 
 // AirPods Spatial Audio (7 traits — M.010.11)
 export {
   AIRPODS_SPATIAL_AUDIO_TRAITS,
   type AirPodsSpatialAudioTraitName,
-} from './airpods-spatial-audio';
+} from './mobile/airpods-spatial-audio';
 
 // SharePlay Multi-User AR (9 traits — M.010.12)
 export {
   SHAREPLAY_TRAITS,
   type SharePlayTraitName,
-} from './shareplay';
+} from './mobile/shareplay';
 
 // Ultra Wideband positioning (6 traits — M.010.13)
 export {
   UWB_POSITIONING_TRAITS,
   type UWBPositioningTraitName,
-} from './uwb-positioning';
+} from './mobile/uwb-positioning';
 
 // TrueDepth Face Tracking (11 traits — M.010.14)
 export {
   FACE_TRACKING_TRAITS,
   type FaceTrackingTraitName,
-} from './face-tracking';
+} from './mobile/face-tracking';
 
 // Android Nearby Connections (9 traits — M.010.16)
 export {
   NEARBY_CONNECTIONS_TRAITS,
   type NearbyConnectionsTraitName,
-} from './nearby-connections';
+} from './mobile/nearby-connections';
 
 // Android Foldable Display (6 traits — M.010.17)
 export {
   FOLDABLE_DISPLAY_TRAITS,
   type FoldableDisplayTraitName,
-} from './foldable-display';
+} from './mobile/foldable-display';
 
 // Samsung DeX (5 traits — M.010.18)
 export {
   SAMSUNG_DEX_TRAITS,
   type SamsungDeXTraitName,
-} from './samsung-dex';
+} from './mobile/samsung-dex';
 
 // Android WebXR Chrome (11 traits — M.010.19)
 export {
   WEBXR_TRAITS,
   type WebXRTraitName,
-} from './webxr';
+} from './mobile/webxr';
 
 // Google Lens (7 traits — M.010.20)
 export {
   GOOGLE_LENS_TRAITS,
   type GoogleLensTraitName,
-} from './google-lens';
+} from './mobile/google-lens';
