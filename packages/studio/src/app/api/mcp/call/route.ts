@@ -27,13 +27,14 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...forwardAuthHeaders(request) },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!res.ok) {
       const errText = await res.text();
       return NextResponse.json(
         { error: `Mesh Orchestrator Error [${res.status}]: ${errText}`, offline: res.status >= 500 },
-        { status: res.status }
+        { status: res.status >= 500 ? 502 : res.status }
       );
     }
 
@@ -41,10 +42,11 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const isTimeout = message.includes('TimeoutError') || message.includes('aborted');
     const isOffline = message.includes('ECONNREFUSED') || message.includes('fetch');
     return NextResponse.json(
-      { error: `Failed to contact external MCP service: ${message}`, ...(isOffline && { offline: true }) },
-      { status: isOffline ? 503 : 500 }
+      { error: `Failed to contact external MCP service: ${message}`, offline: isOffline, timeout: isTimeout },
+      { status: isOffline ? 503 : isTimeout ? 504 : 500 }
     );
   }
 }

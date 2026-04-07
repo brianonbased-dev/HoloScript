@@ -23,12 +23,17 @@ const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_
 
 async function fetchActiveMoltbookAgentsWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<number | null> {
   const dbProbe = (async () => {
-    const { moltbookAgents } = await import('./db/schema.js');
-    const { sql } = await import('drizzle-orm');
-    const [row] = await db
-      .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
-      .from(moltbookAgents);
-    return row?.count ?? 0;
+    try {
+      const { moltbookAgents } = await import('./db/schema.js');
+      const { sql } = await import('drizzle-orm');
+      const [row] = await db
+        .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
+        .from(moltbookAgents);
+      return row?.count ?? 0;
+    } catch (e: any) {
+      // Suppress noisy log because table might not exist
+      return null;
+    }
   })();
 
   const timeoutProbe = new Promise<null>((resolve) => {
