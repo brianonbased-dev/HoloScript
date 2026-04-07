@@ -2879,11 +2879,11 @@ export declare const BUILTIN_CONSTRAINTS: any;
 export class CircuitBreakerRegistry { [key: string]: any; }
 export class CircuitState { [key: string]: any; }
 export class ExportManager { [key: string]: any; }
-export declare function getExportManager(): any;
+export declare function getExportManager(options?: Partial<ExportOptions>): any;
 export class ExportTarget { [key: string]: any; }
 export class ExportOptions { [key: string]: any; }
-export declare function selectModality(): any;
-export declare function selectModalityForAll(): any;
+export declare function selectModality(platform: any, options?: any): any;
+export declare function selectModalityForAll(options?: any): Map<any, any>;
 export declare function bestCategoryForTraits(): any;
 export declare function compileHealthcareBlock(): any;
 export declare function compileRoboticsBlock(): any;

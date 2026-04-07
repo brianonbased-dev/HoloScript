@@ -197,7 +197,12 @@ async function compileToTarget(
 export async function handleCompileToTarget(
   args: Record<string, unknown>
 ): Promise<CompilationResult> {
-  const { code, target, options = {}, jobId: providedJobId } = args as any;
+  const { code, target, options = {}, jobId: providedJobId } = args as {
+    code?: string;
+    target?: ExportTarget;
+    options?: Record<string, unknown>;
+    jobId?: string;
+  };
 
   if (!code) {
     throw new Error('code is required');
@@ -260,7 +265,7 @@ export async function handleCompileToTarget(
       error: errorMessage,
       metadata: {
         compilationTimeMs: Date.now() - startTime,
-        circuitBreakerState: (CircuitState as any)?.OPEN || 'open',
+        circuitBreakerState: CircuitState.OPEN ?? 'open',
         usedFallback: false,
       },
     };
@@ -313,20 +318,20 @@ export async function handleSelectModality(
   const options = { preferStreaming: preferStreaming ?? false };
 
   if (platform) {
-    const result = (selectModality as any)(platform as any, options);
+    const result = selectModality(platform, options);
     return { success: true, selection: result };
   }
 
   if (platforms && Array.isArray(platforms)) {
     const results: Record<string, ReturnType<typeof selectModality>> = {};
     for (const p of platforms) {
-      results[p] = (selectModality as any)(p as any, options);
+      results[p] = selectModality(p, options);
     }
     return { success: true, selections: results };
   }
 
   // No platform specified — return all 18
-  const all = (selectModalityForAll as any)(options);
+  const all = selectModalityForAll(options);
   const selections: Record<string, ReturnType<typeof selectModality>> = {};
   for (const [p, sel] of all) {
     selections[p] = sel;
@@ -414,16 +419,16 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'dtdl',
     'vrr',
     'multi-layer',
-  ] as any as ExportTarget[];
+  ] as ExportTarget[];
 
-  const categories = {
-    'Game Engines': ['unity', 'unreal', 'godot'] as any as ExportTarget[],
-    'VR Platforms': ['vrchat', 'openxr'] as any as ExportTarget[],
-    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as any as ExportTarget[],
-    'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as any as ExportTarget[],
-    'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as any as ExportTarget[],
-    '3D Formats': ['usd', 'usdz'] as any as ExportTarget[],
-    Advanced: ['vrr', 'multi-layer'] as any as ExportTarget[],
+  const categories: Record<string, ExportTarget[]> = {
+    'Game Engines': ['unity', 'unreal', 'godot'] as ExportTarget[],
+    'VR Platforms': ['vrchat', 'openxr'] as ExportTarget[],
+    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as ExportTarget[],
+    'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as ExportTarget[],
+    'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as ExportTarget[],
+    '3D Formats': ['usd', 'usdz'] as ExportTarget[],
+    Advanced: ['vrr', 'multi-layer'] as ExportTarget[],
   };
 
   return { targets, categories };
@@ -450,7 +455,7 @@ export async function handleGetCircuitBreakerStatus(
     failureRate: metrics.failureRate,
     lastError: metrics.lastError,
     timeInDegradedMode: metrics.timeInDegradedMode,
-    canRetry: metrics.state !== ((CircuitState as any)?.OPEN || 'open'),
+    canRetry: metrics.state !== (CircuitState.OPEN ?? 'open'),
   };
 }
 

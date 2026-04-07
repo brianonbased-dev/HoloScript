@@ -384,7 +384,7 @@ async function handleParseHs(args: Record<string, unknown>) {
         ast: cleanAst,
         errors: result.errors || [],
         warnings: result.warnings || [],
-        ...(args.includeSourceMap ? { sourceMap: (result as any).sourceMap } : {}),
+        ...(args.includeSourceMap ? { sourceMap: (result as Record<string, unknown>).sourceMap } : {}),
       };
     }
 
@@ -393,7 +393,7 @@ async function handleParseHs(args: Record<string, unknown>) {
       ast,
       errors: result.errors || [],
       warnings: result.warnings || [],
-      ...(args.includeSourceMap ? { sourceMap: (result as any).sourceMap } : {}),
+      ...(args.includeSourceMap ? { sourceMap: (result as Record<string, unknown>).sourceMap } : {}),
     };
   } catch (error) {
     return {
