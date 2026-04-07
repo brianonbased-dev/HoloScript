@@ -1,5 +1,5 @@
 {
-  "name": "@holoscript/absorb-host",
+  "name": "@holoscript/absorb-service-host",
   "version": "6.0.0",
   "description": "HTTP/MCP host service for @holoscript/absorb-service (engine logic lives in package)",
   "private": true,

@@ -26,5 +26,5 @@ To prevent drift between the two folders:
 
 ## Local run
 
-- `pnpm --filter absorb-service dev` (service)
+- `pnpm --filter @holoscript/absorb-service-host dev` (service)
 - `pnpm --filter @holoscript/absorb-service build` (package)

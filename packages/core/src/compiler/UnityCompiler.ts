@@ -394,10 +394,10 @@ export class UnityCompiler extends CompilerBase {
 
   private compileObject(obj: HoloObjectDecl, parentVar: string): void {
     const varName = this.sanitizeName(obj.name);
-    const meshType = this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type') || 'cube';
+    const meshType = this.findObjProp(obj, 'geometry') || this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type') || 'cube';
     const isText = meshType === 'text';
     const isSparkles = meshType === 'sparkles';
-    const isModel = !!this.findObjProp(obj, 'model') || !!this.findObjProp(obj, 'src');
+    const isModel = meshType === 'model' || !!this.findObjProp(obj, 'model') || !!this.findObjProp(obj, 'src') || !!this.findObjProp(obj, 'source');
 
     this.emit(`// Object: ${this.escapeStringValue(obj.name as string, 'CSharp')}`);
 
@@ -414,8 +414,13 @@ export class UnityCompiler extends CompilerBase {
       const color = this.findObjProp(obj, 'color');
       if (color) this.emit(`${varName}TM.color = ${this.toColor(color)};`);
     } else if (isModel) {
-      const src = this.findObjProp(obj, 'model') || this.findObjProp(obj, 'src');
-      this.emit(`var ${varName}GO = Instantiate(Resources.Load<GameObject>("Models/${src}"));`);
+      const src = this.findObjProp(obj, 'model') || this.findObjProp(obj, 'src') || this.findObjProp(obj, 'source');
+      if (src) {
+        this.emit(`var ${varName}GO = Instantiate(Resources.Load<GameObject>("Models/${src}"));`);
+      } else {
+        this.emit(`// WARNING: geometry "model" without source — placeholder cube`);
+        this.emit(`var ${varName}GO = GameObject.CreatePrimitive(PrimitiveType.Cube);`);
+      }
       this.emit(
         `${varName}GO.name = "${this.escapeStringValue(obj.name as string, 'CSharp')}";`
       );

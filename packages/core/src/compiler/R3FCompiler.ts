@@ -2778,7 +2778,7 @@ export class R3FCompiler {
           props.scale = Array.isArray(value) ? value : [value, value, value];
         } else if (key === 'color') {
           props.color = value;
-        } else if (key === 'src' || key === 'model') {
+        } else if (key === 'src' || key === 'model' || key === 'source') {
           props.src = value;
           geometryType = 'model';
         } else if (key === 'text') {

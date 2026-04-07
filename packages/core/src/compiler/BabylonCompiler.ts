@@ -348,6 +348,7 @@ export class BabylonCompiler extends CompilerBase {
           break;
         case 'model':
         case 'src':
+        case 'source':
           if (typeof p.value === 'string') modelSrc = p.value;
           break;
         case 'text':
