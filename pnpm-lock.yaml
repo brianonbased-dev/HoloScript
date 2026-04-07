@@ -16,7 +16,6 @@ overrides:
   brace-expansion: '>=5.0.5'
   picomatch: '>=4.0.4'
   yaml: '>=2.8.3'
-  path-to-regexp: '>=8.4.2'
   terser-webpack-plugin: '>=5.4.0'
   lodash-es: '>=4.18.1'
   lodash: '>=4.18.1'
@@ -824,6 +823,9 @@ importers:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../engine
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@pixiv/three-vrm':
         specifier: ^2.0.0
         version: 2.1.3(@types/three@0.170.0)(three@0.182.0)
@@ -1338,6 +1340,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../core
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@holoscript/registry':
         specifier: workspace:*
         version: link:../registry
@@ -20189,7 +20194,7 @@ packages:
       methods: 1.1.2
       on-finished: 2.4.1
       parseurl: 1.3.3
-      path-to-regexp: 8.4.2
+      path-to-regexp: 0.1.13
       proxy-addr: 2.0.7
       qs: 6.15.0
       range-parser: 1.2.1
@@ -24805,6 +24810,10 @@ packages:
     dependencies:
       lru-cache: 11.2.6
       minipass: 7.1.3
+
+  /path-to-regexp@0.1.13:
+    resolution: {integrity: sha512-A/AGNMFN3c8bOlvV9RreMdrv7jsmF9XIfDeCd87+I8RNg6s78BhJxMu69NEMHBSJFxKidViTEdruRwEk/WIKqA==}
+    dev: false
 
   /path-to-regexp@8.4.2:
     resolution: {integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==}
