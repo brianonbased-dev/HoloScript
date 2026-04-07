@@ -226,7 +226,7 @@ Object.defineProperty(global, 'indexedDB', {
 });
 
 // ── Performance.memory stub ───────────────────────────────────────────────────
-if (!(performance as any).memory) {
+if (!('memory' in performance)) {
   Object.defineProperty(performance, 'memory', {
     value: { usedJSHeapSize: 50 * 1024 * 1024, totalJSHeapSize: 128 * 1024 * 1024 },
     writable: true,

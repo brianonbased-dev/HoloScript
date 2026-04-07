@@ -20,10 +20,7 @@ import type {
   VRHand,
   Vector3,
 } from '@holoscript/core';
-import type { HSPlusDirective, HoloScriptValue } from '@holoscript/core';
-// duplicate/conflict: import type { HSPlusForDirective } from '@holoscript/core';
-// duplicate/conflict: import type { HoloTemplate, HoloValue } from '@holoscript/core';
-// duplicate/conflict: import type { IRaycastHit } from '@holoscript/core';
+import type { HSPlusDirective, HoloScriptValue, HoloValue, HoloTemplate, HSPlusForDirective, RaycastHit } from '@holoscript/core';
 import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
 import {
   VRTraitRegistry,
@@ -34,9 +31,6 @@ import {
 import { eventBus } from './EventBus';
 import { ChunkLoader } from './loader';
 import { HotReloader, type TemplateInstance as _TemplateInstance } from './HotReloader';
-// duplicate/conflict: import type { HoloTemplate } from '@holoscript/core';
-// duplicate/conflict: import type { HSPlusForDirective, HSPlusStateDirective, HSPlusExternalApiDirective, HSPlusGenerateDirective } from '@holoscript/core';
-// duplicate/conflict: import type { BodyType, IRaycastHit } from '@holoscript/core';
 import { HSPlusStatement, HSPlusExpression as _HSPlusExpression } from '@holoscript/core';
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
@@ -188,8 +182,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       right: null,
     },
     headset: {
-      position: [0, 1.6, 0],
-      rotation: [0, 0, 0],
+      position: { x: 0, y: 1.6, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
     },
     controllers: {
       left: null,
@@ -230,8 +224,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Initialize Keyboard System
-    this.keyboardSystem = new KeyboardSystem(this);
-    this.handMenuSystem = new HandMenuSystem(this);
+    this.keyboardSystem = new KeyboardSystem(this as any);
+    this.handMenuSystem = new HandMenuSystem(this as any);
 
     // Register Physics Event Handlers
     this.on('physics_grab', (payload: any) => {
@@ -311,7 +305,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       );
     const syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
 
-    this.state = createState({} as StateDeclaration, syncId);
+    this.state = createState({} as Record<string, unknown>);
     this.traitRegistry = vrTraitRegistry;
     this.companions = options.companions || {};
     this.builtins = createBuiltins(this);
@@ -436,14 +430,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         // Notify renderer to switch to XR mode (if method exists)
         if (renderer.setXRSession) {
           renderer.setXRSession(
-            session,
-            this.webXrManager!.getBinding(),
-            this.webXrManager!.getProjectionLayer()
+            session as any,
+            this.webXrManager!.getBinding() as any,
+            this.webXrManager!.getProjectionLayer() as any
           );
         }
 
         // Start the XR render loop
-        this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this));
+        this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this) as any);
       };
 
       this.webXrManager!.onSessionEnd = () => {
@@ -499,7 +493,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
    */
   private quaternionToEuler(
     q: Float32Array | [number, number, number, number]
-  ): [number, number, number] {
+  ): Vector3 {
     const x = q[0],
       y = q[1],
       z = q[2],
@@ -519,7 +513,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const t4 = 1.0 - 2.0 * (y * y + z * z);
     const rz = Math.atan2(t3, t4);
 
-    return [rx, ry, rz];
+    return { x: rx, y: ry, z: rz };
   }
 
   private updateVRInput(frame?: XRFrame): void {
@@ -533,30 +527,31 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // 1. Update Headset Pose
     if (frame) {
-      const viewerPose = frame.getViewerPose(refSpace);
+      const viewerPose = frame.getViewerPose(refSpace as any);
       if (viewerPose) {
-        const { position, orientation } = viewerPose.transform;
-        this.vrContext.headset.position = [position.x, position.y, position.z];
+        const { position, orientation } = (viewerPose as any).transform;
+        this.vrContext.headset.position = { x: position.x, y: position.y, z: position.z };
 
         // Convert Quaternion to Euler for HoloScript compatibility
         // HoloScript uses [x, y, z] Euler angles (radians)
-        this.vrContext.headset.rotation = this.quaternionToEuler([
+        const eulerH = this.quaternionToEuler([
           orientation.x,
           orientation.y,
           orientation.z,
           orientation.w,
         ]);
+        this.vrContext.headset.rotation = { x: eulerH[0], y: eulerH[1], z: eulerH[2] };
       }
     }
 
     // 2. Update Controllers / Hands
     for (const source of session.inputSources) {
-      if (!source.gripSpace) continue; // We need a grip space for position
+      if (!(source as any).gripSpace) continue; // We need a grip space for position
 
       // If we have a valid frame, get the pose
       let pose: XRPose | undefined;
       if (frame) {
-        pose = frame.getPose(source.gripSpace, refSpace) ?? undefined;
+        pose = frame.getPose((source as any).gripSpace, refSpace as any) ?? undefined;
       }
 
       if (pose) {
@@ -568,14 +563,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           id: `${handSide}_hand`,
           grip: 0,
           trigger: 0,
-          position: [position.x, position.y, position.z],
+          position: { x: position.x, y: position.y, z: position.z },
           rotation: this.quaternionToEuler([
             orientation.x,
             orientation.y,
             orientation.z,
             orientation.w,
-          ]),
-          velocity: [0, 0, 0], // Not provided by WebXR directly without previous frame diff
+          ]) as any,
+          velocity: { x: 0, y: 0, z: 0 } as any, // Not provided by WebXR directly without previous frame diff
           pinchStrength: 0,
           gripStrength: 0,
         };
@@ -629,13 +624,13 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private loadImports(): void {
     for (const imp of this.ast.imports || []) {
-      const alias = imp.alias || imp.source;
+      const alias = imp.alias || (imp as any).source || imp.path;
       // Companions should be provided via options
       if (this.companions[alias]) {
         // Already loaded
         continue;
       }
-      console.warn(`Import ${imp.path || imp.source} not found. Provide via companions option.`);
+      console.warn(`Import ${imp.path || (imp as any).source} not found. Provide via companions option.`);
     }
   }
 
@@ -1654,7 +1649,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           if (!vrHand) return null;
           return {
             origin: vrHand.position,
-            direction: [0, 0, -1], // Forward direction - should be calculated from rotation
+            direction: { x: 0, y: 0, z: -1 }, // Forward direction - should be calculated from rotation
           };
         },
         getDominantHand: () => this.vrContext.hands.right || this.vrContext.hands.left,
@@ -1697,11 +1692,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           });
 
           if (hit) {
-            const h = hit as IRaycastHit;
+            const h = hit as RaycastHit;
             return {
-              point: [h.point.x || 0, h.point.y || 0, h.point.z || 0],
-              normal: [h.normal.x || 0, h.normal.y || 0, h.normal.z || 0],
+              point: { x: h.point.x || 0, y: h.point.y || 0, z: h.point.z || 0 },
+              normal: { x: h.normal.x || 0, y: h.normal.y || 0, z: h.normal.z || 0 },
               distance: h.distance,
+              bodyId: h.bodyId,
               nodeId: h.bodyId,
               node: h.bodyId as unknown,
             };
@@ -1828,7 +1824,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
   }
 
-  getState(): StateDeclaration {
+  getState(): Record<string, unknown> {
     return this.state.getSnapshot();
   }
 
@@ -2052,7 +2048,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     } as unknown as Map<string, unknown>;
   }
 
-  private findInstanceById(
+  public findInstanceById(
     id: string,
     root: NodeInstance | null = this.rootInstance
   ): NodeInstance | null {
@@ -2122,9 +2118,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         case 'IfStatement': {
           const condition = this.evaluator.evaluate(String(stmt.condition));
           if (condition) {
-            await this.executeStatementBlock(instance, stmt.consequent as HSPlusNode);
+            await this.executeStatementBlock(instance, (stmt.consequent as any) as HSPlusStatement[]);
           } else if (stmt.alternate) {
-            await this.executeStatementBlock(instance, stmt.alternate as HSPlusNode);
+            await this.executeStatementBlock(instance, (stmt.alternate as any) as HSPlusStatement[]);
           }
           break;
         }
@@ -2432,9 +2428,9 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
     distance_to: (point: Vector3): number => {
       const viewer = runtime.vrContext.headset.position;
       return Math.sqrt(
-        Math.pow((point as number[])[0] - (viewer as number[])[0], 2) +
-          Math.pow((point as number[])[1] - (viewer as number[])[1], 2) +
-          Math.pow((point as number[])[2] - (viewer as number[])[2], 2)
+        Math.pow(point.x - viewer.x, 2) +
+          Math.pow(point.y - viewer.y, 2) +
+          Math.pow(point.z - viewer.z, 2)
       );
     },
 
@@ -2444,26 +2440,26 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
 
     hand_position: (handId: string): Vector3 => {
       const hand = handId === 'left' ? runtime.vrContext.hands.left : runtime.vrContext.hands.right;
-      return hand?.position || [0, 0, 0];
+      return hand?.position || { x: 0, y: 0, z: 0 };
     },
 
     hand_velocity: (handId: string): Vector3 => {
       const hand = handId === 'left' ? runtime.vrContext.hands.left : runtime.vrContext.hands.right;
-      return hand?.velocity || [0, 0, 0];
+      return (hand?.velocity as unknown as Vector3) || { x: 0, y: 0, z: 0 };
     },
 
     dominant_hand: (): VRHand => {
       // Default to right hand
       return (
         runtime.vrContext.hands.right ||
-        runtime.vrContext.hands.left || {
+        runtime.vrContext.hands.left || ({
           id: 'right',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          velocity: [0, 0, 0],
-          grip: 0,
-          trigger: 0,
-        }
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          velocity: { x: 0, y: 0, z: 0 },
+          gripStrength: 0,
+          pinchStrength: 0,
+        } as unknown as VRHand)
       );
     },
 

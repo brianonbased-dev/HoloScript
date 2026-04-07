@@ -18,8 +18,8 @@ export interface PredictiveWindow {
 }
 
 export class MovementPredictor {
-  private lastPosition: Vector3 = [0, 0, 0];
-  private velocity: Vector3 = [0, 0, 0];
+  private lastPosition: Vector3 = { x: 0, y: 0, z: 0 };
+  private velocity: Vector3 = { x: 0, y: 0, z: 0 };
   private history: Vector3[] = [];
   private maxHistory: number = 60; // 1 second at 60fps
   private intent: IntentSignal | null = null;
@@ -41,17 +41,17 @@ export class MovementPredictor {
 
     if (dt > 0) {
       const lastPos = this.toTuple(this.lastPosition);
-      this.velocity = [
-        (currentPos[0] - lastPos[0]) / dt,
-        (currentPos[1] - lastPos[1]) / dt,
-        (currentPos[2] - lastPos[2]) / dt,
-      ];
+      this.velocity = {
+        x: (currentPos[0] - lastPos[0]) / dt,
+        y: (currentPos[1] - lastPos[1]) / dt,
+        z: (currentPos[2] - lastPos[2]) / dt,
+      };
     }
 
-    this.lastPosition = currentPos;
+    this.lastPosition = { x: currentPos[0], y: currentPos[1], z: currentPos[2] };
 
     // Tier 2: Update history buffer
-    this.history.push([...currentPos]);
+    this.history.push({ x: currentPos[0], y: currentPos[1], z: currentPos[2] });
     if (this.history.length > this.maxHistory) {
       this.history.shift();
     }
@@ -138,9 +138,9 @@ export class MovementPredictor {
     });
 
     const speed = Math.sqrt(
-      (this.velocity[0] ?? 0) ** 2 +
-        (this.velocity[1] ?? 0) ** 2 +
-        (this.velocity[2] ?? 0) ** 2
+      (this.velocity.x ?? 0) ** 2 +
+        (this.velocity.y ?? 0) ** 2 +
+        (this.velocity.z ?? 0) ** 2
     );
 
     if (speed > 0.5) {

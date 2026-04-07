@@ -11,13 +11,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-// Mock browser environment
+interface MockBrowserWindow extends Omit<Window, 'crypto'> {
+  CompilerBridge?: {
+    parse: ReturnType<typeof vi.fn>;
+    compile: ReturnType<typeof vi.fn>;
+  };
+  quickBenchmark?: () => Promise<any>;
+  BenchmarkUtils?: any;
+}
+
 const mockWindow = {
   CompilerBridge: {
     parse: vi.fn(),
     compile: vi.fn(),
   },
-} as any;
+} as unknown as MockBrowserWindow;
 
 const mockConsole = {
   log: vi.fn(),
@@ -39,9 +47,9 @@ describe('quickBenchmark', () => {
 
   beforeEach(() => {
     // Setup browser environment mocks
-    global.window = mockWindow as any;
-    global.console = mockConsole as any;
-    global.performance = mockPerformance as any;
+    global.window = mockWindow as unknown as Window & typeof globalThis;
+    global.console = mockConsole as unknown as Console;
+    global.performance = mockPerformance as unknown as Performance;
 
     // Reset all mocks
     vi.clearAllMocks();
@@ -66,8 +74,8 @@ describe('quickBenchmark', () => {
     eval(benchmarkCode);
 
     // Extract the functions that should be available on window
-    quickBenchmark = (global.window as any).quickBenchmark;
-    BenchmarkUtils = (global.window as any).BenchmarkUtils;
+    quickBenchmark = (global.window as unknown as MockBrowserWindow).quickBenchmark as () => Promise<any>;
+    BenchmarkUtils = (global.window as unknown as MockBrowserWindow).BenchmarkUtils;
   });
 
   afterEach(() => {

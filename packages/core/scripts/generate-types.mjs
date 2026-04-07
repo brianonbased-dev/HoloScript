@@ -416,6 +416,32 @@ export function generateScaleTexture(size: number, baseColor?: [number, number, 
 export function generateScaleNormalMap(size: number): Uint8Array;
 
 // ============================================================================
+// COMPRESSION & SPLATTING
+// ============================================================================
+
+export interface CompressionOptions {
+  method?: 'lz4' | 'zstd' | 'brotli';
+  level?: number;
+  [key: string]: any;
+}
+
+export class AdvancedCompression {
+  constructor(options?: any);
+  static compressBuffer(buffer: ArrayBuffer | Uint8Array, options?: CompressionOptions): Promise<Uint8Array>;
+  static decompressBuffer(buffer: Uint8Array, method?: string): Promise<ArrayBuffer>;
+  [key: string]: any;
+}
+
+export interface INeuralSplatPacket {
+  id: string;
+  frameId?: number;
+  count: number;
+  data: Uint8Array;
+  metadata?: Record<string, any>;
+  cameraState?: any;
+}
+
+// ============================================================================
 // USDZ PIPELINE (USDA/USDZ Export)
 // ============================================================================
 
@@ -601,6 +627,12 @@ export interface ComponentTraitHandler {
   conflicts?: string[];
 }
 
+export class TraitDependencyGraph {
+  constructor(options?: any);
+  registerTrait(name: string, handler: any): void;
+  [key: string]: any;
+}
+
 export class TraitCompositionCompiler {
   constructor(inheritanceResolver?: any);
   setInheritanceResolver(resolver: any): void;
@@ -610,6 +642,25 @@ export class TraitCompositionCompiler {
 // ============================================================================
 // RUNTIME & EXECUTION
 // ============================================================================
+
+export type HoloValue = any;
+export interface HoloTemplate {
+  type: string;
+  id: string;
+  [key: string]: any;
+}
+export interface HSPlusForDirective {
+  iterable: string;
+  variable: string;
+  body?: any[];
+}
+export interface RaycastHit {
+  point: Vector3;
+  normal: Vector3;
+  distance: number;
+  bodyId: string;
+  [key: string]: any;
+}
 
 export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
@@ -646,8 +697,16 @@ export interface SpatialPosition {
 }
 
 export interface HSPlusAST {
-  type: string;
-  nodes: HSPlusASTNode[];
+  type: 'Program';
+  body: any[];
+  version: string | number;
+  root: any;
+  imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }>;
+  hasState: boolean;
+  hasVRTraits: boolean;
+  hasControlFlow: boolean;
+  migrations?: any[];
+  nodes?: HSPlusASTNode[];
   metadata?: Record<string, any>;
 }
 
@@ -743,7 +802,7 @@ export interface SafetyReport {
   [key: string]: any;
 }
 
-export type SafetyVerdict = 'safe' | 'caution' | 'unsafe';
+export type SafetyVerdict = 'safe' | 'warnings' | 'unsafe' | 'unchecked';
 
 // ============================================================================
 // PLATFORM TYPES
@@ -837,7 +896,9 @@ export interface PhysicsContext {
   applyVelocity(node: HSPlusNode, velocity: Vector3): void;
   applyAngularVelocity(node: HSPlusNode, angularVelocity: Vector3): void;
   setKinematic(node: HSPlusNode, kinematic: boolean): void;
-  raycast(origin: Vector3, direction: Vector3, maxDistance: number): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number): RaycastHit | null;
+  getBodyPosition(nodeId: string): { x: number; y: number; z: number } | null;
+  getBodyVelocity(nodeId: string): { x: number; y: number; z: number } | null;
 }
 
 export interface AudioContext {
@@ -905,7 +966,7 @@ export interface PhysicsProvider {
   applyVelocity(nodeId: string, velocity: Vector3): void;
   applyAngularVelocity(nodeId: string, angularVelocity: Vector3): void;
   setKinematic(nodeId: string, kinematic: boolean): void;
-  raycast(origin: Vector3, direction: Vector3, maxDistance: number): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number): RaycastHit | null;
 }
 
 export interface AudioProvider {
@@ -2031,7 +2092,7 @@ export interface MarketplaceSubmission { id: string; title: string; description:
 // PLATFORM TARGET TYPES
 // ============================================================================
 
-export interface PlatformTarget { id: string; name: string; category: string; capabilities: string[]; [key: string]: any; }
+export type PlatformTarget = 'quest3' | 'pcvr' | 'visionos' | 'android-xr' | 'visionos-ar' | 'android-xr-ar' | 'webxr' | 'ios' | 'android' | 'windows' | 'macos' | 'linux' | 'web' | 'android-auto' | 'carplay' | 'watchos' | 'wearos';
 
 // ============================================================================
 // DRAFT TRAIT (Draft→Mesh→Simulation Pipeline)
@@ -3129,7 +3190,7 @@ export function quickSafetyCheck(ast: any): boolean;
 export interface SafetyPassResult { passed: boolean; violations: any[]; }
 export interface SafetyPassConfig { [key: string]: any; }
 export interface SafetyReport { [key: string]: any; }
-export type SafetyVerdict = 'safe' | 'unsafe' | 'unknown';
+export type SafetyVerdict = 'safe' | 'warnings' | 'unsafe' | 'unchecked';
 export interface LinearCheckerConfig { [key: string]: any; }
 export interface InferredEffects { [key: string]: any; }
 export type CompilePlatformTarget = string;

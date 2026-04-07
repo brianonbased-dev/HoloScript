@@ -6,8 +6,8 @@
  */
 
 import { EventEmitter } from 'events';
-import type { AgentManifest } from '../agents/AgentManifest';
-import { AgentRegistry } from '../agents/AgentRegistry';
+import type { AgentManifest } from '@holoscript/framework/agents';
+import { AgentRegistry } from '@holoscript/framework/agents';
 import type {
   ChoreographyPlan,
   ChoreographyStep,

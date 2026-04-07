@@ -5,13 +5,22 @@ import path from 'path';
 // Mock performance API
 global.performance = {
   now: vi.fn(() => Date.now()),
-} as any;
+} as unknown as Performance;
 
 // Mock console methods
 const consoleSpy = {
   log: vi.spyOn(console, 'log').mockImplementation(() => {}),
   error: vi.spyOn(console, 'error').mockImplementation(() => {}),
 };
+
+interface MockBenchmarkWindow {
+  CompilerBridge?: {
+    parse: ReturnType<typeof vi.fn>;
+    compile: ReturnType<typeof vi.fn>;
+  };
+  BenchmarkUtils?: any;
+  quickBenchmark?: () => Promise<any>;
+}
 
 // Load and execute the browser benchmark script in a controlled environment
 function loadBenchmarkScript() {
@@ -24,15 +33,15 @@ function loadBenchmarkScript() {
       parse: vi.fn().mockResolvedValue({ success: true }),
       compile: vi.fn().mockResolvedValue({ success: true }),
     },
-  } as any;
+  } as unknown as MockBenchmarkWindow;
 
   // Execute script in context with mock window
   const context = {
     window: mockWindow,
     console,
     performance,
-    BenchmarkUtils: null as any,
-    quickBenchmark: null as any,
+    BenchmarkUtils: null as unknown,
+    quickBenchmark: null as unknown,
   };
 
   // Execute script content with context
@@ -153,7 +162,7 @@ describe('browser-benchmark.js', () => {
       const { quickBenchmark } = loadBenchmarkScript();
 
       // Create version without CompilerBridge
-      const mockWindowWithoutBridge = {} as any;
+      const mockWindowWithoutBridge = {} as unknown as MockBenchmarkWindow;
       const contextWithoutBridge = {
         window: mockWindowWithoutBridge,
         console,

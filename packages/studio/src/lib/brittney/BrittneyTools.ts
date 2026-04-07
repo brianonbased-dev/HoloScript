@@ -108,6 +108,20 @@ export const BRITTNEY_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'mount_scenario_panel',
+      description: 'Mount a specific industry scenario panel in the Studio UI dynamically based on the user request. Known scenarios: astro-radio, soc, v6-swarm, etc',
+      parameters: {
+        type: 'object',
+        properties: {
+          scenario_id: { type: 'string', description: 'The exact string ID of the scenario to mount.' },
+        },
+        required: ['scenario_id'],
+      },
+    },
+  },
 ];
 
 // ─── Tool result type ─────────────────────────────────────────────────────────
@@ -128,6 +142,7 @@ type StoreActions = {
   addNode: (node: SceneNode) => void;
   getCode: () => string;
   setCode: (code: string) => void;
+  mountScenario?: (scenarioId: string) => void;
 };
 
 // ─── Code patch helpers ───────────────────────────────────────────────────────
@@ -314,6 +329,16 @@ export function executeTool(
           success: true,
           message: `Composed [${traitNames.map((t) => `@${t}`).join(' + ')}] onto "${node.name}"`,
         };
+      }
+
+      case 'mount_scenario_panel': {
+        const scenarioId = args.scenario_id as string;
+        if (store.mountScenario) {
+          store.mountScenario(scenarioId);
+          return { tool: toolName, success: true, message: `Successfully mapped Studio to Scenario: ${scenarioId}` };
+        } else {
+          return { tool: toolName, success: false, message: `No mount function bound to Brittney session.` };
+        }
       }
 
       default:

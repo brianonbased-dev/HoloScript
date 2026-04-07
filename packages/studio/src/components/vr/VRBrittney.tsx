@@ -82,9 +82,8 @@ function BrittneyInputPanel({
   };
 
   const handleVoice = useCallback(() => {
-    const SR =
-      (window as any).SpeechRecognition ??
-      (window as any).webkitSpeechRecognition;
+    const w = window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any };
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
     rec.continuous = false;

@@ -337,7 +337,7 @@ function PluginDetails({ entry, showSettings, onCloseSettings }: PluginDetailsPr
               ) : field.type === 'select' ? (
                 <select className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm">
                   {field.options?.map((opt) => (
-                    <option key={opt.value as any} value={opt.value as any}>
+                    <option key={opt.value as string | number} value={opt.value as string | number}>
                       {opt.label}
                     </option>
                   ))}

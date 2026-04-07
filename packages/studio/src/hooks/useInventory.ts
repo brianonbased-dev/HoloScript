@@ -104,7 +104,8 @@ export interface UseInventoryReturn {
 }
 
 export function useInventory(): UseInventoryReturn {
-  const invRef = useRef(new (InventorySystem as any)(20, 50));
+  const InvSys = InventorySystem as unknown as new (slots: number, weight: number) => InstanceType<typeof InventorySystem>;
+  const invRef = useRef(new InvSys(20, 50));
   const [slots, setSlots] = useState<InventorySlot[]>([]);
   const [weight, setWeight] = useState(0);
   const [slotCount, setSlotCount] = useState(0);
@@ -143,7 +144,8 @@ export function useInventory(): UseInventoryReturn {
     sync();
   }, [sync]);
   const reset = useCallback(() => {
-    invRef.current = new (InventorySystem as any)(20, 50);
+    const InvSys = InventorySystem as unknown as new (slots: number, weight: number) => InstanceType<typeof InventorySystem>;
+    invRef.current = new InvSys(20, 50);
     sync();
   }, [sync]);
 

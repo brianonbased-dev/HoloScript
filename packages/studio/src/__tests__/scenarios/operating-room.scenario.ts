@@ -47,8 +47,8 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
 
   afterEach(() => {
     // Clean up VRRRuntime intervals to prevent timer leaks into other test files
-    if (vrr && typeof (vrr as any).destroy === 'function') {
-      (vrr as any).destroy();
+    if (vrr && typeof (vrr as unknown as { destroy: () => void }).destroy === 'function') {
+      (vrr as unknown as { destroy: () => void }).destroy();
     }
     vi.restoreAllMocks();
   });
@@ -64,7 +64,7 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
       }),
     });
 
-    const telemetryReceived = new Promise<any>((resolve) => {
+    const telemetryReceived = new Promise<{ values: Record<string, number | string>; status?: string }>((resolve) => {
       vrr.syncIoTSensor('patient_monitor_1', (data) => {
         resolve(data);
       });

@@ -25,7 +25,7 @@ import {
   type LODGenerationOptions,
   type GeneratedLODLevel,
 } from './LODTypes';
-import { type AssetMaturity } from '../traits/DraftTrait';
+import { type AssetMaturity } from '@holoscript/core';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

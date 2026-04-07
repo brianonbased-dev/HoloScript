@@ -256,7 +256,7 @@ export function DiagnosticsPanel() {
                             e.stopPropagation();
                             logger.debug('[DiagnosticsPanel] Apply fix:', fix.title, fix);
                             const { code, setCode } = useSceneStore.getState();
-                            const lines = code.split('\\n');
+                            const lines = code.split('\n');
                             const startLine = fix.range.startLine - 1;
                             const endLine = fix.range.endLine - 1;
                             const startCol = fix.range.startColumn;
@@ -271,7 +271,7 @@ export function DiagnosticsPanel() {
                                 const lastLine = lines[endLine]?.slice(endCol) || '';
                                 lines.splice(startLine, endLine - startLine + 1, firstLine + fix.newText + lastLine);
                               }
-                              setCode(lines.join('\\n'));
+                              setCode(lines.join('\n'));
                               setDiagnostics(prev => prev.filter(d => d !== diag));
                             }
                           }}

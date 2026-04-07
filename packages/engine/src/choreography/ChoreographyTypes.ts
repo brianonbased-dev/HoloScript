@@ -5,7 +5,7 @@
  * Part of HoloScript v3.1 Agentic Choreography.
  */
 
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 
 // ============================================================================
 // STEP EXECUTION

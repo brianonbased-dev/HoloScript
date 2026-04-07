@@ -90,7 +90,7 @@ export class CraftingSystem {
 
   update(dt: number): Array<{ itemId: string; quantity: number }> {
     const completed: Array<{ itemId: string; quantity: number }> = [];
-    const remaining = [];
+    const remaining: Array<{ recipe: CraftingRecipe; startTime: number; elapsed: number }> = [];
 
     for (const craft of this.craftingQueue) {
       craft.elapsed += dt;

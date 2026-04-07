@@ -222,6 +222,7 @@ export {
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
 export { DeltaCompressor, type StateDelta } from './network/DeltaCompressor';
 export { StateSynchronizer, type StateSubscriber } from './network/StateSynchronizer';
+export type { INeuralSplatPacket } from './network/NetworkTypes';
 
 // Performance Monitoring (Phase 7)
 export { telemetry } from './monitoring/telemetry';
@@ -385,6 +386,9 @@ export {
   type ExportEventType,
   type ExportEventListener,
 } from './compiler/ExportManager';
+
+export { AdvancedCompression } from './export/compression/AdvancedCompression';
+export type { CompressionOptions } from './export/compression/CompressionTypes';
 
 export {
   GaussianBudgetAnalyzer,

@@ -137,10 +137,24 @@ export function SurgicalRehearsalPanel() {
     monitoringLevel: 'standard',
   };
 
-  const duration = useMemo(() => estimateProcedureDuration(procedure.steps as any), []);
-  const risk = useMemo(() => overallRiskLevel(procedure.steps as any, patient as any), []);
-  const bloodRisk = useMemo(() => bloodLossRisk(procedure.steps as any, patient as any), []);
-  const tools = useMemo(() => toolsRequired(procedure.steps as any), []);
+  const coreSteps = useMemo(() => {
+    return procedure.steps.map((s, idx) => ({
+      id: s.id,
+      order: idx + 1,
+      name: s.name,
+      description: s.description,
+      instrumentRequired: (s.tools[0] as import('@/lib/surgicalRehearsal').InstrumentType) ?? 'scalpel',
+      targetLandmark: 'unknown',
+      durationMinutes: s.durationMin,
+      riskLevel: (s.critical ? 'high' : 'low') as 'high' | 'low' | 'moderate' | 'critical',
+      completed: false,
+    }));
+  }, [procedure.steps]);
+
+  const duration = useMemo(() => estimateProcedureDuration(coreSteps), [coreSteps]);
+  const risk = useMemo(() => overallRiskLevel(coreSteps, patient), [coreSteps, patient]);
+  const bloodRisk = useMemo(() => bloodLossRisk(coreSteps, patient), [coreSteps, patient]);
+  const tools = useMemo(() => toolsRequired(coreSteps), [coreSteps]);
   const anesOk = useMemo(() => anesthesiaCheck(config, patient), []);
 
   return (

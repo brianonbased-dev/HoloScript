@@ -106,7 +106,18 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
               break;
             case 'script':
             case 'workflow':
+            case 'behavior_tree':
+            case 'character':
+            case 'model':
+            case 'audio':
+            case 'music':
+            case 'material':
+            case 'particle_effect':
+            case 'shader_graph':
               emit('asset:imported', { type: item.type, content });
+              break;
+            case 'plugin':
+              emit('plugin:installed', { pluginId: item.id, content });
               break;
             default:
               logger.info(`Downloaded ${item.type} content but no auto-importer is registered.`);

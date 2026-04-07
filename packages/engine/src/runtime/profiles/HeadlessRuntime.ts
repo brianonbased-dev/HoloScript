@@ -101,7 +101,7 @@ export class HeadlessRuntime {
   private ast: HSPlusAST;
   private profile: RuntimeProfile;
   private options: HeadlessRuntimeOptions;
-  public state: ReactiveState<StateDeclaration>;
+  public state: ReactiveState<Record<string, unknown>>;
   private evaluator: ExpressionEvaluator;
   private rootInstance: HeadlessNodeInstance | null = null;
   private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();
@@ -133,7 +133,7 @@ export class HeadlessRuntime {
     };
 
     // Initialize state
-    this.state = createState({} as StateDeclaration);
+    this.state = createState({} as Record<string, unknown>);
 
     // Initialize expression evaluator
     this.builtins = this.createBuiltins();
@@ -154,7 +154,7 @@ export class HeadlessRuntime {
       (d: HSPlusDirective) => d.type === 'state'
     );
     if (stateDirective && stateDirective.type === 'state') {
-      this.state.update(stateDirective.body as StateDeclaration);
+      this.state.update(stateDirective.body as Record<string, unknown>);
     }
   }
 
@@ -186,7 +186,7 @@ export class HeadlessRuntime {
 
       getState: () => runtime.state.getSnapshot(),
 
-      setState: (updates: Partial<StateDeclaration>) => {
+      setState: (updates: Partial<Record<string, unknown>>) => {
         runtime.state.update(updates);
       },
 
@@ -325,7 +325,7 @@ export class HeadlessRuntime {
     for (const [key, provider] of this.options.stateProviders) {
       try {
         const value = provider();
-        this.state.set(key as keyof StateDeclaration, value);
+        this.state.set(key as string, value);
       } catch (error) {
         this.log('Error in state provider', { key, error });
       }
@@ -487,7 +487,7 @@ export class HeadlessRuntime {
     return {
       vr: {
         hands: { left: null, right: null },
-        headset: { position: [0, 0, 0], rotation: [0, 0, 0] },
+        headset: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
         getPointerRay: () => null,
         getDominantHand: () => null,
       },
@@ -496,8 +496,8 @@ export class HeadlessRuntime {
         applyAngularVelocity: () => {},
         setKinematic: () => {},
         raycast: () => null,
-        getBodyPosition: () => [0, 0, 0] as [number, number, number],
-        getBodyVelocity: () => [0, 0, 0] as [number, number, number],
+        getBodyPosition: () => ({ x: 0, y: 0, z: 0 }),
+        getBodyVelocity: () => ({ x: 0, y: 0, z: 0 }),
       },
       audio: {
         playSound: () => {},
@@ -571,28 +571,28 @@ export class HeadlessRuntime {
   /**
    * Get current state snapshot
    */
-  getState(): StateDeclaration {
+  getState(): Record<string, unknown> {
     return this.state.getSnapshot();
   }
 
   /**
    * Update state
    */
-  setState(updates: Partial<StateDeclaration>): void {
+  setState(updates: Partial<Record<string, unknown>>): void {
     this.state.update(updates);
   }
 
   /**
    * Get a state value
    */
-  get<K extends keyof StateDeclaration>(key: K): StateDeclaration[K] {
+  get<K extends string>(key: K): unknown {
     return this.state.get(key);
   }
 
   /**
    * Set a state value
    */
-  set<K extends keyof StateDeclaration>(key: K, value: StateDeclaration[K]): void {
+  set<K extends string>(key: K, value: unknown): void {
     this.state.set(key, value);
   }
 

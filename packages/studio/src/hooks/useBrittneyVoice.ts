@@ -50,9 +50,9 @@ export interface UseBrittneyVoiceReturn {
 }
 
 export function useBrittneyVoice(): UseBrittneyVoiceReturn {
-  const SpeechRecognition =
-    typeof window !== 'undefined'
-      ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
+  const w = window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any };
+  const SpeechRecognition = typeof window !== 'undefined'
+      ? (w.SpeechRecognition ?? w.webkitSpeechRecognition)
       : undefined;
 
   const isSupported = !!SpeechRecognition;
@@ -77,7 +77,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: IWebSpeechRecognitionEvent) => {
       let final = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -92,7 +92,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
       setInterimTranscript(interim);
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: IWebSpeechRecognitionErrorEvent) => {
       logger.warn('[BrittneyVoice] SpeechRecognition error:', event.error);
       setIsListening(false);
     };

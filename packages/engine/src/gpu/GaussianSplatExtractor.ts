@@ -1,6 +1,6 @@
 import type { WebGPUContext } from './WebGPUContext.js';
 import type { GaussianSplatSorter, CameraState } from './GaussianSplatSorter.js';
-import type { INeuralSplatPacket } from '../network/NetworkTypes.js';
+import type { INeuralSplatPacket } from '@holoscript/core';
 
 export interface ExtractorOptions {
   /** Maximum splats to extract */

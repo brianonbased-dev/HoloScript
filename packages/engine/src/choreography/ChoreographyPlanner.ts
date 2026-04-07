@@ -5,9 +5,9 @@
  * Part of HoloScript v3.1 Agentic Choreography.
  */
 
-import type { AgentManifest } from '../agents/AgentManifest';
-import type { CapabilityQuery } from '../agents/CapabilityMatcher';
-import { CapabilityMatcher } from '../agents/CapabilityMatcher';
+import type { AgentManifest } from '@holoscript/framework/agents';
+import type { CapabilityQuery } from '@holoscript/framework/agents';
+import { CapabilityMatcher } from '@holoscript/framework/agents';
 import type {
   ChoreographyPlan,
   ChoreographyStep,

@@ -221,7 +221,7 @@ export class LocalVersionControl implements VersionControlClient {
       id: `merge_${Date.now()}`,
       message: `Merge branch '${branchName}' into main`,
       timestamp: Date.now(),
-      hash: this.generateHash(latestCommit.snapshot as any),
+      hash: this.generateHash(latestCommit.snapshot),
     };
 
     history.push(mergeCommit);

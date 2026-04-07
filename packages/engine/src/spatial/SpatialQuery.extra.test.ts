@@ -16,7 +16,7 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
   describe('executeReachable', () => {
     it('should find reachable entities with obstacles', () => {
       const obstacles: SpatialEntity[] = [
-        { id: 'obs1', type: 'wall', position: { x: 5, y: 0, z: 0 }, bounds: { radius: 1 } },
+        { id: 'obs1', type: 'wall', position: { x: 5, y: 0, z: 0 }, bounds: { radius: 1, center: { x: 5, y: 0, z: 0 } } },
       ];
 
       const query: SpatialQuery = {
@@ -40,6 +40,8 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should find entities in a box region', () => {
       const region: Region = {
         id: 'box-reg',
+        name: 'Box Region',
+        type: 'box',
         bounds: {
           min: { x: 8, y: -2, z: -2 },
           max: { x: 12, y: 2, z: 2 },
@@ -60,6 +62,8 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
     it('should find entities in a sphere region', () => {
       const region: Region = {
         id: 'sphere-reg',
+        name: 'Sphere Region',
+        type: 'sphere',
         bounds: {
           center: { x: 5, y: 5, z: 0 },
           radius: 1,

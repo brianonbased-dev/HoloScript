@@ -178,7 +178,8 @@
     "directory": "packages/engine"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:*",
+    "@holoscript/framework": "workspace:*"
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:*"

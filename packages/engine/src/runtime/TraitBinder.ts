@@ -71,7 +71,7 @@ export class TraitBinder {
   registerComposed(
     name: string,
     sourceNames: string[],
-    graph?: import('../compiler/TraitDependencyGraph').TraitDependencyGraph
+    graph?: import('@holoscript/core').TraitDependencyGraph
   ): string[] {
     const composer = new TraitComposer(graph);
     const result = composer.compose(name, this.handlers, sourceNames);

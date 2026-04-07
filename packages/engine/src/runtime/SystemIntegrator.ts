@@ -39,10 +39,10 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
       requiredComponents: ['transform', 'parent'],
       update(world: World, entities: Entity[], _delta: number) {
         for (const entity of entities) {
-          const transform = world.getComponent<any>(entity, 'transform');
-          const parent = world.getComponent<any>(entity, 'parent');
+          const transform = world.getComponent(entity, 'transform');
+          const parent = world.getComponent(entity, 'parent');
           if (parent && transform) {
-            const parentTransform = world.getComponent<any>(parent.parentEntity, 'transform');
+            const parentTransform = world.getComponent(parent.parentEntity, 'transform');
             if (parentTransform) {
               // Store world position (simplified — additive)
               transform._worldX =
@@ -65,7 +65,7 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
       requiredComponents: ['trait:animation'],
       update(world: World, entities: Entity[], delta: number) {
         for (const entity of entities) {
-          const config = world.getComponent<any>(entity, 'trait:animation');
+          const config = world.getComponent(entity, 'trait:animation');
           if (config && config._engine) {
             config._engine.update(delta);
           }
@@ -81,11 +81,11 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
       requiredComponents: ['trait:state'],
       update(world: World, entities: Entity[], delta: number) {
         for (const entity of entities) {
-          const config = world.getComponent<any>(entity, 'trait:state');
+          const config = world.getComponent(entity, 'trait:state');
           if (config && config._fsm) {
             config._fsm.update(delta);
             // Surface state onto properties
-            const props = world.getComponent<any>(entity, 'properties');
+            const props = world.getComponent(entity, 'properties');
             if (props) {
               props._state = config._fsm.currentState;
             }
@@ -102,7 +102,7 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
       requiredComponents: ['trait:particles'],
       update(world: World, entities: Entity[], delta: number) {
         for (const entity of entities) {
-          const config = world.getComponent<any>(entity, 'trait:particles');
+          const config = world.getComponent(entity, 'trait:particles');
           if (config && config._system) {
             config._system.update(delta);
           }
@@ -118,7 +118,7 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
       requiredComponents: ['trait:sync'],
       update(world: World, entities: Entity[], delta: number) {
         for (const entity of entities) {
-          const syncConfig = world.getComponent<any>(entity, 'trait:sync');
+          const syncConfig = world.getComponent(entity, 'trait:sync');
           if (!syncConfig) continue;
 
           syncConfig._timer = (syncConfig._timer || 0) + delta;
@@ -126,7 +126,7 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
 
           if (syncConfig._timer >= interval) {
             syncConfig._timer -= interval;
-            const transform = world.getComponent<any>(entity, 'transform');
+            const transform = world.getComponent(entity, 'transform');
             if (transform) {
               eventBus.emit('network:sync', { entity, transform });
             }
@@ -145,7 +145,7 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
         // Count visible entities for performance metrics
         let visibleCount = 0;
         for (const entity of entities) {
-          const r = world.getComponent<any>(entity, 'renderable');
+          const r = world.getComponent(entity, 'renderable');
           if (r && r.visible) visibleCount++;
         }
         eventBus.emit('render:stats', { visibleCount, totalCount: entities.length });

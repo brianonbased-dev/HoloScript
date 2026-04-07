@@ -152,7 +152,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     consecutiveFrames: 60,
   });
 
-  const { manager: lodManager } = useLOD();
+  const { manager: lodManager, objects: lodObjects } = useLOD();
 
   // Perf → bus bridge: emit lodMetrics:tick so LODMetricsPanel receives real data
   const { emit: emitBus } = useStudioBus();
@@ -317,7 +317,13 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         <ContentCameraCapture />
 
         {/* Gap 6: Progressive loader for streaming asset LODs */}
-        <ProgressiveLoader />
+        <ProgressiveLoader 
+          entities={lodObjects.map(o => ({
+            id: o.id,
+            maturity: o.level === 0 ? 'final' : o.level === 1 ? 'mesh' : 'draft',
+            progress: o.transitioning ? 0.5 : 1.0
+          }))} 
+        />
       </Canvas>
       </StudioErrorBoundary>
 

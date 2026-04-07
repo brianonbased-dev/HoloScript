@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { DEBOUNCE_INPUT } from '@/lib/ui-timings';
 
-interface AnimatedStepProps {
+export function AnimatedStep({
+  visible,
+  direction,
+  children,
+}: {
   visible: boolean;
   direction: 'left' | 'right';
   children: React.ReactNode;
-}
-
-export function AnimatedStep({ visible, direction, children }: AnimatedStepProps) {
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(visible);
 

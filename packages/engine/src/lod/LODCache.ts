@@ -6,7 +6,7 @@
  */
 
 import type { MeshData } from './LODGenerator';
-import { AdvancedCompression } from '../export/compression/AdvancedCompression';
+import { AdvancedCompression } from '@holoscript/core';
 
 // ============================================================================
 // Types

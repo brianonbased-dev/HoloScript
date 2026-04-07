@@ -33,6 +33,7 @@
     "@holoscript/connector-upstash": "workspace:*",
     "@holoscript/connector-vscode": "workspace:*",
     "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*",
     "@holoscript/r3f-renderer": "workspace:*",
     "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",

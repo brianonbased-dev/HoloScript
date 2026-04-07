@@ -3,6 +3,7 @@
 import { Check, ArrowRight } from 'lucide-react';
 import type { ProjectDNA } from '@/lib/stores/workspaceStore';
 import { KIND_META } from './importWizardConstants';
+import { generateWorkspaceSeed } from '@/lib/workspaceSeeder';
 
 interface AbsorbStats {
   totalFiles: number;
@@ -161,6 +162,26 @@ export function Step4WorkspaceReady({ repoName, dna, absorbStats }: Step4Workspa
           </>
         )}
       </div>
+
+      {/* Agent Ecosystem Injection Panel */}
+      {dna && (
+        <div className="w-full rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-4 mt-2">
+          <p className="text-xs font-bold text-indigo-400 mb-2 border-b border-indigo-500/30 pb-1">
+            🤖 uAA2++ Agentic Ecosystem Seeded
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-[10px] text-studio-muted">
+            {generateWorkspaceSeed(repoName, dna).map((file, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Check className="h-3 w-3 text-indigo-400" />
+                <span className="font-mono truncate" title={file.path}>{file.path}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[9px] text-studio-muted mt-3 italic">
+            Your local agents (Claude/Cursor) are now securely constrained by HoloScript domain alignments.
+          </p>
+        </div>
+      )}
 
     </div>
   );

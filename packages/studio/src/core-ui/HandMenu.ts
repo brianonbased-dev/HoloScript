@@ -1,4 +1,4 @@
-import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode } from '../types/HoloScriptPlus';
+import type { HSPlusRuntime, VRHand, Vector3, HSPlusNode } from '@holoscript/core';
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
 // @ts-expect-error During migration

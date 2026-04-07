@@ -18,10 +18,6 @@
     "isolatedModules": false,
     "baseUrl": ".",
     "paths": {
-      "@holoscript/core": ["../core/src/index.ts"],
-      "@holoscript/core/*": ["../core/src/*"],
-      "@holoscript/uaal": ["../uaal/src/index.ts"],
-      "@holoscript/framework": ["../framework/src/index.ts"]
     },
     "noImplicitAny": false
   },

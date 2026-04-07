@@ -257,12 +257,12 @@ describe('Scenario: Animator — Clip Recording', () => {
 
 describe('Scenario: Animator — Animation Builder', () => {
   it('extractBuiltinAnimations() maps clip name and duration (ms)', () => {
-    const result = extractBuiltinAnimations([{ name: 'Walk', duration: 1.2 }] as any);
+    const result = extractBuiltinAnimations([{ name: 'Walk', duration: 1.2 }] as unknown as THREE.AnimationClip[]);
     expect(result[0]).toEqual({ name: 'Walk', duration: 1200 });
   });
 
   it('extractBuiltinAnimations() uses "Unnamed" for empty name', () => {
-    expect(extractBuiltinAnimations([{ name: '', duration: 0.8 }] as any)[0]!.name).toBe('Unnamed');
+    expect(extractBuiltinAnimations([{ name: '', duration: 0.8 }] as unknown as THREE.AnimationClip[])[0]!.name).toBe('Unnamed');
   });
 
   it('extractBuiltinAnimations() on empty array returns empty', () => {

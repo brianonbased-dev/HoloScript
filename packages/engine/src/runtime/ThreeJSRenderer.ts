@@ -666,7 +666,8 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
       lightning: () => {
         // Jagged lightning bolt
-        const points = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const points: any[] = [];
         let y = size[1] || 2;
         let x = 0;
 

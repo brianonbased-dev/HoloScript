@@ -48,3 +48,14 @@ export { FashionRunwayPanel } from './FashionRunwayPanel';
 export { TimeCapsulePanel } from './TimeCapsulePanel';
 export { AccessibilityPanel } from './AccessibilityPanel';
 export { MolecularLabPanel } from './MolecularLabPanel';
+export { InventorPanel } from './InventorPanel';
+export { NonSpatialDeveloperPanel } from './NonSpatialDeveloperPanel';
+export { ThreatIntelligencePanel } from './ThreatIntelligencePanel';
+export { AgentSwarmCommanderPanel } from './AgentSwarmCommanderPanel';
+export { NeuralSNNTrainerPanel } from './NeuralSNNTrainerPanel';
+export { SandboxAuditorPanel } from './SandboxAuditorPanel';
+export { UniversalCompilerDashboard } from './UniversalCompilerDashboard';
+export { GalacticMarketPanel } from './GalacticMarketPanel';
+export { AstrophysicsRadioLabPanel } from './AstrophysicsRadioLabPanel';
+export { AbsorbOrchestratorPanel } from './AbsorbOrchestratorPanel';
+

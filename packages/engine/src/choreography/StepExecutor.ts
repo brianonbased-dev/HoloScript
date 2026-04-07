@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 import type { ChoreographyStep, StepContext, StepResult, RetryConfig } from './ChoreographyTypes';
 import { DEFAULT_RETRY_CONFIG } from './ChoreographyTypes';
 
