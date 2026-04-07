@@ -111,7 +111,10 @@ export * as VMBridge from './vm-bridge';
 // TODO(A.011): hologram — depth estimation, quilt compiler, looking glass
 // DONE(A.011.01a): shader — shader graph, custom materials, uniforms (in rendering)
 // DONE(A.011.01a): materials — PBR, toon, unlit, material library (in rendering)
-// TODO(A.011): lod — level of detail, imposters, distance culling
+// DONE(A.011): lod — level of detail, imposters, distance culling
+export * as LOD from './lod';
+export * from './lod';
+
 // DONE(A.011.01a): postfx — bloom, SSAO, DOF, tone mapping, color grading (in rendering)
 
 

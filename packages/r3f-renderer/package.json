@@ -21,7 +21,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*"
   },
   "peerDependencies": {
     "@react-three/drei": ">=10.0.0",
