@@ -1,0 +1,8 @@
+composition "SpawnGroupExample" {
+  spawn_group "Enemies" {
+    count: 10
+    radius: 50
+    template: "Goblin"
+    min_distance: 5
+  }
+}
