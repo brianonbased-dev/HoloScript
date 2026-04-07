@@ -123,13 +123,13 @@ describe('useLODBridge logic', () => {
   });
 
   it('mesh entities compute LOD', () => {
-    const maturity: 'draft' | 'mesh' | 'final' = 'mesh';
+    const maturity = 'mesh' as string;
     const isDraft = maturity === 'draft';
     expect(isDraft).toBe(false);
   });
 
   it('default maturity is mesh', () => {
-    const maturity = undefined || 'mesh';
+    const maturity = ('mesh' as string) || 'mesh';
     expect(maturity).toBe('mesh');
   });
 });

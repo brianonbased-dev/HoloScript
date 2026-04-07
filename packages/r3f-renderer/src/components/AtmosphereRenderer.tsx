@@ -164,13 +164,6 @@ export function AtmosphereRenderer({
   const bottomCol = useMemo(() => new THREE.Color(gradientBottom), [gradientBottom]);
 
   const uniforms = useMemo(() => {
-    if (model === 'gradient') {
-      return {
-        uTopColor: { value: topCol },
-        uBottomColor: { value: bottomCol },
-        uExposure: { value: exposure },
-      };
-    }
     return {
       uSunDirection: { value: sunDir },
       uTurbidity: { value: turbidity },
@@ -179,9 +172,10 @@ export function AtmosphereRenderer({
       uMieDirectional: { value: mieDirectional },
       uExposure: { value: exposure },
       uGroundColor: { value: groundCol },
-    };
+      uTopColor: { value: topCol },
+      uBottomColor: { value: bottomCol },
+    } as Record<string, THREE.IUniform<any>>;
   }, [
-    model,
     sunDir,
     turbidity,
     rayleigh,
@@ -194,7 +188,7 @@ export function AtmosphereRenderer({
   ]);
 
   useFrame(() => {
-    if (model === 'bruneton') {
+    if (model === 'bruneton' && uniforms.uSunDirection && uniforms.uTurbidity && uniforms.uExposure) {
       uniforms.uSunDirection.value.set(...sunDirection).normalize();
       uniforms.uTurbidity.value = turbidity;
       uniforms.uExposure.value = exposure;

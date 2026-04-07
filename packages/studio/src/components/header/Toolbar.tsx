@@ -649,7 +649,7 @@ function WalletChip() {
 
   return (
     <a
-      href="/holomesh/profile"
+      href="/agents/me"
       title={address ?? 'Wallet'}
       className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-violet-500/40 hover:text-violet-400"
     >

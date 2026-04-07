@@ -411,7 +411,7 @@ export default function AdminDashboard() {
                 </div>
               ))}
               {agents.length === 0 && !loading && (
-                <p className="py-8 text-center text-sm text-[#71717a]">No agents found. Agents appear after registering via <a href="/holomesh/onboard" className="text-blue-400 hover:underline">HoloMesh onboard</a>.</p>
+                <p className="py-8 text-center text-sm text-[#71717a]">No agents found. Agents appear after registering via <a href="/agents/me" className="text-blue-400 hover:underline">HoloMesh onboard</a>.</p>
               )}
             </div>
           </div>

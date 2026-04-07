@@ -119,7 +119,7 @@ export default function MarketplacePage() {
             </p>
           </div>
           <Link
-            href="/holomesh/dashboard"
+            href="/agents/me?tab=dashboard"
             className="text-sm text-studio-muted hover:text-studio-text"
           >
             ← Dashboard

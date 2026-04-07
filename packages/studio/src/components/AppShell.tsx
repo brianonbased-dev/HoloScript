@@ -17,25 +17,31 @@ const RightPanelSidebar = dynamic(
 interface NavItem {
   label: string;
   href: string;
-  icon: string; // Emoji icons for simplicity — swap for Lucide later
+  icon: string;
   description: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Create', href: '/create', icon: '✨', description: 'New scene from prompt' },
+// Core flow (progressive disclosure)
+const CORE_ITEMS: NavItem[] = [
+  { label: 'Start', href: '/start', icon: '💬', description: 'Conversational entry point' },
+  { label: 'Vibe', href: '/vibe', icon: '✨', description: 'Vibe-coded creation' },
+  { label: 'Create', href: '/create', icon: '🪄', description: 'New scene from prompt' },
   { label: 'Projects', href: '/projects', icon: '📁', description: 'Your saved work' },
-  { label: 'Templates', href: '/templates', icon: '📐', description: 'Start from a preset' },
-  { label: 'Playground', href: '/playground', icon: '🎮', description: 'Code sandbox' },
-
-  { label: 'Registry', href: '/registry', icon: '📦', description: 'Trait & asset registry' },
-  { label: 'HoloMesh', href: '/holomesh', icon: '🕸️', description: 'Knowledge exchange' },
 ];
 
-const SECONDARY_ITEMS: NavItem[] = [
-  { label: 'Remote', href: '/remote', icon: '📱', description: 'Mobile companion' },
-  { label: 'Shared', href: '/shared', icon: '🌐', description: 'Shared scenes' },
-  { label: 'View', href: '/view', icon: '👁️', description: 'Scene viewer' },
+// Ecosystem
+const ECOSYSTEM_ITEMS: NavItem[] = [
+  { label: 'HoloMesh', href: '/holomesh', icon: '🌐', description: 'Knowledge exchange' },
+  { label: 'Teams', href: '/teams', icon: '👥', description: 'Team workspaces' },
+  { label: 'Agents', href: '/agents', icon: '🤖', description: 'AI agent network' },
 ];
+
+// Resources
+const RESOURCE_ITEMS: NavItem[] = [
+  { label: 'Absorb', href: '/absorb', icon: '⚡', description: 'Codebase intelligence' },
+  { label: 'Learn', href: '/learn', icon: '📖', description: 'Guides & tutorials' },
+];
+
 
 // ═══════════════════════════════════════════════════════════════════
 // Responsive Hook
@@ -188,7 +194,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
     return (
       <div className="px-2 mb-1">
         <Link
-          href="/holomesh/teams"
+          href="/teams"
           title="Discover teams"
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition ${collapsed ? 'justify-center px-2' : ''}`}
         >
@@ -229,7 +235,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
           ))}
           <div className="border-t border-studio-border" />
           <Link
-            href="/holomesh/teams"
+            href="/teams"
             onClick={() => setOpen(false)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition"
           >
@@ -237,7 +243,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
           </Link>
           {activeId && (
             <Link
-              href={`/holomesh/team/${activeId}`}
+              href={`/teams/${activeId}`}
               onClick={() => setOpen(false)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs text-studio-muted hover:bg-studio-panel hover:text-studio-text transition"
             >
@@ -348,7 +354,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Primary Nav */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {NAV_ITEMS.map((item) => (
+          {/* Core flow */}
+          {CORE_ITEMS.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}
@@ -358,15 +365,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           ))}
 
-          {/* Separator */}
+          {/* Divider */}
           <div className="my-3 border-t border-studio-border" />
+
+          {/* Ecosystem */}
+          {ECOSYSTEM_ITEMS.map((item) => (
+            <SidebarLink
+              key={item.href}
+              item={item}
+              isActive={pathname.startsWith(item.href)}
+              collapsed={!isMobile && collapsed}
+              onClick={isMobile ? closeMobileMenu : undefined}
+            />
+          ))}
 
           {/* Team Selector */}
           <TeamSelector collapsed={!isMobile && collapsed} />
 
-          <div className="my-1 border-t border-studio-border" />
+          {/* Divider */}
+          <div className="my-3 border-t border-studio-border" />
 
-          {SECONDARY_ITEMS.map((item) => (
+          {/* Resources */}
+          {RESOURCE_ITEMS.map((item) => (
             <SidebarLink
               key={item.href}
               item={item}

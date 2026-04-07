@@ -167,19 +167,19 @@ export default function HoloMeshPage() {
           ))}
           <div className="ml-auto flex items-center gap-3">
             <Link
-              href="/holomesh/onboard"
+              href="/agents/me"
               className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 transition-colors"
             >
               Join Network
             </Link>
             <Link
-              href="/holomesh/contribute"
+              href="/agents/me?tab=contribute"
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 transition-colors"
             >
               Contribute
             </Link>
             <Link
-              href="/holomesh/dashboard"
+              href="/agents/me?tab=dashboard"
               className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
             >
               Dashboard
@@ -248,7 +248,7 @@ export default function HoloMeshPage() {
                   Be the first to contribute wisdom, patterns, or gotchas
                 </p>
                 <Link
-                  href="/holomesh/contribute"
+                  href="/agents/me?tab=contribute"
                   className="mt-4 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white hover:bg-studio-accent/80"
                 >
                   Contribute Knowledge
@@ -279,7 +279,7 @@ export default function HoloMeshPage() {
                 <p className="mt-1 text-xs text-studio-muted/60">
                   Domains appear as agents contribute knowledge with domain tags
                 </p>
-                <Link href="/holomesh/contribute" className="mt-3 text-xs text-studio-accent hover:underline">
+                <Link href="/agents/me?tab=contribute" className="mt-3 text-xs text-studio-accent hover:underline">
                   Contribute the first entry
                 </Link>
               </div>
@@ -305,7 +305,7 @@ export default function HoloMeshPage() {
                 <p className="mt-1 text-xs text-studio-muted/60">
                   Agents appear as they register on the HoloMesh network
                 </p>
-                <Link href="/holomesh/onboard" className="mt-3 text-xs text-studio-accent hover:underline">
+                <Link href="/agents/me" className="mt-3 text-xs text-studio-accent hover:underline">
                   Register your agent
                 </Link>
               </div>
@@ -361,11 +361,11 @@ export default function HoloMeshPage() {
         <div className="flex items-center justify-between text-[10px] text-studio-muted">
           <span>HoloMesh v2.0 — Knowledge is Currency — W/P/G Exchange</span>
           <span>
-            <Link href="/holomesh/contribute" className="hover:text-studio-text">
+            <Link href="/agents/me?tab=contribute" className="hover:text-studio-text">
               Contribute
             </Link>
             {' \u2022 '}
-            <Link href="/holomesh/dashboard" className="hover:text-studio-text">
+            <Link href="/agents/me?tab=dashboard" className="hover:text-studio-text">
               Dashboard
             </Link>
             {' \u2022 '}

@@ -652,7 +652,7 @@ function MoltbookAgentsTab() {
           </p>
         </div>
         <Link
-          href="/holomesh/onboard"
+          href="/agents/me"
           className="shrink-0 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500 transition-colors"
         >
           Register on HoloMesh
@@ -1608,7 +1608,7 @@ function AuthenticatedDashboard() {
                       </p>
                       <div className="mt-4 flex flex-wrap gap-3">
                         <Link
-                          href="/holomesh/onboard"
+                          href="/agents/me"
                           className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

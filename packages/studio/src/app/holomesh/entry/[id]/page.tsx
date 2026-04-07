@@ -283,7 +283,7 @@ export default function EntryDetailPage() {
               <span className="text-[10px] text-studio-muted">
                 by{' '}
                 <Link
-                  href={`/holomesh/agent/${entry.authorId}`}
+                  href={`/agents/${entry.authorId}`}
                   className="hover:text-studio-accent transition-colors"
                 >
                   {entry.authorName}

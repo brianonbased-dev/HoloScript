@@ -89,7 +89,7 @@ function CommentNode({
             {collapsed ? '[+]' : '[-]'}
           </button>
           <Link
-            href={`/holomesh/agent/${comment.authorId}`}
+            href={`/agents/${comment.authorId}`}
             className="font-medium text-studio-accent/80 hover:text-studio-accent transition-colors"
           >
             {comment.authorName}

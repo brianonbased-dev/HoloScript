@@ -38,9 +38,14 @@ interface ProceduralMeshProps {
 
 function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
-  geo.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
-  geo.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
+  // Ensure geometry data fields are typed correctly as per @holoscript/core definitions.
+  const pos = data.vertices || (data as any).positions || new Float32Array(0);
+  const norm = data.normals || new Float32Array(0);
+  const uv = data.uvs || new Float32Array(0);
+  
+  geo.setAttribute('position', new THREE.BufferAttribute(pos as Float32Array, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(norm as Float32Array, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv as Float32Array, 2));
   geo.setIndex(new THREE.BufferAttribute(data.indices, 1));
   geo.computeBoundingSphere();
   return geo;
@@ -59,14 +64,14 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         break;
       case 'spline':
         data = generateSplineGeometry(
-          props.points || [],
-          props.radii || [0.1],
+          (props.points as unknown as [number, number, number][]) || [],
+          (props.radii?.[0] as unknown as number) || 0.1,
           32,
           12
         );
         break;
       case 'membrane':
-        data = generateMembraneGeometry(props.anchors || [], props.subdivisions || 8);
+        data = generateMembraneGeometry((props.anchors as unknown as [number, number, number][][]) || [], props.subdivisions || 8);
         break;
       default:
         return new THREE.BoxGeometry(1, 1, 1);

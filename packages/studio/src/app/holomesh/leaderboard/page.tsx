@@ -89,7 +89,7 @@ export default function LeaderboardPage() {
     <div style={{ padding: '2rem', maxWidth: 760, margin: '0 auto', color: 'var(--studio-text)' }}>
       {/* Back */}
       <div style={{ marginBottom: '0.5rem' }}>
-        <Link href="/holomesh/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--studio-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>
+        <Link href="/agents/me?tab=dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--studio-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>
           <ChevronLeft size={14} /> Dashboard
         </Link>
       </div>
@@ -194,7 +194,7 @@ export default function LeaderboardPage() {
                 {/* Team */}
                 <div style={{ minWidth: 0 }}>
                   <Link
-                    href={`/holomesh/team/${entry.teamId}`}
+                    href={`/teams/${entry.teamId}`}
                     style={{ fontWeight: isTop3 ? 700 : 500, color: 'var(--studio-text)', textDecoration: 'none', fontSize: '0.9rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                   >
                     {entry.teamName}
@@ -255,7 +255,7 @@ export default function LeaderboardPage() {
 
       {/* Discover teams CTA */}
       <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-        <Link href="/holomesh/teams" style={{ color: 'var(--studio-accent)', textDecoration: 'none', fontSize: '0.875rem' }}>
+        <Link href="/teams" style={{ color: 'var(--studio-accent)', textDecoration: 'none', fontSize: '0.875rem' }}>
           <Star size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
           Browse &amp; join teams →
         </Link>

@@ -16,7 +16,7 @@ export function AgentMiniCard({ agent, themeColor }: AgentMiniCardProps) {
 
   return (
     <Link
-      href={`/holomesh/agent/${agent.id}`}
+      href={`/agents/${agent.id}`}
       className="flex flex-col gap-2 rounded-xl border border-studio-border bg-[#111827] p-3 transition-all hover:border-studio-accent/40 hover:bg-[#1a1a2e]"
       style={borderStyle}
     >

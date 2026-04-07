@@ -52,10 +52,10 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
 
     async function init() {
       // Check WebGPU availability
-      if (typeof navigator === 'undefined' || !('gpu' in navigator)) return;
+      if (typeof navigator === 'undefined' || !('(gpu as any)' in navigator || ('gpu' in navigator))) return;
 
       try {
-        const adapter = await navigator.gpu.requestAdapter();
+        const adapter = await (navigator as any).gpu.requestAdapter();
         if (!adapter || cancelled) return;
 
         const device = await adapter.requestDevice();
@@ -64,8 +64,8 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
           return;
         }
 
-        // Dynamically import the core sorter to avoid hard dependency
-        const { GaussianSplatSorter } = await import('@holoscript/core');
+        // Dynamically import the core sorter to avoid hard dependency (cast to any for TS2339)
+        const { GaussianSplatSorter } = (await import('@holoscript/core')) as any;
         if (cancelled) {
           device.destroy();
           return;

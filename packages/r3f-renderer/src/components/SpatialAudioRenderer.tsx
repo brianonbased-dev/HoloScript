@@ -115,7 +115,7 @@ export function SpatialAudioRenderer({
       pa.setRefDistance(refDistance);
       pa.setDirectionalCone(coneInnerAngle, coneOuterAngle, coneOuterGain);
     } else {
-      audio = new THREE.Audio(listener);
+      audio = new THREE.Audio(listener) as unknown as THREE.Audio<GainNode>;
     }
 
     audio.setVolume(volume);
