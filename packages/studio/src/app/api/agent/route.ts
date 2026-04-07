@@ -5,10 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
 // Avoids HTML-oriented responses; returns structured data only.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MCP_EXTERNAL_URL =
+let MCP_EXTERNAL_URL =
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
   process.env.MCP_ORCHESTRATOR_URL ||
   'http://localhost:3001';
+  
+if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
+  MCP_EXTERNAL_URL = `https://${MCP_EXTERNAL_URL}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
