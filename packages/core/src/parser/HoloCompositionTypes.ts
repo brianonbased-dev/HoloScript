@@ -1213,6 +1213,8 @@ export interface HoloDomainBlock extends HoloNode {
   children?: HoloObjectDecl[];
   /** Event handlers inside the block */
   eventHandlers?: HoloEventHandler[];
+  /** Structured pipeline AST (populated when domain === 'pipeline' and keyword === 'pipeline') */
+  pipelineAST?: import('./PipelineParser').Pipeline;
 }
 
 // =============================================================================

@@ -109,6 +109,7 @@ import type {
   HoloMetanormEscalation,
   PlatformConstraint,
 } from './HoloCompositionTypes';
+import { parsePipeline as parsePipelineSource } from './PipelineParser';
 import { TypoDetector } from './TypoDetector';
 
 // =============================================================================
@@ -5876,6 +5877,11 @@ export class HoloCompositionParser {
       }
     }
 
+    // ── Pipeline fast-path: delegate to PipelineParser for structured AST ──
+    if (domain === 'pipeline' && keyword === 'pipeline') {
+      return this.parsePipelineDomainBlock(name, traits);
+    }
+
     // Parse body { properties... }
     this.expect('LBRACE');
     this.skipNewlines();
@@ -5955,6 +5961,103 @@ export class HoloCompositionParser {
       properties,
       children: children.length > 0 ? children : undefined,
       eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
+    };
+  }
+
+  /**
+   * Parse a pipeline domain block by extracting the raw body text
+   * and delegating to PipelineParser for structured AST.
+   */
+  private parsePipelineDomainBlock(name: string, traits: string[]): HoloDomainBlock {
+    // Expect opening brace
+    this.expect('LBRACE');
+
+    // Track brace depth to find matching close
+    let depth = 1;
+    const bodyTokens: string[] = [];
+
+    while (depth > 0 && !this.isAtEnd()) {
+      if (this.check('LBRACE')) { depth++; }
+      else if (this.check('RBRACE')) {
+        depth--;
+        if (depth === 0) break;
+        bodyTokens.push('}\n');
+        this.advance();
+        continue;
+      }
+      // Reconstruct source text from tokens
+      const tok = this.current();
+      if (tok.type === 'STRING') {
+        bodyTokens.push(`"${tok.value}"`);
+        // Add newline after string values ONLY if next token starts a new statement
+        // (i.e., next is an identifier that could be a keyword like source/sink/filter)
+        const nextTok = this.tokens[this.pos + 1];
+        if (!nextTok || nextTok.type === 'NEWLINE' || nextTok.type === 'RBRACE') {
+          bodyTokens.push('\n');
+        } else if (nextTok.type === 'IDENTIFIER' || nextTok.type === 'DEFAULT') {
+          // Check if it's a pipeline keyword (source, sink, transform, etc.) or branch keyword (when, default)
+          const nv = nextTok.value;
+          if (['source', 'sink', 'transform', 'filter', 'validate', 'merge', 'branch', 'when', 'default'].includes(nv) ||
+              nextTok.type === 'DEFAULT') {
+            bodyTokens.push('\n');
+          } else {
+            bodyTokens.push(' ');
+          }
+        } else {
+          bodyTokens.push(' ');
+        }
+      } else if (tok.type === 'NEWLINE') {
+        bodyTokens.push('\n');
+      } else if (tok.type === 'COLON') {
+        bodyTokens.push(': '); // PipelineParser expects ": " separator
+      } else if (tok.type === 'LBRACE') {
+        bodyTokens.push(' {\n');
+      } else if (tok.type === 'MINUS' && this.tokens[this.pos + 1]?.type === 'GREATER') {
+        bodyTokens.push(' -> ');
+        this.advance(); // skip GREATER
+      } else if (tok.type === 'EQUALS_EQUALS') {
+        bodyTokens.push(' == ');
+      } else if (tok.type === 'BANG_EQUALS') {
+        bodyTokens.push(' != ');
+      } else {
+        bodyTokens.push(tok.value);
+        const next = this.tokens[this.pos + 1];
+        if (next && next.type !== 'NEWLINE' && next.type !== 'RBRACE' &&
+            next.type !== 'COMMA' && next.type !== 'COLON' &&
+            next.type !== 'LBRACE' && next.type !== 'MINUS') {
+          bodyTokens.push(' ');
+        }
+      }
+      this.advance();
+    }
+
+    this.expect('RBRACE'); // consume closing brace
+    this.popContext();
+
+    // Reconstruct pipeline source for PipelineParser
+    const bodyText = bodyTokens.join('');
+    const pipelineSource = `pipeline "${name}" {\n${bodyText}\n}`;
+    const pipelineResult = parsePipelineSource(pipelineSource);
+
+    // Extract flat properties for backward compat
+    const properties: Record<string, HoloValue> = {};
+    if (pipelineResult.pipeline) {
+      const p = pipelineResult.pipeline;
+      if (p.schedule) properties['schedule'] = p.schedule;
+      if (p.sources.length) properties['sources'] = p.sources.length;
+      if (p.sinks.length) properties['sinks'] = p.sinks.length;
+      if (p.transforms.length) properties['transforms'] = p.transforms.length;
+      properties['steps'] = p.steps.length;
+    }
+
+    return {
+      type: 'DomainBlock',
+      domain: 'pipeline',
+      keyword: 'pipeline',
+      name,
+      traits,
+      properties,
+      pipelineAST: pipelineResult.pipeline,
     };
   }
 }
