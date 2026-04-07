@@ -306,8 +306,10 @@ packages/vscode-extension/out/
 
 # Root-level test/debug artifacts (agent session dumps)
 /any-*.txt
+/board_add_payload*.json
 /board.json
 /board_latest.json
+/claim_*payload*.json
 /chat.mjs
 /check-types.mjs
 /claude_msg.txt
@@ -315,6 +317,10 @@ packages/vscode-extension/out/
 /compile.txt
 /core-tsc-report*.txt
 /core_failures.txt
+/derive_*payload*.json
+/derive_content*.txt
+/derive_from_*.json
+/done_*payload*.json
 /fetch_result.json
 /fixer3.ts
 /fixer_ast.ts
@@ -323,13 +329,16 @@ packages/vscode-extension/out/
 /messages.json
 /msg.json
 /msg_utf8.json
+/orchestrator_scout_payload.json
 /out.txt
 /query.json
+/scout_payload.json
 /target-files.txt
 /team_chat.txt
 /team_chat2.json
 /test-auth.mjs
 /test.ts
+/ts-error*.txt
 /tmp-board*.json
 /tmp-diff*.txt
 room_*.ps1

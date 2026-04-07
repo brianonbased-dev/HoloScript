@@ -16,6 +16,7 @@ on:
           - marketplace-api
           - render-service
           - llm-service
+          - absorb-service
           - mcp-server
 
 concurrency:
@@ -31,6 +32,7 @@ jobs:
       marketplace-api: ${{ steps.filter.outputs.marketplace-api }}
       render-service: ${{ steps.filter.outputs.render-service }}
       llm-service: ${{ steps.filter.outputs.llm-service }}
+      absorb-service: ${{ steps.filter.outputs.absorb-service }}
       mcp-server: ${{ steps.filter.outputs.mcp-server }}
     steps:
       - name: Checkout
@@ -50,12 +52,16 @@ jobs:
               - 'services/render-service/**'
             llm-service:
               - 'services/llm-service/**'
+            absorb-service:
+              - 'services/absorb-service/**'
+              - 'packages/absorb-service/**'
+              - 'infrastructure/Dockerfile.absorb-service'
             mcp-server:
               - 'packages/mcp-server/**'
               - 'packages/core/**'
               - 'packages/crdt/**'
               - 'packages/llm-provider/**'
-              - 'Dockerfile.mcp-server'
+              - 'infrastructure/Dockerfile.mcp-server'
 
   # ──────────────────────────────────────────────────────────────────────────
   # Pre-flight: verify lockfile integrity + full build before any Railway push.
@@ -284,6 +290,38 @@ jobs:
       - name: Wait for deployment
         run: sleep 30
 
+  deploy-absorb-service:
+    needs: [detect-changes, pre-flight]
+    if: |
+      (github.event_name == 'push' && needs.detect-changes.outputs.absorb-service == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'absorb-service'
+      ))
+    runs-on: ubuntu-latest
+    environment:
+      name: production-mcp-server
+      url: https://absorb.holoscript.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Absorb Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service absorb-service --environment production --detach
+
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Health check
+        run: |
+          curl -f https://absorb.holoscript.net/health || exit 1
+
   deploy-mcp-server:
     needs: [detect-changes, pre-flight]
     if: |
@@ -319,7 +357,7 @@ jobs:
 
       - name: Verify version
         run: |
-          EXPECTED_VERSION=3.6.1
+          EXPECTED_VERSION=$(node -p "require('./packages/mcp-server/package.json').version")
           VERSION=$(curl -sf https://mcp.holoscript.net/health | jq -r '.version')
           echo "Deployed MCP server version: $VERSION"
           if [ "$VERSION" != "$EXPECTED_VERSION" ]; then
@@ -340,6 +378,7 @@ jobs:
       - deploy-marketplace-api
       - deploy-render-service
       - deploy-llm-service
+      - deploy-absorb-service
       - deploy-mcp-server
     if: always()
     runs-on: ubuntu-latest
@@ -355,4 +394,5 @@ jobs:
           echo "| Marketplace API | ${{ needs.deploy-marketplace-api.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Render Service | ${{ needs.deploy-render-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Absorb Service | ${{ needs.deploy-absorb-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Server | ${{ needs.deploy-mcp-server.result }} |" >> $GITHUB_STEP_SUMMARY

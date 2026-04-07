@@ -19,6 +19,24 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3005;
+const HEALTH_DB_TIMEOUT_MS = Math.max(100, Number(process.env.HEALTH_DB_TIMEOUT_MS || 500));
+
+async function fetchActiveMoltbookAgentsWithTimeout(db: NonNullable<ReturnType<typeof getDb>>): Promise<number | null> {
+  const dbProbe = (async () => {
+    const { moltbookAgents } = await import('./db/schema.js');
+    const { sql } = await import('drizzle-orm');
+    const [row] = await db
+      .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
+      .from(moltbookAgents);
+    return row?.count ?? 0;
+  })();
+
+  const timeoutProbe = new Promise<null>((resolve) => {
+    setTimeout(() => resolve(null), HEALTH_DB_TIMEOUT_MS);
+  });
+
+  return Promise.race([dbProbe, timeoutProbe]);
+}
 
 // --- Middleware ---
 app.use(cors());
@@ -58,17 +76,20 @@ app.get('/', (req, res) => {
 // --- Public endpoints (no auth) ---
 app.get('/health', async (_req, res) => {
   let moltbookAgentCount: number | null = null;
+  let databaseStatus: 'connected' | 'degraded' | 'not configured' = 'not configured';
   const db = getDb();
   if (db) {
+    databaseStatus = 'connected';
     try {
-      const { moltbookAgents } = await import('./db/schema.js');
-      const { sql } = await import('drizzle-orm');
-      const [row] = await db
-        .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
-        .from(moltbookAgents);
-      moltbookAgentCount = row?.count ?? 0;
+      const maybeCount = await fetchActiveMoltbookAgentsWithTimeout(db);
+      if (maybeCount === null) {
+        databaseStatus = 'degraded';
+      } else {
+        moltbookAgentCount = maybeCount;
+      }
     } catch {
-      // Schema not migrated yet — skip
+      // Schema not migrated / transient query failure — keep service live with degraded DB status.
+      databaseStatus = 'degraded';
     }
   }
 
@@ -77,7 +98,7 @@ app.get('/health', async (_req, res) => {
     service: 'absorb-service',
     version: '6.0.0',
     uptime: process.uptime(),
-    database: db ? 'connected' : 'not configured',
+    database: databaseStatus,
     mcpSessions: getActiveSessionCount(),
     moltbookActiveAgents: moltbookAgentCount,
     timestamp: new Date().toISOString(),

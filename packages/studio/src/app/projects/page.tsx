@@ -110,6 +110,8 @@ export default function ProjectsPage() {
               </button>
               <button
                 onClick={() => handleDelete(p.id)}
+                aria-label={`Delete project ${p.name}`}
+                title={`Delete project ${p.name}`}
                 className="ml-3 rounded-md p-2 text-studio-muted transition hover:bg-studio-error/10 hover:text-studio-error"
               >
                 <Trash2 className="h-4 w-4" />

@@ -73,6 +73,8 @@ export function DebuggerPanel({ onClose }: DebuggerPanelProps) {
           {status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-red-400" />}
           <button
             onClick={onClose}
+            aria-label="Close debugger panel"
+            title="Close debugger panel"
             className="rounded p-1 text-studio-muted hover:text-studio-text"
           >
             <X className="h-4 w-4" />
