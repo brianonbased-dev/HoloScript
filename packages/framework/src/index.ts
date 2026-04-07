@@ -331,6 +331,7 @@ export {
 
 // Agent orchestration available via '@holoscript/framework/agents'
 // Not re-exported from barrel to avoid circular dependency with @holoscript/core
+export { OrchestratorAgent, type OrchestratorConfig } from './agents/OrchestratorAgent';
 
 export * from './swarm';
 
