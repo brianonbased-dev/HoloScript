@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, AlertTriangle, Network, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { useAbsorb } from '@/hooks/useAbsorb';
+import { CodebaseVisualization3D } from './CodebaseVisualization3D';
 import { CodebaseVisualizationPanel } from './CodebaseVisualizationPanel';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ export function CodebaseInspectorPanel({
 }: CodebaseInspectorPanelProps) {
   const { data, absorb, isLoading, error, refresh } = useAbsorb({ projectPath, depth });
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
 
   return (
     <div className="flex h-full flex-col bg-studio-panel text-studio-text">
@@ -68,6 +70,13 @@ export function CodebaseInspectorPanel({
           >
             <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Indexing…' : 'Re-index'}
+          </button>
+          <button
+            onClick={() => setViewMode(m => m === '3d' ? '2d' : '3d')}
+            title="Toggle View Mode"
+            className="flex items-center gap-1 rounded bg-studio-surface px-2 py-1 text-[10px] text-studio-text transition hover:bg-studio-border border border-studio-border/50"
+          >
+            {viewMode === '3d' ? 'View 2D Map' : 'View 3D Galaxy'}
           </button>
         </div>
       </div>
@@ -114,12 +123,18 @@ export function CodebaseInspectorPanel({
             ) : null}
           </div>
 
-          {/* Force-graph SVG */}
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <CodebaseVisualizationPanel
-              data={data}
-              onNodeClick={(nodeId) => setSelectedNode(nodeId)}
-            />
+          <div className="min-h-0 flex-1 overflow-hidden relative">
+            {viewMode === '3d' ? (
+              <CodebaseVisualization3D
+                data={data}
+                onNodeClick={(nodeId) => setSelectedNode(nodeId)}
+              />
+            ) : (
+              <CodebaseVisualizationPanel
+                data={data}
+                onNodeClick={(nodeId) => setSelectedNode(nodeId)}
+              />
+            )}
           </div>
 
           {/* Hub file warnings — high-risk files (many dependents) */}
