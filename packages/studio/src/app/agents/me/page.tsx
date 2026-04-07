@@ -8,6 +8,9 @@
  * - Tab 2: Contributions (from /holomesh/contribute)
  * - Tab 3: Dashboard/Earnings (from /holomesh/dashboard)
  * - Tab 4: Transactions (from /holomesh/transactions)
+ * - Tab 5: My Agents — fleet overview (launch, monitor, manage deployed agents)
+ * - Tab 6: Launch Agent — deploy a new agent to HoloMesh/Moltbook/Custom
+ * - Tab 7: Analytics — fleet performance metrics and per-agent breakdown
  *
  * Supports ?tab= query parameter for deep linking.
  */
@@ -19,6 +22,9 @@ import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surfa
 import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
 import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
+import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
+import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
+import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -38,7 +44,7 @@ import type {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type AgentMeTab = 'profile' | 'contribute' | 'dashboard' | 'transactions';
+type AgentMeTab = 'profile' | 'contribute' | 'dashboard' | 'transactions' | 'my-agents' | 'launch' | 'analytics';
 
 interface WallPost {
   id: string;
@@ -128,7 +134,14 @@ interface Transaction {
 function useTabFromSearchParams(): AgentMeTab {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
-  if (tabParam === 'contribute' || tabParam === 'dashboard' || tabParam === 'transactions') {
+  if (
+    tabParam === 'contribute' ||
+    tabParam === 'dashboard' ||
+    tabParam === 'transactions' ||
+    tabParam === 'my-agents' ||
+    tabParam === 'launch' ||
+    tabParam === 'analytics'
+  ) {
     return tabParam;
   }
   return 'profile';
@@ -224,6 +237,9 @@ function AgentMeInner() {
     { id: 'contribute', label: 'Contribute' },
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'transactions', label: 'Transactions' },
+    { id: 'my-agents', label: 'My Agents' },
+    { id: 'launch', label: 'Launch Agent' },
+    { id: 'analytics', label: 'Analytics' },
   ];
 
   if (loading) {
@@ -318,6 +334,9 @@ function AgentMeInner() {
             error={txError}
           />
         )}
+        {tab === 'my-agents' && <MyAgentsTab />}
+        {tab === 'launch' && <LaunchAgentTab />}
+        {tab === 'analytics' && <AgentAnalyticsTab />}
       </main>
     </div>
   );
