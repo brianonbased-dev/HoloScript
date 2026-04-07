@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     if (!action) {
       return NextResponse.json(
-        { error: 'Missing required field: action', available_actions: ['compile', 'parse', 'validate', 'suggest_traits', 'generate', 'query', 'list_traits', 'explain_trait'] },
+        { error: 'Missing required field: action', available_actions: ['compile', 'parse', 'validate', 'suggest_traits', 'generate', 'query', 'list_traits', 'explain_trait', 'install_plugin', 'discover_plugins'] },
         { status: 400 }
       );
     }
@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
       query: 'holo_query_codebase',
       list_traits: 'list_traits',
       explain_trait: 'explain_trait',
+      install_plugin: 'install_domain_plugin',
+      discover_plugins: 'discover_plugins',
     };
 
     const tool = toolMap[action];
@@ -88,6 +90,8 @@ export async function GET() {
       query: { tool: 'holo_query_codebase', params: 'query' },
       list_traits: { tool: 'list_traits', params: 'category?, search?' },
       explain_trait: { tool: 'explain_trait', params: 'name' },
+      install_plugin: { tool: 'install_domain_plugin', params: 'plugin_name' },
+      discover_plugins: { tool: 'discover_plugins', params: 'query, category?' },
     },
     example: '{ "action": "compile", "code": "object Cube { position: [0,1,0] }", "target": "three" }',
   });
