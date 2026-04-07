@@ -365,3 +365,14 @@ packages/core/test_parse.ts
 packages/core/test_parse_out_utf8.json
 packages/core/vitest_report.json
 scripts/pitch-stats.md
+
+# Build artifacts (engine/studio debug logs)
+absorb_output.json
+build_full_v2.txt
+engine-build-log.txt
+packages/engine/build_report.txt
+packages/engine/ts-err*.txt
+packages/engine/ts-error*.txt
+packages/studio/log-utf8.txt
+packages/studio/next-build*.txt
+packages/studio/npx-log.txt
