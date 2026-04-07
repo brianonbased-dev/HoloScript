@@ -5,7 +5,7 @@
  * Generates HSPlusNode structures ready for the runtime.
  */
 
-import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
+import { HSPlusNode, Vector3 } from '@holoscript/core';
 
 export interface UIComponentConfig {
   id?: string;

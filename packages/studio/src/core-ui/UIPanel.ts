@@ -1,4 +1,4 @@
-import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
+import { HSPlusNode, Vector3 } from '@holoscript/core';
 
 export interface UIPanelConfig {
   position?: Vector3;
