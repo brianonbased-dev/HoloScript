@@ -15,11 +15,12 @@
 
 import {
   runSafetyPass,
-  SafetyPassResult,
-  EffectASTNode,
-} from '../compiler/safety/CompilerSafetyPass';
-import { SafetyReport, SafetyVerdict } from '../compiler/safety/SafetyReport';
-import { PlatformTarget } from '../compiler/platform/PlatformConditional';
+  type SafetyPassResult,
+  type EffectASTNode,
+  type SafetyReport,
+  type SafetyVerdict,
+  type PlatformTarget,
+} from '@holoscript/core';
 
 // =============================================================================
 // PACKAGE TYPES

@@ -176,7 +176,7 @@ export {
 export type { InvisibleWalletConfig } from './protocol/InvisibleWallet.js';
 
 // ─── Extracted from core (A.011.03a+b+e) ───────────────────────────────────
-export * from './core-marketplace';
-export * from './economy';
-export * from './contracts';
-export * from './core-web3';
+export * from './core-marketplace/index.js';
+export * from './economy/index.js';
+export * from './contracts/index.js';
+export * from './core-web3/index.js';
