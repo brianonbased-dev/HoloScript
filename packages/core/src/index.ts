@@ -2789,6 +2789,27 @@ export type {
   HSServerFile,
 } from './parser/HSKnowledgeParser';
 
+// ── Pipeline Parser (.hs data pipelines) ────────────────────────────────────
+export {
+  parsePipeline,
+  isPipelineSource,
+} from './parser/PipelineParser';
+
+export type {
+  Pipeline,
+  PipelineParseResult,
+  PipelineStep,
+  PipelineSource,
+  PipelineTransform,
+  PipelineFilter,
+  PipelineValidate,
+  PipelineMerge,
+  PipelineBranch,
+  PipelineSink,
+  FieldMapping,
+  BranchRoute,
+} from './parser/PipelineParser';
+
 // =============================================================================
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================
