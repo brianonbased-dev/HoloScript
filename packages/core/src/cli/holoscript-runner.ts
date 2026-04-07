@@ -20,8 +20,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '@holoscript/engine/runtime/HeadlessRuntime';
-import { createHeadlessRuntime as createProfileRuntime, type ActionHandler } from '@holoscript/engine/runtime/profiles';
+import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE, type ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 // @ts-expect-error During migration
 const PROFILES_HEADLESS = HEADLESS_PROFILE;
@@ -343,21 +342,38 @@ function parseArgs(argv: string[]): CLIOptions {
   return opts;
 }
 
+interface ChatResponse {
+  content?: { text: string }[];
+  choices?: { message: { content: string } }[];
+  message?: { content: string };
+  response?: string;
+  usage?: {
+    input_tokens?: number;
+    prompt_tokens?: number;
+    output_tokens?: number;
+    completion_tokens?: number;
+  };
+  prompt_eval_count?: number;
+  eval_count?: number;
+}
+
 function extractChatText(data: unknown): string {
+  const d = data as ChatResponse;
   return (
-    data?.content?.[0]?.text ??
-    data?.choices?.[0]?.message?.content ??
-    data?.message?.content ??
-    data?.response ??
+    d?.content?.[0]?.text ??
+    d?.choices?.[0]?.message?.content ??
+    d?.message?.content ??
+    d?.response ??
     ''
   );
 }
 
 function extractTokenUsage(data: unknown): { inputTokens: number; outputTokens: number } {
+  const d = data as ChatResponse;
   const inputTokens =
-    data?.usage?.input_tokens ?? data?.usage?.prompt_tokens ?? data?.prompt_eval_count ?? 0;
+    d?.usage?.input_tokens ?? d?.usage?.prompt_tokens ?? d?.prompt_eval_count ?? 0;
   const outputTokens =
-    data?.usage?.output_tokens ?? data?.usage?.completion_tokens ?? data?.eval_count ?? 0;
+    d?.usage?.output_tokens ?? d?.usage?.completion_tokens ?? d?.eval_count ?? 0;
 
   return {
     inputTokens: Number.isFinite(inputTokens) ? Number(inputTokens) : 0,
@@ -728,11 +744,25 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
     close();
   });
 
+interface DaemonCommand {
+  op: string;
+  count?: number;
+  event?: string;
+  payload?: any;
+  key?: string;
+  value?: any;
+  name?: string;
+  timeoutMs?: number;
+  actionRequestId?: string;
+  status?: string;
+  success?: boolean;
+}
+
   rl.on('line', (line: string) => {
     const raw = line.trim();
     if (!raw) return;
 
-    let command: unknown;
+    let command: DaemonCommand;
     try {
       command = JSON.parse(raw);
     } catch {
@@ -743,7 +773,7 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
     const op = command?.op;
     switch (op) {
       case 'tick': {
-        const count = Number.isFinite(command?.count) ? Math.max(0, Math.floor(command.count)) : 1;
+        const count = Number.isFinite(command?.count) ? Math.max(0, Math.floor(command.count!)) : 1;
         runTicks(runtime, count);
         send({ type: 'daemon:ok', op, ticked: count, stats: runtime.getStats?.() });
         break;
@@ -753,7 +783,7 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
           send({ type: 'daemon:error', op, error: 'Runtime does not expose emit()' });
           break;
         }
-        runtime.emit(command.event, command.payload);
+        runtime.emit(command.event!, command.payload);
         send({ type: 'daemon:ok', op, event: command.event });
         break;
       }
@@ -794,7 +824,7 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
           (params: Record<string, unknown>, blackboard: Record<string, unknown>) => {
             const actionRequestId = `daemon-action-${nextActionId++}`;
             const timeoutMs = Number.isFinite(command?.timeoutMs)
-              ? Math.max(1, Math.floor(command.timeoutMs))
+              ? Math.max(1, Math.floor(command.timeoutMs!))
               : 30000;
 
             return new Promise<boolean>((resolve, reject) => {
@@ -841,10 +871,10 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
         });
         break;
       }
-      case 'action:resolve': {
+      case 'action:reply': {
         const actionRequestId = command?.actionRequestId;
         if (typeof actionRequestId !== 'string') {
-          send({ type: 'daemon:error', op, error: 'action:resolve requires actionRequestId' });
+          send({ type: 'daemon:error', op, error: 'action:reply requires actionRequestId' });
           break;
         }
 
@@ -861,7 +891,7 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
         const success =
           typeof command?.success === 'boolean'
             ? command.success
-            : status === 'success' || status === true;
+            : status === 'success' || status === 'true';
 
         pending.resolve(Boolean(success));
         send({ type: 'daemon:ok', op, actionRequestId, success: Boolean(success) });
@@ -1149,7 +1179,12 @@ function compileScript(opts: CLIOptions): void {
     console.log(`[holoscript compile] @gotcha check passed (no critical violations)`);
   }
 
-  const ast = parse(source);
+  const compileResult = parse(source);
+  if (!compileResult.success) {
+    console.error(`[holoscript compile] Failed to parse: ${compileResult.errors?.[0]?.message}`);
+    process.exit(1);
+  }
+  const ast = compileResult.ast as HSPlusAST;
   const outputPath =
     opts.output ||
     filePath.replace(/\.(hs|hsplus|holo)$/, `.${opts.target === 'python' ? 'py' : 'js'}`);
@@ -1175,7 +1210,7 @@ function compileScript(opts: CLIOptions): void {
   console.log(`[holoscript compile] Written to ${outputPath}`);
 }
 
-function generateNodeTarget(ast: unknown): string {
+function generateNodeTarget(ast: HSPlusAST): string {
   const lines: string[] = [
     '// Auto-generated by holoscript compile --target node',
     '// Source: HoloScript composition',
@@ -1183,11 +1218,12 @@ function generateNodeTarget(ast: unknown): string {
     '',
   ];
 
-  if (ast.body) {
-    for (const node of ast.body) {
+  if (ast.root && ast.root.children) {
+    for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        lines.push(`// ${node.type}: ${node.name || 'unnamed'}`);
-        lines.push(`module.exports.${node.name || 'default'} = ${JSON.stringify(node, null, 2)};`);
+        const name = (node as any).name || 'default';
+        lines.push(`// ${node.type}: ${name}`);
+        lines.push(`module.exports.${name} = ${JSON.stringify(node, null, 2)};`);
         lines.push('');
       }
     }
@@ -1196,7 +1232,7 @@ function generateNodeTarget(ast: unknown): string {
   return lines.join('\n');
 }
 
-function generatePythonTarget(ast: unknown): string {
+function generatePythonTarget(ast: HSPlusAST): string {
   const lines: string[] = [
     '# Auto-generated by holoscript compile --target python',
     '# Source: HoloScript composition',
@@ -1204,10 +1240,10 @@ function generatePythonTarget(ast: unknown): string {
     '',
   ];
 
-  if (ast.body) {
-    for (const node of ast.body) {
+  if (ast.root && ast.root.children) {
+    for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        const name = node.name || 'default_obj';
+        const name = (node as any).name || 'default_obj';
         lines.push(`# ${node.type}: ${name}`);
         lines.push(`${name} = json.loads('''${JSON.stringify(node)}''')`);
         lines.push('');
