@@ -6,6 +6,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { LODManager } from '@/lib/core-stubs';
 
+export interface LODMetrics {
+  objectsPerLevel: Map<number, number>;
+  trianglesSaved: number;
+  totalObjects: number;
+}
+
 export interface LODObjectState {
   id: string;
   level: number;
@@ -14,7 +20,7 @@ export interface LODObjectState {
 }
 
 export interface UseLODReturn {
-  manager: InstanceType<typeof LODManager>;
+  manager: InstanceType<typeof LODManager> & { getMetrics(): LODMetrics };
   objects: LODObjectState[];
   cameraPos: [number, number, number];
   setCameraPos: (pos: [number, number, number]) => void;
