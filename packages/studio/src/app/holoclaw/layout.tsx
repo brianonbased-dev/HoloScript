@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'HoloClaw Skills — HoloScript Studio',
-  description: 'Browse, create, and manage HoloScript skills and automation recipes',
-  openGraph: {
-    title: 'HoloClaw Skills — HoloScript Studio',
-    description: 'Browse, create, and manage HoloScript skills and automation recipes',
-    type: 'website',
-  },
+  title: 'HoloClaw — Redirecting to Teams',
+  description: 'HoloClaw is now integrated into the Teams workspace',
 };
 
 export default function HoloclawLayout({ children }: { children: React.ReactNode }) {

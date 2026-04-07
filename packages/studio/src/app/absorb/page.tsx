@@ -124,9 +124,7 @@ function LandingPage() {
           <span>
             <Link href="/" className="hover:text-studio-text">Home</Link>
             {' \u2022 '}
-            <Link href="/holodaemon" className="hover:text-studio-text">Daemon</Link>
-            {' \u2022 '}
-            <Link href="/holoclaw" className="hover:text-studio-text">HoloClaw</Link>
+            <Link href="/teams" className="hover:text-studio-text">Teams</Link>
           </span>
         </div>
       </footer>
@@ -1294,16 +1292,10 @@ function AuthenticatedDashboard() {
           ))}
           <div className="ml-auto flex items-center gap-3">
             <Link
-              href="/holodaemon"
+              href="/teams"
               className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
             >
-              Daemon
-            </Link>
-            <Link
-              href="/holoclaw"
-              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
-            >
-              HoloClaw
+              Teams
             </Link>
             <Link
               href="/pipeline"
@@ -1775,10 +1767,10 @@ function AuthenticatedDashboard() {
                   <div className="text-white font-medium">Operations</div>
                   <div className="text-studio-muted text-xs mt-1">Daemon health, alerts, sync status, jobs</div>
                 </a>
-                <a href="/holoclaw" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                <a href="/teams" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
                   <div className="text-2xl mb-2">🤖</div>
                   <div className="text-white font-medium">Agent Skills</div>
-                  <div className="text-studio-muted text-xs mt-1">Browse, create, and manage AI skills</div>
+                  <div className="text-studio-muted text-xs mt-1">Browse, create, and manage AI skills inside Teams</div>
                 </a>
               </div>
             </div>
@@ -1828,12 +1820,8 @@ function AuthenticatedDashboard() {
         <div className="flex items-center justify-between text-[10px] text-studio-muted">
           <span>Absorb Service v0.1 — Powered by HoloDaemon + HoloClaw + Claude/Grok/GPT</span>
           <span>
-            <Link href="/holodaemon" className="hover:text-studio-text">
-              Daemon
-            </Link>
-            {' \u2022 '}
-            <Link href="/holoclaw" className="hover:text-studio-text">
-              HoloClaw
+            <Link href="/teams" className="hover:text-studio-text">
+              Teams
             </Link>
             {' \u2022 '}
             <Link href="/pipeline" className="hover:text-studio-text">

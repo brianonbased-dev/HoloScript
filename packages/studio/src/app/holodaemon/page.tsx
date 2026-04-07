@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation';
 
 /**
  * HoloDaemon — Deprecated standalone route.
- * The Daemon WebGL control surface has been merged natively into the Absorb Workspace.
- * Automatically redirecting to /absorb to enforce dogfooding.
+ * Daemon monitoring is now part of the HoloClaw tab inside /teams/[id].
+ * Automatically redirecting to /teams.
  */
 export default function HoloDaemonRedirect() {
-  redirect('/absorb');
+  redirect('/teams');
 }
