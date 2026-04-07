@@ -1,7 +1,7 @@
 # HoloScript MCP Server - Monorepo Build
 #
 # Builds from the pnpm workspace root to resolve workspace dependencies
-# Dependency chain: mcp-server → core + llm-provider + absorb-service + cli, core → crdt
+# Dependency chain: mcp-server → core + engine + llm-provider + absorb-service + cli, core → crdt + engine
 
 FROM node:20-alpine AS builder
 
@@ -17,6 +17,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/crdt/package.json packages/crdt/
 COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
+COPY packages/engine/package.json packages/engine/
 COPY packages/framework/package.json packages/framework/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
@@ -30,6 +31,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
+COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
@@ -41,6 +43,7 @@ COPY packages/mcp-server/ packages/mcp-server/
 RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
+RUN cd packages/engine && npx tsup --no-dts
 RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
@@ -71,6 +74,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/crdt/package.json packages/crdt/
 COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
+COPY packages/engine/package.json packages/engine/
 COPY packages/framework/package.json packages/framework/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
@@ -85,6 +89,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
