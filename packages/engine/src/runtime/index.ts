@@ -17,4 +17,15 @@ export * from './GameLoop';
 export * from './AssetPipeline';
 export * from './HotReloadManager';
 export * from './GameEngine';
+export * from './RuntimeOptimization';
+export * from './BaseVoiceSynthesizer';
+export * from './EmotionDetector';
+export * from './LocalEmotionDetector';
+export * from './MockSpeechRecognizer';
+export * from './NavigationEngine';
+export * from './PhysicsEngine';
+export * from './SpeechRecognizer';
+export * from './StateMachineInterpreter';
+export * from './VoiceSynthesizer';
+export * from './protocols';
 

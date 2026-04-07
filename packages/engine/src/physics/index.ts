@@ -204,3 +204,7 @@ export {
   type ActivationUpdateInput,
 } from './PhysicsActivation';
 
+// Soft-body adapter and solver
+export * from './SoftBodyAdapter';
+export * from './SoftBodySolver';
+
