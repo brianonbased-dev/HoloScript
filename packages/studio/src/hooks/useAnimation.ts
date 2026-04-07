@@ -3,11 +3,12 @@
  * useAnimation — Hook for animation timeline editing and playback
  */
 import { useState, useCallback, useRef } from 'react';
-import { AnimationEngine, Easing } from '@/lib/core-stubs';
+import { AnimationEngine, Easing as RawEasing } from '@/lib/core-stubs';
+const Easing: any = RawEasing;
 
 type AnimationEngineInstance = any;
 type AnimationClip = any;
-type EasingFn = typeof Easing.linear;
+type EasingFn = any;
 
 export interface AnimationInfo {
   id: string;
@@ -47,7 +48,7 @@ export interface UseAnimationReturn {
 }
 
 export function useAnimation(): UseAnimationReturn {
-  const engineRef = useRef(new AnimationEngine());
+  const engineRef = useRef<any>(new AnimationEngine());
   const [animations, setAnimations] = useState<AnimationInfo[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const rafRef = useRef<number>(0);
