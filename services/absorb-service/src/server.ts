@@ -78,34 +78,46 @@ app.get('/', (req, res) => {
   `);
 });
 
-// --- Public endpoints (no auth) ---
-app.get('/health', async (_req, res) => {
-  let moltbookAgentCount: number | null = null;
-  let databaseStatus: 'connected' | 'degraded' | 'not configured' = 'not configured';
-  const db = getDb();
-  if (db) {
-    databaseStatus = 'connected';
-    try {
-      const maybeCount = await fetchActiveMoltbookAgentsWithTimeout(db);
-      if (maybeCount === null) {
-        databaseStatus = 'degraded';
-      } else {
-        moltbookAgentCount = maybeCount;
-      }
-    } catch {
-      // Schema not migrated / transient query failure — keep service live with degraded DB status.
-      databaseStatus = 'degraded';
-    }
-  }
+// --- Background Health Sampling ---
+let _cachedMoltbookAgentCount: number | null = null;
+let _cachedDatabaseStatus: 'connected' | 'degraded' | 'not configured' = 'not configured';
 
+async function backgroundHealthProbe() {
+  const db = getDb();
+  if (!db) {
+    _cachedDatabaseStatus = 'not configured';
+    _cachedMoltbookAgentCount = null;
+    return;
+  }
+  
+  _cachedDatabaseStatus = 'connected';
+  try {
+    const maybeCount = await fetchActiveMoltbookAgentsWithTimeout(db);
+    if (maybeCount === null) {
+      _cachedDatabaseStatus = 'degraded';
+    } else {
+      _cachedMoltbookAgentCount = maybeCount;
+    }
+  } catch {
+    _cachedDatabaseStatus = 'degraded';
+  }
+}
+
+// Probe every 15 seconds, don't keep process alive just for this
+setInterval(backgroundHealthProbe, 15000).unref();
+// Initial probe
+setTimeout(backgroundHealthProbe, 0).unref();
+
+// --- Public endpoints (no auth) ---
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'absorb-service',
     version: '6.0.0',
     uptime: process.uptime(),
-    database: databaseStatus,
+    database: _cachedDatabaseStatus,
     mcpSessions: getActiveSessionCount(),
-    moltbookActiveAgents: moltbookAgentCount,
+    moltbookActiveAgents: _cachedMoltbookAgentCount,
     timestamp: new Date().toISOString(),
   });
 });
