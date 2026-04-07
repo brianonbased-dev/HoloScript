@@ -101,7 +101,7 @@ export class HeadlessRuntime {
   private ast: HSPlusAST;
   private profile: RuntimeProfile;
   private options: HeadlessRuntimeOptions;
-  public state: ReactiveState<Record<string, unknown>>;
+  public state: ReactiveState<any>;
   private evaluator: ExpressionEvaluator;
   private rootInstance: HeadlessNodeInstance | null = null;
   private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();

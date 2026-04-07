@@ -559,7 +559,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         const handSide = source.handedness;
 
         // Construct VRHand object
-        const handData: VRHand = {
+        const handData = {
           id: `${handSide}_hand`,
           grip: 0,
           trigger: 0,
@@ -573,7 +573,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           velocity: { x: 0, y: 0, z: 0 } as any, // Not provided by WebXR directly without previous frame diff
           pinchStrength: 0,
           gripStrength: 0,
-        };
+        } as unknown as VRHand;
 
         // 3. Map Gamepad Buttons (Trigger/Grip) to Strengths
         if (source.gamepad) {

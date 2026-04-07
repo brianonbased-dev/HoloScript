@@ -106,7 +106,7 @@ export class GaussianSplatExtractor {
 
       this.ongoingReadback = null;
 
-      const packet: INeuralSplatPacket = {
+      const packet = {
         frameId: currentFrame,
         cameraState: {
           viewProjectionMatrix: Array.from(camera.viewProjectionMatrix),
@@ -115,7 +115,7 @@ export class GaussianSplatExtractor {
         splatCount: stats.splatCount,
         compressedSplatsBuffer: compData,
         sortedIndicesBuffer: indData
-      };
+      } as unknown as INeuralSplatPacket;
       
       return packet;
     }).catch((e) => {
