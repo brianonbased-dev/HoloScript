@@ -22,13 +22,7 @@ const AgentationWired = dynamic(
   { ssr: false }
 );
 
-const StudioSetupWizard = dynamic(
-  () =>
-    import('../components/wizard/StudioSetupWizard').then((m) => ({
-      default: m.StudioSetupWizard,
-    })),
-  { ssr: false }
-);
+// Old StudioSetupWizard removed — onboarding now handled by /start (Brittney-first)
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context
@@ -122,17 +116,7 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 export function Providers({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
 
-  // Studio Setup Wizard — shown if workspace configured
-  const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
-  const setWizardCompleted = useStudioPresetStore((s) => s.setWizardCompleted);
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
-
-  useEffect(() => {
-    if (!wizardCompleted) {
-      // Show Custom IDE picker if not configured
-      setShowSetupWizard(true);
-    }
-  }, [wizardCompleted]);
+  // Onboarding handled by /start (Brittney-first) — no popup wizard
 
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
@@ -178,16 +162,6 @@ export function Providers({ children }: { children: ReactNode }) {
                   <AppShell>{children}</AppShell>
                 </PluginHostProvider>
               </ErrorBoundary>
-              {showSetupWizard && (
-                <StudioSetupWizard
-                  onClose={() => {
-                    setShowSetupWizard(false);
-                    if (!wizardCompleted) {
-                      setWizardCompleted(true);
-                    }
-                  }}
-                />
-              )}
               <DevToolsInit />
               <WebVitals />
               {process.env.NODE_ENV === 'development' && <AgentationWired />}
