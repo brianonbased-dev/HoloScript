@@ -64,6 +64,11 @@ import {
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 
+// Initialize ExportManager singleton with memory monitoring disabled.
+// Railway containers have constrained RAM — the default monitoring loop
+// triggers critical alerts at 91% utilization and causes OOM SIGTERMs.
+getExportManager({ useMemoryMonitoring: false });
+
 // =============================================================================
 // TYPES
 // =============================================================================
