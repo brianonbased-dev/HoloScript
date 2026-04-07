@@ -44,21 +44,27 @@ describe('NextJSCompiler', () => {
     expect(compiled.code).toContain('const [name, setName] = useState("test")');
   });
 
-  it('handles @slot trait to mount external components', () => {
-    // Note: HoloCompositionParser currently parses @slot without config.
-    // The @slot trait config enrichment is a follow-up task.
+  it('handles @slot trait with build-time slot registry metadata', () => {
     const result = parseHolo(`
       composition "EditorPage" {
-        object "Editor" {
+        object "PipelineWorkbench" {
           @slot
         }
       }
     `);
 
     expect(result.success).toBe(true);
-    const compiled = compileToNextJS(result.ast!);
-    // @slot without config produces a plain div (config enrichment is Phase 0B follow-up)
-    expect(compiled.code).toContain('EditorPageComponent');
+    const compiled = compileToNextJS(result.ast!, {
+      slots: {
+        PipelineWorkbench: {
+          component: 'PipelineWorkbench',
+          importPath: '@/components/pipeline/PipelineWorkbench',
+        },
+      },
+    });
+
+    expect(compiled.code).toContain("import { PipelineWorkbench } from '@/components/pipeline/PipelineWorkbench';");
+    expect(compiled.code).toContain('<PipelineWorkbench />');
   });
 
   it('generates layout with nested objects', () => {

@@ -1,157 +1,17 @@
-// Pipeline Editor — First HoloScript-built Studio page
-// Compiles to: packages/studio/src/app/pipeline/page.tsx
-
 composition "PipelineEditor" {
   @page { route: "/pipeline", client: true }
   @metadata { title: "Pipeline Editor — HoloScript Studio", description: "Create and compile .hs data pipelines" }
 
-  state {
-    pipelineSource: ""
-    compiledOutput: ""
-    compileTarget: "node"
-    compileError: ""
-    parseResult: null
-  }
-
-  // Main layout: sidebar + editor + output
   object "Shell" {
-    @layout { flex: "row", gap: 0 }
-    @theme { className: "h-screen bg-gray-950 text-white" }
+    @layout { flex: "column" }
+    @theme { className: "min-h-screen bg-gray-950 text-white" }
 
-    // Left sidebar
-    object "Sidebar" {
-      @panel { tag: "aside" }
-      @theme { className: "w-64 border-r border-gray-800 p-4 flex flex-col gap-4" }
-
-      object "Title" {
-        @text { variant: "h2", content: "Pipelines" }
-        @theme { className: "text-lg font-semibold text-gray-100" }
-      }
-
-      object "Description" {
-        @text { variant: "body", content: "Create declarative data pipelines in .hs format. Source → Transform → Filter → Sink." }
-        @theme { className: "text-sm text-gray-400" }
-      }
-
-      object "ExampleList" {
-        @layout { flex: "column", gap: 2 }
-
-        object "Example1" {
-          @button { variant: "ghost", content: "Inventory Sync" }
-          @theme { className: "text-left text-sm" }
-        }
-
-        object "Example2" {
-          @button { variant: "ghost", content: "Social Monitor" }
-          @theme { className: "text-left text-sm" }
-        }
-
-        object "Example3" {
-          @button { variant: "ghost", content: "Deploy Health" }
-          @theme { className: "text-left text-sm" }
-        }
-
-        object "Example4" {
-          @button { variant: "ghost", content: "Knowledge Sync" }
-          @theme { className: "text-left text-sm" }
-        }
-      }
-
-      object "DocsLink" {
-        @link { href: "/docs/guides/pipeline-grammar", content: "Grammar Reference →" }
-        @theme { className: "text-sm text-indigo-400 hover:text-indigo-300 mt-auto" }
-      }
-    }
-
-    // Main content area
     object "Main" {
       @layout { flex: "column" }
-      @theme { className: "flex-1 flex flex-col" }
+      @theme { className: "flex-1" }
 
-      // Toolbar
-      object "Toolbar" {
-        @layout { flex: "row", gap: 3, align: "center" }
-        @theme { className: "px-4 py-2 border-b border-gray-800 bg-gray-900" }
-
-        object "FileLabel" {
-          @text { variant: "caption", content: "pipeline.hs" }
-          @theme { className: "text-gray-400 font-mono" }
-        }
-
-        object "Spacer" {
-          @theme { className: "flex-1" }
-        }
-
-        object "ParseBtn" {
-          @button { variant: "outline", content: "Parse" }
-          @theme { className: "text-sm" }
-        }
-
-        object "CompileBtn" {
-          @button { variant: "primary", content: "Compile to Node.js" }
-          @theme { className: "text-sm" }
-        }
-      }
-
-      // Editor + Output split
-      object "EditorArea" {
-        @layout { flex: "row" }
-        @theme { className: "flex-1 overflow-hidden" }
-
-        // Code editor (slot for Monaco)
-        object "EditorSlot" {
-          @slot { name: "PipelineMonaco", component: "HoloScriptEditor", import: "@/components/editor/HoloScriptEditor" }
-          @theme { className: "flex-1 border-r border-gray-800" }
-        }
-
-        // Output panel
-        object "OutputPanel" {
-          @layout { flex: "column" }
-          @theme { className: "flex-1 overflow-auto" }
-
-          object "OutputHeader" {
-            @layout { flex: "row", gap: 2, align: "center" }
-            @theme { className: "px-4 py-2 border-b border-gray-800 bg-gray-900" }
-
-            object "OutputLabel" {
-              @text { variant: "caption", content: "Compiled Output" }
-              @theme { className: "text-gray-400" }
-            }
-
-            object "TargetBadge" {
-              @text { variant: "caption", content: "Node.js" }
-              @theme { className: "px-2 py-0.5 bg-green-900 text-green-300 rounded text-xs" }
-            }
-          }
-
-          object "OutputCode" {
-            @theme { className: "flex-1 p-4 font-mono text-sm text-gray-300 whitespace-pre overflow-auto bg-gray-950" }
-            @text { content: "// Compile a pipeline to see output here" }
-          }
-        }
-      }
-
-      // Status bar
-      object "StatusBar" {
-        @layout { flex: "row", gap: 4, align: "center" }
-        @theme { className: "px-4 py-1 border-t border-gray-800 bg-gray-900 text-xs text-gray-500" }
-
-        object "FormatLabel" {
-          @text { content: ".hs Pipeline" }
-        }
-
-        object "TargetLabel" {
-          @text { content: "Target: Node.js" }
-        }
-
-        object "Spacer" {
-          @theme { className: "flex-1" }
-        }
-
-        object "HoloScriptBadge" {
-          @text { content: "Built with HoloScript" }
-          @theme { className: "text-indigo-500" }
-        }
+      object "PipelineWorkbench" {
+        @slot
       }
     }
   }

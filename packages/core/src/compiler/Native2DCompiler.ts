@@ -98,11 +98,13 @@ export class Native2DCompiler extends CompilerBase {
     // Build imports
     const imports: string[] = [];
     const reactImports = new Set<string>();
-    reactImports.add('React');
     if (this._stateFields.size > 0) reactImports.add('useState');
     if (this._fetchCalls.length > 0) reactImports.add('useEffect');
-    reactImports.add('useCallback');
-    imports.push(`import { ${[...reactImports].join(', ')} } from 'react';`);
+    imports.push(
+      reactImports.size > 0
+        ? `import React, { ${[...reactImports].join(', ')} } from 'react';`
+        : `import React from 'react';`
+    );
 
     if (this._uiImports.size > 0) {
       imports.push(`import { ${[...this._uiImports].join(', ')} } from '@holoscript/ui';`);
@@ -139,7 +141,7 @@ ${stateHooks.join('\n')}
 ${fetchEffects.join('\n')}
 
   return (
-    <div className="holoscript-2d-root" style={{ width: '100%', height: '100%' }}>
+    <div className="holoscript-2d-root w-full h-full">
       ${jsx}
     </div>
   );
@@ -155,8 +157,9 @@ export default ${safeName}Component;
     // @slot trait: mount a hand-written React component
     if (traits.slot) {
       const slotName = traits.slot.name || (obj as Record<string, unknown>).name || 'Slot';
-      const component = traits.slot.component || slotName;
-      const importPath = traits.slot.import || `@/components/${component}`;
+      const configuredSlot = this._options.slots?.[String(slotName)];
+      const component = traits.slot.component || configuredSlot?.component || slotName;
+      const importPath = traits.slot.import || configuredSlot?.importPath || `@/components/${component}`;
       this._slotImports.set(slotName, { component, importPath });
       const propsStr = traits.slot.props ? ` {...${JSON.stringify(traits.slot.props)}}` : '';
       return `<div data-holo-slot="${slotName}">

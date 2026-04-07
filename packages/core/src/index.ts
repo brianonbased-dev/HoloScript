@@ -2065,15 +2065,6 @@ export { USDZPipeline, type USDZPipelineOptions } from './compiler/USDZPipeline'
 
 // Semantic Caching System
 export {
-  encrypt,
-  decrypt,
-  generateEncryptionKey,
-  randomBytes,
-  randomHex,
-  randomUUID,
-  validateWalletAddress,
-  validateApiKey,
-
   type MessageHandler,
   type BroadcastHandler,
   type ChannelEventHandler,
@@ -2556,14 +2547,12 @@ export { Blackboard } from './ai';
 
 // ── Dialogue ───────────────────────────────────────────────────────
 export type {
-  DialogueNode as DialogueGraphNode,
-  DialogueNodeType as DialogueGraphNodeType,
+  GraphDialogueNode as DialogueGraphNode,
+  GraphDialogueNodeType,
   DialogueState,
-} from '@holoscript/engine/dialogue/DialogueGraph';
-export type {
-  DialogueNode as DialogueRunnerNode,
-  DialogueNodeType as DialogueRunnerNodeType,
-} from '@holoscript/engine/dialogue/DialogueRunner';
+  RunnerDialogueNode,
+  RunnerDialogueNodeType,
+} from '@holoscript/engine/dialogue';
 
 // ── ECS ────────────────────────────────────────────────────────────
 export { ECSWorld } from './traits/ECSWorldTrait';
@@ -2598,6 +2587,34 @@ export type {
 } from './collaboration/CollaborationSession';
 
 // ── Security / Sandbox ─────────────────────────────────────────────
+export {
+  // Hashing
+  sha256,
+  sha512,
+  hmacSha256,
+  verifyHmacSha256,
+  // Encryption
+  encrypt,
+  decrypt,
+  generateEncryptionKey,
+  exportKey,
+  importKey,
+  // Random
+  randomBytes,
+  randomHex,
+  randomUUID,
+  // Key Derivation
+  deriveKey,
+  // Validation
+  validateWalletAddress,
+  validateApiKey,
+  sanitizeInput,
+  validateUrl,
+  // Rate Limiting
+  checkRateLimit,
+  resetRateLimit,
+} from './security/crypto';
+
 export {
   createSandbox,
   execute as executeSandbox,
