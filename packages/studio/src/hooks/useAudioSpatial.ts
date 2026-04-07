@@ -5,9 +5,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { AudioEngine } from '@/lib/core-stubs';
 
-type AudioEngineInstance = InstanceType<typeof AudioEngine>;
-type AudioSource = ReturnType<AudioEngineInstance['getActiveSources']>[number];
-type ListenerState = ReturnType<AudioEngineInstance['getListener']>;
+type AudioEngineInstance = any;
+type AudioSource = any;
+type ListenerState = any;
 
 export interface UseAudioSpatialReturn {
   engine: AudioEngineInstance;
@@ -32,7 +32,7 @@ export interface UseAudioSpatialReturn {
 }
 
 export function useAudioSpatial(): UseAudioSpatialReturn {
-  const engineRef = useRef(new AudioEngine());
+  const engineRef = useRef<any>(new AudioEngine() as any);
   const [sources, setSources] = useState<AudioSource[]>([]);
   const [listener, setListener] = useState<ListenerState>({
     position: { x: 0, y: 0, z: 0 },
@@ -43,7 +43,7 @@ export function useAudioSpatial(): UseAudioSpatialReturn {
   const [isMuted, setIsMuted] = useState(false);
 
   const sync = useCallback(() => {
-    const e = engineRef.current;
+    const e: any = engineRef.current;
     setSources(e.getActiveSources());
     setListener(e.getListener());
   }, []);

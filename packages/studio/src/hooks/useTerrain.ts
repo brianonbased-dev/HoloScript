@@ -5,8 +5,10 @@
 import { useState, useCallback, useRef } from 'react';
 import { TerrainSystem, type TerrainConfig, type TerrainLayer } from '@/lib/core-stubs';
 
+type TerrainSystemInstance = any;
+
 export interface UseTerrainReturn {
-  system: TerrainSystem;
+  system: TerrainSystemInstance;
   terrainId: string | null;
   heights: number[];
   resolution: number;
@@ -28,7 +30,7 @@ const DEFAULT_CONFIG: TerrainConfig = {
 };
 
 export function useTerrain(): UseTerrainReturn {
-  const sysRef = useRef(new TerrainSystem());
+  const sysRef = useRef<any>(new TerrainSystem() as any);
   const [terrainId, setTerrainId] = useState<string | null>(null);
   const [heights, setHeights] = useState<number[]>([]);
   const [layers, setLayers] = useState<TerrainLayer[]>([]);

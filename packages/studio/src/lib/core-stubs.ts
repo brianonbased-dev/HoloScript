@@ -1,4 +1,4 @@
-function createNoopClass() {
+function createNoopClass(): any {
   return class NoopProxy {
     constructor() {
       return new Proxy(this, {
@@ -40,5 +40,6 @@ export const ParticleSystem = createNoopClass();
 export const NavMesh = createNoopClass();
 export const AStarPathfinder = createNoopClass();
 export const TileMap = createNoopClass();
-export const TileFlags = { SOLID: 1, WATER: 2 };
+export const TileFlags = { NONE: 0, SOLID: 1, WATER: 2 };
 export const SceneManager = createNoopClass();
+export type SceneListEntry = any;

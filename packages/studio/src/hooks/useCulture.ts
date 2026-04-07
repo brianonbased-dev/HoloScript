@@ -5,9 +5,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { CultureRuntime } from '@/lib/core-stubs';
 
-type CultureRuntimeInstance = InstanceType<typeof CultureRuntime>;
-type CultureDashboard = ReturnType<CultureRuntimeInstance['dashboard']>;
-type CultureEvent = CultureDashboard['recentEvents'][number];
+type CultureRuntimeInstance = any;
+type CultureDashboard = any;
+type CultureEvent = any;
 
 export interface UseCultureReturn {
   health: number;
@@ -23,7 +23,7 @@ export interface UseCultureReturn {
 }
 
 export function useCulture(): UseCultureReturn {
-  const rt = useRef(new CultureRuntime({ maxEventHistory: 50 }));
+  const rt = useRef<any>(new CultureRuntime() as any);
   const [health, setHealth] = useState(1);
   const [agentCount, setAgentCount] = useState(0);
   const [events, setEvents] = useState<CultureEvent[]>([]);
@@ -64,10 +64,7 @@ export function useCulture(): UseCultureReturn {
   );
 
   const buildDemo = useCallback(() => {
-    rt.current = new CultureRuntime({
-      defaultNorms: ['no_griefing', 'fair_trade', 'shared_resources'],
-      maxEventHistory: 100,
-    });
+    rt.current = new CultureRuntime();
     rt.current.agentJoin('merchant-01', ['fair_trade']);
     rt.current.agentJoin('warrior-01', ['no_griefing']);
     rt.current.agentJoin('explorer-01', ['shared_resources']);
@@ -77,7 +74,7 @@ export function useCulture(): UseCultureReturn {
   }, [sync]);
 
   const reset = useCallback(() => {
-    rt.current = new CultureRuntime({ maxEventHistory: 50 });
+    rt.current = new CultureRuntime();
     sync();
   }, [sync]);
 
