@@ -554,6 +554,28 @@ function parsePipelineContent(
     ...sinks,
   ];
 
+  // ── Spatial keyword enforcement ──────────────────────────────────────────
+  // .hs pipelines must NOT contain .holo spatial concepts. Emit strict
+  // SyntaxErrors so authors know to use .holo for scene composition.
+  const SPATIAL_KEYWORDS = [
+    'environment', 'spatial_group', 'template', 'object', 'light', 'camera',
+    'audio', 'zone', 'timeline', 'particle_system', 'effects', 'ui',
+    'npc', 'quest', 'dialogue', 'ability', 'achievement', 'talent_tree',
+    'behavior', 'state_machine', 'shape', 'terrain', 'waypoints',
+    'spawn_group', 'composition',
+  ];
+
+  for (const kw of SPATIAL_KEYWORDS) {
+    const kwBlocks = extractBlock(content, kw);
+    for (const block of kwBlocks) {
+      errors.push({
+        message: `SyntaxError: '${kw}' is not valid in a pipeline context. Use .holo for spatial compositions.`,
+        line: block.startLine,
+        block: block.name,
+      });
+    }
+  }
+
   // Validation
   if (sources.length === 0) {
     errors.push({ message: 'Pipeline has no sources' });

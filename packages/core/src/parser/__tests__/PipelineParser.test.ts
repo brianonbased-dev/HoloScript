@@ -409,4 +409,127 @@ describe('PipelineParser', () => {
       expect(result.pipeline!.sources[0].type).toBe('mcp');
     });
   });
+
+  describe('spatial keyword enforcement', () => {
+    it('rejects environment block in pipeline', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          environment Main { skybox: "nebula" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) =>
+        e.message.includes("'environment' is not valid in a pipeline context")
+      )).toBe(true);
+    });
+
+    it('rejects spatial_group in pipeline', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          spatial_group Scene { layout: "grid" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) =>
+        e.message.includes("'spatial_group' is not valid in a pipeline context")
+      )).toBe(true);
+    });
+
+    it('rejects object block in pipeline', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          object Cube { geometry: "cube" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) =>
+        e.message.includes("'object' is not valid in a pipeline context")
+      )).toBe(true);
+    });
+
+    it('rejects template block in pipeline', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          template Widget { color: "red" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) =>
+        e.message.includes("'template' is not valid in a pipeline context")
+      )).toBe(true);
+    });
+
+    it('rejects npc block in pipeline', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          npc Guard { behavior: "patrol" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.some((e) =>
+        e.message.includes("'npc' is not valid in a pipeline context")
+      )).toBe(true);
+    });
+
+    it('rejects multiple spatial keywords with separate errors', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          environment Main { skybox: "day" }
+          object Cube { geometry: "cube" }
+          light Sun { type: "directional" }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      const spatialErrors = result.errors.filter((e) =>
+        e.message.includes('not valid in a pipeline context')
+      );
+      expect(spatialErrors).toHaveLength(3);
+    });
+
+    it('error message suggests .holo', () => {
+      const result = parsePipeline(`
+        pipeline "Bad" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          camera Main { fov: 75 }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(false);
+      expect(result.errors[0].message).toContain('Use .holo for spatial compositions');
+    });
+
+    it('allows valid pipeline keywords without error', () => {
+      const result = parsePipeline(`
+        pipeline "Good" {
+          source In { type: "rest" endpoint: "https://x.com" }
+          transform Map { sku -> id }
+          filter Active { where: status == "active" }
+          validate Schema { id: required, string }
+          sink Out { type: "stdout" }
+        }
+      `);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
 });
