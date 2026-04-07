@@ -25,6 +25,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === Read-only language tools ===
   parse_hs: ['tools:read'],
   parse_holo: ['tools:read'],
+  parse_pipeline: ['tools:read'],
   validate_holoscript: ['tools:read'],
   list_traits: ['tools:read'],
   explain_trait: ['tools:read'],
@@ -87,6 +88,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
 
   // === Compiler tools ===
   compile_holoscript: ['tools:write'],
+  compile_pipeline: ['tools:write'],
   compile_to_unity: ['tools:write'],
   compile_to_unreal: ['tools:write'],
   compile_to_urdf: ['tools:write'],
@@ -181,6 +183,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   // Low risk: read-only, no side effects
   parse_hs: 'low',
   parse_holo: 'low',
+  parse_pipeline: 'low',
   validate_holoscript: 'low',
   list_traits: 'low',
   explain_trait: 'low',
@@ -199,6 +202,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   generate_semantic_ui: 'medium',
   convert_format: 'medium',
   compile_holoscript: 'medium',
+  compile_pipeline: 'medium',
 
   // High risk: external side effects, file I/O, browser control
   render_preview: 'high',

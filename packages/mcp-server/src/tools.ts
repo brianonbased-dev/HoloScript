@@ -82,6 +82,45 @@ export const coreTools: Tool[] = [
       required: ['code'],
     },
   },
+  {
+    name: 'parse_pipeline',
+    description:
+      'Parse a .hs pipeline definition into a structured pipeline AST (sources, transforms, filters, sinks).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'The pipeline source code (pipeline "Name" { ... })',
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_pipeline',
+    description:
+      'Compile a .hs pipeline into a runnable Node.js ESM module (index.mjs).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'The pipeline source code to compile',
+        },
+        target: {
+          type: 'string',
+          enum: ['node'],
+          description: 'Compilation target (currently node)',
+        },
+        moduleName: {
+          type: 'string',
+          description: 'Optional output module filename hint (e.g., index.mjs)',
+        },
+      },
+      required: ['code'],
+    },
+  },
 
   // === VALIDATION ===
   {

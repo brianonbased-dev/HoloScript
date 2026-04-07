@@ -5,7 +5,14 @@
  * Dispatches to specialized handlers for graph, IDE, and Brittney-Lite tools.
  */
 
-import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
+import {
+  HoloScriptPlusParser,
+  parseHolo,
+  parseHoloStrict,
+  parsePipeline,
+  VR_TRAITS,
+} from '@holoscript/core';
+import { compilePipelineSourceToNode } from '@holoscript/core/compiler/index';
 
 import {
   generateObjectForMCP,
@@ -181,6 +188,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return handleParseHs(args);
     case 'parse_holo':
       return handleParseHolo(args);
+    case 'parse_pipeline':
+      return handleParsePipeline(args);
+    case 'compile_pipeline':
+      return handleCompilePipeline(args);
     case 'validate_holoscript':
       return handleValidate(args);
     case 'list_traits':
@@ -421,6 +432,52 @@ async function handleParseHolo(args: Record<string, unknown>) {
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+async function handleParsePipeline(args: Record<string, unknown>) {
+  const code = args.code as string;
+
+  try {
+    const result = parsePipeline(code);
+    return {
+      success: result.success,
+      pipeline: result.pipeline,
+      errors: result.errors || [],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function handleCompilePipeline(args: Record<string, unknown>) {
+  const code = args.code as string;
+  const target = (args.target as string) || 'node';
+  const moduleName = (args.moduleName as string) || 'index.mjs';
+
+  if (target !== 'node') {
+    return {
+      success: false,
+      error: `Unsupported target: ${target}. Currently only 'node' is available.`,
+    };
+  }
+
+  const compiled = compilePipelineSourceToNode(code, { moduleName });
+  if (!compiled.success || !compiled.code) {
+    return {
+      success: false,
+      errors: compiled.errors || ['Pipeline compilation failed'],
+    };
+  }
+
+  return {
+    success: true,
+    target: 'node',
+    moduleName,
+    code: compiled.code,
+  };
 }
 
 // === VALIDATION HANDLER ===
