@@ -17,10 +17,13 @@ import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
-    const token = process.env.GITHUB_TOKEN;
+    const { getServerSession } = await import('next-auth');
+    const { authOptions } = await import('@/lib/auth');
+    const session = await getServerSession(authOptions);
+    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
     if (!token) {
       return NextResponse.json(
-        { error: 'GitHub not connected. Set GITHUB_TOKEN environment variable.' },
+        { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
         { status: 401 }
       );
     }

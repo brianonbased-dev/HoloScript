@@ -79,10 +79,17 @@ export async function POST(req: NextRequest) {
     // Ensure workspaces directory exists
     fs.mkdirSync(path.dirname(localPath), { recursive: true });
 
+    // Embed OAuth token for private repo access (https://token@github.com/...)
+    let cloneUrl = repoUrl;
+    const oauthToken = session.accessToken ?? process.env.GITHUB_TOKEN;
+    if (oauthToken && cloneUrl.startsWith('https://github.com/')) {
+      cloneUrl = cloneUrl.replace('https://', `https://${oauthToken}@`);
+    }
+
     // Build git clone command
     const branchArg = branch ? `--branch ${branch}` : '';
     const depthArg = '--depth 1'; // shallow clone for speed
-    const cmd = `git clone ${depthArg} ${branchArg} "${repoUrl}" "${localPath}"`;
+    const cmd = `git clone ${depthArg} ${branchArg} "${cloneUrl}" "${localPath}"`;
 
     // Clone with 2-minute timeout
     await execAsync(cmd, { timeout: 120_000 });

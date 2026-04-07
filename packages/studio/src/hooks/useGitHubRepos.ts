@@ -3,15 +3,15 @@
 /**
  * useGitHubRepos — Fetch authenticated user's GitHub repos for import wizard.
  *
- * Now integrates with connectorStore — checks if GitHub is connected via
- * the connector infrastructure. If connected, uses the connector; if not,
- * prompts user to connect via /integrations.
+ * Connection priority:
+ *  1. Active GitHub OAuth session (signed in via "Continue with GitHub") — no extra setup needed
+ *  2. GitHub connector connected via /integrations connector store
  *
- * Calls GET /api/github/repos with optional search query.
- * Returns typed repo list, loading state, and error.
+ * Calls GET /api/github/repos which uses the OAuth access token from the session.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { useConnectorStore } from '@/lib/stores/connectorStore';
 
 export interface GitHubRepoItem {
@@ -36,8 +36,8 @@ export interface UseGitHubReposResult {
   search: string;
   setSearch: (q: string) => void;
   refresh: () => Promise<void>;
-  isConnected: boolean; // NEW: GitHub connection status
-  connectionError: string | null; // NEW: Connection error from store
+  isConnected: boolean;
+  connectionError: string | null;
 }
 
 export function useGitHubRepos(): UseGitHubReposResult {
@@ -47,15 +47,20 @@ export function useGitHubRepos(): UseGitHubReposResult {
   const [search, setSearch] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
-  // Check GitHub connection status from connector store
+  // Primary: GitHub OAuth session (signed in with GitHub in Studio)
+  const { data: session } = useSession();
+  const hasOAuthToken = !!(session?.accessToken);
+
+  // Secondary: manual connector from /integrations
   const githubConnection = useConnectorStore((s) => s.connections.github);
-  const isConnected = githubConnection?.status === 'connected';
-  const connectionError = githubConnection?.lastError || null;
+  const connectorConnected = githubConnection?.status === 'connected';
+
+  const isConnected = hasOAuthToken || connectorConnected;
+  const connectionError = isConnected ? null : (githubConnection?.lastError ?? null);
 
   const fetchRepos = useCallback(async () => {
-    // Don't fetch if not connected
     if (!isConnected) {
-      setError('GitHub not connected. Visit /integrations to connect.');
+      setError('Sign in with GitHub to access your repositories.');
       setRepos([]);
       return;
     }

@@ -1,8 +1,8 @@
 /**
  * GET /api/github/repos — List authenticated user's GitHub repositories
  *
- * Uses @holoscript/connector-github to fetch repos via GitHubConnector.
- * Requires GITHUB_TOKEN environment variable (will be replaced by OAuth later).
+ * Uses the OAuth access token from the user's session (GitHub sign-in).
+ * Falls back to GITHUB_TOKEN env var for dev/CI environments.
  *
  * Query params:
  *   - per_page: Number of repos per page (default: 50, max: 100)
@@ -12,15 +12,33 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GitHubConnector } from '@holoscript/connector-github';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+
+interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  clone_url: string;
+  default_branch: string;
+  language: string | null;
+  stargazers_count: number;
+  pushed_at: string;
+  private: boolean;
+  fork: boolean;
+  size: number;
+}
 
 export async function GET(req: NextRequest) {
   try {
-    // Check if GitHub token is available
-    if (!process.env.GITHUB_TOKEN) {
+    // Prefer the authenticated user's OAuth token; fall back to env var for dev/CI
+    const session = await getServerSession(authOptions);
+    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    if (!token) {
       return NextResponse.json(
-        { error: 'GitHub not connected. Set GITHUB_TOKEN environment variable.' },
+        { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
         { status: 401 }
       );
     }
@@ -30,47 +48,44 @@ export async function GET(req: NextRequest) {
     const perPage = Math.min(parseInt(searchParams.get('per_page') || '50', 10), 100);
     const searchQuery = searchParams.get('q') || '';
 
-    // Initialize GitHub connector
-    const github = new (GitHubConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; executeTool(name: string, args: Record<string, unknown>): Promise<{ data: unknown }> })();
-    await github.connect();
+    // Fetch repos directly from GitHub API using the resolved token
+    const url = new URL('https://api.github.com/user/repos');
+    url.searchParams.set('type', 'owner');
+    url.searchParams.set('sort', 'updated');
+    url.searchParams.set('per_page', String(perPage));
 
-    // Check health
-    const healthy = await github.health();
-    if (!healthy) {
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'HoloScript-Studio',
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      logger.error('[api/github/repos] GitHub API error:', response.status, body);
       return NextResponse.json(
-        { error: 'GitHub connector health check failed' },
-        { status: 503 }
+        { error: `GitHub API error: ${response.status}` },
+        { status: response.status === 401 ? 401 : 502 }
       );
     }
 
-    // Fetch repositories
-    const result = await github.executeTool('github_repo_list', {
-      type: 'owner',
-      sort: 'updated',
-      per_page: perPage,
-    });
-
-    // Type guard
-    if (!result || typeof result !== 'object' || !('data' in result)) {
-      throw new Error('Invalid response from GitHub connector');
-    }
-
-    const data = result.data as unknown;
-    let repos = Array.isArray(data) ? data as Record<string, unknown>[] : [];
+    let repos: GitHubRepo[] = await response.json();
 
     // Filter by search query if provided
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       repos = repos.filter(
         (repo) =>
-          (repo.name as string | undefined)?.toLowerCase().includes(query) ||
-          (repo.description as string | undefined)?.toLowerCase().includes(query) ||
-          (repo.full_name as string | undefined)?.toLowerCase().includes(query)
+          repo.name.toLowerCase().includes(query) ||
+          repo.description?.toLowerCase().includes(query) ||
+          repo.full_name.toLowerCase().includes(query)
       );
     }
 
     // Transform to studio format
-    const transformedRepos = repos.map((repo: Record<string, unknown>) => ({
+    const transformedRepos = repos.map((repo) => ({
       id: repo.id,
       name: repo.name,
       fullName: repo.full_name,
@@ -78,11 +93,11 @@ export async function GET(req: NextRequest) {
       cloneUrl: repo.clone_url,
       defaultBranch: repo.default_branch,
       language: repo.language,
-      stars: repo.stargazers_count || 0,
+      stars: repo.stargazers_count,
       pushedAt: repo.pushed_at,
       isPrivate: repo.private,
       isFork: repo.fork,
-      sizeKB: repo.size || 0,
+      sizeKB: repo.size,
     }));
 
     return NextResponse.json({
