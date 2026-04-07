@@ -1044,6 +1044,9 @@ importers:
       '@holoscript/uaal':
         specifier: workspace:*
         version: link:../uaal
+      three:
+        specifier: '>=0.160.0'
+        version: 0.182.0
     devDependencies:
       '@types/node':
         specifier: ^22.18.3
@@ -2518,7 +2521,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@24.10.13)(vite@7.3.1)
 
-  services/absorb-service:
+  services/absorb-host:
     dependencies:
       '@holoscript/absorb-service':
         specifier: workspace:*

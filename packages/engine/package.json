@@ -899,7 +899,8 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
-    "@holoscript/framework": "workspace:*"
+    "@holoscript/framework": "workspace:*",
+    "three": ">=0.160.0"
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:*"
