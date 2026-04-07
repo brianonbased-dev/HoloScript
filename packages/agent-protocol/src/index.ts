@@ -233,11 +233,15 @@ export interface SwarmProtocolSpec {
 }
 
 // =============================================================================
-// RE-EXPORT IMPLEMENTATIONS FROM FRAMEWORK (backward compat)
+// RE-EXPORT IMPLEMENTATIONS FROM FRAMEWORK (backward compat — DEPRECATED)
 // =============================================================================
-// Implementations live in @holoscript/framework.
-// These re-exports keep existing `import { BaseAgent } from '@holoscript/agent-protocol'` working.
+// Implementations live in @holoscript/framework (canonical home since FW-0.2).
+// These re-exports keep existing `import { X } from '@holoscript/agent-protocol'` working
+// but are DEPRECATED. Migrate to `import { X } from '@holoscript/framework'` directly.
 
+/**
+ * @deprecated Import from '@holoscript/framework' instead. Will be removed in v7.0.
+ */
 export {
   BaseAgent,
   GoalSynthesizer,
