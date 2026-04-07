@@ -4,7 +4,7 @@
  * useLighting — Hook for scene lighting management
  */
 import { useState, useCallback, useRef } from 'react';
-import { LightingModel } from '@holoscript/core';
+import { LightingModel } from '@/lib/core-stubs';
 
 export interface UseLightingReturn {
   model: InstanceType<typeof LightingModel>;

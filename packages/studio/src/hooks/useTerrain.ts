@@ -3,7 +3,7 @@
  * useTerrain — Hook for heightmap terrain editing
  */
 import { useState, useCallback, useRef } from 'react';
-import { TerrainSystem, type TerrainConfig, type TerrainLayer } from '@holoscript/core';
+import { TerrainSystem, type TerrainConfig, type TerrainLayer } from '@/lib/core-stubs';
 
 export interface UseTerrainReturn {
   system: TerrainSystem;

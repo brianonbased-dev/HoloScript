@@ -3,7 +3,7 @@
  * useAudioSpatial — Hook for 3D spatial audio management
  */
 import { useState, useCallback, useRef } from 'react';
-import { AudioEngine } from '@holoscript/core';
+import { AudioEngine } from '@/lib/core-stubs';
 
 type AudioEngineInstance = InstanceType<typeof AudioEngine>;
 type AudioSource = ReturnType<AudioEngineInstance['getActiveSources']>[number];

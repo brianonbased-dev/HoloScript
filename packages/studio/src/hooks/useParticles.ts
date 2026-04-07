@@ -3,7 +3,7 @@
  * useParticles — Hook for particle system preview and editing
  */
 import { useState, useCallback, useRef } from 'react';
-import { ParticleSystem } from '@holoscript/core';
+import { ParticleSystem } from '@/lib/core-stubs';
 
 interface Color4 {
   r: number;

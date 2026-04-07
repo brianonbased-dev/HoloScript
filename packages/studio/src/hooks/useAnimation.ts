@@ -3,7 +3,7 @@
  * useAnimation — Hook for animation timeline editing and playback
  */
 import { useState, useCallback, useRef } from 'react';
-import { AnimationEngine, Easing } from '@holoscript/core';
+import { AnimationEngine, Easing } from '@/lib/core-stubs';
 
 type AnimationEngineInstance = InstanceType<typeof AnimationEngine>;
 type AnimationClip = Parameters<AnimationEngineInstance['play']>[0];

@@ -3,7 +3,7 @@
  * useInventory — Hook for item inventory management
  */
 import { useState, useCallback, useRef } from 'react';
-import { InventorySystem } from '@holoscript/core';
+import { InventorySystem } from '@/lib/core-stubs';
 
 type ItemCategory = 'weapon' | 'armor' | 'consumable' | 'material' | 'quest' | 'misc' | string;
 type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | string;

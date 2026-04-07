@@ -4,7 +4,7 @@
  * useCamera — Hook for camera controller preview and editing
  */
 import { useState, useCallback, useRef } from 'react';
-import { CameraController } from '@holoscript/core';
+import { CameraController } from '@/lib/core-stubs';
 
 type CameraControllerInstance = InstanceType<typeof CameraController>;
 type CameraState = ReturnType<CameraControllerInstance['getState']>;

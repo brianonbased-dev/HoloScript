@@ -4,7 +4,7 @@
  * useTimeline — Hook for animation timeline orchestration
  */
 import { useState, useCallback, useRef } from 'react';
-import { Timeline, AnimationEngine, Easing } from '@holoscript/core';
+import { Timeline, AnimationEngine, Easing } from '@/lib/core-stubs';
 
 export interface UseTimelineReturn {
   progress: number;

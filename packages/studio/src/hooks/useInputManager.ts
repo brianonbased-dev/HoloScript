@@ -4,7 +4,7 @@
  * useInputManager — Hook for input polling and action mapping
  */
 import { useState, useCallback, useRef } from 'react';
-import { InputManager } from '@holoscript/core';
+import { InputManager } from '@/lib/core-stubs';
 
 export interface UseInputManagerReturn {
   keys: string[];

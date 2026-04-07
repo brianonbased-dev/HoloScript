@@ -4,7 +4,7 @@
  * usePathfinding — Hook for A* pathfinding visualization
  */
 import { useState, useCallback, useRef } from 'react';
-import { NavMesh, AStarPathfinder } from '@holoscript/core';
+import { NavMesh, AStarPathfinder } from '@/lib/core-stubs';
 
 interface NavPoint {
   x: number;

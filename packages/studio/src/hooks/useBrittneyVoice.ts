@@ -50,12 +50,14 @@ export interface UseBrittneyVoiceReturn {
 }
 
 export function useBrittneyVoice(): UseBrittneyVoiceReturn {
-  const w = window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any };
   const SpeechRecognition = typeof window !== 'undefined'
-      ? (w.SpeechRecognition ?? w.webkitSpeechRecognition)
+      ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
       : undefined;
 
-  const isSupported = !!SpeechRecognition;
+  const [isSupported, setIsSupported] = useState(false);
+  useEffect(() => {
+    setIsSupported(!!SpeechRecognition);
+  }, [SpeechRecognition]);
 
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');

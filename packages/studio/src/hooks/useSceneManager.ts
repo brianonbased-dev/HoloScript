@@ -3,7 +3,7 @@
  * useSceneManager — Hook for scene save/load management
  */
 import { useState, useCallback, useRef } from 'react';
-import { SceneManager, type SceneListEntry } from '@holoscript/core';
+import { SceneManager, type SceneListEntry } from '@/lib/core-stubs';
 
 export interface UseSceneManagerReturn {
   scenes: SceneListEntry[];

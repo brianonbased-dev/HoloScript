@@ -4,7 +4,7 @@
  * useLOD — Hook for LOD management and visualization
  */
 import { useState, useCallback, useRef } from 'react';
-import { LODManager } from '@holoscript/core';
+import { LODManager } from '@/lib/core-stubs';
 
 export interface LODObjectState {
   id: string;

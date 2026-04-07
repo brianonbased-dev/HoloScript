@@ -3,7 +3,7 @@
  * useProcGen — Hook for procedural generation with TileMap
  */
 import { useState, useCallback, useRef } from 'react';
-import { TileMap, TileFlags } from '@holoscript/core';
+import { TileMap, TileFlags } from '@/lib/core-stubs';
 
 interface TileData {
   id: number;

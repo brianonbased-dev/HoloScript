@@ -423,7 +423,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}
-        {!isMobile && <RightPanelSidebar />}
+        {!isMobile && (pathname.startsWith('/create') || pathname.startsWith('/vibe') || pathname.startsWith('/projects/')) && (
+          <RightPanelSidebar />
+        )}
       </main>
     </div>
   );

@@ -4,7 +4,7 @@
  * useCombat — Hook for combat system editing and simulation
  */
 import { useState, useCallback, useRef } from 'react';
-import { CombatManager } from '@holoscript/core';
+import { CombatManager } from '@/lib/core-stubs';
 
 type CombatManagerInstance = InstanceType<typeof CombatManager>;
 export interface ComboChain {

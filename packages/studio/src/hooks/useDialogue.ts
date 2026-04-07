@@ -3,7 +3,7 @@
  * useDialogue — Hook for dialogue graph editing and playback
  */
 import { useState, useCallback, useRef } from 'react';
-import { DialogueGraph } from '@holoscript/core';
+import { DialogueGraph } from '@/lib/core-stubs';
 
 type DialogueGraphInstance = InstanceType<typeof DialogueGraph>;
 type DialogueGraphNode = ReturnType<DialogueGraphInstance['getCurrentNode']>;
