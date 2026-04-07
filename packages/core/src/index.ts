@@ -2810,6 +2810,12 @@ export type {
   BranchRoute,
 } from './parser/PipelineParser';
 
+export {
+  compilePipelineToNode,
+  compilePipelineSourceToNode,
+} from './compiler/PipelineNodeCompiler';
+export type { PipelineNodeCompilerOptions } from './compiler/PipelineNodeCompiler';
+
 // =============================================================================
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================

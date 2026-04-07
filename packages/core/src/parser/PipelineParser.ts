@@ -410,6 +410,25 @@ function parsePipelineContent(
   content: string,
   errors: PipelineParseError[]
 ): PipelineParseResult {
+  // Strict format boundaries: Pipeline context cannot contain .holo spatial
+  // or .hsplus behavior keywords. Emit SyntaxError directing to correct format.
+  const invalidKeywords = [
+    'environment', 'spatial_group', 'template', 'object', 'orb', 'theme',
+    'light', 'camera', 'audio', 'zone', 'timeline', 'particle_system',
+    'effects', 'ui', 'npc', 'quest', 'dialogue', 'ability', 'achievement',
+    'talent_tree', 'behavior', 'state_machine', 'shape', 'terrain',
+    'waypoints', 'spawn_group', 'composition', 'constraint', 'sub_orb',
+    'norm', 'metanorm',
+  ];
+
+  for (const keyword of invalidKeywords) {
+    if (new RegExp(`\\b${keyword}\\b`).test(content)) {
+      errors.push({
+        message: `SyntaxError: '${keyword}' is not valid in a pipeline context. Use .holo for spatial compositions or .hsplus for behaviors.`,
+      });
+    }
+  }
+
   const props = parseProperties(content);
 
   // Parse top-level pipeline properties
@@ -553,28 +572,6 @@ function parsePipelineContent(
     ...branches,
     ...sinks,
   ];
-
-  // ── Spatial keyword enforcement ──────────────────────────────────────────
-  // .hs pipelines must NOT contain .holo spatial concepts. Emit strict
-  // SyntaxErrors so authors know to use .holo for scene composition.
-  const SPATIAL_KEYWORDS = [
-    'environment', 'spatial_group', 'template', 'object', 'light', 'camera',
-    'audio', 'zone', 'timeline', 'particle_system', 'effects', 'ui',
-    'npc', 'quest', 'dialogue', 'ability', 'achievement', 'talent_tree',
-    'behavior', 'state_machine', 'shape', 'terrain', 'waypoints',
-    'spawn_group', 'composition',
-  ];
-
-  for (const kw of SPATIAL_KEYWORDS) {
-    const kwBlocks = extractBlock(content, kw);
-    for (const block of kwBlocks) {
-      errors.push({
-        message: `SyntaxError: '${kw}' is not valid in a pipeline context. Use .holo for spatial compositions.`,
-        line: block.startLine,
-        block: block.name,
-      });
-    }
-  }
 
   // Validation
   if (sources.length === 0) {

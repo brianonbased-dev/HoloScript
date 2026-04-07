@@ -517,6 +517,30 @@ describe('PipelineParser', () => {
       expect(result.errors[0].message).toContain('Use .holo for spatial compositions');
     });
 
+    it('rejects dead-token keywords terrain, norm, constraint, spawn_group', () => {
+      const cases = [
+        { token: 'terrain', block: 'terrain Field { resolution: 256 }' },
+        { token: 'norm', block: 'norm "Respect" { description: "be kind" }' },
+        { token: 'constraint', block: 'constraint Follow { source: "Cam" target: "Player" }' },
+        { token: 'spawn_group', block: 'spawn_group "Enemies" { count: 4 }' },
+      ];
+
+      for (const c of cases) {
+        const result = parsePipeline(`
+          pipeline "Bad" {
+            source In { type: "rest" endpoint: "https://x.com" }
+            ${c.block}
+            sink Out { type: "stdout" }
+          }
+        `);
+
+        expect(result.success).toBe(false);
+        expect(
+          result.errors.some((e) => e.message.includes(`'${c.token}' is not valid in a pipeline context`))
+        ).toBe(true);
+      }
+    });
+
     it('allows valid pipeline keywords without error', () => {
       const result = parsePipeline(`
         pipeline "Good" {

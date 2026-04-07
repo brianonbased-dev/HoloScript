@@ -135,3 +135,10 @@ export type {
 
 // Dialect boot (registers all compilers as dialects)
 export { registerBuiltinDialects } from './registerBuiltinDialects';
+
+// Pipeline compiler (.hs pipeline -> Node.js index.mjs)
+export {
+  compilePipelineToNode,
+  compilePipelineSourceToNode,
+} from './PipelineNodeCompiler';
+export type { PipelineNodeCompilerOptions } from './PipelineNodeCompiler';
