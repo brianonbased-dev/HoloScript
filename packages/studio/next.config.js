@@ -88,6 +88,13 @@ const nextConfig = {
         crypto: false,
         stream: false,
         buffer: false,
+        events: false,
+        https: false,
+        http: false,
+        url: false,
+        zlib: false,
+        util: false,
+        querystring: false,
       };
     }
 
@@ -143,12 +150,10 @@ const nextConfig = {
       )
     );
 
-    // Stub ws (WebSocket) — Node.js only, leaks via core barrel → useMarketplace
-    if (!isServer) {
-      config.resolve.alias['ws'] = false;
-      config.resolve.alias['bufferutil'] = false;
-      config.resolve.alias['utf-8-validate'] = false;
-    }
+    // Stub ws (WebSocket) — Node.js only, leaks via core barrel
+    config.resolve.alias['ws'] = require.resolve('./src/lib/empty-module.js');
+    config.resolve.alias['bufferutil'] = false;
+    config.resolve.alias['utf-8-validate'] = false;
 
     return config;
   },
