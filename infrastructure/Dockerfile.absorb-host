@@ -1,7 +1,7 @@
 # Absorb Service - Node.js only (skip Rust workspace)
 #
 # Builds from the pnpm workspace root to resolve workspace dependencies
-# Dependency chain: absorb-service → core + absorb-service(pkg)
+# Dependency chain: absorb-service → core + engine + framework + absorb-service(pkg)
 
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -26,6 +26,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
+COPY packages/engine/ packages/engine/
+COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY services/absorb-service/ services/absorb-service/
@@ -34,6 +36,16 @@ COPY services/absorb-service/ services/absorb-service/
 RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
+RUN cd packages/engine && npx tsup \
+      src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts \
+      src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts \
+      src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts \
+      src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts \
+      src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts \
+      src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts \
+      src/vm/index.ts src/vm-bridge/index.ts \
+      --format esm,cjs --no-dts --external three
+RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd services/absorb-service && npx tsc
@@ -60,6 +72,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/engine/dist packages/engine/dist
+COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/services/absorb-service/dist services/absorb-service/dist
