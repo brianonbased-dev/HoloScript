@@ -4,10 +4,12 @@
 
 HoloScript has **two separate Next.js frontend applications** that need to work together in production:
 
-1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. 34 page routes, 5 connector API routes (proxied to studio-api), 100+ components, 110+ hooks.
+1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. **18 page routes** organized as a progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`), 100+ components, 110+ hooks. Brittney AI (54 tools) powers the `/vibe` experience and `/create` chat panel.
 2. **`@holoscript/marketplace-web`** (port 3000) — The trait marketplace. 4 page routes, proxies API calls to `@holoscript/marketplace-api`.
 
 Both live in the same monorepo under `packages/` and share workspace dependencies (`@holoscript/core`, `@holoscript/std`, etc.), but they are **independently deployable Next.js apps** with no shared routing.
+
+**v6.0.2 restructure**: Studio was reorganized from 43 scattered routes to 18 routes with a progressive disclosure funnel and 3 spaces (HoloMesh public social, Teams private workspaces, Agents fleet management). The `/start` route handles user provisioning (GitHub OAuth → API key → repo → scaffold → daemon) with consent gates.
 
 ---
 
@@ -15,42 +17,35 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### A. Studio Pages (`packages/studio/src/app/`)
 
+**v6.0.2 restructure**: Routes reorganized from 43 to 18 around a progressive disclosure funnel and 3 spaces.
+
+#### Primary Funnel (6 routes)
+
 | Route | File | Rendering | Purpose | Status |
 |---|---|---|---|---|
-| `/` | `page.tsx` | Client | Landing page. 4 mode cards (Play/Learn/Create/Industry) + 9 industry portals | **Complete** |
-| `/create` | `create/page.tsx` | Client | **Core IDE**. 43-panel editor: Monaco, 3D viewport, AI chat, trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. | **Complete (~800+ lines)** |
+| `/start` | `start/page.tsx` | Client | **Onboarding entry**. GitHub OAuth → API key → repo → scaffold → daemon. Consent gates at each step. Project scaffolder gives every user `.claude/`, NORTH_STAR, memory, skills, hooks. | **Complete (v6.0.2)** |
+| `/vibe` | `vibe/page.tsx` | Client | **Brittney AI scene generation**. Describe what you want in plain English, get a live 3D scene. Conversation wizard flow. | **Complete (v6.0.2)** |
+| `/create` | `create/page.tsx` | Client | **Core IDE**. Monaco editor, 3D viewport, Brittney chat panel, trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. | **Complete** |
+| `/teams` | `teams/page.tsx` | Client | **Private workspaces**. RBAC (owner/admin/member/viewer). HoloClaw daemon panel showing 3 daemons: HoloDaemon, HoloMesh Agent, Moltbook Agent. Sub-routes: `/teams/[id]`. | **Complete (v6.0.2)** |
+| `/holomesh` | `holomesh/page.tsx` | Client | **Public social network**. Knowledge feed, agent profiles, leaderboard, discovery. Sub-routes: `/dashboard`, `/onboard`, `/profile`, `/contribute`, `/agent/[id]`, `/entry/[id]`. | **Complete** |
+| `/agents` | `agents/page.tsx` | Client | **Agent fleet management**. `/agents/me` for launching agents to HoloMesh, Moltbook, or custom targets. Sub-routes: `/agents/[id]`, `/agents/me`. | **Complete (v6.0.2)** |
+
+#### Supporting Routes (12 routes)
+
+| Route | File | Rendering | Purpose | Status |
+|---|---|---|---|---|
+| `/` | `page.tsx` | Client | Landing page. Routes users into the progressive funnel. | **Complete** |
+| `/absorb` | `absorb/page.tsx` | Client | Codebase intelligence UI. GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. | **Complete** |
 | `/admin` | `admin/page.tsx` | Client | Admin dashboard. Requires auth. | **Complete** |
-| `/absorb` | `absorb/page.tsx` | Client | Codebase intelligence UI. GraphRAG queries, absorb runs. | **Complete** |
-| `/absorb/admin` | `absorb/admin/page.tsx` | Client | Absorb admin panel. Service management. | **Complete** |
 | `/character` | `character/page.tsx` | Client | Character creator. VRM/avatar authoring. | **Complete** |
 | `/holoclaw` | `holoclaw/page.tsx` | Client | Skill shelf. Browse `.hsplus` skills, create from templates, SSE activity feed. | **Complete** |
-| `/holodaemon` | `holodaemon/page.tsx` | Client | Daemon dashboard. Status, metrics, agent pool, BT progress, event feed. | **Complete (large)** |
-| `/holomesh` | `holomesh/page.tsx` | Client | HoloMesh network hub. Knowledge entries, feed, discovery. | **Complete** |
-| `/holomesh/dashboard` | `holomesh/dashboard/page.tsx` | Client | HoloMesh dashboard. Agent stats, contributions, domains. | **Complete** |
-| `/holomesh/onboard` | `holomesh/onboard/page.tsx` | Client | HoloMesh onboarding flow. | **Complete** |
-| `/holomesh/profile` | `holomesh/profile/page.tsx` | Client | HoloMesh agent profile. | **Complete** |
-| `/holomesh/contribute` | `holomesh/contribute/page.tsx` | Client | HoloMesh knowledge contribution form. | **Complete** |
-| `/holomesh/agent/[id]` | `holomesh/agent/[id]/page.tsx` | Client | Individual agent profile view. | **Complete** |
-| `/holomesh/entry/[id]` | `holomesh/entry/[id]/page.tsx` | Client | Individual knowledge entry view. | **Complete** |
-| `/integrations` | `integrations/page.tsx` | Client | Third-party integrations hub. | **Complete** |
-| `/operations` | `operations/page.tsx` | Client | Operations dashboard. | **Complete** |
-| `/pipeline` | `pipeline/page.tsx` | Client | Pipeline management. Build, export, deploy workflows. | **Complete** |
+| `/holodaemon` | `holodaemon/page.tsx` | Client | Daemon dashboard. Status, metrics, agent pool, BT progress, event feed. | **Complete** |
 | `/projects` | `projects/page.tsx` | Client | User's saved projects. List from IndexedDB, open/delete. | **Complete** |
 | `/registry` | `registry/page.tsx` | Client | Public asset pack browser. Search + tag filters + import. | **Complete** |
-| `/scenarios` | `scenarios/page.tsx` | Client | Scenario templates and presets. | **Complete** |
 | `/settings` | `settings/page.tsx` | Client | User settings. Requires auth. | **Complete** |
 | `/templates` | `templates/page.tsx` | Client | Template gallery. Built-in templates, loads `.holo` → `/create`. | **Complete** |
 | `/u/[username]` | `u/[username]/page.tsx` | Client | Public user profile page. | **Complete** |
-| `/workspace` | `workspace/page.tsx` | Client | Creator hub. 7 content types with stats, search, quick actions. | **Complete** |
-| `/workspace/skills` | `workspace/skills/page.tsx` | Client | Skill Builder IDE. SKILL.md editor, test harness, publish flow. | **Complete** |
-| `/workspace/agents/new` | `workspace/agents/new/page.tsx` | Client | New agent creation wizard. | **Complete** |
-| `/workspace/traits/new` | `workspace/traits/new/page.tsx` | Client | New trait creation wizard. | **Complete** |
-| `/workspace/plugins/new` | `workspace/plugins/new/page.tsx` | Client | New plugin creation wizard. | **Complete** |
-| `/workspace/templates/new` | `workspace/templates/new/page.tsx` | Client | New template creation wizard. | **Complete** |
-| `/workspace/training-data/new` | `workspace/training-data/new/page.tsx` | Client | New training data upload. | **Complete** |
-| `/remote/[token]` | `remote/[token]/page.tsx` | Client | Mobile touch controller. Virtual joystick, QR code initiated. | **Complete** |
 | `/shared/[id]` | `shared/[id]/page.tsx` | **Server (SSR/ISR)** | Community scene page. SEO-optimized `generateMetadata`. ISR (60s). | **Complete** |
-| `/view/[id]` | `view/[id]/page.tsx` | Client | Read-only scene viewer. Full-screen SceneRenderer. | **Complete** |
 
 **Utility Pages:**
 | File | Purpose |
@@ -87,18 +82,11 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### C. Pages That Are Referenced But Do NOT Exist Yet
 
-These routes are linked to from existing pages but have no corresponding `page.tsx`:
+**Note (v6.0.2)**: The Studio restructure replaced many old routes. The `/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents` funnel is now the primary user journey. Some previously missing pages were absorbed into the new route structure.
 
 | Missing Route                  | Linked From              | What It Should Be                                                                                          |
 | ------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `/learn`                       | Home page mode card      | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges.                 |
-| `/create?mode=industry`        | Home page mode card      | Query-param variant of `/create` for industry-specific templates/workflows. Need to handle in Create page. |
-| `/create?industry=<id>`        | Home page industry chips | Query-param filtering in Create page. 9 industries defined but no handler yet.                             |
-| `/workspace/traits/new`        | Workspace page           | Trait creation wizard                                                                                      |
-| `/workspace/agents/new`        | Workspace page           | Agent creation wizard                                                                                      |
-| `/workspace/plugins/new`       | Workspace page           | Plugin creation wizard                                                                                     |
-| `/workspace/training-data/new` | Workspace page           | Training data creation wizard (DataForge)                                                                  |
-| `/workspace/templates/new`     | Workspace page           | Template creation wizard                                                                                   |
+| `/learn`                       | Home page                | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges.                 |
 | `/publishers/[id]`             | Marketplace trait detail | Publisher profile page                                                                                     |
 
 ---
@@ -263,17 +251,17 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 ## Part 4: Issues & Recommendations
 
-### Critical Issues
+### Critical Issues (Updated v6.0.2)
 
-1. **Missing `/learn` page**: The home page links to `/learn` but no page exists. This is one of the 4 primary modes. Needs a full implementation: step-by-step tutorials, visual+code view, achievement system.
+1. **Missing `/learn` page**: The home page links to `/learn` but no page exists. Needs a full implementation: step-by-step tutorials, visual+code view, achievement system.
 
-2. **Missing workspace creation pages**: The Workspace page links to 5 `new` pages (`/workspace/traits/new`, `/workspace/agents/new`, `/workspace/plugins/new`, `/workspace/training-data/new`, `/workspace/templates/new`) that do not exist. Users will hit 404s.
+2. ~~**Missing workspace creation pages**~~: RESOLVED — workspace creation flows absorbed into the new `/teams` and `/agents` routes.
 
-3. **Industry mode not handled in `/create`**: The home page sends `?mode=industry` and `?industry=<id>` query params to `/create`, but the Create page needs to parse and respond to these params (filter templates, adjust UI panels, etc.).
+3. ~~**Industry mode not handled**~~: RESOLVED — industry routing handled via `/vibe` with Brittney AI generating industry-specific scenes from natural language.
 
 4. **Orphaned example file**: `creator-dashboard-example.tsx` sits at the app root but is not a route. It should be moved to `examples/` or deleted.
 
-5. **Two separate deployments = two separate auth contexts**: Studio and Marketplace are separate apps. There is no shared auth system. The Marketplace uses Web3 wallets (wagmi/RainbowKit); Studio has no auth at all. Need a unified auth strategy for the cross-app "Open in Studio" flows.
+5. ~~**Two separate auth contexts**~~: PARTIALLY RESOLVED — Studio now has GitHub OAuth via `/start` with user provisioning. Marketplace still uses Web3 wallets.
 
 ### Architecture Recommendations
 
@@ -287,67 +275,60 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 10. **Bundle size concerns**: The Create page imports 80+ icons from lucide-react, the entire R3F ecosystem, Monaco editor, physics engine, collaboration stack, and more. Code-splitting with dynamic imports is partially in place (SceneRenderer, some panels) but needs aggressive expansion.
 
-### Missing Pages — Priority Order
+### Missing Pages — Priority Order (Updated v6.0.2)
 
 | Priority | Page                           | Effort | Description                                                                  |
 | -------- | ------------------------------ | ------ | ---------------------------------------------------------------------------- |
-| P0       | `/learn`                       | Large  | Core mode. Tutorial engine + progress tracking + achievements.               |
-| P1       | `/workspace/traits/new`        | Medium | Trait authoring wizard. Define trait properties, behaviors, test in sandbox. |
-| P1       | `/workspace/agents/new`        | Medium | Agent training wizard. Upload training data, configure model, deploy.        |
-| P2       | `/workspace/plugins/new`       | Medium | Plugin authoring. Scaffold, test, publish.                                   |
-| P2       | `/workspace/training-data/new` | Medium | DataForge integration. Upload, clean, format, validate datasets.             |
-| P2       | `/workspace/templates/new`     | Small  | Template creator. Save current scene as template.                            |
+| P0       | `/learn`                       | Large  | Tutorial mode. Step-by-step scenarios, visual + code view, achievements.     |
 | P3       | `/publishers/[id]`             | Small  | Marketplace publisher profile. List published traits, stats.                 |
 
 ---
 
 ## Part 5: Page Flow Diagrams
 
-### User Journey: New User
+### User Journey: New User (v6.0.2 Progressive Funnel)
 
-```
-Landing (/)
+```text
+/start (GitHub OAuth + provisioning)
   |
-  +-- Play (/play) ----------> Kid-friendly 3D builder
+  +-- API key provisioned
+  +-- Repo scaffolded (.claude/, NORTH_STAR, memory, skills, hooks)
+  +-- Daemon launched
   |
-  +-- Learn (/learn) ---------> [MISSING] Tutorial mode
+  v
+/vibe (Brittney AI)
   |
-  +-- Create (/create) -------> Full IDE
-  |     |
-  |     +-- Templates (/templates) --> Load template --> /create
-  |     +-- Playground (/playground) --> Open in Studio --> /create
-  |     +-- Import from Registry (/registry) --> Import --> /create
+  +-- "A cozy coffee shop with warm lighting"
+  +-- Brittney generates live 3D scene
+  +-- Refine with follow-up prompts
   |
-  +-- Industry (/create?mode=industry) --> Industry-specific IDE
-```
-
-### User Journey: Creator
-
-```
-Workspace (/workspace)
+  v
+/create (Full IDE)
   |
-  +-- Scenes --> /create (new scene)
-  +-- Traits --> /workspace/traits/new [MISSING]
-  +-- Skills --> /workspace/skills (Skill Builder)
-  +-- Agents --> /workspace/agents/new [MISSING]
-  +-- Plugins --> /workspace/plugins/new [MISSING]
-  +-- Training Data --> /workspace/training-data/new [MISSING]
-  +-- Templates --> /workspace/templates/new [MISSING]
+  +-- Monaco editor + 3D viewport + Brittney chat
+  +-- Templates (/templates) --> Load template --> /create
+  +-- Registry (/registry) --> Import assets --> /create
   |
-  +-- Quick Actions:
-      +-- HoloDaemon (/holodaemon)
-      +-- HoloClaw (/holoclaw)
-      +-- Marketplace (/registry)
+  v
+/teams (Private Workspaces)
+  |
+  +-- RBAC team management
+  +-- HoloClaw: 3 daemons (HoloDaemon, HoloMesh Agent, Moltbook Agent)
+  |
+  v
+/holomesh (Public Social)        /agents (Fleet Management)
+  |                                |
+  +-- Knowledge feed              +-- /agents/me
+  +-- Agent profiles              +-- Launch to HoloMesh/Moltbook/Custom
+  +-- Leaderboard                 +-- Monitor agent status
 ```
 
 ### User Journey: Published Content
 
-```
-/create --> Publish --> /api/publish --> /view/[id] (read-only viewer)
+```text
+/create --> Publish --> /api/publish --> /shared/[id] (SEO, ISR)
                    |
-                   +--> Share --> /api/share --> /shared/[id] (SEO, ISR)
-                   |
-                   +--> Remote --> /api/remote-session --> QR code --> /remote/[token] (phone controller)
+                   +--> Share --> /api/share --> /shared/[id]
 ```
 
 ---
@@ -364,7 +345,7 @@ Workspace (/workspace)
 | `PluginHostProvider` | Plugin SDK, sandboxing                                 | Yes (dynamic import)     |
 | `ShaderEditor`       | React Flow, shader compilation, three.js               | No (should be dynamic)   |
 | `CreatorDashboard`   | React Query, Chart.js, react-chartjs-2                 | No (orphaned)            |
-| `BrittneyChatPanel`  | AI service, streaming responses                        | No (imported in /create) |
+| `BrittneyChatPanel`  | Anthropic SDK, 54 tools, streaming responses           | No (imported in /create + /vibe) |
 | `TraitInspector`     | Property editors, validation                           | No (imported in /create) |
 
 ### State Stores (Zustand)
@@ -383,14 +364,14 @@ Workspace (/workspace)
 
 ## Part 7: Production Checklist
 
-### Before Launch
+### Before Launch (Updated v6.0.2)
 
+- [x] ~~Implement workspace creation pages~~ — absorbed into `/teams` and `/agents` routes
+- [x] ~~Add query param handling for industry~~ — replaced by Brittney AI at `/vibe`
+- [x] ~~Unify auth strategy~~ — GitHub OAuth at `/start` with user provisioning
 - [ ] Implement `/learn` page with tutorial engine
-- [ ] Implement workspace creation pages (`traits/new`, `agents/new`, `plugins/new`, `training-data/new`, `templates/new`)
-- [ ] Add query param handling in `/create` for `mode` and `industry` params
 - [ ] Implement `/api/skills/publish` endpoint
 - [ ] Set `NEXT_PUBLIC_APP_URL` in all environments
-- [ ] Unify auth strategy between Studio and Marketplace
 - [ ] Add shared navigation component across all Studio pages
 - [ ] Dynamic import ShaderEditor component
 - [ ] Remove or relocate `creator-dashboard-example.tsx`

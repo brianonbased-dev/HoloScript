@@ -90,7 +90,7 @@ function StageIndicator({
   return (
     <div className="flex items-center gap-1 overflow-x-auto px-4 py-2">
       {visibleStages.map((stage, idx) => {
-        const Icon = STAGE_ICONS[stage];
+        const Icon = STAGE_ICONS[stage] as React.ElementType;
         const meta = STAGE_META[stage];
         const isActive = stage === currentStage;
         const isComplete = idx < currentIdx;

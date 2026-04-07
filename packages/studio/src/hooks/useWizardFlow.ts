@@ -101,7 +101,7 @@ export interface UseWizardFlowResult {
 
 export function useWizardFlow(): UseWizardFlowResult {
   // Load persisted state or start fresh
-  const initialState = useRef<WizardState>(() => {
+  const initialState = useRef<WizardState | (() => WizardState)>(() => {
     if (typeof window === 'undefined') return createInitialWizardState();
 
     try {

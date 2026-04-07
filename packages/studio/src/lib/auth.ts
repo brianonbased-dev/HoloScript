@@ -111,7 +111,7 @@ export function buildAuthOptions(): NextAuthOptions {
           // Expose GitHub username for admin checks
           session.user.githubUsername =
             token?.githubUsername
-            ?? ((user as Record<string, unknown>)?.githubUsername as string | undefined)
+            ?? ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined)
             ?? '';
         }
         // Expose the OAuth access token so provisioning pipeline can use it

@@ -18,7 +18,7 @@
  * The parent is responsible for clamping and applying the value.
  */
 
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 
 interface Props {
   /** "horizontal" splits left/right panels; "vertical" splits top/bottom. */

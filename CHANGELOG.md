@@ -4,27 +4,59 @@ All notable changes to HoloScript are documented here.
 
 ---
 
-## [6.0.2] — 2026-04-02 (Type Safety & Platform Hardening)
+## [6.0.2] — 2026-04-06 (Studio Restructure, Brittney AI & Platform Hardening)
 
-7 packages bumped to 6.0.2. Massive type safety sweep, new compilers, security hardening, and 1,100+ new tests.
+7 packages bumped to 6.0.2. Studio restructured from 43 routes to 18 with progressive disclosure funnel. Brittney AI wired to Claude via Anthropic SDK. Type safety sweep, new compilers, security hardening, 1,100+ new tests, and 87 board tasks completed.
 
 ### Added
 
+**Studio Restructure** — progressive disclosure funnel
+- **6 primary routes**: `/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents` (down from 43 scattered routes)
+- **3 spaces**: HoloMesh (public social), Teams (private workspaces), Agents (profiles + fleet management)
+- **User provisioning flow**: GitHub OAuth → API key → repo → scaffold → daemon, with consent gates at each step
+- **Project scaffolder**: every new user gets full Claude structure (`.claude/`, NORTH_STAR, memory, skills, hooks)
+- **Agent fleet**: launch agents to HoloMesh/Moltbook/Custom from `/agents/me`
+
+**Brittney AI** — spatial AI assistant
+- Wired to Claude via Anthropic SDK (no local Ollama required)
+- **54 tools**: 13 scene generation + 29 Studio API + 15 MCP bridge
+- Conversation wizard flow with progressive refinement
+- Trimmed system prompt for efficiency
+
+**HoloClaw** — integrated into Teams tab
+- Shows 3 daemons: HoloDaemon, HoloMesh Agent, Moltbook Agent
+- Run/stop/status controls per daemon
+
+**MCP Orchestrator v1.4.0**
+- RBAC with role-based tool access
+- A2A agent-to-agent protocol support
+- TTL-based cache expiration
+- pgvector semantic search on knowledge store
+- OTEL tracing integration
+- Error aggregation dashboard
+- TypeScript + Python SDKs
+- Live admin dashboard
+
+**Compilers & Runtime**
 - **VRR Runtime & Compiler** — Variable Refresh Rate support for spatial rendering
 - **x402 Payment Protocol** — on-chain verification, replay protection, rate limiting, JWK thumbprint binding
 - **AndroidXR Compiler** — 47 traits for Android XR spatial targeting
 - **Agent-Inference Compiler** — compile HoloScript to agent inference pipelines
+- **AIGlasses Compiler** — compile spatial scenes for AI glasses hardware
 - **MitosisSwarm** — swarm coordination primitive for distributed agent workloads
 - **Debug Attach** — runtime debug attachment for live HoloScript sessions
 - **VRM Mixer** — VRM avatar animation blending and mixing
 - **MCP Board Tools** — task board management via MCP protocol
-- **AIGlasses Compiler** — compile spatial scenes for AI glasses hardware
+
+**Tests & Docs**
 - **1,100+ new tests** — 8 previously zero-coverage packages now covered
+- **87 board tasks** completed across all packages
 - **4 READMEs** — absorb-service, core-types, ui, connector-vscode
 
 ### Changed
 
-- **Type safety**: `as any` reduced from 1,748 to 39 (97.8% reduction), zero `catch(any)` remaining
+- **Studio routes**: 43 → 18 (progressive disclosure replaces flat navigation)
+- **Type safety**: `as any` reduced from 1,748 to 17 (97.8% reduction), zero `catch(any)` remaining
 - **450+ `console.log` calls removed** — replaced with structured logging or removed
 - **100+ TODOs resolved** — backlog cleaned across all packages
 - **ErrorBoundary consolidated** — single shared implementation replaces per-package copies

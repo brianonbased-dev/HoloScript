@@ -207,6 +207,8 @@ export function BrittneyFullScreen() {
         removeTrait: () => {},
         setTraitProperty: () => {},
         addNode: () => {},
+        removeNode: () => {},
+        updateNode: () => {},
         getCode: () => '',
         setCode: () => {},
       };

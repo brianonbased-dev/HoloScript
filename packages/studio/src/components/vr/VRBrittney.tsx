@@ -238,6 +238,8 @@ export function VRBrittney() {
       removeTrait,
       setTraitProperty,
       addNode,
+      removeNode: () => {},
+      updateNode: () => {},
       getCode: getCodeFn,
       setCode: setCodeFn,
     };

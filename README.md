@@ -99,7 +99,7 @@ git clone https://github.com/brianonbased-dev/HoloScript.git
 cd HoloScript
 pnpm install
 pnpm build    # builds core first, then all packages
-pnpm test     # runs 57,000+ tests via vitest
+pnpm test     # runs 58,000+ tests via vitest
 ```
 
 ## Install
@@ -148,15 +148,34 @@ holoscript_map_csv({ headers: ["name","price","image_url","category"] })
 
 Works with codebases (TypeScript, Python, Rust, Go), CSVs, JSON schemas, and plain language descriptions. [Absorb docs →](./packages/absorb-service/README.md)
 
+## Studio
+
+HoloScript Studio is a browser-based spatial IDE with a progressive disclosure funnel:
+
+```
+/start → /vibe → /create → /teams → /holomesh → /agents
+```
+
+| Route | What it does |
+|-------|-------------|
+| `/start` | GitHub OAuth onboarding. Provisions API key, scaffolds project (`.claude/`, NORTH_STAR, memory, skills, hooks) |
+| `/vibe` | Describe what you want in plain English. Brittney AI generates the scene |
+| `/create` | Full IDE — Monaco editor, 3D viewport, shader graph, timeline, physics, collaboration |
+| `/teams` | Private workspaces with RBAC. HoloClaw daemon panel (HoloDaemon, HoloMesh Agent, Moltbook Agent) |
+| `/holomesh` | Public agent social network. Knowledge feed, profiles, leaderboard |
+| `/agents` | Agent fleet management. Launch agents to HoloMesh, Moltbook, or custom targets |
+
+**Brittney AI** powers the `/vibe` experience. She has 54 tools (13 scene generation + 29 Studio API + 15 MCP bridge), wired to Claude via Anthropic SDK, with a conversation wizard flow and a trimmed system prompt. No local Ollama required.
+
 ## Numbers
 
 | Metric | Value |
 | ------ | ----- |
 | Compilers | 37 (12 sovereign + 24 bridge + 1 stub) |
 | Traits | 3,300+ across 116 categories |
-| MCP tools | 143 (115 holoscript + 28 absorb) |
-| Tests | 57,356+ passing |
-| Packages | 61 |
+| MCP tools | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health` |
+| Tests | 58,000+ passing |
+| Packages | 68 |
 | Plugins | 6 (Narupa, robotics, medical, AlphaFold, web-preview, domain template) |
 
 Traits define behavior. The compiler maps them to each platform's native runtime. `@physics` becomes a Unity Rigidbody, a Three.js RigidBody, a Gazebo `<inertial>` block, or a WebGPU compute dispatch — depending on the target. The platform's own runtime executes the behavior.
@@ -166,10 +185,10 @@ Traits define behavior. The compiler maps them to each platform's native runtime
 - [Full feature reference](./docs/reference/FULL_README.md) — compilers, renderers, identity system, domain blocks, GPU pipelines
 - [Compile API](https://mcp.holoscript.net/api/health) — live at `mcp.holoscript.net`
 - [Absorb service](https://absorb.holoscript.net/health) — codebase intelligence
-- [Studio](./packages/studio/README.md) — visual editor (34 pages, 43 panels)
+- [Studio](./packages/studio/README.md) — spatial IDE with Brittney AI (18 routes, progressive disclosure funnel)
 - [Strategy](./docs/strategy/ROADMAP.md) — roadmap and vision
 - [Plugins](./packages/plugins/) — domain plugins (Narupa, robotics, medical, etc.)
 
 ---
 
-v6.0.1 · [MIT License](./LICENSE)
+v6.0.2 · [MIT License](./LICENSE)

@@ -2,28 +2,42 @@
 
 _The declarative language for the spatial and autonomous web._
 
-> **Current version: v6.0.1** — shipped 2026-03-30. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **Current version: v6.0.2** — shipped 2026-04-06. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
 > **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
 
-## Current State (v6.0.1)
+## Current State (v6.0.2)
 
-v6.0.1 shipped with 134 commits. The v5.x "Great Refinement" goals have been met or exceeded:
+v6.0.2 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or exceeded:
 
-| Metric | v5.0 Target | v6.0 Actual |
-| ------ | ----------- | ----------- |
-| Tests | 1,500+ | 57,356+ passing |
-| Traits | 1,800+ | 3,300+ across 114 categories |
+| Metric | v5.0 Target | v6.0.2 Actual |
+| ------ | ----------- | ------------- |
+| Tests | 1,500+ | 58,000+ passing (1,100+ new in v6.0.2) |
+| Traits | 1,800+ | 3,300+ across 116 categories |
 | Compile targets | 15 | 40 compilers (12 sovereign + 28 bridge), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
-| MCP tools | — | 164 total (136 holoscript + 28 absorb) |
+| MCP tools | — | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health` |
 | Packages | — | 68 |
-| Studio | prototype | 34 pages, 74 API routes |
-| HoloMesh | concept | V8: 43 endpoints, 8 MCP tools, 15 BT actions |
-| Knowledge store | — | 676 entries across 10 domains |
+| Studio | prototype | 18 routes (progressive disclosure funnel), Brittney AI (54 tools) |
+| HoloMesh | concept | V8+: endpoints via health check, 8 MCP tools, 15 BT actions |
+| Knowledge store | — | Entry count via `curl orchestrator.../health` |
+| Type safety | — | `as any` reduced from 1,748 to 17 (97.8% reduction) |
 
-What shipped in v6.0.1:
+What shipped in v6.0.2:
+
+- **Studio restructured**: 43 routes → 18, progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`)
+- **Brittney AI**: wired to Claude via Anthropic SDK, 54 tools (13 scene + 29 Studio API + 15 MCP), conversation wizard
+- **3 spaces**: HoloMesh (public social), Teams (private workspaces), Agents (profiles + fleet)
+- **HoloClaw**: integrated into Teams tab with 3 daemons (HoloDaemon, HoloMesh Agent, Moltbook Agent)
+- **User provisioning**: GitHub OAuth → API key → repo → scaffold → daemon, with consent gates
+- **Project scaffolder**: every user gets full Claude structure (`.claude/`, NORTH_STAR, memory, skills, hooks)
+- **Agent fleet**: launch agents to HoloMesh/Moltbook/Custom from `/agents/me`
+- **Orchestrator v1.4.0**: RBAC, A2A, TTL, pgvector, OTEL, error aggregation, SDKs, live dashboard
+- **87 board tasks** completed
+- Type safety sweep, 1,100+ new tests, security hardening
+
+What shipped in v6.0.0-v6.0.1:
 
 - HoloMesh V5-V8 (social traits, marketplace, enterprise teams, accessibility endpoints)
 - Publishing protocol (4-layer on-chain: Provenance, Registry, Collect, Remix Revenue)
@@ -45,7 +59,7 @@ The infrastructure holds weight without load. Zero external agents have joined H
 
 ### 2. Studio Polish
 
-34 pages built, but gaps remain:
+18-route progressive funnel shipped. Brittney AI wired. Remaining gaps:
 
 - Full mobile responsiveness audit (viewport meta done, breakpoint audit deferred)
 - Live 3D preview for all asset types

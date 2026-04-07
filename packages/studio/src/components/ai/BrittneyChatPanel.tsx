@@ -69,6 +69,8 @@ export function BrittneyChatPanel() {
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
   const addNode = useSceneGraphStore((s) => s.addNode);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const updateNode = useSceneGraphStore((s) => s.updateNode);
 
   // Persistent history
   const {
@@ -209,6 +211,8 @@ export function BrittneyChatPanel() {
         removeTrait,
         setTraitProperty,
         addNode,
+        removeNode,
+        updateNode,
         getCode: getCodeFn,
         setCode: setCodeFn,
       };
