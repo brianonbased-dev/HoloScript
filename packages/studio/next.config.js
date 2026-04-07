@@ -135,13 +135,20 @@ const nextConfig = {
       'isomorphic-git': false,
     };
 
-    // Catch-all: any @holoscript/engine or @holoscript/framework deep import not covered above
+    // Catch-all: stub Node.js-only packages that leak into client bundle via @holoscript/core
     config.plugins.push(
       new (require('webpack')).NormalModuleReplacementPlugin(
         /^@holoscript\/(engine|framework)(\/.*)?$/,
         require.resolve('./src/lib/empty-module.js')
       )
     );
+
+    // Stub ws (WebSocket) — Node.js only, leaks via core barrel → useMarketplace
+    if (!isServer) {
+      config.resolve.alias['ws'] = false;
+      config.resolve.alias['bufferutil'] = false;
+      config.resolve.alias['utf-8-validate'] = false;
+    }
 
     return config;
   },
