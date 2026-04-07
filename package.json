@@ -110,7 +110,8 @@
       "h3": ">=1.15.6",
       "socket.io-parser": ">=4.2.6",
       "@modelcontextprotocol/sdk": ">=1.25.2",
-      "tree-sitter": "0.22.4"
+      "tree-sitter": "0.22.4",
+      "path-to-regexp": "0.1.13"
     }
   },
   "engines": {
