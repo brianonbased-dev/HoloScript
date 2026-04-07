@@ -5,8 +5,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { AnimationEngine, Easing } from '@/lib/core-stubs';
 
-type AnimationEngineInstance = InstanceType<typeof AnimationEngine>;
-type AnimationClip = Parameters<AnimationEngineInstance['play']>[0];
+type AnimationEngineInstance = any;
+type AnimationClip = any;
 type EasingFn = typeof Easing.linear;
 
 export interface AnimationInfo {
