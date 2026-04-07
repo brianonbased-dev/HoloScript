@@ -47,9 +47,11 @@ export type CSGOperation =
   | 'union'
   | 'intersect'
   | 'difference'
+  | 'subtract'
   | 'smooth_union'
   | 'smooth_intersect'
-  | 'smooth_difference';
+  | 'smooth_difference'
+  | 'smooth_subtract';
 
 export type DomainOperation = 'repeat' | 'twist' | 'bend';
 
@@ -106,9 +108,11 @@ const CSG_OPERATIONS: Record<CSGOperation, string> = {
   union: `float opUnion(float d1, float d2) { return min(d1, d2); }`,
   intersect: `float opIntersect(float d1, float d2) { return max(d1, d2); }`,
   difference: `float opDifference(float d1, float d2) { return max(d1, -d2); }`,
+  subtract: `float opSubtract(float d1, float d2) { return max(d1, -d2); }`,
   smooth_union: `float opSmoothUnion(float d1, float d2, float k) { float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0); return mix(d2, d1, h) - k * h * (1.0 - h); }`,
   smooth_intersect: `float opSmoothIntersect(float d1, float d2, float k) { float h = clamp(0.5 - 0.5 * (d2 - d1) / k, 0.0, 1.0); return mix(d2, d1, h) + k * h * (1.0 - h); }`,
   smooth_difference: `float opSmoothDifference(float d1, float d2, float k) { float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0.0, 1.0); return mix(d1, -d2, h) + k * h * (1.0 - h); }`,
+  smooth_subtract: `float opSmoothSubtract(float d1, float d2, float k) { float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0.0, 1.0); return mix(d1, -d2, h) + k * h * (1.0 - h); }`,
 };
 
 const DOMAIN_OPERATIONS: Record<DomainOperation, string> = {
@@ -252,11 +256,16 @@ function compileNode(node: SDFNode): string {
             ? 'opSmoothUnion'
             : op === 'smooth_intersect'
               ? 'opSmoothIntersect'
-              : 'opSmoothDifference';
+              : op === 'smooth_subtract'
+                ? 'opSmoothSubtract'
+                : 'opSmoothDifference';
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId}, ${k});\n`;
       } else {
         const fnName =
-          op === 'union' ? 'opUnion' : op === 'intersect' ? 'opIntersect' : 'opDifference';
+          op === 'union' ? 'opUnion'
+            : op === 'intersect' ? 'opIntersect'
+              : op === 'subtract' ? 'opSubtract'
+                : 'opDifference';
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId});\n`;
       }
     }
