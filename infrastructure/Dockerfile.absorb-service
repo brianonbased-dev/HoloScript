@@ -30,7 +30,7 @@ COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/absorb-service/ packages/absorb-service/
-COPY services/absorb-service/ services/absorb-service/
+COPY services/absorb-host/ services/absorb-host/
 
 # Build in dependency order (skip DTS for runtime)
 RUN cd packages/crdt && npx tsup --no-dts
@@ -48,7 +48,7 @@ RUN cd packages/engine && npx tsup \
 RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
-RUN cd services/absorb-service && npx tsc
+RUN cd services/absorb-host && npx tsc
 
 # --- Production stage ---
 FROM node:20-alpine
@@ -76,7 +76,7 @@ COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
-COPY --from=builder /app/services/absorb-service/dist services/absorb-service/dist
+COPY --from=builder /app/services/absorb-host/dist services/absorb-host/dist
 
 # Set ownership
 RUN chown -R nodejs:nodejs /app
@@ -91,4 +91,4 @@ EXPOSE 3005
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:${PORT:-3005}/health',(r)=>process.exit(r.statusCode===200?0:1))"
 
-CMD ["node", "services/absorb-service/dist/server.js"]
+CMD ["node", "services/absorb-host/dist/server.js"]
