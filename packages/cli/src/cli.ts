@@ -870,6 +870,7 @@ async function main(): Promise<void> {
 
       const target = options.target || 'threejs';
       const validTargets = [
+        'node',
         'threejs',
         'unity',
         'vrchat',
@@ -911,6 +912,35 @@ async function main(): Promise<void> {
 
       const content = fs.readFileSync(filePath, 'utf-8');
       const _parser = new HoloScriptCodeParser();
+
+      // Pipeline-first Node target (.hs pipeline -> runnable index.mjs)
+      if (target === 'node') {
+        const { isPipelineSource } = await import('@holoscript/core');
+        const { compilePipelineSourceToNode } = await import('@holoscript/core/compiler/index');
+        if (!isPipelineSource(content)) {
+          console.error(
+            '\x1b[31mError: --target node currently expects a pipeline .hs source (pipeline "Name" { ... }).\x1b[0m'
+          );
+          process.exit(1);
+        }
+
+        const compiled = compilePipelineSourceToNode(content, {
+          moduleName: options.output ? path.basename(options.output) : 'index.mjs',
+        });
+
+        if (!compiled.success || !compiled.code) {
+          console.error('\x1b[31mPipeline compilation failed:\x1b[0m');
+          for (const err of compiled.errors || []) {
+            console.error(`  - ${err}`);
+          }
+          process.exit(1);
+        }
+
+        const outputPath = path.resolve(options.output || 'index.mjs');
+        fs.writeFileSync(outputPath, compiled.code, 'utf-8');
+        console.log(`\n\x1b[32m✓ Pipeline compiled to Node.js module: ${outputPath}\x1b[0m\n`);
+        process.exit(0);
+      }
 
       console.log(`\n\x1b[36mCompiling ${options.input} → ${target}\x1b[0m\n`);
 

@@ -651,7 +651,7 @@ Usage: holoscript <command> [options] [input]
   -v, --verbose       Enable verbose output
   -j, --json          Output results as JSON
   -o, --output        Write output to file
-  -t, --target        Compile target (threejs, unity, vrchat, babylon, wasm)
+  -t, --target        Compile target (node, threejs, unity, vrchat, babylon, wasm)
   -p, --profile       Runtime profile (headless, minimal, standard, vr)
   --tick-rate <hz>    Tick rate for headless runtime (default: 10)
   --duration <ms>     Duration to run headless (0 = indefinite)
