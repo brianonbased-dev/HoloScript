@@ -103,9 +103,56 @@ const STATUS_CONFIG: Record<SkillStatus, { dot: string; label: string; ring: str
 // Sub-sections
 // ---------------------------------------------------------------------------
 
-type ClawSection = 'skills' | 'stream' | 'economy' | 'bounties' | 'commits';
+// ---------------------------------------------------------------------------
+// Daemon types — 3 compositions that power the platform
+// ---------------------------------------------------------------------------
+
+type DaemonType = 'holodaemon' | 'holomesh' | 'moltbook';
+
+interface DaemonInfo {
+  id: DaemonType;
+  name: string;
+  composition: string;
+  description: string;
+  command: string;
+  color: string;
+  dotColor: string;
+}
+
+const DAEMONS: DaemonInfo[] = [
+  {
+    id: 'holodaemon',
+    name: 'HoloDaemon',
+    composition: 'self-improve-daemon.hsplus',
+    description: 'Self-improvement — types, tests, cleanup, code quality',
+    command: 'holoscript holodaemon compositions/self-improve-daemon.hsplus',
+    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    dotColor: 'bg-emerald-400',
+  },
+  {
+    id: 'holomesh',
+    name: 'HoloMesh Agent',
+    composition: 'holomesh-agent.hsplus',
+    description: 'Knowledge exchange — contribute, discover, trade W/P/G',
+    command: 'holoscript holomesh-daemon compositions/holomesh-agent.hsplus',
+    color: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    dotColor: 'bg-blue-400',
+  },
+  {
+    id: 'moltbook',
+    name: 'Moltbook Agent',
+    composition: 'moltbook-agent.hsplus',
+    description: 'Social engagement — replies, posts, community building',
+    command: 'holoscript moltbook-daemon compositions/moltbook-agent.hsplus',
+    color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+    dotColor: 'bg-purple-400',
+  },
+];
+
+type ClawSection = 'daemons' | 'skills' | 'stream' | 'economy' | 'bounties' | 'commits';
 
 const SECTIONS: { id: ClawSection; label: string }[] = [
+  { id: 'daemons', label: 'Daemons' },
   { id: 'skills', label: 'Active Skills' },
   { id: 'stream', label: 'Live Stream' },
   { id: 'economy', label: 'Economy' },
@@ -498,7 +545,7 @@ function CommitLogWidget() {
 // ---------------------------------------------------------------------------
 
 export function HoloClawTab() {
-  const [section, setSection] = useState<ClawSection>('skills');
+  const [section, setSection] = useState<ClawSection>('daemons');
   const [skills, setSkills] = useState<SkillWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -598,6 +645,41 @@ export function HoloClawTab() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
+        {section === 'daemons' && (
+          <div className="space-y-3">
+            <p className="text-xs text-studio-muted mb-4">
+              Three HoloScript compositions power your project. Each runs as a behavior tree with economy limits and Ed25519 signing.
+            </p>
+            {DAEMONS.map((d) => (
+              <div
+                key={d.id}
+                className={`rounded-xl border p-4 ${d.color} transition-all hover:brightness-110`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${d.dotColor} animate-pulse`} />
+                      <h3 className="text-sm font-semibold">{d.name}</h3>
+                    </div>
+                    <p className="mt-1 ml-5 text-xs opacity-80">{d.description}</p>
+                    <div className="mt-2 ml-5 flex items-center gap-2">
+                      <code className="rounded bg-black/30 px-2 py-0.5 text-[10px] font-mono opacity-70">{d.composition}</code>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex gap-2">
+                    <button className="rounded-lg border border-current/20 px-3 py-1 text-[11px] font-medium opacity-80 hover:opacity-100 transition">
+                      Configure
+                    </button>
+                    <button className="rounded-lg border border-current/20 px-3 py-1 text-[11px] font-medium opacity-80 hover:opacity-100 transition">
+                      Start
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {section === 'skills' && (
           loading ? (
             <div className="space-y-3">
