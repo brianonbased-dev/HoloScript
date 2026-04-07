@@ -28,10 +28,10 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register absorb tools
   try {
-    const { absorbServiceTools, absorbServiceToolHandler } = await import('@holoscript/absorb-service/mcp');
+    const { absorbServiceTools, handleAbsorbServiceTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of absorbServiceTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
-        const result = await absorbServiceToolHandler(tool.name, params);
+        const result = await handleAbsorbServiceTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
@@ -41,10 +41,10 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register TypeScript-specific tools
   try {
-    const { absorbTypescriptTools, absorbTypescriptToolHandler } = await import('@holoscript/absorb-service/mcp');
+    const { absorbTypescriptTools, handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of absorbTypescriptTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
-        const result = await absorbTypescriptToolHandler(tool.name, params);
+        const result = await handleAbsorbTypescriptTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
@@ -54,10 +54,10 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register codebase query tools
   try {
-    const { codebaseTools, codebaseToolHandler } = await import('@holoscript/absorb-service/mcp');
+    const { codebaseTools, handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of codebaseTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
-        const result = await codebaseToolHandler(tool.name, params);
+        const result = await handleCodebaseTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
@@ -67,10 +67,10 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register GraphRAG tools
   try {
-    const { graphRagTools, graphRagToolHandler } = await import('@holoscript/absorb-service/mcp');
+    const { graphRagTools, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of graphRagTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
-        const result = await graphRagToolHandler(tool.name, params);
+        const result = await handleGraphRagTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
