@@ -23,6 +23,8 @@ import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
+type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
+
 function allowedWorkspacePath(workspacePath: string): string | null {
   const home = process.env.HOME ?? process.env.USERPROFILE ?? '';
   const allowedRoot = path.join(home, '.holoscript', 'workspaces');
@@ -30,6 +32,57 @@ function allowedWorkspacePath(workspacePath: string): string | null {
   if (!resolved.startsWith(allowedRoot)) return null;
   if (!fs.existsSync(path.join(resolved, '.git'))) return null;
   return resolved;
+}
+
+function parseGitHubRemote(remoteUrl: string): { owner: string; repo: string } | null {
+  // Supports:
+  //   https://github.com/owner/repo.git
+  //   https://token@github.com/owner/repo.git
+  //   git@github.com:owner/repo.git
+  const httpsMatch = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?$/i);
+  if (httpsMatch) {
+    return { owner: httpsMatch[1], repo: httpsMatch[2] };
+  }
+  return null;
+}
+
+async function detectGitHubRole(token: string, owner: string, repo: string): Promise<GitHubRole> {
+  const [userResp, repoResp] = await Promise.all([
+    fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'HoloScript-Studio',
+      },
+      signal: AbortSignal.timeout(10_000),
+    }),
+    fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'HoloScript-Studio',
+      },
+      signal: AbortSignal.timeout(10_000),
+    }),
+  ]);
+
+  if (!userResp.ok || !repoResp.ok) return 'unknown';
+
+  const user = (await userResp.json()) as { login?: string };
+  const repoInfo = (await repoResp.json()) as {
+    owner?: { login?: string };
+    permissions?: { admin?: boolean; push?: boolean; pull?: boolean };
+  };
+
+  const login = user?.login?.toLowerCase();
+  const ownerLogin = repoInfo?.owner?.login?.toLowerCase();
+  if (login && ownerLogin && login === ownerLogin) return 'owner';
+
+  const permissions = repoInfo?.permissions;
+  if (permissions?.admin) return 'maintainer';
+  if (permissions?.push) return 'contributor';
+  if (permissions?.pull) return 'viewer';
+  return 'unknown';
 }
 
 export async function POST(req: NextRequest) {
@@ -110,9 +163,29 @@ export async function POST(req: NextRequest) {
       branch = bOut.trim();
     }
 
-    // Inject token into remote URL for HTTPS pushes
+    // Resolve remote and determine permission role
     const { stdout: remoteOut } = await execFileAsync('git', ['remote', 'get-url', remote], { cwd, env });
     originalRemoteUrl = remoteOut.trim();
+
+    const remoteRepo = parseGitHubRemote(originalRemoteUrl);
+    let role: GitHubRole = 'unknown';
+    if (remoteRepo) {
+      role = await detectGitHubRole(token, remoteRepo.owner, remoteRepo.repo);
+    }
+
+    // Enforce contributor workflow: contributors/viewers open PRs instead of direct ship.
+    if (role === 'contributor' || role === 'viewer') {
+      return NextResponse.json(
+        {
+          error: 'Direct ship is reserved for owners/maintainers. Use branch + PR flow.',
+          role,
+          recommendedFlow: 'branch-pr',
+        },
+        { status: 403 }
+      );
+    }
+
+    // Inject token into remote URL for HTTPS pushes
     if (originalRemoteUrl.startsWith('https://github.com/')) {
       const authed = originalRemoteUrl.replace('https://', `https://${token}@`);
       await execFileAsync('git', ['remote', 'set-url', remote, authed], { cwd, env });
@@ -131,6 +204,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       flow: 'single-dev-direct',
+      role,
       branch,
       commitSha,
       pushed: true,
