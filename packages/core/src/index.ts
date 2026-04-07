@@ -2816,6 +2816,17 @@ export {
 } from './compiler/PipelineNodeCompiler';
 export type { PipelineNodeCompilerOptions } from './compiler/PipelineNodeCompiler';
 
+// ── NextJS Compiler (.holo → Next.js App Router pages) ─────────────────────
+export {
+  compileToNextJS,
+  compileAllToNextJS,
+} from './compiler/NextJSCompiler';
+
+export type {
+  NextJSCompilerOptions,
+  NextJSCompileResult,
+} from './compiler/NextJSCompiler';
+
 // =============================================================================
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================
