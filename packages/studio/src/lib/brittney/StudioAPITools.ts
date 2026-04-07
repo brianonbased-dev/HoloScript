@@ -583,6 +583,89 @@ const getMcpConfig: StudioToolDefinition = {
   },
 };
 
+// ─── GitHub File Access Tools ──────────────────────────────────────────────
+
+const readFile: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'read_file',
+    description:
+      'Read a file from the user\'s connected GitHub repository. Returns the file contents (decoded from base64). Use when the user asks to see a specific file, or when you need to inspect code in their repo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        owner: {
+          type: 'string',
+          description: 'GitHub repository owner (username or org)',
+        },
+        repo: {
+          type: 'string',
+          description: 'GitHub repository name',
+        },
+        path: {
+          type: 'string',
+          description: 'Path to the file within the repository, e.g. "src/index.ts"',
+        },
+      },
+      required: ['owner', 'repo', 'path'],
+    },
+  },
+};
+
+const searchCode: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'search_code',
+    description:
+      'Search for code patterns in the user\'s connected GitHub repository. Returns matching file paths and line snippets. Use when the user asks "where is X defined?" or "find all uses of Y".',
+    parameters: {
+      type: 'object',
+      properties: {
+        owner: {
+          type: 'string',
+          description: 'GitHub repository owner (username or org)',
+        },
+        repo: {
+          type: 'string',
+          description: 'GitHub repository name',
+        },
+        query: {
+          type: 'string',
+          description: 'Search query — code pattern, function name, or keyword to find',
+        },
+      },
+      required: ['owner', 'repo', 'query'],
+    },
+  },
+};
+
+const listFiles: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'list_files',
+    description:
+      'List files in a directory of the user\'s connected GitHub repository. Returns the directory tree with file names and types. Use when the user asks "what files are in X?" or you need to explore repo structure.',
+    parameters: {
+      type: 'object',
+      properties: {
+        owner: {
+          type: 'string',
+          description: 'GitHub repository owner (username or org)',
+        },
+        repo: {
+          type: 'string',
+          description: 'GitHub repository name',
+        },
+        path: {
+          type: 'string',
+          description: 'Directory path within the repository (empty string or "/" for root)',
+        },
+      },
+      required: ['owner', 'repo'],
+    },
+  },
+};
+
 // ─── Export all Studio API tools ─────────────────────────────────────────────
 
 export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
@@ -619,6 +702,10 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   // Health & config
   getCapabilities,
   getMcpConfig,
+  // GitHub file access
+  readFile,
+  searchCode,
+  listFiles,
 ];
 
 /**

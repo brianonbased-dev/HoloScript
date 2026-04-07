@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rateLimit';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
+import { validateHoloOutput, stripMarkdownFences } from '@/lib/brittney/holoValidator';
 
 const MAX_REQUESTS_PER_MIN = 10;
 
@@ -124,10 +125,10 @@ export async function POST(request: Request) {
       (await tryCloudProviders(GENERATE_SYSTEM, userPrompt)) ??
       (await tryOllamaFallback(userPrompt));
 
-    const code = generated?.trim();
+    const rawCode = generated?.trim();
 
     // Graceful cloud-first fallback for pre-launch/dev environments
-    if (!code) {
+    if (!rawCode) {
       deductCredits(gate.userId, 'studio_generate').catch(() => {});
       return NextResponse.json(
         {
@@ -141,10 +142,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Strip markdown fences if the LLM wrapped the output
+    const code = stripMarkdownFences(rawCode);
+
+    // Validate the generated HoloScript before returning to the user
+    const validation = validateHoloOutput(code);
+
     // Deduct credits after successful generation (fire-and-forget)
     deductCredits(gate.userId, 'studio_generate').catch(() => {});
 
-    return NextResponse.json({ success: true, code, source: 'cloud' }, { headers });
+    return NextResponse.json(
+      {
+        success: true,
+        code,
+        source: 'cloud',
+        ...(validation.errors.length > 0 && { validationErrors: validation.errors }),
+        ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
+      },
+      { headers },
+    );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ success: false, code: '', error: msg }, { status: 500 });

@@ -33,3 +33,5 @@ export {
   getScenarioTemplate,
 } from './ScenarioMatcher';
 export type { ScenarioMatch, MatchResult } from './ScenarioMatcher';
+export { validateHoloOutput, stripMarkdownFences } from './holoValidator';
+export type { ValidationResult } from './holoValidator';

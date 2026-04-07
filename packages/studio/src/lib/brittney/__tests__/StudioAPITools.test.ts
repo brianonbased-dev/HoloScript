@@ -11,7 +11,7 @@ import { executeStudioTool, isStudioAPITool } from '../StudioAPIExecutor';
 
 describe('STUDIO_API_TOOLS', () => {
   it('exports a non-empty array of tool definitions', () => {
-    expect(STUDIO_API_TOOLS.length).toBeGreaterThan(20);
+    expect(STUDIO_API_TOOLS.length).toBeGreaterThan(23);
   });
 
   it('every tool has the correct structure', () => {
@@ -31,7 +31,11 @@ describe('STUDIO_API_TOOLS', () => {
   });
 
   it('no tool name collides with scene tools', () => {
-    const sceneToolNames = ['add_trait', 'remove_trait', 'set_trait_property', 'create_object', 'compose_traits', 'mount_scenario_panel'];
+    const sceneToolNames = [
+      'add_trait', 'remove_trait', 'set_trait_property', 'create_object', 'compose_traits',
+      'mount_scenario_panel', 'delete_object', 'move_object', 'rotate_object', 'scale_object',
+      'rename_object', 'duplicate_object', 'list_objects', 'get_object',
+    ];
     for (const tool of STUDIO_API_TOOLS) {
       expect(sceneToolNames).not.toContain(tool.function.name);
     }
@@ -113,6 +117,27 @@ describe('Tool categories', () => {
   it('has health/config tools', () => {
     expect(findTool('get_capabilities')).toBeDefined();
     expect(findTool('get_mcp_config')).toBeDefined();
+  });
+
+  it('has github file access tools', () => {
+    expect(findTool('read_file')).toBeDefined();
+    expect(findTool('search_code')).toBeDefined();
+    expect(findTool('list_files')).toBeDefined();
+  });
+
+  it('read_file requires owner, repo, path', () => {
+    const tool = findTool('read_file');
+    expect(tool?.function.parameters.required).toEqual(['owner', 'repo', 'path']);
+  });
+
+  it('search_code requires owner, repo, query', () => {
+    const tool = findTool('search_code');
+    expect(tool?.function.parameters.required).toEqual(['owner', 'repo', 'query']);
+  });
+
+  it('list_files requires owner, repo', () => {
+    const tool = findTool('list_files');
+    expect(tool?.function.parameters.required).toEqual(['owner', 'repo']);
   });
 });
 
@@ -368,6 +393,92 @@ describe('executeStudioTool', () => {
     const body = JSON.parse((vi.mocked(fetch).mock.calls[0][1] as RequestInit).body as string);
     expect(body.code).toBe('object "Box" {}');
     expect(body.format).toBe('threejs');
+  });
+
+  // ─── GitHub file access tools ──────────────────────────────────────────────
+
+  it('read_file calls GET /api/github/file with query params', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ path: 'src/index.ts', content: 'console.log("hi")' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = { owner: 'user', repo: 'my-repo', path: 'src/index.ts' };
+    const result = await executeStudioTool('read_file', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    expect(callUrl).toContain('/api/github/file');
+    expect(callUrl).toContain('owner=user');
+    expect(callUrl).toContain('repo=my-repo');
+    expect(callUrl).toContain('path=src%2Findex.ts');
+
+    const init = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe('GET');
+  });
+
+  it('search_code calls GET /api/github/search with query params', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ totalCount: 3, results: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = { owner: 'user', repo: 'my-repo', query: 'function main' };
+    const result = await executeStudioTool('search_code', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    expect(callUrl).toContain('/api/github/search');
+    expect(callUrl).toContain('owner=user');
+    expect(callUrl).toContain('repo=my-repo');
+    expect(callUrl).toContain('query=function+main');
+  });
+
+  it('list_files calls GET /api/github/tree with query params', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ path: 'src', entries: [], total: 0 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = { owner: 'user', repo: 'my-repo', path: 'src' };
+    const result = await executeStudioTool('list_files', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    expect(callUrl).toContain('/api/github/tree');
+    expect(callUrl).toContain('owner=user');
+    expect(callUrl).toContain('repo=my-repo');
+    expect(callUrl).toContain('path=src');
+  });
+
+  it('list_files omits empty path', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ path: '/', entries: [], total: 0 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = { owner: 'user', repo: 'my-repo' };
+    const result = await executeStudioTool('list_files', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    expect(callUrl).toContain('/api/github/tree');
+    expect(callUrl).toContain('owner=user');
+    expect(callUrl).toContain('repo=my-repo');
+  });
+
+  it('isStudioAPITool returns true for github tools', () => {
+    expect(isStudioAPITool('read_file')).toBe(true);
+    expect(isStudioAPITool('search_code')).toBe(true);
+    expect(isStudioAPITool('list_files')).toBe(true);
   });
 });
 

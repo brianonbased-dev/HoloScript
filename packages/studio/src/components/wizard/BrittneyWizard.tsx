@@ -4,7 +4,7 @@
  * BrittneyWizard.tsx — Full-screen conversation-driven wizard
  *
  * Brittney guides users through: greeting -> intake -> absorb ->
- * scaffold -> scenario -> preview -> iterate -> deploy.
+ * classify -> consent -> scaffold -> scenario -> preview -> iterate -> deploy.
  *
  * The conversation drives the UI, not the other way around.
  * Each stage renders appropriate chrome around the chat.
@@ -17,6 +17,7 @@ import {
   GitBranch,
   Scan,
   Dna,
+  ShieldCheck,
   FolderTree,
   LayoutGrid,
   Eye,
@@ -27,6 +28,7 @@ import {
   RefreshCw,
   Check,
 } from 'lucide-react';
+import { ConsentStep } from './ConsentStep';
 import { useWizardFlow } from '@/hooks/useWizardFlow';
 import {
   WIZARD_STAGES,
@@ -43,6 +45,7 @@ const STAGE_ICONS: Record<WizardStage, React.ElementType> = {
   intake: GitBranch,
   absorb: Scan,
   classify: Dna,
+  consent: ShieldCheck,
   scaffold: FolderTree,
   scenario: LayoutGrid,
   preview: Eye,
@@ -476,6 +479,15 @@ export function BrittneyWizard({
               totalFiles={state.absorbProgress.totalFiles}
               currentFile={state.absorbProgress.currentFile}
               status={state.absorbProgress.status}
+            />
+          )}
+
+          {/* Consent step */}
+          {state.stage === 'consent' && (
+            <ConsentStep
+              consent={state.consent}
+              onConsentChange={wizard.updateConsent}
+              onContinue={wizard.advanceStage}
             />
           )}
 

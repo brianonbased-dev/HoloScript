@@ -191,6 +191,38 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     method: 'GET',
     path: '/api/studio/mcp-config',
   },
+
+  // GitHub file access
+  read_file: {
+    method: 'GET',
+    path: '/api/github/file',
+    buildQuery: (args) => ({
+      owner: String(args['owner']),
+      repo: String(args['repo']),
+      path: String(args['path']),
+    }),
+  },
+  search_code: {
+    method: 'GET',
+    path: '/api/github/search',
+    buildQuery: (args) => ({
+      owner: String(args['owner']),
+      repo: String(args['repo']),
+      query: String(args['query']),
+    }),
+  },
+  list_files: {
+    method: 'GET',
+    path: '/api/github/tree',
+    buildQuery: (args) => {
+      const params: Record<string, string> = {
+        owner: String(args['owner']),
+        repo: String(args['repo']),
+      };
+      if (args['path']) params['path'] = String(args['path']);
+      return params;
+    },
+  },
 };
 
 // ─── Path resolution ────────────────────────────────────────────────────────

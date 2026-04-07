@@ -122,6 +122,132 @@ export const BRITTNEY_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'delete_object',
+      description: 'Remove an object from the scene by name. Deletes both the store node and the corresponding HoloScript code block.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to delete' },
+        },
+        required: ['object_name'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'move_object',
+      description: 'Set the position of an object in the scene. Provide [x, y, z] world-space coordinates.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to move' },
+          position: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] position in world space',
+          },
+        },
+        required: ['object_name', 'position'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'rotate_object',
+      description: 'Set the rotation of an object in the scene. Provide [x, y, z] Euler angles in radians.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to rotate' },
+          rotation: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] rotation in radians',
+          },
+        },
+        required: ['object_name', 'rotation'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'scale_object',
+      description: 'Set the scale of an object in the scene. Provide [x, y, z] scale factors.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to scale' },
+          scale: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] scale factors',
+          },
+        },
+        required: ['object_name', 'scale'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'rename_object',
+      description: 'Change the display name of an object in the scene.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Current name of the scene object' },
+          new_name: { type: 'string', description: 'New display name for the object' },
+        },
+        required: ['object_name', 'new_name'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'duplicate_object',
+      description: 'Clone an existing scene object with a new name. Copies all traits, position, rotation, and scale.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to clone' },
+          new_name: { type: 'string', description: 'Name for the cloned object' },
+        },
+        required: ['object_name', 'new_name'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'list_objects',
+      description: 'Return a list of all objects currently in the scene, including each object\'s name, type, traits, and position.',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_object',
+      description: 'Get the full details of a specific object in the scene by name, including type, traits, position, rotation, and scale.',
+      parameters: {
+        type: 'object',
+        properties: {
+          object_name: { type: 'string', description: 'Name of the scene object to inspect' },
+        },
+        required: ['object_name'],
+      },
+    },
+  },
 ];
 
 // ─── Tool result type ─────────────────────────────────────────────────────────
@@ -140,6 +266,8 @@ type StoreActions = {
   removeTrait: (nodeId: string, traitName: string) => void;
   setTraitProperty: (nodeId: string, traitName: string, key: string, value: unknown) => void;
   addNode: (node: SceneNode) => void;
+  removeNode: (id: string) => void;
+  updateNode: (id: string, patch: Partial<SceneNode>) => void;
   getCode: () => string;
   setCode: (code: string) => void;
   mountScenario?: (scenarioId: string) => void;
@@ -231,6 +359,52 @@ function codeCreateObject(
   const [x, y, z] = position;
   const posLine = x !== 0 || y !== 0 || z !== 0 ? `\n  position: [${x}, ${y}, ${z}]` : '';
   return code + `\n${type} "${name}" {${posLine}\n}\n`;
+}
+
+/**
+ * Remove an entire object block from HoloScript code.
+ */
+function codeDeleteObject(code: string, objectName: string): string {
+  const regex = new RegExp(
+    `\\n?(?:object|scene|group|light|camera)\\s+"${escapeRegex(objectName)}"\\s*\\{[^}]*\\}\\n?`,
+    'gs'
+  );
+  return code.replace(regex, '\n');
+}
+
+/**
+ * Update a transform property (position, rotation, or scale) in the object block.
+ * If the property line exists, replaces it. If not, inserts it.
+ */
+function codeSetTransform(
+  code: string,
+  objectName: string,
+  property: 'position' | 'rotation' | 'scale',
+  value: [number, number, number]
+): string {
+  const objRegex = new RegExp(
+    `((?:object|scene|group|light|camera)\\s+"${escapeRegex(objectName)}"\\s*\\{)([\\s\\S]*?)(\\})`,
+    'g'
+  );
+  return code.replace(objRegex, (match, open: string, body: string, close: string) => {
+    const propRegex = new RegExp(`^(\\s*${property}\\s*:).*$`, 'm');
+    const newVal = `  ${property}: [${value.join(', ')}]`;
+    if (propRegex.test(body)) {
+      return `${open}${body.replace(propRegex, newVal)}${close}`;
+    }
+    return `${open}${body}\n${newVal}\n${close}`;
+  });
+}
+
+/**
+ * Rename an object in HoloScript code by replacing its quoted name.
+ */
+function codeRenameObject(code: string, oldName: string, newName: string): string {
+  const regex = new RegExp(
+    `((?:object|scene|group|light|camera)\\s+)"${escapeRegex(oldName)}"`,
+    'g'
+  );
+  return code.replace(regex, `$1"${newName}"`);
 }
 
 function escapeRegex(s: string): string {
@@ -339,6 +513,144 @@ export function executeTool(
         } else {
           return { tool: toolName, success: false, message: `No mount function bound to Brittney session.` };
         }
+      }
+
+      case 'delete_object': {
+        const objName = args.object_name as string;
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        store.removeNode(node.id);
+        store.setCode(codeDeleteObject(store.getCode(), node.name));
+        return { tool: toolName, success: true, message: `Deleted "${node.name}" from the scene` };
+      }
+
+      case 'move_object': {
+        const objName = args.object_name as string;
+        const position = args.position as [number, number, number];
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        store.updateNode(node.id, { position });
+        store.setCode(codeSetTransform(store.getCode(), node.name, 'position', position));
+        return {
+          tool: toolName,
+          success: true,
+          message: `Moved "${node.name}" to [${position.join(', ')}]`,
+        };
+      }
+
+      case 'rotate_object': {
+        const objName = args.object_name as string;
+        const rotation = args.rotation as [number, number, number];
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        store.updateNode(node.id, { rotation });
+        store.setCode(codeSetTransform(store.getCode(), node.name, 'rotation', rotation));
+        return {
+          tool: toolName,
+          success: true,
+          message: `Rotated "${node.name}" to [${rotation.join(', ')}]`,
+        };
+      }
+
+      case 'scale_object': {
+        const objName = args.object_name as string;
+        const scale = args.scale as [number, number, number];
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        store.updateNode(node.id, { scale });
+        store.setCode(codeSetTransform(store.getCode(), node.name, 'scale', scale));
+        return {
+          tool: toolName,
+          success: true,
+          message: `Scaled "${node.name}" to [${scale.join(', ')}]`,
+        };
+      }
+
+      case 'rename_object': {
+        const objName = args.object_name as string;
+        const newName = args.new_name as string;
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        const previousName = node.name;
+        store.setCode(codeRenameObject(store.getCode(), previousName, newName));
+        store.updateNode(node.id, { name: newName });
+        return {
+          tool: toolName,
+          success: true,
+          message: `Renamed "${previousName}" to "${newName}"`,
+        };
+      }
+
+      case 'duplicate_object': {
+        const objName = args.object_name as string;
+        const newName = args.new_name as string;
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        const cloneId = `obj-${Date.now()}`;
+        const clonedNode: SceneNode = {
+          ...node,
+          id: cloneId,
+          name: newName,
+          traits: node.traits.map((t) => ({ ...t, properties: { ...t.properties } })),
+          position: [...node.position] as [number, number, number],
+          rotation: [...node.rotation] as [number, number, number],
+          scale: [...node.scale] as [number, number, number],
+        };
+        store.addNode(clonedNode);
+        store.setCode(
+          codeCreateObject(store.getCode(), newName, clonedNode.type, clonedNode.position)
+        );
+        // Re-add all traits to the cloned object's code block
+        let patchedCode = store.getCode();
+        for (const trait of node.traits) {
+          patchedCode = codeAddTrait(patchedCode, newName, trait.name, trait.properties);
+        }
+        store.setCode(patchedCode);
+        return {
+          tool: toolName,
+          success: true,
+          message: `Duplicated "${node.name}" as "${newName}"`,
+        };
+      }
+
+      case 'list_objects': {
+        const objects = store.nodes.map((n) => ({
+          name: n.name,
+          type: n.type,
+          traits: n.traits.map((t) => t.name),
+          position: n.position,
+        }));
+        return {
+          tool: toolName,
+          success: true,
+          message: JSON.stringify(objects),
+        };
+      }
+
+      case 'get_object': {
+        const objName = args.object_name as string;
+        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        if (!node)
+          return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        const detail = {
+          name: node.name,
+          type: node.type,
+          traits: node.traits,
+          position: node.position,
+          rotation: node.rotation,
+          scale: node.scale,
+        };
+        return {
+          tool: toolName,
+          success: true,
+          message: JSON.stringify(detail),
+        };
       }
 
       default:

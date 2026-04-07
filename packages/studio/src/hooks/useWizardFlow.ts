@@ -19,6 +19,7 @@ import {
   type WizardAction,
   type WizardStage,
   type AbsorbProgress,
+  type ConsentGates,
 } from '@/lib/brittney/WizardFlow';
 import type { BrittneyMessage } from '@/lib/brittney/BrittneySession';
 import type { ProjectDNA as ScaffoldProjectDNA, ScaffoldResult } from '@/lib/workspace/scaffolder';
@@ -73,6 +74,8 @@ export interface UseWizardFlowResult {
   addMessage: (message: BrittneyMessage) => void;
   /** Update absorb progress */
   updateAbsorbProgress: (progress: Partial<AbsorbProgress>) => void;
+  /** Update consent gates */
+  updateConsent: (consent: Partial<ConsentGates>) => void;
 
   // ── Brittney integration ─────────────────────────────────────────
   /**
@@ -205,6 +208,10 @@ export function useWizardFlow(): UseWizardFlowResult {
     dispatch({ type: 'SET_ABSORB_PROGRESS', progress });
   }, []);
 
+  const updateConsent = useCallback((consent: Partial<ConsentGates>) => {
+    dispatch({ type: 'SET_CONSENT', consent });
+  }, []);
+
   // ── Brittney integration ───────────────────────────────────────
 
   const handleToolCall = useCallback(
@@ -280,6 +287,7 @@ export function useWizardFlow(): UseWizardFlowResult {
     setGeneratedCode,
     addMessage,
     updateAbsorbProgress,
+    updateConsent,
     handleToolCall,
     handleUserMessage,
     generateTemplateCode,

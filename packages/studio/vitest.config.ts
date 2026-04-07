@@ -71,6 +71,10 @@ export default defineConfig({
       // Cross-package resolution (A.011 extraction)
       '@holoscript/core': path.resolve(__dirname, '../core/src/index.ts'),
       '@holoscript/engine': path.resolve(__dirname, '../engine/src'),
+      '@holoscript/framework/ai': path.resolve(__dirname, '../framework/src/ai'),
+      '@holoscript/framework/economy': path.resolve(__dirname, '../framework/src/economy'),
+      '@holoscript/framework/negotiation': path.resolve(__dirname, '../framework/src/negotiation'),
+      '@holoscript/framework': path.resolve(__dirname, '../framework/src/index.ts'),
     },
   },
 });

@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
+import { Sparkles } from 'lucide-react';
 
 // -- Data -------------------------------------------------------------------
 
@@ -317,9 +318,16 @@ export default function HomePage() {
           >
             Start Building
           </Link>
+          <Link
+            href="/vibe"
+            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
+          >
+            Vibe Coding Mode
+            <Sparkles className="w-5 h-5" />
+          </Link>
           <button onClick={() => setShowWizard(true)}
-            className="px-6 py-3 border border-white/10 hover:border-white/20 rounded-xl text-white/60 hover:text-white font-medium transition-all">
-            Import Project
+            className="px-6 py-3 border border-white/10 hover:border-white/20 rounded-xl text-white/60 hover:text-white font-medium transition-all hidden sm:block">
+            Import
           </button>
         </div>
         <p className="text-white/30 text-sm mt-1">Free tier included. No credit card required.</p>

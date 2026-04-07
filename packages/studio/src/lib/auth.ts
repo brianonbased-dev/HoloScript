@@ -12,6 +12,30 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { getDb } from '../db/client';
 
+/* ------------------------------------------------------------------ */
+/* Type augmentations — extend NextAuth Session & JWT with our fields  */
+/* ------------------------------------------------------------------ */
+declare module 'next-auth' {
+  interface Session {
+    accessToken?: string;
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      githubUsername?: string;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    accessToken?: string;
+    provider?: string;
+    githubUsername?: string;
+  }
+}
+
 function buildProviders() {
   const providers: NextAuthOptions['providers'] = [];
 
@@ -68,7 +92,12 @@ export function buildAuthOptions(): NextAuthOptions {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
-      async jwt({ token, profile }) {
+      async jwt({ token, account, profile }) {
+        // On initial sign-in, account contains the OAuth tokens
+        if (account) {
+          token.accessToken = account.access_token;
+          token.provider = account.provider;
+        }
         // Persist GitHub username in JWT for admin bypass
         if (profile && 'login' in profile) {
           token.githubUsername = (profile as { login: string }).login;
@@ -80,8 +109,14 @@ export function buildAuthOptions(): NextAuthOptions {
           // Database sessions have user object, JWT sessions have token
           session.user.id = user?.id ?? token?.sub ?? '';
           // Expose GitHub username for admin checks
-          (session.user as Record<string, unknown>).githubUsername =
-            token?.githubUsername ?? (user as Record<string, unknown>)?.githubUsername ?? '';
+          session.user.githubUsername =
+            token?.githubUsername
+            ?? ((user as Record<string, unknown>)?.githubUsername as string | undefined)
+            ?? '';
+        }
+        // Expose the OAuth access token so provisioning pipeline can use it
+        if (token?.accessToken) {
+          session.accessToken = token.accessToken;
         }
         return session;
       },

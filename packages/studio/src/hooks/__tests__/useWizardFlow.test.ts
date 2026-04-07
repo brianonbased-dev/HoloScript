@@ -9,7 +9,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   wizardReducer,
   createInitialWizardState,
+  isConsentSufficient,
+  DEFAULT_CONSENT,
   type WizardState,
+  type ConsentGates,
 } from '@/lib/brittney/WizardFlow';
 import {
   matchScenarios,
@@ -91,8 +94,56 @@ describe('useWizardFlow logic', () => {
     });
   });
 
+  describe('consent gates', () => {
+    it('initial state has sensible consent defaults', () => {
+      expect(state.consent.scaffold).toBe(true);
+      expect(state.consent.absorb).toBe(true);
+      expect(state.consent.publishKnowledge).toBe(false);
+      expect(state.consent.daemon).toBe(true);
+      expect(state.consent.repos).toEqual([]);
+    });
+
+    it('SET_CONSENT merges partial updates', () => {
+      state = wizardReducer(state, {
+        type: 'SET_CONSENT',
+        consent: { publishKnowledge: true },
+      });
+      expect(state.consent.publishKnowledge).toBe(true);
+      // Others unchanged
+      expect(state.consent.scaffold).toBe(true);
+      expect(state.consent.daemon).toBe(true);
+    });
+
+    it('SET_CONSENT can disable permissions', () => {
+      state = wizardReducer(state, {
+        type: 'SET_CONSENT',
+        consent: { scaffold: false, absorb: false, daemon: false },
+      });
+      expect(state.consent.scaffold).toBe(false);
+      expect(state.consent.absorb).toBe(false);
+      expect(state.consent.daemon).toBe(false);
+    });
+
+    it('isConsentSufficient requires scaffold OR absorb', () => {
+      expect(isConsentSufficient({ ...DEFAULT_CONSENT })).toBe(true);
+      expect(isConsentSufficient({ ...DEFAULT_CONSENT, scaffold: false })).toBe(true);
+      expect(isConsentSufficient({ ...DEFAULT_CONSENT, absorb: false })).toBe(true);
+      expect(isConsentSufficient({ ...DEFAULT_CONSENT, scaffold: false, absorb: false })).toBe(false);
+    });
+
+    it('consent is preserved through RESET', () => {
+      state = wizardReducer(state, {
+        type: 'SET_CONSENT',
+        consent: { publishKnowledge: true },
+      });
+      state = wizardReducer(state, { type: 'RESET' });
+      // Reset returns to defaults
+      expect(state.consent.publishKnowledge).toBe(false);
+    });
+  });
+
   describe('full flow simulation', () => {
-    it('greeting -> intake -> classify -> scaffold -> scenario -> preview', () => {
+    it('greeting -> intake -> classify -> consent -> scaffold -> scenario -> preview', () => {
       // Greeting: user provides intent
       state = wizardReducer(state, { type: 'SET_INTENT', intent: 'surgical simulator' });
       state = wizardReducer(state, { type: 'ADVANCE_STAGE' }); // -> intake
@@ -124,6 +175,15 @@ describe('useWizardFlow logic', () => {
           compilationTargets: ['react'],
           traits: ['physics'],
         },
+      });
+      state = wizardReducer(state, { type: 'ADVANCE_STAGE' }); // -> consent
+
+      expect(state.stage).toBe('consent');
+
+      // Consent: user reviews permissions (defaults are sufficient)
+      state = wizardReducer(state, {
+        type: 'SET_CONSENT',
+        consent: { publishKnowledge: true },
       });
       state = wizardReducer(state, { type: 'ADVANCE_STAGE' }); // -> scaffold
 

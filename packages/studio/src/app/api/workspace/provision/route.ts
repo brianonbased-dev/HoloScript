@@ -17,16 +17,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  let body: { repoUrl?: string; projectName?: string; intent?: string };
+  let body: {
+    repoUrl?: string;
+    projectName?: string;
+    intent?: string;
+    consent?: {
+      repos?: string[];
+      scaffold?: boolean;
+      absorb?: boolean;
+      publishKnowledge?: boolean;
+      daemon?: boolean;
+    };
+  };
   try {
     body = await request.json();
   } catch {
     body = {};
   }
 
-  // Get the GitHub access token from the session
-  // NextAuth stores it if we configure the jwt callback
-  const accessToken = (session as Record<string, unknown>).accessToken as string | undefined;
+  // Extract consent gates with safe defaults
+  const consent = body.consent ?? {};
+  const approvedRepos = Array.isArray(consent.repos) ? consent.repos : [];
+  const approvedScaffold = consent.scaffold !== false;
+  const approvedAbsorb = consent.absorb !== false;
+  const approvedPublishKnowledge = consent.publishKnowledge === true;
+  const approvedDaemon = consent.daemon !== false;
+
+  // Access token is now properly persisted via jwt/session callbacks in auth.ts
+  const accessToken = session.accessToken;
   if (!accessToken) {
     return NextResponse.json(
       { error: 'GitHub access token not available. Please re-authenticate.' },
@@ -41,6 +59,11 @@ export async function POST(request: Request) {
     repoUrl: body.repoUrl,
     projectName: body.projectName,
     intent: body.intent,
+    approvedRepos,
+    approvedScaffold,
+    approvedAbsorb,
+    approvedPublishKnowledge,
+    approvedDaemon,
   });
 
   if (!result.success) {

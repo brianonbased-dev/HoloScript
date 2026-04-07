@@ -16,6 +16,7 @@ export type WizardStage =
   | 'intake'     // Understanding the user's intent
   | 'absorb'     // Scanning their GitHub repo (if they have one)
   | 'classify'   // ProjectDNA classification
+  | 'consent'    // User approves what Brittney can do
   | 'scaffold'   // Generating Claude structure
   | 'scenario'   // Loading matching scenario template
   | 'preview'    // Live preview of their project
@@ -28,12 +29,44 @@ export const WIZARD_STAGES: readonly WizardStage[] = [
   'intake',
   'absorb',
   'classify',
+  'consent',
   'scaffold',
   'scenario',
   'preview',
   'iterate',
   'deploy',
 ] as const;
+
+// ─── Consent gates ──────────────────────────────────────────────────────────
+
+export interface ConsentGates {
+  /** Which repos the user approved Brittney to access */
+  repos: string[];
+  /** Approved pushing .claude/ structure to their repo */
+  scaffold: boolean;
+  /** Approved codebase scan via Absorb */
+  absorb: boolean;
+  /** Approved sharing extracted patterns publicly on HoloMesh */
+  publishKnowledge: boolean;
+  /** Approved background self-improvement daemon */
+  daemon: boolean;
+}
+
+export const DEFAULT_CONSENT: ConsentGates = {
+  repos: [],
+  scaffold: true,
+  absorb: true,
+  publishKnowledge: false,
+  daemon: true,
+};
+
+/**
+ * At least scaffold OR absorb must be approved to proceed.
+ * Without either, Brittney can't do anything useful.
+ */
+export function isConsentSufficient(consent: ConsentGates): boolean {
+  return consent.scaffold || consent.absorb;
+}
 
 // ─── Absorb progress ────────────────────────────────────────────────────────
 
@@ -59,6 +92,8 @@ export interface WizardState {
   generatedCode?: string;
   messages: BrittneyMessage[];
   absorbProgress: AbsorbProgress;
+  /** User consent gates — what Brittney is allowed to do */
+  consent: ConsentGates;
   /** Domain keywords extracted during intake */
   domainKeywords: string[];
   /** Timestamp of last state update (for staleness checks) */
@@ -79,6 +114,7 @@ export type WizardAction =
   | { type: 'ADD_MESSAGE'; message: BrittneyMessage }
   | { type: 'SET_ABSORB_PROGRESS'; progress: Partial<AbsorbProgress> }
   | { type: 'SET_DOMAIN_KEYWORDS'; keywords: string[] }
+  | { type: 'SET_CONSENT'; consent: Partial<ConsentGates> }
   | { type: 'ADVANCE_STAGE' }
   | { type: 'RESET' };
 
@@ -97,6 +133,7 @@ export function createInitialWizardState(): WizardState {
       totalFiles: 0,
       currentFile: '',
     },
+    consent: { ...DEFAULT_CONSENT },
     domainKeywords: [],
     updatedAt: Date.now(),
   };
@@ -148,13 +185,19 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
     case 'SET_DOMAIN_KEYWORDS':
       return { ...base, domainKeywords: action.keywords };
 
+    case 'SET_CONSENT':
+      return {
+        ...base,
+        consent: { ...base.consent, ...action.consent },
+      };
+
     case 'ADVANCE_STAGE': {
       const currentIndex = WIZARD_STAGES.indexOf(base.stage);
       if (currentIndex < 0 || currentIndex >= WIZARD_STAGES.length - 1) return base;
-      const nextStage = WIZARD_STAGES[currentIndex + 1];
+      let nextStage = WIZARD_STAGES[currentIndex + 1];
       // Skip absorb stage if user has no existing code
       if (nextStage === 'absorb' && !base.hasExistingCode) {
-        return { ...base, stage: 'classify' };
+        nextStage = 'classify';
       }
       return { ...base, stage: nextStage };
     }
@@ -200,6 +243,12 @@ export const STAGE_META: Record<WizardStage, StageMeta> = {
   classify: {
     label: 'Classification',
     description: 'Building your project DNA',
+    showInProgress: true,
+    skippable: false,
+  },
+  consent: {
+    label: 'Permissions',
+    description: 'Choose what Brittney can do',
     showInProgress: true,
     skippable: false,
   },
@@ -265,7 +314,7 @@ export function toolCallToTransition(
 
     // Brittney generated scaffold
     case 'scaffold_workspace':
-      if (currentStage === 'classify' || currentStage === 'intake') {
+      if (currentStage === 'classify' || currentStage === 'consent' || currentStage === 'intake') {
         return { type: 'SET_STAGE', stage: 'scaffold' };
       }
       return null;
@@ -301,6 +350,8 @@ export function canAdvance(state: WizardState): boolean {
       return state.absorbProgress.status === 'complete';
     case 'classify':
       return state.projectDNA !== undefined;
+    case 'consent':
+      return isConsentSufficient(state.consent);
     case 'scaffold':
       return state.scaffoldResult !== undefined;
     case 'scenario':
@@ -328,6 +379,7 @@ export function serializeWizardState(state: WizardState): string {
     repoUrl: state.repoUrl,
     selectedScenario: state.selectedScenario,
     compilationTargets: state.compilationTargets,
+    consent: state.consent,
     domainKeywords: state.domainKeywords,
     messages: state.messages.slice(-20), // Keep last 20 messages
     updatedAt: state.updatedAt,
