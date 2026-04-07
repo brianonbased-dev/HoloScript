@@ -4,9 +4,14 @@
  * Generates a scrollable list of friends with status indicators.
  */
 
-import { SocialUser } from '../../social/SocialGraph';
 import { createScrollView, createButton } from '../UIComponents';
-import { HSPlusNode } from '../../types/HoloScriptPlus';
+import type { HSPlusNode } from '@holoscript/core';
+
+type SocialUser = {
+  id: string;
+  displayName: string;
+  status: 'online' | 'offline' | 'away' | 'busy';
+};
 
 export class FriendList {
   create(friends: SocialUser[], onSelect: (userId: string) => void): HSPlusNode {

@@ -111,7 +111,7 @@ function PermissionCard({
   checked: boolean;
   onChange: (val: boolean) => void;
 }) {
-  const Icon = permission.icon as React.ElementType;
+  const Icon = permission.icon as React.ComponentType<{ className?: string }>;
   const [expanded, setExpanded] = React.useState(false);
 
   return (
