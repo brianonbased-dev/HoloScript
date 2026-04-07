@@ -1,4 +1,4 @@
-import { TraitContext } from '../traits/VRTraitSystem';
+
 
 export class KeyboardSystem {
   private focusedNodeId: string | null = null;

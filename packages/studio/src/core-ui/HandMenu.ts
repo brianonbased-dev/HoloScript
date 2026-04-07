@@ -1,9 +1,11 @@
-import type { HSPlusRuntime, VRHand, Vector3, HSPlusNode } from '@holoscript/core';
+import type { VRHand, Vector3, HSPlusNode } from '@holoscript/core';
+// HSPlusRuntime not yet re-exported from @holoscript/core dist — local shim
+type HSPlusRuntime = { vrContext?: unknown; [key: string]: unknown };
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
-// @ts-expect-error During migration
+
 import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
-// @ts-expect-error During migration
+
 import { AnimationEngine } from '@holoscript/engine/animation/AnimationEngine';
 
 export class HandMenuSystem {
@@ -15,7 +17,7 @@ export class HandMenuSystem {
   private transitions: TransitionSystem;
 
   constructor(
-    private runtime: HSPlusRuntime,
+    private runtime: any,
     engine?: AnimationEngine
   ) {
     this.transitions = new TransitionSystem(engine || new AnimationEngine());
@@ -79,7 +81,7 @@ export class HandMenuSystem {
     // Position near the hand
     menu.properties!.position = {
       x: hand.position.x,
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      
       y: hand.position.y + 0.1,
       z: hand.position.z,
     };
@@ -98,11 +100,11 @@ export class HandMenuSystem {
     // Animate in: scale + fade
     this.transitions.popIn(
       menuId,
-      // @ts-expect-error During migration
+      
       (s) => {
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      // @ts-expect-error During migration
+      
       (o) => {
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
@@ -124,20 +126,20 @@ export class HandMenuSystem {
     // Animate out: scale + fade, then unmount
     this.transitions.popOut(
       nodeIdToRemove,
-      // @ts-expect-error During migration
+      
       (s) => {
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      // @ts-expect-error During migration
+      
       (o) => {
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
       {
         duration: 0.25,
         onComplete: () => {
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+          
           if (this.runtime.unmountObject) {
-            // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+            
             this.runtime.unmountObject(nodeIdToRemove);
           }
           this.isTransitioning = false;
