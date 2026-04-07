@@ -21,7 +21,6 @@
     "start.js"
   ],
   "scripts": {
-    "prepare": "tsup",
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
     "start": "node start.js",
