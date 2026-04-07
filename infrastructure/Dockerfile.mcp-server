@@ -43,7 +43,7 @@ COPY packages/mcp-server/ packages/mcp-server/
 RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN cd packages/engine && npx tsup --no-dts
+RUN cd packages/engine && pnpm build
 RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
