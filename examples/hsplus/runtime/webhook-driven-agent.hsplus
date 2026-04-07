@@ -1,0 +1,167 @@
+// Webhook-Driven Agent — Reacts to external events via HTTP triggers
+// Pattern: Receive Event → Route → Process → Respond → Log
+
+@state {
+  eventLog: []
+  processedCount: 0
+  errorCount: 0
+  handlers: {}
+}
+
+composition WebhookAgent {
+  @ai_npc
+  @llm_agent { model: "claude-haiku-4-5", max_tokens: 1024 }
+
+  state {
+    currentEvent: null
+    response: null
+  }
+
+  // Webhook endpoint declarations
+  @external_api "github_webhook" {
+    path: "/webhooks/github"
+    method: "POST"
+    description: "Handle GitHub events (push, PR, issue)"
+    auth: { type: "hmac", secret: "${env.GITHUB_WEBHOOK_SECRET}" }
+  }
+
+  @external_api "stripe_webhook" {
+    path: "/webhooks/stripe"
+    method: "POST"
+    description: "Handle Stripe payment events"
+    auth: { type: "signature", header: "stripe-signature" }
+  }
+
+  @external_api "moltbook_webhook" {
+    path: "/webhooks/moltbook"
+    method: "POST"
+    description: "Handle Moltbook social events (mention, reply)"
+    auth: { type: "bearer", token: "${env.MOLTBOOK_WEBHOOK_TOKEN}" }
+  }
+
+  // Event routing table
+  @state {
+    handlers: {
+      "github.push": "on_code_push",
+      "github.pull_request.opened": "on_pr_opened",
+      "github.issues.opened": "on_issue_opened",
+      "stripe.payment_intent.succeeded": "on_payment_success",
+      "stripe.payment_intent.failed": "on_payment_failed",
+      "moltbook.mention": "on_social_mention",
+      "moltbook.reply": "on_social_reply"
+    }
+  }
+
+  @state_machine {
+    initial: "listening"
+
+    state "listening" {
+      transition "event_received" -> "routing" {
+        guard: currentEvent != null
+      }
+    }
+
+    state "routing" {
+      on_entry {
+        this.eventType = currentEvent.type || currentEvent.event
+        this.handler = handlers[eventType]
+      }
+      transition "handler_found" -> "processing" {
+        guard: handler != null
+      }
+      transition "no_handler" -> "logging" {
+        action {
+          this.response = { status: "ignored", reason: "no handler for ${eventType}" }
+        }
+      }
+    }
+
+    state "processing" {
+      on_entry {
+        this.processedCount += 1
+
+        // Dispatch to the appropriate handler
+        @if handler == "on_code_push" {
+          this.response = llm_call("handle_push", {
+            prompt: "A new commit was pushed. Summarize changes and suggest actions.",
+            payload: currentEvent.data,
+            format: "json"
+          })
+          emit("code_push_processed", {
+            repo: currentEvent.data.repository,
+            branch: currentEvent.data.ref,
+            summary: response.summary
+          })
+        }
+
+        @if handler == "on_pr_opened" {
+          this.response = llm_call("review_pr", {
+            prompt: "A new PR was opened. Provide a brief initial review.",
+            title: currentEvent.data.title,
+            body: currentEvent.data.body,
+            diff_url: currentEvent.data.diff_url
+          })
+          emit("pr_review_ready", {
+            pr: currentEvent.data.number,
+            review: response.review
+          })
+        }
+
+        @if handler == "on_payment_success" {
+          emit("payment_processed", {
+            amount: currentEvent.data.amount,
+            customer: currentEvent.data.customer,
+            timestamp: now()
+          })
+          this.response = { status: "processed", action: "payment_recorded" }
+        }
+
+        @if handler == "on_social_mention" {
+          this.response = llm_call("craft_reply", {
+            prompt: "Someone mentioned us. Craft a helpful, on-brand reply.",
+            mention: currentEvent.data,
+            voice: "philosopher-engineer"
+          })
+          emit("social_reply_ready", {
+            platform: "moltbook",
+            inReplyTo: currentEvent.data.id,
+            content: response.reply
+          })
+        }
+      }
+      transition "processed" -> "logging"
+      transition "error" -> "error_handling" {
+        guard: response == null || response.error != null
+      }
+    }
+
+    state "error_handling" {
+      on_entry {
+        this.errorCount += 1
+        emit("webhook_error", {
+          event: eventType,
+          error: response?.error || "processing failed",
+          consecutiveErrors: errorCount
+        })
+      }
+      transition "handled" -> "logging"
+    }
+
+    state "logging" {
+      on_entry {
+        this.eventLog.push({
+          type: eventType,
+          handler: handler,
+          status: response?.status || "processed",
+          timestamp: now()
+        })
+      }
+      transition "logged" -> "listening" {
+        action {
+          this.currentEvent = null
+          this.response = null
+        }
+      }
+    }
+  }
+}

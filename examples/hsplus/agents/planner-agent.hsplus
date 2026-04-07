@@ -1,0 +1,120 @@
+// Planner Agent — Decomposes goals into executable steps
+// Pattern: Goal → Plan → Validate → Execute-or-Revise
+
+@state {
+  goal: ""
+  plan: []
+  currentStep: 0
+  status: "idle"
+  history: []
+}
+
+composition PlannerAgent {
+  @ai_npc
+  @llm_agent { model: "claude-sonnet-4-6", max_tokens: 4096 }
+
+  state {
+    confidence: 0.0
+    retries: 0
+    maxRetries: 3
+  }
+
+  @state_machine {
+    initial: "idle"
+
+    state "idle" {
+      on_entry {
+        this.status = "idle"
+      }
+      transition "receive_goal" -> "planning" {
+        guard: goal != ""
+      }
+    }
+
+    state "planning" {
+      on_entry {
+        this.status = "planning"
+        this.plan = llm_call("decompose", {
+          prompt: "Break this goal into 3-7 concrete steps: ${goal}",
+          format: "json_array"
+        })
+        this.confidence = llm_call("assess_confidence", {
+          prompt: "Rate confidence 0-1 that this plan achieves the goal",
+          plan: this.plan
+        })
+      }
+      transition "plan_ready" -> "validating" {
+        guard: plan.length > 0
+      }
+      transition "plan_failed" -> "revising" {
+        guard: plan.length == 0
+      }
+    }
+
+    state "validating" {
+      on_entry {
+        this.status = "validating"
+      }
+      transition "high_confidence" -> "executing" {
+        guard: confidence >= 0.7
+      }
+      transition "low_confidence" -> "revising" {
+        guard: confidence < 0.7
+      }
+    }
+
+    state "revising" {
+      on_entry {
+        this.retries += 1
+        this.status = "revising"
+        this.plan = llm_call("revise_plan", {
+          prompt: "This plan has low confidence. Revise: ${plan}",
+          goal: goal,
+          attempt: this.retries
+        })
+      }
+      transition "retry" -> "validating" {
+        guard: retries < maxRetries
+      }
+      transition "give_up" -> "failed" {
+        guard: retries >= maxRetries
+      }
+    }
+
+    state "executing" {
+      on_entry {
+        this.status = "executing"
+        this.currentStep = 0
+      }
+      transition "step_complete" -> "executing" {
+        guard: currentStep < plan.length - 1
+        action {
+          this.currentStep += 1
+          this.history.push({ step: currentStep, result: "ok" })
+        }
+      }
+      transition "all_done" -> "completed" {
+        guard: currentStep >= plan.length - 1
+      }
+      transition "step_failed" -> "revising" {
+        action {
+          this.history.push({ step: currentStep, result: "failed" })
+        }
+      }
+    }
+
+    state "completed" {
+      on_entry {
+        this.status = "completed"
+        emit("plan_completed", { goal: goal, steps: plan.length, history: history })
+      }
+    }
+
+    state "failed" {
+      on_entry {
+        this.status = "failed"
+        emit("plan_failed", { goal: goal, retries: retries })
+      }
+    }
+  }
+}

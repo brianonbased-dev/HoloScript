@@ -1,0 +1,143 @@
+// Moderator Agent — Enforces community norms with escalation
+// Pattern: Observe → Classify → Enforce → Appeal
+
+@state {
+  violations: []
+  warnings: 0
+  bans: 0
+  appealQueue: []
+}
+
+composition ModeratorAgent {
+  @ai_npc
+  @llm_agent { model: "claude-haiku-4-5", max_tokens: 1024 }
+
+  state {
+    severity: "none"
+    currentContent: ""
+    currentAuthor: ""
+    verdict: ""
+  }
+
+  // Norms this moderator enforces
+  @import "./norms/community-guidelines.hsplus"
+
+  @state_machine {
+    initial: "watching"
+
+    state "watching" {
+      on_entry {
+        this.severity = "none"
+        this.verdict = ""
+      }
+      transition "content_flagged" -> "classifying" {
+        guard: currentContent != ""
+      }
+    }
+
+    state "classifying" {
+      on_entry {
+        this.verdict = llm_call("classify_content", {
+          prompt: "Classify this content against community norms. Return: safe|warning|violation|severe",
+          content: currentContent,
+          author: currentAuthor,
+          norms: community_guidelines
+        })
+        this.severity = this.verdict
+      }
+      transition "safe" -> "watching" {
+        guard: severity == "safe"
+      }
+      transition "warning" -> "warning_user" {
+        guard: severity == "warning"
+      }
+      transition "violation" -> "enforcing" {
+        guard: severity == "violation"
+      }
+      transition "severe" -> "immediate_action" {
+        guard: severity == "severe"
+      }
+    }
+
+    state "warning_user" {
+      on_entry {
+        this.warnings += 1
+        emit("moderation_warning", {
+          author: currentAuthor,
+          content: currentContent,
+          reason: llm_call("explain_warning", {
+            prompt: "Explain why this content received a warning, referencing specific norms"
+          }),
+          warningCount: warnings
+        })
+      }
+      transition "warned" -> "watching"
+    }
+
+    state "enforcing" {
+      on_entry {
+        this.violations.push({
+          author: currentAuthor,
+          content: currentContent,
+          timestamp: now(),
+          severity: severity
+        })
+
+        // Check escalation threshold
+        @for violation in violations {
+          @if violation.author == currentAuthor {
+            this.authorViolationCount += 1
+          }
+        }
+
+        emit("moderation_action", {
+          type: authorViolationCount >= 3 ? "temp_ban" : "content_removed",
+          author: currentAuthor,
+          reason: verdict
+        })
+      }
+      transition "enforced" -> "logging" {
+        guard: authorViolationCount < 3
+      }
+      transition "escalate" -> "immediate_action" {
+        guard: authorViolationCount >= 3
+      }
+    }
+
+    state "immediate_action" {
+      on_entry {
+        this.bans += 1
+        emit("moderation_ban", {
+          author: currentAuthor,
+          duration: severity == "severe" ? "permanent" : "7d",
+          appealable: severity != "severe"
+        })
+      }
+      transition "actioned" -> "logging"
+    }
+
+    state "logging" {
+      on_entry {
+        emit("moderation_log", {
+          author: currentAuthor,
+          severity: severity,
+          verdict: verdict,
+          totalViolations: violations.length,
+          totalWarnings: warnings,
+          totalBans: bans
+        })
+      }
+      transition "logged" -> "watching"
+    }
+  }
+
+  // Appeal handler (parallel state)
+  on_appeal(author, reason) {
+    this.appealQueue.push({
+      author: author,
+      reason: reason,
+      timestamp: now()
+    })
+    emit("appeal_received", { author: author, queueLength: appealQueue.length })
+  }
+}

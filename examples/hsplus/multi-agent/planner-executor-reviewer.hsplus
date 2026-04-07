@@ -1,0 +1,204 @@
+// Planner → Executor → Reviewer — Three-agent pipeline
+// Pattern: Planner decomposes, Executor implements, Reviewer validates
+
+@state {
+  task: ""
+  plan: []
+  results: []
+  review: null
+  iteration: 0
+  maxIterations: 3
+  status: "idle"
+}
+
+// ============================================================================
+// PLANNER — Breaks task into steps
+// ============================================================================
+
+composition Planner {
+  @ai_npc
+  @llm_agent { model: "claude-sonnet-4-6", max_tokens: 4096 }
+
+  state {
+    planConfidence: 0.0
+  }
+
+  on_plan_request(task) {
+    this.plan = llm_call("decompose", {
+      prompt: "Break this task into 3-5 concrete, executable steps: ${task}",
+      format: "json_array"
+    })
+    this.planConfidence = llm_call("assess", {
+      prompt: "Rate 0-1 how achievable this plan is",
+      plan: plan
+    })
+    emit("plan_ready", { plan: plan, confidence: planConfidence })
+  }
+
+  on_revision_request(feedback) {
+    this.plan = llm_call("revise_plan", {
+      prompt: "Revise this plan based on reviewer feedback",
+      currentPlan: plan,
+      feedback: feedback
+    })
+    emit("plan_ready", { plan: plan, confidence: planConfidence, revised: true })
+  }
+}
+
+// ============================================================================
+// EXECUTOR — Implements each step
+// ============================================================================
+
+composition Executor {
+  @ai_npc
+  @llm_agent { model: "claude-sonnet-4-6", max_tokens: 8192 }
+
+  state {
+    currentStep: 0
+    stepResults: []
+  }
+
+  @external_api "shell_exec" {
+    description: "Execute a shell command"
+    method: "POST"
+  }
+
+  @external_api "file_write" {
+    description: "Write content to a file"
+    method: "POST"
+  }
+
+  on_execute(plan) {
+    this.currentStep = 0
+    this.stepResults = []
+
+    @forEach step in plan {
+      this.result = llm_call("execute_step", {
+        prompt: "Execute this step. Use tool_call for actions: ${step}",
+        previousResults: stepResults,
+        tools: ["shell_exec", "file_write"]
+      })
+
+      this.stepResults.push({
+        step: step,
+        result: result,
+        success: result.success != false
+      })
+      this.currentStep += 1
+    }
+
+    emit("execution_complete", {
+      results: stepResults,
+      allSuccess: stepResults.every(r => r.success)
+    })
+  }
+}
+
+// ============================================================================
+// REVIEWER — Validates results against original task
+// ============================================================================
+
+composition Reviewer {
+  @ai_npc
+  @llm_agent { model: "claude-sonnet-4-6", max_tokens: 2048 }
+
+  state {
+    approved: false
+    feedback: ""
+    score: 0.0
+  }
+
+  on_review(task, results) {
+    this.review = llm_call("review", {
+      prompt: "Review these execution results against the original task. Score 0-1 and provide specific feedback.",
+      task: task,
+      results: results,
+      format: "json"
+    })
+
+    this.score = review.score
+    this.approved = review.score >= 0.8
+    this.feedback = review.feedback
+
+    @if approved {
+      emit("review_approved", {
+        score: score,
+        feedback: feedback
+      })
+    } @else {
+      emit("review_rejected", {
+        score: score,
+        feedback: feedback,
+        suggestedChanges: review.suggestedChanges
+      })
+    }
+  }
+}
+
+// ============================================================================
+// COORDINATOR — Orchestrates the three agents
+// ============================================================================
+
+composition Coordinator {
+  @state_machine {
+    initial: "idle"
+
+    state "idle" {
+      transition "task_received" -> "planning" {
+        guard: task != ""
+      }
+    }
+
+    state "planning" {
+      on_entry {
+        this.status = "planning"
+        Planner.on_plan_request(task)
+      }
+      transition "plan_ready" -> "executing"
+    }
+
+    state "executing" {
+      on_entry {
+        this.status = "executing"
+        Executor.on_execute(plan)
+      }
+      transition "execution_complete" -> "reviewing"
+    }
+
+    state "reviewing" {
+      on_entry {
+        this.status = "reviewing"
+        this.iteration += 1
+        Reviewer.on_review(task, results)
+      }
+      transition "review_approved" -> "completed"
+      transition "review_rejected" -> "revising" {
+        guard: iteration < maxIterations
+      }
+      transition "review_rejected" -> "completed" {
+        guard: iteration >= maxIterations
+      }
+    }
+
+    state "revising" {
+      on_entry {
+        this.status = "revising"
+        Planner.on_revision_request(Reviewer.feedback)
+      }
+      transition "plan_ready" -> "executing"
+    }
+
+    state "completed" {
+      on_entry {
+        this.status = "completed"
+        emit("pipeline_complete", {
+          task: task,
+          iterations: iteration,
+          approved: Reviewer.approved,
+          score: Reviewer.score,
+          finalResults: results
+        })
+      }
+    }
+  }
+}

@@ -1,0 +1,161 @@
+// Researcher Agent — Tool-using knowledge gatherer
+// Pattern: Question → Search → Extract → Synthesize → Cite
+
+@state {
+  query: ""
+  sources: []
+  findings: []
+  synthesis: ""
+  confidence: 0.0
+}
+
+composition ResearcherAgent {
+  @ai_npc
+  @llm_agent { model: "claude-sonnet-4-6", max_tokens: 8192 }
+
+  state {
+    searchDepth: 0
+    maxDepth: 3
+    toolCalls: 0
+  }
+
+  // Tool declarations — what this agent can use
+  @external_api "web_search" {
+    endpoint: "${env.SEARCH_API}"
+    method: "GET"
+    description: "Search the web for information"
+  }
+
+  @external_api "knowledge_query" {
+    endpoint: "${env.MCP_ORCHESTRATOR}/knowledge/query"
+    method: "POST"
+    description: "Query the knowledge store for existing insights"
+  }
+
+  @external_api "absorb_query" {
+    endpoint: "${env.ABSORB_URL}/mcp"
+    method: "POST"
+    description: "Semantic search over absorbed codebases"
+  }
+
+  @state_machine {
+    initial: "idle"
+
+    state "idle" {
+      transition "question_received" -> "planning_search" {
+        guard: query != ""
+      }
+    }
+
+    state "planning_search" {
+      on_entry {
+        this.searchPlan = llm_call("plan_research", {
+          prompt: "Plan 2-5 search queries to answer: ${query}",
+          format: "json_array"
+        })
+      }
+      transition "plan_ready" -> "searching"
+    }
+
+    state "searching" {
+      on_entry {
+        this.searchDepth += 1
+
+        // Execute each planned search
+        @forEach searchQuery in searchPlan {
+          // Try knowledge store first (cheapest)
+          this.kResult = tool_call("knowledge_query", {
+            search: searchQuery,
+            limit: 5
+          })
+          @if kResult.results.length > 0 {
+            this.sources.push(...kResult.results)
+          }
+
+          // Then web search if needed
+          @if sources.length < 3 {
+            this.wResult = tool_call("web_search", {
+              q: searchQuery,
+              limit: 5
+            })
+            this.sources.push(...wResult.results)
+            this.toolCalls += 1
+          }
+        }
+      }
+      transition "enough_sources" -> "extracting" {
+        guard: sources.length >= 3
+      }
+      transition "need_more" -> "searching" {
+        guard: sources.length < 3 && searchDepth < maxDepth
+      }
+      transition "exhausted" -> "extracting" {
+        guard: searchDepth >= maxDepth
+      }
+    }
+
+    state "extracting" {
+      on_entry {
+        // Extract key findings from each source
+        @forEach source in sources {
+          this.finding = llm_call("extract_insight", {
+            prompt: "Extract the key insight relevant to '${query}' from this source",
+            content: source.content,
+            format: "json"
+          })
+          @if finding.relevant {
+            this.findings.push({
+              insight: finding.insight,
+              source: source.url || source.id,
+              confidence: finding.confidence
+            })
+          }
+        }
+      }
+      transition "findings_ready" -> "synthesizing" {
+        guard: findings.length > 0
+      }
+      transition "no_findings" -> "failed" {
+        guard: findings.length == 0
+      }
+    }
+
+    state "synthesizing" {
+      on_entry {
+        this.synthesis = llm_call("synthesize", {
+          prompt: "Synthesize these findings into a coherent answer to: ${query}",
+          findings: findings,
+          format: "markdown"
+        })
+        this.confidence = llm_call("assess_confidence", {
+          prompt: "Rate 0-1 how well this synthesis answers the original question",
+          synthesis: synthesis,
+          query: query
+        })
+      }
+      transition "done" -> "completed"
+    }
+
+    state "completed" {
+      on_entry {
+        emit("research_complete", {
+          query: query,
+          synthesis: synthesis,
+          confidence: confidence,
+          sourceCount: sources.length,
+          findingCount: findings.length,
+          toolCalls: toolCalls
+        })
+      }
+    }
+
+    state "failed" {
+      on_entry {
+        emit("research_failed", {
+          query: query,
+          reason: "No relevant findings after ${searchDepth} search rounds"
+        })
+      }
+    }
+  }
+}
