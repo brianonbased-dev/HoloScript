@@ -9,14 +9,14 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       const source = `
         composition "Example" {
           object "Container" {
-            sub_orb InnerModule {
+            sub_orb "InnerModule" {
               source: "inner.holo"
               scale: 0.5
             }
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast).toBeDefined();
       
@@ -47,7 +47,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.terrains).toBeDefined();
       expect(result.ast!.terrains!.length).toBe(1);
@@ -71,7 +71,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.constraints).toBeDefined();
       expect(result.ast!.constraints!.length).toBe(1);
@@ -103,13 +103,13 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
               violation_threshold: 3
             }
             
-            on norm_violated(agent) {
+            on_norm_violated(agent) {
                emit("punish", agent)
             }
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.norms).toBeDefined();
       expect(result.ast!.norms!.length).toBe(1);
@@ -130,7 +130,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       
       expect(norm.eventHandlers).toBeDefined();
       expect(norm.eventHandlers!.length).toBe(1);
-      expect(norm.eventHandlers![0].event).toBe('norm_violated');
+      expect(norm.eventHandlers![0].event).toBe('on_norm_violated');
     });
 
     it('should parse a metanorm block', () => {
@@ -149,7 +149,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.metanorms).toBeDefined();
       expect(result.ast!.metanorms!.length).toBe(1);
@@ -176,7 +176,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.domainBlocks).toBeDefined();
       expect(result.ast!.domainBlocks!.length).toBe(1);
@@ -201,7 +201,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.domainBlocks).toBeDefined();
       expect(result.ast!.domainBlocks!.length).toBe(2);
@@ -226,7 +226,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           }
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.spawnGroups).toBeDefined();
       expect(result.ast!.spawnGroups!.length).toBe(1);
@@ -245,7 +245,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
           waypoints "PatrolRoute" [[0,0,0], [10,0,0], [10,0,10], [0,0,10]]
         }
       `;
-      const result = parser.parse(source); if(!result.success) throw new Error(JSON.stringify(result.errors, null, 2));
+      const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast!.waypointSets).toBeDefined();
       expect(result.ast!.waypointSets!.length).toBe(1);

@@ -5652,6 +5652,7 @@ export class HoloCompositionParser {
           this.expect('RPAREN');
         }
         if (this.check('LBRACE')) {
+          this.advance(); // consume LBRACE
           const body = this.parseStatementBlock();
           this.expect('RBRACE');
           eventHandlers.push({
@@ -5806,6 +5807,7 @@ export class HoloCompositionParser {
           this.expect('RPAREN');
         }
         if (this.check('LBRACE')) {
+          this.advance(); // consume LBRACE
           const body = this.parseStatementBlock();
           this.expect('RBRACE');
           eventHandlers.push({
@@ -5870,9 +5872,9 @@ export class HoloCompositionParser {
       if (this.check('IDENTIFIER') || this.current().type !== 'EOF') {
         traits.push(this.current().value);
         this.advance();
-        // Handle trait with body: @trait { config }
-        if (this.check('LBRACE')) {
-          this.skipBlock(); // skip trait config block for now
+        // Handle trait with parenthesized config: @trait(key: value)
+        if (this.check('LPAREN')) {
+          this.skipParens();
         }
       }
     }
