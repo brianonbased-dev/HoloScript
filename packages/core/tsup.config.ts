@@ -106,6 +106,7 @@ export default defineConfig({
     'jsonwebtoken',
     'jws',
     'safe-buffer',
+    'ws',
     // Externalize React (peer dependency for UI components like DegradedModeBanner)
     'react',
     'react-dom',

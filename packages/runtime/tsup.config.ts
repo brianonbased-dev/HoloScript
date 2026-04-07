@@ -19,7 +19,7 @@ export default defineConfig([
     clean: true,
     splitting: false,
     treeshake: true,
-    external: ['react', '@react-three/fiber', 'three', 'monaco-editor', '@hololand/world'],
+    external: ['react', '@react-three/fiber', 'three', 'monaco-editor', '@hololand/world', '@holoscript/framework', '@holoscript/engine', /^@holoscript\/framework\//, /^@holoscript\/engine\//],
   },
   // Global/IIFE bundle for <script> tag loading
   {

@@ -13,7 +13,7 @@ export default defineConfig({
     'skills/index': 'src/skills/index.ts',
     'negotiation/index': 'src/negotiation/index.ts',
   },
-  format: ['esm'],
+  format: ['esm', 'cjs'],
   dts: true,
   clean: true,
   splitting: false,

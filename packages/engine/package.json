@@ -21,12 +21,382 @@
       "import": "./dist/rendering/index.js",
       "require": "./dist/rendering/index.cjs"
     },
+    "./rendering/MaterialLibrary": {
+      "types": "./dist/rendering/index.d.ts",
+      "import": "./dist/rendering/index.js",
+      "require": "./dist/rendering/index.cjs"
+    },
     "./physics": {
       "types": "./dist/physics/index.d.ts",
       "import": "./dist/physics/index.js",
       "require": "./dist/physics/index.cjs"
     },
+    "./physics/ClothSim": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/ConstraintSolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/DeformableMesh": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/FluidSim": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/IslandDetector": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/JointSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/MLSMPMFluid": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PBDSolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsBody.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsTypes": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsTypes.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsWorldImpl": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RagdollController": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RagdollSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RaycastSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RaycastSystem.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RopeSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SoftBodyAdapter": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SoftBodySolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SpatialHash": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SpatialHash.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/TriggerZone": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/TriggerZone.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/VehicleSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/ClothSim": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/ConstraintSolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/DeformableMesh": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/FluidSim": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/IslandDetector": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/JointSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/MLSMPMFluid": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PBDSolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsBody.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsTypes": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsTypes.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/PhysicsWorldImpl": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RagdollController": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RagdollSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RaycastSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RaycastSystem.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/RopeSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SoftBodyAdapter": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SoftBodySolver": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SpatialHash": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/SpatialHash.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/TriggerZone": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/TriggerZone.js": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
+    "./physics/VehicleSystem": {
+      "types": "./dist/physics/index.d.ts",
+      "import": "./dist/physics/index.js",
+      "require": "./dist/physics/index.cjs"
+    },
     "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+      "./runtime/protocols/MQTTClient": {
+        "types": "./dist/runtime/index.d.ts",
+        "import": "./dist/runtime/index.js",
+        "require": "./dist/runtime/index.cjs"
+      },
+      "./runtime/protocols": {
+        "types": "./dist/runtime/index.d.ts",
+        "import": "./dist/runtime/index.js",
+        "require": "./dist/runtime/index.cjs"
+      },
+    "./runtime/BaseVoiceSynthesizer": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/CultureRuntime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/EmotionDetector": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/EventBus": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/HeadlessRuntime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/HoloScriptPlusRuntime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/LocalEmotionDetector": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/MockSpeechRecognizer": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/MovementPredictor": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/NavigationEngine": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/NetworkPredictor": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/NeuralVoiceAdapter": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/PhysicsEngine": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/profiles": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/profiles/HeadlessRuntime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/protocols/MQTTClient": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/RuntimeOptimization": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/RuntimeRenderer": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/SafetyGate": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/SpeechRecognizer": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/StateMachineInterpreter": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/TraitContextFactory": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/VoiceSynthesizer": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
       "require": "./dist/runtime/index.cjs"
@@ -41,12 +411,102 @@
       "import": "./dist/animation/index.js",
       "require": "./dist/animation/index.cjs"
     },
+    "./animation/AnimationClip": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/AnimationClip.js": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/AnimationEngine": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/AnimationGraph": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/AnimationTransitions": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/AvatarController": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/BoneSystem": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/CutsceneTimeline": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/IKSolver": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/MorphTargets": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/SkeletalBlender": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/SpringAnimator": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/Timeline": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
+    "./animation/TransitionSystem": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js",
+      "require": "./dist/animation/index.cjs"
+    },
     "./vr": {
       "types": "./dist/vr/index.d.ts",
       "import": "./dist/vr/index.js",
       "require": "./dist/vr/index.cjs"
     },
     "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./input/GestureRecognizer": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./input/InputBindings": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./input/InputManager": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./input/InputManager.js": {
       "types": "./dist/input/index.d.ts",
       "import": "./dist/input/index.js",
       "require": "./dist/input/index.cjs"
@@ -71,12 +531,112 @@
       "import": "./dist/terrain/index.js",
       "require": "./dist/terrain/index.cjs"
     },
+    "./terrain/ErosionBrush": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/ErosionSim": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/ErosionSim.js": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/TerrainBrush": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/TerrainLOD": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/TerrainPaintLayer": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/TerrainPaintLayer.js": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
+    "./terrain/TerrainTexturing": {
+      "types": "./dist/terrain/index.d.ts",
+      "import": "./dist/terrain/index.js",
+      "require": "./dist/terrain/index.cjs"
+    },
     "./tilemap": {
       "types": "./dist/tilemap/index.d.ts",
       "import": "./dist/tilemap/index.js",
       "require": "./dist/tilemap/index.cjs"
     },
+    "./tilemap/TileMap": {
+      "types": "./dist/tilemap/index.d.ts",
+      "import": "./dist/tilemap/index.js",
+      "require": "./dist/tilemap/index.cjs"
+    },
+    "./tilemap/TileMap.js": {
+      "types": "./dist/tilemap/index.d.ts",
+      "import": "./dist/tilemap/index.js",
+      "require": "./dist/tilemap/index.cjs"
+    },
+    "./tilemap/TilePhysics": {
+      "types": "./dist/tilemap/index.d.ts",
+      "import": "./dist/tilemap/index.js",
+      "require": "./dist/tilemap/index.cjs"
+    },
+    "./tilemap/TileRenderer": {
+      "types": "./dist/tilemap/index.d.ts",
+      "import": "./dist/tilemap/index.js",
+      "require": "./dist/tilemap/index.cjs"
+    },
     "./procedural": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/BuildingGenerator": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/DungeonGenerator": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/DungeonGenerator.js": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/LSystemGenerator": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/NoiseGenerator": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/NoiseGenerator.js": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/WaveFunction": {
+      "types": "./dist/procedural/index.d.ts",
+      "import": "./dist/procedural/index.js",
+      "require": "./dist/procedural/index.cjs"
+    },
+    "./procedural/WaveFunction.js": {
       "types": "./dist/procedural/index.d.ts",
       "import": "./dist/procedural/index.js",
       "require": "./dist/procedural/index.cjs"
@@ -87,6 +647,16 @@
       "require": "./dist/combat/index.cjs"
     },
     "./dialogue": {
+      "types": "./dist/dialogue/index.d.ts",
+      "import": "./dist/dialogue/index.js",
+      "require": "./dist/dialogue/index.cjs"
+    },
+    "./dialogue/DialogueGraph": {
+      "types": "./dist/dialogue/index.d.ts",
+      "import": "./dist/dialogue/index.js",
+      "require": "./dist/dialogue/index.cjs"
+    },
+    "./dialogue/DialogueRunner": {
       "types": "./dist/dialogue/index.d.ts",
       "import": "./dist/dialogue/index.js",
       "require": "./dist/dialogue/index.cjs"
@@ -106,7 +676,62 @@
       "import": "./dist/ecs/index.js",
       "require": "./dist/ecs/index.cjs"
     },
+    "./ecs/ComponentRegistry.js": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/ComponentStore": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/ComponentStore.js": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/EntityRegistry": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/EntityRegistry.js": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/SystemScheduler": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/SystemScheduler.js": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/World": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
+    "./ecs/World.js": {
+      "types": "./dist/ecs/index.d.ts",
+      "import": "./dist/ecs/index.js",
+      "require": "./dist/ecs/index.cjs"
+    },
     "./scene": {
+      "types": "./dist/scene/index.d.ts",
+      "import": "./dist/scene/index.js",
+      "require": "./dist/scene/index.cjs"
+    },
+    "./scene/SceneDeserializer": {
+      "types": "./dist/scene/index.d.ts",
+      "import": "./dist/scene/index.js",
+      "require": "./dist/scene/index.cjs"
+    },
+    "./scene/SceneSerializer": {
       "types": "./dist/scene/index.d.ts",
       "import": "./dist/scene/index.js",
       "require": "./dist/scene/index.cjs"
@@ -116,7 +741,102 @@
       "import": "./dist/environment/index.js",
       "require": "./dist/environment/index.cjs"
     },
+    "./environment/DayNightCycle": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/DayNightCycle.js": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/EnvironmentPresets": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/FoliageSystem": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/GrassRenderer": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/SkyRenderer": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/TerrainBrush": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/TerrainBrush.js": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/TerrainSystem": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/TerrainSystem.js": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/TreePlacer": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/WeatherBlackboard": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/WeatherSystem": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
+    "./environment/WeatherSystem.js": {
+      "types": "./dist/environment/index.d.ts",
+      "import": "./dist/environment/index.js",
+      "require": "./dist/environment/index.cjs"
+    },
     "./world": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./world/LODManager.js": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./world/OcclusionCulling": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./world/OcclusionCulling.js": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./world/WorldStreamer": {
+      "types": "./dist/world/index.d.ts",
+      "import": "./dist/world/index.js",
+      "require": "./dist/world/index.cjs"
+    },
+    "./world/WorldStreamer.js": {
       "types": "./dist/world/index.d.ts",
       "import": "./dist/world/index.js",
       "require": "./dist/world/index.cjs"
