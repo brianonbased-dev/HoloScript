@@ -1,0 +1,94 @@
+# Absorb Service - Node.js only (skip Rust workspace)
+#
+# Builds from the pnpm workspace root to resolve workspace dependencies
+# Dependency chain: absorb-service → core + engine + framework + absorb-service(pkg)
+
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Collect all package.json for lockfile resolution
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages services benchmarks -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
+FROM base AS builder
+WORKDIR /app
+
+# Copy workspace config + all package.json manifests
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY --from=manifests /manifests/ ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy source code
+COPY packages/crdt/ packages/crdt/
+COPY packages/agent-protocol/ packages/agent-protocol/
+COPY packages/core/ packages/core/
+COPY packages/engine/ packages/engine/
+COPY packages/framework/ packages/framework/
+COPY packages/llm-provider/ packages/llm-provider/
+COPY packages/absorb-service/ packages/absorb-service/
+COPY services/absorb-service/ services/absorb-service/
+
+# Build in dependency order (skip DTS for runtime)
+RUN cd packages/crdt && npx tsup --no-dts
+RUN cd packages/agent-protocol && npx tsup --no-dts
+RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
+RUN cd packages/engine && npx tsup \
+      src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts \
+      src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts \
+      src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts \
+      src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts \
+      src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts \
+      src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts \
+      src/vm/index.ts src/vm-bridge/index.ts \
+      --format esm,cjs --no-dts --external three
+RUN cd packages/framework && npx tsup --no-dts
+RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/absorb-service && npx tsup
+RUN cd services/absorb-service && npx tsc
+
+# --- Production stage ---
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+
+# Copy workspace config + all manifests for lockfile resolution
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY --from=manifests /manifests/ ./
+
+# Install production dependencies
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy built artifacts
+COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
+COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
+COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/engine/dist packages/engine/dist
+COPY --from=builder /app/packages/framework/dist packages/framework/dist
+COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
+COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
+COPY --from=builder /app/services/absorb-service/dist services/absorb-service/dist
+
+# Set ownership
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Environment
+ENV NODE_ENV=production
+
+EXPOSE 3005
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:${PORT:-3005}/health',(r)=>process.exit(r.statusCode===200?0:1))"
+
+CMD ["node", "services/absorb-service/dist/server.js"]
