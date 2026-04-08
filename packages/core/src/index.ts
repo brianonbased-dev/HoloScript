@@ -2829,10 +2829,18 @@ export type {
 } from './parser/PipelineParser';
 
 export {
+  compilePipelineSource,
   compilePipelineToNode,
+  compilePipelineToPython,
   compilePipelineSourceToNode,
+  compilePipelineSourceToPython,
 } from './compiler/PipelineNodeCompiler';
-export type { PipelineNodeCompilerOptions } from './compiler/PipelineNodeCompiler';
+export type {
+  PipelineCompileTarget,
+  PipelineCompilerOptions,
+  PipelineNodeCompilerOptions,
+  PipelinePythonCompilerOptions,
+} from './compiler/PipelineNodeCompiler';
 
 // ── NextJS Compiler (.holo → Next.js App Router pages) ─────────────────────
 export {
@@ -3208,4 +3216,4 @@ export type * from './training/SparsityMonitorTypes';
 
 
 // Events
-export { EventBus, eventBus, type EventCallback, type EventOptions, type EventScope } from './events/EventBus';
+export { EventBus, getSharedEventBus, setSharedEventBus, type EventCallback } from './events/EventBus';
