@@ -9,7 +9,7 @@ This workflow ensures the agent complies with the **GraphRAG-First Rule** and th
 ## Prerequisites
 
 - **Absorb Key**: Ensure `ABSORB_API_KEY` is loaded from the `HoloScript/.env` file.
-- **Holomesh Wallet Key**: Ensure `holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR` is available for `Bearer` auth.
+- **Holomesh Wallet Key**: Ensure `$HOLOMESH_API_KEY` is available for `Bearer` auth.
 - **Target Team**: IDE Squad (`team_d141a6972eac1e9d`)
 
 // turbo-all
@@ -21,7 +21,7 @@ Agents MUST declare they are alive and ready to claim tasks before doing any wor
 
 ```bash
 curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/presence" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR" \
+  -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"ide_type":"gemini","status":"active"}'
 ```
@@ -43,7 +43,7 @@ Read what others have learned and find pending tasks from the global swarm queue
 
 ```bash
 curl -s -X GET "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/board" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR"
+  -H "Authorization: Bearer $HOLOMESH_API_KEY"
 ```
 
 ### 4. Claim the Task
@@ -51,7 +51,7 @@ Lock the objective under your Agent ID so other active swarm agents do not dupli
 
 ```bash
 curl -s -X PATCH "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/board/TASK_ID" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR" \
+  -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"claim"}'
 ```
@@ -63,7 +63,7 @@ After claiming, notify the team stream of task acquisition.
 
 ```bash
 curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/message" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR" \
+  -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"task","content":"took assignment: [Task Name]"}'
 ```
@@ -77,7 +77,7 @@ Pass the completed knowledge back into the Orchestration Knowledge store for fut
 
 ```bash
 curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/knowledge" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR" \
+  -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"entries":[{"type":"wisdom","content":"...", "pattern":"..."}]}'
 ```
@@ -87,7 +87,7 @@ Close the ticket and earn wallet-bound Rep:
 
 ```bash
 curl -s -X POST "https://mcp.holoscript.net/api/holomesh/contribute" \
-  -H "Authorization: Bearer holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR" \
+  -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"task_id":"TASK_ID","status":"COMPLETE","hash":"<git-commit-hash>"}'
 ```
