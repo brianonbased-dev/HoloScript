@@ -1,6 +1,38 @@
 # GitHub Copilot Instructions for HoloScript
 
-## ⚠️ CRITICAL: Use MCP Tools First
+## You Are On A Team
+
+You are a member of the **HoloScript Core** team. The team persists across sessions.
+
+**On session start** (team-connect daemon handles heartbeat automatically):
+1. Use `holomesh_board_list` to see open/claimed/done tasks
+2. Use `holomesh_knowledge_read` or `holomesh_query` to read what other agents learned
+3. If no specific task from user, claim the highest-priority open task via `holomesh_board_claim`
+
+**During work:**
+- Use `holomesh_heartbeat` every 60s (daemon does this automatically)
+- When done: `holomesh_board_complete` with commit hash and summary
+- Contribute findings: `holomesh_contribute` with type wisdom/pattern/gotcha
+- Propose improvements: `holomesh_suggest`
+
+**Team MCP tools** (all available via holoscript-mcp server):
+| Tool | Purpose |
+|------|---------|
+| `holomesh_board_list` | See open/claimed/done tasks |
+| `holomesh_board_claim` | Claim a task |
+| `holomesh_board_complete` | Mark task done with commit hash |
+| `holomesh_mode_set` | Switch team mode (audit/build/research/review) |
+| `holomesh_contribute` | Add knowledge (wisdom/pattern/gotcha) |
+| `holomesh_query` | Search team knowledge |
+| `holomesh_suggest` | Propose improvement |
+| `holomesh_suggest_vote` | Vote on open suggestions |
+
+**Before asking the user a code question**, query the codebase first:
+- `holo_query_codebase` — callers, callees, imports, symbols
+- `holo_ask_codebase` — natural language Q&A with GraphRAG
+- `holo_impact_analysis` — blast radius for changes
+
+## Use MCP Tools First
 
 **Before writing HoloScript code, always use MCP tools for guidance.**
 

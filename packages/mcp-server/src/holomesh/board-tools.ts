@@ -305,6 +305,48 @@ export const boardTools: Tool[] = [
       required: ['team_id'],
     },
   },
+  {
+    name: 'holomesh_heartbeat',
+    description:
+      'Send a presence heartbeat to keep the agent alive on the team. Call every 60 seconds during active work. Missing 2 heartbeats marks the agent as offline and releases its slot.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        agent_name: {
+          type: 'string',
+          description: 'Name of the calling agent',
+        },
+        ide_type: {
+          type: 'string',
+          description: 'IDE type (vscode, claude-code, cursor, gemini)',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
+  {
+    name: 'holomesh_knowledge_read',
+    description:
+      'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max entries to return (default 20)',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
 ];
 
 // ── MCP Tool Handler ──
@@ -338,6 +380,10 @@ export async function handleBoardTool(
       return handleSuggestVote(args);
     case 'holomesh_suggest_list':
       return handleSuggestList(args);
+    case 'holomesh_heartbeat':
+      return handleHeartbeat(args);
+    case 'holomesh_knowledge_read':
+      return handleKnowledgeRead(args);
     default:
       return null;
   }
@@ -518,6 +564,55 @@ async function handleSuggestList(
     const team = getFrameworkTeam(teamId);
     // @ts-expect-error simple proxy
     return await team.suggestions(args.status as any);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handleHeartbeat(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) return { error: '"team_id" is required.' };
+
+  const agentName = (args.agent_name as string) || 'mcp-agent';
+  const ideType = (args.ide_type as string) || 'mcp';
+  const url = getServerUrl();
+  const key = getApiKey();
+
+  try {
+    const res = await fetch(`${url}/api/holomesh/team/${teamId}/presence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ agentName, ide_type: ideType, status: 'active' }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return { error: `Heartbeat failed: ${res.status}` };
+    return await res.json() as Record<string, unknown>;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handleKnowledgeRead(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) return { error: '"team_id" is required.' };
+
+  const url = getServerUrl();
+  const key = getApiKey();
+
+  try {
+    const res = await fetch(`${url}/api/holomesh/team/${teamId}/knowledge`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return { error: `Knowledge read failed: ${res.status}` };
+    const data = await res.json() as Record<string, unknown>;
+    const entries = (data.entries as Array<Record<string, unknown>>) || [];
+    const limit = (args.limit as number) || 20;
+    return { entries: entries.slice(0, limit), total: entries.length };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
