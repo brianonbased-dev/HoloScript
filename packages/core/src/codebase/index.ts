@@ -1,12 +1,12 @@
 /**
- * HoloScript Codebase Absorption Engine — Re-export Shim
+ * HoloScript Codebase — Local Utilities
  *
- * All codebase intelligence functionality has moved to @holoscript/absorb-service.
- * This file re-exports everything for backward compatibility.
+ * Codebase intelligence (scanning, graphs, RAG) lives in @holoscript/absorb-service.
+ * Import from '@holoscript/absorb-service/engine' for those features.
  *
- * @deprecated Import from '@holoscript/absorb-service/engine' instead.
+ * This module only exports local utilities (DedupFilter, GodFileDetector)
+ * that have no dependency on absorb-service.
  */
-export * from '@holoscript/absorb-service/engine';
 
 // ============================================================================
 // Gap 4: Dedup + God File Detection (new additions)
