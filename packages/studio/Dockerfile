@@ -72,6 +72,10 @@ RUN cd packages/connector-railway && npx tsup --no-dts || true
 RUN cd packages/connector-upstash && npx tsup --no-dts || true
 RUN cd packages/connector-vscode && npx tsup --no-dts || true
 
+# Ensure webpack stubs exist (Docker cache can miss them)
+RUN test -f packages/studio/src/lib/empty-module.js || \
+    (mkdir -p packages/studio/src/lib && echo "module.exports = function(){};" > packages/studio/src/lib/empty-module.js)
+
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN cd packages/studio && pnpm next build
