@@ -4,7 +4,7 @@
 # Dependency chain: absorb-service → core + engine + framework + absorb-service(pkg)
 
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 
 # Collect all package.json for lockfile resolution
 FROM base AS manifests
@@ -53,7 +53,7 @@ RUN cd services/absorb-service && npx tsc
 # --- Production stage ---
 FROM node:20-alpine
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 
 WORKDIR /app
 
