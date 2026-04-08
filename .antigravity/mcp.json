@@ -1,70 +1,31 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/mcp-config.json",
   "mcpServers": {
-    "holoscript": {
-      "name": "HoloScript Language (Hosted)",
-      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo — Railway hosted",
+    "holoscript-mcp": {
+      "name": "HoloScript MCP",
+      "description": "156 tools: parse, compile, render, team board, knowledge, messaging, codebase intelligence",
       "type": "http",
-      "url": "https://mcp.holoscript.net/mcp"
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_API_KEY}"
+      }
+    },
+    "mcp-orchestrator": {
+      "name": "MCP Orchestrator",
+      "description": "Tool discovery, knowledge federation (2K+ entries)",
+      "type": "http",
+      "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_API_KEY}"
+      }
     },
     "holoscript-local": {
-      "name": "HoloScript Language (Local)",
-      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo — local dev",
+      "name": "HoloScript Local",
+      "description": "Local dev server",
       "type": "stdio",
       "command": "node",
       "args": ["packages/mcp-server/start.js"],
-      "cwd": "${workspaceFolder}",
-      "capabilities": {
-        "tools": true,
-        "resources": false,
-        "prompts": false
-      }
-    },
-    "hololand": {
-      "name": "Hololand Platform",
-      "description": "VR worlds, Brittney AI, browser debugging (optional)",
-      "type": "stdio",
-      "command": "node",
-      "args": ["../Hololand/packages/brittney/mcp-server/dist/index.js"],
-      "cwd": "${workspaceFolder}/../Hololand",
-      "env": {
-        "HOLOLAND_API_URL": "http://localhost:3000",
-        "BRITTNEY_SERVICE_URL": "http://localhost:11435",
-        "BRITTNEY_ADMIN_KEY": "mcp-localhost-trusted"
-      },
-      "capabilities": {
-        "tools": true,
-        "resources": false,
-        "prompts": false
-      }
-    }
-  },
-  "toolGroups": {
-    "parsing": {
-      "name": "Parsing Tools",
-      "description": "Parse HoloScript into AST",
-      "tools": ["parse_hs", "parse_holo"]
-    },
-    "validation": {
-      "name": "Validation",
-      "description": "Syntax and semantic validation",
-      "tools": ["validate_holoscript", "analyze_code"]
-    },
-    "generation": {
-      "name": "Code Generation",
-      "description": "Generate HoloScript from descriptions",
-      "tools": ["generate_object", "generate_scene", "get_examples"]
-    },
-    "traits": {
-      "name": "VR Traits",
-      "description": "49 VR trait documentation",
-      "tools": ["list_traits", "explain_trait", "suggest_traits"],
-      "description": "2,000+ VR traits"
-    },
-    "documentation": {
-      "name": "Documentation",
-      "description": "Syntax reference and help",
-      "tools": ["get_syntax_reference", "explain_code"]
+      "cwd": "${workspaceFolder}"
     }
   }
 }

@@ -5,27 +5,49 @@
 You are a member of the **HoloScript Core** team. The team persists across sessions.
 
 **On session start** (team-connect daemon handles heartbeat automatically):
-1. Use `holomesh_board_list` to see open/claimed/done tasks
+1. Use `holomesh_inbox` to check DMs, handoff notes, review requests from other agents
 2. Use `holomesh_knowledge_read` or `holomesh_query` to read what other agents learned
-3. If no specific task from user, claim the highest-priority open task via `holomesh_board_claim`
+3. Use `holomesh_suggest_list` to see and vote on open suggestions
+4. Use `holomesh_board_list` to see open/claimed/done tasks
+5. If no specific task from user, claim the highest-priority open task via `holomesh_board_claim`
 
 **During work:**
 - Use `holomesh_heartbeat` every 60s (daemon does this automatically)
 - When done: `holomesh_board_complete` with commit hash and summary
 - Contribute findings: `holomesh_contribute` with type wisdom/pattern/gotcha
 - Propose improvements: `holomesh_suggest`
+- Message teammates: `holomesh_send_message` for help or context sharing
+- Request reviews: `holomesh_send_message` with type "review-request"
+
+**On session end:**
+- DM the next agent with context: `holomesh_send_message`
+- Contribute what you learned: `holomesh_contribute`
+- Context is the most valuable thing you produce — write it down
 
 **Team MCP tools** (all available via holoscript-mcp server):
+
 | Tool | Purpose |
 |------|---------|
+| **Board** | |
 | `holomesh_board_list` | See open/claimed/done tasks |
 | `holomesh_board_claim` | Claim a task |
 | `holomesh_board_complete` | Mark task done with commit hash |
 | `holomesh_mode_set` | Switch team mode (audit/build/research/review) |
+| **Knowledge** | |
 | `holomesh_contribute` | Add knowledge (wisdom/pattern/gotcha) |
-| `holomesh_query` | Search team knowledge |
+| `holomesh_knowledge_read` | Read team knowledge entries |
+| `holomesh_query` | Semantic search across knowledge |
+| **Collaboration** | |
+| `holomesh_send_message` | DM another agent |
+| `holomesh_inbox` | Check your messages |
+| `holomesh_read_thread` | Read a conversation thread |
+| `holomesh_add_reply` | Reply to a message |
+| **Suggestions** | |
 | `holomesh_suggest` | Propose improvement |
 | `holomesh_suggest_vote` | Vote on open suggestions |
+| `holomesh_suggest_list` | List all suggestions |
+| **Presence** | |
+| `holomesh_heartbeat` | Keep agent alive (auto via daemon) |
 
 **Before asking the user a code question**, query the codebase first:
 - `holo_query_codebase` — callers, callees, imports, symbols
