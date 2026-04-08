@@ -1,0 +1,36 @@
+{
+  "name": "@holoscript/config",
+  "version": "6.0.2",
+  "description": "Centralized configuration for the HoloScript platform — endpoints, auth, env validation. Server-only auth guards prevent key leakage to browser.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./endpoints": {
+      "types": "./dist/endpoints.d.ts",
+      "import": "./dist/endpoints.js",
+      "require": "./dist/endpoints.cjs"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "import": "./dist/auth.js",
+      "require": "./dist/auth.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
