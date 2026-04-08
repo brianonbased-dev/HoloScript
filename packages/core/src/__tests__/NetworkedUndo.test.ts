@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createState } from '../state/ReactiveState';
 
-describe('Networked Undo (Phase 10)', () => {
+describe('Networked Undo', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -62,3 +62,4 @@ describe('Networked Undo (Phase 10)', () => {
     expect(clientB.getSnapshot().text).toBeDefined();
   });
 });
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Package Registry Tests
  *
  * Sprint 5 Priority 5: Package Registry MVP
@@ -536,7 +536,7 @@ describe('Factory Functions', () => {
 // Sprint 6: Access Control Tests
 // ============================================================================
 
-describe('Access Control (Sprint 6)', () => {
+describe('Access Control', () => {
   let registry: PackageRegistry;
 
   beforeEach(() => {

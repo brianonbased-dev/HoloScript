@@ -5,7 +5,7 @@
  * All external RPC calls are mocked so tests run without network access.
  *
  * @version 3.2.0
- * @milestone v3.2 (June 2026)
+ * @Sprint v3.2 (June 2026)
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

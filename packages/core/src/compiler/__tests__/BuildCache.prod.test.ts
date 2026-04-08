@@ -163,10 +163,10 @@ describe('BuildCache — Production', () => {
     const f1 = makeTempFile(tempDir, 'a.ts');
     const f2 = makeTempFile(tempDir, 'b.ts');
     const f3 = makeTempFile(tempDir, 'c.ts');
-    await cache.set(f1, 'ast', 1, { tags: ['sprint-10'] });
-    await cache.set(f2, 'ast', 2, { tags: ['sprint-10'] });
-    await cache.set(f3, 'ast', 3, { tags: ['sprint-11'] });
-    const count = await cache.invalidateByTag('sprint-10');
+    await cache.set(f1, 'ast', 1, { tags: ['Sprint-10'] });
+    await cache.set(f2, 'ast', 2, { tags: ['Sprint-10'] });
+    await cache.set(f3, 'ast', 3, { tags: ['Sprint-11'] });
+    const count = await cache.invalidateByTag('Sprint-10');
     expect(count).toBe(2);
     const c = await cache.get(f3, 'ast');
     expect(c.hit).toBe(true);

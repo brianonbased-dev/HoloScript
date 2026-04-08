@@ -638,7 +638,7 @@ describe('visitorCounterHandler', () => {
       expect((node as any).__visitorCounterState.totalVisits).toBe(2);
     });
 
-    it('should emit milestone at 10 visits', () => {
+    it('should emit Sprint at 10 visits', () => {
       const node = createMockNode();
       const ctx = createMockContext();
 
@@ -651,9 +651,9 @@ describe('visitorCounterHandler', () => {
         });
       }
 
-      const ev = getLastEvent(ctx, 'visitors:milestone') as any;
+      const ev = getLastEvent(ctx, 'visitors:Sprint') as any;
       expect(ev).toBeDefined();
-      expect(ev.milestone).toBe(10);
+      expect(ev.Sprint).toBe(10);
     });
 
     it('should track active visitors and peak', () => {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * End-to-End GPU Physics Integration Tests
  *
  * Tests the complete GPU pipeline:
@@ -49,7 +49,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
     }
   });
 
-  describe('Phase 1 + Phase 2: Compute Physics + Spatial Grid', () => {
+  describe('Compute Physics + Spatial Grid', () => {
     it('should run physics simulation with collision detection', async () => {
       if (!context.isSupported() || !particlePhysicsShader || !spatialGridShader) {
         console.log('⏭️  Skipping test (WebGPU or shaders not available)');
@@ -152,7 +152,7 @@ describe('GPU Physics Integration (End-to-End)', () => {
     });
   });
 
-  describe('Phase 1 + Phase 3: Compute Physics + Rendering', () => {
+  describe('Compute Physics + Rendering', () => {
     it('should simulate and render particles', async () => {
       if (!context.isSupported() || !particlePhysicsShader || typeof document === 'undefined') {
         console.log('⏭️  Skipping test (WebGPU, shaders, or DOM not available)');

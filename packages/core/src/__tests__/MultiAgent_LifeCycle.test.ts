@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+﻿import { describe, it, expect, vi, afterEach } from 'vitest';
 import { neuralForgeHandler } from '../traits/NeuralForgeTrait';
 import { PersonaLoader } from '../services/PersonaLoader';
 import * as fs from 'fs/promises';
 
-describe('Multi-Agent Life Cycle (Phase 72 Integration)', () => {
+describe('Multi-Agent Life Cycle', () => {
   const TEST_DIR = './lifecycle_test';
   const loader = new PersonaLoader(TEST_DIR);
 
@@ -54,3 +54,4 @@ describe('Multi-Agent Life Cycle (Phase 72 Integration)', () => {
     expect((rebornNode as any).__neuralState.weights).toEqual(originalWeights);
   });
 });
+

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { LipSyncTrait, type PhonemeTimestamp } from '../traits/LipSyncTrait';
 
-describe('LipSyncTrait - Phase 16 (Phoneme Method)', () => {
+describe('LipSyncTrait - Phoneme Method', () => {
   let lipSync: LipSyncTrait;
 
   beforeEach(() => {
@@ -84,3 +84,4 @@ describe('LipSyncTrait - Phase 16 (Phoneme Method)', () => {
     expect(lipSync.samplePhonemeAtTime(99.95).viseme).toBe('aa');
   });
 });
+

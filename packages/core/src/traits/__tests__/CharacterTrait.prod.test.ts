@@ -13,7 +13,7 @@
  * - setGrounded(false) from grounded: fall-start event, coyote timer
  * - isGrounded, getGroundInfo
  * - isCrouching: crouch-start / crouch-end events via move()
- * - isSprinting: sprint-start / sprint-end events via move()
+ * - isSprinting: Sprint-start / Sprint-end events via move()
  * - getCurrentHeight: full vs crouch
  * - setMovementMode: mode-change event, toggleFly (canFly guard)
  * - onCollision: collision event
@@ -318,36 +318,36 @@ describe('CharacterTrait — crouch', () => {
 
 // ─── Sprint ───────────────────────────────────────────────────────────────────────
 
-describe('CharacterTrait — sprint', () => {
-  it('sprint-start emitted when sprinting while moving', () => {
+describe('CharacterTrait — Sprint', () => {
+  it('Sprint-start emitted when sprinting while moving', () => {
     const c = mkChar({ canSprint: true });
     // First move: establish isMoving=true (move() sets isMoving at the END,
-    // before which updateSprint runs, so sprint-start won't fire on frame 1)
-    c.move({ forward: 1, strafe: 0, sprint: false }, 0.016);
+    // before which updateSprint runs, so Sprint-start won't fire on frame 1)
+    c.move({ forward: 1, strafe: 0, Sprint: false }, 0.016);
     const events: string[] = [];
-    c.on('sprint-start', (e) => events.push(e.type));
-    c.move({ forward: 1, strafe: 0, sprint: true }, 0.016);
-    expect(events).toContain('sprint-start');
+    c.on('Sprint-start', (e) => events.push(e.type));
+    c.move({ forward: 1, strafe: 0, Sprint: true }, 0.016);
+    expect(events).toContain('Sprint-start');
   });
 
-  it('sprint-end emitted when stopping sprint', () => {
+  it('Sprint-end emitted when stopping Sprint', () => {
     const c = mkChar({ canSprint: true });
     // Frame 1: establish isMoving=true
-    c.move({ forward: 1, strafe: 0, sprint: false }, 0.016);
-    // Frame 2: sprint starts
-    c.move({ forward: 1, strafe: 0, sprint: true }, 0.016);
+    c.move({ forward: 1, strafe: 0, Sprint: false }, 0.016);
+    // Frame 2: Sprint starts
+    c.move({ forward: 1, strafe: 0, Sprint: true }, 0.016);
     const events: string[] = [];
-    c.on('sprint-end', (e) => events.push(e.type));
+    c.on('Sprint-end', (e) => events.push(e.type));
     // Frame 3: stop sprinting
-    c.move({ forward: 1, strafe: 0, sprint: false }, 0.016);
-    expect(events).toContain('sprint-end');
+    c.move({ forward: 1, strafe: 0, Sprint: false }, 0.016);
+    expect(events).toContain('Sprint-end');
   });
 
-  it('canSprint=false: no sprint-start', () => {
+  it('canSprint=false: no Sprint-start', () => {
     const c = mkChar({ canSprint: false });
     const events: string[] = [];
-    c.on('sprint-start', (e) => events.push(e.type));
-    c.move({ forward: 1, strafe: 0, sprint: true }, 0.016);
+    c.on('Sprint-start', (e) => events.push(e.type));
+    c.move({ forward: 1, strafe: 0, Sprint: true }, 0.016);
     expect(events).toHaveLength(0);
   });
 });

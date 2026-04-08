@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { gpuPhysicsHandler } from '../traits/GPUPhysicsTrait';
 
 // Mock PhysicsEngine so we don't crash on 'webgpu' not found
@@ -10,7 +10,7 @@ vi.mock('../runtime/PhysicsEngine', () => ({
   }),
 }));
 
-describe('Soft Body Activation (Phase 73)', () => {
+describe('Soft Body Activation', () => {
   it('should activate SoftBodyAdapter when sim_type="soft_body"', () => {
     // 1. Setup Node with Vertices
     const node = {
@@ -67,3 +67,4 @@ describe('Soft Body Activation (Phase 73)', () => {
     expect(state.softBody).toBeUndefined();
   });
 });
+

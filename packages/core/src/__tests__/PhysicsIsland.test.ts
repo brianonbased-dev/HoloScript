@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
 
-describe('IslandDetector - Phase 17 (Mass Physics)', () => {
+describe('IslandDetector - Mass Physics', () => {
   let detector: IslandDetector;
 
   beforeEach(() => {
@@ -85,3 +85,4 @@ describe('IslandDetector - Phase 17 (Mass Physics)', () => {
     expect(end - start).toBeLessThan(50); // Should be very fast (<50ms for 1000 bodies)
   });
 });
+

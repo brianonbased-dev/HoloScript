@@ -1,5 +1,5 @@
 /**
- * SourceMapV2 Tests - Sprint 4
+ * SourceMapV2 Tests - Enhanced Source Mapping
  *
  * Tests for enhanced source map generation with column-level mapping,
  * variable name preservation, and scope information.

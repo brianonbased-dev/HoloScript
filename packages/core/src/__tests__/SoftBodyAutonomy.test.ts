@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { softBodyHandler } from '../traits/SoftBodyTrait';
 
-describe('SoftBody Autonomy (Phase 10.5)', () => {
+describe('SoftBody Autonomy', () => {
   it('should initialize state correctly', () => {
     const mockNode = {
       properties: { meshData: { positions: [0, 0, 0], indices: [0], volume: 0.5 } },
@@ -42,3 +42,4 @@ describe('SoftBody Autonomy (Phase 10.5)', () => {
     expect(state.solver.getConstraints()).toHaveLength(3);
   });
 });
+

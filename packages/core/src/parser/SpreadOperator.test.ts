@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Spread Operator Tests - Sprint 1
  *
  * Tests for comprehensive spread operator support across:
@@ -11,7 +11,7 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
 
-describe('Spread Operator (...) - Sprint 1', () => {
+describe('Spread Operator (...)', () => {
   const parser = new HoloScriptPlusParser();
 
   // =========================================================================
@@ -403,10 +403,10 @@ describe('Spread Operator (...) - Sprint 1', () => {
   });
 
   // =========================================================================
-  // SPRINT 2: FUNCTION CALL SPREADS
+  // Sprint 2: FUNCTION CALL SPREADS
   // =========================================================================
 
-  describe('Function Call Spreads - Sprint 2', () => {
+  describe('Function Call Spreads', () => {
     test('should parse spread in function call arguments', () => {
       const source = `
         logic {
@@ -477,10 +477,10 @@ describe('Spread Operator (...) - Sprint 1', () => {
   });
 
   // =========================================================================
-  // SPRINT 2: REST PARAMETERS IN ARROW FUNCTIONS
+  // Sprint 2: REST PARAMETERS IN ARROW FUNCTIONS
   // =========================================================================
 
-  describe('Rest Parameters - Sprint 2', () => {
+  describe('Rest Parameters', () => {
     test('should parse rest parameter in arrow function with block body', () => {
       const source = `
         orb obj {
@@ -532,10 +532,10 @@ describe('Spread Operator (...) - Sprint 1', () => {
   });
 
   // =========================================================================
-  // SPRINT 2: DEEPLY NESTED SPREADS
+  // Sprint 2: DEEPLY NESTED SPREADS
   // =========================================================================
 
-  describe('Deeply Nested Spreads - Sprint 2', () => {
+  describe('Deeply Nested Spreads', () => {
     test('should parse spread within inline object spread', () => {
       const source = `
         orb obj {

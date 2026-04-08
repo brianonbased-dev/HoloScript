@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { blackboardHandler } from '../traits/BlackboardTrait';
 
-describe('Swarm Intelligence (Phase 13)', () => {
+describe('Swarm Intelligence', () => {
   it('should allow agents to post and read beliefs', () => {
     // Agent 1 posts a belief
     const agent1Node = { id: 'agent1', properties: {} };
@@ -80,3 +80,4 @@ describe('Swarm Intelligence (Phase 13)', () => {
     );
   });
 });
+

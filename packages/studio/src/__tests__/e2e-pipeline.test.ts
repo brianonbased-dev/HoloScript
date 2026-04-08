@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 
 /**
  * e2e-pipeline.test.ts — End-to-End Compile -> Render -> Interact Pipeline Tests
@@ -186,7 +186,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 1: Compilation ──────────────────────────────────────────────────
 
-  describe('Phase 1: Source -> AST (Parse)', () => {
+  describe('Source -> AST (Parse)', () => {
     it('should parse template source to AST', async () => {
       const source = 'template "Cube" { geometry: "cube" }';
       const result = await bridge.parse(source);
@@ -219,7 +219,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 2: AST -> R3F Scene Tree (Compile) ─────────────────────────────
 
-  describe('Phase 2: AST -> R3F Tree (Compile)', () => {
+  describe('AST -> R3F Tree (Compile)', () => {
     it('should compile template source to Three.js R3F tree', async () => {
       const source = 'template "Orb" { geometry: "sphere" color: "#00ffff" }';
       const result = await bridge.compile(source, 'threejs');
@@ -310,7 +310,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 3: Multiple Compile Targets ─────────────────────────────────────
 
-  describe('Phase 3: Multi-Target Compilation', () => {
+  describe('Multi-Target Compilation', () => {
     const source = 'template "MultiTarget" { geometry: "sphere" color: "#ff0000" }';
 
     it('should compile to Three.js target', async () => {
@@ -344,7 +344,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 4: Validation Pipeline ──────────────────────────────────────────
 
-  describe('Phase 4: Source Validation', () => {
+  describe('Source Validation', () => {
     it('should validate correct source as valid', async () => {
       const source = 'template "Valid" { geometry: "cube" }';
       const result = await bridge.validate(source);
@@ -366,7 +366,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 5: Generator Pipeline ───────────────────────────────────────────
 
-  describe('Phase 5: AI Object/Scene Generation', () => {
+  describe('AI Object/Scene Generation', () => {
     it('should generate object from description', async () => {
       const result = await bridge.generateObject('a glowing blue sphere');
 
@@ -420,7 +420,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 6: Bridge Lifecycle ─────────────────────────────────────────────
 
-  describe('Phase 6: Bridge Lifecycle & Status', () => {
+  describe('Bridge Lifecycle & Status', () => {
     it('should report typescript-fallback backend when no WASM', () => {
       const status = bridge.getStatus();
 
@@ -459,7 +459,7 @@ describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () 
 
   // ── Phase 7: Full Pipeline (Source -> Compiled -> Tree Structure) ─────────
 
-  describe('Phase 7: Full Pipeline Validation', () => {
+  describe('Full Pipeline Validation', () => {
     it('should complete full pipeline: parse -> validate -> compile -> verify tree', async () => {
       const source =
         'composition "FullPipeline" { object "Cube" { geometry: "cube" position: [0, 1, 0] } }';

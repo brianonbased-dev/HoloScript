@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { volumetricHandler } from '../traits/VolumetricTrait';
 import { SplatProcessingService } from '../services/SplatProcessingService';
 
-describe('Volumetric Interaction (Phase 11.5)', () => {
+describe('Volumetric Interaction', () => {
   it('should handle volumetric_ray_query and emit ray_hit', async () => {
     const mockNode = { properties: {} };
     const mockConfig = volumetricHandler.defaultConfig;
@@ -88,3 +88,4 @@ describe('Volumetric Interaction (Phase 11.5)', () => {
     );
   });
 });
+

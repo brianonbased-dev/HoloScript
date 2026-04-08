@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { npcAIHandler } from '../traits/NPCAITrait';
 
-describe('NPC Behavior Synthesis (Phase 12.1)', () => {
+describe('NPC Behavior Synthesis', () => {
   it('should parse <action /> tags and emit behavior events', () => {
     const mockNode = { properties: {} };
     const mockConfig = npcAIHandler.defaultConfig;
@@ -59,3 +59,4 @@ describe('NPC Behavior Synthesis (Phase 12.1)', () => {
     expect(mockContext.emit).toHaveBeenCalledWith('npc_ai_speak', expect.anything());
   });
 });
+

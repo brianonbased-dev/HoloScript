@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 
 /**
@@ -12,7 +12,7 @@ import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
  * is implemented in the runtime but not yet exposed in the public HSPlusRuntime interface.
  * The parsing tests work, runtime tests are skipped until the API is finalized.
  */
-describe('Hot-Reload (Phase 22)', () => {
+describe('Hot-Reload', () => {
   let parser: HoloScriptPlusParser;
 
   beforeEach(() => {
@@ -63,3 +63,4 @@ describe('Hot-Reload (Phase 22)', () => {
     // exposed in the public HSPlusRuntime interface.
   });
 });
+

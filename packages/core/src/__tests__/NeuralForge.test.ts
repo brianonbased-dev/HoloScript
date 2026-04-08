@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { neuralForgeHandler, NeuralShard } from '../traits/NeuralForgeTrait';
 
-describe('Neural Forge (Phase 14)', () => {
+describe('Neural Forge', () => {
   it('should auto-synthesize shards after threshold', () => {
     const node = { id: 'npc1', properties: {} };
     const context = { emit: vi.fn() } as any;
@@ -63,3 +63,4 @@ describe('Neural Forge (Phase 14)', () => {
     expect(context.emit).toHaveBeenCalledWith('neural_cognition_evolved', expect.any(Object));
   });
 });
+

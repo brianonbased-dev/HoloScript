@@ -5,7 +5,7 @@
  * approval workflows, and audit logging.
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';

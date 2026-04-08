@@ -13,7 +13,7 @@ import {
   handleAgentOrchestrationTool,
   resetOrchestrationSingletons,
 } from '../agent-orchestration-tools';
-import { getDefaultRegistry, resetDefaultRegistry } from '@holoscript/core';
+import { getDefaultRegistry, resetDefaultRegistry } from '@holoscript/framework/agents';
 
 // =============================================================================
 // SETUP

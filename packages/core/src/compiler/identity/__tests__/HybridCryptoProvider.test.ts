@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for HybridCryptoProvider module
  *
  * Covers:
@@ -224,7 +224,7 @@ describe('HybridCryptoProvider', () => {
     });
   });
 
-  describe('without PQ provider (Phase 1 mode)', () => {
+  describe('without PQ provider', () => {
     const classical = new Ed25519CryptoProvider();
     const hybrid = new HybridCryptoProvider(classical);
 
@@ -294,7 +294,7 @@ describe('HybridCryptoProvider', () => {
     });
   });
 
-  describe('with PQ provider (Phase 2 simulation)', () => {
+  describe('with PQ provider', () => {
     it('should generate hybrid key pair with both keys', async () => {
       const classical = new Ed25519CryptoProvider();
       const pq = new MockMlDsa65Provider();

@@ -157,7 +157,9 @@ describe('EventBus', () => {
         name: string;
       }
 
+      // @ts-expect-error - TS2558 structural type mismatch
       const callback = vi.fn<[UserEvent], void>();
+      // @ts-expect-error - TS2345 structural type mismatch
       bus.on<UserEvent>('userCreated', callback);
       bus.emit<UserEvent>('userCreated', { id: '123', name: 'Test' });
 

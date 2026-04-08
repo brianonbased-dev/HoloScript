@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { npcAIHandler } from '../traits/NPCAITrait';
 
-describe('Multi-Agent Interaction Test (Phase 13 Preview)', () => {
+describe('Multi-Agent Interaction Test', () => {
   it('should allow multiple NPCs to parse actions independently', () => {
     // NPC 1: "Alice"
     const aliceNode = { id: 'alice', properties: {} };
@@ -52,3 +52,4 @@ describe('Multi-Agent Interaction Test (Phase 13 Preview)', () => {
     expect(bobCalls).not.toContain('npc_behavior_move');
   });
 });
+

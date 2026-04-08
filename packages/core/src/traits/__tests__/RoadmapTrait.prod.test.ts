@@ -1,8 +1,8 @@
 /**
  * RoadmapTrait Production Tests
  *
- * Binds a spatial object to a project milestone (Phase 5 Spatial Governance).
- * Tests: defaultConfig, onAttach (milestone sync → color/text/progress + emit),
+ * Binds a spatial object to a project Sprint (Phase 5 Spatial Governance).
+ * Tests: defaultConfig, onAttach (Sprint sync → color/text/progress + emit),
  * onUpdate (periodic resync), onEvent (click handler with interactive flag).
  * Mocks roadmapService to avoid external dependencies.
  */
@@ -25,7 +25,7 @@ import { roadmapService } from '../../services/HololandRoadmapService';
 
 const svcMock = roadmapService as { getMilestone: ReturnType<typeof vi.fn> };
 
-function milestone(overrides: Record<string, unknown> = {}) {
+function Sprint(overrides: Record<string, unknown> = {}) {
   return {
     id: 'm1',
     title: 'Feature Complete',
@@ -80,22 +80,22 @@ describe('RoadmapTrait — defaultConfig', () => {
 // ── onAttach ──────────────────────────────────────────────────────────────────
 
 describe('RoadmapTrait — onAttach', () => {
-  it('sets node color from milestone status', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ status: 'completed' }));
+  it('sets node color from Sprint status', () => {
+    svcMock.getMilestone.mockReturnValue(Sprint({ status: 'completed' }));
     const node = makeNode();
     roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any);
     expect(node.properties.color).toBe('#4caf50');
   });
 
-  it('sets node text to milestone title', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ title: 'MVP Launch', status: 'planned' }));
+  it('sets node text to Sprint title', () => {
+    svcMock.getMilestone.mockReturnValue(Sprint({ title: 'MVP Launch', status: 'planned' }));
     const node = makeNode();
     roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any);
     expect(node.properties.text).toBe('MVP Launch');
   });
 
   it('sets node progress when show_progress=true', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ progress: 75 }));
+    svcMock.getMilestone.mockReturnValue(Sprint({ progress: 75 }));
     const node = makeNode();
     roadmapNodeHandler.onAttach!(
       node,
@@ -106,7 +106,7 @@ describe('RoadmapTrait — onAttach', () => {
   });
 
   it('does NOT set node progress when show_progress=false', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ progress: 75 }));
+    svcMock.getMilestone.mockReturnValue(Sprint({ progress: 75 }));
     const node = makeNode();
     roadmapNodeHandler.onAttach!(
       node,
@@ -116,8 +116,8 @@ describe('RoadmapTrait — onAttach', () => {
     expect(node.properties.progress).toBeUndefined();
   });
 
-  it('emits roadmap_node_attached with node id and milestone', () => {
-    const m = milestone();
+  it('emits roadmap_node_attached with node id and Sprint', () => {
+    const m = Sprint();
     svcMock.getMilestone.mockReturnValue(m);
     const node = makeNode();
     const ctx = makeCtx();
@@ -126,12 +126,12 @@ describe('RoadmapTrait — onAttach', () => {
       'roadmap_node_attached',
       expect.objectContaining({
         nodeId: 'n1',
-        milestone: m,
+        Sprint: m,
       })
     );
   });
 
-  it('still emits even when milestone is null (unknown id)', () => {
+  it('still emits even when Sprint is null (unknown id)', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
     const ctx = makeCtx();
@@ -139,12 +139,12 @@ describe('RoadmapTrait — onAttach', () => {
     expect(ctx.emit).toHaveBeenCalledWith(
       'roadmap_node_attached',
       expect.objectContaining({
-        milestone: null,
+        Sprint: null,
       })
     );
   });
 
-  it('does not set node.properties when milestone is null', () => {
+  it('does not set node.properties when Sprint is null', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
     roadmapNodeHandler.onAttach!(node, makeConfig(), makeCtx() as any);
@@ -153,7 +153,7 @@ describe('RoadmapTrait — onAttach', () => {
   });
 
   it('does not throw when node.properties is missing', () => {
-    svcMock.getMilestone.mockReturnValue(milestone());
+    svcMock.getMilestone.mockReturnValue(Sprint());
     const node = { id: 'n2' }; // no properties
     expect(() =>
       roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any)
@@ -165,14 +165,14 @@ describe('RoadmapTrait — onAttach', () => {
 
 describe('RoadmapTrait — onUpdate', () => {
   it('updates color on every frame', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ status: 'blocked' }));
+    svcMock.getMilestone.mockReturnValue(Sprint({ status: 'blocked' }));
     const node = makeNode();
     roadmapNodeHandler.onUpdate!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any, 16);
     expect(node.properties.color).toBe('#f44336');
   });
 
   it('updates progress when show_progress=true', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ progress: 90 }));
+    svcMock.getMilestone.mockReturnValue(Sprint({ progress: 90 }));
     const node = makeNode();
     roadmapNodeHandler.onUpdate!(
       node,
@@ -184,7 +184,7 @@ describe('RoadmapTrait — onUpdate', () => {
   });
 
   it('does NOT update progress when show_progress=false', () => {
-    svcMock.getMilestone.mockReturnValue(milestone({ progress: 90 }));
+    svcMock.getMilestone.mockReturnValue(Sprint({ progress: 90 }));
     const node = makeNode();
     node.properties.progress = 50; // previous value
     roadmapNodeHandler.onUpdate!(
@@ -196,7 +196,7 @@ describe('RoadmapTrait — onUpdate', () => {
     expect(node.properties.progress).toBe(50); // unchanged
   });
 
-  it('does not throw when milestone is null', () => {
+  it('does not throw when Sprint is null', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
     expect(() =>
@@ -209,7 +209,7 @@ describe('RoadmapTrait — onUpdate', () => {
 
 describe('RoadmapTrait — onEvent', () => {
   it('click event emits show_milestone_details when interactive=true', () => {
-    const m = milestone();
+    const m = Sprint();
     svcMock.getMilestone.mockReturnValue(m);
     const node = makeNode();
     const ctx = makeCtx();
@@ -222,13 +222,13 @@ describe('RoadmapTrait — onEvent', () => {
     expect(ctx.emit).toHaveBeenCalledWith(
       'show_milestone_details',
       expect.objectContaining({
-        milestone: m,
+        Sprint: m,
       })
     );
   });
 
   it('click event does NOT emit when interactive=false', () => {
-    svcMock.getMilestone.mockReturnValue(milestone());
+    svcMock.getMilestone.mockReturnValue(Sprint());
     const node = makeNode();
     const ctx = makeCtx();
     roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: false }), ctx as any, {
@@ -238,7 +238,7 @@ describe('RoadmapTrait — onEvent', () => {
   });
 
   it('non-click event type does not emit', () => {
-    svcMock.getMilestone.mockReturnValue(milestone());
+    svcMock.getMilestone.mockReturnValue(Sprint());
     const node = makeNode();
     const ctx = makeCtx();
     roadmapNodeHandler.onEvent!(node, makeConfig({ interactive: true }), ctx as any, {
@@ -247,7 +247,7 @@ describe('RoadmapTrait — onEvent', () => {
     expect(ctx.emit).not.toHaveBeenCalled();
   });
 
-  it('click when milestone is null does not emit', () => {
+  it('click when Sprint is null does not emit', () => {
     svcMock.getMilestone.mockReturnValue(null);
     const node = makeNode();
     const ctx = makeCtx();
@@ -274,7 +274,7 @@ describe('RoadmapTrait — status color mapping (via onAttach)', () => {
 
   for (const [status, expectedColor] of cases) {
     it(`status "${status}" → ${expectedColor}`, () => {
-      svcMock.getMilestone.mockReturnValue(milestone({ status }));
+      svcMock.getMilestone.mockReturnValue(Sprint({ status }));
       const node = makeNode();
       roadmapNodeHandler.onAttach!(node, makeConfig({ milestone_id: 'm1' }), makeCtx() as any);
       expect(node.properties.color).toBe(expectedColor);

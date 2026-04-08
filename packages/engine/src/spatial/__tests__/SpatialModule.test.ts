@@ -565,7 +565,7 @@ describe('Spatial Performance', () => {
 });
 
 // =============================================================================
-// ADDITIONAL COVERAGE TESTS - SPRINT 8 v3.1 RELEASE
+// ADDITIONAL COVERAGE TESTS - Sprint 8 v3.1 RELEASE
 // =============================================================================
 
 describe('SpatialContextProvider Additional Coverage', () => {

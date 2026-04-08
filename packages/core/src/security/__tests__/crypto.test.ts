@@ -4,7 +4,7 @@
  * Tests for cryptographic utilities including hashing, encryption, and validation.
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

@@ -34,18 +34,18 @@ describe('RoadmapTrait', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    node = createMockNode('milestone1');
+    node = createMockNode('Sprint1');
     (node as any).properties = {};
     ctx = createMockContext();
     attachTrait(roadmapNodeHandler, node, cfg, ctx);
   });
 
-  it('syncs color with milestone status on attach', () => {
+  it('syncs color with Sprint status on attach', () => {
     // in-progress → blue #2196f3
     expect((node as any).properties.color).toBe('#2196f3');
   });
 
-  it('syncs title with milestone text on attach', () => {
+  it('syncs title with Sprint text on attach', () => {
     expect((node as any).properties.text).toBe('Launch MVP');
   });
 
@@ -62,7 +62,7 @@ describe('RoadmapTrait', () => {
     expect((node as any).properties.color).toBe('#2196f3');
   });
 
-  it('handles click event to show milestone details', () => {
+  it('handles click event to show Sprint details', () => {
     sendEvent(roadmapNodeHandler, node, cfg, ctx, { type: 'click' });
     expect(ctx.emittedEvents.some((e) => e.event === 'show_milestone_details')).toBe(true);
   });
@@ -81,7 +81,7 @@ describe('RoadmapTrait', () => {
     expect((node3 as any).properties.color).toBe('#f44336');
   });
 
-  it('handles missing milestone gracefully', () => {
+  it('handles missing Sprint gracefully', () => {
     const node4 = createMockNode('ms4');
     (node4 as any).properties = {};
     attachTrait(roadmapNodeHandler, node4, { ...cfg, milestone_id: 'nonexistent' }, ctx);

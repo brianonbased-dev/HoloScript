@@ -57,7 +57,7 @@ describe('HololandRoadmapService — addMilestone', () => {
   let svc: HololandRoadmapService;
   beforeEach(() => { svc = HololandRoadmapService.getInstance(); });
 
-  it('adds a new milestone and getMilestone returns it', () => {
+  it('adds a new Sprint and getMilestone returns it', () => {
     const id = uniqueId();
     svc.addMilestone({ id, title: 'Test M', description: 'Desc', status: 'planned', progress: 0 });
     const m = svc.getMilestone(id);
@@ -66,7 +66,7 @@ describe('HololandRoadmapService — addMilestone', () => {
     expect(m!.status).toBe('planned');
   });
 
-  it('adds milestone with tags and dependencies', () => {
+  it('adds Sprint with tags and dependencies', () => {
     const id = uniqueId();
     svc.addMilestone({
       id, title: 'Tagged', description: 'x', status: 'planned', progress: 0,
@@ -84,7 +84,7 @@ describe('HololandRoadmapService — updateMilestone', () => {
   let svc: HololandRoadmapService;
   beforeEach(() => { svc = HololandRoadmapService.getInstance(); });
 
-  it('returns true when milestone exists', () => {
+  it('returns true when Sprint exists', () => {
     const id = uniqueId();
     svc.addMilestone({ id, title: 'T', description: 'D', status: 'planned', progress: 0 });
     expect(svc.updateMilestone(id, { status: 'in-progress', progress: 50 })).toBe(true);
@@ -99,7 +99,7 @@ describe('HololandRoadmapService — updateMilestone', () => {
     expect(m.progress).toBe(100);
   });
 
-  it('returns false for unknown milestone id', () => {
+  it('returns false for unknown Sprint id', () => {
     expect(svc.updateMilestone('does-not-exist-xyz', { progress: 10 })).toBe(false);
   });
 
@@ -134,7 +134,7 @@ describe('HololandRoadmapService — getProgress', () => {
     expect(p).toBeLessThanOrEqual(100);
   });
 
-  it('adding a 0-progress milestone decreases average', () => {
+  it('adding a 0-progress Sprint decreases average', () => {
     const before = svc.getProgress();
     const id = uniqueId();
     svc.addMilestone({ id, title: 'Zero', description: '', status: 'planned', progress: 0 });
@@ -143,7 +143,7 @@ describe('HololandRoadmapService — getProgress', () => {
     expect(after).toBeLessThanOrEqual(before + 1); // +1 for float rounding
   });
 
-  it('adding a 100-progress milestone increases average', () => {
+  it('adding a 100-progress Sprint increases average', () => {
     const before = svc.getProgress();
     const id = uniqueId();
     svc.addMilestone({ id, title: 'Full', description: '', status: 'completed', progress: 100 });

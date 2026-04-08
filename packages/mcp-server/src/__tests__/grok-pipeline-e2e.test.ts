@@ -15,24 +15,26 @@ vi.mock('@holoscript/llm-provider', () => ({
     getRegisteredProviders: () => ['mock'],
     getProvider: () => ({
       generateHoloScript: vi.fn(async () => ({
-        code: `composition "SocialScene" {
-  environment {
-    skybox: "gradient"
-    ambient_light: 0.6
-  }
-
-  object "SharedArt" @shareable @collaborative {
-    geometry: "sphere"
-    color: "#ff4488"
-    position: [0, 1.5, 0]
-  }
-
-  object "TweetCube" @tweetable @grabbable {
-    geometry: "cube"
-    color: "#1da1f2"
-    position: [2, 1, 0]
-  }
-}`,
+        code: [
+          'composition "SocialScene" {',
+          '  environment {',
+          '    skybox: "gradient"',
+          '    ambient_light: 0.6',
+          '  }',
+          '',
+          '  object "SharedArt" @shareable @collaborative {',
+          '    geometry: "sphere"',
+          '    color: "#ff4488"',
+          '    position: [0, 1.5, 0]',
+          '  }',
+          '',
+          '  object "TweetCube" @tweetable @grabbable {',
+          '    geometry: "cube"',
+          '    color: "#1da1f2"',
+          '    position: [2, 1, 0]',
+          '  }',
+          '}'
+        ].join('\n'),
         provider: 'mock',
         detectedTraits: ['@shareable', '@collaborative', '@tweetable', '@grabbable'],
       })),
@@ -149,6 +151,7 @@ describe('Grok E2E Pipeline', () => {
         description: 'a game arena with physics and multiplayer',
         style: 'detailed',
       })) as Record<string, unknown>;
+      console.log('GENERATED SCENE RAW:', JSON.stringify(scene.code));
       expect(scene.code).toBeDefined();
       expect((scene.code as string).length).toBeGreaterThan(0);
 
@@ -156,6 +159,7 @@ describe('Grok E2E Pipeline', () => {
       const validation = (await handleTool('validate_holoscript', {
         code: scene.code as string,
       })) as Record<string, unknown>;
+      console.log('VALIDATION RESULT:', JSON.stringify(validation, null, 2));
       expect(validation.valid).toBe(true);
 
       // 3. Suggest traits

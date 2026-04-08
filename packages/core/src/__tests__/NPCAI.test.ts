@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { npcAIHandler } from '../traits/NPCAITrait';
 import { registerAIAdapter, unregisterAIAdapter, type AIAdapter } from '../ai/AIAdapter';
 
-describe('NPCAI Trait (Phase 12)', () => {
+describe('NPCAI Trait', () => {
   beforeEach(() => {
     unregisterAIAdapter('mock-ai');
   });
@@ -70,3 +70,4 @@ describe('NPCAI Trait (Phase 12)', () => {
     );
   });
 });
+

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { visionHandler } from '../traits/VisionTrait';
 
-describe('Computer Vision (Phase 73)', () => {
+describe('Computer Vision', () => {
   it('should scan scene and detect objects', () => {
     const node = { id: 'robot_eye', properties: {} };
     const context = { emit: vi.fn() } as any;
@@ -48,3 +48,4 @@ describe('Computer Vision (Phase 73)', () => {
     expect(context.emit).toHaveBeenCalledWith('vision_scan_complete', expect.any(Object));
   });
 });
+

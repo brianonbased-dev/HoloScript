@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+﻿import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PersonaLoader } from '../services/PersonaLoader';
 import { NeuralState } from '../traits/NeuralForgeTrait';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-describe('Persona Persistence (Phase 2)', () => {
+describe('Persona Persistence', () => {
   const TEST_DIR = './test_personas';
   const loader = new PersonaLoader(TEST_DIR);
 
@@ -47,3 +47,4 @@ describe('Persona Persistence (Phase 2)', () => {
     expect(list).toContain('p2');
   });
 });
+

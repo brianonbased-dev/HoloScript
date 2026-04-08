@@ -5,7 +5,7 @@
  * cross-tenant access prevention, namespace isolation, and async context.
  *
  * @version 3.9.0
- * @sprint Sprint 9: Multi-Tenant Isolation
+ * @Sprint Sprint 9: Multi-Tenant Isolation
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { emotionalVoiceHandler } from '../traits/EmotionalVoiceTrait';
 import { registerVoiceSynthesizer, type VoiceSynthesizer } from '@holoscript/engine/runtime/VoiceSynthesizer';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
-describe('EmotionalVoiceTrait - Phase 20 (Procedural Voice)', () => {
+describe('EmotionalVoiceTrait - Procedural Voice', () => {
   let mockSynthesizer: VoiceSynthesizer;
   let node: HSPlusNode;
 
@@ -100,3 +100,4 @@ describe('EmotionalVoiceTrait - Phase 20 (Procedural Voice)', () => {
     expect(state.audioCache.size).toBe(1);
   });
 });
+

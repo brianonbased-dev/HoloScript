@@ -368,7 +368,10 @@ describe('v5.6 Showcase — Observable Platform', () => {
     it('builds comprehensive health status', () => {
       registerObservableAgents();
 
-      const health = buildHealthStatus(92, '5.6.0');
+      // Keep this test stable as MCP tools evolve over time.
+      // We only validate that buildHealthStatus reflects the provided count.
+      const currentToolCount = 103;
+      const health = buildHealthStatus(currentToolCount, '5.6.0');
 
       expect(health.status).toBe('healthy');
       expect(health.version).toBe('5.6.0');
@@ -376,7 +379,7 @@ describe('v5.6 Showcase — Observable Platform', () => {
       expect(health.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(health.checks.registry.agentCount).toBe(3);
       expect(health.checks.telemetry.status).toBe('ok');
-      expect(health.checks.tools.toolCount).toBe(92);
+      expect(health.checks.tools.toolCount).toBe(currentToolCount);
       expect(health.checks.tools.status).toBe('ok');
     });
   });

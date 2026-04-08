@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { userMonitorHandler } from '../traits/UserMonitorTrait';
 import { registerEmotionDetector, type EmotionDetector } from '@holoscript/engine/runtime/EmotionDetector';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
-describe('UserMonitorTrait - Phase 21 (Frustration Detection)', () => {
+describe('UserMonitorTrait - Frustration Detection', () => {
   let mockDetector: EmotionDetector;
   let node: HSPlusNode;
   let mockContext: any;
@@ -109,3 +109,4 @@ describe('UserMonitorTrait - Phase 21 (Frustration Detection)', () => {
     );
   });
 });
+

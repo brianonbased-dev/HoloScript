@@ -139,12 +139,12 @@ describe('CharacterTrait', () => {
     });
   });
 
-  describe('sprint', () => {
+  describe('Sprint', () => {
     it('should start not sprinting', () => {
       expect(character.isSprinting()).toBe(false);
     });
 
-    it('should sprint in sprint mode', () => {
+    it('should Sprint in Sprint mode', () => {
       character.setMovementMode('sprinting');
       expect(character.getMovementMode()).toBe('sprinting');
     });

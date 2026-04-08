@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { MovementSystem } from '../MovementSystem';
 import type { MovementInput } from '../MovementSystem';
 
-const idleInput: MovementInput = { forward: 0, right: 0, sprint: false, walk: false };
-const walkForward: MovementInput = { forward: 1, right: 0, sprint: false, walk: true };
-const runForward: MovementInput = { forward: 1, right: 0, sprint: false, walk: false };
-const sprintForward: MovementInput = { forward: 1, right: 0, sprint: true, walk: false };
+const idleInput: MovementInput = { forward: 0, right: 0, Sprint: false, walk: false };
+const walkForward: MovementInput = { forward: 1, right: 0, Sprint: false, walk: true };
+const runForward: MovementInput = { forward: 1, right: 0, Sprint: false, walk: false };
+const sprintForward: MovementInput = { forward: 1, right: 0, Sprint: true, walk: false };
 
 describe('MovementSystem', () => {
   it('initializes with default speeds', () => {
@@ -33,16 +33,16 @@ describe('MovementSystem', () => {
     expect(result.staminaCost).toBe(0);
   });
 
-  it('run mode is default when no walk/sprint held', () => {
+  it('run mode is default when no walk/Sprint held', () => {
     const ms = new MovementSystem({ acceleration: 1000 });
     ms.update(runForward, 1.0);
     expect(ms.mode).toBe('run');
   });
 
-  it('sprint mode consumes stamina', () => {
+  it('Sprint mode consumes stamina', () => {
     const ms = new MovementSystem({ sprintStaminaCost: 10, acceleration: 1000 });
     const result = ms.update(sprintForward, 1.0);
-    expect(ms.mode).toBe('sprint');
+    expect(ms.mode).toBe('Sprint');
     expect(result.staminaCost).toBeCloseTo(10, 1);
   });
 
@@ -70,13 +70,13 @@ describe('MovementSystem', () => {
     const ms = new MovementSystem({ walkSpeed: 2, runSpeed: 5, sprintSpeed: 8 });
     expect(ms.getSpeedForMode('walk')).toBe(2);
     expect(ms.getSpeedForMode('run')).toBe(5);
-    expect(ms.getSpeedForMode('sprint')).toBe(8);
+    expect(ms.getSpeedForMode('Sprint')).toBe(8);
     expect(ms.getSpeedForMode('idle')).toBe(0);
   });
 
   it('diagonal input is normalized so speed does not exceed target', () => {
     const ms = new MovementSystem({ acceleration: 1000, runSpeed: 5 });
-    const diagonal: MovementInput = { forward: 1, right: 1, sprint: false, walk: false };
+    const diagonal: MovementInput = { forward: 1, right: 1, Sprint: false, walk: false };
     // Many frames to reach full speed
     for (let i = 0; i < 60; i++) ms.update(diagonal, 1 / 60);
     // Speed should be approximately runSpeed, not runSpeed * sqrt(2)

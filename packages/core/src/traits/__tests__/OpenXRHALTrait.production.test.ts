@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OpenXRHALTrait - Production Test Suite
  *
  * Commence All V — Tests aligned to actual openXRHALHandler implementation.
@@ -145,32 +145,32 @@ describe('OpenXRHALTrait — Production Tests', () => {
       expect(node.__openxrHALState.eyeTrackingActive).toBe(false);
     });
 
-    it('Phase 4: starts with empty features set', () => {
+    it('starts with empty features set', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.featuresAvailable).toBeInstanceOf(Set);
     });
 
-    it('Phase 4: starts with zero error count', () => {
+    it('starts with zero error count', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.errorCount).toBe(0);
     });
 
-    it('Phase 4: starts with null lastError', () => {
+    it('starts with null lastError', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.lastError).toBeNull();
     });
 
-    it('Phase 4: starts visible (sessionVisible true)', () => {
+    it('starts visible (sessionVisible true)', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.sessionVisible).toBe(true);
     });
 
-    it('Phase 4: starts not interrupted', () => {
+    it('starts not interrupted', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.sessionInterrupted).toBe(false);
     });
 
-    it('Phase 4: reconnectAttempts starts at zero', () => {
+    it('reconnectAttempts starts at zero', () => {
       const { node } = attachNode();
       expect(node.__openxrHALState.reconnectAttempts).toBe(0);
     });
@@ -265,7 +265,7 @@ describe('OpenXRHALTrait — Production Tests', () => {
       expect(frameEvents.length).toBe(0);
     });
 
-    it('skips update when session is interrupted (Phase 4)', () => {
+    it('skips update when session is interrupted', () => {
       const { node, ctx } = attachNode();
       node.__openxrHALState.sessionInterrupted = true;
       const before = ctx.emitted.length;
@@ -428,7 +428,7 @@ describe('OpenXRHALTrait — Production Tests', () => {
   // =========================================================================
   // Phase 4: Error state tracking
   // =========================================================================
-  describe('Phase 4 — Error tracking', () => {
+  describe('Error Tracking', () => {
     it('lastFrameTime updates on each onUpdate', () => {
       const { node, ctx } = attachNode();
       openXRHALHandler.onUpdate(node, defaultConfig(), ctx, 12.5);

@@ -723,7 +723,7 @@ describe('PhysicsActivationController', () => {
       // but intensity should be > 0
       expect(ctrl.getIntensity()).toBeGreaterThan(0);
 
-      // Run many frames at sprint speed to converge
+      // Run many frames at Sprint speed to converge
       const sprintCtrl = new PhysicsActivationController({
         locomotion: { ...DEFAULT_LOCOMOTION_CONFIG, emaAlpha: 1.0 },
       });
