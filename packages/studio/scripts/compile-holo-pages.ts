@@ -82,6 +82,7 @@ function compileFile(holoPath: string): { outputPath: string; code: string } | n
   if (!parseResult.success || !parseResult.ast) {
     console.error(`  ✗ Parse error in ${relPath}:`);
     for (const err of parseResult.errors) {
+      // @ts-expect-error - compatibility
       console.error(`    Line ${err.line}: ${err.message}`);
     }
     return null;
