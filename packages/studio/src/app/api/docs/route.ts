@@ -95,6 +95,41 @@ export async function GET() {
       '/api/social/comments': {
         post: { tags: ['social'], summary: 'Comment on scene', responses: { '200': { description: 'Comment result' } } },
       },
+      '/api/social/crosspost/moltbook': {
+        get: {
+          tags: ['social'],
+          summary: 'Moltbook crosspost endpoint metadata',
+          responses: { '200': { description: 'Crosspost endpoint info and defaults' } },
+        },
+        post: {
+          tags: ['social'],
+          summary: 'Crosspost agent discovery update to Moltbook',
+          description: 'Posts a discovery/update payload to Moltbook community channels for agent visibility.',
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    content: { type: 'string' },
+                    community: { type: 'string', default: 'holoscript' },
+                    tags: { type: 'array', items: { type: 'string' } },
+                    agentName: { type: 'string' },
+                    agentCardUrl: { type: 'string' },
+                    capabilities: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Crosspost accepted by Moltbook' },
+            '401': { description: 'Authentication required' },
+            '503': { description: 'Moltbook API key missing / service unavailable' },
+          },
+        },
+      },
       '/api/daemon/absorb': {
         post: { tags: ['daemon'], summary: 'Start absorb job', responses: { '200': { description: 'Job started' } } },
       },

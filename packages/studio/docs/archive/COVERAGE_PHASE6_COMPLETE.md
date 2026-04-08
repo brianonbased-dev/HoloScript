@@ -305,6 +305,6 @@ Based on complexity and usage:
 **Quality**: ✅ **100% test pass rate**
 **Coverage**: ✅ **All target hooks at 100%**
 **Cumulative**: ✅ **9 hooks at 100% coverage**
-**Milestone**: ✅ **34.48% hooks coverage - getting close to 40% threshold!**
+**Sprint**: ✅ **34.48% hooks coverage - getting close to 40% threshold!**
 
 🎉 **Phase 6 Complete - 972 Tests, 34.48% Hooks Coverage!**

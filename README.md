@@ -15,12 +15,19 @@ One language. Every platform. Write `.holo`, compile to Unity, Unreal, VisionOS,
 
 ## Quick Start (30 seconds)
 
+If you want the guided path, start here first:
+
+- [What is HoloScript?](./docs/academy/level-1-fundamentals/01-what-is-holoscript.md)
+- [Installation](./docs/academy/level-1-fundamentals/02-installation.md)
+- [Your First Scene](./docs/academy/level-1-fundamentals/03-first-scene.md)
+
 **1. Try the API -- no install needed:**
 
 ```bash
 curl -s -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
-  -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "unity"}'
+  -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "unity"}' \
+  | python -m json.tool
 ```
 
 Returns JSON with platform-ready source code:
@@ -53,7 +60,13 @@ All [37 targets](./docs/reference/FULL_README.md#compilation-targets) work the s
 curl -s -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
   -d '{"code": "composition \"Store\" { object \"Product\" { @label(text: \"Demo\") @gauge(value: 99, unit: \"%\") geometry: \"box\" } }", "target": "native-2d"}' \
-  -o demo.html && open demo.html
+  -o demo.html
+
+# macOS
+open demo.html
+
+# Windows PowerShell
+Start-Process demo.html
 ```
 
 **3. Write your first `.holo` file:**
@@ -76,7 +89,8 @@ Compile it against any target:
 ```bash
 curl -s -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
-  -d "{\"code\": \"$(cat hello.holo)\", \"target\": \"r3f\"}"
+  -d "{\"code\": \"$(cat hello.holo)\", \"target\": \"r3f\"}" \
+  | python -m json.tool
 ```
 
 ## Run locally
@@ -91,6 +105,15 @@ npm run dev
 ```
 
 This creates a project with a sample scene and opens a live preview.
+
+**Run an example from this repo (no scaffolding required):**
+
+```bash
+# From repo root
+holoscript dev examples/hololand/4-integrated-experience.holo
+```
+
+That command serves the example scene directly so you can validate your environment quickly.
 
 **Develop on the core repo:**
 

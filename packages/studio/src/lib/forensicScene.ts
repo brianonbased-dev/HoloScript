@@ -228,7 +228,7 @@ export function forensicTimeline(events: ForensicEvent[]): ForensicEvent[] {
  */
 export function timelineContradictions(
   events: ForensicEvent[],
-  maxSpeedMps: number = 10 // Max human sprint speed
+  maxSpeedMps: number = 10 // Max human Sprint speed
 ): Array<{ event1: string; event2: string; reason: string }> {
   const contradictions: Array<{ event1: string; event2: string; reason: string }> = [];
   const sorted = forensicTimeline(events);

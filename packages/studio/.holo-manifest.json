@@ -1,6 +1,10 @@
 {
   "generatedFiles": [
-    "src\\app\\pipeline\\page.tsx"
+    "src\\app\\pipeline\\page.tsx",
+    "src\\app\\holoclaw\\page.tsx",
+    "src\\app\\holodaemon\\page.tsx",
+    "src\\app\\learn\\page.tsx",
+    "src\\app\\templates\\page.tsx"
   ],
-  "lastBuild": "2026-04-07T11:27:32.352Z"
+  "lastBuild": "2026-04-08T06:36:18.397Z"
 }

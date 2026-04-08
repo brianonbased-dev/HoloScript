@@ -6,7 +6,7 @@
  *
  * Available templates:
  *   studio-audit    — Full codebase audit (TypeScript, TODOs, coverage, security)
- *   research-sprint — Knowledge gathering, W/P/G compression, documentation
+ *   research-Sprint — Knowledge gathering, W/P/G compression, documentation
  *   bug-bash        — Triage, reproduce, fix, and verify bugs
  *   doc-day         — README, API docs, examples, changelog updates
  */
@@ -96,8 +96,8 @@ export const ROOM_TEMPLATES: Record<string, RoomTemplate> = {
     ],
   },
 
-  'research-sprint': {
-    slug: 'research-sprint',
+  'research-Sprint': {
+    slug: 'research-Sprint',
     name: 'Research Sprint',
     description:
       'Focused knowledge extraction session: query knowledge store gaps, run GROW phase, and push new W/P/G entries to the orchestrator.',
@@ -140,7 +140,7 @@ export const ROOM_TEMPLATES: Record<string, RoomTemplate> = {
       {
         title: 'Compress session findings into MEMORY.md',
         description:
-          'After the sprint, extract key decisions and facts; append to ai-ecosystem/memory/MEMORY.md following W/P/G format.',
+          'After the Sprint, extract key decisions and facts; append to ai-ecosystem/memory/MEMORY.md following W/P/G format.',
         role: 'researcher',
         priority: 3,
       },

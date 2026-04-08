@@ -14,6 +14,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
+const GITHUB_API_BASE_URL = (
+  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
+).replace(/\/+$/, '');
+
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+
 interface GitHubSearchItem {
   name: string;
   path: string;
@@ -59,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     // Scope search to the specific repository
     const scopedQuery = `${query} repo:${owner}/${repo}`;
-    const url = new URL('https://api.github.com/search/code');
+    const url = new URL(`${GITHUB_API_BASE_URL}/search/code`);
     url.searchParams.set('q', scopedQuery);
     url.searchParams.set('per_page', '30');
 
@@ -68,6 +74,7 @@ export async function GET(req: NextRequest) {
         Authorization: `Bearer ${token}`,
         // Request text-match metadata for highlighted snippets
         Accept: 'application/vnd.github.text-match+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'User-Agent': 'HoloScript-Studio',
       },
       signal: AbortSignal.timeout(15_000),

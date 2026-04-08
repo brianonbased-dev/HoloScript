@@ -10,7 +10,8 @@ This workflow ensures the agent complies with the **GraphRAG-First Rule** and th
 
 - **Absorb Key**: Ensure `ABSORB_API_KEY` is loaded from the `HoloScript/.env` file.
 - **Holomesh Wallet Key**: Ensure `$HOLOMESH_API_KEY` is available for `Bearer` auth.
-- **Target Team**: IDE Squad (`team_d141a6972eac1e9d`)
+- **Target Team**: Set `HOLOMESH_TEAM_ID` in `.env` to your active room/board ID.
+- **HoloMesh API Base**: Optional `HOLOMESH_API_BASE_URL` (defaults to `https://mcp.holoscript.net/api/holomesh`).
 
 > ⚠️ Security rule: never hardcode raw API keys in this file, commit diffs, screenshots, or terminal transcripts.
 > Use environment variables only (e.g. `export HOLOMESH_API_KEY="<set-at-runtime>"`).
@@ -24,7 +25,9 @@ This workflow ensures the agent complies with the **GraphRAG-First Rule** and th
 Agents MUST declare they are alive and ready to claim tasks before doing any work:
 
 ```bash
-curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/presence" \
+HOLOMESH_API_BASE_URL="${HOLOMESH_API_BASE_URL:-https://mcp.holoscript.net/api/holomesh}"
+
+curl -s -X POST "$HOLOMESH_API_BASE_URL/team/$HOLOMESH_TEAM_ID/presence" \
   -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"ide_type":"gemini","status":"active"}'
@@ -48,7 +51,7 @@ curl -s -X POST "https://mcp-orchestrator-production-45f9.up.railway.app/knowled
 Read what others have learned and find pending tasks from the global swarm queue:
 
 ```bash
-curl -s -X GET "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/board" \
+curl -s -X GET "$HOLOMESH_API_BASE_URL/team/$HOLOMESH_TEAM_ID/board" \
   -H "Authorization: Bearer $HOLOMESH_API_KEY"
 ```
 
@@ -57,7 +60,7 @@ curl -s -X GET "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e
 Lock the objective under your Agent ID so other active swarm agents do not duplicate the work:
 
 ```bash
-curl -s -X PATCH "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/board/TASK_ID" \
+curl -s -X PATCH "$HOLOMESH_API_BASE_URL/team/$HOLOMESH_TEAM_ID/board/TASK_ID" \
   -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"claim"}'
@@ -70,7 +73,7 @@ curl -s -X PATCH "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac
 After claiming, notify the team stream of task acquisition.
 
 ```bash
-curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/message" \
+curl -s -X POST "$HOLOMESH_API_BASE_URL/team/$HOLOMESH_TEAM_ID/message" \
   -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"task","content":"took assignment: [Task Name]"}'
@@ -86,7 +89,7 @@ Verify code via `npx tsc --noEmit` and run related `vitest` assertions locally.
 Pass the completed knowledge back into the Orchestration Knowledge store for future agents.
 
 ```bash
-curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e9d/knowledge" \
+curl -s -X POST "$HOLOMESH_API_BASE_URL/team/$HOLOMESH_TEAM_ID/knowledge" \
   -H "Authorization: Bearer $HOLOMESH_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"entries":[{"type":"wisdom","content":"...", "pattern":"..."}]}'

@@ -17,6 +17,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+const GITHUB_API_BASE_URL = (
+  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
+).replace(/\/+$/, '');
+
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
 function classifyRole(userLogin: string | null, ownerLogin: string | null, perms?: { admin?: boolean; push?: boolean; pull?: boolean }): GitHubRole {
@@ -50,18 +56,20 @@ export async function GET(req: NextRequest) {
   }
 
   const [userResp, repoResp] = await Promise.all([
-    fetch('https://api.github.com/user', {
+    fetch(`${GITHUB_API_BASE_URL}/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'User-Agent': 'HoloScript-Studio',
       },
       signal: AbortSignal.timeout(10_000),
     }),
-    fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
+    fetch(`${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'User-Agent': 'HoloScript-Studio',
       },
       signal: AbortSignal.timeout(10_000),

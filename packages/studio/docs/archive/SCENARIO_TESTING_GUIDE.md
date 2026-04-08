@@ -140,8 +140,8 @@ describe('Scenario: [Feature] — [Aspect]', () => {
 | Priority     | When to Use                          | Response Time    |
 | ------------ | ------------------------------------ | ---------------- |
 | **Critical** | Broken core features, blocking users | Fix immediately  |
-| **High**     | Missing key features, current sprint | Within 1 week    |
-| **Medium**   | Enhancement requests, next sprint    | Within 2-4 weeks |
+| **High**     | Missing key features, current Sprint | Within 1 week    |
+| **Medium**   | Enhancement requests, next Sprint    | Within 2-4 weeks |
 | **Low**      | Nice-to-haves, backlog               | Future sprints   |
 
 ### Metadata Fields

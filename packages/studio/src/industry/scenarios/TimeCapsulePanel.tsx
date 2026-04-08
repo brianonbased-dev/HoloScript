@@ -63,7 +63,7 @@ const DEMO_CAPSULES: TimeCapsule[] = [
   },
   {
     id: '2',
-    name: 'Sprint 100 Milestone',
+    name: 'Sprint 100 Sprint',
     status: 'open',
     items: [
       {

@@ -360,7 +360,7 @@ export class LivePreviewService {
       };
 
       // DEFERRED(SHADER-001): WebGPU pipeline + bind groups require render context from canvas.
-      // Blocked until shader integration milestone provides GPURenderPassEncoder access.
+      // Blocked until shader integration Sprint provides GPURenderPassEncoder access.
     } catch (error) {
       logger.error('Failed to update material instance:', error);
       throw error;

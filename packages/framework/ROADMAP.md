@@ -140,7 +140,7 @@ The framework can improve itself.
 | Prompt optimization — A/B test system prompts, converge on best | LLM adapter + KnowledgeStore | M |
 | Framework evolution — agents propose + vote + ship API changes | suggest() + propose() already in framework | S |
 
-**v1.0 milestone:** The framework's own agents can propose, vote on, and ship improvements to themselves.
+**v1.0 Sprint:** The framework's own agents can propose, vote on, and ship improvements to themselves.
 
 ---
 

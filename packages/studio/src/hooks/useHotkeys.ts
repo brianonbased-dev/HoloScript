@@ -181,7 +181,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
             (c) => c.id === characterStore.activeClipId
           );
           if (activeClip) {
-            // Export deferred to MEME-008 milestone (requires video encoding pipeline)
+            // Export deferred to MEME-008 Sprint (requires video encoding pipeline)
             logger.debug('[Hotkey] Export clip (E):', activeClip.name);
           }
         },
@@ -193,7 +193,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: 'l',
         description: 'Toggle loop',
         action: () => {
-          // Loop state deferred to MEME-007 milestone (requires characterStore extension)
+          // Loop state deferred to MEME-007 Sprint (requires characterStore extension)
           logger.debug('[Hotkey] Toggled loop (L)');
         },
       },
@@ -229,7 +229,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         key: `${i + 1}`,
         description: `Apply preset pose ${i + 1}`,
         action: () => {
-          // Preset poses deferred to MEME-004 milestone
+          // Preset poses deferred to MEME-004 Sprint
           logger.debug(`[Hotkey] Applied preset pose ${i + 1}`);
         },
       })),

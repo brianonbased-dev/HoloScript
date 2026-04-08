@@ -20,7 +20,7 @@
 
 ---
 
-## HIGH (fix this sprint)
+## HIGH (fix this Sprint)
 
 ### PERF-01: 24 Components Over 300 Lines (need splitting)
 | Component | Lines | Priority |

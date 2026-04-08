@@ -16,6 +16,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
+const GITHUB_API_BASE_URL = (
+  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
+).replace(/\/+$/, '');
+
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+
 interface GitHubRepo {
   id: number;
   name: string;
@@ -49,7 +55,7 @@ export async function GET(req: NextRequest) {
     const searchQuery = searchParams.get('q') || '';
 
     // Fetch repos directly from GitHub API using the resolved token
-    const url = new URL('https://api.github.com/user/repos');
+    const url = new URL(`${GITHUB_API_BASE_URL}/user/repos`);
     url.searchParams.set('type', 'owner');
     url.searchParams.set('sort', 'updated');
     url.searchParams.set('per_page', String(perPage));
@@ -58,6 +64,7 @@ export async function GET(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'User-Agent': 'HoloScript-Studio',
       },
     });

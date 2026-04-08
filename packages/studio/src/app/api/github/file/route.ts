@@ -15,6 +15,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
+const GITHUB_API_BASE_URL = (
+  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
+).replace(/\/+$/, '');
+
+const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+
 export async function GET(req: NextRequest) {
   try {
     const { getServerSession } = await import('next-auth');
@@ -42,7 +48,7 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`
+      `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`
     );
     if (ref) url.searchParams.set('ref', ref);
 
@@ -50,6 +56,7 @@ export async function GET(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'User-Agent': 'HoloScript-Studio',
       },
       signal: AbortSignal.timeout(15_000),
@@ -137,12 +144,13 @@ export async function PUT(req: NextRequest) {
     if (sha) payload.sha = sha;
     if (branch) payload.branch = branch;
 
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
+    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'Content-Type': 'application/json',
         'User-Agent': 'HoloScript-Studio',
       },
@@ -211,12 +219,13 @@ export async function DELETE(req: NextRequest) {
     const payload: Record<string, unknown> = { message, sha };
     if (branch) payload.branch = branch;
 
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
+    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
         'Content-Type': 'application/json',
         'User-Agent': 'HoloScript-Studio',
       },
