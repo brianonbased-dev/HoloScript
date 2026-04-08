@@ -1,3 +1,4 @@
+import { makeTestContext } from './helpers.js';
 /**
  * HapticTrait — Production Test Suite
  */
@@ -18,7 +19,7 @@ function makeCtx(opts: any = {}) {
 }
 function attach(cfg: any = {}) {
   const node = makeNode();
-  const ctx = makeCtx();
+  const ctx = makeTestContext(makeCtx());
   const config = { ...hapticHandler.defaultConfig!, ...cfg };
   hapticHandler.onAttach!(node, config, ctx);
   return { node: node as any, ctx, config };
@@ -163,7 +164,7 @@ describe('hapticHandler.onEvent — collision', () => {
     expect(ctx.haptics.pulse).toHaveBeenCalledWith('left', expect.any(Number), expect.any(Number));
   });
   it('intensity is multiplied into pulse', () => {
-    const ctx = makeCtx();
+    const ctx = makeTestContext(makeCtx());
     const node = makeNode();
     const config = {
       ...hapticHandler.defaultConfig!,
@@ -282,7 +283,7 @@ describe('hapticHandler.onUpdate — pattern stepping', () => {
   });
   it('no-op when no state', () => {
     const node = makeNode();
-    const ctx = makeCtx();
+    const ctx = makeTestContext(makeCtx());
     const config = { ...hapticHandler.defaultConfig! };
     // don't attach — state is missing
     expect(() => hapticHandler.onUpdate!(node as any, config, ctx, 0.016)).not.toThrow();
@@ -295,7 +296,7 @@ describe('hapticHandler.onUpdate — pattern stepping', () => {
 describe('hapticHandler.onUpdate — proximity', () => {
   it('updates proximityIntensity based on hand distance', () => {
     const dominantHand = { id: 'right', position: [0.1, 0, 0] };
-    const ctx = makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } });
+    const ctx = makeTestContext(makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } }));
     const node = makeNode({ position: [0, 0, 0] });
     const config = {
       ...hapticHandler.defaultConfig!,
@@ -313,7 +314,7 @@ describe('hapticHandler.onUpdate — proximity', () => {
   });
   it('sets proximityIntensity=0 when out of range', () => {
     const dominantHand = { id: 'right', position: [5, 0, 0] }; // far away
-    const ctx = makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } });
+    const ctx = makeTestContext(makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } }));
     const node = makeNode({ position: [0, 0, 0] });
     const config = {
       ...hapticHandler.defaultConfig!,

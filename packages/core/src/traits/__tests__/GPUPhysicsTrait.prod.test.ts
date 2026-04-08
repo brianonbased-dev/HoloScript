@@ -1,3 +1,4 @@
+import { makeTestContext } from './helpers.js';
 /**
  * GPUPhysicsTrait — Production Test Suite
  *
@@ -50,7 +51,7 @@ function makeMockSoftBody() {
   };
 }
 
-vi.mock('../../runtime/PhysicsEngine', () => {
+vi.mock('@holoscript/engine/runtime/PhysicsEngine', () => {
   return {
     getPhysicsEngine: (name: string) => {
       // 'webgpu' and 'default' both return the current engine
@@ -59,14 +60,14 @@ vi.mock('../../runtime/PhysicsEngine', () => {
   };
 });
 
-vi.mock('../../physics/IslandDetector', () => {
+vi.mock('@holoscript/engine/physics/IslandDetector', () => {
   function IslandDetector() {
     return { detect: vi.fn() };
   }
   return { IslandDetector };
 });
 
-vi.mock('../../physics/SoftBodyAdapter', () => {
+vi.mock('@holoscript/engine/physics/SoftBodyAdapter', () => {
   function SoftBodyAdapter(node: any, config: any) {
     _softBodyInstance = makeMockSoftBody();
     return _softBodyInstance;
@@ -278,8 +279,7 @@ describe('gpuPhysicsHandler.onDetach — no state', () => {
     const node = makeNode();
     // Never attached — no state
     expect(() =>
-      gpuPhysicsHandler.onDetach!(node as any, makeConfig(), makeCtx() as any)
-    ).not.toThrow();
+      gpuPhysicsHandler.onDetach!(node as any, makeConfig(), makeTestContext(makeCtx() as any))).not.toThrow();
   });
 });
 
@@ -321,8 +321,7 @@ describe('gpuPhysicsHandler.onUpdate — rigid_body', () => {
     gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     _mockEngine = null as any; // engine gone
     expect(() =>
-      gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016)
-    ).not.toThrow();
+      gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeTestContext(makeCtx()), )).not.toThrow();
   });
 });
 
@@ -400,8 +399,7 @@ describe('gpuPhysicsHandler.onEvent', () => {
     const node = makeNode();
     gpuPhysicsHandler.onAttach!(node as any, makeConfig(), makeCtx() as any);
     expect(() =>
-      gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeCtx() as any, { type: 'unknown' })
-    ).not.toThrow();
+      gpuPhysicsHandler.onEvent!(node as any, makeConfig(), makeTestContext(makeCtx()), { type: 'unknown_event' })).not.toThrow();
   });
 
   it('no-op when state is missing', () => {

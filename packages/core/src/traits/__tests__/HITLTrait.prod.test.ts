@@ -1,9 +1,10 @@
+import { makeTestContext } from './helpers.js';
 /**
  * HITLTrait — Production Test Suite
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../utils/HITLAuditLogger', () => ({
+vi.mock('@holoscript/engine/utils/HITLAuditLogger', () => ({
   HITLAuditLogger: { log: vi.fn().mockResolvedValue(undefined) },
 }));
 
@@ -32,7 +33,7 @@ function makeConfig(o: any = {}) {
 }
 function attach(o: any = {}) {
   const node = makeNode(),
-    ctx = makeCtx(),
+    ctx = makeTestContext(makeCtx()),
     config = makeConfig(o);
   hitlHandler.onAttach!(node as any, config, ctx as any);
   return { node, ctx, config };
