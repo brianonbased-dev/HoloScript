@@ -51,7 +51,7 @@ packages/
   framework/      # Agent behaviors, AI, swarm, negotiation, training
   config/         # Centralized endpoints, auth, config validation
   uaal/           # UAAL bytecode VM for agent execution
-  mcp-server/     # MCP server (156 tools), HoloMesh, A2A
+  mcp-server/     # MCP server (tool count via /health), HoloMesh, A2A
   studio/         # Universal Point of Entry (Next.js)
   cli/            # Command-line tools
   r3f-renderer/   # React Three Fiber rendering components
