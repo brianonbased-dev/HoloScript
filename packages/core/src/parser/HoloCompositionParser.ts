@@ -1387,6 +1387,8 @@ export class HoloCompositionParser {
       let config: Record<string, HoloValue> = {};
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
+      } else if (this.check('LBRACE')) {
+        config = this.parseBlockTraitConfig();
       }
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -1406,6 +1408,8 @@ export class HoloCompositionParser {
           let config: Record<string, HoloValue> = {};
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
+          } else if (this.check('LBRACE')) {
+            config = this.parseBlockTraitConfig();
           }
           traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
         } else if (this.check('IDENTIFIER')) {
@@ -2520,7 +2524,7 @@ export class HoloCompositionParser {
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
           } else if (this.check('LBRACE')) {
-            this.skipBlock(); // @trait { key: value } block-style config — skip it
+            config = this.parseBlockTraitConfig();
           }
           template.traits.push({ type: 'ObjectTrait', name: traitName, config } as HoloObjectTrait);
           // Also add traits as directives for compatibility
@@ -2672,6 +2676,8 @@ export class HoloCompositionParser {
       let config: Record<string, HoloValue> = {};
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
+      } else if (this.check('LBRACE')) {
+        config = this.parseBlockTraitConfig();
       }
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -2745,7 +2751,7 @@ export class HoloCompositionParser {
         if (this.check('LPAREN')) {
           config = this.parseTraitConfig();
         } else if (this.check('LBRACE')) {
-          this.skipBlock(); // @trait { key: value } block-style config — skip it
+          config = this.parseBlockTraitConfig();
         }
         const trait = { type: 'ObjectTrait' as const, name: traitName, config };
         traits.push(trait);
@@ -3924,6 +3930,8 @@ export class HoloCompositionParser {
           let config: Record<string, HoloValue> = {};
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
+          } else if (this.check('LBRACE')) {
+            config = this.parseBlockTraitConfig();
           }
           traits.push({ type: 'ObjectTrait' as const, name, config });
         } else if (this.check('IDENTIFIER')) {
@@ -4155,6 +4163,29 @@ export class HoloCompositionParser {
     }
 
     this.expect('RPAREN');
+    return config;
+  }
+
+  private parseBlockTraitConfig(): Record<string, HoloValue> {
+    this.expect('LBRACE');
+    this.skipNewlines();
+    
+    const config: Record<string, HoloValue> = {};
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      config[key] = this.parseValue();
+      
+      if (this.check('COMMA')) {
+        this.advance();
+      }
+      this.skipNewlines();
+    }
+    
+    this.expect('RBRACE');
     return config;
   }
 
