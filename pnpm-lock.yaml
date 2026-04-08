@@ -2004,6 +2004,9 @@ importers:
       '@holoscript/absorb-service':
         specifier: workspace:*
         version: link:../absorb-service
+      '@holoscript/config':
+        specifier: workspace:*
+        version: link:../config
       '@holoscript/connector-appstore':
         specifier: workspace:*
         version: link:../connector-appstore
@@ -2025,6 +2028,9 @@ importers:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../engine
+      '@holoscript/framework':
+        specifier: workspace:*
+        version: link:../framework
       '@holoscript/r3f-renderer':
         specifier: workspace:*
         version: link:../r3f-renderer
@@ -2064,6 +2070,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      drizzle-orm:
+        specifier: ^0.38.0
+        version: 0.38.4(@opentelemetry/api@1.9.0)(@types/react@19.2.13)(pg@8.18.0)(react@19.2.4)
       idb:
         specifier: ^8.0.0
         version: 8.0.3
@@ -2085,6 +2094,9 @@ importers:
       next-auth:
         specifier: '4'
         version: 4.24.13(next@15.5.14)(react-dom@19.2.4)(react@19.2.4)
+      pg:
+        specifier: ^8.13.0
+        version: 8.18.0
       posthog-js:
         specifier: ^1.363.1
         version: 1.363.1
@@ -18737,6 +18749,104 @@ packages:
       esbuild: 0.25.12
       tsx: 4.21.0
     dev: true
+
+  /drizzle-orm@0.38.4(@opentelemetry/api@1.9.0)(@types/react@19.2.13)(pg@8.18.0)(react@19.2.4):
+    resolution: {integrity: sha512-s7/5BpLKO+WJRHspvpqTydxFob8i1vo2rEx4pY6TGY7QSMuUfWUuzaY0DIpXCkgHOo37BaFC+SJQb99dDUXT3Q==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=4'
+      '@electric-sql/pglite': '>=0.2.0'
+      '@libsql/client': '>=0.10.0'
+      '@libsql/client-wasm': '>=0.10.0'
+      '@neondatabase/serverless': '>=0.10.0'
+      '@op-engineering/op-sqlite': '>=2'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1'
+      '@prisma/client': '*'
+      '@tidbcloud/serverless': '*'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/react': '>=18'
+      '@types/sql.js': '*'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=14.0.0'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      prisma: '*'
+      react: '>=18'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@electric-sql/pglite':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@libsql/client-wasm':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@prisma/client':
+        optional: true
+      '@tidbcloud/serverless':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/react':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      prisma:
+        optional: true
+      react:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@types/react': 19.2.13
+      pg: 8.18.0
+      react: 19.2.4
+    dev: false
 
   /drizzle-orm@0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0):
     resolution: {integrity: sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==}

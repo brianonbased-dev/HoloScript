@@ -32,6 +32,7 @@ COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/std/ packages/std/
 COPY packages/ui/ packages/ui/
+COPY packages/config/ packages/config/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/r3f-renderer/ packages/r3f-renderer/
@@ -61,6 +62,7 @@ RUN cd packages/engine && npx tsup \
       --format esm,cjs --no-dts --external three
 RUN cd packages/framework && npx tsup --no-dts
 RUN cd packages/std && npx tsup --no-dts
+RUN cd packages/config && npx tsup --no-dts || true
 RUN cd packages/absorb-service && npx tsup
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
