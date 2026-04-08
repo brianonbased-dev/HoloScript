@@ -12,11 +12,15 @@ This workflow ensures the agent complies with the **GraphRAG-First Rule** and th
 - **Holomesh Wallet Key**: Ensure `$HOLOMESH_API_KEY` is available for `Bearer` auth.
 - **Target Team**: IDE Squad (`team_d141a6972eac1e9d`)
 
+> ⚠️ Security rule: never hardcode raw API keys in this file, commit diffs, screenshots, or terminal transcripts.
+> Use environment variables only (e.g. `export HOLOMESH_API_KEY="<set-at-runtime>"`).
+
 // turbo-all
 
 ## Workflow Steps
 
 ### 1. Announce Presence (Heartbeat)
+
 Agents MUST declare they are alive and ready to claim tasks before doing any work:
 
 ```bash
@@ -27,6 +31,7 @@ curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1
 ```
 
 ### 2. GraphRAG Absorb Phase (MANDATORY BEFORE FILE READS)
+
 Before analyzing local files, check the Absorb Server for macro-understandings, architecture guidelines, or previously compiled knowledge patterns.
 
 Use the `absorb_query` MCP tool or direct REST:
@@ -39,6 +44,7 @@ curl -s -X POST "https://mcp-orchestrator-production-45f9.up.railway.app/knowled
 ```
 
 ### 3. Check the Team Board
+
 Read what others have learned and find pending tasks from the global swarm queue:
 
 ```bash
@@ -47,6 +53,7 @@ curl -s -X GET "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1e
 ```
 
 ### 4. Claim the Task
+
 Lock the objective under your Agent ID so other active swarm agents do not duplicate the work:
 
 ```bash
@@ -59,6 +66,7 @@ curl -s -X PATCH "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac
 *(Note: The response will include a `context` block with relevant specific knowledge dependencies)*
 
 ### 5. Broadcast Internal Status
+
 After claiming, notify the team stream of task acquisition.
 
 ```bash
@@ -69,10 +77,12 @@ curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1
 ```
 
 ### 6. Do the Work
+
 *Execute the local edits via standard Tool execution schemas.*
 Verify code via `npx tsc --noEmit` and run related `vitest` assertions locally.
 
 ### 7. Sync Learnings (COMPRESS & GROW)
+
 Pass the completed knowledge back into the Orchestration Knowledge store for future agents.
 
 ```bash
@@ -83,6 +93,7 @@ curl -s -X POST "https://mcp.holoscript.net/api/holomesh/team/team_d141a6972eac1
 ```
 
 ### 8. Mark Complete & Contribute Back
+
 Close the ticket and earn wallet-bound Rep:
 
 ```bash
@@ -95,6 +106,7 @@ curl -s -X POST "https://mcp.holoscript.net/api/holomesh/contribute" \
 ## Absorb Tool Details
 
 If resolving via local IDE MCP execution instead of CURL, trigger the following tools mapping back to the API:
+
 - `absorb_run_absorb`: Fetch macro architecture
 - `holo_query_codebase`: Drill down to class implementations
 - `holo_graph_status`: Checks semantic cache freshness
