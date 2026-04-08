@@ -7,28 +7,65 @@ Please read our [Code of Conduct](./CODE_OF_CONDUCT.md) before participating.
 ## Getting Started
 
 ```bash
-git clone https://github.com/brianonbased-dev/Holoscript.git
+git clone https://github.com/brianonbased-dev/HoloScript.git
 cd HoloScript
+cp .env.example .env    # Fill in your API keys
 pnpm install
 pnpm build
 pnpm test
 ```
 
-**Requirements:** Node.js >= 18, pnpm 8+
+**Requirements:** Node.js >= 18, pnpm 9+
+
+## Environment Setup
+
+Copy `.env.example` to `.env` and fill in your keys. The `.env` file is gitignored — NEVER commit it.
+
+**Minimum required for local development:**
+```bash
+ANTHROPIC_API_KEY=sk-ant-api03-...   # For AI features
+MCP_API_KEY=your-key                  # For MCP tool calls
+```
+
+**For full platform features (optional):**
+```bash
+HOLOSCRIPT_MCP_URL=https://mcp.holoscript.net
+ABSORB_SERVICE_URL=https://absorb.holoscript.net
+MCP_ORCHESTRATOR_URL=https://mcp-orchestrator-production-45f9.up.railway.app
+HOLOMESH_API_KEY=holomesh_sk_...     # For agent identity
+MOLTBOOK_API_KEY=moltbook_sk_...     # For social features
+```
+
+**Security rules:**
+- NEVER hardcode API keys in source files — use `process.env` or `@holoscript/config`
+- NEVER use `NEXT_PUBLIC_` prefix for secret keys — browser must not see them
+- Use `@holoscript/config` auth helpers which throw if called from browser
+- All authenticated requests go through Studio API routes (server-side proxy)
 
 ## Repository Structure
 
 ```
 packages/
-  core/           # Parser, types, traits, compilers, LSP
-  runtime/        # React Three Fiber execution engine
+  core/           # Parser, types, traits, compilers (24+ targets)
+  engine/         # Runtime: physics, animation, audio, ECS, rendering
+  framework/      # Agent behaviors, AI, swarm, negotiation, training
+  config/         # Centralized endpoints, auth, config validation
+  uaal/           # UAAL bytecode VM for agent execution
+  mcp-server/     # MCP server (156 tools), HoloMesh, A2A
+  studio/         # Universal Point of Entry (Next.js)
   cli/            # Command-line tools
-  lsp/            # Language Server Protocol server
-  formatter/      # Code formatter
-  linter/         # Static analysis
-  std/            # Standard library
-  vscode-extension/ # VS Code extension
-  ...             # 20+ additional packages
+  r3f-renderer/   # React Three Fiber rendering components
+  absorb-service/ # Codebase intelligence, GraphRAG
+  ui/             # Shared Tailwind React components
+  crdt/           # Conflict-free replicated data types
+  ...             # 60+ total packages
+
+services/
+  absorb-service/ # Absorb host (server entry point)
+  export-api/     # Render/export service
+
+infrastructure/
+  Dockerfile.*    # Per-service Docker builds
 ```
 
 ## What to Contribute
@@ -80,7 +117,30 @@ See any existing trait file in `core/src/traits/` for the template pattern.
 
 Configuration files: `.eslintrc.json` (linting rules), `.prettierrc` (formatting), `.editorconfig` (editor settings).
 
-For VR development patterns, see the [Best Practices Guide](./docs/guides/best-practices.md).
+## Commit Convention
+
+Pre-commit hooks enforce conventional commits. Format: `type(scope): description`
+
+**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `release`
+
+**Scopes:** `core`, `mesh`, `mcp`, `absorb`, `studio`, `cli`, `r3f`, `protocol`, `infra`, `ci`, `security`, `economy`, `lsp`
+
+**Rules:**
+- Subject line max 72 characters
+- `git add <specific-files>` only — NEVER `git add -A` or `git add .`
+- Run tests before committing: `pnpm test`
+
+## File Formats
+
+HoloScript has three source formats — use the right one:
+
+| Format | Purpose | Example |
+|--------|---------|---------|
+| `.holo` | Scene compositions, spatial worlds, templates | storefront.holo |
+| `.hsplus` | Agent behaviors, state machines, governance | planner-agent.hsplus |
+| `.hs` | Data pipelines (source → transform → sink) | inventory-sync.hs |
+
+Spatial keywords (`environment`, `object`, `template`) produce a SyntaxError in `.hs` pipeline files. Use `.holo` for scenes.
 
 ## Testing Guidelines
 
