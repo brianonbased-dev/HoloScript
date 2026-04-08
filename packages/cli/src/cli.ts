@@ -2843,8 +2843,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       try {
         const fs = await import('fs');
         const path = await import('path');
-        const pkg = '@holoscript/core';
-        const { CodebaseScanner, CodebaseGraph, HoloEmitter } = await import(pkg + '/codebase');
+        const pkg = '@holoscript/absorb-service';
+        const { CodebaseScanner, CodebaseGraph, HoloEmitter } = await import(pkg + '/engine');
 
         const rootDir = path.resolve(options.input);
         if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
@@ -3105,14 +3105,13 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       try {
         const fs = await import('fs');
         const path = await import('path');
-        const pkg = '@holoscript/core';
         const {
           CodebaseScanner,
           CodebaseGraph,
           EmbeddingIndex,
           GraphRAGEngine,
           createEmbeddingProvider,
-        } = await import(pkg + '/codebase');
+        } = await import('@holoscript/absorb-service/engine');
 
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;

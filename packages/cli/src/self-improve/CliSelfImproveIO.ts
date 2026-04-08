@@ -115,8 +115,7 @@ export class CliSelfImproveIO implements SelfImproveIO {
     }
 
     // Dynamic import to avoid top-level dependency on the full core bundle
-    const pkg = '@holoscript/core';
-    const { CodebaseScanner, CodebaseGraph } = await import(pkg + '/codebase');
+    const { CodebaseScanner, CodebaseGraph } = await import('@holoscript/absorb-service/engine');
 
     const scanner = new CodebaseScanner();
     const scanResult = await scanner.scan({ rootDir: absDir });

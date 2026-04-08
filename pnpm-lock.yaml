@@ -178,6 +178,9 @@ importers:
 
   packages/absorb-service:
     dependencies:
+      '@holoscript/config':
+        specifier: workspace:^
+        version: link:../config
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
@@ -259,15 +262,9 @@ importers:
 
   packages/agent-protocol:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
-      '@holoscript/uaal':
-        specifier: workspace:*
-        version: link:../uaal
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -371,6 +368,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@holoscript/absorb-service':
+        specifier: workspace:^
+        version: link:../absorb-service
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
@@ -1324,6 +1324,9 @@ importers:
       '@holoscript/absorb-service':
         specifier: workspace:^
         version: link:../absorb-service
+      '@holoscript/config':
+        specifier: workspace:^
+        version: link:../config
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core

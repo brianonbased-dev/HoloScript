@@ -42,6 +42,7 @@
     "directory": "packages/cli"
   },
   "dependencies": {
+    "@holoscript/absorb-service": "workspace:^",
     "@holoscript/core": "workspace:^",
     "@holoscript/core-types": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
