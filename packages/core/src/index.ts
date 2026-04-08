@@ -217,6 +217,7 @@ export {
   effect,
   computed,
   bind,
+  ExpressionEvaluator,
 } from './state/ReactiveState';
 
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
@@ -3205,3 +3206,6 @@ export {
 export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
 export type * from './training/SparsityMonitorTypes';
 
+
+// Events
+export { EventBus, eventBus, type EventCallback, type EventOptions, type EventScope } from './events/EventBus';

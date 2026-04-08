@@ -548,6 +548,23 @@ export function compileToUSDPhysics(composition: HoloComposition, options?: USDP
 export function compileForIsaacSim(composition: HoloComposition, options?: Partial<USDPhysicsCompilerOptions>): string;
 
 // ============================================================================
+// ============================================================================
+// REACTIVE STATE & EVENTS
+// ============================================================================
+
+export class ExpressionEvaluator {
+  evaluate(expression: string, context?: any): any;
+  extractVariables(expression: string): string[];
+}
+
+export class EventBus {
+  static getInstance(): EventBus;
+  on(event: string, callback: any): void;
+  off(event: string, callback: any): void;
+  emit(event: string, ...args: any[]): void;
+}
+export const eventBus: EventBus;
+
 // COMPILERS & GENERATORS
 // ============================================================================
 
