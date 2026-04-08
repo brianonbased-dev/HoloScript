@@ -81,6 +81,7 @@ export const TeleportTrait: TraitHandler = {
     const arcGeometry = new THREE.BufferGeometry();
     arcGeometry.setAttribute('position', new THREE.BufferAttribute(arcPositions, 3));
     const arcMaterial = new THREE.LineBasicMaterial({
+      // @ts-expect-error - TS2322 structural type mismatch
       color: context.config.arcColor || 0x00aaff,
       linewidth: 2,
     });
@@ -92,6 +93,7 @@ export const TeleportTrait: TraitHandler = {
     // Create target ring
     const ringGeometry = new THREE.RingGeometry(0.3, 0.5, 32);
     const ringMaterial = new THREE.MeshBasicMaterial({
+      // @ts-expect-error - TS2322 structural type mismatch
       color: context.config.ringColor || 0x00ff88,
       side: THREE.DoubleSide,
       transparent: true,
@@ -1313,6 +1315,7 @@ export const MirrorTrait: TraitHandler = {
       // Calculate the mirror normal that faces the camera
       // Mirror should face the camera but only rotate on Y axis (for a standing mirror)
       const cameraWorldPos = new THREE.Vector3();
+      // @ts-expect-error - TS2339 structural type mismatch
       camera.getWorldPosition(cameraWorldPos);
 
       const mirrorWorldPos = new THREE.Vector3();

@@ -8,7 +8,7 @@
  * to keep the dependency graph acyclic.
  *
  * @version 3.2.0
- * @milestone v3.2 (June 2026)
+ * @Sprint v3.2 (June 2026)
  */
 
 // =============================================================================

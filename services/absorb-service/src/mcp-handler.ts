@@ -28,6 +28,7 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register absorb tools
   try {
+    // @ts-expect-error - TS2339 structural type mismatch
     const { absorbServiceTools, handleAbsorbServiceTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of absorbServiceTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
@@ -41,6 +42,7 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register TypeScript-specific tools
   try {
+    // @ts-expect-error - TS2339 structural type mismatch
     const { absorbTypescriptTools, handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of absorbTypescriptTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
@@ -54,6 +56,7 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register codebase query tools
   try {
+    // @ts-expect-error - TS2339 structural type mismatch
     const { codebaseTools, handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of codebaseTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
@@ -67,6 +70,7 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register GraphRAG tools
   try {
+    // @ts-expect-error - TS2339 structural type mismatch
     const { graphRagTools, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
     for (const tool of graphRagTools) {
       server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {

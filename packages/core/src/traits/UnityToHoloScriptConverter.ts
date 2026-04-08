@@ -10,7 +10,7 @@ import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from '
  * See: docs/UNITY_MIGRATION_GUIDE.md
  *
  * @version 4.0.0
- * @milestone HoloLand Platform Strategy — Unity Developer Migration
+ * @Sprint HoloLand Platform Strategy — Unity Developer Migration
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────

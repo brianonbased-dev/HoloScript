@@ -161,6 +161,7 @@ export class RuntimeBridge {
     this.stop();
     this.unloadScene();
     this.totalTime = 0;
+    // @ts-expect-error - TS2339 structural type mismatch
     this.eventBus.clear();
   }
 

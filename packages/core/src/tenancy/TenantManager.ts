@@ -5,7 +5,7 @@
  * Handles CRUD operations for tenants with in-memory or custom storage.
  *
  * @version 3.9.0
- * @sprint Sprint 9: Multi-Tenant Isolation
+ * @Sprint Sprint 9: Multi-Tenant Isolation
  */
 
 // =============================================================================

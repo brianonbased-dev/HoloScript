@@ -4,7 +4,7 @@
  * Message types and utilities for WebRTC connection negotiation.
  *
  * @version 3.3.0
- * @sprint Sprint 2: Performance Optimization
+ * @Sprint Sprint 2: Performance Optimization
  */
 
 /** Signaling message types */

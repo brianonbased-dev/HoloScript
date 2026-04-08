@@ -5,7 +5,7 @@
  * Replaces placeholder security implementations with proper crypto.
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 // =============================================================================

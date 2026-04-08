@@ -5,7 +5,7 @@
  * and SOC2/GDPR compliance report generation.
  *
  * @version 3.3.0
- * @sprint Sprint 9: Audit Logging & Compliance
+ * @Sprint Sprint 9: Audit Logging & Compliance
  */
 
 // Core Audit Logger

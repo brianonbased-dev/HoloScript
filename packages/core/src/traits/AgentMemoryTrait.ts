@@ -18,7 +18,7 @@
  *  memory_error     { node, error }
  *
  * @version 4.0.0
- * @milestone HoloScript v4.0 — OpenClaw Competitor
+ * @Sprint HoloScript v4.0 — OpenClaw Competitor
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────

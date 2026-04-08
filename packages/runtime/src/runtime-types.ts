@@ -232,6 +232,7 @@ export interface XRHandWithJoints {
 // Gamepad haptics (WebXR extensions not in standard TS lib)
 // ---------------------------------------------------------------------------
 
+// @ts-expect-error - TS2430 structural type mismatch
 export interface GamepadWithVibration extends Gamepad {
   vibrationActuator?: {
     playEffect(

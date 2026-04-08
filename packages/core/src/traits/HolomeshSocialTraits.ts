@@ -106,7 +106,7 @@ export interface VisitorCounterConfig {
 }
 
 // =============================================================================
-// MILESTONE THRESHOLDS
+// Sprint THRESHOLDS
 // =============================================================================
 
 const VISITOR_MILESTONES = [10, 50, 100, 500, 1000, 5000, 10000];
@@ -513,7 +513,7 @@ export const agentBadgeHandler: TraitHandler<AgentBadgeConfig> = {
  * @visitor_counter — Track and display visitors
  *
  * Counts visits to an agent's profile or room. Supports unique-only tracking,
- * active visitor count, peak tracking, and milestone celebrations.
+ * active visitor count, peak tracking, and Sprint celebrations.
  */
 export const visitorCounterHandler: TraitHandler<VisitorCounterConfig> = {
   name: 'visitor_counter',
@@ -591,10 +591,10 @@ export const visitorCounterHandler: TraitHandler<VisitorCounterConfig> = {
 
         // Check milestones
         const lastMilestone = state.lastMilestone as number;
-        for (const milestone of VISITOR_MILESTONES) {
-          if (total >= milestone && lastMilestone < milestone) {
-            state.lastMilestone = milestone;
-            context.emit('visitors:milestone', { milestone, total });
+        for (const Sprint of VISITOR_MILESTONES) {
+          if (total >= Sprint && lastMilestone < Sprint) {
+            state.lastMilestone = Sprint;
+            context.emit('visitors:Sprint', { Sprint, total });
             break;
           }
         }

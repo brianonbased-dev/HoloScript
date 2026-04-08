@@ -5,7 +5,7 @@
  * Supports REST API, WebSocket real-time updates, and multi-storage backends.
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 import { logger } from '../logger';

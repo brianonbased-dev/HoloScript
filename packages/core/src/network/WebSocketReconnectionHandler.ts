@@ -5,7 +5,7 @@
  * Handles transient network failures gracefully
  *
  * @version 3.1
- * @milestone v3.1 Network Resilience
+ * @Sprint v3.1 Network Resilience
  */
 
 interface ReconnectionConfig {

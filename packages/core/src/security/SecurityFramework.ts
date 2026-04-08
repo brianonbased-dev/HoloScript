@@ -4,7 +4,7 @@
  * Production-grade cryptographic and authorization utilities
  *
  * @version 3.1
- * @milestone v3.1 Security Hardening
+ * @Sprint v3.1 Security Hardening
  */
 
 import * as crypto from 'crypto';

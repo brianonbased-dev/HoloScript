@@ -138,7 +138,7 @@ export interface IntensityCurvePoint {
 
 /**
  * Default intensity curve from vision doc:
- * idle=0, walk(1.4)=0.2, jog(3.0)=0.5, run(5.0)=0.7, sprint(8.0)=1.0
+ * idle=0, walk(1.4)=0.2, jog(3.0)=0.5, run(5.0)=0.7, Sprint(8.0)=1.0
  */
 export const DEFAULT_INTENSITY_CURVE: IntensityCurvePoint[] = [
   { speed: 0, intensity: 0 },

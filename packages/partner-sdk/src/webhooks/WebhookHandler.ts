@@ -19,7 +19,7 @@ export type WebhookEventType =
   | 'certification.passed'
   | 'certification.failed'
   | 'certification.expired'
-  | 'download.milestone'
+  | 'download.Sprint'
   | 'security.alert'
   | 'review.submitted'
   | 'review.updated';
@@ -70,11 +70,11 @@ export interface CertificationResultData {
 }
 
 /**
- * Download milestone event data
+ * Download Sprint event data
  */
 export interface DownloadMilestoneData {
   name: string;
-  milestone: number;
+  Sprint: number;
   totalDownloads: number;
 }
 
@@ -189,7 +189,7 @@ export class WebhookHandler {
    * Register handler for download milestones
    */
   onDownloadMilestone(callback: WebhookCallback<DownloadMilestoneData>): void {
-    this.on('download.milestone', callback);
+    this.on('download.Sprint', callback);
   }
 
   /**
@@ -305,7 +305,7 @@ export class WebhookHandler {
       'certification.passed',
       'certification.failed',
       'certification.expired',
-      'download.milestone',
+      'download.Sprint',
       'security.alert',
       'review.submitted',
       'review.updated',

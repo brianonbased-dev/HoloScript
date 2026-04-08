@@ -5,7 +5,7 @@
  * Prevents cross-tenant access and provides namespace-based isolation.
  *
  * @version 3.9.0
- * @sprint Sprint 9: Multi-Tenant Isolation
+ * @Sprint Sprint 9: Multi-Tenant Isolation
  */
 
 import type { TenantContext } from './TenantManager';

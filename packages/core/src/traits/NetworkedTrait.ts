@@ -6,7 +6,7 @@
  * Integrates with SyncProtocol for WebSocket/WebRTC/Local transport.
  *
  * @version 3.0.1
- * @milestone v3.0.x Stabilization Sprint
+ * @Sprint v3.0.x Stabilization Sprint
  *
  * @example
  * ```hsplus

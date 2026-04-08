@@ -68,7 +68,7 @@ export interface MovementInput {
   crouch?: boolean;
 
   /** Sprint requested */
-  sprint?: boolean;
+  Sprint?: boolean;
 }
 
 /**
@@ -151,8 +151,8 @@ export type CharacterEventType =
   | 'land'
   | 'crouch-start'
   | 'crouch-end'
-  | 'sprint-start'
-  | 'sprint-end'
+  | 'Sprint-start'
+  | 'Sprint-end'
   | 'fall-start'
   | 'step'
   | 'mode-change'
@@ -246,7 +246,7 @@ export interface CharacterConfig {
   /** Crouch height */
   crouchHeight?: number;
 
-  /** Can sprint */
+  /** Can Sprint */
   canSprint?: boolean;
 
   /** Sprint stamina cost per second */
@@ -422,7 +422,7 @@ export class CharacterTrait {
     this.updateCrouch(input.crouch ?? false);
 
     // Handle sprinting
-    this.updateSprint(input.sprint ?? false);
+    this.updateSprint(input.Sprint ?? false);
 
     // Apply gravity
     this.applyGravity(deltaTime);
@@ -711,7 +711,7 @@ export class CharacterTrait {
   // ============================================================================
 
   /**
-   * Update sprint state
+   * Update Sprint state
    */
   private updateSprint(wantsSprint: boolean): void {
     if (!this.config.canSprint) return;
@@ -720,14 +720,14 @@ export class CharacterTrait {
       this.state.isSprinting = true;
 
       this.emit({
-        type: 'sprint-start',
+        type: 'Sprint-start',
         timestamp: Date.now(),
       });
     } else if ((!wantsSprint || !this.state.isMoving) && this.state.isSprinting) {
       this.state.isSprinting = false;
 
       this.emit({
-        type: 'sprint-end',
+        type: 'Sprint-end',
         timestamp: Date.now(),
       });
     }

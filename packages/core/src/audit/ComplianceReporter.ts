@@ -5,7 +5,7 @@
  * compliance auditing and regulatory requirements.
  *
  * @version 3.3.0
- * @sprint Sprint 9: Audit Logging & Compliance
+ * @Sprint Sprint 9: Audit Logging & Compliance
  */
 
 import type { AuditLogger, AuditEvent } from './AuditLogger';

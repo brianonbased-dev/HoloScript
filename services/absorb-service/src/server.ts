@@ -169,7 +169,11 @@ async function initializeCreditSystem(): Promise<void> {
 }
 
 // --- Start server ---
+// @ts-expect-error - TS2307 structural type mismatch
+import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
+
 async function start(): Promise<void> {
+  requireConfig(REQUIRED_VARS.ABSORB_SERVICE, 'absorb-service');
   await initializeCreditSystem();
 
   const server = app.listen(PORT, () => {

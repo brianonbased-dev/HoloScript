@@ -8,7 +8,7 @@
  * for environments where it is not available.
  *
  * @version 9.0.0
- * @sprint Sprint 9: Security Hardening
+ * @Sprint Sprint 9: Security Hardening
  */
 
 // =============================================================================

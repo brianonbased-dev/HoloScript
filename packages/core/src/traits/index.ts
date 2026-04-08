@@ -198,6 +198,7 @@ export * from './SSOTrait';
 export * from './StableDiffusionTrait';
 export * from './StructuredLoggerTrait';
 export * from './SubsurfaceScatteringTrait';
+export * from './SubsurfaceVeinsTrait';
 export * from './SubtitleTrait';
 export * from './SyncTierTrait';
 export * from './TenantConfigSchema';

@@ -12,7 +12,7 @@ import {
   parsePipeline,
   VR_TRAITS,
 } from '@holoscript/core';
-import { compilePipelineSourceToNode } from '@holoscript/core/compiler/index';
+import { compilePipelineSourceToNode } from '@holoscript/core';
 
 import {
   generateObjectForMCP,

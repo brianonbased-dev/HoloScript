@@ -5,7 +5,7 @@
  * and retention management capabilities.
  *
  * @version 3.3.0
- * @sprint Sprint 9: Audit Logging & Compliance
+ * @Sprint Sprint 9: Audit Logging & Compliance
  */
 
 // =============================================================================

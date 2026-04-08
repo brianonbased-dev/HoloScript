@@ -1,14 +1,14 @@
 /**
- * MovementSystem — walk/run/sprint speeds, acceleration/deceleration, input mapping.
+ * MovementSystem — walk/run/Sprint speeds, acceleration/deceleration, input mapping.
  * Self-contained. No external dependencies.
  */
 
-export type MovementMode = 'idle' | 'walk' | 'run' | 'sprint';
+export type MovementMode = 'idle' | 'walk' | 'run' | 'Sprint';
 
 export interface MovementInput {
   forward: number;   // -1 to 1
   right: number;     // -1 to 1
-  sprint: boolean;
+  Sprint: boolean;
   walk: boolean;     // hold-to-walk toggle (otherwise default is run)
 }
 
@@ -96,8 +96,8 @@ export class MovementSystem {
     // Determine target speed
     let targetSpeed = 0;
     if (hasInput) {
-      if (input.sprint) {
-        this._mode = 'sprint';
+      if (input.Sprint) {
+        this._mode = 'Sprint';
         targetSpeed = this._sprintSpeed;
       } else if (input.walk) {
         this._mode = 'walk';
@@ -125,7 +125,7 @@ export class MovementSystem {
     const dz = this._currentVelocityZ * deltaTime;
 
     // Stamina cost
-    const staminaCost = input.sprint && hasInput ? this._sprintStaminaCost * deltaTime : 0;
+    const staminaCost = input.Sprint && hasInput ? this._sprintStaminaCost * deltaTime : 0;
 
     return { dx, dz, staminaCost };
   }
@@ -144,7 +144,7 @@ export class MovementSystem {
         return this._walkSpeed;
       case 'run':
         return this._runSpeed;
-      case 'sprint':
+      case 'Sprint':
         return this._sprintSpeed;
       default:
         return 0;

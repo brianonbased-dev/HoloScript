@@ -4,7 +4,7 @@
  * Production-grade rate limiting and quota management for HoloScript.
  *
  * @version 9.4.0
- * @sprint Sprint 9: Rate Limiting & Quotas
+ * @Sprint Sprint 9: Rate Limiting & Quotas
  */
 
 // Rate Limiter

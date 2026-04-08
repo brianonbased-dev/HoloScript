@@ -5,7 +5,7 @@
  * Part of HoloScript v3.1 Agentic Choreography.
  *
  * @version 3.1.0
- * @milestone v3.1 (March 2026)
+ * @Sprint v3.1 (March 2026)
  */
 
 import type { AgentManifest } from '../agents/AgentManifest';

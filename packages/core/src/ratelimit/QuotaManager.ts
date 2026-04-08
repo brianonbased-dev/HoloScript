@@ -5,7 +5,7 @@
  * Supports per-key usage tracking with automatic period rotation.
  *
  * @version 9.4.0
- * @sprint Sprint 9: Rate Limiting & Quotas
+ * @Sprint Sprint 9: Rate Limiting & Quotas
  */
 
 // =============================================================================

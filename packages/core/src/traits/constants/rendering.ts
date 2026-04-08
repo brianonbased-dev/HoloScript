@@ -14,6 +14,7 @@ export const RENDERING_TRAITS = [
   'anisotropy',
   'sheen',
   'subsurface_scattering',
+  'subsurface_veins',
   'sss_burley',
   'sss_christensen',
   'sss_random_walk',

@@ -5,7 +5,7 @@
  * Provides public and wallet clients for Base L2 chain interactions.
  *
  * @version 3.2.0
- * @milestone v3.2 (June 2026)
+ * @Sprint v3.2 (June 2026)
  */
 
 import {

@@ -27,7 +27,7 @@
  *   Cost = (localOBScore * timePerFrame * frameCount) / tierOBhRate
  *
  * @version 1.0.0
- * @milestone v3.3+ (Render Network Gaussian Pipeline)
+ * @Sprint v3.3+ (Render Network Gaussian Pipeline)
  */
 
 // =============================================================================

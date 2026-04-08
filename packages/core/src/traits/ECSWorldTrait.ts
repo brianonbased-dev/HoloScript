@@ -13,7 +13,7 @@ import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler } from '
  *   - Benchmark: measures entity throughput to validate "1K @ 60fps" claim
  *
  * @version 4.0.0
- * @milestone HoloLand Platform — ECS+WASM POC
+ * @Sprint HoloLand Platform — ECS+WASM POC
  */
 
 // ─── Core Types ───────────────────────────────────────────────────────────────

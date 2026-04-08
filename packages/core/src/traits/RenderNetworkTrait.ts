@@ -14,7 +14,7 @@
  * - RNDR token integration for render credits
  *
  * @version 3.2.0
- * @milestone v3.2 (June 2026)
+ * @Sprint v3.2 (June 2026)
  */
 
 import type { TraitHandler, TraitContext } from './TraitTypes';

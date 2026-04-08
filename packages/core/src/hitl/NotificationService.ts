@@ -5,7 +5,7 @@
  * Supports email, Slack, webhooks, SMS, and push notifications.
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 import { logger } from '../logger';

@@ -92,3 +92,12 @@ export {
   DEFAULT_LIP_SYNC_CONFIG,
 } from './LipSyncEngine';
 
+// Procedural idle behavior (breathing/blink/micro-saccade)
+export {
+  type IdleArmatureBindings,
+  type IdleBehaviorConfig,
+  type IdleBehaviorFrame,
+  IdleBehaviorSystem,
+  createIdleBehaviorSystem,
+} from './IdleBehaviorSystem';
+

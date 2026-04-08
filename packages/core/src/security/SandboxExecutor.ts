@@ -6,7 +6,7 @@
  * as defined by a SecurityPolicy.
  *
  * @version 9.0.0
- * @sprint Sprint 9: Security Hardening
+ * @Sprint Sprint 9: Security Hardening
  */
 
 import type { SecurityPolicy } from './SecurityPolicy';

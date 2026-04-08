@@ -299,7 +299,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // Start server
+import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
+
 async function main() {
+  requireConfig(REQUIRED_VARS.MCP_SERVER, 'mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('HoloScript MCP Server running on stdio');

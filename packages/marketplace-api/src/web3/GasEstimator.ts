@@ -5,7 +5,7 @@
  * Helps prevent transaction failures due to insufficient funds.
  *
  * @version 3.2.0
- * @milestone v3.2 (June 2026)
+ * @Sprint v3.2 (June 2026)
  */
 
 import type { PublicClient, Address, Hex } from 'viem';

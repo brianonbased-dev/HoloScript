@@ -4,7 +4,7 @@
  * Predefined tier configurations for free, pro, and enterprise users.
  *
  * @version 9.4.0
- * @sprint Sprint 9: Rate Limiting & Quotas
+ * @Sprint Sprint 9: Rate Limiting & Quotas
  */
 
 import type { RateLimitConfig } from './RateLimiter';

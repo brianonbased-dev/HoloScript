@@ -17,7 +17,7 @@ import type { HSPlusNode, TraitContext, TraitEvent, TraitEventPayload } from './
  *  cron_list        { node, jobs }
  *
  * @version 4.0.0
- * @milestone HoloScript v4.0 — OpenClaw Competitor
+ * @Sprint HoloScript v4.0 — OpenClaw Competitor
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────

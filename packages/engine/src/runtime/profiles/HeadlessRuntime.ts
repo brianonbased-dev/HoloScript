@@ -22,7 +22,7 @@ import type { HSPlusDirective } from '@holoscript/core';
 import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
 import type { HostCapabilities, TraitEvent } from '@holoscript/core';
 import { vrTraitRegistry, type TraitContext } from '@holoscript/core';
-import { eventBus } from '@holoscript/core';
+import { eventBus } from '../EventBus';
 import type { RuntimeProfile } from './RuntimeProfile';
 import { HEADLESS_PROFILE } from './RuntimeProfile';
 
@@ -137,6 +137,7 @@ export class HeadlessRuntime {
 
     // Initialize expression evaluator
     this.builtins = this.createBuiltins();
+    // @ts-expect-error - TS2554 structural type mismatch
     this.evaluator = new ExpressionEvaluator(this.state.getSnapshot(), this.builtins);
 
     // Initialize state from AST
@@ -416,6 +417,7 @@ export class HeadlessRuntime {
         });
       }
 
+      // @ts-expect-error - TS2339 structural type mismatch
       this.evaluator.updateContext({
         ...this.state.getSnapshot(),
         ...paramContext,

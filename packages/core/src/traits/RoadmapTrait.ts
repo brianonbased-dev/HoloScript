@@ -1,7 +1,7 @@
 /**
  * RoadmapNode Trait
  *
- * Binds a spatial object to a project milestone.
+ * Binds a spatial object to a project Sprint.
  * Used for Phase 5 'Spatial Governance'.
  */
 
@@ -24,39 +24,39 @@ export const roadmapNodeHandler: TraitHandler<RoadmapConfig> = {
   },
 
   onAttach(node, config, context) {
-    const milestone = roadmapService.getMilestone(config.milestone_id);
-    if (milestone && node.properties) {
-      // Sync visual state with milestone status
-      node.properties.color = getStatusColor(milestone.status);
-      node.properties.text = milestone.title;
+    const Sprint = roadmapService.getMilestone(config.milestone_id);
+    if (Sprint && node.properties) {
+      // Sync visual state with Sprint status
+      node.properties.color = getStatusColor(Sprint.status);
+      node.properties.text = Sprint.title;
 
       if (config.show_progress) {
-        node.properties.progress = milestone.progress;
+        node.properties.progress = Sprint.progress;
       }
     }
 
     context.emit?.('roadmap_node_attached', {
       nodeId: node.id,
-      milestone,
+      Sprint,
     });
   },
 
   onUpdate(node, config, _context, _delta) {
     // Periodically sync with service state
-    const milestone = roadmapService.getMilestone(config.milestone_id);
-    if (milestone && node.properties) {
-      node.properties.color = getStatusColor(milestone.status);
+    const Sprint = roadmapService.getMilestone(config.milestone_id);
+    if (Sprint && node.properties) {
+      node.properties.color = getStatusColor(Sprint.status);
       if (config.show_progress) {
-        node.properties.progress = milestone.progress;
+        node.properties.progress = Sprint.progress;
       }
     }
   },
 
   onEvent(node, config, context, event) {
     if (event.type === 'click' && config.interactive) {
-      const milestone = roadmapService.getMilestone(config.milestone_id);
-      if (milestone) {
-        context.emit?.('show_milestone_details', { milestone });
+      const Sprint = roadmapService.getMilestone(config.milestone_id);
+      if (Sprint) {
+        context.emit?.('show_milestone_details', { Sprint });
       }
     }
   },

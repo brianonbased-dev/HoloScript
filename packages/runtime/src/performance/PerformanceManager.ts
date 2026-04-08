@@ -373,6 +373,7 @@ export class RendererManager {
     // Dynamically import the WebGPU renderer from Three.js addons
     const { WebGPURenderer } = await import(
       /* webpackIgnore: true */
+      // @ts-expect-error - TS2307 structural type mismatch
       'three/addons/renderers/webgpu/WebGPURenderer.js'
     );
 

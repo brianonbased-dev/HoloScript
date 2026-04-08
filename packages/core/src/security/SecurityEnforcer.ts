@@ -5,7 +5,7 @@
  * Performs static analysis for vulnerability patterns and policy violations.
  *
  * @version 9.0.0
- * @sprint Sprint 9: Security Hardening
+ * @Sprint Sprint 9: Security Hardening
  */
 
 import type { SecurityPolicy } from './SecurityPolicy';

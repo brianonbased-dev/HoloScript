@@ -7,7 +7,7 @@
  * and cross-tenant access prevention for HoloScript deployments.
  *
  * @version 3.9.0
- * @sprint Sprint 9: Multi-Tenant Isolation
+ * @Sprint Sprint 9: Multi-Tenant Isolation
  */
 
 // Tenant Manager - core CRUD and types

@@ -14,7 +14,7 @@
  *  - Review and rating system
  *
  * @version 1.0.0
- * @sprint Commence All V — Track 4
+ * @Sprint Commence All V — Track 4
  */
 
 import type { TraitHandler } from './TraitTypes';

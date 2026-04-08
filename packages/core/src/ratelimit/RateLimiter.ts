@@ -5,7 +5,7 @@
  * Supports per-key rate limiting with configurable refill rates and burst sizes.
  *
  * @version 9.4.0
- * @sprint Sprint 9: Rate Limiting & Quotas
+ * @Sprint Sprint 9: Rate Limiting & Quotas
  */
 
 // =============================================================================

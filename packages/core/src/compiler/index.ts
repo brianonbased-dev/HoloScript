@@ -138,7 +138,15 @@ export { registerBuiltinDialects } from './registerBuiltinDialects';
 
 // Pipeline compiler (.hs pipeline -> Node.js index.mjs)
 export {
+  compilePipelineSource,
   compilePipelineToNode,
+  compilePipelineToPython,
   compilePipelineSourceToNode,
+  compilePipelineSourceToPython,
 } from './PipelineNodeCompiler';
-export type { PipelineNodeCompilerOptions } from './PipelineNodeCompiler';
+export type {
+  PipelineCompileTarget,
+  PipelineCompilerOptions,
+  PipelineNodeCompilerOptions,
+  PipelinePythonCompilerOptions,
+} from './PipelineNodeCompiler';

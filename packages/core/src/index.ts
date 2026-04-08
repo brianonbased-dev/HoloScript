@@ -3217,3 +3217,5 @@ export type * from './training/SparsityMonitorTypes';
 
 // Events
 export { EventBus, getSharedEventBus, setSharedEventBus, type EventCallback } from './events/EventBus';
+// Analysis
+export * from './analysis';

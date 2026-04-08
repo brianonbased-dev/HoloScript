@@ -9,7 +9,7 @@
 
 import { logger } from '../logger';
 
-export interface Milestone {
+export interface Sprint {
   id: string;
   title: string;
   description: string;
@@ -21,7 +21,7 @@ export interface Milestone {
 }
 
 export class HololandRoadmapService {
-  private milestones: Map<string, Milestone> = new Map();
+  private milestones: Map<string, Sprint> = new Map();
   private static instance: HololandRoadmapService;
 
   private constructor() {
@@ -56,25 +56,25 @@ export class HololandRoadmapService {
     return HololandRoadmapService.instance;
   }
 
-  public addMilestone(milestone: Milestone): void {
-    this.milestones.set(milestone.id, milestone);
-    logger.info(`[Roadmap] Milestone added: ${milestone.title}`);
+  public addMilestone(Sprint: Sprint): void {
+    this.milestones.set(Sprint.id, Sprint);
+    logger.info(`[Roadmap] Sprint added: ${Sprint.title}`);
   }
 
-  public updateMilestone(id: string, updates: Partial<Milestone>): boolean {
+  public updateMilestone(id: string, updates: Partial<Sprint>): boolean {
     const existing = this.milestones.get(id);
     if (!existing) return false;
 
     this.milestones.set(id, { ...existing, ...updates });
-    logger.info(`[Roadmap] Milestone updated: ${id}`, updates);
+    logger.info(`[Roadmap] Sprint updated: ${id}`, updates);
     return true;
   }
 
-  public getMilestone(id: string): Milestone | undefined {
+  public getMilestone(id: string): Sprint | undefined {
     return this.milestones.get(id);
   }
 
-  public getAllMilestones(): Milestone[] {
+  public getAllMilestones(): Sprint[] {
     return Array.from(this.milestones.values());
   }
 

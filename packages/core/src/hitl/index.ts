@@ -2,7 +2,7 @@
  * HITL Module Exports
  *
  * @version 3.3.0
- * @sprint Sprint 3: Safety & Testing
+ * @Sprint Sprint 3: Safety & Testing
  */
 
 export {
