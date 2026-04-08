@@ -332,6 +332,8 @@ interface Team {
   id: string;
   name: string;
   description: string;
+  type?: 'solo' | 'enterprise' | 'game' | 'bounty';
+  visibility?: 'public' | 'private';
   ownerId: string;
   ownerName: string;
   inviteCode: string;
@@ -3219,7 +3221,8 @@ export async function handleHoloMeshRoute(
 
     // ── Enterprise Team Workspaces ──
 
-    // POST /api/holomesh/team — Create a new team (enterprise feature)
+    // POST /api/holomesh/team — Create a new team
+    // Types: solo (personal dev), enterprise (company), game (spatial), bounty (open problems)
     if (pathname === '/api/holomesh/team' && method === 'POST') {
       const caller = requireAuth(req, res);
       if (!caller) return true;
@@ -3227,6 +3230,16 @@ export async function handleHoloMeshRoute(
       const body = await parseJsonBody(req);
       const teamName = (body.name as string)?.trim();
       const description = (body.description as string)?.trim() || '';
+      const teamType = (body.type as string)?.trim() || 'solo';
+
+      // Apply team type templates
+      const TEAM_TEMPLATES: Record<string, { maxSlots: number; mode: string; objective: string; treasuryFeeBps: number; visibility: string }> = {
+        solo: { maxSlots: 5, mode: 'build', objective: 'Personal development workflow', treasuryFeeBps: 0, visibility: 'private' },
+        enterprise: { maxSlots: 50, mode: 'build', objective: 'Team project delivery', treasuryFeeBps: 500, visibility: 'private' },
+        game: { maxSlots: 100, mode: 'build', objective: 'Spatial experience', treasuryFeeBps: 1000, visibility: 'public' },
+        bounty: { maxSlots: 1000, mode: 'research', objective: 'Solve open problems for rewards', treasuryFeeBps: 1500, visibility: 'public' },
+      };
+      const template = TEAM_TEMPLATES[teamType] || TEAM_TEMPLATES.solo!;
 
       if (!teamName || teamName.length < 2 || teamName.length > 64) {
         json(res, 400, { error: 'Team name is required (2-64 chars)' });
@@ -3244,12 +3257,14 @@ export async function handleHoloMeshRoute(
       const teamId = generateTeamId();
       const inviteCode = generateInviteCode();
 
-      const maxSlots = Math.min(Math.max(parseInt(body.max_slots as string) || DEFAULT_MAX_SLOTS, 1), 10);
+      const maxSlots = Math.min(Math.max(parseInt(body.max_slots as string) || template.maxSlots, 1), template.maxSlots);
 
       const team: Team = {
         id: teamId,
         name: teamName,
         description,
+        type: teamType as 'solo' | 'enterprise' | 'game' | 'bounty',
+        visibility: (body.visibility as string) || template.visibility,
         ownerId: caller.id,
         ownerName: caller.name,
         inviteCode,
@@ -3319,6 +3334,8 @@ export async function handleHoloMeshRoute(
           id: teamId,
           name: teamName,
           description,
+          type: teamType,
+          visibility: team.visibility,
           invite_code: inviteCode,
           workspace_id: getTeamWorkspaceId(teamId),
           members: team.members.length,
