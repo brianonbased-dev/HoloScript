@@ -1,52 +1,34 @@
-import { HoloCompositionParser } from './src/parser/HoloCompositionParser.js';
+import { HoloScriptPlusParser } from './src/parser/HoloScriptPlusParser';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-const parser = new HoloCompositionParser();
+const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+const repoRoot = join(process.cwd(), '../..');
 
-const cases = [
-  {
-    name: 'test3 - no custom traits',
-    code: `composition "HoloScriptLanding" {
-      object "Page" @layout(type: "block") {
-        object "Nav" @theme(className: "landing-nav", tag: "nav") {
-          object "NavContainer" @theme(className: "nav-container") {
-            object "LogoLink" @theme(className: "nav-logo", tag: "a") {
-              object "LogoImg" @theme(className: "nav-logo-img", tag: "img")
-            }
-          }
-        }
-      }
-    }`,
-  },
-  {
-    name: 'test4 - with text',
-    code: `composition "HoloScriptLanding" {
-      object "Page" @layout(type: "block") {
-        object "Nav" @theme(className: "landing-nav", tag: "nav") {
-          object "NavContainer" @theme(className: "nav-container") {
-            object "LogoText" @text(content: "HoloScript", element: "span")
-          }
-        }
-      }
-    }`,
-  },
-  {
-    name: 'test5 - with link and image',
-    code: `composition "HoloScriptLanding" {
-      object "Page" @layout(type: "block") {
-        object "LogoLink" @theme(className: "nav-logo", tag: "a") @link(href: "/") {
-          object "LogoImg" @theme(className: "nav-logo-img", tag: "img") @image(src: "/logo.svg", alt: "HoloScript")
-        }
-      }
-    }`,
-  },
+const examples = [
+  'examples/hsplus/agents/moderator-agent.hsplus',
+  'examples/hsplus/agents/planner-agent.hsplus',
+  'examples/hsplus/agents/researcher-agent.hsplus',
+  'examples/hsplus/agents/watcher-agent.hsplus',
+  'examples/hsplus/multi-agent/planner-executor-reviewer.hsplus',
+  'examples/hsplus/multi-agent/swarm-consensus.hsplus',
+  'examples/hsplus/governance/norm-enforcer.hsplus',
 ];
 
-for (const tc of cases) {
-  const res = parser.parse(tc.code);
+import { writeFileSync } from 'fs';
+
+const allErrors: Record<string, any> = {};
+
+for (const e of examples) {
+  const fullPath = join(repoRoot, e);
+  const src = readFileSync(fullPath, 'utf8');
+  const res = parser.parse(src);
   if (!res.success) {
-    console.log(`❌ ${tc.name} FAILED:`);
-    res.errors.forEach((e) => console.log(`  ${e.message}`));
+    console.log('FAIL:', e);
+    allErrors[e] = res.errors;
   } else {
-    console.log(`✅ ${tc.name} SUCCESS`);
+    console.log('PASS:', e);
   }
 }
+
+writeFileSync('parser_errors.json', JSON.stringify(allErrors, null, 2), 'utf8');

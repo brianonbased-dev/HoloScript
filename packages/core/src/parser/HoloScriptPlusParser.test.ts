@@ -287,3 +287,37 @@ describe('HoloScriptPlusParser - Expression Parsing', () => {
     });
   });
 });
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+describe('HoloScriptPlusParser - Agent Behavior Examples', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+  const repoRoot = join(__dirname, '../../../..'); // From packages/core/src/parser up to root
+  
+  const examples = [
+    'examples/hsplus/agents/moderator-agent.hsplus',
+    'examples/hsplus/agents/planner-agent.hsplus',
+    'examples/hsplus/agents/researcher-agent.hsplus',
+    'examples/hsplus/agents/watcher-agent.hsplus',
+    'examples/hsplus/multi-agent/planner-executor-reviewer.hsplus',
+    'examples/hsplus/multi-agent/swarm-consensus.hsplus',
+    'examples/hsplus/governance/norm-enforcer.hsplus',
+  ];
+
+  for (const examplePath of examples) {
+    it(`Parses ${examplePath} successfully`, () => {
+      const fullPath = join(repoRoot, examplePath);
+      const sourceCode = readFileSync(fullPath, 'utf-8');
+      
+      const result = parser.parse(sourceCode);
+      
+      if (!result.success) {
+        console.error(`Parse failed for ${examplePath}: ${JSON.stringify(result.errors, null, 2)}`);
+      }
+      
+      expect(result.success).toBe(true);
+      expect(result.ast).toBeDefined();
+    });
+  }
+});
