@@ -36,6 +36,7 @@ COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
+COPY packages/connector-core/ packages/connector-core/
 COPY packages/connector-appstore/ packages/connector-appstore/
 COPY packages/connector-github/ packages/connector-github/
 COPY packages/connector-railway/ packages/connector-railway/
@@ -64,6 +65,7 @@ RUN cd packages/absorb-service && npx tsup
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
 RUN cd packages/ui && npx tsup --no-dts || true
+RUN cd packages/connector-core && npx tsup --no-dts || true
 RUN cd packages/connector-appstore && npx tsup --no-dts || true
 RUN cd packages/connector-github && npx tsup --no-dts || true
 RUN cd packages/connector-railway && npx tsup --no-dts || true
