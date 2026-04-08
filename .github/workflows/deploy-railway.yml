@@ -14,7 +14,7 @@ on:
           - studio
           - marketplace-web
           - marketplace-api
-          - render-service
+          - export-api
           - llm-service
           - absorb-service
           - mcp-server
@@ -35,7 +35,7 @@ jobs:
       studio: ${{ steps.filter.outputs.studio }}
       marketplace-web: ${{ steps.filter.outputs.marketplace-web }}
       marketplace-api: ${{ steps.filter.outputs.marketplace-api }}
-      render-service: ${{ steps.filter.outputs.render-service }}
+      export-api: ${{ steps.filter.outputs.export-api }}
       llm-service: ${{ steps.filter.outputs.llm-service }}
       absorb-service: ${{ steps.filter.outputs.absorb-service }}
       mcp-server: ${{ steps.filter.outputs.mcp-server }}
@@ -53,8 +53,8 @@ jobs:
               - 'packages/marketplace-web/**'
             marketplace-api:
               - 'packages/marketplace-api/**'
-            render-service:
-              - 'services/render-service/**'
+            export-api:
+              - 'services/export-api/**'
             llm-service:
               - 'services/llm-service/**'
             absorb-service:
@@ -253,13 +253,13 @@ jobs:
         run: |
           curl -f https://marketplace-api.holoscript.net/health || exit 1
 
-  deploy-render-service:
+  deploy-export-api:
     needs: [detect-changes, pre-flight]
     if: |
-      (github.event_name == 'push' && needs.detect-changes.outputs.render-service == 'true') ||
+      (github.event_name == 'push' && needs.detect-changes.outputs.export-api == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
         github.event.inputs.service == 'all' ||
-        github.event.inputs.service == 'render-service'
+        github.event.inputs.service == 'export-api'
       ))
     runs-on: ubuntu-latest
     environment:
@@ -271,11 +271,11 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy Render Service
+      - name: Deploy Export API
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service render-service --detach
+          railway up --service export-api --detach
 
       - name: Wait for deployment
         run: sleep 30
@@ -393,7 +393,7 @@ jobs:
       - deploy-studio
       - deploy-marketplace-web
       - deploy-marketplace-api
-      - deploy-render-service
+      - deploy-export-api
       - deploy-llm-service
       - deploy-absorb-service
       - deploy-mcp-server
@@ -409,7 +409,7 @@ jobs:
           echo "| Studio | ${{ needs.deploy-studio.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Marketplace Web | ${{ needs.deploy-marketplace-web.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Marketplace API | ${{ needs.deploy-marketplace-api.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Render Service | ${{ needs.deploy-render-service.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Export API | ${{ needs.deploy-export-api.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Absorb Service | ${{ needs.deploy-absorb-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Server | ${{ needs.deploy-mcp-server.result }} |" >> $GITHUB_STEP_SUMMARY
