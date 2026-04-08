@@ -13,6 +13,7 @@ import { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry } from './types';
 import { DEFAULT_MESH_CONFIG, computeReputation, resolveReputationTier } from './types';
 import * as crypto from 'crypto';
+import { getOAuth2Provider } from '../auth/index';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -952,7 +953,7 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
 
 // ── Auth Helper ──
 
-/** Resolve the requesting agent from Bearer token. Returns agent ID + name, or server fallback. */
+/** Resolve the requesting agent from Bearer token (holomesh_sk_* OR OAuth2). */
 function resolveRequestingAgent(
   req: http.IncomingMessage,
   c: HoloMeshOrchestratorClient
@@ -961,8 +962,10 @@ function resolveRequestingAgent(
   if (token) {
     const agent = getAgentByKey(token);
     if (agent) return { id: agent.id, name: agent.name, authenticated: true };
+
+    const oauthAgent = resolveOAuth2Token(token);
+    if (oauthAgent) return { id: oauthAgent.id, name: oauthAgent.name, authenticated: true };
   }
-  // Fallback to server's orchestrator identity (unauthenticated)
   return {
     id: c.getAgentId() || 'anon',
     name: process.env.HOLOMESH_AGENT_NAME || 'anon',
@@ -970,25 +973,89 @@ function resolveRequestingAgent(
   };
 }
 
-/** Require a valid Bearer token. Returns the agent or sends 401 and returns null. */
+/**
+ * Require a valid Bearer token (holomesh_sk_* OR OAuth2).
+ * Returns the agent synchronously, or sends 401 and returns null.
+ * For OAuth2 tokens, also starts an async introspection to validate.
+ */
 function requireAuth(req: http.IncomingMessage, res: http.ServerResponse): RegisteredAgent | null {
   const token = extractBearerToken(req);
   if (!token) {
     json(res, 401, {
       error: 'Authentication required',
-      hint: 'Pass Authorization: Bearer <api_key> header',
+      hint: 'Pass Authorization: Bearer <api_key> header, or use OAuth2 token from POST /oauth/token',
     });
     return null;
   }
+
+  // 1. Try holomesh_sk_* key (existing agents)
   const agent = getAgentByKey(token);
-  if (!agent) {
-    json(res, 401, {
-      error: 'Invalid API key',
-      hint: 'Register at POST /api/holomesh/register to get an API key',
-    });
+  if (agent) return agent;
+
+  // 2. Try OAuth2 token (new users via MCP standard flow)
+  const oauthAgent = resolveOAuth2Token(token);
+  if (oauthAgent) return oauthAgent;
+
+  json(res, 401, {
+    error: 'Invalid API key',
+    hint: 'Register at POST /api/holomesh/register or use OAuth2 at POST /oauth/token',
+  });
+  return null;
+}
+
+/** Async version of requireAuth for routes that can await. */
+async function requireAuthAsync(req: http.IncomingMessage, res: http.ServerResponse): Promise<RegisteredAgent | null> {
+  const token = extractBearerToken(req);
+  if (!token) {
+    json(res, 401, { error: 'Authentication required' });
     return null;
   }
-  return agent;
+
+  // 1. holomesh_sk_* key
+  const agent = getAgentByKey(token);
+  if (agent) return agent;
+
+  // 2. OAuth2 introspection (async, authoritative)
+  try {
+    const provider = getOAuth2Provider();
+    const result = await provider.introspect(token);
+    if (result.active) {
+      return {
+        id: result.agentId || result.clientId || `oauth_${token.slice(0, 8)}`,
+        name: result.agentId || result.clientId || 'oauth-user',
+        apiKey: token,
+        walletAddress: '',
+        registeredAt: result.issuedAt || Date.now(),
+        lastSeen: Date.now(),
+      } as RegisteredAgent;
+    }
+  } catch { /* provider not ready */ }
+
+  json(res, 401, { error: 'Invalid token' });
+  return null;
+}
+
+/** Synchronous OAuth2 token check via in-memory store. */
+function resolveOAuth2Token(token: string): RegisteredAgent | null {
+  try {
+    const provider = getOAuth2Provider();
+    const store = (provider as any).store;
+    // In-memory store: accessTokens is a Map<string, StoredAccessToken>
+    const accessTokens: Map<string, any> | undefined = store?.accessTokens;
+    if (!accessTokens) return null;
+    const stored = accessTokens.get(token);
+    if (!stored || stored.expiresAt < Date.now()) return null;
+    return {
+      id: stored.agentId || stored.clientId || `oauth_${token.slice(0, 8)}`,
+      name: stored.agentId || stored.clientId || 'oauth-user',
+      apiKey: token,
+      walletAddress: '',
+      registeredAt: stored.issuedAt || Date.now(),
+      lastSeen: Date.now(),
+    } as RegisteredAgent;
+  } catch {
+    return null;
+  }
 }
 
 // ── Route Handler ──
