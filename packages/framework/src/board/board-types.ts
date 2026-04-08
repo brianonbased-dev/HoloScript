@@ -10,6 +10,15 @@
 export type TaskStatus = 'open' | 'claimed' | 'done' | 'blocked';
 export type SlotRole = 'coder' | 'tester' | 'researcher' | 'reviewer' | 'flex';
 
+export interface TaskAction {
+  /** What to do when this task completes */
+  type: 'commit' | 'push' | 'deploy' | 'notify' | 'chain' | 'review';
+  /** For 'chain': task ID to unblock. For 'notify': agent name. For 'deploy': service name. */
+  target?: string;
+  /** Human-readable label shown in UI */
+  label?: string;
+}
+
 export interface TeamTask {
   id: string;
   title: string;
@@ -24,6 +33,19 @@ export interface TeamTask {
   role?: SlotRole;
   createdAt: string;
   completedAt?: string;
+
+  // ── Chaining & Metadata ──
+
+  /** Task IDs that must complete before this task can be claimed */
+  dependsOn?: string[];
+  /** Task IDs that this task unblocks when completed */
+  unblocks?: string[];
+  /** Actions to execute when this task is marked done */
+  onComplete?: TaskAction[];
+  /** Tags for filtering and categorization */
+  tags?: string[];
+  /** Arbitrary metadata (estimatedHours, repo, branch, etc.) */
+  metadata?: Record<string, unknown>;
 }
 
 export interface DoneLogEntry {

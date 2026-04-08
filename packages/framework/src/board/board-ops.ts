@@ -6,7 +6,7 @@
  * The HTTP layer calls these and handles persistence + responses.
  */
 
-import type { TeamTask, DoneLogEntry, TeamSuggestion, SuggestionCategory, SlotRole } from './board-types';
+import type { TeamTask, TaskAction, DoneLogEntry, TeamSuggestion, SuggestionCategory, SlotRole } from './board-types';
 import { normalizeTitle, generateTaskId, generateSuggestionId } from './board-types';
 
 // ── Task Operations ──
@@ -31,7 +31,7 @@ export interface TaskActionResult {
   doneEntry?: DoneLogEntry;
 }
 
-/** Claim an open task. Returns error if task isn't open. */
+/** Claim an open task. Returns error if task isn't open or has unmet dependencies. */
 export function claimTask(
   board: TeamTask[],
   taskId: string,
@@ -41,6 +41,14 @@ export function claimTask(
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
   if (task.status !== 'open') return { success: false, error: `Task is ${task.status}, not open` };
+
+  // Check dependencies — all must be done (not on the board)
+  if (task.dependsOn && task.dependsOn.length > 0) {
+    const pending = task.dependsOn.filter((depId) => board.some((t) => t.id === depId && t.status !== 'done'));
+    if (pending.length > 0) {
+      return { success: false, error: `Blocked by ${pending.length} unfinished dependencies: ${pending.join(', ')}` };
+    }
+  }
 
   task.status = 'claimed';
   task.claimedBy = claimerId;
@@ -54,7 +62,7 @@ export function completeTask(
   taskId: string,
   completedBy: string,
   opts: { commit?: string; summary?: string } = {}
-): { result: TaskActionResult; updatedBoard: TeamTask[] } {
+): { result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] }; updatedBoard: TeamTask[] } {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { result: { success: false, error: 'Task not found' }, updatedBoard: board };
 
@@ -72,8 +80,34 @@ export function completeTask(
     summary: opts.summary || task.title,
   };
 
+  // Unblock dependent tasks — move from 'blocked' to 'open' if all their deps are done
+  const unblocked: string[] = [];
+  if (task.unblocks) {
+    for (const depId of task.unblocks) {
+      const dep = board.find((t) => t.id === depId);
+      if (!dep) continue;
+      // Check if ALL of dep's dependencies are now done (off the board or status=done)
+      const allDepsMet = !dep.dependsOn || dep.dependsOn.every(
+        (id) => id === taskId || !board.some((t) => t.id === id && t.status !== 'done')
+      );
+      if (allDepsMet && dep.status === 'blocked') {
+        dep.status = 'open';
+        unblocked.push(depId);
+      }
+    }
+  }
+
   const updatedBoard = board.filter((t) => t.id !== taskId);
-  return { result: { success: true, task, doneEntry }, updatedBoard };
+  return {
+    result: {
+      success: true,
+      task,
+      doneEntry,
+      onComplete: task.onComplete,
+      unblocked: unblocked.length > 0 ? unblocked : undefined,
+    },
+    updatedBoard,
+  };
 }
 
 /** Block a task. */

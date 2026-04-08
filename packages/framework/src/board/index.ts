@@ -5,6 +5,7 @@ export {
   // Types
   type TaskStatus,
   type SlotRole,
+  type TaskAction,
   type TeamTask,
   type DoneLogEntry,
   type SuggestionCategory,
