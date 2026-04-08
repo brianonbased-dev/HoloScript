@@ -28,13 +28,12 @@ const nextConfig = {
     ];
   },
   async redirects() {
+    const academyUrl = process.env.NEXT_PUBLIC_ACADEMY_URL || 'http://localhost:3102';
     return [
       { source: '/workspace/:path*', destination: '/projects/:path*', permanent: true },
-      { source: '/templates/:path*', destination: '/start', permanent: true },
       { source: '/scenarios/:path*', destination: '/start', permanent: true },
       { source: '/publish/:path*', destination: '/create', permanent: true },
-      { source: '/operations/:path*', destination: '/admin/:path*', permanent: true },
-      { source: '/pipeline/:path*', destination: '/', permanent: true }
+      { source: '/operations/:path*', destination: '/admin/:path*', permanent: true }
     ];
   },
   // Enable standard Next.js build checks
