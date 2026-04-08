@@ -104,6 +104,10 @@ COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/di
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
+# Fail fast if framework build artifacts are missing (prevents runtime breakage
+# when mcp-server resolves @holoscript/framework in production).
+RUN test -f /app/packages/framework/dist/index.js
+
 # Create persistent directories (Railway volume mount points)
 RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh
 
