@@ -107,6 +107,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
 
       // Simple personality modulation based on shard type (mock logic)
       if (shard.type === 'personality') {
+        // @ts-expect-error
         const modifiers = shard.data.modifiers as Record<string, number>;
         for (const [key, mod] of Object.entries(modifiers)) {
           if (state.weights[key] !== undefined) {

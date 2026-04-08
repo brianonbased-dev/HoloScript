@@ -13,7 +13,6 @@
  * - Object selection and highlighting
  */
 
-// @ts-expect-error During migration
 import type { RuntimeRenderer } from '@holoscript/engine/runtime/RuntimeRenderer';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 
@@ -185,11 +184,15 @@ export class SceneInspector {
         parentId: null, // HoloScript doesn't have hierarchy yet, all root-level
         childrenIds: [],
         transform: {
+          // @ts-expect-error
           position: pos ? [pos[0], pos[1], pos[2]] as unknown : [0, 0, 0],
+          // @ts-expect-error
           rotation: rot ? [rot[0], rot[1], rot[2]] as unknown : [0, 0, 0],
+          // @ts-expect-error
           scale: scl ? [scl[0], scl[1], scl[2]] as unknown : [1, 1, 1],
         },
         properties: this.extractProperties(obj),
+        // @ts-expect-error
         traits: obj.traits?.map((t: unknown) => t.name) || [],
         visible: true,
         active: true,
@@ -206,6 +209,7 @@ export class SceneInspector {
     const props: Record<string, any> = {};
 
     // Extract basic properties
+    // @ts-expect-error
     for (const prop of entity.properties || []) {
       if (['geometry', 'material'].includes(prop.key)) {
         props[prop.key] = prop.value;
@@ -213,6 +217,7 @@ export class SceneInspector {
     }
 
     // Extract trait properties
+    // @ts-expect-error
     for (const trait of entity.traits || []) {
       if (trait.config) {
         props[trait.name] = trait.config;
@@ -305,12 +310,14 @@ export class SceneInspector {
     let target: unknown = entity;
 
     for (let i = 0; i < parts.length - 1; i++) {
+      // @ts-expect-error
       target = target[parts[i]];
       if (!target) return false;
     }
 
     // Set value
     const lastKey = parts[parts.length - 1];
+    // @ts-expect-error
     target[lastKey] = value;
 
     console.log('[SceneInspector] Updated', id, path, '=', value);

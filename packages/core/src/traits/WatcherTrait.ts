@@ -75,6 +75,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
   },
 
   onDetach(node: HSPlusNode, _config: WatcherConfig, _context: TraitContext): void {
+    // @ts-expect-error
     const state: WatcherState | undefined = node.__watcherState;
     if (state) {
       stopWatching(state);
@@ -87,6 +88,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: WatcherConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: WatcherState | undefined = node.__watcherState;
     if (!state) return;
 
@@ -127,6 +129,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
 };
 
 function startWatching(node: HSPlusNode, config: WatcherConfig, context: TraitContext): void {
+  // @ts-expect-error
   const state: WatcherState = node.__watcherState;
   state.active = true;
 
@@ -168,6 +171,7 @@ function stopWatching(state: WatcherState): void {
   state.active = false;
   for (const w of state.watchers) {
     try {
+      // @ts-expect-error
       w.close();
     } catch {
       /* best effort */

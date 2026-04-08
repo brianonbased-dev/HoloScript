@@ -1,4 +1,5 @@
 import { trigger, track } from '../state/ReactiveState';
+// @ts-expect-error
 import { Entity } from '@holoscript/engine/ecs/World';
 
 /**

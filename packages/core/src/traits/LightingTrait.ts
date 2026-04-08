@@ -507,6 +507,7 @@ export const lightingHandler = {
   name: 'lighting',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new LightingTrait(config);
     node.__lighting_instance = instance;
     ctx.emit('lighting_attached', { node, config });

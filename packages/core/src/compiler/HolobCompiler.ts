@@ -132,7 +132,7 @@ export class HolobCompiler {
     }
 
     const startMs = performance.now();
-    const builder = new HoloBytecodeBuilder();
+    const builder = new (HoloBytecodeBuilder as any)();
     this.stringTable.clear();
     this.entityCount = 0;
 
@@ -193,7 +193,7 @@ export class HolobCompiler {
   // ─── Entity Definition ──────────────────────────────────────────────
 
   private defineEntities(
-    builder: unknown,
+    builder: any,
     composition: HoloComposition
   ): Map<string, number> {
     const ids = new Map<string, number>();
@@ -220,8 +220,8 @@ export class HolobCompiler {
   // ─── Object Compilation ─────────────────────────────────────────────
 
   private compileObject(
-    fn: unknown,
-    builder: unknown,
+    fn: any,
+    builder: any,
     obj: HoloObjectDecl,
     entityId: number
   ): void {
@@ -265,7 +265,7 @@ export class HolobCompiler {
 
   // ─── Trait Compilation ──────────────────────────────────────────────
 
-  private compileTrait(fn: unknown, entityId: number, traitName: string, obj: HoloObjectDecl): void {
+  private compileTrait(fn: any, entityId: number, traitName: string, obj: HoloObjectDecl): void {
     const name = traitName.toLowerCase().replace(/^@/, '');
 
     switch (name) {
@@ -313,7 +313,7 @@ export class HolobCompiler {
 
   // ─── Light Compilation ──────────────────────────────────────────────
 
-  private compileLight(fn: unknown, builder: unknown, light: HoloLight): void {
+  private compileLight(fn: any, builder: any, light: HoloLight): void {
     this.entityCount++;
     const entityId = this.entityCount;
     builder.addEntity(light.name || `light_${entityId}`, 0);
@@ -329,7 +329,7 @@ export class HolobCompiler {
 
   // ─── Environment Compilation ────────────────────────────────────────
 
-  private compileEnvironment(fn: unknown, env: HoloEnvironment): void {
+  private compileEnvironment(fn: any, env: HoloEnvironment): void {
     // Environment properties become initial scene state
     for (const prop of env.properties) {
       if (prop.key === 'ambient_light' && typeof prop.value === 'number') {
@@ -343,8 +343,8 @@ export class HolobCompiler {
   // ─── Spatial Group Compilation ──────────────────────────────────────
 
   private compileSpatialGroup(
-    fn: unknown,
-    builder: unknown,
+    fn: any,
+    builder: any,
     group: HoloSpatialGroup,
     entityIds: Map<string, number>
   ): void {
@@ -389,17 +389,17 @@ export class HolobCompiler {
     return fallback;
   }
 
-  private internString(_fn: unknown, str: string): number {
+  private internString(_fn: any, str: string): number {
     if (this.stringTable.has(str)) return this.stringTable.get(str)!;
     const idx = this.stringTable.size;
     this.stringTable.set(str, idx);
     return idx;
   }
 
-  private countInstructions(bytecode: unknown): number {
+  private countInstructions(bytecode: any): number {
     if (!bytecode?.functions) return 0;
     return bytecode.functions.reduce(
-      (sum: number, fn: unknown) => sum + (fn.instructions?.length ?? 0),
+      (sum: number, fn: any) => sum + (fn.instructions?.length ?? 0),
       0
     );
   }

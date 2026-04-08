@@ -332,6 +332,7 @@ export class MCPOrchestrator {
    */
   async runTools(tools: { agentId: string; toolName: string; params: unknown }[]): Promise<any[]> {
     const results = await Promise.all(
+      // @ts-expect-error
       tools.map((t) => this.executeTool(t.agentId, t.toolName, t.params))
     );
     return results;

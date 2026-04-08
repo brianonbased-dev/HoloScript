@@ -235,6 +235,7 @@ export const cronHandler = {
   },
 
   onDetach(node: HSPlusNode, _config: CronConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
     if (state.db) state.db.close();
@@ -243,6 +244,7 @@ export const cronHandler = {
   },
 
   onEvent(node: HSPlusNode, config: CronConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
 
@@ -335,6 +337,7 @@ export const cronHandler = {
   },
 
   onUpdate(node: HSPlusNode, config: CronConfig, ctx: TraitContext, _dt: number): void {
+    // @ts-expect-error
     const state: CronState | undefined = node.__cronState;
     if (!state) return;
 

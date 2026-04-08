@@ -496,6 +496,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
             y: direction.y / len,
             z: direction.z / len,
           };
+          // @ts-expect-error
           const hit = context.physics.raycast(nodePos, normalized, dist);
           state.isReachable = !hit || hit.distance >= dist - 0.01;
         } else {

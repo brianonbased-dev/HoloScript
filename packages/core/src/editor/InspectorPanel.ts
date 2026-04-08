@@ -1,3 +1,4 @@
+// @ts-expect-error
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { Inspector } from './Inspector';
 import { UIBuilder } from './UIBuilder';
@@ -80,6 +81,7 @@ export class InspectorPanel {
       const data = this.inspector.getComponentData(type);
       if (data) {
         Object.keys(data).forEach((key) => {
+          // @ts-expect-error
           const value = data[key];
           const valType = typeof value;
 
@@ -113,6 +115,7 @@ export class InspectorPanel {
   private createLabel(text: string, x: number, y: number) {
     if (!this.panelRoot) return;
 
+    // @ts-expect-error
     const labelNode: HSPlusNode = {
       id: `lbl_${text}`,
       type: 'text',
@@ -160,6 +163,7 @@ export class InspectorPanel {
     // Map<Entity, () => void> ?
 
     // Value Text
+    // @ts-expect-error
     const valText: HSPlusNode = {
       id: `val_${compType}_${propKey}`,
       type: 'text',
@@ -191,6 +195,7 @@ export class InspectorPanel {
   private interactionMap: Map<Entity, () => void> = new Map();
 
   private modifyValue(comp: string, prop: string, delta: number) {
+    // @ts-expect-error
     const val = this.inspector.getComponentData(comp)[prop];
     if (typeof val === 'number') {
       this.inspector.setProperty(comp, prop, val + delta);

@@ -7,7 +7,6 @@
  * @module multiplayer
  */
 
-// @ts-expect-error During migration
 import { IVector3 } from '@holoscript/engine/physics/PhysicsTypes';
 
 // =============================================================================

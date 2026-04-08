@@ -494,59 +494,11 @@ describe('Sprint 7 – AI PromptBuilder', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. IntelliJ plugin
 // ─────────────────────────────────────────────────────────────────────────────
+// NOTE: IntelliJ plugin (packages/intellij) was removed in v6.0.0
+// These tests are permanently skipped as the plugin is no longer maintained
+// VSCode extension is the primary IDE integration path
 
 describe.skip('Sprint 7 – IntelliJ plugin (packages/intellij removed)', () => {
-  it('plugin.xml manifest exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'src/main/resources/META-INF/plugin.xml'))).toBe(true);
-  });
-
-  it('HoloScriptLanguage.kt exists', () => {
-    expect(
-      existsSync(
-        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptLanguage.kt')
-      )
-    ).toBe(true);
-  });
-
-  it('HoloScriptFileType.kt exists', () => {
-    expect(
-      existsSync(
-        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/HoloScriptFileType.kt')
-      )
-    ).toBe(true);
-  });
-
-  it('HoloScriptLspClient.kt exists', () => {
-    expect(
-      existsSync(
-        join(INTELLIJ_ROOT, 'src/main/kotlin/com/holoscript/intellij/lsp/HoloScriptLspClient.kt')
-      )
-    ).toBe(true);
-  });
-
-  it('HoloScriptSyntaxHighlighter.kt exists', () => {
-    expect(
-      existsSync(
-        join(
-          INTELLIJ_ROOT,
-          'src/main/kotlin/com/holoscript/intellij/highlighting/HoloScriptSyntaxHighlighter.kt'
-        )
-      )
-    ).toBe(true);
-  });
-
-  it('HoloScriptCompletionContributor.kt exists', () => {
-    expect(
-      existsSync(
-        join(
-          INTELLIJ_ROOT,
-          'src/main/kotlin/com/holoscript/intellij/completion/HoloScriptCompletionContributor.kt'
-        )
-      )
-    ).toBe(true);
-  });
-
-  it('build.gradle.kts exists', () => {
-    expect(existsSync(join(INTELLIJ_ROOT, 'build.gradle.kts'))).toBe(true);
-  });
+  // IntelliJ package removed — tests kept for archival purposes only
+  // IDE integration now handled by @holoscript/lsp and vscode extension
 });

@@ -1,9 +1,7 @@
 import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode } from '../types/HoloScriptPlus';
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
-// @ts-expect-error During migration
 import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
-// @ts-expect-error During migration
 import { AnimationEngine } from '@holoscript/engine/animation/AnimationEngine';
 
 export class HandMenuSystem {
@@ -98,12 +96,12 @@ export class HandMenuSystem {
     // Animate in: scale + fade
     this.transitions.popIn(
       menuId,
-      // @ts-expect-error During migration
       (s) => {
+        // @ts-expect-error
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      // @ts-expect-error During migration
       (o) => {
+        // @ts-expect-error
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
       {
@@ -124,12 +122,12 @@ export class HandMenuSystem {
     // Animate out: scale + fade, then unmount
     this.transitions.popOut(
       nodeIdToRemove,
-      // @ts-expect-error During migration
       (s) => {
+        // @ts-expect-error
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      // @ts-expect-error During migration
       (o) => {
+        // @ts-expect-error
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
       {

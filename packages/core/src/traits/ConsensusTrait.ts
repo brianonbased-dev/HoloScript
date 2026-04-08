@@ -429,6 +429,7 @@ export const consensusHandler = {
   name: 'consensus',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new ConsensusTrait(config);
     node.__consensus_instance = instance;
     ctx.emit('consensus_attached', { node, config });

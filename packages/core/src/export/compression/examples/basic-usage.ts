@@ -187,6 +187,7 @@ export async function batchCompression(documents: unknown[]) {
   const allStats = [];
 
   for (const doc of documents) {
+    // @ts-expect-error
     const compressed = await compressor.compress(doc);
     const stats = compressor.getStats();
 

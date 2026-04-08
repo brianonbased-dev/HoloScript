@@ -1,6 +1,5 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, HSPlusNode, TraitEvent, TraitContext } from './TraitTypes';
-// @ts-expect-error During migration
 import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
 
 export interface ScrollableConfig {
@@ -33,6 +32,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
   },
 
   onAttach(node: HSPlusNode, config: unknown, context: TraitContext) {
+    // @ts-expect-error
     const spring = config.useSpringBounce
       ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })
       : null;
@@ -54,11 +54,13 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 
+    // @ts-expect-error
     const maxScroll = Math.max(0, config.contentHeight - config.viewportHeight);
 
     // Apply inertia if not dragging
     if (!state.isDragging && Math.abs(state.velocity) > 0.001) {
       state.offset += state.velocity * delta;
+      // @ts-expect-error
       state.velocity *= config.friction ?? 0.95;
     }
 

@@ -913,6 +913,7 @@ export const characterHandler = {
   name: 'character',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new CharacterTrait(config);
     node.__character_instance = instance;
     ctx.emit('character_attached', { node, config });

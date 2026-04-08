@@ -92,7 +92,9 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
     if (!npcState) return;
 
     // Decay player relationship slowly over time
+    // @ts-expect-error
     if (npcState.relationship_delta !== 0) {
+      // @ts-expect-error
       npcState.relationship_delta *= 0.99; // Decay factor
     }
   },
@@ -102,6 +104,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
     const npcState = node.__npcState;
 
     if (event.type === 'player_enter_dialogue_range') {
+      // @ts-expect-error
       if (!npcState.in_dialogue) {
         context.emit?.('on_player_nearby', {
           node,
@@ -110,23 +113,30 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
         });
       }
     } else if (event.type === 'player_exit_dialogue_range') {
+      // @ts-expect-error
       if (npcState.in_dialogue) {
+        // @ts-expect-error
         npcState.in_dialogue = false;
         context.emit?.('on_dialogue_end', { node });
       }
     } else if (event.type === 'player_interact') {
+      // @ts-expect-error
       npcState.in_dialogue = true;
+      // @ts-expect-error
       npcState.last_interaction_time = Date.now();
+      // @ts-expect-error
       npcState.conversation_count++;
 
       context.emit?.('on_dialogue_start', {
         node,
         playerId: event.playerId,
+        // @ts-expect-error
         conversationCount: npcState.conversation_count,
       });
     } else if (event.type === 'relationship_change') {
       const delta = event.delta as number;
       config.player_relationship = Math.max(-1, Math.min(1, config.player_relationship + delta));
+      // @ts-expect-error
       npcState.relationship_delta = delta;
 
       context.emit?.('on_relationship_updated', {

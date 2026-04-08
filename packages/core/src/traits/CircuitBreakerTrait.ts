@@ -100,6 +100,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
   },
 
   onUpdate(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, _delta: number): void {
+    // @ts-expect-error
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
 
@@ -121,6 +122,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
 

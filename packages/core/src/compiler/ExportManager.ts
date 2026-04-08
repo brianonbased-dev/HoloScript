@@ -195,8 +195,7 @@ export type ExportEventListener = (event: ExportEvent) => void;
  * Factory for creating compiler instances
  */
 class CompilerFactory {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Compilers are heterogeneous (4 don't implement ICompiler); full interface unification tracked separately
-  createCompiler(target: ExportTarget, options: Record<string, any> = {}): unknown {
+  createCompiler(target: ExportTarget, options: Record<string, any> = {}): any {
     switch (target) {
       case 'urdf':
         return new URDFCompiler(options);

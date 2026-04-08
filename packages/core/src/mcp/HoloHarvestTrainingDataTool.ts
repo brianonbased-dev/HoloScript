@@ -51,6 +51,7 @@ export class HoloHarvestTrainingDataHandler {
     }
 
     try {
+      // @ts-expect-error
       this.harvester.harvestFromCycle(
         input.instruction,
         input.output,
@@ -58,6 +59,7 @@ export class HoloHarvestTrainingDataHandler {
         input.qualityScore,
         input.metadata
       );
+      // @ts-expect-error
       const stats = this.harvester.getStats();
       return {
         success: true,

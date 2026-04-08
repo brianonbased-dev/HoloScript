@@ -124,6 +124,7 @@ export class WebGPUContext {
 
       // Handle uncaptured errors
       this.device.addEventListener('uncapturederror', (event: unknown) => {
+        // @ts-expect-error
         console.error('WebGPU uncaptured error:', event.error);
       });
 

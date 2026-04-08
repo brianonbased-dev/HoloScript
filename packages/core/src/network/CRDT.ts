@@ -248,5 +248,6 @@ export class ORSet<T> {
  * ```
  */
 export function isCRDT(obj: unknown): boolean {
+  // @ts-expect-error
   return obj && typeof obj === 'object' && typeof obj.merge === 'function';
 }

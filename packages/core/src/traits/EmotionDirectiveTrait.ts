@@ -948,6 +948,7 @@ export const emotionDirectiveHandler = {
   name: 'emotion_directive',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new EmotionDirectiveTrait(config);
     node.__emotion_directive_instance = instance;
     ctx.emit('emotion_directive_attached', { node, config });

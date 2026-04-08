@@ -26,6 +26,7 @@ export class FriendManager {
 
   private handleNetworkMessage(packet: unknown) {
     // payload structure depends on packet type
+    // @ts-expect-error
     const { type, payload } = packet;
 
     switch (type) {

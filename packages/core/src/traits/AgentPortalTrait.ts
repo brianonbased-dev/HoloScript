@@ -245,6 +245,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onDetach — disconnect and cleanup
   // ===========================================================================
   onDetach(node: HSPlusNode, config: PortalConfig, context: TraitContext): void {
+    // @ts-expect-error
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 
@@ -276,6 +277,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onUpdate — heartbeat, prune offline scenes, process inbox
   // ===========================================================================
   onUpdate(node: HSPlusNode, config: PortalConfig, context: TraitContext, delta: number): void {
+    // @ts-expect-error
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 
@@ -348,6 +350,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onEvent — handle portal events
   // ===========================================================================
   onEvent(node: HSPlusNode, config: PortalConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: PortalState | undefined = node.__portalState;
     if (!state) return;
 

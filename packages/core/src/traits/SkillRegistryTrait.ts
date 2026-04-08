@@ -253,6 +253,7 @@ export const skillRegistryHandler = {
   },
 
   onDetach(node: HSPlusNode, _config: SkillRegistryConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const state: SkillRegistryState | undefined = node.__skillRegistryState;
     if (!state) return;
     ctx.emit('skills_stopped', {
@@ -265,6 +266,7 @@ export const skillRegistryHandler = {
   },
 
   onEvent(node: HSPlusNode, config: SkillRegistryConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: SkillRegistryState | undefined = node.__skillRegistryState;
     if (!state) return;
 

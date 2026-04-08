@@ -223,6 +223,7 @@ export const messagingHandler = {
   },
 
   onDetach(node: HSPlusNode, _config: MessagingConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const state: MessagingState | undefined = node.__messagingState;
     if (!state) return;
     if (state.pollTimer) clearInterval(state.pollTimer);
@@ -232,6 +233,7 @@ export const messagingHandler = {
   },
 
   onEvent(node: HSPlusNode, config: MessagingConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: MessagingState | undefined = node.__messagingState;
     if (!state?.isConnected) return;
 

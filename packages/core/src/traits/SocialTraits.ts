@@ -133,7 +133,9 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
 
   onDetach(node) {
     const state = node.__collaborativeState;
+    // @ts-expect-error
     if (state && state.localStream) {
+      // @ts-expect-error
       (state.localStream as MediaStream).getTracks().forEach((track) => track.stop());
     }
     delete node.__collaborativeState;
@@ -156,6 +158,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
         onStream: (stream: MediaStream) => {
           const state = node.__collaborativeState;
           if (state) {
+            // @ts-expect-error
             state.localStream = stream;
             // Provide stream to network layer
             // This assumes context has access to the transport or we emit an event

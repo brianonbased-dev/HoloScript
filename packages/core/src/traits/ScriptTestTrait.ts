@@ -381,6 +381,7 @@ export const scriptTestHandler = {
   name: 'script_test',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new ScriptTestRunner(config);
     node.__script_test_instance = instance;
     ctx.emit('script_test_attached', { node, config });

@@ -546,6 +546,7 @@ export const renderingHandler = {
   name: 'rendering',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new RenderingTrait(config);
     node.__rendering_instance = instance;
     ctx.emit('rendering_attached', { node, config });

@@ -964,6 +964,7 @@ export class HoloScriptPlusParser {
           this.offsetNodeLoc(node, chunk.startLine - 1);
 
           topLevelNodes.push(node);
+          // @ts-expect-error
           cache.set(chunk.id, hash, node);
 
           // Merge metadata

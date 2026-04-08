@@ -208,7 +208,7 @@ export interface GraphicsConfiguration {
 
 export interface EnhancedOrbNode extends OrbNode {
   graphics?: GraphicsConfiguration;
-  traits?: unknown;
+  traits?: any;
   eventHandlers?: Map<string, string>;
   isCompanion?: boolean;
 }
@@ -671,7 +671,7 @@ export class HoloScriptPlusParser {
    * Create MaterialTrait from config
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic material config from parsed AST
-  private createMaterialTrait(config: unknown): MaterialTrait {
+  private createMaterialTrait(config: any): MaterialTrait {
     const material = new MaterialTrait({
       type: config.type || 'pbr',
       pbr: config.pbr,
@@ -690,7 +690,7 @@ export class HoloScriptPlusParser {
     }
 
     if (config.textures) {
-      config.textures.forEach((tex: unknown) => {
+      config.textures.forEach((tex: any) => {
         material.addTexture(tex);
       });
     }
@@ -701,8 +701,8 @@ export class HoloScriptPlusParser {
   /**
    * Create LightingTrait from config
    */
-  private createLightingTrait(config: unknown): LightingTrait {
-    let lighting: unknown;
+  private createLightingTrait(config: any): LightingTrait {
+    let lighting: any;
 
     if (config.preset) {
       const presetFactory = LIGHTING_PRESETS[config.preset as keyof typeof LIGHTING_PRESETS];
@@ -717,7 +717,7 @@ export class HoloScriptPlusParser {
     }
 
     if (config.lights) {
-      config.lights.forEach((light: unknown) => {
+      config.lights.forEach((light: any) => {
         lighting.addLight(light);
       });
     }
@@ -728,7 +728,7 @@ export class HoloScriptPlusParser {
   /**
    * Create RenderingTrait from config
    */
-  private createRenderingTrait(config: unknown): RenderingTrait {
+  private createRenderingTrait(config: any): RenderingTrait {
     const rendering = new RenderingTrait();
 
     if (config.quality) {

@@ -289,6 +289,7 @@ export const spatialAgentHandler = {
   },
 
   onDetach(node: HSPlusNode, _config: SpatialAgentConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const state: SpatialAgentState | undefined = node.__spatialAgentState;
     if (!state) return;
     ctx.emit('spatial_agent_stopped', { node, totalGenerated: state.totalGenerated });
@@ -296,6 +297,7 @@ export const spatialAgentHandler = {
   },
 
   onEvent(node: HSPlusNode, config: SpatialAgentConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: SpatialAgentState | undefined = node.__spatialAgentState;
     if (!state?.isReady) return;
 

@@ -506,6 +506,7 @@ export const aIDriverHandler = {
   name: 'a_i_driver',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new BehaviorTreeRunner(config);
     node.__a_i_driver_instance = instance;
     ctx.emit('a_i_driver_attached', { node, config });

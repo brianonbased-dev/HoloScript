@@ -98,6 +98,7 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: PipelineConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: PipelineState | undefined = node.__pipelineState;
     if (!state) return;
 
@@ -174,6 +175,7 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
 };
 
 function startPipeline(node: HSPlusNode, config: PipelineConfig, context: TraitContext): void {
+  // @ts-expect-error
   const state: PipelineState = node.__pipelineState;
   state.running = true;
   state.currentStep = 0;

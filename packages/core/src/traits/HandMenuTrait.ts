@@ -8,7 +8,6 @@
 import { Vector3 } from '../types/HoloScriptPlus';
 import type { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 import { UIHandMenuTrait } from './UITraits';
-// @ts-expect-error During migration
 import { SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>
@@ -74,8 +73,11 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     const currentPos: unknown = node.properties?.position || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
     const newPos = {
+      // @ts-expect-error
       x: (currentPos.x ?? 0) + ((targetPos.x ?? 0) - (currentPos.x ?? 0)) * lerpFactor,
+      // @ts-expect-error
       y: (currentPos.y ?? 0) + ((targetPos.y ?? 0) - (currentPos.y ?? 0)) * lerpFactor,
+      // @ts-expect-error
       z: (currentPos.z ?? 0) + ((targetPos.z ?? 0) - (currentPos.z ?? 0)) * lerpFactor,
     };
 

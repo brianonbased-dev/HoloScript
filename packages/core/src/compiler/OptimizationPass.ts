@@ -234,7 +234,7 @@ export class OptimizationPass {
    * Run optimization analysis directly on a HoloComposition AST.
    * This is a convenience method that compiles first, then analyzes.
    */
-  analyzeComposition(composition: unknown, compiler: unknown): OptimizationReport {
+  analyzeComposition(composition: unknown, compiler: any): OptimizationReport {
     const tree = compiler.compileComposition(composition);
     return this.analyze(tree);
   }

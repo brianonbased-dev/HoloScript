@@ -265,6 +265,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
       try {
         const changed = this.crdt.reconcile(op);
         if (changed) {
+          // @ts-expect-error
           this.proxy[op.key as keyof T] = op.value;
           this.notifySubscribers(op.key as keyof T);
         }

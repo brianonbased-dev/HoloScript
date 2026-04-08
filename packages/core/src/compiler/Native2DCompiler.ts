@@ -8,7 +8,7 @@
  */
 
 import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
-import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectDecl, HoloUIElement } from '../parser/HoloCompositionTypes';
 
 export interface Native2DCompilerOptions extends BaseCompilerOptions {
   /** Output format: raw html/css string or full React .tsx component */
@@ -72,7 +72,7 @@ export class Native2DCompiler extends CompilerBase {
 
   generateReactComponent(
     name: string,
-    objects: HoloObjectDecl[] | Record<string, unknown>[],
+    objects: HoloObjectDecl[] | HoloUIElement[] | Record<string, unknown>[],
     composition?: HoloComposition,
     options?: Native2DCompilerOptions
   ): string {
@@ -93,7 +93,9 @@ export class Native2DCompiler extends CompilerBase {
     }
 
     // Generate JSX from objects
-    const jsx = objects.map((obj) => this.generateReactNode(obj)).join('\n        ');
+    const jsx = objects
+      .map((obj) => this.generateReactNode(obj as unknown as Record<string, unknown>))
+      .join('\n        ');
 
     // Build imports
     const imports: string[] = [];
@@ -357,8 +359,10 @@ export default ${safeName}Component;
   }
 
   private generateHTMLNode(obj: unknown): string {
+    const node = obj as Record<string, unknown>;
     const traits = this.extractTraits(obj);
-    let tag = traits.theme?.tag || traits.panel?.tag || obj.type?.toLowerCase() || 'div';
+    const nodeType = typeof node.type === 'string' ? node.type.toLowerCase() : undefined;
+    let tag = traits.theme?.tag || traits.panel?.tag || nodeType || 'div';
 
     // Keyword extraction for parsing output logic
     if (
@@ -438,7 +442,8 @@ export default ${safeName}Component;
     if (traits.input?.type) props += ` type="${traits.input.type}"`;
     if (traits.input?.required) props += ` required`;
 
-    const childrenMarkup = (obj.children || obj.objects || [])
+    const children = (node.children || node.objects || []) as unknown[];
+    const childrenMarkup = children
       .map((child: unknown) => this.generateHTMLNode(child))
       .join('\n');
 
@@ -461,8 +466,9 @@ export default ${safeName}Component;
 
   private extractTraits(obj: unknown): Record<string, any> {
     const map: Record<string, any> = {};
-    if (!obj.traits) return map;
-    for (const t of obj.traits) {
+    const node = obj as { traits?: Array<{ name: string; config?: unknown }> };
+    if (!node.traits) return map;
+    for (const t of node.traits) {
       map[t.name] = t.config || {};
 
       // Special case for primitive traits like @tailwind which might be passed as a single string

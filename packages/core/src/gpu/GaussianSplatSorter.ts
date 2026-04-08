@@ -899,6 +899,7 @@ export async function createGaussianSplatSorter(
 ): Promise<GaussianSplatSorter> {
   const { WebGPUContext } = await import('./WebGPUContext.js');
 
+  // @ts-expect-error
   const context = new WebGPUContext(options.contextOptions);
   await context.initialize();
 

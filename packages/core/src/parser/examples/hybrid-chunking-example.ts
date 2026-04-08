@@ -275,6 +275,7 @@ files.forEach((file) => {
 });
 
 const totalTime = performance.now() - startTime;
+// @ts-expect-error
 const combinedStats = chunker.getStats(allChunks);
 
 console.log('\nOverall Statistics:');

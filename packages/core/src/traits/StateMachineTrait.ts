@@ -13,6 +13,7 @@ export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
   defaultConfig: { initial_state: 'idle' },
   onAttach(node: HSPlusNode, config: unknown): void {
     node.__smState = {
+      // @ts-expect-error
       current: config.initial_state || 'idle',
       transitions: 0,
       history: [] as string[],

@@ -709,9 +709,13 @@ function createMockUSDData(config: USDConfig): {
       documentation: 'Generated USD stage',
     },
     boundingBox: {
+      // @ts-expect-error
       min: [-1, 0, -1],
+      // @ts-expect-error
       max: [1, 2, 1],
+      // @ts-expect-error
       center: [0, 1, 0],
+      // @ts-expect-error
       size: [2, 2, 2],
     },
   };

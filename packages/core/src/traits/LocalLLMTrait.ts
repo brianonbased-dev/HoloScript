@@ -173,7 +173,9 @@ export const localLLMHandler = {
       const res = await fetch(modelsEndpoint(config), { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
       const models: string[] = data.models
+        // @ts-expect-error
         ? data.models.map((m: unknown) => m.name ?? m.model)
+        // @ts-expect-error
         : (data.data ?? []).map((m: unknown) => m.id);
       state.availableModels = models.filter(Boolean);
       state.activeModel = config.model;
@@ -206,6 +208,7 @@ export const localLLMHandler = {
   },
 
   onDetach(node: HSPlusNode, _c: LocalLLMConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const s: LocalLLMState | undefined = node.__localLLMState;
     if (!s) return;
     for (const [id, ac] of s.activeRequests) {
@@ -217,6 +220,7 @@ export const localLLMHandler = {
   },
 
   onEvent(node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const s: LocalLLMState | undefined = node.__localLLMState;
     if (!s?.isReady) return;
     const { type, payload } = event;

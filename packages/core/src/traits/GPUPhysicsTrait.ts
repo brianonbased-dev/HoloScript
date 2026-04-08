@@ -1,9 +1,6 @@
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-// @ts-expect-error During migration
 import { getPhysicsEngine } from '@holoscript/engine/runtime/PhysicsEngine';
-// @ts-expect-error During migration
 import { IslandDetector } from '@holoscript/engine/physics/IslandDetector';
-// @ts-expect-error During migration
 import { SoftBodyAdapter } from '@holoscript/engine/physics/SoftBodyAdapter';
 
 function extractPosition(node: HSPlusNode): [number, number, number] {

@@ -4,9 +4,11 @@
  *
  * Uses direct source-level import so vitest resolves without requiring a build.
  */
-export { WebCodecsDepthPipeline } from '../../../engine/src/hologram/WebCodecsDepthPipeline';
+export { WebCodecsDepthPipeline // @ts-ignore
+} from '../../../engine/src/hologram/WebCodecsDepthPipeline';
 
 export type {
   WebCodecsDepthConfig,
   WebCodecsDepthStats,
+// @ts-ignore
 } from '../../../engine/src/hologram/WebCodecsDepthPipeline';

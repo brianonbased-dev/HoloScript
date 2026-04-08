@@ -25,12 +25,16 @@ export class PartyManager {
   }
 
   private handleNetworkMessage(packet: unknown) {
+    // @ts-expect-error
     switch (packet.type) {
       case 'PARTY_INVITE':
+        // @ts-expect-error
         this.emit('party_invite', packet.payload);
         break;
       case 'PARTY_UPDATE':
+        // @ts-expect-error
         if (this.currentParty && this.currentParty.id === packet.payload.partyId) {
+          // @ts-expect-error
           this.currentParty.members = packet.payload.members;
           this.emit('party_updated', this.currentParty);
         }

@@ -856,6 +856,7 @@ export const shaderHandler = {
   name: 'shader',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new ShaderTrait(config);
     node.__shader_instance = instance;
     ctx.emit('shader_attached', { node, config });

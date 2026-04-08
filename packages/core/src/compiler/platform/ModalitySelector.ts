@@ -288,7 +288,7 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
   let hasHaptics = false;
   let objectCount = 0;
   
-  const inspectNode = (node: unknown) => {
+  const inspectNode = (node: any) => {
     if (!node || typeof node !== 'object') return;
     
     const type = node['@type'];

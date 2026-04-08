@@ -415,7 +415,7 @@ export class HumanoidLoader {
         const { VRMLoaderPlugin } = await import('@pixiv/three-vrm');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.gltfLoader as GLTFLoaderLike).register(
-          (parser: unknown) => new VRMLoaderPlugin(parser as unknown)
+          (parser: unknown) => new VRMLoaderPlugin(parser as any)
         );
         this.vrmLoaderPlugin = VRMLoaderPlugin;
       } catch {

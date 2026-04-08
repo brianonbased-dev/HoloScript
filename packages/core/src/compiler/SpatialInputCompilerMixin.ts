@@ -1255,7 +1255,7 @@ export function spatialInputToTarget(
 ): string {
   const generators: Record<
     SpatialInputTarget,
-    Record<CompiledSpatialInput['kind'], (data: unknown, prefix: string) => string>
+    Record<CompiledSpatialInput['kind'], (data: any, prefix?: string) => string>
   > = {
     arcore: {
       hand_tracking: handTrackingToARCore,

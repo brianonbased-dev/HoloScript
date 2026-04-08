@@ -132,6 +132,7 @@ export const retryHandler: TraitHandler<RetryConfig> = {
   },
 
   onUpdate(node: HSPlusNode, config: RetryConfig, context: TraitContext, _delta: number): void {
+    // @ts-expect-error
     const state: RetryState | undefined = node.__retryState;
     if (!state) return;
 
@@ -148,6 +149,7 @@ export const retryHandler: TraitHandler<RetryConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: RetryConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: RetryState | undefined = node.__retryState;
     if (!state) return;
 

@@ -22,7 +22,6 @@ import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE, type ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
-// @ts-expect-error During migration
 const PROFILES_HEADLESS = HEADLESS_PROFILE;
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
@@ -958,8 +957,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
   }
 
   // Create runtime
-  const profile = opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile);
-  const runtime = createHeadlessRuntime(ast, {
+  const profile = opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any);
+  const runtime = createHeadlessRuntime(ast as any, {
     profile,
     tickRate: 10,
     debug: opts.debug,
@@ -1008,12 +1007,12 @@ async function runScript(opts: CLIOptions): Promise<void> {
   }
 
   // For headless scripts, run a fixed number of ticks then stop
-  runTicks(runtime, opts.ticks);
+  runTicks(runtime as any, opts.ticks);
 
   runtime.stop();
 
   // Report
-  const stats = runtime.getStats();
+  const stats = runtime.getStats() as any;
   console.log(
     `[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`
   );
@@ -1036,16 +1035,16 @@ async function runScript(opts: CLIOptions): Promise<void> {
         const newSource = fs.readFileSync(filePath, 'utf-8');
         const newParseResult = parse(newSource);
         const newAst = newParseResult.ast as HSPlusAST;
-        const newRuntime = createHeadlessRuntime(newAst, {
-          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile),
+        const newRuntime = createHeadlessRuntime(newAst as any, {
+          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any),
           tickRate: 10,
           debug: opts.debug,
           hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
         });
         newRuntime.start();
-        runTicks(newRuntime, opts.ticks);
+        runTicks(newRuntime as any, opts.ticks);
         newRuntime.stop();
-        const newStats = newRuntime.getStats();
+        const newStats = newRuntime.getStats() as any;
         console.log(
           `[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`
         );
@@ -1079,21 +1078,21 @@ async function testScript(opts: CLIOptions): Promise<void> {
 
   // Parse and create a headless runtime to populate state for assertions
   const parseResult = parse(source);
-  const ast = parseResult.ast as HSPlusAST;
+  const ast = parseResult.ast as any;
   const profile = HEADLESS_PROFILE;
   const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
-  for (let i = 0; i < 50; i++) runtime.tick();
+  for (let i = 0; i < 50; i++) (runtime as any).tick();
 
   const runner = new ScriptTestRunner({
     debug: opts.debug,
-    runtimeState: runtime.getAllState(),
+    runtimeState: (runtime as any).getState(),
   });
   const scriptResults = runner.runTestsFromSource(source, filePath);
 
   // Also run @test blocks (native composition tests with $stateVar syntax)
   // Prefer runtime state (properly parses nested objects) over raw text extraction
-  const runtimeState = runtime.getAllState();
+  const runtimeState = (runtime as any).getState();
   const compositionState =
     Object.keys(runtimeState).length > 0
       ? runtimeState
@@ -1698,8 +1697,7 @@ function loadRuntimeSkillActions(
         }
       }
 
-      // @ts-expect-error During migration
-      actions[actionName] = async (params, bb, ctx) => {
+      actions[actionName] = async (params: any, bb: Record<string, any>, ctx: any) => {
         if (!opts.allowShell) {
           bb.skill_error = `Skill ${actionName} blocked: shell disabled`;
           return false;
@@ -1830,12 +1828,12 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   };
   process.once('SIGINT', cleanup);
   process.once('SIGTERM', cleanup);
-  process.once('uncaughtException', (err) => {
+  process.once('uncaughtException', (err: any) => {
     cleanup();
     console.error('[daemon] Uncaught:', err);
     process.exit(1);
   });
-  process.once('unhandledRejection', (err) => {
+  process.once('unhandledRejection', (err: any) => {
     cleanup();
     console.error('[daemon] Unhandled:', err);
     process.exit(1);
@@ -1850,7 +1848,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       fs.writeFileSync(resolved, c, 'utf-8');
     },
     exists: (p: string) => fs.existsSync(path.resolve(repoRoot, p)),
-    exec: (cmd: string, args: string[] = [], execOpts: unknown = {}) =>
+    exec: (cmd: string, args: string[] = [], execOpts: any = {}) =>
       new Promise((resolve, reject) => {
         const child = spawn(cmd, args, {
           cwd: execOpts.cwd ?? repoRoot,
@@ -1875,7 +1873,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
             }
           }, execOpts.timeoutMs);
         }
-        child.on('close', (code) => {
+        child.on('close', (code: number | null) => {
           if (timer) clearTimeout(timer);
           resolve({ code, stdout, stderr });
         });
@@ -1889,12 +1887,12 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.mkdirSync(skillsDirAbs, { recursive: true });
   }
 
-  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
+  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
   let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
     null;
 
   const reloadRuntimeSkills = () => {
-    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
+    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
     if (activeRuntime) {
       for (const [name, handler] of Object.entries(runtimeSkillActions)) {
         activeRuntime.registerAction(name, handler);
@@ -2132,8 +2130,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     }
 
     // Create runtime with profile-aware HeadlessRuntime (auto-tick via setInterval)
-    const runtime = createProfileRuntime(cycleAST, {
-      profile: PROFILES_HEADLESS,
+    const runtime = createHeadlessRuntime(cycleAST as any, {
+      profile: HEADLESS_PROFILE,
       tickRate: 10,
       debug: opts.debug,
       hostCapabilities: createNodeHostCapabilities(repoRoot),
@@ -2557,14 +2555,14 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   process.once('SIGTERM', cleanup);
 
   // Late-import holomesh dependencies (they're in mcp-server, not core)
-  let createHoloMeshDaemonActions: unknown;
-  let HoloMeshOrchestratorClient: unknown;
+  let createHoloMeshDaemonActions: any;
+  let HoloMeshOrchestratorClient: any;
 
   try {
     // Dynamic import from sibling package (mcp-server is a peer dep)
     // Try package import first, fall back to relative path for monorepo dev
-    let actionsModule: unknown;
-    let clientModule: unknown;
+    let actionsModule: any;
+    let clientModule: any;
     try {
       // @ts-ignore: TS cannot resolve this workspace import
       actionsModule = await import('@holoscript/mcp-server/holomesh/agent/holomesh-daemon-actions');
@@ -2643,8 +2641,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     const cycleAST = JSON.parse(JSON.stringify(compositionAST));
     materializeTraits(cycleAST);
 
-    const runtime = createProfileRuntime(cycleAST, {
-      profile: PROFILES_HEADLESS,
+    const runtime = createHeadlessRuntime(cycleAST as any, {
+      profile: HEADLESS_PROFILE,
       tickRate: 1,
       debug: opts.debug,
       hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
@@ -2988,7 +2986,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
+main().catch((err: any) => {
   console.error('[holoscript] Fatal error:', err.message);
   process.exit(1);
 });

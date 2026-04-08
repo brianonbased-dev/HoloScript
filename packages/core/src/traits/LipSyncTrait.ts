@@ -1033,6 +1033,7 @@ export const lipSyncHandler = {
   name: 'lip_sync',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new LipSyncTrait(config);
     node.__lip_sync_instance = instance;
     ctx.emit('lip_sync_attached', { node, config });

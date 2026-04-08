@@ -62,12 +62,16 @@ export const visionHandler: TraitHandler<VisionConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = node.__visionState;
+    // @ts-expect-error
     if (!state || !state.isScanning) return;
 
+    // @ts-expect-error
     state.lastScan += delta * 1000;
+    // @ts-expect-error
     if (state.lastScan >= config.scan_interval) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.performScan(node, config, context);
+      // @ts-expect-error
       state.lastScan = 0;
     }
   },

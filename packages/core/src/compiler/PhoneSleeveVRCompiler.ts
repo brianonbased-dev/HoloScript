@@ -1071,6 +1071,7 @@ ${handTrackingFrame}
   }
 
   private resolveColor(obj: HoloObjectDecl): string {
+    // @ts-expect-error
     const color = this.getProp(obj.properties, 'color') || this.getProp(obj.properties, 'material')?.color;
     if (typeof color === 'string') {
       if (color.startsWith('#')) return `0x${color.slice(1)}`;
@@ -1092,7 +1093,7 @@ ${handTrackingFrame}
   private resolveOpacity(obj: HoloObjectDecl): number {
     const opacity = this.getProp(obj.properties, 'opacity');
     if (typeof opacity === 'number') return opacity;
-    const material = this.getProp(obj.properties, 'material');
+    const material = this.getProp(obj.properties, 'material') as any;
     if (material && typeof material.opacity === 'number') return material.opacity;
     return 1;
   }

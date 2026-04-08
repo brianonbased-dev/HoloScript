@@ -110,6 +110,7 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: TaskQueueConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: TaskQueueState | undefined = node.__taskQueueState;
     if (!state) return;
 

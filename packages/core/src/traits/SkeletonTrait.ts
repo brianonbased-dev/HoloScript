@@ -748,6 +748,7 @@ export const skeletonHandler = {
   name: 'skeleton',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new SkeletonTrait(config);
     node.__skeleton_instance = instance;
     ctx.emit('skeleton_attached', { node, config });

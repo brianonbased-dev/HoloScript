@@ -89,6 +89,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
   },
 
   onDetach(node: HSPlusNode, _config: ShellConfig, _context: TraitContext): void {
+    // @ts-expect-error
     const state: ShellState | undefined = node.__shellState;
     if (state) {
       // Kill all active processes
@@ -110,6 +111,7 @@ export const shellHandler: TraitHandler<ShellConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: ShellConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: ShellState | undefined = node.__shellState;
     if (!state) return;
 
@@ -145,9 +147,13 @@ export const shellHandler: TraitHandler<ShellConfig> = {
             })
           )
             .then((result: unknown) => {
+              // @ts-expect-error
               const stdout = (result?.stdout as string | undefined) ?? '';
+              // @ts-expect-error
               const stderr = (result?.stderr as string | undefined) ?? '';
+              // @ts-expect-error
               const code = (result?.code as number | null | undefined) ?? null;
+              // @ts-expect-error
               const signal = (result?.signal as string | null | undefined) ?? null;
               const elapsed = Date.now() - startedAt;
 

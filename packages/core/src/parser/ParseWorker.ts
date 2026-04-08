@@ -121,6 +121,7 @@ class ParseWorkerInstance {
 
     if (!ast) return exports;
 
+    // @ts-expect-error
     const root = ast.root || ast;
     const children = root.body || root.children || [];
 
@@ -152,6 +153,7 @@ class ParseWorkerInstance {
 
     if (!ast) return imports;
 
+    // @ts-expect-error
     const root = ast.root || ast;
     const children = root.body || root.children || [];
 

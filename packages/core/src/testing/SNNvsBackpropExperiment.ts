@@ -777,6 +777,7 @@ export class SNNvsBackpropExperiment {
         'novel_composition',
       ];
 
+      // @ts-expect-error
       const categoryBreakdown: Record<
         PromptCategory,
         {

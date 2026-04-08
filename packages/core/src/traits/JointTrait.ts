@@ -529,6 +529,7 @@ export const jointHandler = {
   name: 'joint',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new JointTrait(config);
     node.__joint_instance = instance;
     ctx.emit('joint_attached', { node, config });

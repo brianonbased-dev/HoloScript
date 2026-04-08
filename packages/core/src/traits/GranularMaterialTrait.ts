@@ -510,6 +510,7 @@ export const granularMaterialHandler = {
   name: 'granular_material',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new GranularMaterialSystem(config);
     node.__granular_material_instance = instance;
     ctx.emit('granular_material_attached', { node, config });

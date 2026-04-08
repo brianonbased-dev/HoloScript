@@ -73,6 +73,7 @@ export class AssetManager {
       // We can't implement manifest easily without importing AssetManifest class completely
       // and it might be complex.
       // For now, let's keep access through THIS manager using sessionAssets.
+      // @ts-expect-error
       defaults.forEach((a) => this.sessionAssets.set(a.id, a));
     }
   }

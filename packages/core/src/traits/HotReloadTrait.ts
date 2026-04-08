@@ -195,6 +195,7 @@ export const hotReloadHandler = {
   name: 'hot_reload',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new HotReloadWatcher(config);
     node.__hot_reload_instance = instance;
     ctx.emit('hot_reload_attached', { node, config });

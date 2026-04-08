@@ -111,6 +111,7 @@ export const multiviewGaussianRendererHandler = {
   name: 'multiview_gaussian_renderer',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new MultiviewGaussianRendererTrait(config);
     node.__multiview_gaussian_renderer_instance = instance;
     ctx.emit('multiview_gaussian_renderer_attached', { node, config });

@@ -1,15 +1,34 @@
-import { TraitContext } from '../traits/VRTraitSystem';
+import type { TraitContext } from '../traits/VRTraitSystem';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
+
+export interface KeyboardContext {
+  getNode(nodeId: string): HSPlusNode | null;
+  emit(event: string, payload: any): void;
+}
+
+export interface KeyboardData {
+  type?: string;
+  key?: string;
+  inputType?: string;
+  text?: string;
+  selectionStart?: number;
+  selectionEnd?: number;
+  cursorIndex?: number;
+  placeholder?: string;
+  selectionAnchor?: number;
+  [key: string]: any;
+}
 
 export class KeyboardSystem {
   private focusedNodeId: string | null = null;
   private symbolState: boolean = false;
   private shiftState: boolean = false;
 
-  constructor(private context: unknown) {}
+  constructor(private context: KeyboardContext) {}
 
   // Called by Runtime
-  handleEvent(event: string, payload: unknown) {
-    if (event === 'ui_press_start') {
+  handleEvent(event: string, payload: any) {
+    if (event === 'ui_press_start' && payload && typeof payload === 'object' && 'nodeId' in payload) {
       this.onKeyPress(payload.nodeId);
     }
   }
@@ -18,10 +37,10 @@ export class KeyboardSystem {
     const node = this.context.getNode(nodeId);
     if (!node || !node.properties || !node.properties.data) return;
 
-    const data = node.properties.data;
+    const data = node.properties.data as KeyboardData;
     // Check if we pressed a key on the virtual keyboard
     if (data.type === 'keyboard_key') {
-      this.handleVirtualKey(data.key);
+      this.handleVirtualKey(data.key || '');
       return;
     }
 
@@ -68,29 +87,28 @@ export class KeyboardSystem {
     this.inputChar(char);
   }
 
-  private getFocusedData(): unknown {
+  private getFocusedData(): KeyboardData | null {
     if (!this.focusedNodeId) return null;
     const node = this.context.getNode(this.focusedNodeId);
-    if (!node || !node.properties.data) return null;
-    return node.properties.data;
+    if (!node || !node.properties || !node.properties.data) return null;
+    return node.properties.data as KeyboardData;
   }
 
   private updateFocusVisuals() {
     if (!this.focusedNodeId) return;
     const node = this.context.getNode(this.focusedNodeId);
-    if (!node) return;
+    if (!node || !node.properties) return;
 
-    const data = node.properties.data;
+    const data = node.properties.data as KeyboardData;
+    if (!data) return;
     const text = data.text || '';
     const cursorIndex = data.cursorIndex ?? text.length;
-    const selectionStart = data.selectionStart ?? cursorIndex;
-    const selectionEnd = data.selectionEnd ?? cursorIndex;
     const placeholder = data.placeholder || '';
 
     // 1. Update text display
     const textNodeId = `${this.focusedNodeId}_text`;
     const textNode = this.context.getNode(textNodeId);
-    if (textNode) {
+    if (textNode && textNode.properties) {
       textNode.properties.text = text.length > 0 ? text : placeholder;
       textNode.properties.color =
         text.length > 0 ? (node.properties.textColor ?? '#ffffff') : '#888888';
@@ -101,9 +119,9 @@ export class KeyboardSystem {
 
     // Simple metric: 0.018 per char (Monospaced approximation for now)
     const charWidth = 0.018;
-    const startX = -(node.properties.width ?? 0.4) / 2 + 0.02; // Left padding
+    const startX = -(Number(node.properties.width) ?? 0.4) / 2 + 0.02; // Left padding
 
-    if (cursorNode) {
+    if (cursorNode && cursorNode.properties) {
       cursorNode.properties.visible = true;
       const xPos = startX + cursorIndex * charWidth;
       cursorNode.properties.position = { x: xPos, y: 0, z: 0.006 };
@@ -126,7 +144,7 @@ export class KeyboardSystem {
     this.context.emit('property_changed', {
       nodeId: textNodeId,
       property: 'text',
-      value: textNode?.properties.text,
+      value: textNode?.properties?.text,
     });
   }
 
@@ -135,8 +153,8 @@ export class KeyboardSystem {
     if (!data) return;
 
     const text = data.text || '';
-    let start = data.selectionStart ?? data.cursorIndex;
-    let end = data.selectionEnd ?? data.cursorIndex;
+    let start = data.selectionStart ?? data.cursorIndex ?? text.length;
+    let end = data.selectionEnd ?? data.cursorIndex ?? text.length;
 
     // Normalize
     if (start > end) [start, end] = [end, start];
@@ -145,7 +163,7 @@ export class KeyboardSystem {
     const newText = text.slice(0, start) + char + text.slice(end);
 
     data.text = newText;
-    data.cursorIndex = start + 1;
+    data.cursorIndex = start + char.length;
     data.selectionStart = data.cursorIndex;
     data.selectionEnd = data.cursorIndex;
 
@@ -157,8 +175,8 @@ export class KeyboardSystem {
     if (!data) return;
 
     const text = data.text || '';
-    let start = data.selectionStart ?? data.cursorIndex;
-    let end = data.selectionEnd ?? data.cursorIndex;
+    let start = data.selectionStart ?? data.cursorIndex ?? text.length;
+    let end = data.selectionEnd ?? data.cursorIndex ?? text.length;
 
     // Normalize
     if (start > end) [start, end] = [end, start];
@@ -193,39 +211,14 @@ export class KeyboardSystem {
     const newCursor = Math.max(0, Math.min(text.length, oldCursor + delta));
 
     if (this.shiftState) {
-      // Extend selection
-      // We need to know where the anchor is.
-      // For simplicity: if start==end, anchor is oldCursor.
-      // But we don't store anchor explicitly in this simple model.
-      // Let's assume selectionStart is anchor if we started expanding right?
-      // Actually, without explicit anchor state, standard selection behavior is tricky.
-      // Simplified approach: just update cursor and expand range from anchor.
-
-      // Let's rely on current selection state.
-      // If we are starting a selection:
       if (data.selectionStart === data.selectionEnd) {
-        // Anchor is oldCursor.
-        // Moving to newCursor.
         data.selectionStart = Math.min(oldCursor, newCursor);
         data.selectionEnd = Math.max(oldCursor, newCursor);
-        // But we need to track which end is the cursor.
-        // data.cursorIndex IS the active end.
       } else {
-        // Selection exists. The "cursor" is one end.
-        // We update cursorIndex.
-        // And we update selection bounds.
-        // If cursor matches start, update start?
-        // If cursor matches end, update end?
-        // This is why we need an 'anchor'.
-
-        // Hack: If strict selection logic needed, add 'anchorIndex' to data.
-        // For now, let's just create a new 'anchor' data property if missing.
         if (data.selectionAnchor === undefined) {
-          data.selectionAnchor = oldCursor; // Assume we started here?
-          // No, invalid assumption if we re-grab focus.
+          data.selectionAnchor = oldCursor; 
         }
       }
-      // OK, let's add `selectionAnchor` to data model on the fly.
 
       if (data.selectionAnchor === undefined) {
         data.selectionAnchor = oldCursor;
@@ -249,7 +242,7 @@ export class KeyboardSystem {
     // Blur previous
     if (this.focusedNodeId && this.focusedNodeId !== nodeId) {
       const prevCursor = this.context.getNode(`${this.focusedNodeId}_cursor`);
-      if (prevCursor) {
+      if (prevCursor && prevCursor.properties) {
         prevCursor.properties.visible = false;
         this.context.emit('property_changed', {
           nodeId: `${this.focusedNodeId}_cursor`,

@@ -599,6 +599,7 @@ export const iKHandler = {
   name: 'i_k',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new IKTrait(config);
     node.__i_k_instance = instance;
     ctx.emit('i_k_attached', { node, config });

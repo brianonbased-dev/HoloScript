@@ -50,6 +50,7 @@ export const spatialProfilerHandler: TraitHandler<SpatialProfilerConfig> = {
         context.emit?.('prof:report', {
           samples: state.samples.length,
           avgFps: state.samples.length
+            // @ts-expect-error
             ? state.samples.reduce((s: number, x: unknown) => s + x.fps, 0) / state.samples.length
             : 0,
         });

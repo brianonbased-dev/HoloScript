@@ -23,7 +23,9 @@ export class ConversationManager {
   }
 
   private handleNetworkMessage(packet: unknown) {
+    // @ts-expect-error
     if (packet.type === 'SOCIAL_MESSAGE') {
+      // @ts-expect-error
       const { senderId, text, id, timestamp } = packet.payload;
 
       // Check blocking

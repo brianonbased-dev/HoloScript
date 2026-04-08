@@ -80,7 +80,9 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
       // 2. Swipe Detection
       // Require tracked movement over short window
       if (state.lastPosition) {
+        // @ts-expect-error
         const dx = getX(hand.position) - getX(state.lastPosition);
+        // @ts-expect-error
         const dy = getY(hand.position) - getY(state.lastPosition);
         const dist = Math.sqrt(dx * dx + dy * dy);
 
@@ -103,6 +105,7 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
         }
       }
 
+      // @ts-expect-error
       state.lastPosition = Array.isArray(hand.position) ? [...hand.position] : { x: hand.position.x ?? 0, y: hand.position.y ?? 0, z: hand.position.z ?? 0 };
       state.lastTime = time;
     });

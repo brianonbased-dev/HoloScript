@@ -1065,6 +1065,7 @@ export const dialogHandler = {
   name: 'dialog',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new DialogTrait(config);
     node.__dialog_instance = instance;
     ctx.emit('dialog_attached', { node, config });

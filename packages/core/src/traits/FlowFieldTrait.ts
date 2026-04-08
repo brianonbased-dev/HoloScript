@@ -6,7 +6,6 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-// @ts-expect-error During migration
 import { getNavigationEngine } from '@holoscript/engine/runtime/NavigationEngine';
 import type { Vector3 } from '../types/HoloScriptPlus';
 import type { Vector3Tuple } from '../types/HoloScriptPlus';
@@ -67,6 +66,7 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
     const currentPos = toTuple((node.properties?.position as Vector3) || [0, 0, 0]);
 
     // Sample direction from flow field
+    // @ts-expect-error
     const flowDir = toTuple(navEngine.sampleDirection(config.destinationId, currentPos));
 
     // Combine with current movement or apply directly

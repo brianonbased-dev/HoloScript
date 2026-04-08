@@ -13,7 +13,6 @@
  */
 
 import path from 'path';
-// @ts-expect-error During migration
 import type { ActionHandler } from '@holoscript/engine/runtime/profiles/HeadlessRuntime';
 import type { HostCapabilities } from '../traits/TraitTypes';
 
@@ -127,7 +126,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
   return {
     // ── File System ──────────────────────────────────────────────────────
 
-    // @ts-expect-error During migration
     fs_read: async (params, bb) => {
       const prefix = resolveInto(params, 'fs_read');
       const filePath = typeof params.path === 'string' ? params.path : '';
@@ -168,7 +166,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       return true;
     },
 
-    // @ts-expect-error During migration
     fs_write: async (params, bb) => {
       const prefix = resolveInto(params, 'fs_write');
       const filePath = typeof params.path === 'string' ? params.path : '';
@@ -215,7 +212,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       return true;
     },
 
-    // @ts-expect-error During migration
     fs_exists: async (params, bb) => {
       const prefix = resolveInto(params, 'fs_exists');
       const filePath = typeof params.path === 'string' ? params.path : '';
@@ -237,7 +233,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       return true;
     },
 
-    // @ts-expect-error During migration
     fs_delete: async (params, bb) => {
       const prefix = resolveInto(params, 'fs_delete');
       const filePath = typeof params.path === 'string' ? params.path : '';
@@ -264,7 +259,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
     // ── Process Execution ─────────────────────────────────────────────────
 
-    // @ts-expect-error During migration
     process_exec: async (params, bb) => {
       const prefix = resolveInto(params, 'process_exec');
 
@@ -310,7 +304,6 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
     // ── Network ───────────────────────────────────────────────────────────
 
-    // @ts-expect-error During migration
     net_fetch: async (params, bb) => {
       const prefix = resolveInto(params, 'net_fetch');
       const url = typeof params.url === 'string' ? params.url.trim() : '';

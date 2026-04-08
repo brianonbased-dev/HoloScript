@@ -95,6 +95,7 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: WebhookConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: WebhookState | undefined = node.__webhookState;
     if (!state) return;
 

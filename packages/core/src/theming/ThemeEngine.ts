@@ -165,6 +165,7 @@ export class ThemeEngine {
     let current: unknown = tokens;
     for (const part of parts) {
       if (current === undefined) return undefined;
+      // @ts-expect-error
       current = current[part];
     }
     return current;

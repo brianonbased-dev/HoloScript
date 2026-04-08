@@ -6,7 +6,6 @@
  */
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
-// @ts-expect-error During migration
 import { getEmotionDetector, type EmotionInference } from '@holoscript/engine/runtime/EmotionDetector';
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 

@@ -10,7 +10,6 @@ import {
   getVoiceSynthesizer,
   voiceSynthesizerRegistry,
   type VoiceRequest,
-// @ts-expect-error During migration
 } from '@holoscript/engine/runtime/VoiceSynthesizer';
 
 export interface EmotionalVoiceConfig {

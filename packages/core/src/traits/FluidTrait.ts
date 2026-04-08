@@ -13,7 +13,6 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-// @ts-expect-error During migration
 import { MLSMPMFluid } from '@holoscript/engine/physics/MLSMPMFluid';
 import { weatherBlackboard } from '@holoscript/engine/environment/WeatherBlackboard';
 

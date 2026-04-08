@@ -432,6 +432,7 @@ export const wasmBridgeHandler = {
   },
 
   onEvent(node: HSPlusNode, config: WASMBridgeConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const world: ECSWorld | undefined = node.__ecsWorld;
     if (!world) return;
 

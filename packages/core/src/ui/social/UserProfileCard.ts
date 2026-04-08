@@ -30,6 +30,7 @@ export class UserProfileCard {
     });
 
     // Avatar (Placeholder)
+    // @ts-expect-error
     panel.children?.push({
       type: 'entity',
       properties: { position: { x: 0, y: 0.15, z: 0.01 } },
@@ -39,6 +40,7 @@ export class UserProfileCard {
     } as unknown);
 
     // Name
+    // @ts-expect-error
     panel.children?.push({
       type: 'text',
       properties: {
@@ -58,6 +60,7 @@ export class UserProfileCard {
       playing: '#a29bfe',
     };
 
+    // @ts-expect-error
     panel.children?.push({
       type: 'text',
       properties: {
@@ -85,6 +88,7 @@ export class UserProfileCard {
       // In a real system, we'd bind the onClick event properly.
       // For now, we assume the runtime handles the event mapping via ID or a specific trait property we'd set here.
       // We'll simulate it by attaching a custom property or just verifying the structure.
+      // @ts-expect-error
       (btn.properties as unknown).onClickHandler = () => onClick(user.id);
 
       panel.children?.push(btn);

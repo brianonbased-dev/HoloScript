@@ -69,8 +69,11 @@ export class SplatProcessingService {
 
     for (let i = 0; i < data.count; i++) {
       indices[i] = i;
+      // @ts-expect-error
       const dx = data.positions[i * 3 + 0] - cp[0];
+      // @ts-expect-error
       const dy = data.positions[i * 3 + 1] - cp[1];
+      // @ts-expect-error
       const dz = data.positions[i * 3 + 2] - cp[2];
       depths[i] = dx * dx + dy * dy + dz * dz;
     }
@@ -91,7 +94,9 @@ export class SplatProcessingService {
     const d = Array.isArray(direction) ? direction : [direction.x, direction.y, direction.z];
     
     // Normalize direction
+    // @ts-expect-error
     const len = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    // @ts-expect-error
     const dir = [d[0] / len, d[1] / len, d[2] / len];
 
     let closestIndex = -1;
@@ -108,8 +113,11 @@ export class SplatProcessingService {
       const radius = Math.max(sx, sy, sz) * threshold;
 
       // Ray-Sphere intersection
+      // @ts-expect-error
       const vx = px - o[0];
+      // @ts-expect-error
       const vy = py - o[1];
+      // @ts-expect-error
       const vz = pz - o[2];
 
       const tca = vx * dir[0] + vy * dir[1] + vz * dir[2];

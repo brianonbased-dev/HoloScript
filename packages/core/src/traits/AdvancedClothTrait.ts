@@ -497,6 +497,7 @@ export const advancedClothHandler = {
   name: 'advanced_cloth',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new AdvancedClothSystem(config);
     node.__advanced_cloth_instance = instance;
     ctx.emit('advanced_cloth_attached', { node, config });

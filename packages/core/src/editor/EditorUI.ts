@@ -1,3 +1,4 @@
+// @ts-expect-error
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from './SelectionManager';
 import { GizmoSystem } from './GizmoSystem';

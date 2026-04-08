@@ -685,10 +685,12 @@ export const zkPrivateHandler = {
   },
 
   onDetach(node: HSPlusNode, _c: ZkPrivateConfig, ctx: TraitContext): void {
+    // @ts-expect-error
     const s: ZkPrivateState | undefined = node.__zkPrivateState;
     if (!s) return;
 
     // Cleanup Barretenberg backend
+    // @ts-expect-error
     const bbBackend: BarretenbergBackend | undefined = node.__zkBBBackend;
     if (bbBackend) {
       bbBackend.destroy();
@@ -700,6 +702,7 @@ export const zkPrivateHandler = {
   },
 
   onEvent(node: HSPlusNode, config: ZkPrivateConfig, ctx: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const s: ZkPrivateState | undefined = node.__zkPrivateState;
     if (!s?.isReady) return;
 
@@ -784,6 +787,7 @@ export const zkPrivateHandler = {
         c.isCompiled = true;
 
         // Use Barretenberg backend if available
+        // @ts-expect-error
         const bbBackend: BarretenbergBackend | undefined = node.__zkBBBackend;
         if (bbBackend) {
           bbBackend.compileCircuit(c).then((result) => {
@@ -1078,6 +1082,7 @@ export const zkPrivateHandler = {
     else if (event.type === 'zk_compile_all_spatial') {
       // Compile all spatial predicate circuits
       const spatialCircuitIds = SPATIAL_PREDICATE_CIRCUITS.map((c) => c.id);
+      // @ts-expect-error
       const bbBackend: BarretenbergBackend | undefined = node.__zkBBBackend;
       let compiled = 0;
 

@@ -102,6 +102,7 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: StructuredLoggerConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: StructuredLoggerState | undefined = node.__structuredLoggerState;
     if (!state) return;
 

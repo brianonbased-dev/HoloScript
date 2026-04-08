@@ -71,6 +71,13 @@ export function compileToNextJS(
     compilerOptions
   );
 
+  // Next.js App Router page modules should not export arbitrary named values.
+  // Normalize generated component code to keep only default export + metadata.
+  const pageSafeComponentCode = componentCode.replace(
+    /export\s+function\s+([A-Za-z0-9_]+)\s*\(/,
+    'function $1('
+  );
+
   // Wrap in Next.js conventions
   const lines: string[] = [];
 
@@ -81,7 +88,7 @@ export function compileToNextJS(
   }
 
   // Inject the component code (which already has imports)
-  lines.push(componentCode);
+  lines.push(pageSafeComponentCode);
 
   // Generate metadata export if @metadata trait exists
   if (metaTrait) {

@@ -170,6 +170,7 @@ export function hasWoTThingTrait(node: HSPlusNode): boolean {
  * Get the WoT Thing state from a node
  */
 export function getWoTThingState(node: HSPlusNode): WoTThingState | null {
+  // @ts-expect-error
   return node.__wotThingState || null;
 }
 

@@ -682,6 +682,7 @@ export const rigidbodyHandler = {
   name: 'rigidbody',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new RigidbodyTrait(config);
     node.__rigidbody_instance = instance;
     ctx.emit('rigidbody_attached', { node, config });

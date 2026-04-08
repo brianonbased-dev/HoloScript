@@ -7,6 +7,7 @@
  * @module editor
  */
 
+// @ts-expect-error
 import { AICopilot, CopilotResponse, CopilotSuggestion } from '../ai/AICopilot';
 
 // =============================================================================

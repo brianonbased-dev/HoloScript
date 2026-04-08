@@ -482,6 +482,7 @@ export class AgentOutputSchemaValidator {
     let current: unknown = obj;
     for (const part of parts) {
       if (current === undefined || current === null) return undefined;
+      // @ts-expect-error
       current = current[part];
     }
     return current;

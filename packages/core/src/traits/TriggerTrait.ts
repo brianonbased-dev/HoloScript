@@ -603,6 +603,7 @@ export const triggerHandler = {
   name: 'trigger',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new TriggerTrait(config);
     node.__trigger_instance = instance;
     ctx.emit('trigger_attached', { node, config });

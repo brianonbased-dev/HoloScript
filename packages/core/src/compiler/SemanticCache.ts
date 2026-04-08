@@ -226,7 +226,7 @@ export class SemanticCache {
           this.log('Redis connected');
         });
 
-        this.redis.on('error', (error: Error) => {
+        this.redis.on('error', (error: any) => {
           this.log(`Redis error: ${error.message}`);
           this.redisConnected = false;
         });

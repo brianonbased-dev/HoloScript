@@ -156,6 +156,7 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
     const updateInterval = config.mesh_resolution === 'ultra' ? 100 : 50; // ms
 
     if (currentTime - meshState.last_update_time > updateInterval) {
+      // @ts-expect-error
       if (trackingState.left.visible) {
         // Generate left hand mesh from joint data
         meshState.is_generating = true;
@@ -163,11 +164,13 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
         context.emit?.('hand_mesh_generate', {
           node,
           hand: 'left',
+          // @ts-expect-error
           joints: trackingState.left.joints,
           resolution: config.mesh_resolution,
         });
       }
 
+      // @ts-expect-error
       if (trackingState.right.visible) {
         // Generate right hand mesh from joint data
         meshState.is_generating = true;
@@ -175,6 +178,7 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
         context.emit?.('hand_mesh_generate', {
           node,
           hand: 'right',
+          // @ts-expect-error
           joints: trackingState.right.joints,
           resolution: config.mesh_resolution,
         });

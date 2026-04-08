@@ -477,6 +477,7 @@ export const spatialAwarenessHandler = {
   name: 'spatial_awareness',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new SpatialAwarenessTrait(config);
     node.__spatial_awareness_instance = instance;
     ctx.emit('spatial_awareness_attached', { node, config });

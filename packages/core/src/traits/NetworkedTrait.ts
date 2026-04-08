@@ -1049,6 +1049,7 @@ export const networkedHandler = {
   name: 'networked',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new NetworkedTrait(config);
     node.__networked_instance = instance;
     ctx.emit('networked_attached', { node, config });

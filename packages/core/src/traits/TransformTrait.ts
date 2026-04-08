@@ -212,6 +212,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
   },
 
   onEvent(node: HSPlusNode, _config: TransformConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: TransformState | undefined = node.__transformState;
     if (!state) return;
 

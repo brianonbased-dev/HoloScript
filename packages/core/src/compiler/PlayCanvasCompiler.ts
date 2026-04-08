@@ -450,7 +450,7 @@ export class PlayCanvasCompiler extends CompilerBase {
 
     // TraitCompositor batch composition
     if (obj.traits && Array.isArray(obj.traits) && obj.traits.length > 0) {
-      const traitNames = obj.traits.map((t: unknown) => t.name as string);
+      const traitNames = obj.traits.map((t: any) => t.name as string);
       const compositor = new TraitCompositor();
       const composed = compositor.compose(traitNames);
       if (Object.keys(composed).length > 0) {
@@ -824,10 +824,13 @@ export class PlayCanvasCompiler extends CompilerBase {
       return `new pc.Color(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     if (typeof value === 'object' && value !== null && 'r' in value) {
-      const c = value as { r: number; g: number; b: number };
-      const r = c.r > 1 ? c.r / 255 : c.r;
-      const g = c.g > 1 ? c.g / 255 : c.g;
-      const b = c.b > 1 ? c.b / 255 : c.b;
+      const c = value as any;
+      const rVal = Number(c.r);
+      const gVal = Number(c.g);
+      const bVal = Number(c.b);
+      const r = rVal > 1 ? rVal / 255 : rVal;
+      const g = gVal > 1 ? gVal / 255 : gVal;
+      const b = bVal > 1 ? bVal / 255 : bVal;
       return `new pc.Color(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     return 'new pc.Color(1, 1, 1)';
@@ -855,11 +858,11 @@ export class PlayCanvasCompiler extends CompilerBase {
     }
   }
 
-  private directionToEuler(dir: unknown[]): string {
+  private directionToEuler(dir: any[]): string {
     // Simplified: direction vector to Euler angles
-    const x = dir[0] || 0,
-      y = dir[1] || 0,
-      z = dir[2] || 0;
+    const x = Number(dir[0]) || 0,
+      y = Number(dir[1]) || 0,
+      z = Number(dir[2]) || 0;
     const pitch = Math.atan2(-y, Math.sqrt(x * x + z * z)) * (180 / Math.PI);
     const yaw = Math.atan2(x, z) * (180 / Math.PI);
     return `${pitch.toFixed(1)}, ${yaw.toFixed(1)}, 0`;

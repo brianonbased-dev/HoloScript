@@ -53,6 +53,7 @@ export const streamHandler: TraitHandler<StreamConfig> = {
   onUpdate(): void {},
 
   onEvent(node: HSPlusNode, config: StreamConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: StreamState | undefined = node.__streamState;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

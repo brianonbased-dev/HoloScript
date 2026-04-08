@@ -35,6 +35,7 @@ export const indexHandler: TraitHandler<IndexConfig> = {
   onUpdate(): void {},
 
   onEvent(node: HSPlusNode, config: IndexConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: IndexState | undefined = node.__indexState;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

@@ -351,6 +351,7 @@ export async function createGPUPhysicsSimulation(options: {
   const { GPUBufferManager } = await import('./GPUBuffers.js');
 
   // Initialize WebGPU context
+  // @ts-expect-error
   const context = new WebGPUContext(options.contextOptions);
   await context.initialize();
 

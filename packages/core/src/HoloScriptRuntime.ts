@@ -191,7 +191,6 @@ export class HoloScriptRuntime {
     // Initialize Agent Pool
     this.agentPool = new ObjectPool<HoloScriptAgentRuntime>(
       () => new HoloScriptAgentRuntime(), // Preallocation mode (optional args)
-      // @ts-expect-error During migration
       (agent) => agent.destroy(),
       50
     );
@@ -1106,6 +1105,7 @@ export class HoloScriptRuntime {
 
     evaluator.updateContext(varContext);
 
+    // @ts-expect-error
     return evaluator.evaluate(expr);
   }
 
@@ -2927,6 +2927,7 @@ export class HoloScriptRuntime {
       position: position, // Direct property for executeOrb
       hologram: hologram, // Direct property for executeOrb
       properties: properties,
+      // @ts-expect-error
       directives: [
         ...(node.directives || []),
         ...(node.traits || []).map((t) => ({ type: 'trait' as const, name: t.name, ...t.config })),

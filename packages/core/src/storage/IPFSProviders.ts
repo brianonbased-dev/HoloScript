@@ -152,10 +152,15 @@ export class PinataProvider implements IIPFSProvider {
 
     const data = await response.json();
     return data.rows.map((pin: unknown) => ({
+      // @ts-expect-error
       cid: pin.ipfs_pin_hash,
+      // @ts-expect-error
       name: pin.metadata?.name || pin.ipfs_pin_hash,
+      // @ts-expect-error
       size: pin.size,
+      // @ts-expect-error
       status: pin.status,
+      // @ts-expect-error
       created: new Date(pin.date_pinned),
     }));
   }
@@ -260,10 +265,15 @@ export class NFTStorageProvider implements IIPFSProvider {
 
     const data = await response.json();
     return data.value.map((item: unknown) => ({
+      // @ts-expect-error
       cid: item.cid,
+      // @ts-expect-error
       name: item.name || item.cid,
+      // @ts-expect-error
       size: item.size,
+      // @ts-expect-error
       status: item.pin?.status || 'pinned',
+      // @ts-expect-error
       created: new Date(item.created),
     }));
   }

@@ -802,6 +802,7 @@ export const lobbyHandler = {
   name: 'lobby',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new LobbyTrait(config);
     node.__lobby_instance = instance;
     ctx.emit('lobby_attached', { node, config });

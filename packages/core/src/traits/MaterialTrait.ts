@@ -631,6 +631,7 @@ export const materialHandler = {
   name: 'material',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new MaterialTrait(config);
     node.__material_instance = instance;
     ctx.emit('material_attached', { node, config });

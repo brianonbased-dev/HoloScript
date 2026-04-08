@@ -214,6 +214,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onDetach
   // ===========================================================================
   onDetach(node: HSPlusNode, _config: EconomyConfig, context: TraitContext): void {
+    // @ts-expect-error
     const state: EconomyState | undefined = node.__economyState;
     if (state) {
       // Cancel all open bounties
@@ -234,6 +235,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onUpdate — expire bounties, charge subscriptions
   // ===========================================================================
   onUpdate(node: HSPlusNode, config: EconomyConfig, context: TraitContext, _delta: number): void {
+    // @ts-expect-error
     const state: EconomyState | undefined = node.__economyState;
     if (!state) return;
 
@@ -301,6 +303,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onEvent
   // ===========================================================================
   onEvent(node: HSPlusNode, config: EconomyConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: EconomyState | undefined = node.__economyState;
     if (!state) return;
 

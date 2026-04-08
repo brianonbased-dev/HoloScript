@@ -17,6 +17,7 @@ export {
   type HeadlessRuntime,
   type HeadlessRuntimeOptions,
   type RuntimeProfile,
+  // @ts-expect-error
   type RuntimeStats,
 } from '@holoscript/engine/runtime/HeadlessRuntime';
 

@@ -517,6 +517,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
       const slen = Math.sqrt(sdx * sdx + sdy * sdy + sdz * sdz);
       if (slen > 0) {
         const dirNorm = { x: sdx / slen, y: sdy / slen, z: sdz / slen };
+        // @ts-expect-error
         const hit = context.physics.raycast(nodePos, dirNorm, slen);
         if (hit && hit.distance < slen - 0.01) {
           reachable = false;

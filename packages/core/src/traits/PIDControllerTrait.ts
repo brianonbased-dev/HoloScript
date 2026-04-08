@@ -599,6 +599,7 @@ export const pIDControllerHandler = {
   name: 'p_i_d_controller',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new PIDControllerTrait(config);
     node.__p_i_d_controller_instance = instance;
     ctx.emit('p_i_d_controller_attached', { node, config });

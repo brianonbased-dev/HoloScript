@@ -46,6 +46,7 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
 
   onDetach(node: HSPlusNode, config: DatabaseConfig, context: TraitContext): void {
     if (config.persist_on_detach) {
+      // @ts-expect-error
       const state: DatabaseState | undefined = node.__databaseState;
       if (state) {
         const snapshot: Record<string, Record<string, unknown>> = {};
@@ -61,6 +62,7 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
   onUpdate(): void {},
 
   onEvent(node: HSPlusNode, config: DatabaseConfig, context: TraitContext, event: TraitEvent): void {
+    // @ts-expect-error
     const state: DatabaseState | undefined = node.__databaseState;
     if (!state) return;
 

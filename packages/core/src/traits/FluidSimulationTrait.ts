@@ -471,6 +471,7 @@ export const fluidSimulationHandler = {
   name: 'fluid_simulation',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new SpatialHash(config);
     node.__fluid_simulation_instance = instance;
     ctx.emit('fluid_simulation_attached', { node, config });

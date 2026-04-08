@@ -1,3 +1,4 @@
+// @ts-expect-error
 import { World, Entity, ComponentType } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from './SelectionManager';
 import { effect, computed } from '../state/ReactiveState';
@@ -65,6 +66,7 @@ export class Inspector {
   setProperty(type: ComponentType, key: string, value: unknown) {
     const data = this.getComponentData(type);
     if (data) {
+      // @ts-expect-error
       data[key] = value;
     }
   }

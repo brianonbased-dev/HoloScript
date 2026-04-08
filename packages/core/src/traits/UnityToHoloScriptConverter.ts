@@ -337,7 +337,9 @@ export const unityConverterHandler = {
         };
 
         const result = convertUnityScene(filtered);
+        // @ts-expect-error
         state.totalConverted++;
+        // @ts-expect-error
         state.totalWarnings += result.warnings.length;
 
         ctx.emit('unity_scene_converted', {

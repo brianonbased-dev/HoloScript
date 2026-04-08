@@ -522,7 +522,7 @@ export const syncTierHandler = {
   name: 'sync_tier',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    const instance = new SyncTierTrait(config);
+    const instance = new SyncTierTrait(config as Partial<SyncTierConfig>);
     node.__sync_tier_instance = instance;
     ctx.emit('sync_tier_attached', { node, config });
   },

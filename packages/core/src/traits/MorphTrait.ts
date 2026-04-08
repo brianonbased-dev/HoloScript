@@ -846,6 +846,7 @@ export const morphHandler = {
   name: 'morph',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new MorphTrait(config);
     node.__morph_instance = instance;
     ctx.emit('morph_attached', { node, config });

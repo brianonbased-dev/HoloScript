@@ -91,7 +91,7 @@ export interface VoiceInputEvent {
  */
 export class VoiceInputTrait {
   private config: VoiceInputConfig;
-  private recognition: unknown = null;
+  private recognition: any = null;
   private isListening: boolean = false;
   private listeners: Set<(event: VoiceInputEvent) => void> = new Set();
   private interimTranscript: string = '';
@@ -114,9 +114,9 @@ export class VoiceInputTrait {
    */
   private initializeRecognition(): void {
     // Use native Web Speech API or polyfill
-    const _g = globalThis as unknown as Record<string, unknown>;
+    const _g = globalThis as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API constructor not in all TS libs
-    const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as (new () => unknown) | undefined;
+    const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as (new () => any) | undefined;
 
     if (!SpeechRecognitionCtor) {
       console.error('Web Speech API not supported');
@@ -410,8 +410,8 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceD
 export const voiceInputHandler = {
   name: 'voice_input',
   defaultConfig: {},
-  onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    const instance = new VoiceInputTrait(config);
+  onAttach(node: HSPlusNode, config: any, ctx: TraitContext): void {
+    const instance = new VoiceInputTrait(config as VoiceInputConfig);
     node.__voice_input_instance = instance;
     ctx.emit('voice_input_attached', { node, config });
   },

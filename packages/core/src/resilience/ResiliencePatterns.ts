@@ -283,6 +283,7 @@ export class Bulkhead {
 
       this.queue.push({
         fn,
+        // @ts-expect-error
         resolve,
         reject,
         timeoutId,

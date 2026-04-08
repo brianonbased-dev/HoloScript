@@ -598,6 +598,7 @@ export const animationHandler = {
   name: 'animation',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
+    // @ts-expect-error
     const instance = new AnimationTrait(config);
     node.__animation_instance = instance;
     ctx.emit('animation_attached', { node, config });
