@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@holoscript/absorb-service": "workspace:^",
+    "@holoscript/config": "workspace:^",
     "@holoscript/core": "workspace:^",
     "@holoscript/framework": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",

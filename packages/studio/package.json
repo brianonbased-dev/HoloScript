@@ -9,9 +9,11 @@
     "./mock-generator": "./src/lib/mock-generator.ts"
   },
   "scripts": {
+    "predev": "pnpm run holo:build",
     "dev": "next dev --port 3100",
     "holo:build": "tsx scripts/compile-holo-pages.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
+    "prebuild": "pnpm run holo:build",
     "build": "next build",
     "start": "next start --port 3100",
     "lint": "next lint",
