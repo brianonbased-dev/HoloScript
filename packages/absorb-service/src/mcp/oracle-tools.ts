@@ -51,7 +51,6 @@ const DECISION_TREES: Record<string, string> = {
 // =============================================================================
 
 const ORCHESTRATOR_URL =
-  process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
   process.env.MCP_ORCHESTRATOR_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';
 
@@ -98,7 +97,7 @@ function appendOracleTelemetry(event: Record<string, unknown>): void {
 }
 
 async function queryKnowledgeStore(search: string, limit: number = 5): Promise<any[]> {
-  const apiKey = process.env.MCP_API_KEY || process.env.ABSORB_API_KEY;
+  const apiKey = process.env.MCP_API_KEY || '';
   if (!apiKey) return [];
 
   try {
