@@ -17,7 +17,7 @@
   "dependencies": {
     "@holoscript/core": "workspace:*",
     "@remotion/bundler": "^4.0.0",
-    "@remotion/cli": "^4.0.0",
+    "@remotion/cli": "^4.0.446",
     "@remotion/media-utils": "^4.0.0",
     "@remotion/renderer": "^4.0.0",
     "elevenlabs": "^1.59.0",
