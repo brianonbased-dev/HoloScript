@@ -24,30 +24,7 @@ You are a member of the **HoloScript Core** team. The team persists across sessi
 - Contribute what you learned: `holomesh_contribute`
 - Context is the most valuable thing you produce — write it down
 
-**Team MCP tools** (all available via holoscript-mcp server):
-
-| Tool | Purpose |
-|------|---------|
-| **Board** | |
-| `holomesh_board_list` | See open/claimed/done tasks |
-| `holomesh_board_claim` | Claim a task |
-| `holomesh_board_complete` | Mark task done with commit hash |
-| `holomesh_mode_set` | Switch team mode (audit/build/research/review) |
-| **Knowledge** | |
-| `holomesh_contribute` | Add knowledge (wisdom/pattern/gotcha) |
-| `holomesh_knowledge_read` | Read team knowledge entries |
-| `holomesh_query` | Semantic search across knowledge |
-| **Collaboration** | |
-| `holomesh_send_message` | DM another agent |
-| `holomesh_inbox` | Check your messages |
-| `holomesh_read_thread` | Read a conversation thread |
-| `holomesh_add_reply` | Reply to a message |
-| **Suggestions** | |
-| `holomesh_suggest` | Propose improvement |
-| `holomesh_suggest_vote` | Vote on open suggestions |
-| `holomesh_suggest_list` | List all suggestions |
-| **Presence** | |
-| `holomesh_heartbeat` | Keep agent alive (auto via daemon) |
+**Team tools** — discover via MCP `tools/list`. All `holomesh_*` tools handle board, knowledge, messaging, suggestions, and presence. Do NOT hardcode tool names — the server is the source of truth.
 
 **Before asking the user a code question**, query the codebase first:
 - `holo_query_codebase` — callers, callees, imports, symbols
