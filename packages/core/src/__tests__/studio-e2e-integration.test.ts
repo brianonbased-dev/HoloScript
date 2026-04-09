@@ -12,11 +12,6 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  // Sprint 5
-  CameraController,
-  InventorySystem,
-  TerrainSystem,
-  LightingModel,
   // Sprint 6
   CinematicDirector,
   CollaborationSession,
@@ -28,19 +23,23 @@ import {
   // Sprint 7
   SaveManager,
   Profiler,
-  LODManager,
   // Sprint 8
   StateMachine,
-  InputManager,
   NetworkManager,
-  CultureRuntime,
   // Sprint 9
-  Timeline,
-  SceneManager,
   AssetRegistry,
   ReactiveState,
-  Easing,
 } from '@holoscript/core';
+
+import { CameraController } from '@holoscript/engine/camera';
+import { InventorySystem } from '@holoscript/engine/gameplay';
+import { TerrainSystem } from '@holoscript/engine/environment';
+import { LightingModel } from '@holoscript/engine/rendering';
+import { LODManager } from '@holoscript/engine/world';
+import { InputManager } from '@holoscript/engine/input';
+import { CultureRuntime } from '@holoscript/engine/runtime';
+import { Timeline, Easing } from '@holoscript/engine/animation';
+import { SceneManager } from '@holoscript/engine/scene';
 
 // ═══════════════════════════════════════════════════════════════════
 // Sprint 5 — WORLD PANELS
@@ -362,31 +361,31 @@ describe('E2E: Profiler', () => {
 
 describe('E2E: LOD Manager', () => {
   it('registers objects and queries levels', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('tree', {
-      levels: [
-        { distance: 0, triangleCount: 10000 },
-        { distance: 20, triangleCount: 5000 },
-        { distance: 50, triangleCount: 500 },
-      ],
-    });
-    expect(mgr.getRegisteredObjects()).toContain('tree');
-    const level = mgr.getCurrentLevel('tree');
+    const mgr = new LODManager({ autoUpdate: false } as any);
+    mgr.register('tree', { x: 0, y: 0, z: 0 }, [
+      { level: 0, maxDistance: 0, meshDetail: 1 },
+      { level: 1, maxDistance: 20, meshDetail: 0.5 },
+      { level: 2, maxDistance: 50, meshDetail: 0.1 },
+    ]);
+    expect(mgr.getObject('tree')).toBeDefined();
+    const level = mgr.getObject('tree')?.currentLevel;
     expect(level).toBe(0);
   });
 
   it('forced level override', () => {
-    const mgr = new LODManager({ autoUpdate: false });
-    mgr.register('obj', {
-      levels: [
-        { distance: 0, triangleCount: 5000 },
-        { distance: 20, triangleCount: 500 },
-        { distance: 50, triangleCount: 50 },
-      ],
-    });
-    mgr.setForcedLevel('obj', 2);
+    const mgr = new LODManager({ autoUpdate: false } as any);
+    mgr.register('obj', { x: 0, y: 0, z: 0 }, [
+      { level: 0, maxDistance: 0, meshDetail: 1 },
+      { level: 1, maxDistance: 20, meshDetail: 0.5 },
+      { level: 2, maxDistance: 50, meshDetail: 0.1 },
+    ]);
+    const obj = mgr.getObject('obj');
+    if (obj) obj.currentLevel = 2; // Simulate forced override by directly modifying state (since setForcedLevel was removed)
     mgr.update(0.016);
-    expect(mgr.getCurrentLevel('obj')).toBe(2);
+    // Actually, setting the viewer position is better to test real distance checking:
+    mgr.setViewerPosition(100, 0, 0); 
+    mgr.update(0.016);
+    expect(mgr.getObject('obj')?.currentLevel).toBe(2); 
   });
 });
 

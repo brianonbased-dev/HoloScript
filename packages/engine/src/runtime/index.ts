@@ -49,6 +49,7 @@ export * from './PhysicsEngine';
 export * from './SpeechRecognizer';
 export * from './StateMachineInterpreter';
 export * from './VoiceSynthesizer';
+export * from './CultureRuntime';
 export * from './protocols';
 export * from './TraitContextFactory';
 // @ts-expect-error - TS2308 structural type mismatch
