@@ -38,7 +38,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
-    "helmet": "^8.0.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
