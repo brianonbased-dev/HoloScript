@@ -9,6 +9,10 @@
  */
 
 import { randomUUID } from 'crypto';
+import {
+  canonicalTaskToA2ASendMessage,
+  createCanonicalTaskEnvelope,
+} from '@holoscript/agent-protocol';
 import type { AgentManifest } from './AgentManifest';
 import type { AgentRegistry } from './AgentRegistry';
 import type { CapabilityQuery } from './CapabilityMatcher';
@@ -393,24 +397,16 @@ export class TaskDelegationService {
         skillId,
       }) ?? `hs-delegation-${taskId}-attempt-${attempt}`;
 
-    const jsonRpcRequest = {
-      jsonrpc: '2.0',
-      id: randomUUID(),
-      method: 'a2a.sendMessage',
-      params: {
-        message: {
-          role: 'user',
-          parts: [
-            {
-              type: 'data',
-              data: { skillId, arguments: args, idempotencyKey },
-              mimeType: 'application/json',
-            },
-          ],
-          timestamp: new Date().toISOString(),
-        },
-      },
-    };
+    const envelope = createCanonicalTaskEnvelope({
+      id: taskId,
+      intent: skillId,
+      skillId,
+      input: args,
+      idempotency_key: idempotencyKey,
+      timeout: this.config.defaultTimeout,
+    });
+
+    const jsonRpcRequest = canonicalTaskToA2ASendMessage(envelope, randomUUID());
 
     if (this.config.transportAdapter) {
       return this.config.transportAdapter.send({

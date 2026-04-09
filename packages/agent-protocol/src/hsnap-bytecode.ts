@@ -136,6 +136,9 @@ function compileTaskMetadata(instructions: UAALInstruction[], task: HSNAPTaskMet
   setStateIfDefined(instructions, 'task.intent', task.intent);
   setStateIfDefined(instructions, 'task.priority', task.priority);
   setStateIfDefined(instructions, 'task.timeout', task.timeout);
+  setStateIfDefined(instructions, 'task.skillId', task.skillId);
+  setStateIfDefined(instructions, 'task.input', task.input);
+  setStateIfDefined(instructions, 'task.idempotency_key', task.idempotency_key);
 }
 
 function compileResultMetadata(

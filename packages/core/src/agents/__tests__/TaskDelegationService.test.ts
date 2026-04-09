@@ -147,7 +147,11 @@ describe('TaskDelegationService', () => {
       const body = JSON.parse(String(capturedInit?.body ?? '{}')) as {
         params?: { message?: { parts?: Array<{ data?: Record<string, unknown> }> } };
       };
-      expect(body.params?.message?.parts?.[0]?.data?.idempotencyKey).toBe('idem-fixed-key');
+      const data = body.params?.message?.parts?.[0]?.data;
+      expect(data?.idempotencyKey).toBe('idem-fixed-key');
+      expect(data?.schema).toBe('holoscript.task-bridge.v1');
+      expect((data?.task as Record<string, unknown> | undefined)?.skillId).toBe('compile_hs');
+      expect((data?.task as Record<string, unknown> | undefined)?.idempotency_key).toBe('idem-fixed-key');
     });
 
     it('uses transport adapter when configured', async () => {

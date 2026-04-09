@@ -299,3 +299,13 @@ export type {
   SwarmRound,
   SwarmResult,
 } from './swarm-protocol';
+
+export {
+  CANONICAL_TASK_BRIDGE_SCHEMA,
+  a2aSendMessageToCanonicalTaskEnvelope,
+  canonicalTaskToA2ASendMessage,
+  canonicalTaskToHSNAPSource,
+  createCanonicalTaskEnvelope,
+  hsnapSourceToCanonicalTaskEnvelope,
+} from './task-bridge-schema';
+export type { A2ASendMessageRequest, CanonicalTaskEnvelope } from './task-bridge-schema';

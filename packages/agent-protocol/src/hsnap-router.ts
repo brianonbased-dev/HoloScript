@@ -15,6 +15,9 @@ export interface HSNAPTaskMetadata {
   intent?: string;
   priority?: number;
   timeout?: number;
+  skillId?: string;
+  input?: Record<string, unknown>;
+  idempotency_key?: string;
 }
 
 export interface HSNAPResultMetadata {
@@ -298,6 +301,9 @@ export function parseHSNAPTaskMetadata(source: string): HSNAPTaskMetadata {
     intent: asOptionalString(parsed.intent),
     priority: asOptionalNumber(parsed.priority),
     timeout: asOptionalNumber(parsed.timeout),
+    skillId: asOptionalString(parsed.skillId),
+    input: asOptionalRecord(parsed.input),
+    idempotency_key: asOptionalString(parsed.idempotency_key),
   };
 }
 
@@ -359,15 +365,43 @@ function toRegisteredAgent(agent: InternalAgentRecord): HSNAPRegisteredAgent {
 }
 
 function extractTraitConfig(source: string, name: string): string | undefined {
-  const blockPattern = new RegExp(`@${name}\\s*\\{([\\s\\S]*?)\\}`, 'm');
-  const blockMatch = source.match(blockPattern);
-  if (blockMatch?.[1]) {
-    return blockMatch[1];
+  const markerPattern = new RegExp(`@${name}\\s*([\\{(])`, 'm');
+  const markerMatch = markerPattern.exec(source);
+  if (!markerMatch || markerMatch.index === undefined) {
+    return undefined;
   }
 
-  const parenPattern = new RegExp(`@${name}\\s*\\(([^)]*)\\)`, 'm');
-  const parenMatch = source.match(parenPattern);
-  return parenMatch?.[1];
+  const opener = markerMatch[1];
+  const start = markerMatch.index + markerMatch[0].length - 1;
+  const closer = opener === '{' ? '}' : ')';
+  let depth = 0;
+  let quote: '"' | "'" | null = null;
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    if ((char === '"' || char === "'") && source[index - 1] !== '\\') {
+      if (quote === char) {
+        quote = null;
+      } else if (quote === null) {
+        quote = char;
+      }
+    }
+
+    if (quote !== null) {
+      continue;
+    }
+
+    if (char === opener) {
+      depth += 1;
+    } else if (char === closer) {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(start + 1, index);
+      }
+    }
+  }
+
+  return undefined;
 }
 
 function parseConfigObject(config: string): Record<string, unknown> {
@@ -418,6 +452,10 @@ function parseValue(value: string): unknown {
     return splitTopLevel(inner, [',']).map((item) => parseValue(item.trim()));
   }
 
+  if (value.startsWith('{') && value.endsWith('}')) {
+    return parseConfigObject(value.slice(1, -1).trim());
+  }
+
   return value;
 }
 
@@ -425,6 +463,7 @@ function splitTopLevel(input: string, delimiters: string[]): string[] {
   const results: string[] = [];
   let current = '';
   let bracketDepth = 0;
+  let braceDepth = 0;
   let quote: '"' | "'" | null = null;
 
   for (let index = 0; index < input.length; index += 1) {
@@ -442,9 +481,13 @@ function splitTopLevel(input: string, delimiters: string[]): string[] {
         bracketDepth += 1;
       } else if (char === ']') {
         bracketDepth = Math.max(0, bracketDepth - 1);
+      } else if (char === '{') {
+        braceDepth += 1;
+      } else if (char === '}') {
+        braceDepth = Math.max(0, braceDepth - 1);
       }
 
-      if (bracketDepth === 0 && delimiters.includes(char)) {
+      if (bracketDepth === 0 && braceDepth === 0 && delimiters.includes(char)) {
         results.push(current);
         current = '';
         continue;
@@ -475,4 +518,12 @@ function asStringArray(value: unknown): string[] {
   }
 
   return value.filter((item): item is string => typeof item === 'string');
+}
+
+function asOptionalRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
 }
