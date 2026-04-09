@@ -3,8 +3,11 @@
 # Builds from the pnpm workspace root to resolve workspace dependencies
 # Dependency chain: absorb-service → core + engine + framework + absorb-service(pkg)
 
+ARG PNPM_VERSION=8.12.0
+
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+ARG PNPM_VERSION
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Collect all package.json for lockfile resolution
 FROM base AS manifests
@@ -19,6 +22,7 @@ WORKDIR /app
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
+COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -34,11 +38,7 @@ COPY packages/absorb-service/ packages/absorb-service/
 COPY services/absorb-service/ services/absorb-service/
 
 # Build in dependency order (skip DTS for runtime)
-RUN cd packages/crdt && npx tsup --no-dts
-RUN cd packages/agent-protocol && npx tsup --no-dts
-RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
-RUN cd packages/framework && npx tsup --no-dts
+RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd services/absorb-service && npx tsc
@@ -46,7 +46,9 @@ RUN cd services/absorb-service && npx tsc
 # --- Production stage ---
 FROM node:20-alpine
 
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+ARG PNPM_VERSION
+
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 WORKDIR /app
 
