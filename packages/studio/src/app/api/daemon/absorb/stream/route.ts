@@ -7,6 +7,10 @@
 
 import { NextRequest } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
+import {
+  ABSORB_PROGRESS_CONTRACT_VERSION,
+  toAbsorbProgressContractEvent,
+} from '@/lib/absorbStreamContract';
 
 const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
 
@@ -38,20 +42,22 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-HoloScript-Stream-Contract': ABSORB_PROGRESS_CONTRACT_VERSION,
       },
     });
   } catch (error) {
+    const event = toAbsorbProgressContractEvent({
+      type: 'error',
+      status: 'failed',
+      jobId: 'proxy',
+      error: `Absorb Service is offline. ${String(error)}`,
+    });
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: 'error',
-              jobId: 'proxy',
-              error: `Absorb Service is offline. ${String(error)}`,
-            })}\n\n`
-          )
+          encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
         );
         controller.close();
       },
@@ -62,6 +68,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-HoloScript-Stream-Contract': ABSORB_PROGRESS_CONTRACT_VERSION,
       },
     });
   }
