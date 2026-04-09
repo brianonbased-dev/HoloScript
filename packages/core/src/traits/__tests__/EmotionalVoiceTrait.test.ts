@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockNode, createMockContext, attachTrait, sendEvent } from './traitTestHelpers';
 
 // Mock VoiceSynthesizer — avoid hoisting issues by inlining stubs
-vi.mock('../../runtime/VoiceSynthesizer', () => {
+vi.mock('@holoscript/engine/runtime/VoiceSynthesizer', () => {
   const gen = vi.fn().mockResolvedValue(new ArrayBuffer(1024));
   return {
     getVoiceSynthesizer: vi.fn(() => ({ generate: gen })),

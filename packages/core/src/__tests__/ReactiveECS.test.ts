@@ -1,6 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { World } from '@holoscript/engine/ecs/World';
 import { effect } from '../state/ReactiveState';
+
+// Inject core reactivity into engine World just for this test suite
+vi.mock('@holoscript/engine/state/ReactiveState', async () => {
+  const coreReactive = await import('../state/ReactiveState');
+  return { reactive: coreReactive.reactive };
+});
+
+import { World } from '@holoscript/engine/ecs/World';
 
 describe('Reactive ECS', () => {
   it('should wrap components in reactive proxies', () => {

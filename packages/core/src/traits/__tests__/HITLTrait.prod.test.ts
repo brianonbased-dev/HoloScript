@@ -8,13 +8,13 @@ vi.mock('@holoscript/engine/utils/HITLAuditLogger', () => ({
   HITLAuditLogger: { log: vi.fn().mockResolvedValue(undefined) },
 }));
 
-vi.mock('../../utils/ConstitutionalValidator', () => ({
+vi.mock('@holoscript/engine/utils/ConstitutionalValidator', () => ({
   ConstitutionalValidator: {
     validate: vi.fn().mockReturnValue({ allowed: true, escalationLevel: 'none', violations: [] }),
   },
 }));
 
-vi.mock('../../logger', () => ({
+vi.mock('@holoscript/engine/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }));
 

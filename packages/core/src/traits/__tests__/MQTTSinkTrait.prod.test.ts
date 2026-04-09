@@ -48,7 +48,7 @@ function makeMockClient() {
   return client;
 }
 
-vi.mock('../../runtime/protocols/MQTTClient', () => ({
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   createMQTTClient: vi.fn(() => {
     _mockClientInstance = makeMockClient();
     return _mockClientInstance;

@@ -45,7 +45,7 @@ const _controllerInstance = {
   update: vi.fn(),
 };
 
-vi.mock('../../animation/BoneSystem', () => {
+vi.mock('@holoscript/engine/animation/BoneSystem', () => {
   class BoneSystem {
     addBone = _boneInstance.addBone;
     getBone = _boneInstance.getBone;
@@ -56,7 +56,7 @@ vi.mock('../../animation/BoneSystem', () => {
   return { BoneSystem };
 });
 
-vi.mock('../../animation/IKSolver', () => {
+vi.mock('@holoscript/engine/animation/IKSolver', () => {
   class IKSolver {
     addChain = _solverInstance.addChain;
     solve = _solverInstance.solve;
@@ -64,7 +64,7 @@ vi.mock('../../animation/IKSolver', () => {
   return { IKSolver };
 });
 
-vi.mock('../../animation/AvatarController', () => {
+vi.mock('@holoscript/engine/animation/AvatarController', () => {
   class AvatarController {
     calibrate = _controllerInstance.calibrate;
     update = _controllerInstance.update;

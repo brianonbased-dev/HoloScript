@@ -5,7 +5,7 @@
  * emitter control, pool recycling, queries.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { ParticleSystem, type EmitterConfig } from '../ParticleSystem';
+import { ParticleSystem, type EmitterConfig } from '@holoscript/engine/particles';
 
 const BASIC_CONFIG: EmitterConfig = {
   shape: 'point',

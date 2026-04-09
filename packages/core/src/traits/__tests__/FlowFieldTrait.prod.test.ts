@@ -7,7 +7,7 @@ import { flowFieldHandler } from '../FlowFieldTrait';
 
 const mockSampleDirection = vi.fn(() => [1, 0, 0]); // default: move along +X
 
-vi.mock('../../runtime/NavigationEngine', () => ({
+vi.mock('@holoscript/engine/runtime/NavigationEngine', () => ({
   getNavigationEngine: vi.fn(() => ({
     sampleDirection: mockSampleDirection,
   })),

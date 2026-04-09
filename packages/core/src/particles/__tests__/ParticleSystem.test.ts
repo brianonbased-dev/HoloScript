@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ParticleSystem } from '../ParticleSystem';
-import type { EmitterConfig } from '../ParticleSystem';
+import { ParticleSystem, type EmitterConfig } from '@holoscript/engine/particles';
 
 function makeConfig(overrides?: Partial<EmitterConfig>): EmitterConfig {
   return {

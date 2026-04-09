@@ -26,7 +26,7 @@ import {
 } from './traitTestHelpers';
 
 // Mock the MQTTClient module
-vi.mock('../../runtime/protocols/MQTTClient', () => ({
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   createMQTTClient: vi.fn(() => ({
     connect: vi.fn(() => Promise.resolve()),
     disconnect: vi.fn(),

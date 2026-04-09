@@ -20,7 +20,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 let _springInstance: { setTarget: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
 
-vi.mock('../../animation/SpringAnimator', () => {
+vi.mock('@holoscript/engine/animation/SpringAnimator', () => {
   function SpringAnimator(_initial: number, _preset: any) {
     _springInstance = {
       setTarget: vi.fn(),

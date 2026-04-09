@@ -8,7 +8,7 @@ import {
 } from './traitTestHelpers';
 
 // Mock BoneSystem, IKSolver, AvatarController
-vi.mock('../../animation/BoneSystem', () => ({
+vi.mock('@holoscript/engine/animation/BoneSystem', () => ({
   BoneSystem: class MockBoneSystem {
     bones = new Map();
     addBone = vi.fn();
@@ -19,7 +19,7 @@ vi.mock('../../animation/BoneSystem', () => ({
   },
 }));
 
-vi.mock('../../animation/IKSolver', () => ({
+vi.mock('@holoscript/engine/animation/IKSolver', () => ({
   IKSolver: class MockIKSolver {
     chains = new Map();
     addChain = vi.fn();
@@ -27,7 +27,7 @@ vi.mock('../../animation/IKSolver', () => ({
   },
 }));
 
-vi.mock('../../animation/AvatarController', () => ({
+vi.mock('@holoscript/engine/animation/AvatarController', () => ({
   AvatarController: class MockAvatarController {
     constructor() {}
     calibrate = vi.fn();

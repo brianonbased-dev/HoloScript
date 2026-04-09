@@ -7,7 +7,7 @@ vi.mock('../../orbital/KeplerianCalculator', () => ({
 }));
 
 // Mock logger
-vi.mock('../../logger', () => ({
+vi.mock('@holoscript/engine/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

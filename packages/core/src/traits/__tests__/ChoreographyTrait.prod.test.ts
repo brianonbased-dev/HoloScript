@@ -27,7 +27,7 @@ import {
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 // Mock ChoreographyEngine and ChoreographyPlanner to prevent real async work
-vi.mock('../../../choreography/ChoreographyEngine', () => {
+vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => {
   const MockEngine = vi.fn().mockImplementation(() => ({
     setActionHandler: vi.fn(),
     on: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock('../../../choreography/ChoreographyEngine', () => {
   return { ChoreographyEngine: MockEngine };
 });
 
-vi.mock('../../../choreography/ChoreographyPlanner', () => {
+vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
   const MockPlanner = vi.fn().mockImplementation(() => ({
     createPlan: vi
       .fn()

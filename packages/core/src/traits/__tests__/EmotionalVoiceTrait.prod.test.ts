@@ -25,7 +25,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // voiceSynthesizerRegistry is a Map; getVoiceSynthesizer looks up by name.
 // We expose the registry so tests can populate it.
 
-vi.mock('../../runtime/VoiceSynthesizer', () => {
+vi.mock('@holoscript/engine/runtime/VoiceSynthesizer', () => {
   const registry = new Map<string, unknown>();
   return {
     voiceSynthesizerRegistry: registry,

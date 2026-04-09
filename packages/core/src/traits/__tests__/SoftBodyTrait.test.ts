@@ -8,7 +8,7 @@ import {
 } from './traitTestHelpers';
 
 // Mock SoftBodySolver
-vi.mock('../../physics/SoftBodySolver', () => ({
+vi.mock('@holoscript/engine/physics/SoftBodySolver', () => ({
   SoftBodySolver: class MockSoftBodySolver {
     particles: any[] = [];
     constraints: any[] = [];

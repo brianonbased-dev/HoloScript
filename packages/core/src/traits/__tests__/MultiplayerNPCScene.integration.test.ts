@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock SyncProtocol / Transports ───────────────────────────────────────────
-vi.mock('../../network/SyncProtocol', () => {
+vi.mock('@holoscript/engine/network/SyncProtocol', () => {
   class SyncProtocol {
     connect = vi.fn().mockResolvedValue(undefined);
     isConnected = vi.fn().mockReturnValue(false);
@@ -27,21 +27,21 @@ vi.mock('../../network/SyncProtocol', () => {
   }
   return { SyncProtocol };
 });
-vi.mock('../../network/WebSocketTransport', () => {
+vi.mock('@holoscript/engine/network/WebSocketTransport', () => {
   class WebSocketTransport {
     connect = vi.fn().mockRejectedValue(new Error());
     disconnect = vi.fn();
   }
   return { WebSocketTransport };
 });
-vi.mock('../../network/WebRTCTransport', () => {
+vi.mock('@holoscript/engine/network/WebRTCTransport', () => {
   class WebRTCTransport {
     initialize = vi.fn().mockRejectedValue(new Error());
     disconnect = vi.fn();
   }
   return { WebRTCTransport };
 });
-vi.mock('../../logger', () => ({
+vi.mock('@holoscript/engine/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() },
 }));
 

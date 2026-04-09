@@ -3,7 +3,7 @@ import { createMockNode, createMockContext, attachTrait, updateTrait } from './t
 
 // Mock NavigationEngine
 const mockSampleDirection = vi.fn().mockReturnValue([1, 0, 0]);
-vi.mock('../../runtime/NavigationEngine', () => ({
+vi.mock('@holoscript/engine/runtime/NavigationEngine', () => ({
   getNavigationEngine: vi.fn(() => ({
     sampleDirection: mockSampleDirection,
   })),

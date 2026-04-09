@@ -14,11 +14,11 @@ const mockEngine = {
   getStates: vi.fn().mockReturnValue({}),
   applyForce: vi.fn(),
 };
-vi.mock('../../runtime/PhysicsEngine', () => ({
+vi.mock('@holoscript/engine/runtime/PhysicsEngine', () => ({
   getPhysicsEngine: vi.fn(() => mockEngine),
 }));
 
-vi.mock('../../physics/SoftBodyAdapter', () => ({
+vi.mock('@holoscript/engine/physics/SoftBodyAdapter', () => ({
   SoftBodyAdapter: class MockSoftBodyAdapter {
     update = vi.fn();
   },

@@ -35,7 +35,7 @@ function makeMockClient() {
 // Each test gets fresh clients via factory
 const _clientFactory = vi.fn(() => makeMockClient());
 
-vi.mock('../../runtime/protocols/MQTTClient', () => {
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => {
   const parsePayload = vi.fn((msg: any) => {
     try {
       return typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;

@@ -14,7 +14,7 @@ const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockDisconnect = vi.fn();
 const mockOn = vi.fn();
 
-vi.mock('../../runtime/protocols/MQTTClient', () => ({
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   MQTTClient: {
     parsePayload: vi.fn((msg: any) => {
       try {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockNode, createMockContext, attachTrait, updateTrait } from './traitTestHelpers';
 
 // Mock SpringAnimator
-vi.mock('../../animation/SpringAnimator', () => ({
+vi.mock('@holoscript/engine/animation/SpringAnimator', () => ({
   SpringAnimator: class MockSpringAnimator {
     value = 0;
     constructor(initial: number = 0) {

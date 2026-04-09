@@ -13,7 +13,7 @@ const mockInfer = vi.fn().mockReturnValue({
   confusion: 0.2,
   engagement: 0.8,
 });
-vi.mock('../../runtime/EmotionDetector', () => ({
+vi.mock('@holoscript/engine/runtime/EmotionDetector', () => ({
   getEmotionDetector: vi.fn(() => ({
     infer: mockInfer,
   })),
