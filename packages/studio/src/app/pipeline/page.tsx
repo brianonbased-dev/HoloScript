@@ -11,9 +11,9 @@ function PipelineEditorComponent() {
 
   return (
     <div className="holoscript-2d-root w-full h-full">
-      <div style={{"display":"flex","flexDirection":"column"}} className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       
-      <div style={{"display":"flex","flexDirection":"column"}} className="flex-1">
+      <div className="flex-1 flex flex-col">
       
       <div data-holo-slot="PipelineWorkbench">
         <PipelineWorkbench />

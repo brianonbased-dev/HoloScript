@@ -1,8 +1,8 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { gpuPhysicsHandler } from '../traits/GPUPhysicsTrait';
 
 // Mock PhysicsEngine so we don't crash on 'webgpu' not found
-vi.mock('../runtime/PhysicsEngine', () => ({
+vi.mock('@holoscript/engine/runtime/PhysicsEngine', () => ({
   getPhysicsEngine: () => ({
     addBody: vi.fn(),
     removeBody: vi.fn(),

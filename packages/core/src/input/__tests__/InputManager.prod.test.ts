@@ -5,7 +5,7 @@
  * dead zones, held duration, snapshots, reset.
  */
 import { describe, it, expect } from 'vitest';
-import { InputManager } from '../InputManager';
+import { InputManager } from '@holoscript/engine/input/InputManager';
 
 describe('InputManager — Production', () => {
   // ─── Keyboard ─────────────────────────────────────────────────────

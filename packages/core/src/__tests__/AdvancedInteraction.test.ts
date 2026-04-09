@@ -4,7 +4,7 @@ import { createVirtualKeyboard } from '../ui/VirtualKeyboard';
 import { createTextInput } from '../ui/UIComponents';
 
 // Mock Physics logic
-vi.mock('../physics/PhysicsWorldImpl', () => {
+vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
   return {
     PhysicsWorldImpl: class {
       constructor() {}
@@ -19,7 +19,7 @@ vi.mock('../physics/PhysicsWorldImpl', () => {
     },
   };
 });
-vi.mock('../render/webgpu/WebGPURenderer', () => ({ WebGPURenderer: vi.fn() }));
+vi.mock('@holoscript/engine/rendering/webgpu/WebGPURenderer', () => {
 
 describe('Advanced Interaction System', () => {
   let runtime: HoloScriptPlusRuntimeImpl;

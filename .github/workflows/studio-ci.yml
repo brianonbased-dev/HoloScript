@@ -54,6 +54,9 @@ jobs:
       - name: Type check (studio)
         run: pnpm --filter @holoscript/studio exec tsc --noEmit
 
+      - name: Connector dependency guard (studio docker parity)
+        run: pnpm --filter @holoscript/studio test -- src/__tests__/studio-docker-connectors.test.ts
+
       - name: Lint (studio)
         run: pnpm --filter @holoscript/studio exec next lint --max-warnings 0
         continue-on-error: true # lint warnings are advisory

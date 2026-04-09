@@ -123,8 +123,9 @@ export function compileToNextJS(
   // Inject the component code (which already has imports)
   lines.push(pageSafeComponentCode);
 
-  // Generate metadata export if @metadata trait exists
-  if (metaTrait) {
+  // Generate metadata export only for server pages.
+  // Next.js disallows `export const metadata` in files with `'use client'`.
+  if (metaTrait && !isClient) {
     const metaEntries: string[] = [];
     if (metaTrait.title) metaEntries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
     if (metaTrait.description) metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);

@@ -14,19 +14,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
-
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+import {
+  createGitHubHeaders,
+  encodeGitHubPath,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -47,18 +44,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const encodedPath = encodeGitHubPath(filePath);
     const url = new URL(
-      `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`
+      `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`
     );
     if (ref) url.searchParams.set('ref', ref);
 
     const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token),
       signal: AbortSignal.timeout(15_000),
     });
 
@@ -108,10 +101,7 @@ export async function GET(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -144,16 +134,11 @@ export async function PUT(req: NextRequest) {
     if (sha) payload.sha = sha;
     if (branch) payload.branch = branch;
 
-    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
+    const encodedPath = encodeGitHubPath(filePath);
+    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
     const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'Content-Type': 'application/json',
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token, { contentTypeJson: true }),
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15_000),
     });
@@ -188,10 +173,7 @@ export async function PUT(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -219,16 +201,11 @@ export async function DELETE(req: NextRequest) {
     const payload: Record<string, unknown> = { message, sha };
     if (branch) payload.branch = branch;
 
-    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath}`;
+    const encodedPath = encodeGitHubPath(filePath);
+    const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'Content-Type': 'application/json',
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token, { contentTypeJson: true }),
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15_000),
     });

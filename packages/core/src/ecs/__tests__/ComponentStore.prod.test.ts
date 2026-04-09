@@ -6,7 +6,7 @@
  * getEntitiesWithAll, removeAllForEntity, counts, clear.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { ComponentStore } from '../ComponentStore';
+import { ComponentStore } from '@holoscript/engine/ecs/ComponentStore';
 
 describe('ComponentStore — Production', () => {
   // ─── Pool Management ──────────────────────────────────────────────

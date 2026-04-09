@@ -1249,13 +1249,15 @@ export class HoloCompositionParser {
             } else if (decoratorName === 'state') {
               composition.state = this.parseStateBody();
             } else {
-              // Skip unknown root-level decorators and optional config
+              // Capture unknown root-level traits (e.g., @page, @metadata)
+              composition.traits = composition.traits || [];
+              let config: Record<string, HoloValue> = {};
               if (this.check('LPAREN')) {
-                this.skipParens();
+                config = this.parseTraitConfig();
+              } else if (this.check('LBRACE')) {
+                config = this.parseBlockTraitConfig();
               }
-              if (this.check('LBRACE')) {
-                this.skipBlock();
-              }
+              composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
         } else if (this.check('TEMPLATE')) {
@@ -1647,13 +1649,15 @@ export class HoloCompositionParser {
             } else if (decoratorName === 'world' || decoratorName === 'environment') {
               composition.environment = this.parseEnvironmentBody();
             } else {
-              // Skip unknown decorator arguments and optional block body
+              // Capture unknown decorator arguments (e.g. @page, @metadata)
+              composition.traits = composition.traits || [];
+              let config: Record<string, HoloValue> = {};
               if (this.check('LPAREN')) {
-                this.skipParens();
+                config = this.parseTraitConfig();
+              } else if (this.check('LBRACE')) {
+                config = this.parseBlockTraitConfig();
               }
-              if (this.check('LBRACE')) {
-                this.skipBlock();
-              }
+              composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
         } else if (this.check('ACTION') || this.check('ASYNC')) {

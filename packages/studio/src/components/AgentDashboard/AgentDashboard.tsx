@@ -162,33 +162,45 @@ export function AgentDashboard({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-2" role="tablist" aria-label="Dashboard sections">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`panel-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-studio-accent/15 text-studio-accent'
-                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel/60'
-              }`}
-            >
-              <tab.Icon className="h-3.5 w-3.5" />
-              {tab.label}
-              <span
-                className={`ml-0.5 px-1.5 py-0.5 rounded text-[9px] ${
-                  activeTab === tab.id
-                    ? 'bg-studio-accent/20 text-studio-accent'
-                    : 'bg-studio-border/30 text-studio-muted'
-                }`}
+        <div className="flex gap-1 mt-2" aria-label="Dashboard sections">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            if (isActive) {
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-pressed="true"
+                  aria-label={`${tab.label} panel`}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors bg-studio-accent/15 text-studio-accent"
+                >
+                  <tab.Icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded text-[9px] bg-studio-accent/20 text-studio-accent">
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed="false"
+                aria-label={`${tab.label} panel`}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors text-studio-muted hover:text-studio-text hover:bg-studio-panel/60"
               >
-                {tab.count}
-              </span>
-            </button>
-          ))}
+                <tab.Icon className="h-3.5 w-3.5" />
+                {tab.label}
+                <span className="ml-0.5 px-1.5 py-0.5 rounded text-[9px] bg-studio-border/30 text-studio-muted">
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -198,8 +210,6 @@ export function AgentDashboard({
         <div
           className="w-[300px] shrink-0 border-r border-studio-border overflow-y-auto p-3"
           id={`panel-${activeTab}`}
-          role="tabpanel"
-          aria-labelledby={`tab-${activeTab}`}
         >
           {/* AGENTS TAB */}
           {activeTab === 'agents' && (

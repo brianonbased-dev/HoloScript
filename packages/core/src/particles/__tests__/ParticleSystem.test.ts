@@ -104,7 +104,7 @@ describe('ParticleSystem', () => {
     ps.update(0.1);
     const alive = ps.getAliveParticles();
     expect(alive.length).toBe(ps.getActiveCount());
-    expect(alive.every((p) => p.alive)).toBe(true);
+    expect(alive.every((p: { alive: boolean }) => p.alive)).toBe(true);
   });
 
   // ---------------------------------------------------------------------------

@@ -13,12 +13,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
-
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+import {
+  createGitHubHeaders,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
 interface GitHubSearchItem {
   name: string;
@@ -40,10 +39,7 @@ interface GitHubSearchResponse {
 
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -70,13 +66,10 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('per_page', '30');
 
     const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
+      headers: createGitHubHeaders(token, {
         // Request text-match metadata for highlighted snippets
-        Accept: 'application/vnd.github.text-match+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+        accept: 'application/vnd.github.text-match+json',
+      }),
       signal: AbortSignal.timeout(15_000),
     });
 

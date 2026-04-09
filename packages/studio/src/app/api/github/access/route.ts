@@ -16,12 +16,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
-
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+import {
+  createGitHubHeaders,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
@@ -34,10 +33,7 @@ function classifyRole(userLogin: string | null, ownerLogin: string | null, perms
 }
 
 export async function GET(req: NextRequest) {
-  const { getServerSession } = await import('next-auth');
-  const { authOptions } = await import('@/lib/auth');
-  const session = await getServerSession(authOptions);
-  const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+  const token = await getGitHubToken(req);
 
   if (!token) {
     return NextResponse.json(
@@ -57,21 +53,11 @@ export async function GET(req: NextRequest) {
 
   const [userResp, repoResp] = await Promise.all([
     fetch(`${GITHUB_API_BASE_URL}/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token),
       signal: AbortSignal.timeout(10_000),
     }),
     fetch(`${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token),
       signal: AbortSignal.timeout(10_000),
     }),
   ]);

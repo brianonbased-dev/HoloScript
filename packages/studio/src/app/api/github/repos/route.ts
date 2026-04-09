@@ -12,15 +12,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
-
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+import {
+  createGitHubHeaders,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
 interface GitHubRepo {
   id: number;
@@ -40,8 +37,7 @@ interface GitHubRepo {
 export async function GET(req: NextRequest) {
   try {
     // Prefer the authenticated user's OAuth token; fall back to env var for dev/CI
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -61,12 +57,7 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('per_page', String(perPage));
 
     const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token),
     });
 
     if (!response.ok) {

@@ -17,6 +17,36 @@ const TYPE_ICONS: Record<string, string> = {
   trace_reinforced: '📌',
 };
 
+const WIDTH_CLASSES = [
+  'w-0',
+  'w-[5%]',
+  'w-[10%]',
+  'w-[15%]',
+  'w-[20%]',
+  'w-[25%]',
+  'w-[30%]',
+  'w-[35%]',
+  'w-[40%]',
+  'w-[45%]',
+  'w-[50%]',
+  'w-[55%]',
+  'w-[60%]',
+  'w-[65%]',
+  'w-[70%]',
+  'w-[75%]',
+  'w-[80%]',
+  'w-[85%]',
+  'w-[90%]',
+  'w-[95%]',
+  'w-full',
+] as const;
+
+function widthClassFromHealth(health: number): string {
+  const pct = Math.max(0, Math.min(100, health * 100));
+  const bucket = Math.round(pct / 5);
+  return WIDTH_CLASSES[bucket] ?? 'w-full';
+}
+
 export function CulturePanel() {
   const {
     health,
@@ -78,8 +108,7 @@ export function CulturePanel() {
       {/* Health bar */}
       <div className="w-full bg-studio-panel rounded-full h-2">
         <div
-          className={`h-2 rounded-full transition-all ${health > 0.7 ? 'bg-emerald-400' : health > 0.4 ? 'bg-amber-400' : 'bg-red-400'}`}
-          style={{ width: `${Math.max(0, health * 100)}%` }}
+          className={`h-2 rounded-full transition-all ${health > 0.7 ? 'bg-emerald-400' : health > 0.4 ? 'bg-amber-400' : 'bg-red-400'} ${widthClassFromHealth(health)}`}
         />
       </div>
 

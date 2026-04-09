@@ -5,9 +5,30 @@
 import { useState, useCallback, useRef } from 'react';
 import { CultureRuntime } from '@/lib/core-stubs';
 
-type CultureRuntimeInstance = any;
-type CultureDashboard = any;
-type CultureEvent = any;
+interface CultureEvent {
+  [key: string]: unknown;
+  id?: string;
+  type?: string;
+  severity?: 'info' | 'warning' | 'critical' | string;
+  agentId?: string;
+  details?: string;
+  message?: string;
+  timestamp?: number;
+}
+
+interface CultureDashboard {
+  health: number;
+  agents: number;
+  recentEvents: CultureEvent[];
+  tickCount: number;
+}
+
+interface CultureRuntimeInstance {
+  dashboard: () => CultureDashboard;
+  agentJoin: (id: string, norms?: string[]) => void;
+  agentLeave: (id: string) => void;
+  tick: () => void;
+}
 
 export interface UseCultureReturn {
   health: number;
@@ -23,7 +44,7 @@ export interface UseCultureReturn {
 }
 
 export function useCulture(): UseCultureReturn {
-  const rt = useRef<any>(new CultureRuntime() as any);
+  const rt = useRef<CultureRuntimeInstance>(new CultureRuntime() as unknown as CultureRuntimeInstance);
   const [health, setHealth] = useState(1);
   const [agentCount, setAgentCount] = useState(0);
   const [events, setEvents] = useState<CultureEvent[]>([]);

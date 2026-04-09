@@ -118,6 +118,8 @@ export interface HoloComposition extends HoloNode {
   shapes: HoloShape[];
   /** User-defined trait definitions (trait Name [extends Base] { ... }) */
   traitDefinitions?: HoloTraitDefinition[];
+  /** Root-level trait attachments (e.g. @page, @metadata) */
+  traits?: HoloObjectTrait[];
   // Spatial primitives (v4 — March 2026)
   spawnGroups?: HoloSpawnGroup[];
   waypointSets?: HoloWaypoints[];

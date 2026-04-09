@@ -15,12 +15,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
-
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+import {
+  createGitHubHeaders,
+  encodeGitHubPath,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
 interface GitHubContentEntry {
   name: string;
@@ -34,10 +34,7 @@ interface GitHubContentEntry {
 
 export async function GET(req: NextRequest) {
   try {
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    const session = await getServerSession(authOptions);
-    const token = session?.accessToken ?? process.env.GITHUB_TOKEN;
+    const token = await getGitHubToken(req);
     if (!token) {
       return NextResponse.json(
         { error: 'Not authenticated. Sign in with GitHub or set GITHUB_TOKEN.' },
@@ -58,19 +55,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const pathSegment = dirPath ? `/${dirPath}` : '';
+    const encodedPath = dirPath ? encodeGitHubPath(dirPath) : '';
+    const pathSegment = encodedPath ? `/${encodedPath}` : '';
     const url = new URL(
       `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents${pathSegment}`
     );
     if (ref) url.searchParams.set('ref', ref);
 
     const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token),
       signal: AbortSignal.timeout(15_000),
     });
 

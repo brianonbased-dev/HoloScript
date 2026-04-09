@@ -67,6 +67,8 @@ export function AudioPanel() {
               max="1"
               step="0.05"
               value={masterVolume}
+              aria-label="Master volume"
+              title="Master volume"
               onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
               className="w-20 h-1 accent-studio-accent"
             />

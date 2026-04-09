@@ -1,6 +1,5 @@
 composition "PipelineEditor" {
-  @page { route: "/pipeline", client: true }
-  @metadata { title: "Pipeline Editor — HoloScript Studio", description: "Create and compile .hs data pipelines" }
+  @page { route: "/pipeline" }
 
   object "Shell" {
     @layout { flex: "column" }

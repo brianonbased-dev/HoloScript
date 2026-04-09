@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebXRManager } from '../WebXRManager';
+import { WebXRManager } from '@holoscript/engine/vr/WebXRManager';
 
 // =============================================================================
 // MOCK XR API

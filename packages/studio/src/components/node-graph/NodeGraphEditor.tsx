@@ -67,6 +67,8 @@ function ConstantNode({ data }: { data: { label: string; value: number } }) {
         type="number"
         value={data.value}
         readOnly
+        aria-label={`${data.label} constant value`}
+        title={`${data.label} constant value`}
         className="w-full rounded bg-studio-surface px-2 py-0.5 text-right text-xs outline-none"
       />
       <Handle

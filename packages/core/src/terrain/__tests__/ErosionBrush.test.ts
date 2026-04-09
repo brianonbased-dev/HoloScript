@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ErosionBrush } from '../ErosionBrush';
+import { ErosionBrush } from '@holoscript/engine/terrain/ErosionBrush';
 
 describe('ErosionBrush', () => {
   let eb: ErosionBrush;

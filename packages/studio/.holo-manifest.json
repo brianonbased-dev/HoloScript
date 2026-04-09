@@ -4,7 +4,12 @@
     "src\\app\\holoclaw\\page.tsx",
     "src\\app\\holodaemon\\page.tsx",
     "src\\app\\learn\\page.tsx",
-    "src\\app\\templates\\page.tsx"
+    "src\\app\\templates\\page.tsx",
+    "src\\app\\auth\\signin\\page.tsx",
+    "src\\app\\integrations\\page.tsx",
+    "src\\app\\projects\\page.tsx",
+    "src\\app\\settings\\page.tsx",
+    "src\\app\\start\\page.tsx"
   ],
-  "lastBuild": "2026-04-08T06:36:18.397Z"
+  "lastBuild": "2026-04-09T00:35:32.474Z"
 }

@@ -3,7 +3,7 @@ import { mqttSourceHandler, MQTTSourceConfig } from './MQTTSourceTrait';
 import * as MQTTClientModule from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // Mock MQTT Client Module
-vi.mock('../runtime/protocols/MQTTClient', () => ({
+vi.mock('@holoscript/engine/runtime/protocols/MQTTClient', () => ({
   createMQTTClient: vi.fn(),
   getMQTTClient: vi.fn(),
   registerMQTTClient: vi.fn(),

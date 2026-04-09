@@ -60,6 +60,12 @@ const nextConfig = {
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',
+    '@holoscript/connector-core',
+    '@holoscript/connector-github',
+    '@holoscript/connector-railway',
+    '@holoscript/connector-upstash',
+    '@holoscript/connector-appstore',
+    '@holoscript/connector-vscode',
     'three',
     '@holoscript/std',
     '@holoscript/r3f-renderer',

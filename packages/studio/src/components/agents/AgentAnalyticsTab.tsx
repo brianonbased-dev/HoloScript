@@ -16,6 +16,36 @@ interface FleetAnalytics {
   agents: FleetAgent[];
 }
 
+const WIDTH_CLASSES = [
+  'w-0',
+  'w-[5%]',
+  'w-[10%]',
+  'w-[15%]',
+  'w-[20%]',
+  'w-[25%]',
+  'w-[30%]',
+  'w-[35%]',
+  'w-[40%]',
+  'w-[45%]',
+  'w-[50%]',
+  'w-[55%]',
+  'w-[60%]',
+  'w-[65%]',
+  'w-[70%]',
+  'w-[75%]',
+  'w-[80%]',
+  'w-[85%]',
+  'w-[90%]',
+  'w-[95%]',
+  'w-full',
+] as const;
+
+function widthClassFromPercent(percent: number): string {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const bucket = Math.round(clamped / 5);
+  return WIDTH_CLASSES[bucket] ?? 'w-full';
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function AgentAnalyticsTab() {
@@ -209,8 +239,7 @@ export function AgentAnalyticsTab() {
                   {/* Earnings bar */}
                   <div className="mt-2 h-1.5 rounded-full bg-studio-border overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all"
-                      style={{ width: `${barWidth}%` }}
+                      className={`h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all ${widthClassFromPercent(barWidth)}`}
                     />
                   </div>
                 </div>
@@ -234,13 +263,11 @@ export function AgentAnalyticsTab() {
                 <div className="w-28 shrink-0 text-xs text-studio-text truncate">{agent.name}</div>
                 <div className="flex-1 flex h-3 rounded-full overflow-hidden bg-studio-border">
                   <div
-                    className="h-full bg-emerald-500/70 transition-all"
-                    style={{ width: `${earnPct}%` }}
+                    className={`h-full bg-emerald-500/70 transition-all ${widthClassFromPercent(earnPct)}`}
                     title={`Earned: ${formatUsd(agent.earningsCents)}`}
                   />
                   <div
-                    className="h-full bg-red-500/70 transition-all"
-                    style={{ width: `${spendPct}%` }}
+                    className={`h-full bg-red-500/70 transition-all ${widthClassFromPercent(spendPct)}`}
                     title={`Spent: ${formatUsd(agent.spentCents)}`}
                   />
                 </div>
@@ -267,9 +294,20 @@ export function AgentAnalyticsTab() {
 // ── Subcomponents ────────────────────────────────────────────────────────────
 
 function AnalyticsCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+  const valueColorClass =
+    color === '#6366f1'
+      ? 'text-indigo-500'
+      : color === '#10b981'
+        ? 'text-emerald-500'
+        : color === '#f59e0b'
+          ? 'text-amber-500'
+          : color === '#ef4444'
+            ? 'text-red-500'
+            : 'text-studio-text';
+
   return (
     <div className="rounded-xl border border-studio-border bg-[#111827] p-4">
-      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      <div className={`text-2xl font-bold ${valueColorClass}`}>{value}</div>
       <div className="text-xs font-medium text-studio-text mt-1">{label}</div>
       <div className="text-[10px] text-studio-muted mt-0.5">{sub}</div>
     </div>

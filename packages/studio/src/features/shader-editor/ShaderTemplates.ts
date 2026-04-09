@@ -276,9 +276,6 @@ export class ShaderTemplateLibrary {
     const addNode = graph.createNode('math_add', { x: 500, y: 150 });
     const sinNode = graph.createNode('trig_sin', { x: 700, y: 150 });
 
-    // Offset vector
-    const offsetNode = graph.createNode('vector_make_vec3', { x: 900, y: 200 });
-
     // Output
     const outputNode = graph.createNode('output_vertex_offset', { x: 1100, y: 200 });
 

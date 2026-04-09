@@ -403,6 +403,43 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Run cross-service smoke checks
+        if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+        run: |
+          ENDPOINTS=""
+
+          if [ "${{ needs.deploy-studio.result }}" = "success" ]; then
+            ENDPOINTS="${ENDPOINTS},https://studio.holoscript.net/api/health"
+          fi
+          if [ "${{ needs.deploy-marketplace-api.result }}" = "success" ]; then
+            ENDPOINTS="${ENDPOINTS},https://marketplace-api.holoscript.net/health"
+          fi
+          if [ "${{ needs.deploy-absorb-service.result }}" = "success" ]; then
+            ENDPOINTS="${ENDPOINTS},https://absorb.holoscript.net/health"
+          fi
+          if [ "${{ needs.deploy-mcp-server.result }}" = "success" ]; then
+            ENDPOINTS="${ENDPOINTS},https://mcp.holoscript.net/health"
+          fi
+
+          ENDPOINTS="${ENDPOINTS#,}"
+          if [ -z "$ENDPOINTS" ]; then
+            echo "No successful deploy targets detected for smoke checks; skipping."
+            exit 0
+          fi
+
+          echo "Smoke targets: $ENDPOINTS"
+          SMOKE_ENDPOINTS="$ENDPOINTS" node scripts/smoke-prod.mjs
+
       - name: Deployment summary
         run: |
           echo "## Railway Deployment Summary" >> $GITHUB_STEP_SUMMARY
