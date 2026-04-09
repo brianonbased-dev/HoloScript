@@ -156,7 +156,7 @@
     "@gltf-transform/extensions": "^3.7.0",
     "@gltf-transform/functions": "^3.7.0",
     "@huggingface/transformers": "^3.8.1",
-    "@noble/post-quantum": "^0.5.4",
+    "@noble/post-quantum": "^0.6.0",
     "basis_universal": "^1.0.0",
     "discord.js": "^14.21.0",
     "dotenv": "^16.4.5",
