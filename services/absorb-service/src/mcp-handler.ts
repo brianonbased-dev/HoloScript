@@ -28,58 +28,51 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Register absorb tools
   try {
-    // @ts-expect-error - TS2339 structural type mismatch
-    const { absorbServiceTools, handleAbsorbServiceTool } = await import('@holoscript/absorb-service/mcp');
+    const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
+
+    const absorbServiceTools = (mcpModule.absorbServiceTools ?? []) as any[];
+    const handleAbsorbServiceTool =
+      mcpModule.handleAbsorbServiceTool ?? mcpModule.absorbServiceToolHandler;
+
     for (const tool of absorbServiceTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
+      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
         const result = await handleAbsorbServiceTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
-  } catch (e: any) {
-    console.warn('[mcp] Failed to register absorb tools:', e.message);
-  }
 
-  // Register TypeScript-specific tools
-  try {
-    // @ts-expect-error - TS2339 structural type mismatch
-    const { absorbTypescriptTools, handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
+    const absorbTypescriptTools = (mcpModule.absorbTypescriptTools ?? []) as any[];
+    const handleAbsorbTypescriptTool =
+      mcpModule.handleAbsorbTypescriptTool ?? mcpModule.absorbTypescriptToolHandler;
+
     for (const tool of absorbTypescriptTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
+      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
         const result = await handleAbsorbTypescriptTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
-  } catch (e: any) {
-    console.warn('[mcp] Failed to register typescript tools:', e.message);
-  }
 
-  // Register codebase query tools
-  try {
-    // @ts-expect-error - TS2339 structural type mismatch
-    const { codebaseTools, handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
+    const codebaseTools = (mcpModule.codebaseTools ?? []) as any[];
+    const handleCodebaseTool = mcpModule.handleCodebaseTool ?? mcpModule.codebaseToolHandler;
+
     for (const tool of codebaseTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
+      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
         const result = await handleCodebaseTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
-  } catch (e: any) {
-    console.warn('[mcp] Failed to register codebase tools:', e.message);
-  }
 
-  // Register GraphRAG tools
-  try {
-    // @ts-expect-error - TS2339 structural type mismatch
-    const { graphRagTools, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
+    const graphRagTools = (mcpModule.graphRagTools ?? []) as any[];
+    const handleGraphRagTool = mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler;
+
     for (const tool of graphRagTools) {
-      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? tool.inputSchema as any : {}, async (params: any) => {
+      server.tool(tool.name, tool.description || '', tool.inputSchema?.properties ? (tool.inputSchema as any) : {}, async (params: any) => {
         const result = await handleGraphRagTool(tool.name, params);
         return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
       });
     }
   } catch (e: any) {
-    console.warn('[mcp] Failed to register graphrag tools:', e.message);
+    console.warn('[mcp] Failed to register absorb MCP tools:', e.message);
   }
 
   return server;
@@ -207,3 +200,4 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
 export function getActiveSessionCount(): number {
   return transports.size;
 }
+
