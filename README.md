@@ -20,6 +20,10 @@ If you want the guided path, start here first:
 - [What is HoloScript?](./docs/academy/level-1-fundamentals/01-what-is-holoscript.md)
 - [Installation](./docs/academy/level-1-fundamentals/02-installation.md)
 - [Your First Scene](./docs/academy/level-1-fundamentals/03-first-scene.md)
+- [Docs quick start](./docs/guides/quick-start.md)
+- [Examples index](./examples/README.md)
+
+If you want the **fastest local proof** (no project scaffolding), jump to [Run an example from this repo](#run-locally).
 
 **1. Try the API -- no install needed:**
 
@@ -28,6 +32,16 @@ curl -s -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
   -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "unity"}' \
   | python -m json.tool
+```
+
+If you don't have Python on PATH, use PowerShell pretty-print instead:
+
+```powershell
+curl -s -X POST https://mcp.holoscript.net/api/compile `
+  -H "Content-Type: application/json" `
+  -d '{"code": "composition ""Hello"" { object ""Cube"" { @physics geometry: ""box"" position: [0,1,0] } }", "target": "unity"}' |
+  ConvertFrom-Json |
+  ConvertTo-Json -Depth 100
 ```
 
 Returns JSON with platform-ready source code:
@@ -114,6 +128,12 @@ holoscript dev examples/hololand/4-integrated-experience.holo
 ```
 
 That command serves the example scene directly so you can validate your environment quickly.
+
+More copy-ready examples:
+
+- `examples/README.md` (index)
+- `examples/general/vr-game-demo/README.md`
+- `examples/specialized/robotics/README.md`
 
 **Develop on the core repo:**
 
@@ -208,7 +228,7 @@ Traits define behavior. The compiler maps them to each platform's native runtime
 - [Full feature reference](./docs/reference/FULL_README.md) — compilers, renderers, identity system, domain blocks, GPU pipelines
 - [Compile API](https://mcp.holoscript.net/api/health) — live at `mcp.holoscript.net`
 - [Absorb service](https://absorb.holoscript.net/health) — codebase intelligence
-- [Studio](./packages/studio/README.md) — spatial IDE with Brittney AI (18 routes, progressive disclosure funnel)
+- [Studio](./packages/studio/README.md) — spatial IDE with Brittney AI, native hosting, embeddable components, WebXR
 - [Strategy](./docs/strategy/ROADMAP.md) — roadmap and vision
 - [Plugins](./packages/plugins/) — domain plugins (Narupa, robotics, medical, etc.)
 
