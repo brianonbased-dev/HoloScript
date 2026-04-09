@@ -58,7 +58,8 @@ FROM node:20-alpine
 RUN apk add --no-cache su-exec chromium nss freetype harfbuzz ca-certificates ttf-freefont
 
 # Configure Playwright to use system Chromium instead of downloading its own
-ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+# Alpine's chromium package installs the binary at /usr/bin/chromium.
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install pnpm
