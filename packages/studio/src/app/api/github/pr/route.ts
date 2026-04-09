@@ -15,23 +15,75 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  createGitHubHeaders,
+  getGitHubToken,
+  GITHUB_API_BASE_URL,
+} from '../_shared';
 
-const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
-).replace(/\/+$/, '');
+const REQUEST_TIMEOUT_MS = 15_000;
+const MAX_RETRIES = 3;
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
-const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
+function parseRetryAfterMs(raw: string | null): number | undefined {
+  if (!raw) return undefined;
 
-async function getToken(req: NextRequest): Promise<string | null> {
-  const { getServerSession } = await import('next-auth');
-  const { authOptions } = await import('@/lib/auth');
-  const session = await getServerSession(authOptions);
-  void req; // suppress unused param warning — session is request-scoped
-  return session?.accessToken ?? process.env.GITHUB_TOKEN ?? null;
+  const asSeconds = Number(raw);
+  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+    return asSeconds * 1000;
+  }
+
+  const asDate = Date.parse(raw);
+  if (!Number.isNaN(asDate)) {
+    return Math.max(0, asDate - Date.now());
+  }
+
+  return undefined;
+}
+
+function calculateBackoffMs(attempt: number, retryAfterMs?: number): number {
+  if (retryAfterMs !== undefined) {
+    return Math.min(30_000, Math.max(0, retryAfterMs));
+  }
+
+  return Math.min(30_000, 1000 * Math.pow(2, attempt));
+}
+
+async function sleep(ms: number): Promise<void> {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  await new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function githubFetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  let attempt = 0;
+
+  while (attempt <= MAX_RETRIES) {
+    const response = await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+
+    if (!RETRYABLE_STATUS.has(response.status) || attempt === MAX_RETRIES) {
+      return response;
+    }
+
+    const retryAfterMs = parseRetryAfterMs(response.headers.get('Retry-After'));
+    const backoffMs = calculateBackoffMs(attempt, retryAfterMs);
+    await sleep(backoffMs);
+    attempt += 1;
+  }
+
+  return fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken(req);
+  const token = await getGitHubToken(req);
   if (!token) {
     return NextResponse.json(
       { error: 'Not authenticated. Sign in with GitHub.' },
@@ -58,19 +110,12 @@ export async function POST(req: NextRequest) {
 
   const { owner, repo, title, body: prBody, head, base, draft = false } = body;
 
-  const response = await fetch(
+  const response = await githubFetchWithRetry(
     `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls`,
     {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        'Content-Type': 'application/json',
-        'User-Agent': 'HoloScript-Studio',
-      },
+      headers: createGitHubHeaders(token, { contentTypeJson: true }),
       body: JSON.stringify({ title, body: prBody ?? '', head, base, draft }),
-      signal: AbortSignal.timeout(15_000),
     }
   );
 
@@ -95,7 +140,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = await getToken(req);
+  const token = await getGitHubToken(req);
   if (!token) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
@@ -115,14 +160,8 @@ export async function GET(req: NextRequest) {
   url.searchParams.set('state', state);
   url.searchParams.set('per_page', '50');
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'X-GitHub-Api-Version': GITHUB_API_VERSION,
-      'User-Agent': 'HoloScript-Studio',
-    },
-    signal: AbortSignal.timeout(15_000),
+  const response = await githubFetchWithRetry(url.toString(), {
+    headers: createGitHubHeaders(token),
   });
 
   const data = (await response.json().catch(() => [])) as Record<string, unknown>[];
