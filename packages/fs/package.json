@@ -34,7 +34,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
+    "chokidar": "^5.0.0",
     "glob": "^13.0.6"
   },
   "devDependencies": {
