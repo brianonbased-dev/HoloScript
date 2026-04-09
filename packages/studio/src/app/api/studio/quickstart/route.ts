@@ -6,10 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Mirrors HoloMesh V8 pattern: POST /api/holomesh/quickstart
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MCP_EXTERNAL_URL =
-  process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
-  process.env.MCP_ORCHESTRATOR_URL ||
-  'http://localhost:3001';
+import { ENDPOINTS } from '@holoscript/config/endpoints';
+
+const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';

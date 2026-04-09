@@ -8,8 +8,9 @@ interface Body {
   code?: string;
 }
 
-let MCP_EXTERNAL_URL =
-  process.env.MCP_ORCHESTRATOR_PUBLIC_URL || process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:3001';
+import { ENDPOINTS } from '@holoscript/config/endpoints';
+
+let MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 
 if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
   MCP_EXTERNAL_URL = `https://${MCP_EXTERNAL_URL}`;
