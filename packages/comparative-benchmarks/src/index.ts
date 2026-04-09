@@ -388,7 +388,7 @@ export class ComparativeBenchmarks {
   private simulateUnityInstantiation(count: number): void {
     // Unity GameObject instantiation is ~2x slower
     for (let i = 0; i < count; i++) {
-      const obj = { components: [], transform: {} };
+      const obj = { components: [] as Array<{ type: string }>, transform: {} };
       for (let j = 0; j < 3; j++) {
         obj.components.push({ type: 'component' });
       }

@@ -8,5 +8,6 @@ export type {
   LayerOutput,
   PipelineRun,
   PipelineMode,
+  FeedbackSignalType,
   FeedbackSignal,
 } from '@holoscript/absorb-service/pipeline';

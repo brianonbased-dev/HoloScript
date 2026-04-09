@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, relative, dirname, extname } from 'path';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
-import { compileToNextJS } from '../../core/src/compiler/NextJSCompiler';
+import { NextJSCompiler } from '../../core/src/compiler/NextJSCompiler';
 
 const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 const HOLO_PAGES_DIR = join(STUDIO_ROOT, 'holo-pages');
@@ -73,7 +73,7 @@ function findHoloFiles(dir: string): string[] {
 // COMPILATION
 // =============================================================================
 
-function compileFile(holoPath: string): { outputPath: string; code: string } | null {
+async function compileFile(holoPath: string): Promise<{ outputPath: string; code: string } | null> {
   const source = readFileSync(holoPath, 'utf-8');
   const relPath = relative(HOLO_PAGES_DIR, holoPath);
 
@@ -89,7 +89,8 @@ function compileFile(holoPath: string): { outputPath: string; code: string } | n
   }
 
   // Compile to Next.js
-  const result = compileToNextJS(parseResult.ast, { slots: SLOT_IMPORTS });
+  const compiler = new NextJSCompiler({ slots: SLOT_IMPORTS });
+  const result = await compiler.compile(parseResult.ast, 'holo-pages-build-token');
 
   // Determine output path: holo-pages/pipeline/page.holo → src/app/pipeline/page.tsx
   const dirPart = dirname(relPath);
@@ -98,7 +99,7 @@ function compileFile(holoPath: string): { outputPath: string; code: string } | n
   return { outputPath, code: GENERATED_HEADER + result.code };
 }
 
-function build(): void {
+async function build(): Promise<void> {
   const startTime = Date.now();
   const holoFiles = findHoloFiles(HOLO_PAGES_DIR);
 
@@ -116,7 +117,7 @@ function build(): void {
 
   for (const holoPath of holoFiles) {
     const relPath = relative(HOLO_PAGES_DIR, holoPath);
-    const result = compileFile(holoPath);
+    const result = await compileFile(holoPath);
 
     if (!result) {
       errorCount++;
@@ -159,7 +160,7 @@ async function watch(): Promise<void> {
   console.log('Watching holo-pages/ for changes...');
 
   // Initial build
-  build();
+  await build();
 
   // Dynamic import chokidar (dev dependency)
   const { watch: chokidarWatch } = await import('chokidar');
@@ -168,9 +169,9 @@ async function watch(): Promise<void> {
     awaitWriteFinish: { stabilityThreshold: 300 },
   });
 
-  watcher.on('change', (path) => {
+  watcher.on('change', async (path) => {
     console.log(`\n[holo:watch] ${relative(STUDIO_ROOT, path)} changed`);
-    const result = compileFile(path);
+    const result = await compileFile(path);
     if (result) {
       mkdirSync(dirname(result.outputPath), { recursive: true });
       writeFileSync(result.outputPath, result.code);
@@ -180,7 +181,7 @@ async function watch(): Promise<void> {
 
   watcher.on('add', (path) => {
     console.log(`\n[holo:watch] New file: ${relative(STUDIO_ROOT, path)}`);
-    build(); // Rebuild all to update manifest
+    void build(); // Rebuild all to update manifest
   });
 }
 
@@ -193,5 +194,5 @@ const isWatch = process.argv.includes('--watch');
 if (isWatch) {
   watch().catch(console.error);
 } else {
-  build();
+  build().catch(console.error);
 }

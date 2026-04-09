@@ -7,3 +7,4 @@
  * @deprecated Import from '@holoscript/absorb-service/pipeline' instead.
  */
 export * from '@holoscript/absorb-service/pipeline';
+export type * from './types';

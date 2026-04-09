@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import type { LayerState, LayerId, LayerStatus } from '@/lib/recursive';
+import type { LayerState, LayerId, LayerStatus, LayerCycleResult } from '@/lib/recursive';
 
 interface LayerCardProps {
   layerId: LayerId;
@@ -41,7 +41,10 @@ const STATUS_COLORS: Record<LayerStatus, string> = {
 export function LayerCard({ layerId, state, onApprove, onReject }: LayerCardProps) {
   const { config, status, cyclesCompleted, history, lastOutput } = state;
   const color = LAYER_COLORS[layerId];
-  const totalSpent = history.reduce((sum, r) => sum + r.costUSD, 0);
+  const totalSpent = history.reduce(
+    (sum: number, r: LayerCycleResult) => sum + r.costUSD,
+    0
+  );
   const budgetPercent =
     config.budget.maxCostUSD > 0
       ? Math.min(100, Math.round((totalSpent / config.budget.maxCostUSD) * 100))
