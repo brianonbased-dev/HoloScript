@@ -140,9 +140,12 @@ jobs:
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
         run: npx tsc --noEmit --skipLibCheck --project packages/mcp-server/tsconfig.json || true
 
-      - name: Pre-flight bypass note
+      - name: Block pre-flight bypass for production deploys
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true' }}
-        run: echo "⚠️ Pre-flight checks bypassed by workflow_dispatch skip_preflight=true"
+        run: |
+          echo "❌ skip_preflight=true is disabled for production safety."
+          echo "Run with full pre-flight checks or use a non-production workflow."
+          exit 1
 
 
   deploy-studio:
