@@ -4,7 +4,7 @@ import { PhysicsWorldImpl } from '@holoscript/engine/physics/PhysicsWorldImpl';
 import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
 
 // Mock Physics World
-vi.mock('../physics/PhysicsWorldImpl', () => {
+vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
   return {
     PhysicsWorldImpl: vi.fn().mockImplementation(function () {
       const bodies = new Map();
@@ -48,7 +48,7 @@ vi.mock('../physics/PhysicsWorldImpl', () => {
 });
 
 // Mock WebGPURenderer
-vi.mock('../render/webgpu/WebGPURenderer', () => {
+vi.mock('@holoscript/engine/rendering/webgpu/WebGPURenderer', () => {
   return {
     WebGPURenderer: vi.fn().mockImplementation(function () {
       return {
@@ -98,7 +98,6 @@ describe('Physics Interaction', () => {
   });
 
   it('creates hand bodies in physics world on update', () => {
-    // Find the bridge
     const bridge = (runtime as any).vrPhysicsBridge;
     const handData = {
       position: { x: -0.2, y: 1.5, z: -0.5 },
@@ -106,9 +105,7 @@ describe('Physics Interaction', () => {
       pinchStrength: 0,
     };
 
-    // Call directly
     bridge.updateHand(handData, 'left', 0.016);
-
     expect(physicsWorld.createBody).toHaveBeenCalledWith(expect.objectContaining({ id: 'hand_left' }));
   });
 

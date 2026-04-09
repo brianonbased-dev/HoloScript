@@ -1,8 +1,6 @@
-import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode } from '../types/HoloScriptPlus';
-import { createUIButton } from './UIButton';
-import { createUIPanel } from './UIPanel';
-import { TransitionSystem } from '@holoscript/engine/animation/TransitionSystem';
-import { AnimationEngine } from '@holoscript/engine/animation/AnimationEngine';
+import { HSPlusRuntime, VRHand, Vector3, type HSPlusNode, createUIButton, createUIPanel } from '@holoscript/core';
+import { TransitionSystem } from '../animation/TransitionSystem';
+import { AnimationEngine } from '../animation/AnimationEngine';
 
 export class HandMenuSystem {
   private menuNodeId: string | null = null;

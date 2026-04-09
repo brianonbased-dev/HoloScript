@@ -209,6 +209,10 @@ export { emotionalVoiceHandler, type EmotionalVoiceConfig } from './traits/Emoti
 
 export { userMonitorHandler, type UserMonitorConfig } from './traits/UserMonitorTrait';
 
+// Core UI Components (Sprint 6)
+export { createUIButton, type UIButtonConfig } from './ui/UIButton';
+export { createUIPanel, type UIPanelConfig } from './ui/UIPanel';
+
 // HoloScript+ State Management (NEW)
 export {
   ReactiveState,

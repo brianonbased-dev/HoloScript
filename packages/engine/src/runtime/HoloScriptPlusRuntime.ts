@@ -35,13 +35,13 @@ import { HSPlusStatement, HSPlusExpression as _HSPlusExpression } from '@holoscr
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
 import { WebXRManager } from './WebXRManager';
-import { PhysicsWorldImpl } from '@holoscript/core';
-import { IVector3, IPhysicsWorld } from '@holoscript/core';
-import { VRPhysicsBridge } from '@holoscript/core';
-import { PhysicsDebugDrawer } from '@holoscript/core';
-import { WebGPURenderer } from '@holoscript/core';
+import { PhysicsWorldImpl } from '../physics/PhysicsWorldImpl';
+import { IVector3, IPhysicsWorld } from '../physics/PhysicsTypes';
+import { VRPhysicsBridge } from '../physics/VRPhysicsBridge';
+import { PhysicsDebugDrawer } from '../rendering/webgpu/PhysicsDebugDrawer';
+import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
 import { KeyboardSystem } from './KeyboardSystem';
-import { HandMenuSystem } from '@holoscript/core';
+import { HandMenuSystem } from './HandMenuSystem';
 
 // MOCK: StateSync (to resolve cross-repo dependency for visualization)
 class StateSync {
@@ -95,41 +95,6 @@ export interface Renderer {
 }
 
 /** Extended renderer interface for WebXR-capable renderers (e.g. WebGPURenderer). */
-interface WebXRRenderer extends Renderer {
-  context: unknown;
-  getContext(): unknown;
-  renderXR(frame: XRFrame): void;
-}
-
-/** Type guard: checks if a renderer supports WebXR methods */
-function isWebXRRenderer(r: unknown): r is WebXRRenderer {
-  return r !== null && typeof r === 'object' && ('context' in (r as Record<string, unknown>) || 'getContext' in (r as Record<string, unknown>));
-}
-
-/** Interpolated network state with position/rotation */
-interface InterpolatedState {
-  position?: { x: number; y: number; z: number };
-  rotation?: { x: number; y: number; z: number; w?: number };
-  [key: string]: unknown;
-}
-
-/** Constructor type for WebXRManager-like classes (DI support) */
-type WebXRManagerConstructor = new (context: unknown) => WebXRManager;
-
-/** HoloTemplate-compatible shape for HotReloader registration */
-interface HotReloadableTemplate {
-  type: string;
-  name: string;
-  version?: number;
-  migrations?: unknown[];
-  state?: { properties: unknown[] };
-  directives?: unknown[];
-  [key: string]: unknown;
-}
-
-// =============================================================================
-// RUNTIME IMPLEMENTATION
-// =============================================================================
 
 export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   private ast: HSPlusAST;
@@ -207,7 +172,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     this.options = options;
 
     // Initialize Physics World (+ Bridge)
-    this.physicsWorld = new PhysicsWorldImpl({
+    console.log('[[TYPE OF PW]]', typeof PhysicsWorldImpl, PhysicsWorldImpl); this.physicsWorld = new PhysicsWorldImpl({
       gravity: { x: 0, y: -9.81, z: 0 },
       maxSubsteps: 2,
     });
