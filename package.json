@@ -62,7 +62,7 @@
     "syncpack:check": "syncpack list-mismatches"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
+    "@anthropic-ai/sdk": "^0.86.1",
     "@changesets/cli": "^2.29.4",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
