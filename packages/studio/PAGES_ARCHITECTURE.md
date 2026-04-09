@@ -4,12 +4,12 @@
 
 HoloScript has **two separate Next.js frontend applications** that need to work together in production:
 
-1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. **18 page routes** organized as a progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`), 100+ components, 110+ hooks. Brittney AI (54 tools) powers the `/vibe` experience and `/create` chat panel.
+1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. **43 page routes** (6 primary funnel + 12 supporting + 25 sub-routes/dynamic) organized as a progressive disclosure funnel (`/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents`), 316 components, 148 hooks, 143 API routes. Brittney AI (54 tools) powers the `/vibe` experience and `/create` chat panel.
 2. **`@holoscript/marketplace-web`** (port 3000) — The trait marketplace. 4 page routes, proxies API calls to `@holoscript/marketplace-api`.
 
 Both live in the same monorepo under `packages/` and share workspace dependencies (`@holoscript/core`, `@holoscript/std`, etc.), but they are **independently deployable Next.js apps** with no shared routing.
 
-**v6.0.2 restructure**: Studio was reorganized from 43 scattered routes to 18 routes with a progressive disclosure funnel and 3 spaces (HoloMesh public social, Teams private workspaces, Agents fleet management). The `/start` route handles user provisioning (GitHub OAuth → API key → repo → scaffold → daemon) with consent gates.
+**v6.0.2 restructure**: Studio was reorganized from 43 scattered routes into a progressive disclosure funnel with 3 spaces (HoloMesh public social, Teams private workspaces, Agents fleet management). The funnel has 6 primary routes, 12 supporting routes, and 25 sub-routes/dynamic pages (43 total page.tsx files, 143 API routes). The `/start` route handles user provisioning (GitHub OAuth → API key → repo → scaffold → daemon) with consent gates.
 
 ---
 
@@ -17,7 +17,7 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### A. Studio Pages (`packages/studio/src/app/`)
 
-**v6.0.2 restructure**: Routes reorganized from 43 to 18 around a progressive disclosure funnel and 3 spaces.
+**v6.0.2 restructure**: Routes reorganized into a progressive disclosure funnel and 3 spaces. 43 total page.tsx files (6 primary + 12 supporting + 25 sub-routes/dynamic).
 
 #### Primary Funnel (6 routes)
 
@@ -116,7 +116,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - **Component patterns**: Functional components with hooks. No class components.
 - **State**: Zustand stores (`useSceneStore`, `useEditorStore`, `useSceneGraphStore`, `usePanelVisibilityStore`, `useProjectStore`, `useTemporalStore`)
 
-### C. API Routes (51 total in Studio)
+### C. API Routes (143 total in Studio)
 
 **Core Scene Operations:**
 
@@ -246,6 +246,22 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 | Export API      | `services/export-api`         | TBD  | Needs Dockerfile        | TBD                       |
 | LLM Service     | `services/llm-service`        | TBD  | Needs Dockerfile        | TBD                       |
 | Render Service  | `services/render-service`     | TBD  | Needs Dockerfile        | TBD                       |
+
+### Hybrid Compute Topology (Railway + Dual Host)
+
+To solve the limitations of pure cloud hosting while maintaining infinite accessibility, the Studio implements a **Hybrid Tiered Architecture** utilizing the uAA2++ Sovereign Mesh (Phase 21).
+
+#### Tier 1: The Thin Client (Default)
+When users access `studio.holoscript.net` from standard devices (laptops, mobile):
+- **Role:** Pure Web Client
+- **Orchestration:** Railway handles all database/API operations.
+- **Rendering:** Local browser executes lightweight 3D/WebGPU. Heavy jobs route to cloud APIs.
+
+#### Tier 2: Dual Host Edge Node (Opt-In)
+When users access the Studio from a high-performance desktop (e.g., equipped with a dedicated RTX GPU), they can toggle "Dual Host Mode":
+- **Role:** Sovereign Compute Node
+- **Execution:** Operations shift from cloud invocation to local browser-bound execution. The local GPU overtakes fluid dynamics, neural inference, and heavy particle compilation via WebGPU.
+- **Mesh Volunteering:** (Future) The active browser establishes a WebRTC link back to Railway. Railway's Orchestrator can intelligently dispatch computationally expensive sub-tasks from Tier 1 users to these idle Tier 2 Edge Nodes ("Infinite Market" computation brokering).
 
 ---
 
