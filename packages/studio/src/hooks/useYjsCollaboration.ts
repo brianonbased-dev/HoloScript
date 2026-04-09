@@ -44,12 +44,32 @@ export function useYjsCollaboration({
     workflowsRef.current = workflows;
   });
 
+  const isConnectingRef = useRef(false);
+
   const connect = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || isConnectingRef.current) return;
+    
+    // Skip if already connected
+    if (connectionStatus === 'connected') return;
 
     try {
+      isConnectingRef.current = true;
       setConnectionStatus('connecting');
       setError(null);
+
+      // Clean up any existing observer before creating new connection
+      if (unobserveRef.current) {
+        unobserveRef.current();
+        unobserveRef.current = null;
+      }
+      
+      // Ensure we disconnect the prior client instance from sending callbacks
+      try {
+        const existingClient = getCollaborationClient();
+        existingClient.disconnect();
+      } catch (err) {
+        // Ignore if uninitialized
+      }
 
       const client = getCollaborationClient({
         user,
@@ -94,8 +114,10 @@ export function useYjsCollaboration({
       logger.error('[useYjsCollaboration] Collaboration connection error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setConnectionStatus('failed');
+    } finally {
+      isConnectingRef.current = false;
     }
-  }, [enabled, user, workflowId, updateWorkflow]);
+  }, [enabled, user, workflowId, updateWorkflow, connectionStatus]);
 
   const disconnect = useCallback(() => {
     try {

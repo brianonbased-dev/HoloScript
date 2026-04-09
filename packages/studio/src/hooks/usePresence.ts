@@ -64,11 +64,23 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     [enabled]
   );
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Poll for connected users
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
 
-    const interval = setInterval(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    intervalRef.current = setInterval(() => {
       try {
         const client = getCollaborationClient();
         const connectedUsers = client.getConnectedUsers();
@@ -79,7 +91,10 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     }, 1000); // Update every second
 
     return () => {
-      clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [enabled]);
 

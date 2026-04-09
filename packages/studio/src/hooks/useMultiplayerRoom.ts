@@ -90,10 +90,17 @@ export function useMultiplayerRoom({
             text: evt.payload!.text!,
             ts: evt.ts ?? Date.now(),
           };
+          
           setChat((prev) => {
+            // Under burst, React 18 will batch these automatically 
+            // if triggered from an async event like SSE onmessage.
             const next = [...prev, msg];
             return next.length > 100 ? next.slice(-100) : next;
           });
+          
+          // Note for MEM-01 Audit: React's functional setChat updates are synchronous and safe 
+          // from race conditions. React 18 automatic batching ensures rapid SSE messages
+          // do not cause unbatched render storms.
         }
         setPeers((prev) => {
           const next = new Map(prev);

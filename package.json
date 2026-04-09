@@ -113,7 +113,13 @@
       "socket.io-parser": ">=4.2.6",
       "@modelcontextprotocol/sdk": ">=1.25.2",
       "tree-sitter": "0.22.4",
-      "path-to-regexp": "0.1.13"
+      "path-to-regexp": "0.1.13",
+      "esbuild": ">=0.25.0",
+      "nanoid": ">=5.0.9",
+      "bn.js": ">=4.12.3",
+      "next": ">=15.5.14",
+      "@apollo/server": ">=5.5.0",
+      "elliptic": ">=6.6.1"
     }
   },
   "engines": {

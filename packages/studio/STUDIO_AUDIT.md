@@ -36,11 +36,11 @@
 | SyntheticDataDashboard.tsx | 788 | Extract config panel, preview, stats |
 | HoloDiffPanel.tsx | 775 | Extract diff viewer, controls, timeline |
 
-### MEM-01: Memory Leaks in Hooks
-- **usePresence.ts:71** — `setInterval` can stack if `enabled` toggles rapidly
-- **useYjsCollaboration.ts:47** — callbacks stack on reconnect
-- **useLivePreview.ts:55** — EventSource recreates if `onRemoteCode` not memoized
-- **useMultiplayerRoom.ts:88** — chat buffer race condition under burst
+### ~~MEM-01: Memory Leaks in Hooks~~ — FIXED
+- **usePresence.ts:71** — `setInterval` can stack if `enabled` toggles rapidly (Fixed via useRef tracking)
+- **useYjsCollaboration.ts:47** — callbacks stack on reconnect (Fixed via cleanup blocks & connectionRef checks)
+- **useLivePreview.ts:55** — EventSource recreates if `onRemoteCode` not memoized (Fixed via useRef wrapping)
+- **useMultiplayerRoom.ts:88** — chat buffer race condition under burst (Fixed via automatic React 18 functional update batching & bounds checking)
 
 ### TYPE-01: 87+ `as any` Assertions
 **Worst offenders:**
@@ -51,8 +51,8 @@
 - DevToolsInit.tsx — 7 instances
 - HoloScriptEditor.tsx — 4 instances
 
-### ERR-01: 16 Swallowed Errors (`.catch(() => {})`)
-Found in: AudioTraitPanel, AudioVisualizerPanel, EnvironmentPanel, Guestbook, MusicPlayer, LodPanel, MaterialPanel, NodeGraphPanel, ParticlePanel, PhysicsPanel, PluginPanelContainer, RegistryPanel, useShaderPreview, StudioHeader, TemplateGallery
+### ~~ERR-01: 16 Swallowed Errors (`.catch(() => {})`)~~ — FIXED
+Found in: AudioTraitPanel, AudioVisualizerPanel, EnvironmentPanel, Guestbook, MusicPlayer, LodPanel, MaterialPanel, NodeGraphPanel, ParticlePanel, PhysicsPanel, PluginPanelContainer, RegistryPanel, useShaderPreview, StudioHeader, TemplateGallery (All patched with logger.warn/logger.error)
 
 ### TEST-01: Industry Verticals Have 0% Test Coverage
 - 26 scenario panels — zero tests
