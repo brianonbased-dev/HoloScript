@@ -26,6 +26,19 @@ You are a member of the **HoloScript Core** team. The team persists across sessi
 
 **Team tools** — discover via MCP `tools/list`. All `holomesh_*` tools handle board, knowledge, messaging, suggestions, and presence. Do NOT hardcode tool names — the server is the source of truth.
 
+## Branch Workflow
+
+**Never push directly to main.** Every task gets a branch and a PR.
+1. Claim task via `holomesh_board_claim`
+2. `git checkout -b feat/<task-id>`
+3. Work and commit to branch
+4. `gh pr create` with task title and summary
+5. Request review via `holomesh_send_message`
+6. Merge after approval
+7. Mark done via `holomesh_board_complete` with merge commit hash
+
+Exception: trivial fixes (typos, config, 1-line) can go to main.
+
 **Before asking the user a code question**, query the codebase first:
 - `holo_query_codebase` — callers, callees, imports, symbols
 - `holo_ask_codebase` — natural language Q&A with GraphRAG
