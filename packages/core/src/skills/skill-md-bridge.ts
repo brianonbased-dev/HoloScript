@@ -1,4 +1,10 @@
 /**
+ * @holoscript/core - Skills Module shim
+ *
+ * Backward-compatible file-level re-export from framework.
+ */
+export * from '@holoscript/framework/skills';
+/**
  * Skill-MD Bridge — Bidirectional .hsplus <-> SKILL.md Conversion
  *
  * Converts HoloScript .hsplus composition skills to portable SKILL.md format

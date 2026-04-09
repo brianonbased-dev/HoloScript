@@ -1,4 +1,10 @@
 /**
+ * @holoscript/core - Voting Mechanisms shim
+ *
+ * Backward-compatible file-level re-export from framework.
+ */
+export * from '@holoscript/framework/negotiation';
+/**
  * @holoscript/core - Voting Mechanisms
  *
  * Implementations of various voting algorithms for agent negotiation.

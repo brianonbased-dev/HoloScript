@@ -3,6 +3,4 @@
  *
  * Multi-agent negotiation, voting, and consensus protocols.
  */
-export * from './NegotiationTypes';
-export * from './NegotiationProtocol';
-export * from './VotingMechanisms';
+export * from '@holoscript/framework/negotiation';

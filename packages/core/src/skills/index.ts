@@ -3,4 +3,4 @@
  *
  * Skill-MD bridge and portable skill format support.
  */
-export * from './skill-md-bridge';
+export * from '@holoscript/framework/skills';

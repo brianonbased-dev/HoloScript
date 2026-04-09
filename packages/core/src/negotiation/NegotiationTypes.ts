@@ -1,4 +1,10 @@
 /**
+ * @holoscript/core - Negotiation Types shim
+ *
+ * Backward-compatible file-level re-export from framework.
+ */
+export * from '@holoscript/framework/negotiation';
+/**
  * @holoscript/core - Negotiation Type Definitions
  *
  * Types for agent negotiation, voting, and conflict resolution.

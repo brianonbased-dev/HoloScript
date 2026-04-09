@@ -1,4 +1,10 @@
 /**
+ * @holoscript/core - Negotiation Protocol shim
+ *
+ * Backward-compatible file-level re-export from framework.
+ */
+export * from '@holoscript/framework/negotiation';
+/**
  * @holoscript/core - Negotiation Protocol
  *
  * Core protocol for multi-agent negotiation and consensus building.
