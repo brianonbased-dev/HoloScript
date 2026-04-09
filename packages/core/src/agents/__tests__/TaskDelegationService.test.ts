@@ -119,6 +119,57 @@ describe('TaskDelegationService', () => {
       expect(result.delegatedTo.endpoint).toBe('https://remote.example.com/a2a');
     });
 
+    it('sends idempotency key header and payload for remote delegation', async () => {
+      await registry.register(makeRemoteAgent());
+
+      let capturedInit: RequestInit | undefined;
+      const service = new TaskDelegationService(registry, undefined, {
+        idempotencyKeyFactory: () => 'idem-fixed-key',
+        fetchFn: async (_url, init) => {
+          capturedInit = init;
+          return {
+            ok: true,
+            json: async () => ({ result: { status: 'completed' } }),
+          } as Response;
+        },
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'remote-agent-1',
+        skillId: 'compile_hs',
+        arguments: { code: 'x' },
+      });
+
+      expect(result.status).toBe('completed');
+      const headers = (capturedInit?.headers ?? {}) as Record<string, string>;
+      expect(headers['Idempotency-Key']).toBe('idem-fixed-key');
+
+      const body = JSON.parse(String(capturedInit?.body ?? '{}')) as {
+        params?: { message?: { parts?: Array<{ data?: Record<string, unknown> }> } };
+      };
+      expect(body.params?.message?.parts?.[0]?.data?.idempotencyKey).toBe('idem-fixed-key');
+    });
+
+    it('uses transport adapter when configured', async () => {
+      await registry.register(makeRemoteAgent());
+
+      const send = vi.fn(async () => ({ status: 'completed', via: 'adapter' }));
+      const service = new TaskDelegationService(registry, undefined, {
+        transportAdapter: { send },
+        idempotencyKeyFactory: () => 'adapter-idem',
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'remote-agent-1',
+        skillId: 'compile_hs',
+        arguments: { code: 'x' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0].idempotencyKey).toBe('adapter-idem');
+    });
+
     it('handles remote agent HTTP errors', async () => {
       await registry.register(makeRemoteAgent());
 

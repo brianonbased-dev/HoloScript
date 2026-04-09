@@ -59,6 +59,24 @@ export interface TaskDelegationConfig {
   localExecutor?: (skillId: string, args: Record<string, unknown>) => Promise<unknown>;
   /** Optional observability hook for per-task delegation trace events */
   traceHook?: (event: DelegationTraceEvent) => void;
+  /** Optional transport adapter for remote A2A calls */
+  transportAdapter?: A2ATransportAdapter;
+  /** Optional idempotency key factory for remote A2A calls */
+  idempotencyKeyFactory?: (ctx: {
+    taskId: string;
+    attempt: number;
+    endpointUrl: string;
+    skillId: string;
+  }) => string;
+}
+
+export interface A2ATransportAdapter {
+  send(input: {
+    endpointUrl: string;
+    requestBody: Record<string, unknown>;
+    idempotencyKey: string;
+    fetchFn: (url: string, init?: RequestInit) => Promise<Response>;
+  }): Promise<unknown>;
 }
 
 export type DelegationTracePhase =
@@ -159,7 +177,14 @@ export class TaskDelegationService {
 
       try {
         const result = await this.executeWithTimeout(
-          () => this.executeOnAgent(manifest, request.skillId, request.arguments),
+          () =>
+            this.executeOnAgent(
+              manifest,
+              request.skillId,
+              request.arguments,
+              taskId,
+              attempt
+            ),
           timeout
         );
 
@@ -327,7 +352,9 @@ export class TaskDelegationService {
   private async executeOnAgent(
     manifest: AgentManifest,
     skillId: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    taskId: string,
+    attempt: number
   ): Promise<unknown> {
     const endpoint = this.getPrimaryEndpoint(manifest);
 
@@ -341,7 +368,7 @@ export class TaskDelegationService {
 
     // Remote agent: A2A JSON-RPC sendMessage
     if (endpoint.protocol === 'http' || endpoint.protocol === 'https') {
-      return this.executeRemote(endpoint.address, skillId, args);
+      return this.executeRemote(endpoint.address, skillId, args, taskId, attempt);
     }
 
     throw new Error(`Unsupported endpoint protocol: ${endpoint.protocol}`);
@@ -353,9 +380,18 @@ export class TaskDelegationService {
   private async executeRemote(
     endpointUrl: string,
     skillId: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    taskId: string,
+    attempt: number
   ): Promise<unknown> {
     const fetchFn = this.config.fetchFn || globalThis.fetch;
+    const idempotencyKey =
+      this.config.idempotencyKeyFactory?.({
+        taskId,
+        attempt,
+        endpointUrl,
+        skillId,
+      }) ?? `hs-delegation-${taskId}-attempt-${attempt}`;
 
     const jsonRpcRequest = {
       jsonrpc: '2.0',
@@ -367,7 +403,7 @@ export class TaskDelegationService {
           parts: [
             {
               type: 'data',
-              data: { skillId, arguments: args },
+              data: { skillId, arguments: args, idempotencyKey },
               mimeType: 'application/json',
             },
           ],
@@ -376,9 +412,21 @@ export class TaskDelegationService {
       },
     };
 
+    if (this.config.transportAdapter) {
+      return this.config.transportAdapter.send({
+        endpointUrl,
+        requestBody: jsonRpcRequest as Record<string, unknown>,
+        idempotencyKey,
+        fetchFn,
+      });
+    }
+
     const response = await fetchFn(endpointUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
       body: JSON.stringify(jsonRpcRequest),
     });
 
