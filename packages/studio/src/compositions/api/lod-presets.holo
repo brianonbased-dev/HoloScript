@@ -1,0 +1,20 @@
+// HoloScript source for GET /api/lod
+// Compiled to: packages/studio/src/app/api/lod/route.ts
+// Compiler:    NextJSAPICompiler (compileToNextJSAPI)
+
+composition "LodPresetsAPI" {
+  @http {
+    method: "GET"
+    description: "Returns Level-of-Detail (LOD) configuration presets for scene objects"
+  }
+
+  route: "/api/lod"
+  category: "presets"
+  version: "1.0.0"
+  stable: true
+
+  object "Response" {
+    type: "LodPreset[]"
+    statusCode: 200
+  }
+}

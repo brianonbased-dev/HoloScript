@@ -78,6 +78,16 @@ export { MultiLayerCompiler } from './MultiLayerCompiler';
 
 // Sprint 2 extensions
 export { COCOExporter } from './COCOExporter';
+
+// Next.js compilers
+export {
+  compileToNextJSAPI,
+  compileAllToNextJSAPI,
+} from './NextJSAPICompiler';
+export type {
+  NextJSAPICompilerOptions,
+  NextJSAPICompileResult,
+} from './NextJSAPICompiler';
 export { GLTF_PIPELINE_TOOLS, registerGLTFTools } from './GLTFPipelineMCPTool';
 export { NodeToyMapper, mapNodeToyToShader } from './NodeToyMapping';
 export { RemotionBridge } from './RemotionBridge';

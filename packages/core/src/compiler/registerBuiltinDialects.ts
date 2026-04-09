@@ -398,6 +398,25 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.tsx', '.html'],
     },
 
+    // ── Next.js API Routes ────────────────────────────────────────────────
+    {
+      name: 'nextjs-api',
+      domain: 'web',
+      description: 'Compiles @http traits to Next.js App Router API route handlers (route.ts)',
+      supportedTraits: ['http', 'handler', 'middleware', 'auth', 'rate_limit', 'cors'],
+      riskTier: 'standard',
+      factory: () => {
+        const { compileToNextJSAPI } = require('./NextJSAPICompiler');
+        // Wrap the functional API in a minimal adapter recognised by DialectRegistry
+        return {
+          compile: (composition: unknown, _token: unknown) =>
+            compileToNextJSAPI(composition),
+        };
+      },
+      outputExtensions: ['.ts'],
+      experimental: true,
+    },
+
     // ── v6 Universal Service ──────────────────────────────────────────────
     {
       name: 'node-service',

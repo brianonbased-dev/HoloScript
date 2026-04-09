@@ -1,0 +1,20 @@
+// HoloScript source for GET /api/materials
+// Compiled to: packages/studio/src/app/api/materials/route.ts
+// Compiler:    NextJSAPICompiler (compileToNextJSAPI)
+
+composition "MaterialsAPI" {
+  @http {
+    method: "GET"
+    description: "Returns PBR material presets for 3D scene objects"
+  }
+
+  route: "/api/materials"
+  category: "presets"
+  version: "1.0.0"
+  stable: true
+
+  object "Response" {
+    type: "MaterialPreset[]"
+    statusCode: 200
+  }
+}
