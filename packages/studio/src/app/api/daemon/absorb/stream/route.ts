@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Pipe the external SSE directly back to the Next.js client
+     if (!res.body) {
+       return new Response(
+         JSON.stringify({ error: 'Absorb service returned empty body' }),
+         { status: 500, headers: { 'Content-Type': 'application/json' } }
+       );
+     }
     return new Response(createSSEHeartbeatStream(res.body, { cursor }), {
       headers: {
         'Content-Type': 'text/event-stream',

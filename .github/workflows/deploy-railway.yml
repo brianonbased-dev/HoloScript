@@ -1,5 +1,7 @@
 # Deploy HoloScript web applications to Railway
 name: Deploy to Railway
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   workflow_dispatch:
@@ -41,7 +43,7 @@ jobs:
       mcp-server: ${{ steps.filter.outputs.mcp-server }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - uses: dorny/paths-filter@v4
         id: filter
@@ -77,10 +79,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -124,9 +126,7 @@ jobs:
 
       - name: Install wasm-pack
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
+        run: cargo install wasm-pack --locked
 
       - name: Full build — catch compilation errors before deploy
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
@@ -162,7 +162,7 @@ jobs:
       url: https://studio.holoscript.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -200,7 +200,7 @@ jobs:
       url: https://marketplace.holoscript.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -232,7 +232,7 @@ jobs:
       url: https://marketplace-api.holoscript.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -269,7 +269,7 @@ jobs:
       name: production-render-service
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -296,7 +296,7 @@ jobs:
       name: production-llm-service
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -324,7 +324,7 @@ jobs:
       url: https://absorb.holoscript.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -356,7 +356,7 @@ jobs:
       url: https://mcp.holoscript.net
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -405,11 +405,11 @@ jobs:
     steps:
       - name: Checkout
         if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         if: ${{ !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -453,3 +453,4 @@ jobs:
           echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Absorb Service | ${{ needs.deploy-absorb-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Server | ${{ needs.deploy-mcp-server.result }} |" >> $GITHUB_STEP_SUMMARY
+

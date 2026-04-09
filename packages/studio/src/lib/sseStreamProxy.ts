@@ -12,8 +12,8 @@ export function resolveReconnectCursor(request: {
   );
 }
 
-export function createSSEHeartbeatStream(
-  source: ReadableStream<Uint8Array>,
+export function createSSEHeartbeatStream<TChunk extends Uint8Array>(
+  source: ReadableStream<TChunk>,
   options: { heartbeatIntervalMs?: number; cursor?: string } = {}
 ): ReadableStream<Uint8Array> {
   const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 15000;

@@ -1,4 +1,4 @@
-import { compileHSNAPToUAAL } from './hsnap-bytecode';
+import { compileHSNAPToUAAL, type HSNAPCompileOptions } from './hsnap-bytecode';
 
 export type HSNAPLifecycleType =
   | 'task.send'
@@ -83,7 +83,7 @@ export interface HSNAPRouteReceipt {
 }
 
 export interface HSNAPRouterOptions {
-  compile?: (source: string) => Promise<unknown>;
+  compile?: ((source: string) => Promise<unknown>) | ((source: string, options?: HSNAPCompileOptions) => unknown);
   now?: () => number;
 }
 
@@ -101,12 +101,12 @@ export interface ParsedHSNAPPayload {
 export class HSNAPRouter {
   private readonly agents = new Map<string, InternalAgentRecord>();
   private readonly lifecycleHistory: HSNAPLifecycleEvent[] = [];
-  private readonly compile?: (source: string) => Promise<unknown>;
+  private readonly compile?: ((source: string) => Promise<unknown>) | ((source: string, options?: HSNAPCompileOptions) => unknown);
   private readonly now: () => number;
   private idCounter = 0;
 
   constructor(options: HSNAPRouterOptions = {}) {
-    this.compile = options.compile ?? compileHSNAPToUAAL;
+    this.compile = options.compile;
     this.now = options.now ?? (() => Date.now());
   }
 

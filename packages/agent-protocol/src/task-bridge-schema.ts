@@ -116,12 +116,12 @@ export function canonicalTaskToHSNAPSource(
 ): string {
   const sections: string[] = [];
 
-  sections.push(`@task ${serializeObjectLiteral(envelope.task)}`);
+  sections.push(`@task ${serializeObjectLiteral(envelope.task as unknown as Record<string, unknown>)}`);
   if (envelope.result) {
-    sections.push(`@result ${serializeObjectLiteral(envelope.result)}`);
+    sections.push(`@result ${serializeObjectLiteral(envelope.result as unknown as Record<string, unknown>)}`);
   }
   if (envelope.agent) {
-    sections.push(`@agent ${serializeObjectLiteral(envelope.agent)}`);
+    sections.push(`@agent ${serializeObjectLiteral(envelope.agent as unknown as Record<string, unknown>)}`);
   }
 
   sections.push(`composition ${compositionName} {}`);
