@@ -1169,8 +1169,8 @@ importers:
         specifier: workspace:*
         version: link:../registry
       '@zoralabs/protocol-deployments':
-        specifier: ^0.7.2
-        version: 0.7.2
+        specifier: ^0.7.5
+        version: 0.7.5
       '@zoralabs/protocol-sdk':
         specifier: ^0.13.18
         version: 0.13.18(abitype@1.2.3)(viem@2.47.2)
@@ -6798,6 +6798,14 @@ packages:
       graphql: 16.13.2
     dev: false
 
+  /@graphql-typed-document-node/core@3.2.0(graphql@16.13.2):
+    resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+    dependencies:
+      graphql: 16.13.2
+    dev: false
+
   /@graphql-yoga/subscription@5.0.5:
     resolution: {integrity: sha512-oCMWOqFs6QV96/NZRt/ZhTQvzjkGB4YohBOpKM4jH/lDT4qb7Lex/aGCxpi/JD9njw3zBBtMqxbaC22+tFHVvw==}
     engines: {node: '>=18.0.0'}
@@ -7897,7 +7905,7 @@ packages:
       '@metamask/superstruct': 3.2.1
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
-      '@types/debug': 4.1.12
+      '@types/debug': 4.1.13
       '@types/lodash': 4.17.24
       debug: 4.4.3
       lodash: 4.18.1
@@ -16251,8 +16259,8 @@ packages:
     resolution: {integrity: sha512-iDO5EhLrqDw0keudRq9omuSdvHG852de5/apY2p7QLBDxitQuJ/6/jOaq2WB4B6GPVUh2fTd5+CdoSsbJhJv5g==}
     dev: false
 
-  /@zoralabs/protocol-deployments@0.7.2:
-    resolution: {integrity: sha512-111yygoTKPFSd+iAnUNJDUC3mZBDW2xidpFZHN+q2ZT8H3SvN2jlmS1WJxPgvfE9tfdfDoTTT098dYuOuaU6pg==}
+  /@zoralabs/protocol-deployments@0.7.5:
+    resolution: {integrity: sha512-LtvwBipo0Rpz5OefWfaoxpSnfxFIlTSMYcExmHYSxU+XS9REUS3cjvAH2YxQjhlvmHVMUlJ3bcDAbchnlY+ucQ==}
     dev: false
 
   /@zoralabs/protocol-sdk@0.13.18(abitype@1.2.3)(viem@2.47.2):
@@ -16261,7 +16269,7 @@ packages:
       abitype: ^1.0.2
       viem: 2.22.12
     dependencies:
-      '@zoralabs/protocol-deployments': 0.7.2
+      '@zoralabs/protocol-deployments': 0.7.5
       abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
     dev: false
@@ -21019,7 +21027,7 @@ packages:
     resolution: {integrity: sha512-an2S5quJMiy5bnZKEf6AkfH/7r8CzHvhchU40gxN+OM6HPhe7Z9T1FUychcf2M9PpPOO0Hf7BAEfJkw2TDIBDw==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      readable-stream: 4.7.0
+      readable-stream: 3.6.2
       webextension-polyfill: 0.10.0
     dev: false
 
@@ -21917,6 +21925,11 @@ packages:
     dependencies:
       graphql: 16.13.2
       ws: 8.19.0
+    dev: false
+
+  /graphql@16.13.2:
+    resolution: {integrity: sha512-5bJ+nf/UCpAjHM8i06fl7eLyVC9iuNAjm9qzkiu2ZGhM0VscSvS6WDPfAwkdkBuoXGM9FJSbKl6wylMwP9Ktig==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
   /graphql@16.13.2:

@@ -19,7 +19,7 @@
     "@holoscript/framework": "workspace:*",
     "@holoscript/registry": "workspace:*",
     "@coinbase/agentkit": "^0.10.4",
-    "@zoralabs/protocol-deployments": "^0.7.2",
+    "@zoralabs/protocol-deployments": "^0.7.5",
     "@zoralabs/protocol-sdk": "^0.13.18",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
