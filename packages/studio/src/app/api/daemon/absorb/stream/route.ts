@@ -11,18 +11,21 @@ import {
   ABSORB_PROGRESS_CONTRACT_VERSION,
   toAbsorbProgressContractEvent,
 } from '@/lib/absorbStreamContract';
+import { createSSEHeartbeatStream, resolveReconnectCursor } from '@/lib/sseStreamProxy';
 
 const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
   try {
     const bodyText = await req.text();
+    const cursor = resolveReconnectCursor(req);
 
     const res = await fetch(`${ABSORB_SERVICE_URL}/api/absorb/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
+        ...(cursor ? { 'Last-Event-ID': cursor, 'X-Reconnect-Cursor': cursor } : {}),
         ...forwardAuthHeaders(req),
       },
       body: bodyText,
@@ -37,12 +40,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Pipe the external SSE directly back to the Next.js client
-    return new Response(res.body, {
+    return new Response(createSSEHeartbeatStream(res.body, { cursor }), {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'X-HoloScript-Stream-Contract': ABSORB_PROGRESS_CONTRACT_VERSION,
+        ...(cursor ? { 'X-Reconnect-Cursor': cursor } : {}),
       },
     });
   } catch (error) {
