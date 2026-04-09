@@ -332,5 +332,60 @@ describe('TaskDelegationService', () => {
       expect(stats.failed).toBe(1);
       expect(stats.rejected).toBe(1);
     });
+
+    it('emits trace events via traceHook and exposes trace history', async () => {
+      await registry.register(makeLocalAgent());
+
+      const traceEvents: string[] = [];
+      const service = new TaskDelegationService(registry, undefined, {
+        localExecutor: async () => ({ ok: true }),
+        traceHook: (event) => {
+          traceEvents.push(event.phase);
+        },
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'local-agent-1',
+        skillId: 'traceable_skill',
+        arguments: {},
+      });
+
+      const taskTrace = service.getTraceHistory(result.taskId);
+      expect(traceEvents).toContain('start');
+      expect(traceEvents).toContain('attempt');
+      expect(traceEvents).toContain('success');
+      expect(taskTrace.length).toBeGreaterThan(0);
+      expect(taskTrace[0].taskId).toBe(result.taskId);
+    });
+
+    it('replays a delegated task from stored request history', async () => {
+      await registry.register(makeLocalAgent());
+
+      const service = new TaskDelegationService(registry, undefined, {
+        localExecutor: async () => ({ replayable: true }),
+      });
+
+      const initial = await service.delegateTo({
+        targetAgentId: 'local-agent-1',
+        skillId: 'replay_skill',
+        arguments: { pass: 1 },
+      });
+
+      const replay = await service.replay(initial.taskId, {
+        arguments: { pass: 2 },
+      });
+
+      expect(replay.status).toBe('completed');
+      expect(replay.taskId).not.toBe(initial.taskId);
+
+      const originalTrace = service.getTraceHistory(initial.taskId).map((event) => event.phase);
+      expect(originalTrace).toContain('replay_requested');
+      expect(originalTrace).toContain('replay_completed');
+    });
+
+    it('throws when replaying unknown task id', async () => {
+      const service = new TaskDelegationService(registry);
+      await expect(service.replay('missing-task-id')).rejects.toThrow('Replay unavailable');
+    });
   });
 });

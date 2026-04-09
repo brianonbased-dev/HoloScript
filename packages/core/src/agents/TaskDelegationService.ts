@@ -57,6 +57,27 @@ export interface TaskDelegationConfig {
   fetchFn?: (url: string, init?: RequestInit) => Promise<Response>;
   /** Local tool executor for in-process agents */
   localExecutor?: (skillId: string, args: Record<string, unknown>) => Promise<unknown>;
+  /** Optional observability hook for per-task delegation trace events */
+  traceHook?: (event: DelegationTraceEvent) => void;
+}
+
+export type DelegationTracePhase =
+  | 'start'
+  | 'attempt'
+  | 'retry'
+  | 'success'
+  | 'failure'
+  | 'timeout'
+  | 'rejected'
+  | 'replay_requested'
+  | 'replay_completed'
+  | 'replay_failed';
+
+export interface DelegationTraceEvent {
+  taskId: string;
+  phase: DelegationTracePhase;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
 }
 
 const DEFAULT_CONFIG: TaskDelegationConfig = {
@@ -73,6 +94,8 @@ export class TaskDelegationService {
   private adapter?: FederatedRegistryAdapter;
   private config: TaskDelegationConfig;
   private history: DelegationResult[] = [];
+  private traceHistory: DelegationTraceEvent[] = [];
+  private requestHistory = new Map<string, DelegationRequest>();
 
   constructor(
     registry: AgentRegistry,
@@ -97,6 +120,14 @@ export class TaskDelegationService {
     const timeout = request.timeout ?? this.config.defaultTimeout;
     const maxRetries = request.retries ?? 0;
 
+    this.requestHistory.set(taskId, { ...request, arguments: { ...request.arguments } });
+    this.emitTrace(taskId, 'start', {
+      targetAgentId: request.targetAgentId,
+      skillId: request.skillId,
+      timeout,
+      maxRetries,
+    });
+
     // Resolve target agent
     const manifest = this.registry.get(request.targetAgentId);
     if (!manifest) {
@@ -108,6 +139,7 @@ export class TaskDelegationService {
         delegatedTo: { agentId: request.targetAgentId, endpoint: 'unknown' },
       };
       this.addToHistory(result);
+      this.emitTrace(taskId, 'rejected', { reason: result.error });
       return result;
     }
 
@@ -117,9 +149,11 @@ export class TaskDelegationService {
     // Retry loop
     let lastError = '';
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      this.emitTrace(taskId, 'attempt', { attempt, maxRetries });
       if (attempt > 0) {
         // Exponential backoff with jitter
         const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 200, 10_000);
+        this.emitTrace(taskId, 'retry', { attempt, delayMs: delay });
         await this.sleep(delay);
       }
 
@@ -137,6 +171,7 @@ export class TaskDelegationService {
           delegatedTo,
         };
         this.addToHistory(delegationResult);
+        this.emitTrace(taskId, 'success', { attempt });
         return delegationResult;
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
@@ -149,8 +184,10 @@ export class TaskDelegationService {
             delegatedTo,
           };
           this.addToHistory(result);
+          this.emitTrace(taskId, 'timeout', { attempt, timeoutMs: timeout });
           return result;
         }
+        this.emitTrace(taskId, 'failure', { attempt, error: lastError });
         // Continue retrying on non-timeout errors
       }
     }
@@ -164,6 +201,7 @@ export class TaskDelegationService {
       delegatedTo,
     };
     this.addToHistory(result);
+    this.emitTrace(taskId, 'failure', { retriesExhausted: true, error: result.error });
     return result;
   }
 
@@ -216,6 +254,48 @@ export class TaskDelegationService {
    */
   getDelegationHistory(): DelegationResult[] {
     return [...this.history];
+  }
+
+  /**
+   * Get observability trace events for delegations (optionally filtered by taskId).
+   */
+  getTraceHistory(taskId?: string): DelegationTraceEvent[] {
+    if (!taskId) return [...this.traceHistory];
+    return this.traceHistory.filter((event) => event.taskId === taskId);
+  }
+
+  /**
+   * Replay a previously delegated task using its original request payload.
+   */
+  async replay(taskId: string, overrides: Partial<DelegationRequest> = {}): Promise<DelegationResult> {
+    const original = this.requestHistory.get(taskId);
+    if (!original) {
+      throw new Error(`Replay unavailable for taskId: ${taskId}`);
+    }
+
+    const replayRequest: DelegationRequest = {
+      ...original,
+      ...overrides,
+      arguments: {
+        ...original.arguments,
+        ...(overrides.arguments ?? {}),
+      },
+    };
+
+    this.emitTrace(taskId, 'replay_requested', {
+      targetAgentId: replayRequest.targetAgentId,
+      skillId: replayRequest.skillId,
+    });
+
+    try {
+      const replayResult = await this.delegateTo(replayRequest);
+      this.emitTrace(taskId, 'replay_completed', { replayTaskId: replayResult.taskId });
+      return replayResult;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.emitTrace(taskId, 'replay_failed', { error: message });
+      throw error;
+    }
   }
 
   /**
@@ -343,8 +423,29 @@ export class TaskDelegationService {
   private addToHistory(result: DelegationResult): void {
     this.history.push(result);
     while (this.history.length > this.config.maxHistory) {
-      this.history.shift();
+      const evicted = this.history.shift();
+      if (evicted) {
+        this.requestHistory.delete(evicted.taskId);
+      }
     }
+  }
+
+  /**
+   * Emit and store delegation observability traces.
+   */
+  private emitTrace(
+    taskId: string,
+    phase: DelegationTracePhase,
+    metadata?: Record<string, unknown>
+  ): void {
+    const event: DelegationTraceEvent = {
+      taskId,
+      phase,
+      timestamp: new Date().toISOString(),
+      ...(metadata ? { metadata } : {}),
+    };
+    this.traceHistory.push(event);
+    this.config.traceHook?.(event);
   }
 
   /**
