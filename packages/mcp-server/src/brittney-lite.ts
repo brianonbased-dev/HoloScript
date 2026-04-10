@@ -785,7 +785,10 @@ async function tryModelScaffold(
   const prompt = `Generate a complete HoloScript .holo scene for: ${description}\nProject type: ${type}${featureStr}\n\nOutput ONLY the HoloScript code. Include composition wrapper, environment block, templates, objects with positions, and a logic block.`;
 
   const raw = await queryOllama(prompt);
-  if (!raw) return null;
+  if (!raw) {
+    console.warn(`[brittney-lite] AI model returned empty response for: "${description.slice(0, 60)}". Check Ollama is running and model is loaded.`);
+    return null;
+  }
 
   const code = stripCodeFences(raw);
 
@@ -794,13 +797,20 @@ async function tryModelScaffold(
     const format = detectFormat(code);
     if (format === 'holo') {
       const result = parseHolo(code);
-      if (result.errors?.length > 0) return null;
+      if (result.errors?.length > 0) {
+        console.warn(`[brittney-lite] Generated .holo has ${result.errors.length} parse errors: ${result.errors.slice(0, 2).map((e: any) => e.message || e).join(', ')}. Returning null — caller should retry or adjust prompt.`);
+        return null;
+      }
     } else {
       const parser = new HoloScriptPlusParser();
       const result = parser.parse(code);
-      if (result.errors?.length > 0) return null;
+      if (result.errors?.length > 0) {
+        console.warn(`[brittney-lite] Generated .hsplus has ${result.errors.length} parse errors: ${result.errors.slice(0, 2).map((e: any) => e.message || e).join(', ')}. Returning null.`);
+        return null;
+      }
     }
-  } catch {
+  } catch (e) {
+    console.warn(`[brittney-lite] Parser crashed on generated code: ${(e as Error)?.message ?? e}. The AI model may have produced invalid syntax.`);
     return null;
   }
 
