@@ -96,7 +96,7 @@ export class CompositionTestRunner {
     const tests = this.extractTestBlocks(source);
 
     if (this.config.debug) {
-      console.log(`[composition_test] Found ${tests.length} @test blocks`);
+      console.debug(`[composition_test] Found ${tests.length} @test blocks`);
     }
 
     return this.runAll(tests);
@@ -157,7 +157,7 @@ export class CompositionTestRunner {
       const fullState = { ...state, ...computed };
 
       if (this.config.debug) {
-        console.log(`[composition_test] "${test.name}" state:`, fullState);
+        console.debug(`[composition_test] "${test.name}" state:`, fullState);
       }
 
       // Check assertions

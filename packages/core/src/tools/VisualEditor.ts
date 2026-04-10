@@ -145,7 +145,7 @@ export class VisualEditor {
     }
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Initialized', this.config);
+      console.debug('[VisualEditor] Initialized', this.config);
     }
   }
 
@@ -168,7 +168,7 @@ export class VisualEditor {
     this.attachEventListeners();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] UI initialized');
+      console.debug('[VisualEditor] UI initialized');
     }
   }
 
@@ -505,7 +505,7 @@ export class VisualEditor {
         break;
       default:
         if (this.config.debug) {
-          console.log('[VisualEditor] Unhandled action:', action);
+          console.debug('[VisualEditor] Unhandled action:', action);
         }
     }
   }
@@ -569,7 +569,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] New composition created');
+      console.debug('[VisualEditor] New composition created');
     }
   }
 
@@ -592,7 +592,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Composition loaded:', composition.name);
+      console.debug('[VisualEditor] Composition loaded:', composition.name);
     }
   }
 
@@ -698,7 +698,7 @@ export class VisualEditor {
     this.composition.objects = objects;
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Composition saved:', this.composition);
+      console.debug('[VisualEditor] Composition saved:', this.composition);
     }
 
     return this.composition;
@@ -787,7 +787,7 @@ export class VisualEditor {
     this.updateHierarchy();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Entity added:', entity.name);
+      console.debug('[VisualEditor] Entity added:', entity.name);
     }
 
     return entity;
@@ -810,7 +810,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Deleted entities');
+      console.debug('[VisualEditor] Deleted entities');
     }
   }
 
@@ -857,7 +857,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Property updated:', path, '=', value);
+      console.debug('[VisualEditor] Property updated:', path, '=', value);
     }
   }
 
@@ -915,7 +915,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Undo:', entry.action);
+      console.debug('[VisualEditor] Undo:', entry.action);
     }
   }
 
@@ -943,7 +943,7 @@ export class VisualEditor {
     this.updateProperties();
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Redo:', entry.action);
+      console.debug('[VisualEditor] Redo:', entry.action);
     }
   }
 
@@ -1182,7 +1182,7 @@ export class VisualEditor {
     if (!composition) return;
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Preview:', composition);
+      console.debug('[VisualEditor] Preview:', composition);
     }
 
     // Emit preview event
@@ -1202,7 +1202,7 @@ export class VisualEditor {
     this.autoSaveTimer = window.setInterval(() => {
       this.saveComposition();
       if (this.config.debug) {
-        console.log('[VisualEditor] Auto-saved');
+        console.debug('[VisualEditor] Auto-saved');
       }
     }, this.config.autoSaveInterval);
   }
@@ -1227,7 +1227,7 @@ export class VisualEditor {
     this.history = [];
 
     if (this.config.debug) {
-      console.log('[VisualEditor] Disposed');
+      console.debug('[VisualEditor] Disposed');
     }
   }
 

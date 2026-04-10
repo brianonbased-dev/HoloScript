@@ -168,8 +168,8 @@ export class HoloScriptREPL {
    * Start REPL
    */
   async start(): Promise<void> {
-    console.log('\n🥽 HoloScript+ REPL v1.0.0');
-    console.log('Type "help" for commands, "exit" to quit\n');
+    console.debug('\n🥽 HoloScript+ REPL v1.0.0');
+    console.debug('Type "help" for commands, "exit" to quit\n');
 
     await this.repl();
   }
@@ -198,7 +198,7 @@ export class HoloScriptREPL {
           // Handle built-in commands
           switch (trimmed.toLowerCase()) {
             case 'help':
-              console.log(ErrorFormatter.formatHelp());
+              console.debug(ErrorFormatter.formatHelp());
               prompt();
               return;
 
@@ -224,7 +224,7 @@ export class HoloScriptREPL {
 
             case 'exit':
               this.rl.close();
-              console.log('\n👋 Goodbye!\n');
+              console.debug('\n👋 Goodbye!\n');
               return;
           }
 
@@ -254,19 +254,19 @@ export class HoloScriptREPL {
 
     switch (cmd) {
       case 'create':
-        console.log(`Creating: ${parts.slice(1).join(' ')}`);
+        console.debug(`Creating: ${parts.slice(1).join(' ')}`);
         break;
 
       case 'position':
-        console.log(`Position: x=${parts[1]}, y=${parts[2]}, z=${parts[3]}`);
+        console.debug(`Position: x=${parts[1]}, y=${parts[2]}, z=${parts[3]}`);
         break;
 
       case 'property':
-        console.log(`Property: ${parts[1]} = ${parts[2]}`);
+        console.debug(`Property: ${parts[1]} = ${parts[2]}`);
         break;
 
       default:
-        console.log(`Unknown command: .${cmd}`);
+        console.debug(`Unknown command: .${cmd}`);
     }
   }
 
@@ -296,15 +296,15 @@ export class HoloScriptREPL {
    */
   private showVariables(): void {
     if (this.variables.size === 0) {
-      console.log('No variables defined');
+      console.debug('No variables defined');
       return;
     }
 
-    console.log('\n📦 Variables:');
+    console.debug('\n📦 Variables:');
     for (const [name, value] of this.variables) {
-      console.log(`  ${name}: ${this.formatValue(value)}`);
+      console.debug(`  ${name}: ${this.formatValue(value)}`);
     }
-    console.log();
+    console.debug();
   }
 
   /**
@@ -312,24 +312,24 @@ export class HoloScriptREPL {
    */
   private showTypes(): void {
     if (this.types.size === 0) {
-      console.log('No custom types defined');
+      console.debug('No custom types defined');
       return;
     }
 
-    console.log('\n🏷️  Types:');
+    console.debug('\n🏷️  Types:');
     for (const [name, type] of this.types) {
-      console.log(`  ${name}: ${JSON.stringify(type)}`);
+      console.debug(`  ${name}: ${JSON.stringify(type)}`);
     }
-    console.log();
+    console.debug();
   }
 
   /**
    * Show performance profile
    */
   private showProfile(): void {
-    console.log('\n⏱️  Performance Profile:');
-    console.log('  (Profiling data would be displayed here)');
-    console.log();
+    console.debug('\n⏱️  Performance Profile:');
+    console.debug('  (Profiling data would be displayed here)');
+    console.debug();
   }
 
   /**
@@ -337,7 +337,7 @@ export class HoloScriptREPL {
    */
   private displayResult(result: unknown): void {
     const formatted = this.formatValue(result);
-    console.log(`=> ${formatted}`);
+    console.debug(`=> ${formatted}`);
   }
 
   /**
@@ -385,9 +385,9 @@ export class HotReloadWatcher {
 
     fs.watchFile(filePath, { interval: 1000 }, async () => {
       try {
-        console.log(`\n🔄 Reloading: ${filePath}`);
+        console.debug(`\n🔄 Reloading: ${filePath}`);
         await callback();
-        console.log('✅ Reload complete\n');
+        console.debug('✅ Reload complete\n');
       } catch (error: unknown) {
         console.error(ErrorFormatter.formatError(error as HoloScriptError));
       }

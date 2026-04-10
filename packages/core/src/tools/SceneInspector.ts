@@ -159,7 +159,7 @@ export class SceneInspector {
     // Build entity hierarchy from composition
     this.buildEntityHierarchy();
 
-    console.log('[SceneInspector] Initialized with', this.entities.size, 'entities');
+    console.debug('[SceneInspector] Initialized with', this.entities.size, 'entities');
   }
 
   /**
@@ -287,7 +287,7 @@ export class SceneInspector {
   public selectEntity(id: string): void {
     if (this.entities.has(id)) {
       this.selectedEntityId = id;
-      console.log('[SceneInspector] Selected entity:', id);
+      console.debug('[SceneInspector] Selected entity:', id);
     }
   }
 
@@ -320,7 +320,7 @@ export class SceneInspector {
     // @ts-expect-error
     target[lastKey] = value;
 
-    console.log('[SceneInspector] Updated', id, path, '=', value);
+    console.debug('[SceneInspector] Updated', id, path, '=', value);
 
     // Property updated in-memory. Runtime reactivity will pick up the change
     // on the next frame via the entity's property observer.
@@ -370,7 +370,7 @@ export class SceneInspector {
    */
   public togglePhysicsVisualization(type: keyof PhysicsVisualization): void {
     this.physicsVisualization[type] = !this.physicsVisualization[type];
-    console.log(
+    console.debug(
       '[SceneInspector] Physics visualization:',
       type,
       '=',
@@ -504,7 +504,7 @@ export class SceneInspector {
       <script>
         // Entity selection handler
         window.inspectorSelectEntity = function(entityId) {
-          console.log('Selected entity:', entityId);
+          console.debug('Selected entity:', entityId);
           // Would call inspector.selectEntity(entityId) and refresh UI
         };
 
