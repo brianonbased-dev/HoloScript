@@ -1626,6 +1626,8 @@ export interface CulturalNorm {
   [key: string]: any;
 }
 export type NormCategory = string;
+export type NormEnforcement = 'hard' | 'soft' | 'advisory';
+export type NormScope = 'agent' | 'zone' | 'world' | 'session';
 
 // ============================================================================
 // MARKETPLACE
