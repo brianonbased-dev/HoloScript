@@ -162,7 +162,7 @@ export function AgentDashboard({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-2" aria-label="Dashboard sections">
+        <div className="flex gap-1 mt-2" role="tablist" aria-label="Dashboard sections">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             if (isActive) {
@@ -170,7 +170,10 @@ export function AgentDashboard({
                 <button
                   key={tab.id}
                   type="button"
-                  aria-pressed="true"
+                  id={`tab-${tab.id}`}
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls={`panel-${tab.id}`}
                   aria-label={`${tab.label} panel`}
                   onClick={() => setActiveTab(tab.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors bg-studio-accent/15 text-studio-accent"
@@ -188,7 +191,10 @@ export function AgentDashboard({
               <button
                 key={tab.id}
                 type="button"
-                aria-pressed="false"
+                id={`tab-${tab.id}`}
+                role="tab"
+                aria-selected="false"
+                aria-controls={`panel-${tab.id}`}
                 aria-label={`${tab.label} panel`}
                 onClick={() => setActiveTab(tab.id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors text-studio-muted hover:text-studio-text hover:bg-studio-panel/60"
@@ -210,6 +216,8 @@ export function AgentDashboard({
         <div
           className="w-[300px] shrink-0 border-r border-studio-border overflow-y-auto p-3"
           id={`panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${activeTab}`}
         >
           {/* AGENTS TAB */}
           {activeTab === 'agents' && (
