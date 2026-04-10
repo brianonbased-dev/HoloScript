@@ -109,7 +109,11 @@ export class BrowserPool {
       return fromEnv;
     }
 
-    const candidates = ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/lib/chromium/chrome'];
+    const candidates = [
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/usr/lib/chromium/chrome',
+    ];
     for (const candidate of candidates) {
       if (existsSync(candidate)) {
         return candidate;

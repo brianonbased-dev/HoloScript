@@ -77,7 +77,10 @@ export class InventorySystem {
       if (slot.item.id === item.id) {
         const canAdd = slot.item.maxStack - slot.quantity;
         if (canAdd > 0) {
-          const byWeight = item.weight > 0 ? Math.floor((this.maxWeight - this.currentWeight) / item.weight) : remaining;
+          const byWeight =
+            item.weight > 0
+              ? Math.floor((this.maxWeight - this.currentWeight) / item.weight)
+              : remaining;
           const toAdd = Math.min(canAdd, remaining, byWeight);
           if (toAdd <= 0) break;
           slot.quantity += toAdd;
@@ -90,7 +93,10 @@ export class InventorySystem {
 
     // Create new slots for remainder
     while (remaining > 0 && this.slots.length < this.maxSlots) {
-      const byWeight = item.weight > 0 ? Math.floor((this.maxWeight - this.currentWeight) / item.weight) : remaining;
+      const byWeight =
+        item.weight > 0
+          ? Math.floor((this.maxWeight - this.currentWeight) / item.weight)
+          : remaining;
       if (byWeight <= 0) break;
       const toAdd = Math.min(item.maxStack, remaining, byWeight);
       if (toAdd <= 0) break;

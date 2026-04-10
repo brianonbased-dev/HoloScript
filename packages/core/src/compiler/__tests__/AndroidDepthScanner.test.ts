@@ -37,7 +37,10 @@ function createComposition(overrides: Partial<HoloComposition> = {}): HoloCompos
   };
 }
 
-function createObject(name: string, traits: Array<string | { name: string; config?: Record<string, unknown> }> = []): HoloObjectDecl {
+function createObject(
+  name: string,
+  traits: Array<string | { name: string; config?: Record<string, unknown> }> = []
+): HoloObjectDecl {
   return {
     name,
     properties: [],
@@ -72,9 +75,18 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
     });
 
     it('should detect any DEPTH_SCANNER_TRAITS member', () => {
-      for (const trait of ['depth_scan', 'depth_ml_arcore', 'depth_tof', 'depth_stereo',
-        'depth_auto_select', 'depth_confidence_map', 'depth_mesh_generate',
-        'depth_mesh_to_holo', 'depth_realtime', 'depth_export']) {
+      for (const trait of [
+        'depth_scan',
+        'depth_ml_arcore',
+        'depth_tof',
+        'depth_stereo',
+        'depth_auto_select',
+        'depth_confidence_map',
+        'depth_mesh_generate',
+        'depth_mesh_to_holo',
+        'depth_realtime',
+        'depth_export',
+      ]) {
         const composition = createComposition({
           objects: [createObject('Obj', [trait])],
         });
@@ -133,7 +145,9 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
         objects: [createObject('Scanner', ['depth_auto_select'])],
       });
       const result = compiler.compile(composition);
-      expect(result.activityFile).toContain('packageManager.hasSystemFeature("android.hardware.sensor.proximity")');
+      expect(result.activityFile).toContain(
+        'packageManager.hasSystemFeature("android.hardware.sensor.proximity")'
+      );
     });
 
     it('should emit ARCore depth support check', () => {
@@ -141,7 +155,9 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
         objects: [createObject('Scanner', ['depth_auto_select'])],
       });
       const result = compiler.compile(composition);
-      expect(result.activityFile).toContain('session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)');
+      expect(result.activityFile).toContain(
+        'session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)'
+      );
     });
 
     it('should emit dual camera stereo check', () => {
@@ -284,16 +300,18 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
   describe('combined depth traits', () => {
     it('should emit all depth features when all traits present', () => {
       const composition = createComposition({
-        objects: [createObject('FullScanner', [
-          'depth_scan',
-          'depth_auto_select',
-          'depth_ml_arcore',
-          'depth_confidence_map',
-          'depth_mesh_generate',
-          'depth_mesh_to_holo',
-          'depth_realtime',
-          'depth_export',
-        ])],
+        objects: [
+          createObject('FullScanner', [
+            'depth_scan',
+            'depth_auto_select',
+            'depth_ml_arcore',
+            'depth_confidence_map',
+            'depth_mesh_generate',
+            'depth_mesh_to_holo',
+            'depth_realtime',
+            'depth_export',
+          ]),
+        ],
       });
       const result = compiler.compile(composition);
 
@@ -323,7 +341,7 @@ describe('AndroidCompiler — Depth Scanner (M.010.02b)', () => {
       expect(result.activityFile).toContain('exportDepthMesh');
 
       // Gradle
-      expect(result.buildGradle).toContain("com.google.ar:core:1.40.0");
+      expect(result.buildGradle).toContain('com.google.ar:core:1.40.0');
     });
   });
 });

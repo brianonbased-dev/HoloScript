@@ -101,4 +101,3 @@ export class GlobalEventBus {
  * Convenience export for the singleton
  */
 export const eventBus = GlobalEventBus.getInstance();
-

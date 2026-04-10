@@ -1167,4 +1167,3 @@ export function createSequence(
     ...options,
   };
 }
-

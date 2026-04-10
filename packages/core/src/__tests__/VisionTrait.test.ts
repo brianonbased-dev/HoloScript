@@ -48,4 +48,3 @@ describe('Computer Vision', () => {
     expect(context.emit).toHaveBeenCalledWith('vision_scan_complete', expect.any(Object));
   });
 });
-

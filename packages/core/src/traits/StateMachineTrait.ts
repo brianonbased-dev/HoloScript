@@ -23,7 +23,12 @@ export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
     delete node.__smState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: StateMachineConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: StateMachineConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__smState as
       | { current: string; transitions: number; history: string[] }
       | undefined;

@@ -85,7 +85,12 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     delete node.__rateLimiterState;
   },
 
-  onUpdate(node: HSPlusNode, config: RateLimiterConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: RateLimiterConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // @ts-expect-error
     const state: RateLimiterState | undefined = node.__rateLimiterState;
     if (!state) return;
@@ -110,7 +115,12 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: RateLimiterConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: RateLimiterConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: RateLimiterState | undefined = node.__rateLimiterState;
     if (!state) return;

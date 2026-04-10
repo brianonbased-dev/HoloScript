@@ -17,7 +17,7 @@ function assertServer(caller: string): void {
   if (typeof window !== 'undefined') {
     throw new Error(
       `@holoscript/config: ${caller}() is server-only. ` +
-      'Use Studio API routes to proxy requests — never expose keys to the browser.'
+        'Use Studio API routes to proxy requests — never expose keys to the browser.'
     );
   }
 }
@@ -85,10 +85,10 @@ export function mcpAuthHeaders(): Record<string, string> {
 
 /** Build Authorization header for HoloMesh API */
 export function holomeshAuthHeaders(): Record<string, string> {
-  return { 'Authorization': `Bearer ${getHolomeshKey()}` };
+  return { Authorization: `Bearer ${getHolomeshKey()}` };
 }
 
 /** Build Authorization header for Absorb Service */
 export function absorbAuthHeaders(): Record<string, string> {
-  return { 'Authorization': `Bearer ${getAbsorbKey()}` };
+  return { Authorization: `Bearer ${getAbsorbKey()}` };
 }

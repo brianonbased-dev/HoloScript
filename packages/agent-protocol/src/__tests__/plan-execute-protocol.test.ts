@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { PlanExecuteAgent } from '../plan-execute-protocol';
-import type { PlanLLMAdapter, PlanStepExecutor, Plan, PlanStep, StepResult } from '../plan-execute-protocol';
+import type {
+  PlanLLMAdapter,
+  PlanStepExecutor,
+  Plan,
+  PlanStep,
+  StepResult,
+} from '../plan-execute-protocol';
 import type { AgentIdentity, PlanExecProtocolSpec } from '../index';
 
 // =============================================================================
@@ -50,7 +56,7 @@ describe('PlanExecuteAgent', () => {
     expect(result.status).toBe('complete');
     expect(result.stepResults).toHaveLength(2);
     expect(result.replansUsed).toBe(0);
-    expect(result.stepResults.every(r => r.status === 'success')).toBe(true);
+    expect(result.stepResults.every((r) => r.status === 'success')).toBe(true);
   });
 
   it('replans on step failure', async () => {
@@ -73,7 +79,13 @@ describe('PlanExecuteAgent', () => {
       executeStep: async (step: PlanStep): Promise<StepResult> => {
         callCount++;
         if (step.id === 'B_fail') {
-          return { stepId: step.id, status: 'failure', output: null, error: 'B broke', durationMs: 1 };
+          return {
+            stepId: step.id,
+            status: 'failure',
+            output: null,
+            error: 'B broke',
+            durationMs: 1,
+          };
         }
         return { stepId: step.id, status: 'success', output: `${step.id} ok`, durationMs: 1 };
       },
@@ -115,10 +127,7 @@ describe('PlanExecuteAgent', () => {
     const spec: PlanExecProtocolSpec = { maxReplans: 0, planPrompt: '', stepTimeout: 5000 };
 
     const llm: PlanLLMAdapter = {
-      plan: async () => makePlan([
-        makeStep('A'),
-        makeStep('B', ['A']),
-      ]),
+      plan: async () => makePlan([makeStep('A'), makeStep('B', ['A'])]),
     };
 
     // A fails, so B should be skipped due to unmet dependency
@@ -135,7 +144,7 @@ describe('PlanExecuteAgent', () => {
     const result = await agent.run('Dep test');
 
     expect(result.status).toBe('failed');
-    const bResult = result.stepResults.find(r => r.stepId === 'B');
+    const bResult = result.stepResults.find((r) => r.stepId === 'B');
     expect(bResult?.status).toBe('skipped');
   });
 });

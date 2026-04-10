@@ -20,14 +20,16 @@ import type {
   VRHand,
   Vector3,
 } from '@holoscript/core';
-import type { HSPlusDirective, HoloScriptValue, HoloValue, HoloTemplate, HSPlusForDirective, RaycastHit } from '@holoscript/core';
-import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
-import {
-  VRTraitRegistry,
-  vrTraitRegistry,
-  TraitContext,
-  TraitEvent,
+import type {
+  HSPlusDirective,
+  HoloScriptValue,
+  HoloValue,
+  HoloTemplate,
+  HSPlusForDirective,
+  RaycastHit,
 } from '@holoscript/core';
+import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
+import { VRTraitRegistry, vrTraitRegistry, TraitContext, TraitEvent } from '@holoscript/core';
 import { eventBus } from './EventBus';
 import { ChunkLoader } from './loader';
 import { HotReloader, type TemplateInstance as _TemplateInstance } from './HotReloader';
@@ -172,7 +174,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     this.options = options;
 
     // Initialize Physics World (+ Bridge)
-    console.log('[[TYPE OF PW]]', typeof PhysicsWorldImpl, PhysicsWorldImpl); this.physicsWorld = new PhysicsWorldImpl({
+    console.log('[[TYPE OF PW]]', typeof PhysicsWorldImpl, PhysicsWorldImpl);
+    this.physicsWorld = new PhysicsWorldImpl({
       gravity: { x: 0, y: -9.81, z: 0 },
       maxSubsteps: 2,
     });
@@ -257,7 +260,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Initialize WebXR Manager if enabled
     // We defer full initialization until enterVR() or if renderer provides context now
-    if (options.renderer && (options.renderer as Partial<WebXRRenderer>).context && options.vrEnabled) {
+    if (
+      options.renderer &&
+      (options.renderer as Partial<WebXRRenderer>).context &&
+      options.vrEnabled
+    ) {
       // We could pre-warm here, but for now we wait for explicit enterVR
     }
 
@@ -377,14 +384,13 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     if (!this.webXrManager) {
       // Use renderer.getContext() if available
-      const context = renderer.getContext
-        ? renderer.getContext()
-        : renderer.context;
+      const context = renderer.getContext ? renderer.getContext() : renderer.context;
       if (!context) {
         console.error('WebGPU context not found on renderer');
         return;
       }
-      const ManagerClass = (this.options.webXrManagerClass as typeof WebXRManager | undefined) || WebXRManager;
+      const ManagerClass =
+        (this.options.webXrManagerClass as typeof WebXRManager | undefined) || WebXRManager;
       this.webXrManager = new ManagerClass(context);
 
       this.webXrManager!.onSessionStart = (session) => {
@@ -457,9 +463,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   /**
    * Convert Quaternion to Euler Angles (YXZ sequence)
    */
-  private quaternionToEuler(
-    q: Float32Array | [number, number, number, number]
-  ): Vector3 {
+  private quaternionToEuler(q: Float32Array | [number, number, number, number]): Vector3 {
     const x = q[0],
       y = q[1],
       z = q[2],
@@ -596,7 +600,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         // Already loaded
         continue;
       }
-      console.warn(`Import ${imp.path || (imp as any).source} not found. Provide via companions option.`);
+      console.warn(
+        `Import ${imp.path || (imp as any).source} not found. Provide via companions option.`
+      );
     }
   }
 
@@ -1376,8 +1382,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Apply Networking Sync
     if (instance.node.traits?.has('networked')) {
-      const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as
-        InterpolatedState | null;
+      const interpolated = this.networkSync.getInterpolatedState(
+        instance.node.id || ''
+      ) as InterpolatedState | null;
       const body = this.physicsWorld.getBody(instance.node.id || '');
 
       if (interpolated && instance.node.properties) {
@@ -1575,8 +1582,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     directive: Record<string, unknown>
   ): Promise<void> {
     try {
-      const apiCall = (this.builtins as Record<string, unknown>)['api_call'] as ((url: string, method: string) => Promise<unknown>) | undefined;
-      const data = apiCall ? await apiCall(String(directive.url), String(directive.method || 'GET')) : undefined;
+      const apiCall = (this.builtins as Record<string, unknown>)['api_call'] as
+        | ((url: string, method: string) => Promise<unknown>)
+        | undefined;
+      const data = apiCall
+        ? await apiCall(String(directive.url), String(directive.method || 'GET'))
+        : undefined;
 
       // Update state if needed or trigger logic
       this.state.set('api_data', data);
@@ -1657,7 +1668,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         raycast: (origin, direction, maxDistance) => {
           const hit = this.physicsWorld.raycastClosest({
             origin: { x: origin[0] as number, y: origin[1] as number, z: origin[2] as number },
-            direction: { x: direction[0] as number, y: direction[1] as number, z: direction[2] as number },
+            direction: {
+              x: direction[0] as number,
+              y: direction[1] as number,
+              z: direction[2] as number,
+            },
             maxDistance,
           });
 
@@ -2079,7 +2094,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
         case 'MethodCall': {
           const args = (stmt.arguments || []).map((arg) => this.evaluator.evaluate(String(arg)));
-          const method = (this.builtins as unknown as Record<string, unknown>)[stmt.method as string];
+          const method = (this.builtins as unknown as Record<string, unknown>)[
+            stmt.method as string
+          ];
           if (typeof method === 'function') {
             await method(...args);
           }
@@ -2089,9 +2106,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         case 'IfStatement': {
           const condition = this.evaluator.evaluate(String(stmt.condition));
           if (condition) {
-            await this.executeStatementBlock(instance, (stmt.consequent as any) as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.consequent as any as HSPlusStatement[]);
           } else if (stmt.alternate) {
-            await this.executeStatementBlock(instance, (stmt.alternate as any) as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.alternate as any as HSPlusStatement[]);
           }
           break;
         }
@@ -2423,7 +2440,8 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
       // Default to right hand
       return (
         runtime.vrContext.hands.right ||
-        runtime.vrContext.hands.left || ({
+        runtime.vrContext.hands.left ||
+        ({
           id: 'right',
           position: { x: 0, y: 0, z: 0 },
           rotation: { x: 0, y: 0, z: 0 },
@@ -2534,4 +2552,3 @@ export function createRuntime(ast: HSPlusAST, options: RuntimeOptions = {}): HSP
 
 // export { HoloScriptPlusRuntimeImpl };
 // export type { NodeInstance, RuntimeOptions, Renderer };
-

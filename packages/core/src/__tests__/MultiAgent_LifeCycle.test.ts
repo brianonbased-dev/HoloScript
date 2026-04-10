@@ -54,4 +54,3 @@ describe('Multi-Agent Life Cycle', () => {
     expect((rebornNode as any).__neuralState.weights).toEqual(originalWeights);
   });
 });
-

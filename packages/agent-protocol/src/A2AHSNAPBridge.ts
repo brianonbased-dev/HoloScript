@@ -49,10 +49,7 @@ export class A2AHSNAPBridge {
     return a2aSendMessageToCanonicalTaskEnvelope(payload);
   }
 
-  toHSNAPSource(
-    envelope: CanonicalTaskEnvelope,
-    options: BridgeEnvelopeOptions = {}
-  ): string {
+  toHSNAPSource(envelope: CanonicalTaskEnvelope, options: BridgeEnvelopeOptions = {}): string {
     return canonicalTaskToHSNAPSource(envelope, options.compositionName);
   }
 
@@ -60,19 +57,13 @@ export class A2AHSNAPBridge {
     return hsnapSourceToCanonicalTaskEnvelope(source);
   }
 
-  translateA2AToHSNAP(
-    payload: unknown,
-    options: BridgeEnvelopeOptions = {}
-  ): string | null {
+  translateA2AToHSNAP(payload: unknown, options: BridgeEnvelopeOptions = {}): string | null {
     const envelope = this.fromA2AMessage(payload);
     if (!envelope) return null;
     return this.toHSNAPSource(envelope, options);
   }
 
-  translateHSNAPToA2A(
-    source: string,
-    options: BridgeEnvelopeOptions = {}
-  ): A2ASendMessageRequest {
+  translateHSNAPToA2A(source: string, options: BridgeEnvelopeOptions = {}): A2ASendMessageRequest {
     const envelope = this.fromHSNAPSource(source);
     return this.toA2AMessage(envelope, options);
   }

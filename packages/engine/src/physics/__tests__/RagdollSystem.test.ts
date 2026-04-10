@@ -80,4 +80,3 @@ describe('RagdollSystem', () => {
     expect(rd.constraints.length).toBe(1);
   });
 });
-

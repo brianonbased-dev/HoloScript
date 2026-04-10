@@ -18,12 +18,7 @@
  * @version 1.0.0
  */
 
-import type {
-  NormEnforcement,
-  NormScope,
-  NormCategory,
-  CulturalNorm,
-} from '@holoscript/core';
+import type { NormEnforcement, NormScope, NormCategory, CulturalNorm } from '@holoscript/core';
 
 export const BUILTIN_NORMS: CulturalNorm[] = [
   {
@@ -58,7 +53,7 @@ export const BUILTIN_NORMS: CulturalNorm[] = [
     activationThreshold: 0.3,
     strength: 'weak',
     forbiddenEffects: ['trade:scam', 'trade:extort'],
-  }
+  },
 ];
 
 export function criticalMassForChange(norm: CulturalNorm, populationSize: number): number {

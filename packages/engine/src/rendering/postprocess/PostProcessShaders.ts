@@ -1411,4 +1411,3 @@ fn fs_ssgi(input: VertexOutput) -> @location(0) vec4f {
 export function buildEffectShader(fragmentShader: string): string {
   return `${FULLSCREEN_VERTEX_SHADER}\n${SHADER_UTILS}\n${fragmentShader}`;
 }
-

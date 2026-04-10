@@ -516,7 +516,13 @@ export class SyncTierTrait {
 }
 
 // ── Handler (delegates to SyncTierTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const syncTierHandler = {
   name: 'sync_tier',

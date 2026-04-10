@@ -151,7 +151,9 @@ describe('TaskDelegationService', () => {
       expect(data?.idempotencyKey).toBe('idem-fixed-key');
       expect(data?.schema).toBe('holoscript.task-bridge.v1');
       expect((data?.task as Record<string, unknown> | undefined)?.skillId).toBe('compile_hs');
-      expect((data?.task as Record<string, unknown> | undefined)?.idempotency_key).toBe('idem-fixed-key');
+      expect((data?.task as Record<string, unknown> | undefined)?.idempotency_key).toBe(
+        'idem-fixed-key'
+      );
     });
 
     it('uses transport adapter when configured', async () => {

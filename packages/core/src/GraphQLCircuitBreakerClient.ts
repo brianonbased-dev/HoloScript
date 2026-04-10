@@ -178,7 +178,9 @@ export class GraphQLCircuitBreakerClient {
         retriedCount: attemptNumber,
       };
     } catch (error: unknown) {
-      const isTimeout = error instanceof Error && (error.name === 'TimeoutError' || (error as NodeJS.ErrnoException).code === 'ETIMEDOUT');
+      const isTimeout =
+        error instanceof Error &&
+        (error.name === 'TimeoutError' || (error as NodeJS.ErrnoException).code === 'ETIMEDOUT');
 
       // Check for retry
       if (attemptNumber < (this.options.maxRetries || 3)) {

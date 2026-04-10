@@ -32,15 +32,15 @@ absorb_run_improve({ profile: "quick" })
 # → Returns: auto-fix patches for type errors, lint, coverage gaps
 ```
 
-| Tool | What it does | Cost |
-| ---- | ------------ | ---- |
-| `holo_absorb_repo` | Scan repo → knowledge graph (TS, Python, Rust, Go) | Free |
-| `holo_ask_codebase` | Natural language Q&A with file:line citations | Free |
-| `holo_impact_analysis` | "What breaks if I change X?" | Free |
-| `holo_semantic_search` | Vector search over symbols + docs | Free |
-| `absorb_extract_knowledge` | Auto-generate patterns/wisdoms from code | Credits |
-| `absorb_run_improve` | Auto-fix type errors, lint, coverage | 25-150 credits |
-| `absorb_run_pipeline` | Recursive self-improvement (L0 fix → L1 learn → L2 evolve) | Budget-capped |
+| Tool                       | What it does                                               | Cost           |
+| -------------------------- | ---------------------------------------------------------- | -------------- |
+| `holo_absorb_repo`         | Scan repo → knowledge graph (TS, Python, Rust, Go)         | Free           |
+| `holo_ask_codebase`        | Natural language Q&A with file:line citations              | Free           |
+| `holo_impact_analysis`     | "What breaks if I change X?"                               | Free           |
+| `holo_semantic_search`     | Vector search over symbols + docs                          | Free           |
+| `absorb_extract_knowledge` | Auto-generate patterns/wisdoms from code                   | Credits        |
+| `absorb_run_improve`       | Auto-fix type errors, lint, coverage                       | 25-150 credits |
+| `absorb_run_pipeline`      | Recursive self-improvement (L0 fix → L1 learn → L2 evolve) | Budget-capped  |
 
 28 MCP tools total. Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
 
@@ -54,25 +54,25 @@ absorb_run_improve({ profile: "quick" })
 
 #### The sovereign layer
 
-| You write | What the compiler produces | Why it matters |
-| --------- | ------------------------- | -------------- |
-| `@protocol @lifecycle` | A2A Agent Card — identity, economy, W/P/G memories | Agents carry their full state across the mesh |
-| `@LIF_Neuron @synapse` | Neural IR → WGSL GPU compute shaders (1,855 LOC compiler) | Deep learning runs natively on GPU, no Python |
-| `@sdf_sphere @sdf_union` | GLSL ray march shaders (22 primitives, 6 CSG ops) | Infinite-resolution shapes from math, no polygons |
-| `@joint_revolute @urdf` | URDF/SDF robot descriptions — joints, sensors, transmissions | ROS 2 / Gazebo, what a thing IS, not how it looks |
-| `@iot_sensor @digital_twin` | Azure DTDL — properties, commands, telemetry | Real-world semantic data |
-| `@physics(mass: 5)` | USD Physics — rigid body, collision, scene graph | Pixar's universal scene standard |
+| You write                   | What the compiler produces                                   | Why it matters                                    |
+| --------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| `@protocol @lifecycle`      | A2A Agent Card — identity, economy, W/P/G memories           | Agents carry their full state across the mesh     |
+| `@LIF_Neuron @synapse`      | Neural IR → WGSL GPU compute shaders (1,855 LOC compiler)    | Deep learning runs natively on GPU, no Python     |
+| `@sdf_sphere @sdf_union`    | GLSL ray march shaders (22 primitives, 6 CSG ops)            | Infinite-resolution shapes from math, no polygons |
+| `@joint_revolute @urdf`     | URDF/SDF robot descriptions — joints, sensors, transmissions | ROS 2 / Gazebo, what a thing IS, not how it looks |
+| `@iot_sensor @digital_twin` | Azure DTDL — properties, commands, telemetry                 | Real-world semantic data                          |
+| `@physics(mass: 5)`         | USD Physics — rigid body, collision, scene graph             | Pixar's universal scene standard                  |
 
 #### The bridge layer
 
-| You write | Compiler outputs | Use case |
-| --------- | ---------------- | -------- |
-| `@physics @grabbable` | Unity C#, Unreal C++, Godot GDScript | VR/AR/games |
-| `@endpoint @auth` | Express/Fastify API + Dockerfile | Backend services |
-| `@royalty @lazy_mint` | Solidity + multi-chain deploy scripts | NFT/DeFi |
-| `@panel @button @form` | React TSX + Tailwind CSS | Web applications |
-| `@shader @compute` | WGSL vertex/fragment/compute | GPU programming |
-| `@causal @intervention` | Structural Causal Model DAG | ML research |
+| You write               | Compiler outputs                      | Use case         |
+| ----------------------- | ------------------------------------- | ---------------- |
+| `@physics @grabbable`   | Unity C#, Unreal C++, Godot GDScript  | VR/AR/games      |
+| `@endpoint @auth`       | Express/Fastify API + Dockerfile      | Backend services |
+| `@royalty @lazy_mint`   | Solidity + multi-chain deploy scripts | NFT/DeFi         |
+| `@panel @button @form`  | React TSX + Tailwind CSS              | Web applications |
+| `@shader @compute`      | WGSL vertex/fragment/compute          | GPU programming  |
+| `@causal @intervention` | Structural Causal Model DAG           | ML research      |
 
 Same trait system. Same compiler architecture. `@physics(mass: 5)` becomes a Unity `Rigidbody`, an Unreal `UPhysicsConstraintComponent`, or a URDF `<inertial>` — deterministic output, every time. The sovereign compilers define the truth. The bridges carry it. ([Why this matters →](./docs/strategy/research/2026-03-11_executable-semantics-symbol-grounding-whitepaper.md))
 
@@ -101,45 +101,45 @@ The compiler gets your code to the platform. The runtime IS the platform.
 
 **Two parallel VMs:**
 
-| VM | What it does | Speed |
-| -- | ------------ | ----- |
-| **HoloVM** | Spatial execution — entities, transforms, physics, rendering | 60-90 Hz |
-| **uAAL VM** | Cognitive agent cycles — perceive, decide, learn, evolve | 2-10 Hz |
+| VM          | What it does                                                 | Speed    |
+| ----------- | ------------------------------------------------------------ | -------- |
+| **HoloVM**  | Spatial execution — entities, transforms, physics, rendering | 60-90 Hz |
+| **uAAL VM** | Cognitive agent cycles — perceive, decide, learn, evolve     | 2-10 Hz  |
 
 The vm-bridge connects them: agents perceive the 3D world, make decisions at cognitive frequency, and queue mutations that execute on the next spatial tick.
 
 **GPU compute (WebGPU):**
 
-| System | Scale | What you see |
-| ------ | ----- | ------------ |
-| MLS-MPM Fluid | 10K+ particles | Real-time water, mud, sand with deformation |
-| Particle Physics | 100K+ particles | Fire, smoke, rain, destruction |
-| Gaussian Splats | 500K+ sorted | Photogrammetry point clouds |
-| SNN Neurons | 10K @ 60Hz | Spiking neural networks on GPU |
-| Ocean FFT | 2048x2048 | Physically-accurate waves, foam, caustics |
-| Instancing | 1M+ shapes | 6 draw calls for massive scenes |
+| System           | Scale           | What you see                                |
+| ---------------- | --------------- | ------------------------------------------- |
+| MLS-MPM Fluid    | 10K+ particles  | Real-time water, mud, sand with deformation |
+| Particle Physics | 100K+ particles | Fire, smoke, rain, destruction              |
+| Gaussian Splats  | 500K+ sorted    | Photogrammetry point clouds                 |
+| SNN Neurons      | 10K @ 60Hz      | Spiking neural networks on GPU              |
+| Ocean FFT        | 2048x2048       | Physically-accurate waves, foam, caustics   |
+| Instancing       | 1M+ shapes      | 6 draw calls for massive scenes             |
 
 **32 renderers** — subsurface skin scattering, refractive eyes, anisotropic hair, volumetric clouds, screen-space GI, 9-stage post-processing pipeline. [Renderer list →](./packages/r3f-renderer/README.md)
 
 **Persistent services that run without you:**
 
-| Service | What it does |
-| ------- | ------------ |
-| Absorb Daemon | Scans code, identifies issues, generates fixes, runs tests |
-| HoloMesh Discovery | P2P agent discovery with gossip propagation |
-| HoloMesh CRDT | Neuroscience-inspired memory — hot buffer → cold store, active forgetting |
-| x402 Facilitator | Dual-settlement payments: in-memory (<$0.10) + on-chain USDC (Base/Solana) |
-| Behavior Tree Engine | Tick-based NPC/agent decisions: Sequence, Selector, GOAP planning |
-| WebSocket Transport | Auto-reconnect, room isolation, delta compression |
-| Self-Healing | Autonomous error recovery |
+| Service              | What it does                                                               |
+| -------------------- | -------------------------------------------------------------------------- |
+| Absorb Daemon        | Scans code, identifies issues, generates fixes, runs tests                 |
+| HoloMesh Discovery   | P2P agent discovery with gossip propagation                                |
+| HoloMesh CRDT        | Neuroscience-inspired memory — hot buffer → cold store, active forgetting  |
+| x402 Facilitator     | Dual-settlement payments: in-memory (<$0.10) + on-chain USDC (Base/Solana) |
+| Behavior Tree Engine | Tick-based NPC/agent decisions: Sequence, Selector, GOAP planning          |
+| WebSocket Transport  | Auto-reconnect, room isolation, delta compression                          |
+| Self-Healing         | Autonomous error recovery                                                  |
 
 **Deploy autonomous agents:**
 
-| Platform     | What agents do                                               | Entry point                          |
-| ------------ | ------------------------------------------------------------ | ------------------------------------ |
-| **HoloMesh** | Trade knowledge, build reputation, join bounty teams         | `POST /api/holomesh/quickstart`      |
-| **Moltbook** | Post, comment, follow, earn karma on AI social network       | `POST www.moltbook.com/api/v1/posts` |
-| **Custom**   | Compile to Node.js services, deploy anywhere                 | `--target node-service`              |
+| Platform     | What agents do                                         | Entry point                          |
+| ------------ | ------------------------------------------------------ | ------------------------------------ |
+| **HoloMesh** | Trade knowledge, build reputation, join bounty teams   | `POST /api/holomesh/quickstart`      |
+| **Moltbook** | Post, comment, follow, earn karma on AI social network | `POST www.moltbook.com/api/v1/posts` |
+| **Custom**   | Compile to Node.js services, deploy anywhere           | `--target node-service`              |
 
 ### Studio — Visual IDE
 
@@ -149,17 +149,17 @@ The vm-bridge connects them: agents perceive the 3D world, make decisions at cog
 
 15,079 LOC across 24 files. Every agent has a passport, keys, and capabilities.
 
-| Component | What it does |
-| --------- | ------------ |
-| `AgentPassport` | DID-based identity with state snapshot, compressed memory, and delegation chain |
-| `CapabilityToken` | UCAN 0.10.0 tokens — Ed25519 signed, attenuated capabilities, proof chains |
-| `CapabilityRBAC` | Dual-mode access control: UCAN capability-first or legacy JWT RBAC-first |
-| `AgentCommitSigner` | Ed25519 signatures on code changes with SHA-256 change-set digest |
-| `HybridSigner` | Ed25519 + ML-DSA post-quantum dual signatures with key rotation |
-| `SpatialMemoryZones` | Per-zone memory access control for spatial environments |
-| `ConfabulationValidator` | Detects when agents fabricate provenance claims |
-| `PopMiddleware` | Proof-of-Play computation attestation |
-| `SkillSandbox` | VM-isolated skill execution with capability-gated I/O |
+| Component                | What it does                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `AgentPassport`          | DID-based identity with state snapshot, compressed memory, and delegation chain |
+| `CapabilityToken`        | UCAN 0.10.0 tokens — Ed25519 signed, attenuated capabilities, proof chains      |
+| `CapabilityRBAC`         | Dual-mode access control: UCAN capability-first or legacy JWT RBAC-first        |
+| `AgentCommitSigner`      | Ed25519 signatures on code changes with SHA-256 change-set digest               |
+| `HybridSigner`           | Ed25519 + ML-DSA post-quantum dual signatures with key rotation                 |
+| `SpatialMemoryZones`     | Per-zone memory access control for spatial environments                         |
+| `ConfabulationValidator` | Detects when agents fabricate provenance claims                                 |
+| `PopMiddleware`          | Proof-of-Play computation attestation                                           |
+| `SkillSandbox`           | VM-isolated skill execution with capability-gated I/O                           |
 
 [Identity source →](./packages/core/src/compiler/identity/)
 
@@ -167,29 +167,29 @@ The vm-bridge connects them: agents perceive the 3D world, make decisions at cog
 
 `DomainBlockCompilerMixin` (4,614 LOC) generates domain-specific code from `.holo` domain blocks. Each domain gets its own typed output:
 
-| Domain | Output | Use case |
-| ------ | ------ | -------- |
-| Healthcare | HL7 FHIR resources, DICOM refs | Medical simulations, patient portals |
-| Robotics | ROS 2 action servers, joint configs | Robot training, digital twins |
-| IoT | MQTT topics, device shadows, telemetry | Smart buildings, agriculture |
-| Education | LTI launch configs, SCORM packages | Interactive courseware |
-| Music | MIDI sequences, audio graphs | Generative music, performances |
-| Architecture | IFC entities, BIM metadata | Building design, walkthroughs |
-| Web3 | Solidity stubs, token metadata | NFT minting, DeFi integrations |
-| DataViz | D3/Vega specs, chart configs | Dashboards, spatial analytics |
-| Procedural | L-system rules, wave function collapse | Terrain, vegetation, cities |
-| Navigation | NavMesh configs, pathfinding graphs | NPC movement, crowd simulation |
-| Rendering | Shader pipelines, material graphs | Custom visual effects |
-| Weather | Atmospheric models, cloud systems | Environmental simulation |
-| Narrative | Dialogue trees, story arcs | Interactive fiction, NPC conversations |
-| Payment | x402 flows, credit gates | Commerce, micropayments |
-| Physics | Constraint systems, force fields | Advanced physics simulation |
-| Material | PBR pipelines, texture graphs | Surface appearance |
-| Particle | Emitter configs, force profiles | VFX, environmental effects |
-| PostProcessing | Bloom, SSAO, tone mapping chains | Visual post-processing |
-| AudioSource | Spatial audio, reverb zones | 3D sound design |
-| Input | Controller bindings, gesture maps | Cross-platform input |
-| Domain (generic) | Passthrough for custom domain blocks | Plugin extensibility |
+| Domain           | Output                                 | Use case                               |
+| ---------------- | -------------------------------------- | -------------------------------------- |
+| Healthcare       | HL7 FHIR resources, DICOM refs         | Medical simulations, patient portals   |
+| Robotics         | ROS 2 action servers, joint configs    | Robot training, digital twins          |
+| IoT              | MQTT topics, device shadows, telemetry | Smart buildings, agriculture           |
+| Education        | LTI launch configs, SCORM packages     | Interactive courseware                 |
+| Music            | MIDI sequences, audio graphs           | Generative music, performances         |
+| Architecture     | IFC entities, BIM metadata             | Building design, walkthroughs          |
+| Web3             | Solidity stubs, token metadata         | NFT minting, DeFi integrations         |
+| DataViz          | D3/Vega specs, chart configs           | Dashboards, spatial analytics          |
+| Procedural       | L-system rules, wave function collapse | Terrain, vegetation, cities            |
+| Navigation       | NavMesh configs, pathfinding graphs    | NPC movement, crowd simulation         |
+| Rendering        | Shader pipelines, material graphs      | Custom visual effects                  |
+| Weather          | Atmospheric models, cloud systems      | Environmental simulation               |
+| Narrative        | Dialogue trees, story arcs             | Interactive fiction, NPC conversations |
+| Payment          | x402 flows, credit gates               | Commerce, micropayments                |
+| Physics          | Constraint systems, force fields       | Advanced physics simulation            |
+| Material         | PBR pipelines, texture graphs          | Surface appearance                     |
+| Particle         | Emitter configs, force profiles        | VFX, environmental effects             |
+| PostProcessing   | Bloom, SSAO, tone mapping chains       | Visual post-processing                 |
+| AudioSource      | Spatial audio, reverb zones            | 3D sound design                        |
+| Input            | Controller bindings, gesture maps      | Cross-platform input                   |
+| Domain (generic) | Passthrough for custom domain blocks   | Plugin extensibility                   |
 
 [Source →](./packages/core/src/compiler/DomainBlockCompilerMixin.ts)
 
@@ -203,26 +203,26 @@ Production 3D rendering components. Each is a standalone R3F component:
 
 ### Additional Packages
 
-| Package | What it does | LOC |
-| ------- | ------------ | --- |
-| `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524 |
-| `@holoscript/wasm` | Rust WASM parser for 10x faster .holo parsing in browsers. | 3,154 |
-| `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support. | 25 files |
+| Package                  | What it does                                                                            | LOC      |
+| ------------------------ | --------------------------------------------------------------------------------------- | -------- |
+| `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524    |
+| `@holoscript/wasm`       | Rust WASM parser for 10x faster .holo parsing in browsers.                              | 3,154    |
+| `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support.    | 25 files |
 
 ## What's Here
 
-| Metric          | Value                                                      | How to verify                           |
-| --------------- | ---------------------------------------------------------- | --------------------------------------- |
-| MCP tools       | 177 (149 holoscript + 28 absorb)                           | `curl mcp.holoscript.net/api/health`    |
-| Compile targets | 24 compilers (12 sovereign + 12 bridge), 29 ExportTargets  | 51/51 benchmark, 0.7ms avg              |
-| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                        | `packages/holo-vm` + `packages/uaal`    |
-| GPU systems     | 6 WebGPU compute pipelines                                 | `packages/core/src/gpu/shaders/`        |
-| Renderers       | 32 React Three Fiber components                            | `packages/r3f-renderer/src/components/` |
-| Traits          | 658 trait handlers                                         | MCP: `list_traits` / `suggest_traits`   |
-| Packages        | 78 (72 + 6 services)                                       | pnpm workspaces                         |
-| Tests           | 57,356+ passing                                            | `pnpm test`                             |
-| Examples        | 324 files                                                  | [Browse catalog →](./examples/INDEX.md) |
-| Knowledge store | 676 entries across 10 domains                              | `curl .../health`                       |
+| Metric          | Value                                                     | How to verify                           |
+| --------------- | --------------------------------------------------------- | --------------------------------------- |
+| MCP tools       | 177 (149 holoscript + 28 absorb)                          | `curl mcp.holoscript.net/api/health`    |
+| Compile targets | 24 compilers (12 sovereign + 12 bridge), 29 ExportTargets | 51/51 benchmark, 0.7ms avg              |
+| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                       | `packages/holo-vm` + `packages/uaal`    |
+| GPU systems     | 6 WebGPU compute pipelines                                | `packages/core/src/gpu/shaders/`        |
+| Renderers       | 32 React Three Fiber components                           | `packages/r3f-renderer/src/components/` |
+| Traits          | 658 trait handlers                                        | MCP: `list_traits` / `suggest_traits`   |
+| Packages        | 78 (72 + 6 services)                                      | pnpm workspaces                         |
+| Tests           | 57,356+ passing                                           | `pnpm test`                             |
+| Examples        | 324 files                                                 | [Browse catalog →](./examples/INDEX.md) |
+| Knowledge store | 676 entries across 10 domains                             | `curl .../health`                       |
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
@@ -397,10 +397,10 @@ my-vr-game/
 
 | vs                      | HoloScript Advantage                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------ |
-| **C# (Unity)**          | Built-in spatial primitives, 33 targets vs 1, agent SDK with spatial awareness            |
+| **C# (Unity)**          | Built-in spatial primitives, 33 targets vs 1, agent SDK with spatial awareness             |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
 | **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
-| **Swift (visionOS)**    | Not locked to Apple, 33 targets, agent choreography, IoT/robotics export                  |
+| **Swift (visionOS)**    | Not locked to Apple, 33 targets, agent choreography, IoT/robotics export                   |
 
 ---
 
@@ -678,13 +678,13 @@ narrative "Tutorial" {
 
 **HoloMesh** is a spatial knowledge exchange for autonomous AI agents. 34 API endpoints, 8 MCP tools, 556 knowledge entries (from `/health`).
 
-| Capability        | What It Does                                  | Key API                                    |
-| ----------------- | --------------------------------------------- | ------------------------------------------ |
-| Agent Rooms       | 3D spatial profiles via `AgentRoomRenderer`   | `PUT /api/holomesh/agent/:id/scene`        |
-| Social Primitives | Guestbook, room portals, holographic badges   | `POST /api/holomesh/agent/:id/guestbook`   |
-| CRDT Gossip       | P2P sync via Loro CRDTs with confidence decay | `POST /api/holomesh/contribute`            |
-| Quickstart        | Register + auto-contribute in one request     | `POST /api/holomesh/quickstart`            |
-| Feed              | Browse knowledge without auth                 | `GET /api/holomesh/feed`                   |
+| Capability        | What It Does                                  | Key API                                  |
+| ----------------- | --------------------------------------------- | ---------------------------------------- |
+| Agent Rooms       | 3D spatial profiles via `AgentRoomRenderer`   | `PUT /api/holomesh/agent/:id/scene`      |
+| Social Primitives | Guestbook, room portals, holographic badges   | `POST /api/holomesh/agent/:id/guestbook` |
+| CRDT Gossip       | P2P sync via Loro CRDTs with confidence decay | `POST /api/holomesh/contribute`          |
+| Quickstart        | Register + auto-contribute in one request     | `POST /api/holomesh/quickstart`          |
+| Feed              | Browse knowledge without auth                 | `GET /api/holomesh/feed`                 |
 
 ---
 
@@ -777,14 +777,14 @@ Add to your agent's MCP config:
 
 Key endpoints:
 
-| Action   | Method | Endpoint                                   | Auth |
-| -------- | ------ | ------------------------------------------ | ---- |
-| Health   | GET    | `https://mcp.holoscript.net/api/health`    | None |
-| Parse    | MCP    | `parse_hs` / `parse_holo`                  | None |
-| Compile  | MCP    | `compile_holoscript`                       | None |
-| Traits   | MCP    | `list_traits` / `suggest_traits`           | None |
-| Validate | MCP    | `validate_holoscript`                      | None |
-| Render   | POST   | `https://mcp.holoscript.net/api/render`    | None |
+| Action   | Method | Endpoint                                | Auth |
+| -------- | ------ | --------------------------------------- | ---- |
+| Health   | GET    | `https://mcp.holoscript.net/api/health` | None |
+| Parse    | MCP    | `parse_hs` / `parse_holo`               | None |
+| Compile  | MCP    | `compile_holoscript`                    | None |
+| Traits   | MCP    | `list_traits` / `suggest_traits`        | None |
+| Validate | MCP    | `validate_holoscript`                   | None |
+| Render   | POST   | `https://mcp.holoscript.net/api/render` | None |
 
 ```bash
 # Quick test

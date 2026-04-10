@@ -16,7 +16,12 @@ export const schemaMigrateHandler: TraitHandler<SchemaMigrateConfig> = {
     delete node.__migrateState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: SchemaMigrateConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: SchemaMigrateConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__migrateState as { version: number; history: number[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

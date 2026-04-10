@@ -27,7 +27,12 @@ export const rollbackHandler: TraitHandler<RollbackConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: RollbackConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: RollbackConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__rollbackState as
       | { history: Array<{ version: string; timestamp: number }> }
       | undefined;

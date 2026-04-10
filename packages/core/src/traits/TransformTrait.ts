@@ -173,7 +173,6 @@ function evaluateExpr(expr: string, data: Record<string, unknown>): unknown {
     throw new Error('Unsafe expression');
   }
 
-  // eslint-disable-next-line no-new-func
   return new Function(`return (${resolved})`)();
 }
 
@@ -207,11 +206,21 @@ export const transformHandler: TraitHandler<TransformConfig> = {
     delete node.__transformState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: TransformConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: TransformConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Event-driven
   },
 
-  onEvent(node: HSPlusNode, _config: TransformConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: TransformConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: TransformState | undefined = node.__transformState;
     if (!state) return;

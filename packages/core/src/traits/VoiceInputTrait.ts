@@ -116,7 +116,9 @@ export class VoiceInputTrait {
     // Use native Web Speech API or polyfill
     const _g = globalThis as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API constructor not in all TS libs
-    const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as (new () => any) | undefined;
+    const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as
+      | (new () => any)
+      | undefined;
 
     if (!SpeechRecognitionCtor) {
       console.error('Web Speech API not supported');
@@ -354,7 +356,8 @@ export class VoiceInputTrait {
   private playBeep(type: 'start' | 'end' | 'success'): void {
     // AudioContext beep generation
     try {
-      const AudioCtx = (globalThis as unknown as { AudioContext?: typeof AudioContext }).AudioContext;
+      const AudioCtx = (globalThis as unknown as { AudioContext?: typeof AudioContext })
+        .AudioContext;
       if (!AudioCtx) return;
       const audioContext = new AudioCtx();
       const oscillator = audioContext.createOscillator();
@@ -405,7 +408,13 @@ export function createVoiceInputTrait(config: VoiceInputConfig): VoiceInputTrait
 }
 
 // ── Handler (delegates to VoiceInputTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const voiceInputHandler = {
   name: 'voice_input',

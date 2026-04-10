@@ -611,7 +611,10 @@ export class TSLCompiler extends CompilerBase {
 
   // ─── v4.2 Domain Block Compilation ────────────────────────────────────────
 
-  private compileTSLDomainBlocks(domainBlocks: HoloDomainBlock[], result: Record<string, string>): void {
+  private compileTSLDomainBlocks(
+    domainBlocks: HoloDomainBlock[],
+    result: Record<string, string>
+  ): void {
     compileDomainBlocks(
       domainBlocks,
       {

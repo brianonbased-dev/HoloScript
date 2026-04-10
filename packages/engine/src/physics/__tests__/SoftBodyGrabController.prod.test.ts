@@ -327,4 +327,3 @@ describe('SoftBodyGrabController — Production Tests', () => {
     });
   });
 });
-

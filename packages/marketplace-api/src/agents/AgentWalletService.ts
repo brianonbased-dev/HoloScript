@@ -31,8 +31,6 @@ export class AgentWalletService {
    */
   async initialize(): Promise<string> {
     try {
-
-
       // 1. Provision the CDP Wallet Node
       const config = {
         apiKeyName: process.env.CDP_API_KEY_NAME || 'cdp_test',
@@ -85,8 +83,6 @@ export class AgentWalletService {
     if (!this.walletProvider || !this.agentKit) {
       throw new Error('Wallet not initialized');
     }
-
-
 
     // 1. Sign the authorization intent (EIP-712 equivalent)
     const authMessage = `Authorized payment of ${challengeObj.cost} wei for ${challengeObj.memo}`;

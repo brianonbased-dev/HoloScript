@@ -6,7 +6,9 @@ const { getDbMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/db/client', () => ({ getDb: getDbMock }));
-vi.mock('@/db/schema', () => ({ sceneVersions: { id: 'id', projectId: 'projectId', createdAt: 'createdAt' } }));
+vi.mock('@/db/schema', () => ({
+  sceneVersions: { id: 'id', projectId: 'projectId', createdAt: 'createdAt' },
+}));
 vi.mock('drizzle-orm', () => ({
   eq: (...args: unknown[]) => ({ op: 'eq', args }),
   and: (...args: unknown[]) => ({ op: 'and', args }),
@@ -14,7 +16,11 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 import { GET as listVersions, POST as saveVersion } from './route';
-import { GET as getSceneVersions, PUT as restoreVersion, DELETE as deleteVersion } from './[sceneId]/route';
+import {
+  GET as getSceneVersions,
+  PUT as restoreVersion,
+  DELETE as deleteVersion,
+} from './[sceneId]/route';
 import { clearVersionsStore } from './store';
 
 function makeSelectChainWithLimit(rows: unknown[]) {
@@ -52,9 +58,12 @@ describe('/api/versions routes', () => {
     const postBody = await postRes.json();
     expect(postBody.version.sceneId).toBe('scene-1');
 
-    const getRes = await getSceneVersions(new NextRequest('http://localhost/api/versions/scene-1'), {
-      params: Promise.resolve({ sceneId: 'scene-1' }),
-    });
+    const getRes = await getSceneVersions(
+      new NextRequest('http://localhost/api/versions/scene-1'),
+      {
+        params: Promise.resolve({ sceneId: 'scene-1' }),
+      }
+    );
     expect(getRes.status).toBe(200);
     const getBody = await getRes.json();
     expect(getBody.versions).toHaveLength(1);
@@ -70,7 +79,9 @@ describe('/api/versions routes', () => {
       })
     );
 
-    const listRes = await listVersions(new NextRequest('http://localhost/api/versions?sceneId=scene-2'));
+    const listRes = await listVersions(
+      new NextRequest('http://localhost/api/versions?sceneId=scene-2')
+    );
     const listBody = await listRes.json();
     const versionId = listBody.versions[0].versionId as string;
 
@@ -158,7 +169,9 @@ describe('/api/versions routes', () => {
 
     getDbMock.mockReturnValue(db);
 
-    const res = await listVersions(new NextRequest('http://localhost/api/versions?sceneId=scene-db'));
+    const res = await listVersions(
+      new NextRequest('http://localhost/api/versions?sceneId=scene-db')
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.versions).toHaveLength(1);
@@ -217,7 +230,9 @@ describe('/api/versions routes', () => {
     getDbMock.mockReturnValue(db);
 
     const okRes = await restoreVersion(
-      new NextRequest('http://localhost/api/versions/scene-db-restore?v=v_present', { method: 'PUT' }),
+      new NextRequest('http://localhost/api/versions/scene-db-restore?v=v_present', {
+        method: 'PUT',
+      }),
       { params: Promise.resolve({ sceneId: 'scene-db-restore' }) }
     );
     expect(okRes.status).toBe(200);
@@ -225,7 +240,9 @@ describe('/api/versions routes', () => {
     expect(okBody.code).toContain('RestoreDB');
 
     const missingRes = await restoreVersion(
-      new NextRequest('http://localhost/api/versions/scene-db-restore?v=v_missing', { method: 'PUT' }),
+      new NextRequest('http://localhost/api/versions/scene-db-restore?v=v_missing', {
+        method: 'PUT',
+      }),
       { params: Promise.resolve({ sceneId: 'scene-db-restore' }) }
     );
     expect(missingRes.status).toBe(404);
@@ -244,7 +261,9 @@ describe('/api/versions routes', () => {
     getDbMock.mockReturnValue(db);
 
     const res = await deleteVersion(
-      new NextRequest('http://localhost/api/versions/scene-db-del?v=v_deleted', { method: 'DELETE' }),
+      new NextRequest('http://localhost/api/versions/scene-db-del?v=v_deleted', {
+        method: 'DELETE',
+      }),
       { params: Promise.resolve({ sceneId: 'scene-db-del' }) }
     );
 

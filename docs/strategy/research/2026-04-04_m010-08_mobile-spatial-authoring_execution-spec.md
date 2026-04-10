@@ -54,7 +54,7 @@ type AuthoringGesture =
   | { type: 'tap'; x: number; y: number }
   | { type: 'pan'; dx: number; dy: number }
   | { type: 'pinch'; scale: number }
-  | { type: 'twist'; radians: number }
+  | { type: 'twist'; radians: number };
 ```
 
 - map gestures to selected object transform intents

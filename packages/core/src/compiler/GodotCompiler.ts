@@ -846,7 +846,10 @@ export class GodotCompiler extends CompilerBase {
     return 'null';
   }
 
-  private findProp(props: Array<{ key: string; value: HoloValue }>, key: string): HoloValue | undefined {
+  private findProp(
+    props: Array<{ key: string; value: HoloValue }>,
+    key: string
+  ): HoloValue | undefined {
     return props?.find((p) => p.key === key)?.value;
   }
 

@@ -283,4 +283,3 @@ export abstract class BaseRuntimeRenderer implements RuntimeRenderer {
   abstract resize(width: number, height: number): void;
   abstract dispose(): void;
 }
-

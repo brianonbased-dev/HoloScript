@@ -43,10 +43,7 @@ function extractRepoName(url: string): string {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Not authenticated' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   let body: ImportRequest;
@@ -66,7 +63,7 @@ export async function POST(req: NextRequest) {
   if (!repoUrl.startsWith('https://') && !repoUrl.startsWith('git@')) {
     return NextResponse.json(
       { error: 'repoUrl must start with https:// or git@' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -108,10 +105,7 @@ export async function POST(req: NextRequest) {
     // Count files for quick stats
     let fileCount = 0;
     try {
-      const { stdout } = await execAsync(
-        'git ls-files | wc -l',
-        { cwd: localPath },
-      );
+      const { stdout } = await execAsync('git ls-files | wc -l', { cwd: localPath });
       fileCount = parseInt(stdout.trim(), 10) || 0;
     } catch {
       // non-critical
@@ -132,14 +126,16 @@ export async function POST(req: NextRequest) {
     // Clean up on failure
     try {
       fs.rmSync(path.join(WORKSPACES_DIR, id), { recursive: true, force: true });
-    } catch { /* ignore cleanup failure */ }
+    } catch {
+      /* ignore cleanup failure */
+    }
 
     return NextResponse.json(
       {
         error: err instanceof Error ? err.message : 'Clone failed',
         hint: 'Check that git is installed and the repo URL is accessible.',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -158,7 +154,8 @@ export async function GET() {
       .filter((e) => e.isDirectory())
       .map((e) => {
         const wsDir = path.join(WORKSPACES_DIR, e.name);
-        const subDirs = fs.readdirSync(wsDir, { withFileTypes: true })
+        const subDirs = fs
+          .readdirSync(wsDir, { withFileTypes: true })
           .filter((d) => d.isDirectory());
         const repoDir = subDirs[0]?.name;
         return {

@@ -15,14 +15,11 @@ export interface ValidationResult {
  * Validate that required environment variables are set.
  * Returns a result object — does NOT exit. Caller decides what to do.
  */
-export function validateConfig(
-  required: string[],
-  optional: string[] = []
-): ValidationResult {
+export function validateConfig(required: string[], optional: string[] = []): ValidationResult {
   const missing = required.filter((k) => !process.env[k]);
-  const warnings = optional.filter((k) => !process.env[k]).map(
-    (k) => `Optional env var ${k} is not set`
-  );
+  const warnings = optional
+    .filter((k) => !process.env[k])
+    .map((k) => `Optional env var ${k} is not set`);
 
   return {
     valid: missing.length === 0,
@@ -41,7 +38,7 @@ export function requireConfig(required: string[], serviceName?: string): void {
     const name = serviceName || 'service';
     console.error(
       `[${name}] Missing required environment variables: ${result.missing.join(', ')}\n` +
-      `Set these in your .env file and restart.`
+        `Set these in your .env file and restart.`
     );
     process.exit(1);
   }

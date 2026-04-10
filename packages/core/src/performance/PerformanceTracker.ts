@@ -290,7 +290,6 @@ export class PerformanceTracker {
     if (this.nodeStorage) {
       this.nodeStorage.write('baseline.json', json);
     }
-
   }
 
   /**

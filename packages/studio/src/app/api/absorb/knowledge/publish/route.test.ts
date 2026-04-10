@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-async function loadPublishRouteWithEnv(env: { HOLOMESH_API_KEY?: string; MCP_SERVER_URL?: string }) {
+async function loadPublishRouteWithEnv(env: {
+  HOLOMESH_API_KEY?: string;
+  MCP_SERVER_URL?: string;
+}) {
   vi.resetModules();
 
   const prevHoloMesh = process.env.HOLOMESH_API_KEY;

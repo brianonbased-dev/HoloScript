@@ -22,12 +22,14 @@ pnpm test
 Copy `.env.example` to `.env` and fill in your keys. The `.env` file is gitignored — NEVER commit it.
 
 **Minimum required for local development:**
+
 ```bash
 ANTHROPIC_API_KEY=sk-ant-api03-...   # For AI features
 MCP_API_KEY=your-key                  # For MCP tool calls
 ```
 
 **For full platform features (optional):**
+
 ```bash
 HOLOSCRIPT_MCP_URL=https://mcp.holoscript.net
 ABSORB_SERVICE_URL=https://absorb.holoscript.net
@@ -37,6 +39,7 @@ MOLTBOOK_API_KEY=moltbook_sk_...     # For social features
 ```
 
 **Security rules:**
+
 - NEVER hardcode API keys in source files — use `process.env` or `@holoscript/config`
 - NEVER use `NEXT_PUBLIC_` prefix for secret keys — browser must not see them
 - Use `@holoscript/config` auth helpers which throw if called from browser
@@ -46,7 +49,7 @@ MOLTBOOK_API_KEY=moltbook_sk_...     # For social features
 
 ```
 packages/
-  core/           # Parser, types, traits, compilers (24+ targets)
+  core/           # Parser, types, traits, compiler implementations
   engine/         # Runtime: physics, animation, audio, ECS, rendering
   framework/      # Agent behaviors, AI, swarm, negotiation, training
   config/         # Centralized endpoints, auth, config validation
@@ -58,7 +61,7 @@ packages/
   absorb-service/ # Codebase intelligence, GraphRAG
   ui/             # Shared Tailwind React components
   crdt/           # Conflict-free replicated data types
-  ...             # 60+ total packages
+  ...             # Additional packages (verify via `ls -d packages/*/`)
 
 services/
   absorb-service/ # Absorb host (server entry point)
@@ -66,6 +69,19 @@ services/
 
 infrastructure/
   Dockerfile.*    # Per-service Docker builds
+```
+
+SSOT checks for structure and targets (run in repo root):
+
+```bash
+# Registered export targets
+grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBreaker.ts
+
+# Compiler implementation files
+find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"
+
+# Package/service footprint
+ls -d packages/*/ services/*/
 ```
 
 ## What to Contribute
@@ -80,6 +96,17 @@ infrastructure/
 - Performance improvements
 
 **Before starting large features**, open an issue to discuss the approach.
+
+## Utility-First Framing (not only 3D/XR)
+
+HoloScript is a universal semantic platform. Spatial rendering is one output channel, not the whole product surface.
+
+- **Pipelines**: `.hs` files model source → transform → sink flows that compile to service/runtime outputs.
+- **Knowledge market**: HoloMesh/HoloDaemon workflows support agent contributions, discovery, and reputation loops.
+- **Observability**: telemetry and tracing live in runtime/core paths (OpenTelemetry spans, diagnostics).
+- **Schema mapping**: Absorb and mapping flows convert structured inputs (code/data/schema) into semantic compositions.
+
+When writing docs or code comments, describe the problem solved first (pipeline, orchestration, schema, observability), then the optional spatial presentation.
 
 ## Development Workflow
 
@@ -126,6 +153,7 @@ Pre-commit hooks enforce conventional commits. Format: `type(scope): description
 **Scopes:** `core`, `mesh`, `mcp`, `absorb`, `studio`, `cli`, `r3f`, `protocol`, `infra`, `ci`, `security`, `economy`, `lsp`
 
 **Rules:**
+
 - Subject line max 72 characters
 - `git add <specific-files>` only — NEVER `git add -A` or `git add .`
 - Run tests before committing: `pnpm test`
@@ -134,11 +162,11 @@ Pre-commit hooks enforce conventional commits. Format: `type(scope): description
 
 HoloScript has three source formats — use the right one:
 
-| Format | Purpose | Example |
-|--------|---------|---------|
-| `.holo` | Scene compositions, spatial worlds, templates | storefront.holo |
-| `.hsplus` | Agent behaviors, state machines, governance | planner-agent.hsplus |
-| `.hs` | Data pipelines (source → transform → sink) | inventory-sync.hs |
+| Format    | Purpose                                       | Example              |
+| --------- | --------------------------------------------- | -------------------- |
+| `.holo`   | Scene compositions, spatial worlds, templates | storefront.holo      |
+| `.hsplus` | Agent behaviors, state machines, governance   | planner-agent.hsplus |
+| `.hs`     | Data pipelines (source → transform → sink)    | inventory-sync.hs    |
 
 Spatial keywords (`environment`, `object`, `template`) produce a SyntaxError in `.hs` pipeline files. Use `.holo` for scenes.
 
@@ -292,23 +320,24 @@ Use conventional commits with canonical scopes:
 
 **Canonical scopes** (use these, not aliases):
 
-| Scope | Package / Area | NOT these |
-|-------|---------------|-----------|
-| `core` | `@holoscript/core` — parser, types, traits, compilers | |
-| `mesh` | HoloMesh — social network, CRDT, gossip, teams | `holomesh` |
-| `mcp` | `@holoscript/mcp-server` — MCP tools, HTTP routes | `mcp-server` |
-| `absorb` | `@holoscript/absorb-service` — GraphRAG, embeddings | `absorb-service`, `absorb-engine` |
-| `studio` | `@holoscript/studio` — Next.js app, pages | `studio+holo` |
-| `cli` | `@holoscript/cli` — command-line tools | |
-| `r3f` | `@holoscript/r3f-renderer` — React Three Fiber | `r3f-renderer` |
-| `protocol` | Publishing protocol — provenance, registry, revenue | |
-| `infra` | Dockerfiles, Railway, deployment configs | `docker` |
-| `ci` | GitHub Actions, CI workflows | |
-| `security` | Security fixes, sandbox, auth | |
-| `economy` | Payments, budgets, revenue, subscriptions | `monetization` |
-| `lsp` | Language Server Protocol | |
+| Scope      | Package / Area                                        | NOT these                         |
+| ---------- | ----------------------------------------------------- | --------------------------------- |
+| `core`     | `@holoscript/core` — parser, types, traits, compilers |                                   |
+| `mesh`     | HoloMesh — social network, CRDT, gossip, teams        | `holomesh`                        |
+| `mcp`      | `@holoscript/mcp-server` — MCP tools, HTTP routes     | `mcp-server`                      |
+| `absorb`   | `@holoscript/absorb-service` — GraphRAG, embeddings   | `absorb-service`, `absorb-engine` |
+| `studio`   | `@holoscript/studio` — Next.js app, pages             | `studio+holo`                     |
+| `cli`      | `@holoscript/cli` — command-line tools                |                                   |
+| `r3f`      | `@holoscript/r3f-renderer` — React Three Fiber        | `r3f-renderer`                    |
+| `protocol` | Publishing protocol — provenance, registry, revenue   |                                   |
+| `infra`    | Dockerfiles, Railway, deployment configs              | `docker`                          |
+| `ci`       | GitHub Actions, CI workflows                          |                                   |
+| `security` | Security fixes, sandbox, auth                         |                                   |
+| `economy`  | Payments, budgets, revenue, subscriptions             | `monetization`                    |
+| `lsp`      | Language Server Protocol                              |                                   |
 
 **Rules:**
+
 - One scope per commit. `feat(mesh):` not `feat(mesh, mcp):`
 - One concern per commit. If you write "and" in the subject, split into two commits.
 - Subject line max 72 characters. Use the body for detail.
@@ -359,6 +388,7 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 This repo is AI-first — most features and fixes arrive via agent-authored commits.
 
 **When a PR is required:**
+
 - Any change touching **10+ files** or **3+ packages**
 - Security-sensitive changes (auth, sandbox, crypto)
 - Breaking changes to public APIs or trait interfaces
@@ -381,6 +411,7 @@ Even self-merged PRs create an audit trail and force CI to run before code lands
 Tag a release when a **meaningful milestone** ships — not per-sprint, not per-commit.
 
 **What triggers a release:**
+
 - New HoloMesh version (V-level feature set)
 - New compiler backend or compile target
 - Security fix that affects deployed services
@@ -388,6 +419,7 @@ Tag a release when a **meaningful milestone** ships — not per-sprint, not per-
 - 50+ commits accumulated since last tag
 
 **How to release:**
+
 ```bash
 # 1. Ensure CHANGELOG.md has a dated entry for this version
 # 2. Bump version in package.json files (or use pnpm version:minor)
@@ -399,6 +431,7 @@ gh release create vX.Y.Z --title "vX.Y.Z — Release Name" --notes-file RELEASE_
 ```
 
 **Versioning rules:**
+
 - **Major** (X.0.0): Breaking trait interface changes, package restructuring
 - **Minor** (0.X.0): New features, new MCP tools, new compile targets
 - **Patch** (0.0.X): Bug fixes, security patches, doc fixes

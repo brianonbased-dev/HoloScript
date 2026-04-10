@@ -57,10 +57,14 @@ describe('/api/github/access route', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/user');
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/repos/brianonbased-dev/HoloScript');
 
-    const firstHeaders = (fetchMock.mock.calls[0]?.[1] as RequestInit)
-      .headers as Record<string, string>;
-    const secondHeaders = (fetchMock.mock.calls[1]?.[1] as RequestInit)
-      .headers as Record<string, string>;
+    const firstHeaders = (fetchMock.mock.calls[0]?.[1] as RequestInit).headers as Record<
+      string,
+      string
+    >;
+    const secondHeaders = (fetchMock.mock.calls[1]?.[1] as RequestInit).headers as Record<
+      string,
+      string
+    >;
 
     expect(firstHeaders.Authorization).toBe('Bearer test-token');
     expect(secondHeaders.Authorization).toBe('Bearer test-token');
@@ -121,10 +125,7 @@ describe('/api/github/access route', () => {
   });
 
   it('returns 502 when GitHub API calls fail', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('Bad Gateway', { status: 502 }))
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Bad Gateway', { status: 502 })));
     const req = new NextRequest(
       'http://localhost/api/github/access?owner=brianonbased-dev&repo=HoloScript'
     );

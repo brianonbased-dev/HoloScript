@@ -96,7 +96,10 @@ describe('AgentWalletRegistry', () => {
   describe('authorizeTransaction', () => {
     it('returns a hex signature for a registered agent', async () => {
       registry.registerWallet('agent-1', '0xABC');
-      const sig = await registry.authorizeTransaction('agent-1', { action: 'buy', traitId: 'T.001' });
+      const sig = await registry.authorizeTransaction('agent-1', {
+        action: 'buy',
+        traitId: 'T.001',
+      });
       expect(sig).toMatch(/^0x[0-9a-f]+$/);
     });
 
@@ -144,9 +147,7 @@ describe('AgentWalletRegistry', () => {
       // Unregister
       registry.unregisterWallet('agent-3');
       // Should fail
-      await expect(
-        registry.authorizeTransaction('agent-3', { action: 'test' })
-      ).rejects.toThrow();
+      await expect(registry.authorizeTransaction('agent-3', { action: 'test' })).rejects.toThrow();
     });
   });
 });

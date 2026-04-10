@@ -353,7 +353,6 @@ export class VRRRuntime {
       if (supported) {
         await this.activeARRuntime.startSession();
         this.isARActive = true;
-
       } else {
         console.warn(`[VRR] AR not supported on this device. Retaining VRR/VR view.`);
         this.activeARRuntime = null;
@@ -362,7 +361,6 @@ export class VRRRuntime {
       await this.activeARRuntime.stopSession();
       this.activeARRuntime = null;
       this.isARActive = false;
-
     }
   }
 
@@ -453,22 +451,40 @@ export class VRRRuntime {
           title: String(evt.name ?? ''),
           start: String(
             (evt.dates as Record<string, unknown>)?.start
-              ? ((evt.dates as Record<string, Record<string, unknown>>).start as Record<string, unknown>).dateTime ?? ''
+              ? ((
+                  (evt.dates as Record<string, Record<string, unknown>>).start as Record<
+                    string,
+                    unknown
+                  >
+                ).dateTime ?? '')
               : ''
           ),
           end: String(
             (evt.dates as Record<string, unknown>)?.end
-              ? ((evt.dates as Record<string, Record<string, unknown>>).end as Record<string, unknown>).dateTime ?? ''
+              ? ((
+                  (evt.dates as Record<string, Record<string, unknown>>).end as Record<
+                    string,
+                    unknown
+                  >
+                ).dateTime ?? '')
               : ''
           ),
           location: String(
             (evt._embedded as Record<string, unknown[]>)?.venues?.[0]
-              ? ((evt._embedded as Record<string, Record<string, unknown>[]>).venues[0] as Record<string, unknown>).name ?? 'Unknown'
+              ? ((
+                  (evt._embedded as Record<string, Record<string, unknown>[]>).venues[0] as Record<
+                    string,
+                    unknown
+                  >
+                ).name ?? 'Unknown')
               : 'Unknown'
           ),
           category: String(
             (evt.classifications as Record<string, unknown>[])?.length
-              ? ((evt.classifications as Record<string, Record<string, unknown>>[])[0].segment as Record<string, unknown>)?.name ?? 'General'
+              ? ((
+                  (evt.classifications as Record<string, Record<string, unknown>>[])[0]
+                    .segment as Record<string, unknown>
+                )?.name ?? 'General')
               : 'General'
           ),
         }));
@@ -512,7 +528,10 @@ export class VRRRuntime {
   }
 
   private parseInventoryPayload(raw: unknown): InventoryData {
-    const parsed = raw as { business_id?: string; items?: Array<{ id: string; name: string; stock: number; price: number }> };
+    const parsed = raw as {
+      business_id?: string;
+      items?: Array<{ id: string; name: string; stock: number; price: number }>;
+    };
     return {
       business_id: String(parsed.business_id ?? ''),
       items: Array.isArray(parsed.items) ? parsed.items : [],
@@ -537,7 +556,6 @@ export class VRRRuntime {
         clearInterval(this.inventoryPollingInterval);
         this.inventoryPollingInterval = null;
       }
-
     };
 
     ws.onmessage = (event) => {
@@ -566,17 +584,16 @@ export class VRRRuntime {
 
         setTimeout(() => this.connectInventoryWebSocket(business_id, callback), delay);
       } else {
-        console.warn('[VRR] Max inventory WebSocket reconnect attempts reached, falling back to polling');
+        console.warn(
+          '[VRR] Max inventory WebSocket reconnect attempts reached, falling back to polling'
+        );
         this.inventoryReconnectAttempts = 0;
         this.pollInventory(business_id, callback);
       }
     };
   }
 
-  private pollInventory(
-    business_id: string,
-    callback: (inventory: InventoryData) => void
-  ): void {
+  private pollInventory(business_id: string, callback: (inventory: InventoryData) => void): void {
     const providerHost = this.getInventoryProviderHost();
     const apiKey = this.options.apis.inventory?.api_key;
 
@@ -629,7 +646,10 @@ export class VRRRuntime {
   /**
    * Update local player position and action for next broadcast tick.
    */
-  updateLocalPlayer(position: { x: number; y: number; z: number }, action: PlayerData['action']): void {
+  updateLocalPlayer(
+    position: { x: number; y: number; z: number },
+    action: PlayerData['action']
+  ): void {
     if (this.localPlayer) {
       this.localPlayer.position = position;
       this.localPlayer.action = action;
@@ -649,12 +669,13 @@ export class VRRRuntime {
     ws.onopen = () => {
       this.playerReconnectAttempts = 0;
 
-
       // Send join event
-      ws.send(JSON.stringify({
-        type: 'player_join',
-        player: this.localPlayer,
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'player_join',
+          player: this.localPlayer,
+        })
+      );
 
       // Start broadcasting local player state at configured tick rate
       if (this.playerBroadcastInterval) {
@@ -663,10 +684,12 @@ export class VRRRuntime {
       const tickMs = 1000 / this.options.multiplayer.tick_rate;
       this.playerBroadcastInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN && this.localPlayer) {
-          ws.send(JSON.stringify({
-            type: 'player_update',
-            player: this.localPlayer,
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'player_update',
+              player: this.localPlayer,
+            })
+          );
         }
       }, tickMs);
     };
@@ -684,11 +707,9 @@ export class VRRRuntime {
             }
             break;
           case 'player_join':
-
             // Server will send updated player list; handled by player_state
             break;
           case 'player_leave':
-
             // Server will send updated player list; handled by player_state
             break;
           default:
@@ -793,9 +814,7 @@ export class VRRRuntime {
     const iotConfig = this.options.apis.iot!;
     const ws = new WebSocket(`wss://${iotConfig.endpoint}/telemetry/${sensor_id}`);
 
-    ws.onopen = () => {
-
-    };
+    ws.onopen = () => {};
 
     ws.onmessage = (event) => {
       try {
@@ -818,18 +837,20 @@ export class VRRRuntime {
           30000
         );
 
-        setTimeout(() => this.connectIoTWebSocket(sensor_id, callback, reconnectAttempts + 1), delay);
+        setTimeout(
+          () => this.connectIoTWebSocket(sensor_id, callback, reconnectAttempts + 1),
+          delay
+        );
       } else {
-        console.warn(`[VRR] Max IoT reconnect attempts reached for ${sensor_id}, falling back to HTTP polling`);
+        console.warn(
+          `[VRR] Max IoT reconnect attempts reached for ${sensor_id}, falling back to HTTP polling`
+        );
         this.pollIoTSensor(sensor_id, callback);
       }
     };
   }
 
-  private pollIoTSensor(
-    sensor_id: string,
-    callback: (telemetry: IoTSensorData) => void
-  ): void {
+  private pollIoTSensor(sensor_id: string, callback: (telemetry: IoTSensorData) => void): void {
     const iotConfig = this.options.apis.iot!;
 
     const poll = async (): Promise<void> => {
@@ -839,10 +860,9 @@ export class VRRRuntime {
           headers['Authorization'] = `Bearer ${iotConfig.api_key}`;
         }
 
-        const res = await fetch(
-          `https://${iotConfig.endpoint}/telemetry/${sensor_id}`,
-          { headers }
-        );
+        const res = await fetch(`https://${iotConfig.endpoint}/telemetry/${sensor_id}`, {
+          headers,
+        });
         if (!res.ok) {
           throw new Error(`IoT API returned ${res.status}`);
         }
@@ -901,10 +921,13 @@ export class VRRRuntime {
         ? `?id=eq.${encodeURIComponent(sync_id)}&select=*`
         : `?twin_id=eq.${encodeURIComponent(this.options.twin_id)}&order=created_at.desc&limit=1&select=*`;
 
-      const response = await fetch(`${this.options.state_persistence.server}/rest/v1/vrr_sync${query}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await fetch(
+        `${this.options.state_persistence.server}/rest/v1/vrr_sync${query}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);

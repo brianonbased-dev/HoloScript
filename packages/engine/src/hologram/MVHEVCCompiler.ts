@@ -94,7 +94,6 @@ const QUALITY_BITRATE: Record<string, number> = {
 // ── Compiler ─────────────────────────────────────────────────────────────────
 
 export class MVHEVCCompiler {
-
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     void agentToken;
     void outputPath;
@@ -347,4 +346,3 @@ extension StereoRenderPipeline {
     ].join(' \\\n  ');
   }
 }
-

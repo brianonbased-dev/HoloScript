@@ -138,9 +138,7 @@ export class MovementPredictor {
     });
 
     const speed = Math.sqrt(
-      (this.velocity.x ?? 0) ** 2 +
-        (this.velocity.y ?? 0) ** 2 +
-        (this.velocity.z ?? 0) ** 2
+      (this.velocity.x ?? 0) ** 2 + (this.velocity.y ?? 0) ** 2 + (this.velocity.z ?? 0) ** 2
     );
 
     if (speed > 0.5) {
@@ -163,4 +161,3 @@ export class MovementPredictor {
     return windows;
   }
 }
-

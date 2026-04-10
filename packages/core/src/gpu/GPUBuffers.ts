@@ -154,7 +154,6 @@ export class GPUBufferManager {
       statesWrite,
       uniforms,
     };
-
   }
 
   /**
@@ -180,7 +179,6 @@ export class GPUBufferManager {
     this.device.queue.writeBuffer(this.buffers.positionsRead, 0, data.positions.buffer);
     this.device.queue.writeBuffer(this.buffers.velocitiesRead, 0, data.velocities.buffer);
     this.device.queue.writeBuffer(this.buffers.statesRead, 0, data.states.buffer);
-
   }
 
   /**
@@ -343,7 +341,6 @@ export class GPUBufferManager {
     this.buffers.uniforms.destroy();
 
     this.buffers = null;
-
   }
 }
 

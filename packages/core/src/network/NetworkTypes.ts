@@ -1397,4 +1397,3 @@ export interface INeuralSplatPacket {
   compressedSplatsBuffer: ArrayBuffer;
   sortedIndicesBuffer: ArrayBuffer;
 }
-

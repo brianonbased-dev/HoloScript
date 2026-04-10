@@ -55,4 +55,3 @@ export interface IParentRuntime {
    */
   evaluateExpression(expr: unknown): HoloScriptValue;
 }
-

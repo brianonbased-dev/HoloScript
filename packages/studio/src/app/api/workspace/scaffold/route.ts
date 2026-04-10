@@ -10,10 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import {
-  scaffoldProjectWorkspace,
-  ScaffoldValidationError,
-} from '@/lib/workspace/scaffolder';
+import { scaffoldProjectWorkspace, ScaffoldValidationError } from '@/lib/workspace/scaffolder';
 import type { ProjectDNA } from '@/lib/workspace/scaffolder';
 
 // ─── Request validation ─────────────────────────────────────────────────────
@@ -42,10 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Auth check
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   // Parse body
@@ -53,19 +47,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: 'Invalid JSON body' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   // Type check
   if (!isProjectDNA(body)) {
     return NextResponse.json(
       {
-        error: 'Invalid request body. Required fields: name, repoUrl, techStack, frameworks, languages, packageCount, testCoverage, codeHealthScore, compilationTargets, traits',
+        error:
+          'Invalid request body. Required fields: name, repoUrl, techStack, frameworks, languages, packageCount, testCoverage, codeHealthScore, compilationTargets, traits',
       },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -75,16 +67,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
     if (err instanceof ScaffoldValidationError) {
-      return NextResponse.json(
-        { error: err.message, field: err.field },
-        { status: 422 },
-      );
+      return NextResponse.json({ error: err.message, field: err.field }, { status: 422 });
     }
 
     const message = err instanceof Error ? err.message : 'Internal server error';
-    return NextResponse.json(
-      { error: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -74,7 +74,12 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onUpdate(node, config, context, _delta) {
-    if (!activeNodes.has(node) || godRaysActiveFlag.get(node) === false || (node as unknown as Record<string, unknown>).__godRaysActive === false) return;
+    if (
+      !activeNodes.has(node) ||
+      godRaysActiveFlag.get(node) === false ||
+      (node as unknown as Record<string, unknown>).__godRaysActive === false
+    )
+      return;
 
     if (config.use_weather) {
       // Only emit update when sun moves (every frame for smooth rays)
@@ -87,7 +92,12 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    if (!activeNodes.has(node) || godRaysActiveFlag.get(node) === false || (node as unknown as Record<string, unknown>).__godRaysActive === false) return;
+    if (
+      !activeNodes.has(node) ||
+      godRaysActiveFlag.get(node) === false ||
+      (node as unknown as Record<string, unknown>).__godRaysActive === false
+    )
+      return;
 
     switch (event.type) {
       case 'god_rays_set_params':

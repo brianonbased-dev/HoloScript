@@ -128,14 +128,10 @@ describe('TypedEventEmitter', () => {
 
   it('types handler payloads correctly', () => {
     type DataHandler = TypedEventHandler<StreamEvents, 'data'>;
-    expectTypeOf<DataHandler>().toEqualTypeOf<
-      (payload: { chunk: Uint8Array }) => void
-    >();
+    expectTypeOf<DataHandler>().toEqualTypeOf<(payload: { chunk: Uint8Array }) => void>();
 
     type ErrorHandler = TypedEventHandler<StreamEvents, 'error'>;
-    expectTypeOf<ErrorHandler>().toEqualTypeOf<
-      (payload: { error: Error }) => void
-    >();
+    expectTypeOf<ErrorHandler>().toEqualTypeOf<(payload: { error: Error }) => void>();
   });
 
   it('interface methods accept correct types', () => {

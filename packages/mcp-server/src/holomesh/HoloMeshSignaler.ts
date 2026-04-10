@@ -5,9 +5,9 @@ const SIGNAL_PREFIX = '__NEURAL_SIGNAL__:';
 
 /**
  * HoloMeshSignaler
- * 
+ *
  * Implements the ISignalingBridge interface using HoloMesh's A2A messaging layer.
- * Enables establishing WebRTC RTCPeerConnections over the mesh without a dedicated 
+ * Enables establishing WebRTC RTCPeerConnections over the mesh without a dedicated
  * WebSocket signaling server, bridging Pillar 2 (Neural Streaming) with the HoloMesh Gossip layer.
  */
 export class HoloMeshSignaler implements ISignalingBridge {
@@ -36,12 +36,7 @@ export class HoloMeshSignaler implements ISignalingBridge {
   public async sendSignal(payload: NeuralSignalPayload): Promise<void> {
     try {
       const content = `${SIGNAL_PREFIX}${JSON.stringify(payload)}`;
-      sendMessage(
-        this.localAgentId,
-        this.localAgentName,
-        this.targetPeerId,
-        content
-      );
+      sendMessage(this.localAgentId, this.localAgentName, this.targetPeerId, content);
       // console.log(`[HoloMeshSignaler] Sent out-of-band signal`, { to: this.targetPeerId, type: payload.type });
     } catch (err) {
       console.error(`[HoloMeshSignaler] Failed to send signal to ${this.targetPeerId}`, err);
@@ -59,21 +54,24 @@ export class HoloMeshSignaler implements ISignalingBridge {
       if (!this.signalHandler) return;
 
       const unreadMessages = getInbox(this.localAgentId, true);
-      
+
       for (const msg of unreadMessages) {
         if (msg.fromAgent === this.targetPeerId && msg.content.startsWith(SIGNAL_PREFIX)) {
           // Parse the signal
           try {
             const rawJson = msg.content.substring(SIGNAL_PREFIX.length);
             const payload = JSON.parse(rawJson) as NeuralSignalPayload;
-            
+
             // Mark read so we don't process it again
             markRead(msg.id, this.localAgentId);
 
             // Pass to the transport layer
             this.signalHandler(payload);
           } catch (e) {
-            console.warn(`[HoloMeshSignaler] Failed to parse incoming signal from ${this.targetPeerId}`, e);
+            console.warn(
+              `[HoloMeshSignaler] Failed to parse incoming signal from ${this.targetPeerId}`,
+              e
+            );
           }
         }
       }

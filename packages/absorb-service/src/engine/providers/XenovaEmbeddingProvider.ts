@@ -75,7 +75,9 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
   }
 
   private async initPipeline(): Promise<unknown> {
-    let transformers: { pipeline: (task: string, model: string, opts: Record<string, unknown>) => Promise<unknown> };
+    let transformers: {
+      pipeline: (task: string, model: string, opts: Record<string, unknown>) => Promise<unknown>;
+    };
 
     try {
       // Try the current package name first (@huggingface/transformers v3+)

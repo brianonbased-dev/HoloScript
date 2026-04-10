@@ -14,9 +14,7 @@ interface TeamAutomateBody {
 }
 
 const BASE =
-  process.env.HOLOMESH_API_URL ||
-  process.env.MCP_SERVER_URL ||
-  'https://mcp.holoscript.net';
+  process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,23 +56,26 @@ export async function POST(req: NextRequest) {
     let teamNotifyError: string | null = null;
 
     if (auth) {
-      const notifyRes = await fetch(`${BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: auth,
-        },
-        body: JSON.stringify({
-          type: 'task',
-          content: `Team automation delegated ${body.entryId || 'entry'} to HoloClaw skill ${delegatePayload?.delegated?.skillName || 'unknown'}`,
-          metadata: {
-            teamId,
-            entryId: body.entryId || null,
-            delegatedSkill: delegatePayload?.delegated?.skillName || null,
-            provenanceHash: delegatePayload?.delegated?.provenanceHash || null,
+      const notifyRes = await fetch(
+        `${BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: auth,
           },
-        }),
-      });
+          body: JSON.stringify({
+            type: 'task',
+            content: `Team automation delegated ${body.entryId || 'entry'} to HoloClaw skill ${delegatePayload?.delegated?.skillName || 'unknown'}`,
+            metadata: {
+              teamId,
+              entryId: body.entryId || null,
+              delegatedSkill: delegatePayload?.delegated?.skillName || null,
+              provenanceHash: delegatePayload?.delegated?.provenanceHash || null,
+            },
+          }),
+        }
+      );
 
       teamNotified = notifyRes.ok;
       if (!notifyRes.ok) {

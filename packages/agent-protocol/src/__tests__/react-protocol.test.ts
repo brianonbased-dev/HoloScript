@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { ReactAgent } from '../react-protocol';
-import type { ReactLLMAdapter, ReactToolExecutor, Thought, Observation, ReactStep } from '../react-protocol';
+import type {
+  ReactLLMAdapter,
+  ReactToolExecutor,
+  Thought,
+  Observation,
+  ReactStep,
+} from '../react-protocol';
 import type { AgentIdentity, ReactProtocolSpec } from '../index';
 
 // =============================================================================
@@ -15,7 +21,10 @@ const identity: AgentIdentity = {
   capabilities: ['react'],
 };
 
-function makeLLM(thinkResults: Thought[], synthesizeResult: unknown = 'final answer'): ReactLLMAdapter {
+function makeLLM(
+  thinkResults: Thought[],
+  synthesizeResult: unknown = 'final answer'
+): ReactLLMAdapter {
   let callCount = 0;
   return {
     think: async (_task: string, _history: ReactStep[]): Promise<Thought> => {

@@ -30,7 +30,10 @@ async function loadFromFilesystem(baseUrl: string): Promise<HostedWorld[]> {
     if (!file.endsWith('.json')) continue;
     const id = file.replace(/\.json$/, '');
     const raw = await readFile(path.join(PUBLISH_DIR, file), 'utf8');
-    const parsed = JSON.parse(raw) as { publishedAt?: string; scene?: { metadata?: { name?: string } } };
+    const parsed = JSON.parse(raw) as {
+      publishedAt?: string;
+      scene?: { metadata?: { name?: string } };
+    };
 
     out.push({
       id,

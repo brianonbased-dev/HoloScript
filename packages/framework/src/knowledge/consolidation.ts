@@ -68,9 +68,15 @@ function defaultExcitability(): ExcitabilityMetadata {
 function containsInjectionPattern(content: string): boolean {
   if (!content || typeof content !== 'string') return false;
 
-  if (/["'];?\s*(import|require|exec|system|Process|eval|Function)\s*[.(]/i.test(content)) return true;
+  if (/["'];?\s*(import|require|exec|system|Process|eval|Function)\s*[.(]/i.test(content))
+    return true;
   if (/<script[\s>]/i.test(content)) return true;
-  if (/\b(os\.execute|os\.system|Runtime\.getRuntime|child_process|Process\.Start)\s*\(/i.test(content)) return true;
+  if (
+    /\b(os\.execute|os\.system|Runtime\.getRuntime|child_process|Process\.Start)\s*\(/i.test(
+      content
+    )
+  )
+    return true;
   if (/#\s*(include|pragma|define)\b/i.test(content)) return true;
   if (content.includes('\0')) return true;
   if (/OS\.(execute|shell_open)\s*\(/i.test(content)) return true;
@@ -155,7 +161,7 @@ export class ConsolidationEngine {
    */
   corroborate(domain: KnowledgeDomain, entryId: string, peerDid: string): boolean {
     const buffer = this.hotBuffers.get(domain) || [];
-    const entry = buffer.find(e => e.id === entryId);
+    const entry = buffer.find((e) => e.id === entryId);
     if (!entry) return false;
     if (!entry.corroborations.includes(peerDid)) {
       entry.corroborations.push(peerDid);
@@ -230,8 +236,8 @@ export class ConsolidationEngine {
     // Phase 2 & 3: CLUSTER + MERGE — deduplicate by content+type equality
     const uniqueEntries: HotBufferEntry[] = [];
     for (const entry of sanitized) {
-      const duplicate = uniqueEntries.find(e =>
-        e.content === entry.content && e.type === entry.type
+      const duplicate = uniqueEntries.find(
+        (e) => e.content === entry.content && e.type === entry.type
       );
       if (duplicate) {
         // Merge corroborations from duplicate
@@ -333,7 +339,7 @@ export class ConsolidationEngine {
    */
   needsConsolidation(): { domain: KnowledgeDomain; overdue: boolean; bufferSize: number }[] {
     const now = Date.now();
-    return KNOWLEDGE_DOMAINS.map(domain => {
+    return KNOWLEDGE_DOMAINS.map((domain) => {
       const config = DOMAIN_CONSOLIDATION[domain];
       const lastRun = this.lastConsolidation.get(domain) || 0;
       const elapsed = now - lastRun;
@@ -392,11 +398,7 @@ export class ConsolidationEngine {
    * Update an entry during its reconsolidation window.
    * Returns false if the window is closed or entry not found.
    */
-  reconsolidateEntry(
-    domain: KnowledgeDomain,
-    entryId: string,
-    updatedContent: string
-  ): boolean {
+  reconsolidateEntry(domain: KnowledgeDomain, entryId: string, updatedContent: string): boolean {
     const window = this.reconsolidationWindows.get(entryId);
     if (!window || !window.windowOpen || Date.now() > window.windowClosesAt) {
       return false;
@@ -488,7 +490,7 @@ export class ConsolidationEngine {
 
   /** Get hot buffer size across all domains. */
   getHotBufferStats(): { domain: string; count: number }[] {
-    return KNOWLEDGE_DOMAINS.map(domain => ({
+    return KNOWLEDGE_DOMAINS.map((domain) => ({
       domain,
       count: (this.hotBuffers.get(domain) || []).length,
     }));
@@ -496,7 +498,7 @@ export class ConsolidationEngine {
 
   /** Get cold store size across all domains. */
   getColdStoreStats(): { domain: string; count: number }[] {
-    return KNOWLEDGE_DOMAINS.map(domain => ({
+    return KNOWLEDGE_DOMAINS.map((domain) => ({
       domain,
       count: (this.coldStores.get(domain) || new Map()).size,
     }));
@@ -566,9 +568,7 @@ export interface CrossDomainMatch {
 
 /** Tokenize content into a set of lowercase words (3+ chars). */
 function tokenize(content: string): Set<string> {
-  return new Set(
-    content.toLowerCase().match(/[a-z0-9]{3,}/g) || []
-  );
+  return new Set(content.toLowerCase().match(/[a-z0-9]{3,}/g) || []);
 }
 
 /** Jaccard overlap between two sets. */

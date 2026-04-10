@@ -344,16 +344,12 @@ export class VercelDeployer extends BaseDeployer {
     for (const envVar of this.envVars) {
       try {
         // Try to create the env var
-        await this.apiRequest(
-          'POST',
-          `/v10/projects/${config.projectName}/env${teamQuery}`,
-          {
-            key: envVar.key,
-            value: envVar.value,
-            target: envVar.target,
-            type: envVar.type || 'encrypted',
-          }
-        );
+        await this.apiRequest('POST', `/v10/projects/${config.projectName}/env${teamQuery}`, {
+          key: envVar.key,
+          value: envVar.value,
+          target: envVar.target,
+          type: envVar.type || 'encrypted',
+        });
       } catch (error) {
         // If it already exists, update it via PATCH
         const message = error instanceof Error ? error.message : String(error);
@@ -396,7 +392,7 @@ export class VercelDeployer extends BaseDeployer {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiToken}`,
+          Authorization: `Bearer ${this.apiToken}`,
           'Content-Type': 'application/octet-stream',
           'x-vercel-digest': sha,
           'Content-Length': String(size),
@@ -409,7 +405,9 @@ export class VercelDeployer extends BaseDeployer {
         if (response.status !== 409) {
           const errData = await response.json().catch(() => ({}));
           const errMsg = (errData as VercelApiResponse).error?.message || response.statusText;
-          throw new Error(`Vercel file upload failed for ${filePath} (${response.status}): ${errMsg}`);
+          throw new Error(
+            `Vercel file upload failed for ${filePath} (${response.status}): ${errMsg}`
+          );
         }
       }
 
@@ -464,11 +462,7 @@ export class VercelDeployer extends BaseDeployer {
       }
     }
 
-    const response = await this.apiRequest(
-      'POST',
-      `/v13/deployments${teamQuery}`,
-      deployPayload
-    );
+    const response = await this.apiRequest('POST', `/v13/deployments${teamQuery}`, deployPayload);
 
     // Clean up transient state
     this._uploadedFiles = [];
@@ -490,13 +484,9 @@ export class VercelDeployer extends BaseDeployer {
   private async configureServerless(config: DeployConfig): Promise<void> {
     const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
 
-    await this.apiRequest(
-      'PATCH',
-      `/v9/projects/${config.projectName}${teamQuery}`,
-      {
-        serverlessFunctionRegion: this.serverlessConfig.regions?.[0] || undefined,
-      }
-    );
+    await this.apiRequest('PATCH', `/v9/projects/${config.projectName}${teamQuery}`, {
+      serverlessFunctionRegion: this.serverlessConfig.regions?.[0] || undefined,
+    });
     // Note: per-function runtime/memory/maxDuration are set via the functions
     // field in the deployment payload (handled in createDeployment).
   }
@@ -509,11 +499,9 @@ export class VercelDeployer extends BaseDeployer {
 
     const teamQuery = this.teamId ? `?teamId=${this.teamId}` : '';
 
-    await this.apiRequest(
-      'POST',
-      `/v2/deployments/${deploymentId}/aliases${teamQuery}`,
-      { alias: config.customDomain }
-    );
+    await this.apiRequest('POST', `/v2/deployments/${deploymentId}/aliases${teamQuery}`, {
+      alias: config.customDomain,
+    });
   }
 
   /**
@@ -537,18 +525,14 @@ export class VercelDeployer extends BaseDeployer {
     }
 
     // Update the project with header configuration
-    await this.apiRequest(
-      'PATCH',
-      `/v9/projects/${config.projectName}${teamQuery}`,
-      {
-        headers: [
-          {
-            source: '/(.*)',
-            headers: headerEntries,
-          },
-        ],
-      }
-    );
+    await this.apiRequest('PATCH', `/v9/projects/${config.projectName}${teamQuery}`, {
+      headers: [
+        {
+          source: '/(.*)',
+          headers: headerEntries,
+        },
+      ],
+    });
   }
 
   /**
@@ -562,7 +546,7 @@ export class VercelDeployer extends BaseDeployer {
     const url = `${this.apiBaseUrl}${endpoint}`;
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.apiToken}`,
+      Authorization: `Bearer ${this.apiToken}`,
       'Content-Type': 'application/json',
     };
 

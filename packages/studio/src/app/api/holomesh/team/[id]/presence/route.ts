@@ -95,9 +95,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     replacementCount: Number(r.replacementCount),
     lastSeen: r.lastSeen,
     lastStart: r.lastStart,
-    currentlyActive: sessions.some(
-      (s) => s.agentId === r.agentId && s.sessionEnd === null
-    ),
+    currentlyActive: sessions.some((s) => s.agentId === r.agentId && s.sessionEnd === null),
   }));
 
   return NextResponse.json({

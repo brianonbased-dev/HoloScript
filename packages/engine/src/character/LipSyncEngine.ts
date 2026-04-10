@@ -227,4 +227,3 @@ export class LipSyncEngine {
     return { prev: track.keyframes[track.keyframes.length - 1], t: 0 };
   }
 }
-

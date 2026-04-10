@@ -165,14 +165,10 @@ export function selectModality(
   } else if (platform in PLATFORM_EMBODIMENT_OVERRIDES) {
     embodiment =
       PLATFORM_EMBODIMENT_OVERRIDES[platform as keyof typeof PLATFORM_EMBODIMENT_OVERRIDES]!;
-    reasoning.push(
-      `Embodiment ${embodiment} from platform-specific override for ${platform}`
-    );
+    reasoning.push(`Embodiment ${embodiment} from platform-specific override for ${platform}`);
   } else {
     embodiment = CATEGORY_DEFAULT_EMBODIMENT[category];
-    reasoning.push(
-      `Embodiment ${embodiment} from category default for ${category}`
-    );
+    reasoning.push(`Embodiment ${embodiment} from category default for ${category}`);
   }
 
   // 2. Resolve export target
@@ -186,21 +182,16 @@ export function selectModality(
   } else if (platform in PLATFORM_TARGET_OVERRIDES) {
     exportTarget = PLATFORM_TARGET_OVERRIDES[platform]!;
     fallbackTarget = EMBODIMENT_TO_TARGET[embodiment]?.fallback ?? null;
-    reasoning.push(
-      `ExportTarget ${exportTarget} from platform-specific override for ${platform}`
-    );
+    reasoning.push(`ExportTarget ${exportTarget} from platform-specific override for ${platform}`);
   } else {
     const mapping = EMBODIMENT_TO_TARGET[embodiment];
     exportTarget = mapping.primary;
     fallbackTarget = mapping.fallback;
-    reasoning.push(
-      `ExportTarget ${exportTarget} from embodiment mapping for ${embodiment}`
-    );
+    reasoning.push(`ExportTarget ${exportTarget} from embodiment mapping for ${embodiment}`);
   }
 
   // 3. Determine spatial rendering capability
-  const canRenderSpatial =
-    capabilities.gpu3D && capabilities.frameBudgetMs <= 16.6;
+  const canRenderSpatial = capabilities.gpu3D && capabilities.frameBudgetMs <= 16.6;
   reasoning.push(
     canRenderSpatial
       ? `Device can render spatial: gpu3D=${capabilities.gpu3D}, frameBudget=${capabilities.frameBudgetMs}ms`
@@ -266,8 +257,10 @@ export function bestCategoryForTraits(
     const canSupport = platforms.some((platform) => {
       const caps = PLATFORM_CAPABILITIES[platform as PlatformTarget];
       return Object.entries(requiredCapabilities).every(([key, required]) => {
-        if (typeof required === 'boolean') return !required || caps[key as keyof PlatformCapabilities] === true;
-        if (typeof required === 'number') return (caps[key as keyof PlatformCapabilities] as number) <= required;
+        if (typeof required === 'boolean')
+          return !required || caps[key as keyof PlatformCapabilities] === true;
+        if (typeof required === 'number')
+          return (caps[key as keyof PlatformCapabilities] as number) <= required;
         return true;
       });
     });
@@ -287,20 +280,25 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
   let needsAudio = false;
   let hasHaptics = false;
   let objectCount = 0;
-  
+
   const inspectNode = (node: any) => {
     if (!node || typeof node !== 'object') return;
-    
+
     const type = node['@type'];
-    if (type === 'hs:Object' || type === 'hs:SpatialGroup' || 
-        type === 'hs:Light' || type === 'hs:Camera' || type === 'hs:Shape') {
+    if (
+      type === 'hs:Object' ||
+      type === 'hs:SpatialGroup' ||
+      type === 'hs:Light' ||
+      type === 'hs:Camera' ||
+      type === 'hs:Shape'
+    ) {
       needs3D = true;
       objectCount++;
     }
     if (type === 'hs:Audio') {
       needsAudio = true;
     }
-    
+
     // Check traits
     const traits = node['hs:traits'];
     if (Array.isArray(traits)) {
@@ -316,16 +314,18 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
         }
       }
     }
-    
+
     // Recurse common child arrays
-    ['hs:objects', 'hs:spatialGroups', 'hs:lights', 'hs:audio', 'hs:camera', 'hs:shapes'].forEach(key => {
-      const child = node[key];
-      if (Array.isArray(child)) {
-        child.forEach(inspectNode);
-      } else if (child && typeof child === 'object') {
-        inspectNode(child);
+    ['hs:objects', 'hs:spatialGroups', 'hs:lights', 'hs:audio', 'hs:camera', 'hs:shapes'].forEach(
+      (key) => {
+        const child = node[key];
+        if (Array.isArray(child)) {
+          child.forEach(inspectNode);
+        } else if (child && typeof child === 'object') {
+          inspectNode(child);
+        }
       }
-    });
+    );
   };
 
   inspectNode(graph);
@@ -333,7 +333,7 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
   const caps: Partial<PlatformCapabilities> = {};
   if (needs3D) caps.gpu3D = true;
   if (needsAudio) caps.spatialAudio = true;
-  
+
   // Rule: complex scenes (e.g. >50 objects) demand strict frame budget (90Hz -> 11.1ms)
   if (objectCount > 50) {
     caps.frameBudgetMs = 11.1;
@@ -341,7 +341,7 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
   if (hasHaptics) {
     caps.haptics = true;
   }
-  
+
   return caps;
 }
 
@@ -349,7 +349,7 @@ export function inferCapabilitiesFromGraph(graph: JsonLdSceneGraph): Partial<Pla
  * Automatically infer optimal modality given a semantic scene graph and optional platform target.
  * If a target is provided, it validates the capabilities and transliterates (e.g. forces UI2D if device lacks 3D).
  * If no target is provided, it returns the minimum viable primary ModalitySelection.
- * 
+ *
  * @param graph The semantic JSON-LD scene graph
  * @param platform Optional specific platform to target
  * @param options Additional fallback/override options
@@ -360,11 +360,11 @@ export function inferModalityFromGraph(
   options: ModalitySelectorOptions = {}
 ): ModalitySelection | null {
   const caps = inferCapabilitiesFromGraph(graph);
-  
+
   if (platform) {
     const platformCaps = PLATFORM_CAPABILITIES[platform];
     const opts = { ...options };
-    
+
     // Transliteration logic: scene needs 3D, but device lacks it
     if (caps.gpu3D && !platformCaps.gpu3D) {
       if (!opts.forceEmbodiment) {
@@ -373,17 +373,19 @@ export function inferModalityFromGraph(
       }
       if (opts.preferStreaming === undefined) {
         // Recommend neural streaming so they can see the 3D representation via video
-        opts.preferStreaming = true; 
+        opts.preferStreaming = true;
       }
     }
-    
+
     const selection = selectModality(platform, opts);
-    
+
     // Inject inference trace
-    selection.reasoning.unshift(`Inferred scene dependencies: 3D=${!!caps.gpu3D}, Objects=${Object.keys(caps).length}`);
+    selection.reasoning.unshift(
+      `Inferred scene dependencies: 3D=${!!caps.gpu3D}, Objects=${Object.keys(caps).length}`
+    );
     return selection;
   }
-  
+
   // Find best generic category
   const categories = bestCategoryForTraits(caps);
   if (categories.length > 0) {
@@ -393,6 +395,6 @@ export function inferModalityFromGraph(
     selection.reasoning.unshift(`Auto-inferred ideal platform category: ${primaryCat}`);
     return selection;
   }
-  
+
   return null;
 }

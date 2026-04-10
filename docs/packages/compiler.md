@@ -1,13 +1,13 @@
 # @holoscript/compiler
 
-**HoloScript compilation engine.** Transforms semantic trait specifications into platform-native code across 30+ targets.
+**HoloScript compilation engine.** Transforms semantic trait specifications into platform-native code across registered targets.
 
 ## Overview
 
 The compiler translates HoloScript's trait-based semantic layer into optimized code for any platform:
 
-- **25+ programming languages** (Go, C#, Python, Rust, C++, TypeScript, Swift, Kotlin, etc.)
-- **5+ game engines** (Unity, Unreal, Godot, PlayCanvas, Babylon.js)
+- **Multiple programming languages** (Go, C#, Python, Rust, C++, TypeScript, Swift, Kotlin, etc.)
+- **Multiple game engines** (Unity, Unreal, Godot, PlayCanvas, Babylon.js)
 - **Web formats** (WebGPU, Three.js, Babylon, Cesium)
 - **Robotics** (ROS 2, Gazebo, URDF)
 - **IoT & digital twins** (DTDL, WoT, CoAP)

@@ -383,9 +383,9 @@ describe('E2E: LOD Manager', () => {
     if (obj) obj.currentLevel = 2; // Simulate forced override by directly modifying state (since setForcedLevel was removed)
     mgr.update(0.016);
     // Actually, setting the viewer position is better to test real distance checking:
-    mgr.setViewerPosition(100, 0, 0); 
+    mgr.setViewerPosition(100, 0, 0);
     mgr.update(0.016);
-    expect(mgr.getObject('obj')?.currentLevel).toBe(2); 
+    expect(mgr.getObject('obj')?.currentLevel).toBe(2);
   });
 });
 

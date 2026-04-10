@@ -273,7 +273,12 @@ function tickRepeater(
   return 'running'; // Keep repeating
 }
 
-function tickCondition(node: BTNode, state: BTState, context: TraitContext, owner: unknown): BTStatus {
+function tickCondition(
+  node: BTNode,
+  state: BTState,
+  context: TraitContext,
+  owner: unknown
+): BTStatus {
   const conditionKey = node.condition || '';
 
   // Check blackboard value
@@ -314,7 +319,12 @@ function tickAction(
   // Try to execute action via context (pass blackboard so handlers can update conditions)
   if (context.executeAction) {
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    const result = context.executeAction((owner as HSPlusNode), actionName, node.params || {}, state.blackboard);
+    const result = context.executeAction(
+      owner as HSPlusNode,
+      actionName,
+      node.params || {},
+      state.blackboard
+    );
     const normalized = normalizeActionResult(result);
     if (normalized) return normalized;
   }

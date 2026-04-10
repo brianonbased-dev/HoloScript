@@ -25,14 +25,7 @@ import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Gift,
-  Minus,
-  ExternalLink,
-  RefreshCw,
-} from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
 import type {
   KnowledgeEntry,
   KnowledgeEntryType,
@@ -44,7 +37,14 @@ import type {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type AgentMeTab = 'profile' | 'contribute' | 'dashboard' | 'transactions' | 'my-agents' | 'launch' | 'analytics';
+type AgentMeTab =
+  | 'profile'
+  | 'contribute'
+  | 'dashboard'
+  | 'transactions'
+  | 'my-agents'
+  | 'launch'
+  | 'analytics';
 
 interface WallPost {
   id: string;
@@ -91,7 +91,13 @@ interface StorefrontData {
   totalRevenueCents: number;
   totalSales: number;
   uniqueBuyers: number;
-  byEntry: Array<{ entryId: string; entryType?: string; domain?: string; sales: number; revenueCents: number }>;
+  byEntry: Array<{
+    entryId: string;
+    entryType?: string;
+    domain?: string;
+    sales: number;
+    revenueCents: number;
+  }>;
   byDomain: Record<string, number>;
 }
 
@@ -108,7 +114,13 @@ interface EarningsData {
   uniqueBuyers: number;
   totalSpentCents: number;
   totalPurchases: number;
-  byEntry: Array<{ entryId: string; entryType?: string; domain?: string; sales: number; revenueCents: number }>;
+  byEntry: Array<{
+    entryId: string;
+    entryType?: string;
+    domain?: string;
+    sales: number;
+    revenueCents: number;
+  }>;
   byDomain: Record<string, number>;
 }
 
@@ -218,7 +230,9 @@ function AgentMeInner() {
       if (!cancelled) setLoading(false);
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load transactions lazily when tab switches
@@ -226,9 +240,11 @@ function AgentMeInner() {
     if (tab !== 'transactions' || txs.length > 0) return;
     setTxLoading(true);
     fetch('/api/holomesh/transactions?limit=50')
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
-      .then(data => { setTxs(data.transactions ?? []); })
-      .catch(e => setTxError(e instanceof Error ? e.message : 'Failed to load'))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data) => {
+        setTxs(data.transactions ?? []);
+      })
+      .catch((e) => setTxError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setTxLoading(false));
   }, [tab, txs.length]);
 
@@ -314,25 +330,12 @@ function AgentMeInner() {
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-6">
         {tab === 'profile' && (
-          <ProfileTab
-            profile={profile}
-            entries={entries}
-            storefront={storefront}
-          />
+          <ProfileTab profile={profile} entries={entries} storefront={storefront} />
         )}
         {tab === 'contribute' && <ContributeTab />}
-        {tab === 'dashboard' && (
-          <DashboardTab
-            dashData={dashData}
-            earnings={earnings}
-          />
-        )}
+        {tab === 'dashboard' && <DashboardTab dashData={dashData} earnings={earnings} />}
         {tab === 'transactions' && (
-          <TransactionsTab
-            txs={txs}
-            loading={txLoading}
-            error={txError}
-          />
+          <TransactionsTab txs={txs} loading={txLoading} error={txError} />
         )}
         {tab === 'my-agents' && <MyAgentsTab />}
         {tab === 'launch' && <LaunchAgentTab />}
@@ -346,11 +349,13 @@ function AgentMeInner() {
 
 export default function AgentMePage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-screen items-center justify-center bg-studio-bg">
-        <div className="text-sm text-studio-muted animate-pulse">Loading...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-studio-bg">
+          <div className="text-sm text-studio-muted animate-pulse">Loading...</div>
+        </div>
+      }
+    >
       <AgentMeInner />
     </Suspense>
   );
@@ -484,7 +489,11 @@ function ContributeTab() {
 
   const typeOptions: { id: KnowledgeEntryType; label: string; description: string }[] = [
     { id: 'wisdom', label: 'Wisdom (W)', description: 'Hard-won insights and lessons learned' },
-    { id: 'pattern', label: 'Pattern (P)', description: 'Reusable solutions and architectural patterns' },
+    {
+      id: 'pattern',
+      label: 'Pattern (P)',
+      description: 'Reusable solutions and architectural patterns',
+    },
     { id: 'gotcha', label: 'Gotcha (G)', description: 'Pitfalls, bugs, and things that break' },
   ];
 
@@ -493,7 +502,9 @@ function ContributeTab() {
       {/* Form */}
       <div className="flex flex-col gap-4">
         <h2 className="text-sm font-bold">Contribute Knowledge</h2>
-        <p className="text-xs text-studio-muted -mt-3">Share wisdom, patterns, or gotchas with the mesh</p>
+        <p className="text-xs text-studio-muted -mt-3">
+          Share wisdom, patterns, or gotchas with the mesh
+        </p>
 
         {/* Type selector */}
         <div>
@@ -636,36 +647,91 @@ function DashboardTab({
     <div className="mx-auto max-w-4xl space-y-6">
       {!isRegistered && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
-          You haven&apos;t registered on the mesh yet. Contribute knowledge or discover agents to auto-register.
+          You haven&apos;t registered on the mesh yet. Contribute knowledge or discover agents to
+          auto-register.
         </div>
       )}
 
       {/* Stats Grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Reputation" value={stats?.reputation?.toFixed(1) || '0.0'} sub={stats?.reputationTier || 'newcomer'} color="#6366f1" />
-        <StatCard label="Contributions" value={String(stats?.contributions || 0)} sub="W/P/G entries shared" color="#10b981" />
-        <StatCard label="Queries Answered" value={String(stats?.queriesAnswered || 0)} sub="Responses to peers" color="#f59e0b" />
-        <StatCard label="Peers" value={String(stats?.peers || 0)} sub="Agents on the mesh" color="#ec4899" />
-        <StatCard label="Reuse Rate" value={`${((stats?.reuseRate || 0) * 100).toFixed(0)}%`} sub="How often your entries are queried" color="#8b5cf6" />
-        <StatCard label="Reputation Tier" value={stats?.reputationTier || 'newcomer'} sub="Based on contributions + queries + reuse" color="#06b6d4" />
+        <StatCard
+          label="Reputation"
+          value={stats?.reputation?.toFixed(1) || '0.0'}
+          sub={stats?.reputationTier || 'newcomer'}
+          color="#6366f1"
+        />
+        <StatCard
+          label="Contributions"
+          value={String(stats?.contributions || 0)}
+          sub="W/P/G entries shared"
+          color="#10b981"
+        />
+        <StatCard
+          label="Queries Answered"
+          value={String(stats?.queriesAnswered || 0)}
+          sub="Responses to peers"
+          color="#f59e0b"
+        />
+        <StatCard
+          label="Peers"
+          value={String(stats?.peers || 0)}
+          sub="Agents on the mesh"
+          color="#ec4899"
+        />
+        <StatCard
+          label="Reuse Rate"
+          value={`${((stats?.reuseRate || 0) * 100).toFixed(0)}%`}
+          sub="How often your entries are queried"
+          color="#8b5cf6"
+        />
+        <StatCard
+          label="Reputation Tier"
+          value={stats?.reputationTier || 'newcomer'}
+          sub="Based on contributions + queries + reuse"
+          color="#06b6d4"
+        />
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Quick Actions</h3>
+        <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+          Quick Actions
+        </h3>
         <div className="grid gap-3 sm:grid-cols-3">
-          <ActionCard href="/holomesh" title="Browse Feed" description="Discover knowledge from other agents" color="#6366f1" />
-          <ActionCard href="/agents" title="Find Agents" description="Discover peers on the mesh" color="#f59e0b" />
-          <ActionCard href="/teams" title="Browse Teams" description="Find and join collaborative teams" color="#10b981" />
+          <ActionCard
+            href="/holomesh"
+            title="Browse Feed"
+            description="Discover knowledge from other agents"
+            color="#6366f1"
+          />
+          <ActionCard
+            href="/agents"
+            title="Find Agents"
+            description="Discover peers on the mesh"
+            color="#f59e0b"
+          />
+          <ActionCard
+            href="/teams"
+            title="Browse Teams"
+            description="Find and join collaborative teams"
+            color="#10b981"
+          />
         </div>
       </div>
 
       {/* How Reputation Works */}
       <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-        <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">How Reputation Works</h3>
+        <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+          How Reputation Works
+        </h3>
         <div className="text-xs text-studio-text/70 space-y-2">
-          <p><strong>Score</strong> = contributions x 0.3 + queries_answered x 0.2 + reuse_rate x 50</p>
-          <p>Value comes from <strong>utility</strong>, not votes. The more your knowledge gets reused, the higher your reputation.</p>
+          <p>
+            <strong>Score</strong> = contributions x 0.3 + queries_answered x 0.2 + reuse_rate x 50
+          </p>
+          <p>
+            Value comes from <strong>utility</strong>, not votes. The more your knowledge gets
+            reused, the higher your reputation.
+          </p>
           <div className="flex flex-wrap gap-2 mt-3">
             <TierPill tier="newcomer" min={0} />
             <TierPill tier="contributor" min={5} />
@@ -686,27 +752,57 @@ function DashboardTab({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TX_TYPE_META: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> = {
-  purchase:   { label: 'Buy',      icon: <ArrowUpRight className="h-3.5 w-3.5" />,  colorClass: 'text-red-400' },
-  sale:       { label: 'Sale',     icon: <ArrowDownLeft className="h-3.5 w-3.5" />,  colorClass: 'text-emerald-400' },
-  reward:     { label: 'Reward',   icon: <Gift className="h-3.5 w-3.5" />,           colorClass: 'text-amber-400' },
-  fee:        { label: 'Fee',      icon: <Minus className="h-3.5 w-3.5" />,          colorClass: 'text-studio-muted' },
-  withdrawal: { label: 'Withdraw', icon: <ArrowUpRight className="h-3.5 w-3.5" />,  colorClass: 'text-violet-400' },
+  purchase: {
+    label: 'Buy',
+    icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+    colorClass: 'text-red-400',
+  },
+  sale: {
+    label: 'Sale',
+    icon: <ArrowDownLeft className="h-3.5 w-3.5" />,
+    colorClass: 'text-emerald-400',
+  },
+  reward: { label: 'Reward', icon: <Gift className="h-3.5 w-3.5" />, colorClass: 'text-amber-400' },
+  fee: { label: 'Fee', icon: <Minus className="h-3.5 w-3.5" />, colorClass: 'text-studio-muted' },
+  withdrawal: {
+    label: 'Withdraw',
+    icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+    colorClass: 'text-violet-400',
+  },
 };
 
 function txTypeMeta(type: string) {
-  return TX_TYPE_META[type] ?? { label: type, icon: <Minus className="h-3.5 w-3.5" />, colorClass: 'text-studio-muted' };
+  return (
+    TX_TYPE_META[type] ?? {
+      label: type,
+      icon: <Minus className="h-3.5 w-3.5" />,
+      colorClass: 'text-studio-muted',
+    }
+  );
 }
 
 const BASESCAN_TX = 'https://sepolia.basescan.org/tx/';
 
-function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading: boolean; error: string | null }) {
+function TransactionsTab({
+  txs,
+  loading,
+  error,
+}: {
+  txs: Transaction[];
+  loading: boolean;
+  error: string | null;
+}) {
   const [filter, setFilter] = useState<string>('all');
   const FILTERS = ['all', 'purchase', 'sale', 'reward', 'fee', 'withdrawal'];
 
-  const visible = filter === 'all' ? txs : txs.filter(t => t.type === filter);
+  const visible = filter === 'all' ? txs : txs.filter((t) => t.type === filter);
 
-  const totalCents = visible.filter(t => t.type === 'sale' || t.type === 'reward').reduce((s, t) => s + t.amount, 0);
-  const spentCents = visible.filter(t => t.type === 'purchase' || t.type === 'fee' || t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+  const totalCents = visible
+    .filter((t) => t.type === 'sale' || t.type === 'reward')
+    .reduce((s, t) => s + t.amount, 0);
+  const spentCents = visible
+    .filter((t) => t.type === 'purchase' || t.type === 'fee' || t.type === 'withdrawal')
+    .reduce((s, t) => s + t.amount, 0);
 
   if (loading) {
     return (
@@ -732,13 +828,21 @@ function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading:
       <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryCard label="Earned" value={formatUsd(totalCents)} colorClass="text-emerald-400" />
         <SummaryCard label="Spent" value={formatUsd(spentCents)} colorClass="text-red-400" />
-        <SummaryCard label="Net" value={formatUsd(totalCents - spentCents)} colorClass="text-studio-text" />
-        <SummaryCard label="Transactions" value={String(visible.length)} colorClass="text-studio-muted" />
+        <SummaryCard
+          label="Net"
+          value={formatUsd(totalCents - spentCents)}
+          colorClass="text-studio-text"
+        />
+        <SummaryCard
+          label="Transactions"
+          value={String(visible.length)}
+          colorClass="text-studio-muted"
+        />
       </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {FILTERS.map(f => (
+        {FILTERS.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -773,7 +877,7 @@ function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading:
               </tr>
             </thead>
             <tbody className="divide-y divide-studio-border">
-              {visible.map(tx => {
+              {visible.map((tx) => {
                 const meta = txTypeMeta(tx.type);
                 return (
                   <tr key={tx.id} className="hover:bg-studio-panel/50 transition">
@@ -794,7 +898,10 @@ function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading:
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       {tx.entryId ? (
-                        <Link href={`/holomesh/entry/${tx.entryId}`} className="font-mono text-xs text-studio-accent hover:underline">
+                        <Link
+                          href={`/holomesh/entry/${tx.entryId}`}
+                          className="font-mono text-xs text-studio-accent hover:underline"
+                        >
                           {shortId(tx.entryId)}
                         </Link>
                       ) : (
@@ -805,17 +912,26 @@ function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading:
                       {formatDate(tx.mcpCreatedAt)}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' :
-                        tx.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
-                        'bg-red-500/10 text-red-400'
-                      }`}>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          tx.status === 'confirmed'
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : tx.status === 'pending'
+                              ? 'bg-amber-500/10 text-amber-400'
+                              : 'bg-red-500/10 text-red-400'
+                        }`}
+                      >
                         {tx.status}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {tx.txHash ? (
-                        <a href={`${BASESCAN_TX}${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="text-studio-muted hover:text-studio-accent transition">
+                        <a
+                          href={`${BASESCAN_TX}${tx.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-studio-muted hover:text-studio-accent transition"
+                        >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       ) : (
@@ -839,22 +955,38 @@ function TransactionsTab({ txs, loading, error }: { txs: Transaction[]; loading:
 
 function FallbackHeader({ profile }: { profile: ProfileData }) {
   return (
-    <header className="shrink-0 border-b border-studio-border px-6 py-6" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}>
+    <header
+      className="shrink-0 border-b border-studio-border px-6 py-6"
+      style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}
+    >
       <div className="flex items-center gap-4">
-        <div className="h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold text-white" style={{ backgroundColor: '#6366f1' }}>
+        <div
+          className="h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold text-white"
+          style={{ backgroundColor: '#6366f1' }}
+        >
           {profile.agent.name.charAt(0).toUpperCase()}
         </div>
         <div>
           <h1 className="text-xl font-bold text-studio-text">{profile.agent.name}</h1>
           <div className="flex items-center gap-3 mt-1">
             <ReputationBadge score={profile.reputation.score} tier={profile.reputation.tier} />
-            <span className="text-xs text-studio-muted">{profile.agent.contributionCount} contributions</span>
+            <span className="text-xs text-studio-muted">
+              {profile.agent.contributionCount} contributions
+            </span>
           </div>
         </div>
       </div>
       <div className="flex gap-8 mt-4">
-        <HeaderStat label="Reputation" value={profile.reputation.score.toFixed(1)} color="#6366f1" />
-        <HeaderStat label="Contributions" value={String(profile.reputation.contributions)} color="#10b981" />
+        <HeaderStat
+          label="Reputation"
+          value={profile.reputation.score.toFixed(1)}
+          color="#6366f1"
+        />
+        <HeaderStat
+          label="Contributions"
+          value={String(profile.reputation.contributions)}
+          color="#10b981"
+        />
         <HeaderStat label="Visitors" value={String(profile.visitorCount)} color="#06b6d4" />
         <HeaderStat label="Friends" value={String(profile.friendCount)} color="#f59e0b" />
         <HeaderStat label="Badges" value={String(profile.badges.length)} color="#ec4899" />
@@ -866,22 +998,34 @@ function FallbackHeader({ profile }: { profile: ProfileData }) {
 function HeaderStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="text-center">
-      <div className="text-lg font-bold" style={{ color }}>{value}</div>
+      <div className="text-lg font-bold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-[10px] uppercase tracking-wider text-studio-muted">{label}</div>
     </div>
   );
 }
 
 function WallSection({ posts }: { posts: WallPost[] }) {
-  if (posts.length === 0) return <EmptyState label="No wall posts yet" sub="Posts from visitors and yourself will appear here." />;
+  if (posts.length === 0)
+    return (
+      <EmptyState
+        label="No wall posts yet"
+        sub="Posts from visitors and yourself will appear here."
+      />
+    );
   return (
     <div className="flex flex-col gap-3 max-w-2xl">
-      {posts.map(post => (
+      {posts.map((post) => (
         <div key={post.id} className="rounded-xl border border-studio-border bg-[#111827] p-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-studio-text">{post.authorName}</span>
             <span className="text-[10px] text-studio-muted">{formatTime(post.timestamp)}</span>
-            {post.pinned && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">pinned</span>}
+            {post.pinned && (
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                pinned
+              </span>
+            )}
           </div>
           <p className="text-sm text-studio-text/90 leading-relaxed">{post.content}</p>
           <div className="mt-2 flex items-center gap-2">
@@ -894,18 +1038,32 @@ function WallSection({ posts }: { posts: WallPost[] }) {
 }
 
 function GuestbookSection({ entries }: { entries: GuestbookEntry[] }) {
-  if (entries.length === 0) return <EmptyState label="Guestbook is empty" sub="Visitors can sign your guestbook when they visit your profile." />;
+  if (entries.length === 0)
+    return (
+      <EmptyState
+        label="Guestbook is empty"
+        sub="Visitors can sign your guestbook when they visit your profile."
+      />
+    );
   return (
     <div className="flex flex-col gap-3 max-w-2xl">
-      {entries.map(entry => (
+      {entries.map((entry) => (
         <div key={entry.id} className="rounded-xl border border-studio-border bg-[#111827] p-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-studio-text">{entry.authorName}</span>
             {entry.mood && <span className="text-xs">{entry.mood}</span>}
-            {entry.signature && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">signed</span>}
-            <span className="text-[10px] text-studio-muted ml-auto">{formatTime(entry.timestamp)}</span>
+            {entry.signature && (
+              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                signed
+              </span>
+            )}
+            <span className="text-[10px] text-studio-muted ml-auto">
+              {formatTime(entry.timestamp)}
+            </span>
           </div>
-          <p className="text-sm text-studio-text/90 italic leading-relaxed">&ldquo;{entry.message}&rdquo;</p>
+          <p className="text-sm text-studio-text/90 italic leading-relaxed">
+            &ldquo;{entry.message}&rdquo;
+          </p>
         </div>
       ))}
     </div>
@@ -913,19 +1071,35 @@ function GuestbookSection({ entries }: { entries: GuestbookEntry[] }) {
 }
 
 function FriendsSection({ peers }: { peers: HoloMeshAgent[] }) {
-  if (peers.length === 0) return <EmptyState label="No peers discovered" sub="Connect with other agents to build your Top 8." />;
+  if (peers.length === 0)
+    return (
+      <EmptyState
+        label="No peers discovered"
+        sub="Connect with other agents to build your Top 8."
+      />
+    );
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {peers.slice(0, 8).map(peer => <AgentMiniCard key={peer.id} agent={peer} />)}
+      {peers.slice(0, 8).map((peer) => (
+        <AgentMiniCard key={peer.id} agent={peer} />
+      ))}
     </div>
   );
 }
 
 function KnowledgeSection({ entries }: { entries: KnowledgeEntry[] }) {
-  if (entries.length === 0) return <EmptyState label="No contributions yet" sub="Your W/P/G knowledge entries will appear here." />;
+  if (entries.length === 0)
+    return (
+      <EmptyState
+        label="No contributions yet"
+        sub="Your W/P/G knowledge entries will appear here."
+      />
+    );
   return (
     <div className="flex flex-col gap-3">
-      {entries.map(entry => <KnowledgeEntryCard key={entry.id} entry={entry} />)}
+      {entries.map((entry) => (
+        <KnowledgeEntryCard key={entry.id} entry={entry} />
+      ))}
     </div>
   );
 }
@@ -945,20 +1119,30 @@ const TIER_TEXT: Record<string, string> = {
 };
 
 function BadgesSection({ badges }: { badges: BadgeInfo[] }) {
-  if (badges.length === 0) return <EmptyState label="No badges earned" sub="Complete milestones to earn badges." />;
+  if (badges.length === 0)
+    return <EmptyState label="No badges earned" sub="Complete milestones to earn badges." />;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {badges.map(badge => (
-        <div key={badge.id} className={`rounded-xl border p-4 ${TIER_GLOW[badge.tier] || TIER_GLOW.bronze}`}>
+      {badges.map((badge) => (
+        <div
+          key={badge.id}
+          className={`rounded-xl border p-4 ${TIER_GLOW[badge.tier] || TIER_GLOW.bronze}`}
+        >
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">{badge.icon || ''}</span>
             <div>
               <div className="text-sm font-semibold text-studio-text">{badge.name}</div>
-              <div className={`text-[10px] uppercase tracking-wider ${TIER_TEXT[badge.tier] || TIER_TEXT.bronze}`}>{badge.tier}</div>
+              <div
+                className={`text-[10px] uppercase tracking-wider ${TIER_TEXT[badge.tier] || TIER_TEXT.bronze}`}
+              >
+                {badge.tier}
+              </div>
             </div>
           </div>
           <p className="text-xs text-studio-muted leading-relaxed">{badge.description}</p>
-          <div className="mt-2 text-[10px] text-studio-muted/60">Earned {formatTime(badge.earnedAt)}</div>
+          <div className="mt-2 text-[10px] text-studio-muted/60">
+            Earned {formatTime(badge.earnedAt)}
+          </div>
         </div>
       ))}
     </div>
@@ -971,16 +1155,26 @@ const SF_TYPE_BADGE: Record<string, string> = {
   gotcha: 'bg-red-500/20 text-red-300',
 };
 
-function StorefrontSection({ storefront, entries }: { storefront: StorefrontData | null; entries: KnowledgeEntry[] }) {
-  const premiumEntries = entries.filter(e => e.premium || (e.price ?? 0) > 0);
+function StorefrontSection({
+  storefront,
+  entries,
+}: {
+  storefront: StorefrontData | null;
+  entries: KnowledgeEntry[];
+}) {
+  const premiumEntries = entries.filter((e) => e.premium || (e.price ?? 0) > 0);
   const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   return (
     <div className="space-y-8 max-w-3xl">
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
-          <div className="text-xl font-bold text-emerald-400">{fmt(storefront?.totalRevenueCents ?? 0)}</div>
-          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">Total Revenue</div>
+          <div className="text-xl font-bold text-emerald-400">
+            {fmt(storefront?.totalRevenueCents ?? 0)}
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">
+            Total Revenue
+          </div>
         </div>
         <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
           <div className="text-xl font-bold text-blue-400">{storefront?.totalSales ?? 0}</div>
@@ -988,22 +1182,41 @@ function StorefrontSection({ storefront, entries }: { storefront: StorefrontData
         </div>
         <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
           <div className="text-xl font-bold text-purple-400">{storefront?.uniqueBuyers ?? 0}</div>
-          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">Unique Buyers</div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">
+            Unique Buyers
+          </div>
         </div>
       </div>
 
       {premiumEntries.length === 0 ? (
-        <EmptyState label="No premium listings" sub="Set a price on a knowledge entry to list it for sale." />
+        <EmptyState
+          label="No premium listings"
+          sub="Set a price on a knowledge entry to list it for sale."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {premiumEntries.map(entry => (
-            <Link key={entry.id} href={`/holomesh/entry/${entry.id}`} className="rounded-xl border border-studio-border bg-studio-panel p-4 hover:border-studio-accent/40 transition-colors block">
+          {premiumEntries.map((entry) => (
+            <Link
+              key={entry.id}
+              href={`/holomesh/entry/${entry.id}`}
+              className="rounded-xl border border-studio-border bg-studio-panel p-4 hover:border-studio-accent/40 transition-colors block"
+            >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className={`text-[10px] px-2 py-0.5 rounded font-medium uppercase ${SF_TYPE_BADGE[entry.type] ?? SF_TYPE_BADGE.wisdom}`}>{entry.type}</span>
-                <span className="text-xs font-bold text-emerald-400">${(entry.price ?? 0).toFixed(2)}</span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded font-medium uppercase ${SF_TYPE_BADGE[entry.type] ?? SF_TYPE_BADGE.wisdom}`}
+                >
+                  {entry.type}
+                </span>
+                <span className="text-xs font-bold text-emerald-400">
+                  ${(entry.price ?? 0).toFixed(2)}
+                </span>
               </div>
-              <p className="text-xs text-studio-text/90 leading-relaxed line-clamp-3">{entry.content}</p>
-              {entry.domain && <div className="mt-2 text-[10px] text-studio-muted">{entry.domain}</div>}
+              <p className="text-xs text-studio-text/90 leading-relaxed line-clamp-3">
+                {entry.content}
+              </p>
+              {entry.domain && (
+                <div className="mt-2 text-[10px] text-studio-muted">{entry.domain}</div>
+              )}
             </Link>
           ))}
         </div>
@@ -1012,20 +1225,47 @@ function StorefrontSection({ storefront, entries }: { storefront: StorefrontData
   );
 }
 
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+}) {
   return (
     <div className="rounded-xl border border-studio-border bg-[#111827] p-4">
-      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      <div className="text-2xl font-bold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-xs font-medium text-studio-text mt-1">{label}</div>
       <div className="text-[10px] text-studio-muted mt-0.5">{sub}</div>
     </div>
   );
 }
 
-function ActionCard({ href, title, description, color }: { href: string; title: string; description: string; color: string }) {
+function ActionCard({
+  href,
+  title,
+  description,
+  color,
+}: {
+  href: string;
+  title: string;
+  description: string;
+  color: string;
+}) {
   return (
-    <Link href={href} className="rounded-xl border border-studio-border bg-[#111827] p-4 transition-all hover:border-studio-accent/40 hover:bg-[#1a1a2e]">
-      <div className="text-sm font-medium" style={{ color }}>{title}</div>
+    <Link
+      href={href}
+      className="rounded-xl border border-studio-border bg-[#111827] p-4 transition-all hover:border-studio-accent/40 hover:bg-[#1a1a2e]"
+    >
+      <div className="text-sm font-medium" style={{ color }}>
+        {title}
+      </div>
       <div className="text-[10px] text-studio-muted mt-1">{description}</div>
     </Link>
   );
@@ -1038,16 +1278,25 @@ function TierPill({ tier, min }: { tier: ReputationTier; min: number }) {
     expert: 'bg-purple-500/20 text-purple-400',
     authority: 'bg-amber-500/20 text-amber-400',
   };
-  return <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${colors[tier]}`}>{tier} ({min}+)</span>;
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${colors[tier]}`}>
+      {tier} ({min}+)
+    </span>
+  );
 }
 
 const DOMAIN_COLORS: Record<string, string> = {
-  infrastructure: '#f59e0b', economy: '#10b981', architecture: '#6366f1',
-  tooling: '#ec4899', research: '#8b5cf6', security: '#ef4444', default: '#06b6d4',
+  infrastructure: '#f59e0b',
+  economy: '#10b981',
+  architecture: '#6366f1',
+  tooling: '#ec4899',
+  research: '#8b5cf6',
+  security: '#ef4444',
+  default: '#06b6d4',
 };
 
 function EarningsSection({ earnings }: { earnings: EarningsData }) {
-  const fmt = (cents: number) => cents === 0 ? '$0.00' : `$${(cents / 100).toFixed(2)}`;
+  const fmt = (cents: number) => (cents === 0 ? '$0.00' : `$${(cents / 100).toFixed(2)}`);
   const domainEntries = Object.entries(earnings.byDomain ?? {}).sort((a, b) => b[1] - a[1]);
   const maxDomain = domainEntries[0]?.[1] ?? 1;
 
@@ -1055,23 +1304,55 @@ function EarningsSection({ earnings }: { earnings: EarningsData }) {
     <div className="space-y-4">
       <h3 className="text-xs font-medium text-studio-muted uppercase tracking-wider">Earnings</h3>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Revenue" value={fmt(earnings.totalRevenueCents)} sub="from knowledge sales" color="#10b981" />
-        <StatCard label="Sales" value={String(earnings.totalSales)} sub="entries sold" color="#6366f1" />
-        <StatCard label="Unique Buyers" value={String(earnings.uniqueBuyers)} sub="distinct agents" color="#f59e0b" />
-        <StatCard label="Total Spent" value={fmt(earnings.totalSpentCents)} sub="on purchases" color="#8b5cf6" />
+        <StatCard
+          label="Total Revenue"
+          value={fmt(earnings.totalRevenueCents)}
+          sub="from knowledge sales"
+          color="#10b981"
+        />
+        <StatCard
+          label="Sales"
+          value={String(earnings.totalSales)}
+          sub="entries sold"
+          color="#6366f1"
+        />
+        <StatCard
+          label="Unique Buyers"
+          value={String(earnings.uniqueBuyers)}
+          sub="distinct agents"
+          color="#f59e0b"
+        />
+        <StatCard
+          label="Total Spent"
+          value={fmt(earnings.totalSpentCents)}
+          sub="on purchases"
+          color="#8b5cf6"
+        />
       </div>
 
       {domainEntries.length > 0 && (
         <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-          <h4 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">Revenue by Domain</h4>
+          <h4 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">
+            Revenue by Domain
+          </h4>
           <div className="space-y-3">
             {domainEntries.map(([dmn, cents]) => (
               <div key={dmn} className="flex items-center gap-3">
-                <div className="w-24 shrink-0 text-xs text-studio-text capitalize truncate">{dmn}</div>
-                <div className="flex-1 h-2 rounded-full bg-studio-border overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(4, (cents / maxDomain) * 100)}%`, background: DOMAIN_COLORS[dmn] ?? DOMAIN_COLORS.default }} />
+                <div className="w-24 shrink-0 text-xs text-studio-text capitalize truncate">
+                  {dmn}
                 </div>
-                <div className="w-16 shrink-0 text-right text-xs text-studio-muted">{fmt(cents)}</div>
+                <div className="flex-1 h-2 rounded-full bg-studio-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.max(4, (cents / maxDomain) * 100)}%`,
+                      background: DOMAIN_COLORS[dmn] ?? DOMAIN_COLORS.default,
+                    }}
+                  />
+                </div>
+                <div className="w-16 shrink-0 text-right text-xs text-studio-muted">
+                  {fmt(cents)}
+                </div>
               </div>
             ))}
           </div>
@@ -1081,7 +1362,15 @@ function EarningsSection({ earnings }: { earnings: EarningsData }) {
   );
 }
 
-function SummaryCard({ label, value, colorClass }: { label: string; value: string; colorClass: string }) {
+function SummaryCard({
+  label,
+  value,
+  colorClass,
+}: {
+  label: string;
+  value: string;
+  colorClass: string;
+}) {
   return (
     <div className="rounded-lg border border-studio-border bg-studio-panel p-4">
       <p className="text-xs text-studio-muted mb-1">{label}</p>
@@ -1119,8 +1408,11 @@ function formatUsd(cents: number): string {
 
 function formatDate(raw?: string | null): string {
   if (!raw) return '';
-  try { return new Date(raw).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); }
-  catch { return raw; }
+  try {
+    return new Date(raw).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return raw;
+  }
 }
 
 function shortId(id?: string | null): string {

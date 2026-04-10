@@ -265,8 +265,7 @@ export function createLLMProvider(): LLMProvider {
   }
 
   // Ollama is last resort — only used if no cloud API keys are set and OLLAMA_URL is configured
-  const ollamaUrl =
-    process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
+  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
   if (!ollamaUrl) {
     throw new Error(
       '[LLMProvider] No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, or OLLAMA_URL in .env'

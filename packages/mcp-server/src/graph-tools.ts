@@ -758,7 +758,9 @@ export async function handleGraphTool(
           summary: `Successfully generated W3C-compliant JSON-LD Semantic Scene Graph for ${ast.name}`,
         };
       } catch (err: unknown) {
-        throw new Error(`Failed to generate Semantic Scene Graph: ${err instanceof Error ? err.message : String(err)}`);
+        throw new Error(
+          `Failed to generate Semantic Scene Graph: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 

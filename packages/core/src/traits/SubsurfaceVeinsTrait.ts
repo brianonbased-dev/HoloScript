@@ -28,7 +28,9 @@ export interface SubsurfaceVeinsConfig {
   intensity?: number;
 }
 
-const DEFAULTS: Required<Pick<SubsurfaceVeinsConfig, 'branchFactor' | 'radius' | 'intensity' | 'color'>> = {
+const DEFAULTS: Required<
+  Pick<SubsurfaceVeinsConfig, 'branchFactor' | 'radius' | 'intensity' | 'color'>
+> = {
   branchFactor: 2.1,
   radius: 0.0008,
   intensity: 0.35,
@@ -62,7 +64,10 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       throw new Error('pulseBpm must be > 0');
     }
 
-    if (config.branchFactor !== undefined && (!Number.isFinite(config.branchFactor) || config.branchFactor < 1)) {
+    if (
+      config.branchFactor !== undefined &&
+      (!Number.isFinite(config.branchFactor) || config.branchFactor < 1)
+    ) {
       throw new Error('branchFactor must be >= 1');
     }
 
@@ -70,7 +75,10 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       throw new Error('radius must be > 0');
     }
 
-    if (config.intensity !== undefined && (!Number.isFinite(config.intensity) || config.intensity < 0)) {
+    if (
+      config.intensity !== undefined &&
+      (!Number.isFinite(config.intensity) || config.intensity < 0)
+    ) {
       throw new Error('intensity must be >= 0');
     }
 
@@ -102,7 +110,8 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
   },
 
   compileUnity(config: Required<SubsurfaceVeinsConfig>): string {
-    return `// Unity (HDRP/URP custom pass) — Subsurface Veins\n` +
+    return (
+      `// Unity (HDRP/URP custom pass) — Subsurface Veins\n` +
       `var segments = ${config.segmentCount};\n` +
       `var pulseBpm = ${config.pulseBpm}f;\n` +
       `var pulseHz = pulseBpm / 60.0f;\n` +
@@ -110,11 +119,13 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       `var vesselRadius = ${config.radius}f;\n` +
       `var veinColor = new Color(${config.color.r}f, ${config.color.g}f, ${config.color.b}f, 1f);\n` +
       `var baseIntensity = ${config.intensity}f;\n` +
-      `// Animate in shader: pulse = 0.5 + 0.5 * sin(_Time.y * 6.28318 * pulseHz);`;
+      `// Animate in shader: pulse = 0.5 + 0.5 * sin(_Time.y * 6.28318 * pulseHz);`
+    );
   },
 
   compileUnreal(config: Required<SubsurfaceVeinsConfig>): string {
-    return `// Unreal Material Function — Subsurface Veins\n` +
+    return (
+      `// Unreal Material Function — Subsurface Veins\n` +
       `float Segments = ${config.segmentCount}.0;\n` +
       `float PulseBPM = ${config.pulseBpm}.0;\n` +
       `float PulseHz = PulseBPM / 60.0;\n` +
@@ -123,11 +134,13 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       `float3 VeinColor = float3(${config.color.r}, ${config.color.g}, ${config.color.b});\n` +
       `float Intensity = ${config.intensity};\n` +
       `float Pulse = 0.5 + 0.5 * sin(Time * 6.28318 * PulseHz);\n` +
-      `// Feed Pulse into Subsurface Color / Opacity Mask for under-skin modulation.`;
+      `// Feed Pulse into Subsurface Color / Opacity Mask for under-skin modulation.`
+    );
   },
 
   compileWeb(config: Required<SubsurfaceVeinsConfig>): string {
-    return `// Web/Three.js shader snippet — Subsurface Veins\n` +
+    return (
+      `// Web/Three.js shader snippet — Subsurface Veins\n` +
       `const veins = {\n` +
       `  segmentCount: ${config.segmentCount},\n` +
       `  pulseBpm: ${config.pulseBpm},\n` +
@@ -138,7 +151,8 @@ export const SubsurfaceVeinsTrait: TraitHandler<SubsurfaceVeinsConfig> = {
       `  intensity: ${config.intensity},\n` +
       `};\n` +
       `// GLSL: float pulse = 0.5 + 0.5 * sin(uTime * 6.28318 * veins.pulseHz);\n` +
-      `// Apply pulse to emissive/transmission under epidermal mask.`;
+      `// Apply pulse to emissive/transmission under epidermal mask.`
+    );
   },
 
   compileGeneric(config: Required<SubsurfaceVeinsConfig>): string {

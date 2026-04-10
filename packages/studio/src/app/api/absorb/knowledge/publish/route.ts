@@ -4,7 +4,9 @@ const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net
 const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY;
 
 if (!HOLOMESH_KEY) {
-  console.error('FATAL: HOLOMESH_API_KEY environment variable is not set. Knowledge publish endpoint will reject requests.');
+  console.error(
+    'FATAL: HOLOMESH_API_KEY environment variable is not set. Knowledge publish endpoint will reject requests.'
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -12,19 +14,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const entries = body.entries;
     const workspaceId = body.workspace_id;
-    
+
     if (!entries || !Array.isArray(entries) || entries.length === 0) {
       return NextResponse.json({ success: false, error: 'Missing entries' }, { status: 400 });
     }
-    
+
     if (!workspaceId) {
       return NextResponse.json({ success: false, error: 'Missing workspace_id' }, { status: 400 });
     }
 
     if (!HOLOMESH_KEY) {
-      return NextResponse.json({ success: false, error: 'HOLOMESH_API_KEY environment variable is not set' }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: 'HOLOMESH_API_KEY environment variable is not set' },
+        { status: 500 }
+      );
     }
-    
+
     const defaultPremium = body.default_premium === true;
     let premium_count = 0;
     let free_count = 0;
@@ -35,7 +40,7 @@ export async function POST(req: NextRequest) {
     for (const entry of entries) {
       try {
         const isPremium = entry.is_premium ?? defaultPremium;
-        
+
         const res = await fetch(`${MCP_SERVER_URL}/api/holomesh/contribute`, {
           method: 'POST',
           headers: {
@@ -49,10 +54,10 @@ export async function POST(req: NextRequest) {
             domain: workspaceId,
             tags: isPremium ? ['premium'] : [],
             ...entry,
-            is_premium: isPremium
+            is_premium: isPremium,
           }),
         });
-        
+
         if (res.ok) {
           successCount++;
           if (isPremium) {
@@ -73,7 +78,7 @@ export async function POST(req: NextRequest) {
       publishedCount: successCount,
       premium_count,
       free_count,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });

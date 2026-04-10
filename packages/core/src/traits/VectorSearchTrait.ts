@@ -33,7 +33,12 @@ export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: VectorSearchConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: VectorSearchConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__vectorSearchState as { collections: Map<string, VectorDoc[]> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

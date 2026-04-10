@@ -238,9 +238,7 @@ export function CinematicCameraPanel({
       )}
 
       {/* Depth of Field Tab */}
-      {activeTab === 'dof' && (
-        <DofControlsTab dof={dof} setDof={setDof} />
-      )}
+      {activeTab === 'dof' && <DofControlsTab dof={dof} setDof={setDof} />}
 
       {/* Timeline Tab */}
       {activeTab === 'timeline' && (

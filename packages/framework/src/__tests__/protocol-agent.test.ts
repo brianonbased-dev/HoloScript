@@ -80,7 +80,9 @@ describe('ProtocolAgent', () => {
   });
 
   it('execute phase calls LLM with full model', async () => {
-    fetchSpy.mockResolvedValue(mockFetchResponse('Fixed the authentication bug by updating JWT validation'));
+    fetchSpy.mockResolvedValue(
+      mockFetchResponse('Fixed the authentication bug by updating JWT validation')
+    );
 
     const agent = new ProtocolAgent(testAgent);
     const plan = { plan: 'Use TDD', context: { task: 'Fix auth bug' } };
@@ -101,8 +103,8 @@ describe('ProtocolAgent', () => {
     fetchSpy.mockResolvedValue(
       mockFetchResponse(
         '[wisdom] JWT tokens should be validated on every request\n' +
-        '[pattern] Use middleware for auth validation\n' +
-        '[gotcha] Never store refresh tokens in localStorage'
+          '[pattern] Use middleware for auth validation\n' +
+          '[gotcha] Never store refresh tokens in localStorage'
       )
     );
 
@@ -168,7 +170,10 @@ describe('runProtocolCycle', () => {
       // Phase 2 (execute): full model
       if (callCount === 2) return mockFetchResponse('SUMMARY: Fixed JWT validation\nDone.');
       // Phase 3 (compress): extract knowledge
-      if (callCount === 3) return mockFetchResponse('[wisdom] Always validate token expiry\n[pattern] Use middleware for auth');
+      if (callCount === 3)
+        return mockFetchResponse(
+          '[wisdom] Always validate token expiry\n[pattern] Use middleware for auth'
+        );
       // Phase 4 (reintake): validate
       if (callCount === 4) return mockFetchResponse('[wisdom] Always validate token expiry');
       // Phase 5 (grow): patterns
@@ -196,9 +201,7 @@ describe('runProtocolCycle', () => {
   });
 
   it('returns summary from execute phase even when compress finds nothing', async () => {
-    fetchSpy.mockImplementation(async () =>
-      mockFetchResponse('Completed the task successfully')
-    );
+    fetchSpy.mockImplementation(async () => mockFetchResponse('Completed the task successfully'));
 
     const result = await runProtocolCycle(
       testAgent,
@@ -218,9 +221,7 @@ describe('runProtocolCycle', () => {
       model: { provider: 'openai', model: 'gpt-4o', apiKey: 'test-key' },
     };
 
-    fetchSpy.mockImplementation(async () =>
-      mockOpenAIResponse('Task done')
-    );
+    fetchSpy.mockImplementation(async () => mockOpenAIResponse('Task done'));
 
     const result = await runProtocolCycle(
       openaiAgent,
@@ -248,7 +249,7 @@ describe('runProtocolCycle', () => {
     // Should still return a result (BaseAgent catches phase errors)
     expect(result.phaseResults.length).toBeGreaterThan(0);
     // The reflect phase should fail, which cascades
-    const reflectPhase = result.phaseResults.find(p => p.phase === ProtocolPhase.REFLECT);
+    const reflectPhase = result.phaseResults.find((p) => p.phase === ProtocolPhase.REFLECT);
     expect(reflectPhase?.status).toBe('failure');
   });
 });

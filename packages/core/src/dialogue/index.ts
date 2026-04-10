@@ -1,8 +1,4 @@
-export {
-  BarkManager,
-  type BarkDefinition,
-  type ActiveBark,
-} from './BarkManager';
+export { BarkManager, type BarkDefinition, type ActiveBark } from './BarkManager';
 
 export {
   ChoiceManager,
@@ -34,7 +30,4 @@ export {
   type EmotionTrigger,
 } from './EmotionSystem';
 
-export {
-  Localization,
-  type LocaleData,
-} from './Localization';
+export { Localization, type LocaleData } from './Localization';

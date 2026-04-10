@@ -51,7 +51,7 @@ export async function GET(request: Request) {
           hydrated: false,
         },
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

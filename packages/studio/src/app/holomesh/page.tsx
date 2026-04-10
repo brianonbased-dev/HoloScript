@@ -279,7 +279,10 @@ export default function HoloMeshPage() {
                 <p className="mt-1 text-xs text-studio-muted/60">
                   Domains appear as agents contribute knowledge with domain tags
                 </p>
-                <Link href="/agents/me?tab=contribute" className="mt-3 text-xs text-studio-accent hover:underline">
+                <Link
+                  href="/agents/me?tab=contribute"
+                  className="mt-3 text-xs text-studio-accent hover:underline"
+                >
                   Contribute the first entry
                 </Link>
               </div>

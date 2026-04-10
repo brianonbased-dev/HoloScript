@@ -19,16 +19,16 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       const result = parser.parse(source);
       expect(result.success).toBe(true);
       expect(result.ast).toBeDefined();
-      
+
       const obj = result.ast!.objects![0];
       expect(obj.name).toBe('Container');
       expect(obj.subOrbs).toBeDefined();
       expect(obj.subOrbs!.length).toBe(1);
-      
+
       const subOrb = obj.subOrbs![0];
       expect(subOrb.name).toBe('InnerModule');
       expect(subOrb.source).toBe('inner.holo');
-      
+
       const properties = subOrb.properties || [];
       const scaleProp = properties.find((p) => p.key === 'scale');
       expect(scaleProp).toBeDefined();
@@ -51,7 +51,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.terrains).toBeDefined();
       expect(result.ast!.terrains!.length).toBe(1);
-      
+
       const terrain = result.ast!.terrains![0];
       expect(terrain.name).toBe('Mountains');
       expect(terrain.properties.scale).toBe(1.0);
@@ -75,7 +75,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.constraints).toBeDefined();
       expect(result.ast!.constraints!.length).toBe(1);
-      
+
       const constraint = result.ast!.constraints![0];
       expect(constraint.name).toBe('HingeLimit');
       expect(constraint.properties.type).toBe('hinge');
@@ -113,21 +113,21 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.norms).toBeDefined();
       expect(result.ast!.norms!.length).toBe(1);
-      
+
       const norm = result.ast!.norms![0];
       expect(norm.name).toBe('NoSpamming');
       expect(norm.traits).toContain('enforceable');
       expect(norm.properties.description).toBe('No unsolicited messages.');
-      
+
       expect(norm.creation).toBeDefined();
       expect(norm.creation!.properties.author).toBe('system');
-      
+
       expect(norm.evaluation).toBeDefined();
       expect(norm.evaluation!.properties.quorum).toBe(0.6);
-      
+
       expect(norm.compliance).toBeDefined();
       expect(norm.compliance!.properties.violation_threshold).toBe(3);
-      
+
       expect(norm.eventHandlers).toBeDefined();
       expect(norm.eventHandlers!.length).toBe(1);
       expect(norm.eventHandlers![0].event).toBe('on_norm_violated');
@@ -153,14 +153,14 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.metanorms).toBeDefined();
       expect(result.ast!.metanorms!.length).toBe(1);
-      
+
       const metanorm = result.ast!.metanorms![0];
       expect(metanorm.name).toBe('AmendmentProcess');
       expect(metanorm.properties.description).toBe('Rules for modifying norms');
-      
+
       expect(metanorm.rules).toBeDefined();
       expect(metanorm.rules!.properties.quorum).toBe(0.75);
-      
+
       expect(metanorm.escalation).toBeDefined();
       expect(metanorm.escalation!.properties.levels).toBe(2);
     });
@@ -180,7 +180,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.domainBlocks).toBeDefined();
       expect(result.ast!.domainBlocks!.length).toBe(1);
-      
+
       const domainBlock = result.ast!.domainBlocks![0];
       expect(domainBlock.domain).toBe('robotics');
       expect(domainBlock.keyword).toBe('controller');
@@ -205,11 +205,11 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.domainBlocks).toBeDefined();
       expect(result.ast!.domainBlocks!.length).toBe(2);
-      
+
       expect(result.ast!.domainBlocks![0].domain).toBe('healthcare');
       expect(result.ast!.domainBlocks![0].keyword).toBe('procedure');
       expect(result.ast!.domainBlocks![0].name).toBe('PatientBed');
-      
+
       expect(result.ast!.domainBlocks![1].domain).toBe('web3');
       expect(result.ast!.domainBlocks![1].keyword).toBe('contract');
       expect(result.ast!.domainBlocks![1].name).toBe('DeFiProtocol');
@@ -230,7 +230,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.spawnGroups).toBeDefined();
       expect(result.ast!.spawnGroups!.length).toBe(1);
-      
+
       const spawnGroup = result.ast!.spawnGroups![0];
       expect(spawnGroup.name).toBe('Enemies');
       expect(spawnGroup.properties.count).toBe(5);
@@ -249,10 +249,15 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       expect(result.success).toBe(true);
       expect(result.ast!.waypointSets).toBeDefined();
       expect(result.ast!.waypointSets!.length).toBe(1);
-      
+
       const waypoints = result.ast!.waypointSets![0];
       expect(waypoints.name).toBe('PatrolRoute');
-      expect(waypoints.points).toEqual([[0,0,0], [10,0,0], [10,0,10], [0,0,10]]);
+      expect(waypoints.points).toEqual([
+        [0, 0, 0],
+        [10, 0, 0],
+        [10, 0, 10],
+        [0, 0, 10],
+      ]);
     });
   });
 });

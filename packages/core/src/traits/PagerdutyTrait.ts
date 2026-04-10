@@ -16,7 +16,12 @@ export const pagerdutyHandler: TraitHandler<PagerdutyConfig> = {
     delete node.__pdState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: PagerdutyConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PagerdutyConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__pdState as { incidents: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

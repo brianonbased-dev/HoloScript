@@ -42,4 +42,3 @@ describe('SoftBody Autonomy', () => {
     expect(state.solver.getConstraints()).toHaveLength(3);
   });
 });
-

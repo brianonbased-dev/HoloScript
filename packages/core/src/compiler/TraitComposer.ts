@@ -106,7 +106,9 @@ export class TraitComposer {
           const a = traitNames[i];
           const b = traitNames[j];
           // Use the graph to detect if traits conflict
-          const graphInternal = this.graph as unknown as { traitConflicts?: Map<string, Set<string>> };
+          const graphInternal = this.graph as unknown as {
+            traitConflicts?: Map<string, Set<string>>;
+          };
           const aConflicts = graphInternal.traitConflicts?.get(a);
           if (aConflicts?.has(b)) {
             conflicts.push(`@${a} conflicts with @${b}`);
@@ -155,23 +157,30 @@ export class TraitComposer {
 
       applications.push({
         name: traitName,
-        config: configAcumulator
+        config: configAcumulator,
       });
     }
 
-    const { config: mergedDefaultConfig, errors, conflicts: semiringConflicts, deadElements } = this.semiring.add(applications);
+    const {
+      config: mergedDefaultConfig,
+      errors,
+      conflicts: semiringConflicts,
+      deadElements,
+    } = this.semiring.add(applications);
 
     // C3: Log dead elements encountered during composition for diagnostics
     if (deadElements.length > 0) {
-      warnings.push(`${deadElements.length} dead element(s) encountered during composition: ${deadElements.map(d => d.elementId).join(', ')}`);
+      warnings.push(
+        `${deadElements.length} dead element(s) encountered during composition: ${deadElements.map((d) => d.elementId).join(', ')}`
+      );
     }
 
     if (errors.length > 0) {
       warnings.push(...errors);
     }
-    
+
     if (semiringConflicts.length > 0) {
-       warnings.push(...semiringConflicts);
+      warnings.push(...semiringConflicts);
     }
 
     // Build composed handler

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../../db/schema';
 
-const HOLOMESH_API_URL = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const HOLOMESH_API_URL =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 interface RemoteTask {
@@ -36,10 +37,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Fetch current board from MCP
   const boardRes = await fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${id}/board`, { headers });
   if (!boardRes.ok) {
-    return NextResponse.json({ success: false, error: `MCP board fetch failed: ${boardRes.status}` }, { status: 502 });
+    return NextResponse.json(
+      { success: false, error: `MCP board fetch failed: ${boardRes.status}` },
+      { status: 502 }
+    );
   }
 
-  const data = await boardRes.json() as {
+  const data = (await boardRes.json()) as {
     board?: { open?: RemoteTask[]; claimed?: RemoteTask[]; blocked?: RemoteTask[] };
     done?: { recent?: RemoteTask[] };
   };
@@ -100,4 +104,3 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ success: true, synced });
 }
-

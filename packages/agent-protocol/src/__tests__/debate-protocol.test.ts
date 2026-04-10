@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { DebateOrchestrator } from '../debate-protocol';
-import type { DebateParticipant, DebateJudge, Position, Challenge, Defense } from '../debate-protocol';
+import type {
+  DebateParticipant,
+  DebateJudge,
+  Position,
+  Challenge,
+  Defense,
+} from '../debate-protocol';
 import type { AgentIdentity, DebateProtocolSpec } from '../index';
 
 // =============================================================================

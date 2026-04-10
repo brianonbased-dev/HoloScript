@@ -52,4 +52,3 @@ describe('Multi-Agent Interaction Test', () => {
     expect(bobCalls).not.toContain('npc_behavior_move');
   });
 });
-

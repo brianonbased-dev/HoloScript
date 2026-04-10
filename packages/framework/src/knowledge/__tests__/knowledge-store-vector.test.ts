@@ -14,10 +14,12 @@ import type { KnowledgeConfig, KnowledgeInsight } from '../../types';
 function makeConfig(remote = true): KnowledgeConfig {
   return {
     persist: false,
-    ...(remote ? {
-      remoteUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app',
-      remoteApiKey: 'test-api-key',
-    } : {}),
+    ...(remote
+      ? {
+          remoteUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+          remoteApiKey: 'test-api-key',
+        }
+      : {}),
   };
 }
 
@@ -159,8 +161,18 @@ describe('KnowledgeStore — Vector Embedding Pipeline', () => {
   describe('semanticSearch', () => {
     it('returns remote results when available', async () => {
       const remoteEntries = [
-        { id: 'r1', type: 'wisdom', content: 'Use strict mode', metadata: { domain: 'compilation', confidence: 0.8 } },
-        { id: 'r2', type: 'pattern', content: 'Pattern matching', metadata: { domain: 'compilation', confidence: 0.7 } },
+        {
+          id: 'r1',
+          type: 'wisdom',
+          content: 'Use strict mode',
+          metadata: { domain: 'compilation', confidence: 0.8 },
+        },
+        {
+          id: 'r2',
+          type: 'pattern',
+          content: 'Pattern matching',
+          metadata: { domain: 'compilation', confidence: 0.7 },
+        },
       ];
       globalThis.fetch = mockFetchOk(remoteEntries);
 
@@ -218,8 +230,18 @@ describe('KnowledgeStore — Vector Embedding Pipeline', () => {
 
     it('filters by minConfidence', async () => {
       const remoteEntries = [
-        { id: 'r1', type: 'wisdom', content: 'High confidence', metadata: { confidence: 0.9, domain: 'general' } },
-        { id: 'r2', type: 'wisdom', content: 'Low confidence', metadata: { confidence: 0.3, domain: 'general' } },
+        {
+          id: 'r1',
+          type: 'wisdom',
+          content: 'High confidence',
+          metadata: { confidence: 0.9, domain: 'general' },
+        },
+        {
+          id: 'r2',
+          type: 'wisdom',
+          content: 'Low confidence',
+          metadata: { confidence: 0.3, domain: 'general' },
+        },
       ];
       globalThis.fetch = mockFetchOk(remoteEntries);
 
@@ -247,19 +269,35 @@ describe('KnowledgeStore — Vector Embedding Pipeline', () => {
 
     it('hybrid search merges remote + local, deduped by ID', async () => {
       const remoteEntries = [
-        { id: 'r1', type: 'wisdom', content: 'Remote only', metadata: { domain: 'general', confidence: 0.9 } },
-        { id: 'shared', type: 'wisdom', content: 'Remote version', metadata: { domain: 'general', confidence: 0.8 } },
+        {
+          id: 'r1',
+          type: 'wisdom',
+          content: 'Remote only',
+          metadata: { domain: 'general', confidence: 0.9 },
+        },
+        {
+          id: 'shared',
+          type: 'wisdom',
+          content: 'Remote version',
+          metadata: { domain: 'general', confidence: 0.8 },
+        },
       ];
       globalThis.fetch = mockFetchOk(remoteEntries);
 
       const store = new KnowledgeStore(makeConfig());
       // Publish a local entry that has the same ID as a remote entry
-      const local = store.publish(makeInsight({ content: 'Local entry about general topics' }), 'agent-a');
+      const local = store.publish(
+        makeInsight({ content: 'Local entry about general topics' }),
+        'agent-a'
+      );
 
-      const results = await store.semanticSearch('general topics', { hybridSearch: true, limit: 10 });
+      const results = await store.semanticSearch('general topics', {
+        hybridSearch: true,
+        limit: 10,
+      });
 
       // Should contain remote entries + local entries, no duplicate IDs
-      const ids = results.map(r => r.id);
+      const ids = results.map((r) => r.id);
       const uniqueIds = new Set(ids);
       expect(ids.length).toBe(uniqueIds.size);
 
@@ -275,14 +313,19 @@ describe('KnowledgeStore — Vector Embedding Pipeline', () => {
 
       // Remote returns an entry with the same ID but different content
       const remoteEntries = [
-        { id: localId, type: 'wisdom', content: 'Remote version of knowledge', metadata: { domain: 'compilation', confidence: 0.95 } },
+        {
+          id: localId,
+          type: 'wisdom',
+          content: 'Remote version of knowledge',
+          metadata: { domain: 'compilation', confidence: 0.95 },
+        },
       ];
       globalThis.fetch = mockFetchOk(remoteEntries);
 
       const results = await store.semanticSearch('knowledge', { hybridSearch: true });
 
       // The entry with localId should appear exactly once
-      const matching = results.filter(r => r.id === localId);
+      const matching = results.filter((r) => r.id === localId);
       expect(matching).toHaveLength(1);
       // Remote wins (appears first in merge)
       expect(matching[0].content).toBe('Remote version of knowledge');

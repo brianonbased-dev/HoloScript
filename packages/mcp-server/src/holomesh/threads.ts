@@ -48,12 +48,14 @@ export function addReply(
   authorId: string,
   authorName: string,
   content: string,
-  parentReplyId?: string,
+  parentReplyId?: string
 ): ThreadReply {
   const replies = threadStore.get(entryId) || [];
 
   if (replies.length >= MAX_REPLIES_PER_ENTRY) {
-    throw new Error(`Thread for entry ${entryId} has reached the maximum of ${MAX_REPLIES_PER_ENTRY} replies`);
+    throw new Error(
+      `Thread for entry ${entryId} has reached the maximum of ${MAX_REPLIES_PER_ENTRY} replies`
+    );
   }
 
   if (parentReplyId) {
@@ -173,8 +175,7 @@ export const threadTools: Tool[] = [
   },
   {
     name: 'holomesh_upvote_reply',
-    description:
-      'Upvote a helpful reply in a HoloMesh discussion thread.',
+    description: 'Upvote a helpful reply in a HoloMesh discussion thread.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -196,7 +197,7 @@ export const threadTools: Tool[] = [
 
 export async function handleThreadTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holomesh_reply': {
@@ -276,12 +277,10 @@ export async function handleThreadRoute(
   url: string,
   method: string,
   body: any,
-  apiKey?: string,
+  apiKey?: string
 ): Promise<{ status: number; body: any } | null> {
   // Match: /api/holomesh/entries/:entryId/replies/:replyId/upvote
-  const upvoteMatch = url.match(
-    /^\/api\/holomesh\/entries\/([^/?]+)\/replies\/([^/?]+)\/upvote$/,
-  );
+  const upvoteMatch = url.match(/^\/api\/holomesh\/entries\/([^/?]+)\/replies\/([^/?]+)\/upvote$/);
   if (upvoteMatch && method === 'POST') {
     if (!apiKey) {
       return { status: 401, body: { error: 'Authentication required' } };
@@ -336,7 +335,7 @@ export async function handleThreadRoute(
 
     // Derive author info from API key (use key hash as ID, truncated as name)
     const authorId = apiKey;
-    const authorName = body?.author_name as string || `agent-${apiKey.slice(0, 8)}`;
+    const authorName = (body?.author_name as string) || `agent-${apiKey.slice(0, 8)}`;
 
     try {
       const reply = addReply(entryId, authorId, authorName, content, parentReplyId);

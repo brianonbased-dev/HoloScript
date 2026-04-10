@@ -507,13 +507,27 @@ export class StreamProtocol {
           if (this.connectionState === 'connecting') {
             reject(error);
           }
-          this.emit('error', { type: 'error' as const, seq: 0, timestamp: Date.now(), reliable: false, priority: 0, payload: { error } } as StreamMessage);
+          this.emit('error', {
+            type: 'error' as const,
+            seq: 0,
+            timestamp: Date.now(),
+            reliable: false,
+            priority: 0,
+            payload: { error },
+          } as StreamMessage);
         };
 
         this.connection.onclose = (event) => {
           this.connectionState = 'disconnected';
           this.stopHeartbeat();
-          this.emit('close', { type: 'close' as const, seq: 0, timestamp: Date.now(), reliable: false, priority: 0, payload: { code: event.code, reason: event.reason } } as StreamMessage);
+          this.emit('close', {
+            type: 'close' as const,
+            seq: 0,
+            timestamp: Date.now(),
+            reliable: false,
+            priority: 0,
+            payload: { code: event.code, reason: event.reason },
+          } as StreamMessage);
         };
       } catch (error) {
         this.connectionState = 'disconnected';

@@ -61,7 +61,6 @@ export default defineConfig({
     // Codebase Absorption Engine (re-exports from @holoscript/absorb-service)
     'codebase/index': 'src/codebase/index.ts',
 
-
     // CLI / Daemon runner (standalone executable)
     'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
 

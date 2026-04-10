@@ -12,9 +12,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // WalletTrait, TokenGatedTrait, NFTTrait modules were never created.
 // Provide minimal stubs so module-level code doesn't crash.
-const walletHandler = { defaultConfig: {}, onAttach: () => {}, onDetach: () => {}, onEvent: () => {} } as any;
-const tokenGatedHandler = { defaultConfig: {}, onAttach: () => {}, onDetach: () => {}, onEvent: () => {} } as any;
-const nftHandler = { defaultConfig: {}, onAttach: () => {}, onDetach: () => {}, onEvent: () => {} } as any;
+const walletHandler = {
+  defaultConfig: {},
+  onAttach: () => {},
+  onDetach: () => {},
+  onEvent: () => {},
+} as any;
+const tokenGatedHandler = {
+  defaultConfig: {},
+  onAttach: () => {},
+  onDetach: () => {},
+  onEvent: () => {},
+} as any;
+const nftHandler = {
+  defaultConfig: {},
+  onAttach: () => {},
+  onDetach: () => {},
+  onEvent: () => {},
+} as any;
 
 // =============================================================================
 // HELPERS

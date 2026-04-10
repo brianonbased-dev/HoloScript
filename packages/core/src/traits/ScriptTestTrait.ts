@@ -375,7 +375,13 @@ export const SCRIPT_TEST_TRAIT = {
 };
 
 // ── Handler (delegates to ScriptTestRunner) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const scriptTestHandler = {
   name: 'script_test',

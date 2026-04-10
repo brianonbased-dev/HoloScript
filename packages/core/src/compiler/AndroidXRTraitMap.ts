@@ -146,10 +146,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'cloth',
     components: ['PhysicsComponent'],
     level: 'partial',
-    imports: [
-      'com.google.android.filament.utils.Float3',
-      'android.opengl.GLES31',
-    ],
+    imports: ['com.google.android.filament.utils.Float3', 'android.opengl.GLES31'],
     generate: (varName, config) => {
       const stiffness = config.stiffness ?? 0.8;
       const damping = config.damping ?? 0.02;
@@ -189,10 +186,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'soft_body',
     components: ['PhysicsComponent'],
     level: 'partial',
-    imports: [
-      'com.google.android.filament.utils.Float3',
-      'android.opengl.GLES31',
-    ],
+    imports: ['com.google.android.filament.utils.Float3', 'android.opengl.GLES31'],
     generate: (varName, config) => {
       const compliance = config.compliance ?? 0.0001;
       const damping = config.damping ?? 0.01;
@@ -229,10 +223,7 @@ export const PHYSICS_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'fluid',
     components: ['PhysicsComponent'],
     level: 'partial',
-    imports: [
-      'android.opengl.GLES31',
-      'com.google.android.filament.utils.Float3',
-    ],
+    imports: ['android.opengl.GLES31', 'com.google.android.filament.utils.Float3'],
     generate: (varName, config) => {
       const particleCount = config.particle_count ?? 10000;
       const viscosity = config.viscosity ?? 0.01;
@@ -768,9 +759,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'audio_reverb',
     components: ['SpatialSoundPool'],
     level: 'partial',
-    imports: [
-      'android.media.audiofx.EnvironmentalReverb',
-    ],
+    imports: ['android.media.audiofx.EnvironmentalReverb'],
     generate: (varName, config) => {
       const wetMix = config.wet_mix ?? 0.3;
       const roomSize = config.room_size ?? 0.7;
@@ -790,10 +779,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'reverb_zone',
     components: ['SpatialSoundPool'],
     level: 'partial',
-    imports: [
-      'android.media.audiofx.EnvironmentalReverb',
-      'android.media.audiofx.PresetReverb',
-    ],
+    imports: ['android.media.audiofx.EnvironmentalReverb', 'android.media.audiofx.PresetReverb'],
     generate: (varName, config) => {
       const preset = String(config.preset || 'largeRoom');
       const decayTime = config.decay_time ?? 1500;
@@ -828,10 +814,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'audio_occlusion',
     components: ['SpatialSoundPool', 'PointSourceParams'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.SpatialSoundPool',
-      'androidx.xr.scenecore.PointSourceParams',
-    ],
+    imports: ['androidx.xr.scenecore.SpatialSoundPool', 'androidx.xr.scenecore.PointSourceParams'],
     generate: (varName, config) => {
       const attenuationFactor = config.attenuation ?? 0.3;
       const lowPassCutoff = config.low_pass_cutoff ?? 800;
@@ -882,10 +865,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'audio_filter',
     components: ['SpatialSoundPool'],
     level: 'partial',
-    imports: [
-      'android.media.audiofx.Equalizer',
-      'android.media.audiofx.BassBoost',
-    ],
+    imports: ['android.media.audiofx.Equalizer', 'android.media.audiofx.BassBoost'],
     generate: (varName, config) => {
       const filterType = String(config.type || 'equalizer');
       const bands = config.bands as number[] | undefined;
@@ -895,8 +875,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `${varName}Equalizer.enabled = true`,
         ...(bands
           ? bands.map(
-              (gain, i) =>
-                `${varName}Equalizer.setBandLevel(${i}.toShort(), ${gain}.toShort())`
+              (gain, i) => `${varName}Equalizer.setBandLevel(${i}.toShort(), ${gain}.toShort())`
             )
           : [
               `// Configure equalizer bands (${varName}Equalizer.numberOfBands bands available)`,
@@ -916,10 +895,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'audio_mixer',
     components: ['SpatialSoundPool'],
     level: 'partial',
-    imports: [
-      'android.media.AudioAttributes',
-      'android.media.SoundPool',
-    ],
+    imports: ['android.media.AudioAttributes', 'android.media.SoundPool'],
     generate: (varName, config) => {
       const channels = config.channels ?? 8;
       const masterVolume = config.master_volume ?? 1.0;
@@ -947,10 +923,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'doppler_effect',
     components: ['SpatialSoundPool', 'PointSourceParams'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.SpatialSoundPool',
-      'androidx.xr.scenecore.PointSourceParams',
-    ],
+    imports: ['androidx.xr.scenecore.SpatialSoundPool', 'androidx.xr.scenecore.PointSourceParams'],
     generate: (varName, config) => {
       const speedOfSound = config.speed_of_sound ?? 343;
       const maxShift = config.max_shift ?? 2.0;
@@ -1004,9 +977,7 @@ export const AUDIO_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'voice_synthesis',
     components: [],
     level: 'partial',
-    imports: [
-      'android.speech.tts.TextToSpeech',
-    ],
+    imports: ['android.speech.tts.TextToSpeech'],
     generate: (varName, config) => {
       const voice = String(config.voice || 'default');
       const pitch = config.pitch ?? 1.0;
@@ -1292,10 +1263,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'particle_emitter',
     components: ['ParticleSystem'],
     level: 'partial',
-    imports: [
-      'android.opengl.GLES31',
-      'com.google.android.filament.RenderableManager',
-    ],
+    imports: ['android.opengl.GLES31', 'com.google.android.filament.RenderableManager'],
     generate: (varName, config) => {
       const rate = config.rate ?? 100;
       const lifetime = config.lifetime ?? 1.0;
@@ -1653,10 +1621,7 @@ export const VISUAL_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'color_grading',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.android.filament.View',
-      'com.google.android.filament.ColorGrading',
-    ],
+    imports: ['com.google.android.filament.View', 'com.google.android.filament.ColorGrading'],
     generate: (varName, config) => {
       const exposure = config.exposure ?? 0.0;
       const contrast = config.contrast ?? 1.0;
@@ -2308,10 +2273,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'object_tracking',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.ar.core.Config',
-      'com.google.ar.core.AugmentedImageDatabase',
-    ],
+    imports: ['com.google.ar.core.Config', 'com.google.ar.core.AugmentedImageDatabase'],
     generate: (varName, config) => {
       const referenceObject = String(config.reference_object || 'MyObject');
       const trackingMode = String(config.mode || 'image');
@@ -2382,10 +2344,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'spatial_navigation',
     components: ['InteractableComponent'],
     level: 'partial',
-    imports: [
-      'androidx.xr.scenecore.InteractableComponent',
-      'androidx.xr.scenecore.InputEvent',
-    ],
+    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InputEvent'],
     generate: (varName, config) => {
       const mode = String(config.mode || 'gaze');
       return [
@@ -2566,9 +2525,11 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         `    ${varName}Memory.addLast(perception)`,
         `    if (${varName}Memory.size > ${memorySlots}) ${varName}Memory.removeFirst()`,
         `    val context = ${varName}Memory.joinToString("\\n")`,
-        `    return ${model === 'gemini-nano'
-          ? `GeminiNano.generateContent(context).text ?: ""`
-          : `apiClient.generate("${model}", context)`}`,
+        `    return ${
+          model === 'gemini-nano'
+            ? `GeminiNano.generateContent(context).text ?: ""`
+            : `apiClient.generate("${model}", context)`
+        }`,
         `}`,
         `// Wire to perception: ${varName}Think(${varName}PerceivedEntities.toString())`,
       ];
@@ -2954,9 +2915,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'networked_physics',
     components: ['PhysicsComponent'],
     level: 'partial',
-    imports: [
-      'com.google.android.gms.nearby.connection.Payload',
-    ],
+    imports: ['com.google.android.gms.nearby.connection.Payload'],
     generate: (varName, config) => {
       const authoritative = String(config.authority || 'host');
       const interpolation = config.interpolation ?? true;
@@ -3002,9 +2961,7 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'networked_transform',
     components: [],
     level: 'partial',
-    imports: [
-      'com.google.android.gms.nearby.connection.Payload',
-    ],
+    imports: ['com.google.android.gms.nearby.connection.Payload'],
     generate: (varName, config) => {
       const syncRate = config.sync_rate ?? 15;
       const deadzone = config.deadzone ?? 0.01;
@@ -3140,9 +3097,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'dialogue_system',
     components: ['PanelEntity'],
     level: 'partial',
-    imports: [
-      'androidx.xr.compose.spatial.SpatialPanel',
-    ],
+    imports: ['androidx.xr.compose.spatial.SpatialPanel'],
     generate: (varName, config) => {
       const backend = String(config.backend || 'gemini_nano');
       const contextWindow = config.context_window ?? 4096;
@@ -3302,10 +3257,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'gesture_recognition',
     components: ['HandTrackingProvider'],
     level: 'partial',
-    imports: [
-      'androidx.xr.arcore.Hand',
-      'androidx.xr.arcore.HandJointType',
-    ],
+    imports: ['androidx.xr.arcore.Hand', 'androidx.xr.arcore.HandJointType'],
     generate: (varName, config) => {
       const gestures = (config.gestures as string[]) || ['pinch', 'fist', 'point', 'open_palm'];
       return [
@@ -3397,10 +3349,7 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'text_to_speech',
     components: [],
     level: 'partial',
-    imports: [
-      'android.speech.tts.TextToSpeech',
-      'java.util.Locale',
-    ],
+    imports: ['android.speech.tts.TextToSpeech', 'java.util.Locale'],
     generate: (varName, config) => {
       const language = String(config.language || 'en-US');
       const pitch = config.pitch ?? 1.0;

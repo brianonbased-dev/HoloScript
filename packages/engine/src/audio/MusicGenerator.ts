@@ -214,4 +214,3 @@ export class MusicGenerator {
     this.rng = this.createRng(seed);
   }
 }
-

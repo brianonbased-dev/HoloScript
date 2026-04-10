@@ -6,10 +6,10 @@
 export type MovementMode = 'idle' | 'walk' | 'run' | 'Sprint';
 
 export interface MovementInput {
-  forward: number;   // -1 to 1
-  right: number;     // -1 to 1
+  forward: number; // -1 to 1
+  right: number; // -1 to 1
   Sprint: boolean;
-  walk: boolean;     // hold-to-walk toggle (otherwise default is run)
+  walk: boolean; // hold-to-walk toggle (otherwise default is run)
 }
 
 export interface MovementConfig {
@@ -72,9 +72,7 @@ export class MovementSystem {
   }
 
   get state(): MovementState {
-    const speed = Math.sqrt(
-      this._currentVelocityX ** 2 + this._currentVelocityZ ** 2,
-    );
+    const speed = Math.sqrt(this._currentVelocityX ** 2 + this._currentVelocityZ ** 2);
     return {
       mode: this._mode,
       speed,

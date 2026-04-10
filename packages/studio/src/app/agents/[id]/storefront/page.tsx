@@ -77,7 +77,9 @@ export default function AgentStorefrontPage() {
       if (!cancelled) setLoading(false);
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [agentId]);
 
   if (loading) {

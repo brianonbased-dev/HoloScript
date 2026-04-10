@@ -115,4 +115,3 @@ describe('TriggerZoneSystem — Production', () => {
     expect(tz.getZoneCount()).toBe(0);
   });
 });
-

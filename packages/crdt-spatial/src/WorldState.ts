@@ -223,7 +223,7 @@ export class WorldState {
   /** Add a memory entry for an NPC */
   addNPCMemory(npcId: string, memory: NPCMemoryEntry): void {
     const npcMemory = this.doc.getMap('npc_memory');
-    let existing = npcMemory.get(npcId) as string | undefined;
+    const existing = npcMemory.get(npcId) as string | undefined;
     const entries: NPCMemoryEntry[] = existing ? JSON.parse(existing) : [];
     entries.push(memory);
     npcMemory.set(npcId, JSON.stringify(entries));
@@ -252,7 +252,7 @@ export class WorldState {
   /** Set an inventory item for a player */
   setInventoryItem(playerId: string, slot: string, item: InventoryItem): void {
     const inventory = this.doc.getMap('inventory');
-    let existing = inventory.get(playerId) as string | undefined;
+    const existing = inventory.get(playerId) as string | undefined;
     const slots: Record<string, InventoryItem> = existing ? JSON.parse(existing) : {};
     slots[slot] = item;
     inventory.set(playerId, JSON.stringify(slots));

@@ -10,8 +10,25 @@ const { getDbMock, getSessionMock, loggerErrorMock } = vi.hoisted(() => ({
 vi.mock('@/db/client', () => ({ getDb: getDbMock }));
 vi.mock('@/db/schema', () => ({
   users: { id: 'id', name: 'name', image: 'image', createdAt: 'createdAt' },
-  projects: { id: 'id', ownerId: 'ownerId', visibility: 'visibility', name: 'name', slug: 'slug', description: 'description', createdAt: 'createdAt' },
-  marketplaceListings: { id: 'id', sellerId: 'sellerId', status: 'status', title: 'title', description: 'description', priceCents: 'priceCents', currency: 'currency', createdAt: 'createdAt' },
+  projects: {
+    id: 'id',
+    ownerId: 'ownerId',
+    visibility: 'visibility',
+    name: 'name',
+    slug: 'slug',
+    description: 'description',
+    createdAt: 'createdAt',
+  },
+  marketplaceListings: {
+    id: 'id',
+    sellerId: 'sellerId',
+    status: 'status',
+    title: 'title',
+    description: 'description',
+    priceCents: 'priceCents',
+    currency: 'currency',
+    createdAt: 'createdAt',
+  },
   creatorProfiles: { userId: 'userId', displayName: 'displayName', bio: 'bio', website: 'website' },
 }));
 vi.mock('@/lib/api-auth', () => ({ getSession: getSessionMock }));

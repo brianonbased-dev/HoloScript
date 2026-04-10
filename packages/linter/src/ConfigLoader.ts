@@ -40,7 +40,6 @@ export class ConfigLoader {
       return { ...DEFAULT_CONFIG };
     }
 
-
     let combinedConfig: LinterConfig = {
       rules: {},
       ignorePatterns: [],

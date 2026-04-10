@@ -213,4 +213,3 @@ export class ParticleForceSystem {
     return computeFalloff(dist, cfg.radius, cfg.falloff ?? 'linear');
   }
 }
-

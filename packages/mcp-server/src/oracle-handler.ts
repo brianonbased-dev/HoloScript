@@ -31,23 +31,32 @@ const TREES: Record<string, string> = {
 const ORACLE_TELEMETRY_PATH =
   process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
 
-function inferHardwareTarget(
-  question: string,
-  context: string,
-  explicitTarget?: unknown
-): string {
+function inferHardwareTarget(question: string, context: string, explicitTarget?: unknown): string {
   if (typeof explicitTarget === 'string' && explicitTarget.trim()) {
     return explicitTarget.trim().toLowerCase();
   }
   const haystack = `${question} ${context}`.toLowerCase();
-  if (haystack.includes('quest') || haystack.includes('mobile') || haystack.includes('android-xr')) {
+  if (
+    haystack.includes('quest') ||
+    haystack.includes('mobile') ||
+    haystack.includes('android-xr')
+  ) {
     return 'mobile-xr';
   }
   if (haystack.includes('vision') || haystack.includes('visionos')) return 'visionos';
-  if (haystack.includes('openxr') || haystack.includes('desktop vr') || haystack.includes('pc vr')) {
+  if (
+    haystack.includes('openxr') ||
+    haystack.includes('desktop vr') ||
+    haystack.includes('pc vr')
+  ) {
     return 'desktop-vr';
   }
-  if (haystack.includes('edge') || haystack.includes('iot') || haystack.includes('jetson') || haystack.includes('raspberry')) {
+  if (
+    haystack.includes('edge') ||
+    haystack.includes('iot') ||
+    haystack.includes('jetson') ||
+    haystack.includes('raspberry')
+  ) {
     return 'edge-iot';
   }
   return 'unknown';
@@ -100,8 +109,15 @@ export async function handleOracleConsult(
       });
       clearTimeout(t);
       if (res.ok) {
-        interface KnowledgeEntry { id?: string; type?: string; content?: string }
-        const data = (await res.json()) as { results?: KnowledgeEntry[]; entries?: KnowledgeEntry[] };
+        interface KnowledgeEntry {
+          id?: string;
+          type?: string;
+          content?: string;
+        }
+        const data = (await res.json()) as {
+          results?: KnowledgeEntry[];
+          entries?: KnowledgeEntry[];
+        };
         const entries = data.results || data.entries || [];
         if (entries.length > 0) {
           results.push(
@@ -134,7 +150,8 @@ export async function handleOracleConsult(
     tool: 'holo_oracle_consult',
     ideClient,
     hardwareTarget,
-    outcome: results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
+    outcome:
+      results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
     decisionTreeMatches: dtMatches.length,
     questionPreview: question.slice(0, 200),
   });

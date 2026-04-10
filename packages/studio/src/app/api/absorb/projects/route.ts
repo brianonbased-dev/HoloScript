@@ -11,23 +11,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 
 // In-memory project store for standalone mode
-const localProjects = new Map<string, {
-  id: string;
-  name: string;
-  sourceType: string;
-  sourceUrl?: string;
-  status: string;
-  totalSpentCents: number;
-  totalOperations: number;
-  lastAbsorbedAt: string | null;
-  createdAt: string;
-}>();
+const localProjects = new Map<
+  string,
+  {
+    id: string;
+    name: string;
+    sourceType: string;
+    sourceUrl?: string;
+    status: string;
+    totalSpentCents: number;
+    totalOperations: number;
+    lastAbsorbedAt: string | null;
+    createdAt: string;
+  }
+>();
 
 async function proxyToAbsorb(
   path: string,
   method: string,
   body?: string,
-  userAuth?: string | null,
+  userAuth?: string | null
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
     const headers: Record<string, string> = {
@@ -96,9 +99,6 @@ export async function POST(req: NextRequest) {
     localProjects.set(id, project);
     return NextResponse.json({ project, standalone: true }, { status: 201 });
   } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 }

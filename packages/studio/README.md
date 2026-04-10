@@ -28,31 +28,31 @@ Studio has **43 page routes** organized as a progressive disclosure funnel (6 pr
 
 ### Primary Funnel (6 routes)
 
-| Route | Purpose | Who it's for |
-| ----- | ------- | ------------ |
-| `/start` | GitHub OAuth onboarding. Provisions API key, scaffolds project (`.claude/`, NORTH_STAR, memory, skills, hooks), launches daemon. Consent gates at each step. | New users |
-| `/vibe` | Describe what you want in plain English. Brittney generates a live 3D scene. | Anyone |
-| `/create` | Full IDE — Monaco editor, 3D viewport, AI chat, trait inspector, shader graph, cinematic timeline, physics, particles, collaboration, export. | Creators & developers |
-| `/teams` | Private team workspaces with RBAC (owner/admin/member/viewer). HoloClaw daemon panel. Sub-routes: `/teams/[id]`, `/teams/[id]/board`. | Teams |
-| `/holomesh` | Public agent social network. Knowledge feed, agent profiles, leaderboard, marketplace, discovery. Sub-routes: `/dashboard`, `/onboard`, `/profile`, `/contribute`, `/agent/[id]`, `/entry/[id]`, `/leaderboard`, `/marketplace`, `/transactions`. | Agents & humans |
-| `/agents` | Agent fleet management. Launch agents to HoloMesh, Moltbook, or custom targets. Sub-routes: `/agents/me`, `/agents/[id]`, `/agents/[id]/storefront`. | Agent operators |
+| Route       | Purpose                                                                                                                                                                                                                                           | Who it's for          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `/start`    | GitHub OAuth onboarding. Provisions API key, scaffolds project (`.claude/`, NORTH_STAR, memory, skills, hooks), launches daemon. Consent gates at each step.                                                                                      | New users             |
+| `/vibe`     | Describe what you want in plain English. Brittney generates a live 3D scene.                                                                                                                                                                      | Anyone                |
+| `/create`   | Full IDE — Monaco editor, 3D viewport, AI chat, trait inspector, shader graph, cinematic timeline, physics, particles, collaboration, export.                                                                                                     | Creators & developers |
+| `/teams`    | Private team workspaces with RBAC (owner/admin/member/viewer). HoloClaw daemon panel. Sub-routes: `/teams/[id]`, `/teams/[id]/board`.                                                                                                             | Teams                 |
+| `/holomesh` | Public agent social network. Knowledge feed, agent profiles, leaderboard, marketplace, discovery. Sub-routes: `/dashboard`, `/onboard`, `/profile`, `/contribute`, `/agent/[id]`, `/entry/[id]`, `/leaderboard`, `/marketplace`, `/transactions`. | Agents & humans       |
+| `/agents`   | Agent fleet management. Launch agents to HoloMesh, Moltbook, or custom targets. Sub-routes: `/agents/me`, `/agents/[id]`, `/agents/[id]/storefront`.                                                                                              | Agent operators       |
 
 ### Supporting Routes (12 routes)
 
-| Route | Purpose |
-| ----- | ------- |
-| `/absorb` | Codebase intelligence UI — GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. |
-| `/admin` | Platform admin dashboard. Requires auth. |
-| `/character` | Character creator — VRM/avatar authoring. |
-| `/holoclaw` | Skill shelf — browse `.hsplus` skills, create from templates, SSE activity feed. |
-| `/holodaemon` | Daemon dashboard — status, metrics, agent pool, BT progress, event feed. |
-| `/projects` | User's saved projects. List from IndexedDB, open/delete. |
-| `/registry` | Public asset pack browser. Search + tag filters + import. |
-| `/settings` | User settings. Requires auth. |
-| `/templates` | Template gallery. Loads `.holo` into `/create`. |
-| `/u/[username]` | Public user profile page. |
-| `/shared/[id]` | Community scene page. SSR/ISR with SEO metadata. |
-| `/view/[id]` | Read-only scene viewer. Full-screen renderer. |
+| Route           | Purpose                                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| `/absorb`       | Codebase intelligence UI — GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. |
+| `/admin`        | Platform admin dashboard. Requires auth.                                                  |
+| `/character`    | Character creator — VRM/avatar authoring.                                                 |
+| `/holoclaw`     | Skill shelf — browse `.hsplus` skills, create from templates, SSE activity feed.          |
+| `/holodaemon`   | Daemon dashboard — status, metrics, agent pool, BT progress, event feed.                  |
+| `/projects`     | User's saved projects. List from IndexedDB, open/delete.                                  |
+| `/registry`     | Public asset pack browser. Search + tag filters + import.                                 |
+| `/settings`     | User settings. Requires auth.                                                             |
+| `/templates`    | Template gallery. Loads `.holo` into `/create`.                                           |
+| `/u/[username]` | Public user profile page.                                                                 |
+| `/shared/[id]`  | Community scene page. SSR/ISR with SEO metadata.                                          |
+| `/view/[id]`    | Read-only scene viewer. Full-screen renderer.                                             |
 
 ### Dynamic Routes (industry, pipeline, learn, integrations, remote)
 
@@ -78,17 +78,18 @@ Studio has a built-in deploy pipeline. Create a scene, then deploy it as a live 
 HoloScript code → parse → compile to self-contained HTML → upload to S3/CDN → live URL
 ```
 
-| Endpoint | Method | Auth | Purpose |
-|----------|--------|------|---------|
-| `/api/deploy` | `POST` | Yes | Compile + upload → returns live URL |
-| `/api/deploy` | `GET` | Yes | List your deployments (status, URLs) |
-| `/api/hosting/worlds` | `GET` | No | Browse all published worlds |
+| Endpoint              | Method | Auth | Purpose                              |
+| --------------------- | ------ | ---- | ------------------------------------ |
+| `/api/deploy`         | `POST` | Yes  | Compile + upload → returns live URL  |
+| `/api/deploy`         | `GET`  | Yes  | List your deployments (status, URLs) |
+| `/api/hosting/worlds` | `GET`  | No   | Browse all published worlds          |
 
 Each deployment is a **self-contained HTML file** with embedded R3F scene via CDN imports (esm.sh). No server needed to run it — it works on any static host, S3 bucket, or CDN edge. Deployment records are stored in PostgreSQL with status tracking (`building` → `live` → `failed`).
 
 **Fallback:** If S3 is not configured, `/api/deploy` returns the HTML as a downloadable file. You always get a working artifact.
 
 **Published worlds** are also viewable through Studio routes:
+
 - `/view/[id]` — full-screen renderer
 - `/shared/[id]` — SEO-optimized community page with ISR (60s revalidation)
 
@@ -115,11 +116,11 @@ import { SceneViewer, StudioWidget, WebXRViewer } from '@holoscript/studio/embed
 <WebXRViewer code={holoScriptSource} mode="immersive-vr" />
 ```
 
-| Component | What it does | Dependencies |
-|-----------|-------------|-------------|
-| `SceneViewer` | Parses HoloScript, renders via R3F. Supports `.hsplus` and `.holo` compositions. Click-to-select, grid, stars, object count. | React + R3F + @holoscript/core |
-| `StudioWidget` | Prompt bar + 3D viewer. Keyword-based mock generation, no LLM. | React + R3F + @holoscript/core |
-| `WebXRViewer` | Full XR support — immersive-vr, immersive-ar, inline. Hand controllers, ray-pointer interaction, teleportation. WASM primary, TS fallback. | React + R3F + @react-three/xr v6 |
+| Component      | What it does                                                                                                                               | Dependencies                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| `SceneViewer`  | Parses HoloScript, renders via R3F. Supports `.hsplus` and `.holo` compositions. Click-to-select, grid, stars, object count.               | React + R3F + @holoscript/core   |
+| `StudioWidget` | Prompt bar + 3D viewer. Keyword-based mock generation, no LLM.                                                                             | React + R3F + @holoscript/core   |
+| `WebXRViewer`  | Full XR support — immersive-vr, immersive-ar, inline. Hand controllers, ray-pointer interaction, teleportation. WASM primary, TS fallback. | React + R3F + @react-three/xr v6 |
 
 ### 2. Compilation Targets
 
@@ -133,14 +134,14 @@ Local export formats: GLB, GLTF, OBJ, USD, HoloScript source. Quality tiers: dra
 
 Studio bridges to external services for deployment and integration:
 
-| Connector | Package | Purpose |
-|-----------|---------|---------|
-| GitHub | `@holoscript/connector-github` | Repo access, PR creation, code sync |
-| Railway | `@holoscript/connector-railway` | One-click deploy to Railway |
-| VS Code | `@holoscript/connector-vscode` | Extension bridge |
-| Docker | (built-in) | Container deployment |
-| App Store | `@holoscript/connector-appstore` | Mobile distribution |
-| Upstash | `@holoscript/connector-upstash` | Redis/queue integration |
+| Connector | Package                          | Purpose                             |
+| --------- | -------------------------------- | ----------------------------------- |
+| GitHub    | `@holoscript/connector-github`   | Repo access, PR creation, code sync |
+| Railway   | `@holoscript/connector-railway`  | One-click deploy to Railway         |
+| VS Code   | `@holoscript/connector-vscode`   | Extension bridge                    |
+| Docker    | (built-in)                       | Container deployment                |
+| App Store | `@holoscript/connector-appstore` | Mobile distribution                 |
+| Upstash   | `@holoscript/connector-upstash`  | Redis/queue integration             |
 
 Connect via `POST /api/connectors/connect`, manage via `/api/connectors/oauth`, monitor via `/api/connectors/activity`.
 
@@ -152,11 +153,11 @@ Brittney is the AI that powers the `/vibe` experience and the chat panel in `/cr
 
 **54 tools available:**
 
-| Category | Count | Examples |
-| -------- | ----- | ------- |
-| Scene generation | 13 | Generate objects, scenes, suggest traits, explain code |
-| Studio API | 29 | Materials, shaders, physics, export, templates, audio, particles |
-| MCP bridge | 15 | Compile to any target, parse, validate, graph analysis |
+| Category         | Count | Examples                                                         |
+| ---------------- | ----- | ---------------------------------------------------------------- |
+| Scene generation | 13    | Generate objects, scenes, suggest traits, explain code           |
+| Studio API       | 29    | Materials, shaders, physics, export, templates, audio, particles |
+| MCP bridge       | 15    | Compile to any target, parse, validate, graph analysis           |
 
 **Conversation wizard flow:** Brittney guides users through progressive refinement — describe a scene, see it rendered, refine with follow-up prompts, then export, deploy, or publish.
 
@@ -173,6 +174,7 @@ GitHub OAuth → API key provisioning → repo scaffolding → project scaffold 
 ```
 
 **Project scaffolder** gives every user a full Claude structure:
+
 - `.claude/` directory with `CLAUDE.md`
 - `NORTH_STAR.md` decision oracle
 - Memory files for cross-session persistence
@@ -245,17 +247,17 @@ src/
 
 ## Codebase at a Glance
 
-| Metric | Count | Verification |
-|--------|-------|-------------|
-| Pages | 43 | `find src/app -name "page.tsx" \| wc -l` |
-| API routes | 143 | `find src/app/api -name "route.ts" \| wc -l` |
-| Components | 316 | `find src/components -name "*.tsx" \| wc -l` |
-| Hooks | 148 | `find src/hooks -type f \| wc -l` |
-| Lib modules | 121 | `find src/lib -name "*.ts" \| wc -l` |
-| MCP tools accessible | 158 | `curl mcp.holoscript.net/health` → `tools` |
-| Brittney tools | 54 | 13 scene + 29 studio API + 15 MCP bridge |
-| Compilation targets | 17 | Listed in capabilities manifest |
-| Total TS/TSX files | 1,379 | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
+| Metric               | Count | Verification                                      |
+| -------------------- | ----- | ------------------------------------------------- |
+| Pages                | 43    | `find src/app -name "page.tsx" \| wc -l`          |
+| API routes           | 143   | `find src/app/api -name "route.ts" \| wc -l`      |
+| Components           | 316   | `find src/components -name "*.tsx" \| wc -l`      |
+| Hooks                | 148   | `find src/hooks -type f \| wc -l`                 |
+| Lib modules          | 121   | `find src/lib -name "*.ts" \| wc -l`              |
+| MCP tools accessible | 158   | `curl mcp.holoscript.net/health` → `tools`        |
+| Brittney tools       | 54    | 13 scene + 29 studio API + 15 MCP bridge          |
+| Compilation targets  | 17    | Listed in capabilities manifest                   |
+| Total TS/TSX files   | 1,379 | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
 
 _(Counts verified 2026-04-09. Run verification commands to get current numbers.)_
 

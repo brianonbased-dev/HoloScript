@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ElevenLabsAdapter, AzureVoiceAdapter, VoiceManager } from '@holoscript/engine/runtime/NeuralVoiceAdapter';
+import {
+  ElevenLabsAdapter,
+  AzureVoiceAdapter,
+  VoiceManager,
+} from '@holoscript/engine/runtime/NeuralVoiceAdapter';
 
 describe('NeuralVoiceAdapters', () => {
   beforeEach(() => {

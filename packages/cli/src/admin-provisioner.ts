@@ -39,7 +39,6 @@ export async function issueTenantKey(tenantId: string, tier: 'free' | 'pro' | 'e
   // 1. Try PostgreSQL
   if (process.env.DATABASE_URL) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Pool } = require('pg');
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
@@ -54,7 +53,9 @@ export async function issueTenantKey(tenantId: string, tier: 'free' | 'pro' | 'e
       savedToDb = true;
       console.log(`\x1b[32m✓\x1b[0m Successfully saved to PostgreSQL database.`);
     } catch (e: unknown) {
-      console.warn(`\x1b[33m⚠\x1b[0m Failed to save to Postgres: ${e instanceof Error ? e.message : String(e)}`);
+      console.warn(
+        `\x1b[33m⚠\x1b[0m Failed to save to Postgres: ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }
 
@@ -82,7 +83,9 @@ export async function issueTenantKey(tenantId: string, tier: 'free' | 'pro' | 'e
 
       console.log(`\x1b[32m✓\x1b[0m Successfully synchronized cache in Upstash Redis.`);
     } catch (e: unknown) {
-      console.warn(`\x1b[33m⚠\x1b[0m Failed to sync to Upstash Redis: ${e instanceof Error ? e.message : String(e)}`);
+      console.warn(
+        `\x1b[33m⚠\x1b[0m Failed to sync to Upstash Redis: ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }
 

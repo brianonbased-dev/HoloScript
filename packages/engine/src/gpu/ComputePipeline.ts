@@ -163,7 +163,6 @@ export class ComputePipeline {
     // Calculate workgroup dispatch size
     const particleCount = this.bufferManager.getParticleCount();
     this.workgroupsX = Math.ceil(particleCount / this.options.workgroupSize);
-
   }
 
   /**
@@ -279,7 +278,6 @@ export class ComputePipeline {
         onProgress(i + 1, steps);
       }
     }
-
   }
 
   /**
@@ -306,7 +304,6 @@ export class ComputePipeline {
     this.pipeline = null;
     this.bindGroupLayout = null;
     this.bindGroup = null;
-
   }
 }
 

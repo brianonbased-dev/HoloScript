@@ -210,7 +210,12 @@ describe('create-holoscript-app', () => {
 
     it('should handle combined flags and positional args', () => {
       const result = parseArgs([
-        'node', 'script.js', 'my-app', '--yes', '--template', '2d-revolution',
+        'node',
+        'script.js',
+        'my-app',
+        '--yes',
+        '--template',
+        '2d-revolution',
       ]);
       expect(result.projectName).toBe('my-app');
       expect(result.skipPrompts).toBe(true);
@@ -287,9 +292,9 @@ describe('create-holoscript-app', () => {
           ] as unknown as ReturnType<typeof fs.readdirSync>;
         }
         if (pStr === path.join('/src', 'sub')) {
-          return [
-            mockDirEntry('nested.txt', false),
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
+          return [mockDirEntry('nested.txt', false)] as unknown as ReturnType<
+            typeof fs.readdirSync
+          >;
         }
         return [] as unknown as ReturnType<typeof fs.readdirSync>;
       });
@@ -346,18 +351,16 @@ describe('create-holoscript-app', () => {
 
     it('should return ok when directory exists but is empty', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(
-        [] as unknown as ReturnType<typeof fs.readdirSync>
-      );
+      vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as ReturnType<typeof fs.readdirSync>);
       const result = checkProjectDir('/empty-dir');
       expect(result.ok).toBe(true);
     });
 
     it('should reject non-empty existing directory', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockReturnValue(
-        ['file.txt'] as unknown as ReturnType<typeof fs.readdirSync>
-      );
+      vi.mocked(fs.readdirSync).mockReturnValue(['file.txt'] as unknown as ReturnType<
+        typeof fs.readdirSync
+      >);
       const result = checkProjectDir('/full-dir');
       expect(result.ok).toBe(false);
       expect(result.reason).toContain('not empty');

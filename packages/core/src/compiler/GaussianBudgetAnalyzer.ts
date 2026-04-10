@@ -648,10 +648,14 @@ export class GaussianBudgetAnalyzer {
     const overage = Math.max(0, totalGaussians - budget);
 
     // G.SIG25.02: Compute overdraw factor for this platform
-    const viewportPixels = platform === 'quest3' ? 1832 * 1920
-      : platform === 'mobile_ar' ? 1170 * 2532
-      : platform === 'visionos' ? 1920 * 1920
-      : 1920 * 1080;
+    const viewportPixels =
+      platform === 'quest3'
+        ? 1832 * 1920
+        : platform === 'mobile_ar'
+          ? 1170 * 2532
+          : platform === 'visionos'
+            ? 1920 * 1920
+            : 1920 * 1080;
     const overdrawFactor = estimateOverdraw(totalGaussians, viewportPixels);
 
     // P.043: Multi-user savings (null if single-user)

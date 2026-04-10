@@ -84,9 +84,9 @@ export class SkillRouter {
 
     for (const agent of agents) {
       // Check required capabilities
-      const agentCaps = new Set(agent.capabilities.map(c => c.toLowerCase()));
+      const agentCaps = new Set(agent.capabilities.map((c) => c.toLowerCase()));
       if (p.requiredCapabilities.length > 0) {
-        const hasAll = p.requiredCapabilities.every(rc => agentCaps.has(rc.toLowerCase()));
+        const hasAll = p.requiredCapabilities.every((rc) => agentCaps.has(rc.toLowerCase()));
         if (!hasAll) continue;
       }
 
@@ -128,16 +128,17 @@ export class SkillRouter {
     candidates.sort((a, b) => b.score - a.score);
 
     // Apply minimum threshold
-    const eligible = candidates.filter(c => c.score >= p.minScore);
+    const eligible = candidates.filter((c) => c.score >= p.minScore);
 
     if (eligible.length === 0) {
       return {
         agent: null,
         score: 0,
         candidates,
-        reason: candidates.length > 0
-          ? `${candidates.length} candidates scored below minimum threshold (${p.minScore})`
-          : 'No candidates matched task requirements',
+        reason:
+          candidates.length > 0
+            ? `${candidates.length} candidates scored below minimum threshold (${p.minScore})`
+            : 'No candidates matched task requirements',
       };
     }
 

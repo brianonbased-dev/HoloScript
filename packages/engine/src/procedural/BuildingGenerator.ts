@@ -355,4 +355,3 @@ export class BuildingGenerator {
     };
   }
 }
-

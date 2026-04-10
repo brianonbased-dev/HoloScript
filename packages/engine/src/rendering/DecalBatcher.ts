@@ -161,4 +161,3 @@ export class DecalBatcher {
     return { ...this.stats };
   }
 }
-

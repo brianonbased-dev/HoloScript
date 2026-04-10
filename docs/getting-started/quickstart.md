@@ -71,6 +71,6 @@ holoscript compile hello.holo --target ios
 
 ## 5. Next Steps
 
-- 📖 **[Traits Reference](../traits/index.md)** - Explore 2,000+ traits by category.
+- 📖 **[Traits Reference](../traits/index.md)** - Explore trait categories and verify current inventory from `packages/core/src/traits/`.
 - 🎓 **[Academy](../academy/README.md)** - Step-by-step interactive lessons.
 - 🛠️ **[Platform Guides](../compilers/index.md)** - Target-specific guides for Unity, Unreal, VRChat, and more.

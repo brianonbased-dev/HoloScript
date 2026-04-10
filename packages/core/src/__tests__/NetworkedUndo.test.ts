@@ -62,4 +62,3 @@ describe('Networked Undo', () => {
     expect(clientB.getSnapshot().text).toBeDefined();
   });
 });
-

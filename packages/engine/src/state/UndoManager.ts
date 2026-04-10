@@ -45,4 +45,3 @@ export class UndoManager<OpType = unknown> {
     this.redoStack = [];
   }
 }
-

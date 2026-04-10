@@ -716,4 +716,3 @@ export class AudioContextImpl implements IAudioContext {
 export function createAudioContext(config?: IAudioSystemConfig): IAudioContext {
   return new AudioContextImpl(config);
 }
-

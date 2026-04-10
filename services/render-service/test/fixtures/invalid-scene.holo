@@ -1,0 +1,6 @@
+object "Broken" {
+  geometry: "box"
+  position: [1, two, 3
+  color: "#00ffaa"
+
+this is not valid holoscript

@@ -617,9 +617,11 @@ export class IOSCompiler extends CompilerBase {
     <string>This app uses your location to anchor holographic scenes to real-world GPS coordinates.</string>`
       : '';
 
-    const geoCapabilities = hasGeo ? `
+    const geoCapabilities = hasGeo
+      ? `
         <string>location-services</string>
-        <string>gps</string>` : '';
+        <string>gps</string>`
+      : '';
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -808,9 +810,7 @@ export class IOSCompiler extends CompilerBase {
     const name = this.sanitizeName(action.name);
     this.emit(`func ${name}() {`);
     this.indentLevel++;
-    this.emit(
-      `print("[HoloScript] Action: ${this.escapeStringValue(action.name, 'Swift')}")`
-    );
+    this.emit(`print("[HoloScript] Action: ${this.escapeStringValue(action.name, 'Swift')}")`);
     this.emit('// Action implementation');
     this.indentLevel--;
     this.emit('}');
@@ -821,10 +821,18 @@ export class IOSCompiler extends CompilerBase {
 
   private hasGeoTraits(composition: HoloComposition): boolean {
     const geoTraitNames = [
-      'geo_anchor', 'geo_persist', 'geo_radius', 'geo_compass_heading',
-      'geo_altitude', 'geo_cloud_anchor', 'geo_terrain_snap',
-      'geo_session_continuity', 'geo_proximity_trigger', 'geo_discoverable',
-      'geo_arcore_geospatial', 'geo_arkit_geo_anchor',
+      'geo_anchor',
+      'geo_persist',
+      'geo_radius',
+      'geo_compass_heading',
+      'geo_altitude',
+      'geo_cloud_anchor',
+      'geo_terrain_snap',
+      'geo_session_continuity',
+      'geo_proximity_trigger',
+      'geo_discoverable',
+      'geo_arcore_geospatial',
+      'geo_arkit_geo_anchor',
     ];
     for (const obj of composition.objects || []) {
       for (const trait of obj.traits || []) {
@@ -870,7 +878,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel--;
       this.emit('} else {');
       this.indentLevel++;
-      this.emit('print("[HoloScript] ARGeoTracking not available: \\(error?.localizedDescription ?? \\"unknown\\")")');
+      this.emit(
+        'print("[HoloScript] ARGeoTracking not available: \\(error?.localizedDescription ?? \\"unknown\\")")'
+      );
       this.indentLevel--;
       this.emit('}');
       this.indentLevel--;
@@ -891,7 +901,7 @@ export class IOSCompiler extends CompilerBase {
         const n = typeof t === 'string' ? t : t.name;
         return n === 'geo_anchor';
       });
-      const config = typeof geoAnchorTrait === 'string' ? {} : (geoAnchorTrait?.config || {});
+      const config = typeof geoAnchorTrait === 'string' ? {} : geoAnchorTrait?.config || {};
       const lat = (config as Record<string, unknown>).latitude ?? 0.0;
       const lng = (config as Record<string, unknown>).longitude ?? 0.0;
 
@@ -899,21 +909,25 @@ export class IOSCompiler extends CompilerBase {
         const n = typeof t === 'string' ? t : t.name;
         return n === 'geo_altitude';
       });
-      const altConfig = typeof altTrait === 'string' ? {} : (altTrait?.config || {});
+      const altConfig = typeof altTrait === 'string' ? {} : altTrait?.config || {};
       const alt = (altConfig as Record<string, unknown>).meters ?? 0.0;
 
       const headingTrait = traits.find((t) => {
         const n = typeof t === 'string' ? t : t.name;
         return n === 'geo_compass_heading';
       });
-      const headingConfig = typeof headingTrait === 'string' ? {} : (headingTrait?.config || {});
+      const headingConfig = typeof headingTrait === 'string' ? {} : headingTrait?.config || {};
       const heading = (headingConfig as Record<string, unknown>).degrees ?? 0.0;
 
       this.emit(`// Geo-anchor: ${this.escapeStringValue(obj.name, 'Swift')}`);
       if (usesARGeoAnchor) {
-        this.emit(`createGeoAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt}, heading: ${heading})`);
+        this.emit(
+          `createGeoAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt}, heading: ${heading})`
+        );
       } else {
-        this.emit(`createLocationAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt})`);
+        this.emit(
+          `createLocationAnchor(name: "${this.escapeStringValue(obj.name, 'Swift')}", latitude: ${lat}, longitude: ${lng}, altitude: ${alt})`
+        );
       }
     }
 
@@ -931,22 +945,30 @@ export class IOSCompiler extends CompilerBase {
 
     // createGeoAnchor (ARGeoAnchor for iOS 14+)
     if (usesARGeoAnchor) {
-      this.emit('func createGeoAnchor(name: String, latitude: Double, longitude: Double, altitude: Double, heading: Double) {');
+      this.emit(
+        'func createGeoAnchor(name: String, latitude: Double, longitude: Double, altitude: Double, heading: Double) {'
+      );
       this.indentLevel++;
       this.emit('guard let arView = arView else { return }');
-      this.emit('let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)');
+      this.emit(
+        'let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)'
+      );
       this.emit('let geoAnchor = ARGeoAnchor(coordinate: coordinate, altitude: altitude)');
       this.emit('geoAnchor.name = name');
       this.emit('arView.session.add(anchor: geoAnchor)');
       this.emit('geoAnchors[name] = geoAnchor');
-      this.emit('print("[HoloScript] Geo-anchored: \\(name) at (\\(latitude), \\(longitude), \\(altitude))")');
+      this.emit(
+        'print("[HoloScript] Geo-anchored: \\(name) at (\\(latitude), \\(longitude), \\(altitude))")'
+      );
       this.indentLevel--;
       this.emit('}');
       this.emit('');
     }
 
     // createLocationAnchor (fallback using CLLocation + local anchor)
-    this.emit('func createLocationAnchor(name: String, latitude: Double, longitude: Double, altitude: Double) {');
+    this.emit(
+      'func createLocationAnchor(name: String, latitude: Double, longitude: Double, altitude: Double) {'
+    );
     this.indentLevel++;
     this.emit('guard let arView = arView else { return }');
     this.emit('let _ = CLLocation(latitude: latitude, longitude: longitude)');
@@ -973,14 +995,18 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('guard let map = worldMap else {');
       this.indentLevel++;
-      this.emit('print("[HoloScript] Failed to get world map: \\(error?.localizedDescription ?? \\"unknown\\")")');
+      this.emit(
+        'print("[HoloScript] Failed to get world map: \\(error?.localizedDescription ?? \\"unknown\\")")'
+      );
       this.emit('return');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
       this.emit('do {');
       this.indentLevel++;
-      this.emit('let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)');
+      this.emit(
+        'let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)'
+      );
       this.emit('let url = self.worldMapURL()');
       this.emit('try data.write(to: url)');
       this.emit('print("[HoloScript] World map saved to \\(url)")');
@@ -1000,7 +1026,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('let url = worldMapURL()');
       this.emit('guard let data = try? Data(contentsOf: url),');
-      this.emit('      let worldMap = try? NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data) else {');
+      this.emit(
+        '      let worldMap = try? NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data) else {'
+      );
       this.indentLevel++;
       this.emit('print("[HoloScript] No saved world map found")');
       this.emit('return');
@@ -1011,7 +1039,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let configuration = ARWorldTrackingConfiguration()');
       this.emit('configuration.planeDetection = [.horizontal, .vertical]');
       this.emit('configuration.initialWorldMap = worldMap');
-      this.emit('arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])');
+      this.emit(
+        'arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])'
+      );
       this.emit('print("[HoloScript] World map restored with \\(worldMap.anchors.count) anchors")');
       this.indentLevel--;
       this.emit('}');
@@ -1019,7 +1049,9 @@ export class IOSCompiler extends CompilerBase {
 
       this.emit('private func worldMapURL() -> URL {');
       this.indentLevel++;
-      this.emit('let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!');
+      this.emit(
+        'let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!'
+      );
       this.emit('return documentsPath.appendingPathComponent("holoscript_worldmap.arworldmap")');
       this.indentLevel--;
       this.emit('}');
@@ -1073,9 +1105,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
 
     // HoloEntity model
-    this.emit(
-      '/// A single entity in the HoloScript scene graph produced from a RoomPlan scan.'
-    );
+    this.emit('/// A single entity in the HoloScript scene graph produced from a RoomPlan scan.');
     this.emit('struct HoloEntity: Identifiable {');
     this.indentLevel++;
     this.emit('let id: UUID');
@@ -1144,9 +1174,7 @@ export class IOSCompiler extends CompilerBase {
     // Surface mapping
     this.emit('// MARK: - Surface mapping');
     this.emit('');
-    this.emit(
-      'private func mapSurface(_ surface: CapturedRoom.Surface) -> HoloEntity {'
-    );
+    this.emit('private func mapSurface(_ surface: CapturedRoom.Surface) -> HoloEntity {');
     this.indentLevel++;
     this.emit('let (label, category, traits) = surfaceMeta(surface)');
     this.emit('return HoloEntity(');
@@ -1205,9 +1233,7 @@ export class IOSCompiler extends CompilerBase {
     // Object mapping
     this.emit('// MARK: - Object mapping');
     this.emit('');
-    this.emit(
-      'private func mapObject(_ object: CapturedRoom.Object) -> HoloEntity {'
-    );
+    this.emit('private func mapObject(_ object: CapturedRoom.Object) -> HoloEntity {');
     this.indentLevel++;
     this.emit('let (label, traits) = objectMeta(object)');
     this.emit('return HoloEntity(');
@@ -1225,9 +1251,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('}');
     this.emit('');
 
-    this.emit(
-      'private func objectMeta(_ o: CapturedRoom.Object) -> (String, [String]) {'
-    );
+    this.emit('private func objectMeta(_ o: CapturedRoom.Object) -> (String, [String]) {');
     this.indentLevel++;
     this.emit('switch o.category {');
     this.emit('case .table:');
@@ -1283,9 +1307,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('self.capturedRoom = room');
     this.emit('var result: [HoloEntity] = []');
     this.emit('');
-    this.emit(
-      'for surface in room.walls + room.doors + room.windows + room.openings {'
-    );
+    this.emit('for surface in room.walls + room.doors + room.windows + room.openings {');
     this.indentLevel++;
     this.emit('result.append(mapSurface(surface))');
     this.indentLevel--;
@@ -1304,9 +1326,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('}');
     this.emit('');
     this.emit('self.entities = result');
-    this.emit(
-      'print("[HoloScript] Processed \\(result.count) entities from RoomPlan scan")'
-    );
+    this.emit('print("[HoloScript] Processed \\(result.count) entities from RoomPlan scan")');
     this.indentLevel--;
     this.emit('}');
     this.emit('');
@@ -1314,27 +1334,21 @@ export class IOSCompiler extends CompilerBase {
     // Export to .holo
     this.emit('// MARK: - .holo export');
     this.emit('');
-    this.emit(
-      '/// Serialize captured entities to a HoloScript .holo scene string.'
-    );
+    this.emit('/// Serialize captured entities to a HoloScript .holo scene string.');
     this.emit('func exportToHolo() -> String {');
     this.indentLevel++;
     this.emit('var lines: [String] = []');
     this.emit('lines.append("composition RoomScan {")');
     this.emit('for entity in entities {');
     this.indentLevel++;
-    this.emit(
-      'lines.append("  object \\(entity.label)_\\(entity.id.uuidString.prefix(8)) {")'
-    );
+    this.emit('lines.append("  object \\(entity.label)_\\(entity.id.uuidString.prefix(8)) {")');
     this.emit(
       'lines.append("    position: [\\(entity.position.x), \\(entity.position.y), \\(entity.position.z)]")'
     );
     this.emit(
       'lines.append("    dimensions: [\\(entity.dimensions.x), \\(entity.dimensions.y), \\(entity.dimensions.z)]")'
     );
-    this.emit(
-      'lines.append("    category: \\\"\\(entity.category)\\\"")'
-    );
+    this.emit('lines.append("    category: \\\"\\(entity.category)\\\"")');
     this.emit('for trait in entity.traits {');
     this.indentLevel++;
     this.emit('lines.append("    trait \\(trait)")');
@@ -1354,14 +1368,10 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
 
     // RoomCaptureSessionDelegate extension
-    this.emit(
-      `extension ${cls}RoomPlanManager: RoomCaptureSessionDelegate {`
-    );
+    this.emit(`extension ${cls}RoomPlanManager: RoomCaptureSessionDelegate {`);
     this.indentLevel++;
 
-    this.emit(
-      'func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {'
-    );
+    this.emit('func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {');
     this.indentLevel++;
     this.emit('DispatchQueue.main.async { [weak self] in');
     this.indentLevel++;
@@ -1381,9 +1391,7 @@ export class IOSCompiler extends CompilerBase {
     this.emit('self?.isScanning = false');
     this.emit('if let error = error {');
     this.indentLevel++;
-    this.emit(
-      'print("[HoloScript] RoomPlan error: \\(error.localizedDescription)")'
-    );
+    this.emit('print("[HoloScript] RoomPlan error: \\(error.localizedDescription)")');
     this.emit('return');
     this.indentLevel--;
     this.emit('}');
@@ -1402,9 +1410,7 @@ export class IOSCompiler extends CompilerBase {
     // SwiftUI scanning view
     this.emit(`struct ${cls}RoomPlanView: View {`);
     this.indentLevel++;
-    this.emit(
-      `@StateObject private var manager = ${cls}RoomPlanManager()`
-    );
+    this.emit(`@StateObject private var manager = ${cls}RoomPlanManager()`);
     this.emit('');
     this.emit('var body: some View {');
     this.indentLevel++;
@@ -1434,12 +1440,8 @@ export class IOSCompiler extends CompilerBase {
     this.emit('VStack(alignment: .leading) {');
     this.indentLevel++;
     this.emit('Text(entity.label).font(.headline)');
-    this.emit(
-      'Text(entity.category).font(.caption).foregroundColor(.secondary)'
-    );
-    this.emit(
-      'Text(entity.traits.joined(separator: ", ")).font(.caption2)'
-    );
+    this.emit('Text(entity.category).font(.caption).foregroundColor(.secondary)');
+    this.emit('Text(entity.traits.joined(separator: ", ")).font(.caption2)');
     this.indentLevel--;
     this.emit('}');
     this.indentLevel--;
@@ -1493,7 +1495,9 @@ export class IOSCompiler extends CompilerBase {
     const traits = this.collectLiDARTraits(composition);
 
     this.emit('// Auto-generated by HoloScript IOSCompiler \u2014 LiDAR Scanner integration');
-    this.emit(`// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`);
+    this.emit(
+      `// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`
+    );
     this.emit('// Requires iOS 15.0+, device with LiDAR sensor');
     this.emit('// Do not edit manually \u2014 regenerate from .holo source');
     this.emit('');
@@ -1555,7 +1559,8 @@ export class IOSCompiler extends CompilerBase {
     this.emit('@Published var meshAnchors: [ARMeshAnchor] = []');
     if (traits.has('lidar_point_cloud')) this.emit('@Published var pointCloud: [simd_float3] = []');
     if (traits.has('lidar_depth_map')) this.emit('@Published var depthMap: CVPixelBuffer?');
-    if (traits.has('lidar_depth_confidence')) this.emit('@Published var confidenceMap: CVPixelBuffer?');
+    if (traits.has('lidar_depth_confidence'))
+      this.emit('@Published var confidenceMap: CVPixelBuffer?');
     this.emit('');
     this.emit('private var arSession: ARSession?');
     this.emit('');
@@ -1570,7 +1575,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('/// Begin a LiDAR scanning session.');
     this.emit('func startScan() {');
     this.indentLevel++;
-    this.emit('guard ARWorldTrackingConfiguration.supportsSceneReconstruction(.meshWithClassification) else {');
+    this.emit(
+      'guard ARWorldTrackingConfiguration.supportsSceneReconstruction(.meshWithClassification) else {'
+    );
     this.indentLevel++;
     this.emit('print("[HoloScript] LiDAR scene reconstruction is not supported on this device")');
     this.emit('return');
@@ -1609,7 +1616,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('// MARK: - Mesh extraction');
     this.emit('');
     this.emit('/// Extract vertices, normals, and faces from an ARMeshGeometry.');
-    this.emit('func extractGeometry(_ meshGeometry: ARMeshGeometry) -> (vertices: [simd_float3], normals: [simd_float3], faces: [[UInt32]]) {');
+    this.emit(
+      'func extractGeometry(_ meshGeometry: ARMeshGeometry) -> (vertices: [simd_float3], normals: [simd_float3], faces: [[UInt32]]) {'
+    );
     this.indentLevel++;
     this.emit('var vertices: [simd_float3] = []');
     this.emit('var normals: [simd_float3] = []');
@@ -1618,7 +1627,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('let vertexBuffer = meshGeometry.vertices');
     this.emit('for i in 0..<vertexBuffer.count {');
     this.indentLevel++;
-    this.emit('let ptr = vertexBuffer.buffer.contents().advanced(by: vertexBuffer.offset + vertexBuffer.stride * i)');
+    this.emit(
+      'let ptr = vertexBuffer.buffer.contents().advanced(by: vertexBuffer.offset + vertexBuffer.stride * i)'
+    );
     this.emit('let vertex = ptr.assumingMemoryBound(to: simd_float3.self).pointee');
     this.emit('vertices.append(vertex)');
     this.indentLevel--;
@@ -1627,7 +1638,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('let normalBuffer = meshGeometry.normals');
     this.emit('for i in 0..<normalBuffer.count {');
     this.indentLevel++;
-    this.emit('let ptr = normalBuffer.buffer.contents().advanced(by: normalBuffer.offset + normalBuffer.stride * i)');
+    this.emit(
+      'let ptr = normalBuffer.buffer.contents().advanced(by: normalBuffer.offset + normalBuffer.stride * i)'
+    );
     this.emit('let normal = ptr.assumingMemoryBound(to: simd_float3.self).pointee');
     this.emit('normals.append(normal)');
     this.indentLevel--;
@@ -1639,7 +1652,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('var indices: [UInt32] = []');
     this.emit('for j in 0..<faceBuffer.indexCountPerPrimitive {');
     this.indentLevel++;
-    this.emit('let ptr = faceBuffer.buffer.contents().advanced(by: faceBuffer.offset + (i * faceBuffer.indexCountPerPrimitive + j) * faceBuffer.bytesPerIndex)');
+    this.emit(
+      'let ptr = faceBuffer.buffer.contents().advanced(by: faceBuffer.offset + (i * faceBuffer.indexCountPerPrimitive + j) * faceBuffer.bytesPerIndex)'
+    );
     this.emit('let index = ptr.assumingMemoryBound(to: UInt32.self).pointee');
     this.emit('indices.append(index)');
     this.indentLevel--;
@@ -1664,7 +1679,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('var classifications: [ARMeshClassification] = []');
       this.emit('for i in 0..<classBuffer.count {');
       this.indentLevel++;
-      this.emit('let ptr = classBuffer.buffer.contents().advanced(by: classBuffer.offset + classBuffer.stride * i)');
+      this.emit(
+        'let ptr = classBuffer.buffer.contents().advanced(by: classBuffer.offset + classBuffer.stride * i)'
+      );
       this.emit('let raw = ptr.assumingMemoryBound(to: UInt8.self).pointee');
       this.emit('let classification = ARMeshClassification(rawValue: Int(raw)) ?? .none');
       this.emit('classifications.append(classification)');
@@ -1686,7 +1703,9 @@ export class IOSCompiler extends CompilerBase {
     if (traits.has('lidar_mesh_classification') || traits.has('lidar_mesh_to_holo')) {
       this.emit('let classifications = extractClassifications(anchor)');
       this.emit('');
-      this.emit('var grouped: [ARMeshClassification: (verts: [simd_float3], norms: [simd_float3], faces: [[UInt32]])] = [:]');
+      this.emit(
+        'var grouped: [ARMeshClassification: (verts: [simd_float3], norms: [simd_float3], faces: [[UInt32]])] = [:]'
+      );
       this.emit('for (i, face) in faces.enumerated() {');
       this.indentLevel++;
       this.emit('let cls = i < classifications.count ? classifications[i] : .none');
@@ -1714,7 +1733,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('normals: data.norms,');
       this.emit('faces: data.faces,');
       this.emit('transform: anchor.transform,');
-      this.emit('traits: ["lidar_mesh_classification", "lidar_\\(holoLabel(for: classification))"]');
+      this.emit(
+        'traits: ["lidar_mesh_classification", "lidar_\\(holoLabel(for: classification))"]'
+      );
       this.indentLevel--;
       this.emit('))');
       this.indentLevel--;
@@ -1779,7 +1800,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let asset = MDLAsset(bufferAllocator: allocator)');
       this.emit('for anchor in meshAnchors {');
       this.indentLevel++;
-      this.emit('let mdlMesh = anchor.geometry.toMDLMesh(device: MTLCreateSystemDefaultDevice()!, allocator: allocator)');
+      this.emit(
+        'let mdlMesh = anchor.geometry.toMDLMesh(device: MTLCreateSystemDefaultDevice()!, allocator: allocator)'
+      );
       this.emit('asset.add(mdlMesh)');
       this.indentLevel--;
       this.emit('}');
@@ -1823,7 +1846,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('let device = MTLCreateSystemDefaultDevice()!');
       this.emit('let allocator = MTKMeshBufferAllocator(device: device)');
-      this.emit('let simplified = MDLMesh(meshBySubdividing: mdlMesh, submeshIndex: 0, subdivisionLevels: 0, allocator: allocator)');
+      this.emit(
+        'let simplified = MDLMesh(meshBySubdividing: mdlMesh, submeshIndex: 0, subdivisionLevels: 0, allocator: allocator)'
+      );
       this.emit('print("[HoloScript] Mesh simplified to target face count: \\(targetFaceCount)")');
       this.emit('return simplified');
       this.indentLevel--;
@@ -1867,7 +1892,11 @@ export class IOSCompiler extends CompilerBase {
     this.emit('}');
     this.emit('');
 
-    if (traits.has('lidar_realtime_mesh') || traits.has('lidar_mesh_capture') || traits.has('lidar_scan')) {
+    if (
+      traits.has('lidar_realtime_mesh') ||
+      traits.has('lidar_mesh_capture') ||
+      traits.has('lidar_scan')
+    ) {
       this.emit('func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {');
       this.indentLevel++;
       this.emit('processAnchors(anchors)');
@@ -1893,7 +1922,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('self?.entities.append(contentsOf: newEntities)');
       this.indentLevel--;
       this.emit('}');
-      this.emit('print("[HoloScript] LiDAR mesh updated: \\(self?.meshAnchors.count ?? 0) anchors, \\(self?.entities.count ?? 0) entities")');
+      this.emit(
+        'print("[HoloScript] LiDAR mesh updated: \\(self?.meshAnchors.count ?? 0) anchors, \\(self?.entities.count ?? 0) entities")'
+      );
       this.indentLevel--;
       this.emit('}');
       this.indentLevel--;
@@ -1967,10 +1998,12 @@ export class IOSCompiler extends CompilerBase {
   private hasNPUSceneTraits(composition: HoloComposition): boolean {
     const npuNames: ReadonlyArray<string> = NPU_SCENE_TRAITS;
     for (const obj of composition.objects || []) {
-      if (obj.traits?.some((t) => {
-        const name = typeof t === 'string' ? t : t.name;
-        return npuNames.includes(name);
-      })) {
+      if (
+        obj.traits?.some((t) => {
+          const name = typeof t === 'string' ? t : t.name;
+          return npuNames.includes(name);
+        })
+      ) {
         return true;
       }
     }
@@ -2062,7 +2095,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let request = VNClassifyImageRequest { [weak self] request, error in');
       this.indentLevel++;
       this.emit('guard let self = self, error == nil else { return }');
-      this.emit('guard let results = request.results as? [VNClassificationObservation] else { return }');
+      this.emit(
+        'guard let results = request.results as? [VNClassificationObservation] else { return }'
+      );
       this.emit('let filtered = results.filter { $0.confidence >= self.confidenceThreshold }');
       this.emit('    .prefix(self.maxDetections)');
       this.emit('DispatchQueue.main.async {');
@@ -2070,7 +2105,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('self.detections = filtered.map { obs in');
       this.indentLevel++;
       this.emit('NPUDetection(label: obs.identifier, confidence: obs.confidence,');
-      this.emit('             boundingBox: nil, position: nil, segmentationMask: nil, depthValue: nil)');
+      this.emit(
+        '             boundingBox: nil, position: nil, segmentationMask: nil, depthValue: nil)'
+      );
       this.indentLevel--;
       this.emit('}');
       this.emit('self.inferenceCount += 1');
@@ -2116,7 +2153,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('');
       this.emit('private func handleDetectionResults(_ results: [VNObservation]?) {');
       this.indentLevel++;
-      this.emit('guard let observations = results as? [VNRecognizedObjectObservation] else { return }');
+      this.emit(
+        'guard let observations = results as? [VNRecognizedObjectObservation] else { return }'
+      );
       this.emit('let filtered = observations.filter { $0.confidence >= confidenceThreshold }');
       this.emit('    .prefix(maxDetections)');
       this.emit('DispatchQueue.main.async { [weak self] in');
@@ -2190,7 +2229,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('if #available(iOS 18.0, *) {');
       this.indentLevel++;
       this.emit('let request = VNGenerateDepthRequest()');
-      this.emit('let handler = VNImageRequestHandler(cvPixelBuffer: frame.capturedImage, options: [:])');
+      this.emit(
+        'let handler = VNImageRequestHandler(cvPixelBuffer: frame.capturedImage, options: [:])'
+      );
       this.emit('try? handler.perform([request])');
       this.emit('if let result = request.results?.first {');
       this.indentLevel++;
@@ -2217,14 +2258,18 @@ export class IOSCompiler extends CompilerBase {
     if (usedTraits.has('npu_entity_pipe')) {
       this.emit('// MARK: - Entity Pipeline (npu_entity_pipe)');
       this.emit('');
-      this.emit('func mapDetectionsToEntities(_ detections: [NPUDetection], in sceneView: ARSCNView) -> [SCNNode] {');
+      this.emit(
+        'func mapDetectionsToEntities(_ detections: [NPUDetection], in sceneView: ARSCNView) -> [SCNNode] {'
+      );
       this.indentLevel++;
       this.emit('var nodes: [SCNNode] = []');
       this.emit('for detection in detections {');
       this.indentLevel++;
       this.emit('guard let bbox = detection.boundingBox else { continue }');
       this.emit('let center = CGPoint(x: bbox.midX, y: bbox.midY)');
-      this.emit('guard let query = sceneView.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any),');
+      this.emit(
+        'guard let query = sceneView.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any),'
+      );
       this.emit('      let result = sceneView.session.raycast(query).first else { continue }');
       this.emit('let anchor = ARAnchor(name: detection.label, transform: result.worldTransform)');
       this.emit('sceneView.session.add(anchor: anchor)');
@@ -2232,7 +2277,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('node.name = detection.label');
       this.emit(`node.simdWorldPosition = simd_make_float3(result.worldTransform.columns.3)`);
       this.emit(`let sphere = SCNSphere(radius: CGFloat(entityScale))`);
-      this.emit('sphere.firstMaterial?.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.6)');
+      this.emit(
+        'sphere.firstMaterial?.diffuse.contents = UIColor.systemBlue.withAlphaComponent(0.6)'
+      );
       this.emit('node.geometry = sphere');
       this.emit('nodes.append(node)');
       this.indentLevel--;
@@ -2289,9 +2336,13 @@ export class IOSCompiler extends CompilerBase {
       this.emit('');
       this.emit('func loadCustomModel(named name: String) throws {');
       this.indentLevel++;
-      this.emit('guard let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") else {');
+      this.emit(
+        'guard let url = Bundle.main.url(forResource: name, withExtension: "mlmodelc") else {'
+      );
       this.indentLevel++;
-      this.emit('throw NSError(domain: "HoloScript", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model \\(name) not found"])');
+      this.emit(
+        'throw NSError(domain: "HoloScript", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model \\(name) not found"])'
+      );
       this.indentLevel--;
       this.emit('}');
       this.emit('try loadCustomModel(at: url)');
@@ -2306,7 +2357,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('');
       this.emit('func createLabelNode(for detection: NPUDetection) -> SCNNode {');
       this.indentLevel++;
-      this.emit('let text = SCNText(string: "\\(detection.label) (\\(String(format: "%.0f%%", detection.confidence * 100)))", extrusionDepth: 0.5)');
+      this.emit(
+        'let text = SCNText(string: "\\(detection.label) (\\(String(format: "%.0f%%", detection.confidence * 100)))", extrusionDepth: 0.5)'
+      );
       this.emit('text.font = UIFont.systemFont(ofSize: 4, weight: .bold)');
       this.emit('text.firstMaterial?.diffuse.contents = UIColor.white');
       this.emit('text.firstMaterial?.isDoubleSided = true');
@@ -2544,8 +2597,10 @@ export class IOSCompiler extends CompilerBase {
     this.emit('config.planeDetection = [.horizontal, .vertical]');
 
     // Scene reconstruction for world mesh
-    if (this.compositionHasTrait(composition, 'portal_world_mesh') ||
-        this.compositionHasTrait(composition, 'portal_mesh_occlusion')) {
+    if (
+      this.compositionHasTrait(composition, 'portal_world_mesh') ||
+      this.compositionHasTrait(composition, 'portal_mesh_occlusion')
+    ) {
       this.emit('');
       this.emit('// Scene reconstruction for portal world mesh');
       this.emit('if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {');
@@ -2568,7 +2623,9 @@ export class IOSCompiler extends CompilerBase {
     if (this.compositionHasTrait(composition, 'portal_people_occlusion')) {
       this.emit('');
       this.emit('// People occlusion via ARKit person segmentation');
-      this.emit('if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth) {');
+      this.emit(
+        'if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth) {'
+      );
       this.indentLevel++;
       this.emit('config.frameSemantics.insert(.personSegmentationWithDepth)');
       this.indentLevel--;
@@ -2608,15 +2665,21 @@ export class IOSCompiler extends CompilerBase {
       this.emit('// Apply depth-based occlusion to holographic layer');
       this.emit('for child in holographicLayer.childNodes {');
       this.indentLevel++;
-      this.emit('let screenPoint = frame.camera.projectPoint(child.worldPosition, orientation: .portrait, viewportSize: CGSize(width: 1, height: 1))');
-      this.emit('child.isHidden = isOccluded(at: screenPoint, depthMap: depthMap, nodeDepth: child.worldPosition.z)');
+      this.emit(
+        'let screenPoint = frame.camera.projectPoint(child.worldPosition, orientation: .portrait, viewportSize: CGSize(width: 1, height: 1))'
+      );
+      this.emit(
+        'child.isHidden = isOccluded(at: screenPoint, depthMap: depthMap, nodeDepth: child.worldPosition.z)'
+      );
       this.indentLevel--;
       this.emit('}');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
 
-      this.emit('private func isOccluded(at point: CGPoint, depthMap: CVPixelBuffer, nodeDepth: Float) -> Bool {');
+      this.emit(
+        'private func isOccluded(at point: CGPoint, depthMap: CVPixelBuffer, nodeDepth: Float) -> Bool {'
+      );
       this.indentLevel++;
       this.emit('CVPixelBufferLockBaseAddress(depthMap, .readOnly)');
       this.emit('defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }');
@@ -2642,8 +2705,12 @@ export class IOSCompiler extends CompilerBase {
       this.emit('guard let segmentation = frame.segmentationBuffer else { return }');
       this.emit('guard let estimatedDepth = frame.estimatedDepthData else { return }');
       this.emit('// Use matteGenerator for alpha matte of people');
-      this.emit('let matteGenerator = ARMatteGenerator(device: MTLCreateSystemDefaultDevice()!, matteResolution: .half)');
-      this.emit('let matte = matteGenerator.generateMatte(from: frame, commandBuffer: MTLCreateSystemDefaultDevice()!.makeCommandQueue()!.makeCommandBuffer()!)');
+      this.emit(
+        'let matteGenerator = ARMatteGenerator(device: MTLCreateSystemDefaultDevice()!, matteResolution: .half)'
+      );
+      this.emit(
+        'let matte = matteGenerator.generateMatte(from: frame, commandBuffer: MTLCreateSystemDefaultDevice()!.makeCommandQueue()!.makeCommandBuffer()!)'
+      );
       this.emit('// Apply people matte to holographic layer rendering');
       this.emit('portalScene.rootNode.setValue(matte, forKey: "peopleOcclusionMatte")');
       this.indentLevel--;
@@ -2657,14 +2724,20 @@ export class IOSCompiler extends CompilerBase {
       this.emit('func applyParallaxCorrection(frame: ARFrame) {');
       this.indentLevel++;
       this.emit('let cameraTransform = frame.camera.transform');
-      this.emit('let cameraPosition = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)');
+      this.emit(
+        'let cameraPosition = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)'
+      );
       this.emit('// Offset holographic layer based on camera movement for parallax');
       this.emit('for child in holographicLayer.childNodes {');
       this.indentLevel++;
       this.emit('let depth = child.worldPosition.z');
       this.emit('let parallaxFactor: Float = 1.0 - (depth / 10.0)');
-      this.emit('child.position.x += (cameraPosition.x - child.position.x) * parallaxFactor * 0.01');
-      this.emit('child.position.y += (cameraPosition.y - child.position.y) * parallaxFactor * 0.01');
+      this.emit(
+        'child.position.x += (cameraPosition.x - child.position.x) * parallaxFactor * 0.01'
+      );
+      this.emit(
+        'child.position.y += (cameraPosition.y - child.position.y) * parallaxFactor * 0.01'
+      );
       this.indentLevel--;
       this.emit('}');
       this.indentLevel--;
@@ -2678,15 +2751,21 @@ export class IOSCompiler extends CompilerBase {
       this.emit('func applyDepthFade(frame: ARFrame) {');
       this.indentLevel++;
       this.emit('let cameraTransform = frame.camera.transform');
-      this.emit('let cameraPos = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)');
+      this.emit(
+        'let cameraPos = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)'
+      );
       this.emit('let nearPlane: Float = 0.1');
       this.emit('let farPlane: Float = 10.0');
       this.emit('');
       this.emit('for child in holographicLayer.childNodes {');
       this.indentLevel++;
-      this.emit('let nodePos = SIMD3<Float>(child.worldPosition.x, child.worldPosition.y, child.worldPosition.z)');
+      this.emit(
+        'let nodePos = SIMD3<Float>(child.worldPosition.x, child.worldPosition.y, child.worldPosition.z)'
+      );
       this.emit('let distance = simd_distance(cameraPos, nodePos)');
-      this.emit('let alpha = max(0, min(1, 1.0 - (distance - nearPlane) / (farPlane - nearPlane)))');
+      this.emit(
+        'let alpha = max(0, min(1, 1.0 - (distance - nearPlane) / (farPlane - nearPlane)))'
+      );
       this.emit('child.opacity = CGFloat(alpha)');
       this.indentLevel--;
       this.emit('}');
@@ -2697,7 +2776,9 @@ export class IOSCompiler extends CompilerBase {
 
     // Portal lighting match via environment probe
     if (this.compositionHasTrait(composition, 'portal_lighting_match')) {
-      this.emit('// Portal lighting match: match hologram lighting to real environment via ARKit environment probe');
+      this.emit(
+        '// Portal lighting match: match hologram lighting to real environment via ARKit environment probe'
+      );
       this.emit('func updateLightingMatch(frame: ARFrame) {');
       this.indentLevel++;
       this.emit('guard let lightEstimate = frame.lightEstimate else { return }');
@@ -2705,7 +2786,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let temperature = lightEstimate.ambientColorTemperature');
       this.emit('');
       this.emit('// Update holographic scene lighting');
-      this.emit('if let light = holographicLayer.childNode(withName: "portalAmbientLight", recursively: true)?.light {');
+      this.emit(
+        'if let light = holographicLayer.childNode(withName: "portalAmbientLight", recursively: true)?.light {'
+      );
       this.indentLevel++;
       this.emit('light.intensity = intensity');
       this.emit('light.temperature = temperature');
@@ -2729,7 +2812,9 @@ export class IOSCompiler extends CompilerBase {
     // Portal boundary with edge geometry
     if (this.compositionHasTrait(composition, 'portal_boundary')) {
       this.emit('// Portal boundary: define portal edges with configurable shape');
-      this.emit('func createPortalBoundary(shape: String = "circle", radius: Float = 1.5) -> SCNNode {');
+      this.emit(
+        'func createPortalBoundary(shape: String = "circle", radius: Float = 1.5) -> SCNNode {'
+      );
       this.indentLevel++;
       this.emit('let boundaryNode = SCNNode()');
       this.emit('boundaryNode.name = "portalBoundary"');
@@ -2743,7 +2828,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel--;
       this.emit('case "rect":');
       this.indentLevel++;
-      this.emit('let box = SCNBox(width: CGFloat(radius * 2), height: CGFloat(radius * 2), length: 0.02, chamferRadius: 0.01)');
+      this.emit(
+        'let box = SCNBox(width: CGFloat(radius * 2), height: CGFloat(radius * 2), length: 0.02, chamferRadius: 0.01)'
+      );
       this.emit('box.firstMaterial?.diffuse.contents = UIColor.cyan.withAlphaComponent(0.8)');
       this.emit('boundaryNode.geometry = box');
       this.indentLevel--;
@@ -2769,8 +2856,12 @@ export class IOSCompiler extends CompilerBase {
       this.emit('  float glowIntensity;');
       this.emit('  float time;');
       this.emit('  #pragma body');
-      this.emit('  float edgeFactor = 1.0 - abs(dot(normalize(_surface.normal), normalize(_surface.view)));');
-      this.emit('  float glow = pow(edgeFactor, 3.0) * glowIntensity * (0.8 + 0.2 * sin(time * 2.0));');
+      this.emit(
+        '  float edgeFactor = 1.0 - abs(dot(normalize(_surface.normal), normalize(_surface.view)));'
+      );
+      this.emit(
+        '  float glow = pow(edgeFactor, 3.0) * glowIntensity * (0.8 + 0.2 * sin(time * 2.0));'
+      );
       this.emit('  _output.color.rgb += vec3(0.0, glow * 0.8, glow);');
       this.emit('"""');
       this.emit('');
@@ -2779,7 +2870,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('.fragment: glowShader');
       this.indentLevel--;
       this.emit(']');
-      this.emit('boundaryNode.geometry?.firstMaterial?.setValue(Float(1.5), forKey: "glowIntensity")');
+      this.emit(
+        'boundaryNode.geometry?.firstMaterial?.setValue(Float(1.5), forKey: "glowIntensity")'
+      );
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -2792,7 +2885,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('let cameraTransform = frame.camera.transform');
       this.emit('// Calculate tilt angle from camera orientation');
-      this.emit('let forward = SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)');
+      this.emit(
+        'let forward = SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)'
+      );
       this.emit('let tiltAngle = abs(asin(forward.y)) * 180.0 / .pi');
       this.emit('let tiltThreshold: Float = 30.0');
       this.emit('portalEnabled = tiltAngle > tiltThreshold');
@@ -2866,7 +2961,9 @@ export class IOSCompiler extends CompilerBase {
     const hasToSpatial = this.compositionHasTrait(composition, 'camera_hand_to_spatial');
 
     this.emit('// Auto-generated by HoloScript IOSCompiler — Hand Tracking integration');
-    this.emit(`// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`);
+    this.emit(
+      `// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`
+    );
     this.emit('// Requires iOS 14.0+, Vision framework');
     this.emit('// Do not edit manually — regenerate from .holo source');
     this.emit('');
@@ -2895,7 +2992,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('@Published var currentGesture: HandGesture = .none');
     this.emit('@Published var handCount: Int = 0');
     if (hasSkeleton) {
-      this.emit('@Published var jointPositions: [[VNHumanHandPoseObservation.JointName: VNRecognizedPoint]] = []');
+      this.emit(
+        '@Published var jointPositions: [[VNHumanHandPoseObservation.JointName: VNRecognizedPoint]] = []'
+      );
     }
     this.emit('');
     this.emit('private var captureSession: AVCaptureSession?');
@@ -2923,7 +3022,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('let session = AVCaptureSession()');
     this.emit('session.sessionPreset = .high');
     this.emit('');
-    this.emit('guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),');
+    this.emit(
+      'guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),'
+    );
     this.emit('      let input = try? AVCaptureDeviceInput(device: device) else {');
     this.indentLevel++;
     this.emit('print("[HoloScript] Failed to access front camera")');
@@ -2975,7 +3076,9 @@ export class IOSCompiler extends CompilerBase {
 
     if (hasConfidence) {
       this.emit('// Filter low-confidence joints');
-      this.emit('guard thumbTip.confidence > minConfidence && indexTip.confidence > minConfidence else { return }');
+      this.emit(
+        'guard thumbTip.confidence > minConfidence && indexTip.confidence > minConfidence else { return }'
+      );
       this.emit('');
     }
 
@@ -3006,7 +3109,9 @@ export class IOSCompiler extends CompilerBase {
     // Gesture recognition
     if (hasPinch) {
       this.emit('// Pinch gesture: thumb tip close to index tip');
-      this.emit('let pinchDist = hypot(thumbTip.location.x - indexTip.location.x, thumbTip.location.y - indexTip.location.y)');
+      this.emit(
+        'let pinchDist = hypot(thumbTip.location.x - indexTip.location.x, thumbTip.location.y - indexTip.location.y)'
+      );
       this.emit('if pinchDist < 0.05 {');
       this.indentLevel++;
       this.emit('DispatchQueue.main.async { self.currentGesture = .pinch }');
@@ -3101,13 +3206,19 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
 
     // AVCaptureVideoDataOutputSampleBufferDelegate extension
-    this.emit(`extension ${cls}HandTrackingManager: AVCaptureVideoDataOutputSampleBufferDelegate {`);
+    this.emit(
+      `extension ${cls}HandTrackingManager: AVCaptureVideoDataOutputSampleBufferDelegate {`
+    );
     this.indentLevel++;
-    this.emit('func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {');
+    this.emit(
+      'func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {'
+    );
     this.indentLevel++;
     this.emit('guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }');
     this.emit('');
-    this.emit('let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])');
+    this.emit(
+      'let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])'
+    );
     this.emit('do {');
     this.indentLevel++;
     this.emit('try handler.perform([handPoseRequest])');
@@ -3250,7 +3361,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit(`class ${cls}ObjectCaptureManager: ObservableObject {`);
     this.indentLevel++;
     this.emit('');
-    this.emit('private let logger = Logger(subsystem: "net.holoscript", category: "ObjectCapture")');
+    this.emit(
+      'private let logger = Logger(subsystem: "net.holoscript", category: "ObjectCapture")'
+    );
     this.emit('');
     this.emit('enum CaptureState: Equatable {');
     this.indentLevel++;
@@ -3286,9 +3399,15 @@ export class IOSCompiler extends CompilerBase {
     // ── init ──
     this.emit('init() {');
     this.indentLevel++;
-    this.emit('let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!');
-    this.emit('self.outputDirectory = docs.appendingPathComponent("HoloCaptures", isDirectory: true)');
-    this.emit('try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)');
+    this.emit(
+      'let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!'
+    );
+    this.emit(
+      'self.outputDirectory = docs.appendingPathComponent("HoloCaptures", isDirectory: true)'
+    );
+    this.emit(
+      'try? FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)'
+    );
     this.indentLevel--;
     this.emit('}');
     this.emit('');
@@ -3315,7 +3434,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('self.captureSession = session');
     this.emit('');
     this.emit('var configuration = ObjectCaptureSession.Configuration()');
-    this.emit('configuration.checkpointDirectory = outputDirectory.appendingPathComponent("Checkpoints")');
+    this.emit(
+      'configuration.checkpointDirectory = outputDirectory.appendingPathComponent("Checkpoints")'
+    );
     this.emit('configuration.isOverCaptureEnabled = true');
     this.emit('session.start(imagesDirectory: outputDirectory.appendingPathComponent("Images"),');
     this.emit('             configuration: configuration)');
@@ -3438,7 +3559,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('private func makePhotogrammetryRequest() -> PhotogrammetrySession.Request {');
       this.indentLevel++;
       this.emit('let outputURL = outputDirectory.appendingPathComponent("model.usdz")');
-      this.emit('// .full detail level captures PBR maps (diffuse, normal, roughness, metallic, AO)');
+      this.emit(
+        '// .full detail level captures PBR maps (diffuse, normal, roughness, metallic, AO)'
+      );
       this.emit('return .modelFile(url: outputURL, detail: .full)');
       this.indentLevel--;
       this.emit('}');
@@ -3452,7 +3575,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('');
       this.emit('for level in HoloCapturedEntity.DetailLevel.allCases {');
       this.indentLevel++;
-      this.emit('let url = outputDirectory.appendingPathComponent("model_\\(level.rawValue).usdz")');
+      this.emit(
+        'let url = outputDirectory.appendingPathComponent("model_\\(level.rawValue).usdz")'
+      );
       this.emit('let detail: PhotogrammetrySession.Request.Detail');
       this.emit('switch level {');
       this.emit('case .preview: detail = .preview');
@@ -3478,7 +3603,9 @@ export class IOSCompiler extends CompilerBase {
 
     // ── PBR texture extraction ──
     if (traits.has('pbr_texture_extract') || traits.has('object_capture')) {
-      this.emit('private func extractPBRMaterials(from modelURL: URL) -> HoloCapturedEntity.PBRMaterialSet? {');
+      this.emit(
+        'private func extractPBRMaterials(from modelURL: URL) -> HoloCapturedEntity.PBRMaterialSet? {'
+      );
       this.indentLevel++;
       this.emit('let baseDir = modelURL.deletingLastPathComponent()');
       this.emit('let diffuse = baseDir.appendingPathComponent("diffuse.png")');
@@ -3488,10 +3615,18 @@ export class IOSCompiler extends CompilerBase {
       this.emit('let ao = baseDir.appendingPathComponent("ao.png")');
       this.emit('');
       this.emit('return HoloCapturedEntity.PBRMaterialSet(');
-      this.emit('    diffuseMap: FileManager.default.fileExists(atPath: diffuse.path) ? diffuse : nil,');
-      this.emit('    normalMap: FileManager.default.fileExists(atPath: normal.path) ? normal : nil,');
-      this.emit('    roughnessMap: FileManager.default.fileExists(atPath: roughness.path) ? roughness : nil,');
-      this.emit('    metallicMap: FileManager.default.fileExists(atPath: metallic.path) ? metallic : nil,');
+      this.emit(
+        '    diffuseMap: FileManager.default.fileExists(atPath: diffuse.path) ? diffuse : nil,'
+      );
+      this.emit(
+        '    normalMap: FileManager.default.fileExists(atPath: normal.path) ? normal : nil,'
+      );
+      this.emit(
+        '    roughnessMap: FileManager.default.fileExists(atPath: roughness.path) ? roughness : nil,'
+      );
+      this.emit(
+        '    metallicMap: FileManager.default.fileExists(atPath: metallic.path) ? metallic : nil,'
+      );
       this.emit('    aoMap: FileManager.default.fileExists(atPath: ao.path) ? ao : nil');
       this.emit(')');
       this.indentLevel--;
@@ -3562,16 +3697,24 @@ export class IOSCompiler extends CompilerBase {
       this.emit('var holo = "scene CapturedObject {\\n"');
       this.emit('holo += "  object \\(entity.name) {\\n"');
       this.emit('holo += "    model: \\"\\(entity.modelURL.lastPathComponent)\\"\\n"');
-      this.emit('holo += "    position: [\\(entity.boundingBox.center.x), \\(entity.boundingBox.center.y), \\(entity.boundingBox.center.z)]\\n"');
-      this.emit('holo += "    scale: [\\(entity.boundingBox.extents.x), \\(entity.boundingBox.extents.y), \\(entity.boundingBox.extents.z)]\\n"');
+      this.emit(
+        'holo += "    position: [\\(entity.boundingBox.center.x), \\(entity.boundingBox.center.y), \\(entity.boundingBox.center.z)]\\n"'
+      );
+      this.emit(
+        'holo += "    scale: [\\(entity.boundingBox.extents.x), \\(entity.boundingBox.extents.y), \\(entity.boundingBox.extents.z)]\\n"'
+      );
       this.emit('holo += "    traits: [object_capture, photogrammetry_scan]\\n"');
       if (traits.has('pbr_texture_extract')) {
         this.emit('if let pbr = entity.pbrMaterials {');
         this.indentLevel++;
         this.emit('if pbr.diffuseMap != nil { holo += "    diffuse_map: \\"diffuse.png\\"\\n" }');
         this.emit('if pbr.normalMap != nil { holo += "    normal_map: \\"normal.png\\"\\n" }');
-        this.emit('if pbr.roughnessMap != nil { holo += "    roughness_map: \\"roughness.png\\"\\n" }');
-        this.emit('if pbr.metallicMap != nil { holo += "    metallic_map: \\"metallic.png\\"\\n" }');
+        this.emit(
+          'if pbr.roughnessMap != nil { holo += "    roughness_map: \\"roughness.png\\"\\n" }'
+        );
+        this.emit(
+          'if pbr.metallicMap != nil { holo += "    metallic_map: \\"metallic.png\\"\\n" }'
+        );
         this.emit('if pbr.aoMap != nil { holo += "    ao_map: \\"ao.png\\"\\n" }');
         this.indentLevel--;
         this.emit('}');
@@ -3847,7 +3990,9 @@ export class IOSCompiler extends CompilerBase {
 
     // Local anchor mapping
     if (this.compositionHasTrait(composition, 'shareplay_anchor_local')) {
-      this.emit('// Local AR anchor mapping — each participant maps shared positions to local space');
+      this.emit(
+        '// Local AR anchor mapping — each participant maps shared positions to local space'
+      );
       this.emit('private var localWorldTransform: simd_float4x4 = matrix_identity_float4x4');
       this.emit('private var sharedToLocalOffset: simd_float3 = .zero');
       this.emit('');
@@ -3951,9 +4096,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('func becomeHost() {');
       this.indentLevel++;
       this.emit('isHost = true');
-      this.emit(
-        'broadcastSceneState() // Host pushes authoritative state to all participants'
-      );
+      this.emit('broadcastSceneState() // Host pushes authoritative state to all participants');
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -4220,9 +4363,7 @@ export class IOSCompiler extends CompilerBase {
     if (this.compositionHasTrait(composition, 'shareplay_anchor_local')) {
       this.emit('// MARK: - Local Anchor Mapping');
       this.emit('');
-      this.emit(
-        'func calibrateLocalAnchor(arFrame: ARFrame, sharedReferencePoint: simd_float3) {'
-      );
+      this.emit('func calibrateLocalAnchor(arFrame: ARFrame, sharedReferencePoint: simd_float3) {');
       this.indentLevel++;
       this.emit('// Each participant creates a local ARKit anchor and maps shared positions');
       this.emit('let cameraPos = arFrame.camera.transform.columns.3');
@@ -4253,9 +4394,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('');
       this.emit('func configureSpatialAudio() {');
       this.indentLevel++;
-      this.emit(
-        '// SpatialAudioExperience.custom(fixedToScene: true) for participant voices'
-      );
+      this.emit('// SpatialAudioExperience.custom(fixedToScene: true) for participant voices');
       this.emit('guard let session = groupSession else { return }');
       this.emit('session.spatialAudioExperience = .custom(fixedToScene: true)');
       this.indentLevel--;
@@ -4267,9 +4406,7 @@ export class IOSCompiler extends CompilerBase {
     if (this.compositionHasTrait(composition, 'shareplay_mute_zone')) {
       this.emit('// MARK: - Mute Zones');
       this.emit('');
-      this.emit(
-        'func addMuteZone(center: simd_float3, radius: Float, attenuation: Float = 0.0) {'
-      );
+      this.emit('func addMuteZone(center: simd_float3, radius: Float, attenuation: Float = 0.0) {');
       this.indentLevel++;
       this.emit(
         'muteZones.append(MuteZone(center: center, radius: radius, attenuation: attenuation))'
@@ -4286,9 +4423,7 @@ export class IOSCompiler extends CompilerBase {
       this.emit('if distance < zone.radius {');
       this.indentLevel++;
       this.emit('let factor = distance / zone.radius');
-      this.emit(
-        'let zoneAttenuation = zone.attenuation + (1.0 - zone.attenuation) * factor'
-      );
+      this.emit('let zoneAttenuation = zone.attenuation + (1.0 - zone.attenuation) * factor');
       this.emit('minAttenuation = min(minAttenuation, zoneAttenuation)');
       this.indentLevel--;
       this.emit('}');
@@ -4334,12 +4469,8 @@ export class IOSCompiler extends CompilerBase {
     this.emit('// Session status');
     this.emit('HStack {');
     this.indentLevel++;
-    this.emit(
-      'Image(systemName: manager.isSessionActive ? "person.2.fill" : "person.2")'
-    );
-    this.emit(
-      'Text(manager.isSessionActive ? "SharePlay Active" : "SharePlay Inactive")'
-    );
+    this.emit('Image(systemName: manager.isSessionActive ? "person.2.fill" : "person.2")');
+    this.emit('Text(manager.isSessionActive ? "SharePlay Active" : "SharePlay Inactive")');
     this.indentLevel--;
     this.emit('}');
     this.emit('.padding()');
@@ -4416,7 +4547,9 @@ export class IOSCompiler extends CompilerBase {
     const hasTongue = this.compositionHasTrait(composition, 'face_tongue_detect');
 
     this.emit('// Auto-generated by HoloScript IOSCompiler — TrueDepth Face Tracking');
-    this.emit(`// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`);
+    this.emit(
+      `// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`
+    );
     this.emit('// Requires iOS 11.0+, ARKit, TrueDepth camera');
     this.emit('// Do not edit manually — regenerate from .holo source');
     this.emit('');
@@ -4468,7 +4601,9 @@ export class IOSCompiler extends CompilerBase {
     }
     if (hasRetarget) {
       this.emit('@Published var retargetedBlendShapes: [String: Float] = [:]');
-      this.emit('var retargetMap: [ARFaceAnchor.BlendShapeLocation: (target: String, scale: Float)] = [:]');
+      this.emit(
+        'var retargetMap: [ARFaceAnchor.BlendShapeLocation: (target: String, scale: Float)] = [:]'
+      );
     }
     this.emit('');
     this.emit('private var arSession: ARSession?');
@@ -4532,7 +4667,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('');
     this.emit('func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {');
     this.indentLevel++;
-    this.emit('guard let faceAnchor = anchors.compactMap({ $0 as? ARFaceAnchor }).first else { return }');
+    this.emit(
+      'guard let faceAnchor = anchors.compactMap({ $0 as? ARFaceAnchor }).first else { return }'
+    );
     this.emit('');
 
     if (hasBlendshapes || hasAvatarDrive || hasMirror || hasPuppet) {
@@ -4641,7 +4778,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('// MARK: - Puppet Mode');
       this.emit('');
       this.emit('/// Puppet mode: avatar responds exclusively to face input.');
-      this.emit('/// Returns a complete morph target dictionary derived solely from face tracking.');
+      this.emit(
+        '/// Returns a complete morph target dictionary derived solely from face tracking.'
+      );
       this.emit('func getPuppetMorphTargets() -> [String: Float] {');
       this.indentLevel++;
       this.emit('var targets: [String: Float] = [:]');
@@ -4659,8 +4798,12 @@ export class IOSCompiler extends CompilerBase {
     if (hasRetarget) {
       this.emit('// MARK: - Retargeting');
       this.emit('');
-      this.emit('/// Applies retarget map to remap/scale blendshapes for non-human avatar topologies.');
-      this.emit('private func applyRetargeting(from shapes: [ARFaceAnchor.BlendShapeLocation: NSNumber]) {');
+      this.emit(
+        '/// Applies retarget map to remap/scale blendshapes for non-human avatar topologies.'
+      );
+      this.emit(
+        'private func applyRetargeting(from shapes: [ARFaceAnchor.BlendShapeLocation: NSNumber]) {'
+      );
       this.indentLevel++;
       this.emit('var result: [String: Float] = [:]');
       this.emit('for (arkitShape, value) in shapes {');
@@ -4690,7 +4833,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('// MARK: - Emotion Detection');
       this.emit('');
       this.emit('/// Derives emotion from blendshape combinations.');
-      this.emit('private func detectEmotion(from shapes: [ARFaceAnchor.BlendShapeLocation: NSNumber]) {');
+      this.emit(
+        'private func detectEmotion(from shapes: [ARFaceAnchor.BlendShapeLocation: NSNumber]) {'
+      );
       this.indentLevel++;
       this.emit('let mouthSmileL = shapes[.mouthSmileLeft]?.floatValue ?? 0.0');
       this.emit('let mouthSmileR = shapes[.mouthSmileRight]?.floatValue ?? 0.0');
@@ -4722,7 +4867,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('emotion = .surprised');
       this.indentLevel--;
       this.emit('// Angry: browDown + mouthPress');
-      this.emit('} else if ((browDownL + browDownR) / 2.0 > 0.4) && ((mouthPressL + mouthPressR) / 2.0 > 0.3) {');
+      this.emit(
+        '} else if ((browDownL + browDownR) / 2.0 > 0.4) && ((mouthPressL + mouthPressR) / 2.0 > 0.3) {'
+      );
       this.indentLevel++;
       this.emit('emotion = .angry');
       this.indentLevel--;
@@ -4764,7 +4911,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('Text("Blendshapes (\\(manager.blendShapes.count))").font(.subheadline)');
       this.emit('ScrollView {');
       this.indentLevel++;
-      this.emit('ForEach(Array(manager.blendShapes.keys).sorted(by: { $0.rawValue < $1.rawValue }), id: \\.rawValue) { key in');
+      this.emit(
+        'ForEach(Array(manager.blendShapes.keys).sorted(by: { $0.rawValue < $1.rawValue }), id: \\.rawValue) { key in'
+      );
       this.indentLevel++;
       this.emit('HStack {');
       this.indentLevel++;
@@ -4781,7 +4930,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('Text("Emotion: \\(manager.currentEmotion.rawValue)").font(.subheadline)');
     }
     if (hasGaze) {
-      this.emit('Text("Gaze: \\(manager.gazeDirection.x, specifier: "%.2f"), \\(manager.gazeDirection.y, specifier: "%.2f"), \\(manager.gazeDirection.z, specifier: "%.2f")").font(.caption)');
+      this.emit(
+        'Text("Gaze: \\(manager.gazeDirection.x, specifier: "%.2f"), \\(manager.gazeDirection.y, specifier: "%.2f"), \\(manager.gazeDirection.z, specifier: "%.2f")").font(.caption)'
+      );
     }
     if (hasTongue) {
       this.emit('Text("Tongue Out: \\(manager.isTongueOut ? "Yes" : "No")").font(.caption)');
@@ -4931,11 +5082,15 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel++;
       this.emit('guard !isScanning else { return }');
       this.emit('');
-      this.emit('let session = MCSession(peer: localPeerId, securityIdentity: nil, encryptionPreference: .required)');
+      this.emit(
+        'let session = MCSession(peer: localPeerId, securityIdentity: nil, encryptionPreference: .required)'
+      );
       this.emit('session.delegate = self');
       this.emit('mcSession = session');
       this.emit('');
-      this.emit('mcAdvertiser = MCNearbyServiceAdvertiser(peer: localPeerId, discoveryInfo: nil, serviceType: serviceType)');
+      this.emit(
+        'mcAdvertiser = MCNearbyServiceAdvertiser(peer: localPeerId, discoveryInfo: nil, serviceType: serviceType)'
+      );
       this.emit('mcAdvertiser?.delegate = self');
       this.emit('mcAdvertiser?.startAdvertisingPeer()');
       this.emit('');
@@ -5027,9 +5182,13 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel--;
       this.emit(']');
       this.emit('');
-      this.emit('guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }');
+      this.emit(
+        'guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }'
+      );
       this.emit('');
-      this.emit('if let mcPeer = session.connectedPeers.first(where: { $0.displayName == peerId }) {');
+      this.emit(
+        'if let mcPeer = session.connectedPeers.first(where: { $0.displayName == peerId }) {'
+      );
       this.indentLevel++;
       this.emit('try? session.send(data, toPeers: [mcPeer], with: .reliable)');
       this.emit('print("[UWB] Handoff entity \\(entityId) to \\(peerId)")');
@@ -5096,7 +5255,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('private func shareDiscoveryToken(with mcPeer: MCPeerID) {');
     this.indentLevel++;
     this.emit('guard let token = niSession?.discoveryToken,');
-    this.emit('      let data = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true) else { return }');
+    this.emit(
+      '      let data = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true) else { return }'
+    );
     this.emit('try? mcSession?.send(data, toPeers: [mcPeer], with: .reliable)');
     this.indentLevel--;
     this.emit('}');
@@ -5138,7 +5299,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit('for obj in nearbyObjects {');
     this.indentLevel++;
     this.emit('guard let peerId = peerTokenMap[obj.discoveryToken] else { continue }');
-    this.emit('var peer = peers[peerId] ?? UWBPeer(id: peerId, discoveryToken: obj.discoveryToken)');
+    this.emit(
+      'var peer = peers[peerId] ?? UWBPeer(id: peerId, discoveryToken: obj.discoveryToken)'
+    );
     this.emit('peer.distance = obj.distance');
     this.emit('peer.direction = obj.direction');
     this.emit('peer.lastSeen = Date()');
@@ -5149,7 +5312,9 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('}');
     this.emit('');
-    this.emit('func session(_ session: NISession, didRemove nearbyObjects: [NINearbyObject], reason: NINearbyObject.RemovalReason) {');
+    this.emit(
+      'func session(_ session: NISession, didRemove nearbyObjects: [NINearbyObject], reason: NINearbyObject.RemovalReason) {'
+    );
     this.indentLevel++;
     this.emit('for obj in nearbyObjects {');
     this.indentLevel++;
@@ -5197,7 +5362,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit(`extension ${cls}UWBManager: MCSessionDelegate {`);
     this.indentLevel++;
     this.emit('');
-    this.emit('func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {');
+    this.emit(
+      'func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {'
+    );
     this.indentLevel++;
     this.emit('switch state {');
     this.emit('case .connected:');
@@ -5223,12 +5390,16 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('}');
     this.emit('');
-    this.emit('func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {');
+    this.emit(
+      'func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {'
+    );
     this.indentLevel++;
 
     // Handle discovery token exchange
     this.emit('// Try to decode as NI discovery token');
-    this.emit('if let token = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NIDiscoveryToken.self, from: data) {');
+    this.emit(
+      'if let token = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NIDiscoveryToken.self, from: data) {'
+    );
     this.indentLevel++;
     this.emit('peerTokenMap[token] = peerID.displayName');
     this.emit('let peer = UWBPeer(id: peerID.displayName, discoveryToken: token)');
@@ -5243,7 +5414,9 @@ export class IOSCompiler extends CompilerBase {
     if (this.compositionHasTrait(composition, 'uwb_handoff')) {
       this.emit('');
       this.emit('// Try to decode as handoff payload');
-      this.emit('if let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],');
+      this.emit(
+        'if let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],'
+      );
       this.emit('   json["type"] == "uwb_handoff",');
       this.emit('   let entityId = json["entityId"],');
       this.emit('   let peer = peers[peerID.displayName] {');
@@ -5256,9 +5429,15 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('}');
     this.emit('');
-    this.emit('func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {}');
-    this.emit('func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {}');
-    this.emit('func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}');
+    this.emit(
+      'func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {}'
+    );
+    this.emit(
+      'func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {}'
+    );
+    this.emit(
+      'func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}'
+    );
 
     this.indentLevel--;
     this.emit('}');
@@ -5270,7 +5449,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit(`extension ${cls}UWBManager: MCNearbyServiceAdvertiserDelegate {`);
     this.indentLevel++;
     this.emit('');
-    this.emit('func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {');
+    this.emit(
+      'func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {'
+    );
     this.indentLevel++;
     this.emit('invitationHandler(true, mcSession)');
     this.indentLevel--;
@@ -5286,7 +5467,9 @@ export class IOSCompiler extends CompilerBase {
     this.emit(`extension ${cls}UWBManager: MCNearbyServiceBrowserDelegate {`);
     this.indentLevel++;
     this.emit('');
-    this.emit('func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {');
+    this.emit(
+      'func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {'
+    );
     this.indentLevel++;
     this.emit('guard let session = mcSession else { return }');
     this.emit('browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)');
@@ -5498,7 +5681,9 @@ export class IOSCompiler extends CompilerBase {
       this.indentLevel--;
       this.emit('}');
       this.emit('');
-      this.emit('headphoneMotionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in');
+      this.emit(
+        'headphoneMotionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in'
+      );
       this.indentLevel++;
       this.emit('guard let self = self, let motion = motion else { return }');
       this.emit('self.headTrackingActive = true');
@@ -5548,7 +5733,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('sources[source.id] = phaseSource');
       this.emit('audioSources.append(source)');
       this.emit('');
-      this.emit('loadAndPlayAudio(sourceId: source.id, audioFile: source.audioFile, gain: source.gain)');
+      this.emit(
+        'loadAndPlayAudio(sourceId: source.id, audioFile: source.audioFile, gain: source.gain)'
+      );
       this.indentLevel--;
       this.emit('}');
       this.emit('');
@@ -5614,7 +5801,9 @@ export class IOSCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit(')');
     this.emit('samplerNodeDef.playbackMode = .looping');
-    this.emit('samplerNodeDef.setCalibrationMode(calibrationMode: .relativeSpl, level: Double(gain * 20))');
+    this.emit(
+      'samplerNodeDef.setCalibrationMode(calibrationMode: .relativeSpl, level: Double(gain * 20))'
+    );
     this.emit('');
 
     // Spatial pipeline with distance attenuation
@@ -5629,7 +5818,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('distanceModelParameters.rolloffFactor = 1.0');
       this.emit('');
       this.emit('let spatialPipelineDef = PHASESpatialPipeline(flags: [.directPathTransmission])!');
-      this.emit('spatialPipelineDef.entries[PHASESpatialCategory.directPath]!.sendLevel = Double(gain)');
+      this.emit(
+        'spatialPipelineDef.entries[PHASESpatialCategory.directPath]!.sendLevel = Double(gain)'
+      );
       this.emit('');
       this.emit('let spatialMixerDef = PHASESpatialMixerDefinition(');
       this.indentLevel++;
@@ -5639,7 +5830,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('spatialMixerDef.distanceModelParameters = distanceModelParameters');
     } else {
       this.emit('let spatialPipelineDef = PHASESpatialPipeline(flags: [.directPathTransmission])!');
-      this.emit('spatialPipelineDef.entries[PHASESpatialCategory.directPath]!.sendLevel = Double(gain)');
+      this.emit(
+        'spatialPipelineDef.entries[PHASESpatialCategory.directPath]!.sendLevel = Double(gain)'
+      );
       this.emit('');
       this.emit('let spatialMixerDef = PHASESpatialMixerDefinition(');
       this.indentLevel++;
@@ -5722,7 +5915,9 @@ export class IOSCompiler extends CompilerBase {
     if (traits.has('audio_occlusion')) {
       this.emit('// MARK: - Audio Occlusion (audio_occlusion)');
       this.emit('');
-      this.emit('func updateOcclusionForSource(id: String, occluded: Bool, attenuationDb: Float = -12.0) {');
+      this.emit(
+        'func updateOcclusionForSource(id: String, occluded: Bool, attenuationDb: Float = -12.0) {'
+      );
       this.indentLevel++;
       this.emit('guard let event = soundEvents[id] else { return }');
       this.emit('if occluded {');
@@ -5801,7 +5996,9 @@ export class IOSCompiler extends CompilerBase {
       this.emit('Image(systemName: "speaker.wave.3")');
       this.emit('Text(source.id)');
       this.emit('Spacer()');
-      this.emit('Text(String(format: "(%.1f, %.1f, %.1f)", source.position.x, source.position.y, source.position.z))');
+      this.emit(
+        'Text(String(format: "(%.1f, %.1f, %.1f)", source.position.x, source.position.y, source.position.z))'
+      );
       this.indentLevel--;
       this.emit('}');
       this.indentLevel--;

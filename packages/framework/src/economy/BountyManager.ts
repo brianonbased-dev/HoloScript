@@ -75,12 +75,7 @@ export class BountyManager {
   }
 
   /** Create a bounty for a board task. */
-  createBounty(
-    taskId: string,
-    reward: BountyReward,
-    createdBy: string,
-    deadline?: number,
-  ): Bounty {
+  createBounty(taskId: string, reward: BountyReward, createdBy: string, deadline?: number): Bounty {
     if (reward.amount <= 0) throw new Error('Bounty reward must be positive');
 
     const id = `bounty_${String(this.nextId++).padStart(4, '0')}`;
@@ -93,9 +88,9 @@ export class BountyManager {
       status: 'open',
       createdBy,
       createdAt: new Date().toISOString(),
-      deadline: deadline ?? (this.config.defaultDeadlineMs
-        ? now + this.config.defaultDeadlineMs
-        : undefined),
+      deadline:
+        deadline ??
+        (this.config.defaultDeadlineMs ? now + this.config.defaultDeadlineMs : undefined),
     };
 
     this.bounties.set(id, bounty);
@@ -106,7 +101,8 @@ export class BountyManager {
   claimBounty(bountyId: string, agentId: string): ClaimResult {
     const bounty = this.bounties.get(bountyId);
     if (!bounty) return { success: false, bountyId, error: 'Bounty not found' };
-    if (bounty.status !== 'open') return { success: false, bountyId, error: `Bounty is ${bounty.status}, not open` };
+    if (bounty.status !== 'open')
+      return { success: false, bountyId, error: `Bounty is ${bounty.status}, not open` };
 
     // Check deadline
     if (bounty.deadline && Date.now() > bounty.deadline) {
@@ -122,11 +118,34 @@ export class BountyManager {
   /** Complete a bounty with proof of work and trigger payout. */
   completeBounty(bountyId: string, proof: CompletionProof): PayoutResult {
     const bounty = this.bounties.get(bountyId);
-    if (!bounty) return { success: false, bountyId, amount: 0, currency: 'credits', settlement: 'ledger', error: 'Bounty not found' };
-    if (bounty.status !== 'claimed') return { success: false, bountyId, amount: 0, currency: bounty.reward.currency, settlement: 'ledger', error: `Bounty is ${bounty.status}, not claimed` };
+    if (!bounty)
+      return {
+        success: false,
+        bountyId,
+        amount: 0,
+        currency: 'credits',
+        settlement: 'ledger',
+        error: 'Bounty not found',
+      };
+    if (bounty.status !== 'claimed')
+      return {
+        success: false,
+        bountyId,
+        amount: 0,
+        currency: bounty.reward.currency,
+        settlement: 'ledger',
+        error: `Bounty is ${bounty.status}, not claimed`,
+      };
 
     if (!proof.summary || proof.summary.trim().length === 0) {
-      return { success: false, bountyId, amount: 0, currency: bounty.reward.currency, settlement: 'ledger', error: 'Completion proof requires a summary' };
+      return {
+        success: false,
+        bountyId,
+        amount: 0,
+        currency: bounty.reward.currency,
+        settlement: 'ledger',
+        error: 'Completion proof requires a summary',
+      };
     }
 
     bounty.status = 'completed';
@@ -134,8 +153,11 @@ export class BountyManager {
 
     // Determine settlement method
     const settlement: 'ledger' | 'on_chain' =
-      bounty.reward.currency === 'credits' ? 'ledger' :
-      bounty.reward.amount < 0.10 ? 'ledger' : 'on_chain';
+      bounty.reward.currency === 'credits'
+        ? 'ledger'
+        : bounty.reward.amount < 0.1
+          ? 'ledger'
+          : 'on_chain';
 
     return {
       success: true,
@@ -155,12 +177,12 @@ export class BountyManager {
   list(status?: BountyStatus): Bounty[] {
     const all = Array.from(this.bounties.values());
     if (!status) return all;
-    return all.filter(b => b.status === status);
+    return all.filter((b) => b.status === status);
   }
 
   /** List bounties for a specific task. */
   byTask(taskId: string): Bounty[] {
-    return Array.from(this.bounties.values()).filter(b => b.taskId === taskId);
+    return Array.from(this.bounties.values()).filter((b) => b.taskId === taskId);
   }
 
   /** Expire bounties past their deadline. Returns count expired. */
@@ -179,7 +201,7 @@ export class BountyManager {
   /** Total open bounty value in a given currency. */
   totalOpen(currency?: BountyCurrency): number {
     return this.list('open')
-      .filter(b => !currency || b.reward.currency === currency)
+      .filter((b) => !currency || b.reward.currency === currency)
       .reduce((sum, b) => sum + b.reward.amount, 0);
   }
 }

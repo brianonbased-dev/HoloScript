@@ -615,6 +615,5 @@ describe('Scenario: Industrial Plant Designer — Templates', () => {
     if (tmpl) expect(tmpl.id).toBe('oil-refinery-sim');
   });
 
-  it('"hospital-simulation" template — OR, ICU, supply chain (@holoscript/core+)', () => {
-  });
+  it('"hospital-simulation" template — OR, ICU, supply chain (@holoscript/core+)', () => {});
 });

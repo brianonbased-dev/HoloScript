@@ -694,16 +694,10 @@ export { FACIAL_EXPRESSION_TRAITS, type FacialExpressionTraitName } from './faci
 export { CHARACTER_MATERIAL_TRAITS, type CharacterMaterialTraitName } from './character-materials';
 
 // Phone Sleeve VR (25 traits)
-export {
-  PHONE_SLEEVE_VR_TRAITS,
-  type PhoneSleeveVRTraitName,
-} from './mobile/phone-sleeve-vr';
+export { PHONE_SLEEVE_VR_TRAITS, type PhoneSleeveVRTraitName } from './mobile/phone-sleeve-vr';
 
 // Geo-Anchored Holograms (12 traits)
-export {
-  GEO_ANCHOR_TRAITS,
-  type GeoAnchorTraitName,
-} from './mobile/geo-anchor';
+export { GEO_ANCHOR_TRAITS, type GeoAnchorTraitName } from './mobile/geo-anchor';
 
 // v6 Universal Semantic Platform (35 traits)
 export {
@@ -720,16 +714,10 @@ export {
 } from './universal-service';
 
 // ARCore Geospatial API (6 traits — M.010.15)
-export {
-  GEOSPATIAL_ARCORE_TRAITS,
-  type GeospatialARCoreTraitName,
-} from './mobile/geospatial';
+export { GEOSPATIAL_ARCORE_TRAITS, type GeospatialARCoreTraitName } from './mobile/geospatial';
 
 // NPU Scene Understanding — on-device ML inference (8 traits — M.010.03)
-export {
-  NPU_SCENE_TRAITS,
-  type NPUSceneTraitName,
-} from './mobile/npu-scene';
+export { NPU_SCENE_TRAITS, type NPUSceneTraitName } from './mobile/npu-scene';
 
 // Camera Hand Tracking (9 traits — M.010.04)
 export {
@@ -738,28 +726,16 @@ export {
 } from './mobile/camera-hand-tracking';
 
 // Portal AR — phone-as-portal magic window (15 traits — M.010.06)
-export {
-  PORTAL_AR_TRAITS,
-  type PortalARTraitName,
-} from './mobile/portal-ar';
+export { PORTAL_AR_TRAITS, type PortalARTraitName } from './mobile/portal-ar';
 
 // LiDAR Scanner — iOS mesh capture (11 traits — M.010.02a)
-export {
-  LIDAR_SCANNER_TRAITS,
-  type LiDARScannerTraitName,
-} from './mobile/lidar-scanner';
+export { LIDAR_SCANNER_TRAITS, type LiDARScannerTraitName } from './mobile/lidar-scanner';
 
 // Depth Scanner — Android ARCore/ToF/stereo (10 traits — M.010.02b)
-export {
-  DEPTH_SCANNER_TRAITS,
-  type DepthScannerTraitName,
-} from './mobile/depth-scanner';
+export { DEPTH_SCANNER_TRAITS, type DepthScannerTraitName } from './mobile/depth-scanner';
 
 // RoomPlan — iOS spatial scanning (22 traits — M.010.09)
-export {
-  ROOMPLAN_TRAITS,
-  type RoomPlanTraitName,
-} from './mobile/roomplan';
+export { ROOMPLAN_TRAITS, type RoomPlanTraitName } from './mobile/roomplan';
 
 // Spatial Authoring (5 traits — M.010.08)
 export {
@@ -768,10 +744,7 @@ export {
 } from './mobile/spatial-authoring';
 
 // Haptic Holographic Feedback (11 traits — M.010.05)
-export {
-  HAPTIC_FEEDBACK_TRAITS,
-  type HapticFeedbackTraitName,
-} from './mobile/haptic-feedback';
+export { HAPTIC_FEEDBACK_TRAITS, type HapticFeedbackTraitName } from './mobile/haptic-feedback';
 
 // iOS Object Capture (8 traits — M.010.10)
 export {
@@ -786,22 +759,13 @@ export {
 } from './mobile/airpods-spatial-audio';
 
 // SharePlay Multi-User AR (9 traits — M.010.12)
-export {
-  SHAREPLAY_TRAITS,
-  type SharePlayTraitName,
-} from './mobile/shareplay';
+export { SHAREPLAY_TRAITS, type SharePlayTraitName } from './mobile/shareplay';
 
 // Ultra Wideband positioning (6 traits — M.010.13)
-export {
-  UWB_POSITIONING_TRAITS,
-  type UWBPositioningTraitName,
-} from './mobile/uwb-positioning';
+export { UWB_POSITIONING_TRAITS, type UWBPositioningTraitName } from './mobile/uwb-positioning';
 
 // TrueDepth Face Tracking (11 traits — M.010.14)
-export {
-  FACE_TRACKING_TRAITS,
-  type FaceTrackingTraitName,
-} from './mobile/face-tracking';
+export { FACE_TRACKING_TRAITS, type FaceTrackingTraitName } from './mobile/face-tracking';
 
 // Android Nearby Connections (9 traits — M.010.16)
 export {
@@ -810,25 +774,13 @@ export {
 } from './mobile/nearby-connections';
 
 // Android Foldable Display (6 traits — M.010.17)
-export {
-  FOLDABLE_DISPLAY_TRAITS,
-  type FoldableDisplayTraitName,
-} from './mobile/foldable-display';
+export { FOLDABLE_DISPLAY_TRAITS, type FoldableDisplayTraitName } from './mobile/foldable-display';
 
 // Samsung DeX (5 traits — M.010.18)
-export {
-  SAMSUNG_DEX_TRAITS,
-  type SamsungDeXTraitName,
-} from './mobile/samsung-dex';
+export { SAMSUNG_DEX_TRAITS, type SamsungDeXTraitName } from './mobile/samsung-dex';
 
 // Android WebXR Chrome (11 traits — M.010.19)
-export {
-  WEBXR_TRAITS,
-  type WebXRTraitName,
-} from './mobile/webxr';
+export { WEBXR_TRAITS, type WebXRTraitName } from './mobile/webxr';
 
 // Google Lens (7 traits — M.010.20)
-export {
-  GOOGLE_LENS_TRAITS,
-  type GoogleLensTraitName,
-} from './mobile/google-lens';
+export { GOOGLE_LENS_TRAITS, type GoogleLensTraitName } from './mobile/google-lens';

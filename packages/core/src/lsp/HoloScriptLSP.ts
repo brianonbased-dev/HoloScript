@@ -991,7 +991,8 @@ export class HoloScriptLSP {
       for (const obj of result.ast.objects) {
         for (const tr of obj.traits) traitNames.add(tr.name);
       }
-      const domainNodes = (result.ast as unknown as { domainBlocks?: DiagnosticContext['nodes'] }).domainBlocks ?? [];
+      const domainNodes =
+        (result.ast as unknown as { domainBlocks?: DiagnosticContext['nodes'] }).domainBlocks ?? [];
       const ctx: DiagnosticContext = { nodes: domainNodes, knownTraits: traitNames };
       const providerDiags = this.diagnosticProvider.diagnose(ctx);
       for (const d of providerDiags) {
@@ -1162,7 +1163,11 @@ export class HoloScriptLSP {
         items.push({
           label: pi.label,
           kind:
-            pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : (pi.kind as CompletionItemKind),
+            pi.kind === 'block'
+              ? 'snippet'
+              : pi.kind === 'trait'
+                ? 'decorator'
+                : (pi.kind as CompletionItemKind),
           detail: pi.detail,
           documentation: pi.documentation,
           insertText: pi.insertText,

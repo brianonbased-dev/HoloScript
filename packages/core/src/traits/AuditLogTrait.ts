@@ -336,7 +336,8 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       const tenantId = ((event as Record<string, unknown>).tenantId as string) || config.tenantId;
 
       const category = categorizeAction(action);
-      const severity = ((event as Record<string, unknown>).severity as string) || inferSeverity(action, result);
+      const severity =
+        ((event as Record<string, unknown>).severity as string) || inferSeverity(action, result);
 
       // Check severity filter
       if (SEVERITY_ORDER[severity as AuditSeverity] < SEVERITY_ORDER[config.minSeverity]) {
@@ -368,7 +369,9 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
           ipAddress: (event as Record<string, unknown>).ipAddress as string | undefined,
           sessionId: (event as Record<string, unknown>).sessionId as string | undefined,
         },
-        resource: (event as Record<string, unknown>).resource as { type: string; id: string; name?: string } | undefined,
+        resource: (event as Record<string, unknown>).resource as
+          | { type: string; id: string; name?: string }
+          | undefined,
         tenantId,
       });
 

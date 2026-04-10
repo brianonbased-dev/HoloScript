@@ -10,7 +10,12 @@
  * service is unreachable.
  */
 
-import type { AbsorbScanConfig, ScanResult, ImprovementTask, ExtractedKnowledge } from './absorb-scanner';
+import type {
+  AbsorbScanConfig,
+  ScanResult,
+  ImprovementTask,
+  ExtractedKnowledge,
+} from './absorb-scanner';
 import { scanFramework, scanTodos } from './absorb-scanner';
 
 export interface CodebaseGraph {
@@ -117,7 +122,7 @@ export class FrameworkAbsorber {
           if (rpcResult.result?.content) {
             // Parse the absorb graph from the MCP response
             const raw = rpcResult.result.content;
-            const textContent = raw.find(c => c.text)?.text;
+            const textContent = raw.find((c) => c.text)?.text;
             let parsed: Record<string, unknown> = {};
             if (textContent) {
               try {
@@ -129,19 +134,19 @@ export class FrameworkAbsorber {
             }
 
             return {
-              fileCount: typeof parsed.file_count === 'number'
-                ? parsed.file_count
-                : typeof parsed.files === 'number'
-                  ? parsed.files
-                  : 0,
-              edgeCount: typeof parsed.edge_count === 'number'
-                ? parsed.edge_count
-                : typeof parsed.edges === 'number'
-                  ? parsed.edges
-                  : 0,
-              modules: Array.isArray(parsed.modules)
-                ? parsed.modules as string[]
-                : [],
+              fileCount:
+                typeof parsed.file_count === 'number'
+                  ? parsed.file_count
+                  : typeof parsed.files === 'number'
+                    ? parsed.files
+                    : 0,
+              edgeCount:
+                typeof parsed.edge_count === 'number'
+                  ? parsed.edge_count
+                  : typeof parsed.edges === 'number'
+                    ? parsed.edges
+                    : 0,
+              modules: Array.isArray(parsed.modules) ? (parsed.modules as string[]) : [],
               raw: parsed,
             };
           }
@@ -167,7 +172,7 @@ export class FrameworkAbsorber {
    * Returns ranked improvement list with confidence scores.
    */
   async findImprovements(): Promise<Improvement[]> {
-    const scan = this.lastScan || await this.runFullScan();
+    const scan = this.lastScan || (await this.runFullScan());
     return scan.improvements.map((imp, i) => ({
       id: `fw-imp-${i}-${Date.now()}`,
       title: imp.title,

@@ -47,9 +47,15 @@ export class MeshDiscovery {
     return false;
   }
 
-  getPeers(): PeerMetadata[] { return [...this.peers.values()]; }
-  getPeer(id: string): PeerMetadata | undefined { return this.peers.get(id); }
-  getPeerCount(): number { return this.peers.size; }
+  getPeers(): PeerMetadata[] {
+    return [...this.peers.values()];
+  }
+  getPeer(id: string): PeerMetadata | undefined {
+    return this.peers.get(id);
+  }
+  getPeerCount(): number {
+    return this.peers.size;
+  }
 
   pruneStalePeers(timeoutMs: number = 15000): number {
     const now = Date.now();
@@ -97,7 +103,10 @@ export class SignalService {
     this.nodeId = nodeId ?? `node-${Date.now().toString(36)}`;
   }
 
-  broadcastSignal(signal: Omit<MeshSignal, 'nodeId' | 'expiresAt'>, ttlMs: number = 3600000): MeshSignal {
+  broadcastSignal(
+    signal: Omit<MeshSignal, 'nodeId' | 'expiresAt'>,
+    ttlMs: number = 3600000
+  ): MeshSignal {
     const full: MeshSignal = { ...signal, nodeId: this.nodeId, expiresAt: Date.now() + ttlMs };
     this.localSignals.set(`${full.type}:${full.nodeId}`, full);
     return full;
@@ -112,13 +121,14 @@ export class SignalService {
     for (const [key, sig] of this.remoteSignals) {
       if (sig.expiresAt < now) this.remoteSignals.delete(key);
     }
-    return [
-      ...this.remoteSignals.values(),
-      ...this.localSignals.values(),
-    ].filter((s) => s.type === type);
+    return [...this.remoteSignals.values(), ...this.localSignals.values()].filter(
+      (s) => s.type === type
+    );
   }
 
-  getLocalSignals(): MeshSignal[] { return [...this.localSignals.values()]; }
+  getLocalSignals(): MeshSignal[] {
+    return [...this.localSignals.values()];
+  }
 }
 
 // =============================================================================
@@ -160,8 +170,12 @@ export class GossipProtocol {
     return absorbed;
   }
 
-  getPool(): Map<string, GossipPacket> { return new Map(this.pool); }
-  getPoolSize(): number { return this.pool.size; }
+  getPool(): Map<string, GossipPacket> {
+    return new Map(this.pool);
+  }
+  getPoolSize(): number {
+    return this.pool.size;
+  }
 }
 
 // =============================================================================
@@ -194,8 +208,10 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        id: { type: 'string' }, domain: { type: 'string' },
-        problem: { type: 'string' }, solution: { type: 'string' },
+        id: { type: 'string' },
+        domain: { type: 'string' },
+        problem: { type: 'string' },
+        solution: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
       },
       required: ['id', 'domain', 'problem', 'solution'],
@@ -207,8 +223,10 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        id: { type: 'string' }, domain: { type: 'string' },
-        insight: { type: 'string' }, context: { type: 'string' },
+        id: { type: 'string' },
+        domain: { type: 'string' },
+        insight: { type: 'string' },
+        context: { type: 'string' },
       },
       required: ['id', 'domain', 'insight'],
     },
@@ -219,8 +237,10 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        id: { type: 'string' }, domain: { type: 'string' },
-        mistake: { type: 'string' }, fix: { type: 'string' },
+        id: { type: 'string' },
+        domain: { type: 'string' },
+        mistake: { type: 'string' },
+        fix: { type: 'string' },
         severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
       },
       required: ['id', 'domain', 'mistake', 'fix'],

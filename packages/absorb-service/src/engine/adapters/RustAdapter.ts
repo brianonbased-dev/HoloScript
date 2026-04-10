@@ -254,7 +254,9 @@ export class RustAdapter implements LanguageAdapter {
     }
   }
 
-  private extractUsePath(node: SyntaxNode): { module: string; names: string[]; isGlob: boolean } | null {
+  private extractUsePath(
+    node: SyntaxNode
+  ): { module: string; names: string[]; isGlob: boolean } | null {
     // Recursively build the use path
     const names: string[] = [];
     let isGlob = false;

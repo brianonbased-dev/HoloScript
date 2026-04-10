@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; taskId: string }> },
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   const { id, taskId } = await params;
 
@@ -16,7 +16,7 @@ export async function PATCH(
   if (!limit.ok) return limit.response;
 
   // Clone body so we can read it twice (once for DB, once for proxy)
-  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
   // Heartbeat: update syncedAt to reset the 30-min stale-expiry clock.
   // Handled locally — not forwarded to MCP.
@@ -25,13 +25,21 @@ export async function PATCH(
       const db = getDb();
       if (db) {
         const [task] = await db
-          .select({ id: holomeshBoardTasks.id, status: holomeshBoardTasks.status, claimedBy: holomeshBoardTasks.claimedBy })
+          .select({
+            id: holomeshBoardTasks.id,
+            status: holomeshBoardTasks.status,
+            claimedBy: holomeshBoardTasks.claimedBy,
+          })
           .from(holomeshBoardTasks)
           .where(eq(holomeshBoardTasks.id, taskId))
           .limit(1);
-        if (!task) return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
+        if (!task)
+          return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
         if (task.status !== 'claimed' || task.claimedBy !== (body.agentId as string)) {
-          return NextResponse.json({ success: false, error: 'Task not claimed by this agent' }, { status: 403 });
+          return NextResponse.json(
+            { success: false, error: 'Task not claimed by this agent' },
+            { status: 403 }
+          );
         }
         await db
           .update(holomeshBoardTasks)
@@ -51,7 +59,10 @@ export async function PATCH(
     headers: req.headers,
     body: JSON.stringify(body),
   });
-  const mcpRes = await proxyHoloMesh(`/api/holomesh/team/${id}/board/${taskId}`, proxyReq as NextRequest);
+  const mcpRes = await proxyHoloMesh(
+    `/api/holomesh/team/${id}/board/${taskId}`,
+    proxyReq as NextRequest
+  );
 
   // Mirror status to DB (non-fatal)
   try {
@@ -63,8 +74,8 @@ export async function PATCH(
           .update(holomeshBoardTasks)
           .set({
             status: 'claimed',
-            claimedBy: body.agentId as string || null,
-            claimedByName: body.agentName as string || null,
+            claimedBy: (body.agentId as string) || null,
+            claimedByName: (body.agentName as string) || null,
             syncedAt: new Date(),
           })
           .where(eq(holomeshBoardTasks.id, taskId));
@@ -73,8 +84,8 @@ export async function PATCH(
           .update(holomeshBoardTasks)
           .set({
             status: 'done',
-            completedBy: body.agentName as string || null,
-            commitHash: body.commit as string || null,
+            completedBy: (body.agentName as string) || null,
+            commitHash: (body.commit as string) || null,
             completedAt: new Date(),
             syncedAt: new Date(),
           })
@@ -95,7 +106,7 @@ export async function PATCH(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; taskId: string }> },
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   const { id, taskId } = await params;
   const proxyReq = new Request(req.url, {

@@ -87,11 +87,21 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
     delete (node as any).__timeoutGuardState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: TimeoutGuardConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: TimeoutGuardConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Timer-driven, no per-frame work
   },
 
-  onEvent(node: HSPlusNode, config: TimeoutGuardConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: TimeoutGuardConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state: TimeoutGuardState | undefined = (node as any).__timeoutGuardState;
     if (!state) return;
 

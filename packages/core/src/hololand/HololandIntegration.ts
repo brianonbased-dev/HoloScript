@@ -6,7 +6,13 @@
  * cross-platform runtime services.
  */
 
-import type { WorldDefinition, WorldConfig, WorldEnvironment, SceneNode, WorldLODConfig } from './WorldDefinitionSchema';
+import type {
+  WorldDefinition,
+  WorldConfig,
+  WorldEnvironment,
+  SceneNode,
+  WorldLODConfig,
+} from './WorldDefinitionSchema';
 
 // ============================================================================
 // Hololand Connection State

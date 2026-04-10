@@ -15,7 +15,11 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
 
   return {
     createBody(config: any) {
-      bodies[config.id] = { ...config, velocity: { x: 0, y: 0, z: 0 }, position: config.transform?.position };
+      bodies[config.id] = {
+        ...config,
+        velocity: { x: 0, y: 0, z: 0 },
+        position: config.transform?.position,
+      };
       return config.id;
     },
     setPosition(id: string, position: IVector3) {
@@ -277,4 +281,3 @@ describe('VRPhysicsBridge — Production Tests', () => {
     });
   });
 });
-

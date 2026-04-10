@@ -103,7 +103,9 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
   const switchMode = async (newMode: string) => {

@@ -146,9 +146,7 @@ describe('VRRCompiler', () => {
     const compiler = makeCompiler();
     // Access warnings via compile result since parseVRRComposition populates this.warnings
     const result = compiler.compile(comp, 'test-token');
-    expect(result.warnings).toContain(
-      '@geo_anchor on "bad_anchor" has invalid params'
-    );
+    expect(result.warnings).toContain('@geo_anchor on "bad_anchor" has invalid params');
   });
 
   // ─── compileToThreeJS ───────────────────────────────────────────────

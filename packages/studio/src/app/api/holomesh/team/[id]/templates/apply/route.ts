@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTemplate } from '../../../../../../../lib/holomesh/room-templates';
 import { rateLimit } from '../../../../../../../lib/rate-limiter';
 
-const BASE = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 function boardHeaders(): Record<string, string> {
@@ -25,16 +26,17 @@ function boardHeaders(): Record<string, string> {
  * Response:
  *   { success, teamId, template, tasksPosted, tasksFailed, mode }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const limited = rateLimit(req, { max: 10, label: 'team-template-apply' }, 'team-template-apply');
   if (!limited.ok) return limited.response;
 
   const { id: teamId } = await params;
 
-  const body = (await req.json()) as { templateSlug?: string; agentId?: string; agentName?: string };
+  const body = (await req.json()) as {
+    templateSlug?: string;
+    agentId?: string;
+    agentName?: string;
+  };
   const templateSlug = (body.templateSlug ?? '').trim();
 
   if (!templateSlug) {

@@ -78,7 +78,9 @@ describe('BroadcastChannel — broadcast', () => {
   it('delivers to subscriber', async () => {
     const received: unknown[] = [];
     const c = makeCh();
-    c.subscribe('a1', (m) => { received.push((m as any).content); });
+    c.subscribe('a1', (m) => {
+      received.push((m as any).content);
+    });
     await c.broadcast('sender', 'hello');
     expect(received).toHaveLength(1);
     expect(received[0]).toBe('hello');
@@ -86,15 +88,25 @@ describe('BroadcastChannel — broadcast', () => {
   it('delivered to all subscribers', async () => {
     const received: unknown[] = [];
     const c = makeCh();
-    c.subscribe('a1', (m) => { received.push(m); });
-    c.subscribe('a2', (m) => { received.push(m); });
+    c.subscribe('a1', (m) => {
+      received.push(m);
+    });
+    c.subscribe('a2', (m) => {
+      received.push(m);
+    });
     await c.broadcast('sender', 'hi');
     expect(received).toHaveLength(2);
   });
   it('publisher-role subscriber does not receive', async () => {
     const received: unknown[] = [];
     const c = makeCh();
-    c.subscribe('a1', (m) => { received.push('a1', m); }, { role: 'publisher' });
+    c.subscribe(
+      'a1',
+      (m) => {
+        received.push('a1', m);
+      },
+      { role: 'publisher' }
+    );
     await c.broadcast('sender', 'hi');
     expect(received).toHaveLength(0);
   });
@@ -122,8 +134,12 @@ describe('BroadcastChannel — sendDirect', () => {
   it('delivers only to target', async () => {
     const received: string[] = [];
     const c = makeCh();
-    c.subscribe('a1', () => { received.push('a1'); });
-    c.subscribe('a2', () => { received.push('a2'); });
+    c.subscribe('a1', () => {
+      received.push('a1');
+    });
+    c.subscribe('a2', () => {
+      received.push('a2');
+    });
     await c.sendDirect('sender', 'a1', 'dm');
     expect(received).toHaveLength(1);
     expect(received[0]).toBe('a1');
@@ -213,7 +229,9 @@ describe('BroadcastChannel — replayHistory', () => {
     const c = makeCh();
     await c.broadcast('s', '1');
     await c.broadcast('s', '2');
-    const subId = c.subscribe('a1', (m) => { received.push(m); });
+    const subId = c.subscribe('a1', (m) => {
+      received.push(m);
+    });
     const count = await c.replayHistory(subId);
     expect(count).toBe(2);
     expect(received).toHaveLength(2);
@@ -316,8 +334,12 @@ describe('ChannelManager — multicast', () => {
     const c1 = m.createChannel('c1');
     const c2 = m.createChannel('c2');
     const received: string[] = [];
-    m.subscribeAgent('a1', c1.id, () => { received.push('c1'); });
-    m.subscribeAgent('a2', c2.id, () => { received.push('c2'); });
+    m.subscribeAgent('a1', c1.id, () => {
+      received.push('c1');
+    });
+    m.subscribeAgent('a2', c2.id, () => {
+      received.push('c2');
+    });
     const results = await m.multicast([c1.id, c2.id], 'sender', 'msg');
     expect(results.size).toBe(2);
     expect(received).toHaveLength(2);

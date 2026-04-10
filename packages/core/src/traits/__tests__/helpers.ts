@@ -1,11 +1,10 @@
-
 import { vi } from 'vitest';
 import type { TraitContext } from '../TraitTypes';
 import { createMockContext } from './traitTestHelpers';
 
 export function makeTestContext(overrides: Partial<any> = {}): TraitContext {
   const base = createMockContext();
-  
+
   const createDeepMock = () => {
     const fn = vi.fn();
     return new Proxy(fn, {
@@ -15,7 +14,7 @@ export function makeTestContext(overrides: Partial<any> = {}): TraitContext {
         if (prop in target) return (target as any)[prop];
         (target as any)[prop] = createDeepMock();
         return (target as any)[prop];
-      }
+      },
     });
   };
 
@@ -27,7 +26,7 @@ export function makeTestContext(overrides: Partial<any> = {}): TraitContext {
     haptics: overrides.haptics || createDeepMock(),
     accessibility: overrides.accessibility || createDeepMock(),
     worldStore: overrides.worldStore || createDeepMock(),
-    ...overrides
+    ...overrides,
   };
   return ctx as unknown as TraitContext;
 }

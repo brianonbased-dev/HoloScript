@@ -258,4 +258,3 @@ export class DeformableMesh {
     return max;
   }
 }
-

@@ -186,13 +186,20 @@ const VRRTraitDefs: Record<string, { validator?: (params: Record<string, unknown
   reality_mirror: { validator: (p) => Array.isArray(p.sync) && (p.sync as unknown[]).length > 0 },
   geo_anchor: {
     validator: (p) =>
-      typeof p.lat === 'number' && typeof p.lng === 'number' &&
-      (p.lat as number) >= -90 && (p.lat as number) <= 90 &&
-      (p.lng as number) >= -180 && (p.lng as number) <= 180,
+      typeof p.lat === 'number' &&
+      typeof p.lng === 'number' &&
+      (p.lat as number) >= -90 &&
+      (p.lat as number) <= 90 &&
+      (p.lng as number) >= -180 &&
+      (p.lng as number) <= 180,
   },
-  weather_sync: { validator: (p) => ['weather.gov', 'openweathermap'].includes(String(p.provider)) },
+  weather_sync: {
+    validator: (p) => ['weather.gov', 'openweathermap'].includes(String(p.provider)),
+  },
   event_sync: { validator: (p) => ['eventbrite', 'ticketmaster'].includes(String(p.provider)) },
-  inventory_sync: { validator: (p) => ['square_pos', 'shopify', 'woocommerce'].includes(String(p.provider)) },
+  inventory_sync: {
+    validator: (p) => ['square_pos', 'shopify', 'woocommerce'].includes(String(p.provider)),
+  },
   quest_hub: { validator: (p) => Array.isArray(p.quests) && (p.quests as unknown[]).length > 0 },
   layer_shift: {
     validator: (p) => {
@@ -291,9 +298,7 @@ export class VRRCompiler extends CompilerBase {
             // Validate params against VRRTraits definitions
             const traitDef = VRRTraitDefs[trait.name];
             if (traitDef?.validator && !traitDef.validator(trait.params)) {
-              this.warnings.push(
-                `@${trait.name} on "${n.name || 'unnamed'}" has invalid params`
-              );
+              this.warnings.push(`@${trait.name} on "${n.name || 'unnamed'}" has invalid params`);
             }
             data[field].push(n);
           }
@@ -329,23 +334,17 @@ export class VRRCompiler extends CompilerBase {
     // Ambient + directional lighting
     this.generatedCode.push(`const ambientLight = new THREE.AmbientLight(0x404040, 0.6);`);
     this.generatedCode.push(`scene.add(ambientLight);`);
-    this.generatedCode.push(
-      `const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);`
-    );
+    this.generatedCode.push(`const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);`);
     this.generatedCode.push(`directionalLight.position.set(50, 200, 100);`);
     this.generatedCode.push(`directionalLight.castShadow = true;`);
     this.generatedCode.push(`scene.add(directionalLight);`);
 
     // Ground plane
-    this.generatedCode.push(
-      `const groundGeo = new THREE.PlaneGeometry(10000, 10000);`
-    );
+    this.generatedCode.push(`const groundGeo = new THREE.PlaneGeometry(10000, 10000);`);
     this.generatedCode.push(
       `const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7d3a, roughness: 0.9 });`
     );
-    this.generatedCode.push(
-      `const ground = new THREE.Mesh(groundGeo, groundMat);`
-    );
+    this.generatedCode.push(`const ground = new THREE.Mesh(groundGeo, groundMat);`);
     this.generatedCode.push(`ground.rotation.x = -Math.PI / 2;`);
     this.generatedCode.push(`ground.receiveShadow = true;`);
     this.generatedCode.push(`scene.add(ground);`);
@@ -364,30 +363,22 @@ export class VRRCompiler extends CompilerBase {
       const safeName = this.escapeStringValue(String(node.name || 'geo_object'), 'TypeScript');
 
       this.generatedCode.push(`\n// Geo-anchored: ${safeName} (${lat}, ${lng})`);
-      this.generatedCode.push(
-        `const marker_${safeName} = new THREE.Group();`
-      );
+      this.generatedCode.push(`const marker_${safeName} = new THREE.Group();`);
       this.generatedCode.push(
         `marker_${safeName}.position.copy(vrr.geoToSceneCoords(${lat}, ${lng}));`
       );
-      this.generatedCode.push(
-        `marker_${safeName}.userData.geo = { lat: ${lat}, lng: ${lng} };`
-      );
+      this.generatedCode.push(`marker_${safeName}.userData.geo = { lat: ${lat}, lng: ${lng} };`);
       this.generatedCode.push(`phoenix_downtown.add(marker_${safeName});`);
     }
 
     // Skybox
     this.generatedCode.push(`\n// Skybox`);
-    this.generatedCode.push(
-      `scene.background = new THREE.Color(0x87ceeb);`
-    );
+    this.generatedCode.push(`scene.background = new THREE.Color(0x87ceeb);`);
 
     // Render loop
     this.generatedCode.push(`\n// Render loop`);
     this.generatedCode.push(`renderer.shadowMap.enabled = true;`);
-    this.generatedCode.push(
-      `renderer.shadowMap.type = THREE.PCFSoftShadowMap;`
-    );
+    this.generatedCode.push(`renderer.shadowMap.type = THREE.PCFSoftShadowMap;`);
     this.generatedCode.push(`function animate() {`);
     this.generatedCode.push(`  requestAnimationFrame(animate);`);
     this.generatedCode.push(`  vrr.tick();`);
@@ -423,19 +414,11 @@ export class VRRCompiler extends CompilerBase {
 
       // Rain particle system
       this.generatedCode.push(`const rainGeometry = new THREE.BufferGeometry();`);
-      this.generatedCode.push(
-        `const rainPositions = new Float32Array(3000 * 3);`
-      );
+      this.generatedCode.push(`const rainPositions = new Float32Array(3000 * 3);`);
       this.generatedCode.push(`for (let i = 0; i < 3000; i++) {`);
-      this.generatedCode.push(
-        `  rainPositions[i * 3] = (Math.random() - 0.5) * 500;`
-      );
-      this.generatedCode.push(
-        `  rainPositions[i * 3 + 1] = Math.random() * 200;`
-      );
-      this.generatedCode.push(
-        `  rainPositions[i * 3 + 2] = (Math.random() - 0.5) * 500;`
-      );
+      this.generatedCode.push(`  rainPositions[i * 3] = (Math.random() - 0.5) * 500;`);
+      this.generatedCode.push(`  rainPositions[i * 3 + 1] = Math.random() * 200;`);
+      this.generatedCode.push(`  rainPositions[i * 3 + 2] = (Math.random() - 0.5) * 500;`);
       this.generatedCode.push(`}`);
       this.generatedCode.push(
         `rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));`
@@ -443,42 +426,30 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(
         `const rainMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1, transparent: true });`
       );
-      this.generatedCode.push(
-        `const rainSystem = new THREE.Points(rainGeometry, rainMaterial);`
-      );
+      this.generatedCode.push(`const rainSystem = new THREE.Points(rainGeometry, rainMaterial);`);
       this.generatedCode.push(`rainSystem.visible = false;`);
       this.generatedCode.push(`scene.add(rainSystem);`);
 
       // Weather update callback
       this.generatedCode.push(`weatherSync_${safeName}.onUpdate((weather) => {`);
-      this.generatedCode.push(
-        `  // Update fog based on visibility`
-      );
+      this.generatedCode.push(`  // Update fog based on visibility`);
       this.generatedCode.push(
         `  scene.fog = new THREE.Fog(0xcccccc, 10, Math.max(weather.visibility, 50));`
       );
       this.generatedCode.push(`  // Toggle rain particles`);
-      this.generatedCode.push(
-        `  rainSystem.visible = weather.precipitation > 0;`
-      );
+      this.generatedCode.push(`  rainSystem.visible = weather.precipitation > 0;`);
       this.generatedCode.push(`  // Adjust sun intensity based on cloud cover`);
       this.generatedCode.push(
         `  directionalLight.intensity = Math.max(0.2, 1.0 - (weather.cloud_cover || 0) / 100);`
       );
       this.generatedCode.push(`  // Update skybox color`);
-      this.generatedCode.push(
-        `  const skyHue = weather.precipitation > 50 ? 0x666680 : 0x87ceeb;`
-      );
-      this.generatedCode.push(
-        `  scene.background = new THREE.Color(skyHue);`
-      );
+      this.generatedCode.push(`  const skyHue = weather.precipitation > 50 ? 0x666680 : 0x87ceeb;`);
+      this.generatedCode.push(`  scene.background = new THREE.Color(skyHue);`);
       this.generatedCode.push(`  // Temperature-based ambient tint`);
       this.generatedCode.push(
         `  const tempNorm = Math.max(0, Math.min(1, (weather.temperature_f || 70) / 120));`
       );
-      this.generatedCode.push(
-        `  ambientLight.color.setHSL(0.6 - tempNorm * 0.4, 0.3, 0.4);`
-      );
+      this.generatedCode.push(`  ambientLight.color.setHSL(0.6 - tempNorm * 0.4, 0.3, 0.4);`);
       this.generatedCode.push(`});`);
     }
   }
@@ -514,7 +485,9 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`eventSync_${safeName}.onUpdate((events) => {`);
       this.generatedCode.push(`  // Clear previous markers`);
       this.generatedCode.push(`  while (eventMarkers_${safeName}.children.length > 0) {`);
-      this.generatedCode.push(`    eventMarkers_${safeName}.remove(eventMarkers_${safeName}.children[0]);`);
+      this.generatedCode.push(
+        `    eventMarkers_${safeName}.remove(eventMarkers_${safeName}.children[0]);`
+      );
       this.generatedCode.push(`  }`);
       this.generatedCode.push(`  for (const evt of events) {`);
       this.generatedCode.push(`    // Create event marker billboard`);
@@ -524,13 +497,19 @@ export class VRRCompiler extends CompilerBase {
       );
       this.generatedCode.push(`    const marker = new THREE.Mesh(markerGeo, markerMat);`);
       this.generatedCode.push(`    if (evt.geo) {`);
-      this.generatedCode.push(`      marker.position.copy(vrr.geoToSceneCoords(evt.geo.lat, evt.geo.lng));`);
+      this.generatedCode.push(
+        `      marker.position.copy(vrr.geoToSceneCoords(evt.geo.lat, evt.geo.lng));`
+      );
       this.generatedCode.push(`    }`);
-      this.generatedCode.push(`    marker.userData.event = { name: evt.name, date: evt.date, url: evt.url };`);
+      this.generatedCode.push(
+        `    marker.userData.event = { name: evt.name, date: evt.date, url: evt.url };`
+      );
       this.generatedCode.push(`    eventMarkers_${safeName}.add(marker);`);
       this.generatedCode.push(`    // Spawn NPC crowds for active events`);
       this.generatedCode.push(`    if (evt.status === 'active') {`);
-      this.generatedCode.push(`      vrr.spawnNPCCrowd(marker.position, evt.expected_attendance || 20);`);
+      this.generatedCode.push(
+        `      vrr.spawnNPCCrowd(marker.position, evt.expected_attendance || 20);`
+      );
       this.generatedCode.push(`    }`);
       this.generatedCode.push(`  }`);
       this.generatedCode.push(`});`);
@@ -570,15 +549,25 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`inventorySync_${safeName}.onUpdate((inventory) => {`);
       this.generatedCode.push(`  // Clear previous inventory display`);
       this.generatedCode.push(`  while (inventoryUI_${safeName}.children.length > 0) {`);
-      this.generatedCode.push(`    inventoryUI_${safeName}.remove(inventoryUI_${safeName}.children[0]);`);
+      this.generatedCode.push(
+        `    inventoryUI_${safeName}.remove(inventoryUI_${safeName}.children[0]);`
+      );
       this.generatedCode.push(`  }`);
       this.generatedCode.push(`  for (const item of inventory.items) {`);
-      this.generatedCode.push(`    // Availability badge color: green=in-stock, yellow=low, red=out`);
-      this.generatedCode.push(`    const badgeColor = item.quantity > 10 ? 0x00ff00 : item.quantity > 0 ? 0xffaa00 : 0xff0000;`);
+      this.generatedCode.push(
+        `    // Availability badge color: green=in-stock, yellow=low, red=out`
+      );
+      this.generatedCode.push(
+        `    const badgeColor = item.quantity > 10 ? 0x00ff00 : item.quantity > 0 ? 0xffaa00 : 0xff0000;`
+      );
       this.generatedCode.push(`    const badgeGeo = new THREE.SphereGeometry(0.3, 8, 8);`);
-      this.generatedCode.push(`    const badgeMat = new THREE.MeshStandardMaterial({ color: badgeColor, emissive: badgeColor, emissiveIntensity: 0.5 });`);
+      this.generatedCode.push(
+        `    const badgeMat = new THREE.MeshStandardMaterial({ color: badgeColor, emissive: badgeColor, emissiveIntensity: 0.5 });`
+      );
       this.generatedCode.push(`    const badge = new THREE.Mesh(badgeGeo, badgeMat);`);
-      this.generatedCode.push(`    badge.userData.product = { name: item.name, quantity: item.quantity, price: item.price };`);
+      this.generatedCode.push(
+        `    badge.userData.product = { name: item.name, quantity: item.quantity, price: item.price };`
+      );
       this.generatedCode.push(`    inventoryUI_${safeName}.add(badge);`);
       this.generatedCode.push(`  }`);
       this.generatedCode.push(`});`);
@@ -613,9 +602,7 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(
         `const questBeacon_${safeName} = new THREE.PointLight(0xffdd00, 2, 30);`
       );
-      this.generatedCode.push(
-        `questBeacon_${safeName}.position.set(0, 5, 0);`
-      );
+      this.generatedCode.push(`questBeacon_${safeName}.position.set(0, 5, 0);`);
       this.generatedCode.push(
         `if (marker_${safeName}) marker_${safeName}.add(questBeacon_${safeName});`
       );
@@ -646,9 +633,7 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`  // Grant reward (coupon, NFT, etc.)`);
       this.generatedCode.push(`  vrr.grantReward(quest.id, reward);`);
       this.generatedCode.push(`  // Visual celebration`);
-      this.generatedCode.push(
-        `  questBeacon_${safeName}.color.setHex(0x00ff00);`
-      );
+      this.generatedCode.push(`  questBeacon_${safeName}.color.setHex(0x00ff00);`);
       this.generatedCode.push(`});`);
     }
   }
@@ -772,9 +757,7 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`        'X-Payment-Amount': '${price}',`);
       this.generatedCode.push(`        'X-Payment-Asset': '${asset}',`);
       this.generatedCode.push(`        'X-Payment-Network': '${network}',`);
-      this.generatedCode.push(
-        `        'X-Payment-Address': vrr.getPaymentAddress('${safeName}'),`
-      );
+      this.generatedCode.push(`        'X-Payment-Address': vrr.getPaymentAddress('${safeName}'),`);
       this.generatedCode.push(`      },`);
       this.generatedCode.push(`    };`);
       this.generatedCode.push(`  },`);
@@ -788,8 +771,12 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`    vrr.unlockContent('${safeName}');`);
       this.generatedCode.push(`  },`);
       this.generatedCode.push(`  onPaymentFailed: (error) => {`);
-      this.generatedCode.push(`    console.warn('Payment failed for ${safeName}:', error.message);`);
-      this.generatedCode.push(`    vrr.showPaywallUI('${safeName}', { price: ${price}, asset: '${asset}', network: '${network}' });`);
+      this.generatedCode.push(
+        `    console.warn('Payment failed for ${safeName}:', error.message);`
+      );
+      this.generatedCode.push(
+        `    vrr.showPaywallUI('${safeName}', { price: ${price}, asset: '${asset}', network: '${network}' });`
+      );
       this.generatedCode.push(`  },`);
       this.generatedCode.push(`});`);
     }
@@ -850,7 +837,9 @@ export class VRRCompiler extends CompilerBase {
     // v4.2: Domain Blocks
     // @ts-expect-error During migration
     const comp = composition as Record<string, unknown>;
-    const domainBlocks = (Array.isArray(comp.domainBlocks) ? comp.domainBlocks : []) as Array<Record<string, unknown>>;
+    const domainBlocks = (Array.isArray(comp.domainBlocks) ? comp.domainBlocks : []) as Array<
+      Record<string, unknown>
+    >;
     if (domainBlocks.length > 0) {
       this.generatedCode.push('\n// === v4.2 Domain Blocks ===');
       const compiled = compileDomainBlocks(
@@ -945,10 +934,12 @@ export class VRRCompiler extends CompilerBase {
         for (const trait of node.traits) {
           if (trait.name === 'geo_anchor')
             geoCenter = { lat: Number(trait.params.lat), lng: Number(trait.params.lng) };
-          else if (trait.name === 'vrr_twin' && trait.params.mirror) twinId = String(trait.params.mirror);
+          else if (trait.name === 'vrr_twin' && trait.params.mirror)
+            twinId = String(trait.params.mirror);
           else if (trait.name === 'weather_sync') weatherProvider = String(trait.params.provider);
           else if (trait.name === 'event_sync') eventProvider = String(trait.params.provider);
-          else if (trait.name === 'inventory_sync') inventoryProvider = String(trait.params.provider);
+          else if (trait.name === 'inventory_sync')
+            inventoryProvider = String(trait.params.provider);
         }
       }
     }
@@ -996,7 +987,11 @@ export class VRRCompiler extends CompilerBase {
     const questHubs = this.extractNodesWithTrait(twinNodes[0] || {}, '@quest_hub');
     for (const hub of questHubs) {
       const questTrait = hub.traits?.find((t) => t.name === 'quest_hub');
-      const quests = questTrait ? (Array.isArray(questTrait.params.quests) ? questTrait.params.quests : []) : [];
+      const quests = questTrait
+        ? Array.isArray(questTrait.params.quests)
+          ? questTrait.params.quests
+          : []
+        : [];
       this.generatedCode.push(`\n// Configured @quest_hub for ${hub.name || 'Business'}`);
       this.generatedCode.push(`const hub_${Math.random().toString(36).substring(7)} = {`);
       this.generatedCode.push(`  quests: ${JSON.stringify(quests)}`);

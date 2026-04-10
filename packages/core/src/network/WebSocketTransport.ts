@@ -186,15 +186,10 @@ export class WebSocketTransport {
 
     const initialBackoff = this.config.initialBackoffMs ?? 1000;
     const maxBackoff = this.config.maxBackoffMs ?? 30000;
-    const backoff = Math.min(
-      initialBackoff * Math.pow(2, this.reconnectAttempts),
-      maxBackoff
-    );
+    const backoff = Math.min(initialBackoff * Math.pow(2, this.reconnectAttempts), maxBackoff);
 
     this.reconnectAttempts++;
-    logger.info(
-      `Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts}/${maxAttempts})`
-    );
+    logger.info(`Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts}/${maxAttempts})`);
 
     setTimeout(() => {
       this.connect().catch((err) => {

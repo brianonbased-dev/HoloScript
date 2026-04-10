@@ -421,9 +421,11 @@ describe('PipelineParser', () => {
       `);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) =>
-        e.message.includes("'environment' is not valid in a pipeline context")
-      )).toBe(true);
+      expect(
+        result.errors.some((e) =>
+          e.message.includes("'environment' is not valid in a pipeline context")
+        )
+      ).toBe(true);
     });
 
     it('rejects spatial_group in pipeline', () => {
@@ -436,9 +438,11 @@ describe('PipelineParser', () => {
       `);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) =>
-        e.message.includes("'spatial_group' is not valid in a pipeline context")
-      )).toBe(true);
+      expect(
+        result.errors.some((e) =>
+          e.message.includes("'spatial_group' is not valid in a pipeline context")
+        )
+      ).toBe(true);
     });
 
     it('rejects object block in pipeline', () => {
@@ -451,9 +455,9 @@ describe('PipelineParser', () => {
       `);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) =>
-        e.message.includes("'object' is not valid in a pipeline context")
-      )).toBe(true);
+      expect(
+        result.errors.some((e) => e.message.includes("'object' is not valid in a pipeline context"))
+      ).toBe(true);
     });
 
     it('rejects template block in pipeline', () => {
@@ -466,9 +470,11 @@ describe('PipelineParser', () => {
       `);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) =>
-        e.message.includes("'template' is not valid in a pipeline context")
-      )).toBe(true);
+      expect(
+        result.errors.some((e) =>
+          e.message.includes("'template' is not valid in a pipeline context")
+        )
+      ).toBe(true);
     });
 
     it('rejects npc block in pipeline', () => {
@@ -481,9 +487,9 @@ describe('PipelineParser', () => {
       `);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) =>
-        e.message.includes("'npc' is not valid in a pipeline context")
-      )).toBe(true);
+      expect(
+        result.errors.some((e) => e.message.includes("'npc' is not valid in a pipeline context"))
+      ).toBe(true);
     });
 
     it('rejects multiple spatial keywords with separate errors', () => {
@@ -536,7 +542,9 @@ describe('PipelineParser', () => {
 
         expect(result.success).toBe(false);
         expect(
-          result.errors.some((e) => e.message.includes(`'${c.token}' is not valid in a pipeline context`))
+          result.errors.some((e) =>
+            e.message.includes(`'${c.token}' is not valid in a pipeline context`)
+          )
         ).toBe(true);
       }
     });

@@ -416,14 +416,14 @@ export class InstancedRenderer {
       const pos = new THREE.Vector3();
       const quat = new THREE.Quaternion();
       const scl = new THREE.Vector3();
-      
+
       m.decompose(pos, quat, scl);
       const euler = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
-      
+
       return {
         position: [pos.x, pos.y, pos.z],
         rotation: [euler.x, euler.y, euler.z],
-        scale: [scl.x, scl.y, scl.z]
+        scale: [scl.x, scl.y, scl.z],
       };
     }
 
@@ -433,9 +433,11 @@ export class InstancedRenderer {
     const sy = Math.sqrt(matrix[4] * matrix[4] + matrix[5] * matrix[5] + matrix[6] * matrix[6]);
     const sz = Math.sqrt(matrix[8] * matrix[8] + matrix[9] * matrix[9] + matrix[10] * matrix[10]);
     const scale: [number, number, number] = [sx, sy, sz];
-    
+
     // Fallback rotation extraction using basic math
-    let rx = 0, ry = 0, rz = 0;
+    let rx = 0,
+      ry = 0,
+      rz = 0;
     if (sx !== 0 && sy !== 0 && sz !== 0) {
       const m13 = matrix[8] / sz;
       ry = Math.asin(Math.max(-1, Math.min(1, m13)));
@@ -515,4 +517,3 @@ export class InstancedRenderer {
     return Array.from(this.batches.keys());
   }
 }
-

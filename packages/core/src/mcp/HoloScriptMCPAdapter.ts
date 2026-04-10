@@ -27,9 +27,9 @@ import {
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { SpatialTrainingDataGenerator } from '../training/SpatialTrainingDataGenerator';
-import type { 
-  SpatialTrainingExample, 
-  SpatialGeneratorConfig 
+import type {
+  SpatialTrainingExample,
+  SpatialGeneratorConfig,
 } from '../training/SpatialTrainingDataTypes';
 import { SparsityMonitor, type LayerActivityInput } from '../training/SparsityMonitor';
 import type { SparsityMonitorConfig, SparsityMonitorStats } from '../training/SparsityMonitorTypes';

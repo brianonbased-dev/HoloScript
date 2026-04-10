@@ -138,4 +138,3 @@ export class AudioEnvelope {
     return this.stage !== 'idle';
   }
 }
-

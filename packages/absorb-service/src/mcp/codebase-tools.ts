@@ -1003,7 +1003,6 @@ async function runIncrementalPatch(
   const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
   const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged];
 
-
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
 
   // Rescan changed files

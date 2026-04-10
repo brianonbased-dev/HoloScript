@@ -63,4 +63,3 @@ describe('Hot-Reload', () => {
     // exposed in the public HSPlusRuntime interface.
   });
 });
-

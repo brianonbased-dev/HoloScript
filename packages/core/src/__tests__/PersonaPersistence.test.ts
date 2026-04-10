@@ -47,4 +47,3 @@ describe('Persona Persistence', () => {
     expect(list).toContain('p2');
   });
 });
-

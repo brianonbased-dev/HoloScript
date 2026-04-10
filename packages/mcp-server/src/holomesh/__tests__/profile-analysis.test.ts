@@ -27,17 +27,34 @@ function makeEntry(overrides: Record<string, unknown> = {}) {
 }
 
 const allAgents = [
-  { id: 'agent-test', name: 'TestBot', traits: ['@knowledge-exchange', '@architecture'], reputation: 25 },
-  { id: 'agent-peer', name: 'PeerBot', traits: ['@knowledge-exchange', '@security'], reputation: 50 },
+  {
+    id: 'agent-test',
+    name: 'TestBot',
+    traits: ['@knowledge-exchange', '@architecture'],
+    reputation: 25,
+  },
+  {
+    id: 'agent-peer',
+    name: 'PeerBot',
+    traits: ['@knowledge-exchange', '@security'],
+    reputation: 50,
+  },
   { id: 'agent-fan', name: 'FanBot', traits: ['@knowledge-exchange'], reputation: 10 },
 ];
 
 describe('Profile Analysis — Identity', () => {
   it('returns correct identity fields', () => {
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', ['@knowledge-exchange', '@architecture'],
-      [], allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      ['@knowledge-exchange', '@architecture'],
+      [],
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.identity.id).toBe('agent-test');
@@ -57,9 +74,16 @@ describe('Profile Analysis — Content Mix', () => {
     ];
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.content_mix.wisdom).toBe(2);
@@ -81,9 +105,16 @@ describe('Profile Analysis — Domain Strengths', () => {
     ];
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.strengths[0].domain).toBe('architecture');
@@ -107,9 +138,16 @@ describe('Profile Analysis — Top Entries', () => {
     ];
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.top_entries[0].id).toBe('top-1');
@@ -121,14 +159,19 @@ describe('Profile Analysis — Top Entries', () => {
   });
 
   it('limits to 5 entries', () => {
-    const entries = Array.from({ length: 10 }, (_, i) =>
-      makeEntry({ id: `e-${i}` })
-    );
+    const entries = Array.from({ length: 10 }, (_, i) => makeEntry({ id: `e-${i}` }));
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.top_entries.length).toBeLessThanOrEqual(5);
@@ -142,9 +185,16 @@ describe('Profile Analysis — Social', () => {
     follow('agent-analysis-social', 'agent-fan');
 
     const analysis = analyzeAgentProfile(
-      'agent-analysis-social', 'SocialTest', 10, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      [], allAgents, getVoteCount, getCommentCount
+      'agent-analysis-social',
+      'SocialTest',
+      10,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      [],
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.social.followers).toBe(2);
@@ -156,14 +206,19 @@ describe('Profile Analysis — Social', () => {
 
 describe('Profile Analysis — Gaps', () => {
   it('detects missing content types', () => {
-    const entries = Array.from({ length: 5 }, () =>
-      makeEntry({ type: 'wisdom' })
-    );
+    const entries = Array.from({ length: 5 }, () => makeEntry({ type: 'wisdom' }));
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.gaps.some((g) => g.includes('gotcha'))).toBe(true);
@@ -174,9 +229,16 @@ describe('Profile Analysis — Gaps', () => {
     const entries = [makeEntry({ authorId: 'agent-no-followers' })];
 
     const analysis = analyzeAgentProfile(
-      'agent-no-followers', 'LonelyBot', 0, 'newcomer',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-no-followers',
+      'LonelyBot',
+      0,
+      'newcomer',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.gaps.some((g) => g.includes('No followers'))).toBe(true);
@@ -184,9 +246,16 @@ describe('Profile Analysis — Gaps', () => {
 
   it('detects not following anyone', () => {
     const analysis = analyzeAgentProfile(
-      'agent-isolated', 'IsolatedBot', 0, 'newcomer',
-      '2026-01-01T00:00:00Z', [],
-      [], allAgents, getVoteCount, getCommentCount
+      'agent-isolated',
+      'IsolatedBot',
+      0,
+      'newcomer',
+      '2026-01-01T00:00:00Z',
+      [],
+      [],
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.gaps.some((g) => g.includes('Not following'))).toBe(true);
@@ -206,9 +275,16 @@ describe('Profile Analysis — Recommendations', () => {
     ];
 
     const analysis = analyzeAgentProfile(
-      'agent-test', 'TestBot', 25, 'contributor',
-      '2026-01-01T00:00:00Z', [],
-      entries, allAgents, getVoteCount, getCommentCount
+      'agent-test',
+      'TestBot',
+      25,
+      'contributor',
+      '2026-01-01T00:00:00Z',
+      [],
+      entries,
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.recommendations.some((r) => r.includes('wisdom'))).toBe(true);
@@ -220,9 +296,16 @@ describe('Profile Analysis — Recommendations', () => {
 
   it('returns empty analysis for agent with no entries', () => {
     const analysis = analyzeAgentProfile(
-      'agent-empty', 'EmptyBot', 0, 'newcomer',
-      '2026-01-01T00:00:00Z', [],
-      [], allAgents, getVoteCount, getCommentCount
+      'agent-empty',
+      'EmptyBot',
+      0,
+      'newcomer',
+      '2026-01-01T00:00:00Z',
+      [],
+      [],
+      allAgents,
+      getVoteCount,
+      getCommentCount
     );
 
     expect(analysis.content_mix.total).toBe(0);

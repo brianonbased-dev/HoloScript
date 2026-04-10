@@ -107,7 +107,9 @@ export const sceneReconstructionHandler: TraitHandler<SceneReconstructionConfig>
       state.isScanning = true;
       state.scanProgress = 0;
     } else if (event.type === 'reconstruction:mesh_received') {
-      const payload = event.payload as { faceCount?: number; labels?: Record<string, SemanticLabel> } | undefined;
+      const payload = event.payload as
+        | { faceCount?: number; labels?: Record<string, SemanticLabel> }
+        | undefined;
       state.meshFaceCount = payload?.faceCount ?? state.meshFaceCount;
       state.scanProgress = Math.min(1, state.meshFaceCount / config.max_mesh_faces);
       if (config.semantic_labeling && payload?.labels) {

@@ -96,15 +96,33 @@ class MockGPUDevice {
   queue: {
     submit: (commandBuffers: any[]) => void;
     onSubmittedWorkDone: () => Promise<void>;
-    writeBuffer: (buffer: MockGPUBuffer, bufferOffset: number, data: BufferSource | SharedArrayBuffer, dataOffset?: number, size?: number) => void;
+    writeBuffer: (
+      buffer: MockGPUBuffer,
+      bufferOffset: number,
+      data: BufferSource | SharedArrayBuffer,
+      dataOffset?: number,
+      size?: number
+    ) => void;
   } = {
     submit: vi.fn(),
     onSubmittedWorkDone: vi.fn().mockResolvedValue(undefined),
-    writeBuffer: vi.fn((buffer: MockGPUBuffer, offset: number, data: BufferSource | SharedArrayBuffer, dataOffset?: number, size?: number) => {
-      const arrView = data as ArrayBufferView;
-      const src = new Uint8Array(arrView.buffer ?? data, arrView.byteOffset || 0, arrView.byteLength || (data as ArrayBuffer).byteLength);
-      buffer._writeData(src.buffer, offset);
-    }) as any,
+    writeBuffer: vi.fn(
+      (
+        buffer: MockGPUBuffer,
+        offset: number,
+        data: BufferSource | SharedArrayBuffer,
+        dataOffset?: number,
+        size?: number
+      ) => {
+        const arrView = data as ArrayBufferView;
+        const src = new Uint8Array(
+          arrView.buffer ?? data,
+          arrView.byteOffset || 0,
+          arrView.byteLength || (data as ArrayBuffer).byteLength
+        );
+        buffer._writeData(src.buffer, offset);
+      }
+    ) as any,
   };
   createBuffer(d: GPUBufferDescriptor): MockGPUBuffer {
     return new MockGPUBuffer(d);
@@ -167,4 +185,3 @@ if (!isLive) {
 ensureGPUConstants();
 
 export { MockGPUDevice, MockGPUBuffer };
-

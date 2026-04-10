@@ -866,7 +866,19 @@ export function combineSourceMapsV2(maps: SourceMapV2[], outputFile: string): So
     }
 
     // Re-map with offset
-    for (const [_key, mapping] of (consumer as unknown as { decodedMappings: Map<unknown, { generated: { line: number; column: number }; original?: { line: number; column: number }; sourceIndex?: number; nameIndex?: number }> }).decodedMappings) {
+    for (const [_key, mapping] of (
+      consumer as unknown as {
+        decodedMappings: Map<
+          unknown,
+          {
+            generated: { line: number; column: number };
+            original?: { line: number; column: number };
+            sourceIndex?: number;
+            nameIndex?: number;
+          }
+        >;
+      }
+    ).decodedMappings) {
       if (mapping.original && mapping.sourceIndex !== undefined) {
         generator.addMapping({
           generated: {

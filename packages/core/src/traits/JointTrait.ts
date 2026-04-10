@@ -523,7 +523,13 @@ export type JointSpring = SpringConfig;
 export default JointTrait;
 
 // ── Handler (delegates to JointTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const jointHandler = {
   name: 'joint',

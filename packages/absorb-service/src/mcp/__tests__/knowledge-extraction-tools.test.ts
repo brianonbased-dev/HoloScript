@@ -92,13 +92,33 @@ describe('knowledge-extraction-tools', () => {
       const graph = buildGraph([
         makeFile({
           path: 'src/app.ts',
-          symbols: [{ name: 'App', type: 'class', filePath: 'src/app.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'App',
+              type: 'class',
+              filePath: 'src/app.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
           loc: 150,
         }),
         makeFile({
           path: 'src/utils.ts',
-          symbols: [{ name: 'helper', type: 'function', filePath: 'src/utils.ts', line: 1, language: 'typescript', visibility: 'public' }],
-          imports: [{ fromFile: 'src/utils.ts', toModule: './app', resolvedPath: 'src/app.ts', line: 1 }],
+          symbols: [
+            {
+              name: 'helper',
+              type: 'function',
+              filePath: 'src/utils.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
+          imports: [
+            { fromFile: 'src/utils.ts', toModule: './app', resolvedPath: 'src/app.ts', line: 1 },
+          ],
           loc: 80,
         }),
       ]);

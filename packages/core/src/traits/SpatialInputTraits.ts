@@ -338,7 +338,8 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
         for (const [jointName, pose] of Object.entries(jointData)) {
           if (pose.position && pose.rotation) {
             // Filter by confidence
-            const confidence = (pose as unknown as Record<string, unknown>).confidence as number ?? 1;
+            const confidence =
+              ((pose as unknown as Record<string, unknown>).confidence as number) ?? 1;
             if (confidence < config.confidence_threshold) continue;
 
             const prev = handState.joints.get(jointName as SpatialHandJoint);

@@ -42,7 +42,7 @@ function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const pos = data.vertices || (data as any).positions || new Float32Array(0);
   const norm = data.normals || new Float32Array(0);
   const uv = data.uvs || new Float32Array(0);
-  
+
   geo.setAttribute('position', new THREE.BufferAttribute(pos as Float32Array, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(norm as Float32Array, 3));
   geo.setAttribute('uv', new THREE.BufferAttribute(uv as Float32Array, 2));
@@ -71,7 +71,10 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         );
         break;
       case 'membrane':
-        data = generateMembraneGeometry((props.anchors as unknown as [number, number, number][][]) || [], props.subdivisions || 8);
+        data = generateMembraneGeometry(
+          (props.anchors as unknown as [number, number, number][][]) || [],
+          props.subdivisions || 8
+        );
         break;
       default:
         return new THREE.BoxGeometry(1, 1, 1);

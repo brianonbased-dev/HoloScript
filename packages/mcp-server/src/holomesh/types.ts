@@ -136,9 +136,7 @@ export function resolveReputationTierWithHysteresis(
 ): AgentReputation['tier'] {
   if (!currentTier) return resolveReputationTier(score);
 
-  const currentIdx = REPUTATION_TIERS_HYSTERESIS.findIndex(
-    (t) => t.tier === currentTier
-  );
+  const currentIdx = REPUTATION_TIERS_HYSTERESIS.findIndex((t) => t.tier === currentTier);
 
   // Check promotion (score exceeds a higher tier's promote threshold)
   for (let i = 0; i < REPUTATION_TIERS_HYSTERESIS.length; i++) {
@@ -187,9 +185,7 @@ export const TIER_WEIGHTS = {
 
 export type TierWeight = (typeof TIER_WEIGHTS)[keyof typeof TIER_WEIGHTS];
 
-export function getTierWeight(
-  tier: AgentReputation['tier']
-): TierWeight {
+export function getTierWeight(tier: AgentReputation['tier']): TierWeight {
   return TIER_WEIGHTS[tier] || TIER_WEIGHTS.newcomer;
 }
 

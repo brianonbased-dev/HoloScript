@@ -83,7 +83,12 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
     delete node.__watcherState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: WatcherConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: WatcherConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Watchers are event-driven
   },
 

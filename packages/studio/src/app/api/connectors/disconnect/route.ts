@@ -19,7 +19,9 @@ import { RailwayConnector } from '@holoscript/connector-railway';
 import { logger } from '@/lib/logger';
 
 /** Minimal connector interface for disconnect operations */
-interface ConnectorInstance { disconnect(): Promise<void> }
+interface ConnectorInstance {
+  disconnect(): Promise<void>;
+}
 type ConnectorClass = new () => ConnectorInstance;
 
 type ServiceId = 'github' | 'railway' | 'vscode' | 'appstore' | 'upstash';
@@ -34,10 +36,7 @@ export async function POST(req: NextRequest) {
     const { serviceId } = body;
 
     if (!serviceId) {
-      return NextResponse.json(
-        { success: false, error: 'Missing serviceId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Missing serviceId' }, { status: 400 });
     }
 
     switch (serviceId) {
@@ -64,7 +63,9 @@ export async function POST(req: NextRequest) {
 
       case 'upstash': {
         // @ts-ignore
-        const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
+        const { UpstashConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-upstash'
+        );
         const upstash = new (UpstashConnector as unknown as ConnectorClass)();
         await upstash.disconnect();
 
@@ -80,7 +81,9 @@ export async function POST(req: NextRequest) {
 
       case 'appstore': {
         // @ts-ignore
-        const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
+        const { AppStoreConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-appstore'
+        );
         const appstore = new (AppStoreConnector as unknown as ConnectorClass)();
         await appstore.disconnect();
 
@@ -95,7 +98,9 @@ export async function POST(req: NextRequest) {
 
       case 'vscode': {
         // @ts-ignore
-        const { VSCodeConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-vscode');
+        const { VSCodeConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-vscode'
+        );
         const vscode = new (VSCodeConnector as unknown as ConnectorClass)();
         await vscode.disconnect();
 

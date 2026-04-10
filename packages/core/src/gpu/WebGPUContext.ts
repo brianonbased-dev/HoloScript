@@ -237,7 +237,6 @@ export class WebGPUContext {
     this.limits = null;
     this.features.clear();
     this.initialized = false;
-
   }
 
   /**
@@ -280,7 +279,9 @@ export class WebGPUContext {
       return;
     }
 
-    const info = await (this.adapter as unknown as { requestAdapterInfo?: () => Promise<Record<string, unknown>> }).requestAdapterInfo?.();
+    const info = await (
+      this.adapter as unknown as { requestAdapterInfo?: () => Promise<Record<string, unknown>> }
+    ).requestAdapterInfo?.();
     if (info) {
       void info;
     }

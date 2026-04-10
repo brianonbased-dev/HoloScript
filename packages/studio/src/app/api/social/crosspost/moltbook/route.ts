@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 
-const MOLTBOOK_API_BASE =
-  process.env.MOLTBOOK_API_URL ||
-  process.env.MOLTBOOK_API_BASE_URL ||
-  'https://api.moltbook.com/v1';
+import { ENDPOINTS, getMoltbookKey } from '@holoscript/config';
 
-const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY || '';
+const MOLTBOOK_API_BASE = ENDPOINTS.MOLTBOOK_API;
+const MOLTBOOK_API_KEY = getMoltbookKey() || '';
 
 type CrosspostInput = {
   title?: string;
@@ -31,9 +29,8 @@ function buildDiscoveryPost(input: CrosspostInput): {
   externalLink?: string;
 } {
   const community = input.community || 'holoscript';
-  const tags = input.tags && input.tags.length > 0
-    ? input.tags
-    : ['agent-discovery', 'a2a', 'holoscript'];
+  const tags =
+    input.tags && input.tags.length > 0 ? input.tags : ['agent-discovery', 'a2a', 'holoscript'];
 
   if (input.title && input.content) {
     return {
@@ -82,8 +79,7 @@ export async function GET() {
   return NextResponse.json({
     endpoint: '/api/social/crosspost/moltbook',
     methods: ['POST'],
-    description:
-      'Crosspost an agent discovery update or custom content from Studio to Moltbook.',
+    description: 'Crosspost an agent discovery update or custom content from Studio to Moltbook.',
     defaultCommunity: 'holoscript',
     defaults: {
       title: '[A2A] HoloScript Studio Agent discovery bridge',

@@ -347,7 +347,11 @@ export class ReferenceGraph {
 
     // Logic block references
     if (node.type === 'logic' && node.body) {
-      this.scanLogicBlockForReferences(node.body as Record<string, unknown>, filePath, node.loc?.start.line || 1);
+      this.scanLogicBlockForReferences(
+        node.body as Record<string, unknown>,
+        filePath,
+        node.loc?.start.line || 1
+      );
     }
 
     // Directives may reference properties/functions

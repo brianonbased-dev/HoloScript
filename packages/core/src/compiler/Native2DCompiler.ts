@@ -8,7 +8,11 @@
  */
 
 import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
-import type { HoloComposition, HoloObjectDecl, HoloUIElement } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloUIElement,
+} from '../parser/HoloCompositionTypes';
 
 export interface Native2DCompilerOptions extends BaseCompilerOptions {
   /** Output format: raw html/css string or full React .tsx component */
@@ -121,7 +125,9 @@ export class Native2DCompiler extends CompilerBase {
     for (const [key, value] of this._stateFields) {
       const capitalKey = key.charAt(0).toUpperCase() + key.slice(1);
       const initValue = JSON.stringify(value);
-      stateHooks.push(`  const [${key}, set${capitalKey}] = useState(${initValue === undefined ? 'null' : initValue});`);
+      stateHooks.push(
+        `  const [${key}, set${capitalKey}] = useState(${initValue === undefined ? 'null' : initValue});`
+      );
     }
 
     // Build fetch effects
@@ -161,7 +167,8 @@ export default ${safeName}Component;
       const slotName = traits.slot.name || (obj as Record<string, unknown>).name || 'Slot';
       const configuredSlot = this._options.slots?.[String(slotName)];
       const component = traits.slot.component || configuredSlot?.component || slotName;
-      const importPath = traits.slot.import || configuredSlot?.importPath || `@/components/${component}`;
+      const importPath =
+        traits.slot.import || configuredSlot?.importPath || `@/components/${component}`;
       this._slotImports.set(slotName, { component, importPath });
       const propsStr = traits.slot.props ? ` {...${JSON.stringify(traits.slot.props)}}` : '';
       return `<div data-holo-slot="${slotName}">
@@ -180,7 +187,11 @@ export default ${safeName}Component;
       }
     }
 
-    let tag = traits.theme?.tag || traits.panel?.tag || (typeof obj.type === 'string' ? obj.type.toLowerCase() : undefined) || 'div';
+    let tag =
+      traits.theme?.tag ||
+      traits.panel?.tag ||
+      (typeof obj.type === 'string' ? obj.type.toLowerCase() : undefined) ||
+      'div';
 
     // Default mapping for custom semantic keywords used in HoloScript (nav, section, container)
     if (
@@ -324,7 +335,11 @@ export default ${safeName}Component;
       const bgProp = composition.environment.properties.find((p) => p.key === 'backgroundColor');
       if (
         themeProp?.value === 'dark' ||
-        (composition as unknown as { traits?: Array<{ name: string; config?: { dark?: boolean } }> }).traits?.some((t) => t.name === 'theme' && t.config?.dark)
+        (
+          composition as unknown as {
+            traits?: Array<{ name: string; config?: { dark?: boolean } }>;
+          }
+        ).traits?.some((t) => t.name === 'theme' && t.config?.dark)
       ) {
         bgColor = (bgProp?.value as string) || '#050510';
         color = '#ffffff';

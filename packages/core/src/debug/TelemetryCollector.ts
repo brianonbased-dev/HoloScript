@@ -118,7 +118,11 @@ export class TelemetryCollector extends EventEmitter {
   /**
    * Record an error event
    */
-  recordError(agentId: string, error: Error, context?: Record<string, unknown>): TelemetryEvent | null {
+  recordError(
+    agentId: string,
+    error: Error,
+    context?: Record<string, unknown>
+  ): TelemetryEvent | null {
     return this.record({
       type: 'error',
       severity: 'error',

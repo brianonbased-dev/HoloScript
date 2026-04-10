@@ -491,4 +491,3 @@ export class PostProcessingManager {
     this.passes.clear();
   }
 }
-

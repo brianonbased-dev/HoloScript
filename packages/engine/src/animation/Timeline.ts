@@ -214,4 +214,3 @@ export class Timeline {
     return this.totalDuration > 0 ? Math.max(0, Math.min(1, this.elapsed / this.totalDuration)) : 0;
   }
 }
-

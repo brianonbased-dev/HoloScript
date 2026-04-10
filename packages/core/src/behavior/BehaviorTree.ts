@@ -225,7 +225,6 @@ export class BehaviorTree {
     return this.context;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches BTContext index signature
   setContext(key: string, value: unknown): void {
     this.context[key] = value;
   }

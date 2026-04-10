@@ -2444,7 +2444,12 @@ export {
   normsByCategory,
   criticalMassForChange,
 } from './traits/CultureTraits';
-export type { CulturalNorm, NormCategory, NormEnforcement, NormScope } from './traits/CultureTraits';
+export type {
+  CulturalNorm,
+  NormCategory,
+  NormEnforcement,
+  NormScope,
+} from './traits/CultureTraits';
 
 export { CulturalMemory } from './agents/CulturalMemory';
 export type { EpisodicMemory, StigmergicTrace, SemanticSOP } from './agents/CulturalMemory';
@@ -2819,10 +2824,7 @@ export type {
 } from './parser/HSKnowledgeParser';
 
 // ── Pipeline Parser (.hs data pipelines) ────────────────────────────────────
-export {
-  parsePipeline,
-  isPipelineSource,
-} from './parser/PipelineParser';
+export { parsePipeline, isPipelineSource } from './parser/PipelineParser';
 
 export type {
   Pipeline,
@@ -2854,15 +2856,9 @@ export type {
 } from './compiler/PipelineNodeCompiler';
 
 // ── NextJS Compiler (.holo → Next.js App Router pages) ─────────────────────
-export {
-  compileToNextJS,
-  compileAllToNextJS,
-} from './compiler/NextJSCompiler';
+export { compileToNextJS, compileAllToNextJS } from './compiler/NextJSCompiler';
 
-export type {
-  NextJSCompilerOptions,
-  NextJSCompileResult,
-} from './compiler/NextJSCompiler';
+export type { NextJSCompilerOptions, NextJSCompileResult } from './compiler/NextJSCompiler';
 
 // =============================================================================
 // Trait Runtime Integration (migrated from Hololand platform-core)
@@ -3004,7 +3000,11 @@ export { AgentOutputSchemaValidator } from './identity/AgentOutputSchemaValidato
 export { COCOExporter } from './compiler/COCOExporter';
 export { RemotionBridge } from './compiler/RemotionBridge';
 export { CompilerBase, type BaseCompilerOptions } from './compiler/CompilerBase';
-export { HolobCompiler, type HolobCompilerOptions, type HolobCompileResult } from './compiler/HolobCompiler';
+export {
+  HolobCompiler,
+  type HolobCompilerOptions,
+  type HolobCompileResult,
+} from './compiler/HolobCompiler';
 
 // ── Trait System Base Types ─────────────────────────────────────────────────
 export type { TraitHandler } from './traits/TraitTypes';
@@ -3212,21 +3212,26 @@ export {
 
 export { WebSocketSignaler } from './network/WebSocketSignaler';
 
-export {
-  GaussianSplatExtractor,
-  type ExtractorOptions,
-} from './gpu/GaussianSplatExtractor';
+export { GaussianSplatExtractor, type ExtractorOptions } from './gpu/GaussianSplatExtractor';
 
 // ModalitySelector already exported explicitly above (~line 2605)
 
 // ============================================================================
 // SNN Sparsity Monitoring (Self-Improvement)
 // ============================================================================
-export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
+export {
+  SparsityMonitor,
+  createSparsityMonitor,
+  type LayerActivityInput,
+} from './training/SparsityMonitor';
 export type * from './training/SparsityMonitorTypes';
 
-
 // Events
-export { EventBus, getSharedEventBus, setSharedEventBus, type EventCallback } from './events/EventBus';
+export {
+  EventBus,
+  getSharedEventBus,
+  setSharedEventBus,
+  type EventCallback,
+} from './events/EventBus';
 // Analysis
 export * from './analysis';

@@ -17,7 +17,7 @@ export interface TelemetryCollector {
     type: string,
     agentId: string,
     data?: Record<string, unknown>,
-    severity?: string,
+    severity?: string
   ): unknown;
   recordError(agentId: string, error: Error, context?: Record<string, unknown>): unknown;
   startSpan(name: string, options?: Record<string, unknown>): unknown;

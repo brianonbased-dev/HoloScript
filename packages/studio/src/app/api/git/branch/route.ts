@@ -19,8 +19,14 @@ import * as path from 'path';
 
 const execFileAsync = promisify(execFile);
 
-function validatePath(workspacePath: string): { ok: true; resolved: string } | { ok: false; error: string } {
-  const allowedRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', '.holoscript', 'workspaces');
+function validatePath(
+  workspacePath: string
+): { ok: true; resolved: string } | { ok: false; error: string } {
+  const allowedRoot = path.join(
+    process.env.HOME ?? process.env.USERPROFILE ?? '',
+    '.holoscript',
+    'workspaces'
+  );
   const resolved = path.resolve(workspacePath);
   if (!resolved.startsWith(allowedRoot)) {
     return { ok: false, error: 'workspacePath must be inside ~/.holoscript/workspaces' };
@@ -53,7 +59,10 @@ export async function POST(req: NextRequest) {
   const { workspacePath, branch, base, checkout = true } = body;
   const validated = validatePath(workspacePath);
   if (!validated.ok) {
-    return NextResponse.json({ error: validated.error }, { status: validated.error.includes('allowed') ? 403 : 400 });
+    return NextResponse.json(
+      { error: validated.error },
+      { status: validated.error.includes('allowed') ? 403 : 400 }
+    );
   }
   const { resolved } = validated;
 
@@ -65,7 +74,9 @@ export async function POST(req: NextRequest) {
     await execFileAsync('git', args, { cwd: resolved });
 
     const { stdout: currentBranch } = await execFileAsync(
-      'git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: resolved }
+      'git',
+      ['rev-parse', '--abbrev-ref', 'HEAD'],
+      { cwd: resolved }
     );
 
     return NextResponse.json({ ok: true, branch, current: currentBranch.trim() });
@@ -97,10 +108,12 @@ export async function GET(req: NextRequest) {
   const { resolved } = validated;
 
   try {
-    const { stdout } = await execFileAsync('git', ['branch', '-a', '--format=%(refname:short)'], { cwd: resolved });
-    const { stdout: current } = await execFileAsync(
-      'git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: resolved }
-    );
+    const { stdout } = await execFileAsync('git', ['branch', '-a', '--format=%(refname:short)'], {
+      cwd: resolved,
+    });
+    const { stdout: current } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: resolved,
+    });
     const branches = stdout.trim().split('\n').filter(Boolean);
     return NextResponse.json({ branches, current: current.trim() });
   } catch (err) {

@@ -4,12 +4,7 @@
  * Tests the done-log audit logic: violations, stats, and Team.audit() integration.
  */
 import { describe, it, expect, vi } from 'vitest';
-import {
-  DoneLogAuditor,
-  auditDoneLog,
-  isLikelyReportEntry,
-  isCommitProof,
-} from '../board/audit';
+import { DoneLogAuditor, auditDoneLog, isLikelyReportEntry, isCommitProof } from '../board/audit';
 import type { DoneLogEntry } from '../board/board-types';
 import { Team } from '../team';
 
@@ -85,10 +80,7 @@ describe('auditDoneLog', () => {
   });
 
   it('counts verified and unverified', () => {
-    const entries = [
-      makeEntry({ commitHash: 'abc1234' }),
-      makeEntry({ commitHash: undefined }),
-    ];
+    const entries = [makeEntry({ commitHash: 'abc1234' }), makeEntry({ commitHash: undefined })];
     const result = auditDoneLog(entries);
     expect(result.verified).toBe(1);
     expect(result.unverified).toBe(1);
@@ -135,21 +127,21 @@ describe('DoneLogAuditor.audit()', () => {
     const entries = [makeEntry({ completedBy: '' })];
     const auditor = new DoneLogAuditor(entries);
     const violations = auditor.audit();
-    expect(violations.some(v => v.rule === 'missing-completedBy')).toBe(true);
+    expect(violations.some((v) => v.rule === 'missing-completedBy')).toBe(true);
   });
 
   it('detects missing summary', () => {
     const entries = [makeEntry({ summary: '' })];
     const auditor = new DoneLogAuditor(entries);
     const violations = auditor.audit();
-    expect(violations.some(v => v.rule === 'missing-summary')).toBe(true);
+    expect(violations.some((v) => v.rule === 'missing-summary')).toBe(true);
   });
 
   it('detects missing commit proof', () => {
     const entries = [makeEntry({ commitHash: undefined })];
     const auditor = new DoneLogAuditor(entries);
     const violations = auditor.audit();
-    expect(violations.some(v => v.rule === 'missing-commit')).toBe(true);
+    expect(violations.some((v) => v.rule === 'missing-commit')).toBe(true);
   });
 
   it('detects duplicate taskId entries', () => {
@@ -159,7 +151,7 @@ describe('DoneLogAuditor.audit()', () => {
     ];
     const auditor = new DoneLogAuditor(entries);
     const violations = auditor.audit();
-    expect(violations.some(v => v.rule === 'duplicate-entry')).toBe(true);
+    expect(violations.some((v) => v.rule === 'duplicate-entry')).toBe(true);
   });
 
   it('detects non-monotonic timestamps', () => {
@@ -169,7 +161,7 @@ describe('DoneLogAuditor.audit()', () => {
     ];
     const auditor = new DoneLogAuditor(entries);
     const violations = auditor.audit();
-    expect(violations.some(v => v.rule === 'non-monotonic-timestamp')).toBe(true);
+    expect(violations.some((v) => v.rule === 'non-monotonic-timestamp')).toBe(true);
   });
 
   it('skips report entries from field checks', () => {
@@ -204,9 +196,9 @@ describe('DoneLogAuditor.stats()', () => {
     const auditor = new DoneLogAuditor(entries);
     const stats = auditor.stats();
     expect(stats.byAgent).toHaveLength(2);
-    const alice = stats.byAgent.find(a => a.agent === 'alice');
+    const alice = stats.byAgent.find((a) => a.agent === 'alice');
     expect(alice?.completed).toBe(2);
-    const bob = stats.byAgent.find(a => a.agent === 'bob');
+    const bob = stats.byAgent.find((a) => a.agent === 'bob');
     expect(bob?.completed).toBe(1);
   });
 
@@ -217,18 +209,16 @@ describe('DoneLogAuditor.stats()', () => {
     ];
     const auditor = new DoneLogAuditor(entries);
     const stats = auditor.stats();
-    const alice = stats.byAgent.find(a => a.agent === 'alice');
+    const alice = stats.byAgent.find((a) => a.agent === 'alice');
     expect(alice?.verified).toBe(1);
     expect(alice?.unverified).toBe(1);
   });
 
   it('detects synthesizer source from taskId', () => {
-    const entries = [
-      makeEntry({ taskId: 'task_synth_001' }),
-    ];
+    const entries = [makeEntry({ taskId: 'task_synth_001' })];
     const auditor = new DoneLogAuditor(entries);
     const stats = auditor.stats();
-    expect(stats.bySource.some(s => s.source === 'synthesizer')).toBe(true);
+    expect(stats.bySource.some((s) => s.source === 'synthesizer')).toBe(true);
   });
 
   it('groups completion over time by date', () => {
@@ -275,7 +265,7 @@ describe('DoneLogAuditor.fullAudit()', () => {
     expect(result.audit.unverified).toBe(1);
 
     // violations
-    expect(result.violations.some(v => v.rule === 'missing-commit')).toBe(true);
+    expect(result.violations.some((v) => v.rule === 'missing-commit')).toBe(true);
 
     // stats
     expect(result.stats.total).toBe(2);
@@ -306,29 +296,31 @@ describe('Team.audit()', () => {
 
     // Mock fetch for the remote board call
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        board: {
-          open: [],
-          claimed: [],
-          done_log: [
-            {
-              taskId: 't1',
-              title: 'Remote task',
-              completedBy: 'remote-agent',
-              commitHash: 'abcdef1',
-              timestamp: '2026-04-05T10:00:00Z',
-              summary: 'Done remotely',
-            },
-            {
-              taskId: 't2',
-              title: 'Another remote task',
-              completedBy: 'remote-agent',
-              timestamp: '2026-04-05T11:00:00Z',
-              summary: 'Also done',
-            },
-          ],
-        },
-      })),
+      new Response(
+        JSON.stringify({
+          board: {
+            open: [],
+            claimed: [],
+            done_log: [
+              {
+                taskId: 't1',
+                title: 'Remote task',
+                completedBy: 'remote-agent',
+                commitHash: 'abcdef1',
+                timestamp: '2026-04-05T10:00:00Z',
+                summary: 'Done remotely',
+              },
+              {
+                taskId: 't2',
+                title: 'Another remote task',
+                completedBy: 'remote-agent',
+                timestamp: '2026-04-05T11:00:00Z',
+                summary: 'Also done',
+              },
+            ],
+          },
+        })
+      )
     );
 
     const result = await team.audit();

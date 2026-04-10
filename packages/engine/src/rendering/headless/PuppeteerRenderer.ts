@@ -939,4 +939,3 @@ export async function prerenderHTML(
     await renderer.close();
   }
 }
-

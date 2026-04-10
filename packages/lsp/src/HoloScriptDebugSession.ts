@@ -31,7 +31,11 @@ import {
   Handles,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { HoloScriptDebugger, type StackFrame as HoloStackFrame, type DebugEvent } from '@holoscript/core';
+import {
+  HoloScriptDebugger,
+  type StackFrame as HoloStackFrame,
+  type DebugEvent,
+} from '@holoscript/core';
 import {
   AttachConnection,
   type AttachConfig,
@@ -446,9 +450,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       );
     });
 
-    const sessionLabel = config.sessionId
-      ? `session ${config.sessionId} at`
-      : '';
+    const sessionLabel = config.sessionId ? `session ${config.sessionId} at` : '';
     this.sendEvent(
       new OutputEvent(
         `Attached to HoloScript runtime ${sessionLabel} ${config.host}:${config.port}\n`,
@@ -461,17 +463,10 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
       try {
         const synced = await this._attachConnection.syncBreakpoints(this._attachBreakpoints);
         this._attachBreakpoints = synced;
-        this.sendEvent(
-          new OutputEvent(
-            `Reattached ${synced.length} breakpoint(s)\n`,
-            'console'
-          )
-        );
+        this.sendEvent(new OutputEvent(`Reattached ${synced.length} breakpoint(s)\n`, 'console'));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        this.sendEvent(
-          new OutputEvent(`Warning: Failed to sync breakpoints: ${msg}\n`, 'stderr')
-        );
+        this.sendEvent(new OutputEvent(`Warning: Failed to sync breakpoints: ${msg}\n`, 'stderr'));
       }
     }
 
@@ -482,10 +477,7 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
           this._attachWatchExpressions
         );
         this.sendEvent(
-          new OutputEvent(
-            `Reattached ${watchResults.length} watch expression(s)\n`,
-            'console'
-          )
+          new OutputEvent(`Reattached ${watchResults.length} watch expression(s)\n`, 'console')
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -558,7 +550,10 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
           this._attachConnection.disconnect();
         }
         this.sendEvent(
-          new OutputEvent('Detached from remote debug session (process continues running).\n', 'console')
+          new OutputEvent(
+            'Detached from remote debug session (process continues running).\n',
+            'console'
+          )
         );
       } else {
         this._attachConnection.disconnect();
@@ -1352,7 +1347,11 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     const v = new Variable(name, displayValue, varRef);
 
     // DAP Variable supports type/indexedVariables/namedVariables as optional fields
-    const ext = v as Variable & { type?: string; indexedVariables?: number; namedVariables?: number };
+    const ext = v as Variable & {
+      type?: string;
+      indexedVariables?: number;
+      namedVariables?: number;
+    };
 
     // Add type information
     if (value === null) {
@@ -1396,7 +1395,9 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     if (typeof value === 'object') {
       const keys = Object.keys(value as object);
       if (keys.length <= 3) {
-        const entries = keys.map((k) => `${k}: ${this._formatValue((value as Record<string, unknown>)[k])}`);
+        const entries = keys.map(
+          (k) => `${k}: ${this._formatValue((value as Record<string, unknown>)[k])}`
+        );
         return `{${entries.join(', ')}}`;
       }
       return `Object {${keys.slice(0, 3).join(', ')}, ...}`;

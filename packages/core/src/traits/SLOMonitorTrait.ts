@@ -40,7 +40,12 @@ export const sloMonitorHandler: TraitHandler<SLOMonitorConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: SLOMonitorConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SLOMonitorConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__sloState as { slos: Map<string, SLOEntry> } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

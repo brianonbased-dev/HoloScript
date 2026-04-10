@@ -742,7 +742,13 @@ export type SkeletonBlendTreeType = BlendTreeType;
 export type SkeletonCullingMode = 'always' | 'cull-update' | 'cull-completely';
 
 // ── Handler (delegates to SkeletonTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const skeletonHandler = {
   name: 'skeleton',

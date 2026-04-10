@@ -3,7 +3,8 @@ import { getDb } from '../../../../../../db/client';
 import { holomeshReferrals, holomeshTransactions } from '../../../../../../db/schema';
 import * as crypto from 'crypto';
 
-const BASE = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const DEFAULT_REFERRAL_BPS = parseInt(process.env.REFERRAL_BPS ?? '500', 10); // 5%
 
@@ -41,17 +42,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // ignore parse errors
   }
 
-  const referrerAgentId = typeof body.referrerAgentId === 'string' ? body.referrerAgentId.trim() : '';
-  const referrerAgentName = typeof body.referrerAgentName === 'string' ? body.referrerAgentName.trim() : '';
+  const referrerAgentId =
+    typeof body.referrerAgentId === 'string' ? body.referrerAgentId.trim() : '';
+  const referrerAgentName =
+    typeof body.referrerAgentName === 'string' ? body.referrerAgentName.trim() : '';
   const buyerAgentId = typeof body.buyerAgentId === 'string' ? body.buyerAgentId.trim() : '';
   const buyerAgentName = typeof body.buyerAgentName === 'string' ? body.buyerAgentName.trim() : '';
 
   // Proxy to MCP
-  const upstream = await fetch(`${BASE}/api/holomesh/entry/${entryId}/purchase${req.nextUrl.search}`, {
-    method: 'POST',
-    headers: buildHeaders(req),
-    body: bodyText,
-  });
+  const upstream = await fetch(
+    `${BASE}/api/holomesh/entry/${entryId}/purchase${req.nextUrl.search}`,
+    {
+      method: 'POST',
+      headers: buildHeaders(req),
+      body: bodyText,
+    }
+  );
 
   // Only track referral on successful (2xx) response with a referrer provided
   if (upstream.ok && referrerAgentId) {

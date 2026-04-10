@@ -909,7 +909,10 @@ const scalableHandler: TraitHandler<ScalableTrait> = {
 
       // Calculate initial distance between hands
       const scaleEvRec = event as unknown as Record<string, unknown>;
-      const scaleHands = scaleEvRec.hands as { left: { position: Vector3 }; right: { position: Vector3 } };
+      const scaleHands = scaleEvRec.hands as {
+        left: { position: Vector3 };
+        right: { position: Vector3 };
+      };
       const leftPos = vec3ToTuple(scaleHands.left.position);
       const rightPos = vec3ToTuple(scaleHands.right.position);
       state.initialDistance = Math.sqrt(
@@ -1024,7 +1027,9 @@ const rotatableHandler: TraitHandler<RotatableTrait> = {
 
     if (event.type === 'rotate_start') {
       state.isRotating = true;
-      state.initialHandRotation = vec3ToTuple(((event as unknown as Record<string, unknown>).hand as VRHand).rotation);
+      state.initialHandRotation = vec3ToTuple(
+        ((event as unknown as Record<string, unknown>).hand as VRHand).rotation
+      );
       state.initialObjectRotation = vec3ToTuple(
         (node.properties?.rotation as Vector3) || [0, 0, 0]
       );
@@ -1216,7 +1221,10 @@ const snappableHandler: TraitHandler<SnappableTrait> = {
       context.emit('snap', { node, point: closestPoint });
 
       // Haptic feedback
-      context.haptics.pulse(((event as unknown as Record<string, unknown>).hand as { id: 'left' | 'right' }).id, 0.3);
+      context.haptics.pulse(
+        ((event as unknown as Record<string, unknown>).hand as { id: 'left' | 'right' }).id,
+        0.3
+      );
     }
   },
 };
@@ -1240,7 +1248,7 @@ const breakableHandler: TraitHandler<BreakableTrait> = {
   onEvent(node, config, context, event) {
     if (event.type !== 'collision') return;
 
-    const collision = ((event as unknown as Record<string, unknown>).data) as CollisionData;
+    const collision = (event as unknown as Record<string, unknown>).data as CollisionData;
     const impactVelocity = Math.sqrt(
       Math.pow(collision.relativeVelocity[0], 2) +
         Math.pow(collision.relativeVelocity[1], 2) +

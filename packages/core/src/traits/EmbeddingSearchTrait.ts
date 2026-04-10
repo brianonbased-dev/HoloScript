@@ -99,7 +99,9 @@ export const embeddingSearchHandler: TraitHandler<EmbeddingSearchConfig> = {
       state.isSearching = true;
       context.emit('search:started', { query, model: config.embedding_model });
     } else if (event.type === 'search:results') {
-      const payload = event.payload as { results?: SearchResult[]; queryTimeMs?: number } | undefined;
+      const payload = event.payload as
+        | { results?: SearchResult[]; queryTimeMs?: number }
+        | undefined;
       state.isSearching = false;
       state.lastResults = (payload?.results ?? [])
         .filter((r: SearchResult) => r.score >= config.min_score)

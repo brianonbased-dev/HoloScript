@@ -86,4 +86,3 @@ export class AssetPipeline {
     return this.cache.size;
   }
 }
-

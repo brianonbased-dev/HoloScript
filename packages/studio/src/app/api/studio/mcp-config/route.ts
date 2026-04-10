@@ -12,7 +12,10 @@ const ABSORB_URL = process.env.ABSORB_URL || 'https://absorb.holoscript.net';
 export async function GET(request: NextRequest) {
   const format = request.nextUrl.searchParams.get('format') || 'claude';
 
-  const mcpServers: Record<string, { command?: string; url?: string; args?: string[]; env?: Record<string, string> }> = {
+  const mcpServers: Record<
+    string,
+    { command?: string; url?: string; args?: string[]; env?: Record<string, string> }
+  > = {
     'holoscript-studio': {
       url: `${STUDIO_URL}/api/mcp/call`,
     },
@@ -27,7 +30,8 @@ export async function GET(request: NextRequest) {
   if (format === 'claude') {
     return NextResponse.json({
       format: 'claude',
-      instructions: 'Add this to your Claude Code MCP settings (~/.claude/settings.json under mcpServers)',
+      instructions:
+        'Add this to your Claude Code MCP settings (~/.claude/settings.json under mcpServers)',
       mcpServers,
     });
   }

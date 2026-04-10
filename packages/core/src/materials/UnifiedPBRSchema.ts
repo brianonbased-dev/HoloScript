@@ -1171,7 +1171,10 @@ export function applyPreset(preset: PBRPreset, id?: string): PBRMaterialProperti
     if (value !== undefined) {
       if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
         // Deep merge for object properties (subsurface, transmission, etc.)
-        (result as unknown as Record<string, unknown>)[key] = { ...(result as unknown as Record<string, unknown>)[key] as Record<string, unknown>, ...value };
+        (result as unknown as Record<string, unknown>)[key] = {
+          ...((result as unknown as Record<string, unknown>)[key] as Record<string, unknown>),
+          ...value,
+        };
       } else {
         (result as unknown as Record<string, unknown>)[key] = value;
       }

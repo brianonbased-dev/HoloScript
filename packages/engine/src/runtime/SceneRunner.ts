@@ -116,7 +116,10 @@ export class SceneRunner {
         if (!traitName) continue;
 
         if (this.traitBinder.has(traitName)) {
-          const config = this.traitBinder.mergeConfig(traitName, (d.args || {}) as Record<string, unknown>);
+          const config = this.traitBinder.mergeConfig(
+            traitName,
+            (d.args || {}) as Record<string, unknown>
+          );
           this.world.addComponent(entity, `trait:${traitName}`, config);
           boundTraits.push(traitName);
 
@@ -216,9 +219,12 @@ export class SceneRunner {
   ): { x: number; y: number; z: number } {
     if (!props || !props[key]) return fallback;
     const v = props[key];
-    if (Array.isArray(v)) return { x: Number(v[0]) || 0, y: Number(v[1]) || 0, z: Number(v[2]) || 0 };
-    if (typeof v === 'object' && v !== null) { const o = v as Record<string, unknown>; return { x: Number(o.x) || 0, y: Number(o.y) || 0, z: Number(o.z) || 0 }; }
+    if (Array.isArray(v))
+      return { x: Number(v[0]) || 0, y: Number(v[1]) || 0, z: Number(v[2]) || 0 };
+    if (typeof v === 'object' && v !== null) {
+      const o = v as Record<string, unknown>;
+      return { x: Number(o.x) || 0, y: Number(o.y) || 0, z: Number(o.z) || 0 };
+    }
     return fallback;
   }
 }
-

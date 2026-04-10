@@ -75,7 +75,10 @@ export function CheckoutModal({ trait, isOpen, onClose, onSuccess }: CheckoutMod
       }, 2000);
     } catch (err: unknown) {
       console.error('Checkout failed:', err);
-      setErrorMessage((err instanceof Error ? err.message : String(err)) || 'Signature rejected or transaction failed');
+      setErrorMessage(
+        (err instanceof Error ? err.message : String(err)) ||
+          'Signature rejected or transaction failed'
+      );
       setStatus('error');
     }
   };

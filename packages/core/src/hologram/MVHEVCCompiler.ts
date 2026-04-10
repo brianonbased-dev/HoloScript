@@ -7,7 +7,8 @@
  * Re-exports all engine types for downstream consumers.
  */
 import { CompilerBase } from '../compiler/CompilerBase';
-import { MVHEVCCompiler as EngineMVHEVCCompiler // @ts-ignore
+import {
+  MVHEVCCompiler as EngineMVHEVCCompiler, // @ts-ignore
 } from '../../../engine/src/hologram/MVHEVCCompiler';
 
 import type {
@@ -15,7 +16,7 @@ import type {
   MVHEVCStereoView,
   MVHEVCCompilationResult,
   HoloComposition,
-// @ts-ignore
+  // @ts-ignore
 } from '../../../engine/src/hologram/MVHEVCCompiler';
 
 export type { MVHEVCConfig, MVHEVCStereoView, MVHEVCCompilationResult, HoloComposition };

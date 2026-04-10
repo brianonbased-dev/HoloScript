@@ -69,7 +69,9 @@ export function encodeRealTimeMessage(message: RealTimeMessage): Buffer {
       typeCode = MessageTypeCode.PERFORMANCE_METRIC;
       break;
     default:
-      throw new Error(`Unknown message type: ${(message as unknown as Record<string, unknown>).type}`);
+      throw new Error(
+        `Unknown message type: ${(message as unknown as Record<string, unknown>).type}`
+      );
   }
 
   // Encode based on type
@@ -218,27 +220,40 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
 
   // Decode based on type
   if (typeCode === MessageTypeCode.POSITION_SYNC) {
-    const px = buffer.readFloatBE(offset); offset += 4;
-    const py = buffer.readFloatBE(offset); offset += 4;
-    const pz = buffer.readFloatBE(offset); offset += 4;
+    const px = buffer.readFloatBE(offset);
+    offset += 4;
+    const py = buffer.readFloatBE(offset);
+    offset += 4;
+    const pz = buffer.readFloatBE(offset);
+    offset += 4;
     const position: [number, number, number] = [px, py, pz];
 
-    const rx = buffer.readFloatBE(offset); offset += 4;
-    const ry = buffer.readFloatBE(offset); offset += 4;
-    const rz = buffer.readFloatBE(offset); offset += 4;
-    const rw = buffer.readFloatBE(offset); offset += 4;
+    const rx = buffer.readFloatBE(offset);
+    offset += 4;
+    const ry = buffer.readFloatBE(offset);
+    offset += 4;
+    const rz = buffer.readFloatBE(offset);
+    offset += 4;
+    const rw = buffer.readFloatBE(offset);
+    offset += 4;
     const rotation: [number, number, number, number] = [rx, ry, rz, rw];
 
-    const sx = buffer.readFloatBE(offset); offset += 4;
-    const sy = buffer.readFloatBE(offset); offset += 4;
-    const sz = buffer.readFloatBE(offset); offset += 4;
+    const sx = buffer.readFloatBE(offset);
+    offset += 4;
+    const sy = buffer.readFloatBE(offset);
+    offset += 4;
+    const sz = buffer.readFloatBE(offset);
+    offset += 4;
     const scale: [number, number, number] = [sx, sy, sz];
 
     let velocity: [number, number, number] | undefined;
     if (offset < buffer.length) {
-      const vx = buffer.readFloatBE(offset); offset += 4;
-      const vy = buffer.readFloatBE(offset); offset += 4;
-      const vz = buffer.readFloatBE(offset); offset += 4;
+      const vx = buffer.readFloatBE(offset);
+      offset += 4;
+      const vy = buffer.readFloatBE(offset);
+      offset += 4;
+      const vz = buffer.readFloatBE(offset);
+      offset += 4;
       velocity = [vx, vy, vz];
     }
 
@@ -262,7 +277,12 @@ export function decodeRealTimeMessage(buffer: Buffer): RealTimeMessage {
     offset += 4;
     const qualityCode = buffer.readUInt8(offset);
     offset += 1;
-    const qualityLevels: Array<FrameBudgetMessage['quality_level']> = ['high', 'medium', 'low', 'minimal'];
+    const qualityLevels: Array<FrameBudgetMessage['quality_level']> = [
+      'high',
+      'medium',
+      'low',
+      'minimal',
+    ];
     const quality_level = qualityLevels[qualityCode] ?? 'medium';
 
     return {
@@ -488,10 +508,7 @@ export class Layer1RealTimeClient extends EventEmitter {
   /**
    * Send real-time message
    */
-  async send(
-    message: RealTimeMessageBody,
-    targetAgent?: string
-  ): Promise<void> {
+  async send(message: RealTimeMessageBody, targetAgent?: string): Promise<void> {
     if (!this.transport) throw new Error('Transport not initialized');
 
     // Add agent ID and timestamp

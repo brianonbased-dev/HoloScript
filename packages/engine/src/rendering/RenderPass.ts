@@ -108,7 +108,8 @@ export class RenderPass {
 
     for (const pass of this.passes.values()) {
       for (const dep of pass.dependencies) {
-        if (!this.passes.has(dep)) errors.push(`Pass "${pass.id}" depends on unknown pass "${dep}"`);
+        if (!this.passes.has(dep))
+          errors.push(`Pass "${pass.id}" depends on unknown pass "${dep}"`);
       }
       for (const input of pass.inputs) {
         // Check input attachment exists in some preceding pass
@@ -167,4 +168,3 @@ export class RenderPass {
     return [...this.passes.values()];
   }
 }
-

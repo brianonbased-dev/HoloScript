@@ -83,7 +83,9 @@ export interface HSNAPRouteReceipt {
 }
 
 export interface HSNAPRouterOptions {
-  compile?: ((source: string) => Promise<unknown>) | ((source: string, options?: HSNAPCompileOptions) => unknown);
+  compile?:
+    | ((source: string) => Promise<unknown>)
+    | ((source: string, options?: HSNAPCompileOptions) => unknown);
   now?: () => number;
 }
 
@@ -101,7 +103,9 @@ export interface ParsedHSNAPPayload {
 export class HSNAPRouter {
   private readonly agents = new Map<string, InternalAgentRecord>();
   private readonly lifecycleHistory: HSNAPLifecycleEvent[] = [];
-  private readonly compile?: ((source: string) => Promise<unknown>) | ((source: string, options?: HSNAPCompileOptions) => unknown);
+  private readonly compile?:
+    | ((source: string) => Promise<unknown>)
+    | ((source: string, options?: HSNAPCompileOptions) => unknown);
   private readonly now: () => number;
   private idCounter = 0;
 
@@ -241,10 +245,14 @@ export class HSNAPRouter {
 
   private resolveTarget(task: HSNAPTaskMetadata): InternalAgentRecord | undefined {
     if (task.to) {
-      return [...this.agents.values()].find((agent) => agent.id === task.to || agent.name === task.to);
+      return [...this.agents.values()].find(
+        (agent) => agent.id === task.to || agent.name === task.to
+      );
     }
 
-    const candidates = [...this.agents.values()].filter((agent) => agent.activeCount < agent.maxConcurrent);
+    const candidates = [...this.agents.values()].filter(
+      (agent) => agent.activeCount < agent.maxConcurrent
+    );
     if (candidates.length === 0) {
       return undefined;
     }
@@ -255,7 +263,11 @@ export class HSNAPRouter {
         return agent.accepts.includes('.hsplus') || agent.accepts.includes('*');
       }
 
-      return implicitIntent.some((key) => agent.accepts.includes(key)) || agent.accepts.includes('.hsplus') || agent.accepts.includes('*');
+      return (
+        implicitIntent.some((key) => agent.accepts.includes(key)) ||
+        agent.accepts.includes('.hsplus') ||
+        agent.accepts.includes('*')
+      );
     });
 
     if (accepted.length === 0) {
@@ -426,7 +438,10 @@ function parseConfigObject(config: string): Record<string, unknown> {
 }
 
 function parseValue(value: string): unknown {
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return value.slice(1, -1);
   }
 

@@ -11,28 +11,19 @@
 export const ENDPOINTS = {
   /** MCP Orchestrator — tool discovery, knowledge store, server registry */
   MCP_ORCHESTRATOR:
-    process.env.MCP_ORCHESTRATOR_URL ||
-    'https://mcp-orchestrator-production-45f9.up.railway.app',
+    process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
 
   /** HoloScript MCP Server — compilation, parsing, 156 tools */
-  HOLOSCRIPT_MCP:
-    process.env.HOLOSCRIPT_MCP_URL ||
-    'https://mcp.holoscript.net',
+  HOLOSCRIPT_MCP: process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net',
 
   /** Absorb Service — codebase intelligence, GraphRAG, self-improvement */
-  ABSORB_SERVICE:
-    process.env.ABSORB_SERVICE_URL ||
-    'https://absorb.holoscript.net',
+  ABSORB_SERVICE: process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net',
 
   /** Moltbook API — agent social platform (www is REQUIRED, non-www strips auth) */
-  MOLTBOOK_API:
-    process.env.MOLTBOOK_API_URL ||
-    'https://www.moltbook.com/api/v1',
+  MOLTBOOK_API: process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1',
 
   /** HoloMesh API — same as MCP server, /api/holomesh/* routes */
-  HOLOMESH_API:
-    process.env.HOLOSCRIPT_MCP_URL ||
-    'https://mcp.holoscript.net',
+  HOLOMESH_API: process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net',
 } as const;
 
 /**

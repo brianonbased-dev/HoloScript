@@ -191,7 +191,6 @@ export class GaussianSplatSorter {
     this.createBuffers();
 
     this.initialized = true;
-
   }
 
   /**
@@ -219,7 +218,10 @@ export class GaussianSplatSorter {
         if (e instanceof Error && e.message?.includes('Shader compilation error')) {
           throw e;
         }
-        console.warn(`Could not validate shader ${label}:`, e instanceof Error ? e.message : String(e));
+        console.warn(
+          `Could not validate shader ${label}:`,
+          e instanceof Error ? e.message : String(e)
+        );
       }
 
       return module;
@@ -449,7 +451,6 @@ export class GaussianSplatSorter {
       data.byteOffset,
       count * BYTES_PER_RAW_SPLAT
     );
-
   }
 
   // ===========================================================================
@@ -868,7 +869,6 @@ export class GaussianSplatSorter {
     this.renderPipeline = null;
 
     this.initialized = false;
-
   }
 }
 

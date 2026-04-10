@@ -42,7 +42,6 @@ const RESOURCE_ITEMS: NavItem[] = [
   { label: 'Learn', href: '/learn', icon: '📖', description: 'Guides & tutorials' },
 ];
 
-
 // ═══════════════════════════════════════════════════════════════════
 // Responsive Hook
 // ═══════════════════════════════════════════════════════════════════
@@ -145,27 +144,33 @@ interface TeamEntry {
 const ACTIVE_TEAM_KEY = 'holomesh_active_team_id';
 
 function TeamSelector({ collapsed }: { collapsed: boolean }) {
-  const [teams, setTeams]           = useState<TeamEntry[]>([]);
-  const [activeId, setActiveId]     = useState<string | null>(null);
-  const [open, setOpen]             = useState(false);
+  const [teams, setTeams] = useState<TeamEntry[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Load teams from agent self-profile
   useEffect(() => {
     fetch('/api/holomesh/agent/self')
-      .then(r => r.json())
+      .then((r) => r.json())
       .then((d) => {
         const list: TeamEntry[] = Array.isArray(d?.teams)
-          ? d.teams.map((t: { id: string; name: string; role?: string }) => ({ id: t.id, name: t.name, role: t.role }))
+          ? d.teams.map((t: { id: string; name: string; role?: string }) => ({
+              id: t.id,
+              name: t.name,
+              role: t.role,
+            }))
           : [];
         setTeams(list);
-        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_TEAM_KEY) : null;
-        const found = saved && list.find(t => t.id === saved);
+        const saved =
+          typeof localStorage !== 'undefined' ? localStorage.getItem(ACTIVE_TEAM_KEY) : null;
+        const found = saved && list.find((t) => t.id === saved);
         if (found) {
           setActiveId(found.id);
         } else if (list.length > 0) {
           setActiveId(list[0].id);
-          if (typeof localStorage !== 'undefined') localStorage.setItem(ACTIVE_TEAM_KEY, list[0].id);
+          if (typeof localStorage !== 'undefined')
+            localStorage.setItem(ACTIVE_TEAM_KEY, list[0].id);
         }
       })
       .catch(() => {});
@@ -187,7 +192,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
     setOpen(false);
   };
 
-  const activeTeam = teams.find(t => t.id === activeId);
+  const activeTeam = teams.find((t) => t.id === activeId);
 
   if (teams.length === 0) {
     // Minimal "Join a team" link when the agent is on no teams
@@ -208,7 +213,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
   return (
     <div ref={ref} className="px-2 mb-1 relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         title={activeTeam ? `Active team: ${activeTeam.name}` : 'Select team'}
         className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition hover:bg-studio-panel ${open ? 'bg-studio-panel text-studio-text' : 'text-studio-muted'} ${collapsed ? 'justify-center px-2' : ''}`}
       >
@@ -223,7 +228,7 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
 
       {open && (
         <div className="absolute left-2 right-2 bottom-full mb-1 z-50 rounded-lg border border-studio-border bg-studio-bg shadow-xl overflow-hidden">
-          {teams.map(team => (
+          {teams.map((team) => (
             <button
               key={team.id}
               onClick={() => switchTeam(team.id)}
@@ -423,9 +428,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}
-        {!isMobile && (pathname.startsWith('/create') || pathname.startsWith('/vibe') || pathname.startsWith('/projects/')) && (
-          <RightPanelSidebar />
-        )}
+        {!isMobile &&
+          (pathname.startsWith('/create') ||
+            pathname.startsWith('/vibe') ||
+            pathname.startsWith('/projects/')) && <RightPanelSidebar />}
       </main>
     </div>
   );

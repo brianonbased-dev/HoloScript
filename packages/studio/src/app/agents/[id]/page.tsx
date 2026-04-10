@@ -170,14 +170,10 @@ export default function AgentProfilePage() {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold truncate">
-                  {p?.customTitle || data.agent.name}
-                </h1>
+                <h1 className="text-2xl font-bold truncate">{p?.customTitle || data.agent.name}</h1>
                 <ReputationBadge score={data.reputation.score} tier={data.reputation.tier} />
               </div>
-              {p?.statusText && (
-                <p className="mt-1 text-sm text-white/50 italic">{p.statusText}</p>
-              )}
+              {p?.statusText && <p className="mt-1 text-sm text-white/50 italic">{p.statusText}</p>}
               {p?.customTitle && p.customTitle !== data.agent.name && (
                 <p className="text-xs text-white/30 mt-0.5">@{data.agent.name}</p>
               )}
@@ -202,16 +198,28 @@ export default function AgentProfilePage() {
           {/* Stats row */}
           <div className="mt-6 flex flex-wrap gap-6">
             <Stat label="Reputation" value={data.reputation.score.toFixed(1)} color={themeColor} />
-            <Stat label="Contributions" value={String(data.reputation.contributions)} color="#10b981" />
+            <Stat
+              label="Contributions"
+              value={String(data.reputation.contributions)}
+              color="#10b981"
+            />
             <Stat label="Queries" value={String(data.reputation.queriesAnswered)} color="#f59e0b" />
-            <Stat label="Reuse" value={`${(data.reputation.reuseRate * 100).toFixed(0)}%`} color="#ec4899" />
+            <Stat
+              label="Reuse"
+              value={`${(data.reputation.reuseRate * 100).toFixed(0)}%`}
+              color="#ec4899"
+            />
             <Stat label="Peers" value={String(data.topPeers.length)} color="#8b5cf6" />
           </div>
         </header>
 
         {/* 2. MOOD BOARD */}
         <Section title="Mood Board">
-          <MoodBoardViewport agentId={agentId} agentName={data.agent.name} themeColor={themeColor} />
+          <MoodBoardViewport
+            agentId={agentId}
+            agentName={data.agent.name}
+            themeColor={themeColor}
+          />
         </Section>
 
         {/* 3. ABOUT */}
@@ -275,7 +283,10 @@ export default function AgentProfilePage() {
         <footer className="mt-12 flex items-center justify-between border-t border-white/5 pt-6 pb-8">
           <VisitorCounter count={data.guestbookCount} themeColor={themeColor} />
           <div className="flex items-center gap-4">
-            <Link href="/holomesh" className="text-[10px] text-white/20 hover:text-white/40 transition">
+            <Link
+              href="/holomesh"
+              className="text-[10px] text-white/20 hover:text-white/40 transition"
+            >
               Powered by HoloMesh
             </Link>
           </div>

@@ -62,7 +62,7 @@ import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const { OPERATION_COSTS } = require('@holoscript/absorb-service/credits') as {
   OPERATION_COSTS: Record<string, { baseCostCents: number; description: string }>;
 };
@@ -96,7 +96,9 @@ if (process.env.DATABASE_URL) {
     });
     tokenBackend = new PostgresTokenStore(pgPool);
     // Auto-create credit tables if they don't exist
-    pgPool.query(`
+    pgPool
+      .query(
+        `
       CREATE TABLE IF NOT EXISTS credit_accounts (
         user_id UUID PRIMARY KEY,
         balance_cents INTEGER NOT NULL DEFAULT 0,
@@ -121,7 +123,8 @@ if (process.env.DATABASE_URL) {
       CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions (user_id);
       CREATE INDEX IF NOT EXISTS idx_credit_tx_type ON credit_transactions (type);
       CREATE INDEX IF NOT EXISTS idx_credit_tx_time ON credit_transactions (created_at);
-    `)
+    `
+      )
       .then(() => console.info('[credits] Tables ready'))
       .catch((e: Error) => console.error('[credits] Migration failed:', e.message));
   } catch (err) {
@@ -274,7 +277,7 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
 /**
  * Legacy authentication check (kept for simple boolean checks on non-tool routes)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
   const auth = await authenticateRequest(req);
   return auth.active;
@@ -1414,12 +1417,14 @@ const httpServer = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: true, balance, required: opCost.baseCostCents }));
       } else {
         res.writeHead(402, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'Insufficient credits',
-          balance,
-          required: opCost.baseCostCents,
-          description: opCost.description,
-        }));
+        res.end(
+          JSON.stringify({
+            error: 'Insufficient credits',
+            balance,
+            required: opCost.baseCostCents,
+            description: opCost.description,
+          })
+        );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1470,21 +1475,37 @@ const httpServer = http.createServer(async (req, res) => {
       );
       if (result.rowCount === 0) {
         res.writeHead(402, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'Insufficient credits',
-          required: opCost.baseCostCents,
-          description: opCost.description,
-        }));
+        res.end(
+          JSON.stringify({
+            error: 'Insufficient credits',
+            required: opCost.baseCostCents,
+            description: opCost.description,
+          })
+        );
         return;
       }
       // Record transaction (fire-and-forget, don't block response)
-      pgPool.query(
-        `INSERT INTO credit_transactions (user_id, type, amount_cents, balance_after_cents, description, metadata)
+      pgPool
+        .query(
+          `INSERT INTO credit_transactions (user_id, type, amount_cents, balance_after_cents, description, metadata)
          VALUES ($1, 'usage', $2, $3, $4, $5)`,
-        [userId, -opCost.baseCostCents, result.rows[0].balance_cents, opCost.description, JSON.stringify({ operation })]
-      ).catch((txErr: unknown) => console.error('[credits] Failed to record transaction:', txErr));
+          [
+            userId,
+            -opCost.baseCostCents,
+            result.rows[0].balance_cents,
+            opCost.description,
+            JSON.stringify({ operation }),
+          ]
+        )
+        .catch((txErr: unknown) => console.error('[credits] Failed to record transaction:', txErr));
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents, balance: result.rows[0].balance_cents }));
+      res.end(
+        JSON.stringify({
+          ok: true,
+          cost: opCost.baseCostCents,
+          balance: result.rows[0].balance_cents,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1517,7 +1538,10 @@ const httpServer = http.createServer(async (req, res) => {
   // Rate limited: 60 requests per minute per IP. Input capped at 100KB.
   if (url === '/api/compile' && req.method === 'POST') {
     // Rate limiting (in-memory, per-IP)
-    const clientIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    const clientIP =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+      req.socket.remoteAddress ||
+      'unknown';
     const now = Date.now();
     if (!compileRateMap.has(clientIP)) compileRateMap.set(clientIP, []);
     const timestamps = compileRateMap.get(clientIP)!;
@@ -1547,7 +1571,12 @@ const httpServer = http.createServer(async (req, res) => {
       }
       if (!body.target || typeof body.target !== 'string') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr, phone-sleeve-vr' }));
+        res.end(
+          JSON.stringify({
+            error:
+              'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr, phone-sleeve-vr',
+          })
+        );
         return;
       }
       const result = await handleCompileToTarget({
@@ -1603,25 +1632,27 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     try {
-      const body = await parseJsonBody(req) as Record<string, unknown>;
+      const body = (await parseJsonBody(req)) as Record<string, unknown>;
       const method = typeof body.method === 'string' ? body.method : '';
       const id = body.id;
 
       if (method === 'tools/list') {
         const allTools = [...tools, ...PluginManager.getTools()];
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          jsonrpc: '2.0',
-          id: id,
-          result: { tools: allTools }
-        }));
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: id,
+            result: { tools: allTools },
+          })
+        );
         return;
       }
-      
+
       if (method === 'tools/call') {
-        const params = body.params as Record<string, unknown> || {};
+        const params = (body.params as Record<string, unknown>) || {};
         const name = typeof params.name === 'string' ? params.name : '';
-        const toolArgs = params.arguments as Record<string, unknown> || {};
+        const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
           requestPath: '/mcp',
           requestMethod: 'POST',
@@ -1629,21 +1660,41 @@ const httpServer = http.createServer(async (req, res) => {
         });
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          jsonrpc: '2.0',
-          id: body.id,
-          ...(isError ? { error: { code: -32000, message: typeof result === 'string' ? result : JSON.stringify(result) } } : { result: { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }] } })
-        }));
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            ...(isError
+              ? {
+                  error: {
+                    code: -32000,
+                    message: typeof result === 'string' ? result : JSON.stringify(result),
+                  },
+                }
+              : {
+                  result: {
+                    content: [
+                      {
+                        type: 'text',
+                        text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+                      },
+                    ],
+                  },
+                }),
+          })
+        );
         return;
       }
 
       // Fallback for other methods
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        jsonrpc: '2.0',
-        id: body.id,
-        error: { code: -32601, message: 'Method not found or supported via stateless HTTP' }
-      }));
+      res.end(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: body.id,
+          error: { code: -32601, message: 'Method not found or supported via stateless HTTP' },
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1898,9 +1949,14 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
-          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as unknown as {
-            calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
-          };
+          const { calculateRevenueDistribution } =
+            (await import('@holoscript/core')) as unknown as {
+              calculateRevenueDistribution: (
+                price: bigint,
+                creator: string,
+                remixSources: string[]
+              ) => RevenueDistributionResult;
+            };
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
             totalPrice: dist.totalPrice.toString(),
@@ -1970,9 +2026,14 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
-          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as unknown as {
-            calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
-          };
+          const { calculateRevenueDistribution } =
+            (await import('@holoscript/core')) as unknown as {
+              calculateRevenueDistribution: (
+                price: bigint,
+                creator: string,
+                remixSources: string[]
+              ) => RevenueDistributionResult;
+            };
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
             totalPrice: dist.totalPrice.toString(),
@@ -2092,7 +2153,11 @@ const httpServer = http.createServer(async (req, res) => {
       // Dynamic import to avoid loading core at startup if unused
       const { calculateRevenueDistribution, formatRevenueDistribution } =
         (await import('@holoscript/core')) as unknown as {
-          calculateRevenueDistribution: (price: bigint, creator: string, remixSources: string[]) => RevenueDistributionResult;
+          calculateRevenueDistribution: (
+            price: bigint,
+            creator: string,
+            remixSources: string[]
+          ) => RevenueDistributionResult;
           formatRevenueDistribution: (dist: RevenueDistributionResult) => string[];
         };
       const dist = calculateRevenueDistribution(price, creator, []);
@@ -2339,7 +2404,9 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     GET  /a2a/tasks/:id                - A2A get task`);
   console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
   console.info(`     GET  /api/health                   - API health + capabilities (public)`);
-  console.info(`     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`);
+  console.info(
+    `     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`
+  );
   console.info(`     POST /api/render                   - Render HoloScript preview`);
   console.info(`     POST /api/share                    - Create share links`);
   console.info(`     POST /api/publish                  - Studio full publish flow`);
@@ -2347,7 +2414,9 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     POST /api/scene                    - Store scene, get short URL`);
   console.info(`     GET  /scene/:id                    - View stored scene (public)`);
   console.info(`     GET  /embed/:id                    - Embed stored scene (public)`);
-  console.info(`     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`);
+  console.info(
+    `     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`
+  );
   console.info(`     GET  /api/audit                    - Query audit log (admin)`);
   console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
   console.info(`     GET  /api/audit/export             - Export audit log (admin)`);

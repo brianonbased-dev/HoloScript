@@ -22,7 +22,7 @@ export interface StateTraitConfig {
 // Extended properties interface for state-aware nodes
 interface StateAwareProperties {
   _state?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extensible properties bag
+
   [key: string]: unknown;
 }
 

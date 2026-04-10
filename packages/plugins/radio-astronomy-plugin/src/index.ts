@@ -3,7 +3,7 @@ import { PythonAstropyBridge, AstropyResult } from './bridge/python-runner';
 
 /**
  * @holoscript/radio-astronomy-plugin
- * 
+ *
  * Domain plugin bridging Radio Astrophysics simulation concepts into the HoloScript Universal pipeline.
  * Extends standard traits without bloating core. Provides an astropy python bridge for logic evaluation.
  */

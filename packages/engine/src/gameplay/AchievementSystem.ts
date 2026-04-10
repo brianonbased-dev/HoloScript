@@ -142,4 +142,3 @@ export class AchievementSystem {
     return ach.currentProgress / ach.maxProgress;
   }
 }
-

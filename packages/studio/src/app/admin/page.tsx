@@ -190,7 +190,9 @@ export default function AdminDashboard() {
           prev.map((a) => (a.id === agentId ? { ...a, heartbeatEnabled: false } : a))
         );
       }
-    } catch (err) { logger.warn('[AdminPage] force-stop agent failed:', err); }
+    } catch (err) {
+      logger.warn('[AdminPage] force-stop agent failed:', err);
+    }
   };
 
   if (!session?.user) {
@@ -411,7 +413,13 @@ export default function AdminDashboard() {
                 </div>
               ))}
               {agents.length === 0 && !loading && (
-                <p className="py-8 text-center text-sm text-[#71717a]">No agents found. Agents appear after registering via <a href="/agents/me" className="text-blue-400 hover:underline">HoloMesh onboard</a>.</p>
+                <p className="py-8 text-center text-sm text-[#71717a]">
+                  No agents found. Agents appear after registering via{' '}
+                  <a href="/agents/me" className="text-blue-400 hover:underline">
+                    HoloMesh onboard
+                  </a>
+                  .
+                </p>
               )}
             </div>
           </div>
@@ -456,7 +464,8 @@ export default function AdminDashboard() {
             })}
             {health.length === 0 && !loading && (
               <p className="col-span-full py-8 text-center text-sm text-[#71717a]">
-                No health data available. Health checks run automatically when services are registered.
+                No health data available. Health checks run automatically when services are
+                registered.
               </p>
             )}
           </div>

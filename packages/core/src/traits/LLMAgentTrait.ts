@@ -358,7 +358,10 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
       if (!state.isProcessing) {
         const effectiveLimit = Math.min(config.context_window, config.xr_context_limit);
         const messages = trimHistory(state.conversationHistory, effectiveLimit);
-        state.currentContextTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+        state.currentContextTokens = messages.reduce(
+          (sum, m) => sum + estimateTokens(m.content),
+          0
+        );
         state.isProcessing = true;
 
         context.emit?.('llm_request', {

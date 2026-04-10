@@ -134,4 +134,3 @@ export const particleTraitHandler: TraitHandler<ParticleTraitConfig> = {
 export function getNodeParticleSystem(nodeId: string): ParticleSystem | undefined {
   return nodeSystems.get(nodeId);
 }
-

@@ -423,7 +423,13 @@ export function createConsensusTrait(
 }
 
 // ── Handler (delegates to ConsensusTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const consensusHandler = {
   name: 'consensus',

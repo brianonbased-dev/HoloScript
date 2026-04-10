@@ -34,7 +34,12 @@ export const featureFlagHandler: TraitHandler<FeatureFlagConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: FeatureFlagConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: FeatureFlagConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__featureFlagState as { flags: Map<string, Flag> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

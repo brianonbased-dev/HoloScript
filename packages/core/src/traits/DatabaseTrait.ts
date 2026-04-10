@@ -61,7 +61,12 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
 
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: DatabaseConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: DatabaseConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: DatabaseState | undefined = node.__databaseState;
     if (!state) return;

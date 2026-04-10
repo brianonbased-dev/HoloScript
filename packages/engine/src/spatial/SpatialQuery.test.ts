@@ -17,7 +17,6 @@ describe('SpatialQueryExecutor', () => {
         type: 'player',
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
-
       },
       {
         id: 'entity-2',
@@ -51,14 +50,12 @@ describe('SpatialQueryExecutor', () => {
         type: 'box',
         name: 'Region 1',
         bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } }, // Origin box
-
       },
       {
         id: 'region-2',
         type: 'sphere',
         name: 'Region 2',
         bounds: { radius: 15, center: { x: 0, y: 0, z: 0 } }, // Big sphere
-
       },
     ];
 

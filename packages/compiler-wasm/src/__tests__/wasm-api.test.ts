@@ -25,9 +25,7 @@ function createMockWasm(overrides?: Partial<HoloScriptWasmModule>): HoloScriptWa
     parse: vi.fn().mockReturnValue(JSON.stringify(VALID_AST)),
     parse_pretty: vi.fn().mockReturnValue(JSON.stringify(VALID_AST, null, 2)),
     validate: vi.fn().mockReturnValue(true),
-    validate_detailed: vi.fn().mockReturnValue(
-      JSON.stringify({ valid: true, errors: [] }),
-    ),
+    validate_detailed: vi.fn().mockReturnValue(JSON.stringify({ valid: true, errors: [] })),
     version: vi.fn().mockReturnValue('3.7.0'),
     ...overrides,
   };
@@ -100,9 +98,7 @@ const COMPOSITION_AST: Ast = {
 };
 
 const PARSE_ERRORS = {
-  errors: [
-    { message: 'Expected identifier after "orb"', line: 1, column: 5 },
-  ],
+  errors: [{ message: 'Expected identifier after "orb"', line: 1, column: 5 }],
 };
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -130,7 +126,10 @@ describe('HoloScriptWasm', () => {
 
     it('should return correct property values from parsed AST', () => {
       const result = wrapper.parse('orb cube { color: "red" }');
-      const orb = result.body[0] as { type: string; properties: Array<{ key: string; value: { value: string } }> };
+      const orb = result.body[0] as {
+        type: string;
+        properties: Array<{ key: string; value: { value: string } }>;
+      };
 
       expect(orb.properties[0].key).toBe('color');
       expect(orb.properties[0].value.value).toBe('red');
@@ -284,9 +283,7 @@ describe('HoloScriptWasm', () => {
     it('should return errors with location info for invalid source', () => {
       const invalidResult: ValidationResult = {
         valid: false,
-        errors: [
-          { message: 'Expected identifier after "orb"', line: 1, column: 5 },
-        ],
+        errors: [{ message: 'Expected identifier after "orb"', line: 1, column: 5 }],
       };
       mockWasm = createMockWasm({
         validate_detailed: vi.fn().mockReturnValue(JSON.stringify(invalidResult)),
@@ -303,9 +300,7 @@ describe('HoloScriptWasm', () => {
     it('should include error message text', () => {
       const invalidResult: ValidationResult = {
         valid: false,
-        errors: [
-          { message: 'Unexpected end of input', line: 1, column: 20 },
-        ],
+        errors: [{ message: 'Unexpected end of input', line: 1, column: 20 }],
       };
       mockWasm = createMockWasm({
         validate_detailed: vi.fn().mockReturnValue(JSON.stringify(invalidResult)),

@@ -241,7 +241,8 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
         logger.debug(`  Compile: +${compileGain}% faster with WASM`);
 
         // Verify WASM provides meaningful speedup
-        if (result.speedup.parse > 1.1) { // WASM is actually faster
+        if (result.speedup.parse > 1.1) {
+          // WASM is actually faster
         }
       }
     });
@@ -306,10 +307,14 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
         const parseSaving = metrics.tsParseP95 - metrics.wasmParseP95;
         const compileSaving = metrics.tsCompileP95 - metrics.wasmCompileP95;
         logger.debug(`Parse:   ${parseSaving >= 0 ? '+' : ''}${parseSaving.toFixed(2)}ms saved`);
-        logger.debug(`Compile: ${compileSaving >= 0 ? '+' : ''}${compileSaving.toFixed(2)}ms saved`);
+        logger.debug(
+          `Compile: ${compileSaving >= 0 ? '+' : ''}${compileSaving.toFixed(2)}ms saved`
+        );
 
         if (parseSaving + compileSaving > 0) {
-          logger.debug(`Total savings per operation: ${(parseSaving + compileSaving).toFixed(2)}ms`);
+          logger.debug(
+            `Total savings per operation: ${(parseSaving + compileSaving).toFixed(2)}ms`
+          );
         }
       }
     });

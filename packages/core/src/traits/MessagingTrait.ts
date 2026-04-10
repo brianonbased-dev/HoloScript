@@ -1,5 +1,12 @@
 // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler, TraitEventPayload } from './TraitTypes';
+import type {
+  Trait,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitHandler,
+  TraitEventPayload,
+} from './TraitTypes';
 /**
  * MessagingTrait — v4.0
  *
@@ -242,7 +249,7 @@ export const messagingHandler = {
         const { chatId, text, replyToId } = (event.payload as TraitEventPayload) ?? {};
         if (!chatId || !text) return;
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        this._sendMessage(state, node, config, ctx, (chatId as string), text, replyToId);
+        this._sendMessage(state, node, config, ctx, chatId as string, text, replyToId);
         break;
       }
 
@@ -344,7 +351,12 @@ export const messagingHandler = {
       });
   },
 
-  _pollTelegram(state: MessagingState, node: HSPlusNode, config: MessagingConfig, ctx: TraitContext): void {
+  _pollTelegram(
+    state: MessagingState,
+    node: HSPlusNode,
+    config: MessagingConfig,
+    ctx: TraitContext
+  ): void {
     telegramGetUpdates(config.token, state.lastUpdateId + 1)
       .then((updates) => {
         for (const update of updates) {

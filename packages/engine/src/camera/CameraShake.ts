@@ -116,4 +116,3 @@ export class CameraShake {
     return [...this.layers.values()].some((l) => l.trauma > 0);
   }
 }
-

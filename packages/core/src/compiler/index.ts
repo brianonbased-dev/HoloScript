@@ -82,14 +82,8 @@ export { COCOExporter } from './COCOExporter';
 // Next.js compilers
 export { NextJSCompiler } from './NextJSCompiler';
 export type { NextJSCompilerOptions, NextJSCompileResult } from './NextJSCompiler';
-export {
-  compileToNextJSAPI,
-  compileAllToNextJSAPI,
-} from './NextJSAPICompiler';
-export type {
-  NextJSAPICompilerOptions,
-  NextJSAPICompileResult,
-} from './NextJSAPICompiler';
+export { compileToNextJSAPI, compileAllToNextJSAPI } from './NextJSAPICompiler';
+export type { NextJSAPICompilerOptions, NextJSAPICompileResult } from './NextJSAPICompiler';
 export { GLTF_PIPELINE_TOOLS, registerGLTFTools } from './GLTFPipelineMCPTool';
 export { NodeToyMapper, mapNodeToyToShader } from './NodeToyMapping';
 export { RemotionBridge } from './RemotionBridge';
@@ -116,7 +110,11 @@ export type { SafetyReport, SafetyVerdict } from './safety/SafetyReport';
 export type { LinearCheckerConfig } from './safety/LinearTypeChecker';
 export type { InferredEffects } from './safety/EffectInference';
 export type { CompilePlatformTarget } from './PlatformConditionalCompilerMixin';
-export { selectModality, selectModalityForAll, bestCategoryForTraits } from './platform/ModalitySelector';
+export {
+  selectModality,
+  selectModalityForAll,
+  bestCategoryForTraits,
+} from './platform/ModalitySelector';
 export type { ModalitySelection, ModalitySelectorOptions } from './platform/ModalitySelector';
 
 // USDZ pipeline

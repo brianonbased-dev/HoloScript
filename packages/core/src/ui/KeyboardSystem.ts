@@ -28,7 +28,12 @@ export class KeyboardSystem {
 
   // Called by Runtime
   handleEvent(event: string, payload: any) {
-    if (event === 'ui_press_start' && payload && typeof payload === 'object' && 'nodeId' in payload) {
+    if (
+      event === 'ui_press_start' &&
+      payload &&
+      typeof payload === 'object' &&
+      'nodeId' in payload
+    ) {
       this.onKeyPress(payload.nodeId);
     }
   }
@@ -216,7 +221,7 @@ export class KeyboardSystem {
         data.selectionEnd = Math.max(oldCursor, newCursor);
       } else {
         if (data.selectionAnchor === undefined) {
-          data.selectionAnchor = oldCursor; 
+          data.selectionAnchor = oldCursor;
         }
       }
 

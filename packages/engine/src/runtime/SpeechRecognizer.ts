@@ -80,4 +80,3 @@ export function registerSpeechRecognizer(name: string, recognizer: SpeechRecogni
 export function getSpeechRecognizer(name: string): SpeechRecognizer | undefined {
   return speechRecognizerRegistry.get(name);
 }
-

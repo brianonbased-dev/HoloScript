@@ -544,4 +544,3 @@ export function validateSkeleton(skeleton: BoneDefinition[]): { valid: boolean; 
 
   return { valid: errors.length === 0, errors };
 }
-

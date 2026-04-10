@@ -23,7 +23,12 @@ export const markdownRenderHandler: TraitHandler<MarkdownRenderConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: MarkdownRenderConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: MarkdownRenderConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__mdState as { rendered: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'markdown:render') {

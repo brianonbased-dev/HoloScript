@@ -2678,7 +2678,10 @@ export class R3FCompiler {
     return nodes;
   }
 
-  private compileObjectDecl(obj: Record<string, unknown>, templateMap?: Map<string, unknown>): R3FNode {
+  private compileObjectDecl(
+    obj: Record<string, unknown>,
+    templateMap?: Map<string, unknown>
+  ): R3FNode {
     const props: Record<string, unknown> = {};
     let geometryType = 'cube';
 
@@ -2728,9 +2731,12 @@ export class R3FCompiler {
         const prop = p as Record<string, unknown>;
         // Handle spread properties: { type: 'spread', target: 'TemplateName' }
         if (prop && prop.type === 'spread') {
-          const resolved = this.resolveSpreadArgument((prop.target || prop.argument) as string | undefined, {
-            templates: templateMap as Map<string, Record<string, unknown>> | undefined,
-          });
+          const resolved = this.resolveSpreadArgument(
+            (prop.target || prop.argument) as string | undefined,
+            {
+              templates: templateMap as Map<string, Record<string, unknown>> | undefined,
+            }
+          );
           if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
             // Convert resolved object to property array format
             for (const [key, value] of Object.entries(resolved)) {
@@ -2793,7 +2799,11 @@ export class R3FCompiler {
           } else if (typeof value === 'object' && value !== null) {
             const valObj = value as Record<string, unknown>;
             // Handle material objects with a preset key: { preset: "glass", color: "#aaddff" }
-            if (valObj.preset && typeof valObj.preset === 'string' && MATERIAL_PRESETS[valObj.preset]) {
+            if (
+              valObj.preset &&
+              typeof valObj.preset === 'string' &&
+              MATERIAL_PRESETS[valObj.preset]
+            ) {
               const { preset: _, ...rest } = valObj;
               props.materialProps = {
                 ...MATERIAL_PRESETS[valObj.preset],
@@ -2814,9 +2824,15 @@ export class R3FCompiler {
           mProps.transparent = (value as number) < 1;
           props.materialProps = mProps;
         } else if (key === 'emissive') {
-          props.materialProps = { ...((props.materialProps || {}) as Record<string, unknown>), emissive: value };
+          props.materialProps = {
+            ...((props.materialProps || {}) as Record<string, unknown>),
+            emissive: value,
+          };
         } else if (key === 'emissiveIntensity' || key === 'emissive_intensity') {
-          props.materialProps = { ...((props.materialProps || {}) as Record<string, unknown>), emissiveIntensity: value };
+          props.materialProps = {
+            ...((props.materialProps || {}) as Record<string, unknown>),
+            emissiveIntensity: value,
+          };
         } else if (key === 'size') {
           if (Array.isArray(value)) {
             props.args = value;
@@ -2856,12 +2872,14 @@ export class R3FCompiler {
         .map((t: Record<string, unknown>) => {
           let baseConfig = (t.config as Record<string, unknown>) || {};
           // collidable implies type='fixed' unless overridden; physics implies type='dynamic'
-          if (t.name === 'collidable' && !baseConfig.type) baseConfig = { ...baseConfig, type: 'fixed' };
-          if (t.name === 'physics' && !baseConfig.type) baseConfig = { ...baseConfig, type: 'dynamic' };
+          if (t.name === 'collidable' && !baseConfig.type)
+            baseConfig = { ...baseConfig, type: 'fixed' };
+          if (t.name === 'physics' && !baseConfig.type)
+            baseConfig = { ...baseConfig, type: 'dynamic' };
           return {
             name: t.name as string,
             config: baseConfig,
-            context: (obj.provenance as { context?: ProvenanceContext } | undefined)?.context
+            context: (obj.provenance as { context?: ProvenanceContext } | undefined)?.context,
           };
         });
 
@@ -2869,7 +2887,7 @@ export class R3FCompiler {
         const { config: mergedPhysics } = semiring.add(physicsApplications);
         props.rigidBody = { ...mergedPhysics };
         props.collider = { type: 'auto' };
-        
+
         // Inherit legacy shadow toggles if the resolved type is fixed
         if ((props.rigidBody as Record<string, unknown>)?.type === 'fixed') {
           props.castShadow = true;
@@ -2906,7 +2924,10 @@ export class R3FCompiler {
               ...(props.materialProps as Record<string, unknown>),
             };
           } else {
-            props.materialProps = { ...(props.materialProps as Record<string, unknown>), ...trait.config };
+            props.materialProps = {
+              ...(props.materialProps as Record<string, unknown>),
+              ...trait.config,
+            };
           }
         } else if (name === 'networked') {
           props.networked = trait.config || true;
@@ -3157,7 +3178,10 @@ export class R3FCompiler {
       const compositor = new TraitCompositor();
       const composedMaterial = compositor.compose(traitNames);
       if (Object.keys(composedMaterial).length > 0) {
-        props.materialProps = { ...(props.materialProps as Record<string, unknown>), ...composedMaterial };
+        props.materialProps = {
+          ...(props.materialProps as Record<string, unknown>),
+          ...composedMaterial,
+        };
       }
     }
 
@@ -3340,7 +3364,11 @@ export class R3FCompiler {
       }
     }
 
-    const r3fNode = this.createNode('Component', props, (node.id || node.name) as string | undefined);
+    const r3fNode = this.createNode(
+      'Component',
+      props,
+      (node.id || node.name) as string | undefined
+    );
     if (node.directives) {
       r3fNode.directives = node.directives as HSPlusDirective[];
     }
@@ -3568,10 +3596,12 @@ export class R3FCompiler {
   ): R3FNode {
     const children: R3FNode[] = [];
     if (cond.objects) {
-      for (const obj of cond.objects as Array<Record<string, unknown>>) children.push(this.compileObjectDecl(obj, templateMap));
+      for (const obj of cond.objects as Array<Record<string, unknown>>)
+        children.push(this.compileObjectDecl(obj, templateMap));
     }
     if (cond.spatialGroups) {
-      for (const g of cond.spatialGroups as Array<Record<string, unknown>>) children.push(this.compileSpatialGroup(g, templateMap));
+      for (const g of cond.spatialGroups as Array<Record<string, unknown>>)
+        children.push(this.compileSpatialGroup(g, templateMap));
     }
 
     const elseChildren: R3FNode[] = [];
@@ -3665,11 +3695,16 @@ export class R3FCompiler {
   private extractPostProcessingNodes(node: R3FNode): R3FNode[] {
     const effects: R3FNode[] = [];
 
-    const ppTrait: Record<string, unknown> = node.traits?.get('postprocessing' as VRTraitName) as Record<string, unknown>;
+    const ppTrait: Record<string, unknown> = node.traits?.get(
+      'postprocessing' as VRTraitName
+    ) as Record<string, unknown>;
     if (ppTrait) {
-      if (ppTrait.bloom) effects.push(this.createNode('Bloom', ppTrait.bloom as Record<string, unknown>));
-      if (ppTrait.ssao) effects.push(this.createNode('SSAO', ppTrait.ssao as Record<string, unknown>));
-      if (ppTrait.vignette) effects.push(this.createNode('Vignette', ppTrait.vignette as Record<string, unknown>));
+      if (ppTrait.bloom)
+        effects.push(this.createNode('Bloom', ppTrait.bloom as Record<string, unknown>));
+      if (ppTrait.ssao)
+        effects.push(this.createNode('SSAO', ppTrait.ssao as Record<string, unknown>));
+      if (ppTrait.vignette)
+        effects.push(this.createNode('Vignette', ppTrait.vignette as Record<string, unknown>));
     }
     if (node.props.bloom) {
       effects.push(
@@ -3749,7 +3784,10 @@ export class R3FCompiler {
     return mapping[type] || type;
   }
 
-  private compileProperties(node: ASTNode, rawProps: Record<string, unknown>): Record<string, unknown> {
+  private compileProperties(
+    node: ASTNode,
+    rawProps: Record<string, unknown>
+  ): Record<string, unknown> {
     // Expand spread expressions first
     const expandedProps = this.expandSpreads(rawProps);
     const props: Record<string, unknown> = { ...expandedProps };
@@ -3786,7 +3824,10 @@ export class R3FCompiler {
       typeof rawProps.material === 'string' &&
       MATERIAL_PRESETS[rawProps.material]
     ) {
-      props.materialProps = { ...MATERIAL_PRESETS[rawProps.material], ...(props.materialProps as Record<string, unknown>) };
+      props.materialProps = {
+        ...MATERIAL_PRESETS[rawProps.material],
+        ...(props.materialProps as Record<string, unknown>),
+      };
     }
 
     if (node.directives) {

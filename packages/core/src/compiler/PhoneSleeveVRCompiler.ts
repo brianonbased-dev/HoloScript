@@ -125,10 +125,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
       return this.generateWebXRFile(composition);
     }
 
-    const title = this.escapeStringValue(
-      (composition.name as string) || this.opts.title,
-      'XML'
-    );
+    const title = this.escapeStringValue((composition.name as string) || this.opts.title, 'XML');
     const sceneObjects = this.compileSceneObjects(composition);
     const lights = this.compileLights(composition);
     const environment = this.compileEnvironment(composition);
@@ -159,10 +156,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
    * Shareable via URL — no app install needed.
    */
   generateWebXRFile(composition: HoloComposition): string {
-    const title = this.escapeStringValue(
-      (composition.name as string) || 'HoloScript WebXR',
-      'XML'
-    );
+    const title = this.escapeStringValue((composition.name as string) || 'HoloScript WebXR', 'XML');
     const traits = this.collectWebXRTraits(composition);
     const sceneObjects = this.compileSceneObjects(composition);
     const lights = this.compileLights(composition);
@@ -188,7 +182,7 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
     traits: Set<string>,
     sceneObjects: string,
     lights: string,
-    environment: string,
+    environment: string
   ): string {
     // Determine session mode
     const isInline = traits.has('webxr_inline') && !traits.has('webxr_session');
@@ -210,20 +204,24 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
     // Session options object
     const sessionOptsEntries: string[] = [];
     if (requiredFeatures.length > 0) {
-      sessionOptsEntries.push(`requiredFeatures: [${requiredFeatures.map(f => `'${f}'`).join(', ')}]`);
+      sessionOptsEntries.push(
+        `requiredFeatures: [${requiredFeatures.map((f) => `'${f}'`).join(', ')}]`
+      );
     }
     if (traits.has('webxr_dom_overlay')) {
       sessionOptsEntries.push(`domOverlay: { root: document.getElementById('overlay') }`);
     }
     if (traits.has('webxr_depth_sensing')) {
-      sessionOptsEntries.push(`depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha'] }`);
+      sessionOptsEntries.push(
+        `depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha'] }`
+      );
     }
-    const sessionOptsStr = sessionOptsEntries.length > 0
-      ? `{ ${sessionOptsEntries.join(', ')} }`
-      : '{}';
+    const sessionOptsStr =
+      sessionOptsEntries.length > 0 ? `{ ${sessionOptsEntries.join(', ')} }` : '{}';
 
     // Build per-feature JS blocks
-    const hitTestSetup = traits.has('webxr_hit_test') ? `
+    const hitTestSetup = traits.has('webxr_hit_test')
+      ? `
       // --- Hit Test ---
       let hitTestSource = null;
       let hitTestSourceRequested = false;
@@ -233,9 +231,11 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
       );
       reticle.visible = false;
       reticle.matrixAutoUpdate = false;
-      scene.add(reticle);` : '';
+      scene.add(reticle);`
+      : '';
 
-    const hitTestFrame = traits.has('webxr_hit_test') ? `
+    const hitTestFrame = traits.has('webxr_hit_test')
+      ? `
         // Hit test per frame
         if (!hitTestSourceRequested && session) {
           session.requestReferenceSpace('viewer').then(viewerSpace => {
@@ -254,9 +254,11 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
           } else {
             reticle.visible = false;
           }
-        }` : '';
+        }`
+      : '';
 
-    const anchorBlock = traits.has('webxr_anchors') ? `
+    const anchorBlock = traits.has('webxr_anchors')
+      ? `
       // --- Anchors ---
       const anchors = [];
       function createAnchor(frame, pose) {
@@ -265,16 +267,20 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
             anchors.push(anchor);
           });
         }
-      }` : '';
+      }`
+      : '';
 
-    const lightEstimationSetup = traits.has('webxr_light_estimation') ? `
+    const lightEstimationSetup = traits.has('webxr_light_estimation')
+      ? `
       // --- Light Estimation ---
       let lightProbe = null;
       let directionalLightEstimate = null;
       const estimatedLight = new THREE.DirectionalLight(0xffffff, 1);
-      scene.add(estimatedLight);` : '';
+      scene.add(estimatedLight);`
+      : '';
 
-    const lightEstimationFrame = traits.has('webxr_light_estimation') ? `
+    const lightEstimationFrame = traits.has('webxr_light_estimation')
+      ? `
         // Light estimation per frame
         if (lightProbe === null && session) {
           session.requestLightProbe().then(probe => { lightProbe = probe; }).catch(() => {});
@@ -299,9 +305,11 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
               estimate.primaryLightIntensity.z / intensity || 1
             );
           }
-        }` : '';
+        }`
+      : '';
 
-    const depthSensingFrame = traits.has('webxr_depth_sensing') ? `
+    const depthSensingFrame = traits.has('webxr_depth_sensing')
+      ? `
         // Depth sensing per frame
         const viewerPose = frame.getViewerPose(refSpace);
         if (viewerPose) {
@@ -312,9 +320,11 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
               window.__xrDepthInfo = depthInfo;
             }
           }
-        }` : '';
+        }`
+      : '';
 
-    const handTrackingSetup = traits.has('webxr_hand_tracking') ? `
+    const handTrackingSetup = traits.has('webxr_hand_tracking')
+      ? `
       // --- Hand Tracking ---
       const handModels = { left: null, right: null };
       function updateHands(frame, inputSources) {
@@ -337,23 +347,30 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
             }
           }
         }
-      }` : '';
+      }`
+      : '';
 
-    const handTrackingFrame = traits.has('webxr_hand_tracking') ? `
+    const handTrackingFrame = traits.has('webxr_hand_tracking')
+      ? `
         // Hand tracking per frame
         if (session && session.inputSources) {
           updateHands(frame, session.inputSources);
-        }` : '';
+        }`
+      : '';
 
-    const layersSetup = traits.has('webxr_layers') ? `
+    const layersSetup = traits.has('webxr_layers')
+      ? `
       // --- XR Layers ---
       // XRProjectionLayer and XRQuadLayer composition will be initialized when session starts
-      let xrProjectionLayer = null;` : '';
+      let xrProjectionLayer = null;`
+      : '';
 
-    const framebufferSetup = traits.has('webxr_framebuffer') ? `
+    const framebufferSetup = traits.has('webxr_framebuffer')
+      ? `
       // --- Custom Framebuffer ---
       // Direct framebuffer access from XRWebGLLayer for post-processing
-      let xrFramebuffer = null;` : '';
+      let xrFramebuffer = null;`
+      : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -455,8 +472,12 @@ export class PhoneSleeveVRCompiler extends CompilerBase {
 ${hitTestSetup}
 ${anchorBlock}
 ${lightEstimationSetup}
-${depthSensingFrame ? `
-      // Depth sensing declarations` : ''}
+${
+  depthSensingFrame
+    ? `
+      // Depth sensing declarations`
+    : ''
+}
 ${handTrackingSetup}
 ${layersSetup}
 ${framebufferSetup}
@@ -471,10 +492,12 @@ ${framebufferSetup}
       try {
         const supported = await navigator.xr.isSessionSupported('${sessionMode}');
         if (!supported) {
-          ${isInline ? `
+          ${
+            isInline
+              ? `
           // Inline fallback
           session = await navigator.xr.requestSession('inline');`
-          : `
+              : `
           // Try inline fallback
           try {
             session = await navigator.xr.requestSession('inline');
@@ -482,7 +505,8 @@ ${framebufferSetup}
             errorEl.textContent = 'XR not supported: ' + e.message;
             errorEl.style.display = 'block';
             return;
-          }`}
+          }`
+          }
         } else {
           session = await navigator.xr.requestSession('${sessionMode}', ${sessionOptsStr});
         }
@@ -567,9 +591,10 @@ ${handTrackingFrame}
     // Material
     const color = this.resolveColor(obj);
     const opacity = this.resolveOpacity(obj);
-    const matOpts = opacity < 1
-      ? `{ color: ${color}, transparent: true, opacity: ${opacity} }`
-      : `{ color: ${color} }`;
+    const matOpts =
+      opacity < 1
+        ? `{ color: ${color}, transparent: true, opacity: ${opacity} }`
+        : `{ color: ${color} }`;
 
     return `
       {
@@ -1057,13 +1082,16 @@ ${handTrackingFrame}
   // Helpers
   // =========================================================================
 
-  private getProp(properties: { key: string, value: unknown }[] | undefined, key: string): unknown {
+  private getProp(properties: { key: string; value: unknown }[] | undefined, key: string): unknown {
     if (!properties) return undefined;
-    const prop = properties.find(p => p.key === key);
+    const prop = properties.find((p) => p.key === key);
     return prop ? prop.value : undefined;
   }
 
-  private resolveVec3(value: unknown, fallback: [number, number, number]): [number, number, number] {
+  private resolveVec3(
+    value: unknown,
+    fallback: [number, number, number]
+  ): [number, number, number] {
     if (Array.isArray(value) && value.length >= 3) {
       return [Number(value[0]) || 0, Number(value[1]) || 0, Number(value[2]) || 0];
     }
@@ -1072,7 +1100,8 @@ ${handTrackingFrame}
 
   private resolveColor(obj: HoloObjectDecl): string {
     // @ts-expect-error
-    const color = this.getProp(obj.properties, 'color') || this.getProp(obj.properties, 'material')?.color;
+    const color =
+      this.getProp(obj.properties, 'color') || this.getProp(obj.properties, 'material')?.color;
     if (typeof color === 'string') {
       if (color.startsWith('#')) return `0x${color.slice(1)}`;
       if (color.startsWith('0x')) return color;

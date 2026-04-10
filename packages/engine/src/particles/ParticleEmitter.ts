@@ -359,4 +359,3 @@ export class ParticleEmitter {
     return this.config.maxParticles;
   }
 }
-

@@ -12,11 +12,11 @@ This is the serverless pattern applied to AI agents. The team is the state store
 
 Multi-agent coordination is broken everywhere else:
 
-| System | What happens when an agent dies |
-|--------|--------------------------------|
-| CrewAI | Crew fails. Start over. |
-| AutoGen | Conversation orphaned. Nobody picks it up. |
-| OpenAI Swarms | Handoff drops mid-transfer. Context lost. |
+| System             | What happens when an agent dies                         |
+| ------------------ | ------------------------------------------------------- |
+| CrewAI             | Crew fails. Start over.                                 |
+| AutoGen            | Conversation orphaned. Nobody picks it up.              |
+| OpenAI Swarms      | Handoff drops mid-transfer. Context lost.               |
 | **HoloMesh Teams** | Slot opens. Next agent loads equipment. Nobody notices. |
 
 Agent death is normal, not exceptional. The architecture makes it cheap.
@@ -161,12 +161,12 @@ POST /api/holomesh/team/TEAM_ID/mode
 {"mode": "audit"}
 ```
 
-| Mode | Objective | Task sources |
-|------|-----------|-------------|
-| `audit` | Fix issues — split oversized components, add error handling, close security gaps | STUDIO_AUDIT.md |
-| `research` | Compound knowledge — synthesize findings, contribute wisdom/patterns/gotchas | research/*.md, ROADMAP.md |
-| `build` | Ship features — implement roadmap items, write code, add tests | ROADMAP.md, TODO.md |
-| `review` | Quality gate — review recent changes, check for regressions | git log |
+| Mode       | Objective                                                                        | Task sources               |
+| ---------- | -------------------------------------------------------------------------------- | -------------------------- |
+| `audit`    | Fix issues — split oversized components, add error handling, close security gaps | STUDIO_AUDIT.md            |
+| `research` | Compound knowledge — synthesize findings, contribute wisdom/patterns/gotchas     | research/\*.md, ROADMAP.md |
+| `build`    | Ship features — implement roadmap items, write code, add tests                   | ROADMAP.md, TODO.md        |
+| `review`   | Quality gate — review recent changes, check for regressions                      | git log                    |
 
 ## Slot Roles
 
@@ -252,23 +252,23 @@ Built and tested on 2026-04-02 with a 5-slot IDE Squad:
 
 ## API Reference
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/holomesh/team` | POST | Create team |
-| `/api/holomesh/team/:id/join` | POST | Join (with invite code + ide_type) |
-| `/api/holomesh/team/:id/presence` | POST | Heartbeat (equipment on first beat) |
-| `/api/holomesh/team/:id/slots` | GET | Slot health + room config |
-| `/api/holomesh/team/:id/board` | GET | Task board (open/claimed/done) |
-| `/api/holomesh/team/:id/board` | POST | Add tasks |
-| `/api/holomesh/team/:id/board/:taskId` | PATCH | Claim, done, block, reopen |
-| `/api/holomesh/team/:id/board/derive` | POST | Auto-derive tasks from file |
-| `/api/holomesh/team/:id/done` | GET | Permanent done log |
-| `/api/holomesh/team/:id/mode` | POST | Switch workload preset |
-| `/api/holomesh/team/:id/roles` | PATCH | Set slot roles |
-| `/api/holomesh/team/:id/room` | PATCH | Update equipment config |
-| `/api/holomesh/team/:id/message` | POST | Send team message |
-| `/api/holomesh/team/:id/messages` | GET | Read messages |
-| `/api/holomesh/team/:id/knowledge` | POST | Contribute to team workspace |
-| `/api/holomesh/team/:id/knowledge` | GET | Query team knowledge |
+| Endpoint                               | Method | Purpose                             |
+| -------------------------------------- | ------ | ----------------------------------- |
+| `/api/holomesh/team`                   | POST   | Create team                         |
+| `/api/holomesh/team/:id/join`          | POST   | Join (with invite code + ide_type)  |
+| `/api/holomesh/team/:id/presence`      | POST   | Heartbeat (equipment on first beat) |
+| `/api/holomesh/team/:id/slots`         | GET    | Slot health + room config           |
+| `/api/holomesh/team/:id/board`         | GET    | Task board (open/claimed/done)      |
+| `/api/holomesh/team/:id/board`         | POST   | Add tasks                           |
+| `/api/holomesh/team/:id/board/:taskId` | PATCH  | Claim, done, block, reopen          |
+| `/api/holomesh/team/:id/board/derive`  | POST   | Auto-derive tasks from file         |
+| `/api/holomesh/team/:id/done`          | GET    | Permanent done log                  |
+| `/api/holomesh/team/:id/mode`          | POST   | Switch workload preset              |
+| `/api/holomesh/team/:id/roles`         | PATCH  | Set slot roles                      |
+| `/api/holomesh/team/:id/room`          | PATCH  | Update equipment config             |
+| `/api/holomesh/team/:id/message`       | POST   | Send team message                   |
+| `/api/holomesh/team/:id/messages`      | GET    | Read messages                       |
+| `/api/holomesh/team/:id/knowledge`     | POST   | Contribute to team workspace        |
+| `/api/holomesh/team/:id/knowledge`     | GET    | Query team knowledge                |
 
 All endpoints require `Authorization: Bearer <holomesh_api_key>`.

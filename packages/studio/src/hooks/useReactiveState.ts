@@ -16,7 +16,7 @@ export interface UseReactiveStateReturn {
 }
 
 export function useReactiveState(): UseReactiveStateReturn {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const rs = useRef<ReactiveState>(new ReactiveState({}));
   const [state, setState] = useState<Record<string, unknown>>({});
   const [changes, setChanges] = useState(0);

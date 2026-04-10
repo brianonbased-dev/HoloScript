@@ -1003,4 +1003,3 @@ export function validateBodyConfig(config: IRigidBodyConfig): { valid: boolean; 
 
   return { valid: errors.length === 0, errors };
 }
-

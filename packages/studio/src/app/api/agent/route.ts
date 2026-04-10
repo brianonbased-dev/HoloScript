@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ENDPOINTS } from '@holoscript/config/endpoints';
 
 let MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
-  
+
 if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
   MCP_EXTERNAL_URL = `https://${MCP_EXTERNAL_URL}`;
 }
@@ -20,7 +20,21 @@ export async function POST(request: NextRequest) {
 
     if (!action) {
       return NextResponse.json(
-        { error: 'Missing required field: action', available_actions: ['compile', 'parse', 'validate', 'suggest_traits', 'generate', 'query', 'list_traits', 'explain_trait', 'install_plugin', 'discover_plugins'] },
+        {
+          error: 'Missing required field: action',
+          available_actions: [
+            'compile',
+            'parse',
+            'validate',
+            'suggest_traits',
+            'generate',
+            'query',
+            'list_traits',
+            'explain_trait',
+            'install_plugin',
+            'discover_plugins',
+          ],
+        },
         { status: 400 }
       );
     }
@@ -92,6 +106,7 @@ export async function GET() {
       install_plugin: { tool: 'install_domain_plugin', params: 'plugin_name' },
       discover_plugins: { tool: 'discover_plugins', params: 'query, category?' },
     },
-    example: '{ "action": "compile", "code": "object Cube { position: [0,1,0] }", "target": "three" }',
+    example:
+      '{ "action": "compile", "code": "object Cube { position: [0,1,0] }", "target": "three" }',
   });
 }

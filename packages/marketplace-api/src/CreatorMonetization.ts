@@ -296,9 +296,13 @@ export class CreatorMonetization {
         throw error;
       }
 
-      throw new CreatorMonetizationError(`Failed to mint NFT: ${error instanceof Error ? error.message : String(error)}`, 'MINT_FAILED', {
-        originalError: error,
-      });
+      throw new CreatorMonetizationError(
+        `Failed to mint NFT: ${error instanceof Error ? error.message : String(error)}`,
+        'MINT_FAILED',
+        {
+          originalError: error,
+        }
+      );
     }
   }
 
@@ -601,7 +605,10 @@ export class CreatorMonetization {
       return stats;
     } catch (error: unknown) {
       const status = (error as Record<string, unknown>)?.status as number | undefined;
-      throw new ZoraAPIError(`Failed to fetch creator stats: ${error instanceof Error ? error.message : String(error)}`, status);
+      throw new ZoraAPIError(
+        `Failed to fetch creator stats: ${error instanceof Error ? error.message : String(error)}`,
+        status
+      );
     }
   }
 

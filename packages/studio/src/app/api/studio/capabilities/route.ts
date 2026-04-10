@@ -14,15 +14,40 @@ export async function GET() {
     domains: {
       scene_authoring: {
         description: 'Create and edit 3D scenes using HoloScript DSL or visual node graph',
-        tools: ['parse_hs', 'parse_holo', 'validate_holoscript', 'generate_object', 'generate_scene'],
+        tools: [
+          'parse_hs',
+          'parse_holo',
+          'validate_holoscript',
+          'generate_object',
+          'generate_scene',
+        ],
       },
       compilation: {
         description: 'Compile HoloScript to 17 backend targets',
-        targets: ['three', 'r3f', 'gltf', 'usd', 'vrm', 'vrchat', 'aframe', 'babylon', 'unity', 'unreal', 'godot', 'bevy', 'html', 'css', 'svg', 'ascii', 'json'],
+        targets: [
+          'three',
+          'r3f',
+          'gltf',
+          'usd',
+          'vrm',
+          'vrchat',
+          'aframe',
+          'babylon',
+          'unity',
+          'unreal',
+          'godot',
+          'bevy',
+          'html',
+          'css',
+          'svg',
+          'ascii',
+          'json',
+        ],
         tools: ['compile_holoscript'],
       },
       traits: {
-        description: '2000+ composable traits for physics, materials, animation, economic, spatial behaviors',
+        description:
+          '2000+ composable traits for physics, materials, animation, economic, spatial behaviors',
         tools: ['list_traits', 'explain_trait', 'suggest_traits'],
       },
       codebase_intelligence: {
@@ -39,10 +64,15 @@ export async function GET() {
       },
       social: {
         description: 'Follow users, comment on scenes, view feed',
-        endpoints: ['GET /api/social/feed', 'POST /api/social/follows', 'POST /api/social/comments'],
+        endpoints: [
+          'GET /api/social/feed',
+          'POST /api/social/follows',
+          'POST /api/social/comments',
+        ],
       },
       oracle_boost: {
-        description: 'Hardware-aware oracle consultation with telemetry. Always active for enterprise tier.',
+        description:
+          'Hardware-aware oracle consultation with telemetry. Always active for enterprise tier.',
         always_on_tiers: ['enterprise'],
         endpoints: [
           'POST /api/studio/oracle-boost/status — validate prerequisites (enterprise: always oracle_ready)',
@@ -62,7 +92,8 @@ export async function GET() {
     },
 
     embed: {
-      description: 'Standalone embeddable components — no Next.js, no Zustand, no Tailwind required',
+      description:
+        'Standalone embeddable components — no Next.js, no Zustand, no Tailwind required',
       components: ['SceneViewer', 'StudioWidget', 'WebXRViewer'],
       import_path: '@holoscript/studio/embed',
     },
@@ -89,7 +120,8 @@ export async function GET() {
     api_routes: 143,
     mcp_tools: 158,
     absorb_tools: 20,
-    traits: '617 trait files (composable behaviors for physics, materials, animation, economics, spatial)',
+    traits:
+      '617 trait files (composable behaviors for physics, materials, animation, economics, spatial)',
     compilation_targets: 17,
     compilers: 47,
     components: 316,

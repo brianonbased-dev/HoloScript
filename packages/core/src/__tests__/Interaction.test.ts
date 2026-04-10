@@ -106,7 +106,9 @@ describe('Physics Interaction', () => {
     };
 
     bridge.updateHand(handData, 'left', 0.016);
-    expect(physicsWorld.createBody).toHaveBeenCalledWith(expect.objectContaining({ id: 'hand_left' }));
+    expect(physicsWorld.createBody).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'hand_left' })
+    );
   });
 
   it('triggers grab event when pinching near object', () => {

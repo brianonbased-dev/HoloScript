@@ -174,10 +174,7 @@ describe('IOSCompiler — UWB Positioning (M.010.13)', () => {
 
   it('emits handoff methods when uwb_handoff present', () => {
     const compiler = new IOSCompiler();
-    const result = compiler.compile(
-      makeUWBComposition(['uwb_handoff', 'uwb_range']),
-      'test-token'
-    );
+    const result = compiler.compile(makeUWBComposition(['uwb_handoff', 'uwb_range']), 'test-token');
     expect(result.uwbPositioningFile).toContain('func handoffEntity');
     expect(result.uwbPositioningFile).toContain('func handoffToNearest');
     expect(result.uwbPositioningFile).toContain('uwb_handoff');

@@ -80,4 +80,3 @@ describe('ClothSim', () => {
     expect(aabb.max.x).toBeGreaterThanOrEqual(2);
   });
 });
-

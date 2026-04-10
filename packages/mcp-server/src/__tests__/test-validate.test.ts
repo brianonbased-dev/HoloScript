@@ -25,7 +25,7 @@ vi.mock('@holoscript/llm-provider', () => {
             '    color: "#1da1f2"',
             '    position: [2, 1, 0]',
             '  }',
-            '}'
+            '}',
           ].join('\n'),
           provider: 'mock',
           detectedTraits: ['@shareable', '@collaborative', '@tweetable', '@grabbable'],
@@ -36,10 +36,10 @@ vi.mock('@holoscript/llm-provider', () => {
 });
 
 test('debug generate_scene and validate', async () => {
-  const scene = await handleTool('generate_scene', {
+  const scene = (await handleTool('generate_scene', {
     description: 'a game arena with physics and multiplayer',
     targetFormat: 'holo',
-  }) as Record<string, unknown>;
+  })) as Record<string, unknown>;
 
   console.log('GENERATED SCENE:', JSON.stringify(scene.code));
 

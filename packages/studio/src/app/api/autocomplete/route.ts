@@ -29,7 +29,10 @@ function buildChatPrompt(prefix: string, suffix: string) {
   return `Complete the following HoloScript code. Return ONLY the completion text, no explanation.\n\nCode before cursor:\n${prefix}\n\nCode after cursor:\n${suffix}\n\nCompletion:`;
 }
 
-type Provider = { name: string; call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null> };
+type Provider = {
+  name: string;
+  call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null>;
+};
 
 function getProviders(): Provider[] {
   const providers: Provider[] = [];
@@ -181,7 +184,13 @@ export async function POST(request: NextRequest) {
         deductCredits(gate.userId, 'studio_autocomplete').catch(() => {});
         return NextResponse.json(
           { completion: result, provider: provider.name },
-          { headers: { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } }
+          {
+            headers: {
+              'x-llm-provider': 'server',
+              'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+              'X-RateLimit-Remaining': String(limit.remaining),
+            },
+          }
         );
       }
     } catch {
@@ -193,8 +202,15 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       completion: '',
-      warning: 'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
+      warning:
+        'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
     },
-    { headers: { 'x-llm-provider': 'none', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } }
+    {
+      headers: {
+        'x-llm-provider': 'none',
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': String(limit.remaining),
+      },
+    }
   );
 }

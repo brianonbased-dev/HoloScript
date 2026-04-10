@@ -319,9 +319,7 @@ export class VisionOSCompiler extends CompilerBase {
 
     if (rkType) {
       this.emit(`let ${varName} = Entity()`);
-      this.emit(
-        `${varName}.name = "${this.escapeStringValue(light.name as string, 'Swift')}"`
-      );
+      this.emit(`${varName}.name = "${this.escapeStringValue(light.name as string, 'Swift')}"`);
 
       const colorProp = light.properties.find((p) => p.key === 'color');
       const intensityProp = light.properties.find((p) => p.key === 'intensity');
@@ -706,9 +704,7 @@ export class VisionOSCompiler extends CompilerBase {
     // Compile children
     if (obj.children) {
       for (const child of obj.children) {
-        this.emit(
-          `//         // Child: ${this.escapeStringValue(child.name as string, 'Swift')}`
-        );
+        this.emit(`//         // Child: ${this.escapeStringValue(child.name as string, 'Swift')}`);
       }
     }
 

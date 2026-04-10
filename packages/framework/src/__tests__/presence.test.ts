@@ -70,7 +70,7 @@ describe('Local Presence Tracking (FW-0.3)', () => {
       team.localHeartbeat('Bob', 'Task B');
       const agents = team.localPresence();
       expect(agents).toHaveLength(2);
-      const names = agents.map(a => a.name).sort();
+      const names = agents.map((a) => a.name).sort();
       expect(names).toEqual(['Alice', 'Bob']);
     });
   });

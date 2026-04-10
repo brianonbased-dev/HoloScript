@@ -16,7 +16,12 @@ export const dataLineageHandler: TraitHandler<DataLineageConfig> = {
     delete node.__lineageState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: DataLineageConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: DataLineageConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__lineageState as
       | { graph: Map<string, { source: string; transforms: string[] }> }
       | undefined;

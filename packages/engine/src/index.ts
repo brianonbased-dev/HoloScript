@@ -116,5 +116,3 @@ export * as LOD from './lod';
 export * from './lod';
 
 // DONE(A.011.01a): postfx — bloom, SSAO, DOF, tone mapping, color grading (in rendering)
-
-

@@ -16,7 +16,12 @@ export const slackAlertHandler: TraitHandler<SlackAlertConfig> = {
     delete node.__slackAlertState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: SlackAlertConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SlackAlertConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__slackAlertState as { sent: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'slack_alert:send') {

@@ -439,7 +439,10 @@ export class IncrementalCompiler {
     }
 
     // Compare logic blocks
-    if (JSON.stringify((oldObj as Extensible<HoloObjectDecl>).logic) !== JSON.stringify((newObj as Extensible<HoloObjectDecl>).logic)) {
+    if (
+      JSON.stringify((oldObj as Extensible<HoloObjectDecl>).logic) !==
+      JSON.stringify((newObj as Extensible<HoloObjectDecl>).logic)
+    ) {
       changes.push({
         type: 'modified',
         path: [...path, 'logic'],

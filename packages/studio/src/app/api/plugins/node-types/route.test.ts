@@ -4,7 +4,9 @@ import { GET } from './route';
 describe('/api/plugins/node-types', () => {
   it('returns custom node templates for plugin SDK surface', async () => {
     const response = await GET();
-    const body = (await response.json()) as { nodeTypes: Array<{ id: string; expression: string; arity: number }> };
+    const body = (await response.json()) as {
+      nodeTypes: Array<{ id: string; expression: string; arity: number }>;
+    };
 
     expect(response.status).toBe(200);
     expect(Array.isArray(body.nodeTypes)).toBe(true);

@@ -158,13 +158,15 @@ function createEndToEndMockIO(
           graphEdges: 312,
         }),
 
-    queryUntested: vi.fn<(query: string) => Promise<UntestedTarget[]>>().mockImplementation(async () => {
-      const currentCall = queryCallCount++;
-      return targets.map(t => ({
-        ...t, 
-        symbolName: currentCall === 0 ? t.symbolName : `${t.symbolName}_iter${currentCall}`
-      }));
-    }),
+    queryUntested: vi
+      .fn<(query: string) => Promise<UntestedTarget[]>>()
+      .mockImplementation(async () => {
+        const currentCall = queryCallCount++;
+        return targets.map((t) => ({
+          ...t,
+          symbolName: currentCall === 0 ? t.symbolName : `${t.symbolName}_iter${currentCall}`,
+        }));
+      }),
 
     generateTest: vi
       .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()

@@ -8,11 +8,7 @@
  */
 
 import type { MeshKnowledgeEntry } from './types';
-import {
-  getFollowing,
-  getFollowers,
-  isFollowing,
-} from './social';
+import { getFollowing, getFollowers, isFollowing } from './social';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -131,9 +127,8 @@ export function analyzeAgentProfile(
         entries: domainEntries.length,
         totalVotes,
         totalComments,
-        avgEngagement: domainEntries.length > 0
-          ? (totalVotes + totalComments * 2) / domainEntries.length
-          : 0,
+        avgEngagement:
+          domainEntries.length > 0 ? (totalVotes + totalComments * 2) / domainEntries.length : 0,
       };
     })
     .sort((a, b) => b.avgEngagement - a.avgEngagement);
@@ -157,9 +152,10 @@ export function analyzeAgentProfile(
   const totalVotes = enriched.reduce((s, e) => s + e.voteCount, 0);
   const totalComments = enriched.reduce((s, e) => s + e.commentCount, 0);
   const totalReuses = enriched.reduce((s, e) => s + (e.reuseCount || 0), 0);
-  const highestEngagement = enriched.length > 0
-    ? enriched.reduce((best, e) => (e.engagement > best.engagement ? e : best)).id
-    : null;
+  const highestEngagement =
+    enriched.length > 0
+      ? enriched.reduce((best, e) => (e.engagement > best.engagement ? e : best)).id
+      : null;
 
   // ── Social graph ──
   const following = getFollowing(agentId);
@@ -182,11 +178,12 @@ export function analyzeAgentProfile(
     entriesPerDomain[d] = (entriesPerDomain[d] || 0) + 1;
   }
 
-  const mostActiveType = contentMix.wisdom >= contentMix.pattern && contentMix.wisdom >= contentMix.gotcha
-    ? 'wisdom'
-    : contentMix.pattern >= contentMix.gotcha
-      ? 'pattern'
-      : 'gotcha';
+  const mostActiveType =
+    contentMix.wisdom >= contentMix.pattern && contentMix.wisdom >= contentMix.gotcha
+      ? 'wisdom'
+      : contentMix.pattern >= contentMix.gotcha
+        ? 'pattern'
+        : 'gotcha';
 
   // ── Gap analysis ──
   const gaps: string[] = [];
@@ -208,19 +205,24 @@ export function analyzeAgentProfile(
 
   // Content type imbalance
   if (contentMix.total >= 5) {
-    if (contentMix.gotcha === 0) gaps.push('No gotchas posted — share traps and edge cases you\'ve encountered');
-    if (contentMix.pattern === 0) gaps.push('No patterns posted — document recurring structures you\'ve discovered');
-    if (contentMix.wisdom === 0) gaps.push('No wisdom posted — share insights from your experience');
+    if (contentMix.gotcha === 0)
+      gaps.push("No gotchas posted — share traps and edge cases you've encountered");
+    if (contentMix.pattern === 0)
+      gaps.push("No patterns posted — document recurring structures you've discovered");
+    if (contentMix.wisdom === 0)
+      gaps.push('No wisdom posted — share insights from your experience');
   }
 
   // Low engagement
   if (enriched.length >= 3 && totalVotes === 0) {
-    gaps.push('Zero votes on any entry — try posting in more active domains or engaging with others first');
+    gaps.push(
+      'Zero votes on any entry — try posting in more active domains or engaging with others first'
+    );
   }
 
   // No followers
   if (followers.length === 0 && enriched.length > 0) {
-    gaps.push('No followers yet — comment on others\' entries and contribute to active discussions');
+    gaps.push("No followers yet — comment on others' entries and contribute to active discussions");
   }
 
   // Following nobody
@@ -270,13 +272,15 @@ export function analyzeAgentProfile(
   // Social growth
   if (followers.length < following.length * 0.5 && following.length >= 5) {
     recommendations.push(
-      'Follower ratio is low — engage more by commenting on others\' entries to attract followers'
+      "Follower ratio is low — engage more by commenting on others' entries to attract followers"
     );
   }
 
   // Reuse opportunity
   if (totalReuses > 0 && enriched.length >= 3) {
-    const mostReused = enriched.reduce((best, e) => ((e.reuseCount || 0) > (best.reuseCount || 0) ? e : best));
+    const mostReused = enriched.reduce((best, e) =>
+      (e.reuseCount || 0) > (best.reuseCount || 0) ? e : best
+    );
     if ((mostReused.reuseCount || 0) > 0) {
       recommendations.push(
         `'${mostReused.id}' has ${mostReused.reuseCount} reuses — expand on this topic`

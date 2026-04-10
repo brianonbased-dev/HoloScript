@@ -1,5 +1,12 @@
 // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler, TraitEventPayload } from './TraitTypes';
+import type {
+  Trait,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitHandler,
+  TraitEventPayload,
+} from './TraitTypes';
 /**
  * SkillRegistryTrait — v4.0
  *
@@ -265,26 +272,31 @@ export const skillRegistryHandler = {
     delete node.__skillRegistryState;
   },
 
-  onEvent(node: HSPlusNode, config: SkillRegistryConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SkillRegistryConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: SkillRegistryState | undefined = node.__skillRegistryState;
     if (!state) return;
 
     switch (event.type) {
       case 'skill_install':
-        this._install(state, node, config, ctx, (event.payload as Record<string, unknown>));
+        this._install(state, node, config, ctx, event.payload as Record<string, unknown>);
         break;
 
       case 'skill_uninstall': {
         const { skillId } = (event.payload as TraitEventPayload) ?? {};
-        if (!skillId || !state.skills.has((skillId as string))) return;
-        state.skills.delete((skillId as string));
+        if (!skillId || !state.skills.has(skillId as string)) return;
+        state.skills.delete(skillId as string);
         ctx.emit('skill_uninstalled', { node, skillId });
         break;
       }
 
       case 'skill_invoke':
-        this._invoke(state, node, config, ctx, (event.payload as Record<string, unknown>));
+        this._invoke(state, node, config, ctx, event.payload as Record<string, unknown>);
         break;
 
       case 'skill_list':
@@ -382,7 +394,7 @@ export const skillRegistryHandler = {
     const { skillId, inputs = {}, invocationId } = payload ?? {};
     if (!skillId) return;
 
-    const skill = state.skills.get((skillId as string));
+    const skill = state.skills.get(skillId as string);
     if (!skill) {
       ctx.emit('skill_failed', { node, skillId, invocationId, error: `Unknown skill: ${skillId}` });
       return;
@@ -402,9 +414,10 @@ export const skillRegistryHandler = {
       }
     }
 
-    const id = invocationId ?? `(inv_ as string)${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const id =
+      invocationId ?? `(inv_ as string)${Date.now()}_${Math.random().toString(36).slice(2)}`;
     // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-    state.activeInvocations.set((id as string), { skillId, startedAt: Date.now() });
+    state.activeInvocations.set(id as string, { skillId, startedAt: Date.now() });
     state.totalInvocations++;
 
     ctx.emit('skill_invoked', { node, skillId, invocationId: id, inputs });
@@ -419,9 +432,9 @@ export const skillRegistryHandler = {
       )
     );
 
-    Promise.race([skill.execute((inputs as Record<string, unknown>), skillCtx), timeoutPromise])
+    Promise.race([skill.execute(inputs as Record<string, unknown>, skillCtx), timeoutPromise])
       .then((result) => {
-        state.activeInvocations.delete((id as string));
+        state.activeInvocations.delete(id as string);
         state.totalSuccesses++;
         ctx.emit('skill_result', {
           node,
@@ -432,7 +445,7 @@ export const skillRegistryHandler = {
         });
       })
       .catch((err: Error) => {
-        state.activeInvocations.delete((id as string));
+        state.activeInvocations.delete(id as string);
         state.totalFailures++;
         ctx.emit('skill_failed', { node, skillId, invocationId: id, error: err.message });
       });

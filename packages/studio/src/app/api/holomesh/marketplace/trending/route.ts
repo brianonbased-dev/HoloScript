@@ -27,12 +27,9 @@ import { holomeshTransactions } from '../../../../../db/schema';
 import { rateLimit } from '../../../../../lib/rate-limiter';
 
 const BASE =
-  process.env.HOLOMESH_API_URL ||
-  process.env.MCP_SERVER_URL ||
-  'https://mcp.holoscript.net';
+  process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 
-const MCP_KEY =
-  process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
+const MCP_KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -109,13 +106,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const rl = rateLimit(
     req,
     { max: 120, windowMs: 60_000, label: 'Too many trending requests.' },
-    'marketplace-trending',
+    'marketplace-trending'
   );
   if (!rl.ok) return rl.response;
 
   const { searchParams } = req.nextUrl;
   const limit = parseIntClamped(searchParams.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT);
-  const windowHours = parseIntClamped(searchParams.get('window'), DEFAULT_WINDOW_HOURS, 1, MAX_WINDOW_HOURS);
+  const windowHours = parseIntClamped(
+    searchParams.get('window'),
+    DEFAULT_WINDOW_HOURS,
+    1,
+    MAX_WINDOW_HOURS
+  );
   const domain = searchParams.get('domain') ?? undefined;
 
   const windowMs = windowHours * 60 * 60 * 1000;
@@ -140,8 +142,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           and(
             eq(holomeshTransactions.type, 'purchase'),
             gte(holomeshTransactions.mcpCreatedAt, cutoff),
-            isNotNull(holomeshTransactions.entryId),
-          ),
+            isNotNull(holomeshTransactions.entryId)
+          )
         )
         .groupBy(holomeshTransactions.entryId)
         .orderBy(desc(sql`count(*)`))
@@ -164,10 +166,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const catalogue = await fetchMcpCatalogue(domain);
 
   if (catalogue.length === 0) {
-    return NextResponse.json({
-      success: false,
-      error: 'Upstream catalogue unavailable',
-    }, { status: 502 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Upstream catalogue unavailable',
+      },
+      { status: 502 }
+    );
   }
 
   // -------------------------------------------------------------------------

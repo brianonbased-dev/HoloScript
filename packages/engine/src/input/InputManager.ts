@@ -356,4 +356,3 @@ export class InputManager {
     }
   }
 }
-

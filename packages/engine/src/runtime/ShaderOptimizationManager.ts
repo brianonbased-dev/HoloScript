@@ -606,4 +606,3 @@ export class ShaderOptimizationManager {
     this.materials.clear();
   }
 }
-

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_CONFIGS: Record<string, { baseUrl: string; envKey: string; authHeader: string; prefix?: string }> = {
+const API_CONFIGS: Record<
+  string,
+  { baseUrl: string; envKey: string; authHeader: string; prefix?: string }
+> = {
   meshy: {
     baseUrl: 'https://api.meshy.ai/v2',
     envKey: 'MESHY_API_KEY',
@@ -18,23 +21,38 @@ const API_CONFIGS: Record<string, { baseUrl: string; envKey: string; authHeader:
   },
 };
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ service: string; path: string[] }> }
+) {
   return handleProxyRequest(request, await params);
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ service: string; path: string[] }> }
+) {
   return handleProxyRequest(request, await params);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ service: string; path: string[] }> }
+) {
   return handleProxyRequest(request, await params);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ service: string; path: string[] }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ service: string; path: string[] }> }
+) {
   return handleProxyRequest(request, await params);
 }
 
-async function handleProxyRequest(request: NextRequest, params: { service: string; path: string[] }) {
+async function handleProxyRequest(
+  request: NextRequest,
+  params: { service: string; path: string[] }
+) {
   const { service, path } = params;
   const config = API_CONFIGS[service];
 
@@ -48,7 +66,7 @@ async function handleProxyRequest(request: NextRequest, params: { service: strin
   }
 
   const targetUrl = new URL(`${config.baseUrl}/${path.join('/')}`);
-  
+
   // Forward query parameters
   targetUrl.search = request.nextUrl.search;
 
@@ -74,7 +92,7 @@ async function handleProxyRequest(request: NextRequest, params: { service: strin
     const response = await fetch(targetUrl.toString(), fetchOptions);
 
     const responseHeaders = new Headers(response.headers);
-    responseHeaders.delete('content-encoding'); 
+    responseHeaders.delete('content-encoding');
 
     return new NextResponse(response.body, {
       status: response.status,

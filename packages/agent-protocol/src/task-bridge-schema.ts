@@ -79,7 +79,9 @@ export function canonicalTaskToA2ASendMessage(
   };
 }
 
-export function a2aSendMessageToCanonicalTaskEnvelope(payload: unknown): CanonicalTaskEnvelope | null {
+export function a2aSendMessageToCanonicalTaskEnvelope(
+  payload: unknown
+): CanonicalTaskEnvelope | null {
   if (!payload || typeof payload !== 'object') return null;
   const request = payload as {
     params?: { message?: { parts?: Array<{ data?: Record<string, unknown> }> } };
@@ -103,8 +105,7 @@ export function a2aSendMessageToCanonicalTaskEnvelope(payload: unknown): Canonic
     timeout: typeof data.timeout === 'number' ? data.timeout : undefined,
     skillId: typeof data.skillId === 'string' ? data.skillId : undefined,
     input: isRecord(data.arguments) ? data.arguments : undefined,
-    idempotency_key:
-      typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
+    idempotency_key: typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
   };
 
   return createCanonicalTaskEnvelope(legacyTask);
@@ -116,12 +117,18 @@ export function canonicalTaskToHSNAPSource(
 ): string {
   const sections: string[] = [];
 
-  sections.push(`@task ${serializeObjectLiteral(envelope.task as unknown as Record<string, unknown>)}`);
+  sections.push(
+    `@task ${serializeObjectLiteral(envelope.task as unknown as Record<string, unknown>)}`
+  );
   if (envelope.result) {
-    sections.push(`@result ${serializeObjectLiteral(envelope.result as unknown as Record<string, unknown>)}`);
+    sections.push(
+      `@result ${serializeObjectLiteral(envelope.result as unknown as Record<string, unknown>)}`
+    );
   }
   if (envelope.agent) {
-    sections.push(`@agent ${serializeObjectLiteral(envelope.agent as unknown as Record<string, unknown>)}`);
+    sections.push(
+      `@agent ${serializeObjectLiteral(envelope.agent as unknown as Record<string, unknown>)}`
+    );
   }
 
   sections.push(`composition ${compositionName} {}`);

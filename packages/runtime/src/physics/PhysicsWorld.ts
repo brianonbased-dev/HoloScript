@@ -143,7 +143,12 @@ export class PhysicsWorld {
       const mesh = this.meshes.get(id);
       if (mesh) {
         mesh.position.set(body.position.x, body.position.y, body.position.z);
-        mesh.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
+        mesh.quaternion.set(
+          body.quaternion.x,
+          body.quaternion.y,
+          body.quaternion.z,
+          body.quaternion.w
+        );
       }
     });
   }
@@ -176,73 +181,83 @@ export class PhysicsWorld {
 
   private setupCollisionEvents(): void {
     // Track collision start
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cannon-es event types are untyped
-    this.world.addEventListener('beginContact', (event: { bodyA: CANNON.Body; bodyB: CANNON.Body; contactEquations?: Array<{ ri: CANNON.Vec3; ni: CANNON.Vec3; multiplier: number }> }) => {
-      const idA = this.findBodyId(event.bodyA);
-      const idB = this.findBodyId(event.bodyB);
-      if (!idA || !idB) return;
 
-      const pairKey = this.getPairKey(idA, idB);
-      if (this.activeCollisions.has(pairKey)) return;
-      this.activeCollisions.add(pairKey);
+    this.world.addEventListener(
+      'beginContact',
+      (event: {
+        bodyA: CANNON.Body;
+        bodyB: CANNON.Body;
+        contactEquations?: Array<{ ri: CANNON.Vec3; ni: CANNON.Vec3; multiplier: number }>;
+      }) => {
+        const idA = this.findBodyId(event.bodyA);
+        const idB = this.findBodyId(event.bodyB);
+        if (!idA || !idB) return;
 
-      const configA = this.bodyConfigs.get(idA);
-      const configB = this.bodyConfigs.get(idB);
-      const isTrigger = configA?.isTrigger || configB?.isTrigger;
+        const pairKey = this.getPairKey(idA, idB);
+        if (this.activeCollisions.has(pairKey)) return;
+        this.activeCollisions.add(pairKey);
 
-      const collisionEvent: CollisionEvent = {
-        type: isTrigger ? 'trigger-enter' : 'collision-start',
-        bodyA: idA,
-        bodyB: idB,
-        contactPoint: event.contactEquations?.[0]?.ri
-          ? {
-              x: event.bodyA.position.x + event.contactEquations[0].ri.x,
-              y: event.bodyA.position.y + event.contactEquations[0].ri.y,
-              z: event.bodyA.position.z + event.contactEquations[0].ri.z,
-            }
-          : undefined,
-        contactNormal: event.contactEquations?.[0]?.ni
-          ? {
-              x: event.contactEquations[0].ni.x,
-              y: event.contactEquations[0].ni.y,
-              z: event.contactEquations[0].ni.z,
-            }
-          : undefined,
-        relativeVelocity: {
-          x: event.bodyA.velocity.x - event.bodyB.velocity.x,
-          y: event.bodyA.velocity.y - event.bodyB.velocity.y,
-          z: event.bodyA.velocity.z - event.bodyB.velocity.z,
-        },
-        impulse: event.contactEquations?.[0]?.multiplier,
-        timestamp: performance.now(),
-      };
+        const configA = this.bodyConfigs.get(idA);
+        const configB = this.bodyConfigs.get(idB);
+        const isTrigger = configA?.isTrigger || configB?.isTrigger;
 
-      this.emitCollision(collisionEvent, idA, idB);
-    });
+        const collisionEvent: CollisionEvent = {
+          type: isTrigger ? 'trigger-enter' : 'collision-start',
+          bodyA: idA,
+          bodyB: idB,
+          contactPoint: event.contactEquations?.[0]?.ri
+            ? {
+                x: event.bodyA.position.x + event.contactEquations[0].ri.x,
+                y: event.bodyA.position.y + event.contactEquations[0].ri.y,
+                z: event.bodyA.position.z + event.contactEquations[0].ri.z,
+              }
+            : undefined,
+          contactNormal: event.contactEquations?.[0]?.ni
+            ? {
+                x: event.contactEquations[0].ni.x,
+                y: event.contactEquations[0].ni.y,
+                z: event.contactEquations[0].ni.z,
+              }
+            : undefined,
+          relativeVelocity: {
+            x: event.bodyA.velocity.x - event.bodyB.velocity.x,
+            y: event.bodyA.velocity.y - event.bodyB.velocity.y,
+            z: event.bodyA.velocity.z - event.bodyB.velocity.z,
+          },
+          impulse: event.contactEquations?.[0]?.multiplier,
+          timestamp: performance.now(),
+        };
+
+        this.emitCollision(collisionEvent, idA, idB);
+      }
+    );
 
     // Track collision end
-    this.world.addEventListener('endContact', (event: { bodyA: CANNON.Body; bodyB: CANNON.Body }) => {
-      const idA = this.findBodyId(event.bodyA);
-      const idB = this.findBodyId(event.bodyB);
-      if (!idA || !idB) return;
+    this.world.addEventListener(
+      'endContact',
+      (event: { bodyA: CANNON.Body; bodyB: CANNON.Body }) => {
+        const idA = this.findBodyId(event.bodyA);
+        const idB = this.findBodyId(event.bodyB);
+        if (!idA || !idB) return;
 
-      const pairKey = this.getPairKey(idA, idB);
-      if (!this.activeCollisions.has(pairKey)) return;
-      this.activeCollisions.delete(pairKey);
+        const pairKey = this.getPairKey(idA, idB);
+        if (!this.activeCollisions.has(pairKey)) return;
+        this.activeCollisions.delete(pairKey);
 
-      const configA = this.bodyConfigs.get(idA);
-      const configB = this.bodyConfigs.get(idB);
-      const isTrigger = configA?.isTrigger || configB?.isTrigger;
+        const configA = this.bodyConfigs.get(idA);
+        const configB = this.bodyConfigs.get(idB);
+        const isTrigger = configA?.isTrigger || configB?.isTrigger;
 
-      const collisionEvent: CollisionEvent = {
-        type: isTrigger ? 'trigger-exit' : 'collision-end',
-        bodyA: idA,
-        bodyB: idB,
-        timestamp: performance.now(),
-      };
+        const collisionEvent: CollisionEvent = {
+          type: isTrigger ? 'trigger-exit' : 'collision-end',
+          bodyA: idA,
+          bodyB: idB,
+          timestamp: performance.now(),
+        };
 
-      this.emitCollision(collisionEvent, idA, idB);
-    });
+        this.emitCollision(collisionEvent, idA, idB);
+      }
+    );
   }
 
   private findBodyId(body: CANNON.Body): string | undefined {

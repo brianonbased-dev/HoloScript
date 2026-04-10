@@ -42,14 +42,16 @@ export class NeuralStreamingTransport {
     this.config = {
       useWebRTC: config.useWebRTC,
       endpointUrl: config.endpointUrl ?? 'ws://localhost:8080/neural',
-      rtcConfiguration: config.rtcConfiguration ?? { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+      rtcConfiguration: config.rtcConfiguration ?? {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      },
       chunkSize: config.chunkSize ?? 16384, // 16KB safe limit for WebRTC
     };
   }
 
   public async connect(signalingBridge?: ISignalingBridge): Promise<void> {
     if (this.isConnected) return;
-    
+
     if (signalingBridge) {
       this.signalingBridge = signalingBridge;
       this.signalingBridge.onReceiveSignal(this.handleSignalingMessage.bind(this));
@@ -60,7 +62,7 @@ export class NeuralStreamingTransport {
     } else {
       await this.initWebSocket();
     }
-    
+
     // Note: isConnected becomes true only after data channel or socket opens
   }
 
@@ -68,12 +70,12 @@ export class NeuralStreamingTransport {
     return new Promise((resolve, reject) => {
       this.socket = new WebSocket(this.config.endpointUrl);
       this.socket.binaryType = 'arraybuffer';
-      
+
       this.socket.onopen = () => {
         this.isConnected = true;
         resolve();
       };
-      
+
       this.socket.onerror = (e) => {
         console.error('NeuralStreamingTransport WebSocket Error', e);
         reject(e);
@@ -84,7 +86,7 @@ export class NeuralStreamingTransport {
   private initWebRTC(): Promise<void> {
     return new Promise((resolve) => {
       this.peerConnection = new RTCPeerConnection(this.config.rtcConfiguration);
-      
+
       this.peerConnection.onicecandidate = (event) => {
         if (event.candidate && this.signalingBridge) {
           this.signalingBridge.sendSignal({ type: 'ice-candidate', candidate: event.candidate });
@@ -94,7 +96,9 @@ export class NeuralStreamingTransport {
       this.peerConnection.oniceconnectionstatechange = () => {
         const state = this.peerConnection?.iceConnectionState;
         if (state === 'disconnected' || state === 'failed') {
-          console.warn('[NeuralStreamingTransport] ICE connection failed/disconnected. Attempting autonomous reconnect...');
+          console.warn(
+            '[NeuralStreamingTransport] ICE connection failed/disconnected. Attempting autonomous reconnect...'
+          );
           this.isConnected = false;
           this.attemptReconnect();
         } else if (state === 'connected' || state === 'completed') {
@@ -105,7 +109,7 @@ export class NeuralStreamingTransport {
       // Assume DataChannel initiation from our side for streaming out
       this.dataChannel = this.peerConnection.createDataChannel('neural-streaming', {
         ordered: false, // Out of order is fine for streaming, we drop old frames
-        maxRetransmits: 0 // Drop instead of retry for real-time
+        maxRetransmits: 0, // Drop instead of retry for real-time
       });
 
       this.dataChannel.onopen = () => {
@@ -115,13 +119,16 @@ export class NeuralStreamingTransport {
 
       // If we have a signaling bridge, initiate the offer immediately
       if (this.signalingBridge && !this.isReconnecting) {
-        this.peerConnection.createOffer().then((offer) => {
-          return this.peerConnection!.setLocalDescription(offer).then(() => {
-            this.signalingBridge!.sendSignal({ type: 'offer', sdp: offer });
+        this.peerConnection
+          .createOffer()
+          .then((offer) => {
+            return this.peerConnection!.setLocalDescription(offer).then(() => {
+              this.signalingBridge!.sendSignal({ type: 'offer', sdp: offer });
+            });
+          })
+          .catch((err) => {
+            console.error('[NeuralStreamingTransport] Failed to create offer', err);
           });
-        }).catch((err) => {
-          console.error('[NeuralStreamingTransport] Failed to create offer', err);
-        });
       }
     });
   }
@@ -153,11 +160,11 @@ export class NeuralStreamingTransport {
   private async attemptReconnect(): Promise<void> {
     if (this.isReconnecting) return;
     this.isReconnecting = true;
-    
+
     // Teardown
     this.dataChannel?.close();
     this.peerConnection?.close();
-    
+
     // Backoff reconnect
     setTimeout(async () => {
       await this.initWebRTC();
@@ -173,7 +180,7 @@ export class NeuralStreamingTransport {
 
     const payload = JSON.stringify({
       type: 'neural',
-      data: packet
+      data: packet,
     });
 
     if (this.dataChannel && this.dataChannel.readyState === 'open') {
@@ -197,7 +204,7 @@ export class NeuralStreamingTransport {
       cameraState: packet.cameraState,
       // Total bytes expecting
       compressedBytes: packet.compressedSplatsBuffer.byteLength,
-      indicesBytes: packet.sortedIndicesBuffer.byteLength
+      indicesBytes: packet.sortedIndicesBuffer.byteLength,
     };
 
     if (this.dataChannel && this.dataChannel.readyState === 'open') {

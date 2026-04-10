@@ -111,7 +111,10 @@ describe('AndroidXRTraitMap', () => {
   });
 
   it('generates PBD constraint code', () => {
-    const code = generateTraitCode('pbd_constraint', 'spring', { type: 'distance', stiffness: 0.8 });
+    const code = generateTraitCode('pbd_constraint', 'spring', {
+      type: 'distance',
+      stiffness: 0.8,
+    });
     expect(code.some((l) => l.includes('PBDConstraint'))).toBe(true);
     expect(code.some((l) => l.includes('DISTANCE'))).toBe(true);
   });
@@ -283,7 +286,10 @@ describe('AndroidXRTraitMap', () => {
   // =========== Multiplayer traits ===========
 
   it('generates state sync code', () => {
-    const code = generateTraitCode('state_sync', 'game', { strategy: 'P2P_CLUSTER', sync_rate: 30 });
+    const code = generateTraitCode('state_sync', 'game', {
+      strategy: 'P2P_CLUSTER',
+      sync_rate: 30,
+    });
     expect(code.some((l) => l.includes('Nearby.getConnectionsClient'))).toBe(true);
     expect(code.some((l) => l.includes('P2P_CLUSTER'))).toBe(true);
     expect(code.some((l) => l.includes('sendPayload'))).toBe(true);
@@ -330,7 +336,10 @@ describe('AndroidXRTraitMap', () => {
   // =========== AI traits ===========
 
   it('generates pathfinding code', () => {
-    const code = generateTraitCode('pathfinding', 'npc', { algorithm: 'a_star', agent_radius: 0.5 });
+    const code = generateTraitCode('pathfinding', 'npc', {
+      algorithm: 'a_star',
+      agent_radius: 0.5,
+    });
     expect(code.some((l) => l.includes('NavigationMesh'))).toBe(true);
     expect(code.some((l) => l.includes('findPath'))).toBe(true);
     expect(code.some((l) => l.includes('A_STAR'))).toBe(true);
@@ -358,7 +367,10 @@ describe('AndroidXRTraitMap', () => {
   });
 
   it('generates NPC perception code', () => {
-    const code = generateTraitCode('npc_perception', 'sentry', { view_angle: 90, view_distance: 20 });
+    const code = generateTraitCode('npc_perception', 'sentry', {
+      view_angle: 90,
+      view_distance: 20,
+    });
     expect(code.some((l) => l.includes('PerceivedEntity'))).toBe(true);
     expect(code.some((l) => l.includes('Vision cone check'))).toBe(true);
     expect(code.some((l) => l.includes('Hearing check'))).toBe(true);
@@ -488,7 +500,13 @@ describe('AndroidXRTraitMap', () => {
   it('every trait references the varName in output', () => {
     const traits = listAllTraits();
     // Some traits like ai_inpainting don't use varName; skip those
-    const exceptions = new Set(['ai_inpainting', 'neural_forge', 'vector_db', 'visible', 'invisible']);
+    const exceptions = new Set([
+      'ai_inpainting',
+      'neural_forge',
+      'vector_db',
+      'visible',
+      'invisible',
+    ]);
     for (const trait of traits) {
       if (exceptions.has(trait)) continue;
       const code = generateTraitCode(trait, 'myTestVar', {});

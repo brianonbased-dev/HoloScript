@@ -16,7 +16,12 @@ export const fullTextSearchHandler: TraitHandler<FullTextSearchConfig> = {
     delete node.__ftsState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: FullTextSearchConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: FullTextSearchConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__ftsState as { index: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

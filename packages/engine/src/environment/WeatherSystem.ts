@@ -171,4 +171,3 @@ export class WeatherSystem {
     return [...this.history];
   }
 }
-

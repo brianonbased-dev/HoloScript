@@ -142,7 +142,8 @@ export class WebCodecsDepthPipeline {
     this.ctx = this.canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
 
     // Create VideoDecoder
-    const VideoDecoderClass = (globalThis as unknown as { VideoDecoder: typeof VideoDecoder }).VideoDecoder;
+    const VideoDecoderClass = (globalThis as unknown as { VideoDecoder: typeof VideoDecoder })
+      .VideoDecoder;
     this.decoder = new VideoDecoderClass({
       output: (frame: VideoFrame) => this._handleDecodedFrame(frame),
       error: (err: Error) => {
@@ -279,4 +280,3 @@ export class WebCodecsDepthPipeline {
     this.ctx = null;
   }
 }
-

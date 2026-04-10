@@ -36,17 +36,21 @@ describe('defineProtocolAgent', () => {
   // ── Validation ──
 
   it('throws on empty name', () => {
-    expect(() => defineProtocolAgent({ ...BASE_CONFIG, name: '' })).toThrow('Agent name is required');
+    expect(() => defineProtocolAgent({ ...BASE_CONFIG, name: '' })).toThrow(
+      'Agent name is required'
+    );
   });
 
   it('throws on invalid role', () => {
-    expect(() => defineProtocolAgent({ ...BASE_CONFIG, role: 'wizard' as never })).toThrow('Invalid role');
+    expect(() => defineProtocolAgent({ ...BASE_CONFIG, role: 'wizard' as never })).toThrow(
+      'Invalid role'
+    );
   });
 
   it('throws on missing model provider', () => {
-    expect(() => defineProtocolAgent({ ...BASE_CONFIG, model: { provider: '' as never, model: 'x' } })).toThrow(
-      'Agent model must specify provider and model'
-    );
+    expect(() =>
+      defineProtocolAgent({ ...BASE_CONFIG, model: { provider: '' as never, model: 'x' } })
+    ).toThrow('Agent model must specify provider and model');
   });
 
   it('throws on empty capabilities', () => {
@@ -138,7 +142,7 @@ describe('defineProtocolAgent', () => {
     expect(handle.status).toBe('cancelled');
 
     // At least INTAKE and REFLECT ran, then EXECUTE should be skipped
-    const skipped = result.phases.filter(p => p.status === 'skipped');
+    const skipped = result.phases.filter((p) => p.status === 'skipped');
     expect(skipped.length).toBeGreaterThan(0);
   });
 
@@ -256,7 +260,13 @@ describe('protocolToFrameworkCycleResult', () => {
           status: 'success',
           data: {
             validated: [
-              { type: 'wisdom', content: 'insight', domain: 'testing', confidence: 0.8, source: 'test' },
+              {
+                type: 'wisdom',
+                content: 'insight',
+                domain: 'testing',
+                confidence: 0.8,
+                source: 'test',
+              },
             ],
           },
           durationMs: 50,

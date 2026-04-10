@@ -107,5 +107,5 @@ export function getDomainThresholds(
   plugin: LoadedDomainPlugin,
   sensorType: string
 ): ThresholdPreset[] {
-  return plugin.allThresholds.filter(t => t.sensor === sensorType);
+  return plugin.allThresholds.filter((t) => t.sensor === sensorType);
 }

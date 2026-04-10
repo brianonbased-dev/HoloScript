@@ -35,7 +35,8 @@ describe('/api/github/search route', () => {
               name: 'route.ts',
               path: 'packages/studio/src/app/api/github/pr/route.ts',
               sha: 'abc123',
-              html_url: 'https://github.com/brianonbased-dev/HoloScript/blob/main/packages/studio/src/app/api/github/pr/route.ts',
+              html_url:
+                'https://github.com/brianonbased-dev/HoloScript/blob/main/packages/studio/src/app/api/github/pr/route.ts',
               repository: { full_name: 'brianonbased-dev/HoloScript' },
               text_matches: [
                 {

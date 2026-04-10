@@ -48,12 +48,12 @@ export class PressableTrait implements Trait {
       // Let's rely on node.properties.position for initial reference if not set.
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialPos = node.properties.position
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        ? { ...node.properties.position }
+        ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+          { ...node.properties.position }
         : { x: 0, y: 0, z: 0 };
     }
 
-    const currentPos = context.physics.getBodyPosition((node.id as string));
+    const currentPos = context.physics.getBodyPosition(node.id as string);
     if (!currentPos || !this.initialPos) return;
 
     // Calculate depression along Z axis (local)
@@ -85,7 +85,7 @@ export class PressableTrait implements Trait {
       // Pulse both hands — physics contact alone doesn't identify which hand pressed.
       context.haptics.pulse('left', 0.5, 20);
       context.haptics.pulse('right', 0.5, 20);
-    // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
     } else if (this.isPressed && depression < releasePoint) {
       this.isPressed = false;
       context.emit('ui_press_end', { nodeId: node.id });

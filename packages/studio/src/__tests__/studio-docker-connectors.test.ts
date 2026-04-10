@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const studioRoot = resolve(__dirname, '../..');
-const packageJson = JSON.parse(
-  readFileSync(resolve(studioRoot, 'package.json'), 'utf8')
-) as { dependencies?: Record<string, string> };
+const packageJson = JSON.parse(readFileSync(resolve(studioRoot, 'package.json'), 'utf8')) as {
+  dependencies?: Record<string, string>;
+};
 const dockerfile = readFileSync(resolve(studioRoot, 'Dockerfile'), 'utf8');
 
 const connectorPackages = Object.keys(packageJson.dependencies ?? {}).filter((name) =>

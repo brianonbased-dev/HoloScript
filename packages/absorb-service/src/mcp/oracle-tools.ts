@@ -51,23 +51,22 @@ const DECISION_TREES: Record<string, string> = {
 // =============================================================================
 
 const ORCHESTRATOR_URL =
-  process.env.MCP_ORCHESTRATOR_URL ||
-  'https://mcp-orchestrator-production-45f9.up.railway.app';
+  process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 const ORACLE_TELEMETRY_PATH =
   process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
 
-function inferHardwareTarget(
-  question: string,
-  context: string,
-  explicitTarget?: unknown
-): string {
+function inferHardwareTarget(question: string, context: string, explicitTarget?: unknown): string {
   if (typeof explicitTarget === 'string' && explicitTarget.trim()) {
     return explicitTarget.trim().toLowerCase();
   }
 
   const haystack = `${question} ${context}`.toLowerCase();
-  if (haystack.includes('quest') || haystack.includes('mobile') || haystack.includes('android-xr')) {
+  if (
+    haystack.includes('quest') ||
+    haystack.includes('mobile') ||
+    haystack.includes('android-xr')
+  ) {
     return 'mobile-xr';
   }
   if (
@@ -77,10 +76,19 @@ function inferHardwareTarget(
   ) {
     return 'visionos';
   }
-  if (haystack.includes('openxr') || haystack.includes('pc vr') || haystack.includes('desktop vr')) {
+  if (
+    haystack.includes('openxr') ||
+    haystack.includes('pc vr') ||
+    haystack.includes('desktop vr')
+  ) {
     return 'desktop-vr';
   }
-  if (haystack.includes('edge') || haystack.includes('iot') || haystack.includes('raspberry') || haystack.includes('jetson')) {
+  if (
+    haystack.includes('edge') ||
+    haystack.includes('iot') ||
+    haystack.includes('raspberry') ||
+    haystack.includes('jetson')
+  ) {
     return 'edge-iot';
   }
   return 'unknown';
@@ -226,7 +234,8 @@ export async function handleOracleTool(
     tool: 'holo_oracle_consult',
     ideClient,
     hardwareTarget,
-    outcome: results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
+    outcome:
+      results.length === 1 && results[0].startsWith('## No Oracle Match') ? 'no_match' : 'answered',
     decisionTreeMatches: dtMatches.length,
     knowledgeMatches: kEntries.length,
     questionPreview: question.slice(0, 200),

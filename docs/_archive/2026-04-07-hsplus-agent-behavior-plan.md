@@ -24,22 +24,26 @@ Treat `.hsplus` as the executable behavior language for:
 ## High-value example packs to add
 
 ### 1. Solo agent behaviors
+
 - planner agent
 - tool-using researcher
 - moderator with norm checks
 - watcher/monitor agent
 
 ### 2. Multi-agent coordination
+
 - planner -> executor -> reviewer
 - scout -> collector -> synthesizer
 - swarm voting / confidence merge
 
 ### 3. Governance and norms
+
 - norm enforcement agent
 - metanorm escalation workflow
 - sanction / appeal behavior loop
 
 ### 4. Runtime integration examples
+
 - event bus driven behavior
 - memory-backed blackboard coordination
 - queue / pipeline / webhook triggered agents

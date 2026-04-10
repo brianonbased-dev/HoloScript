@@ -39,7 +39,10 @@ export interface FleetAgent {
 
 // ── Platform config ──────────────────────────────────────────────────────────
 
-const PLATFORM_META: Record<AgentPlatform, { label: string; icon: React.ReactNode; color: string; border: string }> = {
+const PLATFORM_META: Record<
+  AgentPlatform,
+  { label: string; icon: React.ReactNode; color: string; border: string }
+> = {
   holomesh: {
     label: 'HoloMesh',
     icon: <Globe className="h-4 w-4" />,
@@ -93,12 +96,18 @@ export function MyAgentsTab() {
     }
   }, []);
 
-  useEffect(() => { loadAgents(); }, [loadAgents]);
+  useEffect(() => {
+    loadAgents();
+  }, [loadAgents]);
 
   const handleAction = useCallback(async (agentId: string, action: 'pause' | 'resume' | 'stop') => {
     setActionLoading(agentId);
     try {
-      const statusMap: Record<string, AgentStatus> = { pause: 'paused', resume: 'active', stop: 'stopped' };
+      const statusMap: Record<string, AgentStatus> = {
+        pause: 'paused',
+        resume: 'active',
+        stop: 'stopped',
+      };
       const res = await fetch(`/api/agents/fleet/${agentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -107,7 +116,7 @@ export function MyAgentsTab() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated: unknown = await res.json();
       const body = updated as { agent: FleetAgent };
-      setAgents(prev => prev.map(a => a.id === agentId ? body.agent : a));
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? body.agent : a)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Action failed');
     } finally {
@@ -115,7 +124,7 @@ export function MyAgentsTab() {
     }
   }, []);
 
-  const visible = filter === 'all' ? agents : agents.filter(a => a.platform === filter);
+  const visible = filter === 'all' ? agents : agents.filter((a) => a.platform === filter);
   const FILTERS: Array<{ id: AgentPlatform | 'all'; label: string }> = [
     { id: 'all', label: 'All' },
     { id: 'holomesh', label: 'HoloMesh' },
@@ -150,12 +159,16 @@ export function MyAgentsTab() {
         <div className="mb-4 rounded-full bg-studio-panel p-4">
           <Globe className="h-8 w-8 text-studio-muted" />
         </div>
-        <p className="text-sm font-medium text-studio-text">Launch your first agent to start earning</p>
+        <p className="text-sm font-medium text-studio-text">
+          Launch your first agent to start earning
+        </p>
         <p className="mt-1 text-xs text-studio-muted">
-          Deploy agents to HoloMesh, Moltbook, or custom endpoints. They earn reputation and revenue autonomously.
+          Deploy agents to HoloMesh, Moltbook, or custom endpoints. They earn reputation and revenue
+          autonomously.
         </p>
         <p className="mt-3 text-xs text-studio-muted">
-          Switch to the <span className="text-studio-accent font-medium">Launch Agent</span> tab to get started.
+          Switch to the <span className="text-studio-accent font-medium">Launch Agent</span> tab to
+          get started.
         </p>
       </div>
     );
@@ -166,7 +179,7 @@ export function MyAgentsTab() {
       {/* Filters + refresh */}
       <div className="mb-4 flex items-center gap-3">
         <div className="flex gap-2">
-          {FILTERS.map(f => (
+          {FILTERS.map((f) => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
@@ -191,7 +204,7 @@ export function MyAgentsTab() {
 
       {/* Agent grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map(agent => {
+        {visible.map((agent) => {
           const plat = PLATFORM_META[agent.platform];
           const status = STATUS_BADGE[agent.status];
           const isLoading = actionLoading === agent.id;
@@ -210,7 +223,9 @@ export function MyAgentsTab() {
                     <div className="text-[10px] text-studio-muted">{plat.label}</div>
                   </div>
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.cls}`}>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.cls}`}
+                >
                   {status.label}
                 </span>
               </div>
@@ -218,15 +233,21 @@ export function MyAgentsTab() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div>
-                  <div className="text-xs font-bold text-indigo-400">{agent.reputation.toFixed(1)}</div>
+                  <div className="text-xs font-bold text-indigo-400">
+                    {agent.reputation.toFixed(1)}
+                  </div>
                   <div className="text-[9px] text-studio-muted uppercase">Rep</div>
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-emerald-400">${(agent.earningsCents / 100).toFixed(2)}</div>
+                  <div className="text-xs font-bold text-emerald-400">
+                    ${(agent.earningsCents / 100).toFixed(2)}
+                  </div>
                   <div className="text-[9px] text-studio-muted uppercase">Earned</div>
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-amber-400">${(agent.spentCents / 100).toFixed(2)}</div>
+                  <div className="text-xs font-bold text-amber-400">
+                    ${(agent.spentCents / 100).toFixed(2)}
+                  </div>
                   <div className="text-[9px] text-studio-muted uppercase">Spent</div>
                 </div>
               </div>

@@ -14,7 +14,11 @@ type DaemonExecResult = { code: number; stdout: string; stderr: string };
 type DaemonHost = unknown;
 type DaemonConfig = Record<string, unknown>;
 type LLMProvider = unknown;
-const createDaemonActions = (..._args: unknown[]): { actions: Record<string, (...a: unknown[]) => Promise<boolean>> } => { throw new Error('skipped'); };
+const createDaemonActions = (
+  ..._args: unknown[]
+): { actions: Record<string, (...a: unknown[]) => Promise<boolean>> } => {
+  throw new Error('skipped');
+};
 
 type Blackboard = Record<string, unknown>;
 

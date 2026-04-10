@@ -160,7 +160,10 @@ describe('TraitCompositionCompiler — Production', () => {
 
   it('two non-conflicting traits compile without error', () => {
     const decl: TraitCompositionDecl = { name: 'OK', components: ['p', 'q'] };
-    const registry = makeRegistry({ p: makeHandler({ distinctA: 1 }), q: makeHandler({ distinctB: 2 }) });
+    const registry = makeRegistry({
+      p: makeHandler({ distinctA: 1 }),
+      q: makeHandler({ distinctB: 2 }),
+    });
     expect(() => compiler.compile([decl], registry)).not.toThrow();
   });
 

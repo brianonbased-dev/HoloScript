@@ -29,7 +29,12 @@ export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: FineTuneConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: FineTuneConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__fineTuneState as
       | { jobs: Map<string, { modelId: string; status: string; progress: number }> }
       | undefined;

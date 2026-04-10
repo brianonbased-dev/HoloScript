@@ -1136,4 +1136,3 @@ export class PhysicsActivationController {
     this.stateTime = 0;
   }
 }
-

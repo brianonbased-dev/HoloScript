@@ -504,7 +504,13 @@ export class GranularMaterialSystem {
 }
 
 // ── Handler (delegates to GranularMaterialSystem) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const granularMaterialHandler = {
   name: 'granular_material',

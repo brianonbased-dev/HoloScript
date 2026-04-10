@@ -33,16 +33,17 @@ export async function POST(req: NextRequest) {
   } | null;
 
   if (!body?.workspacePath || !body?.message) {
-    return NextResponse.json(
-      { error: 'Required: workspacePath, message' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Required: workspacePath, message' }, { status: 400 });
   }
 
   const { workspacePath, message, files, author } = body;
 
   // Security: workspacePath must be inside ~/.holoscript/workspaces
-  const allowedRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', '.holoscript', 'workspaces');
+  const allowedRoot = path.join(
+    process.env.HOME ?? process.env.USERPROFILE ?? '',
+    '.holoscript',
+    'workspaces'
+  );
   const resolved = path.resolve(workspacePath);
   if (!resolved.startsWith(allowedRoot)) {
     return NextResponse.json(
@@ -72,22 +73,25 @@ export async function POST(req: NextRequest) {
     await execFileAsync('git', ['add', ...addArgs], { cwd: resolved, env });
 
     // Check if there's anything to commit
-    const { stdout: statusOut } = await execFileAsync(
-      'git', ['status', '--porcelain'], { cwd: resolved, env }
-    );
+    const { stdout: statusOut } = await execFileAsync('git', ['status', '--porcelain'], {
+      cwd: resolved,
+      env,
+    });
     if (!statusOut.trim()) {
       return NextResponse.json({ ok: true, sha: null, message: 'Nothing to commit.' });
     }
 
     // Commit
-    const { stdout: commitOut } = await execFileAsync(
-      'git', ['commit', '-m', message], { cwd: resolved, env }
-    );
+    const { stdout: commitOut } = await execFileAsync('git', ['commit', '-m', message], {
+      cwd: resolved,
+      env,
+    });
 
     // Get commit SHA
-    const { stdout: shaOut } = await execFileAsync(
-      'git', ['rev-parse', 'HEAD'], { cwd: resolved, env }
-    );
+    const { stdout: shaOut } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
+      cwd: resolved,
+      env,
+    });
 
     return NextResponse.json({
       ok: true,

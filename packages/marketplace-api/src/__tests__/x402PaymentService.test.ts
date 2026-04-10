@@ -100,7 +100,10 @@ describe('x402PaymentService', () => {
   });
 
   test('should call next() if payment receipt is valid', async () => {
-    vi.spyOn(service as unknown as { verifyPayment: () => unknown }, 'verifyPayment').mockResolvedValue({
+    vi.spyOn(
+      service as unknown as { verifyPayment: () => unknown },
+      'verifyPayment'
+    ).mockResolvedValue({
       access_granted: true,
     });
 
@@ -158,7 +161,11 @@ describe('x402PaymentService', () => {
 
   test('should rate limit excessive requests from same IP', async () => {
     const rateLimitedService = createService();
-    const middleware = rateLimitedService.requirePayment({ price: 5, asset: 'USDC', network: 'base' });
+    const middleware = rateLimitedService.requirePayment({
+      price: 5,
+      asset: 'USDC',
+      network: 'base',
+    });
 
     const makeReq = () =>
       ({
@@ -311,10 +318,7 @@ describe('x402PaymentService', () => {
     });
 
     expect(res.status).toHaveBeenCalledWith(402);
-    expect(res.header).toHaveBeenCalledWith(
-      'WWW-Authenticate',
-      expect.stringContaining('x402')
-    );
+    expect(res.header).toHaveBeenCalledWith('WWW-Authenticate', expect.stringContaining('x402'));
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         payment_id: 'test_pay_123',
@@ -344,9 +348,10 @@ describe('x402PaymentService', () => {
       access_expires_at: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
     };
 
-    vi.spyOn(service as unknown as { verifyPayment: () => unknown }, 'verifyPayment').mockResolvedValue(
-      expiredReceipt
-    );
+    vi.spyOn(
+      service as unknown as { verifyPayment: () => unknown },
+      'verifyPayment'
+    ).mockResolvedValue(expiredReceipt);
 
     const req = {
       headers: { 'x-payment-id': 'expired_sub_001' },

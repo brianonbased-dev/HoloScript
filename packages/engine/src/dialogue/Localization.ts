@@ -151,4 +151,3 @@ export class Localization {
     return (matched / total) * 100;
   }
 }
-

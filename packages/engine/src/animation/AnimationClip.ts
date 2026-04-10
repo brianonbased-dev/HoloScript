@@ -225,4 +225,3 @@ export class AnimClip {
     return result;
   }
 }
-

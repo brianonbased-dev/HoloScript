@@ -153,4 +153,3 @@ export class GrassRenderer {
     Object.assign(this.config, config);
   }
 }
-

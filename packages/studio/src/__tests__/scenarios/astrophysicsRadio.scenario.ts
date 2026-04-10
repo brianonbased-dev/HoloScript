@@ -3,7 +3,7 @@ import {
   mapRadioToVolumetric,
   calculatePulsarBeats,
   filterRFI,
-  type RadioSpectrumEvent
+  type RadioSpectrumEvent,
 } from '@/lib/astrophysicsScenario';
 
 describe('Scenario: Astrophysics Radio Lab', () => {
@@ -26,7 +26,7 @@ describe('Scenario: Astrophysics Radio Lab', () => {
   it('maps flux density to spatial bloom intensity', () => {
     const map1 = mapRadioToVolumetric(dataset[0]);
     const map2 = mapRadioToVolumetric(dataset[2]); // 3.0 jy
-    
+
     expect(map1.bloomIntensity).toBe(0.5); // 1.0 * 0.5
     expect(map2.bloomIntensity).toBe(1.5); // 3.0 * 0.5
   });

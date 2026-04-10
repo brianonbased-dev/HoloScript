@@ -55,4 +55,3 @@ export class VoiceManager {
     return this.mutedPeers.has(peerId);
   }
 }
-

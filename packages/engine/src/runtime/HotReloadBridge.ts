@@ -140,4 +140,3 @@ export class HotReloadBridge {
 }
 
 export default HotReloadBridge;
-

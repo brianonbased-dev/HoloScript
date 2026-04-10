@@ -249,7 +249,11 @@ describe('TeamCoordinator work cycle', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          content: [{ text: 'SUMMARY: Fixed the type error\nKNOWLEDGE:\n- [gotcha] Parser needs strict null checks' }],
+          content: [
+            {
+              text: 'SUMMARY: Fixed the type error\nKNOWLEDGE:\n- [gotcha] Parser needs strict null checks',
+            },
+          ],
           usage: { output_tokens: 50 },
         }),
     });
@@ -361,7 +365,11 @@ describe('TeamCoordinator work cycle', () => {
     });
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ content: [{ text: 'SUMMARY: Fixed bug' }], usage: { output_tokens: 20 } }),
+      json: () =>
+        Promise.resolve({
+          content: [{ text: 'SUMMARY: Fixed bug' }],
+          usage: { output_tokens: 20 },
+        }),
     });
     mockFetch.mockResolvedValueOnce({
       json: () => Promise.resolve({ success: true, task: { id: 'task_1', status: 'done' } }),

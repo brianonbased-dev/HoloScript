@@ -17,4 +17,3 @@ export {
   type MQTTClientState,
   type MQTTClientEvents,
 } from './MQTTClient';
-

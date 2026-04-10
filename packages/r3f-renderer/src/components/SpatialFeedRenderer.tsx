@@ -23,7 +23,6 @@ export interface HoloMeshWorldState {
   subscribe(callback: () => void): any;
 }
 
-
 export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldState }) {
   const feedParserRef = useRef<any>(null);
   const [entities, setEntities] = useState<SpatialEntity[]>([]);
@@ -51,8 +50,7 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
       // Placeholder subscription handler
     });
 
-    return () => {
-    };
+    return () => {};
   }, [worldState]);
 
   return (

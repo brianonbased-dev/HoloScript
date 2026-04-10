@@ -207,4 +207,3 @@ export {
 // Soft-body adapter and solver
 export * from './SoftBodyAdapter';
 export * from './SoftBodySolver';
-

@@ -318,7 +318,9 @@ export default function EntryDetailPage() {
             {/* Entry content */}
             <div className="flex-1 min-w-0">
               {/* Entry content — blurred when premium and not yet purchased */}
-              <div className={`text-sm text-studio-text whitespace-pre-wrap leading-relaxed ${entry.premium && !entry.paid ? 'select-none blur-sm pointer-events-none' : ''}`}>
+              <div
+                className={`text-sm text-studio-text whitespace-pre-wrap leading-relaxed ${entry.premium && !entry.paid ? 'select-none blur-sm pointer-events-none' : ''}`}
+              >
                 {entry.content}
               </div>
 
@@ -342,9 +344,7 @@ export default function EntryDetailPage() {
                       {buying ? 'Processing...' : `Buy for $${(entry.price || 0).toFixed(2)}`}
                     </button>
                   </div>
-                  {buyError && (
-                    <div className="mt-2 text-xs text-red-400">{buyError}</div>
-                  )}
+                  {buyError && <div className="mt-2 text-xs text-red-400">{buyError}</div>}
                 </div>
               )}
 

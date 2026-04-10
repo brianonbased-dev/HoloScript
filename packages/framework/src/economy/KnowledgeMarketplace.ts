@@ -80,12 +80,12 @@ export class KnowledgeMarketplace {
 
     // Confidence boost
     if (entry.confidence >= 0.8) {
-      price *= (this.pricingFactors.confidenceMultiplier ?? 1.5);
+      price *= this.pricingFactors.confidenceMultiplier ?? 1.5;
     }
 
     // Reuse boost — popular entries are worth more
     if (entry.reuseCount >= 5) {
-      price *= (this.pricingFactors.reuseMultiplier ?? 2.0);
+      price *= this.pricingFactors.reuseMultiplier ?? 2.0;
     }
 
     // Query frequency boost
@@ -98,7 +98,12 @@ export class KnowledgeMarketplace {
   }
 
   /** List a knowledge entry for sale. */
-  sellKnowledge(entry: StoredEntry, price: number, seller: string, currency: 'USDC' | 'credits' = 'USDC'): ListingResult {
+  sellKnowledge(
+    entry: StoredEntry,
+    price: number,
+    seller: string,
+    currency: 'USDC' | 'credits' = 'USDC'
+  ): ListingResult {
     if (price <= 0) return { success: false, listingId: '', error: 'Price must be positive' };
 
     // Prevent duplicate listings for same entry
@@ -133,8 +138,22 @@ export class KnowledgeMarketplace {
   buyKnowledge(listingId: string, buyer: string): PurchaseResult {
     const listing = this.listings.get(listingId);
     if (!listing) return { success: false, listingId, buyer, price: 0, error: 'Listing not found' };
-    if (listing.status !== 'active') return { success: false, listingId, buyer, price: listing.price, error: `Listing is ${listing.status}` };
-    if (listing.seller === buyer) return { success: false, listingId, buyer, price: listing.price, error: 'Cannot buy your own listing' };
+    if (listing.status !== 'active')
+      return {
+        success: false,
+        listingId,
+        buyer,
+        price: listing.price,
+        error: `Listing is ${listing.status}`,
+      };
+    if (listing.seller === buyer)
+      return {
+        success: false,
+        listingId,
+        buyer,
+        price: listing.price,
+        error: 'Cannot buy your own listing',
+      };
 
     listing.status = 'sold';
 
@@ -161,7 +180,7 @@ export class KnowledgeMarketplace {
 
   /** List all active listings. */
   activeListings(): KnowledgeListing[] {
-    return Array.from(this.listings.values()).filter(l => l.status === 'active');
+    return Array.from(this.listings.values()).filter((l) => l.status === 'active');
   }
 
   /** Get purchase history for a buyer. */
@@ -180,14 +199,14 @@ export class KnowledgeMarketplace {
   /** Total revenue for a seller across all sold listings. */
   sellerRevenue(seller: string): number {
     return Array.from(this.listings.values())
-      .filter(l => l.seller === seller && l.status === 'sold')
+      .filter((l) => l.seller === seller && l.status === 'sold')
       .reduce((sum, l) => sum + l.price, 0);
   }
 
   /** Total marketplace volume (all completed sales). */
   totalVolume(): number {
     return Array.from(this.listings.values())
-      .filter(l => l.status === 'sold')
+      .filter((l) => l.status === 'sold')
       .reduce((sum, l) => sum + l.price, 0);
   }
 }

@@ -53,7 +53,7 @@ export class ProjectileSystem {
     dirX: number,
     dirY: number,
     dirZ: number,
-    config: ProjectileConfig,
+    config: ProjectileConfig
   ): string {
     const id = `proj_${nextId++}`;
 

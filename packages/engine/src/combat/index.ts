@@ -24,12 +24,7 @@ export {
   type DamageConfig,
 } from './DamageSystem';
 
-export {
-  HitboxSystem,
-  type Hitbox,
-  type Hurtbox,
-  type HitEvent,
-} from './HitboxSystem';
+export { HitboxSystem, type Hitbox, type Hurtbox, type HitEvent } from './HitboxSystem';
 
 export {
   ProjectileSystem,
@@ -45,4 +40,3 @@ export {
   type StatModifier,
   type StatusEffect,
 } from './StatusEffects';
-

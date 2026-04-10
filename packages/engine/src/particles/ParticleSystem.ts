@@ -342,4 +342,3 @@ export class ParticleSystem {
     this.config.position = { x, y, z };
   }
 }
-

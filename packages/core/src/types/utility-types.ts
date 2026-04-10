@@ -21,8 +21,8 @@
  * if (g.gc) g.gc();
  * ```
  */
-export type ExtendedGlobal<Extensions extends Record<string, unknown>> =
-  typeof globalThis & Extensions;
+export type ExtendedGlobal<Extensions extends Record<string, unknown>> = typeof globalThis &
+  Extensions;
 
 // ── Dynamic Property Access ──────────────────────────────────────────────────
 
@@ -55,7 +55,4 @@ export type JsonValue = JsonPrimitive | JsonArray | JsonObject;
  */
 export type MutableJsonObject = { [key: string]: MutableJsonValue };
 export type MutableJsonArray = Array<MutableJsonValue>;
-export type MutableJsonValue =
-  | JsonPrimitive
-  | MutableJsonArray
-  | MutableJsonObject;
+export type MutableJsonValue = JsonPrimitive | MutableJsonArray | MutableJsonObject;

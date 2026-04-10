@@ -47,7 +47,12 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: IncidentConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: IncidentConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__incidentState as { incidents: Map<string, Incident> } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

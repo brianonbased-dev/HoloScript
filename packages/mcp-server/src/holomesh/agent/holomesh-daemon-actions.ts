@@ -14,7 +14,12 @@ import { HoloMeshOrchestratorClient } from '../orchestrator-client';
 import type { WalletAuth } from '../orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
 import { deriveAgentDid, createAuthChallenge, signAuthChallenge } from '../wallet-auth';
-import { computeReputation, resolveReputationTier, resolveReputationTierWithHysteresis, INITIAL_MESH_STATE } from '../types';
+import {
+  computeReputation,
+  resolveReputationTier,
+  resolveReputationTierWithHysteresis,
+  INITIAL_MESH_STATE,
+} from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
@@ -98,7 +103,7 @@ export function createHoloMeshDaemonActions(
   config: HoloMeshDaemonConfig
 ): { actions: Record<string, ActionHandler>; wireTraitListeners: (runtime: any) => void } {
   // Persistent state
-  let state: HoloMeshDaemonState = loadState(config.stateFile);
+  const state: HoloMeshDaemonState = loadState(config.stateFile);
   let searchTopicIndex = 0;
   const searchTopics = config.searchTopics || DEFAULT_SEARCH_TOPICS;
   const maxContributions = config.maxContributionsPerCycle || 5;
@@ -150,7 +155,9 @@ export function createHoloMeshDaemonActions(
       );
     } catch (err: unknown) {
       // Graceful degradation — missing env var or wallet dep should not crash daemon (G.WALLET.01)
-      console.warn(`[holomesh] Wallet init failed (continuing without wallet): ${err instanceof Error ? err.message : String(err)}`);
+      console.warn(
+        `[holomesh] Wallet init failed (continuing without wallet): ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -206,7 +213,9 @@ export function createHoloMeshDaemonActions(
             signature,
           };
         } catch (err: unknown) {
-          log(`Wallet signing failed (falling back to UUID): ${err instanceof Error ? err.message : String(err)}`);
+          log(
+            `Wallet signing failed (falling back to UUID): ${err instanceof Error ? err.message : String(err)}`
+          );
         }
       }
 
@@ -387,7 +396,9 @@ export function createHoloMeshDaemonActions(
         state.totalPaymentsMade++;
         collected++;
       } catch (err: unknown) {
-        log(`Payment record failed for ${entry.id}: ${err instanceof Error ? err.message : String(err)}`);
+        log(
+          `Payment record failed for ${entry.id}: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 
@@ -655,8 +666,11 @@ export function createHoloMeshDaemonActions(
   const mesh_check_resource_pressure: ActionHandler = async (_params, blackboard) => {
     try {
       // Lazy-import to avoid hard dependency — UnifiedBudgetOptimizer is in @holoscript/core
-      const { UnifiedBudgetOptimizer, DEFAULT_LOD_SCALING, DEFAULT_COST_FLOOR } =
-        require('../../../../core/src/economy/UnifiedBudgetOptimizer');
+      const {
+        UnifiedBudgetOptimizer,
+        DEFAULT_LOD_SCALING,
+        DEFAULT_COST_FLOOR,
+      } = require('../../../../core/src/economy/UnifiedBudgetOptimizer');
 
       const optimizer = new UnifiedBudgetOptimizer({
         platform: 'webgpu', // Default platform for daemon context
@@ -667,7 +681,10 @@ export function createHoloMeshDaemonActions(
 
       // Collect resource usage from contributed compositions this cycle
       const contributed = blackboard.contributed_this_cycle || 0;
-      interface QueryResult { id?: string; traits?: string[] }
+      interface QueryResult {
+        id?: string;
+        traits?: string[];
+      }
       const queryResults = (blackboard.query_results as QueryResult[] | undefined) || [];
 
       // Build resource usage nodes from recent activity
@@ -692,11 +709,13 @@ export function createHoloMeshDaemonActions(
 
       // Update blackboard so budget_gate condition sees rendering pressure
       blackboard.resource_pressure = unifiedState.overallPressure;
-      blackboard.has_budget = (state.spentUSD < state.budgetCapUSD) &&
-        (unifiedState.overallPressure < 0.95);
+      blackboard.has_budget =
+        state.spentUSD < state.budgetCapUSD && unifiedState.overallPressure < 0.95;
 
       if (unifiedState.overallPressure > 0.8) {
-        log(`Resource pressure HIGH: ${(unifiedState.overallPressure * 100).toFixed(1)}% (LOD ${unifiedState.suggestedLOD})`);
+        log(
+          `Resource pressure HIGH: ${(unifiedState.overallPressure * 100).toFixed(1)}% (LOD ${unifiedState.suggestedLOD})`
+        );
       }
       if (unifiedState.hardLimitBreached) {
         log('HARD LIMIT BREACHED — pausing resource-intensive operations');
@@ -707,7 +726,9 @@ export function createHoloMeshDaemonActions(
     } catch (err: unknown) {
       // Graceful degradation: if UnifiedBudgetOptimizer unavailable, fall back to economic-only
       blackboard.has_budget = state.spentUSD < state.budgetCapUSD;
-      log(`Resource pressure check failed (economic-only fallback): ${err instanceof Error ? err.message : String(err)}`);
+      log(
+        `Resource pressure check failed (economic-only fallback): ${err instanceof Error ? err.message : String(err)}`
+      );
       return true; // Don't fail the cycle — just use economic-only gate
     }
   };
@@ -766,7 +787,9 @@ export function createHoloMeshDaemonActions(
     blackboard.priority_order = ['inbound', ...eu.map((e) => e.name)];
     blackboard.priority_eus = eu.map((e) => ({ name: e.name, eu: Math.round(e.eu * 100) / 100 }));
 
-    log(`Priority order: P1=inbound(fixed) ${eu.map((e, i) => `P${i + 2}=${e.name}(${e.eu.toFixed(1)})`).join(' ')}`);
+    log(
+      `Priority order: P1=inbound(fixed) ${eu.map((e, i) => `P${i + 2}=${e.name}(${e.eu.toFixed(1)})`).join(' ')}`
+    );
     return true;
   };
 
@@ -775,9 +798,11 @@ export function createHoloMeshDaemonActions(
   // and cross-posts to Moltbook. Respects visibility tiers (private/agent/shared/listed).
 
   const WORKSPACE_URL = config.workspaceUrl || process.env.AI_WORKSPACE_URL || '';
-  const WORKSPACE_KEY = config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.MCP_API_KEY || '';
+  const WORKSPACE_KEY =
+    config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.MCP_API_KEY || '';
   const MOLTBOOK_KEY = config.moltbookApiKey || process.env.MOLTBOOK_API_KEY || '';
-  const MOLTBOOK_AGENT = config.moltbookAgentName || process.env.HOLOMESH_AGENT_NAME || 'holoscript';
+  const MOLTBOOK_AGENT =
+    config.moltbookAgentName || process.env.HOLOMESH_AGENT_NAME || 'holoscript';
 
   const mesh_sync_workspace: ActionHandler = async (_params, blackboard) => {
     if (!WORKSPACE_URL) {
@@ -839,7 +864,8 @@ export function createHoloMeshDaemonActions(
       // Convert to MeshKnowledgeEntry format and contribute to HoloMesh
       const meshEntries: MeshKnowledgeEntry[] = selected.map((e: any) => ({
         id: `ws:${e.id}`,
-        type: e.type === 'research' ? 'wisdom' : e.type === 'analysis' ? 'pattern' : (e.type || 'wisdom'),
+        type:
+          e.type === 'research' ? 'wisdom' : e.type === 'analysis' ? 'pattern' : e.type || 'wisdom',
         content: e.content,
         authorId: state.agentId || 'workspace-delegate',
         provenanceHash: crypto.createHash('sha256').update(e.content).digest('hex'),
@@ -881,7 +907,8 @@ export function createHoloMeshDaemonActions(
 
       const browseData = await browseRes.json();
       const shared = (browseData.entries || []).filter(
-        (e: any) => e.access === 'shared' && e.content && !state.contributedIds.includes(`mb:${e.id}`)
+        (e: any) =>
+          e.access === 'shared' && e.content && !state.contributedIds.includes(`mb:${e.id}`)
       );
 
       if (shared.length === 0) {
@@ -916,7 +943,7 @@ export function createHoloMeshDaemonActions(
       const moltbookRes = await fetch('https://www.moltbook.com/api/v1/posts', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${MOLTBOOK_KEY}`,
+          Authorization: `Bearer ${MOLTBOOK_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

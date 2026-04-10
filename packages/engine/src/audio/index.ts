@@ -137,11 +137,7 @@ export {
 } from './AudioDiffraction.js';
 
 // ── Dynamics ────────────────────────────────────────────────────────────────
-export {
-  AudioDynamics,
-  type CompressorConfig,
-  type GateConfig,
-} from './AudioDynamics.js';
+export { AudioDynamics, type CompressorConfig, type GateConfig } from './AudioDynamics.js';
 
 // ── Envelope ────────────────────────────────────────────────────────────────
 export {
@@ -152,12 +148,7 @@ export {
 } from './AudioEnvelope.js';
 
 // ── Filter ──────────────────────────────────────────────────────────────────
-export {
-  AudioFilter,
-  type FilterType,
-  type FilterConfig,
-  type EQBand,
-} from './AudioFilter.js';
+export { AudioFilter, type FilterType, type FilterConfig, type EQBand } from './AudioFilter.js';
 
 // ── Graph ───────────────────────────────────────────────────────────────────
 export {
@@ -246,4 +237,3 @@ export {
 
 // ── Voice Manager ───────────────────────────────────────────────────────────
 export { VoiceManager } from './VoiceManager.js';
-

@@ -82,10 +82,7 @@ export function calculateJwkThumbprintFromJwk(jwk: Record<string, unknown>): str
  * @param expectedThumbprint  Expected base64url SHA-256 thumbprint
  * @returns `true` if the computed thumbprint matches
  */
-export function verifyJwkThumbprint(
-  publicKeyPem: string,
-  expectedThumbprint: string
-): boolean {
+export function verifyJwkThumbprint(publicKeyPem: string, expectedThumbprint: string): boolean {
   try {
     const computed = calculateJwkThumbprint(publicKeyPem);
     // Use timing-safe comparison to prevent side-channel leaks

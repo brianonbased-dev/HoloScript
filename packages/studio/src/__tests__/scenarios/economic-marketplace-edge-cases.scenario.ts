@@ -26,7 +26,7 @@ export function validateEd25519Signature(tx: WalletTransaction): boolean {
 export function detectTransferDeadlock(transferChain: [string, string][]): boolean {
   // Uses a simple set to trace visited nodes in the chain to find loops A->B->C->A
   const graph = new Map<string, string[]>();
-  
+
   for (const [from, to] of transferChain) {
     if (!graph.has(from)) graph.set(from, []);
     graph.get(from)!.push(to);
@@ -80,14 +80,22 @@ export function executeHighFrequencyTrades(
 describe('Scenario: Economy — Signature Validation', () => {
   it('Accepts valid Ed25519 signature payload structures', () => {
     const validTx: WalletTransaction = {
-      id: 'tx_1', sender: 'A', receiver: 'B', amount: 10, signature: 'sig_abc123def456ghi789jkl012mno345pqr'
+      id: 'tx_1',
+      sender: 'A',
+      receiver: 'B',
+      amount: 10,
+      signature: 'sig_abc123def456ghi789jkl012mno345pqr',
     };
     expect(validateEd25519Signature(validTx)).toBe(true);
   });
 
   it('Rejects malformed signatures', () => {
     const invalidTx: WalletTransaction = {
-      id: 'tx_2', sender: 'A', receiver: 'B', amount: 10, signature: 'short'
+      id: 'tx_2',
+      sender: 'A',
+      receiver: 'B',
+      amount: 10,
+      signature: 'short',
     };
     expect(validateEd25519Signature(invalidTx)).toBe(false);
   });
@@ -99,7 +107,7 @@ describe('Scenario: Economy — Deadlock & Loop Detection', () => {
     const chain: [string, string][] = [
       ['A', 'B'],
       ['B', 'C'],
-      ['C', 'A']
+      ['C', 'A'],
     ];
     expect(detectTransferDeadlock(chain)).toBe(true);
   });
@@ -109,7 +117,7 @@ describe('Scenario: Economy — Deadlock & Loop Detection', () => {
     const chain: [string, string][] = [
       ['A', 'B'],
       ['B', 'C'],
-      ['C', 'D']
+      ['C', 'D'],
     ];
     expect(detectTransferDeadlock(chain)).toBe(false);
   });
@@ -120,7 +128,7 @@ describe('Scenario: Economy — High Frequency Micro-Failures', () => {
     // Starts with 50. Attempts: 20(ok), 20(ok), 20(fail), 10(ok), 5(fail)
     const result = executeHighFrequencyTrades(50, [20, 20, 20, 10, 5]);
     expect(result.successfulTrades).toBe(3); // 20, 20, 10
-    expect(result.failedTrades).toBe(2);    // 20, 5
+    expect(result.failedTrades).toBe(2); // 20, 5
     expect(result.finalBalance).toBe(0);
   });
 

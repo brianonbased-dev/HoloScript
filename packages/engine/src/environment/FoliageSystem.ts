@@ -193,4 +193,3 @@ export class FoliageSystem {
     return this.patches.delete(id);
   }
 }
-

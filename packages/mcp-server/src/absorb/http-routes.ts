@@ -52,10 +52,14 @@ function send(res: http.ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-async function proxyToAbsorb(path: string, method: string, body?: string): Promise<{ status: number; data: any }> {
+async function proxyToAbsorb(
+  path: string,
+  method: string,
+  body?: string
+): Promise<{ status: number; data: any }> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${ABSORB_KEY}`,
+    Authorization: `Bearer ${ABSORB_KEY}`,
   };
   const res = await fetch(`${ABSORB_URL}${path}`, {
     method,
@@ -71,7 +75,7 @@ async function proxyToAbsorb(path: string, method: string, body?: string): Promi
 export async function handleAbsorbRoute(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  url: string,
+  url: string
 ): Promise<boolean> {
   const method = req.method || 'GET';
   const pathname = url.split('?')[0];

@@ -1,0 +1,4 @@
+@page({ route: "/projects" })
+composition "projects" {
+  object "ProjectsView" @slot(component: "ProjectsView", import: "@/components/projects/ProjectsView") {}
+}

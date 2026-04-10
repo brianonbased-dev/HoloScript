@@ -593,7 +593,13 @@ export class CascadePIDController {
 }
 
 // ── Handler (delegates to PIDControllerTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const pIDControllerHandler = {
   name: 'p_i_d_controller',

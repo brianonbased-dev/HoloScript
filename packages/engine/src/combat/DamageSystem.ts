@@ -245,4 +245,3 @@ export class DamageSystem {
     this.damageLog = [];
   }
 }
-

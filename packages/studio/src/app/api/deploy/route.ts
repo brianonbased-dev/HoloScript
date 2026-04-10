@@ -73,11 +73,14 @@ export async function POST(req: NextRequest) {
           .where(eq(deployments.id, deploymentId));
       }
 
-      return NextResponse.json({
-        deploymentId,
-        url,
-        status: 'live',
-      }, { status: 201 });
+      return NextResponse.json(
+        {
+          deploymentId,
+          url,
+          status: 'live',
+        },
+        { status: 201 }
+      );
     } catch (err) {
       if (db) {
         await db

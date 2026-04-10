@@ -40,7 +40,12 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: SnapshotConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SnapshotConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__snapshotState as
       | { snapshots: Map<string, SnapshotEntry>; lastCapture: number }
       | undefined;

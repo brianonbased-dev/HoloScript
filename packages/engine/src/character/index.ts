@@ -100,4 +100,3 @@ export {
   IdleBehaviorSystem,
   createIdleBehaviorSystem,
 } from './IdleBehaviorSystem';
-

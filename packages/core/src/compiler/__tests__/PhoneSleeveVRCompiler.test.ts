@@ -169,7 +169,14 @@ describe('PhoneSleeveVRCompiler', () => {
   it('compiles sphere shapes', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'Ball', properties: [{ key: 'shape', value: 'sphere' }, { key: 'position', value: [0, 0, 0] }], traits: [] },
+        {
+          name: 'Ball',
+          properties: [
+            { key: 'shape', value: 'sphere' },
+            { key: 'position', value: [0, 0, 0] },
+          ],
+          traits: [],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -179,7 +186,14 @@ describe('PhoneSleeveVRCompiler', () => {
   it('compiles torus shapes', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'Ring', properties: [{ key: 'shape', value: 'torus' }, { key: 'position', value: [0, 0, 0] }], traits: [] },
+        {
+          name: 'Ring',
+          properties: [
+            { key: 'shape', value: 'torus' },
+            { key: 'position', value: [0, 0, 0] },
+          ],
+          traits: [],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -189,7 +203,15 @@ describe('PhoneSleeveVRCompiler', () => {
   it('handles transparent objects', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'Ghost', properties: [{ key: 'shape', value: 'sphere' }, { key: 'position', value: [0, 0, 0] }, { key: 'opacity', value: 0.5 }], traits: [] },
+        {
+          name: 'Ghost',
+          properties: [
+            { key: 'shape', value: 'sphere' },
+            { key: 'position', value: [0, 0, 0] },
+            { key: 'opacity', value: 0.5 },
+          ],
+          traits: [],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -200,7 +222,14 @@ describe('PhoneSleeveVRCompiler', () => {
   it('defaults to box geometry for unknown shapes', () => {
     const comp = makeComposition({
       objects: [
-        { name: 'Unknown', properties: [{ key: 'shape', value: 'dodecahedron' }, { key: 'position', value: [0, 0, 0] }], traits: [] },
+        {
+          name: 'Unknown',
+          properties: [
+            { key: 'shape', value: 'dodecahedron' },
+            { key: 'position', value: [0, 0, 0] },
+          ],
+          traits: [],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -215,7 +244,14 @@ describe('PhoneSleeveVRCompiler', () => {
         {
           name: 'Gallery',
           objects: [
-            { name: 'Cube1', properties: [{ key: 'shape', value: 'cube' }, { key: 'position', value: [0, 0, 0] }], traits: [] },
+            {
+              name: 'Cube1',
+              properties: [
+                { key: 'shape', value: 'cube' },
+                { key: 'position', value: [0, 0, 0] },
+              ],
+              traits: [],
+            },
           ],
         },
       ] as any,
@@ -230,7 +266,15 @@ describe('PhoneSleeveVRCompiler', () => {
   it('compiles point lights', () => {
     const comp = makeComposition({
       lights: [
-        { name: 'Lamp', lightType: 'point', properties: [{ key: 'color', value: '#ff8800' }, { key: 'intensity', value: 0.5 }, { key: 'position', value: [0, 3, 0] }] },
+        {
+          name: 'Lamp',
+          lightType: 'point',
+          properties: [
+            { key: 'color', value: '#ff8800' },
+            { key: 'intensity', value: 0.5 },
+            { key: 'position', value: [0, 3, 0] },
+          ],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -241,7 +285,14 @@ describe('PhoneSleeveVRCompiler', () => {
   it('compiles directional lights', () => {
     const comp = makeComposition({
       lights: [
-        { name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1 }, { key: 'position', value: [5, 10, 7] }] },
+        {
+          name: 'Sun',
+          lightType: 'directional',
+          properties: [
+            { key: 'intensity', value: 1 },
+            { key: 'position', value: [5, 10, 7] },
+          ],
+        },
       ] as any,
     });
     const html = compiler.compile(comp, 'test-token');
@@ -250,9 +301,7 @@ describe('PhoneSleeveVRCompiler', () => {
 
   it('compiles ambient lights', () => {
     const comp = makeComposition({
-      lights: [
-        { name: 'Fill', lightType: 'ambient', color: '#404040', intensity: 0.5 },
-      ] as any,
+      lights: [{ name: 'Fill', lightType: 'ambient', color: '#404040', intensity: 0.5 }] as any,
     });
     const html = compiler.compile(comp, 'test-token');
     expect(html).toContain('AmbientLight');

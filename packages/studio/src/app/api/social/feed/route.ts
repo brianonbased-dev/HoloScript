@@ -20,10 +20,7 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const userId = auth.user.id;
 
-  const limit = Math.min(
-    parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10),
-    100
-  );
+  const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10), 100);
 
   const db = getDb();
   if (!db) {

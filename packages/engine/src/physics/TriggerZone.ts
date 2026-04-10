@@ -160,4 +160,3 @@ export class TriggerZoneSystem {
     return this.zones.size;
   }
 }
-

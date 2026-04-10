@@ -1227,7 +1227,10 @@ export class SpatialDataGenerator {
         return { question, answer };
       }
     }
-    return { question: `What is the relation between ${src} and ${tgt}?`, answer: `They have a ${rel.type} relationship.` };
+    return {
+      question: `What is the relation between ${src} and ${tgt}?`,
+      answer: `They have a ${rel.type} relationship.`,
+    };
   }
 
   /**

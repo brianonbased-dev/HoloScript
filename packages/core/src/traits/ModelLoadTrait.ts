@@ -30,7 +30,12 @@ export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: ModelLoadConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ModelLoadConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__modelLoadState as
       | { loaded: Map<string, { provider: string; loadedAt: number }> }
       | undefined;

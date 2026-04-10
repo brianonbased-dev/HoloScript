@@ -1,0 +1,4 @@
+@page({ route: "/settings" })
+composition "settings" {
+  object "SettingsView" @slot(component: "SettingsView", import: "@/components/settings/SettingsView") {}
+}

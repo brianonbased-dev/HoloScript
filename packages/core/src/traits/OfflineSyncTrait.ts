@@ -36,7 +36,7 @@ export const offlineSyncHandler: TraitHandler<OfflineSyncConfig> = {
     switch (t) {
       case 'sync:queue':
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        state.pending.push((event.payload as SyncItem));
+        state.pending.push(event.payload as SyncItem);
         context.emit?.('sync:queued', { pending: state.pending.length });
         break;
       case 'sync:flush':

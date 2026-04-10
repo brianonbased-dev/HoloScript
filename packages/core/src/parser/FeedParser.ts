@@ -41,13 +41,15 @@ export class FeedParser {
 
     // Walk the AST fragment to extract orb/Insight nodes
     const root = parseResult.ast as ASTNode & { children?: ASTNode[] };
-    const children = root.type === 'fragment' ? root.children ?? [] : [root];
+    const children = root.type === 'fragment' ? (root.children ?? []) : [root];
 
     for (const node of children) {
       if ((node.type === 'orb' || node.type === 'Insight') && node.id) {
         // Extract provenance from comments or traits if needed
         if (!node.provenance) {
-          const authorTrait = node.traits?.get('author' as VRTraitName) as Record<string, unknown> | undefined;
+          const authorTrait = node.traits?.get('author' as VRTraitName) as
+            | Record<string, unknown>
+            | undefined;
           node.provenance = {
             author: String(authorTrait?.value || authorTrait?.[0] || 'anonymous'),
             timestamp: Date.now(),
@@ -67,11 +69,15 @@ export class FeedParser {
       .filter((n) => n.position)
       .map((n) => {
         // Extract thought trait content
-        const thoughtTrait = n.traits?.get('thought' as VRTraitName) as Record<string, unknown> | undefined;
+        const thoughtTrait = n.traits?.get('thought' as VRTraitName) as
+          | Record<string, unknown>
+          | undefined;
         const content = String(thoughtTrait?.value || thoughtTrait?.[0] || '');
 
         // Extract velocity if present
-        const velocityTrait = n.traits?.get('velocity' as VRTraitName) as Record<string, unknown> | undefined;
+        const velocityTrait = n.traits?.get('velocity' as VRTraitName) as
+          | Record<string, unknown>
+          | undefined;
         const vArgs = (velocityTrait?.args as number[]) || [0, 0, 0];
 
         return {

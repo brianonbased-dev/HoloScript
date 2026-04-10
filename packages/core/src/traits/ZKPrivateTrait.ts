@@ -1,5 +1,12 @@
 // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-import type { Trait, HSPlusNode, TraitContext, TraitEvent, TraitHandler, TraitEventPayload } from './TraitTypes';
+import type {
+  Trait,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitHandler,
+  TraitEventPayload,
+} from './TraitTypes';
 /**
  * ZkPrivateTrait -- v4.3
  *
@@ -541,7 +548,9 @@ class BarretenbergBackend {
     try {
       // @ts-ignore - Optional dependency, may not be available
       const { Barretenberg } = await import('@aztec/bb.js');
-      this.bb = await (Barretenberg as unknown as { new: (opts: { threads: number }) => Promise<unknown> }).new({ threads: 4 });
+      this.bb = await (
+        Barretenberg as unknown as { new: (opts: { threads: number }) => Promise<unknown> }
+      ).new({ threads: 4 });
       return true;
     } catch {
       return false;
@@ -711,9 +720,13 @@ export const zkPrivateHandler = {
     // =========================================================================
 
     if (event.type === 'proof_generate') {
-      const { circuitId, publicInputs = {}, privateInputs = {} } = (event.payload as TraitEventPayload) ?? {};
+      const {
+        circuitId,
+        publicInputs = {},
+        privateInputs = {},
+      } = (event.payload as TraitEventPayload) ?? {};
       if (!circuitId) return;
-      const circuit = s.circuits.get((circuitId as string));
+      const circuit = s.circuits.get(circuitId as string);
       if (!circuit) {
         ctx.emit('zk_error', { node, requestId: null, error: `Unknown circuit: ${circuitId}` });
         return;
@@ -721,17 +734,20 @@ export const zkPrivateHandler = {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       const requestId = event.payload.requestId ?? `zk_${Date.now()}`;
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      s.activeProofs.set((requestId as string), { circuitId, startedAt: Date.now() });
+      s.activeProofs.set(requestId as string, { circuitId, startedAt: Date.now() });
       ctx.emit('proof_generation_started', { node, requestId, circuit: circuitId });
       const t0 = Date.now();
       const timeout = new Promise<never>((_, r) =>
         setTimeout(() => r(new Error(`Timeout ${config.timeout_ms}ms`)), config.timeout_ms)
       );
-      Promise.race([Promise.resolve(mockGenerate(circuit, (publicInputs as Record<string, unknown>))), timeout])
+      Promise.race([
+        Promise.resolve(mockGenerate(circuit, publicInputs as Record<string, unknown>)),
+        timeout,
+      ])
         .then((proof: ZkProof) => {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           proof.requestId = requestId;
-          s.activeProofs.delete((requestId as string));
+          s.activeProofs.delete(requestId as string);
           s.totalProofsGenerated++;
           ctx.emit('proof_generated', {
             node,
@@ -743,11 +759,15 @@ export const zkPrivateHandler = {
           });
         })
         .catch((err: Error) => {
-          s.activeProofs.delete((requestId as string));
+          s.activeProofs.delete(requestId as string);
           ctx.emit('zk_error', { node, requestId, error: err.message });
         });
     } else if (event.type === 'proof_verify') {
-      const { proof: proofBytes, publicInputs = {}, circuitId } = (event.payload as TraitEventPayload) ?? {};
+      const {
+        proof: proofBytes,
+        publicInputs = {},
+        circuitId,
+      } = (event.payload as TraitEventPayload) ?? {};
       if (!proofBytes) return;
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       const requestId = event.payload.requestId ?? `verify_${Date.now()}`;
@@ -871,7 +891,8 @@ export const zkPrivateHandler = {
         requestId,
       });
     } else if (event.type === 'zk_verify_permission') {
-      const { requiredLevel, permissionRoot, contextHash } = (event.payload as TraitEventPayload) ?? {};
+      const { requiredLevel, permissionRoot, contextHash } =
+        (event.payload as TraitEventPayload) ?? {};
       const requestId = `permission_${Date.now()}`;
       s.activeProofId = requestId;
 
@@ -883,7 +904,8 @@ export const zkPrivateHandler = {
         requestId,
       });
     } else if (event.type === 'zk_proof_submitted') {
-      const { proofValid, proofBytes, publicInputs, circuitId } = (event.payload as TraitEventPayload) ?? {};
+      const { proofValid, proofBytes, publicInputs, circuitId } =
+        (event.payload as TraitEventPayload) ?? {};
       s.lastVerifyTime = Date.now();
 
       if (proofValid) {
@@ -927,7 +949,11 @@ export const zkPrivateHandler = {
     // v4.3 SELECTIVE DISCLOSURE EVENTS
     // =========================================================================
     else if (event.type === 'zk_selective_disclose') {
-      const { fields = {}, consentedFields = [], circuitId } = (event.payload as TraitEventPayload) ?? {};
+      const {
+        fields = {},
+        consentedFields = [],
+        circuitId,
+      } = (event.payload as TraitEventPayload) ?? {};
 
       const policy = config.disclosure_policy ?? {
         alwaysDisclose: [],
@@ -936,7 +962,9 @@ export const zkPrivateHandler = {
       };
 
       // Generate a proof for the non-disclosed fields
-      const circuit = s.circuits.get((circuitId as string) ?? getPredicateCircuitId(config.predicate));
+      const circuit = s.circuits.get(
+        (circuitId as string) ?? getPredicateCircuitId(config.predicate)
+      );
       if (!circuit) {
         ctx.emit('zk_error', {
           node,
@@ -946,9 +974,9 @@ export const zkPrivateHandler = {
         return;
       }
 
-      const mockProof = mockGenerate(circuit, (fields as Record<string, unknown>));
+      const mockProof = mockGenerate(circuit, fields as Record<string, unknown>);
       const disclosure = createSelectiveDisclosure(
-        (fields as Record<string, unknown>),
+        fields as Record<string, unknown>,
         policy,
         mockProof.proof,
         circuit.id,
@@ -1027,11 +1055,12 @@ export const zkPrivateHandler = {
         verifierContract: submission.verifierContract,
       });
     } else if (event.type === 'zk_wallet_proof_result') {
-      const { txId, txHash, valid, blockNumber, gasUsed } = (event.payload as TraitEventPayload) ?? {};
-      const pending = s.pendingOnChainProofs.get((txId as string));
+      const { txId, txHash, valid, blockNumber, gasUsed } =
+        (event.payload as TraitEventPayload) ?? {};
+      const pending = s.pendingOnChainProofs.get(txId as string);
 
       if (pending) {
-        s.pendingOnChainProofs.delete((txId as string));
+        s.pendingOnChainProofs.delete(txId as string);
         const result: ZkOnChainVerificationResult = {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           txHash: txHash ?? '',
@@ -1109,7 +1138,7 @@ export const zkPrivateHandler = {
       });
     } else if (event.type === 'zk_get_circuit') {
       const circuitId = event.payload?.circuitId;
-      const circuit = s.circuits.get((circuitId as string));
+      const circuit = s.circuits.get(circuitId as string);
 
       if (circuit) {
         ctx.emit('zk_circuit_info', {

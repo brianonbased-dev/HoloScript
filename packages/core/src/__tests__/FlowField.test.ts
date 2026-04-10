@@ -1,6 +1,9 @@
 ﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flowFieldHandler } from '../traits/FlowFieldTrait';
-import { registerNavigationEngine, type NavigationEngine } from '@holoscript/engine/runtime/NavigationEngine';
+import {
+  registerNavigationEngine,
+  type NavigationEngine,
+} from '@holoscript/engine/runtime/NavigationEngine';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 describe('FlowFieldTrait - NPC Pathfinding', () => {
@@ -71,4 +74,3 @@ describe('FlowFieldTrait - NPC Pathfinding', () => {
     expect(node.properties.position).toEqual(initialPos);
   });
 });
-

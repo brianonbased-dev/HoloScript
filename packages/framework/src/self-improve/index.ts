@@ -19,11 +19,7 @@ export {
   scanTodos,
 } from './absorb-scanner';
 
-export {
-  type EvolutionConfig,
-  type EvolutionResult,
-  evolve,
-} from './evolution-engine';
+export { type EvolutionConfig, type EvolutionResult, evolve } from './evolution-engine';
 
 // FW-1.0: Class-based absorb integration
 export {
@@ -34,11 +30,7 @@ export {
 } from './framework-absorber';
 
 // FW-1.0: Auto-test generation via LLM
-export {
-  TestGenerator,
-  type TestGeneratorConfig,
-  type GeneratedTest,
-} from './test-generator';
+export { TestGenerator, type TestGeneratorConfig, type GeneratedTest } from './test-generator';
 
 // FW-1.0: Prompt optimization via A/B testing
 export {

@@ -142,13 +142,16 @@ describe('GoalSynthesizer', () => {
     it('filters out recently completed tasks', async () => {
       const gs = new GoalSynthesizer();
       const completed = GENERIC_GOALS.slice(0, 4);
-      const goals = await gs.synthesizeMultiple({
-        domain: 'general',
-        recentCompletedTasks: completed,
-      }, 3);
+      const goals = await gs.synthesizeMultiple(
+        {
+          domain: 'general',
+          recentCompletedTasks: completed,
+        },
+        3
+      );
       // None of the returned goals should match completed tasks
       for (const g of goals) {
-        expect(completed.map(c => c.toLowerCase())).not.toContain(g.description.toLowerCase());
+        expect(completed.map((c) => c.toLowerCase())).not.toContain(g.description.toLowerCase());
       }
     });
 
@@ -208,7 +211,7 @@ describe('GoalSynthesizer', () => {
       // Request enough goals to ensure the knowledge-derived one is included
       const goals = await gs.synthesizeMultiple({ domain: 'security' }, 15);
 
-      const knowledgeGapGoals = goals.filter(g => g.category === 'knowledge-gap');
+      const knowledgeGapGoals = goals.filter((g) => g.category === 'knowledge-gap');
       // At least one goal should be derived from the gotcha
       expect(knowledgeGapGoals.length).toBeGreaterThanOrEqual(1);
       const derived = knowledgeGapGoals[0];

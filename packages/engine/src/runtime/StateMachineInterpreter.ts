@@ -120,7 +120,9 @@ export class StateMachineInterpreter {
       try {
         this.hookExecutor(code, context);
       } catch (error: unknown) {
-        logger.error(`[StateMachine] Hook execution failed for ${id}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(
+          `[StateMachine] Hook execution failed for ${id}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     } else {
       logger.warn(`[StateMachine] No hook executor registered - hook code not executed`);
@@ -137,4 +139,3 @@ export class StateMachineInterpreter {
 }
 
 export const stateMachineInterpreter = new StateMachineInterpreter();
-

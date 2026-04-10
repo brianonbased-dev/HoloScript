@@ -16,7 +16,12 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
   describe('executeReachable', () => {
     it('should find reachable entities with obstacles', () => {
       const obstacles: SpatialEntity[] = [
-        { id: 'obs1', type: 'wall', position: { x: 5, y: 0, z: 0 }, bounds: { radius: 1, center: { x: 5, y: 0, z: 0 } } },
+        {
+          id: 'obs1',
+          type: 'wall',
+          position: { x: 5, y: 0, z: 0 },
+          bounds: { radius: 1, center: { x: 5, y: 0, z: 0 } },
+        },
       ];
 
       const query: SpatialQuery = {

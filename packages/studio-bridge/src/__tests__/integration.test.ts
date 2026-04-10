@@ -117,10 +117,7 @@ function createEventHandlerAST(hook: string, body: ASTNode[] = []): ASTNode {
   };
 }
 
-function createActionAST(
-  traitName: string,
-  config: Record<string, unknown> = {}
-): ASTNode {
+function createActionAST(traitName: string, config: Record<string, unknown> = {}): ASTNode {
   return {
     type: 'action',
     directives: [
@@ -282,9 +279,7 @@ describe('Studio Bridge Integration', () => {
       const engine = new SyncEngine({ debounceMs: 0 });
       engine.start();
 
-      const astNodes: ASTNode[] = [
-        createOrbAST('syncTest', [createEventHandlerAST('on_click')]),
-      ];
+      const astNodes: ASTNode[] = [createOrbAST('syncTest', [createEventHandlerAST('on_click')])];
 
       engine.onASTChanged(astNodes);
       const syncResult = engine.syncNow('ast-to-visual');
@@ -398,9 +393,7 @@ describe('Studio Bridge Integration', () => {
     });
 
     it('should initialize translators with matching format options and produce consistent output', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
 
       const formats: Array<'hs' | 'hsplus' | 'holo'> = ['hs', 'hsplus', 'holo'];
       for (const format of formats) {
@@ -465,12 +458,13 @@ describe('Studio Bridge Integration', () => {
       engine.start();
       expect(events).toContain('sync-start');
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-        createNode('act1', 'play_sound', 'action', 'Play Sound', { url: 'ding.mp3' }),
-      ], [
-        createEdge('e1', 'ev1', 'act1', 'flow', 'flow'),
-      ]);
+      const graph = createTestGraph(
+        [
+          createNode('ev1', 'on_click', 'event', 'On Click'),
+          createNode('act1', 'play_sound', 'action', 'Play Sound', { url: 'ding.mp3' }),
+        ],
+        [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')]
+      );
 
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(100);
@@ -487,9 +481,7 @@ describe('Studio Bridge Integration', () => {
 
       const astNodes: ASTNode[] = [
         createOrbAST('messageTest', [
-          createEventHandlerAST('on_click', [
-            createActionAST('audio', { url: 'beep.mp3' }),
-          ]),
+          createEventHandlerAST('on_click', [createActionAST('audio', { url: 'beep.mp3' })]),
         ]),
       ];
 
@@ -647,9 +639,7 @@ describe('Studio Bridge Integration', () => {
       engine.start();
 
       // Simulate rapid scene updates (adding nodes one by one)
-      const graph1 = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph1 = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const graph2 = createTestGraph([
         createNode('ev1', 'on_click', 'event', 'On Click'),
         createNode('act1', 'play_sound', 'action', 'Sound', { url: 'a.mp3' }),
@@ -722,9 +712,7 @@ describe('Studio Bridge Integration', () => {
       engine.on('sync-complete', syncFn);
       // Engine NOT started
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(200);
 
@@ -748,9 +736,7 @@ describe('Studio Bridge Integration', () => {
 
       // Start, do work, stop
       engine.start();
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(100);
       expect(syncFn).toHaveBeenCalledTimes(1);
@@ -762,9 +748,7 @@ describe('Studio Bridge Integration', () => {
       engine.start();
       expect(engine.getState().active).toBe(true);
 
-      const graph2 = createTestGraph([
-        createNode('ev2', 'on_hover', 'event', 'On Hover'),
-      ]);
+      const graph2 = createTestGraph([createNode('ev2', 'on_hover', 'event', 'On Hover')]);
       engine.onVisualChanged(graph2);
       vi.advanceTimersByTime(100);
       expect(syncFn).toHaveBeenCalledTimes(2);
@@ -780,9 +764,7 @@ describe('Studio Bridge Integration', () => {
       engine.on('sync-complete', goodListener);
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(100);
 
@@ -810,9 +792,7 @@ describe('Studio Bridge Integration', () => {
     it('should clear pending state on stop and allow clean restart', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       engine.onVisualChanged(graph);
       expect(engine.getState().pendingChanges).toBe(2);
@@ -845,9 +825,7 @@ describe('Studio Bridge Integration', () => {
       engine.start();
 
       // Store visual data only
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
 
       // Ask for ast-to-visual with no AST data stored

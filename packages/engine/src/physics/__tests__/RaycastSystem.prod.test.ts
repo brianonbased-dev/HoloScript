@@ -145,4 +145,3 @@ describe('RaycastSystem — Production', () => {
     expect(rc.raycast(RAY_Z)).toBeNull();
   });
 });
-

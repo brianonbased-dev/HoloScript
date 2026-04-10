@@ -127,4 +127,3 @@ export function sizeOscillate(
     p.size = Math.max(0.001, p.size + pulse * p.size);
   };
 }
-

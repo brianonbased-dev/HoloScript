@@ -253,4 +253,3 @@ export class VersionMigration {
     return Math.abs(h).toString(16);
   }
 }
-

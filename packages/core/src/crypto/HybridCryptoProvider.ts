@@ -223,10 +223,7 @@ async function x25519DeriveSecret(
  * Encrypt plaintext with AES-256-GCM using a 32-byte key.
  * Returns iv (12 bytes) || authTag (16 bytes) || ciphertext.
  */
-async function aes256GcmEncrypt(
-  plaintext: Uint8Array,
-  key: Uint8Array
-): Promise<Uint8Array> {
+async function aes256GcmEncrypt(plaintext: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
   const nc = await getNodeCrypto();
   const iv = nc.randomBytes(12);
   const cipher = nc.createCipheriv('aes-256-gcm', key, iv);
@@ -243,10 +240,7 @@ async function aes256GcmEncrypt(
 /**
  * Decrypt AES-256-GCM ciphertext (iv || authTag || ciphertext) with a 32-byte key.
  */
-async function aes256GcmDecrypt(
-  packed: Uint8Array,
-  key: Uint8Array
-): Promise<Uint8Array> {
+async function aes256GcmDecrypt(packed: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
   const nc = await getNodeCrypto();
   const iv = packed.slice(0, 12);
   const authTag = packed.slice(12, 28);

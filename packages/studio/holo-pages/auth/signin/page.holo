@@ -1,0 +1,4 @@
+@page({ route: "/auth/signin" })
+composition "signin" {
+  object "SignInView" @slot(component: "SignInView", import: "@/components/auth/SignInView") {}
+}

@@ -752,7 +752,9 @@ export class CompilerDocumentationGenerator {
         // Limit to first 20
         const objRec = obj as unknown as Record<string, unknown>;
         const transform = objRec.transform as Record<string, unknown> | undefined;
-        const pos = (objRec.position || transform?.position) as { x: number; y: number; z: number } | undefined;
+        const pos = (objRec.position || transform?.position) as
+          | { x: number; y: number; z: number }
+          | undefined;
         const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
         const traitNames = obj.traits
           ? this.extractTraitNames(obj.traits).join(', ') || 'none'
@@ -773,7 +775,9 @@ export class CompilerDocumentationGenerator {
       sections.push('|------|------|');
       for (const light of composition.lights) {
         const lightRec = light as unknown as Record<string, unknown>;
-        sections.push(`| ${light.name || 'unnamed'} | ${(lightRec.lightType as string) || 'unknown'} |`);
+        sections.push(
+          `| ${light.name || 'unnamed'} | ${(lightRec.lightType as string) || 'unknown'} |`
+        );
       }
       sections.push('');
     }
@@ -877,7 +881,16 @@ export class CompilerDocumentationGenerator {
     sections.push('|------|-------------|-------------|');
     for (const tool of mcpTools) {
       const schemaStr = tool.inputSchema
-        ? '`' + JSON.stringify(Object.keys(((tool.inputSchema as Record<string, unknown>).properties as Record<string, unknown>) || {})) + '`'
+        ? '`' +
+          JSON.stringify(
+            Object.keys(
+              ((tool.inputSchema as Record<string, unknown>).properties as Record<
+                string,
+                unknown
+              >) || {}
+            )
+          ) +
+          '`'
         : 'none';
       sections.push(`| \`${tool.name}\` | ${tool.description} | ${schemaStr} |`);
     }

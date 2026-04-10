@@ -5,7 +5,8 @@ import { getDb } from '../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
 
-const HOLOMESH_API_URL = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const HOLOMESH_API_URL =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const STALE_CLAIM_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             (r) =>
               r.status === 'claimed' &&
               r.syncedAt != null &&
-              now - r.syncedAt.getTime() > STALE_CLAIM_MS,
+              now - r.syncedAt.getTime() > STALE_CLAIM_MS
           )
           .map((r) => r.id);
 

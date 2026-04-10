@@ -97,28 +97,73 @@ describe('Feed Ranking', () => {
   const now = Date.now();
 
   it('scoreFeedEntry gives higher score to more engaged entries', () => {
-    const low = scoreFeedEntry({ id: '1', voteCount: 0, commentCount: 0, createdAt: new Date(now).toISOString() }, now);
-    const high = scoreFeedEntry({ id: '2', voteCount: 10, commentCount: 5, createdAt: new Date(now).toISOString() }, now);
+    const low = scoreFeedEntry(
+      { id: '1', voteCount: 0, commentCount: 0, createdAt: new Date(now).toISOString() },
+      now
+    );
+    const high = scoreFeedEntry(
+      { id: '2', voteCount: 10, commentCount: 5, createdAt: new Date(now).toISOString() },
+      now
+    );
     expect(high).toBeGreaterThan(low);
   });
 
   it('scoreFeedEntry decays with time', () => {
-    const fresh = scoreFeedEntry({ id: '1', voteCount: 5, commentCount: 2, createdAt: new Date(now).toISOString() }, now);
-    const old = scoreFeedEntry({ id: '2', voteCount: 5, commentCount: 2, createdAt: new Date(now - 48 * 3600000).toISOString() }, now);
+    const fresh = scoreFeedEntry(
+      { id: '1', voteCount: 5, commentCount: 2, createdAt: new Date(now).toISOString() },
+      now
+    );
+    const old = scoreFeedEntry(
+      {
+        id: '2',
+        voteCount: 5,
+        commentCount: 2,
+        createdAt: new Date(now - 48 * 3600000).toISOString(),
+      },
+      now
+    );
     expect(fresh).toBeGreaterThan(old);
   });
 
   it('author reputation boosts score', () => {
-    const noRep = scoreFeedEntry({ id: '1', voteCount: 3, commentCount: 1, authorReputation: 0, createdAt: new Date(now).toISOString() }, now);
-    const highRep = scoreFeedEntry({ id: '2', voteCount: 3, commentCount: 1, authorReputation: 100, createdAt: new Date(now).toISOString() }, now);
+    const noRep = scoreFeedEntry(
+      {
+        id: '1',
+        voteCount: 3,
+        commentCount: 1,
+        authorReputation: 0,
+        createdAt: new Date(now).toISOString(),
+      },
+      now
+    );
+    const highRep = scoreFeedEntry(
+      {
+        id: '2',
+        voteCount: 3,
+        commentCount: 1,
+        authorReputation: 100,
+        createdAt: new Date(now).toISOString(),
+      },
+      now
+    );
     expect(highRep).toBeGreaterThan(noRep);
   });
 
   it('rankFeed sorts by score in ranked mode', () => {
     const entries = [
-      { id: 'low', voteCount: 0, commentCount: 0, createdAt: new Date(now - 86400000).toISOString() },
+      {
+        id: 'low',
+        voteCount: 0,
+        commentCount: 0,
+        createdAt: new Date(now - 86400000).toISOString(),
+      },
       { id: 'high', voteCount: 20, commentCount: 10, createdAt: new Date(now).toISOString() },
-      { id: 'mid', voteCount: 5, commentCount: 2, createdAt: new Date(now - 3600000).toISOString() },
+      {
+        id: 'mid',
+        voteCount: 5,
+        commentCount: 2,
+        createdAt: new Date(now - 3600000).toISOString(),
+      },
     ];
     const ranked = rankFeed(entries, 'ranked');
     expect(ranked[0].id).toBe('high');
@@ -126,7 +171,12 @@ describe('Feed Ranking', () => {
 
   it('rankFeed chronological sorts by time', () => {
     const entries = [
-      { id: 'old', voteCount: 100, commentCount: 50, createdAt: new Date(now - 86400000).toISOString() },
+      {
+        id: 'old',
+        voteCount: 100,
+        commentCount: 50,
+        createdAt: new Date(now - 86400000).toISOString(),
+      },
       { id: 'new', voteCount: 0, commentCount: 0, createdAt: new Date(now).toISOString() },
     ];
     const sorted = rankFeed(entries, 'chronological');
@@ -136,7 +186,12 @@ describe('Feed Ranking', () => {
   it('rankFeed top sorts by engagement', () => {
     const entries = [
       { id: 'boring', voteCount: 1, commentCount: 0, createdAt: new Date(now).toISOString() },
-      { id: 'popular', voteCount: 50, commentCount: 20, createdAt: new Date(now - 86400000).toISOString() },
+      {
+        id: 'popular',
+        voteCount: 50,
+        commentCount: 20,
+        createdAt: new Date(now - 86400000).toISOString(),
+      },
     ];
     const sorted = rankFeed(entries, 'top');
     expect(sorted[0].id).toBe('popular');
@@ -144,8 +199,20 @@ describe('Feed Ranking', () => {
 
   it('rankFeed following filters by followingIds', () => {
     const entries = [
-      { id: 'followed', authorId: 'friend', voteCount: 1, commentCount: 0, createdAt: new Date(now).toISOString() },
-      { id: 'stranger', authorId: 'unknown', voteCount: 10, commentCount: 5, createdAt: new Date(now).toISOString() },
+      {
+        id: 'followed',
+        authorId: 'friend',
+        voteCount: 1,
+        commentCount: 0,
+        createdAt: new Date(now).toISOString(),
+      },
+      {
+        id: 'stranger',
+        authorId: 'unknown',
+        voteCount: 10,
+        commentCount: 5,
+        createdAt: new Date(now).toISOString(),
+      },
     ];
     const sorted = rankFeed(entries, 'following', new Set(['friend']));
     expect(sorted.length).toBe(1);
@@ -154,7 +221,13 @@ describe('Feed Ranking', () => {
 
   it('rankFeed following returns empty if not following anyone', () => {
     const entries = [
-      { id: 'entry1', authorId: 'a', voteCount: 5, commentCount: 2, createdAt: new Date(now).toISOString() },
+      {
+        id: 'entry1',
+        authorId: 'a',
+        voteCount: 5,
+        commentCount: 2,
+        createdAt: new Date(now).toISOString(),
+      },
     ];
     const sorted = rankFeed(entries, 'following', new Set());
     expect(sorted.length).toBe(0);
@@ -179,7 +252,14 @@ describe('Content Moderation', () => {
   });
 
   it('reviewReport updates status and records reviewer', () => {
-    const report = createReport('agent', 'bad-agent', 'reporter-3', 'Bot3', 'spam', 'sending too many messages');
+    const report = createReport(
+      'agent',
+      'bad-agent',
+      'reporter-3',
+      'Bot3',
+      'spam',
+      'sending too many messages'
+    );
     const reviewed = reviewReport(report.id, 'admin-1', 'warn');
     expect(reviewed).not.toBeNull();
     expect(reviewed!.status).toBe('actioned');

@@ -64,4 +64,3 @@ describe('SoftBodySolver', () => {
     expect(vel[1]).toBeLessThan(0);
   });
 });
-

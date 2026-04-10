@@ -53,41 +53,41 @@ const output = compiler.compile(ast);
 
 ## Compilers (33 implementations, 24 registered dialects, 29 ExportTargets)
 
-| Compiler                        | Target                     | Output             |
-| ------------------------------- | -------------------------- | ------------------ |
-| `UnityCompiler`                 | Unity Engine               | C# + Prefab        |
-| `UnrealCompiler`                | Unreal Engine 5            | C++ + Blueprint    |
-| `GodotCompiler`                 | Godot 4                    | GDScript + .tscn   |
-| `R3FCompiler`                   | React Three Fiber          | TSX + hooks        |
-| `BabylonCompiler`               | Babylon.js                 | TypeScript         |
-| `PlayCanvasCompiler`            | PlayCanvas                 | JavaScript         |
-| `OpenXRCompiler`                | OpenXR Standard            | C++                |
-| `VRChatCompiler`                | VRChat                     | UdonSharp C#       |
-| `VisionOSCompiler`              | Apple Vision Pro           | Swift              |
-| `AndroidXRCompiler`             | Android XR                 | Kotlin             |
-| `IOSCompiler`                   | iOS / ARKit                | Swift              |
-| `AndroidCompiler`               | Android / ARCore           | Kotlin             |
-| `ARCompiler`                    | Generic AR                 | TypeScript         |
-| `WASMCompiler`                  | WebAssembly                | .wasm + .js        |
-| `WebGPUCompiler`                | WebGPU Compute             | WGSL + TypeScript  |
-| `URDFCompiler`                  | Robotics (URDF)            | .urdf XML          |
-| `SDFCompiler`                   | SDF / Gazebo               | .sdf XML           |
-| `DTDLCompiler`                  | Digital Twins              | JSON-LD            |
-| `StateCompiler`                 | Reactive State             | JSON               |
-| `A2AAgentCardCompiler`          | A2A Agent Cards            | JSON               |
-| `NIRCompiler`                   | Neuromorphic IR            | JSON               |
-| `VRRCompiler`                   | Variable Rate Rendering    | TypeScript         |
-| `Native2DCompiler`              | 2D HTML/CSS                | TSX + HTML         |
-| `NodeServiceCompiler`           | Node.js Services           | TypeScript         |
-| `AIGlassesCompiler`             | AI Glasses                 | Kotlin Compose     |
-| `GLTFPipeline`                  | glTF                       | .glb / .gltf       |
-| `NFTMarketplaceCompiler`        | NFT Marketplace            | Solidity           |
-| `USDPhysicsCompiler`            | USD Physics                | .usda              |
-| `TSLCompiler`                   | Three.js Shading Language  | GLSL / WGSL        |
-| `SCMCompiler`                   | Structural Causal Model    | JSON DAG           |
-| `QuiltCompiler`                 | Looking Glass Hologram     | Multi-view PNG     |
-| `MVHEVCCompiler`                | MV-HEVC Hologram           | Swift + .mov       |
-| `FlatSemanticCompiler`          | Semantic 2D Layout         | TSX                |
+| Compiler                 | Target                    | Output            |
+| ------------------------ | ------------------------- | ----------------- |
+| `UnityCompiler`          | Unity Engine              | C# + Prefab       |
+| `UnrealCompiler`         | Unreal Engine 5           | C++ + Blueprint   |
+| `GodotCompiler`          | Godot 4                   | GDScript + .tscn  |
+| `R3FCompiler`            | React Three Fiber         | TSX + hooks       |
+| `BabylonCompiler`        | Babylon.js                | TypeScript        |
+| `PlayCanvasCompiler`     | PlayCanvas                | JavaScript        |
+| `OpenXRCompiler`         | OpenXR Standard           | C++               |
+| `VRChatCompiler`         | VRChat                    | UdonSharp C#      |
+| `VisionOSCompiler`       | Apple Vision Pro          | Swift             |
+| `AndroidXRCompiler`      | Android XR                | Kotlin            |
+| `IOSCompiler`            | iOS / ARKit               | Swift             |
+| `AndroidCompiler`        | Android / ARCore          | Kotlin            |
+| `ARCompiler`             | Generic AR                | TypeScript        |
+| `WASMCompiler`           | WebAssembly               | .wasm + .js       |
+| `WebGPUCompiler`         | WebGPU Compute            | WGSL + TypeScript |
+| `URDFCompiler`           | Robotics (URDF)           | .urdf XML         |
+| `SDFCompiler`            | SDF / Gazebo              | .sdf XML          |
+| `DTDLCompiler`           | Digital Twins             | JSON-LD           |
+| `StateCompiler`          | Reactive State            | JSON              |
+| `A2AAgentCardCompiler`   | A2A Agent Cards           | JSON              |
+| `NIRCompiler`            | Neuromorphic IR           | JSON              |
+| `VRRCompiler`            | Variable Rate Rendering   | TypeScript        |
+| `Native2DCompiler`       | 2D HTML/CSS               | TSX + HTML        |
+| `NodeServiceCompiler`    | Node.js Services          | TypeScript        |
+| `AIGlassesCompiler`      | AI Glasses                | Kotlin Compose    |
+| `GLTFPipeline`           | glTF                      | .glb / .gltf      |
+| `NFTMarketplaceCompiler` | NFT Marketplace           | Solidity          |
+| `USDPhysicsCompiler`     | USD Physics               | .usda             |
+| `TSLCompiler`            | Three.js Shading Language | GLSL / WGSL       |
+| `SCMCompiler`            | Structural Causal Model   | JSON DAG          |
+| `QuiltCompiler`          | Looking Glass Hologram    | Multi-view PNG    |
+| `MVHEVCCompiler`         | MV-HEVC Hologram          | Swift + .mov      |
+| `FlatSemanticCompiler`   | Semantic 2D Layout        | TSX               |
 
 ## Trait System
 

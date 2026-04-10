@@ -136,7 +136,9 @@ export function convertUnityMaterial(mat: UnityMaterial): { id: string; dsl: str
   const metalness = typeof p._Metallic === 'number' ? p._Metallic : 0;
   const roughness = typeof p._Glossiness === 'number' ? 1 - (p._Glossiness as number) : 0.5;
 
-  const emissive = p._EmissionColor ? colorToHex(p._EmissionColor as { r: number; g: number; b: number }) : undefined;
+  const emissive = p._EmissionColor
+    ? colorToHex(p._EmissionColor as { r: number; g: number; b: number })
+    : undefined;
 
   const lines: string[] = [
     `  material ${id} : ${shaderType} {`,
@@ -315,7 +317,12 @@ export const unityConverterHandler = {
     delete node.__unityConverterState;
   },
 
-  onEvent(node: HSPlusNode, config: UnityConverterConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: UnityConverterConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__unityConverterState;
     if (!state) return;
 

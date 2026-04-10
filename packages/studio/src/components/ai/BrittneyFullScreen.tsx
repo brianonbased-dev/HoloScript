@@ -2,15 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Send,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Mic,
-  MicOff,
-  ArrowRight,
-} from 'lucide-react';
+import { Send, Loader2, CheckCircle2, XCircle, Mic, MicOff, ArrowRight } from 'lucide-react';
 import { streamBrittney, buildRichContext } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
@@ -125,13 +117,13 @@ export function BrittneyFullScreen() {
         GREETING,
         ...savedHistory.map((m, i) => ({
           id: `h-${i}`,
-          role: m.role === 'user' ? 'user' as const : 'brittney' as const,
+          role: m.role === 'user' ? ('user' as const) : ('brittney' as const),
           text: m.content,
         })),
       ]);
       setLlmHistory(
         savedHistory.map((m) => ({
-          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
           content: m.content,
         }))
       );
@@ -180,10 +172,7 @@ export function BrittneyFullScreen() {
     setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
     persistMessage({ role: 'user', content: text });
 
-    const updatedHistory: BrittneyMessage[] = [
-      ...llmHistory,
-      { role: 'user', content: text },
-    ];
+    const updatedHistory: BrittneyMessage[] = [...llmHistory, { role: 'user', content: text }];
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
@@ -217,9 +206,7 @@ export function BrittneyFullScreen() {
         if (event.type === 'text') {
           accumulatedText += event.payload as string;
           setMessages((m) =>
-            m.map((msg) =>
-              msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg
-            )
+            m.map((msg) => (msg.id === brittMsgId ? { ...msg, text: accumulatedText } : msg))
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
@@ -229,18 +216,14 @@ export function BrittneyFullScreen() {
           toolResults.push(result);
           setMessages((m) =>
             m.map((msg) =>
-              msg.id === brittMsgId
-                ? { ...msg, toolResults: [...toolResults] }
-                : msg
+              msg.id === brittMsgId ? { ...msg, toolResults: [...toolResults] } : msg
             )
           );
         } else if (event.type === 'error') {
           accumulatedText = `Sorry, I hit an error: ${event.payload}`;
           setMessages((m) =>
             m.map((msg) =>
-              msg.id === brittMsgId
-                ? { ...msg, text: accumulatedText, isStreaming: false }
-                : msg
+              msg.id === brittMsgId ? { ...msg, text: accumulatedText, isStreaming: false } : msg
             )
           );
         } else if (event.type === 'done') {
@@ -369,8 +352,8 @@ export function BrittneyFullScreen() {
                 {GREETING.text}
               </h1>
               <p className="mb-8 text-sm text-white/30 max-w-md text-center">
-                Describe your project, paste a GitHub URL, or pick a starting point below.
-                I will scaffold it, wire the logic, and compile to any platform.
+                Describe your project, paste a GitHub URL, or pick a starting point below. I will
+                scaffold it, wire the logic, and compile to any platform.
               </p>
             </div>
           )}
@@ -443,11 +426,7 @@ export function BrittneyFullScreen() {
           <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-lg shadow-black/20 transition-colors focus-within:border-studio-accent/30">
             <textarea
               ref={inputRef}
-              value={
-                isListening && interimTranscript
-                  ? input + ' ' + interimTranscript
-                  : input
-              }
+              value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
               placeholder="Describe what you want to build..."
@@ -467,15 +446,9 @@ export function BrittneyFullScreen() {
                       : 'text-white/30 hover:bg-white/[0.06] hover:text-white/60'
                   }`}
                   title={isListening ? 'Stop listening' : 'Voice input'}
-                  aria-label={
-                    isListening ? 'Stop voice recording' : 'Start voice recording'
-                  }
+                  aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
                 >
-                  {isListening ? (
-                    <MicOff className="h-4 w-4" />
-                  ) : (
-                    <Mic className="h-4 w-4" />
-                  )}
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </button>
               )}
               <button

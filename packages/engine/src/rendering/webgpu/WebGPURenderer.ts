@@ -991,7 +991,6 @@ export class WebGPURenderer {
     this.xrSession = session;
     this.xrBinding = binding;
     this.xrProjectionLayer = layer;
-
   }
 
   /**
@@ -1003,7 +1002,8 @@ export class WebGPURenderer {
     const { device } = this.context;
     const session = frame.session;
     const pose = frame.getViewerPose(
-      this.xrBinding.nativeProjectionLayerSpace || (this.xrSession.renderState.baseLayer as unknown as { space: XRReferenceSpace })!.space
+      this.xrBinding.nativeProjectionLayerSpace ||
+        (this.xrSession.renderState.baseLayer as unknown as { space: XRReferenceSpace })!.space
     );
 
     if (!pose) return;
@@ -1211,4 +1211,3 @@ export class WebGPURenderer {
     }
   }
 }
-

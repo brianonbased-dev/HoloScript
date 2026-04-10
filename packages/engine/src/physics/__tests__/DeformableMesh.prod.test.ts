@@ -111,4 +111,3 @@ describe('DeformableMesh — Production', () => {
     expect(m.getDisplacement(0)).toBe(0);
   });
 });
-

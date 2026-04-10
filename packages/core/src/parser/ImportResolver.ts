@@ -367,7 +367,8 @@ export class ImportResolver {
 
       // ── Resolve transitive imports ────────────────────────────────────────
       const transitiveDeps: string[] = [];
-      const subImports: ParsedImport[] = ((result.ast as ASTProgram)?.imports ?? []) as ParsedImport[];
+      const subImports: ParsedImport[] = ((result.ast as ASTProgram)?.imports ??
+        []) as ParsedImport[];
       const baseDir = canonicalPath.replace(/\/[^/]+$/, '');
 
       for (const subImp of subImports) {
@@ -525,11 +526,15 @@ export class ImportResolver {
 
     for (const node of nodesToCheck) {
       const nodeRec = node as unknown as Record<string, unknown>;
-      const directives: Array<Record<string, unknown>> = (nodeRec.directives as Array<Record<string, unknown>>) ?? [];
+      const directives: Array<Record<string, unknown>> =
+        (nodeRec.directives as Array<Record<string, unknown>>) ?? [];
       const exportDir = directives.find((d) => d?.type === 'export');
       if (exportDir) {
         const exportName: string =
-          (exportDir.exportName as string) ?? (nodeRec.id as string) ?? (nodeRec.name as string) ?? (nodeRec.type as string);
+          (exportDir.exportName as string) ??
+          (nodeRec.id as string) ??
+          (nodeRec.name as string) ??
+          (nodeRec.type as string);
         exports.set(exportName, node);
       }
     }

@@ -307,4 +307,3 @@ export class HotReloader {
     return this.instances.get(templateName) ?? [];
   }
 }
-

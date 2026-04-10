@@ -75,4 +75,3 @@ describe('FluidSim', () => {
     expect(sim.getParticleCount()).toBe(1);
   });
 });
-

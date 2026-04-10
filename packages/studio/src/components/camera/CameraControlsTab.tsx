@@ -28,9 +28,7 @@ export function CameraControlsTab({
             <div key={axis}>
               <span className="text-studio-muted">{axis.toUpperCase()}</span>
               <br />
-              <span className="text-studio-text font-mono">
-                {camera.position[axis].toFixed(2)}
-              </span>
+              <span className="text-studio-text font-mono">{camera.position[axis].toFixed(2)}</span>
             </div>
           ))}
         </div>

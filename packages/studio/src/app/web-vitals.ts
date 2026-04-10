@@ -21,13 +21,19 @@ function sendToAnalytics(metric: Metric) {
       event_name: metric.name,
       value: metric.value.toString(),
       rating: metric.rating,
-      speed: ('connection' in navigator ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection?.effectiveType : '') || '',
+      speed:
+        ('connection' in navigator
+          ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
+              ?.effectiveType
+          : '') || '',
     });
 
     if (navigator.sendBeacon) {
       navigator.sendBeacon(vitalsUrl, body);
     } else {
-      fetch(vitalsUrl, { body, method: 'POST', keepalive: true }).catch((err) => logger.warn('Swallowed error caught:', err));
+      fetch(vitalsUrl, { body, method: 'POST', keepalive: true }).catch((err) =>
+        logger.warn('Swallowed error caught:', err)
+      );
     }
   }
 }

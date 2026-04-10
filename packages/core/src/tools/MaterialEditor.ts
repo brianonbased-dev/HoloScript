@@ -11,13 +11,21 @@
 
 // @ts-expect-error During migration
 import type { MaterialDef, MaterialType } from '@holoscript/engine/rendering/MaterialLibrary';
-import { hexToRGBA, rgbaToHex, createDefaultMaterialDef } from '@holoscript/engine/rendering/MaterialLibrary';
+import {
+  hexToRGBA,
+  rgbaToHex,
+  createDefaultMaterialDef,
+} from '@holoscript/engine/rendering/MaterialLibrary';
 
 // Re-export MaterialDef so existing consumers of MaterialEditor types
 // can access the canonical type without changing their imports.
 // @ts-expect-error During migration
 export type { MaterialDef, MaterialType } from '@holoscript/engine/rendering/MaterialLibrary';
-export { hexToRGBA, rgbaToHex, createDefaultMaterialDef } from '@holoscript/engine/rendering/MaterialLibrary';
+export {
+  hexToRGBA,
+  rgbaToHex,
+  createDefaultMaterialDef,
+} from '@holoscript/engine/rendering/MaterialLibrary';
 
 /**
  * @deprecated Use MaterialDef from rendering/MaterialLibrary instead.
@@ -599,7 +607,9 @@ export class MaterialEditor {
    */
   private initializePreview(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const THREE = (globalThis as unknown as Record<string, unknown>).THREE as Record<string, any> | undefined;
+    const THREE = (globalThis as unknown as Record<string, unknown>).THREE as
+      | Record<string, any>
+      | undefined;
     if (!this.previewCanvas || !THREE) return;
 
     // Scene

@@ -34,13 +34,16 @@ export class QueryResolver {
     } catch (error: unknown) {
       // Handle parsing errors
       const errObj = error as Record<string, unknown>;
-      const location = errObj?.location as { line: number; column: number; offset: number } | undefined;
+      const location = errObj?.location as
+        | { line: number; column: number; offset: number }
+        | undefined;
       return {
         success: false,
         ast: undefined,
         errors: [
           {
-            message: (error instanceof Error ? error.message : String(error)) || 'Unknown parsing error',
+            message:
+              (error instanceof Error ? error.message : String(error)) || 'Unknown parsing error',
             location: location
               ? {
                   line: location.line,

@@ -251,7 +251,12 @@ export class HoloScriptSandbox {
       };
     } catch (error) {
       // vm2 throws errors from a different V8 realm — instanceof checks fail
-      const errObj = error as { message?: string; code?: string; stack?: string; constructor?: { name?: string } };
+      const errObj = error as {
+        message?: string;
+        code?: string;
+        stack?: string;
+        constructor?: { name?: string };
+      };
       const errorMessage: string = errObj?.message ?? 'Unknown execution error';
       const errorCode: string | undefined = errObj?.code;
       const errorStack: string | undefined = errObj?.stack;

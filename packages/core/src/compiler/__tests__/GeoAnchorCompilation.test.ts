@@ -37,7 +37,10 @@ function createComposition(overrides: Partial<HoloComposition> = {}): HoloCompos
   };
 }
 
-function createGeoObject(name: string, traits: Array<string | { name: string; config?: Record<string, unknown> }> = []): HoloObjectDecl {
+function createGeoObject(
+  name: string,
+  traits: Array<string | { name: string; config?: Record<string, unknown> }> = []
+): HoloObjectDecl {
   return {
     name,
     properties: [{ key: 'geometry', value: 'cube' }],
@@ -50,7 +53,11 @@ describe('AndroidCompiler — Geo-Anchor', () => {
 
   it('emits geo-anchor setup when geo_anchor trait is present', () => {
     const composition = createComposition({
-      objects: [createGeoObject('Landmark', [{ name: 'geo_anchor', config: { latitude: 37.7749, longitude: -122.4194 } }])],
+      objects: [
+        createGeoObject('Landmark', [
+          { name: 'geo_anchor', config: { latitude: 37.7749, longitude: -122.4194 } },
+        ]),
+      ],
     });
     const result = compiler.compile(composition);
 
@@ -115,7 +122,11 @@ describe('IOSCompiler — Geo-Anchor', () => {
 
   it('emits geo-anchor methods when geo_anchor trait is present', () => {
     const composition = createComposition({
-      objects: [createGeoObject('Landmark', [{ name: 'geo_anchor', config: { latitude: 34.0522, longitude: -118.2437 } }])],
+      objects: [
+        createGeoObject('Landmark', [
+          { name: 'geo_anchor', config: { latitude: 34.0522, longitude: -118.2437 } },
+        ]),
+      ],
     });
     const result = compiler.compile(composition);
 

@@ -143,10 +143,7 @@ export async function DELETE(request: NextRequest) {
 
   const db = getDb();
   if (db) {
-    const deleted = await db
-      .delete(sceneSnapshots)
-      .where(eq(sceneSnapshots.id, id))
-      .returning();
+    const deleted = await db.delete(sceneSnapshots).where(eq(sceneSnapshots.id, id)).returning();
 
     if (deleted.length > 0) {
       // Clean up S3 image if it's an S3 URL (not base64)

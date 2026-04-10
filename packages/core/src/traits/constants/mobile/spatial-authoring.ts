@@ -15,19 +15,19 @@
  */
 export const SPATIAL_AUTHORING_TRAITS = [
   // --- Gyro Placement ---
-  'author_gyro_place',      // gyroscope-stabilised AR object placement
+  'author_gyro_place', // gyroscope-stabilised AR object placement
 
   // --- Pinch Scale ---
-  'author_pinch_scale',     // pinch-to-scale selected entity
+  'author_pinch_scale', // pinch-to-scale selected entity
 
   // --- Swipe Browse ---
-  'author_swipe_browse',    // horizontal swipe to browse trait palette
+  'author_swipe_browse', // horizontal swipe to browse trait palette
 
   // --- Voice Commands ---
-  'author_voice_cmd',       // speech recognition → parse and execute commands
+  'author_voice_cmd', // speech recognition → parse and execute commands
 
   // --- Shake Undo ---
-  'author_shake_undo',      // shake device to undo last action
+  'author_shake_undo', // shake device to undo last action
 ] as const;
 
 export type SpatialAuthoringTraitName = (typeof SPATIAL_AUTHORING_TRAITS)[number];

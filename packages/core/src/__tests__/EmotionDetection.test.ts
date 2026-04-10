@@ -1,6 +1,9 @@
 ﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { userMonitorHandler } from '../traits/UserMonitorTrait';
-import { registerEmotionDetector, type EmotionDetector } from '@holoscript/engine/runtime/EmotionDetector';
+import {
+  registerEmotionDetector,
+  type EmotionDetector,
+} from '@holoscript/engine/runtime/EmotionDetector';
 import { HSPlusNode } from '../types/HoloScriptPlus';
 
 describe('UserMonitorTrait - Frustration Detection', () => {
@@ -109,4 +112,3 @@ describe('UserMonitorTrait - Frustration Detection', () => {
     );
   });
 });
-

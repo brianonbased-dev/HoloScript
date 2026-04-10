@@ -24,12 +24,17 @@ export async function GET(request: Request) {
     }
 
     const content = fs.readFileSync(outboxPath, 'utf-8');
-    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = content
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     const entries = [];
     for (const line of lines.slice(-limit)) {
       try {
         entries.push(JSON.parse(line));
-      } catch { /* skip malformed */ }
+      } catch {
+        /* skip malformed */
+      }
     }
 
     return NextResponse.json({ entries, total: lines.length });
@@ -64,14 +69,21 @@ export async function GET(request: Request) {
           const newContent = content.slice(lastOffset);
           lastOffset = content.length;
 
-          const lines = newContent.split('\n').map(l => l.trim()).filter(Boolean);
+          const lines = newContent
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
           for (const line of lines) {
             try {
               const entry = JSON.parse(line);
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(entry)}\n\n`));
-            } catch { /* skip malformed */ }
+            } catch {
+              /* skip malformed */
+            }
           }
-        } catch { /* file read error, retry next poll */ }
+        } catch {
+          /* file read error, retry next poll */
+        }
       }, 1000);
 
       // Cleanup on close
@@ -90,7 +102,7 @@ export async function GET(request: Request) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   });
 }

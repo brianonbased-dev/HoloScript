@@ -6,7 +6,13 @@
  * Drag-and-drop scene builder, property editing, real-time preview.
  */
 
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait, HoloObjectProperty, HoloValue } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloObjectProperty,
+  HoloValue,
+} from '../parser/HoloCompositionTypes';
 
 /**
  * Editor configuration
@@ -617,9 +623,12 @@ export class VisualEditor {
         properties: t.config as Record<string, unknown>,
         category: this.getTraitCategory(t.name),
       })),
-      properties: obj.properties
-        ?.filter((p) => !['position', 'rotation', 'scale', 'geometry', 'material'].includes(p.key))
-        .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}) || {},
+      properties:
+        obj.properties
+          ?.filter(
+            (p) => !['position', 'rotation', 'scale', 'geometry', 'material'].includes(p.key)
+          )
+          .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {}) || {},
       visible: true,
       locked: false,
       selected: false,
@@ -647,12 +656,26 @@ export class VisualEditor {
 
     for (const entity of this.entities.values()) {
       const properties: HoloObjectProperty[] = [];
-      properties.push({ type: 'ObjectProperty', key: 'position', value: entity.transform.position });
-      properties.push({ type: 'ObjectProperty', key: 'rotation', value: entity.transform.rotation });
+      properties.push({
+        type: 'ObjectProperty',
+        key: 'position',
+        value: entity.transform.position,
+      });
+      properties.push({
+        type: 'ObjectProperty',
+        key: 'rotation',
+        value: entity.transform.rotation,
+      });
       properties.push({ type: 'ObjectProperty', key: 'scale', value: entity.transform.scale });
-      if (entity.geometry) properties.push({ type: 'ObjectProperty', key: 'geometry', value: entity.geometry });
-      if (entity.material) properties.push({ type: 'ObjectProperty', key: 'material', value: entity.material as unknown as HoloObjectProperty['value'] });
-      
+      if (entity.geometry)
+        properties.push({ type: 'ObjectProperty', key: 'geometry', value: entity.geometry });
+      if (entity.material)
+        properties.push({
+          type: 'ObjectProperty',
+          key: 'material',
+          value: entity.material as unknown as HoloObjectProperty['value'],
+        });
+
       for (const [k, v] of Object.entries(entity.properties)) {
         properties.push({ type: 'ObjectProperty', key: k, value: v as HoloValue });
       }

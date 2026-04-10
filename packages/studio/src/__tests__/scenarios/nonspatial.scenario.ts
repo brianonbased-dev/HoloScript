@@ -10,7 +10,7 @@ import {
   calculateSpatialSyncLatency,
   estimateStateMutationCost,
   validateSpatialMapping,
-  type RouteEndpoint
+  type RouteEndpoint,
 } from '@/lib/nonspatialScenario';
 
 describe('Scenario: NonSpatial Developer', () => {
@@ -23,10 +23,10 @@ describe('Scenario: NonSpatial Developer', () => {
   it('calculates latency across architectures for 1000 users', () => {
     // Monolith: 45 + (1000 * 0.5) = 545
     expect(calculateSpatialSyncLatency('monolith', 1000)).toBe(545);
-    
+
     // Serverless: 45 + 150 + (1000 * 1.5) = 1695
     expect(calculateSpatialSyncLatency('serverless', 1000)).toBe(1695);
-    
+
     // P2P CRDT: 45 + (1000 * 0.1) = 145
     expect(calculateSpatialSyncLatency('p2p-crdt', 1000)).toBe(145);
   });
@@ -48,18 +48,14 @@ describe('Scenario: NonSpatial Developer', () => {
   });
 
   it('warns if no WS endpoint is defined', () => {
-    const noWs: RouteEndpoint[] = [
-      { path: '/api/update', method: 'POST', dataPayloadKb: 50 }
-    ];
+    const noWs: RouteEndpoint[] = [{ path: '/api/update', method: 'POST', dataPayloadKb: 50 }];
     const validation = validateSpatialMapping(noWs);
     expect(validation.valid).toBe(false);
     expect(validation.warnings[0]).toContain('No WebSocket (WS) endpoint');
   });
 
   it('passes cleanly for valid spatial web setups', () => {
-    const perfect: RouteEndpoint[] = [
-      { path: 'ws://loro-crdt', method: 'WS', dataPayloadKb: 1.5 }
-    ];
+    const perfect: RouteEndpoint[] = [{ path: 'ws://loro-crdt', method: 'WS', dataPayloadKb: 1.5 }];
     const result = validateSpatialMapping(perfect);
     expect(result.valid).toBe(true);
     expect(result.warnings.length).toBe(0);

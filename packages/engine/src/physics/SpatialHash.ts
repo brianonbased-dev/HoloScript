@@ -176,4 +176,3 @@ export class SpatialHash {
     this.entries.clear();
   }
 }
-

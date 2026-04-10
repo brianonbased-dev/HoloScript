@@ -127,7 +127,9 @@ describe('GossipProtocol — publish', () => {
   it('publish calls type-specific handler synchronously', () => {
     const n = mkNode();
     const received: IGossipMessage[] = [];
-    n.subscribe('data', (msg) => { received.push(msg); });
+    n.subscribe('data', (msg) => {
+      received.push(msg);
+    });
     n.publish({ v: 42 }, 'data');
     expect(received).toHaveLength(1);
     expect((received[0].content as any).v).toBe(42);
@@ -135,21 +137,27 @@ describe('GossipProtocol — publish', () => {
   it('publish calls wildcard handler', () => {
     const n = mkNode();
     const received: IGossipMessage[] = [];
-    n.subscribe('*', (msg) => { received.push(msg); });
+    n.subscribe('*', (msg) => {
+      received.push(msg);
+    });
     n.publish({ v: 1 }, 'heartbeat');
     expect(received).toHaveLength(1);
   });
   it('publishHeartbeat uses type=heartbeat', () => {
     const n = mkNode();
     const received: IGossipMessage[] = [];
-    n.subscribe('heartbeat', (msg) => { received.push(msg); });
+    n.subscribe('heartbeat', (msg) => {
+      received.push(msg);
+    });
     n.publishHeartbeat();
     expect(received).toHaveLength(1);
   });
   it('publishMembership uses type=membership', () => {
     const n = mkNode();
     const received: IGossipMessage[] = [];
-    n.subscribe('membership', (msg) => { received.push(msg); });
+    n.subscribe('membership', (msg) => {
+      received.push(msg);
+    });
     n.publishMembership('join');
     expect(received).toHaveLength(1);
   });
@@ -189,7 +197,9 @@ describe('GossipProtocol — receive', () => {
   it('receive calls handler', async () => {
     const n = mkNode();
     const received: any[] = [];
-    n.subscribe('data', (msg) => { received.push(msg); });
+    n.subscribe('data', (msg) => {
+      received.push(msg);
+    });
     await n.receive(mkMsg({ type: 'data' }), 'peer');
     expect(received).toHaveLength(1);
   });
@@ -218,7 +228,9 @@ describe('GossipProtocol — subscribe / unsubscribe', () => {
   it('unsubscribe stops future deliveries', () => {
     const n = mkNode();
     const calls: number[] = [];
-    const unsub = n.subscribe('data', () => { calls.push(1); });
+    const unsub = n.subscribe('data', () => {
+      calls.push(1);
+    });
     n.publish({ x: 1 }, 'data');
     unsub();
     n.publish({ x: 2 }, 'data');
@@ -227,7 +239,9 @@ describe('GossipProtocol — subscribe / unsubscribe', () => {
   it('wildcard receives all message types', async () => {
     const n = mkNode();
     const types: string[] = [];
-    n.subscribe('*', (msg) => { types.push(msg.type); });
+    n.subscribe('*', (msg) => {
+      types.push(msg.type);
+    });
     n.publish({}, 'data');
     n.publish({}, 'heartbeat');
     n.publish({}, 'membership');

@@ -206,7 +206,7 @@ export class StateSynchronizer {
             value: d.newValue,
             time: d.timestamp,
           })),
-        }
+        },
       });
     }
 

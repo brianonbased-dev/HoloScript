@@ -192,7 +192,10 @@ class SlidingWindowRateLimiter {
   private readonly windowMs: number;
   private readonly maxRequests: number;
 
-  constructor(windowMs: number = RATE_LIMIT_WINDOW_MS, maxRequests: number = RATE_LIMIT_MAX_REQUESTS) {
+  constructor(
+    windowMs: number = RATE_LIMIT_WINDOW_MS,
+    maxRequests: number = RATE_LIMIT_MAX_REQUESTS
+  ) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
   }
@@ -307,7 +310,10 @@ export class x402PaymentService {
           const receipt = await this.verifyPayment(paymentId);
           if (receipt && receipt.access_granted) {
             // Check expiry for subscriptions
-            if (receipt.access_expires_at && receipt.access_expires_at < Math.floor(Date.now() / 1000)) {
+            if (
+              receipt.access_expires_at &&
+              receipt.access_expires_at < Math.floor(Date.now() / 1000)
+            ) {
               // Subscription expired, require new payment
             } else {
               (req as Request & { paymentReceipt?: x402PaymentReceipt }).paymentReceipt = receipt;
@@ -752,7 +758,10 @@ export class x402PaymentService {
   /**
    * Check if a payer has an active (non-expired) subscription for content.
    */
-  async checkSubscription(payerAddress: string, contentId: string): Promise<SubscriptionGrant | null> {
+  async checkSubscription(
+    payerAddress: string,
+    contentId: string
+  ): Promise<SubscriptionGrant | null> {
     const now = Math.floor(Date.now() / 1000);
     const result = await this.db.query(
       `SELECT * FROM x402_subscriptions

@@ -17,7 +17,12 @@ export const s3UploadHandler: TraitHandler<S3UploadConfig> = {
     delete node.__s3State;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: S3UploadConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: S3UploadConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__s3State as { uploads: number; totalBytes: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 's3:upload') {

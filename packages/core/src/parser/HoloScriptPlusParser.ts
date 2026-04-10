@@ -1653,87 +1653,89 @@ export class HoloScriptPlusParser {
               ];
 
               if (name === 'transition' && this.check('STRING')) {
-                 const event = this.advance().value;
-                 if (this.check('ARROW')) {
-                   this.advance(); // consume ->
-                   const targetState = this.expect('STRING', 'Expected target state string').value;
-                   let block: Record<string, unknown> = {};
-                   if (this.check('LBRACE')) {
-                     block = this.parseBlockContent();
-                   }
-                   children.push({
-                     type: 'transition',
-                     name: `${event}_to_${targetState}`,
-                     event,
-                     target: targetState,
-                     guard: block.guard || '',
-                     action: block.action || '',
-                     block
-                   } as unknown as HSPlusNode);
-                   continue;
-                 } else { // backtrack
-                   this.pos = saved;
-                 }
+                const event = this.advance().value;
+                if (this.check('ARROW')) {
+                  this.advance(); // consume ->
+                  const targetState = this.expect('STRING', 'Expected target state string').value;
+                  let block: Record<string, unknown> = {};
+                  if (this.check('LBRACE')) {
+                    block = this.parseBlockContent();
+                  }
+                  children.push({
+                    type: 'transition',
+                    name: `${event}_to_${targetState}`,
+                    event,
+                    target: targetState,
+                    guard: block.guard || '',
+                    action: block.action || '',
+                    block,
+                  } as unknown as HSPlusNode);
+                  continue;
+                } else {
+                  // backtrack
+                  this.pos = saved;
+                }
               }
 
               if (name === 'on_entry' || name === 'on_exit') {
-                 let block = '';
-                 if (this.check('LBRACE')) {
-                   block = this.parseCodeBlock();
-                 } else { // skip over malformed
-                   while (!this.check('RBRACE') && !this.check('EOF')) this.advance();
-                 }
-                 children.push({
-                   type: 'method',
-                   name: name,
-                   params: [],
-                   returnType: 'unknown',
-                   body: block
-                 } as unknown as HSPlusNode);
-                 continue;
+                let block = '';
+                if (this.check('LBRACE')) {
+                  block = this.parseCodeBlock();
+                } else {
+                  // skip over malformed
+                  while (!this.check('RBRACE') && !this.check('EOF')) this.advance();
+                }
+                children.push({
+                  type: 'method',
+                  name: name,
+                  params: [],
+                  returnType: 'unknown',
+                  body: block,
+                } as unknown as HSPlusNode);
+                continue;
               }
 
               // Inline method (but not just a property function call)
               // Only do this if it's a known identifier or we peek ahead and see {
               if (this.check('LPAREN')) {
-                 const possibleMethod = saved;
-                 this.pos = saved;
-                 const methodName = this.advance().value;
-                 const params: string[] = [];
-                 this.advance(); // consume (
-                 while (!this.check('RPAREN') && !this.check('EOF') && !this.check('LBRACE')) {
-                    if (this.check('IDENTIFIER')) {
-                       params.push(this.advance().value);
-                    } else {
-                       this.advance();
-                    }
-                 }
-                 if (this.check('RPAREN')) this.advance(); // )
-                 
-                 let returnType = 'unknown';
-                 if (this.check('COLON')) {
+                const possibleMethod = saved;
+                this.pos = saved;
+                const methodName = this.advance().value;
+                const params: string[] = [];
+                this.advance(); // consume (
+                while (!this.check('RPAREN') && !this.check('EOF') && !this.check('LBRACE')) {
+                  if (this.check('IDENTIFIER')) {
+                    params.push(this.advance().value);
+                  } else {
                     this.advance();
-                    if (this.check('IDENTIFIER')) {
-                       returnType = this.advance().value;
-                    }
-                 }
+                  }
+                }
+                if (this.check('RPAREN')) this.advance(); // )
 
-                 // It is a method if it has a block body!
-                 if (this.check('LBRACE')) {
-                   const body = this.parseCodeBlock();
-                   children.push({
-                     type: 'method',
-                     name: methodName,
-                     params,
-                     returnType,
-                     body
-                   } as unknown as HSPlusNode);
-                   continue;
-                 } else {
-                   // Backtrack! It was just a function call or expression
-                   this.pos = possibleMethod;
-                   this.advance(); // consume name
-                 }
+                let returnType = 'unknown';
+                if (this.check('COLON')) {
+                  this.advance();
+                  if (this.check('IDENTIFIER')) {
+                    returnType = this.advance().value;
+                  }
+                }
+
+                // It is a method if it has a block body!
+                if (this.check('LBRACE')) {
+                  const body = this.parseCodeBlock();
+                  children.push({
+                    type: 'method',
+                    name: methodName,
+                    params,
+                    returnType,
+                    body,
+                  } as unknown as HSPlusNode);
+                  continue;
+                } else {
+                  // Backtrack! It was just a function call or expression
+                  this.pos = possibleMethod;
+                  this.advance(); // consume name
+                }
               }
 
               if (this.check('COLON') || this.check('EQUALS')) {
@@ -1801,7 +1803,9 @@ export class HoloScriptPlusParser {
     this.expect('AT', 'Expected @');
     // Accept both IDENTIFIER and keyword tokens (like STATE) as directive names
     const nameToken = this.current();
-    const isKeyword = ['STATE_MACHINE', 'STATE', 'ON_ENTRY', 'ON_EXIT', 'TRANSITION'].includes(nameToken.type);
+    const isKeyword = ['STATE_MACHINE', 'STATE', 'ON_ENTRY', 'ON_EXIT', 'TRANSITION'].includes(
+      nameToken.type
+    );
     if (nameToken.type !== 'IDENTIFIER' && !isKeyword) {
       this.error(
         `Expected directive name, got ${nameToken.type}. Directives start with @ followed by name (e.g., @grabbable)`,
@@ -2235,7 +2239,11 @@ export class HoloScriptPlusParser {
       }
       const config = this.check('LBRACE') ? this.parseBlockContent() : this.parseTraitConfig();
 
-      return { type: 'external_api' as const, name: externalApiName, ...config } as unknown as HSPlusDirective;
+      return {
+        type: 'external_api' as const,
+        name: externalApiName,
+        ...config,
+      } as unknown as HSPlusDirective;
     }
 
     if (name === 'generate') {
@@ -2677,13 +2685,13 @@ export class HoloScriptPlusParser {
             }
           }
           if (this.check('RPAREN')) this.advance(); // )
-          
+
           let returnType = 'unknown';
           if (this.check('COLON')) {
-             this.advance();
-             if (this.check('IDENTIFIER')) {
-                returnType = this.advance().value;
-             }
+            this.advance();
+            if (this.check('IDENTIFIER')) {
+              returnType = this.advance().value;
+            }
           }
 
           if (this.check('LBRACE')) {
@@ -2693,7 +2701,7 @@ export class HoloScriptPlusParser {
               name: methodName,
               params,
               returnType,
-              body
+              body,
             } as unknown as HSPlusNode);
           } else {
             // Not a method block, fallback to bare identifier

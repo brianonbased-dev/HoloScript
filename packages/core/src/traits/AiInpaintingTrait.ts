@@ -46,10 +46,21 @@ interface AiInpaintingState {
   avgProcessTimeMs: number;
 }
 
-interface SetMaskPayload { maskData?: string | null }
-interface ProcessPayload { regionId?: string; prompt?: string }
-interface CompletePayload { regionId?: string; resultUrl?: string | null; elapsedMs?: number }
-interface ErrorPayload { message?: string }
+interface SetMaskPayload {
+  maskData?: string | null;
+}
+interface ProcessPayload {
+  regionId?: string;
+  prompt?: string;
+}
+interface CompletePayload {
+  regionId?: string;
+  resultUrl?: string | null;
+  elapsedMs?: number;
+}
+interface ErrorPayload {
+  message?: string;
+}
 
 // =============================================================================
 // HANDLER

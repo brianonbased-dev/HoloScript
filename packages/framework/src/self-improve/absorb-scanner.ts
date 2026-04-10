@@ -74,7 +74,8 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
   const apiKey = config.mcpApiKey || process.env.MCP_API_KEY || '';
   const workspaceId = config.workspaceId || DEFAULT_WORKSPACE_ID;
   const maxTasks = config.maxTasks || 20;
-  const searchQuery = config.searchQuery ||
+  const searchQuery =
+    config.searchQuery ||
     'framework improvement opportunities type-safety test-coverage refactoring agents';
 
   if (!apiKey) {
@@ -108,7 +109,7 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
     let filesAnalyzed = 0;
 
     if (queryRes.ok) {
-      const data = await queryRes.json() as {
+      const data = (await queryRes.json()) as {
         results?: KnowledgeEntry[];
         entries?: KnowledgeEntry[];
       };
@@ -245,8 +246,10 @@ export async function scanTodos(codebasePath: string): Promise<ScanResult> {
 function categorizeContent(content: string): ImprovementTask['category'] {
   const lower = content.toLowerCase();
   if (lower.includes('test') || lower.includes('coverage') || lower.includes('spec')) return 'test';
-  if (lower.includes('perf') || lower.includes('slow') || lower.includes('optim')) return 'performance';
+  if (lower.includes('perf') || lower.includes('slow') || lower.includes('optim'))
+    return 'performance';
   if (lower.includes('doc') || lower.includes('readme') || lower.includes('comment')) return 'docs';
-  if (lower.includes('type') || lower.includes('any') || lower.includes('cast')) return 'type-safety';
+  if (lower.includes('type') || lower.includes('any') || lower.includes('cast'))
+    return 'type-safety';
   return 'refactor';
 }

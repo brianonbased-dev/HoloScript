@@ -131,9 +131,7 @@ export class DebateOrchestrator {
     previousRounds: DebateRound[]
   ): Promise<DebateRound> {
     // 1. Propose (or re-propose with updated confidence)
-    const positions = await Promise.all(
-      this.participants.map(p => p.propose(topic))
-    );
+    const positions = await Promise.all(this.participants.map((p) => p.propose(topic)));
 
     // 2. Challenge — each agent challenges the next agent's position (round-robin)
     const challenges: Challenge[] = [];
@@ -147,7 +145,9 @@ export class DebateOrchestrator {
     const defenses: Defense[] = [];
     for (let i = 0; i < this.participants.length; i++) {
       // Find challenges targeting this agent
-      const incomingChallenges = challenges.filter(c => c.targetAgentId === this.participants[i].agentId);
+      const incomingChallenges = challenges.filter(
+        (c) => c.targetAgentId === this.participants[i].agentId
+      );
       for (const ch of incomingChallenges) {
         const defense = await this.participants[i].defend(topic, positions[i], ch);
         defenses.push(defense);
@@ -167,7 +167,7 @@ export class DebateOrchestrator {
           throw new Error('Judge resolution strategy requires a DebateJudge');
         }
         const judgment = await this.judge.judge(topic, rounds);
-        const winnerPos = finalPositions.find(p => p.agentId === judgment.winnerId) ?? null;
+        const winnerPos = finalPositions.find((p) => p.agentId === judgment.winnerId) ?? null;
         return {
           strategy: 'judge',
           winner: judgment.winnerId,
@@ -179,8 +179,9 @@ export class DebateOrchestrator {
 
       case 'consensus': {
         // Check if all agents' confidence converged on similar positions
-        const avgConfidence = finalPositions.reduce((s, p) => s + p.confidence, 0) / finalPositions.length;
-        const highConfidence = finalPositions.filter(p => p.confidence >= avgConfidence);
+        const avgConfidence =
+          finalPositions.reduce((s, p) => s + p.confidence, 0) / finalPositions.length;
+        const highConfidence = finalPositions.filter((p) => p.confidence >= avgConfidence);
         if (highConfidence.length === finalPositions.length) {
           // Everyone is confident — pick the highest
           const best = finalPositions.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
@@ -204,8 +205,11 @@ export class DebateOrchestrator {
         // Each agent votes for a position (not their own ideally, but the protocol allows it)
         const votes: Record<string, string> = {};
         for (const participant of this.participants) {
-          const otherPositions = finalPositions.filter(p => p.agentId !== participant.agentId);
-          const votedFor = await participant.vote(topic, otherPositions.length > 0 ? otherPositions : finalPositions);
+          const otherPositions = finalPositions.filter((p) => p.agentId !== participant.agentId);
+          const votedFor = await participant.vote(
+            topic,
+            otherPositions.length > 0 ? otherPositions : finalPositions
+          );
           votes[participant.agentId] = votedFor;
         }
 
@@ -220,7 +224,7 @@ export class DebateOrchestrator {
 
         if (winners.length === 1) {
           const winnerId = winners[0][0];
-          const winnerPos = finalPositions.find(p => p.agentId === winnerId) ?? null;
+          const winnerPos = finalPositions.find((p) => p.agentId === winnerId) ?? null;
           return {
             strategy: 'majority',
             winner: winnerId,

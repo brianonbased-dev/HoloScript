@@ -19,7 +19,12 @@ export const timezoneHandler: TraitHandler<TimezoneConfig> = {
     delete node.__tzState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: TimezoneConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: TimezoneConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__tzState as { current: string } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -39,10 +39,13 @@ describe('RevenueSplitter', () => {
   });
 
   it('throws on basis points not summing to 10000', () => {
-    expect(() => new RevenueSplitter([
-      { id: 'a', basisPoints: 5000 },
-      { id: 'b', basisPoints: 4000 },
-    ])).toThrow('sum to 10000');
+    expect(
+      () =>
+        new RevenueSplitter([
+          { id: 'a', basisPoints: 5000 },
+          { id: 'b', basisPoints: 4000 },
+        ])
+    ).toThrow('sum to 10000');
   });
 
   it('throws on empty recipients', () => {
@@ -50,23 +53,27 @@ describe('RevenueSplitter', () => {
   });
 
   it('throws on negative basis points', () => {
-    expect(() => new RevenueSplitter([
-      { id: 'a', basisPoints: -1000 },
-      { id: 'b', basisPoints: 11000 },
-    ])).toThrow('Negative');
+    expect(
+      () =>
+        new RevenueSplitter([
+          { id: 'a', basisPoints: -1000 },
+          { id: 'b', basisPoints: 11000 },
+        ])
+    ).toThrow('Negative');
   });
 
   it('throws on duplicate IDs', () => {
-    expect(() => new RevenueSplitter([
-      { id: 'a', basisPoints: 5000 },
-      { id: 'a', basisPoints: 5000 },
-    ])).toThrow('Duplicate');
+    expect(
+      () =>
+        new RevenueSplitter([
+          { id: 'a', basisPoints: 5000 },
+          { id: 'a', basisPoints: 5000 },
+        ])
+    ).toThrow('Duplicate');
   });
 
   it('throws on negative amount', () => {
-    const splitter = new RevenueSplitter([
-      { id: 'a', basisPoints: 10000 },
-    ]);
+    const splitter = new RevenueSplitter([{ id: 'a', basisPoints: 10000 }]);
     expect(() => splitter.split(-1n)).toThrow('negative');
   });
 

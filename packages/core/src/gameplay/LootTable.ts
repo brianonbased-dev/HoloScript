@@ -151,8 +151,7 @@ export class LootTable {
     const quantity =
       entry.minQuantity === entry.maxQuantity
         ? entry.minQuantity
-        : entry.minQuantity +
-          Math.floor(this.rng() * (entry.maxQuantity - entry.minQuantity + 1));
+        : entry.minQuantity + Math.floor(this.rng() * (entry.maxQuantity - entry.minQuantity + 1));
     return {
       itemId: entry.itemId,
       quantity,

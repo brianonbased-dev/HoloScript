@@ -8,7 +8,15 @@
  */
 
 import { parsePipeline } from './PipelineParser';
-import type { Pipeline, PipelineSource, PipelineTransform, PipelineFilter, PipelineSink, PipelineBranch, PipelineValidate } from './PipelineParser';
+import type {
+  Pipeline,
+  PipelineSource,
+  PipelineTransform,
+  PipelineFilter,
+  PipelineSink,
+  PipelineBranch,
+  PipelineValidate,
+} from './PipelineParser';
 
 export interface CompileOptions {
   moduleName?: string;
@@ -26,7 +34,10 @@ export interface CompileResult {
 
 function indent(code: string, level: number): string {
   const pad = '  '.repeat(level);
-  return code.split('\n').map((l) => (l.trim() ? pad + l : '')).join('\n');
+  return code
+    .split('\n')
+    .map((l) => (l.trim() ? pad + l : ''))
+    .join('\n');
 }
 
 function genSource(source: PipelineSource): string {
@@ -36,13 +47,19 @@ function genSource(source: PipelineSource): string {
   // @ts-expect-error
   if (source.type === 'rest' || source.type === 'webhook') {
     const method = source.method || 'GET';
-    lines.push(`const ${source.name}_response = await fetch(interpolate(\`${source.endpoint || ''}\`), {`);
+    lines.push(
+      `const ${source.name}_response = await fetch(interpolate(\`${source.endpoint || ''}\`), {`
+    );
     lines.push(`  method: '${method}',`);
     if (source.auth) {
       if (source.auth.type === 'bearer') {
-        lines.push(`  headers: { 'Authorization': \`Bearer \${interpolate('${source.auth.token || ''}')}\` },`);
+        lines.push(
+          `  headers: { 'Authorization': \`Bearer \${interpolate('${source.auth.token || ''}')}\` },`
+        );
       } else if (source.auth.type === 'api_key') {
-        lines.push(`  headers: { '${source.auth.header || 'x-api-key'}': interpolate('${source.auth.key || source.auth.token || ''}') },`);
+        lines.push(
+          `  headers: { '${source.auth.header || 'x-api-key'}': interpolate('${source.auth.key || source.auth.token || ''}') },`
+        );
       }
     }
     lines.push(`});`);
@@ -63,7 +80,7 @@ function genSource(source: PipelineSource): string {
     lines.push(`}`);
   } else if (source.type === 'list') {
     lines.push(`records.push(...${JSON.stringify(source.properties.items || [])});`);
-  // @ts-expect-error
+    // @ts-expect-error
   } else if (source.type === 'stdout') {
     lines.push(`// stdout source — no-op (for testing)`);
   } else {
@@ -130,7 +147,9 @@ function genValidate(validate: PipelineValidate): string {
 
   lines.push(`  return true;`);
   lines.push(`});`);
-  lines.push(`if (${validate.name}_errors.length) console.warn('Validation:', ${validate.name}_errors);`);
+  lines.push(
+    `if (${validate.name}_errors.length) console.warn('Validation:', ${validate.name}_errors);`
+  );
   return lines.join('\n');
 }
 
@@ -141,7 +160,9 @@ function genBranch(branch: PipelineBranch): string {
 
   for (const route of branch.routes) {
     if (route.condition === 'default') {
-      lines.push(`routed[${JSON.stringify(route.sinkName)}] = [...(routed[${JSON.stringify(route.sinkName)}] || []), ...records];`);
+      lines.push(
+        `routed[${JSON.stringify(route.sinkName)}] = [...(routed[${JSON.stringify(route.sinkName)}] || []), ...records];`
+      );
     } else {
       lines.push(`// when ${route.condition} -> ${route.sinkName}`);
       lines.push(`// TODO: compile branch expression`);
@@ -179,10 +200,16 @@ function genSink(sink: PipelineSink): string {
     const format = sink.format || 'json';
     lines.push(`import { appendFile, writeFile } from 'node:fs/promises';`);
     if (format === 'jsonl') {
-      lines.push(`const ${sink.name}_lines = records.map((r) => JSON.stringify(r)).join('\\n') + '\\n';`);
-      lines.push(`await ${sink.append ? 'appendFile' : 'writeFile'}(interpolate(\`${sink.path || ''}\`), ${sink.name}_lines);`);
+      lines.push(
+        `const ${sink.name}_lines = records.map((r) => JSON.stringify(r)).join('\\n') + '\\n';`
+      );
+      lines.push(
+        `await ${sink.append ? 'appendFile' : 'writeFile'}(interpolate(\`${sink.path || ''}\`), ${sink.name}_lines);`
+      );
     } else {
-      lines.push(`await writeFile(interpolate(\`${sink.path || ''}\`), JSON.stringify(records, null, 2));`);
+      lines.push(
+        `await writeFile(interpolate(\`${sink.path || ''}\`), JSON.stringify(records, null, 2));`
+      );
     }
   } else if (sink.type === 'stdout') {
     lines.push(`console.log(JSON.stringify(records, null, 2));`);
@@ -208,7 +235,9 @@ function compilePipeline(pipeline: Pipeline): string {
 
   // Utilities
   lines.push(`function interpolate(template) {`);
-  lines.push(`  return template.replace(/\\$\\{env\\.([^}]+)\\}/g, (_, key) => process.env[key] || '');`);
+  lines.push(
+    `  return template.replace(/\\$\\{env\\.([^}]+)\\}/g, (_, key) => process.env[key] || '');`
+  );
   lines.push(`}`);
   lines.push(``);
   lines.push(`function applyTransform(value, fn) {`);
@@ -216,14 +245,26 @@ function compilePipeline(pipeline: Pipeline): string {
   lines.push(`  const arg = fn.match(/\\((.*)\\)/)?.[1];`);
   lines.push(`  switch (name) {`);
   lines.push(`    case 'trim': return typeof value === 'string' ? value.trim() : value;`);
-  lines.push(`    case 'titleCase': return typeof value === 'string' ? value.replace(/\\b\\w/g, c => c.toUpperCase()) : value;`);
-  lines.push(`    case 'lowercase': return typeof value === 'string' ? value.toLowerCase() : value;`);
-  lines.push(`    case 'uppercase': return typeof value === 'string' ? value.toUpperCase() : value;`);
+  lines.push(
+    `    case 'titleCase': return typeof value === 'string' ? value.replace(/\\b\\w/g, c => c.toUpperCase()) : value;`
+  );
+  lines.push(
+    `    case 'lowercase': return typeof value === 'string' ? value.toLowerCase() : value;`
+  );
+  lines.push(
+    `    case 'uppercase': return typeof value === 'string' ? value.toUpperCase() : value;`
+  );
   lines.push(`    case 'multiply': return Number(value) * Number(arg);`);
-  lines.push(`    case 'round': return Math.round(Number(value) * 10 ** Number(arg || 0)) / 10 ** Number(arg || 0);`);
-  lines.push(`    case 'split': return typeof value === 'string' ? value.split(arg || ',') : [value];`);
+  lines.push(
+    `    case 'round': return Math.round(Number(value) * 10 ** Number(arg || 0)) / 10 ** Number(arg || 0);`
+  );
+  lines.push(
+    `    case 'split': return typeof value === 'string' ? value.split(arg || ',') : [value];`
+  );
   lines.push(`    case 'toISO': return new Date(value).toISOString();`);
-  lines.push(`    case 'truncate': return typeof value === 'string' ? value.slice(0, Number(arg)) : value;`);
+  lines.push(
+    `    case 'truncate': return typeof value === 'string' ? value.slice(0, Number(arg)) : value;`
+  );
   lines.push(`    default: return value;`);
   lines.push(`  }`);
   lines.push(`}`);
@@ -271,7 +312,9 @@ function compilePipeline(pipeline: Pipeline): string {
     lines.push(``);
   }
 
-  lines.push(`  console.log(\`[${pipeline.name}] completed in \${Date.now() - startTime}ms, \${records.length} records\`);`);
+  lines.push(
+    `  console.log(\`[${pipeline.name}] completed in \${Date.now() - startTime}ms, \${records.length} records\`);`
+  );
   lines.push(`}`);
   lines.push(``);
 

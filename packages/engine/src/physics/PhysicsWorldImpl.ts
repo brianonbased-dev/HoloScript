@@ -1636,4 +1636,3 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 export function createPhysicsWorld(config?: IPhysicsWorldConfig): IPhysicsWorld {
   return new PhysicsWorldImpl(config);
 }
-

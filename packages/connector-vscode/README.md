@@ -16,7 +16,7 @@ Peer dependency: the HoloScript VS Code extension must be installed and running 
 import { VSCodeConnector } from '@holoscript/connector-vscode';
 
 const connector = new VSCodeConnector();
-await connector.connect();       // discovers extension via bridge health check
+await connector.connect(); // discovers extension via bridge health check
 await connector.executeTool('vscode_file_open', { path: 'src/index.ts', line: 42 });
 await connector.disconnect();
 ```
@@ -30,24 +30,24 @@ await connector.disconnect();
 
 ## Configuration
 
-| Variable | Default | Description |
-|---|---|---|
+| Variable            | Default                  | Description                           |
+| ------------------- | ------------------------ | ------------------------------------- |
 | `VSCODE_BRIDGE_URL` | `http://localhost:17420` | Full URL of the extension HTTP bridge |
 
 ## MCP tools (8)
 
 All tools are callable via `connector.executeTool(name, args)` or through the MCP orchestrator after registration.
 
-| Tool | Description | Required args |
-|---|---|---|
-| `vscode_extension_status` | Check extension connectivity, version, features | -- |
-| `vscode_file_open` | Open a file in the editor | `path`, optional `line` |
-| `vscode_preview_open` | Open live preview panel for `.holo`/`.hsplus` | `path` |
-| `vscode_sync_push` | Push content from Studio to workspace | `path`, `content` |
-| `vscode_sync_pull` | Pull file content from workspace to Studio | `path` |
-| `vscode_terminal_run` | Run a shell command in the integrated terminal | `command`, optional `cwd` |
-| `vscode_mcp_status` | Check MCP server connection in the extension | -- |
-| `vscode_workspace_info` | Get workspace name, root path, folders, open files | -- |
+| Tool                      | Description                                        | Required args             |
+| ------------------------- | -------------------------------------------------- | ------------------------- |
+| `vscode_extension_status` | Check extension connectivity, version, features    | --                        |
+| `vscode_file_open`        | Open a file in the editor                          | `path`, optional `line`   |
+| `vscode_preview_open`     | Open live preview panel for `.holo`/`.hsplus`      | `path`                    |
+| `vscode_sync_push`        | Push content from Studio to workspace              | `path`, `content`         |
+| `vscode_sync_pull`        | Pull file content from workspace to Studio         | `path`                    |
+| `vscode_terminal_run`     | Run a shell command in the integrated terminal     | `command`, optional `cwd` |
+| `vscode_mcp_status`       | Check MCP server connection in the extension       | --                        |
+| `vscode_workspace_info`   | Get workspace name, root path, folders, open files | --                        |
 
 ## API reference
 
@@ -81,17 +81,17 @@ Array of 8 MCP `Tool` definitions with JSON Schema input schemas. Importable sep
 
 The connector calls these HTTP endpoints on the extension bridge:
 
-| Method | Path | Used by |
-|---|---|---|
-| `GET` | `/health` | `connect()`, heartbeat |
-| `GET` | `/status` | `vscode_extension_status` |
-| `GET` | `/api/workspace/info` | `vscode_workspace_info`, `connect()` |
-| `POST` | `/api/file/open` | `vscode_file_open` |
-| `POST` | `/api/preview/open` | `vscode_preview_open` |
-| `POST` | `/api/sync/push` | `vscode_sync_push` |
-| `POST` | `/api/sync/pull` | `vscode_sync_pull` |
-| `POST` | `/api/terminal/run` | `vscode_terminal_run` |
-| `POST` | `/api/mcp/status` | `vscode_mcp_status` |
+| Method | Path                  | Used by                              |
+| ------ | --------------------- | ------------------------------------ |
+| `GET`  | `/health`             | `connect()`, heartbeat               |
+| `GET`  | `/status`             | `vscode_extension_status`            |
+| `GET`  | `/api/workspace/info` | `vscode_workspace_info`, `connect()` |
+| `POST` | `/api/file/open`      | `vscode_file_open`                   |
+| `POST` | `/api/preview/open`   | `vscode_preview_open`                |
+| `POST` | `/api/sync/push`      | `vscode_sync_push`                   |
+| `POST` | `/api/sync/pull`      | `vscode_sync_pull`                   |
+| `POST` | `/api/terminal/run`   | `vscode_terminal_run`                |
+| `POST` | `/api/mcp/status`     | `vscode_mcp_status`                  |
 
 ## Development
 

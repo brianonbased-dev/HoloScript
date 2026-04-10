@@ -102,10 +102,7 @@ deployRouter.post('/', async (req: Request, res: Response) => {
     }
 
     // Check RBAC permission for this target
-    const hasPermission = await RBAC.checkPermission(
-      token || 'anonymous',
-      `deploy:${target}`
-    );
+    const hasPermission = await RBAC.checkPermission(token || 'anonymous', `deploy:${target}`);
 
     if (!hasPermission) {
       return res.status(403).json({
@@ -216,11 +213,7 @@ deployRouter.get('/targets/:name', (req: Request, res: Response) => {
 // Helpers
 // ============================================================================
 
-function buildManifest(
-  target: string,
-  code: string,
-  options?: DeployRequest['options']
-) {
+function buildManifest(target: string, code: string, options?: DeployRequest['options']) {
   const manifestMap: Record<
     string,
     (code: string, options?: DeployRequest['options']) => DeployResponse['manifest']
@@ -273,12 +266,7 @@ function buildManifest(
       format: 'React/TSX',
       version: '18.0+',
       entryPoint: 'Scene.tsx',
-      dependencies: [
-        'react',
-        'react-three-fiber',
-        '@react-three/drei',
-        'three',
-      ],
+      dependencies: ['react', 'react-three-fiber', '@react-three/drei', 'three'],
       buildScript: 'npm install && npm run dev',
       instructions: `
 1. Install deps: npm install react-three-fiber three
@@ -390,9 +378,7 @@ function buildManifest(
   );
 }
 
-function getTargetDocumentation(
-  target: string
-): Record<string, unknown> | null {
+function getTargetDocumentation(target: string): Record<string, unknown> | null {
   const docs: Record<string, Record<string, unknown>> = {
     unity: {
       description: 'Export to Unity C# GameObject components',
@@ -404,9 +390,7 @@ function getTargetDocumentation(
         'Animation support',
         'Networking via Mirror',
       ],
-      limitations: [
-        'Requires Unity Pro for custom scripts',
-      ],
+      limitations: ['Requires Unity Pro for custom scripts'],
     },
     unreal: {
       description: 'Export to Unreal Engine C++ actors',
@@ -418,9 +402,7 @@ function getTargetDocumentation(
         'Niagara particles',
         'Chaos physics',
       ],
-      limitations: [
-        'C++ development required for deep customization',
-      ],
+      limitations: ['C++ development required for deep customization'],
     },
     webgpu: {
       description: 'Export to WebGPU (next-gen web graphics)',
@@ -432,18 +414,11 @@ function getTargetDocumentation(
         'Post-processing',
         'Cross-platform compatibility',
       ],
-      limitations: [
-        'Requires WebGPU-enabled browser',
-      ],
+      limitations: ['Requires WebGPU-enabled browser'],
     },
     ros2: {
       description: 'Export to ROS 2 C++ node with ur robotics framework',
-      platforms: [
-        'Linux',
-        'Raspberry Pi',
-        'Jetson',
-        'Robot hardware',
-      ],
+      platforms: ['Linux', 'Raspberry Pi', 'Jetson', 'Robot hardware'],
       version: 'Humble, Iron, Jazzy',
       features: [
         'Real-time middleware',
@@ -451,9 +426,7 @@ function getTargetDocumentation(
         'Motion planning',
         'Distributed computing',
       ],
-      limitations: [
-        'ROS 2 development environment required',
-      ],
+      limitations: ['ROS 2 development environment required'],
     },
   };
 

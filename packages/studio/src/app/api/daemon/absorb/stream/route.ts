@@ -13,7 +13,8 @@ import {
 } from '@/lib/absorbStreamContract';
 import { createSSEHeartbeatStream, resolveReconnectCursor } from '@/lib/sseStreamProxy';
 
-const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
+import { ENDPOINTS } from '@holoscript/config';
+const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
+        Accept: 'text/event-stream',
         ...(cursor ? { 'Last-Event-ID': cursor, 'X-Reconnect-Cursor': cursor } : {}),
         ...forwardAuthHeaders(req),
       },
@@ -40,17 +41,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Pipe the external SSE directly back to the Next.js client
-     if (!res.body) {
-       return new Response(
-         JSON.stringify({ error: 'Absorb service returned empty body' }),
-         { status: 500, headers: { 'Content-Type': 'application/json' } }
-       );
-     }
+    if (!res.body) {
+      return new Response(JSON.stringify({ error: 'Absorb service returned empty body' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     return new Response(createSSEHeartbeatStream(res.body, { cursor }), {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
         'X-HoloScript-Stream-Contract': ABSORB_PROGRESS_CONTRACT_VERSION,
         ...(cursor ? { 'X-Reconnect-Cursor': cursor } : {}),
       },
@@ -66,9 +67,7 @@ export async function POST(req: NextRequest) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
-        );
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
         controller.close();
       },
     });
@@ -77,7 +76,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
         'X-HoloScript-Stream-Contract': ABSORB_PROGRESS_CONTRACT_VERSION,
       },
     });

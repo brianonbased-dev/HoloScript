@@ -8,7 +8,11 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import { SoftBodySolver, type Particle, type DistanceConstraint } from '@holoscript/engine/physics/SoftBodySolver';
+import {
+  SoftBodySolver,
+  type Particle,
+  type DistanceConstraint,
+} from '@holoscript/engine/physics/SoftBodySolver';
 
 // =============================================================================
 // TYPES
@@ -155,7 +159,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     state.isSimulating = true;
 
     // Set rest volume if available
-    state.restVolume = ((node.properties?.meshData as Record<string, unknown> | undefined)?.volume as number) || 1.0;
+    state.restVolume =
+      ((node.properties?.meshData as Record<string, unknown> | undefined)?.volume as number) || 1.0;
   },
 
   onDetach(node, config, context) {

@@ -129,4 +129,3 @@ export class SceneManager {
     return count;
   }
 }
-

@@ -31,10 +31,7 @@ interface BalanceRow extends Record<string, unknown> {
  *   { success, withdrawalId, agentId, amount, currency, network,
  *     status, txHash?, remainingBalance }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
 
   // Rate limit: 5 withdrawals/min per agent
@@ -72,10 +69,16 @@ export async function POST(
 
   const amountNum = typeof amount === 'number' ? amount : parseInt(String(amount ?? ''), 10);
   if (!Number.isInteger(amountNum) || amountNum <= 0) {
-    return NextResponse.json({ success: false, error: 'amount must be a positive integer (cents)' }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: 'amount must be a positive integer (cents)' },
+      { status: 400 }
+    );
   }
   if (amountNum < 100) {
-    return NextResponse.json({ success: false, error: 'Minimum withdrawal is 100 cents ($1.00)' }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: 'Minimum withdrawal is 100 cents ($1.00)' },
+      { status: 400 }
+    );
   }
 
   const addressStr = String(toAddress ?? '').trim();
@@ -121,7 +124,10 @@ export async function POST(
     withdrawals = Number(row?.withdrawals ?? 0);
   } catch (err) {
     console.error('[withdraw] balance query failed:', err);
-    return NextResponse.json({ success: false, error: 'Failed to compute balance' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to compute balance' },
+      { status: 500 }
+    );
   }
 
   const availableBalance = earnings - withdrawals;
@@ -212,7 +218,10 @@ export async function POST(
     });
   } catch (err) {
     console.error('[withdraw] DB insert failed:', err);
-    return NextResponse.json({ success: false, error: 'Failed to record withdrawal' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to record withdrawal' },
+      { status: 500 }
+    );
   }
 
   const remainingBalance = availableBalance - amountNum;
@@ -236,13 +245,14 @@ export async function POST(
  *
  * Returns withdrawal history and current balance for the agent.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
 
-  const limited = rateLimit(req, { max: 60, label: 'agent-withdraw-read' }, `withdraw-read:${agentId}`);
+  const limited = rateLimit(
+    req,
+    { max: 60, label: 'agent-withdraw-read' },
+    `withdraw-read:${agentId}`
+  );
   if (!limited.ok) return limited.response;
 
   const db = getDb();
@@ -294,6 +304,9 @@ export async function GET(
     });
   } catch (err) {
     console.error('[withdraw] GET failed:', err);
-    return NextResponse.json({ success: false, error: 'Failed to retrieve withdrawal data' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to retrieve withdrawal data' },
+      { status: 500 }
+    );
   }
 }

@@ -241,10 +241,14 @@ export class AttachConnection {
       throw new Error('Not connected');
     }
     const result = await this.send('syncWatches', { watches });
-    const response = result as {
-      results?: Array<{ expression: string; value: string; error?: string }>;
-    } | undefined;
-    return response?.results ?? watches.map((w) => ({ expression: w.expression, value: '<pending>' }));
+    const response = result as
+      | {
+          results?: Array<{ expression: string; value: string; error?: string }>;
+        }
+      | undefined;
+    return (
+      response?.results ?? watches.map((w) => ({ expression: w.expression, value: '<pending>' }))
+    );
   }
 
   /**

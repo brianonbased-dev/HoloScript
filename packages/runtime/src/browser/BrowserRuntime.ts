@@ -282,7 +282,6 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   // EXTRACT OBJECTS (inheriting from templates via "using" clause)
   // ═══════════════════════════════════════════════════════════════════════════
   for (const obj of ast.objects || []) {
-
     // Check if object uses a template (modern composition pattern)
     const templateRef = asASTNode(obj).template;
     const parentTemplate = templateRef ? templates.get(templateRef) : undefined;
@@ -742,7 +741,8 @@ class ModuleLoader {
           .split('/')
           .pop()
           ?.replace(/\.[^.]+$/, '');
-        const exports = (window as unknown as WindowWithModuleExports)[exportName || 'module'] || {};
+        const exports =
+          (window as unknown as WindowWithModuleExports)[exportName || 'module'] || {};
         // @ts-expect-error - TS2345 structural type mismatch
         resolve(exports);
       };
@@ -1002,11 +1002,8 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   async load(source: string): Promise<void> {
     try {
-
-
       // Detect file type from source
       const fileType = source.includes('composition') ? 'holo' : 'hsplus';
-
 
       // Load the composition
       this.composition = loadComposition(source, fileType);
@@ -1036,7 +1033,6 @@ class BrowserRuntime implements HoloScriptRuntime {
             }
           }
         }
-
       }
 
       // Initialize state
@@ -1094,7 +1090,11 @@ class BrowserRuntime implements HoloScriptRuntime {
     let current: Record<string, unknown> = this.state;
 
     for (let i = 0; i < keys.length - 1; i++) {
-      if (!(keys[i] in current) || typeof current[keys[i]] !== 'object' || current[keys[i]] === null) {
+      if (
+        !(keys[i] in current) ||
+        typeof current[keys[i]] !== 'object' ||
+        current[keys[i]] === null
+      ) {
         current[keys[i]] = {};
       }
       current = current[keys[i]] as Record<string, unknown>;
@@ -1288,11 +1288,8 @@ class BrowserRuntime implements HoloScriptRuntime {
       return;
     }
 
-
-
     // Iterate through parsed objects
     for (const obj of this.composition.objects) {
-
       this.createSceneObject(obj);
     }
   }
@@ -1467,7 +1464,6 @@ class BrowserRuntime implements HoloScriptRuntime {
       for (const trait of obj.traits as ParsedTrait[]) {
         // Pass the trait's config to the handler
         this.traitSystem.apply(mesh, trait.name, trait.config);
-
       }
     }
   }
@@ -1510,7 +1506,6 @@ class BrowserRuntime implements HoloScriptRuntime {
         if (obj.color) {
           const targetColor = new THREE.Color(obj.color);
 
-
           let coloredCount = 0;
           let skippedCount = 0;
 
@@ -1547,8 +1542,6 @@ class BrowserRuntime implements HoloScriptRuntime {
               mesh.material = Array.isArray(mesh.material) ? newMaterials : newMaterials[0];
             }
           });
-
-
         }
 
         // Detect and log skeleton/bone structure
@@ -1584,7 +1577,6 @@ class BrowserRuntime implements HoloScriptRuntime {
 
           // Check for directive-based action sequences
           if (obj.actions && Array.isArray(obj.actions) && obj.actions.length > 0) {
-
             // Setup directive state
             const directiveState: DirectiveState = {
               actions: obj.actions,
@@ -1648,7 +1640,6 @@ class BrowserRuntime implements HoloScriptRuntime {
                 // Simple infinite loop
                 action.setLoop(shouldLoop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
                 action.play();
-
               }
             }
 
@@ -1660,22 +1651,18 @@ class BrowserRuntime implements HoloScriptRuntime {
             for (const clip of gltf.animations) {
               const action = mixer.clipAction(clip);
               action.play();
-
             }
 
             // Store mixer for animation updates
             asModelExt(model)._mixer = mixer;
             this.animationMixers.push(mixer);
           }
-
-
         } else {
           // No embedded animations - use procedural skeleton animation if skeleton exists
           const skeletonInfo = asModelExt(model)._skeletonInfo;
 
           if (skeletonInfo && skeletonInfo.boneCount > 0) {
             // Has skeleton - use bone-based procedural animation
-
 
             // Find the SkinnedMesh and its bones
             let skinnedMesh: THREE.SkinnedMesh | null = null;
@@ -1707,7 +1694,6 @@ class BrowserRuntime implements HoloScriptRuntime {
 
               asModelExt(model)._isProceduralSkeletonAnimated = true;
               this.proceduralAnimatedObjects.push(model);
-
             }
           } else {
             // No skeleton - simple breathing animation on whole model
@@ -1738,7 +1724,6 @@ class BrowserRuntime implements HoloScriptRuntime {
 
         this.scene.add(model);
         this.objectMap.set(obj.id, model);
-
       },
       (_progress) => {
         // Progress callback
@@ -2905,13 +2890,12 @@ class BrowserRuntime implements HoloScriptRuntime {
       // This is an animation action
       const targetReps = action.reps || 1;
 
-
       // Find the animation clip
       const clip =
         // @ts-expect-error - TS18046 structural type mismatch
-        directive.gltf.animations.find((a: THREE.AnimationClip) =>
-          a.name.toLowerCase().includes(action.animation!.toLowerCase())
-        // @ts-expect-error - TS18046 structural type mismatch
+        directive.gltf.animations.find(
+          (a: THREE.AnimationClip) => a.name.toLowerCase().includes(action.animation!.toLowerCase())
+          // @ts-expect-error - TS18046 structural type mismatch
         ) || directive.gltf.animations[0];
 
       if (clip) {
@@ -2937,9 +2921,7 @@ class BrowserRuntime implements HoloScriptRuntime {
           if (directive.currentIndex >= directive.actions.length) {
             if (directive.loop) {
               directive.currentIndex = 0;
-
             } else {
-
               return;
             }
           }
@@ -3071,7 +3053,6 @@ class BrowserRuntime implements HoloScriptRuntime {
           if (directive.currentIndex >= directive.actions.length) {
             if (directive.loop) {
               directive.currentIndex = 0;
-
             } else {
               continue; // Done with this directive
             }

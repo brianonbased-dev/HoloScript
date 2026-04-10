@@ -131,7 +131,6 @@ export class PerformanceTelemetry {
         this.exportMetrics();
       }, this.exportIntervalMs);
     }
-
   }
 
   /**
@@ -146,7 +145,6 @@ export class PerformanceTelemetry {
       clearInterval(this.exportInterval);
       this.exportInterval = null;
     }
-
   }
 
   /**
@@ -226,7 +224,11 @@ export class PerformanceTelemetry {
   public recordMemorySnapshot(): void {
     if (!this.monitoringEnabled) return;
 
-    const perf = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+    const perf = (
+      performance as unknown as {
+        memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+      }
+    ).memory;
 
     if (!perf) {
       console.warn('Memory profiling not available');
@@ -453,4 +455,3 @@ export function getPerformanceTelemetry(): PerformanceTelemetry {
   }
   return telemetryInstance;
 }
-

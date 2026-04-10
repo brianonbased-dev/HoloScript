@@ -388,7 +388,7 @@ export class SynchronizationStrategies {
       // @ts-expect-error
       if (tokens[current].type === 'LBRACE') {
         braceCount++;
-      // @ts-expect-error
+        // @ts-expect-error
       } else if (tokens[current].type === 'RBRACE') {
         braceCount--;
       }
@@ -428,7 +428,7 @@ export class SynchronizationStrategies {
       // @ts-expect-error
       if (tokens[current].type === openType) {
         count++;
-      // @ts-expect-error
+        // @ts-expect-error
       } else if (tokens[current].type === closeType) {
         count--;
       }

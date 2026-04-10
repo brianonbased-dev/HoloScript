@@ -22,7 +22,12 @@ export const permissionHandler: TraitHandler<PermissionConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, _config: PermissionConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: PermissionConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__permState as { grants: Map<string, Set<string>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

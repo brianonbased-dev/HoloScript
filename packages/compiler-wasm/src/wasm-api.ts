@@ -177,7 +177,7 @@ export class HoloScriptWasm {
       const errors = (result as ParseErrorResult).errors;
       throw new HoloScriptParseError(
         `Parse failed with ${errors.length} error(s): ${errors[0]?.message ?? 'unknown'}`,
-        errors,
+        errors
       );
     }
     return result as Ast;
@@ -219,7 +219,7 @@ export class HoloScriptWasm {
 export class HoloScriptParseError extends Error {
   constructor(
     message: string,
-    public readonly errors: ParseError[],
+    public readonly errors: ParseError[]
   ) {
     super(message);
     this.name = 'HoloScriptParseError';

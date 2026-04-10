@@ -49,11 +49,16 @@ async function callAnthropic(
   const apiKey = config.apiKey || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY required');
 
-  const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n');
-  const userMessages = messages.filter(m => m.role !== 'system').map(m => ({
-    role: m.role as 'user' | 'assistant',
-    content: m.content,
-  }));
+  const system = messages
+    .filter((m) => m.role === 'system')
+    .map((m) => m.content)
+    .join('\n');
+  const userMessages = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -73,7 +78,10 @@ async function callAnthropic(
   });
 
   if (!res.ok) throw new Error(`Anthropic API error: ${res.status}`);
-  const data = await res.json() as { content: Array<{ text: string }>; usage?: { output_tokens: number } };
+  const data = (await res.json()) as {
+    content: Array<{ text: string }>;
+    usage?: { output_tokens: number };
+  };
 
   return {
     content: data.content?.[0]?.text || '',
@@ -105,13 +113,16 @@ async function callOpenAICompatible(
       model: config.model,
       max_tokens: maxTokens,
       temperature,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
     }),
     signal: AbortSignal.timeout(60_000),
   });
 
   if (!res.ok) throw new Error(`${config.provider} API error: ${res.status}`);
-  const data = await res.json() as { choices: Array<{ message: { content: string } }>; usage?: { completion_tokens: number } };
+  const data = (await res.json()) as {
+    choices: Array<{ message: { content: string } }>;
+    usage?: { completion_tokens: number };
+  };
 
   return {
     content: data.choices?.[0]?.message?.content || '',
@@ -142,13 +153,16 @@ async function callOpenRouter(
       model: config.model,
       max_tokens: maxTokens,
       temperature,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
     }),
     signal: AbortSignal.timeout(60_000),
   });
 
   if (!res.ok) throw new Error(`OpenRouter API error: ${res.status}`);
-  const data = await res.json() as { choices: Array<{ message: { content: string } }>; usage?: { completion_tokens: number } };
+  const data = (await res.json()) as {
+    choices: Array<{ message: { content: string } }>;
+    usage?: { completion_tokens: number };
+  };
 
   return {
     content: data.choices?.[0]?.message?.content || '',

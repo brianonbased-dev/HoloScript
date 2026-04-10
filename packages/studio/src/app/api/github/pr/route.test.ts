@@ -102,7 +102,9 @@ describe('/api/github/pr route', () => {
     expect(headers.Authorization).toBe('Bearer test-token');
     expect(headers['Content-Type']).toBe('application/json');
 
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/repos/brianonbased-dev/HoloScript/pulls');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      '/repos/brianonbased-dev/HoloScript/pulls'
+    );
 
     const sentBody = JSON.parse(String(calledOptions.body));
     expect(sentBody).toMatchObject({
@@ -258,7 +260,9 @@ describe('/api/github/pr route', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    const req = new NextRequest('http://localhost/api/github/pr?owner=brianonbased-dev&repo=HoloScript');
+    const req = new NextRequest(
+      'http://localhost/api/github/pr?owner=brianonbased-dev&repo=HoloScript'
+    );
     const res = await GET(req);
     const body = await res.json();
 

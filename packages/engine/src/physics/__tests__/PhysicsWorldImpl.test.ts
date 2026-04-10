@@ -327,4 +327,3 @@ describe('PhysicsWorldImpl', () => {
     });
   });
 });
-

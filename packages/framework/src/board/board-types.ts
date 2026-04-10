@@ -59,7 +59,14 @@ export interface DoneLogEntry {
 
 // ── Suggestions ──
 
-export type SuggestionCategory = 'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other';
+export type SuggestionCategory =
+  | 'process'
+  | 'tooling'
+  | 'architecture'
+  | 'testing'
+  | 'docs'
+  | 'performance'
+  | 'other';
 
 export interface SuggestionVote {
   agentId: string;
@@ -95,24 +102,42 @@ export interface RoomPreset {
 
 export const ROOM_PRESETS: Record<string, RoomPreset> = {
   audit: {
-    objective: 'Fix audit issues — split oversized components, add error handling, close security gaps, add tests',
+    objective:
+      'Fix audit issues — split oversized components, add error handling, close security gaps, add tests',
     taskSources: ['STUDIO_AUDIT.md'],
-    rules: ['Screenshot before and after visual changes', 'Run tsc --noEmit before committing', 'One task at a time'],
+    rules: [
+      'Screenshot before and after visual changes',
+      'Run tsc --noEmit before committing',
+      'One task at a time',
+    ],
   },
   research: {
-    objective: 'Compound knowledge — read research files, synthesize findings, contribute wisdom/patterns/gotchas',
+    objective:
+      'Compound knowledge — read research files, synthesize findings, contribute wisdom/patterns/gotchas',
     taskSources: ['research/*.md', 'ROADMAP.md'],
-    rules: ['Query knowledge store before writing', 'Contribute findings to team workspace', 'Cite sources'],
+    rules: [
+      'Query knowledge store before writing',
+      'Contribute findings to team workspace',
+      'Cite sources',
+    ],
   },
   build: {
     objective: 'Ship features — implement roadmap items, write code, add tests, deploy',
     taskSources: ['ROADMAP.md', 'TODO.md'],
-    rules: ['Run tests before committing', 'Sectioned commits by scope', 'Update docs if adding public API'],
+    rules: [
+      'Run tests before committing',
+      'Sectioned commits by scope',
+      'Update docs if adding public API',
+    ],
   },
   review: {
     objective: 'Quality gate — review recent changes, check for regressions, verify test coverage',
     taskSources: ['git log --oneline -20'],
-    rules: ['Read the diff before commenting', 'Check test coverage', 'Verify no new console.log in production code'],
+    rules: [
+      'Read the diff before commenting',
+      'Check test coverage',
+      'Verify no new console.log in production code',
+    ],
   },
 };
 
@@ -142,23 +167,44 @@ export const BRITTNEY_AGENT: TeamAgentProfile = {
   id: 'agent_brittney',
   name: 'Brittney',
   role: 'architect',
-  capabilities: ['scene-design', 'trait-composition', 'ux-critique', 'code-review', 'knowledge-synthesis'],
+  capabilities: [
+    'scene-design',
+    'trait-composition',
+    'ux-critique',
+    'code-review',
+    'knowledge-synthesis',
+  ],
   model: 'claude-opus-4',
   provider: 'anthropic',
   claimFilter: { roles: ['coder', 'reviewer'], maxPriority: 5 },
-  systemPrompt: 'You are Brittney, the orchestrating AI for HoloScript team rooms. HoloScript is a knowledge compiler — users describe any system and it compiles to 37 targets. You scaffold projects, dispatch agents, compose traits, and select compilation targets. Simulation-first: digital twin before physical twin.',
-  knowledgeDomains: ['rendering', 'compilation', 'agents', 'domain-modeling', 'semantic-platform', 'orchestration'],
+  systemPrompt:
+    'You are Brittney, the orchestrating AI for HoloScript team rooms. HoloScript is a knowledge compiler — users describe any system and it compiles to 37 targets. You scaffold projects, dispatch agents, compose traits, and select compilation targets. Simulation-first: digital twin before physical twin.',
+  knowledgeDomains: [
+    'rendering',
+    'compilation',
+    'agents',
+    'domain-modeling',
+    'semantic-platform',
+    'orchestration',
+  ],
 };
 
 export const DAEMON_AGENT: TeamAgentProfile = {
   id: 'agent_daemon',
   name: 'Daemon',
   role: 'coder',
-  capabilities: ['type-fixes', 'test-coverage', 'console-cleanup', 'todo-resolution', 'refactoring'],
+  capabilities: [
+    'type-fixes',
+    'test-coverage',
+    'console-cleanup',
+    'todo-resolution',
+    'refactoring',
+  ],
   model: 'claude-sonnet-4',
   provider: 'anthropic',
   claimFilter: { roles: ['coder', 'tester'], maxPriority: 8 },
-  systemPrompt: 'You are Daemon, the code improvement agent. Fix TypeScript type errors, increase test coverage, remove stale console.log, resolve TODO/FIXME. Strict TypeScript: no `any` — use `unknown`. Run tests before marking done.',
+  systemPrompt:
+    'You are Daemon, the code improvement agent. Fix TypeScript type errors, increase test coverage, remove stale console.log, resolve TODO/FIXME. Strict TypeScript: no `any` — use `unknown`. Run tests before marking done.',
   knowledgeDomains: ['compilation', 'agents'],
 };
 
@@ -166,11 +212,18 @@ export const ABSORB_AGENT: TeamAgentProfile = {
   id: 'agent_absorb',
   name: 'Absorb',
   role: 'researcher',
-  capabilities: ['codebase-analysis', 'gap-detection', 'knowledge-extraction', 'pattern-mining', 'dependency-audit'],
+  capabilities: [
+    'codebase-analysis',
+    'gap-detection',
+    'knowledge-extraction',
+    'pattern-mining',
+    'dependency-audit',
+  ],
   model: 'claude-sonnet-4',
   provider: 'anthropic',
   claimFilter: { roles: ['researcher'], maxPriority: 10 },
-  systemPrompt: 'You are Absorb, the knowledge extraction agent. Scan codebases, detect gaps, extract W/P/G entries. Use absorb_query and absorb_run_absorb. Deduplicate against existing knowledge. Focus on actionable insights.',
+  systemPrompt:
+    'You are Absorb, the knowledge extraction agent. Scan codebases, detect gaps, extract W/P/G entries. Use absorb_query and absorb_run_absorb. Deduplicate against existing knowledge. Focus on actionable insights.',
   knowledgeDomains: ['compilation', 'security', 'rendering', 'agents', 'general'],
 };
 
@@ -178,11 +231,18 @@ export const ORACLE_AGENT: TeamAgentProfile = {
   id: 'agent_oracle',
   name: 'Oracle',
   role: 'reviewer',
-  capabilities: ['architectural-review', 'consistency-checking', 'knowledge-cross-reference', 'regression-detection', 'standard-enforcement'],
+  capabilities: [
+    'architectural-review',
+    'consistency-checking',
+    'knowledge-cross-reference',
+    'regression-detection',
+    'standard-enforcement',
+  ],
   model: 'claude-opus-4',
   provider: 'anthropic',
   claimFilter: { roles: ['reviewer'], maxPriority: 5 },
-  systemPrompt: 'You are Oracle, the quality reviewer. Cross-reference knowledge store for related W/P/G. Check architectural consistency, test coverage, no hardcoded domain vocabulary in core, proper trait composition. Flag regressions.',
+  systemPrompt:
+    'You are Oracle, the quality reviewer. Cross-reference knowledge store for related W/P/G. Check architectural consistency, test coverage, no hardcoded domain vocabulary in core, proper trait composition. Flag regressions.',
   knowledgeDomains: ['security', 'compilation', 'agents'],
 };
 
@@ -213,7 +273,11 @@ export function getProfilesByDomain(domain: string): TeamAgentProfile[] {
 
 /** Normalize a title for dedup comparison. */
 export function normalizeTitle(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .slice(0, 60);
 }
 
 /** Generate a unique task ID. */
@@ -236,7 +300,10 @@ export function inferFixPriority(kind: string, text: string): number {
 }
 
 /** Parse a derive source (markdown, grep output) into task candidates. */
-export function parseDeriveContent(content: string, source: string): Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>> {
+export function parseDeriveContent(
+  content: string,
+  source: string
+): Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>> {
   const lines = content.split('\n');
   const tasks: Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>> = [];
   const seen = new Set<string>();
@@ -273,14 +340,21 @@ export function parseDeriveContent(content: string, source: string): Array<Omit<
     }
 
     // grep-style: path:line: // TODO: message
-    const grepMatch = trimmed.match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+    const grepMatch = trimmed.match(
+      /^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i
+    );
     if (grepMatch) {
       const [, file, lineNo, kind, detail] = grepMatch;
       const title = `${kind.toUpperCase()}: ${detail.trim().slice(0, 180)}`;
       const norm = normalizeTitle(title);
       if (!seen.has(norm)) {
         seen.add(norm);
-        tasks.push({ title, description: `${file}:${lineNo}`, priority: inferFixPriority(kind, detail), source });
+        tasks.push({
+          title,
+          description: `${file}:${lineNo}`,
+          priority: inferFixPriority(kind, detail),
+          source,
+        });
       }
       continue;
     }

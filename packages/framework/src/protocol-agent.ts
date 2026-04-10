@@ -29,8 +29,7 @@ const PHASE_PROMPTS: Record<number, string> = {
     'You are gathering context for a task. Summarize the task, relevant knowledge, and constraints. Be concise.',
   [ProtocolPhase.REFLECT]:
     'You are analyzing an approach. Given the context, identify the best strategy, risks, and key considerations. Be brief.',
-  [ProtocolPhase.EXECUTE]:
-    '', // Uses the agent's own system prompt
+  [ProtocolPhase.EXECUTE]: '', // Uses the agent's own system prompt
   [ProtocolPhase.COMPRESS]:
     'You are extracting knowledge from completed work. Identify Wisdom (insights), Patterns (reusable solutions), and Gotchas (pitfalls). Format each as: [wisdom|pattern|gotcha] content',
   [ProtocolPhase.REINTAKE]:
@@ -302,11 +301,7 @@ export class ProtocolAgent extends BaseAgent {
 // ── Helpers ──
 
 /** Parse LLM output into KnowledgeInsight[]. */
-function parseKnowledgeItems(
-  content: string,
-  domain: string,
-  source: string
-): KnowledgeInsight[] {
+function parseKnowledgeItems(content: string, domain: string, source: string): KnowledgeInsight[] {
   const insights: KnowledgeInsight[] = [];
 
   for (const line of content.split('\n')) {
@@ -344,20 +339,13 @@ export async function runProtocolCycle(
   });
 
   // Extract summary from EXECUTE phase
-  const executePhase = cycleResult.phases.find(
-    (p) => p.phase === ProtocolPhase.EXECUTE
-  );
+  const executePhase = cycleResult.phases.find((p) => p.phase === ProtocolPhase.EXECUTE);
   const summary =
-    (executePhase?.data as { output?: string })?.output?.slice(0, 500) ??
-    'Task completed';
+    (executePhase?.data as { output?: string })?.output?.slice(0, 500) ?? 'Task completed';
 
   // Extract insights from REINTAKE phase (validated) or COMPRESS phase (raw)
-  const reintakePhase = cycleResult.phases.find(
-    (p) => p.phase === ProtocolPhase.REINTAKE
-  );
-  const compressPhase = cycleResult.phases.find(
-    (p) => p.phase === ProtocolPhase.COMPRESS
-  );
+  const reintakePhase = cycleResult.phases.find((p) => p.phase === ProtocolPhase.REINTAKE);
+  const compressPhase = cycleResult.phases.find((p) => p.phase === ProtocolPhase.COMPRESS);
   const insights: KnowledgeInsight[] =
     (reintakePhase?.data as { validated?: KnowledgeInsight[] })?.validated ??
     (compressPhase?.data as { insights?: KnowledgeInsight[] })?.insights ??
@@ -383,29 +371,32 @@ export function protocolToFrameworkCycleResult(
   cycle: number
 ): FrameworkCycleResult {
   // Extract insights from compress/reintake phases
-  const reintake = protocol.phases.find(p => p.phase === ProtocolPhase.REINTAKE);
-  const compress = protocol.phases.find(p => p.phase === ProtocolPhase.COMPRESS);
+  const reintake = protocol.phases.find((p) => p.phase === ProtocolPhase.REINTAKE);
+  const compress = protocol.phases.find((p) => p.phase === ProtocolPhase.COMPRESS);
   const insights: KnowledgeInsight[] =
     (reintake?.data as { validated?: KnowledgeInsight[] })?.validated ??
     (compress?.data as { insights?: KnowledgeInsight[] })?.insights ??
     [];
 
-  const executePhase = protocol.phases.find(p => p.phase === ProtocolPhase.EXECUTE);
-  const summary = (executePhase?.data as { output?: string })?.output?.slice(0, 500) ?? 'Task completed';
+  const executePhase = protocol.phases.find((p) => p.phase === ProtocolPhase.EXECUTE);
+  const summary =
+    (executePhase?.data as { output?: string })?.output?.slice(0, 500) ?? 'Task completed';
 
   const hasFailed = protocol.status === 'failed';
 
   return {
     teamName,
     cycle,
-    agentResults: [{
-      agentName: protocol.domain, // best available identifier
-      taskId: protocol.cycleId,
-      taskTitle: protocol.task,
-      action: hasFailed ? 'error' : 'completed',
-      summary,
-      knowledge: insights,
-    }],
+    agentResults: [
+      {
+        agentName: protocol.domain, // best available identifier
+        taskId: protocol.cycleId,
+        taskTitle: protocol.task,
+        action: hasFailed ? 'error' : 'completed',
+        summary,
+        knowledge: insights,
+      },
+    ],
     knowledgeProduced: insights,
     compoundedInsights: insights.length,
     durationMs: protocol.totalDurationMs,
@@ -421,7 +412,7 @@ export function frameworkToProtocolCycleResult(
   domain: string
 ): ProtocolCycleResult {
   const now = Date.now();
-  const hasError = fw.agentResults.some(r => r.action === 'error');
+  const hasError = fw.agentResults.some((r) => r.action === 'error');
 
   return {
     cycleId: `cycle_${fw.cycle}_${now.toString(36)}`,
@@ -460,7 +451,7 @@ export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentH
     throw new Error('Agent name is required');
   }
   const VALID_ROLES = ['architect', 'coder', 'researcher', 'reviewer'] as const;
-  if (!VALID_ROLES.includes(config.role as typeof VALID_ROLES[number])) {
+  if (!VALID_ROLES.includes(config.role as (typeof VALID_ROLES)[number])) {
     throw new Error(`Invalid role "${config.role}". Valid: ${VALID_ROLES.join(', ')}`);
   }
   if (!config.model?.provider || !config.model?.model) {
@@ -472,7 +463,9 @@ export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentH
 
   const protocolStyle = config.protocolStyle ?? 'uaa2';
   if (protocolStyle !== 'uaa2') {
-    throw new Error(`Protocol style "${protocolStyle}" is not yet implemented. Only 'uaa2' is supported.`);
+    throw new Error(
+      `Protocol style "${protocolStyle}" is not yet implemented. Only 'uaa2' is supported.`
+    );
   }
 
   // Internal mutable state
@@ -509,7 +502,7 @@ export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentH
     // Check pause — wait until resumed
     if (pauseRequested) {
       status = 'paused';
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         pauseResolver = resolve;
       });
       status = 'running';
@@ -555,14 +548,24 @@ export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentH
   }
 
   const handle: ProtocolAgentHandle = {
-    get name() { return config.name; },
-    get role() { return config.role; },
-    get status() { return status; },
-    get history() { return [...phaseHistory]; },
+    get name() {
+      return config.name;
+    },
+    get role() {
+      return config.role;
+    },
+    get status() {
+      return status;
+    },
+    get history() {
+      return [...phaseHistory];
+    },
 
     async execute(task: { title: string; description: string }): Promise<ProtocolCycleResult> {
       if (status === 'running') {
-        throw new Error('Agent is already executing. Await the current execution or cancel() first.');
+        throw new Error(
+          'Agent is already executing. Await the current execution or cancel() first.'
+        );
       }
 
       status = 'running';
@@ -605,17 +608,17 @@ export function defineProtocolAgent(config: ProtocolAgentConfig): ProtocolAgentH
           previousData = result.data;
         }
 
-        const hasFailed = phaseResults.some(p => p.status === 'failure');
+        const hasFailed = phaseResults.some((p) => p.status === 'failure');
         const wasCancelled = cancelRequested;
 
-        status = wasCancelled ? 'cancelled' : (hasFailed ? 'error' : 'idle');
+        status = wasCancelled ? 'cancelled' : hasFailed ? 'error' : 'idle';
 
         return {
           cycleId,
           task: task.title,
           domain: agent.identity.domain,
           phases: phaseResults,
-          status: wasCancelled ? 'partial' : (hasFailed ? 'partial' : 'complete'),
+          status: wasCancelled ? 'partial' : hasFailed ? 'partial' : 'complete',
           totalDurationMs: Date.now() - startedAt,
           startedAt,
           completedAt: Date.now(),

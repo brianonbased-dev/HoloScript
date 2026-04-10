@@ -129,7 +129,13 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
         {
           id: 'spatial',
           name: 'spatial.render',
-          context: { traceId: 'v6-graduation', spanId: 'spatial', parentSpanId: 'orchestrator', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'v6-graduation',
+            spanId: 'spatial',
+            parentSpanId: 'orchestrator',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'client',
           startTime: 50,
           endTime: 300,
@@ -142,7 +148,13 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
         {
           id: 'economy',
           name: 'economy.meter',
-          context: { traceId: 'v6-graduation', spanId: 'economy', parentSpanId: 'orchestrator', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'v6-graduation',
+            spanId: 'economy',
+            parentSpanId: 'orchestrator',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'client',
           startTime: 100,
           endTime: 800,
@@ -155,7 +167,13 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
         {
           id: 'plugin',
           name: 'plugin.verify',
-          context: { traceId: 'v6-graduation', spanId: 'plugin', parentSpanId: 'economy', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'v6-graduation',
+            spanId: 'plugin',
+            parentSpanId: 'economy',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'internal',
           startTime: 200,
           endTime: 600,

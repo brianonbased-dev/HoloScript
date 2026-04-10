@@ -45,10 +45,27 @@ interface BlackboardConfig {
   cleanup_interval: number;
 }
 
-interface PostBeliefEvent { key: string; value: unknown; ttl?: number; authorId?: string }
-interface ReadBeliefEvent { key: string; queryId?: string }
-interface ProposeActionEvent { actionType: string; payload: Record<string, unknown>; proposerId?: string; timeout?: number }
-interface VoteEvent { proposalId: string; voterId: string; vote: 'accept' | 'reject' }
+interface PostBeliefEvent {
+  key: string;
+  value: unknown;
+  ttl?: number;
+  authorId?: string;
+}
+interface ReadBeliefEvent {
+  key: string;
+  queryId?: string;
+}
+interface ProposeActionEvent {
+  actionType: string;
+  payload: Record<string, unknown>;
+  proposerId?: string;
+  timeout?: number;
+}
+interface VoteEvent {
+  proposalId: string;
+  voterId: string;
+  vote: 'accept' | 'reject';
+}
 
 // =============================================================================
 // HANDLER

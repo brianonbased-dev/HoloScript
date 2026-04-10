@@ -24,11 +24,7 @@ import type {
   AccessibilityContext,
   RaycastHit,
 } from '@holoscript/core';
-import type {
-  VRHand,
-  Vector3,
-  HSPlusNode,
-} from '@holoscript/core';
+import type { VRHand, Vector3, HSPlusNode } from '@holoscript/core';
 
 // =============================================================================
 // Provider Interfaces — each platform package implements one of these
@@ -39,11 +35,7 @@ export interface PhysicsProvider {
   applyVelocity(nodeId: string, velocity: Vector3): void;
   applyAngularVelocity(nodeId: string, angularVelocity: Vector3): void;
   setKinematic(nodeId: string, kinematic: boolean): void;
-  raycast(
-    origin: Vector3,
-    direction: Vector3,
-    maxDistance: number
-  ): RaycastHit | null;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number): RaycastHit | null;
   getBodyPosition?(nodeId: string): Vector3 | null;
   getBodyVelocity?(nodeId: string): Vector3 | null;
 }
@@ -307,10 +299,16 @@ export class TraitContextFactory {
     };
 
     const audioContext: TraitAudioContext = {
-      playSound(source: string, options?: { position?: Vector3; volume?: number; spatial?: boolean }) {
+      playSound(
+        source: string,
+        options?: { position?: Vector3; volume?: number; spatial?: boolean }
+      ) {
         self.audioProvider.playSound(source, options);
       },
-      updateSpatialSource(nodeId: string, options: { hrtfProfile?: string; occlusion?: number; reverbWet?: number }) {
+      updateSpatialSource(
+        nodeId: string,
+        options: { hrtfProfile?: string; occlusion?: number; reverbWet?: number }
+      ) {
         self.audioProvider.updateSpatialSource?.(nodeId, options);
       },
       registerAmbisonicSource(nodeId: string, order: number) {
@@ -390,4 +388,3 @@ export class TraitContextFactory {
 export function createTraitContextFactory(config?: TraitContextFactoryConfig): TraitContextFactory {
   return new TraitContextFactory(config);
 }
-

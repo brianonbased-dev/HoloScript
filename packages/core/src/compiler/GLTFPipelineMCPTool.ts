@@ -678,7 +678,7 @@ function uint8ArrayToBase64(data: Uint8Array): string {
  * The actual GLTFPipeline class is in the same directory but importing it
  * at module load time would create a circular reference through CompilerBase.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic import to break circular dependency
+
 async function importGLTFPipeline(): Promise<{ GLTFPipeline: unknown }> {
   return import('./GLTFPipeline');
 }

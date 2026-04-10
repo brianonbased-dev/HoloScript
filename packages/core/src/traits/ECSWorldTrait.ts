@@ -444,10 +444,13 @@ export const wasmBridgeHandler = {
         break;
       case 'ecs_spawn_entity': {
         const id = world.createEntity();
-        if (event.payload?.transform) world.addTransform(id, (event.payload.transform as TransformComponent));
-        if (event.payload?.velocity) world.addVelocity(id, (event.payload.velocity as VelocityComponent));
-        if (event.payload?.renderable) world.addRenderable(id, (event.payload.renderable as RenderableComponent));
-        if (event.payload?.agent) world.addAgent(id, (event.payload.agent as AgentComponent));
+        if (event.payload?.transform)
+          world.addTransform(id, event.payload.transform as TransformComponent);
+        if (event.payload?.velocity)
+          world.addVelocity(id, event.payload.velocity as VelocityComponent);
+        if (event.payload?.renderable)
+          world.addRenderable(id, event.payload.renderable as RenderableComponent);
+        if (event.payload?.agent) world.addAgent(id, event.payload.agent as AgentComponent);
         ctx.emit('ecs_entity_spawned', { node, entityId: id });
         break;
       }
@@ -458,7 +461,10 @@ export const wasmBridgeHandler = {
         break;
       case 'ecs_query':
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        ctx.emit('ecs_query_result', { node, entities: world.query((event.payload as number)?.mask ?? 0) });
+        ctx.emit('ecs_query_result', {
+          node,
+          entities: world.query((event.payload as number)?.mask ?? 0),
+        });
         break;
       case 'ecs_stats':
         ctx.emit('ecs_stats', { node, stats: world.getStats() });

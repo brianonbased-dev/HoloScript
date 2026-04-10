@@ -625,7 +625,13 @@ export const MATERIAL_PRESETS = {
 };
 
 // ── Handler (delegates to MaterialTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const materialHandler = {
   name: 'material',

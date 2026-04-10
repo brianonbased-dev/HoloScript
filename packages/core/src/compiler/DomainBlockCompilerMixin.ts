@@ -2875,7 +2875,9 @@ export function paymentToR3F(paywall: CompiledPaywall): string {
     lines.push(`  description: "${paywall.description}",`);
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`  gatedContent: [${paywall.gatedContent.map((g) => `"${esc(g, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  gatedContent: [${paywall.gatedContent.map((g) => `"${esc(g, 'TypeScript')}"`).join(', ')}],`
+    );
   }
   if (paywall.revenueSplit) {
     lines.push(
@@ -3004,13 +3006,17 @@ export function healthcareToR3F(healthcare: CompiledHealthcare): string {
     );
   }
   if (healthcare.vitalSigns) {
-    lines.push(`  vitalSigns: [${healthcare.vitalSigns.map((v) => `"${esc(v, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  vitalSigns: [${healthcare.vitalSigns.map((v) => `"${esc(v, 'TypeScript')}"`).join(', ')}],`
+    );
   }
   if (healthcare.alertThresholds) {
     lines.push(`  alertThresholds: ${JSON.stringify(healthcare.alertThresholds)},`);
   }
   if (healthcare.procedureSteps) {
-    lines.push(`  steps: [${healthcare.procedureSteps.map((s) => `"${esc(s, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  steps: [${healthcare.procedureSteps.map((s) => `"${esc(s, 'TypeScript')}"`).join(', ')}],`
+    );
   }
   lines.push('};');
 
@@ -3439,7 +3445,9 @@ export function iotToR3F(iot: CompiledIoT): string {
   if (iot.deviceType) lines.push(`  deviceType: "${iot.deviceType}",`);
   if (iot.protocol) lines.push(`  protocol: "${esc(iot.protocol, 'TypeScript')}",`);
   if (iot.telemetryFields)
-    lines.push(`  telemetryFields: [${iot.telemetryFields.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  telemetryFields: [${iot.telemetryFields.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`
+    );
   if (iot.updateInterval) lines.push(`  updateInterval: ${iot.updateInterval},`);
   if (iot.twinModel) lines.push(`  twinModel: "${esc(iot.twinModel, 'TypeScript')}",`);
   lines.push('};');
@@ -3477,7 +3485,8 @@ export function iotToGodot(iot: CompiledIoT): string {
     lines.push(
       `@export var telemetry_fields: PackedStringArray = [${iot.telemetryFields.map((f) => `"${esc(f, 'GDScript')}"`).join(', ')}]`
     );
-  if (iot.twinModel) lines.push(`@export var twin_model: String = "${esc(iot.twinModel, 'GDScript')}"`);
+  if (iot.twinModel)
+    lines.push(`@export var twin_model: String = "${esc(iot.twinModel, 'GDScript')}"`);
   lines.push('');
   lines.push('signal telemetry_received(field: String, value: float)');
   lines.push('signal connection_changed(connected: bool)');
@@ -3678,11 +3687,15 @@ export function educationToR3F(edu: CompiledEducation): string {
   lines.push(`  type: "${edu.keyword}",`);
   if (edu.difficulty) lines.push(`  difficulty: "${esc(edu.difficulty, 'TypeScript')}",`);
   if (edu.objectives)
-    lines.push(`  objectives: [${edu.objectives.map((o) => `"${esc(o, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  objectives: [${edu.objectives.map((o) => `"${esc(o, 'TypeScript')}"`).join(', ')}],`
+    );
   if (edu.duration) lines.push(`  duration: ${edu.duration},`);
   if (edu.questions) lines.push(`  questions: ${JSON.stringify(edu.questions)},`);
   if (edu.prerequisites)
-    lines.push(`  prerequisites: [${edu.prerequisites.map((p) => `"${esc(p, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  prerequisites: [${edu.prerequisites.map((p) => `"${esc(p, 'TypeScript')}"`).join(', ')}],`
+    );
   lines.push('};');
   return lines.join('\n');
 }
@@ -3693,7 +3706,8 @@ export function educationToUnity(edu: CompiledEducation): string {
   lines.push(`// Education: ${edu.name}`);
   lines.push(`public class ${safeName}Education : MonoBehaviour {`);
   lines.push(`    public string contentType = "${esc(edu.keyword, 'CSharp')}";`);
-  if (edu.difficulty) lines.push(`    public string difficulty = "${esc(edu.difficulty, 'CSharp')}";`);
+  if (edu.difficulty)
+    lines.push(`    public string difficulty = "${esc(edu.difficulty, 'CSharp')}";`);
   if (edu.duration) lines.push(`    public int durationMinutes = ${edu.duration};`);
   if (edu.objectives)
     lines.push(
@@ -3710,7 +3724,8 @@ export function educationToGodot(edu: CompiledEducation): string {
   lines.push('extends Node');
   lines.push('');
   lines.push(`@export var content_type: String = "${esc(edu.keyword, 'GDScript')}"`);
-  if (edu.difficulty) lines.push(`@export var difficulty: String = "${esc(edu.difficulty, 'GDScript')}"`);
+  if (edu.difficulty)
+    lines.push(`@export var difficulty: String = "${esc(edu.difficulty, 'GDScript')}"`);
   if (edu.duration) lines.push(`@export var duration_minutes: int = ${edu.duration}`);
   if (edu.objectives)
     lines.push(
@@ -3792,7 +3807,8 @@ export function musicToR3F(music: CompiledMusic): string {
   if (music.bpm) lines.push(`  bpm: ${music.bpm},`);
   if (music.timeSignature) lines.push(`  timeSignature: [${music.timeSignature.join(', ')}],`);
   if (music.key) lines.push(`  key: "${esc(music.key, 'TypeScript')}",`);
-  if (music.effects) lines.push(`  effects: [${music.effects.map((e) => `"${esc(e, 'TypeScript')}"`).join(', ')}],`);
+  if (music.effects)
+    lines.push(`  effects: [${music.effects.map((e) => `"${esc(e, 'TypeScript')}"`).join(', ')}],`);
   if (music.pattern) lines.push(`  pattern: "${esc(music.pattern, 'TypeScript')}",`);
   if (music.bars) lines.push(`  bars: ${music.bars},`);
   lines.push('};');
@@ -4004,9 +4020,12 @@ export function web3ToR3F(web3: CompiledWeb3): string {
   lines.push(`  type: "${web3.keyword}",`);
   if (web3.standard) lines.push(`  standard: "${web3.standard}",`);
   if (web3.network) lines.push(`  network: "${web3.network}",`);
-  if (web3.contractAddress) lines.push(`  contractAddress: "${esc(web3.contractAddress, 'TypeScript')}",`);
+  if (web3.contractAddress)
+    lines.push(`  contractAddress: "${esc(web3.contractAddress, 'TypeScript')}",`);
   if (web3.functions)
-    lines.push(`  functions: [${web3.functions.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`);
+    lines.push(
+      `  functions: [${web3.functions.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`
+    );
   if (web3.supply) lines.push(`  supply: ${web3.supply},`);
   if (web3.votingThreshold) lines.push(`  votingThreshold: ${web3.votingThreshold},`);
   lines.push('};');

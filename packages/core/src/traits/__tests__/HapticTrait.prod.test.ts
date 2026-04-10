@@ -296,7 +296,9 @@ describe('hapticHandler.onUpdate — pattern stepping', () => {
 describe('hapticHandler.onUpdate — proximity', () => {
   it('updates proximityIntensity based on hand distance', () => {
     const dominantHand = { id: 'right', position: [0.1, 0, 0] };
-    const ctx = makeTestContext(makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } }));
+    const ctx = makeTestContext(
+      makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } })
+    );
     const node = makeNode({ position: [0, 0, 0] });
     const config = {
       ...hapticHandler.defaultConfig!,
@@ -314,7 +316,9 @@ describe('hapticHandler.onUpdate — proximity', () => {
   });
   it('sets proximityIntensity=0 when out of range', () => {
     const dominantHand = { id: 'right', position: [5, 0, 0] }; // far away
-    const ctx = makeTestContext(makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } }));
+    const ctx = makeTestContext(
+      makeCtx({ vr: { getDominantHand: vi.fn().mockReturnValue(dominantHand) } })
+    );
     const node = makeNode({ position: [0, 0, 0] });
     const config = {
       ...hapticHandler.defaultConfig!,

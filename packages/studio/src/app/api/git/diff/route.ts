@@ -31,10 +31,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const allowedRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', '.holoscript', 'workspaces');
+  const allowedRoot = path.join(
+    process.env.HOME ?? process.env.USERPROFILE ?? '',
+    '.holoscript',
+    'workspaces'
+  );
   const resolved = path.resolve(workspacePath);
   if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json({ error: 'workspacePath must be inside ~/.holoscript/workspaces' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
+      { status: 403 }
+    );
   }
   if (!fs.existsSync(path.join(resolved, '.git'))) {
     return NextResponse.json({ error: 'Not a git repository' }, { status: 400 });
@@ -61,7 +68,8 @@ export async function GET(req: NextRequest) {
     });
 
     // Parse into file-level sections for easier agent consumption
-    const sections: Array<{ file: string; diff: string; additions: number; deletions: number }> = [];
+    const sections: Array<{ file: string; diff: string; additions: number; deletions: number }> =
+      [];
     const chunks = stdout.split('\ndiff --git ');
     for (const chunk of chunks) {
       if (!chunk.trim()) continue;

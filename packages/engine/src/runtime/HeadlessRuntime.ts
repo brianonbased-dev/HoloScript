@@ -230,4 +230,3 @@ export function createHeadlessRuntime(
 ): HeadlessRuntime {
   return new HeadlessRuntimeImpl(ast, options);
 }
-

@@ -5,7 +5,11 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JointSystem } from '@holoscript/engine/physics/JointSystem';
-import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '@holoscript/engine/physics/RagdollSystem';
+import {
+  RagdollSystem,
+  HUMANOID_PRESET,
+  QUADRUPED_PRESET,
+} from '@holoscript/engine/physics/RagdollSystem';
 
 // =============================================================================
 // JOINT SYSTEM

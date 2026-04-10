@@ -110,18 +110,16 @@ describe('HoloMeshDiscovery', () => {
 
     it('skips self DID', async () => {
       const mockClient = {
-        discoverPeers: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              id: 'local-did',
-              did: 'local-did',
-              name: 'Self',
-              mcpEndpoint: 'https://self',
-              traits: [],
-              reputation: 0,
-            },
-          ]),
+        discoverPeers: vi.fn().mockResolvedValue([
+          {
+            id: 'local-did',
+            did: 'local-did',
+            name: 'Self',
+            mcpEndpoint: 'https://self',
+            traits: [],
+            reputation: 0,
+          },
+        ]),
       };
       const d = new HoloMeshDiscovery('local-did', 'https://local');
       const added = await d.bootstrapFromOrchestrator(mockClient as any);
@@ -151,18 +149,16 @@ describe('HoloMeshDiscovery', () => {
       });
 
       const mockClient = {
-        discoverPeers: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              id: 'peer-1',
-              did: 'peer-1',
-              name: 'P1',
-              mcpEndpoint: 'https://p1',
-              traits: [],
-              reputation: 0,
-            },
-          ]),
+        discoverPeers: vi.fn().mockResolvedValue([
+          {
+            id: 'peer-1',
+            did: 'peer-1',
+            name: 'P1',
+            mcpEndpoint: 'https://p1',
+            traits: [],
+            reputation: 0,
+          },
+        ]),
       };
       const added = await d.bootstrapFromOrchestrator(mockClient as any);
       expect(added).toBe(0);

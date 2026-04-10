@@ -102,7 +102,13 @@ describe('Scenario: Character ExportPanel — CharacterCard contract', () => {
 
   it('CharacterCard with equippedItems copies items', () => {
     const equippedItems = {
-      hair: { id: 'spiky-hair', name: 'Spiky Hair', slot: 'hair' as const, thumbnail: '💈', glbUrl: '' },
+      hair: {
+        id: 'spiky-hair',
+        name: 'Spiky Hair',
+        slot: 'hair' as const,
+        thumbnail: '💈',
+        glbUrl: '',
+      },
     };
     const card = buildCharacterCard({
       morphTargets: {},
@@ -199,7 +205,14 @@ describe('Scenario: CharacterCreationModal — CharacterMetadata contract', () =
   });
 
   it('CharacterMetadata source values cover all creation paths', () => {
-    const sources: CharacterMetadata['source'][] = ['ai', 'vroid', 'mixamo', 'preset', 'sketchfab', 'upload'];
+    const sources: CharacterMetadata['source'][] = [
+      'ai',
+      'vroid',
+      'mixamo',
+      'preset',
+      'sketchfab',
+      'upload',
+    ];
     expect(sources).toHaveLength(6);
     expect(sources).toContain('ai');
     expect(sources).toContain('upload');

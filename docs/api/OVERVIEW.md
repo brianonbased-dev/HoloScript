@@ -245,7 +245,7 @@ console.log(report);
 
 ## MCP Server (`@holoscript/mcp-server`) {#mcp-server}
 
-Model Context Protocol server for AI agent integration (72+ tools).
+Model Context Protocol server for AI agent integration (tool inventory is live; verify via `/health`).
 
 ```typescript
 // MCP tools available:
@@ -275,7 +275,7 @@ Model Context Protocol server for AI agent integration (72+ tools).
 
 ## Export Targets
 
-HoloScript compiles to **25+ platforms**:
+HoloScript compiles to registered platforms (see `ExportTarget` for canonical keys):
 
 | Platform   | Package                         | Use Case       |
 | ---------- | ------------------------------- | -------------- |

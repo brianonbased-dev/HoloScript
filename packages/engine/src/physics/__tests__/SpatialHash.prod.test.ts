@@ -95,4 +95,3 @@ describe('SpatialHash — Production', () => {
     expect(sh.getCellCount()).toBe(0);
   });
 });
-

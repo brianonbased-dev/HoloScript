@@ -288,7 +288,11 @@ export class ThingDescriptionGenerator {
    * Parse @wot_thing config from directive
    */
   private parseWoTConfig(directive: HSPlusDirective): WoTThingConfig {
-    const dir = directive as { type: string; args?: Record<string, unknown>; config?: Record<string, unknown> };
+    const dir = directive as {
+      type: string;
+      args?: Record<string, unknown>;
+      config?: Record<string, unknown>;
+    };
     const args = dir.args || dir.config || {};
 
     return {
@@ -313,7 +317,8 @@ export class ThingDescriptionGenerator {
 
     // Find @state directive (use any for flexibility with directive variants)
     const stateDirective = node.directives.find(
-      (d) => d.type === 'state' || (d.type === 'directive' && (d as { name?: string }).name === 'state')
+      (d) =>
+        d.type === 'state' || (d.type === 'directive' && (d as { name?: string }).name === 'state')
     );
 
     if (!stateDirective || !(stateDirective as { body?: unknown }).body) {
@@ -326,7 +331,8 @@ export class ThingDescriptionGenerator {
 
     // Parse state body
     const rawBody = (stateDirective as { body?: unknown }).body;
-    const stateBody = typeof rawBody === 'object' && rawBody !== null ? rawBody as Record<string, unknown> : {};
+    const stateBody =
+      typeof rawBody === 'object' && rawBody !== null ? (rawBody as Record<string, unknown>) : {};
     return this.mapStateToProperties(stateBody);
   }
 
@@ -464,7 +470,11 @@ export class ThingDescriptionGenerator {
     );
 
     for (const directive of observableDirectives) {
-      const dirExt = directive as { type: string; args?: Record<string, unknown>; config?: Record<string, unknown> };
+      const dirExt = directive as {
+        type: string;
+        args?: Record<string, unknown>;
+        config?: Record<string, unknown>;
+      };
       const args = dirExt.args || dirExt.config || {};
       const eventName = args.name || args.event || 'change';
 

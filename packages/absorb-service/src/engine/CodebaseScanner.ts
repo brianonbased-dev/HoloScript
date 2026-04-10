@@ -30,7 +30,7 @@ import { extractFileDocComment } from './adapters/BaseAdapter';
 // Dynamic import for worker pool (graceful degradation if not available)
 let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   WorkerPool = require('./workers/WorkerPool').WorkerPool;
 } catch {
   // Worker threads not available (browser, WASM, or old Node.js)

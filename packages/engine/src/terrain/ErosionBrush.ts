@@ -150,4 +150,3 @@ export class ErosionBrush {
     return this.gridSize;
   }
 }
-

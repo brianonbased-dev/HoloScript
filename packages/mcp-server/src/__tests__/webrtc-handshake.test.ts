@@ -42,20 +42,17 @@ describe('WebRTC Handshake E2E Flow', () => {
     bobSignaler.onReceiveSignal((payload: any) => bobReceived.push(payload));
 
     // 3. Connect to the bridge
-    await Promise.all([
-      aliceSignaler.connect(),
-      bobSignaler.connect()
-    ]);
+    await Promise.all([aliceSignaler.connect(), bobSignaler.connect()]);
 
     // Give the server a tiny tick to register peer IDs from identify messages
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // 4. Bob sends an offer to Alice
     const mockOffer = { type: 'offer' as const, sdp: { type: 'offer' as const, sdp: 'v=0...' } };
     await bobSignaler.sendSignal(mockOffer);
 
     // Give time to traverse the WebSocket server
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(aliceReceived).toHaveLength(1);
     expect(aliceReceived[0].type).toBe('offer');
@@ -63,21 +60,27 @@ describe('WebRTC Handshake E2E Flow', () => {
     expect(bobReceived).toHaveLength(0);
 
     // 5. Alice responds with an answer
-    const mockAnswer = { type: 'answer' as const, sdp: { type: 'answer' as const, sdp: 'v=0...a' } };
+    const mockAnswer = {
+      type: 'answer' as const,
+      sdp: { type: 'answer' as const, sdp: 'v=0...a' },
+    };
     await aliceSignaler.sendSignal(mockAnswer);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(bobReceived).toHaveLength(1);
     expect(bobReceived[0].type).toBe('answer');
     expect(bobReceived[0].sdp.sdp).toBe('v=0...a');
 
     // 6. ICE Candidate exchange
-    const mockCandidate = { type: 'ice-candidate' as const, candidate: { candidate: 'candidate:1 1 UDP 1234', sdpMid: '0', sdpMLineIndex: 0 } };
+    const mockCandidate = {
+      type: 'ice-candidate' as const,
+      candidate: { candidate: 'candidate:1 1 UDP 1234', sdpMid: '0', sdpMLineIndex: 0 },
+    };
     await aliceSignaler.sendSignal(mockCandidate);
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     expect(bobReceived).toHaveLength(2);
     expect(bobReceived[1].type).toBe('ice-candidate');
     expect(bobReceived[1].candidate.candidate).toBe('candidate:1 1 UDP 1234');

@@ -21,6 +21,7 @@ npm run dev
 That's it! You now have a live, editable HoloScript scene running.
 
 ### What you get:
+
 - 📝 **Sample scene** in `src/main.holo`
 - 🎨 **Live preview** in the browser
 - 🔄 **Hot reload** — changes appear instantly
@@ -141,13 +142,12 @@ This returns ready-to-use React code.
 
 Once you're comfortable with the browser preview, try your scene on actual hardware:
 
-| Hardware | Target | How |
-|----------|--------|-----|
-| **Meta Quest 3** | `unity` | Compile, build in Unity Editor |
-| **Apple Vision Pro** | `visionos` | Compile, run in Xcode |
-| **Android XR** | `android-xr` | Compile, build with Android Studio |
-| **SteamVR** | `unity` | Compile, build in Unity + SteamVR plugin |
-| **PlayStation VR2** | `r3f` (web) | Compile, serve over local network |
+| Hardware             | Target       | How                                      |
+| -------------------- | ------------ | ---------------------------------------- |
+| **Meta Quest 3**     | `unity`      | Compile, build in Unity Editor           |
+| **Apple Vision Pro** | `visionos`   | Compile, run in Xcode                    |
+| **Android XR**       | `android-xr` | Compile, build with Android Studio       |
+| **SteamVR**          | `unity`      | Compile, build in Unity + SteamVR plugin |
+| **PlayStation VR2**  | `r3f` (web)  | Compile, serve over local network        |
 
 **Tip:** Start with web (`r3f`). Once you know your scene works, deploy to hardware.
-

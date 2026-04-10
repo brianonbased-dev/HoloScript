@@ -8,7 +8,7 @@ test('debug parseHolo', () => {
     '    skybox: "gradient"',
     '    ambient_light: 0.6',
     '  }',
-    '}'
+    '}',
   ].join('\n');
   const result = parseHolo(source);
   console.log('AST:', JSON.stringify(result.ast, null, 2));

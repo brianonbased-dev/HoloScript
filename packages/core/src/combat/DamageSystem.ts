@@ -82,7 +82,7 @@ export class DamageSystem {
     target: string,
     baseDamage: number,
     damageType: string,
-    forceCrit = false,
+    forceCrit = false
   ): DamageInstance {
     let damage = baseDamage;
 
@@ -129,9 +129,7 @@ export class DamageSystem {
   }
 
   getTotalDamageDealt(source: string): number {
-    return this.log
-      .filter((d) => d.source === source)
-      .reduce((sum, d) => sum + d.finalDamage, 0);
+    return this.log.filter((d) => d.source === source).reduce((sum, d) => sum + d.finalDamage, 0);
   }
 
   clearLog(): void {
@@ -146,7 +144,7 @@ export class DamageSystem {
     damagePerTick: number,
     tickInterval: number,
     duration: number,
-    stacks = 1,
+    stacks = 1
   ): DoTEffect {
     const dot: DoTEffect = {
       source,
@@ -178,7 +176,10 @@ export class DamageSystem {
       dot.elapsed += dt;
 
       // Tick as many times as needed
-      while (dot.lastTick + dot.tickInterval <= dot.elapsed && dot.lastTick + dot.tickInterval <= dot.duration) {
+      while (
+        dot.lastTick + dot.tickInterval <= dot.elapsed &&
+        dot.lastTick + dot.tickInterval <= dot.duration
+      ) {
         dot.lastTick += dot.tickInterval;
         const tickDamage = dot.damagePerTick * dot.stacks;
         results.push({

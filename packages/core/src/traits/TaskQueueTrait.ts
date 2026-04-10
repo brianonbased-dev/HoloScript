@@ -105,11 +105,21 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
     delete node.__taskQueueState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: TaskQueueConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: TaskQueueConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Queue is event-driven
   },
 
-  onEvent(node: HSPlusNode, config: TaskQueueConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: TaskQueueConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: TaskQueueState | undefined = node.__taskQueueState;
     if (!state) return;

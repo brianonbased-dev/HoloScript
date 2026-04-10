@@ -105,7 +105,13 @@ export class MultiviewGaussianRendererTrait {
 }
 
 // ── Handler (delegates to MultiviewGaussianRendererTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const multiviewGaussianRendererHandler = {
   name: 'multiview_gaussian_renderer',

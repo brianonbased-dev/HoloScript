@@ -228,11 +228,11 @@ export const DEFAULT_TRAIT_UTILITIES: Record<string, Omit<TraitUtility, 'trait'>
  * Powerful platforms (desktop-vr) degrade slowly, preserving quality.
  */
 export const PLATFORM_LOD_SCALING: Record<string, number[]> = {
-  'quest3':     [1.0, 0.6, 0.3, 0.12, 0.04],   // Aggressive — tight budget
-  'mobile-ar':  [1.0, 0.5, 0.2, 0.08, 0.02],   // Most aggressive — tightest budget
-  'webgpu':     [1.0, 0.7, 0.4, 0.18, 0.06],   // Moderate — matches default
-  'desktop-vr': [1.0, 0.85, 0.6, 0.3, 0.1],    // Gentle — plenty of headroom
-  'visionos':   [1.0, 0.8, 0.5, 0.25, 0.08],   // Moderate-gentle — good hardware
+  quest3: [1.0, 0.6, 0.3, 0.12, 0.04], // Aggressive — tight budget
+  'mobile-ar': [1.0, 0.5, 0.2, 0.08, 0.02], // Most aggressive — tightest budget
+  webgpu: [1.0, 0.7, 0.4, 0.18, 0.06], // Moderate — matches default
+  'desktop-vr': [1.0, 0.85, 0.6, 0.3, 0.1], // Gentle — plenty of headroom
+  visionos: [1.0, 0.8, 0.5, 0.25, 0.08], // Moderate-gentle — good hardware
 };
 
 /**
@@ -282,9 +282,8 @@ export class UnifiedBudgetOptimizer {
     this.platform = config.platform;
     this.costFloor = config.costFloor;
     // Use platform-specific LOD scaling if available, fall back to default perceptual curve
-    this.lodScaling = config.lodScaling
-      ?? PLATFORM_LOD_SCALING[config.platform]
-      ?? DEFAULT_LOD_SCALING;
+    this.lodScaling =
+      config.lodScaling ?? PLATFORM_LOD_SCALING[config.platform] ?? DEFAULT_LOD_SCALING;
     this.economicBudget = config.economicBudget ?? 0;
     this.economicSpent = config.economicSpent ?? 0;
 
@@ -321,7 +320,7 @@ export class UnifiedBudgetOptimizer {
     }
 
     // Start with everything at LOD 0
-    let allocations = this.flattenToAllocations(nodes, 0);
+    const allocations = this.flattenToAllocations(nodes, 0);
 
     // Check if we're within budget
     let pressure = this.computeResourcePressure(allocations, limits);

@@ -29,7 +29,12 @@ export const envConfigHandler: TraitHandler<EnvConfigConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, _config: EnvConfigConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: EnvConfigConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__envConfigState as
       | { values: Map<string, { value: unknown; layer: string }> }
       | undefined;

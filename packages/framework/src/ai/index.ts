@@ -121,7 +121,11 @@ export {
 } from './HoloScriptGenerator';
 export { GenerationCache, cachedGenerate } from './GenerationCache';
 export { GenerationAnalytics, createAnalytics } from './GenerationAnalytics';
-export { TrainingDataGenerator, createTrainingDataGenerator, ALL_CATEGORIES } from './TrainingDataGenerator';
+export {
+  TrainingDataGenerator,
+  createTrainingDataGenerator,
+  ALL_CATEGORIES,
+} from './TrainingDataGenerator';
 export { PromptTemplateSystem, QuickPrompts } from './PromptTemplates';
 export type { PromptTemplate, TemplateContext } from './PromptTemplates';
 

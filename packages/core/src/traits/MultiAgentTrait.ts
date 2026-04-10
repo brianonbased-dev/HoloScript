@@ -304,7 +304,9 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
 
     if (event.type === 'discover_agents') {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      const { capability } = ((event.payload as TraitEventPayload) || {}) as { capability?: string };
+      const { capability } = ((event.payload as TraitEventPayload) || {}) as {
+        capability?: string;
+      };
       const agents = Array.from(state.registry.values()).filter((a) => {
         if (a.status === 'offline') return false;
         if (capability) return a.capabilities.includes(capability);

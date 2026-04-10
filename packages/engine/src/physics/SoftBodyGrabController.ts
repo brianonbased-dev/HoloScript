@@ -185,4 +185,3 @@ export class SoftBodyGrabController {
     }
   }
 }
-

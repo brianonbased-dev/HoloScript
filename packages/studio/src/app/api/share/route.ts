@@ -55,7 +55,14 @@ export async function POST(req: NextRequest) {
 
   // Fallback: in-memory
   const id = randomUUID().slice(0, 8);
-  sharedScenesMap.set(id, { id, name, code, author, createdAt: new Date().toISOString(), views: 0 });
+  sharedScenesMap.set(id, {
+    id,
+    name,
+    code,
+    author,
+    createdAt: new Date().toISOString(),
+    views: 0,
+  });
 
   return NextResponse.json({ id, url: `/shared/${id}` }, { status: 201 });
 }

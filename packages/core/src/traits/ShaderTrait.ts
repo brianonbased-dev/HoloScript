@@ -850,7 +850,13 @@ export type InlineShader = { vertex?: string; fragment?: string };
 export default ShaderTrait;
 
 // ── Handler (delegates to ShaderTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const shaderHandler = {
   name: 'shader',

@@ -90,7 +90,9 @@ export class MultiLayerCompiler extends CompilerBase {
         result.vr = vrResult;
       } catch (err: unknown) {
         result.success = false;
-        result.errors.push(`VR Compilation Error: ${err instanceof Error ? err.message : String(err)}`);
+        result.errors.push(
+          `VR Compilation Error: ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
 

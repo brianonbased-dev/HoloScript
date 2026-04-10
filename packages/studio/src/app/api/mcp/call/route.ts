@@ -35,7 +35,10 @@ export async function POST(request: Request) {
     if (!res.ok) {
       const errText = await res.text();
       return NextResponse.json(
-        { error: `Mesh Orchestrator Error [${res.status}]: ${errText}`, offline: res.status >= 500 },
+        {
+          error: `Mesh Orchestrator Error [${res.status}]: ${errText}`,
+          offline: res.status >= 500,
+        },
         { status: res.status >= 500 ? 502 : res.status }
       );
     }
@@ -47,7 +50,11 @@ export async function POST(request: Request) {
     const isTimeout = message.includes('TimeoutError') || message.includes('aborted');
     const isOffline = message.includes('ECONNREFUSED') || message.includes('fetch');
     return NextResponse.json(
-      { error: `Failed to contact external MCP service: ${message}`, offline: isOffline, timeout: isTimeout },
+      {
+        error: `Failed to contact external MCP service: ${message}`,
+        offline: isOffline,
+        timeout: isTimeout,
+      },
       { status: isOffline ? 503 : isTimeout ? 504 : 500 }
     );
   }
@@ -57,21 +64,24 @@ export async function GET() {
   try {
     const res = await fetch(`${MCP_EXTERNAL_URL}/servers`);
     if (!res.ok) {
-      return NextResponse.json({ error: `Mesh Orchestrator Error: ${res.status}` }, { status: res.status });
+      return NextResponse.json(
+        { error: `Mesh Orchestrator Error: ${res.status}` },
+        { status: res.status }
+      );
     }
     const data = await res.json();
     return NextResponse.json({
       service: 'HoloScript MCP API Gateway',
       environment: 'Decoupled',
       orchestrator_status: 'online',
-      mesh_servers: data
+      mesh_servers: data,
     });
   } catch (error) {
     return NextResponse.json({
       service: 'HoloScript MCP API Gateway',
       environment: 'Decoupled',
       orchestrator_status: 'offline',
-      error: String(error)
+      error: String(error),
     });
   }
 }

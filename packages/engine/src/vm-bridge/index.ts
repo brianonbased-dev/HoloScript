@@ -6,11 +6,7 @@
  * @packageDocumentation
  */
 
-export {
-  captureSceneSnapshot,
-  applyActions,
-  SpatialCognitiveAgent,
-} from './bridge';
+export { captureSceneSnapshot, applyActions, SpatialCognitiveAgent } from './bridge';
 export type {
   EntitySnapshot,
   SceneSnapshot,

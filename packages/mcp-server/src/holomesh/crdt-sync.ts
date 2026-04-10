@@ -61,8 +61,12 @@ function defaultExcitability(): ExcitabilityMetadata {
 /** Compute composite excitability score from individual metrics */
 function computeExcitability(meta: ExcitabilityMetadata): number {
   // Weighted combination: queries matter most, then citations, then corroborations
-  return meta.queryCount * 2 + meta.citationCount * 3 + meta.corroborationCount * 1.5
-    + meta.consolidationSurvivals * 0.5;
+  return (
+    meta.queryCount * 2 +
+    meta.citationCount * 3 +
+    meta.corroborationCount * 1.5 +
+    meta.consolidationSurvivals * 0.5
+  );
 }
 
 /**
@@ -82,11 +86,17 @@ function containsInjectionPattern(content: string): boolean {
   if (!content || typeof content !== 'string') return false;
 
   // String termination followed by code-like tokens
-  if (/["'];?\s*(import|require|exec|system|Process|eval|Function)\s*[.(]/i.test(content)) return true;
+  if (/["'];?\s*(import|require|exec|system|Process|eval|Function)\s*[.(]/i.test(content))
+    return true;
   // Script tags (HTML/XML injection)
   if (/<script[\s>]/i.test(content)) return true;
   // Shell execution patterns
-  if (/\b(os\.execute|os\.system|Runtime\.getRuntime|child_process|Process\.Start)\s*\(/i.test(content)) return true;
+  if (
+    /\b(os\.execute|os\.system|Runtime\.getRuntime|child_process|Process\.Start)\s*\(/i.test(
+      content
+    )
+  )
+    return true;
   // Preprocessor directives (shader/C++ injection)
   if (/#\s*(include|pragma|define)\b/i.test(content)) return true;
   // Null byte injection
@@ -217,7 +227,12 @@ Insight("${this.agentDid}_${Date.now()}") {
   public queryFeedView(): Array<{ source: string; timestamp: number }> {
     const list = this.doc.getList('insights');
     if (!list) return [];
-    interface InsightEntry { hs_source?: string; author?: string; text?: string; timestamp: number }
+    interface InsightEntry {
+      hs_source?: string;
+      author?: string;
+      text?: string;
+      timestamp: number;
+    }
     const feed = list.toJSON() as InsightEntry[];
     return feed
       .sort((a, b) => b.timestamp - a.timestamp)
@@ -274,17 +289,17 @@ Insight("${this.agentDid}_${Date.now()}") {
     const raw = domainMap.toJSON() as Record<string, string>;
     return Object.entries(raw).map(([id, json]) => {
       const entry = typeof json === 'string' ? JSON.parse(json) : json;
-      
+
       // Blueprint 5: Connect V2 reputation tiering directly to algebraic provenance context
       if (!entry.provenanceContext && entry.authorDid) {
         const repInfo = this.getReputation(entry.authorDid);
         const score = typeof repInfo?.score === 'number' ? repInfo.score : 0;
-        
+
         entry.provenanceContext = {
           authorityLevel: repInfo?.tier === 'founder' ? 100 : 50,
           agentId: entry.authorDid,
           sourceType: 'agent',
-          reputationScore: score
+          reputationScore: score,
         };
       }
 
@@ -426,9 +441,7 @@ Insight("${this.agentDid}_${Date.now()}") {
    * V11: Get reputation with domain-specific decay.
    * Each domain's half-life reflects its knowledge volatility.
    */
-  public getReputationWithDomainDecay(
-    agentDid: string
-  ): {
+  public getReputationWithDomainDecay(agentDid: string): {
     raw: any;
     domainScores: Record<string, number>;
     compositeScore: number;
@@ -592,12 +605,16 @@ Insight("${this.agentDid}_${Date.now()}") {
         // New entry from gossip — migrate to hot buffer
         try {
           const entry = typeof json === 'string' ? JSON.parse(json) : json;
-          this.ingestToHotBuffer(domain, {
-            content: entry.content || '',
-            type: entry.type || 'wisdom',
-            authorDid: entry.authorDid || senderDid,
-            tags: entry.tags || [],
-          }, senderDid);
+          this.ingestToHotBuffer(
+            domain,
+            {
+              content: entry.content || '',
+              type: entry.type || 'wisdom',
+              authorDid: entry.authorDid || senderDid,
+              tags: entry.tags || [],
+            },
+            senderDid
+          );
 
           // Remove from cold store — it now lives in hot buffer pending consolidation
           domainMap.delete(id);
@@ -687,7 +704,7 @@ Insight("${this.agentDid}_${Date.now()}") {
    */
   public corroborateHotEntry(domain: KnowledgeDomain, entryId: string, peerDid: string): boolean {
     const buffer = this.hotBuffer.get(domain) || [];
-    const entry = buffer.find(e => e.id === entryId);
+    const entry = buffer.find((e) => e.id === entryId);
     if (!entry) return false;
     if (!entry.corroborations.includes(peerDid)) {
       entry.corroborations.push(peerDid);
@@ -702,7 +719,7 @@ Insight("${this.agentDid}_${Date.now()}") {
 
   /** Get hot buffer size across all domains */
   public getHotBufferStats(): { domain: string; count: number }[] {
-    return KNOWLEDGE_DOMAINS.map(domain => ({
+    return KNOWLEDGE_DOMAINS.map((domain) => ({
       domain,
       count: (this.hotBuffer.get(domain) || []).length,
     }));
@@ -762,8 +779,8 @@ Insight("${this.agentDid}_${Date.now()}") {
     // Phase 2 & 3: CLUSTER + MERGE — deduplicate sanitized entries by content similarity
     const uniqueEntries: HotBufferEntry[] = [];
     for (const entry of sanitized) {
-      const duplicate = uniqueEntries.find(e =>
-        e.content === entry.content && e.type === entry.type
+      const duplicate = uniqueEntries.find(
+        (e) => e.content === entry.content && e.type === entry.type
       );
       if (duplicate) {
         // Merge corroborations from duplicate
@@ -882,7 +899,7 @@ Insight("${this.agentDid}_${Date.now()}") {
    */
   public needsConsolidation(): { domain: KnowledgeDomain; overdue: boolean; bufferSize: number }[] {
     const now = Date.now();
-    return KNOWLEDGE_DOMAINS.map(domain => {
+    return KNOWLEDGE_DOMAINS.map((domain) => {
       const config = DOMAIN_CONSOLIDATION[domain];
       const lastRun = this.lastConsolidation.get(domain) || 0;
       const elapsed = now - lastRun;
@@ -1026,8 +1043,7 @@ Insight("${this.agentDid}_${Date.now()}") {
 
       // Reduce excitability on contradiction
       if (entry._excitability) {
-        entry._excitability.excitability = Math.max(0,
-          entry._excitability.excitability - 5);
+        entry._excitability.excitability = Math.max(0, entry._excitability.excitability - 5);
       }
 
       domainMap.set(entryId, JSON.stringify(entry));

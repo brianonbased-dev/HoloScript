@@ -67,10 +67,13 @@ describe('compileHSNAPToUAAL', () => {
   });
 
   it('can compile without appending the default full cycle', () => {
-    const bytecode = compileHSNAPToUAAL(`composition Lightweight {
+    const bytecode = compileHSNAPToUAAL(
+      `composition Lightweight {
       @task { id: "task-lite", intent: "review" }
       emit("task.accept", { eta: 5 })
-    }`, { includeFullCycle: false });
+    }`,
+      { includeFullCycle: false }
+    );
 
     const opcodes = bytecode.instructions.map((instruction) => instruction.opCode);
     expect(opcodes).toContain(UAALOpCode.OP_EMIT_SIGNAL);

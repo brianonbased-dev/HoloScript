@@ -92,4 +92,3 @@ export function registerEmotionDetector(name: string, detector: EmotionDetector)
 export function getEmotionDetector(name: string): EmotionDetector | undefined {
   return emotionDetectorRegistry.get(name);
 }
-

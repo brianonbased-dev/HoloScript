@@ -175,4 +175,3 @@ export class RuntimeBridge {
     return count;
   }
 }
-

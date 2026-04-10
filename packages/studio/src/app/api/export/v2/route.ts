@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 
 const EXPORT_API_URL = process.env.EXPORT_API_URL || 'http://localhost:8080';
-const EXPORT_API_KEY = process.env.EXPORT_API_KEY || 'hsk_00000000000000000000000000000000000000000000000000000000000000000000';
+const EXPORT_API_KEY =
+  process.env.EXPORT_API_KEY ||
+  'hsk_00000000000000000000000000000000000000000000000000000000000000000000';
 
 export async function POST(request: NextRequest) {
   try {

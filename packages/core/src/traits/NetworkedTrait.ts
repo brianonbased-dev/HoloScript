@@ -1043,7 +1043,13 @@ export function cleanupNetworkPool(): void {
 export default NetworkedTrait;
 
 // ── Handler (delegates to NetworkedTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const networkedHandler = {
   name: 'networked',

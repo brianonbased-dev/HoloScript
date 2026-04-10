@@ -44,9 +44,27 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { key: 'open', label: 'Open', color: 'border-blue-500/30', dot: 'bg-blue-400', emptyText: 'No open tasks' },
-  { key: 'claimed', label: 'In Progress', color: 'border-yellow-500/30', dot: 'bg-yellow-400', emptyText: 'Nothing in progress' },
-  { key: 'done', label: 'Done', color: 'border-green-500/30', dot: 'bg-green-400', emptyText: 'Nothing completed yet' },
+  {
+    key: 'open',
+    label: 'Open',
+    color: 'border-blue-500/30',
+    dot: 'bg-blue-400',
+    emptyText: 'No open tasks',
+  },
+  {
+    key: 'claimed',
+    label: 'In Progress',
+    color: 'border-yellow-500/30',
+    dot: 'bg-yellow-400',
+    emptyText: 'Nothing in progress',
+  },
+  {
+    key: 'done',
+    label: 'Done',
+    color: 'border-green-500/30',
+    dot: 'bg-green-400',
+    emptyText: 'Nothing completed yet',
+  },
 ];
 
 function priorityBadge(p?: number) {
@@ -80,7 +98,9 @@ export default function KanbanBoardPage({ params }: { params: Promise<{ id: stri
     }
   }, [teamId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const claimTask = async (taskId: string) => {
     if (actingTask) return;
@@ -155,9 +175,7 @@ export default function KanbanBoardPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-studio-muted">
-              {data.done.total} completed total
-            </span>
+            <span className="text-xs text-studio-muted">{data.done.total} completed total</span>
             <button
               onClick={load}
               className="rounded-lg border border-studio-border bg-studio-panel px-3 py-1.5 text-xs hover:border-studio-accent/50 hover:text-studio-accent"
@@ -166,9 +184,7 @@ export default function KanbanBoardPage({ params }: { params: Promise<{ id: stri
             </button>
           </div>
         </div>
-        {data.objective && (
-          <p className="mt-1 text-xs text-studio-muted">{data.objective}</p>
-        )}
+        {data.objective && <p className="mt-1 text-xs text-studio-muted">{data.objective}</p>}
       </header>
 
       {/* Kanban columns */}
@@ -232,19 +248,17 @@ export default function KanbanBoardPage({ params }: { params: Promise<{ id: stri
                     <div className="mt-2 flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1">
                         {task.priority != null && (
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priorityColor(task.priority)}`}>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priorityColor(task.priority)}`}
+                          >
                             {priorityBadge(task.priority)}
                           </span>
                         )}
                         {task.claimedBy && (
-                          <span className="text-[10px] text-studio-muted">
-                            {task.claimedBy}
-                          </span>
+                          <span className="text-[10px] text-studio-muted">{task.claimedBy}</span>
                         )}
                         {task.doneBy && (
-                          <span className="text-[10px] text-studio-muted">
-                            {task.doneBy}
-                          </span>
+                          <span className="text-[10px] text-studio-muted">{task.doneBy}</span>
                         )}
                         {task.commit && (
                           <span className="font-mono text-[10px] text-studio-muted">

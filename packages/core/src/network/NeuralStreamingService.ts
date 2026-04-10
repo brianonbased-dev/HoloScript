@@ -1,7 +1,11 @@
 import type { INeuralPacket } from './NetworkTypes.js';
 import type { GaussianSplatSorter, CameraState } from '../gpu/GaussianSplatSorter.js';
 import type { WebGPUContext } from '../gpu/WebGPUContext.js';
-import { NeuralStreamingTransport, StreamingTransportConfig, ISignalingBridge } from './NeuralStreamingTransport.js';
+import {
+  NeuralStreamingTransport,
+  StreamingTransportConfig,
+  ISignalingBridge,
+} from './NeuralStreamingTransport.js';
 import { GaussianSplatExtractor } from '../gpu/GaussianSplatExtractor.js';
 
 export interface NeuralStreamingConfig extends StreamingTransportConfig {
@@ -10,7 +14,7 @@ export interface NeuralStreamingConfig extends StreamingTransportConfig {
 
 /**
  * NeuralStreamingService
- * Integrates directly with the UAALVirtualMachine to relay cognitive state (`NeuralPacket`), 
+ * Integrates directly with the UAALVirtualMachine to relay cognitive state (`NeuralPacket`),
  * and interfaces with the `GaussianSplatSorter` to route visual topology via WebRTC/WebSocket.
  *
  * This fundamentally enables Pillar 2: Native Neural Streaming for thin-device clients.
@@ -59,8 +63,13 @@ export class NeuralStreamingService {
     if (!this.isStreaming || !this.extractor) return;
 
     // 1. Pull the data from GPU onto the CPU
-    const packet = await this.extractor.extractFrame(sorter, camera, compressedSource, indicesSource);
-    
+    const packet = await this.extractor.extractFrame(
+      sorter,
+      camera,
+      compressedSource,
+      indicesSource
+    );
+
     // 2. Dispatch the payload via the transport stream
     if (packet) {
       this.transport.broadcastSplatPacket(packet);

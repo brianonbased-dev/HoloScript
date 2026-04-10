@@ -296,17 +296,22 @@ export const spatialAgentHandler = {
     delete node.__spatialAgentState;
   },
 
-  onEvent(node: HSPlusNode, config: SpatialAgentConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SpatialAgentConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: SpatialAgentState | undefined = node.__spatialAgentState;
     if (!state?.isReady) return;
 
     switch (event.type) {
       case 'scene_generate':
-        this._generate(state, node, config, ctx, (event.payload as Record<string, unknown>));
+        this._generate(state, node, config, ctx, event.payload as Record<string, unknown>);
         break;
       case 'scene_generate_from_blueprint':
-        this._fromBlueprint(state, node, config, ctx, (event.payload as Record<string, unknown>));
+        this._fromBlueprint(state, node, config, ctx, event.payload as Record<string, unknown>);
         break;
       case 'scene_list_active':
         ctx.emit('scene_active_list', {
@@ -332,7 +337,7 @@ export const spatialAgentHandler = {
     if (!payload?.prompt) return;
     const requestId = (payload.requestId as string) ?? generateRequestId();
     state.activeGenerations.set(requestId, {
-// @ts-expect-error During migration
+      // @ts-expect-error During migration
       prompt: payload.prompt,
       step: 'blueprint',
       startedAt: Date.now(),
@@ -340,8 +345,15 @@ export const spatialAgentHandler = {
     ctx.emit('scene_generation_started', { node, requestId, prompt: payload.prompt });
     ctx.emit('scene_generation_progress', { node, requestId, step: 'blueprint', pct: 5 });
 
-// @ts-expect-error During migration
-    this._runGeneration(state, node, ((config as SpatialAgentConfig) as string), ctx, requestId, payload.prompt).catch((err: Error) => {
+    // @ts-expect-error During migration
+    this._runGeneration(
+      state,
+      node,
+      config as SpatialAgentConfig as string,
+      ctx,
+      requestId,
+      payload.prompt
+    ).catch((err: Error) => {
       state.activeGenerations.delete(requestId);
       ctx.emit('scene_generation_failed', {
         node,
@@ -432,12 +444,12 @@ export const spatialAgentHandler = {
     if (!payload?.blueprint) return;
     const requestId = payload.requestId ?? generateRequestId();
     // Clone and cap to config limits
-// @ts-expect-error During migration
+    // @ts-expect-error During migration
     const blueprint: SceneBlueprint = {
       ...payload.blueprint,
-// @ts-expect-error During migration
+      // @ts-expect-error During migration
       objects: (payload.blueprint.objects ?? []).slice(0, config.max_objects),
-// @ts-expect-error During migration
+      // @ts-expect-error During migration
       agents: (payload.blueprint.agents ?? []).slice(0, config.max_agents),
     };
     const dsl = blueprintToDSL(blueprint, config.compile_target);

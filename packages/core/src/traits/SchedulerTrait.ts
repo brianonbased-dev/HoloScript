@@ -106,11 +106,21 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
     delete node.__schedulerState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: SchedulerConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: SchedulerConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Timer-driven, no per-frame work
   },
 
-  onEvent(node: HSPlusNode, config: SchedulerConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SchedulerConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: SchedulerState | undefined = node.__schedulerState;
     if (!state) return;

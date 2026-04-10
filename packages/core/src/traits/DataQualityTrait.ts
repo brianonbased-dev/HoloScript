@@ -16,7 +16,12 @@ export const dataQualityHandler: TraitHandler<DataQualityConfig> = {
     delete node.__dqState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: DataQualityConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: DataQualityConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__dqState as { checks: number; passed: number; failed: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'quality:check') {

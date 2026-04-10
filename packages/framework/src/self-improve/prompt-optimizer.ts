@@ -126,7 +126,11 @@ export class PromptOptimizer {
   /**
    * Run a single variant N times and evaluate.
    */
-  private async runVariant(prompt: string, task: string, runs: number): Promise<PromptVariantResult> {
+  private async runVariant(
+    prompt: string,
+    task: string,
+    runs: number
+  ): Promise<PromptVariantResult> {
     const responses: string[] = [];
     const scores: number[] = [];
     let totalTokens = 0;
@@ -134,13 +138,17 @@ export class PromptOptimizer {
 
     for (let i = 0; i < runs; i++) {
       const start = Date.now();
-      const response = await callLLM(this.config.model, [
-        { role: 'system', content: prompt },
-        { role: 'user', content: task },
-      ], {
-        maxTokens: this.config.maxTokens,
-        temperature: this.config.temperature,
-      });
+      const response = await callLLM(
+        this.config.model,
+        [
+          { role: 'system', content: prompt },
+          { role: 'user', content: task },
+        ],
+        {
+          maxTokens: this.config.maxTokens,
+          temperature: this.config.temperature,
+        }
+      );
       const latency = Date.now() - start;
 
       responses.push(response.content);
@@ -170,17 +178,21 @@ export class PromptOptimizer {
     const criteria = this.config.criteria!;
 
     try {
-      const judgeResponse = await callLLM(this.config.model, [
-        { role: 'system', content: JUDGE_SYSTEM },
-        {
-          role: 'user',
-          content: [
-            `Task: ${task}`,
-            `Response: ${response}`,
-            `Criteria: ${criteria.map(c => `${c.name} (${c.description})`).join(', ')}`,
-          ].join('\n'),
-        },
-      ], { maxTokens: 200, temperature: 0 });
+      const judgeResponse = await callLLM(
+        this.config.model,
+        [
+          { role: 'system', content: JUDGE_SYSTEM },
+          {
+            role: 'user',
+            content: [
+              `Task: ${task}`,
+              `Response: ${response}`,
+              `Criteria: ${criteria.map((c) => `${c.name} (${c.description})`).join(', ')}`,
+            ].join('\n'),
+          },
+        ],
+        { maxTokens: 200, temperature: 0 }
+      );
 
       const parsed = JSON.parse(judgeResponse.content) as Record<string, number>;
       let weightedSum = 0;

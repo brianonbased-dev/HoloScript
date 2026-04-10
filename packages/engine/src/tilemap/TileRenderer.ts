@@ -160,4 +160,3 @@ export class TileRenderer {
     return this.animatedTiles.size;
   }
 }
-

@@ -12,7 +12,11 @@ import type { KnowledgeConfig, KnowledgeInsight } from '../types';
 import { applyHalfLifeDecay, computeExcitability } from './brain';
 import type { KnowledgeDomain, ExcitabilityMetadata } from './brain';
 import { KnowledgeMarketplace } from '../economy/KnowledgeMarketplace';
-import type { KnowledgeListing, PurchaseResult, ListingResult } from '../economy/KnowledgeMarketplace';
+import type {
+  KnowledgeListing,
+  PurchaseResult,
+  ListingResult,
+} from '../economy/KnowledgeMarketplace';
 
 export interface StoredEntry extends KnowledgeInsight {
   id: string;
@@ -61,17 +65,28 @@ export class KnowledgeStore {
 
   /** Publish a knowledge entry. Deduplicates by normalized content. */
   publish(
-    insight: KnowledgeInsight, 
-    authorAgent: string, 
+    insight: KnowledgeInsight,
+    authorAgent: string,
     provenance?: { taskId?: string; cycleId?: string; verifierId?: string; provenanceHash?: string }
   ): StoredEntry {
     const prefix = insight.type === 'wisdom' ? 'W' : insight.type === 'pattern' ? 'P' : 'G';
-    const domain = insight.domain.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    const domain = insight.domain
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 8);
     const id = `${prefix}.${domain}.${String(this.nextId++).padStart(3, '0')}`;
 
-    const norm = insight.content.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 100);
+    const norm = insight.content
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .slice(0, 100);
     for (const existing of this.entries.values()) {
-      const existingNorm = existing.content.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 100);
+      const existingNorm = existing.content
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .slice(0, 100);
       if (existingNorm === norm) return existing;
     }
 
@@ -94,7 +109,10 @@ export class KnowledgeStore {
 
   /** Search entries by keyword with excitability + half-life decay ranking. */
   search(query: string, limit = 10): StoredEntry[] {
-    const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const keywords = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
     if (keywords.length === 0) return this.recent(limit);
 
     const now = Date.now();
@@ -136,7 +154,7 @@ export class KnowledgeStore {
     return scored
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-      .map(s => s.entry);
+      .map((s) => s.entry);
   }
 
   /** Search remote knowledge store (MCP Orchestrator). */
@@ -153,8 +171,8 @@ export class KnowledgeStore {
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) return [];
-      const data = await res.json() as Array<Record<string, unknown>>;
-      return (Array.isArray(data) ? data : []).map(e => this.mapRemoteEntry(e));
+      const data = (await res.json()) as Array<Record<string, unknown>>;
+      return (Array.isArray(data) ? data : []).map((e) => this.mapRemoteEntry(e));
     } catch {
       return [];
     }
@@ -163,19 +181,19 @@ export class KnowledgeStore {
   /** Sync local entries to remote knowledge store. */
   async syncToRemote(): Promise<number> {
     if (!this.config.remoteUrl || !this.config.remoteApiKey) return 0;
-    const entries = this.all().map(e => ({
+    const entries = this.all().map((e) => ({
       id: e.id,
       workspace_id: 'ai-ecosystem',
       type: e.type,
       content: e.content,
       provenanceHash: e.provenanceHash || '',
-      metadata: { 
-        domain: e.domain, 
-        confidence: e.confidence, 
+      metadata: {
+        domain: e.domain,
+        confidence: e.confidence,
         source: e.authorAgent,
         taskId: e.taskId,
         cycleId: e.cycleId,
-        verifierId: e.verifierId
+        verifierId: e.verifierId,
       },
     }));
     if (entries.length === 0) return 0;
@@ -190,7 +208,7 @@ export class KnowledgeStore {
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) return 0;
-      const data = await res.json() as { synced?: number };
+      const data = (await res.json()) as { synced?: number };
       return data.synced ?? entries.length;
     } catch {
       return 0;
@@ -224,21 +242,23 @@ export class KnowledgeStore {
     try {
       const payload = {
         workspace_id: 'ai-ecosystem',
-        entries: [{
-          id: entry.id,
-          workspace_id: 'ai-ecosystem',
-          type: entry.type,
-          content: entry.content,
-          provenanceHash: entry.provenanceHash || '',
-          metadata: {
-            domain: entry.domain,
-            confidence: entry.confidence,
-            source: entry.authorAgent,
-            taskId: entry.taskId,
-            cycleId: entry.cycleId,
-            verifierId: entry.verifierId,
+        entries: [
+          {
+            id: entry.id,
+            workspace_id: 'ai-ecosystem',
+            type: entry.type,
+            content: entry.content,
+            provenanceHash: entry.provenanceHash || '',
+            metadata: {
+              domain: entry.domain,
+              confidence: entry.confidence,
+              source: entry.authorAgent,
+              taskId: entry.taskId,
+              cycleId: entry.cycleId,
+              verifierId: entry.verifierId,
+            },
           },
-        }],
+        ],
       };
 
       const res = await fetch(`${this.config.remoteUrl}/knowledge/sync`, {
@@ -255,7 +275,7 @@ export class KnowledgeStore {
         return { entryId: entry.id, synced: false };
       }
 
-      const data = await res.json() as { synced?: number; ids?: string[] };
+      const data = (await res.json()) as { synced?: number; ids?: string[] };
       return {
         entryId: entry.id,
         synced: (data.synced ?? 0) > 0,
@@ -302,12 +322,14 @@ export class KnowledgeStore {
         });
 
         if (res.ok) {
-          const data = await res.json() as Array<Record<string, unknown>>;
-          remoteResults = (Array.isArray(data) ? data : []).map(e => this.mapRemoteEntry(e));
+          const data = (await res.json()) as Array<Record<string, unknown>>;
+          remoteResults = (Array.isArray(data) ? data : []).map((e) => this.mapRemoteEntry(e));
 
           // Apply confidence filter
           if (options?.minConfidence !== undefined) {
-            remoteResults = remoteResults.filter(e => e.confidence >= (options.minConfidence ?? 0));
+            remoteResults = remoteResults.filter(
+              (e) => e.confidence >= (options.minConfidence ?? 0)
+            );
           }
         }
       } catch {
@@ -362,10 +384,18 @@ export class KnowledgeStore {
       reuseCount: Number(e.reuseCount || 0),
       createdAt: String(e.createdAt || new Date().toISOString()),
       authorAgent: String(e.authorName || meta.source || 'remote'),
-      taskId: e.taskId ? String(e.taskId) : (meta.taskId ? String(meta.taskId) : undefined),
-      cycleId: e.cycleId ? String(e.cycleId) : (meta.cycleId ? String(meta.cycleId) : undefined),
-      verifierId: e.verifierId ? String(e.verifierId) : (meta.verifierId ? String(meta.verifierId) : undefined),
-      provenanceHash: e.provenanceHash ? String(e.provenanceHash) : (meta.provenanceHash ? String(meta.provenanceHash) : undefined),
+      taskId: e.taskId ? String(e.taskId) : meta.taskId ? String(meta.taskId) : undefined,
+      cycleId: e.cycleId ? String(e.cycleId) : meta.cycleId ? String(meta.cycleId) : undefined,
+      verifierId: e.verifierId
+        ? String(e.verifierId)
+        : meta.verifierId
+          ? String(meta.verifierId)
+          : undefined,
+      provenanceHash: e.provenanceHash
+        ? String(e.provenanceHash)
+        : meta.provenanceHash
+          ? String(meta.provenanceHash)
+          : undefined,
     };
   }
 
@@ -376,12 +406,12 @@ export class KnowledgeStore {
   }
 
   byType(type: 'wisdom' | 'pattern' | 'gotcha'): StoredEntry[] {
-    return Array.from(this.entries.values()).filter(e => e.type === type);
+    return Array.from(this.entries.values()).filter((e) => e.type === type);
   }
 
   byDomain(domain: string): StoredEntry[] {
     const d = domain.toLowerCase();
-    return Array.from(this.entries.values()).filter(e => e.domain.toLowerCase() === d);
+    return Array.from(this.entries.values()).filter((e) => e.domain.toLowerCase() === d);
   }
 
   markReused(id: string): void {
@@ -489,7 +519,7 @@ export class KnowledgeStore {
         const updated = [...existing, ...archived];
         fs.writeFileSync(archivePath, JSON.stringify(updated, null, 2), 'utf8');
         // Remove from hot buffer
-        archived.forEach(e => this.entries.delete(e.id));
+        archived.forEach((e) => this.entries.delete(e.id));
       } catch {
         // Cold store unavailable; keep in hot buffer
       }
@@ -508,7 +538,10 @@ export class KnowledgeStore {
       const fs = require('fs') as typeof import('fs');
       if (!fs.existsSync(archivePath)) return [];
       const archived = JSON.parse(fs.readFileSync(archivePath, 'utf8')) as StoredEntry[];
-      const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const keywords = query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 2);
 
       const restored: StoredEntry[] = [];
       for (const entry of archived) {
@@ -525,7 +558,7 @@ export class KnowledgeStore {
 
       // Update cold store (remove restored)
       if (restored.length > 0) {
-        const remaining = archived.filter(e => !restored.find(r => r.id === e.id));
+        const remaining = archived.filter((e) => !restored.find((r) => r.id === e.id));
         fs.writeFileSync(archivePath, JSON.stringify(remaining, null, 2), 'utf8');
       }
 
@@ -593,7 +626,12 @@ export class KnowledgeStore {
   }
 
   /** List a knowledge entry for sale on the marketplace. */
-  listForSale(id: string, seller: string, price?: number, currency?: 'USDC' | 'credits'): ListingResult {
+  listForSale(
+    id: string,
+    seller: string,
+    price?: number,
+    currency?: 'USDC' | 'credits'
+  ): ListingResult {
     const entry = this.entries.get(id);
     if (!entry) return { success: false, listingId: '', error: 'Entry not found' };
     const finalPrice = price ?? this.marketplace.priceKnowledge(entry);

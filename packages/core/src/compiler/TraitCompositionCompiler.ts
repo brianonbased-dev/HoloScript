@@ -25,7 +25,7 @@ import { WorkflowStep } from './identity/AgentIdentity';
 import {
   ProvenanceSemiring,
   type TraitApplication,
-  authorityWeight
+  authorityWeight,
 } from './traits/ProvenanceSemiring';
 
 // =============================================================================
@@ -177,7 +177,12 @@ export class TraitCompositionCompiler {
     });
 
     // 2. Conflict detection (bypassed for high-authority contexts)
-    if (authorityWeight((decl as unknown as { provenance?: { context?: { authorityLevel?: number } } }).provenance?.context?.authorityLevel ?? 0) < 100) {
+    if (
+      authorityWeight(
+        (decl as unknown as { provenance?: { context?: { authorityLevel?: number } } }).provenance
+          ?.context?.authorityLevel ?? 0
+      ) < 100
+    ) {
       this.detectConflicts(handlers);
     }
 
@@ -201,10 +206,10 @@ export class TraitCompositionCompiler {
     }
 
     if (decl.overrides) {
-      applications.push({ 
-        name: `${decl.name}_overrides`, 
+      applications.push({
+        name: `${decl.name}_overrides`,
         config: decl.overrides,
-        context: { authorityLevel: Number.MAX_SAFE_INTEGER } // Overrides always win!
+        context: { authorityLevel: Number.MAX_SAFE_INTEGER }, // Overrides always win!
       });
     }
 

@@ -417,7 +417,7 @@ async function runCode(): Promise<void> {
     state.isRunning = true;
     state.stats.status = 'Running';
   } catch (error) {
-    logConsole('error', `Error: ${(error instanceof Error ? error.message : String(error))}`);
+    logConsole('error', `Error: ${error instanceof Error ? error.message : String(error)}`);
     state.stats.status = 'Error';
     overlay.style.display = 'flex';
   } finally {
@@ -633,7 +633,10 @@ async function init(): Promise<void> {
     logConsole('info', 'Select an example or write your own HoloScript code');
   } catch (error) {
     console.error('Failed to initialize playground:', error);
-    logConsole('error', `Initialization failed: ${(error instanceof Error ? error.message : String(error))}`);
+    logConsole(
+      'error',
+      `Initialization failed: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 

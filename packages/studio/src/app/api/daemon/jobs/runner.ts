@@ -178,7 +178,7 @@ const GLOBAL_DENYLIST = [
  */
 async function runAbsorbPhase(
   workDir: string,
-  depth: 'shallow' | 'medium' | 'deep' = 'shallow',
+  depth: 'shallow' | 'medium' | 'deep' = 'shallow'
 ): Promise<AbsorbGraphData> {
   const absorbStart = Date.now();
 
@@ -193,8 +193,9 @@ async function runAbsorbPhase(
   };
 
   try {
-    const absorbUrl = process.env.ABSORB_SERVICE_URL || 'http://localhost:8081';
-    
+    const { ENDPOINTS } = await import('@holoscript/config');
+    const absorbUrl = ENDPOINTS.ABSORB_SERVICE;
+
     // Delegate codebase scanning to the headless absorb-service
     const res = await fetch(`${absorbUrl}/scan`, {
       method: 'POST',
@@ -214,7 +215,7 @@ async function runAbsorbPhase(
     }
 
     const data = await res.json();
-    
+
     // The absorb-service now computes and returns the graph topology directly
     if (data.topology) {
       return {
@@ -246,7 +247,7 @@ async function runAbsorbPhase(
  */
 async function createIsolatedWorkspace(
   projectPath: string,
-  jobId: string,
+  jobId: string
 ): Promise<{ workDir: string; cleanup: () => Promise<void> }> {
   const tmpBase = path.join(os.tmpdir(), 'holoscript-daemon');
   if (!fs.existsSync(tmpBase)) {
@@ -265,7 +266,7 @@ async function createIsolatedWorkspace(
       createdAt: new Date().toISOString(),
       readonly: true,
     }),
-    'utf-8',
+    'utf-8'
   );
 
   // Copy project structure for analysis (skip node_modules and .git)
@@ -274,14 +275,14 @@ async function createIsolatedWorkspace(
     if (isWindows) {
       await execAsync(
         `robocopy "${projectPath}" "${workDir}" /E /XD node_modules .git dist .next /XF *.pem *.key .env /NFL /NDL /NJH /NJS /nc /ns /np`,
-        { timeout: 30_000 },
+        { timeout: 30_000 }
       ).catch(() => {
         // robocopy returns non-zero for success (1 = files copied), only 8+ is error
       });
     } else {
       await execAsync(
         `rsync -a --exclude=node_modules --exclude=.git --exclude=dist --exclude=.next --exclude='*.pem' --exclude='*.key' --exclude='.env*' "${projectPath}/" "${workDir}/"`,
-        { timeout: 30_000 },
+        { timeout: 30_000 }
       );
     }
   } catch {
@@ -307,10 +308,7 @@ async function createIsolatedWorkspace(
  * Creates a rollback snapshot of the project state before daemon execution.
  * This is a tarball of the workspace that can be restored if needed.
  */
-async function createRollbackSnapshot(
-  workDir: string,
-  jobId: string,
-): Promise<string> {
+async function createRollbackSnapshot(workDir: string, jobId: string): Promise<string> {
   const snapshotDir = path.join(os.tmpdir(), 'holoscript-daemon', 'snapshots');
   if (!fs.existsSync(snapshotDir)) {
     fs.mkdirSync(snapshotDir, { recursive: true });
@@ -357,7 +355,7 @@ async function createRollbackSnapshot(
       fileCount: fileList.length,
       files: fileList,
     }),
-    'utf-8',
+    'utf-8'
   );
 
   return snapshotPath;
@@ -473,13 +471,16 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
   // Composite score (same formula as holo_validate_quality)
   const tscScore = result.typeErrors <= 0 ? 1.0 : 1 / (1 + Math.log(1 + result.typeErrors / 10));
   const testScore = result.testsTotal > 0 ? result.testsPassed / result.testsTotal : 0.5;
-  const lintScore = result.lintErrors === 0
-    ? Math.max(0.8, 1 - result.lintWarnings * 0.01)
-    : 1 / (1 + Math.log(1 + result.lintErrors / 5));
+  const lintScore =
+    result.lintErrors === 0
+      ? Math.max(0.8, 1 - result.lintWarnings * 0.01)
+      : 1 / (1 + Math.log(1 + result.lintErrors / 5));
 
-  result.compositeScore = Math.round(
-    (testScore * 0.35 + tscScore * 0.30 + lintScore * 0.15 + (result.typeErrors === 0 ? 0.20 : 0)) * 100,
-  ) / 100;
+  result.compositeScore =
+    Math.round(
+      (testScore * 0.35 + tscScore * 0.3 + lintScore * 0.15 + (result.typeErrors === 0 ? 0.2 : 0)) *
+        100
+    ) / 100;
 
   return result;
 }
@@ -500,7 +501,7 @@ async function detectChanges(
   originalDir: string,
   workDir: string,
   denyPatterns: string[],
-  maxFiles: number,
+  maxFiles: number
 ): Promise<PatchProposal[]> {
   const patches: PatchProposal[] = [];
 
@@ -508,7 +509,12 @@ async function detectChanges(
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.daemon-workspace.json') continue;
+        if (
+          entry.name === 'node_modules' ||
+          entry.name === '.git' ||
+          entry.name === '.daemon-workspace.json'
+        )
+          continue;
         const fullPath = path.join(dir, entry.name);
         const relPath = path.join(base, entry.name).replace(/\\/g, '/');
         if (entry.isDirectory()) {
@@ -561,7 +567,11 @@ async function detectChanges(
 }
 
 function inferPatchCategory(filePath: string, content: string): PatchProposal['category'] {
-  if (filePath.includes('.test.') || filePath.includes('__tests__') || filePath.includes('.spec.')) {
+  if (
+    filePath.includes('.test.') ||
+    filePath.includes('__tests__') ||
+    filePath.includes('.spec.')
+  ) {
     return 'test';
   }
   if (filePath.endsWith('.md') || content.includes('/**') || content.includes('* @param')) {
@@ -577,10 +587,7 @@ function generateUnifiedDiff(filePath: string, oldContent: string, newContent: s
   const oldLines = oldContent.split('\n');
   const newLines = newContent.split('\n');
 
-  const diffLines: string[] = [
-    `--- a/${filePath}`,
-    `+++ b/${filePath}`,
-  ];
+  const diffLines: string[] = [`--- a/${filePath}`, `+++ b/${filePath}`];
 
   // Simple line-by-line diff (not a full Myers diff, but sufficient for review)
   const maxLen = Math.max(oldLines.length, newLines.length);
@@ -590,7 +597,9 @@ function generateUnifiedDiff(filePath: string, oldContent: string, newContent: s
 
   function flushHunk() {
     if (hunkOld.length === 0 && hunkNew.length === 0) return;
-    diffLines.push(`@@ -${Math.max(1, hunkStart + 1)},${hunkOld.length} +${Math.max(1, hunkStart + 1)},${hunkNew.length} @@`);
+    diffLines.push(
+      `@@ -${Math.max(1, hunkStart + 1)},${hunkOld.length} +${Math.max(1, hunkStart + 1)},${hunkNew.length} @@`
+    );
     for (const line of hunkOld) diffLines.push(`-${line}`);
     for (const line of hunkNew) diffLines.push(`+${line}`);
     hunkOld = [];
@@ -622,7 +631,7 @@ function generateUnifiedDiff(filePath: string, oldContent: string, newContent: s
 export type DaemonProgressCallback = (
   progress: number,
   status: string,
-  log?: DaemonLogEntry,
+  log?: DaemonLogEntry
 ) => void;
 
 /**
@@ -646,7 +655,7 @@ export async function runDaemonJob(
   profile: DaemonProfile,
   dna: DaemonProjectDNA,
   onProgress: DaemonProgressCallback,
-  customLimits?: Partial<DaemonJobLimits>,
+  customLimits?: Partial<DaemonJobLimits>
 ): Promise<DaemonRunResult> {
   const startTime = Date.now();
   const limits = { ...PROFILE_LIMITS[profile], ...customLimits };
@@ -666,7 +675,10 @@ export async function runDaemonJob(
 
   log('info', `Daemon job ${jobId} starting with profile "${profile}"`);
   log('info', `Project DNA: ${dna.kind} (${Math.round(dna.confidence * 100)}% confidence)`);
-  log('info', `Limits: ${limits.maxCycles} cycles, ${limits.maxFilesChanged} max files, ${limits.timeoutMs}ms timeout`);
+  log(
+    'info',
+    `Limits: ${limits.maxCycles} cycles, ${limits.maxFilesChanged} max files, ${limits.timeoutMs}ms timeout`
+  );
 
   // Step 1: Create isolated workspace
   onProgress(5, 'Creating isolated workspace...');
@@ -705,13 +717,22 @@ export async function runDaemonJob(
   try {
     absorbData = await runAbsorbPhase(workDir, 'shallow');
     if (absorbData.totalFiles > 0) {
-      log('info', `Absorb complete: ${absorbData.totalFiles} files, ${absorbData.totalSymbols} symbols in ${absorbData.durationMs}ms`);
-      log('info', `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`);
+      log(
+        'info',
+        `Absorb complete: ${absorbData.totalFiles} files, ${absorbData.totalSymbols} symbols in ${absorbData.durationMs}ms`
+      );
+      log(
+        'info',
+        `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`
+      );
     } else {
       log('warn', 'Absorb returned empty graph — continuing without graph intelligence');
     }
   } catch (err: unknown) {
-    log('warn', `Absorb phase failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    log(
+      'warn',
+      `Absorb phase failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   // Step 2: Rollback snapshot
@@ -721,7 +742,10 @@ export async function runDaemonJob(
     snapshotPath = await createRollbackSnapshot(workDir, jobId);
     log('info', `Rollback snapshot saved: ${snapshotPath}`);
   } catch (err: unknown) {
-    log('warn', `Rollback snapshot failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    log(
+      'warn',
+      `Rollback snapshot failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
     snapshotPath = '';
   }
 
@@ -731,7 +755,10 @@ export async function runDaemonJob(
   let baselineQuality: QualityCheckResult;
   try {
     baselineQuality = await assessQuality(workDir);
-    log('info', `Baseline: score=${baselineQuality.compositeScore}, typeErrors=${baselineQuality.typeErrors}, tests=${baselineQuality.testsPassed}/${baselineQuality.testsTotal}`);
+    log(
+      'info',
+      `Baseline: score=${baselineQuality.compositeScore}, typeErrors=${baselineQuality.typeErrors}, tests=${baselineQuality.testsPassed}/${baselineQuality.testsTotal}`
+    );
   } catch (err: unknown) {
     log('warn', `Baseline assessment partial: ${err instanceof Error ? err.message : String(err)}`);
     baselineQuality = {
@@ -852,14 +879,20 @@ export async function runDaemonJob(
 
       log('info', `Applied fixes to ${fixesApplied} files in cycle ${cycle + 1}`);
     } catch (err: unknown) {
-      log('warn', `Cycle ${cycle + 1} analysis error: ${err instanceof Error ? err.message : String(err)}`);
+      log(
+        'warn',
+        `Cycle ${cycle + 1} analysis error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
 
     // 4c. Re-assess quality
     onProgress(cycleProgress + 10, `Cycle ${cycle + 1}: Re-assessing quality...`);
     try {
       currentQuality = await assessQuality(workDir);
-      log('info', `Post-cycle ${cycle + 1}: score=${currentQuality.compositeScore}, typeErrors=${currentQuality.typeErrors}`);
+      log(
+        'info',
+        `Post-cycle ${cycle + 1}: score=${currentQuality.compositeScore}, typeErrors=${currentQuality.typeErrors}`
+      );
     } catch {
       log('warn', `Quality re-assessment failed in cycle ${cycle + 1}`);
     }
@@ -895,15 +928,20 @@ export async function runDaemonJob(
   }
 
   // Step 7: Build result
-  const qualityDelta = Math.round((currentQuality.compositeScore - baselineQuality.compositeScore) * 100) / 100;
+  const qualityDelta =
+    Math.round((currentQuality.compositeScore - baselineQuality.compositeScore) * 100) / 100;
   const durationMs = Date.now() - startTime;
 
   onProgress(100, 'Complete');
-  log('info', `Daemon job complete: ${patches.length} patches, quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}, ${durationMs}ms`);
+  log(
+    'info',
+    `Daemon job complete: ${patches.length} patches, quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}, ${durationMs}ms`
+  );
 
-  const summary = patches.length > 0
-    ? `Analyzed ${filesAnalyzed} type errors across ${cyclesCompleted} cycle(s). Produced ${patches.length} patch proposal(s) with quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}.`
-    : `Analyzed project in ${cyclesCompleted} cycle(s). No actionable improvements found for the "${profile}" profile.`;
+  const summary =
+    patches.length > 0
+      ? `Analyzed ${filesAnalyzed} type errors across ${cyclesCompleted} cycle(s). Produced ${patches.length} patch proposal(s) with quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}.`
+      : `Analyzed project in ${cyclesCompleted} cycle(s). No actionable improvements found for the "${profile}" profile.`;
 
   return {
     success: true,

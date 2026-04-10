@@ -27,7 +27,7 @@ interface ToolCallResult {
 async function callTool(
   request: NextRequest,
   tool: 'parse_pipeline' | 'compile_pipeline',
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<ToolCallResult> {
   const response = await fetch(`${MCP_EXTERNAL_URL}/call`, {
     method: 'POST',
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
   if (!action || (action !== 'parse' && action !== 'compile')) {
     return NextResponse.json(
       { success: false, errors: [{ message: 'Expected action to be parse or compile.' }] },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
   if (!code) {
     return NextResponse.json(
       { success: false, errors: [{ message: 'Pipeline source is required.' }] },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -74,11 +74,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          errors:
-            parsed.errors?.map((e) => ({ message: e.message ?? 'Parse failed', line: e.line })) ||
-            [{ message: parsed.error ?? 'Parse failed' }],
+          errors: parsed.errors?.map((e) => ({
+            message: e.message ?? 'Parse failed',
+            line: e.line,
+          })) || [{ message: parsed.error ?? 'Parse failed' }],
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -95,11 +96,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        errors:
-          compiled.errors?.map((e) => ({ message: e.message ?? 'Compilation failed', line: e.line })) ||
-          [{ message: compiled.error ?? 'Compilation failed.' }],
+        errors: compiled.errors?.map((e) => ({
+          message: e.message ?? 'Compilation failed',
+          line: e.line,
+        })) || [{ message: compiled.error ?? 'Compilation failed.' }],
       },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

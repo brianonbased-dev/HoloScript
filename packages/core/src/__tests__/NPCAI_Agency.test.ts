@@ -59,4 +59,3 @@ describe('NPC Behavior Synthesis', () => {
     expect(mockContext.emit).toHaveBeenCalledWith('npc_ai_speak', expect.anything());
   });
 });
-

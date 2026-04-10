@@ -65,7 +65,7 @@ describe('Orchestration Store', () => {
 
   it('should manage workflows', () => {
     const store = useOrchestrationStore.getState();
-    
+
     // Create Workflow
     const wId = store.createWorkflow('My Workflow', 'Testing workflow creation');
     expect(wId).toBeDefined();
@@ -73,7 +73,7 @@ describe('Orchestration Store', () => {
     const stateAfterCreate = useOrchestrationStore.getState();
     expect(stateAfterCreate.workflows.has(wId)).toBe(true);
     expect(stateAfterCreate.activeWorkflow).toBe(wId);
-    
+
     const workflow = stateAfterCreate.workflows.get(wId)!;
     expect(workflow.name).toBe('My Workflow');
     expect(workflow.description).toBe('Testing workflow creation');
@@ -90,7 +90,7 @@ describe('Orchestration Store', () => {
 
   it('should manage UI panels toggle state', () => {
     const store = useOrchestrationStore.getState();
-    
+
     store.togglePanel('agentOrchestration');
     expect(useOrchestrationStore.getState().panelsOpen.agentOrchestration).toBe(true);
 

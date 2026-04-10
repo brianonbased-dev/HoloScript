@@ -49,7 +49,11 @@ export async function POST(req: NextRequest) {
   const { workspacePath, remote = 'origin', branch, force = false } = body;
 
   // Security: workspacePath must be inside ~/.holoscript/workspaces
-  const allowedRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', '.holoscript', 'workspaces');
+  const allowedRoot = path.join(
+    process.env.HOME ?? process.env.USERPROFILE ?? '',
+    '.holoscript',
+    'workspaces'
+  );
   const resolved = path.resolve(workspacePath);
   if (!resolved.startsWith(allowedRoot)) {
     return NextResponse.json(
@@ -67,9 +71,9 @@ export async function POST(req: NextRequest) {
 
   try {
     // Get current remote URL to inject OAuth token
-    const { stdout: remoteUrl } = await execFileAsync(
-      'git', ['remote', 'get-url', remote], { cwd: resolved }
-    );
+    const { stdout: remoteUrl } = await execFileAsync('git', ['remote', 'get-url', remote], {
+      cwd: resolved,
+    });
     const originalUrl = remoteUrl.trim();
 
     // Inject OAuth token for HTTPS remotes
@@ -98,14 +102,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Always restore original URL on error
     try {
-      const { stdout: origUrl } = await execFileAsync(
-        'git', ['remote', 'get-url', remote], { cwd: resolved }
-      );
+      const { stdout: origUrl } = await execFileAsync('git', ['remote', 'get-url', remote], {
+        cwd: resolved,
+      });
       if (origUrl.includes('@github.com')) {
         const clean = origUrl.replace(/https:\/\/[^@]+@/, 'https://');
         await execFileAsync('git', ['remote', 'set-url', remote, clean.trim()], { cwd: resolved });
       }
-    } catch { /* ignore cleanup failure */ }
+    } catch {
+      /* ignore cleanup failure */
+    }
 
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'git push failed' },

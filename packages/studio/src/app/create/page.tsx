@@ -485,7 +485,8 @@ const ScriptConsole = dynamic(
 );
 
 const TraitInspector = dynamic(
-  () => import('@/components/inspector/TraitInspector').then((m) => ({ default: m.TraitInspector })),
+  () =>
+    import('@/components/inspector/TraitInspector').then((m) => ({ default: m.TraitInspector })),
   { ssr: false }
 );
 
@@ -510,7 +511,8 @@ const HistoryPanel = dynamic(
 );
 
 const GovernancePanel = dynamic(
-  () => import('@/components/history/GovernancePanel').then((m) => ({ default: m.GovernancePanel })),
+  () =>
+    import('@/components/history/GovernancePanel').then((m) => ({ default: m.GovernancePanel })),
   { ssr: false }
 );
 
@@ -1640,13 +1642,13 @@ export default function CreatePage() {
           {sandboxedPluginsOpen && (
             <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
               <StudioErrorBoundary label="Sandboxed Plugins">
-              <SandboxedPluginsPanel
-                onClose={() => setSandboxedPluginsOpen(false)}
-                onOpenMarketplace={() => {
-                  setSandboxedPluginsOpen(false);
-                  setPluginsOpen(true);
-                }}
-              />
+                <SandboxedPluginsPanel
+                  onClose={() => setSandboxedPluginsOpen(false)}
+                  onOpenMarketplace={() => {
+                    setSandboxedPluginsOpen(false);
+                    setPluginsOpen(true);
+                  }}
+                />
               </StudioErrorBoundary>
             </div>
           )}

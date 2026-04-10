@@ -6,7 +6,14 @@
  * The HTTP layer calls these and handles persistence + responses.
  */
 
-import type { TeamTask, TaskAction, DoneLogEntry, TeamSuggestion, SuggestionCategory, SlotRole } from './board-types';
+import type {
+  TeamTask,
+  TaskAction,
+  DoneLogEntry,
+  TeamSuggestion,
+  SuggestionCategory,
+  SlotRole,
+} from './board-types';
 import { normalizeTitle, generateTaskId, generateSuggestionId } from './board-types';
 
 // ── Task Operations ──
@@ -44,9 +51,14 @@ export function claimTask(
 
   // Check dependencies — all must be done (not on the board)
   if (task.dependsOn && task.dependsOn.length > 0) {
-    const pending = task.dependsOn.filter((depId) => board.some((t) => t.id === depId && t.status !== 'done'));
+    const pending = task.dependsOn.filter((depId) =>
+      board.some((t) => t.id === depId && t.status !== 'done')
+    );
     if (pending.length > 0) {
-      return { success: false, error: `Blocked by ${pending.length} unfinished dependencies: ${pending.join(', ')}` };
+      return {
+        success: false,
+        error: `Blocked by ${pending.length} unfinished dependencies: ${pending.join(', ')}`,
+      };
     }
   }
 
@@ -62,7 +74,10 @@ export function completeTask(
   taskId: string,
   completedBy: string,
   opts: { commit?: string; summary?: string } = {}
-): { result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] }; updatedBoard: TeamTask[] } {
+): {
+  result: TaskActionResult & { onComplete?: TaskAction[]; unblocked?: string[] };
+  updatedBoard: TeamTask[];
+} {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { result: { success: false, error: 'Task not found' }, updatedBoard: board };
 
@@ -87,9 +102,11 @@ export function completeTask(
       const dep = board.find((t) => t.id === depId);
       if (!dep) continue;
       // Check if ALL of dep's dependencies are now done (off the board or status=done)
-      const allDepsMet = !dep.dependsOn || dep.dependsOn.every(
-        (id) => id === taskId || !board.some((t) => t.id === id && t.status !== 'done')
-      );
+      const allDepsMet =
+        !dep.dependsOn ||
+        dep.dependsOn.every(
+          (id) => id === taskId || !board.some((t) => t.id === id && t.status !== 'done')
+        );
       if (allDepsMet && dep.status === 'blocked') {
         dep.status = 'open';
         unblocked.push(depId);
@@ -135,10 +152,15 @@ export function delegateTask(
   taskId: string
 ): { result: TaskActionResult; updatedSource: TeamTask[]; updatedTarget: TeamTask[] } {
   const task = sourceBoard.find((t) => t.id === taskId);
-  if (!task) return { result: { success: false, error: 'Task not found' }, updatedSource: sourceBoard, updatedTarget: targetBoard };
+  if (!task)
+    return {
+      result: { success: false, error: 'Task not found' },
+      updatedSource: sourceBoard,
+      updatedTarget: targetBoard,
+    };
 
   const updatedSource = sourceBoard.filter((t) => t.id !== taskId);
-  
+
   // Clone task so it's fresh for the new board (unclaimed)
   const delegatedTask: TeamTask = {
     ...task,
@@ -146,9 +168,13 @@ export function delegateTask(
     claimedBy: undefined,
     claimedByName: undefined,
   };
-  
+
   targetBoard.push(delegatedTask);
-  return { result: { success: true, task: delegatedTask }, updatedSource, updatedTarget: targetBoard };
+  return {
+    result: { success: true, task: delegatedTask },
+    updatedSource,
+    updatedTarget: targetBoard,
+  };
 }
 
 /** Add tasks to a board with dedup against existing + done log. */
@@ -246,7 +272,8 @@ export function voteSuggestion(
 ): SuggestionActionResult {
   const suggestion = suggestions.find((s) => s.id === suggestionId);
   if (!suggestion) return { success: false, error: 'Suggestion not found' };
-  if (suggestion.status !== 'open') return { success: false, error: `Suggestion is ${suggestion.status}, voting closed` };
+  if (suggestion.status !== 'open')
+    return { success: false, error: `Suggestion is ${suggestion.status}, voting closed` };
 
   // Replace previous vote from same agent
   suggestion.votes = suggestion.votes.filter((v) => v.agentId !== voterId);
@@ -273,7 +300,8 @@ export function voteSuggestion(
       description: `${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`,
       status: 'open',
       source: `suggestion:${suggestion.id}`,
-      priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+      priority:
+        suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
       createdAt: new Date().toISOString(),
     };
     board.push(promotedTask);
@@ -300,7 +328,8 @@ export function promoteSuggestion(
 ): SuggestionActionResult {
   const suggestion = suggestions.find((s) => s.id === suggestionId);
   if (!suggestion) return { success: false, error: 'Suggestion not found' };
-  if (suggestion.status !== 'open') return { success: false, error: `Suggestion is already ${suggestion.status}` };
+  if (suggestion.status !== 'open')
+    return { success: false, error: `Suggestion is already ${suggestion.status}` };
 
   suggestion.status = 'promoted';
   suggestion.resolvedAt = new Date().toISOString();
@@ -328,7 +357,8 @@ export function dismissSuggestion(
 ): SuggestionActionResult {
   const suggestion = suggestions.find((s) => s.id === suggestionId);
   if (!suggestion) return { success: false, error: 'Suggestion not found' };
-  if (suggestion.status !== 'open') return { success: false, error: `Suggestion is already ${suggestion.status}` };
+  if (suggestion.status !== 'open')
+    return { success: false, error: `Suggestion is already ${suggestion.status}` };
 
   suggestion.status = 'dismissed';
   suggestion.resolvedAt = new Date().toISOString();

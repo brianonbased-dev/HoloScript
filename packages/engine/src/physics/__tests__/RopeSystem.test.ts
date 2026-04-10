@@ -75,4 +75,3 @@ describe('RopeSystem', () => {
     // No throw = success (attachments are internal)
   });
 });
-

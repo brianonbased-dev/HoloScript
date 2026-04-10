@@ -12,7 +12,10 @@ import { NodeGraphCompiler } from '../logic/NodeGraphCompiler';
 
 // Environment layer
 import { TerrainSystem } from '@holoscript/engine/environment/TerrainSystem';
-import { EnvironmentManager, PRESET_SUNNY_DAY } from '@holoscript/engine/environment/EnvironmentPresets';
+import {
+  EnvironmentManager,
+  PRESET_SUNNY_DAY,
+} from '@holoscript/engine/environment/EnvironmentPresets';
 import { TerrainBrush } from '@holoscript/engine/environment/TerrainBrush';
 
 // Physics layer

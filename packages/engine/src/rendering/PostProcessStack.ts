@@ -158,4 +158,3 @@ export class PostProcessStack {
     return this.effects.get(id)?.params.get(param);
   }
 }
-

@@ -21,31 +21,31 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 #### Primary Funnel (6 routes)
 
-| Route | File | Rendering | Purpose | Status |
-|---|---|---|---|---|
-| `/start` | `start/page.tsx` | Client | **Onboarding entry**. GitHub OAuth → API key → repo → scaffold → daemon. Consent gates at each step. Project scaffolder gives every user `.claude/`, NORTH_STAR, memory, skills, hooks. | **Complete (v6.0.2)** |
-| `/vibe` | `vibe/page.tsx` | Client | **Brittney AI scene generation**. Describe what you want in plain English, get a live 3D scene. Conversation wizard flow. | **Complete (v6.0.2)** |
-| `/create` | `create/page.tsx` | Client | **Core IDE**. Monaco editor, 3D viewport, Brittney chat panel, trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. | **Complete** |
-| `/teams` | `teams/page.tsx` | Client | **Private workspaces**. RBAC (owner/admin/member/viewer). HoloClaw daemon panel showing 3 daemons: HoloDaemon, HoloMesh Agent, Moltbook Agent. Sub-routes: `/teams/[id]`. | **Complete (v6.0.2)** |
-| `/holomesh` | `holomesh/page.tsx` | Client | **Public social network**. Knowledge feed, agent profiles, leaderboard, discovery. Sub-routes: `/dashboard`, `/onboard`, `/profile`, `/contribute`, `/agent/[id]`, `/entry/[id]`. | **Complete** |
-| `/agents` | `agents/page.tsx` | Client | **Agent fleet management**. `/agents/me` for launching agents to HoloMesh, Moltbook, or custom targets. Sub-routes: `/agents/[id]`, `/agents/me`. | **Complete (v6.0.2)** |
+| Route       | File                | Rendering | Purpose                                                                                                                                                                                 | Status                |
+| ----------- | ------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `/start`    | `start/page.tsx`    | Client    | **Onboarding entry**. GitHub OAuth → API key → repo → scaffold → daemon. Consent gates at each step. Project scaffolder gives every user `.claude/`, NORTH_STAR, memory, skills, hooks. | **Complete (v6.0.2)** |
+| `/vibe`     | `vibe/page.tsx`     | Client    | **Brittney AI scene generation**. Describe what you want in plain English, get a live 3D scene. Conversation wizard flow.                                                               | **Complete (v6.0.2)** |
+| `/create`   | `create/page.tsx`   | Client    | **Core IDE**. Monaco editor, 3D viewport, Brittney chat panel, trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export.          | **Complete**          |
+| `/teams`    | `teams/page.tsx`    | Client    | **Private workspaces**. RBAC (owner/admin/member/viewer). HoloClaw daemon panel showing 3 daemons: HoloDaemon, HoloMesh Agent, Moltbook Agent. Sub-routes: `/teams/[id]`.               | **Complete (v6.0.2)** |
+| `/holomesh` | `holomesh/page.tsx` | Client    | **Public social network**. Knowledge feed, agent profiles, leaderboard, discovery. Sub-routes: `/dashboard`, `/onboard`, `/profile`, `/contribute`, `/agent/[id]`, `/entry/[id]`.       | **Complete**          |
+| `/agents`   | `agents/page.tsx`   | Client    | **Agent fleet management**. `/agents/me` for launching agents to HoloMesh, Moltbook, or custom targets. Sub-routes: `/agents/[id]`, `/agents/me`.                                       | **Complete (v6.0.2)** |
 
 #### Supporting Routes (12 routes)
 
-| Route | File | Rendering | Purpose | Status |
-|---|---|---|---|---|
-| `/` | `page.tsx` | Client | Landing page. Routes users into the progressive funnel. | **Complete** |
-| `/absorb` | `absorb/page.tsx` | Client | Codebase intelligence UI. GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. | **Complete** |
-| `/admin` | `admin/page.tsx` | Client | Admin dashboard. Requires auth. | **Complete** |
-| `/character` | `character/page.tsx` | Client | Character creator. VRM/avatar authoring. | **Complete** |
-| `/holoclaw` | `holoclaw/page.tsx` | Client | Skill shelf. Browse `.hsplus` skills, create from templates, SSE activity feed. | **Complete** |
-| `/holodaemon` | `holodaemon/page.tsx` | Client | Daemon dashboard. Status, metrics, agent pool, BT progress, event feed. | **Complete** |
-| `/projects` | `projects/page.tsx` | Client | User's saved projects. List from IndexedDB, open/delete. | **Complete** |
-| `/registry` | `registry/page.tsx` | Client | Public asset pack browser. Search + tag filters + import. | **Complete** |
-| `/settings` | `settings/page.tsx` | Client | User settings. Requires auth. | **Complete** |
-| `/templates` | `templates/page.tsx` | Client | Template gallery. Built-in templates, loads `.holo` → `/create`. | **Complete** |
-| `/u/[username]` | `u/[username]/page.tsx` | Client | Public user profile page. | **Complete** |
-| `/shared/[id]` | `shared/[id]/page.tsx` | **Server (SSR/ISR)** | Community scene page. SEO-optimized `generateMetadata`. ISR (60s). | **Complete** |
+| Route           | File                    | Rendering            | Purpose                                                                                  | Status       |
+| --------------- | ----------------------- | -------------------- | ---------------------------------------------------------------------------------------- | ------------ |
+| `/`             | `page.tsx`              | Client               | Landing page. Routes users into the progressive funnel.                                  | **Complete** |
+| `/absorb`       | `absorb/page.tsx`       | Client               | Codebase intelligence UI. GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. | **Complete** |
+| `/admin`        | `admin/page.tsx`        | Client               | Admin dashboard. Requires auth.                                                          | **Complete** |
+| `/character`    | `character/page.tsx`    | Client               | Character creator. VRM/avatar authoring.                                                 | **Complete** |
+| `/holoclaw`     | `holoclaw/page.tsx`     | Client               | Skill shelf. Browse `.hsplus` skills, create from templates, SSE activity feed.          | **Complete** |
+| `/holodaemon`   | `holodaemon/page.tsx`   | Client               | Daemon dashboard. Status, metrics, agent pool, BT progress, event feed.                  | **Complete** |
+| `/projects`     | `projects/page.tsx`     | Client               | User's saved projects. List from IndexedDB, open/delete.                                 | **Complete** |
+| `/registry`     | `registry/page.tsx`     | Client               | Public asset pack browser. Search + tag filters + import.                                | **Complete** |
+| `/settings`     | `settings/page.tsx`     | Client               | User settings. Requires auth.                                                            | **Complete** |
+| `/templates`    | `templates/page.tsx`    | Client               | Template gallery. Built-in templates, loads `.holo` → `/create`.                         | **Complete** |
+| `/u/[username]` | `u/[username]/page.tsx` | Client               | Public user profile page.                                                                | **Complete** |
+| `/shared/[id]`  | `shared/[id]/page.tsx`  | **Server (SSR/ISR)** | Community scene page. SEO-optimized `generateMetadata`. ISR (60s).                       | **Complete** |
 
 **Utility Pages:**
 | File | Purpose |
@@ -84,10 +84,10 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 **Note (v6.0.2)**: The Studio restructure replaced many old routes. The `/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents` funnel is now the primary user journey. Some previously missing pages were absorbed into the new route structure.
 
-| Missing Route                  | Linked From              | What It Should Be                                                                                          |
-| ------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `/learn`                       | Home page                | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges.                 |
-| `/publishers/[id]`             | Marketplace trait detail | Publisher profile page                                                                                     |
+| Missing Route      | Linked From              | What It Should Be                                                                          |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------ |
+| `/learn`           | Home page                | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges. |
+| `/publishers/[id]` | Marketplace trait detail | Publisher profile page                                                                     |
 
 ---
 
@@ -252,13 +252,17 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 To solve the limitations of pure cloud hosting while maintaining infinite accessibility, the Studio implements a **Hybrid Tiered Architecture** utilizing the uAA2++ Sovereign Mesh (Phase 21).
 
 #### Tier 1: The Thin Client (Default)
+
 When users access `studio.holoscript.net` from standard devices (laptops, mobile):
+
 - **Role:** Pure Web Client
 - **Orchestration:** Railway handles all database/API operations.
 - **Rendering:** Local browser executes lightweight 3D/WebGPU. Heavy jobs route to cloud APIs.
 
 #### Tier 2: Dual Host Edge Node (Opt-In)
+
 When users access the Studio from a high-performance desktop (e.g., equipped with a dedicated RTX GPU), they can toggle "Dual Host Mode":
+
 - **Role:** Sovereign Compute Node
 - **Execution:** Operations shift from cloud invocation to local browser-bound execution. The local GPU overtakes fluid dynamics, neural inference, and heavy particle compilation via WebGPU.
 - **Mesh Volunteering:** (Future) The active browser establishes a WebRTC link back to Railway. Railway's Orchestrator can intelligently dispatch computationally expensive sub-tasks from Tier 1 users to these idle Tier 2 Edge Nodes ("Infinite Market" computation brokering).
@@ -293,10 +297,10 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 
 ### Missing Pages — Priority Order (Updated v6.0.2)
 
-| Priority | Page                           | Effort | Description                                                                  |
-| -------- | ------------------------------ | ------ | ---------------------------------------------------------------------------- |
-| P0       | `/learn`                       | Large  | Tutorial mode. Step-by-step scenarios, visual + code view, achievements.     |
-| P3       | `/publishers/[id]`             | Small  | Marketplace publisher profile. List published traits, stats.                 |
+| Priority | Page               | Effort | Description                                                              |
+| -------- | ------------------ | ------ | ------------------------------------------------------------------------ |
+| P0       | `/learn`           | Large  | Tutorial mode. Step-by-step scenarios, visual + code view, achievements. |
+| P3       | `/publishers/[id]` | Small  | Marketplace publisher profile. List published traits, stats.             |
 
 ---
 
@@ -353,16 +357,16 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 
 ### Heavyweight Components (bundle impact)
 
-| Component            | Dependencies                                           | Dynamic?                 |
-| -------------------- | ------------------------------------------------------ | ------------------------ |
-| `SceneRenderer`      | three, @react-three/fiber, @react-three/drei, rapier3d | Yes (dynamic import)     |
-| `MonacoEditor`       | @monaco-editor/react                                   | Yes (dynamic import)     |
-| `AppShell`           | Panel layout, hotkeys, 43+ panels                      | Yes (dynamic import)     |
-| `PluginHostProvider` | Plugin SDK, sandboxing                                 | Yes (dynamic import)     |
-| `ShaderEditor`       | React Flow, shader compilation, three.js               | No (should be dynamic)   |
-| `CreatorDashboard`   | React Query, Chart.js, react-chartjs-2                 | No (orphaned)            |
+| Component            | Dependencies                                           | Dynamic?                         |
+| -------------------- | ------------------------------------------------------ | -------------------------------- |
+| `SceneRenderer`      | three, @react-three/fiber, @react-three/drei, rapier3d | Yes (dynamic import)             |
+| `MonacoEditor`       | @monaco-editor/react                                   | Yes (dynamic import)             |
+| `AppShell`           | Panel layout, hotkeys, 43+ panels                      | Yes (dynamic import)             |
+| `PluginHostProvider` | Plugin SDK, sandboxing                                 | Yes (dynamic import)             |
+| `ShaderEditor`       | React Flow, shader compilation, three.js               | No (should be dynamic)           |
+| `CreatorDashboard`   | React Query, Chart.js, react-chartjs-2                 | No (orphaned)                    |
 | `BrittneyChatPanel`  | Anthropic SDK, 54 tools, streaming responses           | No (imported in /create + /vibe) |
-| `TraitInspector`     | Property editors, validation                           | No (imported in /create) |
+| `TraitInspector`     | Property editors, validation                           | No (imported in /create)         |
 
 ### State Stores (Zustand)
 

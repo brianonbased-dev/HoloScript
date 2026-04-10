@@ -155,4 +155,3 @@ export class BloomEffect {
     return this.composite(pixels, blurred);
   }
 }
-

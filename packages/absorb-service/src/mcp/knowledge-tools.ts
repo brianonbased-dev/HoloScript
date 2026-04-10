@@ -192,7 +192,7 @@ export async function handleKnowledgeToolCall(
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- drizzle DB instance is dynamically typed
+       
       const rows: Record<string, unknown>[] = await (deps.db as Record<string, unknown> & { select: () => unknown })
         .select()
         .from(knowledgeEntries)

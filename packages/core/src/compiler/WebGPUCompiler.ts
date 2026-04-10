@@ -199,7 +199,9 @@ export class WebGPUCompiler extends CompilerBase {
       this.findObjProp(obj, 'mesh') ||
       this.findObjProp(obj, 'type') ||
       'cube') as string;
-    const modelSrc = (this.findObjProp(obj, 'source') || this.findObjProp(obj, 'src') || this.findObjProp(obj, 'model')) as string | undefined;
+    const modelSrc = (this.findObjProp(obj, 'source') ||
+      this.findObjProp(obj, 'src') ||
+      this.findObjProp(obj, 'model')) as string | undefined;
     const isModel = meshType === 'model' || !!modelSrc;
     const traits = obj.traits || [];
 
@@ -213,7 +215,9 @@ export class WebGPUCompiler extends CompilerBase {
       this.emit(`const ${v}Model = await assetLoader.load("${modelSrc}");`);
       const pos = this.findObjProp(obj, 'position');
       const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
-      this.emit(`const ${v}ModelMatrix = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`);
+      this.emit(
+        `const ${v}ModelMatrix = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`
+      );
     } else if (isModel) {
       this.emit(`// WARNING: geometry "model" without source URL — placeholder cube`);
       this.emitMeshObject(v, obj, 'cube');
@@ -497,8 +501,7 @@ export class WebGPUCompiler extends CompilerBase {
       const traits = obj.traits || [];
 
       if (traits.some((t) => t.name === 'gpu_particle')) {
-        const count =
-          traits.find((t) => t.name === 'gpu_particle')?.config?.count || 10000;
+        const count = traits.find((t) => t.name === 'gpu_particle')?.config?.count || 10000;
         this.emit(
           `const ${v}ParticleCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_PARTICLE_COMPUTE }), entryPoint: "cs_particle_update" } });`
         );

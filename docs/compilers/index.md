@@ -1,8 +1,15 @@
 # Compiler Targets
 
-HoloScript compiles a single `.holo` source file to **30+ platform targets**. Choose your platform:
+HoloScript compiles a single `.holo` source file to multiple platform targets.
 
-## Quick Reference
+Canonical target keys are defined in `ExportTarget` (`packages/core/src/compiler/CircuitBreaker.ts`).
+
+```bash
+# SSOT: inspect registered target enum members
+grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBreaker.ts
+```
+
+## Common targets (non-exhaustive)
 
 | Target Flag                | File                                             | Output             | Platform                    |
 | -------------------------- | ------------------------------------------------ | ------------------ | --------------------------- |
@@ -81,6 +88,20 @@ holoscript compile scene.holo --target webgpu --watch
 ### IoT & Digital Twins
 
 [DTDL (Azure)](/compilers/iot/dtdl) · [WoT (W3C)](/compilers/iot/wot)
+
+## Utility Surface (beyond rendering)
+
+Not every utility capability is a compiler target. HoloScript also provides:
+
+| Capability                     | Where to look                                                             |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| Data/service pipelines         | `.hs` flows and Node/service-oriented targets (for runtime orchestration) |
+| Agent interoperability         | [A2A target](/compilers/a2a) and protocol docs in `docs/agents/`          |
+| Schema mapping / digital twins | [DTDL](/compilers/iot/dtdl), [WoT](/compilers/iot/wot), Absorb docs       |
+| Observability and tracing      | Telemetry/tracing paths in core/runtime + platform docs                   |
+| Knowledge market and team ops  | HoloMesh and orchestrator APIs (not compiler outputs)                     |
+
+Use compiler docs for output artifacts, and use runtime/service docs for orchestration, observability, and marketplace flows.
 
 ## See Also
 

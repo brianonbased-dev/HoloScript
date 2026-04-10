@@ -76,4 +76,3 @@ export function registerNavigationEngine(name: string, engine: NavigationEngine)
 export function getNavigationEngine(name: string): NavigationEngine | undefined {
   return navigationEngineRegistry.get(name);
 }
-

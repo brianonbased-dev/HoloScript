@@ -82,7 +82,9 @@ describe('SwarmEventBus — emit (synchronous)', () => {
   it('delivers synchronously to matching subscriber', () => {
     let received: unknown[] = [];
     const bus = make();
-    bus.subscribe('evt.ping', (e) => { received.push(e.payload); });
+    bus.subscribe('evt.ping', (e) => {
+      received.push(e.payload);
+    });
     bus.emit('evt.ping', 'src', { val: 42 });
     expect(received).toHaveLength(1);
     expect((received[0] as any).val).toBe(42);
@@ -90,14 +92,18 @@ describe('SwarmEventBus — emit (synchronous)', () => {
   it('does not deliver to non-matching subscriber', () => {
     let received: unknown[] = [];
     const bus = make();
-    bus.subscribe('other', (e) => { received.push(e.payload); });
+    bus.subscribe('other', (e) => {
+      received.push(e.payload);
+    });
     bus.emit('evt.ping', 'src', {});
     expect(received).toHaveLength(0);
   });
   it('wildcard pattern matches', () => {
     let received: unknown[] = [];
     const bus = make();
-    bus.subscribe('swarm.*', (e) => { received.push(e.payload); });
+    bus.subscribe('swarm.*', (e) => {
+      received.push(e.payload);
+    });
     bus.emit('swarm.joined', 'src', {});
     bus.emit('swarm.left', 'src', {});
     expect(received).toHaveLength(2);
@@ -105,7 +111,9 @@ describe('SwarmEventBus — emit (synchronous)', () => {
   it('regex pattern matches', () => {
     let received: unknown[] = [];
     const bus = make();
-    bus.subscribe(/^agent\./, (e) => { received.push(e.payload); });
+    bus.subscribe(/^agent\./, (e) => {
+      received.push(e.payload);
+    });
     bus.emit('agent.spawn', 'src', {});
     bus.emit('agent.destroy', 'src', {});
     bus.emit('other.event', 'src', {});
@@ -114,7 +122,9 @@ describe('SwarmEventBus — emit (synchronous)', () => {
   it('exact match only', () => {
     let received: unknown[] = [];
     const bus = make();
-    bus.subscribe('exact', (e) => { received.push(e.payload); });
+    bus.subscribe('exact', (e) => {
+      received.push(e.payload);
+    });
     bus.emit('exact.extended', 'src', {});
     expect(received).toHaveLength(0);
   });
@@ -124,7 +134,9 @@ describe('SwarmEventBus — processQueue', () => {
   it('delivers events to subscribers', async () => {
     let received: unknown[] = [];
     const bus = make({ asyncProcessing: false });
-    bus.subscribe('greet', (e) => { received.push(e.payload); });
+    bus.subscribe('greet', (e) => {
+      received.push(e.payload);
+    });
     bus.publish('greet', 'src', 'hello');
     await bus.processQueue();
     expect(received).toHaveLength(1);
@@ -132,7 +144,9 @@ describe('SwarmEventBus — processQueue', () => {
   it('skips expired TTL events', async () => {
     let received: unknown[] = [];
     const bus = make({ asyncProcessing: false, defaultTTL: 1 });
-    bus.subscribe('late', (e) => { received.push(e.payload); });
+    bus.subscribe('late', (e) => {
+      received.push(e.payload);
+    });
     bus.publish('late', 'src', {}, { ttl: 1 });
     await new Promise((r) => setTimeout(r, 5)); // let TTL expire
     await bus.processQueue();
@@ -168,7 +182,9 @@ describe('SwarmEventBus — dead letter / replay', () => {
     const bus = make({ asyncProcessing: false });
     bus.publish('retry', 'src', 'payload');
     await bus.processQueue(); // to DLQ
-    bus.subscribe('retry', (e) => { received.push(e.payload); });
+    bus.subscribe('retry', (e) => {
+      received.push(e.payload);
+    });
     bus.replayDeadLetters();
     await bus.processQueue();
     expect(received).toContain('payload');

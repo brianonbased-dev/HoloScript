@@ -257,4 +257,3 @@ export function registerRuntime(runtime: RuntimeModule) {
   RuntimeRegistry.register(runtime);
   return runtime;
 }
-

@@ -51,9 +51,8 @@ function writeIfMissing(filePath: string, content: string): 'created' | 'exists'
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({})) as { tier?: string };
-  const tier: string =
-    body.tier || request.headers.get('x-absorb-tier') || 'free';
+  const body = (await request.json().catch(() => ({}))) as { tier?: string };
+  const tier: string = body.tier || request.headers.get('x-absorb-tier') || 'free';
 
   // ── Enterprise: always on — setup is a no-op ──────────────────────────────
   if (tier === 'enterprise') {
@@ -79,7 +78,10 @@ export async function POST(request: NextRequest) {
 
   provisioned.push({
     file: 'NORTH_STAR_HARDWARE.md',
-    status: writeIfMissing(path.join(claudeDir, 'NORTH_STAR_HARDWARE.md'), HARDWARE_POLICY_TEMPLATE),
+    status: writeIfMissing(
+      path.join(claudeDir, 'NORTH_STAR_HARDWARE.md'),
+      HARDWARE_POLICY_TEMPLATE
+    ),
   });
 
   const telemetryDir = path.join(homeDir, '.holoscript');

@@ -18,7 +18,12 @@ export const rolloutHandler: TraitHandler<RolloutConfig> = {
     delete node.__rolloutState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: RolloutConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: RolloutConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__rolloutState as
       | { features: Map<string, { percentage: number; enabled: Set<string> }> }
       | undefined;

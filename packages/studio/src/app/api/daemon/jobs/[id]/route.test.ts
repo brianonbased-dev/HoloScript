@@ -1,16 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  getDaemonJobMock,
-  getJobPatchesMock,
-  getJobLogsMock,
-  recordPatchActionMock,
-} = vi.hoisted(() => ({
-  getDaemonJobMock: vi.fn(),
-  getJobPatchesMock: vi.fn(),
-  getJobLogsMock: vi.fn(),
-  recordPatchActionMock: vi.fn(),
-}));
+const { getDaemonJobMock, getJobPatchesMock, getJobLogsMock, recordPatchActionMock } = vi.hoisted(
+  () => ({
+    getDaemonJobMock: vi.fn(),
+    getJobPatchesMock: vi.fn(),
+    getJobLogsMock: vi.fn(),
+    recordPatchActionMock: vi.fn(),
+  })
+);
 
 vi.mock('../store', () => ({
   getDaemonJob: getDaemonJobMock,

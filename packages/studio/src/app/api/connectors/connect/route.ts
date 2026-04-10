@@ -70,9 +70,10 @@ export async function POST(req: NextRequest) {
         // Get authenticated user info
         // @ts-ignore
         const userResult = await github.executeTool('github_user_get', {});
-        const userData = userResult && typeof userResult === 'object' && 'data' in userResult
-          ? (userResult.data as Record<string, unknown>)
-          : null;
+        const userData =
+          userResult && typeof userResult === 'object' && 'data' in userResult
+            ? (userResult.data as Record<string, unknown>)
+            : null;
 
         return NextResponse.json({
           success: true,
@@ -132,7 +133,10 @@ export async function POST(req: NextRequest) {
 
         if (!hasRedis && !hasVector && !hasQStash) {
           return NextResponse.json(
-            { success: false, error: 'At least one Upstash subsystem required (Redis, Vector, or QStash)' },
+            {
+              success: false,
+              error: 'At least one Upstash subsystem required (Redis, Vector, or QStash)',
+            },
             { status: 400 }
           );
         }
@@ -152,8 +156,14 @@ export async function POST(req: NextRequest) {
 
         // Dynamically import to avoid bundling issues
         // @ts-ignore
-        const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
-        const upstash = new (UpstashConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; getCapabilities(): unknown })();
+        const { UpstashConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-upstash'
+        );
+        const upstash = new (UpstashConnector as unknown as new () => {
+          connect(): Promise<void>;
+          health(): Promise<boolean>;
+          getCapabilities(): unknown;
+        })();
         await upstash.connect();
 
         const healthy = await upstash.health();
@@ -167,8 +177,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           config: {
-            redis: hasRedis ? { url: redisUrl.replace(/\/\/.*@/, '//***@'), connected: true } : null,
-            vector: hasVector ? { url: vectorUrl.replace(/\/\/.*@/, '//***@'), connected: true } : null,
+            redis: hasRedis
+              ? { url: redisUrl.replace(/\/\/.*@/, '//***@'), connected: true }
+              : null,
+            vector: hasVector
+              ? { url: vectorUrl.replace(/\/\/.*@/, '//***@'), connected: true }
+              : null,
             qstash: hasQStash ? { connected: true } : null,
           },
         });
@@ -198,8 +212,14 @@ export async function POST(req: NextRequest) {
         }
 
         // @ts-ignore
-        const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
-        const appstore = new (AppStoreConnector as unknown as new () => { connect(): Promise<void>; health(): Promise<boolean>; getCapabilities(): unknown })();
+        const { AppStoreConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-appstore'
+        );
+        const appstore = new (AppStoreConnector as unknown as new () => {
+          connect(): Promise<void>;
+          health(): Promise<boolean>;
+          getCapabilities(): unknown;
+        })();
         await appstore.connect();
 
         const healthy = await appstore.health();
@@ -213,7 +233,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           config: {
-            apple: hasApple ? { keyId: appleKeyId, issuerId: appleIssuerId, connected: true } : null,
+            apple: hasApple
+              ? { keyId: appleKeyId, issuerId: appleIssuerId, connected: true }
+              : null,
             google: hasGoogle ? { connected: true } : null,
           },
         });
@@ -228,7 +250,9 @@ export async function POST(req: NextRequest) {
         }
 
         // @ts-ignore
-        const { VSCodeConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-vscode');
+        const { VSCodeConnector } = await import(
+          /* webpackIgnore: true */ '@holoscript/connector-vscode'
+        );
         const vscode = new VSCodeConnector();
         await vscode.connect();
 
@@ -246,7 +270,7 @@ export async function POST(req: NextRequest) {
           success: true,
           config: {
             bridgeUrl: bridgeUrl || 'http://localhost:17420',
-            ...(status && typeof status === 'object' ? status as Record<string, unknown> : {}),
+            ...(status && typeof status === 'object' ? (status as Record<string, unknown>) : {}),
           },
         });
       }

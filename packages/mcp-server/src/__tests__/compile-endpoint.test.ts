@@ -36,7 +36,12 @@ describe('POST /api/compile', () => {
       jobId: 'test-123',
       target: 'r3f',
       output: '<mesh><boxGeometry /><meshStandardMaterial /></mesh>',
-      metadata: { compilationTimeMs: 2, circuitBreakerState: 'CLOSED', usedFallback: false, outputSizeBytes: 50 },
+      metadata: {
+        compilationTimeMs: 2,
+        circuitBreakerState: 'CLOSED',
+        usedFallback: false,
+        outputSizeBytes: 50,
+      },
     };
     mockHandleCompileToTarget.mockResolvedValue(mockResult);
 
@@ -64,7 +69,12 @@ describe('POST /api/compile', () => {
       jobId: 'test-456',
       target: 'urdf',
       output: '<?xml version="1.0"?><robot name="Demo"><link name="Cube"/></robot>',
-      metadata: { compilationTimeMs: 3, circuitBreakerState: 'CLOSED', usedFallback: false, outputSizeBytes: 66 },
+      metadata: {
+        compilationTimeMs: 3,
+        circuitBreakerState: 'CLOSED',
+        usedFallback: false,
+        outputSizeBytes: 66,
+      },
     };
     mockHandleCompileToTarget.mockResolvedValue(mockResult);
 
@@ -85,7 +95,12 @@ describe('POST /api/compile', () => {
       jobId: 'test-789',
       target: 'unity',
       output: 'using UnityEngine;\npublic class Cube : MonoBehaviour { }',
-      metadata: { compilationTimeMs: 4, circuitBreakerState: 'CLOSED', usedFallback: false, outputSizeBytes: 55 },
+      metadata: {
+        compilationTimeMs: 4,
+        circuitBreakerState: 'CLOSED',
+        usedFallback: false,
+        outputSizeBytes: 55,
+      },
     };
     mockHandleCompileToTarget.mockResolvedValue(mockResult);
 
@@ -106,7 +121,12 @@ describe('POST /api/compile', () => {
       jobId: 'test-svc',
       target: 'node-service',
       output: "import express from 'express';\nconst app = express();",
-      metadata: { compilationTimeMs: 5, circuitBreakerState: 'CLOSED', usedFallback: false, outputSizeBytes: 52 },
+      metadata: {
+        compilationTimeMs: 5,
+        circuitBreakerState: 'CLOSED',
+        usedFallback: false,
+        outputSizeBytes: 52,
+      },
     };
     mockHandleCompileToTarget.mockResolvedValue(mockResult);
 
@@ -124,9 +144,9 @@ describe('POST /api/compile', () => {
   it('should reject missing code field', async () => {
     mockHandleCompileToTarget.mockRejectedValue(new Error('code is required'));
 
-    await expect(
-      mockHandleCompileToTarget({ target: 'r3f', options: {} })
-    ).rejects.toThrow('code is required');
+    await expect(mockHandleCompileToTarget({ target: 'r3f', options: {} })).rejects.toThrow(
+      'code is required'
+    );
   });
 
   it('should reject missing target field', async () => {

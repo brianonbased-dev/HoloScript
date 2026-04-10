@@ -408,16 +408,18 @@ export class BabylonCompiler extends CompilerBase {
     if (parentVar) this.emit(`${v}.parent = ${parentVar};`);
 
     // Pre-process Physics Traits using Provenance Semiring
-    const physicsTraits = (obj.traits || []).filter(t => t.name === 'physics' || t.name === 'collidable');
+    const physicsTraits = (obj.traits || []).filter(
+      (t) => t.name === 'physics' || t.name === 'collidable'
+    );
     if (physicsTraits.length > 0) {
       const semiring = new ProvenanceSemiring();
-      const applications = physicsTraits.map(t => ({ 
-        name: t.name as string, 
+      const applications = physicsTraits.map((t) => ({
+        name: t.name as string,
         config: (t.config || {}) as Record<string, unknown>,
-        context: obj.provenance?.context
+        context: obj.provenance?.context,
       }));
       const { config: physicsConfig } = semiring.add(applications);
-      
+
       const mt = (physicsConfig.type || 'dynamic') === 'static' ? 'STATIC' : 'DYNAMIC';
       this.emit(
         `const ${v}Body = new BABYLON.PhysicsBody(${v}, BABYLON.PhysicsMotionType.${mt}, false, this.scene);`

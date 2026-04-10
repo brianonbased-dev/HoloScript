@@ -259,4 +259,3 @@ export class CinematicTrack {
     this.currentTime = 0;
   }
 }
-

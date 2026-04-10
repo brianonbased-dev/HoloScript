@@ -82,16 +82,22 @@ export default function MarketplacePage() {
       setCursor(data.cursor_next);
       setHasMore(data.has_more);
     },
-    [search, typeFilter],
+    [search, typeFilter]
   );
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     fetchPage(null, true)
-      .catch((e) => { if (!cancelled) setError(e.message); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchPage]);
 
   const loadMore = async () => {
@@ -104,8 +110,7 @@ export default function MarketplacePage() {
     }
   };
 
-  const domainColor = (domain: string) =>
-    DOMAIN_COLORS[domain] ?? 'bg-studio-bg text-studio-muted';
+  const domainColor = (domain: string) => DOMAIN_COLORS[domain] ?? 'bg-studio-bg text-studio-muted';
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-studio-bg text-studio-text">
@@ -187,7 +192,9 @@ export default function MarketplacePage() {
                   >
                     {TYPE_ICON[entry.type]}
                   </span>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] ${domainColor(entry.domain)}`}>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] ${domainColor(entry.domain)}`}
+                  >
                     {entry.domain}
                   </span>
                   {entry.premium && (
@@ -222,9 +229,7 @@ export default function MarketplacePage() {
                 {/* Footer */}
                 <div className="mt-3 flex items-center justify-between border-t border-studio-border/50 pt-2">
                   <div className="min-w-0">
-                    <div className="truncate text-[10px] text-studio-muted">
-                      {entry.authorName}
-                    </div>
+                    <div className="truncate text-[10px] text-studio-muted">{entry.authorName}</div>
                     <div className="text-[10px] text-studio-muted/60">{entry.authorTier}</div>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-studio-muted">

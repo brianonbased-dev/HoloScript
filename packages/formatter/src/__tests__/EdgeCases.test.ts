@@ -172,7 +172,8 @@ describe('Edge Cases — Unicode Content', () => {
   });
 
   it('preserves RTL characters', () => {
-    const input = 'text: "\u0645\u0631\u062D\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645"\n';
+    const input =
+      'text: "\u0645\u0631\u062D\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645"\n';
     const result = formatter.format(input);
     expect(result.errors).toHaveLength(0);
     expect(result.formatted).toContain('\u0645\u0631\u062D\u0628\u0627');

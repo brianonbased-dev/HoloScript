@@ -109,4 +109,3 @@ export class HandTracker {
     return this.hands.get(side)!.joints.get(joint);
   }
 }
-

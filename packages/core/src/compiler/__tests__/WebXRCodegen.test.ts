@@ -23,7 +23,7 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
 
 function makeWebXRComposition(
   traits: string[],
-  extraObjects: Partial<HoloComposition> = {},
+  extraObjects: Partial<HoloComposition> = {}
 ): HoloComposition {
   return makeComposition({
     objects: [
@@ -34,7 +34,7 @@ function makeWebXRComposition(
           { key: 'position', value: [0, 1, -2] },
           { key: 'color', value: '#ff4488' },
         ],
-        traits: traits.map(t => ({ name: t, args: [] })),
+        traits: traits.map((t) => ({ name: t, args: [] })),
       } as any,
     ],
     ...extraObjects,
@@ -159,7 +159,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('prefers immersive-ar when both session and inline present', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_inline']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain("'immersive-ar'");
     });
@@ -169,18 +169,27 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
 
   describe('webxr_hit_test', () => {
     it('emits hit test source setup', () => {
-      const html = compiler.compile(makeWebXRComposition(['webxr_session', 'webxr_hit_test']), 'test-token');
+      const html = compiler.compile(
+        makeWebXRComposition(['webxr_session', 'webxr_hit_test']),
+        'test-token'
+      );
       expect(html).toContain('requestHitTestSource');
       expect(html).toContain('getHitTestResults');
     });
 
     it('includes hit-test in requiredFeatures', () => {
-      const html = compiler.compile(makeWebXRComposition(['webxr_session', 'webxr_hit_test']), 'test-token');
+      const html = compiler.compile(
+        makeWebXRComposition(['webxr_session', 'webxr_hit_test']),
+        'test-token'
+      );
       expect(html).toContain("'hit-test'");
     });
 
     it('creates reticle mesh for surface visualization', () => {
-      const html = compiler.compile(makeWebXRComposition(['webxr_session', 'webxr_hit_test']), 'test-token');
+      const html = compiler.compile(
+        makeWebXRComposition(['webxr_session', 'webxr_hit_test']),
+        'test-token'
+      );
       expect(html).toContain('RingGeometry');
       expect(html).toContain('reticle');
     });
@@ -188,7 +197,10 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
 
   describe('webxr_anchors', () => {
     it('emits createAnchor function', () => {
-      const html = compiler.compile(makeWebXRComposition(['webxr_session', 'webxr_anchors']), 'test-token');
+      const html = compiler.compile(
+        makeWebXRComposition(['webxr_session', 'webxr_anchors']),
+        'test-token'
+      );
       expect(html).toContain('createAnchor');
       expect(html).toContain("'anchors'");
     });
@@ -198,7 +210,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('emits light probe and estimation update', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_light_estimation']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('requestLightProbe');
       expect(html).toContain('getLightEstimate');
@@ -208,7 +220,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('creates estimated DirectionalLight', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_light_estimation']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('estimatedLight');
       expect(html).toContain('DirectionalLight');
@@ -219,7 +231,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('includes dom-overlay in session options', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_dom_overlay']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain("'dom-overlay'");
       expect(html).toContain("domOverlay: { root: document.getElementById('overlay') }");
@@ -228,7 +240,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('has overlay div in HTML', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_dom_overlay']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('id="overlay"');
     });
@@ -238,7 +250,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('emits depth information access per frame', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_depth_sensing']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('getDepthInformation');
       expect(html).toContain("'depth-sensing'");
@@ -247,7 +259,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('includes depthSensing config in session options', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_depth_sensing']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('depthSensing:');
       expect(html).toContain('usagePreference');
@@ -258,7 +270,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('emits hand tracking update function', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_hand_tracking']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('updateHands');
       expect(html).toContain('getJointPose');
@@ -268,7 +280,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('iterates XRHand joint spaces', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_hand_tracking']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('source.hand');
       expect(html).toContain('jointSpace');
@@ -279,7 +291,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('includes layers in requiredFeatures', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_layers']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain("'layers'");
       expect(html).toContain('xrProjectionLayer');
@@ -290,7 +302,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('declares framebuffer variable for custom rendering', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_framebuffer']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain('xrFramebuffer');
     });
@@ -300,7 +312,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('uses local-floor reference space when trait present', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_reference_space']),
-        'test-token',
+        'test-token'
       );
       expect(html).toContain("'local-floor'");
     });
@@ -341,7 +353,7 @@ describe('WebXR Browser Codegen (M.010.19)', () => {
     it('generates single self-contained HTML file', () => {
       const html = compiler.compile(
         makeWebXRComposition(['webxr_session', 'webxr_hit_test', 'webxr_anchors']),
-        'test-token',
+        'test-token'
       );
       // Starts with doctype, ends with </html> — single file
       expect(html.trim()).toMatch(/^<!DOCTYPE html>/);

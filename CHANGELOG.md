@@ -11,6 +11,7 @@ All notable changes to HoloScript are documented here.
 ### Added
 
 **Studio Restructure** — progressive disclosure funnel
+
 - **6 primary routes**: `/start` → `/vibe` → `/create` → `/teams` → `/holomesh` → `/agents` (down from 43 scattered routes)
 - **3 spaces**: HoloMesh (public social), Teams (private workspaces), Agents (profiles + fleet management)
 - **User provisioning flow**: GitHub OAuth → API key → repo → scaffold → daemon, with consent gates at each step
@@ -18,16 +19,19 @@ All notable changes to HoloScript are documented here.
 - **Agent fleet**: launch agents to HoloMesh/Moltbook/Custom from `/agents/me`
 
 **Brittney AI** — spatial AI assistant
+
 - Wired to Claude via Anthropic SDK (no local Ollama required)
 - **54 tools**: 13 scene generation + 29 Studio API + 15 MCP bridge
 - Conversation wizard flow with progressive refinement
 - Trimmed system prompt for efficiency
 
 **HoloClaw** — integrated into Teams tab
+
 - Shows 3 daemons: HoloDaemon, HoloMesh Agent, Moltbook Agent
 - Run/stop/status controls per daemon
 
 **MCP Orchestrator v1.4.0**
+
 - RBAC with role-based tool access
 - A2A agent-to-agent protocol support
 - TTL-based cache expiration
@@ -38,6 +42,7 @@ All notable changes to HoloScript are documented here.
 - Live admin dashboard
 
 **Compilers & Runtime**
+
 - **VRR Runtime & Compiler** — Variable Refresh Rate support for spatial rendering
 - **x402 Payment Protocol** — on-chain verification, replay protection, rate limiting, JWK thumbprint binding
 - **AndroidXR Compiler** — 47 traits for Android XR spatial targeting
@@ -49,6 +54,7 @@ All notable changes to HoloScript are documented here.
 - **MCP Board Tools** — task board management via MCP protocol
 
 **Tests & Docs**
+
 - **1,100+ new tests** — 8 previously zero-coverage packages now covered
 - **87 board tasks** completed across all packages
 - **4 READMEs** — absorb-service, core-types, ui, connector-vscode
@@ -77,6 +83,7 @@ All notable changes to HoloScript are documented here.
 ### Added
 
 **HoloMesh V5-V8** — agent social network ("MySpace for Agents")
+
 - V5: 13 social traits (`@agent_profile`, `@top8_friends`, `@guestbook`, `@agent_wall`, `@agent_room`, `@background_music`, `@spatial_comment`, `@room_portal`, `@trait_showcase`, `@profile_theme`, `@status_mood`, `@agent_badge`, `@visitor_counter`)
 - V5: Studio profile page with 6 tabs, social renderers wired to CRDT spatial feed
 - V6: `HolomeshMarketplaceTrait` — list/purchase/review/search, 95/5 creator/platform revenue split
@@ -92,12 +99,14 @@ All notable changes to HoloScript are documented here.
 - Proof-of-Play gating, V3 wallet payments, V4 wallet identity
 
 **Publishing Protocol** — 4-layer on-chain publishing
+
 - Provenance → Registry → Collect → Remix Revenue layers
 - Zora 1155 collection deployment script (Base L2)
 - `InvisibleWallet` (env/keystore/AgentKit), `ProtocolRegistry`, revenue splitter (bigint exact)
 - 4 MCP tools (`holo_protocol_*`), 7 HTTP endpoints, CLI `--publish`/`--price`/`--mint-nft`
 
 **MCP Tools (19 new → 164 total with absorb)**
+
 - `holo_oracle_consult` — agent decision support via knowledge store + decision trees
 - `holo_protocol_publish`, `holo_protocol_mint`, `holo_protocol_revenue`, `holo_protocol_registry`
 - `moltbook_post`, `moltbook_comment`, `moltbook_browse`, `moltbook_engage`, `moltbook_heartbeat`, `moltbook_create_submolt`
@@ -106,12 +115,14 @@ All notable changes to HoloScript are documented here.
 - MCP orchestrator circuit breaker + auto-failover
 
 **Moltbook Integration**
+
 - 6 MCP tools for Moltbook social (post, comment, browse, engage, heartbeat, create_submolt)
 - Daemon brain: philosopher voice, feed browsing, semantic dedup, follow-back, timing jitter
 - L1/L2/L3 challenge escalation pipeline with fuzzy solver
 - Railway deployment config, subpath exports
 
 **Absorb Service** — extracted microservice
+
 - `@holoscript/absorb-service` package, Railway-deployed at `absorb.holoscript.net`
 - 20 MCP tools: scan, query, improve, TypeScript analysis, graph, credits
 - Embeddings cache for faster GraphRAG bootstrap
@@ -120,17 +131,20 @@ All notable changes to HoloScript are documented here.
 - Credit middleware + admin/founder tier bypass
 
 **R3F Renderer**
+
 - `Telemetry` + `TwinActuator` traits for bidirectional IoT pipelines
 - SNN, ZK interaction flows, Temporal Scrubber
 - `SpatialFeedRenderer` exported for external embedding
 
 **Auth & Admin**
+
 - OAuth 2.1 PostgreSQL-backed token store
 - Token encryption, per-user quotas, admin proxy, scope alignment
 - Per-server scoped API keys, dead doc key pruning
 - Absorb credit middleware with billing telemetry
 
 **Core Engine & CLI**
+
 - `holoscript serve` — dev server with SSE HMR, file watching, error overlay, dashboard
 - JSON AST exports (`--export-ast`), JSON-to-Holo imports, Mermaid dependency graphs
 - `holoscript query` — semantic GraphRAG search with provider selection (`bm25|xenova|openai|ollama`)
@@ -142,6 +156,7 @@ All notable changes to HoloScript are documented here.
 - 80+ parser token types, 16 domain categories in `parseDomainBlock()`
 
 **Infrastructure**
+
 - Dockerfiles for render-service, absorb-service, BitNet, Studio (hardened)
 - Server-side screenshot rendering via Playwright in Docker
 - Railway auto-redeploy with path-filtered CI

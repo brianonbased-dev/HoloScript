@@ -366,7 +366,7 @@ async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): 
 
   async function walk(dir: string) {
     if (filesProcessed >= maxFiles) return;
-    
+
     let entries;
     try {
       entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -380,12 +380,12 @@ async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): 
       if (entry.name.startsWith('.') && entry.name !== '.') continue;
 
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         await walk(fullPath);
       } else if (entry.isFile()) {
         if (!entry.name.endsWith('.ts') && !entry.name.endsWith('.js')) continue;
-        
+
         filesProcessed++;
         try {
           const code = await fs.promises.readFile(fullPath, 'utf8');
@@ -395,11 +395,12 @@ async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): 
           const resiliencePatterns = detectResiliencePatterns(code);
           const containerPatterns = detectContainerPatterns(code);
 
-          const score = (endpoints.length * 2) + 
-                        (models.length * 3) + 
-                        (queues.length * 2) + 
-                        resiliencePatterns.length + 
-                        containerPatterns.length;
+          const score =
+            endpoints.length * 2 +
+            models.length * 3 +
+            queues.length * 2 +
+            resiliencePatterns.length +
+            containerPatterns.length;
 
           if (score > 0) {
             suggestions.push({
@@ -409,7 +410,7 @@ async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): 
               models: models.length,
               queues: queues.length,
               resiliencePatterns,
-              containerPatterns
+              containerPatterns,
             });
           }
         } catch {
@@ -427,7 +428,7 @@ async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): 
     success: true,
     scannedFiles: filesProcessed,
     suggestionsFound: suggestions.length,
-    suggestions: suggestions.slice(0, 50) // Return Top 50 prime transformation candidates
+    suggestions: suggestions.slice(0, 50), // Return Top 50 prime transformation candidates
   };
 }
 

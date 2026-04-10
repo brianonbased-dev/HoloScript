@@ -104,17 +104,17 @@ The planner sends the researcher a **compilable pipeline**, not a text instructi
 
 ## Protocol Messages
 
-| Message | Direction | Payload |
-|---------|-----------|---------|
-| `task.send` | requester → worker | `.hsplus` or `.hs` with `@task` metadata |
-| `task.accept` | worker → requester | Acknowledgement with estimated duration |
-| `task.progress` | worker → requester | Partial results, completion percentage |
-| `task.complete` | worker → requester | `.hsplus` result with `@result` + `@wisdom`/`@pattern`/`@gotcha` |
-| `task.fail` | worker → requester | Error with `@failure` trait (phase, code, retryable) |
-| `task.cancel` | requester → worker | Cancellation request |
-| `agent.discover` | any → registry | Query for agents matching trait requirements |
-| `agent.heartbeat` | agent → registry | Presence + load + capabilities update |
-| `knowledge.share` | agent → agent | W/P/G entry for peer learning |
+| Message           | Direction          | Payload                                                          |
+| ----------------- | ------------------ | ---------------------------------------------------------------- |
+| `task.send`       | requester → worker | `.hsplus` or `.hs` with `@task` metadata                         |
+| `task.accept`     | worker → requester | Acknowledgement with estimated duration                          |
+| `task.progress`   | worker → requester | Partial results, completion percentage                           |
+| `task.complete`   | worker → requester | `.hsplus` result with `@result` + `@wisdom`/`@pattern`/`@gotcha` |
+| `task.fail`       | worker → requester | Error with `@failure` trait (phase, code, retryable)             |
+| `task.cancel`     | requester → worker | Cancellation request                                             |
+| `agent.discover`  | any → registry     | Query for agents matching trait requirements                     |
+| `agent.heartbeat` | agent → registry   | Presence + load + capabilities update                            |
+| `knowledge.share` | agent → agent      | W/P/G entry for peer learning                                    |
 
 ## Transport
 
@@ -137,12 +137,14 @@ Body: { source: "<.hsplus file content>" }
 ```
 
 The registry extracts the `@agent` trait and indexes by:
+
 - `accepts` — what input formats the agent handles
 - `emits` — what output it produces
 - `tools` — what external capabilities it has
 - `name` — for direct addressing
 
 Querying:
+
 ```
 GET /api/holomesh/agents?accepts=.hs&emits=wisdom
 → Returns agents that can process pipelines and return knowledge
@@ -193,6 +195,7 @@ External Agent ←→ A2A JSON-RPC ←→ HSNAP Bridge ←→ HoloScript Agent
 ```
 
 The bridge:
+
 - Translates A2A `tasks/send` JSON into `@task` + payload `.hsplus`
 - Translates HSNAP results back to A2A `tasks/get` response
 - Preserves A2A streaming via SSE
@@ -235,16 +238,16 @@ on_commit {
 
 ## vs Google A2A
 
-| | Google A2A | HSNAP |
-|---|-----------|-------|
-| Payload | JSON task description | Compilable HoloScript |
-| Discovery | `.well-known/agent-card.json` | `@agent` trait in `.hsplus` |
-| Capabilities | JSON schema | Trait declarations |
-| Results | JSON response | Typed knowledge (W/P/G) |
-| Multi-agent | External orchestrator | `.hsplus` workflow composition |
-| Knowledge | Not specified | First-class W/P/G flow |
-| Transport | HTTP + SSE | HTTP + WS + Queue + in-process |
-| External agents | Native | Via compatibility bridge |
+|                 | Google A2A                    | HSNAP                          |
+| --------------- | ----------------------------- | ------------------------------ |
+| Payload         | JSON task description         | Compilable HoloScript          |
+| Discovery       | `.well-known/agent-card.json` | `@agent` trait in `.hsplus`    |
+| Capabilities    | JSON schema                   | Trait declarations             |
+| Results         | JSON response                 | Typed knowledge (W/P/G)        |
+| Multi-agent     | External orchestrator         | `.hsplus` workflow composition |
+| Knowledge       | Not specified                 | First-class W/P/G flow         |
+| Transport       | HTTP + SSE                    | HTTP + WS + Queue + in-process |
+| External agents | Native                        | Via compatibility bridge       |
 
 ## Implementation Path
 

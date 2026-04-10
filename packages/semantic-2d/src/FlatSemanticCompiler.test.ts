@@ -77,7 +77,7 @@ describe('FlatSemanticCompiler', () => {
     it('should include React and R3F imports', () => {
       const composition = createComposition();
       const output = compiler.compile(composition, '');
-      expect(output).toContain("import React");
+      expect(output).toContain('import React');
       expect(output).toContain("from '@react-three/fiber'");
       expect(output).toContain("from '@react-three/drei'");
     });
@@ -165,9 +165,7 @@ describe('FlatSemanticCompiler', () => {
         objects: [
           createObject({
             name: 'Logo',
-            traits: [
-              { name: 'image', config: { src: '/logo.png', alt: 'HoloScript Logo' } },
-            ],
+            traits: [{ name: 'image', config: { src: '/logo.png', alt: 'HoloScript Logo' } }],
           }),
         ],
       });
@@ -299,7 +297,7 @@ describe('FlatSemanticCompiler', () => {
         ],
       });
       const output = compiler.compile(composition, '') as string;
-      expect(output).toContain("Intent Emitted: navigate");
+      expect(output).toContain('Intent Emitted: navigate');
     });
   });
 

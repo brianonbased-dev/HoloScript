@@ -148,7 +148,9 @@ describe('HSNAPRouter', () => {
 
     expect(receipt.status).toBe('completed');
     expect(dispatch).toHaveBeenCalledTimes(1);
-    expect((receipt.result as { instructions: Array<{ opCode: UAALOpCode }> }).instructions).toEqual(
+    expect(
+      (receipt.result as { instructions: Array<{ opCode: UAALOpCode }> }).instructions
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ opCode: UAALOpCode.OP_STATE_SET }),
         expect.objectContaining({ opCode: UAALOpCode.OP_ROUTE_MATCH }),

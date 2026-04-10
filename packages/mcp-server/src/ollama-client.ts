@@ -17,7 +17,8 @@ type LLMProviderName = 'openrouter' | 'anthropic' | 'openai' | 'ollama';
 
 function detectProvider(): LLMProviderName {
   const explicit = process.env.LLM_PROVIDER as LLMProviderName;
-  if (explicit && ['openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit)) return explicit;
+  if (explicit && ['openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit))
+    return explicit;
   // Auto-detect from available keys
   if (process.env.OPENROUTER_API_KEY) return 'openrouter';
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';

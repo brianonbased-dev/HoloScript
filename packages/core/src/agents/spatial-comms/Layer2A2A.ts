@@ -263,9 +263,7 @@ export class Layer2A2AClient extends EventEmitter {
   /**
    * Send A2A message with retry
    */
-  async send(
-    message: A2AMessageBody
-  ): Promise<A2AResponse> {
+  async send(message: A2AMessageBody): Promise<A2AResponse> {
     // Generate message ID and add metadata
     const fullMessage: A2AMessage = {
       ...message,

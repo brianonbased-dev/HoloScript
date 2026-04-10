@@ -16,10 +16,13 @@ describe('/api/absorb/projects route', () => {
 
   it('GET returns upstream projects payload and forwards user auth header', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ projects: [{ id: 'p1', name: 'Upstream Project' }], count: 1 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      new Response(
+        JSON.stringify({ projects: [{ id: 'p1', name: 'Upstream Project' }], count: 1 }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -69,7 +72,11 @@ describe('/api/absorb/projects route', () => {
 
     const postReq = new NextRequest('http://localhost/api/absorb/projects', {
       method: 'POST',
-      body: JSON.stringify({ name: 'Local Project', source_type: 'local', source_url: '/tmp/repo' }),
+      body: JSON.stringify({
+        name: 'Local Project',
+        source_type: 'local',
+        source_url: '/tmp/repo',
+      }),
       headers: { 'Content-Type': 'application/json' },
     });
 

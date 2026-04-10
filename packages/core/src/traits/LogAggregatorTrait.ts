@@ -41,7 +41,12 @@ export const logAggregatorHandler: TraitHandler<LogAggregatorConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: LogAggregatorConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: LogAggregatorConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__logAggregatorState as { entries: LogEntry[] } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;

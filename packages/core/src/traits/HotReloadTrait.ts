@@ -189,7 +189,13 @@ export const HOT_RELOAD_TRAIT = {
 };
 
 // ── Handler (delegates to HotReloadWatcher) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const hotReloadHandler = {
   name: 'hot_reload',

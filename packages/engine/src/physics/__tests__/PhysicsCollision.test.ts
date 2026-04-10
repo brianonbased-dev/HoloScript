@@ -491,4 +491,3 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
     });
   });
 });
-

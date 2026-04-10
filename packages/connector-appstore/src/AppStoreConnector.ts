@@ -699,7 +699,11 @@ export class AppStoreConnector extends ServiceConnector {
             releaseNotes,
           };
 
-          const result = await this.googleClient.uploadBuild(artifact, app, androidTrack as GooglePlayTrack['track']);
+          const result = await this.googleClient.uploadBuild(
+            artifact,
+            app,
+            androidTrack as GooglePlayTrack['track']
+          );
 
           results[platform] = { success: true, result };
         }

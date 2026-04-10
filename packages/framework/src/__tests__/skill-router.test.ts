@@ -67,7 +67,7 @@ describe('SkillRouter', () => {
     const task = makeTask({ priority: 7 });
     // Reviewer has maxPriority 5, so should be filtered out
     const result = router.route(task, agents);
-    expect(result.candidates.find(c => c.agent.name === 'Reviewer')).toBeUndefined();
+    expect(result.candidates.find((c) => c.agent.name === 'Reviewer')).toBeUndefined();
   });
 
   it('scores role match bonus', () => {
@@ -76,7 +76,7 @@ describe('SkillRouter', () => {
       role: 'reviewer',
     });
     const result = router.route(task, agents);
-    const reviewerCandidate = result.candidates.find(c => c.agent.name === 'Reviewer');
+    const reviewerCandidate = result.candidates.find((c) => c.agent.name === 'Reviewer');
     expect(reviewerCandidate?.roleMatch).toBe(true);
   });
 
@@ -114,7 +114,7 @@ describe('SkillRouter', () => {
   it('tracks matched capabilities in result', () => {
     const task = makeTask({ title: 'Fix the parser bug in typescript' });
     const result = router.route(task, agents);
-    const coderCandidate = result.candidates.find(c => c.agent.name === 'Coder');
+    const coderCandidate = result.candidates.find((c) => c.agent.name === 'Coder');
     expect(coderCandidate?.matchedCapabilities).toContain('parser');
     expect(coderCandidate?.matchedCapabilities).toContain('typescript');
   });

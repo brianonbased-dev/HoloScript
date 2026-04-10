@@ -41,6 +41,7 @@ source POS {
 ### `transform` — Reshape data
 
 **Field mapping:**
+
 ```hs
 transform MapFields {
   old_name -> new_name
@@ -51,6 +52,7 @@ transform MapFields {
 Built-in transform functions: `trim()`, `titleCase()`, `lowercase()`, `uppercase()`, `split(sep)`, `join(sep)`, `toISO()`, `toEpoch()`, `multiply(n)`, `round(n)`, `truncate(n)`, `hash()`, `base64()`.
 
 **LLM transform:**
+
 ```hs
 transform Classify {
   type: "llm"
@@ -62,6 +64,7 @@ transform Classify {
 ```
 
 **MCP tool transform:**
+
 ```hs
 transform Enrich {
   type: "mcp"
@@ -73,6 +76,7 @@ transform Enrich {
 ```
 
 **HTTP transform:**
+
 ```hs
 transform Fetch {
   type: "http"
@@ -142,6 +146,7 @@ sink API {
 ```
 
 **Chained sinks** (use output of one tool as input to another):
+
 ```hs
 sink Answer {
   type: "mcp"
@@ -174,15 +179,15 @@ All string values support `${...}` interpolation:
 
 A `.hs` pipeline compiles to:
 
-| Target | Output |
-|--------|--------|
-| `node` | ES module with node-cron scheduler |
-| `python` | async Python script with APScheduler |
-| `lambda` | AWS Lambda handler + CloudWatch Event rule |
-| `cloudflare` | Cloudflare Worker with Cron Trigger |
-| `docker` | Dockerfile + entrypoint with crond |
-| `kubernetes` | CronJob YAML manifest |
-| `github-actions` | Workflow YAML with cron schedule |
+| Target           | Output                                     |
+| ---------------- | ------------------------------------------ |
+| `node`           | ES module with node-cron scheduler         |
+| `python`         | async Python script with APScheduler       |
+| `lambda`         | AWS Lambda handler + CloudWatch Event rule |
+| `cloudflare`     | Cloudflare Worker with Cron Trigger        |
+| `docker`         | Dockerfile + entrypoint with crond         |
+| `kubernetes`     | CronJob YAML manifest                      |
+| `github-actions` | Workflow YAML with cron schedule           |
 
 ## Design Principles
 

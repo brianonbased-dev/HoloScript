@@ -27,11 +27,15 @@ describe('defineAgent', () => {
   });
 
   it('throws on invalid role', () => {
-    expect(() => defineAgent({ ...validAgent, role: 'wizard' as unknown as AgentConfig['role'] })).toThrow('Invalid role');
+    expect(() =>
+      defineAgent({ ...validAgent, role: 'wizard' as unknown as AgentConfig['role'] })
+    ).toThrow('Invalid role');
   });
 
   it('throws on missing model', () => {
-    expect(() => defineAgent({ ...validAgent, model: { provider: 'anthropic', model: '' } })).toThrow('model');
+    expect(() =>
+      defineAgent({ ...validAgent, model: { provider: 'anthropic', model: '' } })
+    ).toThrow('model');
   });
 
   it('throws on empty capabilities', () => {
@@ -80,7 +84,9 @@ describe('defineTeam', () => {
   });
 
   it('throws when agents exceed max slots', () => {
-    expect(() => defineTeam({ name: 'test', agents: [coder, reviewer], maxSlots: 1 })).toThrow('slots');
+    expect(() => defineTeam({ name: 'test', agents: [coder, reviewer], maxSlots: 1 })).toThrow(
+      'slots'
+    );
   });
 });
 
@@ -90,11 +96,15 @@ describe('Team.addTasks', () => {
   it('adds tasks and deduplicates', async () => {
     const team = defineTeam({
       name: 'board-test',
-      agents: [defineAgent({
-        name: 'A', role: 'coder',
-        model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-        capabilities: ['c'], claimFilter: { roles: ['coder'], maxPriority: 10 },
-      })],
+      agents: [
+        defineAgent({
+          name: 'A',
+          role: 'coder',
+          model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+          capabilities: ['c'],
+          claimFilter: { roles: ['coder'], maxPriority: 10 },
+        }),
+      ],
     });
 
     const added1 = await team.addTasks([
@@ -116,11 +126,15 @@ describe('Team.addTasks', () => {
   it('sorts open tasks by priority', async () => {
     const team = defineTeam({
       name: 'priority-test',
-      agents: [defineAgent({
-        name: 'A', role: 'coder',
-        model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-        capabilities: ['c'], claimFilter: { roles: ['coder'], maxPriority: 10 },
-      })],
+      agents: [
+        defineAgent({
+          name: 'A',
+          role: 'coder',
+          model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+          capabilities: ['c'],
+          claimFilter: { roles: ['coder'], maxPriority: 10 },
+        }),
+      ],
     });
 
     await team.addTasks([
@@ -142,11 +156,15 @@ describe('Team.scoutFromTodos', () => {
   it('parses grep output into tasks', async () => {
     const team = defineTeam({
       name: 'scout-test',
-      agents: [defineAgent({
-        name: 'A', role: 'coder',
-        model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-        capabilities: ['c'], claimFilter: { roles: ['coder'], maxPriority: 10 },
-      })],
+      agents: [
+        defineAgent({
+          name: 'A',
+          role: 'coder',
+          model: { provider: 'anthropic', model: 'claude-sonnet-4' },
+          capabilities: ['c'],
+          claimFilter: { roles: ['coder'], maxPriority: 10 },
+        }),
+      ],
     });
 
     const grepOutput = [
@@ -173,9 +191,36 @@ describe('KnowledgeStore', () => {
   it('publishes and searches entries', () => {
     const store = new KnowledgeStore({ persist: false });
 
-    store.publish({ type: 'pattern', content: 'Use JWT for stateless auth', domain: 'security', confidence: 0.9, source: 'Coder' }, 'Coder');
-    store.publish({ type: 'gotcha', content: 'Never store tokens in localStorage', domain: 'security', confidence: 0.95, source: 'Reviewer' }, 'Reviewer');
-    store.publish({ type: 'wisdom', content: 'GraphQL reduces over-fetching', domain: 'api', confidence: 0.7, source: 'Researcher' }, 'Researcher');
+    store.publish(
+      {
+        type: 'pattern',
+        content: 'Use JWT for stateless auth',
+        domain: 'security',
+        confidence: 0.9,
+        source: 'Coder',
+      },
+      'Coder'
+    );
+    store.publish(
+      {
+        type: 'gotcha',
+        content: 'Never store tokens in localStorage',
+        domain: 'security',
+        confidence: 0.95,
+        source: 'Reviewer',
+      },
+      'Reviewer'
+    );
+    store.publish(
+      {
+        type: 'wisdom',
+        content: 'GraphQL reduces over-fetching',
+        domain: 'api',
+        confidence: 0.7,
+        source: 'Researcher',
+      },
+      'Researcher'
+    );
 
     expect(store.size).toBe(3);
 
@@ -190,8 +235,26 @@ describe('KnowledgeStore', () => {
   it('deduplicates identical content', () => {
     const store = new KnowledgeStore({ persist: false });
 
-    const e1 = store.publish({ type: 'wisdom', content: 'Test your code', domain: 'general', confidence: 0.8, source: 'A' }, 'A');
-    const e2 = store.publish({ type: 'wisdom', content: 'Test your code', domain: 'general', confidence: 0.8, source: 'B' }, 'B');
+    const e1 = store.publish(
+      {
+        type: 'wisdom',
+        content: 'Test your code',
+        domain: 'general',
+        confidence: 0.8,
+        source: 'A',
+      },
+      'A'
+    );
+    const e2 = store.publish(
+      {
+        type: 'wisdom',
+        content: 'Test your code',
+        domain: 'general',
+        confidence: 0.8,
+        source: 'B',
+      },
+      'B'
+    );
 
     expect(e1.id).toBe(e2.id); // same entry returned
     expect(store.size).toBe(1);
@@ -200,11 +263,35 @@ describe('KnowledgeStore', () => {
   it('compounds cross-domain insights', () => {
     const store = new KnowledgeStore({ persist: false });
 
-    store.publish({ type: 'pattern', content: 'Rate limiting prevents abuse', domain: 'security', confidence: 0.9, source: 'A' }, 'A');
-    store.publish({ type: 'pattern', content: 'Cache invalidation is hard', domain: 'performance', confidence: 0.8, source: 'B' }, 'B');
+    store.publish(
+      {
+        type: 'pattern',
+        content: 'Rate limiting prevents abuse',
+        domain: 'security',
+        confidence: 0.9,
+        source: 'A',
+      },
+      'A'
+    );
+    store.publish(
+      {
+        type: 'pattern',
+        content: 'Cache invalidation is hard',
+        domain: 'performance',
+        confidence: 0.8,
+        source: 'B',
+      },
+      'B'
+    );
 
     const crossRefs = store.compound([
-      { type: 'wisdom', content: 'Rate limiting and caching need coordination', domain: 'architecture', confidence: 0.7, source: 'C' },
+      {
+        type: 'wisdom',
+        content: 'Rate limiting and caching need coordination',
+        domain: 'architecture',
+        confidence: 0.7,
+        source: 'C',
+      },
     ]);
 
     expect(crossRefs).toBeGreaterThan(0);
@@ -216,10 +303,7 @@ describe('KnowledgeStore', () => {
 describe('Behavior Tree', () => {
   it('Sequence succeeds when all children succeed', () => {
     const tree = new BehaviorTree(
-      new SequenceNode([
-        new ActionNode('a', () => 'success'),
-        new ActionNode('b', () => 'success'),
-      ])
+      new SequenceNode([new ActionNode('a', () => 'success'), new ActionNode('b', () => 'success')])
     );
     expect(tree.tick(0)).toBe('success');
   });
@@ -229,7 +313,10 @@ describe('Behavior Tree', () => {
     const tree = new BehaviorTree(
       new SequenceNode([
         new ActionNode('a', () => 'failure'),
-        new ActionNode('b', () => { bRan = true; return 'success'; }),
+        new ActionNode('b', () => {
+          bRan = true;
+          return 'success';
+        }),
       ])
     );
     expect(tree.tick(0)).toBe('failure');
@@ -252,7 +339,10 @@ describe('Behavior Tree', () => {
     const tree = new BehaviorTree(
       new SequenceNode([
         new ConditionNode('check', () => true),
-        new ActionNode('do', () => { executed = true; return 'success'; }),
+        new ActionNode('do', () => {
+          executed = true;
+          return 'success';
+        }),
       ])
     );
     tree.tick(0);
@@ -273,7 +363,13 @@ vi.mock('../protocol-agent', () => ({
   runProtocolCycle: vi.fn().mockResolvedValue({
     summary: 'Completed synthesized task',
     insights: [
-      { type: 'wisdom', content: 'Autonomous goals keep agents productive', domain: 'security', confidence: 0.7, source: 'Coder' },
+      {
+        type: 'wisdom',
+        content: 'Autonomous goals keep agents productive',
+        domain: 'security',
+        confidence: 0.7,
+        source: 'Coder',
+      },
     ],
   }),
 }));
@@ -346,9 +442,11 @@ describe('Goal Synthesis (empty board)', () => {
 
 describe('Team remote facade methods', () => {
   const agent = defineAgent({
-    name: 'A', role: 'coder',
+    name: 'A',
+    role: 'coder',
     model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-    capabilities: ['c'], claimFilter: { roles: ['coder'], maxPriority: 10 },
+    capabilities: ['c'],
+    claimFilter: { roles: ['coder'], maxPriority: 10 },
   });
 
   // Helper: create a local-only team (no boardUrl)
@@ -375,8 +473,14 @@ describe('Team remote facade methods', () => {
 
   describe('suggest() remote', () => {
     it('calls POST /suggestions with correct body', async () => {
-      const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 0, createdAt: '2026-01-01' } });
-      const result = await team.suggest('idea', { description: 'desc', category: 'ux', evidence: 'data' });
+      const { team, fetchSpy } = remoteTeam({
+        suggestion: { id: 's1', title: 'idea', status: 'open', votes: 0, createdAt: '2026-01-01' },
+      });
+      const result = await team.suggest('idea', {
+        description: 'desc',
+        category: 'ux',
+        evidence: 'data',
+      });
       expect(result.suggestion.id).toBe('s1');
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       const [url, opts] = fetchSpy.mock.calls[0];
@@ -401,7 +505,9 @@ describe('Team remote facade methods', () => {
 
   describe('vote() remote', () => {
     it('calls PATCH /suggestions/:id with vote action', async () => {
-      const { team, fetchSpy } = remoteTeam({ suggestion: { id: 's1', title: 'idea', status: 'open', votes: 1, createdAt: '2026-01-01' } });
+      const { team, fetchSpy } = remoteTeam({
+        suggestion: { id: 's1', title: 'idea', status: 'open', votes: 1, createdAt: '2026-01-01' },
+      });
       const result = await team.vote('s1', 1, 'good idea');
       expect(result.suggestion.votes).toBe(1);
       const [url, opts] = fetchSpy.mock.calls[0];
@@ -494,7 +600,9 @@ describe('Team remote facade methods', () => {
     });
 
     it('calls GET /slots', async () => {
-      const { team, fetchSpy } = remoteTeam({ slots: [{ agentName: 'A', role: 'coder', status: 'active' }] });
+      const { team, fetchSpy } = remoteTeam({
+        slots: [{ agentName: 'A', role: 'coder', status: 'active' }],
+      });
       const result = await team.presence();
       expect(result.slots).toHaveLength(1);
       expect(result.slots[0].agentName).toBe('A');
@@ -541,14 +649,18 @@ describe('Team remote facade methods', () => {
 
 describe('Team local suggestions', () => {
   const agent1 = defineAgent({
-    name: 'Alice', role: 'coder',
+    name: 'Alice',
+    role: 'coder',
     model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-    capabilities: ['code-generation'], claimFilter: { roles: ['coder'], maxPriority: 10 },
+    capabilities: ['code-generation'],
+    claimFilter: { roles: ['coder'], maxPriority: 10 },
   });
   const agent2 = defineAgent({
-    name: 'Bob', role: 'researcher',
+    name: 'Bob',
+    role: 'researcher',
     model: { provider: 'anthropic', model: 'claude-sonnet-4' },
-    capabilities: ['research'], claimFilter: { roles: ['researcher'], maxPriority: 10 },
+    capabilities: ['research'],
+    claimFilter: { roles: ['researcher'], maxPriority: 10 },
   });
 
   function makeTeam() {
@@ -599,7 +711,7 @@ describe('Team local suggestions', () => {
 
     it('allows resubmission after dismiss', async () => {
       const team = makeTeam();
-      const { suggestion } = (await team.suggest('Add caching'));
+      const { suggestion } = await team.suggest('Add caching');
       team.dismissSuggestion(suggestion.id);
       // Should not throw — dismissed suggestions don't block new ones
       const result = await team.suggest('Add caching');
@@ -659,7 +771,7 @@ describe('Team local suggestions', () => {
       expect(result.promotedTaskId).toBeDefined();
       expect(result.promotedTaskId).toMatch(/^task_/);
       // Verify task was added to board
-      expect(team.openTasks.some(t => t.source === `suggestion:${suggestion.id}`)).toBe(true);
+      expect(team.openTasks.some((t) => t.source === `suggestion:${suggestion.id}`)).toBe(true);
     });
 
     it('auto-dismisses when downvotes reach threshold', async () => {
@@ -733,7 +845,7 @@ describe('Team local suggestions', () => {
       const result = await team.promoteSuggestion(suggestion.id, 'Bob');
       expect(result.suggestion.status).toBe('promoted');
       expect(result.promotedTaskId).toBeDefined();
-      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      const task = team.openTasks.find((t) => t.id === result.promotedTaskId);
       expect(task).toBeDefined();
       expect(task!.title).toBe('Build widget');
       expect(task!.description).toContain('Promoted by Bob');
@@ -756,7 +868,7 @@ describe('Team local suggestions', () => {
       const team = makeTeam();
       const { suggestion } = await team.suggest('Restructure', { category: 'architecture' });
       const result = await team.promoteSuggestion(suggestion.id);
-      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      const task = team.openTasks.find((t) => t.id === result.promotedTaskId);
       expect(task!.priority).toBe(2);
     });
 
@@ -764,7 +876,7 @@ describe('Team local suggestions', () => {
       const team = makeTeam();
       const { suggestion } = await team.suggest('Add tests', { category: 'testing' });
       const result = await team.promoteSuggestion(suggestion.id);
-      const task = team.openTasks.find(t => t.id === result.promotedTaskId);
+      const task = team.openTasks.find((t) => t.id === result.promotedTaskId);
       expect(task!.priority).toBe(3);
     });
   });
@@ -787,8 +899,10 @@ describe('Team local suggestions', () => {
 
     it('throws on remote team', async () => {
       const team = defineTeam({
-        name: 'remote', agents: [agent1],
-        boardUrl: 'https://example.com', boardApiKey: 'key',
+        name: 'remote',
+        agents: [agent1],
+        boardUrl: 'https://example.com',
+        boardApiKey: 'key',
       });
       expect(() => team.dismissSuggestion('s1')).toThrow('not supported in remote mode');
     });
@@ -799,7 +913,8 @@ describe('Team local suggestions', () => {
 
 describe('Team mesh integration', () => {
   const agent1: AgentConfig = {
-    name: 'Coder1', role: 'coder',
+    name: 'Coder1',
+    role: 'coder',
     model: { provider: 'anthropic', model: 'claude-sonnet-4' },
     capabilities: ['code-gen', 'testing'],
     claimFilter: { roles: ['coder'], maxPriority: 8 },
@@ -822,8 +937,12 @@ describe('Team mesh integration', () => {
   it('registerPeer() + peers() returns registered peer', () => {
     const team = mkTeam();
     team.registerPeer({
-      id: 'peer-1', hostname: 'localhost', port: 3000,
-      version: '1.0.0', agentCount: 2, capabilities: ['code'],
+      id: 'peer-1',
+      hostname: 'localhost',
+      port: 3000,
+      version: '1.0.0',
+      agentCount: 2,
+      capabilities: ['code'],
       lastSeen: Date.now(),
     });
     expect(team.peers()).toHaveLength(1);

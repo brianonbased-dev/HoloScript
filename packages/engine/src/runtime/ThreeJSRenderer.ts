@@ -259,7 +259,6 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
       // Load composition into scene
       this.loadComposition();
-
     } catch (error) {
       console.error('[ThreeJSRenderer] Failed to initialize:', error);
     }
@@ -1291,7 +1290,5 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     if (this.renderer) {
       this.renderer.dispose();
     }
-
   }
 }
-

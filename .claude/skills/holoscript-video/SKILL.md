@@ -31,7 +31,7 @@ headlessly via `npm run render` without human intervention.
 
 ### Core Types (`@holoscript/core`)
 
-- `HoloComposition` — root scene container (28 major properties)
+- `HoloComposition` — root scene container (verify fields in `packages/core/src/types/HoloScript.ts`)
 - `HoloObjectDecl` — scene objects with traits, position, children
 - `HoloLight` — 6 types: directional, point, spot, hemisphere, ambient, area
 - `HoloCamera` — perspective, orthographic, cinematic
@@ -40,7 +40,15 @@ headlessly via `npm run render` without human intervention.
 - `HoloStateMachine`, `HoloAchievement`, `HoloTalentTree`
 - `HoloEnvironment`, `HoloEffects`, `HoloParticleSystem`
 
-### Compiler Targets (18 total)
+### Compiler Targets (SSOT-driven)
+
+Do not hardcode target counts in tutorial scripts. Verify target keys from source before recording:
+
+```bash
+grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBreaker.ts
+```
+
+Representative targets for tutorial coverage:
 
 | Target     | Output Type                                          | Use Case                            |
 | ---------- | ---------------------------------------------------- | ----------------------------------- |

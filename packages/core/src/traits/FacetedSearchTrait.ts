@@ -16,7 +16,12 @@ export const facetedSearchHandler: TraitHandler<FacetedSearchConfig> = {
     delete node.__facetState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: FacetedSearchConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: FacetedSearchConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__facetState as { facets: Map<string, Set<string>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

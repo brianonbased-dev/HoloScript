@@ -146,9 +146,20 @@ const DEFAULT_MODEL_CONFIG: ModelConfig = {
 };
 
 const AGENT_TRAIT_NAMES = new Set([
-  'agent', 'model', 'inference', 'system_prompt', 'prompt',
-  'temperature', 'max_tokens', 'top_p', 'top_k', 'tool',
-  'tool_use', 'reasoning', 'memory', 'persona',
+  'agent',
+  'model',
+  'inference',
+  'system_prompt',
+  'prompt',
+  'temperature',
+  'max_tokens',
+  'top_p',
+  'top_k',
+  'tool',
+  'tool_use',
+  'reasoning',
+  'memory',
+  'persona',
 ]);
 
 // =============================================================================
@@ -359,7 +370,12 @@ export class AgentInferenceCompiler extends CompilerBase {
       for (const prop of obj.state.properties) {
         stateProperties.push({
           key: prop.key,
-          type: typeof prop.value === 'number' ? 'number' : typeof prop.value === 'boolean' ? 'boolean' : 'string',
+          type:
+            typeof prop.value === 'number'
+              ? 'number'
+              : typeof prop.value === 'boolean'
+                ? 'boolean'
+                : 'string',
           defaultValue: String(prop.value ?? ''),
         });
       }
@@ -598,7 +614,8 @@ export class AgentInferenceCompiler extends CompilerBase {
       if (agent.stateProperties.length > 0) {
         lines.push('  // Agent state');
         for (const prop of agent.stateProperties) {
-          const tsType = prop.type === 'number' ? 'number' : prop.type === 'boolean' ? 'boolean' : 'string';
+          const tsType =
+            prop.type === 'number' ? 'number' : prop.type === 'boolean' ? 'boolean' : 'string';
           lines.push(`  private ${prop.key}: ${tsType} = ${JSON.stringify(prop.defaultValue)};`);
         }
         lines.push('');
@@ -606,7 +623,9 @@ export class AgentInferenceCompiler extends CompilerBase {
 
       // Constructor
       lines.push('  constructor(apiKey?: string) {');
-      lines.push("    this.client = new Anthropic({ apiKey: apiKey ?? process.env['ANTHROPIC_API_KEY'] });");
+      lines.push(
+        "    this.client = new Anthropic({ apiKey: apiKey ?? process.env['ANTHROPIC_API_KEY'] });"
+      );
       lines.push(`    this.systemPrompt = ${JSON.stringify(agent.modelConfig.systemPrompt)};`);
       lines.push('  }');
       lines.push('');
@@ -630,10 +649,10 @@ export class AgentInferenceCompiler extends CompilerBase {
 
       // Tool use loop
       if (agent.tools.length > 0) {
-        lines.push("    // Handle tool use loop");
-        lines.push("    let currentResponse = response;");
+        lines.push('    // Handle tool use loop');
+        lines.push('    let currentResponse = response;');
         lines.push("    while (currentResponse.stop_reason === 'tool_use') {");
-        lines.push("      const toolUseBlocks = currentResponse.content.filter(");
+        lines.push('      const toolUseBlocks = currentResponse.content.filter(');
         lines.push("        (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'");
         lines.push('      );');
         lines.push('');
@@ -646,11 +665,15 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push('        toolResults.push({');
         lines.push("          type: 'tool_result',");
         lines.push('          tool_use_id: toolUse.id,');
-        lines.push('          content: typeof result === \'string\' ? result : JSON.stringify(result),');
+        lines.push(
+          "          content: typeof result === 'string' ? result : JSON.stringify(result),"
+        );
         lines.push('        });');
         lines.push('      }');
         lines.push('');
-        lines.push("      this.messages.push({ role: 'assistant', content: currentResponse.content });");
+        lines.push(
+          "      this.messages.push({ role: 'assistant', content: currentResponse.content });"
+        );
         lines.push("      this.messages.push({ role: 'user', content: toolResults });");
         lines.push('');
         lines.push('      currentResponse = await this.client.messages.create({');
@@ -663,7 +686,9 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push('      });');
         lines.push('    }');
         lines.push('');
-        lines.push("    this.messages.push({ role: 'assistant', content: currentResponse.content });");
+        lines.push(
+          "    this.messages.push({ role: 'assistant', content: currentResponse.content });"
+        );
         lines.push('    const textBlocks = currentResponse.content.filter(');
         lines.push("      (block): block is Anthropic.TextBlock => block.type === 'text'");
         lines.push('    );');
@@ -693,16 +718,18 @@ export class AgentInferenceCompiler extends CompilerBase {
     lines.push('async function main(): Promise<void> {');
     lines.push(`  const agent = new ${this.toPascalCase(primaryAgent.name)}Agent();`);
     lines.push('');
-    lines.push("  // Interactive loop (stdin/stdout)");
+    lines.push('  // Interactive loop (stdin/stdout)');
     lines.push("  const readline = await import('readline');");
     lines.push('  const rl = readline.createInterface({');
     lines.push('    input: process.stdin,');
     lines.push('    output: process.stdout,');
     lines.push('  });');
     lines.push('');
-    lines.push(`  console.log('${this.escapeStringValue(compositionName, 'TypeScript')} agent ready. Type a message or "quit" to exit.');`);
+    lines.push(
+      `  console.log('${this.escapeStringValue(compositionName, 'TypeScript')} agent ready. Type a message or "quit" to exit.');`
+    );
     lines.push('');
-    lines.push("  const ask = (): void => {");
+    lines.push('  const ask = (): void => {');
     lines.push("    rl.question('> ', async (input: string) => {");
     lines.push("      if (input.trim().toLowerCase() === 'quit') {");
     lines.push('        rl.close();');
@@ -786,7 +813,9 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push("                        'content': str(result),");
         lines.push('                    })');
         lines.push('');
-        lines.push("            self.messages.append({'role': 'assistant', 'content': response.content})");
+        lines.push(
+          "            self.messages.append({'role': 'assistant', 'content': response.content})"
+        );
         lines.push("            self.messages.append({'role': 'user', 'content': tool_results})");
         lines.push('');
         lines.push('            response = self.client.messages.create(');
@@ -800,7 +829,9 @@ export class AgentInferenceCompiler extends CompilerBase {
         lines.push('');
       }
 
-      lines.push("        self.messages.append({'role': 'assistant', 'content': response.content})");
+      lines.push(
+        "        self.messages.append({'role': 'assistant', 'content': response.content})"
+      );
       lines.push("        text_blocks = [b.text for b in response.content if b.type == 'text']");
       lines.push("        return '\\n'.join(text_blocks)");
       lines.push('');
@@ -814,7 +845,9 @@ export class AgentInferenceCompiler extends CompilerBase {
     lines.push('');
     lines.push("if __name__ == '__main__':");
     lines.push(`    agent = ${this.toPascalCase(primaryAgent.name)}Agent()`);
-    lines.push(`    print('${this.escapeStringValue(compositionName, 'Python')} agent ready. Type a message or "quit" to exit.')`);
+    lines.push(
+      `    print('${this.escapeStringValue(compositionName, 'Python')} agent ready. Type a message or "quit" to exit.')`
+    );
     lines.push('    while True:');
     lines.push("        user_input = input('> ')");
     lines.push("        if user_input.strip().lower() == 'quit':");
@@ -889,7 +922,7 @@ export class AgentInferenceCompiler extends CompilerBase {
       lines.push(`      return \`[${tool.name}] called with: \${JSON.stringify(input)}\`;`);
     }
     lines.push('    default:');
-    lines.push("      return `Unknown tool: ${name}`;");
+    lines.push('      return `Unknown tool: ${name}`;');
     lines.push('  }');
     lines.push('}');
 
@@ -914,7 +947,9 @@ export class AgentInferenceCompiler extends CompilerBase {
       lines.push('            "properties": {');
       for (const param of tool.parameters) {
         lines.push(`                ${JSON.stringify(param.name)}: {`);
-        lines.push(`                    "type": ${JSON.stringify(this.toJsonSchemaType(param.type))},`);
+        lines.push(
+          `                    "type": ${JSON.stringify(this.toJsonSchemaType(param.type))},`
+        );
         lines.push(`                    "description": ${JSON.stringify(param.description)},`);
         lines.push('                },');
       }
@@ -1086,7 +1121,9 @@ export interface ToolResult {
       lines.push(`### ${agent.name}`);
       lines.push(`- **Role**: ${agent.role}`);
       lines.push(`- **Model**: ${agent.modelConfig.name}`);
-      lines.push(`- **Tools**: ${agent.tools.length > 0 ? agent.tools.map((t) => t.name).join(', ') : 'none'}`);
+      lines.push(
+        `- **Tools**: ${agent.tools.length > 0 ? agent.tools.map((t) => t.name).join(', ') : 'none'}`
+      );
       lines.push('');
     }
 

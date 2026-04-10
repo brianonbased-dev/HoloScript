@@ -78,7 +78,6 @@ function loadGraphStore(): void {
     }
 
     if (data.reportCounter) reportCounter = data.reportCounter;
-
   } catch {
     // Corrupted file — start fresh
   }
@@ -371,7 +370,10 @@ export function paginate<T>(items: T[], limit: number, cursor?: string): CursorP
   return {
     items: page,
     cursor_next: hasMore ? Buffer.from(String(nextIdx)).toString('base64url') : null,
-    cursor_prev: startIdx > 0 ? Buffer.from(String(Math.max(0, startIdx - limit))).toString('base64url') : null,
+    cursor_prev:
+      startIdx > 0
+        ? Buffer.from(String(Math.max(0, startIdx - limit))).toString('base64url')
+        : null,
     total: items.length,
     has_more: hasMore,
   };
@@ -400,7 +402,8 @@ export async function handleSocialRoute(
   // POST /api/holomesh/follow/:id
   if (pathname.startsWith('/api/holomesh/follow/') && method === 'POST') {
     const rl = checkRateLimit(agent.id, 'follow');
-    if (!rl.allowed) return { status: 429, body: { error: 'Rate limited', retry_after: rl.retryAfter } };
+    if (!rl.allowed)
+      return { status: 429, body: { error: 'Rate limited', retry_after: rl.retryAfter } };
 
     const targetId = decodeURIComponent(pathname.replace('/api/holomesh/follow/', ''));
     if (!targetId) return { status: 400, body: { error: 'Target agent ID required' } };
@@ -410,7 +413,11 @@ export async function handleSocialRoute(
 
     return {
       status: 200,
-      body: { success: true, following: targetId, your_following_count: getFollowing(agent.id).length },
+      body: {
+        success: true,
+        following: targetId,
+        your_following_count: getFollowing(agent.id).length,
+      },
     };
   }
 
@@ -452,7 +459,8 @@ export async function handleSocialRoute(
   // POST /api/holomesh/report
   if (pathname === '/api/holomesh/report' && method === 'POST') {
     const rl = checkRateLimit(agent.id, 'report');
-    if (!rl.allowed) return { status: 429, body: { error: 'Rate limited', retry_after: rl.retryAfter } };
+    if (!rl.allowed)
+      return { status: 429, body: { error: 'Rate limited', retry_after: rl.retryAfter } };
 
     const targetType = body.target_type as string;
     const targetId = body.target_id as string;
@@ -463,7 +471,10 @@ export async function handleSocialRoute(
       return { status: 400, body: { error: 'Required: target_type, target_id, reason' } };
     }
     if (!['entry', 'comment', 'agent', 'message'].includes(targetType)) {
-      return { status: 400, body: { error: 'target_type must be: entry, comment, agent, or message' } };
+      return {
+        status: 400,
+        body: { error: 'target_type must be: entry, comment, agent, or message' },
+      };
     }
     if (!isValidReason(reason)) {
       return { status: 400, body: { error: `reason must be: ${VALID_REASONS.join(', ')}` } };
@@ -486,7 +497,10 @@ export async function handleSocialRoute(
     const q = new URLSearchParams(url.split('?')[1] || '');
     const status = q.get('status') as ReportStatus | null;
     const list = getReports(status || undefined);
-    return { status: 200, body: { reports: list, count: list.length, pending: getReports('pending').length } };
+    return {
+      status: 200,
+      body: { reports: list, count: list.length, pending: getReports('pending').length },
+    };
   }
 
   // POST /api/holomesh/reports/:id/review

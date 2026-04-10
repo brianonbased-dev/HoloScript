@@ -75,7 +75,9 @@ export class GrabbableTrait implements Trait {
       if (hands.left && hands.right) {
         this.initialPinchDistance = this.getDistance(hands.left.position, hands.right.position);
         // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        this.initialScale = node.properties.scale ? { ...node.properties.scale } : { x: 1, y: 1, z: 1 };
+        this.initialScale = node.properties.scale
+          ? { ...node.properties.scale }
+          : { x: 1, y: 1, z: 1 };
 
         // Reset Rotation State
         this.initialHandAngle = null;
@@ -143,8 +145,8 @@ export class GrabbableTrait implements Trait {
       this.initialHandAngle = angle;
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       this.initialObjectRotation = node.properties.rotation
-        // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-        ? { ...node.properties.rotation }
+        ? // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+          { ...node.properties.rotation }
         : { x: 0, y: 0, z: 0 };
     }
 
@@ -168,7 +170,7 @@ export class GrabbableTrait implements Trait {
 
   private getDistance(
     p1: { x?: number; y?: number; z?: number } | [number, number, number],
-    p2: { x?: number; y?: number; z?: number } | [number, number, number],
+    p2: { x?: number; y?: number; z?: number } | [number, number, number]
   ): number {
     const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);
     const y1 = Array.isArray(p1) ? p1[1] : (p1.y ?? 0);

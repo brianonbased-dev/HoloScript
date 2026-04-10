@@ -40,7 +40,12 @@ export const profilerHandler: TraitHandler<ProfilerConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: ProfilerConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ProfilerConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__profilerState as
       | {
           activeSpans: Map<string, number>;

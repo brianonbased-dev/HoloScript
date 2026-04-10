@@ -17,7 +17,12 @@ export const autocompleteHandler: TraitHandler<AutocompleteConfig> = {
     delete node.__acState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: AutocompleteConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: AutocompleteConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__acState as { terms: string[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

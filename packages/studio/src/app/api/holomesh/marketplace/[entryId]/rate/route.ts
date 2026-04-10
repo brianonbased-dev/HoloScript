@@ -23,12 +23,12 @@ import { rateLimit } from '../../../../../../lib/rate-limiter';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ entryId: string }> },
+  { params }: { params: Promise<{ entryId: string }> }
 ): Promise<NextResponse> {
   const rl = rateLimit(
     req,
     { max: 30, windowMs: 60_000, label: 'Too many rating submissions.' },
-    'entry-rate-write',
+    'entry-rate-write'
   );
   if (!rl.ok) return rl.response;
 
@@ -115,7 +115,7 @@ export async function POST(
   } catch (err) {
     return NextResponse.json(
       { error: 'Failed to save rating', detail: err instanceof Error ? err.message : String(err) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -126,12 +126,12 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ entryId: string }> },
+  { params }: { params: Promise<{ entryId: string }> }
 ): Promise<NextResponse> {
   const rl = rateLimit(
     req,
     { max: 120, windowMs: 60_000, label: 'Too many rating lookups.' },
-    'entry-rate-read',
+    'entry-rate-read'
   );
   if (!rl.ok) return rl.response;
 
@@ -155,10 +155,7 @@ export async function GET(
       .select()
       .from(holomeshEntryRatings)
       .where(
-        and(
-          eq(holomeshEntryRatings.entryId, entryId),
-          eq(holomeshEntryRatings.agentId, agentId),
-        ),
+        and(eq(holomeshEntryRatings.entryId, entryId), eq(holomeshEntryRatings.agentId, agentId))
       )
       .limit(1);
 
@@ -170,7 +167,7 @@ export async function GET(
   } catch (err) {
     return NextResponse.json(
       { error: 'Failed to fetch rating', detail: err instanceof Error ? err.message : String(err) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

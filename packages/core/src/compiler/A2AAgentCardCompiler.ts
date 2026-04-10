@@ -431,9 +431,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
       }
     }
     if (examples.length === 0) {
-      examples.push(
-        `Create a ${this.escapeStringValue(template.name as string, 'JSON')} instance`
-      );
+      examples.push(`Create a ${this.escapeStringValue(template.name as string, 'JSON')} instance`);
     }
 
     return {
@@ -467,9 +465,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
 
     const examples: string[] = [];
     if (objTraitNames.includes('sensor')) {
-      examples.push(
-        `Read sensor data from ${this.escapeStringValue(obj.name as string, 'JSON')}`
-      );
+      examples.push(`Read sensor data from ${this.escapeStringValue(obj.name as string, 'JSON')}`);
     }
     if (objTraitNames.includes('networked')) {
       examples.push(
@@ -790,9 +786,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
   private generateDescription(composition: HoloComposition): string {
     const parts: string[] = [];
 
-    parts.push(
-      `HoloScript agent "${this.escapeStringValue(composition.name as string, 'JSON')}"`
-    );
+    parts.push(`HoloScript agent "${this.escapeStringValue(composition.name as string, 'JSON')}"`);
 
     const features: string[] = [];
     if (composition.templates?.length) {

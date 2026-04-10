@@ -74,7 +74,8 @@ describe('quickBenchmark', () => {
     eval(benchmarkCode);
 
     // Extract the functions that should be available on window
-    quickBenchmark = (global.window as unknown as MockBrowserWindow).quickBenchmark as () => Promise<any>;
+    quickBenchmark = (global.window as unknown as MockBrowserWindow)
+      .quickBenchmark as () => Promise<any>;
     BenchmarkUtils = (global.window as unknown as MockBrowserWindow).BenchmarkUtils;
   });
 

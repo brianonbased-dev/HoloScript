@@ -17,9 +17,7 @@ import { Team } from '@holoscript/framework';
 
 function getServerUrl(): string {
   return (
-    process.env.HOLOSCRIPT_SERVER_URL ||
-    process.env.MCP_LOCAL_URL ||
-    'https://mcp.holoscript.net'
+    process.env.HOLOSCRIPT_SERVER_URL || process.env.MCP_LOCAL_URL || 'https://mcp.holoscript.net'
   );
 }
 
@@ -149,7 +147,7 @@ export const boardTools: Tool[] = [
   {
     name: 'holomesh_slot_assign',
     description:
-      'Set slot roles for a team. Provide an array of roles matching the team\'s max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.',
+      "Set slot roles for a team. Provide an array of roles matching the team's max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -163,8 +161,7 @@ export const boardTools: Tool[] = [
             type: 'string',
             enum: ['coder', 'tester', 'researcher', 'reviewer', 'flex'],
           },
-          description:
-            'Array of roles for each slot. Length must equal team max_slots.',
+          description: 'Array of roles for each slot. Length must equal team max_slots.',
         },
       },
       required: ['team_id', 'roles'],
@@ -203,7 +200,8 @@ export const boardTools: Tool[] = [
         },
         todo_content: {
           type: 'string',
-          description: 'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
+          description:
+            'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
         },
         sources: {
           type: 'array',
@@ -391,9 +389,7 @@ export async function handleBoardTool(
 
 // ── Individual Handlers ──
 
-async function handleBoardList(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleBoardList(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
   try {
@@ -404,9 +400,7 @@ async function handleBoardList(
   }
 }
 
-async function handleBoardAdd(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const tasks = args.tasks as Array<Record<string, unknown>> | undefined;
 
@@ -425,9 +419,7 @@ async function handleBoardAdd(
   }
 }
 
-async function handleBoardClaim(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const taskId = args.task_id as string;
 
@@ -461,9 +453,7 @@ async function handleBoardComplete(
   }
 }
 
-async function handleSlotAssign(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleSlotAssign(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const roles = args.roles as string[] | undefined;
 
@@ -480,9 +470,7 @@ async function handleSlotAssign(
   }
 }
 
-async function handleModeSet(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleModeSet(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const mode = args.mode as string;
 
@@ -498,9 +486,7 @@ async function handleModeSet(
   }
 }
 
-async function handleScout(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleScout(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
   if (!args.todo_content) return { error: 'todo_content is required for scout' };
@@ -514,9 +500,7 @@ async function handleScout(
   }
 }
 
-async function handleSuggest(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleSuggest(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const title = args.title as string;
 
@@ -525,19 +509,17 @@ async function handleSuggest(
 
   try {
     const team = getFrameworkTeam(teamId);
-    return await team.suggest(title, {
+    return (await team.suggest(title, {
       description: args.description as string | undefined,
       category: args.category as string | undefined,
       evidence: args.evidence as string | undefined,
-    }) as unknown as Record<string, unknown>;
+    })) as unknown as Record<string, unknown>;
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-async function handleSuggestVote(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const sugId = args.suggestion_id as string;
   const value = args.value as number;
@@ -548,15 +530,17 @@ async function handleSuggestVote(
 
   try {
     const team = getFrameworkTeam(teamId);
-    return await team.vote(sugId, value as 1 | -1, args.reason as string | undefined) as unknown as Record<string, unknown>;
+    return (await team.vote(
+      sugId,
+      value as 1 | -1,
+      args.reason as string | undefined
+    )) as unknown as Record<string, unknown>;
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-async function handleSuggestList(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleSuggestList(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
@@ -569,9 +553,7 @@ async function handleSuggestList(
   }
 }
 
-async function handleHeartbeat(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
@@ -588,7 +570,7 @@ async function handleHeartbeat(
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return { error: `Heartbeat failed: ${res.status}` };
-    return await res.json() as Record<string, unknown>;
+    return (await res.json()) as Record<string, unknown>;
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -609,7 +591,7 @@ async function handleKnowledgeRead(
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return { error: `Knowledge read failed: ${res.status}` };
-    const data = await res.json() as Record<string, unknown>;
+    const data = (await res.json()) as Record<string, unknown>;
     const entries = (data.entries as Array<Record<string, unknown>>) || [];
     const limit = (args.limit as number) || 20;
     return { entries: entries.slice(0, limit), total: entries.length };

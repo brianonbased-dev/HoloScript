@@ -15,12 +15,7 @@
  * @version 1.0.0
  */
 
-import {
-  CulturalMemory,
-  EpisodicMemory,
-  StigmergicTrace,
-  SemanticSOP,
-} from '@holoscript/core';
+import { CulturalMemory, EpisodicMemory, StigmergicTrace, SemanticSOP } from '@holoscript/core';
 import { NormEngine, NormViolation, NormProposal } from '@holoscript/core';
 import { CulturalNorm, NormEnforcement, BUILTIN_NORMS } from '@holoscript/core';
 import { VREffect } from '@holoscript/core';
@@ -331,4 +326,3 @@ export class CultureRuntime {
     }
   }
 }
-

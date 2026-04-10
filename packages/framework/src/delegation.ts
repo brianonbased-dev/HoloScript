@@ -222,7 +222,7 @@ export class DelegationManager {
       chain,
       reason: result.accepted
         ? `Delegated to "${targetTeamId}" (remote task: ${result.taskId})`
-        : result.reason ?? 'Target team rejected the task',
+        : (result.reason ?? 'Target team rejected the task'),
     };
   }
 
@@ -253,13 +253,15 @@ export class DelegationManager {
    * Get all delegations from this team.
    */
   getOutboundDelegations(): DelegationRecord[] {
-    return [...this.delegations.values()].filter(d => d.fromTeam === this.teamId);
+    return [...this.delegations.values()].filter((d) => d.fromTeam === this.teamId);
   }
 
   /**
    * Get pending delegations.
    */
   getPendingDelegations(): DelegationRecord[] {
-    return [...this.delegations.values()].filter(d => d.status === 'pending' || d.status === 'accepted');
+    return [...this.delegations.values()].filter(
+      (d) => d.status === 'pending' || d.status === 'accepted'
+    );
   }
 }

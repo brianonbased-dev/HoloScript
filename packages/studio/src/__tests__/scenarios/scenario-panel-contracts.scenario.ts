@@ -39,10 +39,7 @@ import {
   type Artifact,
 } from '../../industry/scenarios/ArchaeologyPanel';
 
-import {
-  type JointData,
-  type MotionCapture,
-} from '../../industry/scenarios/BiomechanicsPanel';
+import { type JointData, type MotionCapture } from '../../industry/scenarios/BiomechanicsPanel';
 
 import {
   type BeamMaterial,
@@ -91,9 +88,7 @@ import {
   type TimeCapsule,
 } from '../../industry/scenarios/TimeCapsulePanel';
 
-import {
-  type ScenarioCardProps,
-} from '../../industry/scenarios/ScenarioCard';
+import { type ScenarioCardProps } from '../../industry/scenarios/ScenarioCard';
 
 // ── ArchaeologyPanel ─────────────────────────────────────────────────────────
 
@@ -104,7 +99,13 @@ describe('Scenario: ArchaeologyPanel — type contracts', () => {
   });
 
   it('StratLayer has required shape fields', () => {
-    const layer: StratLayer = { id: 0, name: 'Topsoil', depth: 0, color: '#8B6914', period: 'Modern' };
+    const layer: StratLayer = {
+      id: 0,
+      name: 'Topsoil',
+      depth: 0,
+      color: '#8B6914',
+      period: 'Modern',
+    };
     expect(layer.id).toBe(0);
     expect(layer.name).toBeTruthy();
     expect(layer.depth).toBeGreaterThanOrEqual(0);
@@ -169,9 +170,7 @@ describe('Scenario: BiomechanicsPanel — type contracts', () => {
       sport: 'Track',
       duration: 2.5,
       fps: 240,
-      joints: [
-        { name: 'Hip L', angle: 145, velocity: 320, torque: 180, rom: [0, 180] },
-      ],
+      joints: [{ name: 'Hip L', angle: 145, velocity: 320, torque: 180, rom: [0, 180] }],
       peakForce: 2400,
       notes: 'Test capture',
     };
@@ -182,7 +181,13 @@ describe('Scenario: BiomechanicsPanel — type contracts', () => {
   });
 
   it('JointData torque is positive', () => {
-    const joint: JointData = { name: 'Knee L', angle: 85, velocity: 450, torque: 220, rom: [0, 160] };
+    const joint: JointData = {
+      name: 'Knee L',
+      angle: 85,
+      velocity: 450,
+      torque: 220,
+      rom: [0, 160],
+    };
     expect(joint.torque).toBeGreaterThan(0);
   });
 });
@@ -341,7 +346,16 @@ describe('Scenario: EscapeRoomPanel — type contracts', () => {
 
 describe('Scenario: FashionRunwayPanel — type contracts', () => {
   it('FabricType values are fabric names', () => {
-    const fabrics: FabricType[] = ['silk', 'cotton', 'leather', 'denim', 'wool', 'lace', 'satin', 'chiffon'];
+    const fabrics: FabricType[] = [
+      'silk',
+      'cotton',
+      'leather',
+      'denim',
+      'wool',
+      'lace',
+      'satin',
+      'chiffon',
+    ];
     expect(fabrics).toHaveLength(8);
     expect(fabrics).toContain('silk');
     expect(fabrics).toContain('chiffon');
@@ -395,14 +409,31 @@ describe('Scenario: FashionRunwayPanel — type contracts', () => {
 
 describe('Scenario: FilmStudioPanel — type contracts', () => {
   it('ShotType values include all common film framing', () => {
-    const shots: ShotType[] = ['wide', 'medium', 'close-up', 'extreme-close', 'over-shoulder', 'pov', 'aerial', 'tracking'];
+    const shots: ShotType[] = [
+      'wide',
+      'medium',
+      'close-up',
+      'extreme-close',
+      'over-shoulder',
+      'pov',
+      'aerial',
+      'tracking',
+    ];
     expect(shots).toHaveLength(8);
     expect(shots).toContain('wide');
     expect(shots).toContain('pov');
   });
 
   it('CameraMove values include static and dynamic moves', () => {
-    const moves: CameraMove[] = ['static', 'pan', 'tilt', 'dolly', 'crane', 'handheld', 'steadicam'];
+    const moves: CameraMove[] = [
+      'static',
+      'pan',
+      'tilt',
+      'dolly',
+      'crane',
+      'handheld',
+      'steadicam',
+    ];
     expect(moves).toHaveLength(7);
     expect(moves).toContain('static');
     expect(moves).toContain('steadicam');
@@ -445,7 +476,15 @@ describe('Scenario: FilmStudioPanel — type contracts', () => {
 
 describe('Scenario: ForensicScenePanel — type contracts', () => {
   it('MarkerType values cover all evidence categories', () => {
-    const types: MarkerType[] = ['blood', 'fiber', 'fingerprint', 'weapon', 'footprint', 'dna', 'other'];
+    const types: MarkerType[] = [
+      'blood',
+      'fiber',
+      'fingerprint',
+      'weapon',
+      'footprint',
+      'dna',
+      'other',
+    ];
     expect(types).toHaveLength(7);
     expect(types).toContain('dna');
     expect(types).toContain('blood');

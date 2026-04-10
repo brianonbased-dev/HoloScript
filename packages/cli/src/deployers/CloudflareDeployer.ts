@@ -312,7 +312,7 @@ export class CloudflareDeployer extends BaseDeployer {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiToken}`,
+        Authorization: `Bearer ${this.apiToken}`,
       },
       body: formData,
     });
@@ -454,7 +454,7 @@ export class CloudflareDeployer extends BaseDeployer {
     const url = `${this.apiBaseUrl}${endpoint}`;
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.apiToken}`,
+      Authorization: `Bearer ${this.apiToken}`,
     };
 
     // Only set Content-Type for requests with a JSON body (not FormData)
@@ -465,11 +465,7 @@ export class CloudflareDeployer extends BaseDeployer {
     const response = await fetch(url, {
       method,
       headers,
-      body: body instanceof FormData
-        ? body
-        : body
-          ? JSON.stringify(body)
-          : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     });
 
     const data: CloudflareApiResponse = await response.json();

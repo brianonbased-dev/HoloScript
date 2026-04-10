@@ -32,7 +32,12 @@ export const promptTemplateHandler: TraitHandler<PromptTemplateConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: PromptTemplateConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PromptTemplateConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__promptState as { templates: Map<string, PromptEntry> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

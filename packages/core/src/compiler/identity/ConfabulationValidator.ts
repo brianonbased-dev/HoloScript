@@ -1666,12 +1666,13 @@ export class ConfabulationValidator {
     const objectTraitNames: string[] = [];
 
     // Authority override bypass
-    // Note: Can't easily use dynamic import if we need it synchronously, 
+    // Note: Can't easily use dynamic import if we need it synchronously,
     // but validateComposition/validateObject is sync.
     // Let's rely on checking the string value of authority to avoid sync/async issues,
-    // or import it at the top level and use it. 
+    // or import it at the top level and use it.
     // Wait, obj.provenance can be checked directly here.
-    const authority = (obj.provenance?.context as Extensible<Record<string, unknown>> | undefined)?.authority as string | undefined;
+    const authority = (obj.provenance?.context as Extensible<Record<string, unknown>> | undefined)
+      ?.authority as string | undefined;
     if (authority === 'system' || authority === 'verified') {
       return { errors, warnings, traitsChecked: 0, propertiesChecked: 0 };
     }

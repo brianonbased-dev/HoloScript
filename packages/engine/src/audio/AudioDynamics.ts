@@ -145,4 +145,3 @@ export class AudioDynamics {
     return this.duckAmount;
   }
 }
-

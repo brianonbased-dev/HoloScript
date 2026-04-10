@@ -394,10 +394,18 @@ export class UnityCompiler extends CompilerBase {
 
   private compileObject(obj: HoloObjectDecl, parentVar: string): void {
     const varName = this.sanitizeName(obj.name);
-    const meshType = this.findObjProp(obj, 'geometry') || this.findObjProp(obj, 'mesh') || this.findObjProp(obj, 'type') || 'cube';
+    const meshType =
+      this.findObjProp(obj, 'geometry') ||
+      this.findObjProp(obj, 'mesh') ||
+      this.findObjProp(obj, 'type') ||
+      'cube';
     const isText = meshType === 'text';
     const isSparkles = meshType === 'sparkles';
-    const isModel = meshType === 'model' || !!this.findObjProp(obj, 'model') || !!this.findObjProp(obj, 'src') || !!this.findObjProp(obj, 'source');
+    const isModel =
+      meshType === 'model' ||
+      !!this.findObjProp(obj, 'model') ||
+      !!this.findObjProp(obj, 'src') ||
+      !!this.findObjProp(obj, 'source');
 
     this.emit(`// Object: ${this.escapeStringValue(obj.name as string, 'CSharp')}`);
 
@@ -414,16 +422,17 @@ export class UnityCompiler extends CompilerBase {
       const color = this.findObjProp(obj, 'color');
       if (color) this.emit(`${varName}TM.color = ${this.toColor(color)};`);
     } else if (isModel) {
-      const src = this.findObjProp(obj, 'model') || this.findObjProp(obj, 'src') || this.findObjProp(obj, 'source');
+      const src =
+        this.findObjProp(obj, 'model') ||
+        this.findObjProp(obj, 'src') ||
+        this.findObjProp(obj, 'source');
       if (src) {
         this.emit(`var ${varName}GO = Instantiate(Resources.Load<GameObject>("Models/${src}"));`);
       } else {
         this.emit(`// WARNING: geometry "model" without source — placeholder cube`);
         this.emit(`var ${varName}GO = GameObject.CreatePrimitive(PrimitiveType.Cube);`);
       }
-      this.emit(
-        `${varName}GO.name = "${this.escapeStringValue(obj.name as string, 'CSharp')}";`
-      );
+      this.emit(`${varName}GO.name = "${this.escapeStringValue(obj.name as string, 'CSharp')}";`);
       this.emit(`${varName}GO.transform.SetParent(${parentVar});`);
     } else if (isSparkles) {
       this.emit(
@@ -445,9 +454,7 @@ export class UnityCompiler extends CompilerBase {
       };
       const primitive = primitiveMap[meshType as string] || 'PrimitiveType.Cube';
       this.emit(`var ${varName}GO = GameObject.CreatePrimitive(${primitive});`);
-      this.emit(
-        `${varName}GO.name = "${this.escapeStringValue(obj.name as string, 'CSharp')}";`
-      );
+      this.emit(`${varName}GO.name = "${this.escapeStringValue(obj.name as string, 'CSharp')}";`);
       this.emit(`${varName}GO.transform.SetParent(${parentVar});`);
     }
 
@@ -898,7 +905,10 @@ export class UnityCompiler extends CompilerBase {
     return 'null';
   }
 
-  private findProp(props: Array<{ key: string; value: HoloValue }>, key: string): HoloValue | undefined {
+  private findProp(
+    props: Array<{ key: string; value: HoloValue }>,
+    key: string
+  ): HoloValue | undefined {
     return props?.find((p) => p.key === key)?.value;
   }
 

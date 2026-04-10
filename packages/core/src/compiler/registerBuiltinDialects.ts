@@ -409,8 +409,7 @@ export function registerBuiltinDialects(): void {
         const { compileToNextJSAPI } = require('./NextJSAPICompiler');
         // Wrap the functional API in a minimal adapter recognised by DialectRegistry
         return {
-          compile: (composition: unknown, _token: unknown) =>
-            compileToNextJSAPI(composition),
+          compile: (composition: unknown, _token: unknown) => compileToNextJSAPI(composition),
         };
       },
       outputExtensions: ['.ts'],

@@ -124,9 +124,7 @@ export class AnimationStateMachine {
     if (state === this._currentState) return false;
 
     // Find matching transition
-    const t = this._transitions.find(
-      (tr) => tr.from === this._currentState && tr.to === state,
-    );
+    const t = this._transitions.find((tr) => tr.from === this._currentState && tr.to === state);
 
     // Check condition guard
     if (t?.condition && !t.condition()) return false;
@@ -209,9 +207,7 @@ export class AnimationStateMachine {
   canTransitionTo(state: AnimationState): boolean {
     if (this._locked) return false;
     if (state === this._currentState) return false;
-    const t = this._transitions.find(
-      (tr) => tr.from === this._currentState && tr.to === state,
-    );
+    const t = this._transitions.find((tr) => tr.from === this._currentState && tr.to === state);
     if (!t) return false;
     if (t.condition && !t.condition()) return false;
     return true;

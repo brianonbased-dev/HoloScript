@@ -22,7 +22,12 @@ export const pdfGenerateHandler: TraitHandler<PdfGenerateConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: PdfGenerateConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PdfGenerateConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__pdfState as { generated: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'pdf:generate') {

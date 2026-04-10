@@ -80,4 +80,3 @@ describe('Swarm Intelligence', () => {
     );
   });
 });
-

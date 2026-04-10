@@ -934,4 +934,3 @@ describe('PhysicsActivationController', () => {
     });
   });
 });
-

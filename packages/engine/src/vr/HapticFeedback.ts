@@ -131,4 +131,3 @@ export class HapticFeedback {
     return this.globalIntensity;
   }
 }
-

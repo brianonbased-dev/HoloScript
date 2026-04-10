@@ -413,7 +413,7 @@ export class HumanoidLoader {
       try {
         // @ts-ignore - VRM plugin is optional
         const { VRMLoaderPlugin } = await import('@pixiv/three-vrm');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         (this.gltfLoader as GLTFLoaderLike).register(
           (parser: unknown) => new VRMLoaderPlugin(parser as any)
         );
@@ -432,7 +432,6 @@ export class HumanoidLoader {
       } catch {
         console.warn('[HumanoidLoader] Draco loader not available');
       }
-
     } catch (error) {
       console.error('[HumanoidLoader] Failed to initialize:', error);
       throw new Error('HumanoidLoader initialization failed. Ensure Three.js is available.');

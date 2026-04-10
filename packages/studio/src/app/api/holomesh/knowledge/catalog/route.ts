@@ -4,7 +4,8 @@ import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { rateLimit } from '../../../../../lib/rate-limiter';
 
-const BASE = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const MAX_LIMIT = 200;
 const DEFAULT_LIMIT = 50;
@@ -29,7 +30,10 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const domain = sp.get('domain') ?? '';
   const type = sp.get('type') ?? '';
-  const limit = Math.min(parseInt(sp.get('limit') ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT, MAX_LIMIT);
+  const limit = Math.min(
+    parseInt(sp.get('limit') ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT,
+    MAX_LIMIT
+  );
   const offset = Math.max(parseInt(sp.get('offset') ?? '0', 10) || 0, 0);
 
   const db = getDb();
@@ -40,15 +44,28 @@ export async function GET(req: NextRequest) {
       // Build where clause
       const domainCond = domain ? eq(holomeshKnowledgeEntries.domain, domain) : undefined;
       const typeCond = type ? eq(holomeshKnowledgeEntries.type, type) : undefined;
-      const where = domainCond && typeCond ? and(domainCond, typeCond)
-                  : domainCond ?? typeCond;
+      const where = domainCond && typeCond ? and(domainCond, typeCond) : (domainCond ?? typeCond);
 
       const [entries, countResult] = await Promise.all([
         where
-          ? db.select().from(holomeshKnowledgeEntries).where(where).orderBy(sql`synced_at DESC`).limit(limit).offset(offset)
-          : db.select().from(holomeshKnowledgeEntries).orderBy(sql`synced_at DESC`).limit(limit).offset(offset),
+          ? db
+              .select()
+              .from(holomeshKnowledgeEntries)
+              .where(where)
+              .orderBy(sql`synced_at DESC`)
+              .limit(limit)
+              .offset(offset)
+          : db
+              .select()
+              .from(holomeshKnowledgeEntries)
+              .orderBy(sql`synced_at DESC`)
+              .limit(limit)
+              .offset(offset),
         where
-          ? db.select({ count: sql<number>`count(*)` }).from(holomeshKnowledgeEntries).where(where)
+          ? db
+              .select({ count: sql<number>`count(*)` })
+              .from(holomeshKnowledgeEntries)
+              .where(where)
           : db.select({ count: sql<number>`count(*)` }).from(holomeshKnowledgeEntries),
       ]);
 
@@ -103,18 +120,26 @@ export async function GET(req: NextRequest) {
   });
 
   if (!res.ok) {
-    return NextResponse.json({ success: false, error: `Upstream returned ${res.status}` }, { status: res.status });
+    return NextResponse.json(
+      { success: false, error: `Upstream returned ${res.status}` },
+      { status: res.status }
+    );
   }
 
-  const data = await res.json() as { entries?: unknown[]; success?: boolean };
+  const data = (await res.json()) as { entries?: unknown[]; success?: boolean };
   const all = data.entries ?? [];
 
   // Client-side domain filter (MCP doesn't support it server-side)
   const filtered = domain
-    ? all.filter((e) => typeof e === 'object' && e !== null && (e as Record<string, unknown>).domain === domain)
+    ? all.filter(
+        (e) =>
+          typeof e === 'object' && e !== null && (e as Record<string, unknown>).domain === domain
+      )
     : all;
   const typeFiltered = type
-    ? filtered.filter((e) => typeof e === 'object' && e !== null && (e as Record<string, unknown>).type === type)
+    ? filtered.filter(
+        (e) => typeof e === 'object' && e !== null && (e as Record<string, unknown>).type === type
+      )
     : filtered;
 
   const page = typeFiltered.slice(offset, offset + limit);

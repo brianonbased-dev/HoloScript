@@ -1,8 +1,24 @@
 export { CombatManager } from './CombatManager';
-export type { HitBox, HurtBox, CollisionResult, HitLogEntry, ComboStep, ComboChain, ComboAdvanceResult, Vec3, TargetCandidate } from './CombatManager';
+export type {
+  HitBox,
+  HurtBox,
+  CollisionResult,
+  HitLogEntry,
+  ComboStep,
+  ComboChain,
+  ComboAdvanceResult,
+  Vec3,
+  TargetCandidate,
+} from './CombatManager';
 
 export { DamageSystem } from './DamageSystem';
-export type { DamageConfig, DamageInstance, Resistances, DoTEffect, DoTTickResult } from './DamageSystem';
+export type {
+  DamageConfig,
+  DamageInstance,
+  Resistances,
+  DoTEffect,
+  DoTTickResult,
+} from './DamageSystem';
 
 export { HitboxSystem } from './HitboxSystem';
 export type { Hitbox, Hurtbox, HitEvent } from './HitboxSystem';

@@ -783,11 +783,7 @@ export class GaussianBakingClient {
   // Private Helpers
   // ---------------------------------------------------------------------------
 
-  private async apiCall(
-    path: string,
-    method: 'GET' | 'POST' | 'DELETE',
-    body?: any
-  ): Promise<any> {
+  private async apiCall(path: string, method: 'GET' | 'POST' | 'DELETE', body?: any): Promise<any> {
     const maxRetries = 3;
     const backoff = [1000, 2000, 4000];
 

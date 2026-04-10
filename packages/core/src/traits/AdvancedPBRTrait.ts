@@ -183,11 +183,11 @@ export const AdvancedPBRTrait: TraitHandler<AdvancedPBRConfig> = {
 };
 
 function compileUnity(config: AdvancedPBRConfig): string {
-    const baseColor = Array.isArray(config.base_color)
-      ? `new Color(${config.base_color.join(', ')})`
-      : `ColorUtility.TryParseHtmlString("${config.base_color}", out Color color) ? color : Color.white`;
+  const baseColor = Array.isArray(config.base_color)
+    ? `new Color(${config.base_color.join(', ')})`
+    : `ColorUtility.TryParseHtmlString("${config.base_color}", out Color color) ? color : Color.white`;
 
-    return `
+  return `
 // Unity HDRP Advanced PBR Material
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
@@ -331,7 +331,7 @@ function compileGodot(_config: AdvancedPBRConfig): string {
 }
 
 function compileUnreal(config: AdvancedPBRConfig): string {
-    return `
+  return `
 // Unreal Engine Advanced PBR Material Setup
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -400,7 +400,7 @@ private:
 }
 
 function compileWeb(config: AdvancedPBRConfig): string {
-    return `
+  return `
 // Three.js Advanced PBR Material
 import * as THREE from 'three';
 
@@ -554,7 +554,7 @@ export default AdvancedPBRMaterial;
 }
 
 function compileWebGPU(config: AdvancedPBRConfig): string {
-    return `
+  return `
 // WebGPU Advanced PBR Shader
 struct AdvancedPBRUniforms {
   baseColor: vec3<f32>,
@@ -678,7 +678,7 @@ fn main(@location(0) worldPos: vec3<f32>,
 }
 
 function compileGeneric(config: AdvancedPBRConfig): string {
-    return `
+  return `
 // Generic Advanced PBR Configuration
 const advancedPBRConfig = ${JSON.stringify(config, null, 2)};
 

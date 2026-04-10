@@ -11,11 +11,11 @@ describe('AbsorbOrchestratorPanel', () => {
 
     // Check titles
     expect(screen.getByText('🌀 Absorb & Orchestration Funnel')).toBeInTheDocument();
-    
+
     // Check nodes rendering
     expect(screen.getByText('Refactor Core Rendering')).toBeInTheDocument();
     expect(screen.getByText('IDLE')).toBeInTheDocument(); // Initial state
-    
+
     // We should see total tokens from initial state: 0 + 2500 + 5500 = 8000
     expect(screen.getByText('8000')).toBeInTheDocument();
   });

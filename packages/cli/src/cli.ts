@@ -201,7 +201,9 @@ async function main(): Promise<void> {
           process.exit(1);
         }
       } catch (err: unknown) {
-        console.error(`\x1b[31mUnexpected error during validation: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mUnexpected error during validation: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         process.exit(1);
       }
       break;
@@ -440,7 +442,9 @@ async function main(): Promise<void> {
 
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mDiff error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mDiff error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         process.exit(1);
       }
     }
@@ -577,7 +581,9 @@ async function main(): Promise<void> {
 
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mWoT export error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mWoT export error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (options.verbose && err instanceof Error) {
           console.error(err.stack);
         }
@@ -740,7 +746,9 @@ async function main(): Promise<void> {
         // Keep process alive
         await new Promise(() => {});
       } catch (err: unknown) {
-        console.error(`\x1b[31mHeadless runtime error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mHeadless runtime error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (options.verbose && err instanceof Error) {
           console.error(err.stack);
         }
@@ -1632,17 +1640,13 @@ async function main(): Promise<void> {
                 : outputPath + ext;
 
             const outputStr =
-              typeof output === 'string'
-                ? output
-                : (output as { output: string }).output;
+              typeof output === 'string' ? output : (output as { output: string }).output;
             fs.writeFileSync(finalPath, outputStr);
             console.log(`\x1b[32m✓ Native 2D output written to ${finalPath}\x1b[0m`);
           } else {
             console.log(`\n--- Native 2D Output (${outputFormat}) ---\n`);
             const outputStr =
-              typeof output === 'string'
-                ? output
-                : (output as { output: string }).output;
+              typeof output === 'string' ? output : (output as { output: string }).output;
             console.log(outputStr);
           }
 
@@ -1665,7 +1669,9 @@ async function main(): Promise<void> {
         console.log(`\x1b[32m✓ Compilation successful!\x1b[0m\n`);
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mCompilation error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mCompilation error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         process.exit(1);
       }
     }
@@ -1845,7 +1851,9 @@ async function main(): Promise<void> {
         });
         process.exit(0);
       } catch (error: unknown) {
-        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+        console.error(
+          `\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
         process.exit(1);
       }
       break;
@@ -1885,7 +1893,9 @@ async function main(): Promise<void> {
         });
         process.exit(success ? 0 : 1);
       } catch (error: unknown) {
-        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+        console.error(
+          `\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
         process.exit(1);
       }
       break;
@@ -1916,7 +1926,9 @@ async function main(): Promise<void> {
           logFile: options.output,
         });
       } catch (error: unknown) {
-        console.error(`\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+        console.error(
+          `\x1b[31mError: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
         process.exit(1);
       }
       break;
@@ -1964,7 +1976,9 @@ async function main(): Promise<void> {
 
         process.exit(0);
       } catch (error: unknown) {
-        console.error(`\x1b[31mPublish error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+        console.error(
+          `\x1b[31mPublish error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
         process.exit(1);
       }
     }
@@ -2045,7 +2059,9 @@ async function main(): Promise<void> {
         rl.close();
         process.exit(0);
       } catch (error: unknown) {
-        console.error(`\x1b[31mLogin error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`);
+        console.error(
+          `\x1b[31mLogin error: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
         rl.close();
         process.exit(1);
       }
@@ -2762,7 +2778,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const exitCode = await runSelfImprove(options);
         process.exit(exitCode);
       } catch (err: unknown) {
-        console.error(`\x1b[31mSelf-improve error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mSelf-improve error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
@@ -2824,7 +2842,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           child.on('error', reject);
         });
       } catch (err: unknown) {
-        console.error(`\x1b[31mDaemon error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mDaemon error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
@@ -3085,7 +3105,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mAbsorb error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mAbsorb error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
@@ -3186,7 +3208,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             );
           } catch (err: unknown) {
             console.warn(
-              bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err instanceof Error ? err.message : String(err)}. Rescanning...`)
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `Cache load failed: ${err instanceof Error ? err.message : String(err)}. Rescanning...`
+              )
             );
             fromCache = false;
           }
@@ -3231,7 +3256,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               bullet(`${DIM}💾${RESET}`, `${DIM}Graph cached for future queries${RESET}`)
             );
           } catch (err: unknown) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache save failed: ${err instanceof Error ? err.message : String(err)}`));
+            console.warn(
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `Cache save failed: ${err instanceof Error ? err.message : String(err)}`
+              )
+            );
           }
         }
 
@@ -3283,7 +3313,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             );
           } catch (err: unknown) {
             console.warn(
-              bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err instanceof Error ? err.message : String(err)}. Rebuilding...`)
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `Index cache load failed: ${err instanceof Error ? err.message : String(err)}. Rebuilding...`
+              )
             );
             indexFromCache = false;
           }
@@ -3322,7 +3355,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               }
             }
           } catch (err: unknown) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache save failed: ${err instanceof Error ? err.message : String(err)}`));
+            console.warn(
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `Index cache save failed: ${err instanceof Error ? err.message : String(err)}`
+              )
+            );
           }
         }
 
@@ -3488,7 +3526,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mQuery error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mQuery error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         if (options.verbose && err instanceof Error && err.stack) console.error(err.stack);
         process.exit(1);
       }
@@ -3567,7 +3607,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await provisionMcpConfigs(apiKey);
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         process.exit(1);
       }
     }
@@ -3587,7 +3629,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         await issueTenantKey(tenantId, tier);
         process.exit(0);
       } catch (err: unknown) {
-        console.error(`\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`);
+        console.error(
+          `\x1b[31mSetup failed: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+        );
         process.exit(1);
       }
     }

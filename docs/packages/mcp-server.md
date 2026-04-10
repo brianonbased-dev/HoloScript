@@ -4,12 +4,12 @@
 
 ## Overview
 
-The MCP server provides 122 AI-friendly tools that let language models:
+The MCP server provides AI-friendly tools (inventory is live and versioned via `/health`) that let language models:
 
 - **Parse** HoloScript files into abstract syntax trees
 - **Validate** code for errors before generation
 - **Generate** complete scenes and objects from descriptions
-- **Compile** to any of 30+ platforms
+- **Compile** to registered target platforms
 - **Analyze** codebase structure and suggest improvements
 - **Extract** traits, patterns, and metadata
 
@@ -69,7 +69,13 @@ const server = await startMCPServer({
 });
 ```
 
-## Tools (122)
+## Tools (live inventory)
+
+Verify current tool inventory via:
+
+```bash
+curl https://mcp.holoscript.net/health
+```
 
 ### Parsing & Analysis
 
@@ -98,7 +104,7 @@ const server = await startMCPServer({
 | Tool                | Purpose                    |
 | ------------------- | -------------------------- |
 | `compile_holo`      | Compile to specific target |
-| `list_compilers`    | Show all 30+ targets       |
+| `list_compilers`    | Show registered targets    |
 | `get_compiler_info` | Details about target       |
 
 ### Codebase Intelligence

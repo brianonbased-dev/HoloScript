@@ -91,7 +91,9 @@ export async function evolve(team: Team, config: EvolutionConfig = {}): Promise<
         await team.suggest(imp.title, {
           description: imp.description,
           category: mapCategory(imp.category),
-          evidence: imp.file ? `Detected in ${imp.file}${imp.line ? `:${imp.line}` : ''}` : undefined,
+          evidence: imp.file
+            ? `Detected in ${imp.file}${imp.line ? `:${imp.line}` : ''}`
+            : undefined,
         });
         suggestionsCreated++;
       } catch {
@@ -102,9 +104,9 @@ export async function evolve(team: Team, config: EvolutionConfig = {}): Promise<
 
   // Step 3: Auto-board critical items
   if (autoBoard) {
-    const critical = scan.improvements.filter(imp => imp.priority <= autoBoardMinPriority);
+    const critical = scan.improvements.filter((imp) => imp.priority <= autoBoardMinPriority);
     if (critical.length > 0) {
-      const tasks = critical.map(imp => ({
+      const tasks = critical.map((imp) => ({
         title: imp.title,
         description: `[Self-improvement] ${imp.description}`,
         priority: imp.priority,
@@ -119,31 +121,47 @@ export async function evolve(team: Team, config: EvolutionConfig = {}): Promise<
   // Step 4: Publish extracted knowledge
   for (const k of scan.knowledge) {
     team.knowledge.publish(
-      { type: k.type, content: k.content, domain: k.domain, confidence: k.confidence, source: 'evolution:self-scan' },
+      {
+        type: k.type,
+        content: k.content,
+        domain: k.domain,
+        confidence: k.confidence,
+        source: 'evolution:self-scan',
+      },
       'evolution-engine'
     );
     knowledgePublished++;
   }
 
   // Step 5: Compound
-  team.knowledge.compound(scan.knowledge.map(k => ({
-    type: k.type,
-    content: k.content,
-    domain: k.domain,
-    confidence: k.confidence,
-    source: 'evolution:self-scan',
-  })));
+  team.knowledge.compound(
+    scan.knowledge.map((k) => ({
+      type: k.type,
+      content: k.content,
+      domain: k.domain,
+      confidence: k.confidence,
+      source: 'evolution:self-scan',
+    }))
+  );
 
   return { scan, todoScan, suggestionsCreated, tasksCreated, knowledgePublished };
 }
 
-function mapCategory(cat: ImprovementTask['category']): 'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other' {
+function mapCategory(
+  cat: ImprovementTask['category']
+): 'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other' {
   switch (cat) {
-    case 'refactor': return 'architecture';
-    case 'test': return 'testing';
-    case 'docs': return 'docs';
-    case 'performance': return 'performance';
-    case 'type-safety': return 'tooling';
-    default: return 'other';
+    case 'refactor':
+      return 'architecture';
+    case 'test':
+      return 'testing';
+    case 'docs':
+      return 'docs';
+    case 'performance':
+      return 'performance';
+    case 'type-safety':
+      return 'tooling';
+    default:
+      return 'other';
   }
 }

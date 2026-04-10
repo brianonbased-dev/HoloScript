@@ -33,7 +33,7 @@ vi.mock('@holoscript/llm-provider', () => ({
           '    color: "#1da1f2"',
           '    position: [2, 1, 0]',
           '  }',
-          '}'
+          '}',
         ].join('\n'),
         provider: 'mock',
         detectedTraits: ['@shareable', '@collaborative', '@tweetable', '@grabbable'],
@@ -140,7 +140,9 @@ describe('Grok E2E Pipeline', () => {
       expect(result.tweetText as string).toContain('#HoloScript');
       expect(result.qrCode).toBeDefined();
       expect(result.cardMeta).toBeDefined();
-      expect((result.cardMeta as Record<string, string>)['twitter:card']).toBe('summary_large_image');
+      expect((result.cardMeta as Record<string, string>)['twitter:card']).toBe(
+        'summary_large_image'
+      );
     }, 15000);
   });
 

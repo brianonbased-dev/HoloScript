@@ -99,4 +99,3 @@ describe('RopeSystem — Production', () => {
     expect(rs.getRopeCount()).toBe(0);
   });
 });
-

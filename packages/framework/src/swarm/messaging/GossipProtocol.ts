@@ -383,7 +383,7 @@ export class GossipProtocol {
         }
       }
     }
-    
+
     // Wait for any async promises to complete (but don't block synchronous callers)
     if (promises.length > 0) {
       Promise.all(promises).catch(() => {});

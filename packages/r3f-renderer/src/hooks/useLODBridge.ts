@@ -85,7 +85,7 @@ export function useLODBridge(
     }
 
     // Check if chain already cached
-    let chain = bridge.getChain(entityId);
+    const chain = bridge.getChain(entityId);
 
     if (!chain) {
       // For R3F renderer, we don't have raw MeshData from the node props.

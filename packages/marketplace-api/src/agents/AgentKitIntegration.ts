@@ -65,8 +65,6 @@ export class AgentKitIntegration {
     agent_id: string;
     initial_balance: number;
   }): Promise<AgentWallet> {
-
-
     const walletService = new AgentWalletService(
       this.options.network === 'ethereum' ? 'base-sepolia' : 'base-sepolia'
     );
@@ -90,7 +88,6 @@ export class AgentKitIntegration {
     to: string,
     amount: number
   ): Promise<AgentTransaction> {
-
     return {
       tx_hash: `0xTxTrade_${Date.now()}`,
       agent_id,
@@ -110,7 +107,6 @@ export class AgentKitIntegration {
     agent_id: string,
     metadata: { name: string; description: string; uri: string; royalty_percentage: number }
   ): Promise<{ token_id: string; contract_address: string }> {
-
     return {
       token_id: '1',
       contract_address: `0xNFTContract_${Date.now()}`,
@@ -121,7 +117,6 @@ export class AgentKitIntegration {
     agent_id: string,
     params: { endpoint: string; price: number; asset: string }
   ): Promise<{ transaction_hash: string; content: any }> {
-
     return {
       transaction_hash: `0xTxPay_${Date.now()}`,
       content: { success: true, message: 'Content unlocked' },
@@ -132,7 +127,6 @@ export class AgentKitIntegration {
     agent_id: string,
     params: { protocol: 'aave' | 'compound'; asset: string; amount: number }
   ): Promise<AgentTransaction> {
-
     return {
       tx_hash: `0xTxYield_${Date.now()}`,
       agent_id,

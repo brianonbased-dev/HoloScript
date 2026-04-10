@@ -63,10 +63,19 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     // Get parent position if this is a moon/satellite
     if (mergedConfig.parent) {
       // Try to get parent node by name or object reference
-      let parentNode = ((context as unknown as Record<string, unknown>).getNode as ((name: string) => HSPlusNode | null) | undefined)?.(mergedConfig.parent as string);
+      let parentNode = (
+        (context as unknown as Record<string, unknown>).getNode as
+          | ((name: string) => HSPlusNode | null)
+          | undefined
+      )?.(mergedConfig.parent as string);
 
       // Fallback: If parent is already the object (evaluated string)
-      if (!parentNode && typeof mergedConfig.parent === 'object' && mergedConfig.parent && (mergedConfig.parent as Record<string, unknown>).position) {
+      if (
+        !parentNode &&
+        typeof mergedConfig.parent === 'object' &&
+        mergedConfig.parent &&
+        (mergedConfig.parent as Record<string, unknown>).position
+      ) {
         parentNode = mergedConfig.parent as HSPlusNode;
       }
 

@@ -194,7 +194,11 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
   },
 };
 
-function applyMagnification(node: HSPlusNode, config: MagnifiableConfig, state: MagnifiableState): void {
+function applyMagnification(
+  node: HSPlusNode,
+  config: MagnifiableConfig,
+  state: MagnifiableState
+): void {
   if (!node.scale) return;
 
   const mag = state.currentMagnification;

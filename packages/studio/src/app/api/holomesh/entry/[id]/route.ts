@@ -3,7 +3,8 @@ import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { eq } from 'drizzle-orm';
 
-const BASE = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 function buildHeaders(req: NextRequest): Record<string, string> {

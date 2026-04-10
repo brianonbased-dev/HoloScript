@@ -88,7 +88,10 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
   describe('geospatial_anchor trait', () => {
     it('emits createGeospatialAnchor call', () => {
       const comp = makeGeoVPSComposition([
-        { name: 'geospatial_anchor', config: { latitude: 37.7749, longitude: -122.4194, altitude: 10, heading: 90 } },
+        {
+          name: 'geospatial_anchor',
+          config: { latitude: 37.7749, longitude: -122.4194, altitude: 10, heading: 90 },
+        },
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('createGeospatialAnchor');
@@ -98,7 +101,10 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
 
     it('emits Earth.createAnchor with quaternion heading', () => {
       const comp = makeGeoVPSComposition([
-        { name: 'geospatial_anchor', config: { latitude: 0, longitude: 0, altitude: 0, heading: 0 } },
+        {
+          name: 'geospatial_anchor',
+          config: { latitude: 0, longitude: 0, altitude: 0, heading: 0 },
+        },
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('earthRef.createAnchor(lat, lng, alt');
@@ -117,7 +123,10 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
   describe('geospatial_terrain_anchor trait', () => {
     it('emits resolveTerrainAnchor call', () => {
       const comp = makeGeoVPSComposition([
-        { name: 'geospatial_terrain_anchor', config: { latitude: 48.8566, longitude: 2.3522, altitudeOffset: 1.5, heading: 180 } },
+        {
+          name: 'geospatial_terrain_anchor',
+          config: { latitude: 48.8566, longitude: 2.3522, altitudeOffset: 1.5, heading: 180 },
+        },
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('resolveTerrainAnchor');
@@ -139,7 +148,10 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
   describe('geospatial_rooftop_anchor trait', () => {
     it('emits resolveRooftopAnchor call', () => {
       const comp = makeGeoVPSComposition([
-        { name: 'geospatial_rooftop_anchor', config: { latitude: 51.5074, longitude: -0.1278, altitudeOffset: 2.0, heading: 0 } },
+        {
+          name: 'geospatial_rooftop_anchor',
+          config: { latitude: 51.5074, longitude: -0.1278, altitudeOffset: 2.0, heading: 0 },
+        },
       ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result.activityFile).toContain('resolveRooftopAnchor');
@@ -199,7 +211,10 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
     it('handles multiple geospatial traits on one object', () => {
       const comp = makeGeoVPSComposition([
         { name: 'geospatial_vps' },
-        { name: 'geospatial_anchor', config: { latitude: 40.7128, longitude: -74.006, altitude: 5, heading: 45 } },
+        {
+          name: 'geospatial_anchor',
+          config: { latitude: 40.7128, longitude: -74.006, altitude: 5, heading: 45 },
+        },
         { name: 'geospatial_streetscape' },
       ]);
       const result = compiler.compile(comp, 'test-token');
@@ -215,12 +230,24 @@ describe('AndroidCompiler — ARCore Geospatial API (M.010.15)', () => {
           {
             name: 'TerrainObj',
             properties: [],
-            traits: [{ type: 'ObjectTrait', name: 'geospatial_terrain_anchor', config: { latitude: 1, longitude: 2 } }],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'geospatial_terrain_anchor',
+                config: { latitude: 1, longitude: 2 },
+              },
+            ],
           },
           {
             name: 'RooftopObj',
             properties: [],
-            traits: [{ type: 'ObjectTrait', name: 'geospatial_rooftop_anchor', config: { latitude: 3, longitude: 4 } }],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'geospatial_rooftop_anchor',
+                config: { latitude: 3, longitude: 4 },
+              },
+            ],
           },
         ] as HoloComposition['objects'],
       });

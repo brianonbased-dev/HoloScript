@@ -66,7 +66,9 @@ export function AudioTraitPanel({ onClose }: AudioTraitPanelProps) {
   }, [load]);
 
   const copySnippet = (preset: AudioPreset) => {
-    navigator.clipboard.writeText(preset.traitSnippet).catch((err) => logger.warn('Swallowed error caught:', err));
+    navigator.clipboard
+      .writeText(preset.traitSnippet)
+      .catch((err) => logger.warn('Swallowed error caught:', err));
     setCopied(preset.id);
     setTimeout(() => setCopied(null), COPY_FEEDBACK_DURATION);
   };

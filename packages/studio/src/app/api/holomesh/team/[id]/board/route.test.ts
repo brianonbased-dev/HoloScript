@@ -4,19 +4,25 @@ import type { NextRequest } from 'next/server';
 // ---------------------------------------------------------------------------
 // Hoisted mock factories (must be at top before any imports)
 // ---------------------------------------------------------------------------
-const { proxyMock, boardReadLimitMock, boardWriteLimitMock, getDbMock, dbUpdateMock, dbSelectMock } =
-  vi.hoisted(() => {
-    const dbUpdateMock = vi.fn();
-    const dbSelectMock = vi.fn();
-    return {
-      proxyMock: vi.fn(),
-      boardReadLimitMock: vi.fn(),
-      boardWriteLimitMock: vi.fn(),
-      getDbMock: vi.fn(),
-      dbUpdateMock,
-      dbSelectMock,
-    };
-  });
+const {
+  proxyMock,
+  boardReadLimitMock,
+  boardWriteLimitMock,
+  getDbMock,
+  dbUpdateMock,
+  dbSelectMock,
+} = vi.hoisted(() => {
+  const dbUpdateMock = vi.fn();
+  const dbSelectMock = vi.fn();
+  return {
+    proxyMock: vi.fn(),
+    boardReadLimitMock: vi.fn(),
+    boardWriteLimitMock: vi.fn(),
+    getDbMock: vi.fn(),
+    dbUpdateMock,
+    dbSelectMock,
+  };
+});
 
 vi.mock('@/lib/holomesh-proxy', () => ({ proxyHoloMesh: proxyMock }));
 vi.mock('@/lib/rate-limiter', () => ({
@@ -159,7 +165,7 @@ describe('PATCH /api/holomesh/team/[id]/board/[taskId]', () => {
     vi.clearAllMocks();
     boardWriteLimitMock.mockReturnValue(makeOkLimit());
     proxyMock.mockResolvedValue(
-      new Response(JSON.stringify({ success: true, task: { id: 'task1' } })),
+      new Response(JSON.stringify({ success: true, task: { id: 'task1' } }))
     );
   });
 
@@ -192,9 +198,7 @@ describe('PATCH /api/holomesh/team/[id]/board/[taskId]', () => {
   });
 
   it('heartbeat: returns 200 and updates syncedAt for owner agent', async () => {
-    const db = makeDbWithSelect([
-      { id: 'task1', status: 'claimed', claimedBy: 'agent1' },
-    ]);
+    const db = makeDbWithSelect([{ id: 'task1', status: 'claimed', claimedBy: 'agent1' }]);
     getDbMock.mockReturnValue(db);
     const req = patchReq({ action: 'heartbeat', agentId: 'agent1' });
     const res = await taskPATCH(req, taskParam());
@@ -208,9 +212,7 @@ describe('PATCH /api/holomesh/team/[id]/board/[taskId]', () => {
   });
 
   it('heartbeat: returns 403 when wrong agent tries to heartbeat', async () => {
-    const db = makeDbWithSelect([
-      { id: 'task1', status: 'claimed', claimedBy: 'agent-other' },
-    ]);
+    const db = makeDbWithSelect([{ id: 'task1', status: 'claimed', claimedBy: 'agent-other' }]);
     getDbMock.mockReturnValue(db);
     const req = patchReq({ action: 'heartbeat', agentId: 'agent1' });
     const res = await taskPATCH(req, taskParam());

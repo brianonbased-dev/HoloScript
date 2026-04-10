@@ -7,7 +7,9 @@ export default function CreateLoading() {
       </div>
       <div className="text-center">
         <p className="text-sm font-medium">Loading Scene Editor</p>
-        <p className="text-xs text-studio-muted animate-pulse mt-1">Initializing 3D viewport, node graph, and editor panels...</p>
+        <p className="text-xs text-studio-muted animate-pulse mt-1">
+          Initializing 3D viewport, node graph, and editor panels...
+        </p>
       </div>
     </div>
   );

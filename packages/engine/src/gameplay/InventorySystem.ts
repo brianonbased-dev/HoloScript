@@ -222,4 +222,3 @@ export class InventorySystem {
     return this.slots.size;
   }
 }
-

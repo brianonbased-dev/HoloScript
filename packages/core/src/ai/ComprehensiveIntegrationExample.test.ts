@@ -227,7 +227,9 @@ describe('Comprehensive Integration Example', () => {
       class FailingAdapter implements AIAdapter {
         readonly id = 'failing';
         readonly name = 'FailingAdapter';
-        isReady() { return true; }
+        isReady() {
+          return true;
+        }
         async generateHoloScript(prompt: string) {
           return {
             holoScript: 'invalid [[[ code',
@@ -235,7 +237,10 @@ describe('Comprehensive Integration Example', () => {
           };
         }
         async fixHoloScript(code: string, errors: string[]) {
-          return { holoScript: code, fixes: [] as Array<{ line: number; issue: string; fix: string }> };
+          return {
+            holoScript: code,
+            fixes: [] as Array<{ line: number; issue: string; fix: string }>,
+          };
         }
         async explainHoloScript(code: string) {
           return { explanation: 'Failed' };

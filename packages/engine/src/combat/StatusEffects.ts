@@ -223,4 +223,3 @@ export class StatusEffectSystem {
     return this.effects.get(entityId)?.size ?? 0;
   }
 }
-

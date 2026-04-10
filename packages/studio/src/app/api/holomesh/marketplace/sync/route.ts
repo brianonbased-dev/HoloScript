@@ -4,7 +4,8 @@ import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { rateLimit } from '../../../../../lib/rate-limiter';
 import { sql } from 'drizzle-orm';
 
-const BASE = process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 interface McpEntry {
@@ -53,10 +54,7 @@ export async function POST(req: NextRequest) {
     // body is optional
   }
 
-  const limit = Math.min(
-    Number.isInteger(body.limit) ? (body.limit as number) : 200,
-    500
-  );
+  const limit = Math.min(Number.isInteger(body.limit) ? (body.limit as number) : 200, 500);
   const domainFilter = typeof body.domain === 'string' ? body.domain : '';
 
   const params = new URLSearchParams({ limit: String(limit) });
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const data = await res.json() as { entries?: McpEntry[]; success?: boolean };
+  const data = (await res.json()) as { entries?: McpEntry[]; success?: boolean };
   const entries: McpEntry[] = data.entries ?? [];
 
   if (entries.length === 0) {

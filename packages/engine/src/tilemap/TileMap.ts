@@ -178,4 +178,3 @@ export class TileMap {
     return this.tileSize;
   }
 }
-

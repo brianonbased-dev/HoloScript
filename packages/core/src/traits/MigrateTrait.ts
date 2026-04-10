@@ -38,7 +38,12 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, _config: MigrateConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: MigrateConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__migrateState as
       | { steps: MigrationStep[]; currentVersion: number }
       | undefined;

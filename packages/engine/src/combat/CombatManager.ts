@@ -236,4 +236,3 @@ export class CombatManager {
     return this.hurtboxes.size;
   }
 }
-

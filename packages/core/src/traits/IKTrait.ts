@@ -593,7 +593,13 @@ export type IKTarget = string;
 export default IKTrait;
 
 // ── Handler (delegates to IKTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const iKHandler = {
   name: 'i_k',

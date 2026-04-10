@@ -527,4 +527,3 @@ export class ConstraintSolver {
     });
   }
 }
-

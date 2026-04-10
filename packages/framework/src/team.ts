@@ -50,7 +50,13 @@ import { parseDeriveContent, ROOM_PRESETS } from './board';
 import { MeshDiscovery, SignalService, GossipProtocol } from './mesh';
 import type { PeerMetadata, GossipPacket } from './mesh';
 import { BountyManager } from './economy/BountyManager';
-import type { Bounty, BountyReward, ClaimResult as BountyClaimResult, CompletionProof, PayoutResult } from './economy/BountyManager';
+import type {
+  Bounty,
+  BountyReward,
+  ClaimResult as BountyClaimResult,
+  CompletionProof,
+  PayoutResult,
+} from './economy/BountyManager';
 
 // ── Mode Claim Filters (FW-0.3) ──
 // Each mode defines which SlotRoles can actively claim tasks.
@@ -96,7 +102,7 @@ function computeTier(score: number): ReputationTier {
 const OPEN_TASK_THRESHOLD = 3;
 
 /** Default presence timeouts (FW-0.3). */
-const DEFAULT_IDLE_TIMEOUT_MS = 60_000;   // 60 seconds
+const DEFAULT_IDLE_TIMEOUT_MS = 60_000; // 60 seconds
 const DEFAULT_OFFLINE_TIMEOUT_MS = 300_000; // 5 minutes
 
 /** Internal record for tracking an agent's presence state. */
@@ -114,7 +120,12 @@ export class Team {
   private agentConfigs: AgentConfig[];
   private runtimes: Map<string, AgentRuntime> = new Map();
   private board: TaskDef[] = [];
-  private doneLog: Array<{ taskId: string; title: string; completedBy: string; timestamp: string }> = [];
+  private doneLog: Array<{
+    taskId: string;
+    title: string;
+    completedBy: string;
+    timestamp: string;
+  }> = [];
   private cycle = 0;
   private consensusMode: ConsensusMode;
   private proposals: Map<string, InternalProposal> = new Map();
@@ -146,9 +157,7 @@ export class Team {
     this.idleTimeoutMs = config.presence?.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
     this.offlineTimeoutMs = config.presence?.offlineTimeoutMs ?? DEFAULT_OFFLINE_TIMEOUT_MS;
 
-    this.knowledge = new KnowledgeStore(
-      config.knowledge ?? { persist: false }
-    );
+    this.knowledge = new KnowledgeStore(config.knowledge ?? { persist: false });
 
     // GoalSynthesizer gets knowledge store so it can derive context-aware goals (FW-0.2)
     // LLM config comes from first agent — all agents on a team typically share a provider.
@@ -218,15 +227,24 @@ export class Team {
   /** Add tasks to the board. Deduplicates by normalized title. */
   async addTasks(tasks: Array<Omit<TaskDef, 'id' | 'status' | 'createdAt'>>): Promise<TaskDef[]> {
     if (this.isRemote) {
-      const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/board`, 'POST', { tasks });
+      const res = await this.boardFetch(
+        `/api/holomesh/team/${encodeURIComponent(this.name)}/board`,
+        'POST',
+        { tasks }
+      );
       if (res && res.error) throw new Error(String(res.error));
       return (res?.tasks || res?.added || []) as TaskDef[];
     }
 
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 60);
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .slice(0, 60);
     const existing = new Set([
-      ...this.board.map(t => normalize(t.title)),
-      ...this.doneLog.map(d => normalize(d.title)),
+      ...this.board.map((t) => normalize(t.title)),
+      ...this.doneLog.map((d) => normalize(d.title)),
     ]);
 
     const added: TaskDef[] = [];
@@ -253,9 +271,7 @@ export class Team {
 
   /** Get all open tasks, sorted by priority. */
   get openTasks(): TaskDef[] {
-    return this.board
-      .filter(t => t.status === 'open')
-      .sort((a, b) => a.priority - b.priority);
+    return this.board.filter((t) => t.status === 'open').sort((a, b) => a.priority - b.priority);
   }
 
   /** Get all board tasks. */
@@ -302,7 +318,7 @@ export class Team {
           teamName: this.name,
           agentName: runtime.name,
           capabilities: agent.capabilities,
-          recentCompletedTasks: this.doneLog.slice(-10).map(d => d.title),
+          recentCompletedTasks: this.doneLog.slice(-10).map((d) => d.title),
         };
         try {
           const goals = await this.goalSynthesizer.synthesizeMultiple(goalContext, 1);
@@ -344,7 +360,7 @@ export class Team {
         // Mark done
         task.status = 'done';
         task.completedAt = new Date().toISOString();
-        this.board = this.board.filter(t => t.id !== task.id);
+        this.board = this.board.filter((t) => t.id !== task.id);
         this.doneLog.push({
           taskId: task.id,
           title: task.title,
@@ -407,8 +423,9 @@ export class Team {
 
     // Fetch board state from remote
     const boardData = await this.boardFetch(`/api/holomesh/team/${teamId}/board`, 'GET');
-    const openTasks = ((boardData?.board as Record<string, unknown>)?.open as TaskDef[] || [])
-      .sort((a, b) => a.priority - b.priority);
+    const openTasks = (
+      ((boardData?.board as Record<string, unknown>)?.open as TaskDef[]) || []
+    ).sort((a, b) => a.priority - b.priority);
 
     const claimed = new Set<string>();
 
@@ -424,25 +441,31 @@ export class Team {
         const domain = agent.knowledgeDomains?.[0] ?? 'general';
         let goal: Goal;
         try {
-          const goals = await this.goalSynthesizer.synthesizeMultiple({
-            domain,
-            teamName: this.name,
-            agentName: runtime.name,
-            capabilities: agent.capabilities,
-            recentCompletedTasks: this.doneLog.slice(-10).map(d => d.title),
-          }, 1);
+          const goals = await this.goalSynthesizer.synthesizeMultiple(
+            {
+              domain,
+              teamName: this.name,
+              agentName: runtime.name,
+              capabilities: agent.capabilities,
+              recentCompletedTasks: this.doneLog.slice(-10).map((d) => d.title),
+            },
+            1
+          );
           goal = goals[0] ?? this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
         } catch {
           goal = this.goalSynthesizer.synthesize(domain, 'autonomous-boredom');
         }
         const addRes = await this.boardFetch(`/api/holomesh/team/${teamId}/board`, 'POST', {
-          tasks: [{
-            title: goal.description,
-            description: `Autonomously synthesized goal [${goal.category}] — priority ${goal.priority}`,
-            priority: goal.priority === 'high' ? 2 : goal.priority === 'medium' ? 4 : 6,
-            role: (agent.role === 'architect' || agent.role === 'researcher') ? 'researcher' : 'coder',
-            source: `synthesizer:${goal.source}`,
-          }],
+          tasks: [
+            {
+              title: goal.description,
+              description: `Autonomously synthesized goal [${goal.category}] — priority ${goal.priority}`,
+              priority: goal.priority === 'high' ? 2 : goal.priority === 'medium' ? 4 : 6,
+              role:
+                agent.role === 'architect' || agent.role === 'researcher' ? 'researcher' : 'coder',
+              source: `synthesizer:${goal.source}`,
+            },
+          ],
         });
         const addedTasks = (addRes?.tasks || addRes?.added || []) as TaskDef[];
         task = addedTasks[0];
@@ -450,7 +473,14 @@ export class Team {
       }
 
       if (!task) {
-        results.push({ agentName: runtime.name, taskId: null, taskTitle: null, action: 'skipped', summary: 'No matching open tasks', knowledge: [] });
+        results.push({
+          agentName: runtime.name,
+          taskId: null,
+          taskTitle: null,
+          action: 'skipped',
+          summary: 'No matching open tasks',
+          knowledge: [],
+        });
         continue;
       }
 
@@ -460,9 +490,20 @@ export class Team {
       this.localHeartbeat(runtime.name, task.title);
 
       // Claim via API
-      const claimRes = await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`, 'PATCH', { action: 'claim' });
+      const claimRes = await this.boardFetch(
+        `/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`,
+        'PATCH',
+        { action: 'claim' }
+      );
       if (claimRes?.error) {
-        results.push({ agentName: runtime.name, taskId: task.id, taskTitle: task.title, action: 'error', summary: `Claim failed: ${claimRes.error}`, knowledge: [] });
+        results.push({
+          agentName: runtime.name,
+          taskId: task.id,
+          taskTitle: task.title,
+          action: 'error',
+          summary: `Claim failed: ${claimRes.error}`,
+          knowledge: [],
+        });
         continue;
       }
 
@@ -477,7 +518,11 @@ export class Team {
       // Proactively buy relevant knowledge if cheap enough (e.g. < 5 credits)
       const activeListings = this.knowledge.marketplace.activeListings();
       for (const listing of activeListings) {
-        if (listing.price <= 5 && listing.currency === 'credits' && task.title.toLowerCase().includes(listing.preview.domain?.toLowerCase() || '')) {
+        if (
+          listing.price <= 5 &&
+          listing.currency === 'credits' &&
+          task.title.toLowerCase().includes(listing.preview.domain?.toLowerCase() || '')
+        ) {
           this.knowledge.marketplace.buyKnowledge(listing.id, runtime.name);
         }
       }
@@ -487,7 +532,11 @@ export class Team {
         const { summary, insights } = await this.executeTask(runtime, task);
 
         // Mark done via API
-        await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`, 'PATCH', { action: 'done', summary });
+        await this.boardFetch(
+          `/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`,
+          'PATCH',
+          { action: 'done', summary }
+        );
 
         // Complete the bounty with proof
         for (const b of taskBounties) {
@@ -507,11 +556,29 @@ export class Team {
         runtime.reputationTier = computeTier(runtime.reputationScore);
 
         allInsights.push(...insights);
-        results.push({ agentName: runtime.name, taskId: task.id, taskTitle: task.title, action: synthesized ? 'synthesized' : 'completed', summary, knowledge: insights });
+        results.push({
+          agentName: runtime.name,
+          taskId: task.id,
+          taskTitle: task.title,
+          action: synthesized ? 'synthesized' : 'completed',
+          summary,
+          knowledge: insights,
+        });
       } catch (err) {
         // Reopen task on failure
-        await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`, 'PATCH', { action: 'reopen' });
-        results.push({ agentName: runtime.name, taskId: task.id, taskTitle: task.title, action: 'error', summary: err instanceof Error ? err.message : String(err), knowledge: [] });
+        await this.boardFetch(
+          `/api/holomesh/team/${teamId}/board/${encodeURIComponent(task.id)}`,
+          'PATCH',
+          { action: 'reopen' }
+        );
+        results.push({
+          agentName: runtime.name,
+          taskId: task.id,
+          taskTitle: task.title,
+          action: 'error',
+          summary: err instanceof Error ? err.message : String(err),
+          knowledge: [],
+        });
       }
     }
 
@@ -522,7 +589,14 @@ export class Team {
       await this.knowledge.syncToRemote();
     }
 
-    return { teamName: this.name, cycle: this.cycle, agentResults: results, knowledgeProduced: allInsights, compoundedInsights: compounded, durationMs: Date.now() - start };
+    return {
+      teamName: this.name,
+      cycle: this.cycle,
+      agentResults: results,
+      knowledgeProduced: allInsights,
+      compoundedInsights: compounded,
+      durationMs: Date.now() - start,
+    };
   }
 
   // ── Consensus ──
@@ -549,7 +623,7 @@ export class Team {
       }
     }
 
-    const votesFor = Array.from(proposal.votes.values()).filter(v => v).length;
+    const votesFor = Array.from(proposal.votes.values()).filter((v) => v).length;
     const votesAgainst = proposal.votes.size - votesFor;
     const total = proposal.votes.size;
 
@@ -585,8 +659,7 @@ export class Team {
 
   /** Get the reputation leaderboard. */
   leaderboard(): AgentRuntime[] {
-    return Array.from(this.runtimes.values())
-      .sort((a, b) => b.reputationScore - a.reputationScore);
+    return Array.from(this.runtimes.values()).sort((a, b) => b.reputationScore - a.reputationScore);
   }
 
   /** Get a specific agent's runtime. */
@@ -615,7 +688,7 @@ export class Team {
         taskId: String(d.taskId ?? d.task_id ?? ''),
         title: String(d.title ?? ''),
         completedBy: String(d.completedBy ?? d.completed_by ?? ''),
-        commitHash: d.commitHash as string | undefined ?? d.commit_hash as string | undefined,
+        commitHash: (d.commitHash as string | undefined) ?? (d.commit_hash as string | undefined),
         timestamp: String(d.timestamp ?? d.completedAt ?? ''),
         summary: String(d.summary ?? ''),
       }));
@@ -666,9 +739,13 @@ export class Team {
     const trimmedTitle = title.trim().slice(0, 200);
     if (!trimmedTitle) throw new Error('title is required');
 
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
     const existingNorm = new Set(
-      this.localSuggestions.filter(s => s.status === 'open').map(s => normalize(s.title))
+      this.localSuggestions.filter((s) => s.status === 'open').map((s) => normalize(s.title))
     );
     if (existingNorm.has(normalize(trimmedTitle))) {
       throw new Error('A similar open suggestion already exists');
@@ -697,10 +774,17 @@ export class Team {
    * Local mode: vote(id, agentName, 'up'|'down', reason?).
    * Remote mode: vote(id, 1|-1, reason?) for backward compatibility.
    */
-  async vote(suggestionId: string, agentNameOrValue: string | 1 | -1, voteOrReason?: 'up' | 'down' | string, reason?: string): Promise<SuggestionVoteResult> {
+  async vote(
+    suggestionId: string,
+    agentNameOrValue: string | 1 | -1,
+    voteOrReason?: 'up' | 'down' | string,
+    reason?: string
+  ): Promise<SuggestionVoteResult> {
     if (this.isRemote) {
-      const value = typeof agentNameOrValue === 'number' ? agentNameOrValue : (voteOrReason === 'down' ? -1 : 1);
-      const remoteReason = typeof agentNameOrValue === 'number' ? (voteOrReason as string | undefined) : reason;
+      const value =
+        typeof agentNameOrValue === 'number' ? agentNameOrValue : voteOrReason === 'down' ? -1 : 1;
+      const remoteReason =
+        typeof agentNameOrValue === 'number' ? (voteOrReason as string | undefined) : reason;
       const teamId = encodeURIComponent(this.name);
       const res = await this.boardFetch(
         `/api/holomesh/team/${teamId}/suggestions/${encodeURIComponent(suggestionId)}`,
@@ -713,38 +797,51 @@ export class Team {
     }
 
     const agentName = String(agentNameOrValue);
-    const voteDir: 'up' | 'down' = (voteOrReason === 'up' || voteOrReason === 'down') ? voteOrReason : 'up';
+    const voteDir: 'up' | 'down' =
+      voteOrReason === 'up' || voteOrReason === 'down' ? voteOrReason : 'up';
 
-    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    const suggestion = this.localSuggestions.find((s) => s.id === suggestionId);
     if (!suggestion) throw new Error('Suggestion not found');
-    if (suggestion.status !== 'open') throw new Error(`Suggestion is ${suggestion.status}, voting closed`);
+    if (suggestion.status !== 'open')
+      throw new Error(`Suggestion is ${suggestion.status}, voting closed`);
 
-    suggestion.votes = suggestion.votes.filter(v => v.agent !== agentName);
-    suggestion.votes.push({ agent: agentName, vote: voteDir, reason, votedAt: new Date().toISOString() });
+    suggestion.votes = suggestion.votes.filter((v) => v.agent !== agentName);
+    suggestion.votes.push({
+      agent: agentName,
+      vote: voteDir,
+      reason,
+      votedAt: new Date().toISOString(),
+    });
 
-    const upvotes = suggestion.votes.filter(v => v.vote === 'up').length;
-    const downvotes = suggestion.votes.filter(v => v.vote === 'down').length;
+    const upvotes = suggestion.votes.filter((v) => v.vote === 'up').length;
+    const downvotes = suggestion.votes.filter((v) => v.vote === 'down').length;
     suggestion.score = upvotes - downvotes;
 
     let promotedTaskId: string | undefined;
 
-    const promoteThreshold = suggestion.autoPromoteThreshold ?? Math.ceil(this.agentConfigs.length / 2);
+    const promoteThreshold =
+      suggestion.autoPromoteThreshold ?? Math.ceil(this.agentConfigs.length / 2);
     if (upvotes >= promoteThreshold && suggestion.status === 'open') {
       suggestion.status = 'promoted';
       suggestion.resolvedAt = new Date().toISOString();
-      const promoted = await this.addTasks([{
-        title: suggestion.title,
-        description: `${suggestion.description ?? ''}\n\n[Auto-promoted from suggestion by ${suggestion.proposedBy} with ${suggestion.score} net votes]`.trim(),
-        priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
-        source: `suggestion:${suggestion.id}`,
-      }]);
+      const promoted = await this.addTasks([
+        {
+          title: suggestion.title,
+          description:
+            `${suggestion.description ?? ''}\n\n[Auto-promoted from suggestion by ${suggestion.proposedBy} with ${suggestion.score} net votes]`.trim(),
+          priority:
+            suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+          source: `suggestion:${suggestion.id}`,
+        },
+      ]);
       if (promoted.length > 0) {
         promotedTaskId = promoted[0].id;
         suggestion.promotedTaskId = promotedTaskId;
       }
     }
 
-    const dismissThreshold = suggestion.autoDismissThreshold ?? Math.ceil(this.agentConfigs.length / 2);
+    const dismissThreshold =
+      suggestion.autoDismissThreshold ?? Math.ceil(this.agentConfigs.length / 2);
     if (downvotes >= dismissThreshold && suggestion.status === 'open') {
       suggestion.status = 'dismissed';
       suggestion.resolvedAt = new Date().toISOString();
@@ -768,28 +865,36 @@ export class Team {
     }
 
     const filtered = status
-      ? this.localSuggestions.filter(s => s.status === status)
+      ? this.localSuggestions.filter((s) => s.status === status)
       : [...this.localSuggestions];
     return { suggestions: filtered };
   }
 
   /** Promote a suggestion to a board task manually. Local-only. */
-  async promoteSuggestion(suggestionId: string, promoterName?: string): Promise<SuggestionVoteResult> {
-    if (this.isRemote) throw new Error('promoteSuggestion() is not supported in remote mode — use the board API');
+  async promoteSuggestion(
+    suggestionId: string,
+    promoterName?: string
+  ): Promise<SuggestionVoteResult> {
+    if (this.isRemote)
+      throw new Error('promoteSuggestion() is not supported in remote mode — use the board API');
 
-    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    const suggestion = this.localSuggestions.find((s) => s.id === suggestionId);
     if (!suggestion) throw new Error('Suggestion not found');
     if (suggestion.status !== 'open') throw new Error(`Suggestion is already ${suggestion.status}`);
 
     suggestion.status = 'promoted';
     suggestion.resolvedAt = new Date().toISOString();
 
-    const promoted = await this.addTasks([{
-      title: suggestion.title,
-      description: `${suggestion.description ?? ''}\n\n[Promoted by ${promoterName ?? 'team'} from suggestion by ${suggestion.proposedBy}]`.trim(),
-      priority: suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
-      source: `suggestion:${suggestion.id}`,
-    }]);
+    const promoted = await this.addTasks([
+      {
+        title: suggestion.title,
+        description:
+          `${suggestion.description ?? ''}\n\n[Promoted by ${promoterName ?? 'team'} from suggestion by ${suggestion.proposedBy}]`.trim(),
+        priority:
+          suggestion.category === 'architecture' ? 2 : suggestion.category === 'testing' ? 3 : 4,
+        source: `suggestion:${suggestion.id}`,
+      },
+    ]);
 
     const promotedTaskId = promoted.length > 0 ? promoted[0].id : undefined;
     suggestion.promotedTaskId = promotedTaskId;
@@ -798,9 +903,10 @@ export class Team {
 
   /** Dismiss a suggestion. Local-only. */
   dismissSuggestion(suggestionId: string): SuggestionVoteResult {
-    if (this.isRemote) throw new Error('dismissSuggestion() is not supported in remote mode — use the board API');
+    if (this.isRemote)
+      throw new Error('dismissSuggestion() is not supported in remote mode — use the board API');
 
-    const suggestion = this.localSuggestions.find(s => s.id === suggestionId);
+    const suggestion = this.localSuggestions.find((s) => s.id === suggestionId);
     if (!suggestion) throw new Error('Suggestion not found');
     if (suggestion.status !== 'open') throw new Error(`Suggestion is already ${suggestion.status}`);
 
@@ -829,7 +935,8 @@ export class Team {
   /** Switch the team's operating mode. Local-first with optional remote sync. */
   async setMode(mode: TeamMode): Promise<SetModeResult> {
     const preset = ROOM_PRESETS[mode];
-    if (!preset) throw new Error(`Unknown mode: ${mode}. Valid: ${Object.keys(ROOM_PRESETS).join(', ')}`);
+    if (!preset)
+      throw new Error(`Unknown mode: ${mode}. Valid: ${Object.keys(ROOM_PRESETS).join(', ')}`);
 
     const previousMode = this.currentMode;
     this.currentMode = mode;
@@ -857,7 +964,10 @@ export class Team {
   async derive(source: string, content: string): Promise<DeriveResult> {
     if (this.isRemote) {
       const teamId = encodeURIComponent(this.name);
-      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/derive`, 'POST', { source, content });
+      const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/derive`, 'POST', {
+        source,
+        content,
+      });
       if (!res) throw new Error('Failed to derive tasks — no response from board');
       if (res.error) throw new Error(String(res.error));
       return res as unknown as DeriveResult;
@@ -879,13 +989,18 @@ export class Team {
    * Modifies both boards. Requires connected remote board.
    */
   async delegate(otherTeamId: string, taskId: string): Promise<boolean> {
-    if (!this.isRemote) throw new Error('Delegation requires a remote board to communicate with other teams');
+    if (!this.isRemote)
+      throw new Error('Delegation requires a remote board to communicate with other teams');
     const teamId = encodeURIComponent(this.name);
-    const res = await this.boardFetch(`/api/holomesh/team/${teamId}/board/${encodeURIComponent(taskId)}`, 'PATCH', { 
-      action: 'delegate', 
-      targetTeamId: otherTeamId 
-    });
-    
+    const res = await this.boardFetch(
+      `/api/holomesh/team/${teamId}/board/${encodeURIComponent(taskId)}`,
+      'PATCH',
+      {
+        action: 'delegate',
+        targetTeamId: otherTeamId,
+      }
+    );
+
     if (res?.error) throw new Error(String(res.error));
     return true;
   }
@@ -945,7 +1060,8 @@ export class Team {
 
   /** Get presence/slot info for the team. Requires remote board. */
   async presence(): Promise<PresenceResult> {
-    if (!this.isRemote) throw new Error('presence() requires a remote board (boardUrl + boardApiKey)');
+    if (!this.isRemote)
+      throw new Error('presence() requires a remote board (boardUrl + boardApiKey)');
     const teamId = encodeURIComponent(this.name);
     const res = await this.boardFetch(`/api/holomesh/team/${teamId}/slots`, 'GET');
     if (!res) throw new Error('Failed to get presence — no response from board');
@@ -955,7 +1071,8 @@ export class Team {
 
   /** Send a heartbeat to the team's presence system. Requires remote board. */
   async heartbeat(ideType?: string): Promise<HeartbeatResult> {
-    if (!this.isRemote) throw new Error('heartbeat() requires a remote board (boardUrl + boardApiKey)');
+    if (!this.isRemote)
+      throw new Error('heartbeat() requires a remote board (boardUrl + boardApiKey)');
     const teamId = encodeURIComponent(this.name);
     const res = await this.boardFetch(`/api/holomesh/team/${teamId}/presence`, 'POST', {
       ide_type: ideType ?? 'unknown',
@@ -1021,7 +1138,11 @@ export class Team {
   /** On-demand scout: parse TODO/FIXME content into tasks. */
   async scoutFromTodos(grepOutput: string): Promise<TaskDef[]> {
     if (this.isRemote) {
-      const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/board/scout`, 'POST', { todo_content: grepOutput });
+      const res = await this.boardFetch(
+        `/api/holomesh/team/${encodeURIComponent(this.name)}/board/scout`,
+        'POST',
+        { todo_content: grepOutput }
+      );
       if (res && res.error) throw new Error(String(res.error));
       return (res?.tasks || res?.added || []) as TaskDef[];
     }
@@ -1029,14 +1150,20 @@ export class Team {
     const tasks: Array<Omit<TaskDef, 'id' | 'status' | 'createdAt'>> = [];
 
     for (const line of grepOutput.split('\n')) {
-      const match = line.trim().match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+      const match = line
+        .trim()
+        .match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
       if (!match) continue;
 
       const [, file, lineNo, kind, detail] = match;
       const upper = `${kind} ${detail}`.toUpperCase();
-      const priority = /SECURITY|VULN|AUTH|CRITICAL/.test(upper) ? 1
-        : /FIXME|BUG|BROKEN|ERROR/.test(upper) ? 2
-        : /TODO|HACK|REFACTOR/.test(upper) ? 3 : 4;
+      const priority = /SECURITY|VULN|AUTH|CRITICAL/.test(upper)
+        ? 1
+        : /FIXME|BUG|BROKEN|ERROR/.test(upper)
+          ? 2
+          : /TODO|HACK|REFACTOR/.test(upper)
+            ? 3
+            : 4;
 
       tasks.push({
         title: `${kind.toUpperCase()}: ${detail.trim().slice(0, 180)}`,
@@ -1090,7 +1217,7 @@ export class Team {
     }
 
     // Remove the original complex task and add sub-tasks
-    this.board = this.board.filter(t => t.id !== task.id);
+    this.board = this.board.filter((t) => t.id !== task.id);
     await this.addTasks(subTasks);
 
     return result;
@@ -1105,31 +1232,50 @@ export class Team {
 
   async listBoard(): Promise<Record<string, unknown>> {
     if (!this.isRemote) throw new Error('listBoard() requires a remote board');
-    const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/board`, 'GET');
+    const res = await this.boardFetch(
+      `/api/holomesh/team/${encodeURIComponent(this.name)}/board`,
+      'GET'
+    );
     if (!res) throw new Error('Failed to list board');
     return res as Record<string, unknown>;
   }
 
   async claimTask(taskId: string): Promise<Record<string, unknown>> {
     if (!this.isRemote) throw new Error('claimTask() requires a remote board');
-    const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/board/${encodeURIComponent(taskId)}`, 'PATCH', { action: 'claim' });
+    const res = await this.boardFetch(
+      `/api/holomesh/team/${encodeURIComponent(this.name)}/board/${encodeURIComponent(taskId)}`,
+      'PATCH',
+      { action: 'claim' }
+    );
     if (!res) throw new Error('Failed to claim task');
     return res as Record<string, unknown>;
   }
 
-  async completeTask(taskId: string, commit?: string, summary?: string): Promise<Record<string, unknown>> {
+  async completeTask(
+    taskId: string,
+    commit?: string,
+    summary?: string
+  ): Promise<Record<string, unknown>> {
     if (!this.isRemote) throw new Error('completeTask() requires a remote board');
     const body: Record<string, unknown> = { action: 'done' };
     if (commit) body.commit = commit;
     if (summary) body.summary = summary;
-    const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/board/${encodeURIComponent(taskId)}`, 'PATCH', body);
+    const res = await this.boardFetch(
+      `/api/holomesh/team/${encodeURIComponent(this.name)}/board/${encodeURIComponent(taskId)}`,
+      'PATCH',
+      body
+    );
     if (!res) throw new Error('Failed to complete task');
     return res as Record<string, unknown>;
   }
 
   async assignSlots(roles: string[]): Promise<Record<string, unknown>> {
     if (!this.isRemote) throw new Error('assignSlots() requires a remote board');
-    const res = await this.boardFetch(`/api/holomesh/team/${encodeURIComponent(this.name)}/roles`, 'PATCH', { roles });
+    const res = await this.boardFetch(
+      `/api/holomesh/team/${encodeURIComponent(this.name)}/roles`,
+      'PATCH',
+      { roles }
+    );
     if (!res) throw new Error('Failed to assign slots');
     return res as Record<string, unknown>;
   }
@@ -1139,7 +1285,7 @@ export class Team {
   /** Create a bounty for a board task. */
   createBounty(taskId: string, reward: BountyReward, createdBy: string, deadline?: number): Bounty {
     // Verify the task exists on the board
-    const task = this.board.find(t => t.id === taskId);
+    const task = this.board.find((t) => t.id === taskId);
     if (!task) throw new Error(`Task ${taskId} not found on board`);
     return this.bounties.createBounty(taskId, reward, createdBy, deadline);
   }
@@ -1170,7 +1316,10 @@ export class Team {
       title: goal.description,
       description: `Autonomously synthesized goal [${goal.category}] — priority ${goal.priority}`,
       priority: goal.priority === 'high' ? 2 : goal.priority === 'medium' ? 4 : 6,
-      role: (agentRole === 'architect' || agentRole === 'researcher') ? 'researcher' as const : 'coder' as const,
+      role:
+        agentRole === 'architect' || agentRole === 'researcher'
+          ? ('researcher' as const)
+          : ('coder' as const),
       source: `synthesizer:${goal.source}`,
       status: 'open',
       createdAt: goal.generatedAt,
@@ -1179,11 +1328,15 @@ export class Team {
     return task;
   }
 
-  private findClaimableTask(runtime: AgentRuntime, alreadyClaimed: Set<string>, pool?: TaskDef[]): TaskDef | undefined {
+  private findClaimableTask(
+    runtime: AgentRuntime,
+    alreadyClaimed: Set<string>,
+    pool?: TaskDef[]
+  ): TaskDef | undefined {
     const tasks = pool ?? this.openTasks;
     const agent = runtime.config;
 
-    const validTasks = tasks.filter(task => {
+    const validTasks = tasks.filter((task) => {
       if (alreadyClaimed.has(task.id)) return false;
       if (task.priority > agent.claimFilter.maxPriority) return false;
       if (task.role) return agent.claimFilter.roles.includes(task.role);
@@ -1193,23 +1346,25 @@ export class Team {
     if (validTasks.length === 0) return undefined;
 
     // Score and pick highest
-    return validTasks.map(task => {
-      let score = (10 - task.priority) * 10; // Prioritize higher priority
-      score += runtime.reputationScore;
+    return validTasks
+      .map((task) => {
+        let score = (10 - task.priority) * 10; // Prioritize higher priority
+        score += runtime.reputationScore;
 
-      const fullText = `${task.title} ${task.description}`.toLowerCase();
-      for (const cap of agent.capabilities || []) {
-        if (fullText.includes(cap.toLowerCase())) {
-          score += 15; // Capability match bonus
+        const fullText = `${task.title} ${task.description}`.toLowerCase();
+        for (const cap of agent.capabilities || []) {
+          if (fullText.includes(cap.toLowerCase())) {
+            score += 15; // Capability match bonus
+          }
         }
-      }
 
-      if (task.role && agent.role === task.role) {
-        score += 20; // Exact role match bonus
-      }
+        if (task.role && agent.role === task.role) {
+          score += 20; // Exact role match bonus
+        }
 
-      return { task, score };
-    }).sort((a, b) => b.score - a.score)[0]?.task;
+        return { task, score };
+      })
+      .sort((a, b) => b.score - a.score)[0]?.task;
   }
 
   private async executeTask(
@@ -1217,15 +1372,15 @@ export class Team {
     task: TaskDef
   ): Promise<{ summary: string; insights: KnowledgeInsight[] }> {
     const relevantKnowledge = this.knowledge.search(task.title, 3);
-    const knowledgeContext = relevantKnowledge.length > 0
-      ? relevantKnowledge.map(k => `[${k.type}] ${k.content}`).join('\n')
-      : '';
+    const knowledgeContext =
+      relevantKnowledge.length > 0
+        ? relevantKnowledge.map((k) => `[${k.type}] ${k.content}`).join('\n')
+        : '';
 
     // Run the full 7-phase protocol cycle
     const result = await runProtocolCycle(runtime.config, task, knowledgeContext);
     return { summary: result.summary, insights: result.insights };
   }
-
 
   private async getAgentVote<T>(runtime: AgentRuntime, key: string, value: T): Promise<boolean> {
     const messages: LLMMessage[] = [

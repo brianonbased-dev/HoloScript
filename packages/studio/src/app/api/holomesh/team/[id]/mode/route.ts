@@ -23,7 +23,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     },
     {
       title: 'Audit TypeScript errors across studio',
-      description: 'Run tsc --noEmit and file issues for any NEW errors beyond the known pre-existing set.',
+      description:
+        'Run tsc --noEmit and file issues for any NEW errors beyond the known pre-existing set.',
       role: 'auditor',
       priority: 1,
       source: 'auto-derive',
@@ -65,7 +66,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     },
     {
       title: 'Summarize latest research files',
-      description: 'Read all ai-ecosystem/research/*.md files modified in last 7 days and output key findings.',
+      description:
+        'Read all ai-ecosystem/research/*.md files modified in last 7 days and output key findings.',
       role: 'researcher',
       priority: 3,
       source: 'auto-derive',
@@ -83,7 +85,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     },
     {
       title: 'Run pnpm build and fix any new compilation errors',
-      description: 'cd packages/studio && pnpm build 2>&1; triage and fix errors not in pre-existing list.',
+      description:
+        'cd packages/studio && pnpm build 2>&1; triage and fix errors not in pre-existing list.',
       role: 'coder',
       priority: 1,
       source: 'auto-derive',
@@ -91,7 +94,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     },
     {
       title: 'Add test coverage for recently modified files',
-      description: 'Find files touched in last 3 commits with < 50% test coverage and add vitest cases.',
+      description:
+        'Find files touched in last 3 commits with < 50% test coverage and add vitest cases.',
       role: 'tester',
       priority: 2,
       source: 'auto-derive',
@@ -101,7 +105,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
   review: [
     {
       title: 'Review uncommitted changes and commit or stash',
-      description: 'git status; for each modified file decide: commit to branch or stash for later.',
+      description:
+        'git status; for each modified file decide: commit to branch or stash for later.',
       role: 'coder',
       priority: 1,
       source: 'auto-derive',
@@ -130,10 +135,7 @@ const HOLOMESH_API_URL =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
 const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const body = (await req.json()) as { mode?: string; agentId?: string; agentName?: string };
@@ -142,7 +144,7 @@ export async function POST(
   if (!['audit', 'research', 'build', 'review'].includes(mode)) {
     return NextResponse.json(
       { error: 'mode must be one of: audit, research, build, review' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

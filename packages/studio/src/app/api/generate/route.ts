@@ -90,7 +90,11 @@ export async function POST(request: NextRequest) {
     return limit.response;
   }
 
-  const headers = { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) };
+  const headers = {
+    'x-llm-provider': 'server',
+    'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+    'X-RateLimit-Remaining': String(limit.remaining),
+  };
 
   // Credit gate — must pass before any LLM call
   const gate = await checkCredits(request, 'studio_generate');
@@ -154,7 +158,7 @@ export async function POST(request: NextRequest) {
         ...(validation.errors.length > 0 && { validationErrors: validation.errors }),
         ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
       },
-      { headers },
+      { headers }
     );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -208,7 +212,8 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+          model:
+            process.env.BRITTNEY_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
           max_tokens: 4096,
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }],

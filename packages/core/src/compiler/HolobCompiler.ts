@@ -82,16 +82,16 @@ export interface HolobCompileResult {
 // =============================================================================
 
 const GEOMETRY_MAP: Record<string, number> = {
-  box: 0,      // GeometryType.Cube
+  box: 0, // GeometryType.Cube
   cube: 0,
-  sphere: 1,   // GeometryType.Sphere
+  sphere: 1, // GeometryType.Sphere
   orb: 1,
-  plane: 2,    // GeometryType.Plane
+  plane: 2, // GeometryType.Plane
   ground: 2,
   cylinder: 3, // GeometryType.Cylinder
-  cone: 4,     // GeometryType.Cone
-  torus: 5,    // GeometryType.Torus
-  capsule: 6,  // GeometryType.Capsule
+  cone: 4, // GeometryType.Cone
+  torus: 5, // GeometryType.Torus
+  capsule: 6, // GeometryType.Capsule
 };
 
 const LIGHT_MAP: Record<string, number> = {
@@ -192,10 +192,7 @@ export class HolobCompiler {
 
   // ─── Entity Definition ──────────────────────────────────────────────
 
-  private defineEntities(
-    builder: any,
-    composition: HoloComposition
-  ): Map<string, number> {
+  private defineEntities(builder: any, composition: HoloComposition): Map<string, number> {
     const ids = new Map<string, number>();
 
     if (composition.objects) {
@@ -219,27 +216,34 @@ export class HolobCompiler {
 
   // ─── Object Compilation ─────────────────────────────────────────────
 
-  private compileObject(
-    fn: any,
-    builder: any,
-    obj: HoloObjectDecl,
-    entityId: number
-  ): void {
+  private compileObject(fn: any, builder: any, obj: HoloObjectDecl, entityId: number): void {
     // Geometry
-    const shapeProp = obj.properties?.find(p => p.key === 'shape')?.value;
+    const shapeProp = obj.properties?.find((p) => p.key === 'shape')?.value;
     const shape = (shapeProp as string)?.toLowerCase() || 'box';
     const geoType = GEOMETRY_MAP[shape] ?? GEOMETRY_MAP['box'];
     fn.setGeometry(entityId, geoType);
 
     // Transform
-    const posProp = obj.properties?.find(p => p.key === 'position')?.value;
-    const rotProp = obj.properties?.find(p => p.key === 'rotation')?.value;
-    const sclProp = obj.properties?.find(p => p.key === 'scale')?.value;
-    
+    const posProp = obj.properties?.find((p) => p.key === 'position')?.value;
+    const rotProp = obj.properties?.find((p) => p.key === 'rotation')?.value;
+    const sclProp = obj.properties?.find((p) => p.key === 'scale')?.value;
+
     const pos = this.resolveVec3(posProp, [0, 0, 0]);
     const rot = this.resolveVec3(rotProp, [0, 0, 0]);
     const scl = this.resolveVec3(sclProp, [1, 1, 1]);
-    fn.transform(entityId, pos[0], pos[1], pos[2], rot[0], rot[1], rot[2], 0, scl[0], scl[1], scl[2]);
+    fn.transform(
+      entityId,
+      pos[0],
+      pos[1],
+      pos[2],
+      rot[0],
+      rot[1],
+      rot[2],
+      0,
+      scl[0],
+      scl[1],
+      scl[2]
+    );
 
     // Material — extract color from properties
     const color = this.resolveColor(obj);
@@ -248,7 +252,12 @@ export class HolobCompiler {
     // Traits → compile to opcodes
     if (obj.traits && Array.isArray(obj.traits)) {
       for (const trait of obj.traits) {
-        const traitName = typeof trait === 'string' ? trait : ('name' in trait ? (trait as { name: string }).name : String(trait));
+        const traitName =
+          typeof trait === 'string'
+            ? trait
+            : 'name' in trait
+              ? (trait as { name: string }).name
+              : String(trait);
         this.compileTrait(fn, entityId, traitName, obj);
       }
     }
@@ -362,7 +371,10 @@ export class HolobCompiler {
 
   // ─── Helpers ────────────────────────────────────────────────────────
 
-  private resolveVec3(value: unknown, fallback: [number, number, number]): [number, number, number] {
+  private resolveVec3(
+    value: unknown,
+    fallback: [number, number, number]
+  ): [number, number, number] {
     if (Array.isArray(value) && value.length >= 3) {
       return [Number(value[0]) || 0, Number(value[1]) || 0, Number(value[2]) || 0];
     }

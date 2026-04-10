@@ -1,6 +1,34 @@
-# ∞ HoloScript — Cursor Agent Injection Manifest
+# ∞ HoloScript — Agent Behavioral Contract
 
 > **AGENT**: This is your behavioral contract. Execute SESSION INIT before anything else. All directives are mandatory.
+
+---
+
+## ∞ DECISION AUTONOMY (MANDATORY — read before asking ANY question)
+
+**You are an autonomous agent. Decide, then tell the user what you decided and why.**
+
+Before asking the user ANY architectural, convention, or "which approach?" question, apply these rules in order. Stop at the first one that answers:
+
+1. **Code question?** → Query codebase first: `holo_query_codebase`, `holo_ask_codebase`, `holo_impact_analysis`
+2. **"Real implementation or placeholder?"** → **Always real.** Never facade your own code when you're the only consumer. Never stop at scaffold. "Coming Soon" pages are facades that teach agents nothing. Build against real types, even if the API endpoint doesn't exist yet.
+3. **"Mock the UI or wire to real logic?"** → **Wire to real types, read-only first.** Use actual TypeScript types from source. Don't mock the data layer. View-only visualization of real data is the correct first step — full interaction comes after agents are using the API.
+4. **"Which repo/package?"** → HoloScript (unless explicitly told otherwise). Existing package over new package.
+5. **"Should I commit?"** → Yes, if you completed a coherent unit of work and tests pass.
+6. **"Test failing?"** → Fix if yours, skip if pre-existing (VRChatCompiler = known).
+7. **"MCP or CLI?"** → MCP if reachable, CLI as fallback.
+8. **"Git staging?"** → ALWAYS explicit paths. Never `git add -A` or `git add .`
+
+**Only ask the user for:** novel features with no precedent, budget decisions > $5, destructive operations, or genuinely ambiguous product requirements.
+
+### Key Principles (memorize — don't look up)
+
+- **Simulation-first.** Digital twin before physical twin. Prove the concept before spending capital.
+- **Runtime-first.** The runtime interprets directly. Compilers optimize. If a compiler breaks, the runtime still works.
+- **Agents are the audience.** Every doc, config, and public-facing text exists to be read by agents first, humans second.
+- **GitHub is source of truth.** Live servers are projections that can be re-seeded.
+- **Wallets are identity.** API keys are sessions. Never overwrite wallet credentials.
+- **Numbers from live sources only.** Never hardcode ecosystem counts — verify via health endpoints or `find` commands.
 
 ---
 
@@ -38,7 +66,9 @@ ALWAYS → new packages → add to typedoc.json entryPoints
 
 ```
 Request is for HoloScript code?
-  YES → suggest_traits → generate_object/generate_scene → validate_holoscript → return
+  Spatial (scene, 3D, VR) → .holo → suggest_traits → generate_scene → validate_holoscript
+  Data pipeline / ETL     → .hs → parse_hs → compile to node.js target
+  Agent/behavior/logic    → .hsplus → suggest_traits → validate_holoscript
   NO  ↓
 
 Request is about a trait?
@@ -46,7 +76,15 @@ Request is about a trait?
   NO  ↓
 
 Request is to compile/export?
-  YES → identify target → see docs/compilers/[target].md
+  YES → identify target (47 compilers) → see docs/compilers/[target].md
+  NO  ↓
+
+Request is about knowledge/team/agents?
+  YES → use holomesh_* MCP tools (board, knowledge, messaging, fleet)
+  NO  ↓
+
+Request is about codebase understanding?
+  YES → holo_graph_status → holo_absorb_repo → holo_query_codebase / holo_impact_analysis
   NO  ↓
 
 User is new to HoloScript?
@@ -54,7 +92,7 @@ User is new to HoloScript?
   NO  ↓
 
 Modifying TypeScript in packages/?
-  YES → PRE-REFACTOR: run `npx tsx packages/cli/src/cli.ts absorb <package-path> > knowledge.holo`
+  YES → PRE-REFACTOR: holo_absorb_repo → holo_impact_analysis
   THEN → pnpm test → edit → pnpm test → explicit git add
   NO  ↓
 
@@ -83,10 +121,60 @@ suggest_traits({ description: "<scene intent>" })
 → validate_holoscript({ code: <above result> })
 ```
 
+### Service Contract (API → .holo)
+
+```
+generate_service_contract({ spec: "<OpenAPI or TypeScript contract>" })
+→ validate_holoscript({ code: <above result> })
+→ compile to node-service, r3f, or native-2d
+```
+
+### Data Pipeline (CSV/JSON → deployed)
+
+```
+holoscript_map_csv({ headers: [...] }) OR holoscript_map_schema({ schema: {...} })
+→ validate_holoscript({ code: <above result> })
+→ compile_to_node_service or compile_to_native_2d
+```
+
+### IDE Intelligence (full LSP-equivalent over MCP)
+
+```
+hs_scan_project → hs_diagnostics → hs_refactor
+hs_go_to_definition / hs_find_references / hs_hover / hs_autocomplete / hs_code_action
+```
+
+### Economy & Budget
+
+```
+check_agent_budget → get_usage_summary → optimize_scene_budget
+get_creator_earnings → validate_marketplace_pricing
+```
+
+### Observability
+
+```
+query_traces / get_agent_health / get_metrics_prometheus / export_traces_otlp
+```
+
+### Self-Improvement (agents modify codebase via MCP)
+
+```
+holo_read_file → holo_edit_file → holo_run_tests_targeted → holo_git_commit
+holo_generate_refactor_plan → holo_scaffold_code
+```
+
+### Wisdom & Quality Gates
+
+```
+holo_query_wisdom → holo_check_gotchas (pre-commit gate)
+holoscript_code_health → holoscript_audit_numbers
+```
+
 ### Trait Discovery
 
 ```
-list_traits({ category: "interaction|physics|visual|networking|ai|spatial|audio|iot" })
+list_traits({ category: "interaction|physics|visual|networking|ai|spatial|audio|iot|economics|security|devops|data" })
 → explain_trait({ name: "<trait>" })
 ```
 
@@ -102,20 +190,25 @@ parse_hs({ code: "..." }) OR parse_holo({ code: "..." })
 ## ∞ FILE FORMAT ROUTING
 
 ```
-No interactivity needed          → .hs
-Needs @grabbable/@physics/@net   → .hsplus
-AI-generated / cross-platform    → .holo
-CLI / parser / adapter / tooling → .ts (TypeScript only)
+Data pipelines / ETL / transforms    → .hs     (compiles to Node.js, JSON)
+Behaviors / traits / agents / IoT    → .hsplus  (economics, networking, AI, physics, state machines)
+Compositions / scenes / dashboards   → .holo    (cross-platform, AI-generated)
+CLI / parser / adapter / infra       → .ts      (TypeScript — last resort)
 ```
 
 ---
 
 ## ∞ KNOWLEDGE PACK
 
+All counts verified live — NEVER hardcode. Use commands below to get current numbers.
+
 ```
-TRAITS     1,800+ in 13 categories — ALL inside @holoscript/core
-COMPILERS  25+ targets — ALL inside @holoscript/core (no separate package)
-MCP        packages/mcp-server/ — 72+ tools
+TRAITS     verify: find packages/core/src/traits -name "*.ts" -not -name "*.test.*" | wc -l
+COMPILERS  verify: find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" | wc -l
+TARGETS    verify: ExportTarget type in packages/core/src/compiler/CircuitBreaker.ts
+MCP        verify: curl mcp.holoscript.net/health → tools field
+PACKAGES   verify: ls -d packages/*/ services/*/ | wc -l
+STUDIO     universal IDE — scenes, knowledge, agents, deploy, teams, marketplace, pipeline builder
 BRITTNEY   ../Hololand/packages/brittney/mcp-server/ — runtime AI (optional)
 TEST       pnpm test | pnpm test --filter @holoscript/core | createComposition()
 BUILD      pnpm build | pre-commit: ESLint + tsc + tests (auto-fires)
@@ -123,35 +216,45 @@ WINDOWS    git add -A → nul file → broken repo. ALWAYS explicit stage.
 SIDEBAR    docs/.vitepress/config.ts — ALL nav wired here
 ```
 
-### Packages (no phantom packages)
+### Key Packages (verify full list via `ls packages/ services/`)
 
 ```
-@holoscript/core          Parser · AST · 1,800+ traits · 25+ compilers
-@holoscript/mcp-server    72+ AI tools (parse/validate/generate/compile)
-@holoscript/cli           holo build · holo compile · holo validate
-@holoscript/runtime       Scene execution
-@holoscript/lsp           Language Server (VS Code, Neovim, IntelliJ)
-@holoscript/formatter     Formatter
-@holoscript/linter        Linter
-@holoscript/llm-provider  OpenAI · Anthropic · Gemini SDK
-@holoscript/partner-sdk   Webhooks · analytics
-holoscript (PyPI)         Python + robotics module
+@holoscript/core           Parser · AST · traits · 47 compilers
+@holoscript/mcp-server     MCP tools (count via /health)
+@holoscript/studio         Universal IDE — scenes, knowledge, agents, deploy, teams
+@holoscript/framework      Board types, task chaining, team infrastructure
+@holoscript/config         Centralized endpoints, auth, service config
+@holoscript/engine         Scene execution engine
+@holoscript/cli            holo build · holo compile · holo validate · holo dev
+@holoscript/runtime        Direct interpretation (no compiler needed)
+@holoscript/lsp            Language Server (VS Code, Neovim, IntelliJ)
+@holoscript/connector-*    Platform connectors (github, railway, vscode, appstore, upstash)
+@holoscript/llm-provider   OpenAI · Anthropic · Gemini SDK
+@holoscript/crdt           Conflict-free replicated state
+@holoscript/snn-webgpu     Spiking neural networks on GPU
+holoscript (PyPI)          Python + robotics module
 ```
 
-### Trait Cheatsheet
+### Trait Cheatsheet (spatial + non-spatial)
 
 ```
+SPATIAL:
 interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable
 physics       @collidable @physics @rigid @kinematic @trigger @gravity
 visual        @glowing @emissive @transparent @reflective @animated @billboard
-networking    @networked @synced @persistent @owned @host_only
-ai-behavior   @npc @pathfinding @llm_agent @reactive @state_machine
 spatial       @anchor @tracked @world_locked @hand_tracked @eye_tracked
 audio         @spatial_audio @ambient @voice_activated
-accessibility @high_contrast @screen_reader @reduced_motion
-web3          @nft_asset @token_gated @wallet_connected
+
+NON-SPATIAL:
+state-logic   @state @reactive @observable @computed @state_machine
+ai-behavior   @npc @pathfinding @llm_agent @reactive @crowd
+networking    @networked @synced @persistent @owned @host_only
+economics     @wallet @nft_asset @token_gated @marketplace @economy_primitive
 iot           @iot_sensor @digital_twin @mqtt_bridge @telemetry
+security      @zero_knowledge_proof @vulnerability_scanner @audit_log
 social        @avatar @presence @voice_chat @proximity_chat
+accessibility @high_contrast @screen_reader @reduced_motion
+ai-gen        @stable_diffusion @neural_forge @diffusion_realtime
 ```
 
 ---

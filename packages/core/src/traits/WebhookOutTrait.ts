@@ -17,7 +17,12 @@ export const webhookOutHandler: TraitHandler<WebhookOutConfig> = {
     delete node.__whOutState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: WebhookOutConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: WebhookOutConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__whOutState as { sent: number; failed: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'webhook:send') {

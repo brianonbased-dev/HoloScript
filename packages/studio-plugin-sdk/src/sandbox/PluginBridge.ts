@@ -575,7 +575,9 @@ export class PluginBridge {
 
       // Get network policy from manifest
       // Access the manifest through sandbox options
-      const networkPolicy = (this.sandbox as unknown as { options?: { manifest?: { networkPolicy?: NetworkPolicy } } }).options?.manifest?.networkPolicy;
+      const networkPolicy = (
+        this.sandbox as unknown as { options?: { manifest?: { networkPolicy?: NetworkPolicy } } }
+      ).options?.manifest?.networkPolicy;
 
       if (!networkPolicy) {
         // No network policy = no URLs allowed

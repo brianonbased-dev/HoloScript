@@ -295,4 +295,3 @@ export const SSS_PRESETS = {
       layers: [{ weight: 1, scatterRadius: [0.3, 0.8, 0.2], color: [0.3, 0.7, 0.15] }],
     }),
 };
-

@@ -79,10 +79,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Create org + add creator as owner member
-  const [org] = await db
-    .insert(organizations)
-    .values({ name, slug, ownerId: userId })
-    .returning();
+  const [org] = await db.insert(organizations).values({ name, slug, ownerId: userId }).returning();
 
   await db.insert(orgMembers).values({
     orgId: org.id,

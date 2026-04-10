@@ -1,15 +1,15 @@
 # @holoscript/core
 
-**The semantic engine at the heart of HoloScript.** Full-featured parser, AST, validator, trait system, and 30+ compiler infrastructure.
+**The semantic engine at the heart of HoloScript.** Full-featured parser, AST, validator, trait system, and compiler infrastructure.
 
 ## Overview
 
 Core is the foundation. Everything else depends on it—traits, compilers, runtime, tooling.
 
 - **Parser** — Converts `.hs`, `.hsplus`, `.holo` source to AST
-- **Traits system** — 2,000+ semantic trait definitions
+- **Traits system** — semantic trait definitions (verify current inventory in `packages/core/src/traits/`)
 - **Validators** — Type checking, scope analysis, trait validation
-- **Compiler infrastructure** — Base classes for all 30+ compiler targets
+- **Compiler infrastructure** — Base classes and target registries (verify keys via `ExportTarget`)
 - **AST manipulation** — Query, walk, transform code
 - **Standalone** — Works without browser/Node.js (suitable for WASM)
 

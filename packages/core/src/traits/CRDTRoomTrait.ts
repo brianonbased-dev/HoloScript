@@ -544,7 +544,13 @@ export default {
 };
 
 // ── Handler (delegates to CRDTRoomTraitValidationError) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const cRDTRoomHandler = {
   name: 'c_r_d_t_room',

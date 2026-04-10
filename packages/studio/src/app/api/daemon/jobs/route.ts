@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   if (!body.projectId || !body.profile || !body.projectDna) {
     return NextResponse.json(
       { error: 'Missing required fields: projectId, profile, projectDna' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

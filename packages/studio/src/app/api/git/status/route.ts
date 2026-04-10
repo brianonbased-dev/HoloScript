@@ -26,10 +26,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const allowedRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? '', '.holoscript', 'workspaces');
+  const allowedRoot = path.join(
+    process.env.HOME ?? process.env.USERPROFILE ?? '',
+    '.holoscript',
+    'workspaces'
+  );
   const resolved = path.resolve(workspacePath);
   if (!resolved.startsWith(allowedRoot)) {
-    return NextResponse.json({ error: 'workspacePath must be inside ~/.holoscript/workspaces' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'workspacePath must be inside ~/.holoscript/workspaces' },
+      { status: 403 }
+    );
   }
   if (!fs.existsSync(path.join(resolved, '.git'))) {
     return NextResponse.json({ error: 'Not a git repository' }, { status: 400 });
@@ -51,7 +58,10 @@ export async function GET(req: NextRequest) {
     for (const line of lines) {
       if (line.startsWith('# branch.ab')) {
         const m = line.match(/\+(\d+) -(\d+)/);
-        if (m) { ahead = parseInt(m[1], 10); behind = parseInt(m[2], 10); }
+        if (m) {
+          ahead = parseInt(m[1], 10);
+          behind = parseInt(m[2], 10);
+        }
       } else if (line.startsWith('# branch.upstream')) {
         upstream = line.slice('# branch.upstream '.length);
       } else if (line.startsWith('1 ') || line.startsWith('2 ') || line.startsWith('? ')) {

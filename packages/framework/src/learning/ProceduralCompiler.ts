@@ -1,4 +1,9 @@
-export interface ProceduralSkill { id: string; name: string; description?: string; code?: string; }
+export interface ProceduralSkill {
+  id: string;
+  name: string;
+  description?: string;
+  code?: string;
+}
 
 /**
  * ProceduralCompiler

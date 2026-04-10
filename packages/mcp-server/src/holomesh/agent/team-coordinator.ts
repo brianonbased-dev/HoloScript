@@ -99,9 +99,7 @@ const roomCycleHistory: Map<string, CycleResult[]> = new Map();
 
 function getServerUrl(): string {
   return (
-    process.env.HOLOSCRIPT_SERVER_URL ||
-    process.env.MCP_LOCAL_URL ||
-    'https://mcp.holoscript.net'
+    process.env.HOLOSCRIPT_SERVER_URL || process.env.MCP_LOCAL_URL || 'https://mcp.holoscript.net'
   );
 }
 
@@ -117,10 +115,7 @@ function getApiKey(): string {
  * Skips agents whose role slot is already occupied.
  * @deprecated FW-0.3 — migrate to framework Team constructor + addAgent() API
  */
-export function assignAgentsToRoom(
-  roomId: string,
-  agentProfileIds: string[]
-): LoadAgentsResult {
+export function assignAgentsToRoom(roomId: string, agentProfileIds: string[]): LoadAgentsResult {
   if (!roomAgents.has(roomId)) {
     roomAgents.set(roomId, new Map());
   }
@@ -197,15 +192,21 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
 
   // Build a Framework Team from the registered agent profiles
   const agentConfigs = Array.from(slots.values())
-    .map(slot => {
+    .map((slot) => {
       const profile = TEAM_AGENT_PROFILES.get(slot.agentId);
       if (!profile) return null;
       return {
         name: profile.name,
         role: profile.role as 'architect' | 'coder' | 'researcher' | 'reviewer',
-        model: { provider: profile.provider as 'anthropic' | 'openai' | 'xai', model: profile.model },
+        model: {
+          provider: profile.provider as 'anthropic' | 'openai' | 'xai',
+          model: profile.model,
+        },
         capabilities: profile.capabilities,
-        claimFilter: { roles: profile.claimFilter.roles, maxPriority: profile.claimFilter.maxPriority },
+        claimFilter: {
+          roles: profile.claimFilter.roles,
+          maxPriority: profile.claimFilter.maxPriority,
+        },
         systemPrompt: profile.systemPrompt,
         knowledgeDomains: profile.knowledgeDomains,
       };
@@ -213,7 +214,7 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
   if (agentConfigs.length === 0) {
-    return Array.from(slots.values()).map(slot => ({
+    return Array.from(slots.values()).map((slot) => ({
       roomId,
       agentId: slot.agentId,
       agentName: slot.agentName,
@@ -239,8 +240,8 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
   const fwResult: FrameworkCycleResult = await frameworkTeam.runCycle();
 
   // Adapt framework results → coordinator CycleResult[]
-  const results: CycleResult[] = fwResult.agentResults.map(ar => {
-    const slot = Array.from(slots.values()).find(s => s.agentName === ar.agentName);
+  const results: CycleResult[] = fwResult.agentResults.map((ar) => {
+    const slot = Array.from(slots.values()).find((s) => s.agentName === ar.agentName);
     const agentId = slot?.agentId || ar.agentName;
 
     // Update slot stats
@@ -258,7 +259,7 @@ export async function runAgentCycle(roomId: string): Promise<CycleResult[]> {
       taskTitle: ar.taskTitle,
       action: ar.action,
       summary: ar.summary,
-      knowledgeEntries: ar.knowledge.map(k => ({
+      knowledgeEntries: ar.knowledge.map((k) => ({
         type: k.type,
         content: k.content,
         domain: k.domain,

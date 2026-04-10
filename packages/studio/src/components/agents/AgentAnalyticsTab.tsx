@@ -65,9 +65,9 @@ export function AgentAnalyticsTab() {
 
       setAnalytics({
         totalAgents: agents.length,
-        activeAgents: agents.filter(a => a.status === 'active').length,
-        pausedAgents: agents.filter(a => a.status === 'paused').length,
-        stoppedAgents: agents.filter(a => a.status === 'stopped').length,
+        activeAgents: agents.filter((a) => a.status === 'active').length,
+        pausedAgents: agents.filter((a) => a.status === 'paused').length,
+        stoppedAgents: agents.filter((a) => a.status === 'stopped').length,
         totalEarnedCents: agents.reduce((s, a) => s + a.earningsCents, 0),
         totalSpentCents: agents.reduce((s, a) => s + a.spentCents, 0),
         agents,
@@ -79,7 +79,9 @@ export function AgentAnalyticsTab() {
     }
   }, []);
 
-  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   if (loading) {
     return (
@@ -176,7 +178,9 @@ export function AgentAnalyticsTab() {
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="h-4 w-4 text-amber-400" />
-            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Top Performing Agent</span>
+            <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+              Top Performing Agent
+            </span>
           </div>
           <div className="flex items-center gap-6">
             <div>
@@ -185,15 +189,21 @@ export function AgentAnalyticsTab() {
             </div>
             <div className="ml-auto grid grid-cols-3 gap-6 text-center">
               <div>
-                <div className="text-sm font-bold text-emerald-400">{formatUsd(topAgent.earningsCents)}</div>
+                <div className="text-sm font-bold text-emerald-400">
+                  {formatUsd(topAgent.earningsCents)}
+                </div>
                 <div className="text-[9px] text-studio-muted uppercase">Earned</div>
               </div>
               <div>
-                <div className="text-sm font-bold text-indigo-400">{topAgent.reputation.toFixed(1)}</div>
+                <div className="text-sm font-bold text-indigo-400">
+                  {topAgent.reputation.toFixed(1)}
+                </div>
                 <div className="text-[9px] text-studio-muted uppercase">Reputation</div>
               </div>
               <div>
-                <div className="text-sm font-bold text-studio-text">{formatUsd(topAgent.earningsCents - topAgent.spentCents)}</div>
+                <div className="text-sm font-bold text-studio-text">
+                  {formatUsd(topAgent.earningsCents - topAgent.spentCents)}
+                </div>
                 <div className="text-[9px] text-studio-muted uppercase">Net</div>
               </div>
             </div>
@@ -203,7 +213,9 @@ export function AgentAnalyticsTab() {
 
       {/* Per-agent breakdown */}
       <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-        <h3 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">Per-Agent Performance</h3>
+        <h3 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">
+          Per-Agent Performance
+        </h3>
 
         {sortedByEarnings.length === 0 ? (
           <p className="text-xs text-studio-muted text-center py-8">No agents to display</p>
@@ -219,20 +231,36 @@ export function AgentAnalyticsTab() {
               <div className="col-span-2 text-right">Net</div>
             </div>
 
-            {sortedByEarnings.map(agent => {
+            {sortedByEarnings.map((agent) => {
               const agentNet = agent.earningsCents - agent.spentCents;
               const maxEarned = sortedByEarnings[0]?.earningsCents || 1;
-              const barWidth = maxEarned > 0 ? Math.max(2, (agent.earningsCents / maxEarned) * 100) : 2;
+              const barWidth =
+                maxEarned > 0 ? Math.max(2, (agent.earningsCents / maxEarned) * 100) : 2;
 
               return (
-                <div key={agent.id} className="rounded-lg border border-studio-border bg-[#0f172a] p-3 transition hover:border-studio-accent/30">
+                <div
+                  key={agent.id}
+                  className="rounded-lg border border-studio-border bg-[#0f172a] p-3 transition hover:border-studio-accent/30"
+                >
                   <div className="grid grid-cols-12 gap-2 items-center text-xs">
-                    <div className="col-span-3 font-medium text-studio-text truncate">{agent.name}</div>
-                    <div className="col-span-2 text-studio-muted">{PLATFORM_LABEL[agent.platform]}</div>
-                    <div className="col-span-1 text-right text-indigo-400 font-mono">{agent.reputation.toFixed(1)}</div>
-                    <div className="col-span-2 text-right text-emerald-400 font-mono">{formatUsd(agent.earningsCents)}</div>
-                    <div className="col-span-2 text-right text-amber-400 font-mono">{formatUsd(agent.spentCents)}</div>
-                    <div className={`col-span-2 text-right font-mono font-bold ${agentNet >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <div className="col-span-3 font-medium text-studio-text truncate">
+                      {agent.name}
+                    </div>
+                    <div className="col-span-2 text-studio-muted">
+                      {PLATFORM_LABEL[agent.platform]}
+                    </div>
+                    <div className="col-span-1 text-right text-indigo-400 font-mono">
+                      {agent.reputation.toFixed(1)}
+                    </div>
+                    <div className="col-span-2 text-right text-emerald-400 font-mono">
+                      {formatUsd(agent.earningsCents)}
+                    </div>
+                    <div className="col-span-2 text-right text-amber-400 font-mono">
+                      {formatUsd(agent.spentCents)}
+                    </div>
+                    <div
+                      className={`col-span-2 text-right font-mono font-bold ${agentNet >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                    >
                       {formatUsd(agentNet)}
                     </div>
                   </div>
@@ -251,9 +279,11 @@ export function AgentAnalyticsTab() {
 
       {/* Cost vs Revenue summary */}
       <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-        <h3 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">Cost vs Revenue</h3>
+        <h3 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">
+          Cost vs Revenue
+        </h3>
         <div className="space-y-3">
-          {sortedByEarnings.map(agent => {
+          {sortedByEarnings.map((agent) => {
             const total = Math.max(agent.earningsCents + agent.spentCents, 1);
             const earnPct = (agent.earningsCents / total) * 100;
             const spendPct = (agent.spentCents / total) * 100;
@@ -293,7 +323,17 @@ export function AgentAnalyticsTab() {
 
 // ── Subcomponents ────────────────────────────────────────────────────────────
 
-function AnalyticsCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function AnalyticsCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+}) {
   const valueColorClass =
     color === '#6366f1'
       ? 'text-indigo-500'

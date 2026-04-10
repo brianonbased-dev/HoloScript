@@ -215,4 +215,3 @@ export class TerrainBrush {
     return this.redoStack.length;
   }
 }
-

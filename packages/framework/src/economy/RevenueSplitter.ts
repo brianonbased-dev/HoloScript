@@ -66,9 +66,7 @@ export class RevenueSplitter {
 
     const sum = recipients.reduce((acc, r) => acc + r.basisPoints, 0);
     if (sum !== TOTAL_BASIS_POINTS) {
-      throw new Error(
-        `Basis points must sum to ${TOTAL_BASIS_POINTS} (got ${sum})`
-      );
+      throw new Error(`Basis points must sum to ${TOTAL_BASIS_POINTS} (got ${sum})`);
     }
 
     for (const r of recipients) {
@@ -78,7 +76,7 @@ export class RevenueSplitter {
     }
 
     // Check for duplicate IDs
-    const ids = new Set(recipients.map(r => r.id));
+    const ids = new Set(recipients.map((r) => r.id));
     if (ids.size !== recipients.length) {
       throw new Error('Duplicate recipient IDs');
     }

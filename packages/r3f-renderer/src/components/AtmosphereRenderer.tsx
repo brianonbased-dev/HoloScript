@@ -188,7 +188,12 @@ export function AtmosphereRenderer({
   ]);
 
   useFrame(() => {
-    if (model === 'bruneton' && uniforms.uSunDirection && uniforms.uTurbidity && uniforms.uExposure) {
+    if (
+      model === 'bruneton' &&
+      uniforms.uSunDirection &&
+      uniforms.uTurbidity &&
+      uniforms.uExposure
+    ) {
       uniforms.uSunDirection.value.set(...sunDirection).normalize();
       uniforms.uTurbidity.value = turbidity;
       uniforms.uExposure.value = exposure;

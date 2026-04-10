@@ -185,11 +185,11 @@ export class SceneInspector {
         childrenIds: [],
         transform: {
           // @ts-expect-error
-          position: pos ? [pos[0], pos[1], pos[2]] as unknown : [0, 0, 0],
+          position: pos ? ([pos[0], pos[1], pos[2]] as unknown) : [0, 0, 0],
           // @ts-expect-error
-          rotation: rot ? [rot[0], rot[1], rot[2]] as unknown : [0, 0, 0],
+          rotation: rot ? ([rot[0], rot[1], rot[2]] as unknown) : [0, 0, 0],
           // @ts-expect-error
-          scale: scl ? [scl[0], scl[1], scl[2]] as unknown : [1, 1, 1],
+          scale: scl ? ([scl[0], scl[1], scl[2]] as unknown) : [1, 1, 1],
         },
         properties: this.extractProperties(obj),
         // @ts-expect-error

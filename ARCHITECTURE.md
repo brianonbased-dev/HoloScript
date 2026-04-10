@@ -42,7 +42,7 @@ graph TB
   subgraph "L5 — Developer Surface"
     mcp["@holoscript/mcp-server<br/>MCP tools + JSON-RPC + REST"]
     cli["@holoscript/cli<br/>CLI: compile, validate, dev-serve"]
-    studio["@holoscript/studio<br/>Next.js AI-powered 3D scene builder"]
+    studio["@holoscript/studio<br/>Next.js universal semantic IDE"]
     create["create-holoscript-app<br/>Zero-config project scaffolding"]
   end
 
@@ -80,30 +80,30 @@ graph TB
 
 ## Package Index
 
-| Layer | Package | Version | Description |
-|-------|---------|---------|-------------|
-| L0 | `@holoscript/core-types` | 5.4.0 | Pure type definitions, zero runtime deps |
-| L0 | `@holoscript/core` | 6.0.2 | Parser, AST, 24 compilers, trait system |
-| L1 | `@holoscript/engine` | 6.0.0 | Rendering, physics, animation, ECS (extracted from core) |
-| L1 | `@holoscript/framework` | 6.0.0 | Agent orchestration, BT, economy (extracted from core) |
-| L1 | `@holoscript/auth` | 6.0.0 | JWT auth library (extracted from core) |
-| L1 | `@holoscript/agent-protocol` | 6.0.0 | uAA2++ agent lifecycle (extracted from core) |
-| L2 | `@holoscript/linter` | 3.1.0 | Static analysis for .holo/.hsplus |
-| L2 | `@holoscript/formatter` | 3.1.0 | Code formatting |
-| L2 | `@holoscript/lsp` | 3.7.0 | Language Server Protocol |
-| L2 | `@holoscript/wasm` | 3.7.0 | Rust WASM parser |
-| L3 | `@holoscript/runtime` | 6.0.2 | Browser runtime with R3F integration |
-| L3 | `@holoscript/r3f-renderer` | 0.1.0 | Shared React Three Fiber components |
-| L3 | `@holoscript/crdt` | 1.0.0 | Authenticated CRDTs for distributed state |
-| L3 | `@holoscript/snn-webgpu` | 6.0.0 | GPU spiking neural networks |
-| L4 | `@holoscript/absorb-service` | 6.0.0 | Codebase intelligence pipeline |
-| L4 | `@holoscript/marketplace-api` | 1.2.1 | Trait marketplace |
-| L4 | `@holoscript/collab-server` | 1.0.0 | WebSocket collaboration relay |
-| L4 | `@holoscript/security-sandbox` | 1.2.0 | VM sandbox for safe execution |
-| L5 | `@holoscript/mcp-server` | 6.0.2 | MCP tools + REST API |
-| L5 | `@holoscript/cli` | 6.0.2 | CLI: compile, validate, dev-serve |
-| L5 | `@holoscript/studio` | 6.0.2 | Next.js scene builder (private) |
-| L5 | `create-holoscript-app` | 1.1.0 | Zero-config scaffolding |
+| Layer | Package                        | Version | Description                                              |
+| ----- | ------------------------------ | ------- | -------------------------------------------------------- |
+| L0    | `@holoscript/core-types`       | 5.4.0   | Pure type definitions, zero runtime deps                 |
+| L0    | `@holoscript/core`             | 6.0.2   | Parser, AST, 24 compilers, trait system                  |
+| L1    | `@holoscript/engine`           | 6.0.0   | Rendering, physics, animation, ECS (extracted from core) |
+| L1    | `@holoscript/framework`        | 6.0.0   | Agent orchestration, BT, economy (extracted from core)   |
+| L1    | `@holoscript/auth`             | 6.0.0   | JWT auth library (extracted from core)                   |
+| L1    | `@holoscript/agent-protocol`   | 6.0.0   | uAA2++ agent lifecycle (extracted from core)             |
+| L2    | `@holoscript/linter`           | 3.1.0   | Static analysis for .holo/.hsplus                        |
+| L2    | `@holoscript/formatter`        | 3.1.0   | Code formatting                                          |
+| L2    | `@holoscript/lsp`              | 3.7.0   | Language Server Protocol                                 |
+| L2    | `@holoscript/wasm`             | 3.7.0   | Rust WASM parser                                         |
+| L3    | `@holoscript/runtime`          | 6.0.2   | Browser runtime with R3F integration                     |
+| L3    | `@holoscript/r3f-renderer`     | 0.1.0   | Shared React Three Fiber components                      |
+| L3    | `@holoscript/crdt`             | 1.0.0   | Authenticated CRDTs for distributed state                |
+| L3    | `@holoscript/snn-webgpu`       | 6.0.0   | GPU spiking neural networks                              |
+| L4    | `@holoscript/absorb-service`   | 6.0.0   | Codebase intelligence pipeline                           |
+| L4    | `@holoscript/marketplace-api`  | 1.2.1   | Trait marketplace                                        |
+| L4    | `@holoscript/collab-server`    | 1.0.0   | WebSocket collaboration relay                            |
+| L4    | `@holoscript/security-sandbox` | 1.2.0   | VM sandbox for safe execution                            |
+| L5    | `@holoscript/mcp-server`       | 6.0.2   | MCP tools + REST API                                     |
+| L5    | `@holoscript/cli`              | 6.0.2   | CLI: compile, validate, dev-serve                        |
+| L5    | `@holoscript/studio`           | 6.0.2   | Next.js scene builder (private)                          |
+| L5    | `create-holoscript-app`        | 1.1.0   | Zero-config scaffolding                                  |
 
 ## Dependency Rules
 

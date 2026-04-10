@@ -30,11 +30,7 @@ export interface HoloCustomEvent {
  * definitions* are stricter.  This helper bridges the gap through a single
  * `unknown` cast so call-sites stay clean.
  */
-export function dispatchCustomEvent(
-  object: THREE.Object3D,
-  event: HoloCustomEvent,
-): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- single bridge cast
+export function dispatchCustomEvent(object: THREE.Object3D, event: HoloCustomEvent): void {
   (object.dispatchEvent as (e: HoloCustomEvent) => void)(event);
 }
 
@@ -47,10 +43,7 @@ export function dispatchCustomEvent(
 export interface NavigatorXR {
   xr: {
     isSessionSupported(mode: string): Promise<boolean>;
-    requestSession(
-      mode: string,
-      options?: Record<string, unknown>,
-    ): Promise<XRSession>;
+    requestSession(mode: string, options?: Record<string, unknown>): Promise<XRSession>;
   };
 }
 
@@ -79,16 +72,11 @@ export function hasGPU(nav: Navigator): nav is Navigator & NavigatorGPU {
 
 /** Augmented window with `requestIdleCallback` (not universally typed). */
 export interface WindowWithIdleCallback {
-  requestIdleCallback(
-    callback: () => void,
-    options?: { timeout: number },
-  ): number;
+  requestIdleCallback(callback: () => void, options?: { timeout: number }): number;
   cancelIdleCallback(id: number): void;
 }
 
-export function hasIdleCallback(
-  win: Window,
-): win is Window & WindowWithIdleCallback {
+export function hasIdleCallback(win: Window): win is Window & WindowWithIdleCallback {
   return typeof (win as unknown as WindowWithIdleCallback).requestIdleCallback === 'function';
 }
 
@@ -241,7 +229,7 @@ export interface GamepadWithVibration extends Gamepad {
         duration: number;
         strongMagnitude: number;
         weakMagnitude: number;
-      },
+      }
     ): void;
   };
 }
@@ -283,10 +271,7 @@ export interface QuatLike {
 type AxisKey = 'x' | 'y' | 'z';
 
 /** Safely read `obj.position[axis]` or `obj.rotation[axis]`. */
-export function getVec3Component(
-  vec: THREE.Vector3 | THREE.Euler,
-  axis: string,
-): number {
+export function getVec3Component(vec: THREE.Vector3 | THREE.Euler, axis: string): number {
   return vec[axis as AxisKey] ?? 0;
 }
 

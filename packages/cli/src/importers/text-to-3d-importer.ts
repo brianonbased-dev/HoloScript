@@ -290,7 +290,6 @@ export async function textTo3DToHolo(opts: TextTo3DHoloOptions): Promise<TextTo3
   if (outputDir) {
     holoFilePath = path.join(outputDir, `${objectName}.holo`);
     fs.writeFileSync(holoFilePath, holoCode, 'utf-8');
-
   }
 
   return {

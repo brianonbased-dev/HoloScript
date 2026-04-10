@@ -565,7 +565,12 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
 
     // Track moving obstacle updates
     if (event.type === 'moving_obstacle_update') {
-      const data = event as unknown as { obstacleId: string; position: Vector3; velocity: Vector3; radius?: number };
+      const data = event as unknown as {
+        obstacleId: string;
+        position: Vector3;
+        velocity: Vector3;
+        radius?: number;
+      };
       state.movingObstacles.set(data.obstacleId, {
         id: data.obstacleId,
         position: data.position,
@@ -864,7 +869,10 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
 
     // Update region bounds
     if (event.type === 'region_bounds_update') {
-      const data = event as unknown as { regionId: string; bounds: { min: Vector3; max: Vector3 } | { center: Vector3; radius: number } | null };
+      const data = event as unknown as {
+        regionId: string;
+        bounds: { min: Vector3; max: Vector3 } | { center: Vector3; radius: number } | null;
+      };
       if (data.regionId === config.regionId) {
         state.regionBounds = data.bounds;
         context.setState({ spatialTrajectory: state });

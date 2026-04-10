@@ -201,7 +201,9 @@ export class TraceWaterfallRenderer {
     }
 
     // Find root spans (no parent or parent not in trace)
-    const rootSpans = filtered.filter((s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId));
+    const rootSpans = filtered.filter(
+      (s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId)
+    );
 
     // Build rows via DFS
     const rows: WaterfallRow[] = [];
@@ -348,7 +350,9 @@ export class TraceWaterfallRenderer {
     };
 
     // Find root spans
-    const roots = spans.filter((s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId));
+    const roots = spans.filter(
+      (s) => !s.context.parentSpanId || !spanMap.has(s.context.parentSpanId)
+    );
     for (const root of roots) {
       dfs(root.id, [], 0);
     }

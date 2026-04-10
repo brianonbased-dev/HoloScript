@@ -24,7 +24,7 @@ const mockWindow: any = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }
+  },
 };
 
 // Mock performance.now to return predictable timestamps

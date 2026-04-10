@@ -88,7 +88,8 @@ export class CircuitBreakerMetrics {
 
     const circuits: CircuitMetricsReport[] = circuitStats.map((stat) => {
       // @ts-expect-error During migration
-      const circuitManager = (this.client as Extensible<GraphQLCircuitBreakerClient>).circuitManager as { getCircuit(name: string): { getMetrics(): CircuitMetrics } };
+      const circuitManager = (this.client as Extensible<GraphQLCircuitBreakerClient>)
+        .circuitManager as { getCircuit(name: string): { getMetrics(): CircuitMetrics } };
       const circuit = circuitManager.getCircuit(stat.operationName);
       const metrics = circuit.getMetrics();
 
@@ -134,7 +135,11 @@ export class CircuitBreakerMetrics {
    */
   private calculateAggregateMetrics(
     circuits: CircuitMetricsReport[],
-    systemHealth: { circuits: { byState: { closed: number; open: number; halfOpen: number } }; cache: { size: number; totalHits: number }; degradedMode: boolean }
+    systemHealth: {
+      circuits: { byState: { closed: number; open: number; halfOpen: number } };
+      cache: { size: number; totalHits: number };
+      degradedMode: boolean;
+    }
   ): AggregateMetrics {
     const totalRequests = circuits.reduce((sum, c) => sum + c.metrics.totalRequests, 0);
     const totalFailures = circuits.reduce((sum, c) => sum + c.metrics.totalFailures, 0);

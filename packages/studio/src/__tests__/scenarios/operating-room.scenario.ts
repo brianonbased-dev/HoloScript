@@ -64,7 +64,10 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
       }),
     });
 
-    const telemetryReceived = new Promise<{ values: Record<string, number | string>; status?: string }>((resolve) => {
+    const telemetryReceived = new Promise<{
+      values: Record<string, number | string>;
+      status?: string;
+    }>((resolve) => {
       vrr.syncIoTSensor('patient_monitor_1', (data) => {
         resolve(data);
       });

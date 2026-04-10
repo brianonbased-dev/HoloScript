@@ -500,7 +500,13 @@ export function createAIDriverTrait(config: AIDriverConfig): AIDriverTrait {
 }
 
 // ── Handler (delegates to BehaviorTreeRunner) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const aIDriverHandler = {
   name: 'a_i_driver',

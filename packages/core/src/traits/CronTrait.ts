@@ -259,7 +259,7 @@ export const cronHandler = {
           missedJobStrategy,
         } = (event.payload as TraitEventPayload) ?? {};
         if (!name || !expression || !targetEvent) return;
-        if (!isValidCron((expression as string))) {
+        if (!isValidCron(expression as string)) {
           ctx.emit('cron_error', {
             node,
             jobId: null,
@@ -284,8 +284,9 @@ export const cronHandler = {
           lastRun: null,
           nextRun: getNextRun(expression as string),
           runCount: 0,
-          maxRuns: (maxRuns as number | null),
-          missedJobStrategy: ((missedJobStrategy as CronJob['missedJobStrategy']) ?? config.missed_job_strategy),
+          maxRuns: maxRuns as number | null,
+          missedJobStrategy:
+            (missedJobStrategy as CronJob['missedJobStrategy']) ?? config.missed_job_strategy,
         };
 
         state.jobs.set(job.id, job);
@@ -296,9 +297,9 @@ export const cronHandler = {
 
       case 'cron_cancel': {
         const { jobId } = (event.payload as TraitEventPayload) ?? {};
-        if (!jobId || !state.jobs.has((jobId as string))) return;
-        state.jobs.delete((jobId as string));
-        if (config.persist) removeJob(state.db, (jobId as string));
+        if (!jobId || !state.jobs.has(jobId as string)) return;
+        state.jobs.delete(jobId as string);
+        if (config.persist) removeJob(state.db, jobId as string);
         ctx.emit('cron_cancelled', { node, jobId });
         break;
       }
@@ -370,7 +371,13 @@ export const cronHandler = {
     }
   },
 
-  _triggerJob(state: CronState, node: HSPlusNode, config: CronConfig, ctx: TraitContext, job: CronJob): void {
+  _triggerJob(
+    state: CronState,
+    node: HSPlusNode,
+    config: CronConfig,
+    ctx: TraitContext,
+    job: CronJob
+  ): void {
     const now = Date.now();
     job.lastRun = now;
     job.runCount++;

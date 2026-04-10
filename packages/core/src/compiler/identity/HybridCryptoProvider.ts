@@ -281,7 +281,9 @@ export class MLDSACryptoProvider implements ICryptoProvider {
       return this.mlDsaModule;
     }
 
-    const noble = await import(/* @vite-ignore */ '@noble/post-quantum/ml-dsa.js' as string).catch(() => null);
+    const noble = await import(/* @vite-ignore */ '@noble/post-quantum/ml-dsa.js' as string).catch(
+      () => null
+    );
     if (!noble) {
       throw new Error(
         'ML-DSA-65 requires @noble/post-quantum. ' +
@@ -359,7 +361,9 @@ export class MLDSACryptoProvider implements ICryptoProvider {
  * @returns Promise<boolean> — true if @noble/post-quantum/ml-dsa is importable
  */
 export async function isPostQuantumAvailable(): Promise<boolean> {
-  const noble = await import(/* @vite-ignore */ '@noble/post-quantum/ml-dsa.js' as string).catch(() => null);
+  const noble = await import(/* @vite-ignore */ '@noble/post-quantum/ml-dsa.js' as string).catch(
+    () => null
+  );
   return noble !== null;
 }
 

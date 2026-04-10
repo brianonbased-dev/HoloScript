@@ -188,7 +188,8 @@ export class PlayCanvasCompiler extends CompilerBase {
   }
 
   private compilePlayCanvasDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
+    const domainBlocks =
+      ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -303,7 +304,10 @@ export class PlayCanvasCompiler extends CompilerBase {
     let geom = 'cube',
       modelSrc: string | undefined,
       textContent: string | undefined;
-    let position: unknown[] | undefined, rotation: unknown[] | undefined, scale: unknown, size: unknown;
+    let position: unknown[] | undefined,
+      rotation: unknown[] | undefined,
+      scale: unknown,
+      size: unknown;
     const mat: Record<string, any> = {};
 
     for (const p of obj.properties) {

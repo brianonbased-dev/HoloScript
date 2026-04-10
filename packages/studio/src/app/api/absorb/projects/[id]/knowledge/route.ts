@@ -24,7 +24,7 @@ interface ExtractionRequest {
  */
 async function callMcpTool(
   toolName: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<{ ok: boolean; data: unknown }> {
   try {
     const res = await fetch(`${MCP_SERVER_URL}/mcp`, {
@@ -68,7 +68,7 @@ async function callMcpTool(
  */
 async function callAbsorbRest(
   projectId: string,
-  body: string,
+  body: string
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
     const res = await fetch(`${ABSORB_BASE}/api/projects/${projectId}/knowledge`, {
@@ -88,10 +88,7 @@ async function callAbsorbRest(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
 
   let body: ExtractionRequest = {};
@@ -114,10 +111,7 @@ export async function POST(
   }
 
   // Strategy 2: Try the absorb service REST API
-  const restResult = await callAbsorbRest(
-    projectId,
-    JSON.stringify(body),
-  );
+  const restResult = await callAbsorbRest(projectId, JSON.stringify(body));
 
   if (restResult.ok) {
     return NextResponse.json(restResult.data);
@@ -139,6 +133,6 @@ export async function POST(
       hint: 'Ensure a codebase has been absorbed first (run absorb_run_absorb), then retry extraction.',
       tried: ['mcp-tool', 'absorb-rest'],
     },
-    { status: 503 },
+    { status: 503 }
   );
 }

@@ -56,9 +56,7 @@ describe('FrameworkAbsorber', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        results: [
-          { type: 'gotcha', content: 'Test gotcha', metadata: { domain: 'framework' } },
-        ],
+        results: [{ type: 'gotcha', content: 'Test gotcha', metadata: { domain: 'framework' } }],
       }),
     });
 
@@ -77,7 +75,16 @@ describe('FrameworkAbsorber', () => {
       ok: true,
       json: async () => ({
         result: {
-          content: [{ type: 'text', text: JSON.stringify({ file_count: 42, edge_count: 100, modules: ['core', 'self-improve'] }) }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                file_count: 42,
+                edge_count: 100,
+                modules: ['core', 'self-improve'],
+              }),
+            },
+          ],
         },
       }),
     });
@@ -110,8 +117,16 @@ describe('FrameworkAbsorber', () => {
       ok: true,
       json: async () => ({
         results: [
-          { type: 'gotcha', content: 'Missing test coverage for X', metadata: { domain: 'framework', confidence: 0.8 } },
-          { type: 'pattern', content: 'Use dependency injection', metadata: { domain: 'architecture' } },
+          {
+            type: 'gotcha',
+            content: 'Missing test coverage for X',
+            metadata: { domain: 'framework', confidence: 0.8 },
+          },
+          {
+            type: 'pattern',
+            content: 'Use dependency injection',
+            metadata: { domain: 'architecture' },
+          },
         ],
       }),
     });
@@ -286,7 +301,11 @@ describe('PromptOptimizer', () => {
   it('handles judge failures gracefully (neutral score)', async () => {
     mockedCallLLM.mockImplementation(async (_config, messages) => {
       // Judge prompt contains "Score the following"
-      const isJudge = messages.some(m => m.content.includes('Score the following') || m.content.includes('prompt quality evaluator'));
+      const isJudge = messages.some(
+        (m) =>
+          m.content.includes('Score the following') ||
+          m.content.includes('prompt quality evaluator')
+      );
       if (isJudge) {
         throw new Error('LLM quota exceeded');
       }
@@ -310,12 +329,12 @@ describe('PromptOptimizer', () => {
   it('reports correct variant scores', async () => {
     // Make variant A consistently better than variant B
     mockedCallLLM.mockImplementation(async (_config, messages) => {
-      const systemMsg = messages.find(m => m.role === 'system');
+      const systemMsg = messages.find((m) => m.role === 'system');
       const isJudge = systemMsg?.content.includes('prompt quality evaluator');
 
       if (isJudge) {
         // Check if the response being judged is from variant A or B
-        const userMsg = messages.find(m => m.role === 'user');
+        const userMsg = messages.find((m) => m.role === 'user');
         const isVariantA = userMsg?.content.includes('Great response from A');
         return {
           content: JSON.stringify({

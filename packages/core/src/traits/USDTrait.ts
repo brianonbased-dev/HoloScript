@@ -413,29 +413,29 @@ export const usdHandler: TraitHandler<USDConfig> = {
         if (state.animation) {
           state.currentTimeCode = Math.max(
             state.animation.startTimeCode,
-            Math.min(state.animation.endTimeCode, (event.timeCode as number))
+            Math.min(state.animation.endTimeCode, event.timeCode as number)
           );
         }
         break;
 
       case 'usd:set_variant':
-        setVariant(state, context, (event.variantSet as string), (event.variant as string));
+        setVariant(state, context, event.variantSet as string, event.variant as string);
         break;
 
       case 'usd:set_blend_shape':
-        setBlendShape(state, (event.target as string), (event.weight as number));
+        setBlendShape(state, event.target as string, event.weight as number);
         break;
 
       case 'usd:load_payload':
-        loadPayload(state, context, (event.primPath as string));
+        loadPayload(state, context, event.primPath as string);
         break;
 
       case 'usd:unload_payload':
-        unloadPayload(state, context, (event.primPath as string));
+        unloadPayload(state, context, event.primPath as string);
         break;
 
       case 'usd:set_purpose':
-        setPurpose(state, context, (event.purpose as USDPurpose));
+        setPurpose(state, context, event.purpose as USDPurpose);
         break;
 
       case 'usd:reload':
@@ -447,7 +447,12 @@ export const usdHandler: TraitHandler<USDConfig> = {
         break;
 
       case 'usd:export':
-        exportStage(state, context, (event.format as "usdz" | "usda" | "usdc"), (event.options as Record<string, unknown>));
+        exportStage(
+          state,
+          context,
+          event.format as 'usdz' | 'usda' | 'usdc',
+          event.options as Record<string, unknown>
+        );
         break;
     }
   },

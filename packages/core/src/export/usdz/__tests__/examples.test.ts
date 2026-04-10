@@ -5,6 +5,5 @@
 import { describe, it, expect } from 'vitest';
 
 describe('USDZ Export Examples', () => {
-  it('should pass basic test', () => {
-  });
+  it('should pass basic test', () => {});
 });

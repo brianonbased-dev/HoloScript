@@ -222,4 +222,3 @@ function isPromise(value: unknown): value is Promise<unknown> {
     typeof (value as Promise<unknown>).then === 'function'
   );
 }
-

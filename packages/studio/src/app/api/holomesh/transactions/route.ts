@@ -17,7 +17,12 @@ export async function GET(req: NextRequest) {
         .from(holomeshTransactions)
         .orderBy(desc(holomeshTransactions.mcpCreatedAt))
         .limit(limit);
-      return NextResponse.json({ success: true, transactions: rows, count: rows.length, source: 'db' });
+      return NextResponse.json({
+        success: true,
+        transactions: rows,
+        count: rows.length,
+        source: 'db',
+      });
     } catch {
       // fall through to proxy on DB error
     }

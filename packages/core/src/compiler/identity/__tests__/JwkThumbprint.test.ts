@@ -141,27 +141,27 @@ describe('JwkThumbprint', () => {
     });
 
     it('should throw for unsupported key type', () => {
-      expect(() =>
-        calculateJwkThumbprintFromJwk({ kty: 'oct', k: 'abc' })
-      ).toThrow('Unsupported JWK key type: oct');
+      expect(() => calculateJwkThumbprintFromJwk({ kty: 'oct', k: 'abc' })).toThrow(
+        'Unsupported JWK key type: oct'
+      );
     });
 
     it('should throw for missing required RSA members', () => {
-      expect(() =>
-        calculateJwkThumbprintFromJwk({ kty: 'RSA', n: 'abc' })
-      ).toThrow('RSA JWK missing required members');
+      expect(() => calculateJwkThumbprintFromJwk({ kty: 'RSA', n: 'abc' })).toThrow(
+        'RSA JWK missing required members'
+      );
     });
 
     it('should throw for missing required EC members', () => {
-      expect(() =>
-        calculateJwkThumbprintFromJwk({ kty: 'EC', crv: 'P-256', x: 'abc' })
-      ).toThrow('EC JWK missing required members');
+      expect(() => calculateJwkThumbprintFromJwk({ kty: 'EC', crv: 'P-256', x: 'abc' })).toThrow(
+        'EC JWK missing required members'
+      );
     });
 
     it('should throw for missing required OKP members', () => {
-      expect(() =>
-        calculateJwkThumbprintFromJwk({ kty: 'OKP', crv: 'Ed25519' })
-      ).toThrow('OKP JWK missing required members');
+      expect(() => calculateJwkThumbprintFromJwk({ kty: 'OKP', crv: 'Ed25519' })).toThrow(
+        'OKP JWK missing required members'
+      );
     });
   });
 
@@ -223,10 +223,7 @@ describe('JwkThumbprint', () => {
         kty: 'OKP',
         x: jwk.x,
       });
-      const expectedThumbprint = crypto
-        .createHash('sha256')
-        .update(canonical)
-        .digest('base64url');
+      const expectedThumbprint = crypto.createHash('sha256').update(canonical).digest('base64url');
 
       expect(calculateJwkThumbprint(pem)).toBe(expectedThumbprint);
     });
@@ -241,10 +238,7 @@ describe('JwkThumbprint', () => {
         kty: 'RSA',
         n: jwk.n,
       });
-      const expectedThumbprint = crypto
-        .createHash('sha256')
-        .update(canonical)
-        .digest('base64url');
+      const expectedThumbprint = crypto.createHash('sha256').update(canonical).digest('base64url');
 
       expect(calculateJwkThumbprint(pem)).toBe(expectedThumbprint);
     });
@@ -260,10 +254,7 @@ describe('JwkThumbprint', () => {
         x: jwk.x,
         y: jwk.y,
       });
-      const expectedThumbprint = crypto
-        .createHash('sha256')
-        .update(canonical)
-        .digest('base64url');
+      const expectedThumbprint = crypto.createHash('sha256').update(canonical).digest('base64url');
 
       expect(calculateJwkThumbprint(pem)).toBe(expectedThumbprint);
     });

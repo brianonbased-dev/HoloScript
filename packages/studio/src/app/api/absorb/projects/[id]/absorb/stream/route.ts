@@ -6,10 +6,9 @@ import {
 } from '@/lib/absorbStreamContract';
 import { createSSEHeartbeatStream, resolveReconnectCursor } from '@/lib/sseStreamProxy';
 
-const ABSORB_SERVICE_URL =
-  process.env.ABSORB_SERVICE_INTERNAL_URL ||
-  process.env.ABSORB_SERVICE_URL ||
-  'http://localhost:3000';
+import { ENDPOINTS } from '@holoscript/config';
+
+const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 
 function buildBodyForGet(req: NextRequest, projectId: string): string {
   const p = req.nextUrl.searchParams;
@@ -21,7 +20,11 @@ function buildBodyForGet(req: NextRequest, projectId: string): string {
   return JSON.stringify(body);
 }
 
-async function proxyStream(req: NextRequest, projectId: string, bodyText: string): Promise<Response> {
+async function proxyStream(
+  req: NextRequest,
+  projectId: string,
+  bodyText: string
+): Promise<Response> {
   try {
     const cursor = resolveReconnectCursor(req);
 

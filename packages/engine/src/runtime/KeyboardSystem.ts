@@ -8,7 +8,12 @@ import { HSPlusRuntime } from '@holoscript/core';
 
 /** Extended runtime interface for keyboard-specific methods */
 interface KeyboardRuntime extends HSPlusRuntime {
-  findInstanceById(id: string): { node: { id: string; type: string; properties: Record<string, unknown> }; children?: Array<{ node: { id: string; type: string; properties: Record<string, unknown> } }> } | null;
+  findInstanceById(
+    id: string
+  ): {
+    node: { id: string; type: string; properties: Record<string, unknown> };
+    children?: Array<{ node: { id: string; type: string; properties: Record<string, unknown> } }>;
+  } | null;
   updateNodeProperty(id: string, key: string, value: unknown): void;
 }
 
@@ -49,7 +54,6 @@ export class KeyboardSystem {
 
         this.setCursorVisible(nodeId, true);
         this.updateCursorVisuals(nodeId);
-
       }
     }
   }
@@ -96,21 +100,21 @@ export class KeyboardSystem {
   }
 
   private getText(nodeId: string): string {
-
     const instance = this.runtime.findInstanceById(nodeId);
     return String((instance && instance.node.properties.text) || '');
   }
 
   private updateInputState(nodeId: string, text: string) {
-
-
     // Update Parent Property
     this.runtime.updateNodeProperty(nodeId, 'text', text);
 
     // Update Child Text Node
     const instance = this.runtime.findInstanceById(nodeId);
     if (instance && instance.children) {
-      const textChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.type === 'text');
+      const textChild = instance.children.find(
+        (c: { node: { id: string; type: string; properties: Record<string, unknown> } }) =>
+          c.node.type === 'text'
+      );
       if (textChild) {
         this.runtime.updateNodeProperty(textChild.node.id, 'text', text);
       }
@@ -120,10 +124,12 @@ export class KeyboardSystem {
   }
 
   private setCursorVisible(nodeId: string, visible: boolean) {
-
     const instance = this.runtime.findInstanceById(nodeId);
     if (instance && instance.children) {
-      const cursorChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.properties.tag === 'cursor');
+      const cursorChild = instance.children.find(
+        (c: { node: { id: string; type: string; properties: Record<string, unknown> } }) =>
+          c.node.properties.tag === 'cursor'
+      );
       if (cursorChild) {
         this.runtime.updateNodeProperty(cursorChild.node.id, 'visible', visible);
       }
@@ -136,7 +142,10 @@ export class KeyboardSystem {
     const instance = this.runtime.findInstanceById(nodeId);
     if (!instance || !instance.children) return;
 
-    const cursorChild = instance.children.find((c: { node: { id: string; type: string; properties: Record<string, unknown> } }) => c.node.properties.tag === 'cursor');
+    const cursorChild = instance.children.find(
+      (c: { node: { id: string; type: string; properties: Record<string, unknown> } }) =>
+        c.node.properties.tag === 'cursor'
+    );
     if (cursorChild) {
       const newX = KeyboardSystem.START_X + this.cursorIndex * KeyboardSystem.CHAR_WIDTH;
 
@@ -148,4 +157,3 @@ export class KeyboardSystem {
     }
   }
 }
-

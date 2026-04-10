@@ -8,7 +8,12 @@ export interface DeadCodeDiagnostic {
 
 export class NoDeadCodeRule {
   check(files: Map<string, string>): DeadCodeDiagnostic[] {
-    const allDefs: Array<{ name: string; kind: DeadCodeDiagnostic['kind']; filePath: string; line: number }> = [];
+    const allDefs: Array<{
+      name: string;
+      kind: DeadCodeDiagnostic['kind'];
+      filePath: string;
+      line: number;
+    }> = [];
     const allRefs: Set<string> = new Set();
     for (const [filePath, source] of files) {
       const lines = source.split('\n');

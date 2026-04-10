@@ -807,7 +807,9 @@ export class WASMCompiler extends CompilerBase {
     lines.push('export class HoloScriptWASM {');
     lines.push('  private instance: WebAssembly.Instance | null = null;');
     lines.push('  private memory: WebAssembly.Memory | null = null;');
-    lines.push('  private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();');
+    lines.push(
+      '  private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();'
+    );
     lines.push('');
 
     // Event IDs

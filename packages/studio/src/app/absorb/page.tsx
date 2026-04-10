@@ -71,8 +71,8 @@ function LandingPage() {
       <header className="border-b border-studio-border bg-[#0d0d14] px-6 py-16 text-center">
         <h1 className="text-4xl font-bold tracking-tight">Absorb Intelligence</h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-studio-muted">
-          Point it at your codebase. Get a knowledge graph, AI-powered search, and
-          automated improvements. Multi-model AI pipeline.
+          Point it at your codebase. Get a knowledge graph, AI-powered search, and automated
+          improvements. Multi-model AI pipeline.
         </p>
         <div className="mt-8">
           <Link
@@ -114,7 +114,11 @@ function LandingPage() {
 
       {/* Pricing */}
       <section id="pricing" className="px-6 py-16">
-        <PricingTab onPurchase={() => { window.location.href = '/api/auth/signin'; }} />
+        <PricingTab
+          onPurchase={() => {
+            window.location.href = '/api/auth/signin';
+          }}
+        />
       </section>
 
       {/* Footer */}
@@ -122,9 +126,13 @@ function LandingPage() {
         <div className="flex items-center justify-between text-[10px] text-studio-muted">
           <span>HoloScript Absorb Service</span>
           <span>
-            <Link href="/" className="hover:text-studio-text">Home</Link>
+            <Link href="/" className="hover:text-studio-text">
+              Home
+            </Link>
             {' \u2022 '}
-            <Link href="/teams" className="hover:text-studio-text">Teams</Link>
+            <Link href="/teams" className="hover:text-studio-text">
+              Teams
+            </Link>
           </span>
         </div>
       </footer>
@@ -946,7 +954,9 @@ function HoloDaemonSubPanel() {
           setJobs(jobList);
           setTelemetry(tel);
         }
-      } catch (err) { logger.warn('[AbsorbPage] loading jobs/telemetry failed:', err); }
+      } catch (err) {
+        logger.warn('[AbsorbPage] loading jobs/telemetry failed:', err);
+      }
     };
     void load();
     return () => {
@@ -998,7 +1008,9 @@ function HoloDaemonSubPanel() {
       try {
         const tel = await getTelemetry();
         setTelemetry(tel);
-      } catch (err) { logger.warn('[AbsorbPage] telemetry poll failed:', err); }
+      } catch (err) {
+        logger.warn('[AbsorbPage] telemetry poll failed:', err);
+      }
     }, 10000);
     return () => clearInterval(interval);
   }, [getTelemetry]);
@@ -1024,7 +1036,9 @@ function HoloDaemonSubPanel() {
         activeJobProgress: 0,
         activeJobStatus: 'Job created, starting...',
       });
-    } catch (err) { logger.warn('[AbsorbPage] daemon job creation failed:', err); }
+    } catch (err) {
+      logger.warn('[AbsorbPage] daemon job creation failed:', err);
+    }
   }, [createJob, daemonMode, composition]);
 
   const daemonStatus =
@@ -1159,21 +1173,33 @@ function AuthenticatedDashboard() {
   // Load daemon jobs for daemon-ops tab
   useEffect(() => {
     if (tab === 'daemon-ops') {
-      listJobs().then(setJobs).catch((err) => { logger.warn('[AbsorbPage] listing daemon jobs failed:', err); });
+      listJobs()
+        .then(setJobs)
+        .catch((err) => {
+          logger.warn('[AbsorbPage] listing daemon jobs failed:', err);
+        });
     }
   }, [tab, listJobs]);
   const [publishPremium, setPublishPremium] = useState(false);
   const [entryPremiumOverrides, setEntryPremiumOverrides] = useState<Record<string, boolean>>({});
   const [excludedEntries, setExcludedEntries] = useState<Set<string>>(new Set());
-  const [publishResult, setPublishResult] = useState<{ count: number; projectName: string; premiumCount: number; freeCount: number } | null>(null);
+  const [publishResult, setPublishResult] = useState<{
+    count: number;
+    projectName: string;
+    premiumCount: number;
+    freeCount: number;
+  } | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  const handleExtractKnowledge = useCallback(async (projectId: string) => {
-    const result = await extractKnowledge(projectId, { minConfidence: 0.6, maxPerType: 15 });
-    if (result.success && result.data?.entries) {
-      setExtractedKnowledge(result.data.entries);
-    }
-  }, [extractKnowledge]);
+  const handleExtractKnowledge = useCallback(
+    async (projectId: string) => {
+      const result = await extractKnowledge(projectId, { minConfidence: 0.6, maxPerType: 15 });
+      if (result.success && result.data?.entries) {
+        setExtractedKnowledge(result.data.entries);
+      }
+    },
+    [extractKnowledge]
+  );
 
   const handlePublishKnowledge = useCallback(async () => {
     if (!extractedKnowledge || extractedKnowledge.length === 0) return;
@@ -1206,14 +1232,25 @@ function AuthenticatedDashboard() {
     } finally {
       setIsPublishing(false);
     }
-  }, [extractedKnowledge, publishPremium, entryPremiumOverrides, excludedEntries, publishKnowledge, selectedProjectId, projects]);
+  }, [
+    extractedKnowledge,
+    publishPremium,
+    entryPremiumOverrides,
+    excludedEntries,
+    publishKnowledge,
+    selectedProjectId,
+    projects,
+  ]);
 
-  const toggleEntryPremium = useCallback((entryId: string) => {
-    setEntryPremiumOverrides((prev) => ({
-      ...prev,
-      [entryId]: !(prev[entryId] ?? publishPremium),
-    }));
-  }, [publishPremium]);
+  const toggleEntryPremium = useCallback(
+    (entryId: string) => {
+      setEntryPremiumOverrides((prev) => ({
+        ...prev,
+        [entryId]: !(prev[entryId] ?? publishPremium),
+      }));
+    },
+    [publishPremium]
+  );
 
   const toggleEntryExcluded = useCallback((entryId: string) => {
     setExcludedEntries((prev) => {
@@ -1231,7 +1268,9 @@ function AuthenticatedDashboard() {
     if (tabParam) {
       // pricing tab merged into credits
       const resolved = tabParam === 'pricing' ? 'credits' : tabParam;
-      if (['dashboard', 'projects', 'credits', 'tools', 'agents', 'daemon-ops'].includes(resolved)) {
+      if (
+        ['dashboard', 'projects', 'credits', 'tools', 'agents', 'daemon-ops'].includes(resolved)
+      ) {
         setTab(resolved as AbsorbTab);
       }
     }
@@ -1366,9 +1405,21 @@ function AuthenticatedDashboard() {
                   </h3>
                   <div className="flex items-center gap-1">
                     {[
-                      { label: 'Create Project', done: projects.length > 0, href: undefined as string | undefined },
-                      { label: 'Absorb Codebase', done: projects.some((p) => p.status === 'ready'), href: undefined as string | undefined },
-                      { label: 'Extract Knowledge', done: !!publishResult, href: undefined as string | undefined },
+                      {
+                        label: 'Create Project',
+                        done: projects.length > 0,
+                        href: undefined as string | undefined,
+                      },
+                      {
+                        label: 'Absorb Codebase',
+                        done: projects.some((p) => p.status === 'ready'),
+                        href: undefined as string | undefined,
+                      },
+                      {
+                        label: 'Extract Knowledge',
+                        done: !!publishResult,
+                        href: undefined as string | undefined,
+                      },
                       { label: 'Publish to HoloMesh', done: !!publishResult, href: '/holomesh' },
                       { label: 'Register Agent', done: false, href: '/holomesh/onboard' },
                     ].map((step, i, arr) => (
@@ -1382,7 +1433,8 @@ function AuthenticatedDashboard() {
                                 : 'border-studio-accent/40 bg-studio-accent/5 text-studio-accent hover:bg-studio-accent/10'
                             }`}
                           >
-                            {step.done ? '\u2713 ' : ''}{step.label}
+                            {step.done ? '\u2713 ' : ''}
+                            {step.label}
                           </Link>
                         ) : (
                           <div
@@ -1392,11 +1444,18 @@ function AuthenticatedDashboard() {
                                 : 'border-studio-border bg-[#0d1117] text-studio-muted'
                             }`}
                           >
-                            {step.done ? '\u2713 ' : ''}{step.label}
+                            {step.done ? '\u2713 ' : ''}
+                            {step.label}
                           </div>
                         )}
                         {i < arr.length - 1 && (
-                          <svg className="h-3 w-3 shrink-0 text-studio-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg
+                            className="h-3 w-3 shrink-0 text-studio-muted/50"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         )}
@@ -1475,7 +1534,10 @@ function AuthenticatedDashboard() {
                       </label>
                       <button
                         onClick={handlePublishKnowledge}
-                        disabled={isPublishing || extractedKnowledge.every((e: any) => excludedEntries.has(e.id))}
+                        disabled={
+                          isPublishing ||
+                          extractedKnowledge.every((e: any) => excludedEntries.has(e.id))
+                        }
                         className="rounded-lg bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isPublishing ? 'Publishing...' : 'Publish to HoloMesh'}
@@ -1496,20 +1558,38 @@ function AuthenticatedDashboard() {
                   {/* Publish summary */}
                   <div className="mt-3 flex gap-4 rounded-lg border border-studio-border bg-[#0d1117] px-4 py-2 text-[10px]">
                     <span className="text-studio-muted">
-                      Selected: <span className="font-semibold text-studio-text">{extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id)).length}</span>
-                    </span>
-                    <span className="text-studio-muted">
-                      Premium: <span className="font-semibold text-amber-300">
-                        {extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id) && (entryPremiumOverrides[e.id] ?? publishPremium)).length}
+                      Selected:{' '}
+                      <span className="font-semibold text-studio-text">
+                        {extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id)).length}
                       </span>
                     </span>
                     <span className="text-studio-muted">
-                      Free: <span className="font-semibold text-emerald-300">
-                        {extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id) && !(entryPremiumOverrides[e.id] ?? publishPremium)).length}
+                      Premium:{' '}
+                      <span className="font-semibold text-amber-300">
+                        {
+                          extractedKnowledge.filter(
+                            (e: any) =>
+                              !excludedEntries.has(e.id) &&
+                              (entryPremiumOverrides[e.id] ?? publishPremium)
+                          ).length
+                        }
                       </span>
                     </span>
                     <span className="text-studio-muted">
-                      Excluded: <span className="font-semibold text-gray-400">{excludedEntries.size}</span>
+                      Free:{' '}
+                      <span className="font-semibold text-emerald-300">
+                        {
+                          extractedKnowledge.filter(
+                            (e: any) =>
+                              !excludedEntries.has(e.id) &&
+                              !(entryPremiumOverrides[e.id] ?? publishPremium)
+                          ).length
+                        }
+                      </span>
+                    </span>
+                    <span className="text-studio-muted">
+                      Excluded:{' '}
+                      <span className="font-semibold text-gray-400">{excludedEntries.size}</span>
                     </span>
                   </div>
 
@@ -1534,11 +1614,15 @@ function AuthenticatedDashboard() {
                               className="rounded border-studio-border"
                               title={isExcluded ? 'Include in publish' : 'Exclude from publish'}
                             />
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                              entry.type === 'wisdom' ? 'bg-blue-500/20 text-blue-300' :
-                              entry.type === 'pattern' ? 'bg-green-500/20 text-green-300' :
-                              'bg-red-500/20 text-red-300'
-                            }`}>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                                entry.type === 'wisdom'
+                                  ? 'bg-blue-500/20 text-blue-300'
+                                  : entry.type === 'pattern'
+                                    ? 'bg-green-500/20 text-green-300'
+                                    : 'bg-red-500/20 text-red-300'
+                              }`}
+                            >
                               {entry.type}
                             </span>
                             <span className="text-[10px] text-studio-muted">{entry.id}</span>
@@ -1556,13 +1640,17 @@ function AuthenticatedDashboard() {
                                     ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
                                     : 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20 hover:text-gray-400'
                                 } disabled:opacity-30 disabled:cursor-not-allowed`}
-                                title={isPremium ? 'Switch to free' : 'Switch to premium (4c/access)'}
+                                title={
+                                  isPremium ? 'Switch to free' : 'Switch to premium (4c/access)'
+                                }
                               >
                                 {isPremium ? 'Premium' : 'Free'}
                               </button>
                             </div>
                           </div>
-                          <p className="mt-1 pl-6 text-xs text-studio-text line-clamp-2">{entry.content}</p>
+                          <p className="mt-1 pl-6 text-xs text-studio-text line-clamp-2">
+                            {entry.content}
+                          </p>
                         </div>
                       );
                     })}
@@ -1575,7 +1663,13 @@ function AuthenticatedDashboard() {
                 <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
                   <div className="flex items-start gap-4">
                     <div className="shrink-0 rounded-full bg-emerald-500/20 p-2">
-                      <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg
+                        className="h-5 w-5 text-emerald-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -1584,8 +1678,11 @@ function AuthenticatedDashboard() {
                         {publishResult.count} entries published to HoloMesh
                       </h3>
                       <p className="mt-1 text-xs text-studio-muted">
-                        Knowledge from <span className="font-mono text-studio-text">{publishResult.projectName}</span> is
-                        now live on the network.
+                        Knowledge from{' '}
+                        <span className="font-mono text-studio-text">
+                          {publishResult.projectName}
+                        </span>{' '}
+                        is now live on the network.
                         {publishResult.premiumCount > 0 && (
                           <span className="ml-1 text-amber-300">
                             {publishResult.premiumCount} premium (earning 4c/access)
@@ -1603,8 +1700,18 @@ function AuthenticatedDashboard() {
                           href="/agents/me"
                           className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                            />
                           </svg>
                           Register Agent on HoloMesh
                         </Link>
@@ -1753,24 +1860,39 @@ function AuthenticatedDashboard() {
             <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Daemon Operations</h3>
               <p className="text-studio-muted text-sm mb-6">
-                Manage daemons, pipelines, and operational monitoring. Launch HoloMesh and Moltbook agents,
-                run self-improvement pipelines, and monitor system health.
+                Manage daemons, pipelines, and operational monitoring. Launch HoloMesh and Moltbook
+                agents, run self-improvement pipelines, and monitor system health.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="/pipeline" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                <a
+                  href="/pipeline"
+                  className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors"
+                >
                   <div className="text-2xl mb-2">⚡</div>
                   <div className="text-white font-medium">Pipeline</div>
-                  <div className="text-studio-muted text-xs mt-1">L0/L1/L2 self-improvement feedback layers</div>
+                  <div className="text-studio-muted text-xs mt-1">
+                    L0/L1/L2 self-improvement feedback layers
+                  </div>
                 </a>
-                <a href="/operations" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                <a
+                  href="/operations"
+                  className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors"
+                >
                   <div className="text-2xl mb-2">📈</div>
                   <div className="text-white font-medium">Operations</div>
-                  <div className="text-studio-muted text-xs mt-1">Daemon health, alerts, sync status, jobs</div>
+                  <div className="text-studio-muted text-xs mt-1">
+                    Daemon health, alerts, sync status, jobs
+                  </div>
                 </a>
-                <a href="/teams" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                <a
+                  href="/teams"
+                  className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors"
+                >
                   <div className="text-2xl mb-2">🤖</div>
                   <div className="text-white font-medium">Agent Skills</div>
-                  <div className="text-studio-muted text-xs mt-1">Browse, create, and manage AI skills inside Teams</div>
+                  <div className="text-studio-muted text-xs mt-1">
+                    Browse, create, and manage AI skills inside Teams
+                  </div>
                 </a>
               </div>
             </div>
@@ -1778,17 +1900,26 @@ function AuthenticatedDashboard() {
             <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Running Daemons</h3>
               <div className="space-y-3">
-                {jobs.length > 0 ? jobs.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between rounded-lg border border-studio-border bg-[#0d1117] px-4 py-3">
-                    <div>
-                      <div className="text-white text-sm font-medium">{job.profile || 'daemon'}</div>
-                      <div className="text-studio-muted text-xs">{job.status}</div>
+                {jobs.length > 0 ? (
+                  jobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between rounded-lg border border-studio-border bg-[#0d1117] px-4 py-3"
+                    >
+                      <div>
+                        <div className="text-white text-sm font-medium">
+                          {job.profile || 'daemon'}
+                        </div>
+                        <div className="text-studio-muted text-xs">{job.status}</div>
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${job.status === 'running' ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-400'}`}
+                      >
+                        {job.status}
+                      </span>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded ${job.status === 'running' ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
-                      {job.status}
-                    </span>
-                  </div>
-                )) : (
+                  ))
+                ) : (
                   <div className="text-studio-muted text-sm text-center py-8">
                     No daemons running. Start one from Pipeline or Operations.
                   </div>

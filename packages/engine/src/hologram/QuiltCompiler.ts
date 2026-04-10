@@ -115,7 +115,6 @@ const DEFAULT_CONFIG: QuiltConfig = {
 // ── Compiler ─────────────────────────────────────────────────────────────────
 
 export class QuiltCompiler {
-
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     void agentToken;
     void outputPath;
@@ -314,7 +313,7 @@ export function QuiltRenderer() {
    * Convert a HoloScript object to JSX for the quilt scene.
    */
   private objectToJSX(obj: HoloObjectDecl): string {
-    const getProp = (key: string) => obj.properties.find(p => p.key === key)?.value;
+    const getProp = (key: string) => obj.properties.find((p) => p.key === key)?.value;
     const pos = getProp('position');
     const rot = getProp('rotation');
     const scale = getProp('scale');
@@ -343,4 +342,3 @@ export function QuiltRenderer() {
       </mesh>`;
   }
 }
-

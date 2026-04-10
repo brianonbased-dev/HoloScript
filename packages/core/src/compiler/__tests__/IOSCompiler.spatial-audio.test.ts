@@ -14,7 +14,9 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
 }
 
-function makeSpatialAudioComposition(traits: string[] = ['spatial_audio_airpods']): HoloComposition {
+function makeSpatialAudioComposition(
+  traits: string[] = ['spatial_audio_airpods']
+): HoloComposition {
   return makeComposition({
     objects: [
       {
@@ -287,14 +289,20 @@ describe('IOSCompiler — AirPods Spatial Audio (M.010.11)', () => {
 
   it('compiles with all 7 spatial audio traits without error', () => {
     const compiler = new IOSCompiler();
-    const result = compiler.compile(makeSpatialAudioComposition(allSpatialAudioTraits()), 'test-token');
+    const result = compiler.compile(
+      makeSpatialAudioComposition(allSpatialAudioTraits()),
+      'test-token'
+    );
     expect(result.spatialAudioFile).toBeDefined();
     expect(result.spatialAudioFile!.length).toBeGreaterThan(500);
   });
 
   it('all traits produce a coherent file with all sections', () => {
     const compiler = new IOSCompiler();
-    const result = compiler.compile(makeSpatialAudioComposition(allSpatialAudioTraits()), 'test-token');
+    const result = compiler.compile(
+      makeSpatialAudioComposition(allSpatialAudioTraits()),
+      'test-token'
+    );
     const file = result.spatialAudioFile!;
     // All major sections present
     expect(file).toContain('SpatialAudioManager');

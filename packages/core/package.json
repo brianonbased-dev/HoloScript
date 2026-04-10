@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core",
   "version": "6.0.2",
-  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript \u00e2\u20ac\u201d the open AI-spatial reality protocol for 3D/XR/IoT",
+  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript â€” the open AI-spatial reality protocol for 3D/XR/IoT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -177,7 +177,7 @@
   },
   "peerDependencies": {
     "@holoscript/engine": "workspace:*",
-      "@holoscript/framework": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "@pixiv/three-vrm": "^2.0.0",
     "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0",

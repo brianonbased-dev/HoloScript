@@ -14,31 +14,32 @@ const BrittneyChatPanel = dynamic(
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
-  { 
-    ssr: false, 
+  {
+    ssr: false,
     loading: () => (
       <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
         <div className="flex items-center gap-2 text-sm text-studio-muted animate-pulse">
-           <Sparkles className="h-4 w-4" />
-           Loading Live Preview...
+          <Sparkles className="h-4 w-4" />
+          Loading Live Preview...
         </div>
       </div>
-    ) 
+    ),
   }
 );
 
 const HoloScriptEditor = dynamic(
-  () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
-  { 
-    ssr: false, 
+  () =>
+    import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
+  {
+    ssr: false,
     loading: () => (
       <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
         <div className="flex items-center gap-2 text-sm text-studio-muted animate-pulse">
-           <Code2 className="h-4 w-4" />
-           Loading Code Editor...
+          <Code2 className="h-4 w-4" />
+          Loading Code Editor...
         </div>
       </div>
-    ) 
+    ),
   }
 );
 
@@ -53,8 +54,8 @@ export default function VibeCodingPage() {
     >
       <div className="flex flex-col h-full w-full bg-studio-bg overflow-hidden relative">
         {/* Top: Live Scene Preview */}
-        <div 
-          style={{ height: topHeight, minHeight: 200 }} 
+        <div
+          style={{ height: topHeight, minHeight: 200 }}
           className="relative shrink-0 flex flex-col bg-[#0a0a12]"
         >
           <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 backdrop-blur shadow-md">
@@ -63,7 +64,7 @@ export default function VibeCodingPage() {
               LIVE PREVIEW
             </span>
           </div>
-          
+
           <div className="flex-1 w-full h-full relative">
             <SceneRenderer r3fTree={r3fTree} />
           </div>
@@ -81,11 +82,9 @@ export default function VibeCodingPage() {
         <div className="flex-1 relative overflow-hidden flex flex-col">
           <div className="absolute top-3 right-5 z-10 flex items-center gap-2 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 backdrop-blur shadow-md pointer-events-none">
             <Code2 className="h-4 w-4 text-blue-400" />
-            <span className="text-xs font-semibold text-white/90">
-              SYNTHESIZED CODE
-            </span>
+            <span className="text-xs font-semibold text-white/90">SYNTHESIZED CODE</span>
           </div>
-          
+
           <div className="flex-1 w-full h-full">
             <HoloScriptEditor />
           </div>

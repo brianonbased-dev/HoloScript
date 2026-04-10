@@ -697,7 +697,13 @@ export const PerceptionTrait: TraitHandler = {
     if (context.data.timer < context.data.updateRate) return;
     context.data.timer = 0;
 
-    const perceived: Array<{ object: THREE.Object3D; name: string; distance: number; angle: number; tag: unknown }> = [];
+    const perceived: Array<{
+      object: THREE.Object3D;
+      name: string;
+      distance: number;
+      angle: number;
+      tag: unknown;
+    }> = [];
     const myPos = context.object.position;
     const range = context.data.range;
     // @ts-expect-error - TS18046 structural type mismatch

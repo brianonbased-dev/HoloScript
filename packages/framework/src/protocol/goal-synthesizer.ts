@@ -107,7 +107,7 @@ const DOMAIN_GOALS: Record<string, string[]> = {
     'Review and refine CI/CD pipeline efficiency',
     'Automate environment provisioning for local scenario tests',
     'Evaluate telemetry logging cardinality and storage costs',
-  ]
+  ],
 };
 
 // ── GoalSynthesizer ──
@@ -125,10 +125,7 @@ export class GoalSynthesizer {
    * Synthesize goals from context. Uses LLM when available, falls back to heuristics.
    * Returns goals ranked by relevance.
    */
-  async synthesizeMultiple(
-    context: GoalContext,
-    count = 3
-  ): Promise<SynthesizedGoal[]> {
+  async synthesizeMultiple(context: GoalContext, count = 3): Promise<SynthesizedGoal[]> {
     // Gather knowledge context
     const knowledgeEntries = context.recentKnowledge ?? this.queryKnowledge(context.domain);
 
@@ -148,15 +145,8 @@ export class GoalSynthesizer {
   /**
    * Synthesize a single goal. Backward-compatible with the original API.
    */
-  synthesize(
-    agentDomain: string = 'general',
-    source: Goal['source'] = 'autonomous-boredom'
-  ): Goal {
-    const goals = this.synthesizeHeuristic(
-      { domain: agentDomain },
-      [],
-      1
-    );
+  synthesize(agentDomain: string = 'general', source: Goal['source'] = 'autonomous-boredom'): Goal {
+    const goals = this.synthesizeHeuristic({ domain: agentDomain }, [], 1);
     if (goals.length > 0) {
       return { ...goals[0], source };
     }
@@ -189,9 +179,10 @@ export class GoalSynthesizer {
     knowledge: StoredEntry[],
     count: number
   ): Promise<SynthesizedGoal[]> {
-    const knowledgeContext = knowledge.length > 0
-      ? knowledge.map(k => `[${k.type}] ${k.content}`).join('\n')
-      : 'No relevant knowledge entries found.';
+    const knowledgeContext =
+      knowledge.length > 0
+        ? knowledge.map((k) => `[${k.type}] ${k.content}`).join('\n')
+        : 'No relevant knowledge entries found.';
 
     const recentTasks = context.recentCompletedTasks?.length
       ? context.recentCompletedTasks.slice(0, 10).join('\n- ')
@@ -200,15 +191,15 @@ export class GoalSynthesizer {
     const systemPrompt = [
       `You are a goal synthesizer for an autonomous AI agent team.`,
       `The agent "${context.agentName ?? 'unknown'}" operates in the "${context.domain}" domain.`,
-      context.capabilities?.length
-        ? `Agent capabilities: ${context.capabilities.join(', ')}`
-        : '',
+      context.capabilities?.length ? `Agent capabilities: ${context.capabilities.join(', ')}` : '',
       context.teamName ? `Team: ${context.teamName}` : '',
       ``,
       `Your job: propose ${count} actionable goals the agent should pursue autonomously.`,
       `Goals should be specific, achievable, and build on existing knowledge.`,
       `Avoid duplicating recently completed tasks.`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const userPrompt = [
       `## Knowledge Context`,
@@ -223,7 +214,9 @@ export class GoalSynthesizer {
       `[{"description": "...", "category": "...", "priority": "low|medium|high", "rationale": "...", "estimatedComplexity": 1-5}]`,
       ``,
       `Respond with ONLY the JSON array, no markdown fences.`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -238,11 +231,7 @@ export class GoalSynthesizer {
     return this.parseLLMGoals(response.content, context, count);
   }
 
-  private parseLLMGoals(
-    content: string,
-    context: GoalContext,
-    count: number
-  ): SynthesizedGoal[] {
+  private parseLLMGoals(content: string, context: GoalContext, count: number): SynthesizedGoal[] {
     try {
       // Strip markdown fences if present
       const cleaned = content.replace(/```(?:json)?\s*\n?/g, '').trim();
@@ -265,7 +254,7 @@ export class GoalSynthesizer {
         generatedAt: new Date().toISOString(),
         source: 'autonomous-boredom' as const,
         rationale: g.rationale || 'LLM-generated goal based on context',
-        relevanceScore: 1 - (i * 0.1), // rank order from LLM
+        relevanceScore: 1 - i * 0.1, // rank order from LLM
       }));
     } catch {
       return this.synthesizeHeuristic(context, [], count);
@@ -278,7 +267,7 @@ export class GoalSynthesizer {
     count: number
   ): SynthesizedGoal[] {
     const completedSet = new Set(
-      (context.recentCompletedTasks ?? []).map(t => t.toLowerCase().trim())
+      (context.recentCompletedTasks ?? []).map((t) => t.toLowerCase().trim())
     );
 
     // Build candidate pool from domain + generic goals
@@ -287,11 +276,12 @@ export class GoalSynthesizer {
 
     // If we have knowledge, generate knowledge-derived goals
     const knowledgeGoals = knowledge
-      .filter(k => k.type === 'gotcha')
-      .map(k => `Investigate and resolve: ${k.content.slice(0, 120)}`);
+      .filter((k) => k.type === 'gotcha')
+      .map((k) => `Investigate and resolve: ${k.content.slice(0, 120)}`);
 
-    const allCandidates = [...knowledgeGoals, ...candidates]
-      .filter(desc => !completedSet.has(desc.toLowerCase().trim()));
+    const allCandidates = [...knowledgeGoals, ...candidates].filter(
+      (desc) => !completedSet.has(desc.toLowerCase().trim())
+    );
 
     // Shuffle and pick
     const shuffled = allCandidates.sort(() => Math.random() - 0.5);
@@ -308,7 +298,7 @@ export class GoalSynthesizer {
       rationale: knowledgeGoals.includes(description)
         ? 'Derived from knowledge store gotcha entries'
         : `Heuristic goal for ${context.domain} domain`,
-      relevanceScore: Math.max(0.3, 1 - (i * 0.2)),
+      relevanceScore: Math.max(0.3, 1 - i * 0.2),
     }));
   }
 }

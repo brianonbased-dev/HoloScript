@@ -24,7 +24,12 @@ export const subscriptionHandler: TraitHandler<SubscriptionConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, _config: SubscriptionConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: SubscriptionConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__subState as { subs: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

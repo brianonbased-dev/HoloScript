@@ -16,7 +16,14 @@ import fs from 'fs';
 import path from 'path';
 
 // Allowed slugs — prevents path traversal
-const ALLOWED_SLUGS = new Set(['templates', 'registry', 'projects', 'operations', 'home', 'workspace']);
+const ALLOWED_SLUGS = new Set([
+  'templates',
+  'registry',
+  'projects',
+  'operations',
+  'home',
+  'workspace',
+]);
 
 function resolveCompositionsDir(): string {
   // Walk up from packages/studio/src/app/api/surface/[slug] to repo root
@@ -30,18 +37,12 @@ function resolveCompositionsDir(): string {
   return path.join(process.cwd(), 'compositions', 'studio');
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   // Validate slug
   if (!ALLOWED_SLUGS.has(slug)) {
-    return NextResponse.json(
-      { error: `Unknown surface: ${slug}` },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: `Unknown surface: ${slug}` }, { status: 404 });
   }
 
   try {
@@ -49,10 +50,7 @@ export async function GET(
     const filePath = path.join(compositionsDir, `${slug}.hsplus`);
 
     if (!fs.existsSync(filePath)) {
-      return NextResponse.json(
-        { error: `Composition not found: ${slug}.hsplus` },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: `Composition not found: ${slug}.hsplus` }, { status: 404 });
     }
 
     const code = fs.readFileSync(filePath, 'utf-8');

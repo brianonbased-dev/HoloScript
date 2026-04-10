@@ -131,7 +131,10 @@ describe('IOSCompiler — NPU Scene Understanding', () => {
 
   it('generates frame processor for npu_realtime', () => {
     const compiler = new IOSCompiler();
-    const result = compiler.compile(makeNPUComposition(['npu_realtime', 'npu_classify']), 'test-token');
+    const result = compiler.compile(
+      makeNPUComposition(['npu_realtime', 'npu_classify']),
+      'test-token'
+    );
     expect(result.npuSceneFile).toContain('processFrame');
     expect(result.npuSceneFile).toContain('targetFPS');
   });

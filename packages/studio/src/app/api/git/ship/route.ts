@@ -22,7 +22,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const GITHUB_API_BASE_URL = (
-  process.env.GITHUB_API_URL || process.env.GITHUB_API_BASE_URL || 'https://api.github.com'
+  process.env.GITHUB_API_URL ||
+  process.env.GITHUB_API_BASE_URL ||
+  'https://api.github.com'
 ).replace(/\/+$/, '');
 
 const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
@@ -120,10 +122,7 @@ export async function POST(req: NextRequest) {
   } | null;
 
   if (!body?.workspacePath || !body?.message) {
-    return NextResponse.json(
-      { error: 'Required: workspacePath, message' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Required: workspacePath, message' }, { status: 400 });
   }
 
   const cwd = allowedWorkspacePath(body.workspacePath);
@@ -153,9 +152,10 @@ export async function POST(req: NextRequest) {
     await execFileAsync('git', ['add', ...addArgs], { cwd, env });
 
     // Commit if needed
-    const { stdout: statusOut } = await execFileAsync(
-      'git', ['status', '--porcelain'], { cwd, env }
-    );
+    const { stdout: statusOut } = await execFileAsync('git', ['status', '--porcelain'], {
+      cwd,
+      env,
+    });
 
     let commitSha: string | null = null;
     if (statusOut.trim()) {
@@ -167,12 +167,18 @@ export async function POST(req: NextRequest) {
     // Resolve branch
     let branch = body.branch;
     if (!branch) {
-      const { stdout: bOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd, env });
+      const { stdout: bOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+        cwd,
+        env,
+      });
       branch = bOut.trim();
     }
 
     // Resolve remote and determine permission role
-    const { stdout: remoteOut } = await execFileAsync('git', ['remote', 'get-url', remote], { cwd, env });
+    const { stdout: remoteOut } = await execFileAsync('git', ['remote', 'get-url', remote], {
+      cwd,
+      env,
+    });
     originalRemoteUrl = remoteOut.trim();
 
     const remoteRepo = parseGitHubRemote(originalRemoteUrl);
@@ -202,7 +208,10 @@ export async function POST(req: NextRequest) {
     // Push
     const pushArgs = ['push', remote, branch];
     if (force) pushArgs.push('--force');
-    const { stdout: pushStdout, stderr: pushStderr } = await execFileAsync('git', pushArgs, { cwd, env });
+    const { stdout: pushStdout, stderr: pushStderr } = await execFileAsync('git', pushArgs, {
+      cwd,
+      env,
+    });
 
     // Restore clean remote URL
     if (originalRemoteUrl && originalRemoteUrl.startsWith('https://github.com/')) {

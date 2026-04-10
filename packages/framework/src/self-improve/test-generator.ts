@@ -52,7 +52,7 @@ Use import { describe, it, expect, vi } from 'vitest';`;
 
 const JEST_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
   "import { describe, it, expect, vi } from 'vitest';",
-  "Use jest globals (describe, it, expect, jest)."
+  'Use jest globals (describe, it, expect, jest).'
 );
 
 /**
@@ -95,9 +95,7 @@ export class TestGenerator {
     const fileName = basename(absPath, '.ts');
     const dir = dirname(absPath);
 
-    const systemPrompt = this.config.testFramework === 'jest'
-      ? JEST_SYSTEM_PROMPT
-      : SYSTEM_PROMPT;
+    const systemPrompt = this.config.testFramework === 'jest' ? JEST_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const userPrompt = [
       `Generate tests for this TypeScript file: ${basename(absPath)}`,
@@ -105,16 +103,22 @@ export class TestGenerator {
       '```typescript',
       source,
       '```',
-      this.config.additionalContext ? `\nAdditional context:\n${this.config.additionalContext}` : '',
+      this.config.additionalContext
+        ? `\nAdditional context:\n${this.config.additionalContext}`
+        : '',
     ].join('\n');
 
-    const response = await callLLM(this.config.model, [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ], {
-      maxTokens: this.config.maxTokens,
-      temperature: this.config.temperature,
-    });
+    const response = await callLLM(
+      this.config.model,
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      {
+        maxTokens: this.config.maxTokens,
+        temperature: this.config.temperature,
+      }
+    );
 
     const testContent = cleanTestOutput(response.content);
     const testCount = countTestCases(testContent);

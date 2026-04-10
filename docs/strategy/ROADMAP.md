@@ -12,17 +12,17 @@ _The declarative language for the spatial and autonomous web._
 
 v6.0.2 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or exceeded:
 
-| Metric | v5.0 Target | v6.0.2 Actual |
-| ------ | ----------- | ------------- |
-| Tests | 1,500+ | 58,000+ passing (1,100+ new in v6.0.2) |
-| Traits | 1,800+ | 3,300+ across 116 categories |
-| Compile targets | 15 | 40 compilers (12 sovereign + 28 bridge), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
-| MCP tools | — | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health` |
-| Packages | — | 68 |
-| Studio | prototype | 18 routes (progressive disclosure funnel), Brittney AI (54 tools) |
-| HoloMesh | concept | V8+: endpoints via health check, 8 MCP tools, 15 BT actions |
-| Knowledge store | — | Entry count via `curl orchestrator.../health` |
-| Type safety | — | `as any` reduced from 1,748 to 17 (97.8% reduction) |
+| Metric          | v5.0 Target | v6.0.2 Actual                                                                          |
+| --------------- | ----------- | -------------------------------------------------------------------------------------- |
+| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.2)                                                 |
+| Traits          | 1,800+      | 3,300+ across 116 categories                                                           |
+| Compile targets | 15          | 40 compilers (12 sovereign + 28 bridge), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
+| MCP tools       | —           | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health`       |
+| Packages        | —           | 68                                                                                     |
+| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (54 tools)                      |
+| HoloMesh        | concept     | V8+: endpoints via health check, 8 MCP tools, 15 BT actions                            |
+| Knowledge store | —           | Entry count via `curl orchestrator.../health`                                          |
+| Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction)                                    |
 
 What shipped in v6.0.2:
 

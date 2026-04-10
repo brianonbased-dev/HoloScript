@@ -12,7 +12,11 @@ export { MovementSystem } from './MovementSystem';
 export type { MovementMode, MovementInput, MovementConfig, MovementState } from './MovementSystem';
 
 export { AnimationStateMachine } from './AnimationStateMachine';
-export type { AnimationState, AnimationTransition, AnimationStateConfig } from './AnimationStateMachine';
+export type {
+  AnimationState,
+  AnimationTransition,
+  AnimationStateConfig,
+} from './AnimationStateMachine';
 
 export { CharacterInventory } from './CharacterInventory';
 export type { EquipSlot, StatBonuses, InventoryItem, InventoryConfig } from './CharacterInventory';

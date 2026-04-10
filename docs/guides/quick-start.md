@@ -77,13 +77,13 @@ holoscript compile hello.holo --target vrchat
 # Compile to URDF (ROS 2 robotics)
 holoscript compile hello.holo --target urdf
 
-# 25+ targets available: unity, unreal, godot, vrchat, threejs,
+# Targets available (verify in `ExportTarget`): unity, unreal, godot, vrchat, threejs,
 # babylon, webgpu, visionos, androidxr, urdf, sdf, dtdl, wot, usda...
 ```
 
 ## What's Next?
 
-- [Traits Reference](./traits) - 2,000+ traits across 101 categories
+- [Traits Reference](./traits) - trait categories and live inventory guidance
 - [Compositions](./compositions) - Build complex multi-object scenes
 - [Best Practices](./best-practices) - Learn the 10 rules for great VR experiences
 - [AI Integration](./ai-agents) - Use MCP server with Claude, GPT, or Brittney

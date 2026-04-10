@@ -97,4 +97,3 @@ describe('VehicleSystem — Production', () => {
     expect(vs.removeVehicle('nope')).toBe(false);
   });
 });
-

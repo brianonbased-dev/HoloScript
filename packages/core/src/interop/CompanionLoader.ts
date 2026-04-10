@@ -67,19 +67,16 @@ export class CompanionLoader {
       // Use Proxy to provide a synchronous-looking interface to the lazy module
       // The runtime will await it if it's a promise, but here we provide a way
       // to avoid triggering the load until a property is accessed.
-      const proxy = new Proxy(
-        {} as Record<string, unknown>,
-        {
-          get: (_target, prop: string) => {
-            const mod = lazyModule.get();
-            if (mod instanceof Promise) {
-              // If it's still loading (async), we return a promise for the property
-              return mod.then((m) => (m as Record<string, unknown>)[prop]);
-            }
-            return (mod as Record<string, unknown>)[prop];
-          },
-        }
-      );
+      const proxy = new Proxy({} as Record<string, unknown>, {
+        get: (_target, prop: string) => {
+          const mod = lazyModule.get();
+          if (mod instanceof Promise) {
+            // If it's still loading (async), we return a promise for the property
+            return mod.then((m) => (m as Record<string, unknown>)[prop]);
+          }
+          return (mod as Record<string, unknown>)[prop];
+        },
+      });
 
       result.companions[alias] = proxy;
       result.loaded.push(modulePath);

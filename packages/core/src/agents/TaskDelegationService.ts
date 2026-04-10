@@ -181,14 +181,7 @@ export class TaskDelegationService {
 
       try {
         const result = await this.executeWithTimeout(
-          () =>
-            this.executeOnAgent(
-              manifest,
-              request.skillId,
-              request.arguments,
-              taskId,
-              attempt
-            ),
+          () => this.executeOnAgent(manifest, request.skillId, request.arguments, taskId, attempt),
           timeout
         );
 
@@ -296,7 +289,10 @@ export class TaskDelegationService {
   /**
    * Replay a previously delegated task using its original request payload.
    */
-  async replay(taskId: string, overrides: Partial<DelegationRequest> = {}): Promise<DelegationResult> {
+  async replay(
+    taskId: string,
+    overrides: Partial<DelegationRequest> = {}
+  ): Promise<DelegationResult> {
     const original = this.requestHistory.get(taskId);
     if (!original) {
       throw new Error(`Replay unavailable for taskId: ${taskId}`);

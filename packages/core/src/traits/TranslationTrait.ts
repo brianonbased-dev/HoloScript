@@ -18,7 +18,12 @@ export const translationHandler: TraitHandler<TranslationConfig> = {
     delete node.__i18nState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: TranslationConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: TranslationConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__i18nState as { bundles: Map<string, Map<string, string>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

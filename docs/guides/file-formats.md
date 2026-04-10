@@ -4,23 +4,23 @@ HoloScript has three file formats. Each owns a lane — they are a progression, 
 
 ## Overview
 
-| Extension | Purpose         | Parser             | Best For                          |
-| --------- | --------------- | ------------------ | --------------------------------- |
-| `.holo`   | Worlds          | HoloCompositionParser | Scenes, compositions, AI generation |
-| `.hsplus` | Behaviors       | HoloScriptPlusParser  | Agent logic, traits, reactive state |
-| `.hs`     | Data Pipelines  | PipelineParser        | ETL flows, sync jobs, monitoring   |
+| Extension | Purpose        | Parser                | Best For                            |
+| --------- | -------------- | --------------------- | ----------------------------------- |
+| `.holo`   | Worlds         | HoloCompositionParser | Scenes, compositions, AI generation |
+| `.hsplus` | Behaviors      | HoloScriptPlusParser  | Agent logic, traits, reactive state |
+| `.hs`     | Data Pipelines | PipelineParser        | ETL flows, sync jobs, monitoring    |
 
 ## Format Selection Guide
 
-| Use Case                        | Format    | Why                                      |
-| ------------------------------- | --------- | ---------------------------------------- |
-| AI-generated scenes             | `.holo`   | Declarative, scene-centric               |
-| Complete game levels            | `.holo`   | Templates, spatial groups, environment   |
-| VR interactions, reactive state | `.hsplus` | @trait decorators, event handlers        |
-| Agent behaviors, behavior trees | `.hsplus` | State machines, networking               |
-| Inventory sync from POS         | `.hs`     | source → transform → sink               |
-| Social media monitoring         | `.hs`     | Multi-source merge, LLM classify, branch |
-| Deploy health monitoring        | `.hs`     | HTTP checks → alert routing              |
+| Use Case                        | Format    | Why                                        |
+| ------------------------------- | --------- | ------------------------------------------ |
+| AI-generated scenes             | `.holo`   | Declarative, scene-centric                 |
+| Complete game levels            | `.holo`   | Templates, spatial groups, environment     |
+| VR interactions, reactive state | `.hsplus` | @trait decorators, event handlers          |
+| Agent behaviors, behavior trees | `.hsplus` | State machines, networking                 |
+| Inventory sync from POS         | `.hs`     | source → transform → sink                  |
+| Social media monitoring         | `.hs`     | Multi-source merge, LLM classify, branch   |
+| Deploy health monitoring        | `.hs`     | HTTP checks → alert routing                |
 | Knowledge compression           | `.hs`     | Filesystem source → LLM extract → MCP sink |
 
 ## Format Boundaries (Enforced)
@@ -32,17 +32,17 @@ SyntaxError: 'environment' is not valid in a pipeline context.
 Use .holo for spatial compositions or .hsplus for behaviors.
 ```
 
-| Concept        | .hs | .hsplus | .holo |
-| -------------- | --- | ------- | ----- |
-| pipeline       | ✅  | ❌      | ✅ (inline) |
-| source/sink    | ✅  | ❌      | ✅ (inline) |
-| @trait         | ❌  | ✅      | ✅  |
-| environment    | ❌  | ❌      | ✅  |
-| spatial_group  | ❌  | ❌      | ✅  |
-| template       | ❌  | ❌      | ✅  |
-| object         | ❌  | ✅      | ✅  |
-| state machine  | ❌  | ✅      | ✅  |
-| networked_object | ❌ | ✅     | ❌  |
+| Concept          | .hs | .hsplus | .holo       |
+| ---------------- | --- | ------- | ----------- |
+| pipeline         | ✅  | ❌      | ✅ (inline) |
+| source/sink      | ✅  | ❌      | ✅ (inline) |
+| @trait           | ❌  | ✅      | ✅          |
+| environment      | ❌  | ❌      | ✅          |
+| spatial_group    | ❌  | ❌      | ✅          |
+| template         | ❌  | ❌      | ✅          |
+| object           | ❌  | ✅      | ✅          |
+| state machine    | ❌  | ✅      | ✅          |
+| networked_object | ❌  | ✅      | ❌          |
 
 ---
 
@@ -89,25 +89,25 @@ pipeline "InventorySync" {
 
 ### Pipeline Blocks
 
-| Block      | Purpose                           |
-| ---------- | --------------------------------- |
-| `source`   | Where data comes from (rest, filesystem, mcp, stream, list) |
-| `transform`| Reshape data (field mapping, LLM, MCP tool, HTTP) |
-| `filter`   | Conditional pass-through (`where:` expression) |
-| `validate` | Schema enforcement (required, string, min/max) |
-| `merge`    | Combine multiple sources (concat, zip, dedup) |
-| `branch`   | Route records to different sinks (`when`/`default`) |
-| `sink`     | Where data goes (rest, webhook, mcp, filesystem) |
+| Block       | Purpose                                                     |
+| ----------- | ----------------------------------------------------------- |
+| `source`    | Where data comes from (rest, filesystem, mcp, stream, list) |
+| `transform` | Reshape data (field mapping, LLM, MCP tool, HTTP)           |
+| `filter`    | Conditional pass-through (`where:` expression)              |
+| `validate`  | Schema enforcement (required, string, min/max)              |
+| `merge`     | Combine multiple sources (concat, zip, dedup)               |
+| `branch`    | Route records to different sinks (`when`/`default`)         |
+| `sink`      | Where data goes (rest, webhook, mcp, filesystem)            |
 
 ### Compilation Targets
 
-| Target     | Output                               |
-| ---------- | ------------------------------------ |
-| `node`     | ES module with node-cron scheduler   |
-| `python`   | Async script with APScheduler        |
-| `lambda`   | AWS Lambda handler + CloudWatch rule |
-| `docker`   | Dockerfile + entrypoint with crond   |
-| `kubernetes` | CronJob YAML manifest              |
+| Target       | Output                               |
+| ------------ | ------------------------------------ |
+| `node`       | ES module with node-cron scheduler   |
+| `python`     | Async script with APScheduler        |
+| `lambda`     | AWS Lambda handler + CloudWatch rule |
+| `docker`     | Dockerfile + entrypoint with crond   |
+| `kubernetes` | CronJob YAML manifest                |
 
 ### When to Use .hs
 
@@ -280,19 +280,19 @@ composition "Dispensary" {
 
 ## Format Comparison
 
-| Feature            | .hs (Pipelines)       | .hsplus (Behaviors)   | .holo (Worlds)         |
-| ------------------ | --------------------- | --------------------- | ---------------------- |
-| Mental model       | Data flows            | Reactive agents       | Declarative scenes     |
-| Root block         | `pipeline "Name" {}`  | (none)                | `composition "Name" {}` |
-| Objects            | ❌                    | `composition name {}` | `object "name" {}`     |
-| Data source/sink   | ✅                    | ❌                    | ✅ (inline pipeline)   |
-| VR Traits          | ❌                    | `@grabbable`          | `@grabbable`           |
-| Reactive State     | ❌                    | `@state {}`           | `state {}`             |
-| Templates          | ❌                    | ❌                    | `template "Name" {}`   |
-| Environment        | ❌                    | ❌                    | `environment {}`       |
-| Spatial Groups     | ❌                    | ❌                    | `spatial_group {}`     |
-| Logic Block        | ❌                    | ❌                    | `logic {}`             |
-| Compiles to        | Node, Python, Lambda  | 24+ spatial targets   | 24+ spatial targets    |
+| Feature          | .hs (Pipelines)      | .hsplus (Behaviors)   | .holo (Worlds)          |
+| ---------------- | -------------------- | --------------------- | ----------------------- |
+| Mental model     | Data flows           | Reactive agents       | Declarative scenes      |
+| Root block       | `pipeline "Name" {}` | (none)                | `composition "Name" {}` |
+| Objects          | ❌                   | `composition name {}` | `object "name" {}`      |
+| Data source/sink | ✅                   | ❌                    | ✅ (inline pipeline)    |
+| VR Traits        | ❌                   | `@grabbable`          | `@grabbable`            |
+| Reactive State   | ❌                   | `@state {}`           | `state {}`              |
+| Templates        | ❌                   | ❌                    | `template "Name" {}`    |
+| Environment      | ❌                   | ❌                    | `environment {}`        |
+| Spatial Groups   | ❌                   | ❌                    | `spatial_group {}`      |
+| Logic Block      | ❌                   | ❌                    | `logic {}`              |
+| Compiles to      | Node, Python, Lambda | 24+ spatial targets   | 24+ spatial targets     |
 
 ---
 
@@ -317,10 +317,10 @@ HoloScript is the **intermediate representation**, not the implementation langua
 
 ## AI Generation
 
-| Tool                | Input           | Output Format |
-| ------------------- | --------------- | ------------- |
-| `generate_scene`    | Natural language | `.holo`       |
-| `generate_object`   | Natural language | `.hsplus`     |
-| `parse_pipeline`    | `.hs` source    | Pipeline AST  |
-| `compile_pipeline`  | `.hs` source    | Node.js / Python |
-| `compile_holoscript`| Any format      | 24+ targets   |
+| Tool                 | Input            | Output Format    |
+| -------------------- | ---------------- | ---------------- |
+| `generate_scene`     | Natural language | `.holo`          |
+| `generate_object`    | Natural language | `.hsplus`        |
+| `parse_pipeline`     | `.hs` source     | Pipeline AST     |
+| `compile_pipeline`   | `.hs` source     | Node.js / Python |
+| `compile_holoscript` | Any format       | 24+ targets      |

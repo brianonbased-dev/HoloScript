@@ -55,9 +55,7 @@ function createOrUpdateSession(
     metadata?: AnnotationSession['metadata'];
   }
 ): { session: AnnotationSession; created: boolean } {
-  const id =
-    opts.sessionId ??
-    `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = opts.sessionId ?? `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const existing = store.get(id);
 
   if (existing) {
@@ -438,7 +436,7 @@ describe('Scenario: /api/annotations/:sessionId GET — session stats', () => {
   it('stats pending counts pending and undefined status', () => {
     const anns = [
       makeAnnotation({ status: 'pending' }),
-      makeAnnotation({ status: undefined }),   // defaults to pending in stats
+      makeAnnotation({ status: undefined }), // defaults to pending in stats
       makeAnnotation({ status: 'resolved' }),
     ];
     const { session } = createOrUpdateSession(makeStore(), { annotations: anns });
@@ -495,10 +493,7 @@ describe('Scenario: knowledge store promotion — severity filter', () => {
     ];
 
     const worthPromoting = annotations.filter(
-      (a) =>
-        a.severity === 'blocking' ||
-        a.severity === 'important' ||
-        a.intent === 'fix'
+      (a) => a.severity === 'blocking' || a.severity === 'important' || a.intent === 'fix'
     );
 
     // First two qualify: blocking+fix, important+change
@@ -514,10 +509,7 @@ describe('Scenario: knowledge store promotion — severity filter', () => {
     });
 
     const worth = [ann].filter(
-      (a) =>
-        a.severity === 'blocking' ||
-        a.severity === 'important' ||
-        a.intent === 'fix'
+      (a) => a.severity === 'blocking' || a.severity === 'important' || a.intent === 'fix'
     );
 
     expect(worth).toHaveLength(1);
@@ -530,10 +522,7 @@ describe('Scenario: knowledge store promotion — severity filter', () => {
     });
 
     const worth = [ann].filter(
-      (a) =>
-        a.severity === 'blocking' ||
-        a.severity === 'important' ||
-        a.intent === 'fix'
+      (a) => a.severity === 'blocking' || a.severity === 'important' || a.intent === 'fix'
     );
 
     expect(worth).toHaveLength(0);

@@ -23,7 +23,12 @@ export const videoTranscodeHandler: TraitHandler<VideoTranscodeConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: VideoTranscodeConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: VideoTranscodeConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__videoState as { jobs: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'video:transcode') {

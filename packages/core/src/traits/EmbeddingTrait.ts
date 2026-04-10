@@ -27,7 +27,12 @@ export const embeddingHandler: TraitHandler<EmbeddingConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: EmbeddingConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: EmbeddingConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__embeddingState as { generated: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'embedding:generate') {

@@ -62,7 +62,8 @@ const METRICS: MetricDefinition[] = [
   {
     id: 'compiler_files',
     name: 'Compiler files',
-    command: 'find packages/core/src/compiler -name "*Compiler.ts" -not -name "CompilerBase.ts" -not -name "*.test.*" | wc -l',
+    command:
+      'find packages/core/src/compiler -name "*Compiler.ts" -not -name "CompilerBase.ts" -not -name "*.test.*" | wc -l',
     parser: (o) => o.trim(),
     searchPatterns: [/(\d+)\s*compilers?\b/gi, /(\d+)\s*compil(?:ation)?\s*targets?\b/gi],
   },
@@ -86,11 +87,7 @@ const METRICS: MetricDefinition[] = [
 ];
 
 // Files to scan for metric occurrences
-const SCAN_GLOBS = [
-  'README.md',
-  'docs/strategy/ROADMAP.md',
-  'packages/mcp-server/README.md',
-];
+const SCAN_GLOBS = ['README.md', 'docs/strategy/ROADMAP.md', 'packages/mcp-server/README.md'];
 
 // External files (outside HoloScript repo)
 const EXTERNAL_FILES = [
@@ -118,7 +115,11 @@ function runCommand(cmd: string): string {
   }
 }
 
-function scanFile(filePath: string, metric: MetricDefinition, liveValue: string): MetricResult['occurrences'] {
+function scanFile(
+  filePath: string,
+  metric: MetricDefinition,
+  liveValue: string
+): MetricResult['occurrences'] {
   const occurrences: MetricResult['occurrences'] = [];
   try {
     const absPath = path.isAbsolute(filePath) ? filePath : path.join(HOLOSCRIPT_ROOT, filePath);
@@ -136,7 +137,11 @@ function scanFile(filePath: string, metric: MetricDefinition, liveValue: string)
           // Skip if this is clearly a different metric (e.g., "114 categories" when scanning for compilers)
           if (metric.id === 'compiler_files' && lines[i].includes('categor')) continue;
           if (metric.id === 'trait_categories' && lines[i].includes('compil')) continue;
-          if (metric.id === 'knowledge_entries' && (lines[i].includes('compil') || lines[i].includes('categor'))) continue;
+          if (
+            metric.id === 'knowledge_entries' &&
+            (lines[i].includes('compil') || lines[i].includes('categor'))
+          )
+            continue;
 
           occurrences.push({
             file: filePath,
@@ -168,9 +173,9 @@ export function runAudit(): AuditResult {
       occurrences.push(...scanFile(file, metric, liveValue));
     }
 
-    const allConsistent = occurrences.every(o => o.matches);
+    const allConsistent = occurrences.every((o) => o.matches);
     totalOccurrences += occurrences.length;
-    mismatches += occurrences.filter(o => !o.matches).length;
+    mismatches += occurrences.filter((o) => !o.matches).length;
 
     metrics.push({ id: metric.id, name: metric.name, liveValue, occurrences, allConsistent });
   }
@@ -188,23 +193,23 @@ export function runAudit(): AuditResult {
 // MCP HANDLER
 // =============================================================================
 
-export async function handleAuditNumbers(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export async function handleAuditNumbers(args: Record<string, unknown>): Promise<unknown> {
   const result = runAudit();
 
   // Build summary
-  const summary = result.metrics.map(m => ({
+  const summary = result.metrics.map((m) => ({
     metric: m.name,
     live: m.liveValue,
     consistent: m.allConsistent,
     occurrences: m.occurrences.length,
-    mismatches: m.occurrences.filter(o => !o.matches).map(o => ({
-      file: o.file,
-      line: o.line,
-      has: o.currentValue,
-      should_be: m.liveValue,
-    })),
+    mismatches: m.occurrences
+      .filter((o) => !o.matches)
+      .map((o) => ({
+        file: o.file,
+        line: o.line,
+        has: o.currentValue,
+        should_be: m.liveValue,
+      })),
   }));
 
   return {

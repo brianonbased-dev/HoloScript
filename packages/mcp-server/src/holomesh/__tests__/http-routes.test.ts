@@ -1923,7 +1923,8 @@ describe('HoloMesh HTTP Routes', () => {
         'POST',
         `/api/holomesh/team/${tid}/board/scout`,
         {
-          todo_content: 'src/foo.ts:12: // TODO: fix auth bug\nsrc/bar.ts:9: // FIXME: broken render path',
+          todo_content:
+            'src/foo.ts:12: // TODO: fix auth bug\nsrc/bar.ts:9: // FIXME: broken render path',
           max_tasks: 10,
         },
         { authorization: `Bearer ${ownerApiKey}` }

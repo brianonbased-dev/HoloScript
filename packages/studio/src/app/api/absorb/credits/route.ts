@@ -13,7 +13,7 @@ import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 async function proxyToAbsorb(
   path: string,
   method: string,
-  body?: string,
+  body?: string
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
     const res = await fetch(`${ABSORB_BASE}${path}`, {
@@ -62,6 +62,6 @@ export async function POST(req: NextRequest) {
       error: 'Credit purchase service unavailable',
       hint: 'Stripe checkout requires the absorb service to be running. Set ABSORB_SERVICE_URL.',
     },
-    { status: 503 },
+    { status: 503 }
   );
 }

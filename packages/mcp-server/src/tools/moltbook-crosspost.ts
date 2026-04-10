@@ -84,7 +84,7 @@ moltbookRouter.post('/', async (req: Request, res: Response) => {
 
     // Check RBAC
     const hasPermission = await RBAC.checkPermission(
-      token as string || 'anonymous',
+      (token as string) || 'anonymous',
       'moltbook:post'
     );
 
@@ -138,7 +138,7 @@ moltbookRouter.post('/batch', async (req: Request, res: Response) => {
 
     // Check RBAC
     const hasPermission = await RBAC.checkPermission(
-      token as string || 'anonymous',
+      (token as string) || 'anonymous',
       'moltbook:post'
     );
 
@@ -219,34 +219,26 @@ moltbookRouter.get('/communities', (_req: Request, res: Response) => {
 // ============================================================================
 
 function buildMoltbookPost(task: HoloMeshTaskCompletion): MoltbookPost {
-  const community =
-    task.tags.includes('robotics') ? 'robotics' :
-    task.tags.includes('graphics') ? 'graphics' :
-    task.tags.includes('ai-agent') ? 'ai-agents' :
-    HOLOSCRIPT_COMMUNITY;
+  const community = task.tags.includes('robotics')
+    ? 'robotics'
+    : task.tags.includes('graphics')
+      ? 'graphics'
+      : task.tags.includes('ai-agent')
+        ? 'ai-agents'
+        : HOLOSCRIPT_COMMUNITY;
 
-  const lines = [
-    `## ${task.title}`,
-    '',
-    task.description,
-    '',
-  ];
+  const lines = [`## ${task.title}`, '', task.description, ''];
 
   // Add metrics if available
   if (task.metrics) {
     lines.push('### Metrics');
     if (task.metrics.filesModified)
       lines.push(`- **Files modified**: ${task.metrics.filesModified}`);
-    if (task.metrics.linesAdded)
-      lines.push(`- **Lines added**: +${task.metrics.linesAdded}`);
-    if (task.metrics.linesDeleted)
-      lines.push(`- **Lines deleted**: -${task.metrics.linesDeleted}`);
-    if (task.metrics.testsCovered)
-      lines.push(`- **Tests covered**: ${task.metrics.testsCovered}`);
+    if (task.metrics.linesAdded) lines.push(`- **Lines added**: +${task.metrics.linesAdded}`);
+    if (task.metrics.linesDeleted) lines.push(`- **Lines deleted**: -${task.metrics.linesDeleted}`);
+    if (task.metrics.testsCovered) lines.push(`- **Tests covered**: ${task.metrics.testsCovered}`);
     if (task.metrics.executionTimeMs)
-      lines.push(
-        `- **Execution time**: ${(task.metrics.executionTimeMs / 1000).toFixed(2)}s`
-      );
+      lines.push(`- **Execution time**: ${(task.metrics.executionTimeMs / 1000).toFixed(2)}s`);
     lines.push('');
   }
 
@@ -257,8 +249,7 @@ function buildMoltbookPost(task: HoloMeshTaskCompletion): MoltbookPost {
   }
 
   // Add status
-  const statusEmoji =
-    task.status === 'completed' ? '✅' : task.status === 'failed' ? '❌' : '⏳';
+  const statusEmoji = task.status === 'completed' ? '✅' : task.status === 'failed' ? '❌' : '⏳';
   lines.push(`${statusEmoji} **Status**: ${task.status}`);
 
   return {
@@ -283,14 +274,10 @@ function buildBatchPost(tasks: HoloMeshTaskCompletion[]): MoltbookPost {
     `Agent work completed: **${completed} tasks** | Failed: **${failed} tasks**`,
     '',
     '### Completed',
-    ...tasks
-      .filter((t) => t.status === 'completed')
-      .map((t) => `- ✅ ${t.title}`),
+    ...tasks.filter((t) => t.status === 'completed').map((t) => `- ✅ ${t.title}`),
     '',
     '### Failed',
-    ...tasks
-      .filter((t) => t.status === 'failed')
-      .map((t) => `- ❌ ${t.title}`),
+    ...tasks.filter((t) => t.status === 'failed').map((t) => `- ❌ ${t.title}`),
     '',
   ];
 
@@ -309,12 +296,9 @@ function buildBatchPost(tasks: HoloMeshTaskCompletion[]): MoltbookPost {
     lines.push('### Aggregate Metrics');
     if (totalMetrics.filesModified)
       lines.push(`- **Files modified**: ${totalMetrics.filesModified}`);
-    if (totalMetrics.linesAdded)
-      lines.push(`- **Lines added**: +${totalMetrics.linesAdded}`);
-    if (totalMetrics.linesDeleted)
-      lines.push(`- **Lines deleted**: -${totalMetrics.linesDeleted}`);
-    if (totalMetrics.testsCovered)
-      lines.push(`- **Tests covered**: ${totalMetrics.testsCovered}`);
+    if (totalMetrics.linesAdded) lines.push(`- **Lines added**: +${totalMetrics.linesAdded}`);
+    if (totalMetrics.linesDeleted) lines.push(`- **Lines deleted**: -${totalMetrics.linesDeleted}`);
+    if (totalMetrics.testsCovered) lines.push(`- **Tests covered**: ${totalMetrics.testsCovered}`);
   }
 
   return {
@@ -330,9 +314,7 @@ async function postToMoltbook(post: MoltbookPost): Promise<{ url: string }> {
   const apiKey = process.env.MOLTBOOK_API_KEY;
 
   if (!apiKey) {
-    throw new Error(
-      'MOLTBOOK_API_KEY not configured. Set it in .env to enable Moltbook posting.'
-    );
+    throw new Error('MOLTBOOK_API_KEY not configured. Set it in .env to enable Moltbook posting.');
   }
 
   const response = await axios.post(

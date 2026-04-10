@@ -49,14 +49,18 @@ export class BundleSplitter {
         }
       }
 
-      const eventHandlers = body.eventHandlers as Array<{ event: string; body?: string }> | undefined;
+      const eventHandlers = body.eventHandlers as
+        | Array<{ event: string; body?: string }>
+        | undefined;
       if (eventHandlers) {
         for (const handler of eventHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `event_${handler.event}`);
         }
       }
 
-      const tickHandlers = body.tickHandlers as Array<{ interval: string; body?: string }> | undefined;
+      const tickHandlers = body.tickHandlers as
+        | Array<{ interval: string; body?: string }>
+        | undefined;
       if (tickHandlers) {
         for (const handler of tickHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `tick_${handler.interval}`);
@@ -106,7 +110,10 @@ export class BundleSplitter {
     // This logic depends on how the parser represents dynamic imports.
     // Often it's a CallExpression with callee.name === 'import'
     // Or a specific node type.
-    if (node.type === 'call_expression' && (node as unknown as Record<string, unknown>).callee === 'import') {
+    if (
+      node.type === 'call_expression' &&
+      (node as unknown as Record<string, unknown>).callee === 'import'
+    ) {
       return true;
     }
     // As per HoloScript AST, checking if we have a specific node for this

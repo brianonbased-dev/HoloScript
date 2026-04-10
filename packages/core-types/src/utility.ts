@@ -71,22 +71,10 @@ export type EventMap = Record<string, unknown>;
  * ```
  */
 export interface TypedEventEmitter<Events extends EventMap> {
-  on<K extends keyof Events & string>(
-    event: K,
-    listener: (payload: Events[K]) => void,
-  ): this;
-  once<K extends keyof Events & string>(
-    event: K,
-    listener: (payload: Events[K]) => void,
-  ): this;
-  emit<K extends keyof Events & string>(
-    event: K,
-    payload: Events[K],
-  ): boolean;
-  off<K extends keyof Events & string>(
-    event: K,
-    listener: (payload: Events[K]) => void,
-  ): this;
+  on<K extends keyof Events & string>(event: K, listener: (payload: Events[K]) => void): this;
+  once<K extends keyof Events & string>(event: K, listener: (payload: Events[K]) => void): this;
+  emit<K extends keyof Events & string>(event: K, payload: Events[K]): boolean;
+  off<K extends keyof Events & string>(event: K, listener: (payload: Events[K]) => void): this;
   removeAllListeners<K extends keyof Events & string>(event?: K): this;
 }
 
@@ -94,10 +82,9 @@ export interface TypedEventEmitter<Events extends EventMap> {
 export type TypedEventKey<Events extends EventMap> = keyof Events & string;
 
 /** Extract the handler signature for a specific event. */
-export type TypedEventHandler<
-  Events extends EventMap,
-  K extends keyof Events,
-> = (payload: Events[K]) => void;
+export type TypedEventHandler<Events extends EventMap, K extends keyof Events> = (
+  payload: Events[K]
+) => void;
 
 // ── Record & Object Utilities ────────────────────────────────────────────────
 
@@ -144,19 +131,13 @@ export type DeepMutable<T> = {
  * type StringKeys = PickByValue<Config, string>; // { name: string; label: string }
  * ```
  */
-export type PickByValue<T, V> = Pick<
-  T,
-  { [K in keyof T]-?: T[K] extends V ? K : never }[keyof T]
->;
+export type PickByValue<T, V> = Pick<T, { [K in keyof T]-?: T[K] extends V ? K : never }[keyof T]>;
 
 /**
  * Omit keys whose values extend V.
  * Complement of PickByValue.
  */
-export type OmitByValue<T, V> = Pick<
-  T,
-  { [K in keyof T]-?: T[K] extends V ? never : K }[keyof T]
->;
+export type OmitByValue<T, V> = Pick<T, { [K in keyof T]-?: T[K] extends V ? never : K }[keyof T]>;
 
 // ── Global & Platform Extension Utilities ────────────────────────────────────
 
@@ -185,8 +166,8 @@ export type GlobalExtension<T> = T & Record<string, unknown>;
  * if (g.gc) g.gc();
  * ```
  */
-export type ExtendedGlobal<Extensions extends Record<string, unknown>> =
-  typeof globalThis & Extensions;
+export type ExtendedGlobal<Extensions extends Record<string, unknown>> = typeof globalThis &
+  Extensions;
 
 // ── Dynamic Property Access ──────────────────────────────────────────────────
 
@@ -259,8 +240,7 @@ export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
  * Make only specific keys required, leaving the rest optional.
  * Inverse of PartialBy.
  */
-export type RequiredBy<T, K extends keyof T> = Omit<T, K> &
-  Required<Pick<T, K>>;
+export type RequiredBy<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
 
 // ── JSON-safe Types ──────────────────────────────────────────────────────────
 
@@ -278,7 +258,4 @@ export type JsonValue = JsonPrimitive | JsonArray | JsonObject;
  */
 export type MutableJsonObject = { [key: string]: MutableJsonValue };
 export type MutableJsonArray = Array<MutableJsonValue>;
-export type MutableJsonValue =
-  | JsonPrimitive
-  | MutableJsonArray
-  | MutableJsonObject;
+export type MutableJsonValue = JsonPrimitive | MutableJsonArray | MutableJsonObject;

@@ -1,6 +1,6 @@
 # Getting Started with HoloScript
 
-Write `.holo`, compile to Unity, Unreal, WebXR, React, VisionOS, ROS 2, and 30+ other targets.
+Write `.holo`, compile to Unity, Unreal, WebXR, React, VisionOS, ROS 2, and other registered targets.
 
 ## Quickstart (recommended)
 
@@ -46,7 +46,7 @@ curl -X POST https://mcp.holoscript.net/api/compile \
   -d '{"code": "composition \"Hello\" { object \"Cube\" { @physics geometry: \"box\" position: [0,1,0] } }", "target": "r3f"}'
 ```
 
-Change `target` to `unity`, `godot`, `unreal`, `visionos`, `urdf`, `native-2d`, or any of the 37 targets.
+Change `target` to `unity`, `godot`, `unreal`, `visionos`, `urdf`, `native-2d`, or any registered target key from `ExportTarget` in `packages/core/src/compiler/CircuitBreaker.ts`.
 
 ## MCP integration
 
@@ -78,7 +78,16 @@ cd holoscript/examples
 cat hello-world.holo
 ```
 
-Browse 80+ examples in the `examples/` directory covering VR training, AR furniture, digital twins, robotics, and more.
+Browse the `examples/` directory covering VR training, AR furniture, digital twins, robotics, and more.
+
+## Utility Surface (not only rendering)
+
+HoloScript also supports:
+
+- `.hs` data/service pipelines (source → transform → sink)
+- schema mapping and codebase intelligence via Absorb
+- observability/telemetry flows for agent/runtime operations
+- knowledge-market and team workflows (HoloMesh + orchestrator)
 
 ## Next steps
 
@@ -90,4 +99,4 @@ Browse 80+ examples in the `examples/` directory covering VR training, AR furnit
 
 ---
 
-v6.0.1 · [MIT License](../../LICENSE)
+v6.0.2 · [MIT License](../../LICENSE)

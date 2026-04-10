@@ -306,4 +306,3 @@ export class LSystemGenerator {
     };
   }
 }
-

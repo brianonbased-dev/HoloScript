@@ -121,7 +121,8 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
 
     // Attach user info for logging
     (ws as unknown as Record<string, string>)._userId = payload.sub ?? 'unknown';
-    (ws as unknown as Record<string, string>)._userName = payload.name ?? payload.email ?? 'Anonymous';
+    (ws as unknown as Record<string, string>)._userName =
+      payload.name ?? payload.email ?? 'Anonymous';
   }
   // ────────────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,6 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   room.add(ws);
 
   const userLabel = (ws as unknown as Record<string, string>)._userName ?? 'anonymous';
-
 
   ws.on('message', (data) => {
     let msg: Record<string, unknown>;
@@ -154,7 +154,6 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   ws.on('close', () => {
     room.delete(ws);
     if (room.size === 0) rooms.delete(roomId);
-
   });
 
   ws.on('error', (err) => {

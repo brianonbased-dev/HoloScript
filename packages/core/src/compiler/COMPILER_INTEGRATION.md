@@ -276,7 +276,7 @@ Gossip-capable agents synchronizing CRDT world state via the HoloMesh discovery 
 1. **RAM Utilization Check**: If the system's active heap utilization exceeds 70%, inbound CRDT gossip synchronizations are proactively aborted.
 2. **Payload Size Limit**: Absolute delta payloads exceeding 50MB are rejected outright to protect the execution context from massive allocations.
 
-*These protections are analogous to the `CompilerStateMonitor` used during deep AST serialization.*
+_These protections are analogous to the `CompilerStateMonitor` used during deep AST serialization._
 
 ### Custom RBAC Configuration
 

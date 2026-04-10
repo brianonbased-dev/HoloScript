@@ -1265,4 +1265,3 @@ export function createEffect(
       throw new Error(`Unknown effect type: ${type}`);
   }
 }
-

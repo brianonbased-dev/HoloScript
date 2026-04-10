@@ -357,7 +357,10 @@ composition "ProgressionGame" {
   }
 
   async optimizeHoloScript(code: string, platform: string) {
-    return { holoScript: `// Optimized for ${platform}\n${code}`, improvements: [`Optimized for ${platform}`] };
+    return {
+      holoScript: `// Optimized for ${platform}\n${code}`,
+      improvements: [`Optimized for ${platform}`],
+    };
   }
 
   async fixHoloScript(code: string, errors: string[]) {

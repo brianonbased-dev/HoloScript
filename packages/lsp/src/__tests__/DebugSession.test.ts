@@ -205,13 +205,23 @@ describe('HoloScriptDebugSession', () => {
         return opts.connectResult !== undefined ? opts.connectResult : true;
       });
 
-      (conn as unknown as Record<string, unknown>).syncBreakpoints = vi.fn(async (bps: AttachBreakpointDescriptor[]) => {
-        return opts.syncedBreakpoints || bps;
-      });
+      (conn as unknown as Record<string, unknown>).syncBreakpoints = vi.fn(
+        async (bps: AttachBreakpointDescriptor[]) => {
+          return opts.syncedBreakpoints || bps;
+        }
+      );
 
-      (conn as unknown as Record<string, unknown>).syncWatchExpressions = vi.fn(async (watches: Array<{ expression: string }>) => {
-        return opts.watchResults || watches.map((w: { expression: string }) => ({ expression: w.expression, value: '<mock>' }));
-      });
+      (conn as unknown as Record<string, unknown>).syncWatchExpressions = vi.fn(
+        async (watches: Array<{ expression: string }>) => {
+          return (
+            opts.watchResults ||
+            watches.map((w: { expression: string }) => ({
+              expression: w.expression,
+              value: '<mock>',
+            }))
+          );
+        }
+      );
 
       (conn as unknown as Record<string, unknown>).fetchExecutionState = vi.fn(async () => {
         return opts.executionState || { status: 'running' as const };
@@ -248,8 +258,10 @@ describe('HoloScriptDebugSession', () => {
         const fullArgs = attachArgs as AttachRequestArguments;
 
         // Store breakpoints and watches
-        (this as unknown as Record<string, unknown>)._attachBreakpoints = fullArgs.breakpoints || [];
-        (this as unknown as Record<string, unknown>)._attachWatchExpressions = fullArgs.watchExpressions || [];
+        (this as unknown as Record<string, unknown>)._attachBreakpoints =
+          fullArgs.breakpoints || [];
+        (this as unknown as Record<string, unknown>)._attachWatchExpressions =
+          fullArgs.watchExpressions || [];
 
         // Wire up event listeners
         mockConn.on('disconnected', () => {
@@ -266,7 +278,10 @@ describe('HoloScriptDebugSession', () => {
         const sessionLabel = config.sessionId ? `session ${config.sessionId} at` : '';
         (this as unknown as { sendEvent: Function }).sendEvent({
           event: 'output',
-          body: { output: `Attached to HoloScript runtime ${sessionLabel} ${config.host}:${config.port}\n`, category: 'console' },
+          body: {
+            output: `Attached to HoloScript runtime ${sessionLabel} ${config.host}:${config.port}\n`,
+            category: 'console',
+          },
         });
 
         // Sync breakpoints
@@ -286,7 +301,10 @@ describe('HoloScriptDebugSession', () => {
           const watchResults = await mockConn.syncWatchExpressions(watches);
           (this as unknown as { sendEvent: Function }).sendEvent({
             event: 'output',
-            body: { output: `Reattached ${watchResults.length} watch expression(s)\n`, category: 'console' },
+            body: {
+              output: `Reattached ${watchResults.length} watch expression(s)\n`,
+              category: 'console',
+            },
           });
         }
 
@@ -332,7 +350,9 @@ describe('HoloScriptDebugSession', () => {
       const outputEvent = events.find(
         (e: Record<string, unknown>) =>
           e.event === 'output' &&
-          ((e as Record<string, Record<string, string>>).body?.output || '').includes('session-abc-123')
+          ((e as Record<string, Record<string, string>>).body?.output || '').includes(
+            'session-abc-123'
+          )
       );
       expect(outputEvent).toBeDefined();
     });
@@ -346,15 +366,21 @@ describe('HoloScriptDebugSession', () => {
 
       await attachWithMock(session, { breakpoints }, mockConn);
 
-      expect((mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).syncBreakpoints.mock.calls.length).toBe(1);
       expect(
-        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).syncBreakpoints.mock.calls[0][0]
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).syncBreakpoints
+          .mock.calls.length
+      ).toBe(1);
+      expect(
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).syncBreakpoints
+          .mock.calls[0][0]
       ).toEqual(breakpoints);
 
       const bpEvent = events.find(
         (e: Record<string, unknown>) =>
           e.event === 'output' &&
-          ((e as Record<string, Record<string, string>>).body?.output || '').includes('Reattached 2 breakpoint(s)')
+          ((e as Record<string, Record<string, string>>).body?.output || '').includes(
+            'Reattached 2 breakpoint(s)'
+          )
       );
       expect(bpEvent).toBeDefined();
     });
@@ -371,13 +397,16 @@ describe('HoloScriptDebugSession', () => {
       await attachWithMock(session, { watchExpressions: watches }, mockConn);
 
       expect(
-        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).syncWatchExpressions.mock.calls.length
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>)
+          .syncWatchExpressions.mock.calls.length
       ).toBe(1);
 
       const watchEvent = events.find(
         (e: Record<string, unknown>) =>
           e.event === 'output' &&
-          ((e as Record<string, Record<string, string>>).body?.output || '').includes('Reattached 2 watch expression(s)')
+          ((e as Record<string, Record<string, string>>).body?.output || '').includes(
+            'Reattached 2 watch expression(s)'
+          )
       );
       expect(watchEvent).toBeDefined();
     });
@@ -397,13 +426,11 @@ describe('HoloScriptDebugSession', () => {
 
       expect((session as unknown as Record<string, unknown>)._isRunning).toBe(false);
 
-      const stoppedEvent = events.find(
-        (e: Record<string, unknown>) => e.event === 'stopped'
-      );
+      const stoppedEvent = events.find((e: Record<string, unknown>) => e.event === 'stopped');
       expect(stoppedEvent).toBeDefined();
-      expect(
-        (stoppedEvent as Record<string, Record<string, unknown>>).body?.reason
-      ).toBe('breakpoint');
+      expect((stoppedEvent as Record<string, Record<string, unknown>>).body?.reason).toBe(
+        'breakpoint'
+      );
     });
 
     it('should set _isRunning=true when remote is running', async () => {
@@ -422,13 +449,13 @@ describe('HoloScriptDebugSession', () => {
 
       // Now disconnect gracefully
       const disconnectResponse = createResponse('disconnect');
-      await (session as unknown as Record<string, Function>).disconnectRequest(
-        disconnectResponse,
-        { terminateDebuggee: false }
-      );
+      await (session as unknown as Record<string, Function>).disconnectRequest(disconnectResponse, {
+        terminateDebuggee: false,
+      });
 
       expect(
-        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).detach.mock.calls.length
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).detach.mock.calls
+          .length
       ).toBe(1);
       expect((session as unknown as Record<string, unknown>)._isAttachMode).toBe(false);
       expect((session as unknown as Record<string, unknown>)._attachConnection).toBe(null);
@@ -439,24 +466,23 @@ describe('HoloScriptDebugSession', () => {
       await attachWithMock(session, {}, mockConn);
 
       const disconnectResponse = createResponse('disconnect');
-      await (session as unknown as Record<string, Function>).disconnectRequest(
-        disconnectResponse,
-        { terminateDebuggee: true }
-      );
+      await (session as unknown as Record<string, Function>).disconnectRequest(disconnectResponse, {
+        terminateDebuggee: true,
+      });
 
       // Should call disconnect, not detach
       expect(
-        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).disconnect.mock.calls.length
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).disconnect.mock
+          .calls.length
       ).toBe(1);
       expect(
-        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).detach.mock.calls.length
+        (mockConn as unknown as Record<string, { mock: { calls: unknown[][] } }>).detach.mock.calls
+          .length
       ).toBe(0);
     });
 
     it('should clean up attach state after disconnect', async () => {
-      const breakpoints: AttachBreakpointDescriptor[] = [
-        { file: 'test.holo', line: 5 },
-      ];
+      const breakpoints: AttachBreakpointDescriptor[] = [{ file: 'test.holo', line: 5 }];
       const watches = [{ expression: 'x' }];
       const mockConn = createMockAttachConnection();
 

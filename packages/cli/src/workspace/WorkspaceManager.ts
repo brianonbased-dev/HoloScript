@@ -287,7 +287,7 @@ export class WorkspaceManager {
     // Kahn's algorithm with parallel grouping
     const groups: string[][] = [];
     const processed = new Set<string>();
-    let remaining = new Map(inDegree);
+    const remaining = new Map(inDegree);
 
     while (processed.size < this.members.size) {
       const group = [...remaining.entries()].filter(([, deg]) => deg === 0).map(([name]) => name);

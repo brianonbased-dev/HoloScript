@@ -12,15 +12,15 @@ npm install @holoscript/core-types
 
 Seven type modules, each importable individually or through the barrel export:
 
-| Module | What it covers |
-|--------|----------------|
+| Module        | What it covers                                                                                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `composition` | `.holo` declarative format AST -- `HoloComposition`, `HoloObjectDecl`, `HoloShape`, expressions, statements, domain blocks, narrative, NPC, quest, talent trees, norms |
-| `ast` | HoloScript+ AST nodes and directives -- `HSPlusAST`, `ASTNode`, `HSPlusDirective` (23 directive types), `HoloScriptType` system, `VRTraitName`, compile results |
-| `animation` | Animation state machine types -- clips, states, transitions, parameters, layers, blend modes, events |
-| `physics` | Rigid bodies, collision shapes, constraints (8 joint types), spatial queries, PBD soft-body, unified particle buffer, helper factories |
-| `security` | RBAC roles/permissions, UCAN capability tokens, delegation chains, confabulation validation, role trait permissions |
-| `hologram` | Quilt rendering (Looking Glass), MV-HEVC stereo (Vision Pro), depth estimation configs |
-| `utility` | `DeepPartial`, `DeepReadonly`, `TypedEventEmitter`, `Brand`, `StrictRecord`, `JsonValue`, `Extensible`, and other type-level tools replacing `any` casts |
+| `ast`         | HoloScript+ AST nodes and directives -- `HSPlusAST`, `ASTNode`, `HSPlusDirective` (23 directive types), `HoloScriptType` system, `VRTraitName`, compile results        |
+| `animation`   | Animation state machine types -- clips, states, transitions, parameters, layers, blend modes, events                                                                   |
+| `physics`     | Rigid bodies, collision shapes, constraints (8 joint types), spatial queries, PBD soft-body, unified particle buffer, helper factories                                 |
+| `security`    | RBAC roles/permissions, UCAN capability tokens, delegation chains, confabulation validation, role trait permissions                                                    |
+| `hologram`    | Quilt rendering (Looking Glass), MV-HEVC stereo (Vision Pro), depth estimation configs                                                                                 |
+| `utility`     | `DeepPartial`, `DeepReadonly`, `TypedEventEmitter`, `Brand`, `StrictRecord`, `JsonValue`, `Extensible`, and other type-level tools replacing `any` casts               |
 
 ## Usage
 

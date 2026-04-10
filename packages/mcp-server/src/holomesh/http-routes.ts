@@ -40,7 +40,7 @@ import {
   dismissSuggestion,
   KnowledgeMarketplace,
   BountyManager,
-  type BountyCurrency
+  type BountyCurrency,
 } from '@holoscript/framework';
 
 // ── x402 Premium Entry Payment Gate ──
@@ -73,7 +73,9 @@ interface KnowledgeTransaction {
 
 const transactionLedger: KnowledgeTransaction[] = [];
 
-function recordTransaction(tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>): KnowledgeTransaction {
+function recordTransaction(
+  tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>
+): KnowledgeTransaction {
   const record: KnowledgeTransaction = {
     ...tx,
     id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -85,10 +87,18 @@ function recordTransaction(tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>): 
 
 /** Lazy-loaded PaymentGateway from @holoscript/core economy module */
 interface PaymentGatewayInstance {
-  create402Response(params: { entryId: string; priceUSDC: number; metadata?: Record<string, unknown> }): Record<string, unknown>;
+  create402Response(params: {
+    entryId: string;
+    priceUSDC: number;
+    metadata?: Record<string, unknown>;
+  }): Record<string, unknown>;
   verifyPayment(header: string, amount: string): { isValid: boolean; decodedPayload?: unknown };
   settlePayment(payload: unknown, path: string, amount: string): Promise<{ success: boolean }>;
-  createPaymentAuthorization(path: string, price: number, description: string): Record<string, unknown>;
+  createPaymentAuthorization(
+    path: string,
+    price: number,
+    description: string
+  ): Record<string, unknown>;
 }
 let paymentGateway: PaymentGatewayInstance | null = null;
 
@@ -346,8 +356,8 @@ interface Team {
   treasuryBalance?: number;
   taskBoard?: TeamTask[];
   doneLog?: DoneLogEntry[];
-  slotRoles?: SlotRole[];     // roles for slots 0..maxSlots-1
-  mode?: string;              // current preset: 'audit' | 'research' | 'build' | 'review'
+  slotRoles?: SlotRole[]; // roles for slots 0..maxSlots-1
+  mode?: string; // current preset: 'audit' | 'research' | 'build' | 'review'
   suggestions?: TeamSuggestion[]; // agent-proposed improvements
   knowledgeMarketplace?: KnowledgeMarketplace; // FW-0.6
   bounties?: BountyManager; // FW-0.6
@@ -594,7 +604,8 @@ async function verifyWalletSignatureEIP712(
     name: 'HoloMesh',
     version: '1',
     chainId: (process.env.HOLOMESH_PAYMENT_CHAIN === 'base-mainnet' ? 8453 : 84532) as number,
-    verifyingContract: (process.env.HOLOMESH_VERIFYING_CONTRACT || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    verifyingContract: (process.env.HOLOMESH_VERIFYING_CONTRACT ||
+      '0x0000000000000000000000000000000000000000') as `0x${string}`,
   };
   const types = {
     Challenge: [
@@ -1006,7 +1017,10 @@ function requireAuth(req: http.IncomingMessage, res: http.ServerResponse): Regis
 }
 
 /** Async version of requireAuth for routes that can await. */
-async function requireAuthAsync(req: http.IncomingMessage, res: http.ServerResponse): Promise<RegisteredAgent | null> {
+async function requireAuthAsync(
+  req: http.IncomingMessage,
+  res: http.ServerResponse
+): Promise<RegisteredAgent | null> {
   const token = extractBearerToken(req);
   if (!token) {
     json(res, 401, { error: 'Authentication required' });
@@ -1031,7 +1045,9 @@ async function requireAuthAsync(req: http.IncomingMessage, res: http.ServerRespo
         lastSeen: Date.now(),
       } as RegisteredAgent;
     }
-  } catch { /* provider not ready */ }
+  } catch {
+    /* provider not ready */
+  }
 
   json(res, 401, { error: 'Invalid token' });
   return null;
@@ -1090,9 +1106,10 @@ export async function handleHoloMeshRoute(
       const caller = resolveRequestingAgent(req, c);
 
       // Build following set for 'following' sort mode
-      const followingIds = sort === 'following' && caller.authenticated
-        ? new Set((await import('./social')).getFollowing(caller.id))
-        : undefined;
+      const followingIds =
+        sort === 'following' && caller.authenticated
+          ? new Set((await import('./social')).getFollowing(caller.id))
+          : undefined;
 
       const enriched = results.map((e) => {
         const isPremium = (e.price || 0) > 0;
@@ -1156,11 +1173,12 @@ export async function handleHoloMeshRoute(
             themeAccent: registeredAgent.profile.themeAccent,
             statusText: registeredAgent.profile.statusText,
             customTitle: registeredAgent.profile.customTitle,
-            backgroundGradient: registeredAgent.profile.backgroundGradient || DEFAULT_PROFILE.backgroundGradient,
+            backgroundGradient:
+              registeredAgent.profile.backgroundGradient || DEFAULT_PROFILE.backgroundGradient,
             particles: registeredAgent.profile.particles || 'none',
             backgroundMusicUrl: registeredAgent.profile.backgroundMusicUrl || '',
             backgroundMusicVolume: registeredAgent.profile.backgroundMusicVolume ?? 0.3,
-            hasMoodBoard: !!(registeredAgent.profile.moodBoardScene),
+            hasMoodBoard: !!registeredAgent.profile.moodBoardScene,
           }
         : undefined;
 
@@ -1371,7 +1389,11 @@ export async function handleHoloMeshRoute(
       const { checkRateLimit } = await import('./social');
       const rl = checkRateLimit(caller.id, 'contribute');
       if (!rl.allowed) {
-        json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter, limit: '10 per minute' });
+        json(res, 429, {
+          error: 'Rate limited',
+          retry_after: rl.retryAfter,
+          limit: '10 per minute',
+        });
         return true;
       }
 
@@ -1475,14 +1497,27 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
-      const callerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
-      const sales = transactionLedger.filter((tx) => tx.sellerWallet === callerWallet || tx.sellerName === caller.name);
-      const purchases = transactionLedger.filter((tx) => tx.buyerWallet === callerWallet || tx.buyerName === caller.name);
+      const callerWallet =
+        [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+      const sales = transactionLedger.filter(
+        (tx) => tx.sellerWallet === callerWallet || tx.sellerName === caller.name
+      );
+      const purchases = transactionLedger.filter(
+        (tx) => tx.buyerWallet === callerWallet || tx.buyerName === caller.name
+      );
 
       // Revenue by entry
-      const byEntry = new Map<string, { entryId: string; domain: string; revenue: number; buyers: number }>();
+      const byEntry = new Map<
+        string,
+        { entryId: string; domain: string; revenue: number; buyers: number }
+      >();
       for (const tx of sales) {
-        const existing = byEntry.get(tx.entryId) || { entryId: tx.entryId, domain: tx.entryDomain, revenue: 0, buyers: 0 };
+        const existing = byEntry.get(tx.entryId) || {
+          entryId: tx.entryId,
+          domain: tx.entryDomain,
+          revenue: 0,
+          buyers: 0,
+        };
         existing.revenue += tx.priceCents;
         existing.buyers += 1;
         byEntry.set(tx.entryId, existing);
@@ -1520,7 +1555,8 @@ export async function handleHoloMeshRoute(
       const q = parseQuery(url);
       const role = q.get('role') || 'both';
       const limit = Math.min(parseInt(q.get('limit') || '50', 10), 200);
-      const callerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+      const callerWallet =
+        [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
 
       let txs = transactionLedger;
       if (role === 'seller') {
@@ -1528,9 +1564,12 @@ export async function handleHoloMeshRoute(
       } else if (role === 'buyer') {
         txs = txs.filter((tx) => tx.buyerWallet === callerWallet || tx.buyerName === caller.name);
       } else {
-        txs = txs.filter((tx) =>
-          tx.sellerWallet === callerWallet || tx.sellerName === caller.name ||
-          tx.buyerWallet === callerWallet || tx.buyerName === caller.name
+        txs = txs.filter(
+          (tx) =>
+            tx.sellerWallet === callerWallet ||
+            tx.sellerName === caller.name ||
+            tx.buyerWallet === callerWallet ||
+            tx.buyerName === caller.name
         );
       }
 
@@ -1550,7 +1589,12 @@ export async function handleHoloMeshRoute(
       const minPrice = parseFloat(q.get('min_price') || '0');
       const maxPrice = parseFloat(q.get('max_price') || '999999');
       const sellerTier = q.get('seller_tier') || undefined;
-      const sort = (q.get('sort') || 'trending') as 'newest' | 'trending' | 'most_reused' | 'cheapest' | 'highest_rated';
+      const sort = (q.get('sort') || 'trending') as
+        | 'newest'
+        | 'trending'
+        | 'most_reused'
+        | 'cheapest'
+        | 'highest_rated';
       const limit = Math.min(parseInt(q.get('limit') || '20', 10), 100);
       const cursor = q.get('cursor') || undefined;
       const caller = resolveRequestingAgent(req, c);
@@ -1566,8 +1610,14 @@ export async function handleHoloMeshRoute(
         if (sellerTier) {
           const author = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
           const rep = author?.reputation || 0;
-          const tier = rep >= 100 ? 'authority' : rep >= 30 ? 'expert' : rep >= 5 ? 'contributor' : 'newcomer';
-          const tierRank: Record<string, number> = { newcomer: 0, contributor: 1, expert: 2, authority: 3 };
+          const tier =
+            rep >= 100 ? 'authority' : rep >= 30 ? 'expert' : rep >= 5 ? 'contributor' : 'newcomer';
+          const tierRank: Record<string, number> = {
+            newcomer: 0,
+            contributor: 1,
+            expert: 2,
+            authority: 3,
+          };
           if ((tierRank[tier] || 0) < (tierRank[sellerTier] || 0)) return false;
         }
         return true;
@@ -1586,7 +1636,14 @@ export async function handleHoloMeshRoute(
           voteCount: getVoteCount(e.id),
           commentCount: getComments(e.id).length,
           authorReputation: authorAgent?.reputation || 0,
-          authorTier: (authorAgent?.reputation || 0) >= 100 ? 'authority' : (authorAgent?.reputation || 0) >= 30 ? 'expert' : (authorAgent?.reputation || 0) >= 5 ? 'contributor' : 'newcomer',
+          authorTier:
+            (authorAgent?.reputation || 0) >= 100
+              ? 'authority'
+              : (authorAgent?.reputation || 0) >= 30
+                ? 'expert'
+                : (authorAgent?.reputation || 0) >= 5
+                  ? 'contributor'
+                  : 'newcomer',
           salesCount: transactionLedger.filter((tx) => tx.entryId === e.id).length,
         };
       });
@@ -1607,15 +1664,18 @@ export async function handleHoloMeshRoute(
       }
 
       const { items: entries, ...pageInfo } = paginate(sorted, limit, cursor);
-      json(res, 200, { success: true, ...pageInfo, entries, sort, filters: { domain, minPrice, maxPrice, sellerTier } });
+      json(res, 200, {
+        success: true,
+        ...pageInfo,
+        entries,
+        sort,
+        filters: { domain, minPrice, maxPrice, sellerTier },
+      });
       return true;
     }
 
     // GET /api/holomesh/agent/:id/storefront — Agent's shop: what they sell
-    if (
-      pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/storefront$/) &&
-      method === 'GET'
-    ) {
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/storefront$/) && method === 'GET') {
       const agentId = pathname.split('/')[4];
       const card = await c.getAgentCard(agentId);
       if (!card) {
@@ -1662,14 +1722,23 @@ export async function handleHoloMeshRoute(
           listings,
           freeCount: freeEntries.length,
           premiumCount: premiumEntries.length,
-          priceRange: premiumEntries.length > 0
-            ? {
-                min: Math.min(...premiumEntries.map((e) => e.price || 0)),
-                max: Math.max(...premiumEntries.map((e) => e.price || 0)),
-              }
-            : null,
-          totalSales: transactionLedger.filter((tx) => tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress).length,
-          totalRevenueCents: transactionLedger.filter((tx) => tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress).reduce((sum, tx) => sum + tx.priceCents, 0),
+          priceRange:
+            premiumEntries.length > 0
+              ? {
+                  min: Math.min(...premiumEntries.map((e) => e.price || 0)),
+                  max: Math.max(...premiumEntries.map((e) => e.price || 0)),
+                }
+              : null,
+          totalSales: transactionLedger.filter(
+            (tx) =>
+              tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress
+          ).length,
+          totalRevenueCents: transactionLedger
+            .filter(
+              (tx) =>
+                tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress
+            )
+            .reduce((sum, tx) => sum + tx.priceCents, 0),
         },
         vault: {
           hint: `This agent has ${agentEntries.length} total entries. Browse their public contributions or provision a key to access premium content.`,
@@ -1742,7 +1811,9 @@ export async function handleHoloMeshRoute(
             grantPaidAccess(caller.id, entryId);
             // Record the sale — split revenue if entry belongs to a room
             const sellerAgent = [...agentKeyStore.values()].find((a) => a.id === entry.authorId);
-            const buyerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+            const buyerWallet =
+              [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress ||
+              caller.id;
             const priceCents = Math.round((entry.price || 0) * 100);
 
             // Check if this entry belongs to a team room with a treasury
@@ -1752,32 +1823,38 @@ export async function handleHoloMeshRoute(
             const treasuryFeeBps = entryTeam?.roomConfig?.treasuryFeeBps || 0;
 
             if (treasuryFeeBps > 0 && entryTeam?.treasuryWallet) {
-              const treasuryCut = Math.floor(priceCents * treasuryFeeBps / 10000);
+              const treasuryCut = Math.floor((priceCents * treasuryFeeBps) / 10000);
               const agentCut = priceCents - treasuryCut;
               // Room treasury gets its cut
               recordTransaction({
-                buyerWallet, buyerName: caller.name,
+                buyerWallet,
+                buyerName: caller.name,
                 sellerWallet: entryTeam.treasuryWallet,
                 sellerName: `Room: ${entryTeam.name}`,
-                entryId, entryDomain: entry.domain || 'general',
+                entryId,
+                entryDomain: entry.domain || 'general',
                 priceCents: treasuryCut,
               });
               entryTeam.treasuryBalance = (entryTeam.treasuryBalance || 0) + treasuryCut;
               // Agent gets the rest
               recordTransaction({
-                buyerWallet, buyerName: caller.name,
+                buyerWallet,
+                buyerName: caller.name,
                 sellerWallet: sellerAgent?.walletAddress || entry.authorId,
                 sellerName: entry.authorName || sellerAgent?.name || 'unknown',
-                entryId, entryDomain: entry.domain || 'general',
+                entryId,
+                entryDomain: entry.domain || 'general',
                 priceCents: agentCut,
               });
             } else {
               // No room — full amount to agent
               recordTransaction({
-                buyerWallet, buyerName: caller.name,
+                buyerWallet,
+                buyerName: caller.name,
                 sellerWallet: sellerAgent?.walletAddress || entry.authorId,
                 sellerName: entry.authorName || sellerAgent?.name || 'unknown',
-                entryId, entryDomain: entry.domain || 'general',
+                entryId,
+                entryDomain: entry.domain || 'general',
                 priceCents,
                 referrer: (req.headers['x-referrer'] as string) || undefined,
               });
@@ -1892,7 +1969,11 @@ export async function handleHoloMeshRoute(
       const { checkRateLimit } = await import('./social');
       const rl = checkRateLimit(caller.id, 'comment');
       if (!rl.allowed) {
-        json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter, limit: '20 per minute' });
+        json(res, 429, {
+          error: 'Rate limited',
+          retry_after: rl.retryAfter,
+          limit: '20 per minute',
+        });
         return true;
       }
 
@@ -2021,7 +2102,7 @@ export async function handleHoloMeshRoute(
       const sort = q.get('sort') || 'recent'; // recent | top | discussed
 
       const results = await c.queryKnowledge('*', { limit: 200 });
-      let domainEntries = results.filter((e) => (e.domain || 'general') === domainName);
+      const domainEntries = results.filter((e) => (e.domain || 'general') === domainName);
 
       const userId = c.getAgentId() || 'anon';
 
@@ -2093,7 +2174,9 @@ export async function handleHoloMeshRoute(
         const profileData = await profileRes.json();
         mbProfile = profileData.agent;
       } catch (err: unknown) {
-        json(res, 502, { error: `Failed to reach Moltbook API: ${err instanceof Error ? err.message : String(err)}` });
+        json(res, 502, {
+          error: `Failed to reach Moltbook API: ${err instanceof Error ? err.message : String(err)}`,
+        });
         return true;
       }
 
@@ -2283,7 +2366,9 @@ export async function handleHoloMeshRoute(
           seedReputation: Math.min(agent.karma / 100, 50),
         });
       } catch (err: unknown) {
-        json(res, 502, { error: `Failed to reach Moltbook: ${err instanceof Error ? err.message : String(err)}` });
+        json(res, 502, {
+          error: `Failed to reach Moltbook: ${err instanceof Error ? err.message : String(err)}`,
+        });
       }
       return true;
     }
@@ -2473,7 +2558,10 @@ export async function handleHoloMeshRoute(
           },
         ]);
       } catch (e: unknown) {
-        console.warn('[HoloMesh] private workspace init failed:', e instanceof Error ? e.message : String(e));
+        console.warn(
+          '[HoloMesh] private workspace init failed:',
+          e instanceof Error ? e.message : String(e)
+        );
       }
 
       const response: Record<string, unknown> = {
@@ -2564,8 +2652,16 @@ export async function handleHoloMeshRoute(
           // Handle array/number fields separately
           if (field === 'backgroundGradient') {
             const grad = body[field];
-            if (!Array.isArray(grad) || grad.length > 5 || !grad.every((c: unknown) => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c as string))) {
-              json(res, 400, { error: 'backgroundGradient must be an array of up to 5 hex colors' });
+            if (
+              !Array.isArray(grad) ||
+              grad.length > 5 ||
+              !grad.every(
+                (c: unknown) => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c as string)
+              )
+            ) {
+              json(res, 400, {
+                error: 'backgroundGradient must be an array of up to 5 hex colors',
+              });
               return true;
             }
             updates.backgroundGradient = grad;
@@ -2697,7 +2793,8 @@ export async function handleHoloMeshRoute(
         const content = String(e.content || '').trim();
         const entryType = (e.type as string) || 'wisdom';
         const entryId =
-          (e.id as string) || `${entryType.charAt(0).toUpperCase()}.${caller.name}.priv.${Date.now()}.${i}`;
+          (e.id as string) ||
+          `${entryType.charAt(0).toUpperCase()}.${caller.name}.priv.${Date.now()}.${i}`;
 
         return {
           id: entryId,
@@ -2862,7 +2959,8 @@ export async function handleHoloMeshRoute(
           name: 'HoloMesh',
           version: '1',
           chainId: process.env.HOLOMESH_PAYMENT_CHAIN === 'base-mainnet' ? 8453 : 84532,
-          verifyingContract: process.env.HOLOMESH_VERIFYING_CONTRACT || '0x0000000000000000000000000000000000000000',
+          verifyingContract:
+            process.env.HOLOMESH_VERIFYING_CONTRACT || '0x0000000000000000000000000000000000000000',
         },
       });
       return true;
@@ -3233,11 +3331,44 @@ export async function handleHoloMeshRoute(
       const teamType = (body.type as string)?.trim() || 'solo';
 
       // Apply team type templates
-      const TEAM_TEMPLATES: Record<string, { maxSlots: number; mode: string; objective: string; treasuryFeeBps: number; visibility: string }> = {
-        solo: { maxSlots: 5, mode: 'build', objective: 'Personal development workflow', treasuryFeeBps: 0, visibility: 'private' },
-        enterprise: { maxSlots: 50, mode: 'build', objective: 'Team project delivery', treasuryFeeBps: 500, visibility: 'private' },
-        game: { maxSlots: 100, mode: 'build', objective: 'Spatial experience', treasuryFeeBps: 1000, visibility: 'public' },
-        bounty: { maxSlots: 1000, mode: 'research', objective: 'Solve open problems for rewards', treasuryFeeBps: 1500, visibility: 'public' },
+      const TEAM_TEMPLATES: Record<
+        string,
+        {
+          maxSlots: number;
+          mode: string;
+          objective: string;
+          treasuryFeeBps: number;
+          visibility: string;
+        }
+      > = {
+        solo: {
+          maxSlots: 5,
+          mode: 'build',
+          objective: 'Personal development workflow',
+          treasuryFeeBps: 0,
+          visibility: 'private',
+        },
+        enterprise: {
+          maxSlots: 50,
+          mode: 'build',
+          objective: 'Team project delivery',
+          treasuryFeeBps: 500,
+          visibility: 'private',
+        },
+        game: {
+          maxSlots: 100,
+          mode: 'build',
+          objective: 'Spatial experience',
+          treasuryFeeBps: 1000,
+          visibility: 'public',
+        },
+        bounty: {
+          maxSlots: 1000,
+          mode: 'research',
+          objective: 'Solve open problems for rewards',
+          treasuryFeeBps: 1500,
+          visibility: 'public',
+        },
       };
       const template = TEAM_TEMPLATES[teamType] || TEAM_TEMPLATES.solo!;
 
@@ -3257,7 +3388,10 @@ export async function handleHoloMeshRoute(
       const teamId = generateTeamId();
       const inviteCode = generateInviteCode();
 
-      const maxSlots = Math.min(Math.max(parseInt(body.max_slots as string) || template.maxSlots, 1), template.maxSlots);
+      const maxSlots = Math.min(
+        Math.max(parseInt(body.max_slots as string) || template.maxSlots, 1),
+        template.maxSlots
+      );
 
       const team: Team = {
         id: teamId,
@@ -3290,7 +3424,10 @@ export async function handleHoloMeshRoute(
           absorbedProjects: (rawRoom.absorbedProjects as RoomConfig['absorbedProjects']) || [],
           objective: (rawRoom.objective as string) || '',
           rules: (rawRoom.rules as string[]) || [],
-          treasuryFeeBps: Math.min(Math.max(parseInt(String(rawRoom.treasuryFeeBps)) || 0, 0), 5000),
+          treasuryFeeBps: Math.min(
+            Math.max(parseInt(String(rawRoom.treasuryFeeBps)) || 0, 0),
+            5000
+          ),
           autoSpawn: !!rawRoom.autoSpawn,
           spawnTemplate: rawRoom.spawnTemplate as RoomConfig['spawnTemplate'],
         };
@@ -3325,7 +3462,10 @@ export async function handleHoloMeshRoute(
           },
         ]);
       } catch (e: unknown) {
-        console.warn('[HoloMesh] team workspace init failed:', e instanceof Error ? e.message : String(e));
+        console.warn(
+          '[HoloMesh] team workspace init failed:',
+          e instanceof Error ? e.message : String(e)
+        );
       }
 
       json(res, 201, {
@@ -3341,14 +3481,16 @@ export async function handleHoloMeshRoute(
           members: team.members.length,
           maxSlots,
           slotsAvailable: maxSlots - 1,
-          ...(team.roomConfig ? {
-            room: {
-              objective: team.roomConfig.objective,
-              treasuryWallet: team.treasuryWallet,
-              treasuryFeeBps: team.roomConfig.treasuryFeeBps,
-              autoSpawn: team.roomConfig.autoSpawn,
-            },
-          } : {}),
+          ...(team.roomConfig
+            ? {
+                room: {
+                  objective: team.roomConfig.objective,
+                  treasuryWallet: team.treasuryWallet,
+                  treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+                  autoSpawn: team.roomConfig.autoSpawn,
+                },
+              }
+            : {}),
         },
         next_steps: [
           `Share invite code "${inviteCode}" with team members (${maxSlots} slots)`,
@@ -3472,8 +3614,9 @@ export async function handleHoloMeshRoute(
           const presence = presenceMap?.get(m.agentId);
           // Match: same IDE type AND currently offline (stale heartbeat)
           if (presence?.ideType === ideType && m.agentId !== caller.id) {
-            const isOnline = presenceMap?.has(m.agentId) &&
-              (Date.now() - new Date(presence.lastHeartbeat).getTime() < PRESENCE_TTL_MS);
+            const isOnline =
+              presenceMap?.has(m.agentId) &&
+              Date.now() - new Date(presence.lastHeartbeat).getTime() < PRESENCE_TTL_MS;
             return !isOnline; // only replace offline instances
           }
           return false;
@@ -3518,7 +3661,8 @@ export async function handleHoloMeshRoute(
 
       // Infrastructure agents (scouts, daemons) bypass slot limits
       const joinIdeType = ideType || '';
-      const isInfraAgent = joinIdeType === 'infrastructure' || /scout|daemon|worker|heartbeat/i.test(caller.name);
+      const isInfraAgent =
+        joinIdeType === 'infrastructure' || /scout|daemon|worker|heartbeat/i.test(caller.name);
       if (isInfraAgent) newMember.role = 'infrastructure';
 
       // Slot enforcement — if team is full, add to waitlist (infra agents bypass)
@@ -3579,7 +3723,7 @@ export async function handleHoloMeshRoute(
           agentId: m.agentId,
           agentName: m.agentName,
           role: m.role,
-          status: isOnline ? (presence!.status || 'active') : 'offline',
+          status: isOnline ? presence!.status || 'active' : 'offline',
           ideType: presence?.ideType || null,
           projectPath: presence?.projectPath || null,
           lastHeartbeat: lastSeen || null,
@@ -3606,16 +3750,18 @@ export async function handleHoloMeshRoute(
           agentName: w.agentName,
           waitingSince: w.joinedAt,
         })),
-        room: team.roomConfig ? {
-          objective: team.roomConfig.objective,
-          mcpServers: team.roomConfig.mcpServers.length,
-          absorbedProjects: team.roomConfig.absorbedProjects.length,
-          rules: team.roomConfig.rules.length,
-          treasuryWallet: team.treasuryWallet,
-          treasuryBalance: team.treasuryBalance || 0,
-          treasuryFeeBps: team.roomConfig.treasuryFeeBps,
-          autoSpawn: team.roomConfig.autoSpawn,
-        } : null,
+        room: team.roomConfig
+          ? {
+              objective: team.roomConfig.objective,
+              mcpServers: team.roomConfig.mcpServers.length,
+              absorbedProjects: team.roomConfig.absorbedProjects.length,
+              rules: team.roomConfig.rules.length,
+              treasuryWallet: team.treasuryWallet,
+              treasuryBalance: team.treasuryBalance || 0,
+              treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+              autoSpawn: team.roomConfig.autoSpawn,
+            }
+          : null,
       });
       return true;
     }
@@ -3639,8 +3785,13 @@ export async function handleHoloMeshRoute(
         team.treasuryWallet = roomWallet.address;
         team.treasuryBalance = 0;
         team.roomConfig = {
-          mcpServers: [], brainTemplate: '', absorbedProjects: [],
-          objective: '', rules: [], treasuryFeeBps: 0, autoSpawn: false,
+          mcpServers: [],
+          brainTemplate: '',
+          absorbedProjects: [],
+          objective: '',
+          rules: [],
+          treasuryFeeBps: 0,
+          autoSpawn: false,
         };
       }
 
@@ -3650,10 +3801,13 @@ export async function handleHoloMeshRoute(
       if (body.rules !== undefined) rc.rules = body.rules as string[];
       if (body.mcpServers !== undefined) rc.mcpServers = body.mcpServers as RoomMcpServer[];
       if (body.brainTemplate !== undefined) rc.brainTemplate = String(body.brainTemplate);
-      if (body.absorbedProjects !== undefined) rc.absorbedProjects = body.absorbedProjects as RoomConfig['absorbedProjects'];
-      if (body.treasuryFeeBps !== undefined) rc.treasuryFeeBps = Math.min(Math.max(parseInt(String(body.treasuryFeeBps)) || 0, 0), 5000);
+      if (body.absorbedProjects !== undefined)
+        rc.absorbedProjects = body.absorbedProjects as RoomConfig['absorbedProjects'];
+      if (body.treasuryFeeBps !== undefined)
+        rc.treasuryFeeBps = Math.min(Math.max(parseInt(String(body.treasuryFeeBps)) || 0, 0), 5000);
       if (body.autoSpawn !== undefined) rc.autoSpawn = !!body.autoSpawn;
-      if (body.spawnTemplate !== undefined) rc.spawnTemplate = body.spawnTemplate as RoomConfig['spawnTemplate'];
+      if (body.spawnTemplate !== undefined)
+        rc.spawnTemplate = body.spawnTemplate as RoomConfig['spawnTemplate'];
 
       persistTeamStore();
 
@@ -3708,14 +3862,26 @@ export async function handleHoloMeshRoute(
       const teamWs = getTeamWorkspaceId(teamId);
       const recentKnowledge = (await c.queryKnowledge('*', { limit: 5, workspaceId: teamWs }))
         .slice(0, 3)
-        .map((e) => ({ type: e.type, content: e.content.slice(0, 150), domain: e.domain, authorName: e.authorName }));
+        .map((e) => ({
+          type: e.type,
+          content: e.content.slice(0, 150),
+          domain: e.domain,
+          authorName: e.authorName,
+        }));
 
       // Surface open suggestions alongside the board
       const openSuggestions = (team.suggestions || [])
         .filter((s) => s.status === 'open')
         .sort((a, b) => b.score - a.score)
         .slice(0, 5)
-        .map((s) => ({ id: s.id, title: s.title, category: s.category, score: s.score, proposedByName: s.proposedByName, votes: s.votes.length }));
+        .map((s) => ({
+          id: s.id,
+          title: s.title,
+          category: s.category,
+          score: s.score,
+          proposedByName: s.proposedByName,
+          votes: s.votes.length,
+        }));
 
       json(res, 200, {
         success: true,
@@ -3759,8 +3925,8 @@ export async function handleHoloMeshRoute(
       if (!access) return true;
       const { team } = access;
       if (!team.bounties) team.bounties = new BountyManager();
-      
-      const allBounties = team.taskBoard?.map(t => team.bounties!.byTask(t.id)).flat() || [];
+
+      const allBounties = team.taskBoard?.map((t) => team.bounties!.byTask(t.id)).flat() || [];
       json(res, 200, { success: true, bounties: allBounties });
       return true;
     }
@@ -3774,12 +3940,15 @@ export async function handleHoloMeshRoute(
 
       const body = await parseJsonBody(req);
       if (!body.taskId || !body.amount || !body.currency) {
-         json(res, 400, { error: 'Missing taskId, amount, or currency' });
-         return true;
+        json(res, 400, { error: 'Missing taskId, amount, or currency' });
+        return true;
       }
-      
-      const task = team.taskBoard?.find(t => t.id === body.taskId);
-      if (!task) { json(res, 404, { error: 'Task not found' }); return true; }
+
+      const task = team.taskBoard?.find((t) => t.id === body.taskId);
+      if (!task) {
+        json(res, 404, { error: 'Task not found' });
+        return true;
+      }
 
       const bounty = team.bounties.createBounty(
         body.taskId as string,
@@ -3787,7 +3956,7 @@ export async function handleHoloMeshRoute(
         caller.name,
         body.deadline ? Number(body.deadline) : undefined
       );
-      
+
       persistTeamStore();
       json(res, 201, { success: true, bounty });
       return true;
@@ -3801,7 +3970,7 @@ export async function handleHoloMeshRoute(
       if (!access) return true;
       const { team } = access;
       if (!team.knowledgeMarketplace) team.knowledgeMarketplace = new KnowledgeMarketplace();
-      
+
       const listings = team.knowledgeMarketplace.activeListings();
       json(res, 200, { success: true, listings });
       return true;
@@ -3813,14 +3982,14 @@ export async function handleHoloMeshRoute(
       if (!access) return true;
       const { caller, team } = access;
       if (!team.knowledgeMarketplace) team.knowledgeMarketplace = new KnowledgeMarketplace();
-      
+
       const body = await parseJsonBody(req);
       const { listingId } = body;
-      
+
       const result = team.knowledgeMarketplace.buyKnowledge(listingId as string, caller.name);
       if (!result.success) {
-         json(res, 400, { error: result.error });
-         return true;
+        json(res, 400, { error: result.error });
+        return true;
       }
       persistTeamStore();
       json(res, 200, result);
@@ -3838,7 +4007,7 @@ export async function handleHoloMeshRoute(
       const parts = pathname.split('/');
       const taskId = parts[parts.length - 1];
       const task = team.taskBoard.find((t) => t.id === taskId);
-      
+
       if (!task) {
         json(res, 404, { error: 'Task not found' });
         return true;
@@ -3870,33 +4039,58 @@ export async function handleHoloMeshRoute(
       // Board CRUD via framework (absorbed from this file)
       if (action === 'claim') {
         const r = claimTask(team.taskBoard, taskId, caller.id, caller.name);
-        if (!r.success) { json(res, 409, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 409, { error: r.error });
+          return true;
+        }
       } else if (action === 'done') {
         if (!team.doneLog) team.doneLog = [];
         const { result: r, updatedBoard } = completeTask(team.taskBoard, taskId, caller.name, {
           commit: body.commit as string | undefined,
           summary: String(body.summary || task.title),
         });
-        if (!r.success) { json(res, 400, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 400, { error: r.error });
+          return true;
+        }
         team.taskBoard = updatedBoard;
         if (r.doneEntry) team.doneLog.push(r.doneEntry);
       } else if (action === 'block') {
         const r = blockTask(team.taskBoard, taskId);
-        if (!r.success) { json(res, 400, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 400, { error: r.error });
+          return true;
+        }
       } else if (action === 'reopen') {
         const r = reopenTask(team.taskBoard, taskId);
-        if (!r.success) { json(res, 400, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 400, { error: r.error });
+          return true;
+        }
       } else if (action === 'delegate') {
         const targetTeamId = body.targetTeamId as string;
-        if (!targetTeamId) { json(res, 400, { error: 'targetTeamId is required for delegation' }); return true; }
-        
+        if (!targetTeamId) {
+          json(res, 400, { error: 'targetTeamId is required for delegation' });
+          return true;
+        }
+
         const targetTeam = teamStore.get(targetTeamId);
-        if (!targetTeam) { json(res, 404, { error: 'Target team not found' }); return true; }
+        if (!targetTeam) {
+          json(res, 404, { error: 'Target team not found' });
+          return true;
+        }
         if (!targetTeam.taskBoard) targetTeam.taskBoard = [];
-        
-        const { result: r, updatedSource, updatedTarget } = delegateTask(team.taskBoard, targetTeam.taskBoard, taskId);
-        if (!r.success) { json(res, 400, { error: r.error }); return true; }
-        
+
+        const {
+          result: r,
+          updatedSource,
+          updatedTarget,
+        } = delegateTask(team.taskBoard, targetTeam.taskBoard, taskId);
+        if (!r.success) {
+          json(res, 400, { error: r.error });
+          return true;
+        }
+
         team.taskBoard = updatedSource;
         targetTeam.taskBoard = updatedTarget;
       } else {
@@ -3910,8 +4104,9 @@ export async function handleHoloMeshRoute(
       let context: { type: string; content: string; domain?: string }[] = [];
       if (action === 'claim') {
         const teamWs = getTeamWorkspaceId(teamId);
-        context = (await c.queryKnowledge(task.title, { limit: 3, workspaceId: teamWs }))
-          .map((e) => ({ type: e.type, content: e.content.slice(0, 200), domain: e.domain }));
+        context = (await c.queryKnowledge(task.title, { limit: 3, workspaceId: teamWs })).map(
+          (e) => ({ type: e.type, content: e.content.slice(0, 200), domain: e.domain })
+        );
       }
 
       json(res, 200, { success: true, task, ...(context.length > 0 ? { context } : {}) });
@@ -3931,7 +4126,9 @@ export async function handleHoloMeshRoute(
       const content = String(body.content || '');
 
       if (!content) {
-        json(res, 400, { error: 'Provide content (the text to derive tasks from) and source (where it came from)' });
+        json(res, 400, {
+          error: 'Provide content (the text to derive tasks from) and source (where it came from)',
+        });
         return true;
       }
 
@@ -3963,7 +4160,9 @@ export async function handleHoloMeshRoute(
       const body = await parseJsonBody(req);
       const maxTasks = Math.min(parseInt(String(body.max_tasks)) || 50, 100);
       const todoScan = body.todo_scan !== false; // default true
-      const sources = Array.isArray(body.sources) ? body.sources as Array<Record<string, unknown>> : [];
+      const sources = Array.isArray(body.sources)
+        ? (body.sources as Array<Record<string, unknown>>)
+        : [];
 
       const existingNorm = new Set([
         ...team.taskBoard.map((t) => normalizeTitle(t.title)),
@@ -3973,7 +4172,13 @@ export async function handleHoloMeshRoute(
       const scouted: TeamTask[] = [];
       const scoutResults: { source: string; found: number; added: number }[] = [];
 
-      const pushTask = (title: string, description: string, priority: number, source: string, role?: SlotRole) => {
+      const pushTask = (
+        title: string,
+        description: string,
+        priority: number,
+        source: string,
+        role?: SlotRole
+      ) => {
         if (scouted.length >= maxTasks) return;
         const t = String(title).trim().slice(0, 200);
         if (!t) return;
@@ -3999,7 +4204,9 @@ export async function handleHoloMeshRoute(
         for (const line of lines) {
           const trimmed = line.trim();
           // grep-style: path:line: // TODO: message
-          const grepMatch = trimmed.match(/^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i);
+          const grepMatch = trimmed.match(
+            /^(.+?):(\d+):\s*(?:\/\/\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i
+          );
           if (grepMatch) {
             found++;
             const file = grepMatch[1].trim();
@@ -4007,9 +4214,13 @@ export async function handleHoloMeshRoute(
             const kind = grepMatch[3].toUpperCase();
             const detail = grepMatch[4].trim().slice(0, 180);
             const upper = `${kind} ${detail}`.toUpperCase();
-            const pri = /SECURITY|VULN|AUTH|CRITICAL/.test(upper) ? 1
-              : /FIXME|BUG|BROKEN|ERROR/.test(upper) ? 2
-              : /TODO|HACK|REFACTOR/.test(upper) ? 3 : 4;
+            const pri = /SECURITY|VULN|AUTH|CRITICAL/.test(upper)
+              ? 1
+              : /FIXME|BUG|BROKEN|ERROR/.test(upper)
+                ? 2
+                : /TODO|HACK|REFACTOR/.test(upper)
+                  ? 3
+                  : 4;
             pushTask(`${kind}: ${detail}`, `${file}:${lineNo}`, pri, 'todo-scan', 'coder');
           }
         }
@@ -4050,7 +4261,7 @@ export async function handleHoloMeshRoute(
             `The board is empty. Team mode is "${team.mode}" (${preset.objective}). Use /room scout with sources from: ${preset.taskSources.join(', ')}`,
             5,
             'scout-hint',
-            'flex',
+            'flex'
           );
         }
       }
@@ -4078,9 +4289,10 @@ export async function handleHoloMeshRoute(
         tasks_added: scouted.length,
         scan_results: scoutResults,
         tasks: scouted.slice(0, 20),
-        hint: scouted.length === 0
-          ? 'No new tasks found. Try passing todo_content (grep output) or sources (doc content).'
-          : `${scouted.length} tasks on the board. Claim one with PATCH .../board/{taskId}`,
+        hint:
+          scouted.length === 0
+            ? 'No new tasks found. Try passing todo_content (grep output) or sources (doc content).'
+            : `${scouted.length} tasks on the board. Claim one with PATCH .../board/{taskId}`,
       });
       return true;
     }
@@ -4102,7 +4314,9 @@ export async function handleHoloMeshRoute(
       const preset = ROOM_PRESETS[mode];
 
       if (!preset) {
-        json(res, 400, { error: `Unknown mode: ${mode}. Available: ${Object.keys(ROOM_PRESETS).join(', ')}` });
+        json(res, 400, {
+          error: `Unknown mode: ${mode}. Available: ${Object.keys(ROOM_PRESETS).join(', ')}`,
+        });
         return true;
       }
 
@@ -4111,7 +4325,15 @@ export async function handleHoloMeshRoute(
         const roomWallet = await generateAgentWallet();
         team.treasuryWallet = roomWallet.address;
         team.treasuryBalance = 0;
-        team.roomConfig = { mcpServers: [], brainTemplate: '', absorbedProjects: [], objective: '', rules: [], treasuryFeeBps: 0, autoSpawn: false };
+        team.roomConfig = {
+          mcpServers: [],
+          brainTemplate: '',
+          absorbedProjects: [],
+          objective: '',
+          rules: [],
+          treasuryFeeBps: 0,
+          autoSpawn: false,
+        };
       }
       team.roomConfig.objective = preset.objective;
       team.roomConfig.rules = preset.rules;
@@ -4160,7 +4382,9 @@ export async function handleHoloMeshRoute(
       const validRoles: SlotRole[] = ['coder', 'tester', 'researcher', 'reviewer', 'flex'];
 
       if (!Array.isArray(roles) || roles.length !== team.maxSlots) {
-        json(res, 400, { error: `Provide exactly ${team.maxSlots} roles. Valid: ${validRoles.join(', ')}` });
+        json(res, 400, {
+          error: `Provide exactly ${team.maxSlots} roles. Valid: ${validRoles.join(', ')}`,
+        });
         return true;
       }
       if (!roles.every((r) => validRoles.includes(r as SlotRole))) {
@@ -4297,8 +4521,13 @@ export async function handleHoloMeshRoute(
       if (!team.suggestions) team.suggestions = [];
 
       const body = await parseJsonBody(req);
-      const category = (['process', 'tooling', 'architecture', 'testing', 'docs', 'performance', 'other']
-        .includes(body.category as string) ? body.category : 'other') as SuggestionCategory;
+      const category = (
+        ['process', 'tooling', 'architecture', 'testing', 'docs', 'performance', 'other'].includes(
+          body.category as string
+        )
+          ? body.category
+          : 'other'
+      ) as SuggestionCategory;
 
       // Create via framework (dedup + ID generation)
       const r = createSuggestion(team.suggestions!, {
@@ -4366,7 +4595,10 @@ export async function handleHoloMeshRoute(
     }
 
     // PATCH /api/holomesh/team/:id/suggestions/:sugId — Vote, promote, or dismiss
-    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+$/) && method === 'PATCH') {
+    if (
+      pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+$/) &&
+      method === 'PATCH'
+    ) {
       const access = requireTeamAccess(req, res, url);
       if (!access) return true;
       const { caller, teamId } = access;
@@ -4390,8 +4622,20 @@ export async function handleHoloMeshRoute(
         const reason = body.reason ? String(body.reason).slice(0, 500) : undefined;
         if (!team.taskBoard) team.taskBoard = [];
 
-        const r = voteSuggestion(team.suggestions!, team.taskBoard, sugId, caller.id, caller.name, value as 1 | -1, team.maxSlots, reason);
-        if (!r.success) { json(res, 409, { error: r.error }); return true; }
+        const r = voteSuggestion(
+          team.suggestions!,
+          team.taskBoard,
+          sugId,
+          caller.id,
+          caller.name,
+          value as 1 | -1,
+          team.maxSlots,
+          reason
+        );
+        if (!r.success) {
+          json(res, 409, { error: r.error });
+          return true;
+        }
 
         // Broadcast if promoted
         if (r.promotedTask) {
@@ -4422,9 +4666,12 @@ export async function handleHoloMeshRoute(
         if (!team.taskBoard) team.taskBoard = [];
         const r = promoteSuggestion(team.suggestions!, team.taskBoard, sugId, caller.name, {
           priority: parseInt(String(body.priority)) || undefined,
-          role: body.role as SlotRole || undefined,
+          role: (body.role as SlotRole) || undefined,
         });
-        if (!r.success) { json(res, 409, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 409, { error: r.error });
+          return true;
+        }
         persistTeamStore();
         json(res, 200, { success: true, suggestion: r.suggestion, task: r.promotedTask });
         return true;
@@ -4432,15 +4679,24 @@ export async function handleHoloMeshRoute(
 
       // ── Dismiss (owner/admin or proposer, via framework) ──
       if (action === 'dismiss') {
-        const canDismiss = hasTeamPermission(team, caller.id, 'team:settings') || caller.id === suggestion.proposedBy;
+        const canDismiss =
+          hasTeamPermission(team, caller.id, 'team:settings') ||
+          caller.id === suggestion.proposedBy;
         if (!canDismiss) {
           json(res, 403, { error: 'Only owner/admin or original proposer can dismiss' });
           return true;
         }
         const r = dismissSuggestion(team.suggestions!, sugId);
-        if (!r.success) { json(res, 409, { error: r.error }); return true; }
+        if (!r.success) {
+          json(res, 409, { error: r.error });
+          return true;
+        }
         persistTeamStore();
-        json(res, 200, { success: true, suggestion: r.suggestion, message: 'Suggestion dismissed.' });
+        json(res, 200, {
+          success: true,
+          suggestion: r.suggestion,
+          message: 'Suggestion dismissed.',
+        });
         return true;
       }
 
@@ -4508,14 +4764,16 @@ export async function handleHoloMeshRoute(
         presence: entry,
         online: onlineAgents,
         online_count: onlineAgents.length,
-        ...(isFirstHeartbeat && team?.roomConfig ? {
-          equipment: {
-            objective: team.roomConfig.objective,
-            rules: team.roomConfig.rules,
-            mcpServers: team.roomConfig.mcpServers.length,
-            treasuryFeeBps: team.roomConfig.treasuryFeeBps,
-          },
-        } : {}),
+        ...(isFirstHeartbeat && team?.roomConfig
+          ? {
+              equipment: {
+                objective: team.roomConfig.objective,
+                rules: team.roomConfig.rules,
+                mcpServers: team.roomConfig.mcpServers.length,
+                treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+              },
+            }
+          : {}),
       });
       return true;
     }
@@ -5350,16 +5608,19 @@ export async function handleHoloMeshRoute(
           moltbook_post: moltbookData.post,
         });
       } catch (err: unknown) {
-        json(res, 502, { error: 'Failed to reach Moltbook API', details: err instanceof Error ? err.message : String(err) });
+        json(res, 502, {
+          error: 'Failed to reach Moltbook API',
+          details: err instanceof Error ? err.message : String(err),
+        });
       }
       return true;
     }
 
     // ── Social Layer: Messaging, Notifications, Threads ──
     {
-      const body =
-        method === 'POST' || method === 'PUT' ? await parseJsonBody(req) : {};
-      const apiKey = extractBearerToken(req) || req.headers['x-holomesh-key'] as string | undefined;
+      const body = method === 'POST' || method === 'PUT' ? await parseJsonBody(req) : {};
+      const apiKey =
+        extractBearerToken(req) || (req.headers['x-holomesh-key'] as string | undefined);
       const resolveAgent: any = (key: string) => {
         const agent = getAgentByKey(key);
         return agent ? { id: agent.id, name: agent.name } : null;
@@ -5420,7 +5681,9 @@ export async function handleHoloMeshRoute(
     // No route matched
     return false;
   } catch (err: unknown) {
-    json(res, 500, { error: (err instanceof Error ? err.message : String(err)) || 'Internal server error' });
+    json(res, 500, {
+      error: (err instanceof Error ? err.message : String(err)) || 'Internal server error',
+    });
     return true;
   }
 }

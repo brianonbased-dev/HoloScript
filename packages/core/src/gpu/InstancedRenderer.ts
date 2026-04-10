@@ -121,7 +121,6 @@ export class InstancedRenderer {
 
     // Create render pipeline
     this.createRenderPipeline(canvasFormat);
-
   }
 
   /**
@@ -580,6 +579,5 @@ export class InstancedRenderer {
     this.uniformBuffer?.destroy();
 
     this.pipeline = null;
-
   }
 }

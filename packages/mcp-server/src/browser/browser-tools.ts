@@ -68,7 +68,10 @@ export async function browserLaunch(args: z.infer<typeof BrowserLaunchSchema>) {
     if (!args.holoscriptFile.startsWith('http')) {
       await session.page.waitForFunction(
         () => {
-          return (window as unknown as { holoscriptRenderer?: { initialized: boolean } }).holoscriptRenderer?.initialized === true;
+          return (
+            (window as unknown as { holoscriptRenderer?: { initialized: boolean } })
+              .holoscriptRenderer?.initialized === true
+          );
         },
         { timeout: 10000 }
       );

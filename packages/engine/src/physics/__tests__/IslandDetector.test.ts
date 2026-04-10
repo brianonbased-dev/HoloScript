@@ -91,4 +91,3 @@ describe('IslandDetector', () => {
     expect(islands.length).toBe(1);
   });
 });
-

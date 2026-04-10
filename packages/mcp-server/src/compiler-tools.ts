@@ -197,7 +197,12 @@ async function compileToTarget(
 export async function handleCompileToTarget(
   args: Record<string, unknown>
 ): Promise<CompilationResult> {
-  const { code, target, options = {}, jobId: providedJobId } = args as {
+  const {
+    code,
+    target,
+    options = {},
+    jobId: providedJobId,
+  } = args as {
     code?: string;
     target?: ExportTarget;
     options?: Record<string, unknown>;
@@ -221,7 +226,8 @@ export async function handleCompileToTarget(
     trackJob(jobId, 'in_progress', 30);
     const parseResult = parseHolo(code);
     if (!parseResult.success || !parseResult.ast) {
-      const errors = parseResult.errors?.map((e: any) => e.message).join(', ') || 'Unknown parse error';
+      const errors =
+        parseResult.errors?.map((e: any) => e.message).join(', ') || 'Unknown parse error';
       throw new Error(`Failed to parse composition: ${errors}`);
     }
 
@@ -274,10 +280,8 @@ export async function handleCompileToTarget(
   }
 }
 
-export async function handleComposeTraits(
-  args: Record<string, unknown>
-): Promise<unknown> {
-  const { declarations, baseTraits = {} } = args as { 
+export async function handleComposeTraits(args: Record<string, unknown>): Promise<unknown> {
+  const { declarations, baseTraits = {} } = args as {
     declarations: TraitCompositionDecl[];
     baseTraits?: Record<string, { defaultConfig?: Record<string, unknown>; conflicts?: string[] }>;
   };
@@ -292,9 +296,9 @@ export async function handleComposeTraits(
     if (baseTraits[name]) {
       return baseTraits[name];
     }
-    // For pure architectural resolution, if a trait isn't provided, 
+    // For pure architectural resolution, if a trait isn't provided,
     // we assume an empty config instead of crashing, or expect the client to provide all dependencies.
-    return { defaultConfig: {}, conflicts: [] }; 
+    return { defaultConfig: {}, conflicts: [] };
   };
 
   try {
@@ -306,9 +310,7 @@ export async function handleComposeTraits(
   }
 }
 
-export async function handleSelectModality(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export async function handleSelectModality(args: Record<string, unknown>): Promise<unknown> {
   const { platform, platforms, preferStreaming } = args as {
     platform?: string;
     platforms?: string[];
@@ -379,7 +381,10 @@ async function handleDomainBlock(
       if (!block) return { success: false, error: `No ${domain} {} block found in composition` };
       return { success: true, domain, compiled: compileFn(block) };
     } catch (e) {
-      return { success: false, error: `Parse error: ${e instanceof Error ? e.message : String(e)}` };
+      return {
+        success: false,
+        error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
+      };
     }
   }
 
@@ -389,7 +394,10 @@ async function handleDomainBlock(
     return { success: true, domain, compiled: compileFn(block) };
   }
 
-  return { success: false, error: `Provide "code" (.holo with ${domain} {} block) or "properties" (direct property map)` };
+  return {
+    success: false,
+    error: `Provide "code" (.holo with ${domain} {} block) or "properties" (direct property map)`,
+  };
 }
 
 export async function handleListExportTargets(_args: Record<string, unknown>): Promise<{
@@ -471,7 +479,7 @@ export async function handleCompilerTool(
     // Generic compilation
     case 'compile_holoscript':
       return handleCompileToTarget(args);
-      
+
     // Proof-of-Play / Thin Client Delegation Tool
     case 'holoscript_compose_traits':
       return handleComposeTraits(args);
@@ -570,7 +578,8 @@ export const compilerTools: Tool[] = [
   // Trait Composition (Unlocks Pillar 3 Thin-Client Delegation)
   {
     name: 'holoscript_compose_traits',
-    description: 'Cryptographically delegate heavy trait algebra and physics composition to the cloud. Accepts raw composition declarations (e.g., trait C = A + B) and returns fully resolved trait nodes using the ProvenanceSemiring.',
+    description:
+      'Cryptographically delegate heavy trait algebra and physics composition to the cloud. Accepts raw composition declarations (e.g., trait C = A + B) and returns fully resolved trait nodes using the ProvenanceSemiring.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -582,30 +591,38 @@ export const compilerTools: Tool[] = [
             properties: {
               name: { type: 'string' },
               components: { type: 'array', items: { type: 'string' } },
-              overrides: { type: 'object' }
+              overrides: { type: 'object' },
             },
-            required: ['name', 'components']
-          }
+            required: ['name', 'components'],
+          },
         },
         baseTraits: {
           type: 'object',
-          description: 'Optional map of base trait names to their handler configs to resolve against'
-        }
+          description:
+            'Optional map of base trait names to their handler configs to resolve against',
+        },
       },
-      required: ['declarations']
-    }
+      required: ['declarations'],
+    },
   },
   // Domain Block Compilers (5 of 21 — from DomainBlockCompilerMixin, 4,614 LOC)
-  ...(['healthcare', 'robotics', 'iot', 'education', 'music'] as const).map(domain => ({
+  ...(['healthcare', 'robotics', 'iot', 'education', 'music'] as const).map((domain) => ({
     name: `holoscript_compile_${domain}` as string,
-    description: `Compile a ${domain} domain block from .holo code or raw properties. ` +
+    description:
+      `Compile a ${domain} domain block from .holo code or raw properties. ` +
       `Part of 21 domain-specific code generators in DomainBlockCompilerMixin. ` +
       `Accepts either "code" (full .holo with ${domain} {} block) or "properties" (direct property map).`,
     inputSchema: {
       type: 'object' as const,
       properties: {
-        code: { type: 'string', description: `.holo source containing a ${domain} {} domain block` },
-        properties: { type: 'object', description: `Direct property map for ${domain} compilation` },
+        code: {
+          type: 'string',
+          description: `.holo source containing a ${domain} {} domain block`,
+        },
+        properties: {
+          type: 'object',
+          description: `Direct property map for ${domain} compilation`,
+        },
       },
     },
   })),
@@ -621,7 +638,10 @@ export const compilerTools: Tool[] = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Name for the data source (e.g., "dispensary_menu")' },
-        domain: { type: 'string', description: 'Optional domain hint (retail, healthcare, hospitality, iot, etc.)' },
+        domain: {
+          type: 'string',
+          description: 'Optional domain hint (retail, healthcare, hospitality, iot, etc.)',
+        },
         description: { type: 'string', description: 'What this data represents' },
         fields: {
           type: 'array',
@@ -662,7 +682,8 @@ export const compilerTools: Tool[] = [
         description: { type: 'string' },
         sample_row: {
           type: 'object',
-          description: 'Optional sample data row for type inference (keys = headers, values = sample data)',
+          description:
+            'Optional sample data row for type inference (keys = headers, values = sample data)',
         },
       },
       required: ['headers'],
@@ -684,12 +705,23 @@ export const compilerTools: Tool[] = [
           type: 'string',
           description: 'Single platform target',
           enum: [
-            'quest3', 'pcvr', 'visionos', 'android-xr',
-            'visionos-ar', 'android-xr-ar', 'webxr',
-            'ios', 'android',
-            'windows', 'macos', 'linux', 'web',
-            'android-auto', 'carplay',
-            'watchos', 'wearos',
+            'quest3',
+            'pcvr',
+            'visionos',
+            'android-xr',
+            'visionos-ar',
+            'android-xr-ar',
+            'webxr',
+            'ios',
+            'android',
+            'windows',
+            'macos',
+            'linux',
+            'web',
+            'android-auto',
+            'carplay',
+            'watchos',
+            'wearos',
           ],
         },
         platforms: {
@@ -874,92 +906,221 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_godot',
     description: 'Compile HoloScript to Godot Engine GDScript with scene (.tscn) generation',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_visionos',
     description: 'Compile HoloScript to Apple visionOS RealityKit Swift code',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_openxr',
     description: 'Compile HoloScript to OpenXR C++ application layer for cross-platform VR/AR',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_babylon',
     description: 'Compile HoloScript to Babylon.js engine code',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_playcanvas',
     description: 'Compile HoloScript to PlayCanvas engine scripts',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_vrchat',
     description: 'Compile HoloScript to VRChat UdonSharp scripts',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_android',
     description: 'Compile HoloScript to Android ARCore Kotlin code',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_android_xr',
     description: 'Compile HoloScript to Android XR Kotlin code for Android headsets',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_ios',
     description: 'Compile HoloScript to iOS ARKit Swift code',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_ar',
     description: 'Compile HoloScript to generic AR TypeScript code',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_wasm',
     description: 'Compile HoloScript to WebAssembly module',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_sdf',
-    description: 'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    description:
+      'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_dtdl',
     description: 'Compile HoloScript to DTDL v3 (Digital Twin Definition Language) for Azure IoT',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_nir',
-    description: 'Compile HoloScript to NIR (Neuromorphic Intermediate Representation) for Intel Loihi 2, SpiNNaker 2',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    description:
+      'Compile HoloScript to NIR (Neuromorphic Intermediate Representation) for Intel Loihi 2, SpiNNaker 2',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_native_2d',
     description: 'Compile HoloScript to Native 2D HTML/React components (non-3D output)',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_node_service',
     description: 'Compile HoloScript to Node.js Express/Fastify backend service skeleton',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_a2a_agent_card',
-    description: 'Compile HoloScript to A2A Protocol Agent Card JSON (agent identity, skills, capabilities)',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    description:
+      'Compile HoloScript to A2A Protocol Agent Card JSON (agent identity, skills, capabilities)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
   {
     name: 'compile_to_state',
     description: 'Compile HoloScript to reactive state shape JSON for agent brain configurations',
-    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
   },
 
   // Job tracking and circuit breaker tools

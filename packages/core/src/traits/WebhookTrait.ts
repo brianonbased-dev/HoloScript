@@ -90,7 +90,12 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
     delete node.__webhookState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: WebhookConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: WebhookConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Event-driven
   },
 

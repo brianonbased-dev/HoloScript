@@ -97,11 +97,21 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
     delete node.__structuredLoggerState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: StructuredLoggerConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: StructuredLoggerConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Event-driven
   },
 
-  onEvent(node: HSPlusNode, config: StructuredLoggerConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: StructuredLoggerConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: StructuredLoggerState | undefined = node.__structuredLoggerState;
     if (!state) return;

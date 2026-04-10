@@ -302,7 +302,9 @@ export function AnimatedMeshNode({
     ?.filter((c: R3FNode) => c.type === 'mesh')
     .map((child: R3FNode, i: number) => {
       const childHasKeyframes =
-        child.props?.keyframes && Array.isArray(child.props.keyframes) && child.props.keyframes.length > 0;
+        child.props?.keyframes &&
+        Array.isArray(child.props.keyframes) &&
+        child.props.keyframes.length > 0;
       return childHasKeyframes ? (
         <AnimatedMeshNode
           key={child.id || `child-${i}`}
@@ -326,7 +328,9 @@ export function AnimatedMeshNode({
       <mesh
         ref={meshRef}
         position={basePosition}
-        rotation={baseRotation.map((r: number) => THREE.MathUtils.degToRad(r)) as [number, number, number]}
+        rotation={
+          baseRotation.map((r: number) => THREE.MathUtils.degToRad(r)) as [number, number, number]
+        }
         scale={typeof baseScale === 'number' ? [baseScale, baseScale, baseScale] : baseScale}
         userData={{ nodeId: node.id }}
         onClick={(e: ThreeEvent<MouseEvent>) => {

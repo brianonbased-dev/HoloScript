@@ -349,4 +349,3 @@ export class VehicleSystem {
     return { x: Math.sin(yaw), y: 0, z: Math.cos(yaw) };
   }
 }
-

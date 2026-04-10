@@ -190,7 +190,8 @@ export class OpenXRCompiler extends CompilerBase {
     this.emit('}');
 
     // v4.2: Domain Blocks (as comments for OpenXR C++ code)
-    const domainBlocks = ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
+    const domainBlocks =
+      ((composition as Extensible<HoloComposition>).domainBlocks as unknown[]) ?? [];
     if (domainBlocks.length > 0) {
       this.emit('');
       this.emit('// === v4.2 Domain Blocks ===');

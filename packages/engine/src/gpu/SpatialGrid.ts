@@ -112,7 +112,6 @@ export class SpatialGrid {
 
     // Create pipelines
     this.createPipelines(shaderModule);
-
   }
 
   /**
@@ -511,6 +510,5 @@ export class SpatialGrid {
     this.clearBindGroup = null;
     this.buildBindGroup = null;
     this.collisionBindGroup = null;
-
   }
 }

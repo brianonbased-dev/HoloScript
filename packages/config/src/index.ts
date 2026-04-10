@@ -32,9 +32,4 @@ export {
   absorbAuthHeaders,
 } from './auth';
 
-export {
-  validateConfig,
-  requireConfig,
-  REQUIRED_VARS,
-  type ValidationResult,
-} from './validate';
+export { validateConfig, requireConfig, REQUIRED_VARS, type ValidationResult } from './validate';

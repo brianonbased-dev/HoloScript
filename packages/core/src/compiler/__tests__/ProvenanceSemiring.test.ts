@@ -65,8 +65,16 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
 
       // Guest has higher precedence trait (kinematic), Founder has lower (physics)
       const traits: TraitApplication[] = [
-        { name: 'kinematic', config: { type: 'kinematic' }, context: { authorityLevel: AuthorityTier.GUEST } },
-        { name: 'physics', config: { type: 'dynamic' }, context: { authorityLevel: AuthorityTier.FOUNDER } },
+        {
+          name: 'kinematic',
+          config: { type: 'kinematic' },
+          context: { authorityLevel: AuthorityTier.GUEST },
+        },
+        {
+          name: 'physics',
+          config: { type: 'dynamic' },
+          context: { authorityLevel: AuthorityTier.FOUNDER },
+        },
       ];
 
       const result = semiring.add(traits);
@@ -82,8 +90,16 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
 
       // Both are 'kinematic' (same precedence index), but different values
       const traits: TraitApplication[] = [
-        { name: 'kinematic', config: { type: 'variant_a' }, context: { authorityLevel: AuthorityTier.AGENT } },
-        { name: 'kinematic', config: { type: 'variant_b' }, context: { authorityLevel: AuthorityTier.FOUNDER } },
+        {
+          name: 'kinematic',
+          config: { type: 'variant_a' },
+          context: { authorityLevel: AuthorityTier.AGENT },
+        },
+        {
+          name: 'kinematic',
+          config: { type: 'variant_b' },
+          context: { authorityLevel: AuthorityTier.FOUNDER },
+        },
       ];
 
       // Neither source matches precedence entries, so falls back to authority
@@ -198,7 +214,11 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
 
     it('DeadElement covers all five subsystem types', () => {
       const subsystems: DeadElement['subsystem'][] = [
-        'tree-shaker', 'crdt-liveness', 'semiring', 'particle', 'network',
+        'tree-shaker',
+        'crdt-liveness',
+        'semiring',
+        'particle',
+        'network',
       ];
 
       for (const sub of subsystems) {
@@ -214,9 +234,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
   describe('Semiring algebra preservation', () => {
     it('addition identity: A ⊕ 0 = A', () => {
       const semiring = new ProvenanceSemiring();
-      const result = semiring.add([
-        { name: 'a', config: { mass: 10 } },
-      ]);
+      const result = semiring.add([{ name: 'a', config: { mass: 10 } }]);
       expect(result.config.mass).toBe(10);
       expect(result.deadElements).toHaveLength(0);
     });
@@ -244,9 +262,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
     });
 
     it('max strategy picks higher value', () => {
-      const semiring = new ProvenanceSemiring([
-        { property: 'friction', strategy: 'max' },
-      ]);
+      const semiring = new ProvenanceSemiring([{ property: 'friction', strategy: 'max' }]);
       const result = semiring.add([
         { name: 'a', config: { friction: 0.3 } },
         { name: 'b', config: { friction: 0.7 } },
@@ -255,9 +271,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
     });
 
     it('min strategy picks lower value', () => {
-      const semiring = new ProvenanceSemiring([
-        { property: 'opacity', strategy: 'min' },
-      ]);
+      const semiring = new ProvenanceSemiring([{ property: 'opacity', strategy: 'min' }]);
       const result = semiring.add([
         { name: 'a', config: { opacity: 0.8 } },
         { name: 'b', config: { opacity: 0.3 } },
@@ -266,9 +280,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
     });
 
     it('sum strategy adds values', () => {
-      const semiring = new ProvenanceSemiring([
-        { property: 'damage', strategy: 'sum' },
-      ]);
+      const semiring = new ProvenanceSemiring([{ property: 'damage', strategy: 'sum' }]);
       const result = semiring.add([
         { name: 'a', config: { damage: 10 } },
         { name: 'b', config: { damage: 5 } },
@@ -277,9 +289,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
     });
 
     it('strict-error throws on conflict', () => {
-      const semiring = new ProvenanceSemiring([
-        { property: 'id', strategy: 'strict-error' },
-      ]);
+      const semiring = new ProvenanceSemiring([{ property: 'id', strategy: 'strict-error' }]);
       const result = semiring.add([
         { name: 'a', config: { id: 'foo' } },
         { name: 'b', config: { id: 'bar' } },
@@ -299,8 +309,16 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
       ]);
 
       const traits: TraitApplication[] = [
-        { name: 'a', config: { mass: TRAIT_ZERO as unknown as number, speed: 5 }, context: { authorityLevel: AuthorityTier.FOUNDER } },
-        { name: 'b', config: { mass: 10, speed: 3 }, context: { authorityLevel: AuthorityTier.AGENT } },
+        {
+          name: 'a',
+          config: { mass: TRAIT_ZERO as unknown as number, speed: 5 },
+          context: { authorityLevel: AuthorityTier.FOUNDER },
+        },
+        {
+          name: 'b',
+          config: { mass: 10, speed: 3 },
+          context: { authorityLevel: AuthorityTier.AGENT },
+        },
       ];
 
       const result = semiring.add(traits);

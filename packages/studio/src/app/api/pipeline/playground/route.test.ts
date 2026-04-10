@@ -37,8 +37,8 @@ describe('/api/pipeline/playground', () => {
         new Response(JSON.stringify({ success: true, pipeline: { name: 'InventorySync' } }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }),
-      ),
+        })
+      )
     );
 
     const request = new Request('http://localhost/api/pipeline/playground', {
@@ -62,8 +62,8 @@ describe('/api/pipeline/playground', () => {
         new Response(JSON.stringify({ success: false, errors: [{ message: 'compile failed' }] }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }),
-      ),
+        })
+      )
     );
 
     const request = new Request('http://localhost/api/pipeline/playground', {

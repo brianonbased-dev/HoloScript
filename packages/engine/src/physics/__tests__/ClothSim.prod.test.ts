@@ -104,4 +104,3 @@ describe('ClothSim — Production', () => {
     expect(p.y).toBeLessThan(0);
   });
 });
-

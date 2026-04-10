@@ -141,4 +141,3 @@ describe('RagdollController', () => {
     expect(rc2.getBone('spine')!.position.y).toBeLessThanOrEqual(-0.1);
   });
 });
-

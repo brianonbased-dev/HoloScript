@@ -99,7 +99,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       role,
       sessionStart: now,
     })
-    .returning({ id: holomeshTeamPresenceSessions.id, sessionStart: holomeshTeamPresenceSessions.sessionStart });
+    .returning({
+      id: holomeshTeamPresenceSessions.id,
+      sessionStart: holomeshTeamPresenceSessions.sessionStart,
+    });
 
   return NextResponse.json({
     success: true,
@@ -118,7 +121,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
  * Body: { agentId, reason? }
  */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const limited = rateLimit(req, { max: 30, label: 'team-heartbeat-leave' }, 'team-heartbeat-leave');
+  const limited = rateLimit(
+    req,
+    { max: 30, label: 'team-heartbeat-leave' },
+    'team-heartbeat-leave'
+  );
   if (!limited.ok) return limited.response;
 
   const { id: teamId } = await params;

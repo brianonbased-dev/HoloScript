@@ -26,7 +26,12 @@ export const COMPONENT_REGISTRY = {
     domain: 'ui-primitives',
     description:
       'Canonical error boundary from @holoscript/ui. Supports label, fallback, renderFallback, onError, showReloadButton, AST path extraction, dev-only stack trace. Used for both app-level (showReloadButton) and panel-level (label) wrapping.',
-    usedIn: ['app/providers.tsx', 'app/create/page.tsx', 'components/panels/*', 'components/scene/*'],
+    usedIn: [
+      'app/providers.tsx',
+      'app/create/page.tsx',
+      'components/panels/*',
+      'components/scene/*',
+    ],
     deprecated: [
       {
         file: 'components/ErrorBoundary.tsx (DELETED)',

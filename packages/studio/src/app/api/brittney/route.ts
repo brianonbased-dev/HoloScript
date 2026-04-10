@@ -161,7 +161,10 @@ export async function POST(request: NextRequest) {
                     ? (JSON.parse(currentToolInput) as Record<string, unknown>)
                     : {};
 
-                  if (STUDIO_API_TOOL_NAMES.has(currentToolName) || MCP_TOOL_NAMES.has(currentToolName)) {
+                  if (
+                    STUDIO_API_TOOL_NAMES.has(currentToolName) ||
+                    MCP_TOOL_NAMES.has(currentToolName)
+                  ) {
                     // Studio API or MCP tool — execute server-side and collect for tool_result
                     pendingToolCalls.push({
                       id: currentToolId,
@@ -171,11 +174,18 @@ export async function POST(request: NextRequest) {
                     // Notify the client that a tool is being executed
                     send({
                       type: 'tool_call',
-                      payload: { name: currentToolName, arguments: parsedArgs, serverExecuted: true },
+                      payload: {
+                        name: currentToolName,
+                        arguments: parsedArgs,
+                        serverExecuted: true,
+                      },
                     });
                   } else {
                     // Scene manipulation tool — send to client for execution
-                    send({ type: 'tool_call', payload: { name: currentToolName, arguments: parsedArgs } });
+                    send({
+                      type: 'tool_call',
+                      payload: { name: currentToolName, arguments: parsedArgs },
+                    });
                   }
                   currentToolName = '';
                   currentToolInput = '';
@@ -202,7 +212,12 @@ export async function POST(request: NextRequest) {
                   : await executeStudioTool(tc.name, tc.input, baseUrl, forwardHeaders);
                 send({
                   type: 'tool_result',
-                  payload: { name: tc.name, success: result.success, data: result.data, error: result.error },
+                  payload: {
+                    name: tc.name,
+                    success: result.success,
+                    data: result.data,
+                    error: result.error,
+                  },
                 });
                 return { id: tc.id, result };
               })

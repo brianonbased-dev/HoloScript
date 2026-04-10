@@ -3,7 +3,7 @@
   "mcpServers": {
     "holoscript-mcp": {
       "name": "HoloScript MCP",
-      "description": "156 tools: parse, compile, render, team board, knowledge, messaging, codebase intelligence",
+      "description": "158 tools (verify via /health): parse, compile, render, team board, knowledge, messaging, codebase intelligence, IDE, economy, observability, self-improve",
       "type": "http",
       "url": "https://mcp.holoscript.net/mcp",
       "headers": {

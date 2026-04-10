@@ -373,15 +373,26 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
 
     switch (event.type) {
       case 'gltf:play_animation':
-        playAnimation(state, (event.animation as string), (event.options as { loop?: boolean | undefined; speed?: number | undefined; weight?: number | undefined; startTime?: number | undefined; } | undefined));
+        playAnimation(
+          state,
+          event.animation as string,
+          event.options as
+            | {
+                loop?: boolean | undefined;
+                speed?: number | undefined;
+                weight?: number | undefined;
+                startTime?: number | undefined;
+              }
+            | undefined
+        );
         break;
 
       case 'gltf:stop_animation':
-        stopAnimation(state, (event.animation as string | undefined));
+        stopAnimation(state, event.animation as string | undefined);
         break;
 
       case 'gltf:set_morph':
-        setMorphWeight(state, (event.target as string), (event.weight as number));
+        setMorphWeight(state, event.target as string, event.weight as number);
         break;
 
       case 'gltf:reload':
@@ -551,7 +562,7 @@ function createMockGLTFData(config: GLTFConfig): {
 }
 
 function calculateCameraDistance(node: HSPlusNode, context: TraitContext): number {
-  const p1 = node.properties?.position as Vector3 || [0, 0, 0];
+  const p1 = (node.properties?.position as Vector3) || [0, 0, 0];
   const p2 = context.vr.headset.position;
 
   const x1 = Array.isArray(p1) ? p1[0] : (p1.x ?? 0);

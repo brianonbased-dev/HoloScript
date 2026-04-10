@@ -27,21 +27,25 @@ export class WebSocketSignaler implements ISignalingBridge {
 
       this.ws.onopen = () => {
         this.isConnected = true;
-        
+
         // Identify ourselves to the signaling server
-        this.ws?.send(JSON.stringify({
-          type: 'identify',
-          peerId: this.localPeerId
-        }));
+        this.ws?.send(
+          JSON.stringify({
+            type: 'identify',
+            peerId: this.localPeerId,
+          })
+        );
 
         // Flush any queued signals
         for (const signal of this.queuedSignals) {
-          this.ws?.send(JSON.stringify({
-            type: 'signal',
-            targetId: this.targetPeerId,
-            sourceId: this.localPeerId,
-            payload: signal
-          }));
+          this.ws?.send(
+            JSON.stringify({
+              type: 'signal',
+              targetId: this.targetPeerId,
+              sourceId: this.localPeerId,
+              payload: signal,
+            })
+          );
         }
         this.queuedSignals = [];
         resolve();
@@ -82,17 +86,21 @@ export class WebSocketSignaler implements ISignalingBridge {
       this.queuedSignals.push(payload);
       // Try to connect if we haven't already
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-        this.connect().catch((err) => console.error('[WebSocketSignaler] Auto-connect failed', err));
+        this.connect().catch((err) =>
+          console.error('[WebSocketSignaler] Auto-connect failed', err)
+        );
       }
       return;
     }
 
-    this.ws.send(JSON.stringify({
-      type: 'signal',
-      targetId: this.targetPeerId,
-      sourceId: this.localPeerId,
-      payload
-    }));
+    this.ws.send(
+      JSON.stringify({
+        type: 'signal',
+        targetId: this.targetPeerId,
+        sourceId: this.localPeerId,
+        payload,
+      })
+    );
   }
 
   public disconnect(): void {

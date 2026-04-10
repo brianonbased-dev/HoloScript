@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  compileToNextJSAPI,
-  compileAllToNextJSAPI,
-} from './NextJSAPICompiler';
+import { compileToNextJSAPI, compileAllToNextJSAPI } from './NextJSAPICompiler';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -12,10 +9,7 @@ import type {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Minimal valid HoloComposition */
-function makeComposition(
-  name: string,
-  overrides: Partial<HoloComposition> = {}
-): HoloComposition {
+function makeComposition(name: string, overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
     type: 'HoloComposition',
     name,
@@ -213,10 +207,7 @@ describe('NextJSAPICompiler — root-level @http trait', () => {
 describe('NextJSAPICompiler — object-level @http traits', () => {
   it('emits one handler per @http object', () => {
     const comp = makeComposition('UsersAPI', {
-      objects: [
-        makeHttpObject('ListUsers', 'GET'),
-        makeHttpObject('CreateUser', 'POST'),
-      ] as any,
+      objects: [makeHttpObject('ListUsers', 'GET'), makeHttpObject('CreateUser', 'POST')] as any,
     });
     const result = compileToNextJSAPI(comp);
     expect(result.code).toContain('export async function GET(');
@@ -246,10 +237,7 @@ describe('NextJSAPICompiler — object-level @http traits', () => {
 
   it('deduplicates duplicate methods (last definition wins)', () => {
     const comp = makeComposition('DualAPI', {
-      objects: [
-        makeHttpObject('GetA', 'GET'),
-        makeHttpObject('GetB', 'GET'),
-      ] as any,
+      objects: [makeHttpObject('GetA', 'GET'), makeHttpObject('GetB', 'GET')] as any,
     });
     // Should only have one GET function, not two
     const result = compileToNextJSAPI(comp);
@@ -315,10 +303,10 @@ describe('NextJSAPICompiler — generated code', () => {
 describe('NextJSAPICompiler — static-data route migrations', () => {
   const cases = [
     { name: 'EnvironmentPresetsAPI', expectedPath: 'api/environment-presets/route.ts' },
-    { name: 'AudioPresetsAPI',       expectedPath: 'api/audio-presets/route.ts' },
-    { name: 'AssetPacksAPI',         expectedPath: 'api/asset-packs/route.ts' },
-    { name: 'LodPresetsAPI',         expectedPath: 'api/lod-presets/route.ts' },
-    { name: 'MaterialsAPI',          expectedPath: 'api/materials/route.ts' },
+    { name: 'AudioPresetsAPI', expectedPath: 'api/audio-presets/route.ts' },
+    { name: 'AssetPacksAPI', expectedPath: 'api/asset-packs/route.ts' },
+    { name: 'LodPresetsAPI', expectedPath: 'api/lod-presets/route.ts' },
+    { name: 'MaterialsAPI', expectedPath: 'api/materials/route.ts' },
   ] as const;
 
   for (const { name, expectedPath } of cases) {

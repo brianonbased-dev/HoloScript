@@ -273,4 +273,3 @@ export class SpatialEngine {
     this.frameNumber++;
   }
 }
-

@@ -528,9 +528,7 @@ export class VRChatCompiler extends CompilerBase {
           `â”œâ”€â”€ ${this.escapeStringValue(group.name as string, 'CSharp')} (SpatialGroup)`
         );
         for (const child of group.objects || []) {
-          lines.push(
-            `â”‚   â””â”€â”€ ${this.escapeStringValue(child.name as string, 'CSharp')}`
-          );
+          lines.push(`â”‚   â””â”€â”€ ${this.escapeStringValue(child.name as string, 'CSharp')}`);
         }
       }
     }

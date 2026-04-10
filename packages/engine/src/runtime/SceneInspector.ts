@@ -604,4 +604,3 @@ export class SceneInspector {
     this.frameTimeSamples = [];
   }
 }
-

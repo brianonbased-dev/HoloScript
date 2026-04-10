@@ -540,7 +540,13 @@ export function createRenderingTrait(config?: RenderingOptimization): RenderingT
 }
 
 // ── Handler (delegates to RenderingTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const renderingHandler = {
   name: 'rendering',

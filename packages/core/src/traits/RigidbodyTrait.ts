@@ -676,7 +676,13 @@ export type RigidbodyForceMode = ForceMode;
 export type RigidbodyColliderShape = ColliderShape;
 
 // ── Handler (delegates to RigidbodyTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const rigidbodyHandler = {
   name: 'rigidbody',

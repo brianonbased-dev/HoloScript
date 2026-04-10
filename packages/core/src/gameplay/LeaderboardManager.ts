@@ -65,8 +65,7 @@ export class LeaderboardManager {
 
     const prevBest = playerBests.get(boardId);
     const isPersonalBest =
-      prevBest === undefined ||
-      (board.ascending ? score < prevBest : score > prevBest);
+      prevBest === undefined || (board.ascending ? score < prevBest : score > prevBest);
 
     if (isPersonalBest) {
       playerBests.set(boardId, score);

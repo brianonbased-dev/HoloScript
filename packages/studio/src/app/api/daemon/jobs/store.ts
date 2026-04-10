@@ -6,10 +6,7 @@
  * concrete patch proposals that users can review and apply through Studio.
  */
 
-import {
-  runDaemonJob,
-  type AbsorbGraphData,
-} from './runner';
+import { runDaemonJob, type AbsorbGraphData } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import type {
   CreateDaemonJobInput,
@@ -53,7 +50,13 @@ async function executeDaemonJob(jobId: string): Promise<void> {
   if (!job) return;
 
   const now = nowIso();
-  daemonJobs.set(jobId, { ...job, status: 'running', progress: 5, statusMessage: 'Initializing daemon pipeline...', updatedAt: now });
+  daemonJobs.set(jobId, {
+    ...job,
+    status: 'running',
+    progress: 5,
+    statusMessage: 'Initializing daemon pipeline...',
+    updatedAt: now,
+  });
   emitTelemetry({ eventType: 'job_started', jobId, timestamp: now, profile: job.profile });
 
   const projectPath = job.projectPath || process.cwd();
@@ -74,7 +77,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
           logs: log ? [...(current.logs ?? []), log] : current.logs,
         });
       },
-      job.limits || undefined,
+      job.limits || undefined
     );
 
     const final = daemonJobs.get(jobId)!;
@@ -118,12 +121,35 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       absorb: absorbSnapshot,
     });
 
-    emitTelemetry({ eventType: 'job_completed', jobId, timestamp: nowIso(), profile: job.profile, durationMs: result.durationMs, qualityDelta: result.qualityDelta, filesChanged: result.filesChanged, patchCount: result.patches.length });
+    emitTelemetry({
+      eventType: 'job_completed',
+      jobId,
+      timestamp: nowIso(),
+      profile: job.profile,
+      durationMs: result.durationMs,
+      qualityDelta: result.qualityDelta,
+      filesChanged: result.filesChanged,
+      patchCount: result.patches.length,
+    });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const final = daemonJobs.get(jobId)!;
-    daemonJobs.set(jobId, { ...final, status: 'failed', progress: 0, statusMessage: `Failed: ${errorMessage}`, updatedAt: nowIso(), summary: `Daemon job failed: ${errorMessage}`, error: errorMessage });
-    emitTelemetry({ eventType: 'job_failed', jobId, timestamp: nowIso(), profile: job.profile, error: errorMessage });
+    daemonJobs.set(jobId, {
+      ...final,
+      status: 'failed',
+      progress: 0,
+      statusMessage: `Failed: ${errorMessage}`,
+      updatedAt: nowIso(),
+      summary: `Daemon job failed: ${errorMessage}`,
+      error: errorMessage,
+    });
+    emitTelemetry({
+      eventType: 'job_failed',
+      jobId,
+      timestamp: nowIso(),
+      profile: job.profile,
+      error: errorMessage,
+    });
   }
 }
 
@@ -150,7 +176,12 @@ export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
   };
 
   daemonJobs.set(id, created);
-  emitTelemetry({ eventType: 'job_created', jobId: id, timestamp: created.createdAt, profile: input.profile });
+  emitTelemetry({
+    eventType: 'job_created',
+    jobId: id,
+    timestamp: created.createdAt,
+    profile: input.profile,
+  });
 
   // Fire-and-forget: start real execution asynchronously
   void executeDaemonJob(id);
@@ -174,8 +205,17 @@ export function getJobLogs(jobId: string): DaemonLogEntry[] {
   return daemonJobs.get(jobId)?.logs ?? [];
 }
 
-export function recordPatchAction(jobId: string, patchIds: string[], action: 'applied' | 'exported' | 'rejected'): void {
-  const eventType = action === 'applied' ? 'patch_applied' as const : action === 'exported' ? 'patch_exported' as const : 'patch_rejected' as const;
+export function recordPatchAction(
+  jobId: string,
+  patchIds: string[],
+  action: 'applied' | 'exported' | 'rejected'
+): void {
+  const eventType =
+    action === 'applied'
+      ? ('patch_applied' as const)
+      : action === 'exported'
+        ? ('patch_exported' as const)
+        : ('patch_rejected' as const);
   for (const _patchId of patchIds) {
     emitTelemetry({ eventType, jobId, timestamp: nowIso(), patchCount: 1 });
   }
@@ -187,8 +227,14 @@ export function getTelemetrySummary(): DaemonTelemetrySummary {
   const failed = jobs.filter((j) => j.status === 'failed');
   const totalPatches = completed.reduce((sum, j) => sum + (j.patches?.length ?? 0), 0);
   const appliedPatches = telemetryLog.filter((e) => e.eventType === 'patch_applied').length;
-  const avgDelta = completed.length > 0 ? completed.reduce((sum, j) => sum + (j.metrics?.qualityDelta ?? 0), 0) / completed.length : 0;
-  const avgDuration = completed.length > 0 ? completed.reduce((sum, j) => sum + (j.metrics?.durationMs ?? 0), 0) / completed.length : 0;
+  const avgDelta =
+    completed.length > 0
+      ? completed.reduce((sum, j) => sum + (j.metrics?.qualityDelta ?? 0), 0) / completed.length
+      : 0;
+  const avgDuration =
+    completed.length > 0
+      ? completed.reduce((sum, j) => sum + (j.metrics?.durationMs ?? 0), 0) / completed.length
+      : 0;
   const profileUsage: Record<DaemonProfile, number> = { quick: 0, balanced: 0, deep: 0 };
   for (const job of jobs) profileUsage[job.profile]++;
 

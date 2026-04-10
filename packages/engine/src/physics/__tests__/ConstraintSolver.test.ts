@@ -147,4 +147,3 @@ describe('ConstraintSolver', () => {
     expect(corrections).toBeInstanceOf(Map);
   });
 });
-

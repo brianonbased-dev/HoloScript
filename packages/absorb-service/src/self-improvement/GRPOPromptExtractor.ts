@@ -490,10 +490,7 @@ export class GRPOPromptExtractor {
     rawPrompts.push(...stubPrompts);
 
     // Source C: Failing/skipped tests
-    const skippedPrompts = await this.extractSkippedTests(
-      testFiles,
-      cap - rawPrompts.length
-    );
+    const skippedPrompts = await this.extractSkippedTests(testFiles, cap - rawPrompts.length);
     rawPrompts.push(...skippedPrompts);
 
     // Source D: Low-coverage functions (exported symbols without test files)
@@ -1232,10 +1229,7 @@ export class GRPOPromptExtractor {
     }
 
     // Find matching closing brace, bounded to prevent scanning entire files
-    const scanLimit = Math.min(
-      lines.length,
-      braceStart + this.config.maxBodyScanLines
-    );
+    const scanLimit = Math.min(lines.length, braceStart + this.config.maxBodyScanLines);
     let depth = 0;
     const bodyLines: string[] = [];
     for (let i = braceStart; i < scanLimit; i++) {

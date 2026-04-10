@@ -27,12 +27,7 @@ export type {
   ServiceConfig,
 } from './protocol/implementations';
 
-export {
-  ProtocolPhase,
-  isPattern,
-  isWisdom,
-  isGotcha,
-} from './protocol/implementations';
+export { ProtocolPhase, isPattern, isWisdom, isGotcha } from './protocol/implementations';
 
 // ── LLM Provider (framework-original — nothing like this exists) ──
 
@@ -248,7 +243,7 @@ export interface AgentPresence {
   status: AgentPresenceStatus;
   lastSeen: number;
   currentTask?: string;
-  uptime: number;  // ms since first heartbeat
+  uptime: number; // ms since first heartbeat
 }
 
 export interface PresenceConfig {

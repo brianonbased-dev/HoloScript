@@ -304,7 +304,10 @@ type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : n
  * A2A message body type for the `send()` method.
  * Strips auto-generated fields so callers only provide the domain payload.
  */
-export type A2AMessageBody = DistributiveOmit<A2AMessage, 'message_id' | 'from_agent' | 'timestamp'>;
+export type A2AMessageBody = DistributiveOmit<
+  A2AMessage,
+  'message_id' | 'from_agent' | 'timestamp'
+>;
 
 /**
  * A2A protocol configuration

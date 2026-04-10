@@ -74,8 +74,8 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
       }
 
       // Helper to extract x/y consistently
-      const getX = (p: Vector3) => Array.isArray(p) ? p[0] : (p.x ?? 0);
-      const getY = (p: Vector3) => Array.isArray(p) ? p[1] : (p.y ?? 0);
+      const getX = (p: Vector3) => (Array.isArray(p) ? p[0] : (p.x ?? 0));
+      const getY = (p: Vector3) => (Array.isArray(p) ? p[1] : (p.y ?? 0));
 
       // 2. Swipe Detection
       // Require tracked movement over short window
@@ -106,7 +106,9 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
       }
 
       // @ts-expect-error
-      state.lastPosition = Array.isArray(hand.position) ? [...hand.position] : { x: hand.position.x ?? 0, y: hand.position.y ?? 0, z: hand.position.z ?? 0 };
+      state.lastPosition = Array.isArray(hand.position)
+        ? [...hand.position]
+        : { x: hand.position.x ?? 0, y: hand.position.y ?? 0, z: hand.position.z ?? 0 };
       state.lastTime = time;
     });
   },

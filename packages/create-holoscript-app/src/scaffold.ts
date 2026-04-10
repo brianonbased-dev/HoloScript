@@ -59,9 +59,7 @@ export function validateProjectName(name: string): true | string {
 }
 
 export function normalizePackageName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, '-');
+  return name.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
 }
 
 // ─── File Operations ──────────────────────────────────────

@@ -131,14 +131,16 @@ export class PlanExecuteAgent {
   ): Promise<{ completed: StepResult[]; failed: StepResult[] }> {
     const completed: StepResult[] = [];
     const failed: StepResult[] = [];
-    const completedIds = new Set(allResults.filter(r => r.status === 'success').map(r => r.stepId));
+    const completedIds = new Set(
+      allResults.filter((r) => r.status === 'success').map((r) => r.stepId)
+    );
 
     for (const step of plan.steps) {
       // Skip already-completed steps
       if (completedIds.has(step.id)) continue;
 
       // Check dependencies
-      const depsReady = step.dependencies.every(dep => completedIds.has(dep));
+      const depsReady = step.dependencies.every((dep) => completedIds.has(dep));
       if (!depsReady) {
         const skipped: StepResult = {
           stepId: step.id,

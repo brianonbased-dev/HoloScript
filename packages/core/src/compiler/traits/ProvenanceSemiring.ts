@@ -109,9 +109,11 @@ export function authorityWeight(level: number, reputationScore?: number): number
   let baseWeight = 0.5 + (clamped / 100) * 1.5;
 
   if (reputationScore !== undefined && reputationScore > 0) {
-    if (reputationScore >= 100) baseWeight *= 3.0;      // authority tier weight
-    else if (reputationScore >= 30) baseWeight *= 2.0;  // expert tier weight
-    else if (reputationScore >= 5) baseWeight *= 1.5;   // contributor tier weight
+    if (reputationScore >= 100)
+      baseWeight *= 3.0; // authority tier weight
+    else if (reputationScore >= 30)
+      baseWeight *= 2.0; // expert tier weight
+    else if (reputationScore >= 5) baseWeight *= 1.5; // contributor tier weight
   }
 
   return baseWeight;
@@ -152,7 +154,14 @@ export interface ConflictResolutionRule {
   /** Domain property (e.g., 'type', 'mass', 'color') */
   property: string;
   /** Strategy to apply when settling values */
-  strategy: 'max' | 'min' | 'sum' | 'multiply' | 'strict-error' | 'domain-override' | 'authority-weighted';
+  strategy:
+    | 'max'
+    | 'min'
+    | 'sum'
+    | 'multiply'
+    | 'strict-error'
+    | 'domain-override'
+    | 'authority-weighted';
   /** If domain-override, defines the precedence of trait sources */
   precedence?: string[];
 }
@@ -185,12 +194,20 @@ export class ProvenanceSemiring {
 
   private loadDefaultRules(): void {
     // Standard physics conflict resolution
-    this.rules.set('type', { property: 'type', strategy: 'domain-override', precedence: ['kinematic', 'physics', 'collidable', 'static'] });
+    this.rules.set('type', {
+      property: 'type',
+      strategy: 'domain-override',
+      precedence: ['kinematic', 'physics', 'collidable', 'static'],
+    });
     this.rules.set('mass', { property: 'mass', strategy: 'authority-weighted' });
     this.rules.set('friction', { property: 'friction', strategy: 'max' });
     this.rules.set('restitution', { property: 'restitution', strategy: 'min' });
     // Visual conflict resolution (borrowed from TraitCompositor)
-    this.rules.set('color', { property: 'color', strategy: 'domain-override', precedence: ['material', 'color', 'hoverable', 'glowing'] });
+    this.rules.set('color', {
+      property: 'color',
+      strategy: 'domain-override',
+      precedence: ['material', 'color', 'hoverable', 'glowing'],
+    });
     this.rules.set('opacity', { property: 'opacity', strategy: 'min' });
   }
 
@@ -209,11 +226,13 @@ export class ProvenanceSemiring {
       for (const [key, value] of Object.entries(trait.config)) {
         if (value === TRAIT_ZERO) {
           // C3: Track dead elements instead of silently skipping
-          deadElements.push(createDeadElement(
-            'semiring',
-            `${trait.name}.${key}`,
-            `TRAIT_ZERO encountered during addition: property '${key}' from @${trait.name}`
-          ));
+          deadElements.push(
+            createDeadElement(
+              'semiring',
+              `${trait.name}.${key}`,
+              `TRAIT_ZERO encountered during addition: property '${key}' from @${trait.name}`
+            )
+          );
           continue; // A ⊕ 0 = A (Identity)
         }
 
@@ -224,8 +243,14 @@ export class ProvenanceSemiring {
           // Conflict detected, apply Semiring multiplication (⊗)
           const existing = acc[key];
           try {
-            acc[key] = this.multiply(existing, { value, source: trait.name, context: trait.context }, key);
-            conflicts.push(`Resolved conflict on property '${key}' between @${existing.source} and @${trait.name}`);
+            acc[key] = this.multiply(
+              existing,
+              { value, source: trait.name, context: trait.context },
+              key
+            );
+            conflicts.push(
+              `Resolved conflict on property '${key}' between @${existing.source} and @${trait.name}`
+            );
           } catch (err: unknown) {
             errors.push(err instanceof Error ? err.message : String(err));
           }
@@ -275,7 +300,9 @@ export class ProvenanceSemiring {
         // Authority breaks the tie but we still report the conflict
         return authA > authB ? a : b;
       }
-      throw new Error(`Unresolved conflict on '${property}': @${a.source} (${a.value}) vs @${b.source} (${b.value})`);
+      throw new Error(
+        `Unresolved conflict on '${property}': @${a.source} (${a.value}) vs @${b.source} (${b.value})`
+      );
     }
 
     // Authority weights for modulating numeric strategies
@@ -286,22 +313,22 @@ export class ProvenanceSemiring {
       case 'max':
         return {
           value: Math.max(a.value as number, b.value as number),
-          source: (a.value as number) > (b.value as number) ? a.source : b.source
+          source: (a.value as number) > (b.value as number) ? a.source : b.source,
         };
       case 'min':
         return {
           value: Math.min(a.value as number, b.value as number),
-          source: (a.value as number) < (b.value as number) ? a.source : b.source
+          source: (a.value as number) < (b.value as number) ? a.source : b.source,
         };
       case 'sum':
         return {
           value: (a.value as number) + (b.value as number),
-          source: `${a.source}+${b.source}`
+          source: `${a.source}+${b.source}`,
         };
       case 'multiply':
         return {
           value: (a.value as number) * (b.value as number),
-          source: `${a.source}*${b.source}`
+          source: `${a.source}*${b.source}`,
         };
 
       case 'authority-weighted': {
@@ -335,13 +362,17 @@ export class ProvenanceSemiring {
           if (weightA !== weightB) {
             return weightA > weightB ? a : b;
           }
-          throw new Error(`Unresolved domain override on '${property}': @${a.source} vs @${b.source}`);
+          throw new Error(
+            `Unresolved domain override on '${property}': @${a.source} vs @${b.source}`
+          );
         }
       }
 
       case 'strict-error':
       default:
-        throw new Error(`Composition conflict: @${a.source} and @${b.source} both supply '${property}' = ${a.value} vs ${b.value}`);
+        throw new Error(
+          `Composition conflict: @${a.source} and @${b.source} both supply '${property}' = ${a.value} vs ${b.value}`
+        );
     }
   }
 }

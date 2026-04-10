@@ -230,10 +230,15 @@ describe('SignalingProtocol', () => {
     });
 
     it('should parse an ice-candidate with null candidate', () => {
-      const original = createSignalingMessage<IceCandidateMessage>('ice-candidate', 'room-1', 'peer-a', {
-        targetPeerId: 'peer-b',
-        candidate: null,
-      });
+      const original = createSignalingMessage<IceCandidateMessage>(
+        'ice-candidate',
+        'room-1',
+        'peer-a',
+        {
+          targetPeerId: 'peer-b',
+          candidate: null,
+        }
+      );
 
       const json = serializeSignalingMessage(original);
       const parsed = parseSignalingMessage(json) as IceCandidateMessage;

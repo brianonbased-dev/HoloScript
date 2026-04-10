@@ -52,11 +52,7 @@ objects:
   traits: - @2d_canvas { projection: "flat-semantic", responsive: true } - @semantic_layout { flow: "cluster", wrap: true }
   children: - id ConversionMetric
   traits: - @semantic_entity { type: "metric-card" } - @live_metric { format: "percentage" } - @particle_feedback { on: "hover", type: "burst" }
-  text: "84.5%"
-        - id AssignAgentButton
-          traits:
-            - @semantic_entity { type: "button", meaning: "call-to-action", priority: 1 }
-            - @agent_attention { swarm_size: 5, bounty_threshold: 15 }
-            - @dynamic_visual { color: "purple" }
-          text: "Deploy Swarm"
+  text: "84.5%" - id AssignAgentButton
+  traits: - @semantic_entity { type: "button", meaning: "call-to-action", priority: 1 } - @agent_attention { swarm_size: 5, bounty_threshold: 15 } - @dynamic_visual { color: "purple" }
+  text: "Deploy Swarm"
   \`\`\`

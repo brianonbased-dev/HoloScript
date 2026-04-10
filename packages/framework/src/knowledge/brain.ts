@@ -50,7 +50,7 @@ export const DOMAIN_CONSOLIDATION: Record<KnowledgeDomain, DomainConsolidationCo
     sleepFrequencyMs: 12 * 60 * 60 * 1000,
     maxEntries: 150,
     competitionMetric: 'query_frequency',
-    downscaleFactor: 0.90,
+    downscaleFactor: 0.9,
     minCorroborations: 1,
   },
   compilation: {
@@ -58,7 +58,7 @@ export const DOMAIN_CONSOLIDATION: Record<KnowledgeDomain, DomainConsolidationCo
     sleepFrequencyMs: 12 * 60 * 60 * 1000,
     maxEntries: 100,
     competitionMetric: 'citation_count',
-    downscaleFactor: 0.90,
+    downscaleFactor: 0.9,
     minCorroborations: 1,
   },
   general: {
@@ -74,11 +74,11 @@ export const DOMAIN_CONSOLIDATION: Record<KnowledgeDomain, DomainConsolidationCo
 // ── Half-Lives ──
 
 export const DOMAIN_HALF_LIVES: Record<KnowledgeDomain, number> = {
-  security: 2 * 24 * 60 * 60 * 1000,      // 2 days
-  rendering: 14 * 24 * 60 * 60 * 1000,     // 14 days
-  agents: 7 * 24 * 60 * 60 * 1000,         // 7 days
-  compilation: 21 * 24 * 60 * 60 * 1000,   // 21 days
-  general: 7 * 24 * 60 * 60 * 1000,        // 7 days
+  security: 2 * 24 * 60 * 60 * 1000, // 2 days
+  rendering: 14 * 24 * 60 * 60 * 1000, // 14 days
+  agents: 7 * 24 * 60 * 60 * 1000, // 7 days
+  compilation: 21 * 24 * 60 * 60 * 1000, // 21 days
+  general: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 // ── Hot Buffer ──

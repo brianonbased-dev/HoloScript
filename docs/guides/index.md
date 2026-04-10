@@ -1,6 +1,6 @@
 # Introduction to HoloScript
 
-HoloScript is a **full programming language** for VR, AR, robotics, IoT, and digital twins. It compiles to **25+ targets** including Unity, Unreal, Godot, visionOS, Android XR, WebGPU, URDF (ROS 2), SDF (Gazebo), DTDL (Azure Digital Twins), W3C WoT, and OpenUSD — from a single source file.
+HoloScript is a **full programming language** for VR, AR, robotics, IoT, and digital twins. It compiles from one source file to multiple registered targets (Unity, Unreal, Godot, visionOS, Android XR, WebGPU, URDF, SDF, DTDL, WoT, OpenUSD, and more).
 
 ## 🚀 Start with Studio (Recommended)
 
@@ -42,7 +42,7 @@ HoloScript is a **full programming language** for VR, AR, robotics, IoT, and dig
 
 ### For Computing
 
-- **One source → 25+ targets** - Unity, Unreal, Godot, VRChat, Babylon.js, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, WoT, OpenUSD, Three.js, GLTF, OpenXR, iOS, WASM
+- **One source → many targets** - verify current target keys in `ExportTarget` (`packages/core/src/compiler/CircuitBreaker.ts`)
 - **50,000 → 500 lines** - Declarative syntax eliminates boilerplate
 - **Cross-domain** - VR, AR, robotics, IoT, and digital twins from one source
 - **Dual parser** - TypeScript + Rust/WASM with full LSP, linter, and formatter
@@ -86,7 +86,8 @@ composition "Hello World" {
 
 - [Quick Start Guide](./quick-start) - Build your first HoloScript app
 - [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
-- [Traits Reference](./traits) - 2,000+ traits across 101+ categories
+- [Traits Reference](./traits) - trait categories and usage patterns (inventory changes over time)
 - [Working Tree Triage](./working-tree-triage) - Keep large local change sets cleanly scoped
 - [Release Slice v5.0.1](./release-slice-v5-0-1) - Current patch-train scope and ship criteria
 - [MCP Mesh Operations](./mcp-mesh-operations) - Health checks and first-response recovery
+- [Metrics SSOT](./metrics-ssot) - Canonical commands for targets/tools/traits/package counts

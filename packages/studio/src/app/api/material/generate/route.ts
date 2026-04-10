@@ -64,11 +64,16 @@ void main() {
   const userPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
 
   // Try cloud providers in order, then Ollama as optional fallback
-  const raw = await tryCloudProviders(systemPrompt, prompt) ?? await tryOllamaFallback(userPrompt, body.model);
+  const raw =
+    (await tryCloudProviders(systemPrompt, prompt)) ??
+    (await tryOllamaFallback(userPrompt, body.model));
 
   if (!raw) {
     return NextResponse.json(
-      { error: 'No AI provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env' },
+      {
+        error:
+          'No AI provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
+      },
       { status: 503 }
     );
   }
@@ -85,7 +90,16 @@ void main() {
   // Deduct credits after successful generation (fire-and-forget)
   deductCredits(gate.userId, 'studio_material').catch(() => {});
 
-  return NextResponse.json({ glsl, traits, raw }, { headers: { 'x-llm-provider': 'server', 'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN), 'X-RateLimit-Remaining': String(limit.remaining) } });
+  return NextResponse.json(
+    { glsl, traits, raw },
+    {
+      headers: {
+        'x-llm-provider': 'server',
+        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
+        'X-RateLimit-Remaining': String(limit.remaining),
+      },
+    }
+  );
 }
 
 async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<string | null> {
@@ -118,7 +132,9 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
         const text = data.choices?.[0]?.message?.content;
         if (text) return text;
       }
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
 
   // Anthropic
@@ -145,7 +161,9 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
         const text = data.content?.[0]?.text;
         if (text) return text;
       }
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
 
   // OpenAI
@@ -173,7 +191,9 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
         const text = data.choices?.[0]?.message?.content;
         if (text) return text;
       }
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
 
   return null;

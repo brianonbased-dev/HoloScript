@@ -490,7 +490,10 @@ export class RTree {
 
     if (N <= M) {
       // Create leaf node
-      return this.createNode(items.map((item) => item.anchor), true);
+      return this.createNode(
+        items.map((item) => item.anchor),
+        true
+      );
     }
 
     // Sort items by Hilbert value for better spatial locality

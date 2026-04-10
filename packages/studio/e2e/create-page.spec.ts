@@ -103,7 +103,9 @@ test.describe('Studio editor page', () => {
     }
 
     // Expand Agentation from collapsed floating toolbar.
-    const feedbackToggle = page.locator('[data-agentation-toolbar] [title="Start feedback mode"]').first();
+    const feedbackToggle = page
+      .locator('[data-agentation-toolbar] [title="Start feedback mode"]')
+      .first();
     await expect(feedbackToggle).toBeVisible({ timeout: 15_000 });
     await feedbackToggle.click();
     await recoverIfErrorScreen();

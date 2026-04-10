@@ -213,7 +213,8 @@ describe('handleBoardTool with mocked fetch', () => {
 
   it('holomesh_board_add delegates to framework Team.addTasks', async () => {
     mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, added: 1, tasks: [{ id: 'task_1', title: 'Fix bug' }] }),
+      json: () =>
+        Promise.resolve({ success: true, added: 1, tasks: [{ id: 'task_1', title: 'Fix bug' }] }),
     });
 
     const result = (await handleBoardTool('holomesh_board_add', {

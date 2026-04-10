@@ -85,4 +85,3 @@ describe('IslandDetector - Mass Physics', () => {
     expect(end - start).toBeLessThan(50); // Should be very fast (<50ms for 1000 bodies)
   });
 });
-

@@ -23,7 +23,11 @@ import {
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
 import { parseTscOutput, aggregatePatterns, type ErrorCategory } from './daemon-error-taxonomy';
-import type { HostCapabilities, HostExecOptions, HostNetworkRequestOptions } from '@holoscript/core/traits';
+import type {
+  HostCapabilities,
+  HostExecOptions,
+  HostNetworkRequestOptions,
+} from '@holoscript/core/traits';
 import {
   createStdlibActions,
   resolveRepoRelativePath,

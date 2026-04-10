@@ -66,7 +66,7 @@ export interface PipelineSource {
 export interface FieldMapping {
   from: string;
   to: string;
-  transforms: string[];   // e.g. ['multiply(100)', 'trim()', 'titleCase()']
+  transforms: string[]; // e.g. ['multiply(100)', 'trim()', 'titleCase()']
 }
 
 export interface PipelineTransform {
@@ -96,7 +96,7 @@ export interface PipelineFilter {
 
 export interface PipelineValidateField {
   field: string;
-  rules: string[];   // e.g. ['required', 'string', 'minLength(3)']
+  rules: string[]; // e.g. ['required', 'string', 'minLength(3)']
 }
 
 export interface PipelineValidate {
@@ -187,20 +187,22 @@ export interface PipelineParseError {
 function stripComments(source: string): string {
   // Remove // line comments while preserving // inside quoted strings
   const lines = source.split('\n');
-  return lines.map((line) => {
-    let inString: string | null = null;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inString) {
-        if (ch === inString && line[i - 1] !== '\\') inString = null;
-      } else if (ch === '"' || ch === "'") {
-        inString = ch;
-      } else if (ch === '/' && line[i + 1] === '/') {
-        return line.substring(0, i);
+  return lines
+    .map((line) => {
+      let inString: string | null = null;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inString) {
+          if (ch === inString && line[i - 1] !== '\\') inString = null;
+        } else if (ch === '"' || ch === "'") {
+          inString = ch;
+        } else if (ch === '/' && line[i + 1] === '/') {
+          return line.substring(0, i);
+        }
       }
-    }
-    return line;
-  }).join('\n');
+      return line;
+    })
+    .join('\n');
 }
 
 function parseDuration(value: string): PipelineDuration | undefined {
@@ -209,7 +211,11 @@ function parseDuration(value: string): PipelineDuration | undefined {
   return { value: parseInt(match[1], 10), unit: match[2] as PipelineDuration['unit'] };
 }
 
-function extractBlock(source: string, keyword: string, name?: string): { content: string; name: string; startLine: number }[] {
+function extractBlock(
+  source: string,
+  keyword: string,
+  name?: string
+): { content: string; name: string; startLine: number }[] {
   const results: { content: string; name: string; startLine: number }[] = [];
   const namePattern = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '(\\w+)';
   const regex = new RegExp(`${keyword}\\s+${namePattern}\\s*\\{`, 'g');
@@ -302,7 +308,10 @@ function parseFieldMappings(content: string): FieldMapping[] {
     const mapMatch = trimmed.match(/^(\w+)\s*->\s*(\w+)(?:\s*:\s*(.+))?$/);
     if (mapMatch) {
       const transforms = mapMatch[3]
-        ? mapMatch[3].split(':').map((t) => t.trim()).filter(Boolean)
+        ? mapMatch[3]
+            .split(':')
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [];
       mappings.push({
         from: mapMatch[1],
@@ -326,7 +335,10 @@ function parseValidateFields(content: string): PipelineValidateField[] {
     // Match: fieldName : rule1, rule2, rule3(arg)
     const vMatch = trimmed.match(/^(\w+)\s*:\s*(.+)$/);
     if (vMatch) {
-      const rules = vMatch[2].split(',').map((r) => r.trim()).filter(Boolean);
+      const rules = vMatch[2]
+        .split(',')
+        .map((r) => r.trim())
+        .filter(Boolean);
       fields.push({ field: vMatch[1], rules });
     }
   }
@@ -413,12 +425,37 @@ function parsePipelineContent(
   // Strict format boundaries: Pipeline context cannot contain .holo spatial
   // or .hsplus behavior keywords. Emit SyntaxError directing to correct format.
   const invalidKeywords = [
-    'environment', 'spatial_group', 'template', 'object', 'orb', 'theme',
-    'light', 'camera', 'audio', 'zone', 'timeline', 'particle_system',
-    'effects', 'ui', 'npc', 'quest', 'dialogue', 'ability', 'achievement',
-    'talent_tree', 'behavior', 'state_machine', 'shape', 'terrain',
-    'waypoints', 'spawn_group', 'composition', 'constraint', 'sub_orb',
-    'norm', 'metanorm',
+    'environment',
+    'spatial_group',
+    'template',
+    'object',
+    'orb',
+    'theme',
+    'light',
+    'camera',
+    'audio',
+    'zone',
+    'timeline',
+    'particle_system',
+    'effects',
+    'ui',
+    'npc',
+    'quest',
+    'dialogue',
+    'ability',
+    'achievement',
+    'talent_tree',
+    'behavior',
+    'state_machine',
+    'shape',
+    'terrain',
+    'waypoints',
+    'spawn_group',
+    'composition',
+    'constraint',
+    'sub_orb',
+    'norm',
+    'metanorm',
   ];
 
   for (const keyword of invalidKeywords) {
@@ -433,7 +470,8 @@ function parsePipelineContent(
 
   // Parse top-level pipeline properties
   const schedule = typeof props.schedule === 'string' ? props.schedule : undefined;
-  const timeout = typeof props.timeout === 'string' ? parseDuration(props.timeout as string) : undefined;
+  const timeout =
+    typeof props.timeout === 'string' ? parseDuration(props.timeout as string) : undefined;
 
   let retry: PipelineRetry | undefined;
   const retryBlock = parseNestedBlock(content, 'retry');
@@ -458,7 +496,9 @@ function parsePipelineContent(
       since: p.since as string | undefined,
       method: p.method as string | undefined,
       auth: parseNestedBlock(block.content, 'auth') as unknown as PipelineAuth | undefined,
-      pagination: parseNestedBlock(block.content, 'pagination') as unknown as PipelinePagination | undefined,
+      pagination: parseNestedBlock(block.content, 'pagination') as unknown as
+        | PipelinePagination
+        | undefined,
       properties: p,
     });
   }
@@ -473,7 +513,11 @@ function parsePipelineContent(
     transforms.push({
       kind: 'transform',
       name: block.name,
-      type: hasType ? (p.type as PipelineTransform['type']) : mappings.length > 0 ? 'field_mapping' : undefined,
+      type: hasType
+        ? (p.type as PipelineTransform['type'])
+        : mappings.length > 0
+          ? 'field_mapping'
+          : undefined,
       mappings: mappings.length > 0 ? mappings : undefined,
       model: p.model as string | undefined,
       prompt: p.prompt as string | undefined,
@@ -494,7 +538,11 @@ function parsePipelineContent(
   for (const block of extractBlock(content, 'filter')) {
     const p = parseProperties(block.content);
     if (!p.where) {
-      errors.push({ message: `Filter "${block.name}" missing 'where' clause`, line: block.startLine, block: block.name });
+      errors.push({
+        message: `Filter "${block.name}" missing 'where' clause`,
+        line: block.startLine,
+        block: block.name,
+      });
     }
     filters.push({
       kind: 'filter',
@@ -517,9 +565,7 @@ function parsePipelineContent(
   const merges: PipelineMerge[] = [];
   for (const block of extractBlock(content, 'merge')) {
     const p = parseProperties(block.content);
-    const fromArr = typeof p.from === 'string'
-      ? parseStringArray(p.from as string)
-      : [];
+    const fromArr = typeof p.from === 'string' ? parseStringArray(p.from as string) : [];
 
     merges.push({
       kind: 'merge',
@@ -553,7 +599,9 @@ function parsePipelineContent(
       method: p.method as string | undefined,
       auth: parseNestedBlock(block.content, 'auth') as unknown as PipelineAuth | undefined,
       batch: parseNestedBlock(block.content, 'batch') as unknown as PipelineBatch | undefined,
-      onError: parseNestedBlock(block.content, 'on_error') as unknown as PipelineOnError | undefined,
+      onError: parseNestedBlock(block.content, 'on_error') as unknown as
+        | PipelineOnError
+        | undefined,
       format: p.format as PipelineSink['format'],
       append: p.append as boolean | undefined,
       server: p.server as string | undefined,

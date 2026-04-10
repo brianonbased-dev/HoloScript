@@ -120,4 +120,3 @@ export class EmotionSystem {
     return [...emotions.keys()];
   }
 }
-

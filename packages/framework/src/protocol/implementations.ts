@@ -117,22 +117,48 @@ export interface ServiceConfig {
 export type PWGSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface Pattern {
-  id: string; domain: string; problem: string; solution: string; context?: string; tags: string[]; confidence: number; createdAt: number; updatedAt: number;
+  id: string;
+  domain: string;
+  problem: string;
+  solution: string;
+  context?: string;
+  tags: string[];
+  confidence: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Wisdom {
-  id: string; domain: string; insight: string; context: string; source: string; tags: string[]; createdAt: number;
+  id: string;
+  domain: string;
+  insight: string;
+  context: string;
+  source: string;
+  tags: string[];
+  createdAt: number;
 }
 
 export interface Gotcha {
-  id: string; domain: string; mistake: string; fix: string; severity: PWGSeverity; tags: string[]; createdAt: number;
+  id: string;
+  domain: string;
+  mistake: string;
+  fix: string;
+  severity: PWGSeverity;
+  tags: string[];
+  createdAt: number;
 }
 
 export type PWGEntry = Pattern | Wisdom | Gotcha;
 
-export function isPattern(entry: PWGEntry): entry is Pattern { return entry.id.startsWith('P.'); }
-export function isWisdom(entry: PWGEntry): entry is Wisdom { return entry.id.startsWith('W.'); }
-export function isGotcha(entry: PWGEntry): entry is Gotcha { return entry.id.startsWith('G.'); }
+export function isPattern(entry: PWGEntry): entry is Pattern {
+  return entry.id.startsWith('P.');
+}
+export function isWisdom(entry: PWGEntry): entry is Wisdom {
+  return entry.id.startsWith('W.');
+}
+export function isGotcha(entry: PWGEntry): entry is Gotcha {
+  return entry.id.startsWith('G.');
+}
 
 // =============================================================================
 // BASE AGENT — Abstract 7-phase agent contract
@@ -159,7 +185,10 @@ export abstract class BaseAgent {
   /**
    * Execute a complete 7-phase cycle
    */
-  async runCycle(task: string, context: Record<string, unknown> = {}): Promise<ProtocolCycleResult> {
+  async runCycle(
+    task: string,
+    context: Record<string, unknown> = {}
+  ): Promise<ProtocolCycleResult> {
     const startedAt = Date.now();
     const cycleId = `cycle_${startedAt}_${Math.random().toString(36).slice(2, 8)}`;
     const phases: PhaseResult[] = [];
@@ -191,8 +220,16 @@ export abstract class BaseAgent {
     const intakeResult = await runPhase(ProtocolPhase.INTAKE, this.intake, { task, ...context });
     const reflectResult = await runPhase(ProtocolPhase.REFLECT, this.reflect, intakeResult.data);
     const executeResult = await runPhase(ProtocolPhase.EXECUTE, this.execute, reflectResult.data);
-    const compressResult = await runPhase(ProtocolPhase.COMPRESS, this.compress, executeResult.data);
-    const reintakeResult = await runPhase(ProtocolPhase.REINTAKE, this.reintake, compressResult.data);
+    const compressResult = await runPhase(
+      ProtocolPhase.COMPRESS,
+      this.compress,
+      executeResult.data
+    );
+    const reintakeResult = await runPhase(
+      ProtocolPhase.REINTAKE,
+      this.reintake,
+      compressResult.data
+    );
     const growResult = await runPhase(ProtocolPhase.GROW, this.grow, reintakeResult.data);
     await runPhase(ProtocolPhase.EVOLVE, this.evolve, growResult.data);
 
@@ -273,9 +310,15 @@ export abstract class BaseService {
     this.metadata.lifecycle = ServiceLifecycle.STOPPED;
   }
 
-  getMetadata(): ServiceMetadata { return { ...this.metadata }; }
-  getMetrics(): ServiceMetrics { return { ...this.metrics }; }
-  isReady(): boolean { return this.metadata.lifecycle === ServiceLifecycle.READY; }
+  getMetadata(): ServiceMetadata {
+    return { ...this.metadata };
+  }
+  getMetrics(): ServiceMetrics {
+    return { ...this.metrics };
+  }
+  isReady(): boolean {
+    return this.metadata.lifecycle === ServiceLifecycle.READY;
+  }
 
   protected recordRequest(latency: number): void {
     this.metrics.requestCount++;
@@ -333,16 +376,16 @@ export class ServiceManager {
   }
 
   health(): ServiceManagerHealth {
-    const ready = this.services.filter(s => s.isReady());
+    const ready = this.services.filter((s) => s.isReady());
     return {
       totalServices: this.services.length,
       readyCount: ready.length,
       allReady: this.services.length > 0 && ready.length === this.services.length,
-      services: this.services.map(s => ({
+      services: this.services.map((s) => ({
         name: s.getMetadata().name,
         ready: s.isReady(),
-        lifecycle: s.getMetadata().lifecycle
-      }))
+        lifecycle: s.getMetadata().lifecycle,
+      })),
     };
   }
 }
@@ -406,7 +449,13 @@ export class MicroPhaseDecomposer {
         groupIdx = Math.max(groupIdx, (assignedToGroup.get(depId) ?? 0) + 1);
       }
       while (groups.length <= groupIdx) {
-        groups.push({ id: `group_${groups.length}`, name: `Group ${groups.length}`, tasks: [], parallel: true, estimatedDuration: 0 });
+        groups.push({
+          id: `group_${groups.length}`,
+          name: `Group ${groups.length}`,
+          tasks: [],
+          parallel: true,
+          estimatedDuration: 0,
+        });
       }
       groups[groupIdx].tasks.push(task);
       assignedToGroup.set(taskId, groupIdx);
@@ -419,7 +468,11 @@ export class MicroPhaseDecomposer {
     }
 
     const seqTime = [...this.nodes.values()].reduce((s, t) => s + t.estimatedDuration, 0);
-    return { groups, totalEstimatedTime: totalTime, parallelizationRatio: seqTime > 0 ? ((seqTime - totalTime) / seqTime) * 100 : 0 };
+    return {
+      groups,
+      totalEstimatedTime: totalTime,
+      parallelizationRatio: seqTime > 0 ? ((seqTime - totalTime) / seqTime) * 100 : 0,
+    };
   }
 
   async executePlan(plan: ExecutionPlan): Promise<ExecutionResult[]> {
@@ -432,12 +485,26 @@ export class MicroPhaseDecomposer {
             const timeout = task.timeout ?? 30000;
             const result = await Promise.race([
               task.execute(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Task timeout')), timeout)),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Task timeout')), timeout)
+              ),
             ]);
-            return { taskId: task.id, status: 'success' as const, duration: Date.now() - start, result, timestamp: Date.now() };
+            return {
+              taskId: task.id,
+              status: 'success' as const,
+              duration: Date.now() - start,
+              result,
+              timestamp: Date.now(),
+            };
           } catch (err) {
             const isTimeout = err instanceof Error && err.message === 'Task timeout';
-            return { taskId: task.id, status: (isTimeout ? 'timeout' : 'failure') as 'timeout' | 'failure', duration: Date.now() - start, error: err instanceof Error ? err : new Error(String(err)), timestamp: Date.now() };
+            return {
+              taskId: task.id,
+              status: (isTimeout ? 'timeout' : 'failure') as 'timeout' | 'failure',
+              duration: Date.now() - start,
+              error: err instanceof Error ? err : new Error(String(err)),
+              timestamp: Date.now(),
+            };
           }
         })
       );
@@ -447,7 +514,9 @@ export class MicroPhaseDecomposer {
     return results;
   }
 
-  getHistory(): ExecutionResult[] { return [...this.history]; }
+  getHistory(): ExecutionResult[] {
+    return [...this.history];
+  }
 
   reset(): void {
     this.nodes.clear();

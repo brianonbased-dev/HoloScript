@@ -21,7 +21,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { World } from '@holoscript/engine/ecs/World.js';
 import { EntityRegistry } from '@holoscript/engine/ecs/EntityRegistry.js';
 import { ComponentStore } from '@holoscript/engine/ecs/ComponentStore.js';
-import { ComponentRegistry, registerBuiltInComponents } from '@holoscript/engine/ecs/ComponentRegistry.js';
+import {
+  ComponentRegistry,
+  registerBuiltInComponents,
+} from '@holoscript/engine/ecs/ComponentRegistry.js';
 import { SystemScheduler } from '@holoscript/engine/ecs/SystemScheduler.js';
 import { EventBus, getSharedEventBus, setSharedEventBus } from '../events/EventBus.js';
 import { EventChannel, ChannelManager } from '../events/EventChannel.js';

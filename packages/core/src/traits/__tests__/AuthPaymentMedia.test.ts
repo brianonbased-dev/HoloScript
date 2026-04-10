@@ -37,28 +37,28 @@ describe('JwtTrait', () => {
     const ctx = createMockContext();
     attachTrait(jwtHandler, node, {}, ctx);
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:issue', sub: 'user1' });
-    
+
     // Wait for async sign
-    await new Promise(r => setTimeout(r, 50));
-    
+    await new Promise((r) => setTimeout(r, 50));
+
     expect(getEventCount(ctx, 'jwt:issued')).toBe(1);
     const r = getLastEvent(ctx, 'jwt:issued') as any;
     expect(r.sub).toBe('user1');
     expect(typeof r.token).toBe('string');
   });
-  
+
   it('should verify token', async () => {
     const node = createMockNode('j');
     const ctx = createMockContext();
     attachTrait(jwtHandler, node, {}, ctx);
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:issue', sub: 'user1' });
-    
-    await new Promise(r => setTimeout(r, 50));
+
+    await new Promise((r) => setTimeout(r, 50));
     const token = (getLastEvent(ctx, 'jwt:issued') as any).token;
-    
+
     sendEvent(jwtHandler, node, {}, ctx, { type: 'jwt:verify', token });
-    
-    await new Promise(r => setTimeout(r, 50));
+
+    await new Promise((r) => setTimeout(r, 50));
     const r = getLastEvent(ctx, 'jwt:verified') as any;
     expect(r.valid).toBe(true);
     expect(r.sub).toBe('user1');

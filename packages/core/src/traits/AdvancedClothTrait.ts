@@ -491,7 +491,13 @@ export class AdvancedClothSystem {
 }
 
 // ── Handler (delegates to AdvancedClothSystem) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const advancedClothHandler = {
   name: 'advanced_cloth',

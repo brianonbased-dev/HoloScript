@@ -54,7 +54,7 @@ holoscript validate scene.holo
 # Preview locally
 holoscript preview scene.holo
 
-# Compile to target (25+ targets available)
+# Compile to target (registered targets available)
 holoscript compile scene.holo --target threejs
 holoscript compile scene.holo --target unity
 holoscript compile scene.holo --target unreal
@@ -110,12 +110,12 @@ Add to Claude Desktop config (`~/.claude/settings.json`):
 | `validate_holoscript` | Check code for errors            |
 | `suggest_traits`      | Get trait recommendations        |
 | `explain_code`        | Get plain English explanation    |
-| `compile_scene`       | Compile to any of 30+ targets    |
-| `list_traits`         | Browse all 2,000+ traits         |
+| `compile_scene`       | Compile to registered targets    |
+| `list_traits`         | Browse trait inventory           |
 | `query_scene_graph`   | Inspect scene structure          |
 | `parse_holoscript`    | Parse to AST                     |
 
-34+ tools available in total. See [MCP Server Guide](/guides/mcp-server) for full documentation.
+Tool inventory is live. See [MCP Server Guide](/guides/mcp-server) and verify via `curl https://mcp.holoscript.net/health`.
 
 See [MCP Server Guide](/guides/mcp-server) for full documentation.
 

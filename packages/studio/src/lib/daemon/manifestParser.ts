@@ -250,7 +250,7 @@ export function analyzeManifests(
 ): DaemonProjectDNA {
   const manifests: ManifestData[] = [];
   const additionalStack: string[] = [];
-  let kindVotes: Record<DaemonProjectKind, number> = {
+  const kindVotes: Record<DaemonProjectKind, number> = {
     service: 0,
     data: 0,
     frontend: 0,

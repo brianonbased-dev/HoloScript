@@ -42,7 +42,10 @@ function loadEnvIfPresent(filePath: string): void {
       const key = trimmed.slice(0, idx).trim();
       if (!key || process.env[key] !== undefined) continue;
       let value = trimmed.slice(idx + 1).trim();
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1);
       }
       process.env[key] = value;
@@ -98,8 +101,18 @@ const memory = {
 
 // ── HTTP ──
 
-async function post(url: string, body: unknown, headers: Record<string, string> = {}, method = 'POST') {
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) });
+async function post(
+  url: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+  method = 'POST'
+) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  });
   return res.json() as Promise<any>;
 }
 
@@ -108,11 +121,18 @@ async function get(url: string, headers: Record<string, string> = {}) {
   return res.json() as Promise<any>;
 }
 
-function auth() { return { Authorization: `Bearer ${AGENT_KEY}` }; }
+function auth() {
+  return { Authorization: `Bearer ${AGENT_KEY}` };
+}
 
 function shell(cmd: string): string {
   try {
-    return execSync(cmd, { encoding: 'utf8', timeout: 10_000, cwd: ROOT, shell: true } as any).trim();
+    return execSync(cmd, {
+      encoding: 'utf8',
+      timeout: 10_000,
+      cwd: ROOT,
+      shell: true,
+    } as any).trim();
   } catch {
     return '';
   }
@@ -149,7 +169,8 @@ function findMatchingFiles(keyword: string, limit = 5): string[] {
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.')) continue;
+        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.'))
+          continue;
         stack.push(fullPath);
         continue;
       }
@@ -194,7 +215,11 @@ function readFarmSource(relativePath: string, maxLines = 300): string {
 
 // ── LLM Client (lightweight Claude API — no SDK dependency) ──
 
-async function queryClaude(prompt: string, system: string, maxTokens = 1024): Promise<string | null> {
+async function queryClaude(
+  prompt: string,
+  system: string,
+  maxTokens = 1024
+): Promise<string | null> {
   // Try OpenRouter first (preferred), then direct Anthropic
   if (OPENROUTER_API_KEY) {
     try {
@@ -220,7 +245,9 @@ async function queryClaude(prompt: string, system: string, maxTokens = 1024): Pr
         const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
         return data.choices?.[0]?.message?.content || null;
       }
-    } catch { /* fall through to Anthropic */ }
+    } catch {
+      /* fall through to Anthropic */
+    }
   }
 
   if (ANTHROPIC_API_KEY) {
@@ -244,7 +271,9 @@ async function queryClaude(prompt: string, system: string, maxTokens = 1024): Pr
         const data = (await res.json()) as { content: Array<{ text: string }> };
         return data.content?.[0]?.text || null;
       }
-    } catch { /* no LLM available */ }
+    } catch {
+      /* no LLM available */
+    }
   }
 
   return null; // graceful fallback — scout works without LLM
@@ -274,27 +303,64 @@ async function registerAgent(): Promise<boolean> {
       // If backup fails, continue and attempt fresh registration anyway.
     }
   }
-  const res = await post(`${HOLOMESH_API}/quickstart`, { name: WORKER_NAME, description: 'Scout — the team\'s always-on eyes', traits: ['@scout', '@local-gpu'] });
+  const res = await post(`${HOLOMESH_API}/quickstart`, {
+    name: WORKER_NAME,
+    description: "Scout — the team's always-on eyes",
+    traits: ['@scout', '@local-gpu'],
+  });
   const apiKey = res.api_key || res.agent?.api_key;
-  if (apiKey) { AGENT_KEY = apiKey; AGENT_NAME = res.agent?.name || WORKER_NAME; fs.writeFileSync(keyFile, JSON.stringify({ key: AGENT_KEY, name: AGENT_NAME })); return true; }
-  if (res.error?.includes('already registered')) { console.error(`[scout] Name taken. Delete ${keyFile} and restart.`); return false; }
+  if (apiKey) {
+    AGENT_KEY = apiKey;
+    AGENT_NAME = res.agent?.name || WORKER_NAME;
+    fs.writeFileSync(keyFile, JSON.stringify({ key: AGENT_KEY, name: AGENT_NAME }));
+    return true;
+  }
+  if (res.error?.includes('already registered')) {
+    console.error(`[scout] Name taken. Delete ${keyFile} and restart.`);
+    return false;
+  }
   return false;
 }
 
-async function joinTeam() { await post(`${HOLOMESH_API}/team/${ROOM_ID}/join`, { invite_code: 'CvRxho-8', ide_type: 'ollama' }, auth()).catch(() => {}); }
-async function heartbeat() { await post(`${HOLOMESH_API}/team/${ROOM_ID}/presence`, { ide_type: 'ollama', status: 'active', project_path: ROOT }, auth()).catch(() => {}); }
-async function msg(content: string) { await post(`${HOLOMESH_API}/team/${ROOM_ID}/message`, { type: 'text', content }, auth()).catch(() => {}); }
-async function knowledge(type: string, content: string, domain: string, tags: string[]) { await post(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, { entries: [{ type, content, domain, tags: [...tags, 'scout'], confidence: 0.8 }] }, auth()).catch(() => {}); }
+async function joinTeam() {
+  await post(
+    `${HOLOMESH_API}/team/${ROOM_ID}/join`,
+    { invite_code: 'CvRxho-8', ide_type: 'ollama' },
+    auth()
+  ).catch(() => {});
+}
+async function heartbeat() {
+  await post(
+    `${HOLOMESH_API}/team/${ROOM_ID}/presence`,
+    { ide_type: 'ollama', status: 'active', project_path: ROOT },
+    auth()
+  ).catch(() => {});
+}
+async function msg(content: string) {
+  await post(`${HOLOMESH_API}/team/${ROOM_ID}/message`, { type: 'text', content }, auth()).catch(
+    () => {}
+  );
+}
+async function knowledge(type: string, content: string, domain: string, tags: string[]) {
+  await post(
+    `${HOLOMESH_API}/team/${ROOM_ID}/knowledge`,
+    { entries: [{ type, content, domain, tags: [...tags, 'scout'], confidence: 0.8 }] },
+    auth()
+  ).catch(() => {});
+}
 
 // ── 1. SCOUT — find files for open tasks ──
 
 async function scoutTasks() {
-  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
-  const open = ((board?.board?.open || []) as any[]).filter((t: any) =>
-    !t.title?.startsWith('[report]') &&
-    !t.title?.startsWith('FIXME:') &&
-    !memory.scoutedTaskIds.has(t.id) &&
-    t.priority >= 2
+  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({
+    board: {},
+  }));
+  const open = ((board?.board?.open || []) as any[]).filter(
+    (t: any) =>
+      !t.title?.startsWith('[report]') &&
+      !t.title?.startsWith('FIXME:') &&
+      !memory.scoutedTaskIds.has(t.id) &&
+      t.priority >= 2
   );
 
   if (open.length === 0) return;
@@ -304,9 +370,11 @@ async function scoutTasks() {
   memory.scoutedTaskIds.add(task.id);
 
   // Check if team knowledge already has findings for this task — don't duplicate
-  const existing = await get(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, auth()).catch(() => ({ entries: [] }));
-  const alreadyScouted = ((existing.entries || []) as any[]).some((e: any) =>
-    e.content?.includes(task.title) || e.content?.includes('Scout: ' + task.title)
+  const existing = await get(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, auth()).catch(() => ({
+    entries: [],
+  }));
+  const alreadyScouted = ((existing.entries || []) as any[]).some(
+    (e: any) => e.content?.includes(task.title) || e.content?.includes('Scout: ' + task.title)
   );
   if (alreadyScouted) {
     console.log(`[scout] ${task.title} — already in knowledge, skipping`);
@@ -318,14 +386,21 @@ async function scoutTasks() {
   const claudeKeywords = await queryClaude(
     `Extract 3-5 search keywords from this task title for finding relevant TypeScript source files in a monorepo. Return ONLY the keywords, one per line, no explanation.\n\nTask: "${task.title}"`,
     'You extract precise code-search keywords from task descriptions. Return only lowercase keywords, one per line.',
-    128,
+    128
   );
   if (claudeKeywords) {
-    keywords = claudeKeywords.split(/\n/).map(k => k.trim()).filter(k => k.length > 2 && !k.includes(' ')).slice(0, 5);
+    keywords = claudeKeywords
+      .split(/\n/)
+      .map((k) => k.trim())
+      .filter((k) => k.length > 2 && !k.includes(' '))
+      .slice(0, 5);
   } else {
     keywords = task.title
       .split(/\s+/)
-      .filter((w: string) => w.length > 4 && !/reduce|implement|create|write|add|improve|fix|the|for|and|with/i.test(w))
+      .filter(
+        (w: string) =>
+          w.length > 4 && !/reduce|implement|create|write|add|improve|fix|the|for|and|with/i.test(w)
+      )
       .slice(0, 3);
   }
 
@@ -337,8 +412,15 @@ async function scoutTasks() {
 
   if (findings.length > 0) {
     const unique = [...new Set(findings)].slice(0, 8);
-    await knowledge('pattern', `[Scout: ${task.title}]\nRelevant files:\n${unique.join('\n')}`, 'codebase', ['scout', task.source || 'board']);
-    await msg(`[scout] ${task.title}:\n${unique.slice(0, 4).join('\n')}${unique.length > 4 ? `\n+${unique.length - 4} more` : ''}`);
+    await knowledge(
+      'pattern',
+      `[Scout: ${task.title}]\nRelevant files:\n${unique.join('\n')}`,
+      'codebase',
+      ['scout', task.source || 'board']
+    );
+    await msg(
+      `[scout] ${task.title}:\n${unique.slice(0, 4).join('\n')}${unique.length > 4 ? `\n+${unique.length - 4} more` : ''}`
+    );
     console.log(`[scout] ${task.title} → ${unique.length} files`);
   } else {
     console.log(`[scout] ${task.title} → no files found`);
@@ -366,9 +448,16 @@ async function auditDoneLog() {
 
   if (fakes.length > 0) {
     await msg(`[audit] SUSPECT commits not in git: ${fakes.join(', ')}`);
-    await knowledge('gotcha', `Done log: ${fakes.length} commit hashes not found in git. Verification rate: ${rate}%.`, 'team-health', ['audit']);
+    await knowledge(
+      'gotcha',
+      `Done log: ${fakes.length} commit hashes not found in git. Verification rate: ${rate}%.`,
+      'team-health',
+      ['audit']
+    );
   }
-  console.log(`[audit] ${rate}% verified, ${unverified} unverified${fakes.length ? `, ${fakes.length} suspect` : ''}`);
+  console.log(
+    `[audit] ${rate}% verified, ${unverified} unverified${fakes.length ? `, ${fakes.length} suspect` : ''}`
+  );
 }
 
 // ── 3. WATCH — detect new commits related to open tasks ──
@@ -394,16 +483,26 @@ async function watchGit() {
   if (!changedFiles) return;
 
   // Check if changed files relate to any open tasks
-  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
+  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({
+    board: {},
+  }));
   const open = (board?.board?.open || []) as any[];
   const fileList = changedFiles.split('\n').filter((l: string) => l.trim());
 
   // Use Claude to match files to tasks semantically
-  const claudeMatch = open.length > 0 ? await queryClaude(
-    `Given these changed files:\n${fileList.slice(0, 15).join('\n')}\n\nAnd these open tasks:\n${open.slice(0, 15).map((t: any, i: number) => `${i + 1}. ${t.title}`).join('\n')}\n\nWhich tasks are related to the changed files? Return ONLY lines in format: "task number: file path" — one per line. If none match, return "none".`,
-    'You are a code-aware assistant that matches git changes to task board items. Be precise — only match when the file change is clearly relevant to the task.',
-    256,
-  ) : null;
+  const claudeMatch =
+    open.length > 0
+      ? await queryClaude(
+          `Given these changed files:\n${fileList.slice(0, 15).join('\n')}\n\nAnd these open tasks:\n${open
+            .slice(0, 15)
+            .map((t: any, i: number) => `${i + 1}. ${t.title}`)
+            .join(
+              '\n'
+            )}\n\nWhich tasks are related to the changed files? Return ONLY lines in format: "task number: file path" — one per line. If none match, return "none".`,
+          'You are a code-aware assistant that matches git changes to task board items. Be precise — only match when the file change is clearly relevant to the task.',
+          256
+        )
+      : null;
 
   const related: string[] = [];
   if (claudeMatch && !claudeMatch.toLowerCase().startsWith('none')) {
@@ -420,7 +519,10 @@ async function watchGit() {
   // Fallback: naive keyword matching if Claude unavailable
   if (!claudeMatch) {
     for (const task of open.slice(0, 20)) {
-      const titleWords = (task.title || '').toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
+      const titleWords = (task.title || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w: string) => w.length > 4);
       for (const file of fileList) {
         const fileLower = file.toLowerCase();
         if (titleWords.some((w: string) => fileLower.includes(w))) {
@@ -432,17 +534,23 @@ async function watchGit() {
   }
 
   if (related.length > 0) {
-    await msg(`[watch] New commit touches files related to open tasks:\n${related.slice(0, 5).join('\n')}`);
+    await msg(
+      `[watch] New commit touches files related to open tasks:\n${related.slice(0, 5).join('\n')}`
+    );
     console.log(`[watch] ${related.length} task-file matches`);
   } else {
-    console.log(`[watch] New commit: ${newCommits.split('\n')[0]} (${fileList.length} files, no task matches)`);
+    console.log(
+      `[watch] New commit: ${newCommits.split('\n')[0]} (${fileList.length} files, no task matches)`
+    );
   }
 }
 
 // ── 4. FARM — derive tasks from docs when board is low ──
 
 async function farmTasks() {
-  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({ board: {} }));
+  const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({
+    board: {},
+  }));
   const openCount = (board?.board?.open || []).length;
   if (openCount >= 20) return; // board is healthy
 
@@ -450,7 +558,7 @@ async function farmTasks() {
     { file: 'packages/studio/STUDIO_AUDIT.md', name: 'STUDIO_AUDIT.md' },
     { file: 'docs/strategy/ROADMAP.md', name: 'ROADMAP.md' },
     { file: 'docs/agents/holomesh-teams.md', name: 'holomesh-teams.md' },
-  ].filter(s => !memory.derivedSources.has(s.name));
+  ].filter((s) => !memory.derivedSources.has(s.name));
 
   if (sources.length === 0) return;
 
@@ -459,7 +567,11 @@ async function farmTasks() {
   const content = readFarmSource(source.file, 300);
   if (!content || content.length < 50) return;
 
-  const result = await post(`${HOLOMESH_API}/team/${ROOM_ID}/board/derive`, { source: source.name, content }, auth());
+  const result = await post(
+    `${HOLOMESH_API}/team/${ROOM_ID}/board/derive`,
+    { source: source.name, content },
+    auth()
+  );
   const derived = result?.derived || 0;
   if (derived > 0) {
     await msg(`[farm] ${derived} tasks from ${source.name} (board was at ${openCount})`);
@@ -471,13 +583,15 @@ async function farmTasks() {
 
 async function main() {
   console.log('╔═══════════════════════════════════════════════╗');
-  console.log('║  HoloScript Scout — The team\'s eyes          ║');
+  console.log("║  HoloScript Scout — The team's eyes          ║");
   console.log('╚═══════════════════════════════════════════════╝');
   console.log('');
 
   // Claude API via OpenRouter/Anthropic — no local Ollama dependency
   const hasLLM = !!(OPENROUTER_API_KEY || ANTHROPIC_API_KEY);
-  console.log(`[scout] LLM: ${hasLLM ? (OPENROUTER_API_KEY ? 'OpenRouter' : 'Anthropic') : 'none (rule-based fallback)'}`);
+  console.log(
+    `[scout] LLM: ${hasLLM ? (OPENROUTER_API_KEY ? 'OpenRouter' : 'Anthropic') : 'none (rule-based fallback)'}`
+  );
   if (!(await registerAgent())) process.exit(1);
   await joinTeam();
   await heartbeat();
@@ -505,7 +619,10 @@ async function main() {
       if (c % 10 === 0) await farmTasks();
 
       // Every 15th cycle: clear scouted set so we revisit
-      if (c % 15 === 0) { memory.scoutedTaskIds.clear(); console.log('[scout] Reset — fresh scan'); }
+      if (c % 15 === 0) {
+        memory.scoutedTaskIds.clear();
+        console.log('[scout] Reset — fresh scan');
+      }
 
       console.log(`[cycle ${c}] scouted: ${memory.scoutedTaskIds.size}, cycle actions done`);
     } catch (e) {
@@ -518,4 +635,7 @@ async function main() {
   console.log('[scout] Running. Ctrl+C to stop.\n');
 }
 
-main().catch(e => { console.error('[scout] Fatal:', e); process.exit(1); });
+main().catch((e) => {
+  console.error('[scout] Fatal:', e);
+  process.exit(1);
+});

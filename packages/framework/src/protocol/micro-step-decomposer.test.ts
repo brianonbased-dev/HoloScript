@@ -12,8 +12,19 @@ function mockLLM(response: string): LLMAdapter {
   return { call: vi.fn().mockResolvedValue(response) };
 }
 
-function phase(id: string, deps: string[] = [], duration = 5000, caps: string[] = ['coding']): MicroPhase {
-  return { id, description: `Phase ${id}`, dependencies: deps, estimatedDuration: duration, requiredCapabilities: caps };
+function phase(
+  id: string,
+  deps: string[] = [],
+  duration = 5000,
+  caps: string[] = ['coding']
+): MicroPhase {
+  return {
+    id,
+    description: `Phase ${id}`,
+    dependencies: deps,
+    estimatedDuration: duration,
+    requiredCapabilities: caps,
+  };
 }
 
 const simpleTask: TaskDescription = {
@@ -30,11 +41,7 @@ describe('SmartMicroPhaseDecomposer', () => {
       const llm = mockLLM('');
       const decomposer = new SmartMicroPhaseDecomposer(llm);
 
-      const phases: MicroPhase[] = [
-        phase('a'),
-        phase('b'),
-        phase('c'),
-      ];
+      const phases: MicroPhase[] = [phase('a'), phase('b'), phase('c')];
 
       const plan = decomposer.buildExecutionPlan(phases);
 
@@ -49,18 +56,14 @@ describe('SmartMicroPhaseDecomposer', () => {
       const llm = mockLLM('');
       const decomposer = new SmartMicroPhaseDecomposer(llm);
 
-      const phases: MicroPhase[] = [
-        phase('a'),
-        phase('b', ['a']),
-        phase('c', ['b']),
-      ];
+      const phases: MicroPhase[] = [phase('a'), phase('b', ['a']), phase('c', ['b'])];
 
       const plan = decomposer.buildExecutionPlan(phases);
 
       expect(plan.waves).toHaveLength(3);
-      expect(plan.waves[0].map(p => p.id)).toEqual(['a']);
-      expect(plan.waves[1].map(p => p.id)).toEqual(['b']);
-      expect(plan.waves[2].map(p => p.id)).toEqual(['c']);
+      expect(plan.waves[0].map((p) => p.id)).toEqual(['a']);
+      expect(plan.waves[1].map((p) => p.id)).toEqual(['b']);
+      expect(plan.waves[2].map((p) => p.id)).toEqual(['c']);
       expect(plan.totalEstimatedDuration).toBe(15000);
       expect(plan.parallelizationRatio).toBe(0);
     });
@@ -84,9 +87,9 @@ describe('SmartMicroPhaseDecomposer', () => {
       const plan = decomposer.buildExecutionPlan(phases);
 
       expect(plan.waves).toHaveLength(3);
-      expect(plan.waves[0].map(p => p.id)).toEqual(['a']);
-      expect(plan.waves[1].map(p => p.id).sort()).toEqual(['b', 'c']);
-      expect(plan.waves[2].map(p => p.id)).toEqual(['d']);
+      expect(plan.waves[0].map((p) => p.id)).toEqual(['a']);
+      expect(plan.waves[1].map((p) => p.id).sort()).toEqual(['b', 'c']);
+      expect(plan.waves[2].map((p) => p.id)).toEqual(['d']);
     });
 
     it('returns empty plan for no phases', () => {
@@ -112,10 +115,7 @@ describe('SmartMicroPhaseDecomposer', () => {
       const llm = mockLLM('');
       const decomposer = new SmartMicroPhaseDecomposer(llm);
 
-      const phases: MicroPhase[] = [
-        phase('a', ['b']),
-        phase('b', ['a']),
-      ];
+      const phases: MicroPhase[] = [phase('a', ['b']), phase('b', ['a'])];
 
       expect(() => decomposer.buildExecutionPlan(phases)).toThrow('Circular dependency');
     });
@@ -150,10 +150,34 @@ describe('SmartMicroPhaseDecomposer', () => {
     it('parses well-formed LLM JSON response', async () => {
       const llmResponse = JSON.stringify({
         phases: [
-          { id: 'phase_1', description: 'Setup project', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
-          { id: 'phase_2', description: 'Write components', dependencies: ['phase_1'], estimatedDuration: 8000, requiredCapabilities: ['coding'] },
-          { id: 'phase_3', description: 'Write tests', dependencies: ['phase_1'], estimatedDuration: 5000, requiredCapabilities: ['testing'] },
-          { id: 'phase_4', description: 'Integration test', dependencies: ['phase_2', 'phase_3'], estimatedDuration: 4000, requiredCapabilities: ['testing'] },
+          {
+            id: 'phase_1',
+            description: 'Setup project',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'phase_2',
+            description: 'Write components',
+            dependencies: ['phase_1'],
+            estimatedDuration: 8000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'phase_3',
+            description: 'Write tests',
+            dependencies: ['phase_1'],
+            estimatedDuration: 5000,
+            requiredCapabilities: ['testing'],
+          },
+          {
+            id: 'phase_4',
+            description: 'Integration test',
+            dependencies: ['phase_2', 'phase_3'],
+            estimatedDuration: 4000,
+            requiredCapabilities: ['testing'],
+          },
         ],
       });
 
@@ -169,7 +193,8 @@ describe('SmartMicroPhaseDecomposer', () => {
     });
 
     it('extracts JSON from markdown code blocks', async () => {
-      const llmResponse = '```json\n{"phases": [{"id": "p1", "description": "Do it", "dependencies": [], "estimatedDuration": 5000, "requiredCapabilities": ["coding"]}]}\n```';
+      const llmResponse =
+        '```json\n{"phases": [{"id": "p1", "description": "Do it", "dependencies": [], "estimatedDuration": 5000, "requiredCapabilities": ["coding"]}]}\n```';
 
       const llm = mockLLM(llmResponse);
       const decomposer = new SmartMicroPhaseDecomposer(llm);
@@ -200,7 +225,15 @@ describe('SmartMicroPhaseDecomposer', () => {
 
     it('does not mark as decomposed when below complexity threshold', async () => {
       const llmResponse = JSON.stringify({
-        phases: [{ id: 'only', description: 'Just do it', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] }],
+        phases: [
+          {
+            id: 'only',
+            description: 'Just do it',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+        ],
       });
 
       const llm = mockLLM(llmResponse);
@@ -214,8 +247,20 @@ describe('SmartMicroPhaseDecomposer', () => {
     it('respects custom complexity threshold', async () => {
       const llmResponse = JSON.stringify({
         phases: [
-          { id: 'a', description: 'Step A', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
-          { id: 'b', description: 'Step B', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
+          {
+            id: 'a',
+            description: 'Step A',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'b',
+            description: 'Step B',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
         ],
       });
 
@@ -229,10 +274,34 @@ describe('SmartMicroPhaseDecomposer', () => {
     it('enforces maxParallelism by adding synthetic dependencies', async () => {
       const llmResponse = JSON.stringify({
         phases: [
-          { id: 'a', description: 'A', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
-          { id: 'b', description: 'B', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
-          { id: 'c', description: 'C', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
-          { id: 'd', description: 'D', dependencies: [], estimatedDuration: 3000, requiredCapabilities: ['coding'] },
+          {
+            id: 'a',
+            description: 'A',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'b',
+            description: 'B',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'c',
+            description: 'C',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
+          {
+            id: 'd',
+            description: 'D',
+            dependencies: [],
+            estimatedDuration: 3000,
+            requiredCapabilities: ['coding'],
+          },
         ],
       });
 
@@ -272,11 +341,7 @@ describe('SmartMicroPhaseDecomposer', () => {
       const decomposer = new SmartMicroPhaseDecomposer(llm);
 
       // a(5s) and b(5s) in parallel, c(5s) depends on both
-      const phases = [
-        phase('a', [], 5000),
-        phase('b', [], 5000),
-        phase('c', ['a', 'b'], 5000),
-      ];
+      const phases = [phase('a', [], 5000), phase('b', [], 5000), phase('c', ['a', 'b'], 5000)];
       const plan = decomposer.buildExecutionPlan(phases);
 
       // Sequential: 15000ms, Parallel: 5000 + 5000 = 10000ms

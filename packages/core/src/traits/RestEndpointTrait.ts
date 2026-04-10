@@ -16,7 +16,12 @@ export const restEndpointHandler: TraitHandler<RestEndpointConfig> = {
     delete node.__restState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: RestEndpointConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: RestEndpointConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__restState as { routes: Map<string, string>; requests: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

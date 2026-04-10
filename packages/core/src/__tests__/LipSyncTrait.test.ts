@@ -84,4 +84,3 @@ describe('LipSyncTrait - Phoneme Method', () => {
     expect(lipSync.samplePhonemeAtTime(99.95).viseme).toBe('aa');
   });
 });
-

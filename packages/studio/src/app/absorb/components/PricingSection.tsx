@@ -138,25 +138,19 @@ export function PricingTab({ onPurchase }: { onPurchase: (pkgId: string) => void
       <div className="text-center">
         <h2 className="text-2xl font-bold text-studio-text">Pay Only For What You Use</h2>
         <p className="mt-2 text-sm text-studio-muted">
-          Buy credits and spend them on AI-powered code analysis and improvement. We use
-          Claude, Grok, and GPT -- you get the best model available.
+          Buy credits and spend them on AI-powered code analysis and improvement. We use Claude,
+          Grok, and GPT -- you get the best model available.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         {CREDIT_PACKAGES.map((pkg) => (
-          <CreditPackageCard
-            key={pkg.id}
-            pkg={pkg}
-            onPurchase={() => onPurchase(pkg.id)}
-          />
+          <CreditPackageCard key={pkg.id} pkg={pkg} onPurchase={() => onPurchase(pkg.id)} />
         ))}
       </div>
 
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-studio-text text-center">
-          Operation Costs
-        </h3>
+        <h3 className="mb-4 text-lg font-semibold text-studio-text text-center">Operation Costs</h3>
         <OperationCostTable />
         <p className="mt-4 text-center text-xs text-studio-muted">
           LLM token usage is metered on top of base costs with a transparent 15% markup over
@@ -165,9 +159,7 @@ export function PricingTab({ onPurchase }: { onPurchase: (pkgId: string) => void
       </div>
 
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-studio-text text-center">
-          Tier Comparison
-        </h3>
+        <h3 className="mb-4 text-lg font-semibold text-studio-text text-center">Tier Comparison</h3>
         <TierComparisonTable />
       </div>
 
@@ -187,16 +179,14 @@ export function PricingTab({ onPurchase }: { onPurchase: (pkgId: string) => void
             <div key={p.name} className="rounded-lg bg-[#0f172a] p-4">
               <div className="text-sm font-medium text-studio-text">{p.name}</div>
               <div className="mt-1 text-[10px] text-studio-muted">{p.model}</div>
-              <div className="mt-2 text-[10px] text-studio-muted">
-                Input: {p.input}/M tokens
-              </div>
+              <div className="mt-2 text-[10px] text-studio-muted">Input: {p.input}/M tokens</div>
               <div className="text-[10px] text-studio-muted">Output: {p.output}/M tokens</div>
             </div>
           ))}
         </div>
         <p className="mt-4 text-[10px] text-studio-muted">
-          We automatically select the best available provider. Prices shown are base provider
-          costs -- our 30% markup is applied transparently.
+          We automatically select the best available provider. Prices shown are base provider costs
+          -- our 30% markup is applied transparently.
         </p>
       </div>
     </div>

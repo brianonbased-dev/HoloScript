@@ -54,9 +54,5 @@ export { SpikeEncoder, SpikeDecoder } from './spike-codec.js';
 export { SNNNetwork } from './snn-network.js';
 
 // PoC utilities (preserved from @holoscript/snn-poc RFC-0042)
-export {
-  CPUReferenceSimulator,
-  generateSynapticInput,
-  generateWeightMatrix,
-} from './poc/index.js';
+export { CPUReferenceSimulator, generateSynapticInput, generateWeightMatrix } from './poc/index.js';
 export type { CPUNeuronState, StepResult } from './poc/index.js';

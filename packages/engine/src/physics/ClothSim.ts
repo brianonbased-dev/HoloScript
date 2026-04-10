@@ -222,4 +222,3 @@ export class ClothSim {
     return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
   }
 }
-

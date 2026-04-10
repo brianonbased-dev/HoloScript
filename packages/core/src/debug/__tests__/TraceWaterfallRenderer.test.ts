@@ -6,7 +6,9 @@ import { describe, it, expect } from 'vitest';
 import { TraceWaterfallRenderer } from '../TraceWaterfallRenderer';
 import type { TraceSpan } from '../TelemetryTypes';
 
-function makeSpan(overrides: Partial<TraceSpan> & { traceId?: string; spanId?: string; parentSpanId?: string } = {}): TraceSpan {
+function makeSpan(
+  overrides: Partial<TraceSpan> & { traceId?: string; spanId?: string; parentSpanId?: string } = {}
+): TraceSpan {
   const { traceId, spanId, parentSpanId, ...rest } = overrides;
   const resolvedSpanId = spanId ?? `span-${Math.random().toString(36).slice(2, 8)}`;
   return {

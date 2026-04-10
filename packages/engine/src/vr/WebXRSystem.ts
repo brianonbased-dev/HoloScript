@@ -99,7 +99,9 @@ export class WebXRSystem implements EngineSystem {
     // Check WebXR support
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
       try {
-        this.supported = await (navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }).xr.isSessionSupported('immersive-vr');
+        this.supported = await (
+          navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }
+        ).xr.isSessionSupported('immersive-vr');
       } catch {
         this.supported = false;
       }
@@ -298,4 +300,3 @@ export class WebXRSystem implements EngineSystem {
     }
   }
 }
-

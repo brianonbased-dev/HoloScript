@@ -344,4 +344,3 @@ export function isBindValue(value: unknown): value is { __bind: true; source: st
     (value as Record<string, unknown>).__bind === true
   );
 }
-

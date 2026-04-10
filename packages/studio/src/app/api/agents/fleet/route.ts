@@ -46,10 +46,12 @@ interface LaunchPayload {
 
 // ── Upstream config ──────────────────────────────────────────────────────────
 
-const HOLOMESH_BASE = process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
-const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
-const MOLTBOOK_BASE = process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1';
-const MOLTBOOK_KEY = process.env.MOLTBOOK_API_KEY || '';
+import { ENDPOINTS, getHolomeshKey, getMoltbookKey } from '@holoscript/config';
+
+const HOLOMESH_BASE = ENDPOINTS.HOLOSCRIPT_MCP;
+const HOLOMESH_KEY = getHolomeshKey() || '';
+const MOLTBOOK_BASE = ENDPOINTS.MOLTBOOK_API;
+const MOLTBOOK_KEY = getMoltbookKey() || '';
 
 function authHeaders(key: string): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
       const data: unknown = await res.json();
       const body = data as { agents?: FleetAgent[] };
       if (body.agents) {
-        agents.push(...body.agents.map(a => ({ ...a, platform: 'holomesh' as const })));
+        agents.push(...body.agents.map((a) => ({ ...a, platform: 'holomesh' as const })));
       }
     }
   } catch {
@@ -86,13 +88,15 @@ export async function GET(req: NextRequest) {
       const res = await fetch(`${MOLTBOOK_BASE}/agents/mine`, { headers });
       if (res.ok) {
         const data: unknown = await res.json();
-        const body = data as { agents?: Array<{
-          id: string;
-          name: string;
-          bio?: string;
-          reputation?: number;
-          status?: string;
-        }> };
+        const body = data as {
+          agents?: Array<{
+            id: string;
+            name: string;
+            bio?: string;
+            reputation?: number;
+            status?: string;
+          }>;
+        };
         if (body.agents) {
           for (const ma of body.agents) {
             agents.push({
@@ -182,7 +186,7 @@ export async function POST(req: NextRequest) {
         if (res.status !== 404) {
           return NextResponse.json(
             { error: errBody?.error || `HoloMesh registration failed (${res.status})` },
-            { status: res.status },
+            { status: res.status }
           );
         }
       }
@@ -202,7 +206,7 @@ export async function POST(req: NextRequest) {
           const errBody = errData as { error?: string } | null;
           return NextResponse.json(
             { error: errBody?.error || `Moltbook registration failed (${res.status})` },
-            { status: res.status },
+            { status: res.status }
           );
         }
       }
@@ -210,17 +214,22 @@ export async function POST(req: NextRequest) {
     // 'custom' platform: registration happens client-side or via webhook — no upstream call
   } catch (err) {
     return NextResponse.json(
-      { error: `Platform registration failed: ${err instanceof Error ? err.message : 'unknown error'}` },
-      { status: 502 },
+      {
+        error: `Platform registration failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      },
+      { status: 502 }
     );
   }
 
-  return NextResponse.json({
-    agentId,
-    publicKey: publicKeyHex,
-    platform: payload.platform,
-    name: payload.name.trim(),
-    status: 'active',
-    createdAt: new Date().toISOString(),
-  }, { status: 201 });
+  return NextResponse.json(
+    {
+      agentId,
+      publicKey: publicKeyHex,
+      platform: payload.platform,
+      name: payload.name.trim(),
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    },
+    { status: 201 }
+  );
 }

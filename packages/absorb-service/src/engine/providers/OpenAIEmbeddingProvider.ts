@@ -112,7 +112,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 
   private async initClient(): Promise<OpenAIClient> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamically imported constructor
+     
     let OpenAI: new (opts: { apiKey: string }) => OpenAIClient;
 
     try {

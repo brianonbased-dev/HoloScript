@@ -18,7 +18,12 @@ export const chaosTestHandler: TraitHandler<ChaosTestConfig> = {
     delete node.__chaosState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: ChaosTestConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ChaosTestConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__chaosState as { injected: number; types: string[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

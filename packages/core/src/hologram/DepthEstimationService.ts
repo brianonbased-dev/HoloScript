@@ -12,7 +12,7 @@ export {
   depthToNormalMap,
   detectBestBackend,
   GIFDisposalMethod,
-// @ts-ignore
+  // @ts-ignore
 } from '../../../engine/src/hologram/DepthEstimationService';
 
 export type {
@@ -22,5 +22,5 @@ export type {
   DepthSequenceConfig,
   GIFFrame,
   GIFDecomposerConfig,
-// @ts-ignore
+  // @ts-ignore
 } from '../../../engine/src/hologram/DepthEstimationService';

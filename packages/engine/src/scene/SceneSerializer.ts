@@ -269,4 +269,3 @@ export class SceneSerializer {
     return value;
   }
 }
-

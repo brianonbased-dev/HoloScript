@@ -202,6 +202,7 @@ export default defineConfig({
             { text: 'Release Slice (v5.0.1)', link: '/guides/release-slice-v5-0-1' },
             { text: 'HoloDaemon Demo', link: '/guides/holodaemon-demo' },
             { text: 'Studio V6 Architecture', link: '/guides/studio-v6-architecture' },
+            { text: 'Metrics SSOT', link: '/guides/metrics-ssot' },
           ],
         },
         {

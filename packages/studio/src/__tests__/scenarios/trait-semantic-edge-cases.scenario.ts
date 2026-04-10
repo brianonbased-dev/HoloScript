@@ -21,15 +21,18 @@ export interface SpatialEntity {
 }
 
 // 1. Contradictory constraints
-export function validateTraitComposition(traitRegistry: Map<string, SemanticTrait>, addedTraits: string[]): { valid: boolean; conflicts: string[] } {
+export function validateTraitComposition(
+  traitRegistry: Map<string, SemanticTrait>,
+  addedTraits: string[]
+): { valid: boolean; conflicts: string[] } {
   const conflicts: string[] = [];
   const categorized = new Map<string, string[]>();
 
   for (const t of addedTraits) {
     const data = traitRegistry.get(t);
     if (!data) continue;
-    
-    // Simple heuristic: Enforce max 1 motion constraint trait for predictability 
+
+    // Simple heuristic: Enforce max 1 motion constraint trait for predictability
     if (data.category === 'motion') {
       if (!categorized.has('motion')) {
         categorized.set('motion', []);
@@ -50,7 +53,7 @@ export function validateTraitComposition(traitRegistry: Map<string, SemanticTrai
 // 2. Dynamic Trait Injection mid-simulation
 export function injectRuntimeTrait(entity: SpatialEntity, trait: string): boolean {
   if (entity.traits.has(trait)) return false; // Trait already exists
-  
+
   if (entity.traits.size >= 20) {
     throw new Error('TRAIT_OVERLOAD: Entity exceeds maximum safe runtime trait volume (20).');
   }
@@ -60,7 +63,10 @@ export function injectRuntimeTrait(entity: SpatialEntity, trait: string): boolea
 }
 
 // 3. Hardware/IoT Mapping Edge Case (Sensor Dropout)
-export function calculateIoTHardwareFidelity(entity: SpatialEntity, requiredSensors: number): number {
+export function calculateIoTHardwareFidelity(
+  entity: SpatialEntity,
+  requiredSensors: number
+): number {
   if (requiredSensors === 0) return 1.0;
   // If a drone agent needs 5 visual sensors but activeSensors = 2 due to physical dropout
   const ratio = entity.activeSensors / requiredSensors;
@@ -110,7 +116,7 @@ describe('Scenario: Traits — Runtime Injection', () => {
   it('Safeguards against trait exhaustion attacks (>20 traits on single asset)', () => {
     const traits = new Set<string>();
     for (let i = 0; i < 20; i++) traits.add(`@trait_${i}`);
-    
+
     const entity: SpatialEntity = { id: 'obj_overload', traits, activeSensors: 2 };
     expect(() => injectRuntimeTrait(entity, '@one_too_many')).toThrow('TRAIT_OVERLOAD');
   });
@@ -118,7 +124,11 @@ describe('Scenario: Traits — Runtime Injection', () => {
 
 describe('Scenario: Traits — IoT/Hardware Map Dropout', () => {
   it('Degrades fidelity ratio linearly on sensor failure', () => {
-    const drone: SpatialEntity = { id: 'drone_unit_7', traits: new Set(['@drone']), activeSensors: 2 };
+    const drone: SpatialEntity = {
+      id: 'drone_unit_7',
+      traits: new Set(['@drone']),
+      activeSensors: 2,
+    };
     // 2 out of 5 required sensors are online
     expect(calculateIoTHardwareFidelity(drone, 5)).toBe(0.4);
   });
@@ -127,14 +137,16 @@ describe('Scenario: Traits — IoT/Hardware Map Dropout', () => {
     const rock: SpatialEntity = { id: 'rock', traits: new Set(['@stationary']), activeSensors: 0 };
     expect(calculateIoTHardwareFidelity(rock, 0)).toBe(1.0);
   });
-  
+
   it('Triggers IoT physical actuator shutdown fallback hooks upon fidelity < 0.2', () => {
     let fallbackHookFired = false;
-    const triggerHook = () => { fallbackHookFired = true; };
-    
+    const triggerHook = () => {
+      fallbackHookFired = true;
+    };
+
     // Simulate critical damage fidelity drop to 0.1
     const didFallback = evaluateIoTFallback(0.1, triggerHook);
-    
+
     expect(didFallback).toBe(true);
     expect(fallbackHookFired).toBe(true);
   });

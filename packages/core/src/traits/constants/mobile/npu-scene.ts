@@ -18,28 +18,28 @@
  */
 export const NPU_SCENE_TRAITS = [
   // --- Classification ---
-  'npu_classify',           // whole-image classification (VNClassifyImageRequest / ImageLabeler)
+  'npu_classify', // whole-image classification (VNClassifyImageRequest / ImageLabeler)
 
   // --- Detection ---
-  'npu_detect',             // bounding-box object detection (VNRecognizeAnimalsRequest / ObjectDetector)
+  'npu_detect', // bounding-box object detection (VNRecognizeAnimalsRequest / ObjectDetector)
 
   // --- Segmentation ---
-  'npu_segment',            // semantic segmentation mask (VNGeneratePersonSegmentationRequest / Segmenter)
+  'npu_segment', // semantic segmentation mask (VNGeneratePersonSegmentationRequest / Segmenter)
 
   // --- Depth ---
-  'npu_depth',              // monocular depth estimation (ARFrame.sceneDepth / DepthEstimation ML Kit)
+  'npu_depth', // monocular depth estimation (ARFrame.sceneDepth / DepthEstimation ML Kit)
 
   // --- Entity Pipeline ---
-  'npu_entity_pipe',        // pipe recognized objects into .holo scene graph as interactive entities
+  'npu_entity_pipe', // pipe recognized objects into .holo scene graph as interactive entities
 
   // --- Realtime ---
-  'npu_realtime',           // continuous inference on every camera frame (throttled to target FPS)
+  'npu_realtime', // continuous inference on every camera frame (throttled to target FPS)
 
   // --- Custom Models ---
-  'npu_model_custom',       // load user-provided CoreML (.mlmodelc) or TFLite (.tflite) model
+  'npu_model_custom', // load user-provided CoreML (.mlmodelc) or TFLite (.tflite) model
 
   // --- Label Overlay ---
-  'npu_label_overlay',      // holographic labels floating above recognized objects in AR space
+  'npu_label_overlay', // holographic labels floating above recognized objects in AR space
 ] as const;
 
 export type NPUSceneTraitName = (typeof NPU_SCENE_TRAITS)[number];

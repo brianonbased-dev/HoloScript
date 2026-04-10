@@ -60,7 +60,7 @@ document.addEventListener('input', (e) => {
 
 ## Supported Targets
 
-All 30+ compiler targets work in the browser:
+Browser-compatible targets evolve over time. Verify current target keys from `ExportTarget` and test per-runtime support:
 
 - WebGPU
 - Three.js

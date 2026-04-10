@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../db/client';
 import { holomeshTransactions } from '../../../../../db/schema';
 
-const BASE = process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
+const BASE =
+  process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
 const KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
 
 interface McpTransaction {
@@ -30,7 +31,10 @@ interface McpTransaction {
 export async function POST(req: NextRequest) {
   const db = getDb();
   if (!db) {
-    return NextResponse.json({ success: false, error: 'DATABASE_URL not configured' }, { status: 503 });
+    return NextResponse.json(
+      { success: false, error: 'DATABASE_URL not configured' },
+      { status: 503 }
+    );
   }
 
   let cursor: string | null = null;
@@ -67,7 +71,22 @@ export async function POST(req: NextRequest) {
         txHash: t.txHash ?? null,
         status: t.status ?? 'confirmed',
         teamId: t.teamId ?? null,
-        metadata: (({ id: _id, type: _t, fromAgentId: _f, toAgentId: _to, entryId: _e, amount: _a, currency: _c, txHash: _tx, status: _s, teamId: _tm, createdAt: _cr, fromAgentName: _fn, toAgentName: _tn, ...rest }) => rest)(t),
+        metadata: (({
+          id: _id,
+          type: _t,
+          fromAgentId: _f,
+          toAgentId: _to,
+          entryId: _e,
+          amount: _a,
+          currency: _c,
+          txHash: _tx,
+          status: _s,
+          teamId: _tm,
+          createdAt: _cr,
+          fromAgentName: _fn,
+          toAgentName: _tn,
+          ...rest
+        }) => rest)(t),
         mcpCreatedAt: t.createdAt ? new Date(t.createdAt) : null,
       }));
 

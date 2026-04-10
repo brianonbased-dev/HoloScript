@@ -8,6 +8,7 @@ on:
       - 'DOCS_AUDIT_COMPLETE.md'
       - '.github/workflows/docs-quality.yml'
       - 'scripts/check-roadmap-drift.mjs'
+      - 'scripts/check-doc-count-drift.mjs'
       - 'package.json'
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - 'DOCS_AUDIT_COMPLETE.md'
       - '.github/workflows/docs-quality.yml'
       - 'scripts/check-roadmap-drift.mjs'
+      - 'scripts/check-doc-count-drift.mjs'
       - 'package.json'
 
 jobs:
@@ -60,3 +62,6 @@ jobs:
 
       - name: Check roadmap drift markers
         run: pnpm docs:roadmap:drift
+
+      - name: Check docs count drift markers
+        run: pnpm docs:counts:drift

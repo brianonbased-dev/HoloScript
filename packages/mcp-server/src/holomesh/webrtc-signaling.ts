@@ -26,7 +26,9 @@ export class WebRTCSignalingServer {
             if (targetWs && targetWs.readyState === WebSocket.OPEN) {
               targetWs.send(message.toString()); // Forward raw payload
             } else {
-              console.warn(`[SignalingServer] Target peer ${data.targetId} not found or disconnected`);
+              console.warn(
+                `[SignalingServer] Target peer ${data.targetId} not found or disconnected`
+              );
             }
             return;
           }
@@ -56,6 +58,5 @@ export class WebRTCSignalingServer {
         });
       }
     });
-
   }
 }

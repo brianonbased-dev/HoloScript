@@ -16,7 +16,12 @@ export const dataRetentionHandler: TraitHandler<DataRetentionConfig> = {
     delete node.__retentionState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: DataRetentionConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: DataRetentionConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__retentionState as { policies: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -590,7 +590,12 @@ export const testHandler: TraitHandler<CompositionTestConfig> = {
 
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, _config: CompositionTestConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: CompositionTestConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const instance: CompositionTestRunner | undefined = node.__test_instance;
     if (!instance) return;

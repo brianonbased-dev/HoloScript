@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server';
-import {
-  getDaemonJob,
-  getJobPatches,
-  getJobLogs,
-  recordPatchAction,
-} from '../store';
+import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../store';
 
 /**
  * GET /api/daemon/jobs/:id
  * GET /api/daemon/jobs/:id?view=patches  — return only patch proposals
  * GET /api/daemon/jobs/:id?view=logs     — return only job logs
  */
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const view = searchParams.get('view');
@@ -42,10 +34,7 @@ export async function GET(
  *
  * Records patch review decisions for telemetry and billing signals.
  */
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const job = getDaemonJob(id);
   if (!job) {
@@ -63,7 +52,7 @@ export async function POST(
   if (!action || !patchIds || !Array.isArray(patchIds)) {
     return NextResponse.json(
       { error: 'Missing required fields: action (apply|export|reject), patchIds (string[])' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -71,15 +60,16 @@ export async function POST(
   if (!validActions.includes(action)) {
     return NextResponse.json(
       { error: `Invalid action "${action}". Must be one of: ${validActions.join(', ')}` },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
-  const mappedAction = action === 'apply'
-    ? 'applied' as const
-    : action === 'export'
-      ? 'exported' as const
-      : 'rejected' as const;
+  const mappedAction =
+    action === 'apply'
+      ? ('applied' as const)
+      : action === 'export'
+        ? ('exported' as const)
+        : ('rejected' as const);
 
   recordPatchAction(id, patchIds, mappedAction);
 

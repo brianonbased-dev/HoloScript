@@ -66,7 +66,15 @@ export interface NextJSAPICompileResult {
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
-const VALID_METHODS = new Set<HttpMethod>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
+const VALID_METHODS = new Set<HttpMethod>([
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+]);
 
 /** Methods that typically carry a request body */
 const BODY_METHODS = new Set<HttpMethod>(['POST', 'PUT', 'PATCH']);
@@ -136,15 +144,17 @@ function toApiRouteSegment(name: string, override?: string): string {
       .replace(/\/+$/, '');
   }
 
-  return name
-    .replace(/API$/, '')
-    .replace(/Api$/, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1-$2')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '') || 'api';
+  return (
+    name
+      .replace(/API$/, '')
+      .replace(/Api$/, '')
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1-$2')
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'api'
+  );
 }
 
 /**
@@ -187,7 +197,10 @@ function extractHandlers(composition: HoloComposition): HttpHandlerConfig[] {
     const hasHttpTrait = obj.traits.some((t) => t.name === 'http');
     if (!hasHttpTrait) continue;
 
-    const traitConfig = (obj.traits.find((t) => t.name === 'http')?.config ?? {}) as Record<string, HoloValue>;
+    const traitConfig = (obj.traits.find((t) => t.name === 'http')?.config ?? {}) as Record<
+      string,
+      HoloValue
+    >;
     const props = buildPropMap(obj);
 
     // Method can come from the @http trait config (@http { method: "GET" })
@@ -195,9 +208,7 @@ function extractHandlers(composition: HoloComposition): HttpHandlerConfig[] {
     const rawMethod = toScalar(traitConfig['method']) ?? props.get('method');
     const method = parseMethod(rawMethod);
     if (!method) continue;
-    const traitStatus = toScalar(
-      traitConfig['statusCode'] ?? traitConfig['status']
-    );
+    const traitStatus = toScalar(traitConfig['statusCode'] ?? traitConfig['status']);
     const propStatus = props.get('statusCode') ?? props.get('status');
 
     byMethod.set(method, {

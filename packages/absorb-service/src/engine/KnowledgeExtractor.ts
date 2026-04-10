@@ -150,8 +150,7 @@ export class KnowledgeExtractor {
     const stats = graph.getStats();
 
     // W: Language distribution insight
-    const languages = Object.entries(stats.filesByLanguage)
-      .sort((a, b) => b[1] - a[1]);
+    const languages = Object.entries(stats.filesByLanguage).sort((a, b) => b[1] - a[1]);
     if (languages.length > 1) {
       const primary = languages[0];
       const secondary = languages.slice(1);
@@ -184,9 +183,8 @@ export class KnowledgeExtractor {
     // W: Scale insight
     if (stats.totalFiles > 0) {
       const avgLoc = Math.round(stats.totalLoc / stats.totalFiles);
-      const symbolDensity = stats.totalFiles > 0
-        ? (stats.totalSymbols / stats.totalFiles).toFixed(1)
-        : '0';
+      const symbolDensity =
+        stats.totalFiles > 0 ? (stats.totalSymbols / stats.totalFiles).toFixed(1) : '0';
       entries.push({
         id: this.nextId('W', ws),
         type: 'wisdom',
@@ -201,13 +199,11 @@ export class KnowledgeExtractor {
     }
 
     // W: Symbol type distribution
-    const symbolTypes = Object.entries(stats.symbolsByType)
-      .sort((a, b) => b[1] - a[1]);
+    const symbolTypes = Object.entries(stats.symbolsByType).sort((a, b) => b[1] - a[1]);
     if (symbolTypes.length > 0) {
       const dominant = symbolTypes[0];
-      const ratio = stats.totalSymbols > 0
-        ? ((dominant[1] / stats.totalSymbols) * 100).toFixed(0)
-        : '0';
+      const ratio =
+        stats.totalSymbols > 0 ? ((dominant[1] / stats.totalSymbols) * 100).toFixed(0) : '0';
       entries.push({
         id: this.nextId('W', ws),
         type: 'wisdom',
@@ -240,7 +236,12 @@ export class KnowledgeExtractor {
     entries.push({
       id: this.nextId('P', ws),
       type: 'pattern',
-      content: `${communities.size} detected module communities: ${commSizes.slice(0, 5).map((c) => `${c.name} (${c.count} files)`).join(', ')}${commSizes.length > 5 ? ` and ${commSizes.length - 5} more` : ''}. Community boundaries indicate natural module splits.`,
+      content: `${communities.size} detected module communities: ${commSizes
+        .slice(0, 5)
+        .map((c) => `${c.name} (${c.count} files)`)
+        .join(
+          ', '
+        )}${commSizes.length > 5 ? ` and ${commSizes.length - 5} more` : ''}. Community boundaries indicate natural module splits.`,
       confidence: 0.8,
       metadata: {
         extractor: 'community-patterns',
@@ -307,7 +308,12 @@ export class KnowledgeExtractor {
           entries.push({
             id: this.nextId('P', ws),
             type: 'pattern',
-            content: `${suffix} pattern detected: ${symbols.length} implementations (${symbols.slice(0, 4).map((s) => s.name).join(', ')}${symbols.length > 4 ? '...' : ''}). Consistent naming suggests a well-established abstraction.`,
+            content: `${suffix} pattern detected: ${symbols.length} implementations (${symbols
+              .slice(0, 4)
+              .map((s) => s.name)
+              .join(
+                ', '
+              )}${symbols.length > 4 ? '...' : ''}). Consistent naming suggests a well-established abstraction.`,
             confidence: 0.75,
             metadata: {
               extractor: 'code-patterns',
@@ -347,9 +353,10 @@ export class KnowledgeExtractor {
         const dir = t.replace(/[^/]+$/, '');
         return filePaths.some((f) => f !== t && f.startsWith(dir) && !/(test|spec)/.test(f));
       });
-      const style = testDirs.length > colocated.length
-        ? `__tests__/ directories (${testDirs.length})`
-        : `colocated test files (${colocated.length})`;
+      const style =
+        testDirs.length > colocated.length
+          ? `__tests__/ directories (${testDirs.length})`
+          : `colocated test files (${colocated.length})`;
       entries.push({
         id: this.nextId('P', ws),
         type: 'pattern',
@@ -458,21 +465,22 @@ export class KnowledgeExtractor {
 
     // G: Files with no test coverage signal
     const sourceFiles = filePaths.filter(
-      (p) => !/\.(test|spec)\.(ts|js|tsx|jsx)$/.test(p)
-        && !/__tests__\//.test(p)
-        && !/(node_modules|dist|build)\//.test(p)
+      (p) =>
+        !/\.(test|spec)\.(ts|js|tsx|jsx)$/.test(p) &&
+        !/__tests__\//.test(p) &&
+        !/(node_modules|dist|build)\//.test(p)
     );
     const testFiles = new Set(
-      filePaths.filter(
-        (p) => /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(p) || /__tests__\//.test(p)
-      )
+      filePaths.filter((p) => /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(p) || /__tests__\//.test(p))
     );
     const untestedCandidates = sourceFiles.filter((sf) => {
       // Check if there's a test file nearby
       const base = sf.replace(/\.(ts|js|tsx|jsx)$/, '');
       const testVariants = [
-        `${base}.test.ts`, `${base}.spec.ts`,
-        `${base}.test.js`, `${base}.spec.js`,
+        `${base}.test.ts`,
+        `${base}.spec.ts`,
+        `${base}.test.js`,
+        `${base}.spec.js`,
         sf.replace(/\/([^/]+)\.(ts|js)/, '/__tests__/$1.test.ts'),
         sf.replace(/\/([^/]+)\.(ts|js)/, '/__tests__/$1.test.js'),
       ];
@@ -484,7 +492,10 @@ export class KnowledgeExtractor {
       entries.push({
         id: this.nextId('G', ws),
         type: 'gotcha',
-        content: `Test coverage gap: ${untestedCandidates.length} of ${sourceFiles.length} source files (${coverageGap}%) have no adjacent test file. Top untested: ${untestedCandidates.slice(0, 3).map((f) => this.shortenPath(f)).join(', ')}.`,
+        content: `Test coverage gap: ${untestedCandidates.length} of ${sourceFiles.length} source files (${coverageGap}%) have no adjacent test file. Top untested: ${untestedCandidates
+          .slice(0, 3)
+          .map((f) => this.shortenPath(f))
+          .join(', ')}.`,
         confidence: 0.6,
         metadata: {
           extractor: 'gotchas',
@@ -564,10 +575,17 @@ export class KnowledgeExtractor {
   private nextId(prefix: string, ws: string): string {
     let count: number;
     switch (prefix) {
-      case 'W': count = ++this.wisdomCount; break;
-      case 'P': count = ++this.patternCount; break;
-      case 'G': count = ++this.gotchaCount; break;
-      default: count = 0;
+      case 'W':
+        count = ++this.wisdomCount;
+        break;
+      case 'P':
+        count = ++this.patternCount;
+        break;
+      case 'G':
+        count = ++this.gotchaCount;
+        break;
+      default:
+        count = 0;
     }
     return `${prefix}.${ws}.${String(count).padStart(3, '0')}`;
   }
@@ -582,7 +600,16 @@ export class KnowledgeExtractor {
     symbols: ExternalSymbolDefinition[]
   ): Map<string, ExternalSymbolDefinition[]> {
     const groups: Map<string, ExternalSymbolDefinition[]> = new Map();
-    const suffixes = ['Adapter', 'Strategy', 'Factory', 'Provider', 'Handler', 'Middleware', 'Interceptor', 'Decorator'];
+    const suffixes = [
+      'Adapter',
+      'Strategy',
+      'Factory',
+      'Provider',
+      'Handler',
+      'Middleware',
+      'Interceptor',
+      'Decorator',
+    ];
 
     for (const sym of symbols) {
       for (const suffix of suffixes) {

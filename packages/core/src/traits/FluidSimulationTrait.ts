@@ -465,7 +465,13 @@ export class FluidSimulationSystem {
 }
 
 // ── Handler (delegates to SpatialHash) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const fluidSimulationHandler = {
   name: 'fluid_simulation',

@@ -283,4 +283,3 @@ export class PhysicsStep implements EngineSystem {
     this.broadphaseGrid.clear();
   }
 }
-

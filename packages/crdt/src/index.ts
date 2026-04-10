@@ -51,4 +51,3 @@ export {
   SyncMessageType,
   PeerState,
 } from './sync/WebRTCSync';
-

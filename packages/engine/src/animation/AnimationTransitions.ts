@@ -167,9 +167,16 @@ export class AnimationTransitionSystem {
     t: number
   ): { x: number; y: number; z: number; w: number } {
     let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-    let bx = b.x, by = b.y, bz = b.z, bw = b.w;
+    let bx = b.x,
+      by = b.y,
+      bz = b.z,
+      bw = b.w;
     if (dot < 0) {
-      bx = -bx; by = -by; bz = -bz; bw = -bw; dot = -dot;
+      bx = -bx;
+      by = -by;
+      bz = -bz;
+      bw = -bw;
+      dot = -dot;
     }
 
     const rx = a.x + (bx - a.x) * t;
@@ -180,4 +187,3 @@ export class AnimationTransitionSystem {
     return { x: rx / len, y: ry / len, z: rz / len, w: rw / len };
   }
 }
-

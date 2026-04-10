@@ -5,7 +5,13 @@
  * This file re-exports for backward compatibility.
  */
 
-export type { SlotRole, AgentRole, AIProvider, ClaimFilter, TeamAgentProfile } from '@holoscript/framework';
+export type {
+  SlotRole,
+  AgentRole,
+  AIProvider,
+  ClaimFilter,
+  TeamAgentProfile,
+} from '@holoscript/framework';
 
 export {
   BRITTNEY_AGENT,

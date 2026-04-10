@@ -18,7 +18,12 @@ export const snapshotTestHandler: TraitHandler<SnapshotTestConfig> = {
     delete node.__snapState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: SnapshotTestConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SnapshotTestConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__snapState as { snapshots: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

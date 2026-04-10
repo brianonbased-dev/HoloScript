@@ -16,7 +16,12 @@ export const dataTransformHandler: TraitHandler<DataTransformConfig> = {
     delete node.__dtState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: DataTransformConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: DataTransformConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__dtState as { transforms: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'transform:apply') {

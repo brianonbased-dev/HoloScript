@@ -74,7 +74,9 @@ describe('NextJSCompiler', () => {
     });
     const compiled = await compiler.compile(result.ast!, 'test-token');
 
-    expect(compiled.code).toContain("import { PipelineWorkbench } from '@/components/pipeline/PipelineWorkbench';");
+    expect(compiled.code).toContain(
+      "import { PipelineWorkbench } from '@/components/pipeline/PipelineWorkbench';"
+    );
     expect(compiled.code).toContain('<PipelineWorkbench />');
   });
 

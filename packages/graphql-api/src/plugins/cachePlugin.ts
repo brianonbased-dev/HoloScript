@@ -62,12 +62,18 @@ class ResponseCache {
     this.ttl = ttl;
   }
 
-  private generateKey(operationName: string | undefined, variables: Record<string, unknown> | null): string {
+  private generateKey(
+    operationName: string | undefined,
+    variables: Record<string, unknown> | null
+  ): string {
     const key = `${operationName || 'unknown'}:${JSON.stringify(variables || {})}`;
     return createHash('sha256').update(key).digest('hex').substring(0, 16);
   }
 
-  get(operationName: string | undefined, variables: Record<string, unknown> | null): CacheEntry['result'] | null {
+  get(
+    operationName: string | undefined,
+    variables: Record<string, unknown> | null
+  ): CacheEntry['result'] | null {
     const key = this.generateKey(operationName, variables);
     const entry = this.cache.get(key);
 
@@ -91,7 +97,11 @@ class ResponseCache {
     return entry.result;
   }
 
-  set(operationName: string | undefined, variables: Record<string, unknown> | null, result: Record<string, unknown>): void {
+  set(
+    operationName: string | undefined,
+    variables: Record<string, unknown> | null,
+    result: Record<string, unknown>
+  ): void {
     const key = this.generateKey(operationName, variables);
 
     // Evict oldest entry if at capacity
@@ -182,7 +192,9 @@ export function createCachePlugin(
           if (cachedResult) {
             response.body.kind = 'single';
             if (response.body.kind === 'single') {
-              const cachedExtensions = cachedResult.extensions as Record<string, unknown> | undefined;
+              const cachedExtensions = cachedResult.extensions as
+                | Record<string, unknown>
+                | undefined;
               response.body.singleResult = {
                 ...cachedResult,
                 extensions: includeStatus

@@ -254,7 +254,9 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
         // Create a temporary engine with the custom LLM provider
         const { GraphRAGEngine } = await import('@holoscript/core/codebase');
-        const graph = cachedGraphRAGEngine.graph || (cachedGraphRAGEngine.constructor as { graph?: unknown }).graph;
+        const graph =
+          cachedGraphRAGEngine.graph ||
+          (cachedGraphRAGEngine.constructor as { graph?: unknown }).graph;
         engine = new GraphRAGEngine(graph, cachedEmbeddingIndex, {
           llmProvider: llmAdapter,
           llmModel: llmModel,

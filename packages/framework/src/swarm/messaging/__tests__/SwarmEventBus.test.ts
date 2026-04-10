@@ -102,11 +102,15 @@ describe('SwarmEventBus', () => {
     it('should process critical events by priority order', async () => {
       const order: string[] = [];
 
-      bus.subscribe('event', (e: any) => { order.push(e.priority); });
+      bus.subscribe('event', (e: any) => {
+        order.push(e.priority);
+      });
 
       // Use publish with asyncProcessing: false - events are queued by priority
       const asyncBus = new SwarmEventBus({ asyncProcessing: true });
-      asyncBus.subscribe('event', (e: any) => { order.push(e.priority); });
+      asyncBus.subscribe('event', (e: any) => {
+        order.push(e.priority);
+      });
 
       // Emit directly for synchronous test
       bus.emit('event', 'a', {}, { priority: 'low' });

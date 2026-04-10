@@ -12,14 +12,14 @@ describe('Trait Config Block Parsing', () => {
     const parser = new HoloCompositionParser();
     const result = parser.parse(source);
     expect(result.success).toBe(true);
-    
+
     const obj = result.ast!.objects[0];
     expect(obj.traits).toBeDefined();
     expect(obj.traits[0].name).toBe('text');
     expect(obj.traits[0].config).toEqual({
       variant: 'h1',
       content: 'Hello',
-      size: 42
+      size: 42,
     });
   });
 
@@ -34,14 +34,14 @@ describe('Trait Config Block Parsing', () => {
     const parser = new HoloCompositionParser();
     const result = parser.parse(source);
     expect(result.success).toBe(true);
-    
+
     const tmpl = result.ast!.templates[0];
     expect(tmpl.traits).toBeDefined();
     expect(tmpl.traits[0].name).toBe('ui_panel');
     expect(tmpl.traits[0].config).toEqual({
       width: 500,
       height: 300,
-      responsive: true
+      responsive: true,
     });
   });
 
@@ -55,14 +55,14 @@ describe('Trait Config Block Parsing', () => {
     const parser = new HoloCompositionParser();
     const result = parser.parse(source);
     expect(result.success).toBe(true);
-    
+
     const obj = result.ast!.objects[0];
     expect(obj.traits).toBeDefined();
     expect(obj.traits[0].name).toBe('text');
     expect(obj.traits[0].config).toEqual({
       variant: 'h1',
       content: 'Hello',
-      size: 42
+      size: 42,
     });
   });
 });

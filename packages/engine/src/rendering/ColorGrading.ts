@@ -178,4 +178,3 @@ export class ColorGrading {
     return output;
   }
 }
-

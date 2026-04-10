@@ -238,16 +238,28 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
     if (!state) return;
 
     if (event.type === 'damage') {
-      const damageAmount = (event as unknown as Record<string, unknown>).amount as number || 10;
+      const damageAmount = ((event as unknown as Record<string, unknown>).amount as number) || 10;
       state.currentHealth -= damageAmount;
       state.accumulatedDamage += damageAmount;
 
       if (state.currentHealth <= config.damage_threshold && !state.isDestroyed) {
-        triggerDestruction(node, config, context, state, (event.impactPoint as { x: number; y: number; z: number; } | undefined));
+        triggerDestruction(
+          node,
+          config,
+          context,
+          state,
+          event.impactPoint as { x: number; y: number; z: number } | undefined
+        );
       }
     } else if (event.type === 'destroy') {
       if (!state.isDestroyed) {
-        triggerDestruction(node, config, context, state, (event.impactPoint as { x: number; y: number; z: number; } | undefined));
+        triggerDestruction(
+          node,
+          config,
+          context,
+          state,
+          event.impactPoint as { x: number; y: number; z: number } | undefined
+        );
       }
     } else if (event.type === 'repair') {
       state.currentHealth = state.maxHealth;
@@ -318,13 +330,18 @@ function triggerDestruction(
 
   // Store original mesh for repair restoration
   if (!state.originalMesh) {
-    state.originalMesh = (node as Record<string, unknown>).mesh ?? (node as Record<string, unknown>).geometry ?? node;
+    state.originalMesh =
+      (node as Record<string, unknown>).mesh ?? (node as Record<string, unknown>).geometry ?? node;
   }
 
   state.isDestroyed = true;
 
   const nodeRecord = node as Record<string, unknown>;
-  const position = (nodeRecord.position as { x: number; y: number; z: number }) || { x: 0, y: 0, z: 0 };
+  const position = (nodeRecord.position as { x: number; y: number; z: number }) || {
+    x: 0,
+    y: 0,
+    z: 0,
+  };
   const scale = (nodeRecord.scale as { x: number; y: number; z: number }) || { x: 1, y: 1, z: 1 };
 
   // Generate fragments
@@ -381,9 +398,11 @@ function triggerDestruction(
     state.chainReactionTriggered = true;
 
     setTimeout(() => {
-      const nearbyDestructibles = (typeof ctxExt.getObjectsInRadius === 'function'
-        ? ctxExt.getObjectsInRadius(position, config.chain_radius)
-        : []) as Array<Record<string, unknown>>;
+      const nearbyDestructibles = (
+        typeof ctxExt.getObjectsInRadius === 'function'
+          ? ctxExt.getObjectsInRadius(position, config.chain_radius)
+          : []
+      ) as Array<Record<string, unknown>>;
       for (const other of nearbyDestructibles) {
         if (other !== node && other.__destructionState) {
           if (typeof ctxExt.dispatchEvent === 'function') {

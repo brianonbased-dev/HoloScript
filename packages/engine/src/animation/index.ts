@@ -61,12 +61,7 @@ export {
   type CutsceneState,
 } from './CutsceneTimeline';
 
-export {
-  IKSolver,
-  type IKBone,
-  type IKChain,
-  type FootPlacementConfig,
-} from './IKSolver';
+export { IKSolver, type IKBone, type IKChain, type FootPlacementConfig } from './IKSolver';
 
 export {
   MorphTargetSystem,
@@ -75,11 +70,7 @@ export {
   type MorphPreset,
 } from './MorphTargets';
 
-export {
-  SkeletalBlender,
-  type AnimPose,
-  type AnimLayer,
-} from './SkeletalBlender';
+export { SkeletalBlender, type AnimPose, type AnimLayer } from './SkeletalBlender';
 
 export {
   SpringAnimator,
@@ -88,16 +79,10 @@ export {
   type SpringConfig,
 } from './SpringAnimator';
 
-export {
-  Timeline,
-  type TimelineMode,
-  type TimelineEntry,
-  type TimelineConfig,
-} from './Timeline';
+export { Timeline, type TimelineMode, type TimelineEntry, type TimelineConfig } from './Timeline';
 
 export {
   TransitionSystem,
   type TransitionDirection as UiTransitionDirection,
   type TransitionOptions,
 } from './TransitionSystem';
-

@@ -563,14 +563,8 @@ function generateEmbedCode(previewUrl: string, resolution: number[]): string {
 ></iframe>`;
 }
 
-export function generateBrowserTemplate(
-  code: string,
-  title: string,
-  sceneId?: string
-): string {
-  const thumbnailUrl = sceneId
-    ? `${PLAYGROUND_URL}/api/scene/${sceneId}/thumbnail`
-    : undefined;
+export function generateBrowserTemplate(code: string, title: string, sceneId?: string): string {
+  const thumbnailUrl = sceneId ? `${PLAYGROUND_URL}/api/scene/${sceneId}/thumbnail` : undefined;
 
   return `<!DOCTYPE html>
 <html lang="en">

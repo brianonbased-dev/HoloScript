@@ -784,9 +784,8 @@ export const AR_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
       const lng = Number(config.longitude ?? 0);
       const accuracy = String(config.accuracy || 'fine');
       const intervalMs = Number(config.update_interval_ms ?? 5000);
-      const accuracyConst = accuracy === 'coarse'
-        ? 'Criteria.ACCURACY_COARSE'
-        : 'Criteria.ACCURACY_FINE';
+      const accuracyConst =
+        accuracy === 'coarse' ? 'Criteria.ACCURACY_COARSE' : 'Criteria.ACCURACY_FINE';
       return [
         `// @geospatial -- AI Glasses: GPS via paired phone (accuracy: ${accuracy})`,
         `val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager`,
@@ -1058,7 +1057,9 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
       const model = String(config.model || 'gemini-nano');
       const maxTokens = Number(config.max_tokens ?? 256);
       const temperature = Number(config.temperature ?? 0.7);
-      const systemPrompt = String(config.system_prompt || `You are ${varName}, an AI assistant on smart glasses.`);
+      const systemPrompt = String(
+        config.system_prompt || `You are ${varName}, an AI assistant on smart glasses.`
+      );
       return [
         `// @ai_npc_brain -- on-device Gemini Nano LLM for ${varName} (model: ${model})`,
         `// AI Glasses: fully on-device inference, no network required`,

@@ -273,7 +273,7 @@ it('should update state when code changes', () => {
 
 From **12.98%** baseline to **40.34%** - a **210.79%** improvement!
 
-| Sprint          | Baseline | Phase 8    | Improvement     |
+| Sprint             | Baseline | Phase 8    | Improvement     |
 | ------------------ | -------- | ---------- | --------------- |
 | **Hooks Coverage** | 12.98%   | **40.34%** | **+27.36%**     |
 | **Total Tests**    | 766      | 1027       | **+261** (+34%) |

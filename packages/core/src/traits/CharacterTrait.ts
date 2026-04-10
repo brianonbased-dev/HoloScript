@@ -907,7 +907,13 @@ export function createCharacterTrait(config?: CharacterConfig): CharacterTrait {
 }
 
 // ── Handler (delegates to CharacterTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const characterHandler = {
   name: 'character',

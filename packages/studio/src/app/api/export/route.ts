@@ -8,7 +8,9 @@ import { NextResponse, NextRequest } from 'next/server';
  */
 
 const EXPORT_API_URL = process.env.EXPORT_API_URL || 'http://localhost:8080';
-const EXPORT_API_KEY = process.env.EXPORT_API_KEY || 'hsk_00000000000000000000000000000000000000000000000000000000000000000000'; // 68 chars mock key
+const EXPORT_API_KEY =
+  process.env.EXPORT_API_KEY ||
+  'hsk_00000000000000000000000000000000000000000000000000000000000000000000'; // 68 chars mock key
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,14 +51,13 @@ export async function POST(request: NextRequest) {
     // delegates this to an async job processor.
     const contentType = res.headers.get('content-type');
     const responseData = await res.arrayBuffer();
-    
+
     return new Response(responseData, {
       status: res.status,
       headers: {
         'Content-Type': contentType || 'application/json',
       },
     });
-
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal Server Error', details: String(error) },

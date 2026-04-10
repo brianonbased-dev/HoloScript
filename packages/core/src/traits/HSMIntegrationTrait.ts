@@ -109,7 +109,7 @@ export const HSMIntegrationTrait: TraitHandler<HSMIntegrationConfig> = {
 };
 
 function compileAWSCloudHSM(config: HSMIntegrationConfig): string {
-    return `
+  return `
 // AWS CloudHSM Integration
 const { CloudHSMV2Client, DescribeClustersCommand } = require('@aws-sdk/client-cloudhsmv2');
 const { KMSClient, CreateKeyCommand, EncryptCommand, DecryptCommand } = require('@aws-sdk/client-kms');
@@ -224,7 +224,7 @@ module.exports = new AWSCloudHSMIntegration();`;
 }
 
 function compileAzureKeyVault(config: HSMIntegrationConfig): string {
-    return `
+  return `
 // Azure Key Vault HSM Integration
 const { KeyClient, CryptographyClient } = require('@azure/keyvault-keys');
 const { DefaultAzureCredential } = require('@azure/identity');
@@ -310,7 +310,7 @@ module.exports = new AzureKeyVaultIntegration();`;
 }
 
 function compileGoogleCloudHSM(config: HSMIntegrationConfig): string {
-    return `
+  return `
 // Google Cloud HSM Integration
 const { KeyManagementServiceClient } = require('@google-cloud/kms');
 
@@ -383,7 +383,7 @@ module.exports = new GoogleCloudHSMIntegration();`;
 }
 
 function compileSecureEnclave(config: HSMIntegrationConfig): string {
-    return `
+  return `
 // iOS/macOS Secure Enclave Integration (Swift)
 import CryptoKit
 import LocalAuthentication
@@ -475,7 +475,7 @@ struct SecureEnclaveKeyInfo {
 }
 
 function compileTPM(config: HSMIntegrationConfig): string {
-    return `
+  return `
 // TPM (Trusted Platform Module) Integration
 #include <tss2/tss2_esys.h>
 #include <tss2/tss2_mu.h>
@@ -566,7 +566,7 @@ public:
 }
 
 function compileGeneric(config: HSMIntegrationConfig): string {
-    return JSON.stringify(config, null, 2);
+  return JSON.stringify(config, null, 2);
 }
 
 export default HSMIntegrationTrait;

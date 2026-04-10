@@ -15,11 +15,7 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import {
-  listDaemonJobs,
-  getTelemetrySummary,
-  createDaemonJob,
-} from '@/app/api/daemon/jobs/store';
+import { listDaemonJobs, getTelemetrySummary, createDaemonJob } from '@/app/api/daemon/jobs/store';
 import type { DaemonProfile } from '@/lib/daemon/types';
 
 // ---------------------------------------------------------------------------
@@ -76,11 +72,8 @@ export async function GET() {
   const latestJob = jobs[0] ?? null;
 
   // Derive daemon status from job state
-  const daemonStatus = runningJobs.length > 0
-    ? 'running'
-    : latestJob?.status === 'failed'
-      ? 'error'
-      : 'idle';
+  const daemonStatus =
+    runningJobs.length > 0 ? 'running' : latestJob?.status === 'failed' ? 'error' : 'idle';
 
   // Aggregate quality from latest completed job
   const latestCompleted = completedJobs[0];
@@ -165,7 +158,7 @@ export async function POST(request: Request) {
     if (running) {
       return NextResponse.json(
         { error: 'A daemon job is already running', activeJobId: running.id },
-        { status: 409 },
+        { status: 409 }
       );
     }
 

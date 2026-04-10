@@ -473,8 +473,6 @@ export const NetworkedTrait: TraitHandler = {
     context.data.ownership = (cfg.ownership as string) ?? 'server';
     context.data.lastSync = 0;
     context.data.syncTimer = 0;
-
-
   },
 
   onUpdate(context: TraitContext, delta: number) {
@@ -507,8 +505,6 @@ export const AnchorTrait: TraitHandler = {
     // Lock position as anchor point
     context.data.anchorPosition = context.object.position.clone();
     context.data.anchorRotation = context.object.quaternion.clone();
-
-
   },
 
   onUpdate(context: TraitContext, _delta: number) {
@@ -638,8 +634,6 @@ export const ReverbZoneTrait: TraitHandler = {
       context.object.add(sphere);
       context.data.boundsVisual = sphere;
     }
-
-
   },
 
   onUpdate(_context: TraitContext, _delta: number) {
@@ -671,8 +665,6 @@ export const VoiceProximityTrait: TraitHandler = {
     context.data.minVolume = (cfg.min_volume as number) ?? 0;
     context.data.maxVolume = (cfg.max_volume as number) ?? 1;
     context.data.falloff = (cfg.falloff as string) ?? 'linear'; // linear, exponential
-
-
   },
 
   onUpdate(_context: TraitContext, _delta: number) {

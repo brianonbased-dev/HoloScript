@@ -279,7 +279,9 @@ export async function handleSearchRoute(
 
     const typeParam = params.get('type') || params.get('types');
     const types = typeParam
-      ? (typeParam.split(',').filter((t) => ['entry', 'agent', 'reply'].includes(t)) as SearchResultType[])
+      ? (typeParam
+          .split(',')
+          .filter((t) => ['entry', 'agent', 'reply'].includes(t)) as SearchResultType[])
       : undefined;
 
     const results = await search({

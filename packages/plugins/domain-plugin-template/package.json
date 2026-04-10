@@ -10,7 +10,13 @@
     "test": "vitest run",
     "clean": "rimraf dist"
   },
-  "keywords": ["holoscript", "plugin", "domain", "template", "vertical"],
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "domain",
+    "template",
+    "vertical"
+  ],
   "author": "brianonbased-dev",
   "license": "MIT",
   "peerDependencies": {

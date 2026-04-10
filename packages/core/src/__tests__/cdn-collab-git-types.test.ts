@@ -36,8 +36,6 @@ import {
   type RenderOptions,
 } from '../../../holoscript-cdn/src/HoloSceneRenderer.js';
 
-
-
 // ============================================================================
 // Feature 1A: CDN -- defaultCDNConfig
 // ============================================================================
@@ -132,4 +130,3 @@ describe('Feature 2: CDN HoloSceneRenderer class', () => {
     expect(validTargets.length).toBe(8);
   });
 });
-

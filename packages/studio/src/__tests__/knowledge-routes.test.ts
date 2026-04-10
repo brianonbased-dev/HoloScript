@@ -24,9 +24,7 @@ describe('Knowledge API Routes', () => {
 
   describe('knowledge extraction route', () => {
     it('exports POST handler', async () => {
-      const route = await import(
-        '../app/api/absorb/projects/[id]/knowledge/route'
-      );
+      const route = await import('../app/api/absorb/projects/[id]/knowledge/route');
       expect(route.POST).toBeDefined();
       expect(typeof route.POST).toBe('function');
     });
@@ -56,9 +54,7 @@ describe('Knowledge API Routes', () => {
         }),
       });
 
-      const { POST } = await import(
-        '../app/api/absorb/projects/[id]/knowledge/route'
-      );
+      const { POST } = await import('../app/api/absorb/projects/[id]/knowledge/route');
 
       const req = new Request('http://localhost/api/absorb/projects/test-proj/knowledge', {
         method: 'POST',
@@ -79,9 +75,7 @@ describe('Knowledge API Routes', () => {
       // All fetch calls fail
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const { POST } = await import(
-        '../app/api/absorb/projects/[id]/knowledge/route'
-      );
+      const { POST } = await import('../app/api/absorb/projects/[id]/knowledge/route');
 
       const req = new Request('http://localhost/api/absorb/projects/test-proj/knowledge', {
         method: 'POST',
@@ -108,9 +102,7 @@ describe('Knowledge API Routes', () => {
     });
 
     it('rejects empty entries array', async () => {
-      const { POST } = await import(
-        '../app/api/absorb/knowledge/publish/route'
-      );
+      const { POST } = await import('../app/api/absorb/knowledge/publish/route');
 
       const req = new Request('http://localhost/api/absorb/knowledge/publish', {
         method: 'POST',
@@ -123,9 +115,7 @@ describe('Knowledge API Routes', () => {
     });
 
     it('rejects missing workspace_id', async () => {
-      const { POST } = await import(
-        '../app/api/absorb/knowledge/publish/route'
-      );
+      const { POST } = await import('../app/api/absorb/knowledge/publish/route');
 
       const req = new Request('http://localhost/api/absorb/knowledge/publish', {
         method: 'POST',
@@ -145,9 +135,7 @@ describe('Knowledge API Routes', () => {
         json: async () => ({ synced: 2 }),
       });
 
-      const { POST } = await import(
-        '../app/api/absorb/knowledge/publish/route'
-      );
+      const { POST } = await import('../app/api/absorb/knowledge/publish/route');
 
       const req = new Request('http://localhost/api/absorb/knowledge/publish', {
         method: 'POST',
@@ -175,9 +163,7 @@ describe('Knowledge API Routes', () => {
         json: async () => ({ synced: 2 }),
       });
 
-      const { POST } = await import(
-        '../app/api/absorb/knowledge/publish/route'
-      );
+      const { POST } = await import('../app/api/absorb/knowledge/publish/route');
 
       const req = new Request('http://localhost/api/absorb/knowledge/publish', {
         method: 'POST',
@@ -202,9 +188,7 @@ describe('Knowledge API Routes', () => {
 
   describe('knowledge earnings route', () => {
     it('exports GET handler', async () => {
-      const route = await import(
-        '../app/api/absorb/knowledge/earnings/route'
-      );
+      const route = await import('../app/api/absorb/knowledge/earnings/route');
       expect(route.GET).toBeDefined();
       expect(typeof route.GET).toBe('function');
     });
@@ -212,13 +196,9 @@ describe('Knowledge API Routes', () => {
     it('returns default earnings when services unavailable', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const { GET } = await import(
-        '../app/api/absorb/knowledge/earnings/route'
-      );
+      const { GET } = await import('../app/api/absorb/knowledge/earnings/route');
 
-      const req = new Request(
-        'http://localhost/api/absorb/knowledge/earnings?wallet=0x1234',
-      );
+      const req = new Request('http://localhost/api/absorb/knowledge/earnings?wallet=0x1234');
       const response = await GET(req as any);
       expect(response.status).toBe(200);
       const data = await response.json();

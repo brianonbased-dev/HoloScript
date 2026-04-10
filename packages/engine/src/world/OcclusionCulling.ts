@@ -230,4 +230,3 @@ export class OcclusionCulling {
     return this.currentFrame;
   }
 }
-

@@ -741,10 +741,7 @@ async function handleScaffold(args: Record<string, unknown>) {
           traits: (code.match(/@\w+/g) || []).length,
         },
         features: features.length > 0 ? features : ['basic'],
-        nextSteps: [
-          'Fix the validation errors above',
-          'Then test with render_preview tool',
-        ],
+        nextSteps: ['Fix the validation errors above', 'Then test with render_preview tool'],
       };
     }
   } catch {

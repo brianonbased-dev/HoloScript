@@ -135,9 +135,8 @@ export class SwarmOrchestrator {
     }
 
     // Max rounds — pick strongest signal if any
-    const strongest = signals.length > 0
-      ? signals.reduce((a, b) => (a.strength >= b.strength ? a : b))
-      : null;
+    const strongest =
+      signals.length > 0 ? signals.reduce((a, b) => (a.strength >= b.strength ? a : b)) : null;
 
     return {
       task,
@@ -150,9 +149,7 @@ export class SwarmOrchestrator {
   }
 
   private async broadcastProposals(task: string): Promise<Signal[]> {
-    const proposals = await Promise.all(
-      this.participants.map(p => p.propose(task))
-    );
+    const proposals = await Promise.all(this.participants.map((p) => p.propose(task)));
     return proposals;
   }
 
@@ -174,7 +171,7 @@ export class SwarmOrchestrator {
       votesByProposal.set(vote.proposalId, existing);
     }
 
-    return signals.map(signal => {
+    return signals.map((signal) => {
       const proposalVotes = votesByProposal.get(signal.proposalId) ?? [];
       let newStrength = signal.strength;
 
@@ -192,8 +189,8 @@ export class SwarmOrchestrator {
 
   private decayAndPrune(signals: Signal[]): Signal[] {
     return signals
-      .map(s => ({ ...s, strength: s.strength * this.decay }))
-      .filter(s => s.strength >= MIN_SIGNAL);
+      .map((s) => ({ ...s, strength: s.strength * this.decay }))
+      .filter((s) => s.strength >= MIN_SIGNAL);
   }
 
   private checkConvergence(signals: Signal[]): Signal | null {

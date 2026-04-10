@@ -67,4 +67,3 @@ describe('Soft Body Activation', () => {
     expect(state.softBody).toBeUndefined();
   });
 });
-

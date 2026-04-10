@@ -38,7 +38,12 @@ export interface AuditResult {
 /** A single violation found by the auditor. */
 export interface AuditViolation {
   /** Which check produced this violation. */
-  rule: 'missing-completedBy' | 'missing-summary' | 'missing-commit' | 'duplicate-entry' | 'non-monotonic-timestamp';
+  rule:
+    | 'missing-completedBy'
+    | 'missing-summary'
+    | 'missing-commit'
+    | 'duplicate-entry'
+    | 'non-monotonic-timestamp';
   /** Human-readable description. */
   message: string;
   /** The entry that triggered the violation. */
@@ -98,7 +103,11 @@ export function isCommitProof(commitHash?: string): boolean {
   if (!commitHash) return false;
   const hash = commitHash.trim();
   if (!hash) return false;
-  if (['uncommit', 'local-uncommitted', 'local_uncommitted', 'none', 'n/a', 'na'].includes(hash.toLowerCase())) {
+  if (
+    ['uncommit', 'local-uncommitted', 'local_uncommitted', 'none', 'n/a', 'na'].includes(
+      hash.toLowerCase()
+    )
+  ) {
     return false;
   }
   return /^[0-9a-f]{7,40}$/i.test(hash);
@@ -121,7 +130,8 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     .map(([title, count]) => ({ title, count }));
 
   const denominator = proofRequired.length;
-  const verificationRate = denominator > 0 ? Math.round((verified.length / denominator) * 100) : 100;
+  const verificationRate =
+    denominator > 0 ? Math.round((verified.length / denominator) * 100) : 100;
 
   return {
     total: doneLog.length,
@@ -140,9 +150,10 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     duplicateTasks: duped,
     health: {
       verificationRate,
-      message: unverified.length === 0
-        ? 'All tasks have commit proof.'
-        : `${unverified.length} tasks need verification — missing or invalid commit proof.`,
+      message:
+        unverified.length === 0
+          ? 'All tasks have commit proof.'
+          : `${unverified.length} tasks need verification — missing or invalid commit proof.`,
     },
   };
 }

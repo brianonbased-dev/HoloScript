@@ -113,7 +113,9 @@ export const animationTraitHandler: TraitHandler<AnimationTraitConfig> = {
     if (config.springs) {
       const springs = new Map<string, SpringAnimator>();
       for (const springDef of config.springs) {
-        const presetConfig = springDef.preset ? SpringPresets[springDef.preset] : SpringPresets.default;
+        const presetConfig = springDef.preset
+          ? SpringPresets[springDef.preset]
+          : SpringPresets.default;
         const mergedConfig = { ...presetConfig, ...(springDef.config || {}) };
         const initial = (getNestedProperty(node, springDef.property) as number | undefined) ?? 0;
         const spring = new SpringAnimator(initial, mergedConfig, (value) => {
@@ -173,4 +175,3 @@ function getNestedProperty(node: HSPlusNode, path: string): unknown {
   }
   return target;
 }
-

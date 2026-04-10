@@ -48,7 +48,7 @@ function amplifyFirst(voterId: string, delta: number) {
 /** Everyone amplifies every signal equally */
 function amplifyAll(voterId: string, delta: number) {
   return (signals: Signal[]): Vote[] =>
-    signals.map(s => ({
+    signals.map((s) => ({
       voterId,
       proposalId: s.proposalId,
       amplify: true,
@@ -59,7 +59,7 @@ function amplifyAll(voterId: string, delta: number) {
 /** Everyone dampens every signal */
 function dampenAll(voterId: string, delta: number) {
   return (signals: Signal[]): Vote[] =>
-    signals.map(s => ({
+    signals.map((s) => ({
       voterId,
       proposalId: s.proposalId,
       amplify: false,

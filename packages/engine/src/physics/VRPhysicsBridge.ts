@@ -70,16 +70,16 @@ export class VRPhysicsBridge {
         type: 'kinematic',
         mass: 1, // Infinite mass for kinematic
         transform: {
-          position: { 
-            x: hand.position?.x ?? 0, 
-            y: hand.position?.y ?? 0, 
-            z: hand.position?.z ?? 0 
+          position: {
+            x: hand.position?.x ?? 0,
+            y: hand.position?.y ?? 0,
+            z: hand.position?.z ?? 0,
           },
-          rotation: { 
-            x: hand.rotation?.x ?? 0, 
-            y: hand.rotation?.y ?? 0, 
-            z: hand.rotation?.z ?? 0, 
-            w: 1 
+          rotation: {
+            x: hand.rotation?.x ?? 0,
+            y: hand.rotation?.y ?? 0,
+            z: hand.rotation?.z ?? 0,
+            w: 1,
           },
         },
         shape: {
@@ -89,7 +89,7 @@ export class VRPhysicsBridge {
         material: {
           friction: 0.5,
           restitution: 0.0,
-        }
+        },
       };
 
       this.world.createBody(config);
@@ -143,4 +143,3 @@ export class VRPhysicsBridge {
     return this.world.getBody(id) ? id : null;
   }
 }
-

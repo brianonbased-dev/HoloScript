@@ -603,4 +603,3 @@ export function createHDRPipeline(): PostProcessPipeline {
 export function createLDRPipeline(): PostProcessPipeline {
   return createPostProcessPipeline('minimal');
 }
-

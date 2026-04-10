@@ -126,4 +126,3 @@ export class PhysicsDebugDrawer {
     this.debugMeshes.clear();
   }
 }
-

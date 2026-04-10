@@ -171,7 +171,7 @@ describe('CharacterInventory', () => {
 
   it('totalWeight accounts for equipped and bag items', () => {
     const inv = new CharacterInventory();
-    inv.addItem(sword());  // weight 3
+    inv.addItem(sword()); // weight 3
     inv.addItem(helmet()); // weight 2
     inv.equip('sword-01', 'weapon');
     // sword equipped (3) + helmet in bag (2) = 5

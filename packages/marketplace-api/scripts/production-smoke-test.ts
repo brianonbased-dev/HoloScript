@@ -93,7 +93,11 @@ async function main() {
       logTest('Block Recency', 'warn', `Latest block ${lag}s old (may be stale RPC)`);
     }
   } catch (error: unknown) {
-    logTest('RPC Connection', 'fail', `Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
+    logTest(
+      'RPC Connection',
+      'fail',
+      `Failed to connect: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 
   console.log('');
@@ -122,7 +126,11 @@ async function main() {
       logTest('Gas Price', 'warn', `Base fee ${baseFeeGwei} gwei (high, may want to wait)`);
     }
   } catch (error: unknown) {
-    logTest('Gas Price', 'fail', `Failed to get gas prices: ${error instanceof Error ? error.message : String(error)}`);
+    logTest(
+      'Gas Price',
+      'fail',
+      `Failed to get gas prices: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 
   console.log('');
@@ -166,7 +174,11 @@ async function main() {
         logTest('Contract Exists', 'fail', 'No contract at this address!');
       }
     } catch (error: unknown) {
-      logTest('Contract Check', 'fail', `Failed to check contract: ${error instanceof Error ? error.message : String(error)}`);
+      logTest(
+        'Contract Check',
+        'fail',
+        `Failed to check contract: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     console.log('');
@@ -210,7 +222,11 @@ async function main() {
         );
       }
     } catch (error: unknown) {
-      logTest('Mint Estimation', 'warn', `Unable to estimate: ${error instanceof Error ? error.message : String(error)}`);
+      logTest(
+        'Mint Estimation',
+        'warn',
+        `Unable to estimate: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     console.log('');

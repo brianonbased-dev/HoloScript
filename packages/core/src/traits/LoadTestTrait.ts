@@ -19,7 +19,12 @@ export const loadTestHandler: TraitHandler<LoadTestConfig> = {
     delete node.__loadState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: LoadTestConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: LoadTestConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__loadState as
       | { running: boolean; vus: number; requests: number; errors: number }
       | undefined;

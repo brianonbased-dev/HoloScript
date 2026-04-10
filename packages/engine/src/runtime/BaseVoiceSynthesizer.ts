@@ -109,4 +109,3 @@ export class BaseVoiceSynthesizer implements VoiceSynthesizer {
     return new ArrayBuffer(1024);
   }
 }
-

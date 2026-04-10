@@ -39,7 +39,12 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
     delete node.__healthcheckState;
   },
 
-  onUpdate(node: HSPlusNode, config: HealthcheckConfig, context: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: HealthcheckConfig,
+    context: TraitContext,
+    _delta: number
+  ): void {
     if (config.auto_interval_ms <= 0) return;
     const state = node.__healthcheckState as
       | { checks: Map<string, HealthCheck>; lastRun: number }
@@ -52,7 +57,12 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, _config: HealthcheckConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: HealthcheckConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__healthcheckState as
       | { checks: Map<string, HealthCheck>; lastRun: number }
       | undefined;

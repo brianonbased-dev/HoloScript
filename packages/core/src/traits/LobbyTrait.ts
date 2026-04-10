@@ -796,7 +796,13 @@ export type LobbyMatchmakingMode = MatchmakingMode;
 export type LobbyEventTypeAlias = LobbyEventType;
 
 // ── Handler (delegates to LobbyTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const lobbyHandler = {
   name: 'lobby',

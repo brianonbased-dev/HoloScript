@@ -18,7 +18,12 @@ export const approvalHandler: TraitHandler<ApprovalConfig> = {
     delete node.__approvalState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: ApprovalConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: ApprovalConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__approvalState as { requests: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

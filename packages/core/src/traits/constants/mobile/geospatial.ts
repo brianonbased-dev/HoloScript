@@ -15,16 +15,16 @@
  */
 export const GEOSPATIAL_ARCORE_TRAITS = [
   // --- VPS Core ---
-  'geospatial_vps',              // enables ARCore GeospatialMode.ENABLED on session
-  'geospatial_heading',          // heading/orientation alignment from VPS compass data
+  'geospatial_vps', // enables ARCore GeospatialMode.ENABLED on session
+  'geospatial_heading', // heading/orientation alignment from VPS compass data
 
   // --- Anchoring ---
-  'geospatial_anchor',           // lat/lng/alt/heading anchor via Earth.createAnchor
-  'geospatial_terrain_anchor',   // resolveAnchorOnTerrain — snaps to terrain surface
-  'geospatial_rooftop_anchor',   // resolveAnchorOnRooftop — snaps to building rooftops
+  'geospatial_anchor', // lat/lng/alt/heading anchor via Earth.createAnchor
+  'geospatial_terrain_anchor', // resolveAnchorOnTerrain — snaps to terrain surface
+  'geospatial_rooftop_anchor', // resolveAnchorOnRooftop — snaps to building rooftops
 
   // --- Streetscape ---
-  'geospatial_streetscape',      // Streetscape Geometry mesh access for buildings/terrain
+  'geospatial_streetscape', // Streetscape Geometry mesh access for buildings/terrain
 ] as const;
 
 export type GeospatialARCoreTraitName = (typeof GEOSPATIAL_ARCORE_TRAITS)[number];

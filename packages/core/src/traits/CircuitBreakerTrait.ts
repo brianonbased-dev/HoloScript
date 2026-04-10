@@ -99,7 +99,12 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     delete node.__circuitBreakerState;
   },
 
-  onUpdate(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: CircuitBreakerConfig,
+    context: TraitContext,
+    _delta: number
+  ): void {
     // @ts-expect-error
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
@@ -121,7 +126,12 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
     state.requestLog = state.requestLog.filter((r) => r.timestamp >= cutoff);
   },
 
-  onEvent(node: HSPlusNode, config: CircuitBreakerConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: CircuitBreakerConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: CircuitBreakerState | undefined = node.__circuitBreakerState;
     if (!state) return;
@@ -252,7 +262,11 @@ function shouldOpen(state: CircuitBreakerState, config: CircuitBreakerConfig): b
   return false;
 }
 
-function openCircuit(state: CircuitBreakerState, config: CircuitBreakerConfig, context: TraitContext): void {
+function openCircuit(
+  state: CircuitBreakerState,
+  config: CircuitBreakerConfig,
+  context: TraitContext
+): void {
   state.state = 'open';
   state.openedAt = Date.now();
   const windowFailures = state.requestLog.filter((r) => !r.success).length;

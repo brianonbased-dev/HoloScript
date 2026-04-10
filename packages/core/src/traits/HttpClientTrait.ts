@@ -223,7 +223,12 @@ export const httpClientHandler: TraitHandler<HttpClientConfig> = {
   onUpdate(): void {},
 
   // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-  onEvent(node: HSPlusNode, config: HttpClientConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: HttpClientConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state: HttpClientState | undefined = node.__httpClientState;
     if (!state) return;
 

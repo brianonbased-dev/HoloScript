@@ -20,7 +20,12 @@ export const workflowHandler: TraitHandler<WorkflowConfig> = {
     delete node.__wfState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: WorkflowConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: WorkflowConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__wfState as { workflows: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

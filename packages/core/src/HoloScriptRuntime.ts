@@ -1281,9 +1281,7 @@ export class HoloScriptRuntime {
     // @ts-expect-error During migration
     orbData.hologram = hologram;
     // @ts-expect-error During migration
-    orbData._templateRef = node.template
-      ? this.context.templates.get(node.template)
-      : undefined;
+    orbData._templateRef = node.template ? this.context.templates.get(node.template) : undefined;
 
     if (!isUpdate) {
       this.context.variables.set(node.name, orbData as HoloScriptValue);
@@ -2183,7 +2181,7 @@ export class HoloScriptRuntime {
             const traitNode = orb as unknown as HSPlusNode;
             const eventPayload: TraitEvent = {
               type: event,
-              ...(data && typeof data === 'object' ? data as Record<string, unknown> : {}),
+              ...(data && typeof data === 'object' ? (data as Record<string, unknown>) : {}),
             };
             await handler.onEvent(
               traitNode,
@@ -2604,15 +2602,17 @@ export class HoloScriptRuntime {
                 ? { x: orbData.position[0], y: orbData.position[1], z: orbData.position[2] }
                 : orbData.position,
               properties: orbData.properties || {},
-              hologram: orbData.hologram || (() => {
-                const props = orbData.properties as Record<string, unknown> | undefined;
-                return {
-                  color: (props?.color as string) || '#ffffff',
-                  size: (props?.size as number) || (props?.scale as number) || 1,
-                  shape: ((props?.geometry as string) || 'sphere') as 'sphere' | 'cube',
-                  glow: (props?.glow as boolean) || false,
-                };
-              })(),
+              hologram:
+                orbData.hologram ||
+                (() => {
+                  const props = orbData.properties as Record<string, unknown> | undefined;
+                  return {
+                    color: (props?.color as string) || '#ffffff',
+                    size: (props?.size as number) || (props?.scale as number) || 1,
+                    shape: ((props?.geometry as string) || 'sphere') as 'sphere' | 'cube',
+                    glow: (props?.glow as boolean) || false,
+                  };
+                })(),
               traits: orbData.traits || [],
             };
           });
@@ -2931,9 +2931,7 @@ export class HoloScriptRuntime {
       directives: [
         ...(node.directives || []),
         ...(node.traits || []).map((t) => ({ type: 'trait' as const, name: t.name, ...t.config })),
-        ...(node.template
-          ? this.context.templates.get(node.template)?.directives || []
-          : []), // Inherit template directives/traits
+        ...(node.template ? this.context.templates.get(node.template)?.directives || [] : []), // Inherit template directives/traits
       ],
       traits: new Map((node.traits || []).map((t) => [t.name as VRTraitName, t.config])),
       children: (node.children as unknown as ASTNode[]) || [],
@@ -2941,9 +2939,7 @@ export class HoloScriptRuntime {
 
     // Handle 'using' template
     if (node.template) {
-      const tpl = this.context.templates.get(node.template) as unknown as
-        | HoloTemplate
-        | undefined;
+      const tpl = this.context.templates.get(node.template) as unknown as HoloTemplate | undefined;
       if (tpl) {
         // Merge template state
         if (tpl.state) {
@@ -3613,7 +3609,9 @@ export class HoloScriptRuntime {
       const result = parser.parse(migration.body);
 
       if (result.errors.length > 0) {
-        logger.error(`Migration parse errors for ${orb.name}:`, { errors: result.errors as unknown });
+        logger.error(`Migration parse errors for ${orb.name}:`, {
+          errors: result.errors as unknown,
+        });
         return;
       }
 
@@ -3980,9 +3978,11 @@ export class HoloScriptRuntime {
                         // Using 'name' (variable key) as the authoritative ID for the visualizer
                         const posPayload = payload as Record<string, unknown> | undefined;
                         if (posPayload?.position) {
-                          this.setOrbPosition(name, posPayload.position as { x: number; y: number; z: number });
+                          this.setOrbPosition(
+                            name,
+                            posPayload.position as { x: number; y: number; z: number }
+                          );
                         }
-
                       }
                       return this.emit(event, payload);
                     },

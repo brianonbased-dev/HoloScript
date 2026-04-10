@@ -35,10 +35,7 @@ export {
   type ForceField,
 } from './ParticleForces';
 
-export {
-  ParticleTurbulence,
-  type TurbulenceConfig,
-} from './ParticleTurbulence';
+export { ParticleTurbulence, type TurbulenceConfig } from './ParticleTurbulence';
 
 export {
   particleTraitHandler,
@@ -47,4 +44,3 @@ export {
   type TraitHandler,
   type ParticleTraitConfig,
 } from './ParticleTrait';
-

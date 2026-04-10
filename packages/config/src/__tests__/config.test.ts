@@ -89,9 +89,7 @@ describe('validateConfig', () => {
     requireConfig(['DEFINITELY_MISSING_VAR'], 'test-service');
 
     expect(mockExit).toHaveBeenCalledWith(1);
-    expect(mockError).toHaveBeenCalledWith(
-      expect.stringContaining('DEFINITELY_MISSING_VAR')
-    );
+    expect(mockError).toHaveBeenCalledWith(expect.stringContaining('DEFINITELY_MISSING_VAR'));
 
     mockExit.mockRestore();
     mockError.mockRestore();

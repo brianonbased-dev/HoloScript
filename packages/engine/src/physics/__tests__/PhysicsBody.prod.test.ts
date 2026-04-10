@@ -214,4 +214,3 @@ describe('RigidBody — Production', () => {
     });
   });
 });
-

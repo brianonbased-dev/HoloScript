@@ -10,7 +10,11 @@ function createMockWorld() {
   const contacts: any[] = [];
   return {
     createBody: vi.fn((config: any) => {
-      bodies.set(config.id, { ...config, velocity: { x: 0, y: 0, z: 0 }, position: config.transform?.position });
+      bodies.set(config.id, {
+        ...config,
+        velocity: { x: 0, y: 0, z: 0 },
+        position: config.transform?.position,
+      });
       return config.id;
     }),
     getBody: vi.fn((id: string) => bodies.get(id) || null),
@@ -218,4 +222,3 @@ describe('VRPhysicsBridge', () => {
     expect(bridge.getHandBodyId('right')).toBeNull();
   });
 });
-

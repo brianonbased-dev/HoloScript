@@ -71,8 +71,14 @@ describe('KnowledgeConsolidator', () => {
   describe('importFromStore', () => {
     it('imports all entries from a KnowledgeStore', () => {
       const store = new KnowledgeStore({ persist: false });
-      store.publish({ type: 'wisdom', content: 'Entry A', domain: 'security', confidence: 0.9, source: 'test' }, 'agent-a');
-      store.publish({ type: 'pattern', content: 'Entry B', domain: 'agents', confidence: 0.8, source: 'test' }, 'agent-b');
+      store.publish(
+        { type: 'wisdom', content: 'Entry A', domain: 'security', confidence: 0.9, source: 'test' },
+        'agent-a'
+      );
+      store.publish(
+        { type: 'pattern', content: 'Entry B', domain: 'agents', confidence: 0.8, source: 'test' },
+        'agent-b'
+      );
 
       const imported = consolidator.importFromStore(store);
       expect(imported).toBe(2);
@@ -81,7 +87,10 @@ describe('KnowledgeConsolidator', () => {
 
     it('skips already-imported entries', () => {
       const store = new KnowledgeStore({ persist: false });
-      store.publish({ type: 'wisdom', content: 'Entry A', domain: 'general', confidence: 0.9, source: 'test' }, 'agent-a');
+      store.publish(
+        { type: 'wisdom', content: 'Entry A', domain: 'general', confidence: 0.9, source: 'test' },
+        'agent-a'
+      );
 
       consolidator.importFromStore(store);
       const second = consolidator.importFromStore(store);
@@ -219,40 +228,50 @@ describe('KnowledgeConsolidator', () => {
 
   describe('surfaceCrossDomainPatterns', () => {
     it('finds patterns shared across domains', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.SEC.001',
-        content: 'WebSocket connections require authentication tokens',
-        domain: 'security',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.AGENT.001',
-        content: 'Agent WebSocket connections drop after timeout',
-        domain: 'agents',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.SEC.001',
+          content: 'WebSocket connections require authentication tokens',
+          domain: 'security',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.AGENT.001',
+          content: 'Agent WebSocket connections drop after timeout',
+          domain: 'agents',
+        })
+      );
 
       const patterns = consolidator.surfaceCrossDomainPatterns();
-      const wsPattern = patterns.find(p => p.pattern === 'websocket');
+      const wsPattern = patterns.find((p) => p.pattern === 'websocket');
       expect(wsPattern).toBeDefined();
       expect(wsPattern!.domains).toContain('security');
       expect(wsPattern!.domains).toContain('agents');
     });
 
     it('filters by specified domains', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.SEC.F1',
-        content: 'Authentication tokens expire after timeout',
-        domain: 'security',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.AGENT.F1',
-        content: 'Agent tokens refresh automatically',
-        domain: 'agents',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.COMP.F1',
-        content: 'Compiler tokens are parsed differently',
-        domain: 'compilation',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.SEC.F1',
+          content: 'Authentication tokens expire after timeout',
+          domain: 'security',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.AGENT.F1',
+          content: 'Agent tokens refresh automatically',
+          domain: 'agents',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.COMP.F1',
+          content: 'Compiler tokens are parsed differently',
+          domain: 'compilation',
+        })
+      );
 
       const patterns = consolidator.surfaceCrossDomainPatterns(['security', 'agents']);
       // Should not include compilation domain
@@ -262,15 +281,17 @@ describe('KnowledgeConsolidator', () => {
     });
 
     it('returns empty for single-domain entries', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.ONLY.001',
-        content: 'Only security concern here',
-        domain: 'security',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.ONLY.001',
+          content: 'Only security concern here',
+          domain: 'security',
+        })
+      );
 
       const patterns = consolidator.surfaceCrossDomainPatterns();
       // No pattern can span 2+ domains with only 1 domain present
-      expect(patterns.every(p => p.domains.length >= 2)).toBe(true);
+      expect(patterns.every((p) => p.domains.length >= 2)).toBe(true);
     });
   });
 
@@ -278,16 +299,20 @@ describe('KnowledgeConsolidator', () => {
 
   describe('detectContradictions', () => {
     it('detects negation-based contradictions', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.CON.A',
-        content: 'You should always validate input before processing',
-        domain: 'security',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.CON.B',
-        content: 'You should never validate input in the render loop',
-        domain: 'security',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CON.A',
+          content: 'You should always validate input before processing',
+          domain: 'security',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CON.B',
+          content: 'You should never validate input in the render loop',
+          domain: 'security',
+        })
+      );
 
       const contradictions = consolidator.detectContradictions();
       expect(contradictions.length).toBeGreaterThanOrEqual(1);
@@ -297,32 +322,40 @@ describe('KnowledgeConsolidator', () => {
     });
 
     it('detects should/should not contradictions', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.REC.A',
-        content: 'Agents should enable caching for performance',
-        domain: 'agents',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.REC.B',
-        content: 'Agents should not enable caching in tests',
-        domain: 'agents',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.REC.A',
+          content: 'Agents should enable caching for performance',
+          domain: 'agents',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.REC.B',
+          content: 'Agents should not enable caching in tests',
+          domain: 'agents',
+        })
+      );
 
       const contradictions = consolidator.detectContradictions();
       expect(contradictions.length).toBeGreaterThanOrEqual(1);
     });
 
     it('returns empty for non-contradicting entries', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.OK.A',
-        content: 'Use TypeScript for type safety',
-        domain: 'compilation',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.OK.B',
-        content: 'Prefer vitest over jest for testing',
-        domain: 'compilation',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.OK.A',
+          content: 'Use TypeScript for type safety',
+          domain: 'compilation',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.OK.B',
+          content: 'Prefer vitest over jest for testing',
+          domain: 'compilation',
+        })
+      );
 
       const contradictions = consolidator.detectContradictions();
       expect(contradictions.length).toBe(0);
@@ -330,8 +363,16 @@ describe('KnowledgeConsolidator', () => {
 
     it('accepts external entry array', () => {
       const entries: StoredEntry[] = [
-        makeEntry({ id: 'W.EXT.A', content: 'Feature is deprecated and removed', domain: 'general' }),
-        makeEntry({ id: 'W.EXT.B', content: 'Feature is recommended and added recently', domain: 'general' }),
+        makeEntry({
+          id: 'W.EXT.A',
+          content: 'Feature is deprecated and removed',
+          domain: 'general',
+        }),
+        makeEntry({
+          id: 'W.EXT.B',
+          content: 'Feature is recommended and added recently',
+          domain: 'general',
+        }),
       ];
 
       const contradictions = consolidator.detectContradictions(entries);
@@ -339,30 +380,38 @@ describe('KnowledgeConsolidator', () => {
     });
 
     it('assigns higher confidence to same-domain contradictions', () => {
-      consolidator.addEntry(makeEntry({
-        id: 'W.CONF.A',
-        content: 'Always enable debug logging in production',
-        domain: 'security',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.CONF.B',
-        content: 'Never enable debug logging anywhere',
-        domain: 'security',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.CONF.C',
-        content: 'Always enable verbose logging modes',
-        domain: 'agents',
-      }));
-      consolidator.addEntry(makeEntry({
-        id: 'W.CONF.D',
-        content: 'Never enable verbose logging modes',
-        domain: 'rendering',
-      }));
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CONF.A',
+          content: 'Always enable debug logging in production',
+          domain: 'security',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CONF.B',
+          content: 'Never enable debug logging anywhere',
+          domain: 'security',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CONF.C',
+          content: 'Always enable verbose logging modes',
+          domain: 'agents',
+        })
+      );
+      consolidator.addEntry(
+        makeEntry({
+          id: 'W.CONF.D',
+          content: 'Never enable verbose logging modes',
+          domain: 'rendering',
+        })
+      );
 
       const contradictions = consolidator.detectContradictions();
-      const sameDomain = contradictions.filter(c => c.entryA.domain === c.entryB.domain);
-      const crossDomain = contradictions.filter(c => c.entryA.domain !== c.entryB.domain);
+      const sameDomain = contradictions.filter((c) => c.entryA.domain === c.entryB.domain);
+      const crossDomain = contradictions.filter((c) => c.entryA.domain !== c.entryB.domain);
 
       if (sameDomain.length > 0 && crossDomain.length > 0) {
         expect(sameDomain[0].confidence).toBeGreaterThan(crossDomain[0].confidence);

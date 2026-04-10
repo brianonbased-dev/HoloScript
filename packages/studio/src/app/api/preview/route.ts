@@ -11,7 +11,6 @@ import { NextResponse } from 'next/server';
  */
 
 declare global {
-   
   var __previewBus__: EventTarget | undefined;
 }
 const bus: EventTarget =

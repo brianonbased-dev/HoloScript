@@ -63,4 +63,3 @@ describe('Neural Forge', () => {
     expect(context.emit).toHaveBeenCalledWith('neural_cognition_evolved', expect.any(Object));
   });
 });
-

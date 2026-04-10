@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  DelegationManager,
-  InProcessBoardAdapter,
-} from '../delegation';
+import { DelegationManager, InProcessBoardAdapter } from '../delegation';
 import type { TaskDef } from '../types';
 
 function makeTask(overrides: Partial<TaskDef> = {}): TaskDef {

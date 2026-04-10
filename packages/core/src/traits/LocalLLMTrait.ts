@@ -173,10 +173,10 @@ export const localLLMHandler = {
       const res = await fetch(modelsEndpoint(config), { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
       const models: string[] = data.models
-        // @ts-expect-error
-        ? data.models.map((m: unknown) => m.name ?? m.model)
-        // @ts-expect-error
-        : (data.data ?? []).map((m: unknown) => m.id);
+        ? // @ts-expect-error
+          data.models.map((m: unknown) => m.name ?? m.model)
+        : // @ts-expect-error
+          (data.data ?? []).map((m: unknown) => m.id);
       state.availableModels = models.filter(Boolean);
       state.activeModel = config.model;
       state.isReady = true;
@@ -231,7 +231,7 @@ export const localLLMHandler = {
         ...payload,
       });
     } else if (type === 'llm_chat') {
-      this._chat(s, node, config, ctx, (payload as Record<string, unknown>));
+      this._chat(s, node, config, ctx, payload as Record<string, unknown>);
     } else if (type === 'llm_cancel') {
       const cancelPayload = payload as Record<string, unknown> | undefined;
       this._cancel(s, node, ctx, cancelPayload?.requestId as string | undefined);
@@ -247,7 +247,13 @@ export const localLLMHandler = {
     /* async only */
   },
 
-  _chat(s: LocalLLMState, node: HSPlusNode, config: LocalLLMConfig, ctx: TraitContext, payload: Record<string, unknown>): void {
+  _chat(
+    s: LocalLLMState,
+    node: HSPlusNode,
+    config: LocalLLMConfig,
+    ctx: TraitContext,
+    payload: Record<string, unknown>
+  ): void {
     const messages = payload?.messages as LLMMessage[] | undefined;
     if (!messages?.length) return;
     const requestId = (payload.requestId as string) ?? `llm_${Date.now()}`;

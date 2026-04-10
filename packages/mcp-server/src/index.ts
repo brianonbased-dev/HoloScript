@@ -96,8 +96,15 @@ async function handleOracleConsult(
       });
       clearTimeout(t);
       if (res.ok) {
-        interface KnowledgeEntry { id?: string; type?: string; content?: string }
-        const data = (await res.json()) as { results?: KnowledgeEntry[]; entries?: KnowledgeEntry[] };
+        interface KnowledgeEntry {
+          id?: string;
+          type?: string;
+          content?: string;
+        }
+        const data = (await res.json()) as {
+          results?: KnowledgeEntry[];
+          entries?: KnowledgeEntry[];
+        };
         const entries = data.results || data.entries || [];
         if (entries.length > 0) {
           results.push(

@@ -881,10 +881,15 @@ function solveChallengeSimple(challenge: string): string | null {
   const na = parseFloat(a);
   const nb = parseFloat(b);
   switch (op) {
-    case '+': return String(na + nb);
-    case '-': return String(na - nb);
-    case '*': return String(na * nb);
-    case '/': return nb !== 0 ? String(na / nb) : null;
-    default: return null;
+    case '+':
+      return String(na + nb);
+    case '-':
+      return String(na - nb);
+    case '*':
+      return String(na * nb);
+    case '/':
+      return nb !== 0 ? String(na / nb) : null;
+    default:
+      return null;
   }
 }

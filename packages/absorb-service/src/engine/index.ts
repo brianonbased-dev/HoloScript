@@ -126,11 +126,7 @@ export type {
 
 // Knowledge Extraction (auto-extract W/P/G from graph)
 export { KnowledgeExtractor } from './KnowledgeExtractor';
-export type {
-  KnowledgeEntry,
-  ExtractionResult,
-  ExtractionOptions,
-} from './KnowledgeExtractor';
+export type { KnowledgeEntry, ExtractionResult, ExtractionOptions } from './KnowledgeExtractor';
 
 // Deprecated Symbol Inventory (Gap 5: SCARF-inspired cleanup)
 export {

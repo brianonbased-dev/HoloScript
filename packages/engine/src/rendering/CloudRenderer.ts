@@ -167,4 +167,3 @@ export class CloudRenderer {
     return map;
   }
 }
-

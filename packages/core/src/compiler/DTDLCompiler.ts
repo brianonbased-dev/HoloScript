@@ -442,7 +442,10 @@ export class DTDLCompiler extends CompilerBase {
 
     // Handle both handlers and rules formats
     const logicExt = logic as Extensible<HoloLogic>;
-    const items = (logicExt.handlers || logicExt.rules || []) as Array<{ event: string; actions?: unknown[] }>;
+    const items = (logicExt.handlers || logicExt.rules || []) as Array<{
+      event: string;
+      actions?: unknown[];
+    }>;
 
     for (const item of items) {
       const event = item.event;

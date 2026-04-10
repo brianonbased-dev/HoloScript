@@ -11,10 +11,14 @@ import { zoraCoinsHandler } from '../ZoraCoinsTrait';
 function createMockContext() {
   const events: Array<{ event: string; data: unknown }> = [];
   const ctx = {
-    emit: (event: string, data: unknown) => { events.push({ event, data }); },
+    emit: (event: string, data: unknown) => {
+      events.push({ event, data });
+    },
     events,
     emittedEvents: events, // alias used by some tests
-    clearEvents: () => { events.length = 0; },
+    clearEvents: () => {
+      events.length = 0;
+    },
   };
   return ctx;
 }

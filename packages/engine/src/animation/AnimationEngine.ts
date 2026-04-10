@@ -84,7 +84,11 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-interface Vec3Like { x?: number; y?: number; z?: number }
+interface Vec3Like {
+  x?: number;
+  y?: number;
+  z?: number;
+}
 
 function lerpVec3(a: Vec3Like, b: Vec3Like, t: number): Vec3Like {
   return {
@@ -261,4 +265,3 @@ export class AnimationEngine {
     this.propertySetters.clear();
   }
 }
-

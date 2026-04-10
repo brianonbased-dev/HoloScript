@@ -550,8 +550,8 @@ export class HoloScriptTypeChecker {
     const targetStr =
       typeof node.target === 'string'
         ? node.target
-        : (node.target as Record<string, unknown>)?.__ref as string ||
-          (node.target as Record<string, unknown>)?.name as string;
+        : ((node.target as Record<string, unknown>)?.__ref as string) ||
+          ((node.target as Record<string, unknown>)?.name as string);
 
     if (!targetStr) {
       this.addDiagnostic(
@@ -567,7 +567,10 @@ export class HoloScriptTypeChecker {
     const valueType = node.value ? this.inferType(node.value as HoloScriptValue) : 'unknown';
 
     // Assign the union of target and value types
-    this.typeMap.set(targetStr, targetType || { type: valueType as HoloScriptType, nullable: false });
+    this.typeMap.set(
+      targetStr,
+      targetType || { type: valueType as HoloScriptType, nullable: false }
+    );
   }
 
   private checkSpread(node: SpreadExpression): void {
@@ -611,8 +614,8 @@ export class HoloScriptTypeChecker {
     const subjectId =
       typeof node.subject === 'string'
         ? node.subject
-        : (node.subject as Record<string, unknown>)?.__ref as string ||
-          (node.subject as Record<string, unknown>)?.name as string;
+        : ((node.subject as Record<string, unknown>)?.__ref as string) ||
+          ((node.subject as Record<string, unknown>)?.name as string);
 
     // Try to find a registered union type for the subject
     let unionType: UnionType | undefined;
@@ -795,7 +798,10 @@ export class HoloScriptTypeChecker {
 
       // Special case for tests: if it's an expression statement with a single identifier,
       // emit a debug diagnostic showing its current type.
-      if (node.type === 'expression-statement' && typeof (node as unknown as { expression: unknown }).expression === 'string') {
+      if (
+        node.type === 'expression-statement' &&
+        typeof (node as unknown as { expression: unknown }).expression === 'string'
+      ) {
         const varName = (node as unknown as { expression: string }).expression;
         const typeInfo = this.typeMap.get(varName);
         if (typeInfo) {

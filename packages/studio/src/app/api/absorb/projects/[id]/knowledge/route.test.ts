@@ -53,10 +53,13 @@ describe('/api/absorb/projects/[id]/knowledge route', () => {
       .fn()
       .mockResolvedValueOnce(new Response('mcp unavailable', { status: 502 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true, summary: { total: 1 }, entries: [{ id: 'w1' }] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        new Response(
+          JSON.stringify({ success: true, summary: { total: 1 }, entries: [{ id: 'w1' }] }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
       );
 
     vi.stubGlobal('fetch', fetchMock);

@@ -161,4 +161,3 @@ export class LODManager {
     return sum / this.objects.size;
   }
 }
-

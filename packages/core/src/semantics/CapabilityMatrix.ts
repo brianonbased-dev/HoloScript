@@ -442,7 +442,9 @@ export class CapabilityMatrix {
     // Check WebGPU first
     if ('gpu' in navigator) {
       try {
-        const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<GPUAdapter | null> } }).gpu.requestAdapter();
+        const adapter = await (
+          navigator as unknown as { gpu: { requestAdapter(): Promise<GPUAdapter | null> } }
+        ).gpu.requestAdapter();
         if (adapter) return 'webgpu';
       } catch {
         // WebGPU not available
@@ -539,7 +541,9 @@ export class CapabilityMatrix {
     // WebGPU capabilities
     if ('gpu' in navigator) {
       try {
-        const gpuNav = navigator as unknown as { gpu?: { requestAdapter(): Promise<GPUAdapter | null> } };
+        const gpuNav = navigator as unknown as {
+          gpu?: { requestAdapter(): Promise<GPUAdapter | null> };
+        };
         const adapter = await gpuNav.gpu?.requestAdapter();
         if (adapter) {
           defaults.computeShaders = true;
@@ -576,7 +580,9 @@ export class CapabilityMatrix {
       return defaults;
     }
 
-    const xr = (navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }).xr;
+    const xr = (
+      navigator as unknown as { xr: { isSessionSupported(mode: string): Promise<boolean> } }
+    ).xr;
 
     try {
       // Check VR support
@@ -769,7 +775,8 @@ export class CapabilityMatrix {
 
     // Check memory if available
     if ('deviceMemory' in navigator) {
-      defaults.availableMemory = (navigator as unknown as { deviceMemory: number }).deviceMemory * 1024;
+      defaults.availableMemory =
+        (navigator as unknown as { deviceMemory: number }).deviceMemory * 1024;
     }
 
     defaults.sharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';

@@ -55,4 +55,3 @@ describe('SoftBodyAdapter', () => {
     expect(node.geometry.needsUpdate).toBe(true);
   });
 });
-

@@ -14,7 +14,7 @@ function normalizeEndpoint(url: string | undefined): string {
 }
 
 const KNOWLEDGE_ENDPOINT = normalizeEndpoint(
-  process.env.MCP_ORCHESTRATOR_PUBLIC_URL || process.env.MCP_ORCHESTRATOR_URL,
+  process.env.MCP_ORCHESTRATOR_PUBLIC_URL || process.env.MCP_ORCHESTRATOR_URL
 );
 
 const MCP_API_KEY = process.env.MCP_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
@@ -54,7 +54,10 @@ function checkPath(filePath: string): 'pass' | 'fail' {
   }
 }
 
-async function probeKnowledgeEndpoint(): Promise<{ status: 'pass' | 'fail'; entry_count?: number }> {
+async function probeKnowledgeEndpoint(): Promise<{
+  status: 'pass' | 'fail';
+  entry_count?: number;
+}> {
   try {
     const headers: Record<string, string> = {};
     if (MCP_API_KEY) headers['x-mcp-api-key'] = MCP_API_KEY;
@@ -82,15 +85,12 @@ function checkTelemetryWritable(): 'pass' | 'fail' {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({})) as {
+  const body = (await request.json().catch(() => ({}))) as {
     tier?: string;
     hardware_hint?: string;
   };
 
-  const tier: string =
-    body.tier ||
-    request.headers.get('x-absorb-tier') ||
-    'free';
+  const tier: string = body.tier || request.headers.get('x-absorb-tier') || 'free';
 
   const ideClient = inferIdeClient(request);
   const hardwareTarget = inferHardwareTarget(body.hardware_hint || null);
@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
     ...(oracle_ready
       ? {}
       : {
-          message: 'Oracle Boost prerequisites incomplete. Run POST /api/studio/oracle-boost/setup to resolve.',
+          message:
+            'Oracle Boost prerequisites incomplete. Run POST /api/studio/oracle-boost/setup to resolve.',
         }),
   });
 }

@@ -4173,7 +4173,7 @@ export class HoloCompositionParser {
   private parseBlockTraitConfig(): Record<string, HoloValue> {
     this.expect('LBRACE');
     this.skipNewlines();
-    
+
     const config: Record<string, HoloValue> = {};
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
@@ -4182,13 +4182,13 @@ export class HoloCompositionParser {
       const key = this.expectIdentifier();
       this.expect('COLON');
       config[key] = this.parseValue();
-      
+
       if (this.check('COMMA')) {
         this.advance();
       }
       this.skipNewlines();
     }
-    
+
     this.expect('RBRACE');
     return config;
   }
@@ -6014,8 +6014,9 @@ export class HoloCompositionParser {
     const bodyTokens: string[] = [];
 
     while (depth > 0 && !this.isAtEnd()) {
-      if (this.check('LBRACE')) { depth++; }
-      else if (this.check('RBRACE')) {
+      if (this.check('LBRACE')) {
+        depth++;
+      } else if (this.check('RBRACE')) {
         depth--;
         if (depth === 0) break;
         bodyTokens.push('}\n');
@@ -6034,8 +6035,20 @@ export class HoloCompositionParser {
         } else if (nextTok.type === 'IDENTIFIER' || nextTok.type === 'DEFAULT') {
           // Check if it's a pipeline keyword (source, sink, transform, etc.) or branch keyword (when, default)
           const nv = nextTok.value;
-          if (['source', 'sink', 'transform', 'filter', 'validate', 'merge', 'branch', 'when', 'default'].includes(nv) ||
-              nextTok.type === 'DEFAULT') {
+          if (
+            [
+              'source',
+              'sink',
+              'transform',
+              'filter',
+              'validate',
+              'merge',
+              'branch',
+              'when',
+              'default',
+            ].includes(nv) ||
+            nextTok.type === 'DEFAULT'
+          ) {
             bodyTokens.push('\n');
           } else {
             bodyTokens.push(' ');
@@ -6059,9 +6072,15 @@ export class HoloCompositionParser {
       } else {
         bodyTokens.push(tok.value);
         const next = this.tokens[this.pos + 1];
-        if (next && next.type !== 'NEWLINE' && next.type !== 'RBRACE' &&
-            next.type !== 'COMMA' && next.type !== 'COLON' &&
-            next.type !== 'LBRACE' && next.type !== 'MINUS') {
+        if (
+          next &&
+          next.type !== 'NEWLINE' &&
+          next.type !== 'RBRACE' &&
+          next.type !== 'COMMA' &&
+          next.type !== 'COLON' &&
+          next.type !== 'LBRACE' &&
+          next.type !== 'MINUS'
+        ) {
           bodyTokens.push(' ');
         }
       }

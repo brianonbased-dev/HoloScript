@@ -57,10 +57,7 @@ export async function POST(req: NextRequest) {
 
   const { filename, contentType, name } = body;
   if (!filename || !contentType) {
-    return NextResponse.json(
-      { error: 'filename and contentType are required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'filename and contentType are required' }, { status: 400 });
   }
 
   if (!ALLOWED_TYPES.has(contentType)) {

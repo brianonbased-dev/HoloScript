@@ -4,7 +4,8 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'HoloScript Studio',
-  description: 'Point it at your data. Get a spatial experience on every device. 24 compilers, 40 compile targets, 3,300+ traits, 177 MCP tools.',
+  description:
+    'Point it at your data. Get a spatial experience on every device. 24 compilers, 40 compile targets, 3,300+ traits, 177 MCP tools.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net'),
   viewport: {
     width: 'device-width',
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'HoloScript Studio',
-    description: 'Point it at your data. Get a spatial experience on every device. 24 compilers, 40 compile targets, 3,300+ traits.',
+    description:
+      'Point it at your data. Get a spatial experience on every device. 24 compilers, 40 compile targets, 3,300+ traits.',
     siteName: 'HoloScript Studio',
     type: 'website',
   },

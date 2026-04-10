@@ -262,9 +262,12 @@ function compileNode(node: SDFNode): string {
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId}, ${k});\n`;
       } else {
         const fnName =
-          op === 'union' ? 'opUnion'
-            : op === 'intersect' ? 'opIntersect'
-              : op === 'subtract' ? 'opSubtract'
+          op === 'union'
+            ? 'opUnion'
+            : op === 'intersect'
+              ? 'opIntersect'
+              : op === 'subtract'
+                ? 'opSubtract'
                 : 'opDifference';
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId});\n`;
       }

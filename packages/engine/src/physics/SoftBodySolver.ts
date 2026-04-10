@@ -117,4 +117,3 @@ export class SoftBodySolver {
     return this.constraints;
   }
 }
-

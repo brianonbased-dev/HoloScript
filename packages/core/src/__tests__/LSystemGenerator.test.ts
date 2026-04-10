@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { LSystemGenerator, TREE_SIMPLE, BUSH } from '@holoscript/engine/procedural/LSystemGenerator';
+import {
+  LSystemGenerator,
+  TREE_SIMPLE,
+  BUSH,
+} from '@holoscript/engine/procedural/LSystemGenerator';
 
 // =============================================================================
 // C221 — L-System Generator

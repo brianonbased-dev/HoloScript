@@ -22,7 +22,10 @@ interface SkillMeta {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function extractSkillMeta(content: string, filePath: string): Omit<SkillMeta, 'size' | 'modifiedAt'> {
+function extractSkillMeta(
+  content: string,
+  filePath: string
+): Omit<SkillMeta, 'size' | 'modifiedAt'> {
   const fileName = path.basename(filePath);
   const nameMatch = content.match(/composition\s+"([^"]+)"/);
   const name = nameMatch ? nameMatch[1] : fileName.replace(/\.hsplus$/, '');
@@ -66,7 +69,7 @@ function discoverSkills(rootDir: string): SkillMeta[] {
 
   for (const dir of skillsDirs) {
     if (!fs.existsSync(dir)) continue;
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.hsplus'));
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.hsplus'));
     for (const file of files) {
       if (seen.has(file)) continue;
       seen.add(file);

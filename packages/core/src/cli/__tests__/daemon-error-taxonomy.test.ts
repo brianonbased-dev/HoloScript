@@ -18,12 +18,29 @@ import { describe, it, expect } from 'vitest';
 //   type SemanticError,
 // } from '@holoscript/absorb-service/daemon';
 
-type SemanticError = { code: string; category: string; symbol?: string; file: string; line: number; message: string };
-const categorizeError = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const extractSymbol = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const parseTscErrorLine = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const parseTscOutput = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const aggregatePatterns = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
+type SemanticError = {
+  code: string;
+  category: string;
+  symbol?: string;
+  file: string;
+  line: number;
+  message: string;
+};
+const categorizeError = (..._args: unknown[]): unknown => {
+  throw new Error('skipped');
+};
+const extractSymbol = (..._args: unknown[]): unknown => {
+  throw new Error('skipped');
+};
+const parseTscErrorLine = (..._args: unknown[]): unknown => {
+  throw new Error('skipped');
+};
+const parseTscOutput = (..._args: unknown[]): unknown => {
+  throw new Error('skipped');
+};
+const aggregatePatterns = (..._args: unknown[]): unknown => {
+  throw new Error('skipped');
+};
 
 describe.skip('categorizeError (absorb-service not available in core)', () => {
   it('maps TS2304 to missing_symbol', () => {

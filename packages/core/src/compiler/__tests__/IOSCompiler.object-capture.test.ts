@@ -14,9 +14,7 @@ function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposit
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
 }
 
-function makeObjectCaptureComposition(
-  traitNames: string[] = ['object_capture']
-): HoloComposition {
+function makeObjectCaptureComposition(traitNames: string[] = ['object_capture']): HoloComposition {
   return makeComposition({
     objects: [
       {
@@ -295,9 +293,7 @@ describe('IOSCompiler — Object Capture integration (M.010.10)', () => {
   it('generates SwiftUI ObjectCaptureView', () => {
     const compiler = new IOSCompiler();
     const result = compiler.compile(makeObjectCaptureComposition(), 'test-token');
-    expect(result.objectCaptureFile).toContain(
-      'struct GeneratedARSceneObjectCaptureView: View'
-    );
+    expect(result.objectCaptureFile).toContain('struct GeneratedARSceneObjectCaptureView: View');
   });
 
   it('includes capture control buttons', () => {

@@ -47,7 +47,12 @@ export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
     delete node.__fsState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: FileSystemConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: FileSystemConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__fsState as { files: Map<string, string> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -229,4 +229,3 @@ describe('UnifiedParticleBuffer — dispose', () => {
     expect(buf.getActiveCount()).toBe(0);
   });
 });
-

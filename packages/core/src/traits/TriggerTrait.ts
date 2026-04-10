@@ -597,7 +597,13 @@ export type TriggerShapeType = TriggerShape;
 export type TriggerEventTypeAlias = TriggerEventType;
 
 // ── Handler (delegates to TriggerTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const triggerHandler = {
   name: 'trigger',

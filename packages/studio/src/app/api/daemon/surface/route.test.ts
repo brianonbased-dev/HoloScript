@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const {
-  listDaemonJobsMock,
-  getTelemetrySummaryMock,
-  loadDaemonSurfaceMock,
-} = vi.hoisted(() => ({
+const { listDaemonJobsMock, getTelemetrySummaryMock, loadDaemonSurfaceMock } = vi.hoisted(() => ({
   listDaemonJobsMock: vi.fn(),
   getTelemetrySummaryMock: vi.fn(),
   loadDaemonSurfaceMock: vi.fn(),
@@ -91,7 +87,9 @@ describe('/api/daemon/surface route', () => {
       },
     });
 
-    const response = await GET(new Request('http://localhost/api/daemon/surface?kind=orchestration'));
+    const response = await GET(
+      new Request('http://localhost/api/daemon/surface?kind=orchestration')
+    );
     const body = await response.json();
 
     expect(response.status).toBe(200);

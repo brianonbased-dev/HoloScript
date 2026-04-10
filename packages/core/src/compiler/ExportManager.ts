@@ -69,10 +69,7 @@ import {
   type GaussianBudgetAnalysis,
 } from './GaussianBudgetAnalyzer';
 import { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
-import {
-  generateSemanticSceneGraphObject,
-  type JsonLdSceneGraph,
-} from './SemanticSceneGraph';
+import { generateSemanticSceneGraphObject, type JsonLdSceneGraph } from './SemanticSceneGraph';
 
 // =============================================================================
 // TYPES
@@ -236,13 +233,19 @@ class CompilerFactory {
       case 'ar':
         return new ARCompiler(options as unknown as ConstructorParameters<typeof ARCompiler>[0]);
       case 'multi-layer':
-        return new MultiLayerCompiler(options as unknown as ConstructorParameters<typeof MultiLayerCompiler>[0]);
+        return new MultiLayerCompiler(
+          options as unknown as ConstructorParameters<typeof MultiLayerCompiler>[0]
+        );
       case 'incremental':
-        return new IncrementalCompiler(options as unknown as ConstructorParameters<typeof IncrementalCompiler>[0]);
+        return new IncrementalCompiler(
+          options as unknown as ConstructorParameters<typeof IncrementalCompiler>[0]
+        );
       case 'state':
         return new StateCompiler();
       case 'trait-composition':
-        return new TraitCompositionCompiler(options as unknown as ConstructorParameters<typeof TraitCompositionCompiler>[0]);
+        return new TraitCompositionCompiler(
+          options as unknown as ConstructorParameters<typeof TraitCompositionCompiler>[0]
+        );
       case 'tsl':
         return new TSLCompiler(options);
       case 'a2a-agent-card':
@@ -454,12 +457,12 @@ export class ExportManager {
    */
   private computeCompositionHash(composition: HoloComposition): string {
     const objects =
-      composition.objects?.map((o) => o.name).sort().join(',') || '';
+      composition.objects
+        ?.map((o) => o.name)
+        .sort()
+        .join(',') || '';
     const traitCount =
-      composition.objects?.reduce(
-        (sum, o) => sum + (o.traits?.length || 0),
-        0
-      ) || 0;
+      composition.objects?.reduce((sum, o) => sum + (o.traits?.length || 0), 0) || 0;
     return `${composition.name}:${objects}:${traitCount}:${JSON.stringify(composition).length}`;
   }
 
@@ -479,9 +482,7 @@ export class ExportManager {
     const forceRecompile = options.compilerOptions?.forceRecompile;
     const needsCompile = forceRecompile
       ? targets
-      : targets.filter(
-          (t) => this.lastCompositionHash.get(t) !== currentHash
-        );
+      : targets.filter((t) => this.lastCompositionHash.get(t) !== currentHash);
 
     // Export only changed targets in parallel
     const results = await Promise.all(
@@ -632,11 +633,27 @@ export class ExportManager {
       // Its compile() method expects HSPlusAST. Other compilers use compile() directly.
       const asRecord = compiler as Record<string, unknown>;
       if (typeof asRecord['compileComposition'] === 'function') {
-        const compileFn = asRecord['compileComposition'] as (comp: unknown, token?: string, path?: string, ssg?: JsonLdSceneGraph) => unknown;
-        const output = await compileFn.call(compiler, composition, options.agentToken, undefined, sceneGraph);
+        const compileFn = asRecord['compileComposition'] as (
+          comp: unknown,
+          token?: string,
+          path?: string,
+          ssg?: JsonLdSceneGraph
+        ) => unknown;
+        const output = await compileFn.call(
+          compiler,
+          composition,
+          options.agentToken,
+          undefined,
+          sceneGraph
+        );
         return output;
       }
-      const output = await compiler.compile(composition, undefined as unknown as string, undefined, sceneGraph);
+      const output = await compiler.compile(
+        composition,
+        undefined as unknown as string,
+        undefined,
+        sceneGraph
+      );
       return output;
     };
 

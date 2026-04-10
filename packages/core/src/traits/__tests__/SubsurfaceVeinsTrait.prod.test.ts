@@ -14,11 +14,15 @@ describe('SubsurfaceVeinsTrait — Production Tests', () => {
     });
 
     it('throws when segmentCount <= 0', () => {
-      expect(() => SubsurfaceVeinsTrait.validate({ ...base, segmentCount: 0 })).toThrow('segmentCount');
+      expect(() => SubsurfaceVeinsTrait.validate({ ...base, segmentCount: 0 })).toThrow(
+        'segmentCount'
+      );
     });
 
     it('throws when segmentCount is unbounded', () => {
-      expect(() => SubsurfaceVeinsTrait.validate({ ...base, segmentCount: 900_000 })).toThrow('cap');
+      expect(() => SubsurfaceVeinsTrait.validate({ ...base, segmentCount: 900_000 })).toThrow(
+        'cap'
+      );
     });
 
     it('throws when pulseBpm <= 0', () => {

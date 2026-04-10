@@ -97,9 +97,7 @@ export async function handleTeamAgentTool(
 
 // ── Individual Handlers ──
 
-function handleLoadAgents(
-  args: Record<string, unknown>
-): Record<string, unknown> {
+function handleLoadAgents(args: Record<string, unknown>): Record<string, unknown> {
   const teamId = args.team_id as string;
   if (!teamId) {
     return { error: '"team_id" is required.' };
@@ -115,7 +113,9 @@ function handleLoadAgents(
   const unknownIds = agentIds.filter((id) => !TEAM_AGENT_PROFILES.has(id));
   if (unknownIds.length > 0) {
     return {
-      error: `Unknown agent profile IDs: ${unknownIds.join(', ')}. Available: ${getAllProfiles().map((p) => p.id).join(', ')}`,
+      error: `Unknown agent profile IDs: ${unknownIds.join(', ')}. Available: ${getAllProfiles()
+        .map((p) => p.id)
+        .join(', ')}`,
     };
   }
 
@@ -134,9 +134,7 @@ function handleLoadAgents(
   };
 }
 
-async function handleRunCycle(
-  args: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function handleRunCycle(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) {
     return { error: '"team_id" is required.' };
@@ -154,10 +152,7 @@ async function handleRunCycle(
   const completed = results.filter((r) => r.action === 'completed');
   const skipped = results.filter((r) => r.action === 'skipped');
   const errors = results.filter((r) => r.action === 'error');
-  const totalInsights = results.reduce(
-    (sum, r) => sum + r.knowledgeEntries.length,
-    0
-  );
+  const totalInsights = results.reduce((sum, r) => sum + r.knowledgeEntries.length, 0);
 
   return {
     success: true,
@@ -180,9 +175,7 @@ async function handleRunCycle(
   };
 }
 
-function handleCompound(
-  args: Record<string, unknown>
-): Record<string, unknown> {
+function handleCompound(args: Record<string, unknown>): Record<string, unknown> {
   const teamId = args.team_id as string;
   if (!teamId) {
     return { error: '"team_id" is required.' };

@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
   const endLine = parseInt(searchParams.get('endLine') ?? String(startLine + 50), 10);
 
   if (!filePath) {
-    return NextResponse.json({ ok: false, error: 'filePath is required', entries: [] }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: 'filePath is required', entries: [] },
+      { status: 400 }
+    );
   }
 
   const absPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
@@ -33,7 +36,8 @@ export async function GET(request: NextRequest) {
     const { stdout } = await execFileAsync('git', [
       'blame',
       '--porcelain',
-      '-L', `${startLine},${endLine}`,
+      '-L',
+      `${startLine},${endLine}`,
       absPath,
     ]);
 
@@ -41,7 +45,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, entries });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: msg, entries: [], isMock: false }, { status: 200 });
+    return NextResponse.json(
+      { ok: false, error: msg, entries: [], isMock: false },
+      { status: 200 }
+    );
   }
 }
 
@@ -76,8 +83,7 @@ function parsePorcelain(raw: string, filePath: string): ParsedEntry[] {
     else if (line.startsWith('author-mail ')) current.email = line.slice(12).replace(/[<>]/g, '');
     else if (line.startsWith('author-time ')) {
       current.date = new Date(parseInt(line.slice(12), 10) * 1000).toISOString().slice(0, 10);
-    }
-    else if (line.startsWith('summary ')) current.summary = line.slice(8);
+    } else if (line.startsWith('summary ')) current.summary = line.slice(8);
     else if (line.startsWith('\t')) {
       // Content line — entry complete
       if (current.hash && current.author) {

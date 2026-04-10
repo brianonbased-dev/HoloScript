@@ -76,10 +76,7 @@ Define a small deployment API that an agent can consume deterministically.
   "code": "MISSING_ENV_VAR",
   "message": "Required env var DATABASE_URL was not set",
   "retryable": false,
-  "suggestedActions": [
-    "Set DATABASE_URL in project environment",
-    "Re-run deployment"
-  ]
+  "suggestedActions": ["Set DATABASE_URL in project environment", "Re-run deployment"]
 }
 ```
 

@@ -399,19 +399,19 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
         break;
 
       case 'fbx:set_morph':
-        setMorphWeight(state, (event.target as string), (event.weight as number));
+        setMorphWeight(state, event.target as string, event.weight as number);
         break;
 
       case 'fbx:set_animation_speed':
-        setAnimationSpeed(state, (event.stack as string), (event.speed as number));
+        setAnimationSpeed(state, event.stack as string, event.speed as number);
         break;
 
       case 'fbx:set_animation_weight':
-        setAnimationWeight(state, (event.stack as string), (event.weight as number));
+        setAnimationWeight(state, event.stack as string, event.weight as number);
         break;
 
       case 'fbx:seek_animation':
-        seekAnimation(state, (event.stack as string), (event.time as number));
+        seekAnimation(state, event.stack as string, event.time as number);
         break;
 
       case 'fbx:reload':
@@ -423,11 +423,11 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
         break;
 
       case 'fbx:set_bone_override':
-        setBoneOverride(state, (event.bone as string), (event.transform as Partial<FBXTransform>));
+        setBoneOverride(state, event.bone as string, event.transform as Partial<FBXTransform>);
         break;
 
       case 'fbx:clear_bone_override':
-        clearBoneOverride(state, (event.bone as string | undefined));
+        clearBoneOverride(state, event.bone as string | undefined);
         break;
     }
   },
@@ -631,35 +631,55 @@ function createMockFBXData(config: FBXConfig): {
         parent: null,
         index: 0,
         length: 0.1,
-        transform: { position: [0, 1, 0] as any, rotation: [0, 0, 0] as any, scale: [1, 1, 1] as any },
+        transform: {
+          position: [0, 1, 0] as any,
+          rotation: [0, 0, 0] as any,
+          scale: [1, 1, 1] as any,
+        },
       },
       {
         name: 'Spine',
         parent: 'Hips',
         index: 1,
         length: 0.2,
-        transform: { position: [0, 0.1, 0] as any, rotation: [0, 0, 0] as any, scale: [1, 1, 1] as any },
+        transform: {
+          position: [0, 0.1, 0] as any,
+          rotation: [0, 0, 0] as any,
+          scale: [1, 1, 1] as any,
+        },
       },
       {
         name: 'Spine1',
         parent: 'Spine',
         index: 2,
         length: 0.2,
-        transform: { position: [0, 0.2, 0] as any, rotation: [0, 0, 0] as any, scale: [1, 1, 1] as any },
+        transform: {
+          position: [0, 0.2, 0] as any,
+          rotation: [0, 0, 0] as any,
+          scale: [1, 1, 1] as any,
+        },
       },
       {
         name: 'Spine2',
         parent: 'Spine1',
         index: 3,
         length: 0.2,
-        transform: { position: [0, 0.2, 0] as any, rotation: [0, 0, 0] as any, scale: [1, 1, 1] as any },
+        transform: {
+          position: [0, 0.2, 0] as any,
+          rotation: [0, 0, 0] as any,
+          scale: [1, 1, 1] as any,
+        },
       },
       {
         name: 'Head',
         parent: 'Spine2',
         index: 4,
         length: 0.15,
-        transform: { position: [0, 0.3, 0] as any, rotation: [0, 0, 0] as any, scale: [1, 1, 1] as any },
+        transform: {
+          position: [0, 0.3, 0] as any,
+          rotation: [0, 0, 0] as any,
+          scale: [1, 1, 1] as any,
+        },
       },
     ],
     bindPose: new Map(),

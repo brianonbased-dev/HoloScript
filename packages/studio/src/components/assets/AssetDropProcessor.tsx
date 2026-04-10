@@ -63,7 +63,10 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
               mat.toneMapped = true;
 
               // Auto-enable transparency for transmission materials
-              if ('transmission' in mat && (mat as unknown as { transmission: number }).transmission > 0) {
+              if (
+                'transmission' in mat &&
+                (mat as unknown as { transmission: number }).transmission > 0
+              ) {
                 mat.transparent = true;
               }
 

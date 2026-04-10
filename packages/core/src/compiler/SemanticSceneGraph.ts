@@ -652,8 +652,11 @@ export class SemanticSceneGraph {
   static generate(composition: HoloComposition, options?: SemanticSceneGraphOptions): string {
     return generateSemanticSceneGraph(composition, options);
   }
-  
-  static generateObject(composition: HoloComposition, options?: SemanticSceneGraphOptions): JsonLdSceneGraph {
+
+  static generateObject(
+    composition: HoloComposition,
+    options?: SemanticSceneGraphOptions
+  ): JsonLdSceneGraph {
     return generateSemanticSceneGraphObject(composition, options);
   }
 }

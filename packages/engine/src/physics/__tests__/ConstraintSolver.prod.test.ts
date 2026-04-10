@@ -162,4 +162,3 @@ describe('ConstraintSolver — Production', () => {
     expect(cs.getConstraints().length).toBe(0);
   });
 });
-

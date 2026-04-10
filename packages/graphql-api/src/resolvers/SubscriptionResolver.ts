@@ -101,17 +101,21 @@ export class SubscriptionResolver {
           codeHash,
           isValid: !!result.ast && (!result.errors || result.errors.length === 0),
           errors:
-            result.errors?.map((e: { message: string; location?: { line?: number; column?: number } }) => ({
-              message: e.message,
-              line: e.location?.line,
-              column: e.location?.column,
-            })) || [],
+            result.errors?.map(
+              (e: { message: string; location?: { line?: number; column?: number } }) => ({
+                message: e.message,
+                line: e.location?.line,
+                column: e.location?.column,
+              })
+            ) || [],
           warnings:
-            result.warnings?.map((w: { message: string; location?: { line?: number; column?: number } }) => ({
-              message: w.message,
-              line: w.location?.line,
-              column: w.location?.column,
-            })) || [],
+            result.warnings?.map(
+              (w: { message: string; location?: { line?: number; column?: number } }) => ({
+                message: w.message,
+                line: w.location?.line,
+                column: w.location?.column,
+              })
+            ) || [],
           timestamp: Date.now(),
         };
 
@@ -146,7 +150,9 @@ export class SubscriptionResolver {
         errors: [
           {
             message: errMessage,
-            location: (error as Record<string, unknown>)?.location as Record<string, unknown> | undefined,
+            location: (error as Record<string, unknown>)?.location as
+              | Record<string, unknown>
+              | undefined,
             code: (error as Record<string, unknown>)?.code as string | undefined,
           },
         ],

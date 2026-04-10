@@ -37,13 +37,19 @@ holoscript query "what calls buildIndex"
 
 ## Production Endpoints
 
-| Service                | URL                                                       | Auth                    |
-| ---------------------- | --------------------------------------------------------- | ----------------------- |
-| MCP Server (122 tools) | `https://mcp.holoscript.net`                              | None (free tools)       |
-| Absorb Service         | `https://absorb.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
-| MCP Protocol           | `POST https://mcp.holoscript.net/mcp`                     | None                    |
-| Studio (paid ops)      | `https://studio.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
-| Orchestrator           | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header  |
+| Service                                | URL                                                       | Auth                    |
+| -------------------------------------- | --------------------------------------------------------- | ----------------------- |
+| MCP Server (tool count from `/health`) | `https://mcp.holoscript.net`                              | None (free tools)       |
+| Absorb Service                         | `https://absorb.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
+| MCP Protocol                           | `POST https://mcp.holoscript.net/mcp`                     | None                    |
+| Studio (paid ops)                      | `https://studio.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
+| Orchestrator                           | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header  |
+
+Always verify current MCP tool count live before reporting metrics:
+
+```bash
+curl https://mcp.holoscript.net/health
+```
 
 **Auth**: `ABSORB_API_KEY` from `HoloScript/.env`. Admin/founder tier = all tools free, no rate limits.
 

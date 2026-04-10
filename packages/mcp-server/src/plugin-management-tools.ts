@@ -72,8 +72,7 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'discover_plugins',
-    description:
-      'Discover available domain plugins based on a specific query or intent.',
+    description: 'Discover available domain plugins based on a specific query or intent.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -300,7 +299,8 @@ async function handleDiscoverPlugins(args: Record<string, unknown>) {
   const registry = [
     {
       id: '@holoscript/radio-astronomy-plugin',
-      description: 'Radio Astrophysics primitive extension including interferometers and synaptic bridges.',
+      description:
+        'Radio Astrophysics primitive extension including interferometers and synaptic bridges.',
       category: 'science',
     },
     {

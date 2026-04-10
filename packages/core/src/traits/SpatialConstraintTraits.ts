@@ -297,9 +297,17 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
     if (!state) return;
 
     // Container bounds from node
-    interface SphereBounds { radius: number; center: { x: number; y: number; z: number } }
-    interface BoxBounds { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
-    const nodeBounds = (node as unknown as Record<string, unknown>).bounds as (SphereBounds | BoxBounds) | undefined;
+    interface SphereBounds {
+      radius: number;
+      center: { x: number; y: number; z: number };
+    }
+    interface BoxBounds {
+      min: { x: number; y: number; z: number };
+      max: { x: number; y: number; z: number };
+    }
+    const nodeBounds = (node as unknown as Record<string, unknown>).bounds as
+      | (SphereBounds | BoxBounds)
+      | undefined;
     if (!nodeBounds) return;
 
     const nodePos = node.position || { x: 0, y: 0, z: 0 };
@@ -309,7 +317,9 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
     let anyViolation = false;
 
     for (const containedId of state.containedEntities) {
-      const containedPos = context.getState()[`entity_pos_${containedId}`] as { x: number; y: number; z: number } | undefined;
+      const containedPos = context.getState()[`entity_pos_${containedId}`] as
+        | { x: number; y: number; z: number }
+        | undefined;
       if (!containedPos) continue;
 
       let isInside = false;
@@ -465,7 +475,9 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
     state.lastPathCheck = now;
 
     const nodePos = node.position || { x: 0, y: 0, z: 0 };
-    const targetPos = context.getState()[`reachable_target_${config.target}`] as { x: number; y: number; z: number } | undefined;
+    const targetPos = context.getState()[`reachable_target_${config.target}`] as
+      | { x: number; y: number; z: number }
+      | undefined;
     if (!targetPos) return;
 
     // Simple line-of-sight check (default algorithm)
@@ -540,7 +552,11 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
 
     // External pathfinding result (for navmesh/astar algorithms)
     if (event.type === 'pathfinding_result') {
-      const result = event as unknown as { targetId: string; pathFound?: boolean; pathLength?: number };
+      const result = event as unknown as {
+        targetId: string;
+        pathFound?: boolean;
+        pathLength?: number;
+      };
       if (result.targetId === config.target) {
         const state = context.getState().spatialReachable as ReachableState | undefined;
         if (state) {

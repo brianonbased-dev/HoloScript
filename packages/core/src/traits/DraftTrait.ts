@@ -159,7 +159,13 @@ export class DraftManager {
 }
 
 // ── Handler (delegates to DraftManager) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const draftHandler = {
   name: 'draft',

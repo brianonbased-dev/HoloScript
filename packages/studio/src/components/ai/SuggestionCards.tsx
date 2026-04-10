@@ -1,14 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  Github,
-  Smartphone,
-  Glasses,
-  Bot,
-  Monitor,
-  Sparkles,
-} from 'lucide-react';
+import { Github, Smartphone, Glasses, Bot, Monitor, Sparkles } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Types

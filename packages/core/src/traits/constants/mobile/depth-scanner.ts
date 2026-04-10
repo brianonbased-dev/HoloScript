@@ -20,22 +20,22 @@
  */
 export const DEPTH_SCANNER_TRAITS = [
   // --- Core ---
-  'depth_scan',              // enables depth scanning pipeline
-  'depth_auto_select',       // runtime picks best source: ToF > ARCore ML > stereo
+  'depth_scan', // enables depth scanning pipeline
+  'depth_auto_select', // runtime picks best source: ToF > ARCore ML > stereo
 
   // --- Backends ---
-  'depth_ml_arcore',         // ARCore Depth API — ML-based monocular depth (200+ devices)
-  'depth_tof',               // Time-of-Flight sensor path (hardware ToF required)
-  'depth_stereo',            // dual-camera stereo depth estimation
+  'depth_ml_arcore', // ARCore Depth API — ML-based monocular depth (200+ devices)
+  'depth_tof', // Time-of-Flight sensor path (hardware ToF required)
+  'depth_stereo', // dual-camera stereo depth estimation
 
   // --- Processing ---
-  'depth_confidence_map',    // per-pixel confidence image (0-255)
-  'depth_mesh_generate',     // convert depth map to triangle mesh
-  'depth_mesh_to_holo',      // convert reconstructed mesh to .holo scene graph
+  'depth_confidence_map', // per-pixel confidence image (0-255)
+  'depth_mesh_generate', // convert depth map to triangle mesh
+  'depth_mesh_to_holo', // convert reconstructed mesh to .holo scene graph
 
   // --- Output ---
-  'depth_realtime',          // live depth updates every frame
-  'depth_export',            // export mesh as OBJ/GLB
+  'depth_realtime', // live depth updates every frame
+  'depth_export', // export mesh as OBJ/GLB
 ] as const;
 
 export type DepthScannerTraitName = (typeof DEPTH_SCANNER_TRAITS)[number];

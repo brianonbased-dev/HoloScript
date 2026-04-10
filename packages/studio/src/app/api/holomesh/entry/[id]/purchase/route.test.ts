@@ -37,7 +37,7 @@ vi.stubGlobal(
   'crypto',
   Object.assign({}, typeof crypto !== 'undefined' ? crypto : {}, {
     randomUUID: () => '00000000-0000-0000-0000-000000000001',
-  }),
+  })
 );
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function makeReq(
   opts: {
     xPayment?: string;
     body?: Record<string, unknown>;
-  } = {},
+  } = {}
 ): NextRequest {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (opts.xPayment) headers['X-Payment'] = opts.xPayment;
@@ -64,7 +64,7 @@ function makeReq(
 
   // Route uses req.nextUrl.search (NextRequest-specific), so attach a compatible shape.
   (req as unknown as { nextUrl: URL }).nextUrl = new URL(
-    'http://localhost/api/holomesh/entry/entry1/purchase',
+    'http://localhost/api/holomesh/entry/entry1/purchase'
   );
 
   return req;
@@ -109,7 +109,7 @@ describe('x402 purchase — 402 challenge passthrough', () => {
       new Response(JSON.stringify(paymentDetails), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const res = await POST(makeReq(), entryParam());
@@ -134,7 +134,7 @@ describe('x402 purchase — successful with X-Payment header', () => {
       new Response(JSON.stringify({ success: true, content: 'unlocked data' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     await POST(makeReq({ xPayment: paymentToken }), entryParam());
@@ -151,7 +151,7 @@ describe('x402 purchase — successful with X-Payment header', () => {
       new Response(JSON.stringify({ success: true, content: 'secret' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const res = await POST(makeReq({ xPayment: 'proof' }), entryParam());
@@ -163,7 +163,7 @@ describe('x402 purchase — successful with X-Payment header', () => {
       new Response(JSON.stringify({ success: true, amount: 500 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     // No referrerAgentId in body
@@ -186,8 +186,8 @@ describe('x402 purchase — referral commission', () => {
     global.fetch = vi.fn().mockResolvedValueOnce(
       new Response(
         JSON.stringify({ success: true, amount: 1000 }), // $10.00
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
     );
 
     const db = makeDb();
@@ -202,7 +202,7 @@ describe('x402 purchase — referral commission', () => {
           buyerAgentName: 'Buyer Agent',
         },
       }),
-      entryParam(),
+      entryParam()
     );
 
     // insert should have been called twice: referral row + transaction row
@@ -214,7 +214,7 @@ describe('x402 purchase — referral commission', () => {
       new Response(JSON.stringify({ success: true, amount: 2000 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const capturedRows: Record<string, unknown>[] = [];
@@ -227,7 +227,7 @@ describe('x402 purchase — referral commission', () => {
 
     await POST(
       makeReq({ body: { referrerAgentId: 'ref1', buyerAgentId: 'buyer1' } }),
-      entryParam(),
+      entryParam()
     );
 
     // 2000 cents × 500 bps / 10000 = 100 cents
@@ -244,13 +244,10 @@ describe('x402 purchase — referral commission', () => {
       new Response(JSON.stringify({ error: 'payment failed' }), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
-    await POST(
-      makeReq({ body: { referrerAgentId: 'ref1' } }),
-      entryParam(),
-    );
+    await POST(makeReq({ body: { referrerAgentId: 'ref1' } }), entryParam());
 
     expect(getDbMock).not.toHaveBeenCalled();
   });
@@ -261,16 +258,13 @@ describe('x402 purchase — referral commission', () => {
       new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const db = makeDb();
     getDbMock.mockReturnValue(db);
 
-    await POST(
-      makeReq({ body: { referrerAgentId: 'ref1' } }),
-      entryParam(),
-    );
+    await POST(makeReq({ body: { referrerAgentId: 'ref1' } }), entryParam());
 
     // DB might be resolved but insert should NOT be called
     expect(db.insert).not.toHaveBeenCalled();
@@ -281,7 +275,7 @@ describe('x402 purchase — referral commission', () => {
       new Response(JSON.stringify({ success: true, amount: 500 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     const db = {
@@ -293,7 +287,7 @@ describe('x402 purchase — referral commission', () => {
 
     const res = await POST(
       makeReq({ body: { referrerAgentId: 'ref1', buyerAgentId: 'buyer1' } }),
-      entryParam(),
+      entryParam()
     );
 
     // Purchase should still succeed despite DB failure
@@ -305,14 +299,14 @@ describe('x402 purchase — referral commission', () => {
       new Response(JSON.stringify({ success: true, amount: 500 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
+      })
     );
 
     getDbMock.mockReturnValue(null);
 
     const res = await POST(
       makeReq({ body: { referrerAgentId: 'ref1', buyerAgentId: 'buyer1' } }),
-      entryParam(),
+      entryParam()
     );
 
     expect(res.status).toBe(200);
@@ -331,7 +325,7 @@ describe('x402 Base Sepolia USDC configuration', () => {
     // Keep this assertion deterministic and runner-agnostic.
     expect(EXPECTED_BASE_SEPOLIA_USDC).toMatch(/^0x[0-9a-fA-F]{40}$/);
     expect(EXPECTED_BASE_SEPOLIA_USDC.toLowerCase()).toBe(
-      '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
+      '0x036cbd53842c5426634e7929541ec2318f3dcf7e'
     );
   });
 });

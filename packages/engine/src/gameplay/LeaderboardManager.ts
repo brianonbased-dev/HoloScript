@@ -157,4 +157,3 @@ export class LeaderboardManager {
     return this.leaderboards.get(boardId)?.entries.length ?? 0;
   }
 }
-

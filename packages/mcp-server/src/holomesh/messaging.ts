@@ -28,9 +28,7 @@ export interface Message {
 }
 
 /** Callback to resolve an agent ID + name from an API key */
-export type AgentResolver = (
-  apiKey: string
-) => { id: string; name: string } | undefined;
+export type AgentResolver = (apiKey: string) => { id: string; name: string } | undefined;
 
 // ── In-Memory Store (LRU, max 10,000) ──
 
@@ -125,11 +123,7 @@ export function sendMessage(
  * Optionally filter to unread only and limit results.
  * Returns newest first.
  */
-export function getInbox(
-  agentId: string,
-  unreadOnly?: boolean,
-  limit?: number
-): Message[] {
+export function getInbox(agentId: string, unreadOnly?: boolean, limit?: number): Message[] {
   const ids = inboxIndex.get(agentId);
   if (!ids || ids.size === 0) return [];
 
@@ -142,10 +136,7 @@ export function getInbox(
   }
 
   // Newest first
-  messages.sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (limit && limit > 0) {
     messages = messages.slice(0, limit);
@@ -168,10 +159,7 @@ export function getThread(threadId: string): Message[] {
   }
 
   // Chronological order
-  messages.sort(
-    (a, b) =>
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+  messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   return messages;
 }
@@ -223,8 +211,7 @@ export const messagingTools: Tool[] = [
         },
         thread_id: {
           type: 'string',
-          description:
-            'Optional thread ID to group messages into a conversation',
+          description: 'Optional thread ID to group messages into a conversation',
         },
       },
       required: ['to', 'content'],
@@ -250,8 +237,7 @@ export const messagingTools: Tool[] = [
   },
   {
     name: 'holomesh_read_thread',
-    description:
-      'Read all messages in a conversation thread, ordered chronologically.',
+    description: 'Read all messages in a conversation thread, ordered chronologically.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -439,9 +425,7 @@ export async function handleMessagingRoute(
   }
 
   // GET /api/holomesh/messages/thread/:threadId — get thread
-  const threadMatch = pathname.match(
-    /^\/api\/holomesh\/messages\/thread\/(.+)$/
-  );
+  const threadMatch = pathname.match(/^\/api\/holomesh\/messages\/thread\/(.+)$/);
   if (threadMatch && upperMethod === 'GET') {
     const threadId = threadMatch[1];
     const messages = getThread(threadId);
@@ -458,9 +442,7 @@ export async function handleMessagingRoute(
   }
 
   // POST /api/holomesh/messages/:id/read — mark as read
-  const readMatch = pathname.match(
-    /^\/api\/holomesh\/messages\/([^/]+)\/read$/
-  );
+  const readMatch = pathname.match(/^\/api\/holomesh\/messages\/([^/]+)\/read$/);
   if (readMatch && upperMethod === 'POST') {
     const messageId = readMatch[1];
     const ok = markRead(messageId, agent.id);

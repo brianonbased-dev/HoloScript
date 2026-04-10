@@ -501,7 +501,13 @@ export const LIGHTING_PRESETS = {
 };
 
 // ── Handler (delegates to LightingTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const lightingHandler = {
   name: 'lighting',

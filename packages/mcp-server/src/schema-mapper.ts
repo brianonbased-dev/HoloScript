@@ -77,18 +77,18 @@ export interface ParameterBinding {
 
 /** What spatial role a field plays in the scene */
 export type SpatialRole =
-  | 'identity'      // Object name/title — displayed as label
-  | 'description'   // Detailed text — shown on interaction
-  | 'visual'        // Texture, color, image — applied to mesh
-  | 'metric'        // Numeric value — shown as bar, gauge, or scale
-  | 'category'      // Grouping field — determines shelf/section/area
-  | 'price'         // Currency value — shown as tag, enables @credit
+  | 'identity' // Object name/title — displayed as label
+  | 'description' // Detailed text — shown on interaction
+  | 'visual' // Texture, color, image — applied to mesh
+  | 'metric' // Numeric value — shown as bar, gauge, or scale
+  | 'category' // Grouping field — determines shelf/section/area
+  | 'price' // Currency value — shown as tag, enables @credit
   | 'boolean_state' // On/off — toggles visibility or trait
-  | 'relationship'  // Foreign key — creates spatial link between objects
-  | 'timestamp'     // Date/time — affects timeline or lifecycle
-  | 'media'         // Image/video URL — applied as texture or popup
-  | 'geospatial'    // Lat/lng — placed on map or spatial anchor
-  | 'hidden';       // Internal field — not rendered
+  | 'relationship' // Foreign key — creates spatial link between objects
+  | 'timestamp' // Date/time — affects timeline or lifecycle
+  | 'media' // Image/video URL — applied as texture or popup
+  | 'geospatial' // Lat/lng — placed on map or spatial anchor
+  | 'hidden'; // Internal field — not rendered
 
 /** Full mapping result */
 export interface SchemaMappingResult {
@@ -119,26 +119,74 @@ export interface SchemaMappingResult {
 /** Patterns that identify spatial roles from field names */
 const ROLE_PATTERNS: Array<{ pattern: RegExp; role: SpatialRole; traits: string[] }> = [
   // Identity
-  { pattern: /^(name|title|label|display_name|product_name|item_name|sku)$/i, role: 'identity', traits: ['@label', '@pointable'] },
+  {
+    pattern: /^(name|title|label|display_name|product_name|item_name|sku)$/i,
+    role: 'identity',
+    traits: ['@label', '@pointable'],
+  },
   // Description
-  { pattern: /(desc|description|summary|notes|details|about|bio|overview)$/i, role: 'description', traits: ['@info_popup', '@readable'] },
+  {
+    pattern: /(desc|description|summary|notes|details|about|bio|overview)$/i,
+    role: 'description',
+    traits: ['@info_popup', '@readable'],
+  },
   // Price / Currency
-  { pattern: /(price|cost|amount|fee|rate|msrp|retail_price|unit_price)$/i, role: 'price', traits: ['@label', '@credit'] },
+  {
+    pattern: /(price|cost|amount|fee|rate|msrp|retail_price|unit_price)$/i,
+    role: 'price',
+    traits: ['@label', '@credit'],
+  },
   // Visual / Media
-  { pattern: /(image|img|photo|picture|thumbnail|avatar|icon|logo|banner)(_url|_path|_uri)?$/i, role: 'media', traits: ['@texture', '@billboard'] },
-  { pattern: /(video|media|clip|stream)(_url|_path|_uri)?$/i, role: 'media', traits: ['@video_player'] },
+  {
+    pattern: /(image|img|photo|picture|thumbnail|avatar|icon|logo|banner)(_url|_path|_uri)?$/i,
+    role: 'media',
+    traits: ['@texture', '@billboard'],
+  },
+  {
+    pattern: /(video|media|clip|stream)(_url|_path|_uri)?$/i,
+    role: 'media',
+    traits: ['@video_player'],
+  },
   // Metrics
-  { pattern: /(percent|pct|ratio|score|rating|rank|level|count|quantity|stock|inventory|weight|volume|dose|potency|thc|cbd|strength)$/i, role: 'metric', traits: ['@gauge', '@label'] },
+  {
+    pattern:
+      /(percent|pct|ratio|score|rating|rank|level|count|quantity|stock|inventory|weight|volume|dose|potency|thc|cbd|strength)$/i,
+    role: 'metric',
+    traits: ['@gauge', '@label'],
+  },
   // Category / Grouping
-  { pattern: /(category|type|kind|class|group|section|department|shelf|aisle|strain_type|indica|sativa|hybrid|genre|tier|status)$/i, role: 'category', traits: ['@tag', '@filterable'] },
+  {
+    pattern:
+      /(category|type|kind|class|group|section|department|shelf|aisle|strain_type|indica|sativa|hybrid|genre|tier|status)$/i,
+    role: 'category',
+    traits: ['@tag', '@filterable'],
+  },
   // Boolean states
-  { pattern: /(enabled|active|visible|available|in_stock|featured|premium|organic|lab_tested|verified|approved|published)$/i, role: 'boolean_state', traits: ['@toggleable'] },
+  {
+    pattern:
+      /(enabled|active|visible|available|in_stock|featured|premium|organic|lab_tested|verified|approved|published)$/i,
+    role: 'boolean_state',
+    traits: ['@toggleable'],
+  },
   // Timestamps
-  { pattern: /(date|time|created|updated|modified|expires|harvested|tested|manufactured|born|deadline)(_at|_on|_date)?$/i, role: 'timestamp', traits: ['@lifecycle'] },
+  {
+    pattern:
+      /(date|time|created|updated|modified|expires|harvested|tested|manufactured|born|deadline)(_at|_on|_date)?$/i,
+    role: 'timestamp',
+    traits: ['@lifecycle'],
+  },
   // Geospatial
-  { pattern: /(lat|lng|latitude|longitude|location|coordinates|address|geo|position|place)$/i, role: 'geospatial', traits: ['@spatial_anchor', '@gps'] },
+  {
+    pattern: /(lat|lng|latitude|longitude|location|coordinates|address|geo|position|place)$/i,
+    role: 'geospatial',
+    traits: ['@spatial_anchor', '@gps'],
+  },
   // Relationships / Foreign keys
-  { pattern: /(_id|_ref|parent|child|related|associated|linked|belongs_to|has_many)$/i, role: 'relationship', traits: ['@connectable'] },
+  {
+    pattern: /(_id|_ref|parent|child|related|associated|linked|belongs_to|has_many)$/i,
+    role: 'relationship',
+    traits: ['@connectable'],
+  },
   // Color
   { pattern: /(color|colour|hue|tint|shade|hex_color|rgb)$/i, role: 'visual', traits: ['@color'] },
 ];
@@ -156,14 +204,23 @@ const TYPE_ROLE_FALLBACK: Record<string, SpatialRole> = {
 // MAPPING ENGINE
 // =============================================================================
 
-function inferSpatialRole(field: SchemaField): { role: SpatialRole; traits: string[]; reasoning: string } {
+function inferSpatialRole(field: SchemaField): {
+  role: SpatialRole;
+  traits: string[];
+  reasoning: string;
+} {
   // 0. Check domain plugin keywords first (highest priority when plugin loaded)
   if (pluginKeywords) {
     const fieldLower = field.name.toLowerCase();
     for (const [term, mapping] of pluginKeywords) {
       if (fieldLower.includes(term)) {
-        const role = (mapping.spatialRole as SpatialRole) || TYPE_ROLE_FALLBACK[field.type] || 'description';
-        return { role, traits: mapping.traits, reasoning: `Domain plugin keyword "${term}" matched field "${field.name}"` };
+        const role =
+          (mapping.spatialRole as SpatialRole) || TYPE_ROLE_FALLBACK[field.type] || 'description';
+        return {
+          role,
+          traits: mapping.traits,
+          reasoning: `Domain plugin keyword "${term}" matched field "${field.name}"`,
+        };
       }
     }
   }
@@ -178,7 +235,8 @@ function inferSpatialRole(field: SchemaField): { role: SpatialRole; traits: stri
   // 2. Check description for hints
   if (field.description) {
     const descTraits = suggestTraits(field.description, field.name);
-    if (descTraits.traits.length > 1) { // More than just @pointable default
+    if (descTraits.traits.length > 1) {
+      // More than just @pointable default
       return {
         role: TYPE_ROLE_FALLBACK[field.type] || 'description',
         traits: descTraits.traits,
@@ -190,19 +248,35 @@ function inferSpatialRole(field: SchemaField): { role: SpatialRole; traits: stri
   // 3. Check example value for hints
   if (field.example !== undefined) {
     if (typeof field.example === 'string' && /^https?:\/\//.test(field.example)) {
-      return { role: 'media', traits: ['@texture', '@billboard'], reasoning: 'Example value is a URL' };
+      return {
+        role: 'media',
+        traits: ['@texture', '@billboard'],
+        reasoning: 'Example value is a URL',
+      };
     }
     if (typeof field.example === 'number' && field.range) {
-      return { role: 'metric', traits: ['@gauge', '@label'], reasoning: 'Numeric with range → gauge/metric' };
+      return {
+        role: 'metric',
+        traits: ['@gauge', '@label'],
+        reasoning: 'Numeric with range → gauge/metric',
+      };
     }
   }
 
   // 4. Fall back to type
   const role = TYPE_ROLE_FALLBACK[field.type] || 'hidden';
-  return { role, traits: role === 'hidden' ? [] : ['@label'], reasoning: `Fallback from type "${field.type}"` };
+  return {
+    role,
+    traits: role === 'hidden' ? [] : ['@label'],
+    reasoning: `Fallback from type "${field.type}"`,
+  };
 }
 
-function createParameterBindings(field: SchemaField, traits: string[], role: SpatialRole): ParameterBinding[] {
+function createParameterBindings(
+  field: SchemaField,
+  traits: string[],
+  role: SpatialRole
+): ParameterBinding[] {
   const bindings: ParameterBinding[] = [];
 
   for (const trait of traits) {
@@ -249,7 +323,9 @@ function createParameterBindings(field: SchemaField, traits: string[], role: Spa
 let pluginKeywords: Map<string, { traits: string[]; spatialRole?: string }> | null = null;
 
 /** Register domain plugin keywords to enhance schema mapping accuracy */
-export function registerDomainKeywords(keywords: Map<string, { traits: string[]; spatialRole?: string }>) {
+export function registerDomainKeywords(
+  keywords: Map<string, { traits: string[]; spatialRole?: string }>
+) {
   pluginKeywords = keywords;
 }
 
@@ -274,9 +350,9 @@ export function mapSchemaToTraits(schema: DataSchema): SchemaMappingResult {
 
     // Confidence based on how the mapping was determined
     let confidence = 0.5;
-    if (reasoning.includes('matches')) confidence = 0.9;      // Pattern match
-    if (reasoning.includes('description')) confidence = 0.7;   // Description inference
-    if (reasoning.includes('Fallback')) confidence = 0.3;      // Type fallback
+    if (reasoning.includes('matches')) confidence = 0.9; // Pattern match
+    if (reasoning.includes('description')) confidence = 0.7; // Description inference
+    if (reasoning.includes('Fallback')) confidence = 0.3; // Type fallback
 
     mappings.push({
       field,
@@ -292,15 +368,14 @@ export function mapSchemaToTraits(schema: DataSchema): SchemaMappingResult {
 
   const holoSource = generateHoloComposition(schema, mappings, globalTraits);
 
-  const mapped = mappings.filter(m => m.spatialRole !== 'hidden');
+  const mapped = mappings.filter((m) => m.spatialRole !== 'hidden');
   const stats = {
     fieldsTotal: schema.fields.length,
     fieldsMapped: mapped.length,
     fieldsUnmapped: schema.fields.length - mapped.length,
     traitsUsed: allTraits.size,
-    averageConfidence: mapped.length > 0
-      ? mapped.reduce((sum, m) => sum + m.confidence, 0) / mapped.length
-      : 0,
+    averageConfidence:
+      mapped.length > 0 ? mapped.reduce((sum, m) => sum + m.confidence, 0) / mapped.length : 0,
   };
 
   return {
@@ -322,7 +397,13 @@ function inferTheme(_schema: DataSchema): Record<string, string> {
   // Neutral default. Domain-specific themes are NOT hardcoded into the platform.
   // The business customizes via Studio's theme panel or by editing the theme {} block.
   // Domain vocabulary lives in the knowledge store, not in compiler code.
-  return { primary: '#2563eb', secondary: '#f8fafc', accent: '#f59e0b', shelf_material: 'wood_light', card_style: 'rounded' };
+  return {
+    primary: '#2563eb',
+    secondary: '#f8fafc',
+    accent: '#f59e0b',
+    shelf_material: 'wood_light',
+    card_style: 'rounded',
+  };
 }
 
 function generateHoloComposition(
@@ -362,14 +443,14 @@ function generateHoloComposition(
   }
 
   // Per-field trait annotations
-  const visibleMappings = mappings.filter(m => m.spatialRole !== 'hidden');
+  const visibleMappings = mappings.filter((m) => m.spatialRole !== 'hidden');
   for (const mapping of visibleMappings) {
     const fieldComment = mapping.field.description
       ? ` // ${mapping.field.description.slice(0, 50)}`
       : '';
 
     for (const trait of mapping.traits) {
-      const binding = mapping.parameterBindings.find(b => b.trait === trait);
+      const binding = mapping.parameterBindings.find((b) => b.trait === trait);
       if (binding) {
         const bindExpr = `__bind:${mapping.field.name}`;
         lines.push(`    ${trait}(${binding.parameter}: "${bindExpr}")${fieldComment}`);
@@ -386,7 +467,7 @@ function generateHoloComposition(
   lines.push('');
 
   // Layout: categorized grid
-  const categoryField = mappings.find(m => m.spatialRole === 'category');
+  const categoryField = mappings.find((m) => m.spatialRole === 'category');
   if (categoryField) {
     lines.push(`  // Items grouped by ${categoryField.field.name}`);
     lines.push(`  spatial_group "shelves" {`);
@@ -420,7 +501,11 @@ function tryLoadDomainPlugin(domain: string | undefined): boolean {
     // Dynamic import of plugin context — works at runtime if file exists
     const fs = require('fs');
     const path = require('path');
-    const contextPath = path.resolve(__dirname, '../../plugins/domain-plugin-template/contexts', `${domain}.json`);
+    const contextPath = path.resolve(
+      __dirname,
+      '../../plugins/domain-plugin-template/contexts',
+      `${domain}.json`
+    );
     if (!fs.existsSync(contextPath)) return false;
 
     const config = JSON.parse(fs.readFileSync(contextPath, 'utf-8'));
@@ -437,9 +522,7 @@ function tryLoadDomainPlugin(domain: string | undefined): boolean {
   }
 }
 
-export async function handleMapSchema(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export async function handleMapSchema(args: Record<string, unknown>): Promise<unknown> {
   const { schema, fields, name, domain, description } = args as {
     schema?: DataSchema;
     fields?: SchemaField[];
@@ -468,9 +551,7 @@ export async function handleMapSchema(
   return { success: true, pluginUsed: pluginLoaded, ...result };
 }
 
-export async function handleMapCsvHeaders(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export async function handleMapCsvHeaders(args: Record<string, unknown>): Promise<unknown> {
   const { headers, name, domain, description, sample_row } = args as {
     headers: string[];
     name?: string;
@@ -484,7 +565,7 @@ export async function handleMapCsvHeaders(
   }
 
   // Infer field types from sample row
-  const fields: SchemaField[] = headers.map(h => {
+  const fields: SchemaField[] = headers.map((h) => {
     const example = sample_row?.[h];
     let type = 'string';
     if (typeof example === 'number') type = 'number';

@@ -46,11 +46,18 @@ export async function GET(req: NextRequest) {
     status ? eq(holomeshReferrals.status, status) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
-  const where = conditions.length === 1
-    ? conditions[0]
-    : conditions.length > 1
-      ? and(...(conditions as [typeof conditions[0], typeof conditions[0], ...typeof conditions]))
-      : undefined;
+  const where =
+    conditions.length === 1
+      ? conditions[0]
+      : conditions.length > 1
+        ? and(
+            ...(conditions as [
+              (typeof conditions)[0],
+              (typeof conditions)[0],
+              ...typeof conditions,
+            ])
+          )
+        : undefined;
 
   try {
     const rows = await db
@@ -62,7 +69,11 @@ export async function GET(req: NextRequest) {
       .offset(offset);
 
     // Aggregate stats for referrer (if filtered)
-    let stats: { totalCommissionCents: number; totalReferrals: number; paidReferrals: number } | null = null;
+    let stats: {
+      totalCommissionCents: number;
+      totalReferrals: number;
+      paidReferrals: number;
+    } | null = null;
 
     if (referrerId) {
       interface StatsRow extends Record<string, unknown> {

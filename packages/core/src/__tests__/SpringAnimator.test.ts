@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SpringAnimator, Vec3SpringAnimator, SpringPresets } from '@holoscript/engine/animation/SpringAnimator';
+import {
+  SpringAnimator,
+  Vec3SpringAnimator,
+  SpringPresets,
+} from '@holoscript/engine/animation/SpringAnimator';
 
 // =============================================================================
 // C240 — Spring Animator

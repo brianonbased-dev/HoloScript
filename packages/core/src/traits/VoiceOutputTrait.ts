@@ -902,7 +902,13 @@ export function createVoiceOutputTrait(config?: VoiceOutputConfig): VoiceOutputT
 }
 
 // ── Handler (delegates to VoiceOutputTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const voiceOutputHandler = {
   name: 'voice_output',

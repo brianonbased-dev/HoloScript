@@ -253,7 +253,16 @@ export class Layer3MCPClient extends EventEmitter {
       throw new Error(response.error || 'Failed to get agent registry');
     }
 
-    return response.data as { agents: Array<{ agent_id: string; role: string; status: 'online' | 'offline' | 'degraded'; world_id?: string; capabilities: string[] }>; total: number };
+    return response.data as {
+      agents: Array<{
+        agent_id: string;
+        role: string;
+        status: 'online' | 'offline' | 'degraded';
+        world_id?: string;
+        capabilities: string[];
+      }>;
+      total: number;
+    };
   }
 
   /**

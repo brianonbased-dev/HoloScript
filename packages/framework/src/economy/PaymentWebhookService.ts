@@ -132,7 +132,6 @@ interface RetryEntry {
 function computeHmac(payload: string, secret: string): string {
   // Use dynamic import pattern to work in both Node and test environments
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
     return crypto.createHmac('sha256', secret).update(payload).digest('hex');
   } catch {

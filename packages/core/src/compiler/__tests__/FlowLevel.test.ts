@@ -321,11 +321,14 @@ describe('Flow-Level Sanitization: malicious property values through all backend
       properties: [],
       traits: [
         { name: 'grabbable', args: [] } as unknown as HoloTrait,
-        { name: 'position', args: [
-          { type: 'NumberLiteral', value: 0 },
-          { type: 'NumberLiteral', value: 1 },
-          { type: 'NumberLiteral', value: 0 },
-        ] } as unknown as HoloTrait,
+        {
+          name: 'position',
+          args: [
+            { type: 'NumberLiteral', value: 0 },
+            { type: 'NumberLiteral', value: 1 },
+            { type: 'NumberLiteral', value: 0 },
+          ],
+        } as unknown as HoloTrait,
       ],
     } as unknown as HoloObjectDecl;
 
@@ -362,7 +365,7 @@ describe('Flow-Level Sanitization: malicious property values through all backend
   }
 
   // Backends that have state property compilation (toValue methods)
-  const STATE_BACKENDS = BACKENDS.filter(b =>
+  const STATE_BACKENDS = BACKENDS.filter((b) =>
     ['Unity', 'VRChat', 'Godot', 'Android', 'AndroidXR', 'iOS', 'VisionOS'].includes(b.name)
   );
 

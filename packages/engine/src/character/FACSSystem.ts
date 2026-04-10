@@ -563,4 +563,3 @@ export function getActionUnit(id: number): ActionUnitDefinition | undefined {
 export function getViseme(name: string): VisemeDefinition | undefined {
   return VISEME_15.find((v) => v.name === name);
 }
-

@@ -207,7 +207,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
       const payload = (event as Record<string, unknown>).payload || context.getState();
 
       state.client
-        .publish((topic as string), config.serializeJson ? payload : String(payload), {
+        .publish(topic as string, config.serializeJson ? payload : String(payload), {
           retain: config.retain,
           qos: config.qos,
         })
@@ -324,7 +324,11 @@ export function isMQTTSinkConnected(node: HSPlusNode): boolean {
 /**
  * Manually trigger a publish
  */
-export function publishToMQTTSink(node: HSPlusNode, payload?: unknown, topic?: string): Promise<void> {
+export function publishToMQTTSink(
+  node: HSPlusNode,
+  payload?: unknown,
+  topic?: string
+): Promise<void> {
   const state = getMQTTSinkState(node);
   if (!state?.client || !state.connected) {
     return Promise.reject(new Error('MQTT sink not connected'));

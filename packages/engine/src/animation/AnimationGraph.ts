@@ -357,4 +357,3 @@ export class AnimationGraph {
     }
   }
 }
-

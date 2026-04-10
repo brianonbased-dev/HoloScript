@@ -132,12 +132,7 @@ export type {
   ServiceConfig,
 } from './types';
 
-export {
-  ProtocolPhase,
-  isPattern,
-  isWisdom,
-  isGotcha,
-} from './types';
+export { ProtocolPhase, isPattern, isWisdom, isGotcha } from './types';
 
 // Protocol agent (7-phase lifecycle backed by LLM)
 export {
@@ -168,10 +163,7 @@ export type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 export { GENERIC_GOALS, DOMAIN_GOALS } from './protocol/goal-synthesizer';
 
 // Smart micro-phase decomposer (FW-0.2 — LLM-powered parallel task decomposition)
-export {
-  SmartMicroPhaseDecomposer,
-  createLLMAdapter,
-} from './protocol/micro-phase-decomposer';
+export { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 export type {
   TaskDescription,
   MicroPhase,
@@ -273,7 +265,11 @@ export {
 
 // Distributed claiming (FW-0.6)
 export { DistributedClaimer } from './distributed-claimer';
-export type { ClaimResult as DistributedClaimResult, ClaimRecord, DistributedClaimerConfig } from './distributed-claimer';
+export type {
+  ClaimResult as DistributedClaimResult,
+  ClaimRecord,
+  DistributedClaimerConfig,
+} from './distributed-claimer';
 
 // Skill-based routing (FW-0.6)
 export { SkillRouter } from './skill-router';
@@ -281,7 +277,12 @@ export type { RoutingResult, ScoredCandidate, RoutingPolicy } from './skill-rout
 
 // Cross-team delegation (FW-0.6)
 export { DelegationManager, InProcessBoardAdapter } from './delegation';
-export type { DelegationResult, DelegationRecord, DelegationPolicy, TeamBoardAdapter } from './delegation';
+export type {
+  DelegationResult,
+  DelegationRecord,
+  DelegationPolicy,
+  TeamBoardAdapter,
+} from './delegation';
 
 // Bounty types (FW-0.6)
 export type {

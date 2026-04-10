@@ -75,7 +75,7 @@ export function createApp(
   );
 
   // Compression
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- compression() returns RequestHandler but types diverge between packages
+
   app.use(compression() as unknown as express.RequestHandler);
 
   // Body parsing

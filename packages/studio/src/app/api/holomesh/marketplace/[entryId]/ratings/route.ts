@@ -26,12 +26,12 @@ import { rateLimit } from '../../../../../../lib/rate-limiter';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ entryId: string }> },
+  { params }: { params: Promise<{ entryId: string }> }
 ): Promise<NextResponse> {
   const rl = rateLimit(
     req,
     { max: 120, windowMs: 60_000, label: 'Too many ratings requests.' },
-    'entry-ratings-read',
+    'entry-ratings-read'
   );
   if (!rl.ok) return rl.response;
 
@@ -114,8 +114,11 @@ export async function GET(
     });
   } catch (err) {
     return NextResponse.json(
-      { error: 'Failed to fetch ratings', detail: err instanceof Error ? err.message : String(err) },
-      { status: 500 },
+      {
+        error: 'Failed to fetch ratings',
+        detail: err instanceof Error ? err.message : String(err),
+      },
+      { status: 500 }
     );
   }
 }

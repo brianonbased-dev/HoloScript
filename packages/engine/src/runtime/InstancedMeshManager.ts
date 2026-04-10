@@ -435,4 +435,3 @@ export class InstancedMeshManager {
     this.clear();
   }
 }
-

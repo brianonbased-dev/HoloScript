@@ -99,8 +99,7 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'compile_pipeline',
-    description:
-      'Compile a .hs pipeline into a runnable Node.js ESM module (index.mjs).',
+    description: 'Compile a .hs pipeline into a runnable Node.js ESM module (index.mjs).',
     inputSchema: {
       type: 'object',
       properties: {

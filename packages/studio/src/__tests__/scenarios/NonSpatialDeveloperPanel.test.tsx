@@ -25,8 +25,12 @@ describe('NonSpatialDeveloperPanel', () => {
     // Check fields
     expect(screen.getByText('2445 ms')).toBeInTheDocument();
     expect(screen.getByText('6050')).toBeInTheDocument();
-    
+
     // Check warnings
-    expect(screen.getByText('⚠️ Endpoint /api/v1/game/worldState has large payload (6000KB)', { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByText('⚠️ Endpoint /api/v1/game/worldState has large payload (6000KB)', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
   });
 });

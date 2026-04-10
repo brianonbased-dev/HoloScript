@@ -36,7 +36,11 @@ export class ConfigLoader {
     }
 
     let options: Record<string, unknown> = rawConfig;
-    if (configPath.endsWith('holoscript.config.json') && rawConfig.formatOptions && typeof rawConfig.formatOptions === 'object') {
+    if (
+      configPath.endsWith('holoscript.config.json') &&
+      rawConfig.formatOptions &&
+      typeof rawConfig.formatOptions === 'object'
+    ) {
       options = rawConfig.formatOptions as Record<string, unknown>;
     }
 

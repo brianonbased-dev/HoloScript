@@ -16,7 +16,12 @@ export const consentManagementHandler: TraitHandler<ConsentManagementConfig> = {
     delete node.__consentState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: ConsentManagementConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: ConsentManagementConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__consentState as
       | { consents: Map<string, Map<string, boolean>> }
       | undefined;

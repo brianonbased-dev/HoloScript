@@ -126,17 +126,13 @@ function makeNPCComposition(): HoloComposition {
         type: 'NPC',
         name: 'Merchant',
         npcType: 'shopkeeper',
-        properties: [
-          { type: 'NPCProperty', key: 'greeting', value: 'Welcome to my shop!' },
-        ],
+        properties: [{ type: 'NPCProperty', key: 'greeting', value: 'Welcome to my shop!' }],
         behaviors: [
           {
             type: 'Behavior',
             name: 'sell_item',
             trigger: 'on_interact',
-            actions: [
-              { type: 'BehaviorAction', actionType: 'emit', config: {} },
-            ],
+            actions: [{ type: 'BehaviorAction', actionType: 'emit', config: {} }],
             priority: 1,
           },
         ],
@@ -166,8 +162,16 @@ function makeMultiAgentComposition(): HoloComposition {
         properties: [],
         traits: [
           { type: 'ObjectTrait', name: 'agent', config: { role: 'researcher' } },
-          { type: 'ObjectTrait', name: 'model', config: { provider: 'anthropic', name: 'claude-sonnet-4-20250514' } },
-          { type: 'ObjectTrait', name: 'system_prompt', config: { text: 'You are a research agent.' } },
+          {
+            type: 'ObjectTrait',
+            name: 'model',
+            config: { provider: 'anthropic', name: 'claude-sonnet-4-20250514' },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'system_prompt',
+            config: { text: 'You are a research agent.' },
+          },
         ],
       },
       {
@@ -176,8 +180,16 @@ function makeMultiAgentComposition(): HoloComposition {
         properties: [],
         traits: [
           { type: 'ObjectTrait', name: 'agent', config: { role: 'writer' } },
-          { type: 'ObjectTrait', name: 'model', config: { provider: 'openai', name: 'gpt-4o', temperature: 0.9 } },
-          { type: 'ObjectTrait', name: 'prompt', config: { content: 'You are a creative writer.' } },
+          {
+            type: 'ObjectTrait',
+            name: 'model',
+            config: { provider: 'openai', name: 'gpt-4o', temperature: 0.9 },
+          },
+          {
+            type: 'ObjectTrait',
+            name: 'prompt',
+            config: { content: 'You are a creative writer.' },
+          },
         ],
       },
     ],
@@ -456,9 +468,7 @@ describe('model configuration extraction', () => {
           type: 'Object',
           name: 'MinimalAgent',
           properties: [],
-          traits: [
-            { type: 'ObjectTrait', name: 'agent', config: { role: 'helper' } },
-          ],
+          traits: [{ type: 'ObjectTrait', name: 'agent', config: { role: 'helper' } }],
         },
       ],
     });
@@ -504,9 +514,7 @@ describe('edge cases', () => {
   it('handles objects with no traits gracefully', () => {
     const compiler = new AgentInferenceCompiler();
     const comp = makeComposition({
-      objects: [
-        { type: 'Object', name: 'Cube', properties: [], traits: [] },
-      ],
+      objects: [{ type: 'Object', name: 'Cube', properties: [], traits: [] }],
     });
     const result = compiler.compile(comp, '');
     expect(result['agent.ts']).toBeDefined();
@@ -527,9 +535,7 @@ describe('edge cases', () => {
           type: 'Object',
           name: 'SimpleAgent',
           properties: [],
-          traits: [
-            { type: 'ObjectTrait', name: 'agent', config: { role: 'simple' } },
-          ],
+          traits: [{ type: 'ObjectTrait', name: 'agent', config: { role: 'simple' } }],
         },
       ],
     });
@@ -551,9 +557,7 @@ describe('edge cases', () => {
               type: 'Object',
               name: 'ChildAgent',
               properties: [],
-              traits: [
-                { type: 'ObjectTrait', name: 'agent', config: { role: 'child' } },
-              ],
+              traits: [{ type: 'ObjectTrait', name: 'agent', config: { role: 'child' } }],
             },
           ],
         },

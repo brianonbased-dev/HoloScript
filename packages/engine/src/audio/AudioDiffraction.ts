@@ -419,4 +419,3 @@ export class AudioDiffractionSystem {
     return result?.paths ?? [];
   }
 }
-

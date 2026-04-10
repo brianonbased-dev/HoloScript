@@ -165,7 +165,14 @@ async function handlePublish(args: Record<string, unknown>) {
   const mintAsNFT = (args.mintAsNFT as boolean) || false;
 
   // Dynamic imports to avoid circular deps
-  const { generateProvenance, calculateRevenueDistribution, formatRevenueDistribution, ethToWei, PROTOCOL_CONSTANTS, parse } = await import('@holoscript/core');
+  const {
+    generateProvenance,
+    calculateRevenueDistribution,
+    formatRevenueDistribution,
+    ethToWei,
+    PROTOCOL_CONSTANTS,
+    parse,
+  } = await import('@holoscript/core');
 
   // Parse and generate provenance
   const ast = parse(code);

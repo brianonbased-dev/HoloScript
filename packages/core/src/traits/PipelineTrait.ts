@@ -93,11 +93,21 @@ export const pipelineHandler: TraitHandler<PipelineConfig> = {
     delete node.__pipelineState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: PipelineConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: PipelineConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Pipeline is event-driven, no per-frame work
   },
 
-  onEvent(node: HSPlusNode, config: PipelineConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PipelineConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: PipelineState | undefined = node.__pipelineState;
     if (!state) return;

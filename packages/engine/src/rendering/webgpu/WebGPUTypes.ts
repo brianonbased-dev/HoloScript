@@ -667,4 +667,3 @@ fn main(input: FragmentInput) -> @location(0) vec4<f32> {
   return texColor * input.color;
 }
 `;
-

@@ -395,7 +395,9 @@ async function handleParseHs(args: Record<string, unknown>) {
         ast: cleanAst,
         errors: result.errors || [],
         warnings: result.warnings || [],
-        ...(args.includeSourceMap ? { sourceMap: (result as Record<string, unknown>).sourceMap } : {}),
+        ...(args.includeSourceMap
+          ? { sourceMap: (result as Record<string, unknown>).sourceMap }
+          : {}),
       };
     }
 
@@ -404,7 +406,9 @@ async function handleParseHs(args: Record<string, unknown>) {
       ast,
       errors: result.errors || [],
       warnings: result.warnings || [],
-      ...(args.includeSourceMap ? { sourceMap: (result as Record<string, unknown>).sourceMap } : {}),
+      ...(args.includeSourceMap
+        ? { sourceMap: (result as Record<string, unknown>).sourceMap }
+        : {}),
     };
   } catch (error) {
     return {
@@ -1083,9 +1087,23 @@ interface ParsedAST {
   composition?: unknown;
   type?: string;
   name?: string;
-  nodes?: Array<{ type?: string; nodeType?: string; name?: string; id?: string; objectType?: string; geometry?: string; traits?: string[] }>;
+  nodes?: Array<{
+    type?: string;
+    nodeType?: string;
+    name?: string;
+    id?: string;
+    objectType?: string;
+    geometry?: string;
+    traits?: string[];
+  }>;
   ast?: { nodes?: ParsedAST['nodes'] };
-  objects?: Array<{ name?: string; id?: string; type?: string; geometry?: string; traits?: string[] }>;
+  objects?: Array<{
+    name?: string;
+    id?: string;
+    type?: string;
+    geometry?: string;
+    traits?: string[];
+  }>;
   environment?: { skybox?: string; ambient_light?: number; theme?: string };
   logic?: unknown;
   actions?: unknown;

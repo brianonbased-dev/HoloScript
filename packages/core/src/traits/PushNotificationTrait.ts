@@ -28,7 +28,12 @@ export const pushNotificationHandler: TraitHandler<PushNotificationConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: PushNotificationConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PushNotificationConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__pushState as { sent: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

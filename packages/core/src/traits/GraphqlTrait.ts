@@ -16,7 +16,12 @@ export const graphqlHandler: TraitHandler<GraphqlConfig> = {
     delete node.__gqlState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, _config: GraphqlConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: GraphqlConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__gqlState as
       | { resolvers: Map<string, string>; queries: number }
       | undefined;

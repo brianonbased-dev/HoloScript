@@ -32,11 +32,14 @@ export interface NextJSCompileResult {
 /**
  * Extract a trait config from a composition's root-level traits.
  */
-function findTrait(composition: HoloComposition, traitName: string): Record<string, unknown> | null {
+function findTrait(
+  composition: HoloComposition,
+  traitName: string
+): Record<string, unknown> | null {
   const traits = (composition as unknown as { traits?: HoloObjectTrait[] }).traits;
   if (!traits) return null;
   const found = traits.find((t) => t.name === traitName);
-  return found?.config as Record<string, unknown> || null;
+  return (found?.config as Record<string, unknown>) || null;
 }
 
 export class NextJSCompiler extends CompilerBase {
@@ -67,7 +70,10 @@ export class NextJSCompiler extends CompilerBase {
     return this.buildNextRoute(composition);
   }
 
-  protected validateCompilerAccess(agentToken: string | CapabilityTokenCredential, outputPath?: string): void {
+  protected validateCompilerAccess(
+    agentToken: string | CapabilityTokenCredential,
+    outputPath?: string
+  ): void {
     if (typeof agentToken === 'object' && agentToken !== null) {
       this.validateCapabilityAccess(agentToken as CapabilityTokenCredential, outputPath);
     } else {
@@ -87,7 +93,8 @@ export class NextJSCompiler extends CompilerBase {
     const pageTrait = findTrait(composition, 'page');
     const metaTrait = findTrait(composition, 'metadata');
 
-    const route = (pageTrait?.route as string) || `/${composition.name.toLowerCase().replace(/\s+/g, '-')}`;
+    const route =
+      (pageTrait?.route as string) || `/${composition.name.toLowerCase().replace(/\s+/g, '-')}`;
     const isClient = pageTrait?.client !== false; // default to client component
 
     const slotMap = this.options.slots || {};
@@ -107,7 +114,8 @@ export class NextJSCompiler extends CompilerBase {
       if (metaTrait) {
         const metaEntries: string[] = [];
         if (metaTrait.title) metaEntries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
-        if (metaTrait.description) metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
+        if (metaTrait.description)
+          metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
 
         lines.push('');
         lines.push(`export const metadata = {`);
@@ -155,7 +163,8 @@ export class NextJSCompiler extends CompilerBase {
     if (metaTrait && !isClient) {
       const metaEntries: string[] = [];
       if (metaTrait.title) metaEntries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
-      if (metaTrait.description) metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
+      if (metaTrait.description)
+        metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
 
       lines.push('');
       lines.push(`export const metadata = {`);

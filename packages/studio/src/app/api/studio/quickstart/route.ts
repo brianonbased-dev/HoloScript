@@ -101,7 +101,10 @@ export async function POST(request: NextRequest) {
 
     hello_world: {
       code: HELLO_WORLD_SCENE,
-      compilation: compilation || { status: 'mcp_offline', message: 'MCP service not available — scene not compiled' },
+      compilation: compilation || {
+        status: 'mcp_offline',
+        message: 'MCP service not available — scene not compiled',
+      },
     },
 
     api_endpoints: {
@@ -119,6 +122,7 @@ export async function GET() {
   return NextResponse.json({
     endpoint: '/api/studio/quickstart',
     method: 'POST',
-    description: 'One-request agent onboarding. Returns capabilities, example workflows, MCP config, and hello world compilation.',
+    description:
+      'One-request agent onboarding. Returns capabilities, example workflows, MCP config, and hello world compilation.',
   });
 }

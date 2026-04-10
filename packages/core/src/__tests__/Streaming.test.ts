@@ -58,4 +58,3 @@ describe('MovementPredictor - Infinite Streaming', () => {
     expect(windows[0].likelihood).toBe(1.0);
   });
 });
-

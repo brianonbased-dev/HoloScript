@@ -133,11 +133,22 @@ export class DistributedClaimer {
       };
       this.claims.set(taskId, record);
       this.broadcastClaim('claim', record);
-      return { success: true, taskId, claimedBy: agentId, claimTimestamp: timestamp, contested: [loser] };
+      return {
+        success: true,
+        taskId,
+        claimedBy: agentId,
+        claimTimestamp: timestamp,
+        contested: [loser],
+      };
     }
 
     // Lost the conflict
-    return { success: false, taskId, claimedBy: existing.agentId, claimTimestamp: existing.timestamp };
+    return {
+      success: false,
+      taskId,
+      claimedBy: existing.agentId,
+      claimTimestamp: existing.timestamp,
+    };
   }
 
   /**

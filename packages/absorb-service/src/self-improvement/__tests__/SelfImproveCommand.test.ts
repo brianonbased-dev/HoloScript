@@ -15,9 +15,9 @@ import type {
 // =============================================================================
 
 function createMockIO(overrides: Partial<SelfImproveIO> = {}): SelfImproveIO {
-    let queryCallCount = 0;
-    // We must define this inside createMockIO or use a closure.
-    // Wait, createMockIO is called per-test. So we can put the let inside createMockIO.
+  let queryCallCount = 0;
+  // We must define this inside createMockIO or use a closure.
+  // Wait, createMockIO is called per-test. So we can put the let inside createMockIO.
 
   return {
     absorb: vi.fn<(rootDir: string) => Promise<AbsorbResult>>().mockResolvedValue({
@@ -27,18 +27,20 @@ function createMockIO(overrides: Partial<SelfImproveIO> = {}): SelfImproveIO {
       graphEdges: 1200,
     }),
 
-    queryUntested: vi.fn<(query: string) => Promise<UntestedTarget[]>>().mockImplementation(async () => {
-      queryCallCount++;
-      return [
-        {
-          symbolName: `CircuitBreaker.recordFailure_${queryCallCount}`,
-          filePath: `src/CircuitBreaker.ts`,
-          language: 'typescript',
-          relevanceScore: 0.92,
-          description: 'Records a failed request in the circuit breaker',
-        },
-      ];
-    }),
+    queryUntested: vi
+      .fn<(query: string) => Promise<UntestedTarget[]>>()
+      .mockImplementation(async () => {
+        queryCallCount++;
+        return [
+          {
+            symbolName: `CircuitBreaker.recordFailure_${queryCallCount}`,
+            filePath: `src/CircuitBreaker.ts`,
+            language: 'typescript',
+            relevanceScore: 0.92,
+            description: 'Records a failed request in the circuit breaker',
+          },
+        ];
+      }),
 
     generateTest: vi
       .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()

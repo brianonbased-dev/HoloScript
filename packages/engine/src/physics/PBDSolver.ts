@@ -2728,7 +2728,7 @@ export class PBDSolverGPU {
                     ? 'cs_compute_normals'
                     : shaderCode.includes('cs_normalize_normals')
                       ? 'cs_normalize_normals'
-                        : 'main',
+                      : 'main',
       },
     });
   }
@@ -2855,4 +2855,3 @@ export async function createPBDSolver(
 
   return new PBDSolverCPU(config);
 }
-

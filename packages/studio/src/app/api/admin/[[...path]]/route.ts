@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 
-const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
+import { ENDPOINTS } from '@holoscript/config';
+const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 
 function buildUpstreamUrl(req: NextRequest): string {
   // Extract the path segments after /api/admin/
@@ -24,14 +25,14 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(buildUpstreamUrl(req), {
       method: 'GET',
-      headers: { 'Accept': 'application/json', ...forwardAuthHeaders(req) },
+      headers: { Accept: 'application/json', ...forwardAuthHeaders(req) },
     });
 
     if (!res.ok) {
       const errText = await res.text();
       return NextResponse.json(
         { error: `Admin service error [${res.status}]: ${errText}` },
-        { status: res.status },
+        { status: res.status }
       );
     }
 
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: 'Admin service is offline', details: String(error) },
-      { status: 503 },
+      { status: 503 }
     );
   }
 }
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
       const errText = await res.text();
       return NextResponse.json(
         { error: `Admin service error [${res.status}]: ${errText}` },
-        { status: res.status },
+        { status: res.status }
       );
     }
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: 'Admin service is offline', details: String(error) },
-      { status: 503 },
+      { status: 503 }
     );
   }
 }

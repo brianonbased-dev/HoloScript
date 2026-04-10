@@ -21,7 +21,7 @@ export interface ClientState {
 
 // 1. High Latency: Out-of-order Update Resolution (LWW - Last Write Wins by Tick)
 export function applyLatencyTolerantUpdate(
-  currentState: ClientState, 
+  currentState: ClientState,
   incomingUpdate: StateUpdate
 ): ClientState {
   // If the incoming update is older than our last processed deterministic tick, we discard it
@@ -32,7 +32,7 @@ export function applyLatencyTolerantUpdate(
 
   return {
     lastTick: incomingUpdate.tick,
-    data: { ...currentState.data, ...incomingUpdate.payload }
+    data: { ...currentState.data, ...incomingUpdate.payload },
   };
 }
 
@@ -73,7 +73,11 @@ export function resolveSimultaneousEdit(claims: EditClaim[]): EditClaim | null {
 describe('Scenario: Multiplayer — High Latency & Out-of-Order Packets', () => {
   it('Applies sequential incoming network updates', () => {
     let state: ClientState = { lastTick: 10, data: { status: 'idle' } };
-    state = applyLatencyTolerantUpdate(state, { tick: 12, clientId: 'C1', payload: { status: 'moving' } });
+    state = applyLatencyTolerantUpdate(state, {
+      tick: 12,
+      clientId: 'C1',
+      payload: { status: 'moving' },
+    });
     expect(state.data.status).toBe('moving');
     expect(state.lastTick).toBe(12);
   });
@@ -88,7 +92,10 @@ describe('Scenario: Multiplayer — High Latency & Out-of-Order Packets', () => 
 });
 
 // 4. Loro CRDT Vector Clock Merge Mock
-export function mergeVectorClocks(localClock: Record<string, number>, remoteClock: Record<string, number>): Record<string, number> {
+export function mergeVectorClocks(
+  localClock: Record<string, number>,
+  remoteClock: Record<string, number>
+): Record<string, number> {
   const merged: Record<string, number> = { ...localClock };
   for (const [node, tick] of Object.entries(remoteClock)) {
     merged[node] = Math.max(merged[node] || 0, tick);
@@ -101,25 +108,28 @@ describe('Scenario: Multiplayer — Crash Desync & Recovery', () => {
     const localDiverged = {
       playerHealth: 80,
       enemyPos: { x: 10, y: 0 },
-      localMenuOpen: true // Unique UI state not synced globally
+      localMenuOpen: true, // Unique UI state not synced globally
     };
     const authoritativeMesh = {
       playerHealth: 40, // Player actually took damage while disconnected
-      enemyPos: { x: 50, y: 0 } // Enemy moved while disconnected
+      enemyPos: { x: 50, y: 0 }, // Enemy moved while disconnected
     };
 
     // Force overwrite spatial and health variables but keep local UI configs
-    const recovered = reconcileDesyncMerge(localDiverged, authoritativeMesh, ['playerHealth', 'enemyPos']);
-    
+    const recovered = reconcileDesyncMerge(localDiverged, authoritativeMesh, [
+      'playerHealth',
+      'enemyPos',
+    ]);
+
     expect(recovered.playerHealth).toBe(40);
     expect(recovered.enemyPos.x).toBe(50);
     expect(recovered.localMenuOpen).toBe(true); // Retained cleanly
   });
-  
+
   it('Triggers auto-reconciliation via Loro CRDT backend vector clock merge', () => {
-    const localClock = { 'client_A': 5, 'client_B': 2 };
-    const remoteClock = { 'client_B': 4, 'client_C': 1 };
-    
+    const localClock = { client_A: 5, client_B: 2 };
+    const remoteClock = { client_B: 4, client_C: 1 };
+
     const merged = mergeVectorClocks(localClock, remoteClock);
     expect(merged['client_A']).toBe(5);
     expect(merged['client_B']).toBe(4);
@@ -132,7 +142,7 @@ describe('Scenario: Multiplayer — Permission Edit Conflicts', () => {
     const edits: EditClaim[] = [
       { clientId: 'guest_123', property: 'wall_color', value: 'red', reputation: 10 },
       { clientId: 'admin_sys', property: 'wall_color', value: 'blue', reputation: 9000 },
-      { clientId: 'mod_001', property: 'wall_color', value: 'green', reputation: 500 }
+      { clientId: 'mod_001', property: 'wall_color', value: 'green', reputation: 500 },
     ];
 
     const winner = resolveSimultaneousEdit(edits);
@@ -143,7 +153,7 @@ describe('Scenario: Multiplayer — Permission Edit Conflicts', () => {
   it('Uses deterministic lexical sorting when reputations are exactly tied during a conflict', () => {
     const edits: EditClaim[] = [
       { clientId: 'user_B', property: 'door_state', value: 'open', reputation: 100 },
-      { clientId: 'user_A', property: 'door_state', value: 'closed', reputation: 100 }
+      { clientId: 'user_A', property: 'door_state', value: 'closed', reputation: 100 },
     ];
 
     const winner = resolveSimultaneousEdit(edits);

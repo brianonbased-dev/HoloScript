@@ -292,13 +292,7 @@ export type {
 } from './debate-protocol';
 
 export { SwarmOrchestrator } from './swarm-protocol';
-export type {
-  SwarmParticipant,
-  Signal,
-  Vote,
-  SwarmRound,
-  SwarmResult,
-} from './swarm-protocol';
+export type { SwarmParticipant, Signal, Vote, SwarmRound, SwarmResult } from './swarm-protocol';
 
 export { A2AHSNAPBridge } from './A2AHSNAPBridge';
 export type { BridgeEnvelopeOptions } from './A2AHSNAPBridge';

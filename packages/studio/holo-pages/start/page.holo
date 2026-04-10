@@ -1,0 +1,4 @@
+@page({ route: "/start" })
+composition "start" {
+  object "BrittneyFullScreen" @slot(component: "BrittneyFullScreen", import: "@/components/ai/BrittneyFullScreen") {}
+}

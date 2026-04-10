@@ -11,17 +11,17 @@ export interface ExtractorOptions {
  * Extracts raw GPU sorted data from a GaussianSplatSorter.
  * Uses GPUBuffer.mapAsync to read back the `compressedSplatBuffer` and `sortValuesA` buffers
  * which contain the natively sorted WebGPU output.
- * 
+ *
  * Mitigation for mapAsync stalls: We use double buffering to pipeline the readbacks.
  */
 export class GaussianSplatExtractor {
   private context: WebGPUContext;
   private device: GPUDevice;
   private options: Required<ExtractorOptions>;
-  
+
   private readbackBuffersA: { compressed: GPUBuffer; indices: GPUBuffer } | null = null;
   private readbackBuffersB: { compressed: GPUBuffer; indices: GPUBuffer } | null = null;
-  
+
   private isUsingA = true;
   private ongoingReadback: Promise<INeuralSplatPacket | null> | null = null;
   private frameCounter = 0;
@@ -44,12 +44,12 @@ export class GaussianSplatExtractor {
 
     this.readbackBuffersA = {
       compressed: this.createReadbackBuffer(compressedSize),
-      indices: this.createReadbackBuffer(indicesSize)
+      indices: this.createReadbackBuffer(indicesSize),
     };
 
     this.readbackBuffersB = {
       compressed: this.createReadbackBuffer(compressedSize),
-      indices: this.createReadbackBuffer(indicesSize)
+      indices: this.createReadbackBuffer(indicesSize),
     };
   }
 
@@ -85,7 +85,7 @@ export class GaussianSplatExtractor {
     const currentFrame = ++this.frameCounter;
 
     const encoder = this.device.createCommandEncoder({
-      label: 'splat-extractor-copy-encoder'
+      label: 'splat-extractor-copy-encoder',
     });
 
     encoder.copyBufferToBuffer(compressedSource, 0, currentBuffers.compressed, 0, compressedSize);
@@ -95,34 +95,40 @@ export class GaussianSplatExtractor {
 
     this.ongoingReadback = Promise.all([
       currentBuffers.compressed.mapAsync(GPUMapMode.READ, 0, compressedSize),
-      currentBuffers.indices.mapAsync(GPUMapMode.READ, 0, indicesSize)
-    ]).then(() => {
-      // Clone buffers into independent ArrayBuffers for streaming
-      const compData = currentBuffers.compressed.getMappedRange(0, compressedSize).slice(0);
-      const indData = currentBuffers.indices.getMappedRange(0, indicesSize).slice(0);
+      currentBuffers.indices.mapAsync(GPUMapMode.READ, 0, indicesSize),
+    ])
+      .then(() => {
+        // Clone buffers into independent ArrayBuffers for streaming
+        const compData = currentBuffers.compressed.getMappedRange(0, compressedSize).slice(0);
+        const indData = currentBuffers.indices.getMappedRange(0, indicesSize).slice(0);
 
-      currentBuffers.compressed.unmap();
-      currentBuffers.indices.unmap();
+        currentBuffers.compressed.unmap();
+        currentBuffers.indices.unmap();
 
-      this.ongoingReadback = null;
+        this.ongoingReadback = null;
 
-      const packet = {
-        frameId: currentFrame,
-        cameraState: {
-          viewProjectionMatrix: Array.from(camera.viewProjectionMatrix),
-          cameraPosition: [camera.cameraPosition[0], camera.cameraPosition[1], camera.cameraPosition[2]]
-        },
-        splatCount: stats.splatCount,
-        compressedSplatsBuffer: compData,
-        sortedIndicesBuffer: indData
-      } as unknown as INeuralSplatPacket;
-      
-      return packet;
-    }).catch((e) => {
-      console.warn("GaussianSplatExtractor readback failed", e);
-      this.ongoingReadback = null;
-      return null;
-    });
+        const packet = {
+          frameId: currentFrame,
+          cameraState: {
+            viewProjectionMatrix: Array.from(camera.viewProjectionMatrix),
+            cameraPosition: [
+              camera.cameraPosition[0],
+              camera.cameraPosition[1],
+              camera.cameraPosition[2],
+            ],
+          },
+          splatCount: stats.splatCount,
+          compressedSplatsBuffer: compData,
+          sortedIndicesBuffer: indData,
+        } as unknown as INeuralSplatPacket;
+
+        return packet;
+      })
+      .catch((e) => {
+        console.warn('GaussianSplatExtractor readback failed', e);
+        this.ongoingReadback = null;
+        return null;
+      });
 
     return this.ongoingReadback;
   }

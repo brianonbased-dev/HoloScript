@@ -58,7 +58,10 @@ const DEFAULT_COMPLEXITY_THRESHOLD = 2;
 // ── LLM Adapter Interface (injectable for testing) ──
 
 export interface LLMAdapter {
-  call(messages: LLMMessage[], options?: { maxTokens?: number; temperature?: number }): Promise<string>;
+  call(
+    messages: LLMMessage[],
+    options?: { maxTokens?: number; temperature?: number }
+  ): Promise<string>;
 }
 
 /** Create an LLMAdapter from a ModelConfig */
@@ -159,7 +162,7 @@ Rules:
     this.validatePhases(phases);
 
     const sorted = this.topologicalSort(phases);
-    const phaseMap = new Map(phases.map(p => [p.id, p]));
+    const phaseMap = new Map(phases.map((p) => [p.id, p]));
     const waveAssignment = new Map<string, number>();
     const waves: MicroPhase[][] = [];
 
@@ -181,15 +184,16 @@ Rules:
     // Calculate timing
     const sequentialTime = phases.reduce((sum, p) => sum + p.estimatedDuration, 0);
     const parallelTime = waves.reduce((sum, wave) => {
-      return sum + Math.max(...wave.map(p => p.estimatedDuration));
+      return sum + Math.max(...wave.map((p) => p.estimatedDuration));
     }, 0);
 
     return {
       waves,
       totalEstimatedDuration: parallelTime,
-      parallelizationRatio: sequentialTime > 0
-        ? Math.round(((sequentialTime - parallelTime) / sequentialTime) * 100)
-        : 0,
+      parallelizationRatio:
+        sequentialTime > 0
+          ? Math.round(((sequentialTime - parallelTime) / sequentialTime) * 100)
+          : 0,
       phaseCount: phases.length,
     };
   }
@@ -212,7 +216,9 @@ Rules:
         description: String(p.description ?? 'Unknown phase'),
         dependencies: Array.isArray(p.dependencies) ? p.dependencies.map(String) : [],
         estimatedDuration: typeof p.estimatedDuration === 'number' ? p.estimatedDuration : 5000,
-        requiredCapabilities: Array.isArray(p.requiredCapabilities) ? p.requiredCapabilities.map(String) : ['coding'],
+        requiredCapabilities: Array.isArray(p.requiredCapabilities)
+          ? p.requiredCapabilities.map(String)
+          : ['coding'],
       }));
     } catch {
       return this.fallbackSinglePhase(taskId);
@@ -220,17 +226,19 @@ Rules:
   }
 
   private fallbackSinglePhase(taskId: string): MicroPhase[] {
-    return [{
-      id: `${taskId}_single`,
-      description: 'Execute task as single unit',
-      dependencies: [],
-      estimatedDuration: 10000,
-      requiredCapabilities: ['coding'],
-    }];
+    return [
+      {
+        id: `${taskId}_single`,
+        description: 'Execute task as single unit',
+        dependencies: [],
+        estimatedDuration: 10000,
+        requiredCapabilities: ['coding'],
+      },
+    ];
   }
 
   private validatePhases(phases: MicroPhase[]): void {
-    const ids = new Set(phases.map(p => p.id));
+    const ids = new Set(phases.map((p) => p.id));
 
     for (const phase of phases) {
       for (const dep of phase.dependencies) {
@@ -245,7 +253,7 @@ Rules:
   }
 
   private topologicalSort(phases: MicroPhase[]): string[] {
-    const phaseMap = new Map(phases.map(p => [p.id, p]));
+    const phaseMap = new Map(phases.map((p) => [p.id, p]));
     const visited = new Set<string>();
     const inStack = new Set<string>();
     const result: string[] = [];
@@ -280,7 +288,7 @@ Rules:
   private enforceParallelismLimit(phases: MicroPhase[], maxParallelism: number): void {
     // Build initial plan to see wave sizes
     const plan = this.buildExecutionPlan(phases);
-    const phaseMap = new Map(phases.map(p => [p.id, p]));
+    const phaseMap = new Map(phases.map((p) => [p.id, p]));
 
     for (const wave of plan.waves) {
       if (wave.length <= maxParallelism) continue;

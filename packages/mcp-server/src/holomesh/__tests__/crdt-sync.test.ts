@@ -470,12 +470,16 @@ describe('HoloMeshWorldState', () => {
   describe('V9 hot buffer (hippocampus)', () => {
     it('ingestToHotBuffer stages entry without touching cold store', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
-      const entry = ws.ingestToHotBuffer('security', {
-        content: 'New threat vector found',
-        type: 'wisdom',
-        authorDid: 'peer-1',
-        tags: ['security'],
-      }, 'peer-1');
+      const entry = ws.ingestToHotBuffer(
+        'security',
+        {
+          content: 'New threat vector found',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: ['security'],
+        },
+        'peer-1'
+      );
 
       expect(entry.id).toContain('hot_security_');
       expect(entry.domain).toBe('security');
@@ -488,18 +492,26 @@ describe('HoloMeshWorldState', () => {
 
     it('getHotBuffer returns entries for specific domain', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
-      ws.ingestToHotBuffer('rendering', {
-        content: 'SDF trick',
-        type: 'pattern',
-        authorDid: 'peer-2',
-        tags: ['rendering'],
-      }, 'peer-2');
-      ws.ingestToHotBuffer('rendering', {
-        content: 'Shader hack',
-        type: 'pattern',
-        authorDid: 'peer-3',
-        tags: ['rendering'],
-      }, 'peer-3');
+      ws.ingestToHotBuffer(
+        'rendering',
+        {
+          content: 'SDF trick',
+          type: 'pattern',
+          authorDid: 'peer-2',
+          tags: ['rendering'],
+        },
+        'peer-2'
+      );
+      ws.ingestToHotBuffer(
+        'rendering',
+        {
+          content: 'Shader hack',
+          type: 'pattern',
+          authorDid: 'peer-3',
+          tags: ['rendering'],
+        },
+        'peer-3'
+      );
 
       const buffer = ws.getHotBuffer('rendering');
       expect(buffer).toHaveLength(2);
@@ -508,12 +520,16 @@ describe('HoloMeshWorldState', () => {
 
     it('corroborateHotEntry adds peer to corroboration list', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
-      const entry = ws.ingestToHotBuffer('agents', {
-        content: 'Agent coordination pattern',
-        type: 'pattern',
-        authorDid: 'peer-1',
-        tags: ['agents'],
-      }, 'peer-1');
+      const entry = ws.ingestToHotBuffer(
+        'agents',
+        {
+          content: 'Agent coordination pattern',
+          type: 'pattern',
+          authorDid: 'peer-1',
+          tags: ['agents'],
+        },
+        'peer-1'
+      );
 
       const result = ws.corroborateHotEntry('agents', entry.id, 'peer-2');
       expect(result).toBe(true);
@@ -524,12 +540,16 @@ describe('HoloMeshWorldState', () => {
 
     it('corroborateHotEntry deduplicates same peer', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
-      const entry = ws.ingestToHotBuffer('agents', {
-        content: 'Test',
-        type: 'wisdom',
-        authorDid: 'peer-1',
-        tags: [],
-      }, 'peer-1');
+      const entry = ws.ingestToHotBuffer(
+        'agents',
+        {
+          content: 'Test',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: [],
+        },
+        'peer-1'
+      );
 
       ws.corroborateHotEntry('agents', entry.id, 'peer-1');
       const buffer = ws.getHotBuffer('agents');
@@ -543,18 +563,32 @@ describe('HoloMeshWorldState', () => {
 
     it('getHotBufferStats returns counts for all domains', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
-      ws.ingestToHotBuffer('security', {
-        content: 'A', type: 'wisdom', authorDid: 'a', tags: [],
-      }, 'peer-1');
-      ws.ingestToHotBuffer('security', {
-        content: 'B', type: 'wisdom', authorDid: 'a', tags: [],
-      }, 'peer-1');
+      ws.ingestToHotBuffer(
+        'security',
+        {
+          content: 'A',
+          type: 'wisdom',
+          authorDid: 'a',
+          tags: [],
+        },
+        'peer-1'
+      );
+      ws.ingestToHotBuffer(
+        'security',
+        {
+          content: 'B',
+          type: 'wisdom',
+          authorDid: 'a',
+          tags: [],
+        },
+        'peer-1'
+      );
 
       const stats = ws.getHotBufferStats();
       expect(stats).toHaveLength(5); // 5 domains
-      const secStats = stats.find(s => s.domain === 'security');
+      const secStats = stats.find((s) => s.domain === 'security');
       expect(secStats?.count).toBe(2);
-      const renderStats = stats.find(s => s.domain === 'rendering');
+      const renderStats = stats.find((s) => s.domain === 'rendering');
       expect(renderStats?.count).toBe(0);
     });
   });
@@ -564,12 +598,16 @@ describe('HoloMeshWorldState', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
 
       // Ingest entry and backdate it so it's past TTL
-      ws.ingestToHotBuffer('general', {
-        content: 'Consolidated insight',
-        type: 'wisdom',
-        authorDid: 'peer-1',
-        tags: ['test'],
-      }, 'peer-1');
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Consolidated insight',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: ['test'],
+        },
+        'peer-1'
+      );
 
       // Backdate to exceed hotBufferTTL (general = 6h)
       (ws as any).hotBuffer.get('general')[0].ingestedAt = Date.now() - 7 * 60 * 60 * 1000;
@@ -588,12 +626,16 @@ describe('HoloMeshWorldState', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
 
       // Security domain requires minCorroborations = 2
-      ws.ingestToHotBuffer('security', {
-        content: 'Uncorroborated claim',
-        type: 'wisdom',
-        authorDid: 'peer-1',
-        tags: [],
-      }, 'peer-1');
+      ws.ingestToHotBuffer(
+        'security',
+        {
+          content: 'Uncorroborated claim',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: [],
+        },
+        'peer-1'
+      );
 
       // Backdate past TTL (security = 1h)
       (ws as any).hotBuffer.get('security')[0].ingestedAt = Date.now() - 2 * 60 * 60 * 1000;
@@ -610,18 +652,26 @@ describe('HoloMeshWorldState', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
 
       // Two identical entries from different peers
-      ws.ingestToHotBuffer('general', {
-        content: 'Same insight',
-        type: 'wisdom',
-        authorDid: 'peer-1',
-        tags: ['test'],
-      }, 'peer-1');
-      ws.ingestToHotBuffer('general', {
-        content: 'Same insight',
-        type: 'wisdom',
-        authorDid: 'peer-2',
-        tags: ['test'],
-      }, 'peer-2');
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Same insight',
+          type: 'wisdom',
+          authorDid: 'peer-1',
+          tags: ['test'],
+        },
+        'peer-1'
+      );
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Same insight',
+          type: 'wisdom',
+          authorDid: 'peer-2',
+          tags: ['test'],
+        },
+        'peer-2'
+      );
 
       // Backdate both
       const buf = (ws as any).hotBuffer.get('general');
@@ -639,12 +689,16 @@ describe('HoloMeshWorldState', () => {
     it('consolidateDomain keeps young entries in hot buffer', () => {
       const ws = new HoloMeshWorldState('agent-did-12345');
 
-      ws.ingestToHotBuffer('general', {
-        content: 'Fresh entry',
-        type: 'pattern',
-        authorDid: 'peer-1',
-        tags: [],
-      }, 'peer-1');
+      ws.ingestToHotBuffer(
+        'general',
+        {
+          content: 'Fresh entry',
+          type: 'pattern',
+          authorDid: 'peer-1',
+          tags: [],
+        },
+        'peer-1'
+      );
       // Do NOT backdate — entry is fresh
 
       const mapInst = mockMapInstances['knowledge.general'];
@@ -705,7 +759,7 @@ describe('HoloMeshWorldState', () => {
 
       const results = ws.sleepCycle();
       expect(results.length).toBe(5); // All domains should consolidate
-      expect(results.every(r => r.consolidatedAt > 0)).toBe(true);
+      expect(results.every((r) => r.consolidatedAt > 0)).toBe(true);
     });
 
     it('sleepCycle force=true runs all domains regardless of timing', () => {
@@ -728,11 +782,11 @@ describe('HoloMeshWorldState', () => {
       (ws as any).lastConsolidation.set('security', 0);
 
       const status = ws.needsConsolidation();
-      const sec = status.find(s => s.domain === 'security');
+      const sec = status.find((s) => s.domain === 'security');
       expect(sec?.overdue).toBe(true);
 
       // Rendering was just initialized — should NOT be overdue
-      const render = status.find(s => s.domain === 'rendering');
+      const render = status.find((s) => s.domain === 'rendering');
       expect(render?.overdue).toBe(false);
     });
   });
@@ -906,9 +960,10 @@ describe('HoloMeshWorldState', () => {
       };
       mockMaps['knowledge.agents'] = { 'W.BAD.01': JSON.stringify(entry) };
       const mapInst = mockMapInstances['knowledge.agents'];
-      if (mapInst) mapInst.delete = vi.fn((key: string) => {
-        delete mockMaps['knowledge.agents'][key];
-      });
+      if (mapInst)
+        mapInst.delete = vi.fn((key: string) => {
+          delete mockMaps['knowledge.agents'][key];
+        });
 
       const result = ws.contradictEntry('agents', 'W.BAD.01', 'peer-4');
       expect(result.contradicted).toBe(true);

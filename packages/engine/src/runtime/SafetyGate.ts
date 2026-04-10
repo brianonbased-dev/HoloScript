@@ -229,4 +229,3 @@ export class RuntimeMonitor {
     return { frameBudgetMs: caps.frameBudgetMs, agentBudgetMs: caps.agentBudgetMs };
   }
 }
-

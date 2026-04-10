@@ -94,7 +94,9 @@ export class CompilerResolver {
         output: undefined,
         errors: [
           {
-            message: (error instanceof Error ? error.message : String(error)) || 'Unknown compilation error',
+            message:
+              (error instanceof Error ? error.message : String(error)) ||
+              'Unknown compilation error',
             phase: 'compile',
           },
         ],

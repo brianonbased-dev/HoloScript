@@ -29,7 +29,8 @@ export const knowledgeExtractionTools: Tool[] = [
       properties: {
         minConfidence: {
           type: 'number',
-          description: 'Minimum confidence threshold 0.0-1.0 (default: 0.5). Lower values produce more speculative entries.',
+          description:
+            'Minimum confidence threshold 0.0-1.0 (default: 0.5). Lower values produce more speculative entries.',
         },
         maxPerType: {
           type: 'number',
@@ -76,7 +77,7 @@ export function getActiveGraph(): CodebaseGraph | null {
 
 export async function handleKnowledgeExtractionTool(
   toolName: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const respond = (data: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -96,7 +97,8 @@ export async function handleKnowledgeExtractionTool(
   const options: ExtractionOptions = {
     minConfidence: typeof args.minConfidence === 'number' ? args.minConfidence : undefined,
     maxPerType: typeof args.maxPerType === 'number' ? args.maxPerType : undefined,
-    includeSpeculative: typeof args.includeSpeculative === 'boolean' ? args.includeSpeculative : undefined,
+    includeSpeculative:
+      typeof args.includeSpeculative === 'boolean' ? args.includeSpeculative : undefined,
     workspaceId: typeof args.workspaceId === 'string' ? args.workspaceId : undefined,
   };
 
@@ -108,7 +110,8 @@ export async function handleKnowledgeExtractionTool(
     ...result,
     usage: {
       hint: 'Pass these entries to knowledge_publish to add them to the marketplace.',
-      example: 'For each entry: knowledge_publish({ id: entry.id, type: entry.type, content: entry.content, workspace_id: "your-workspace" })',
+      example:
+        'For each entry: knowledge_publish({ id: entry.id, type: entry.type, content: entry.content, workspace_id: "your-workspace" })',
     },
   });
 }

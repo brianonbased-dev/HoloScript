@@ -24,7 +24,12 @@ export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
     delete node.__changeState;
   },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: ChangeTrackingConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ChangeTrackingConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__changeState as
       | {
           history: Array<{
@@ -54,7 +59,9 @@ export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
       }
       case 'change:query': {
         // @ts-expect-error
-        const results = state.history.filter((e: unknown) => e.entityId === (event.entityId as string));
+        const results = state.history.filter(
+          (e: unknown) => e.entityId === (event.entityId as string)
+        );
         context.emit?.('change:history', { entityId: event.entityId, changes: results });
         break;
       }

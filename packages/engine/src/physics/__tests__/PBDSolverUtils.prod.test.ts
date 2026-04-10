@@ -206,4 +206,3 @@ describe('extractBendingPairs()', () => {
     expect(Number.isFinite(result.restAngles[0])).toBe(true);
   });
 });
-

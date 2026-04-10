@@ -159,4 +159,3 @@ export class DialogueRunner {
     return [...this.history];
   }
 }
-

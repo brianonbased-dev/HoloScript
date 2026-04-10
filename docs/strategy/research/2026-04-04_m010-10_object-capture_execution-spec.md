@@ -42,10 +42,10 @@ interface ObjectCaptureSession {
 
 ```ts
 interface CapturedModelArtifact {
-  modelPath: string;       // e.g. glb/usdz path
+  modelPath: string; // e.g. glb/usdz path
   texturePaths: string[];
   triangleCount: number;
-  boundingBox: { min: [number,number,number]; max: [number,number,number] };
+  boundingBox: { min: [number, number, number]; max: [number, number, number] };
   confidence: number;
   captureSessionId: string;
 }

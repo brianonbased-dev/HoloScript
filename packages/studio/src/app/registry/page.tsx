@@ -94,11 +94,15 @@ export default function RegistryPage() {
 
   const handleDownload = async (pack: RegistryPack) => {
     setDownloading(pack.packId);
-    await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) => logger.warn('Swallowed error caught:', err));
+    await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) =>
+      logger.warn('Swallowed error caught:', err)
+    );
     if (pack.previewCode) {
-      await navigator.clipboard.writeText(pack.previewCode).catch((err) => logger.warn('Swallowed error caught:', err));
+      await navigator.clipboard
+        .writeText(pack.previewCode)
+        .catch((err) => logger.warn('Swallowed error caught:', err));
     }
-      setTimeout(() => setDownloading(null), ANIM_NAVIGATE);
+    setTimeout(() => setDownloading(null), ANIM_NAVIGATE);
   };
 
   return (

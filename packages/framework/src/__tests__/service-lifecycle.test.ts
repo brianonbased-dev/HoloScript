@@ -148,7 +148,9 @@ describe('ServiceError', () => {
   });
 
   it('carries optional details', () => {
-    const err = new ServiceError(ServiceErrorCode.VALIDATION_ERROR, 'bad input', 400, { field: 'name' });
+    const err = new ServiceError(ServiceErrorCode.VALIDATION_ERROR, 'bad input', 400, {
+      field: 'name',
+    });
     expect(err.details).toEqual({ field: 'name' });
   });
 });
@@ -164,8 +166,12 @@ describe('ServiceManager', () => {
       constructor(name: string) {
         super({ name, version: '1.0.0', description: name });
       }
-      protected override async onInit() { order.push(`init:${this.getMetadata().name}`); }
-      protected override async onStop() { order.push(`stop:${this.getMetadata().name}`); }
+      protected override async onInit() {
+        order.push(`init:${this.getMetadata().name}`);
+      }
+      protected override async onStop() {
+        order.push(`stop:${this.getMetadata().name}`);
+      }
     }
 
     const mgr = new ServiceManager();

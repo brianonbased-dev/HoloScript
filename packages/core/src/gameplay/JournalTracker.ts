@@ -134,8 +134,7 @@ export class JournalTracker {
     const lower = query.toLowerCase();
     return [...this.entries.values()].filter(
       (e) =>
-        e.questName.toLowerCase().includes(lower) ||
-        e.description.toLowerCase().includes(lower)
+        e.questName.toLowerCase().includes(lower) || e.description.toLowerCase().includes(lower)
     );
   }
 
@@ -151,10 +150,7 @@ export class JournalTracker {
     return [...this.entries.values()];
   }
 
-  private pushNotification(
-    type: JournalNotification['type'],
-    questId: string
-  ): void {
+  private pushNotification(type: JournalNotification['type'], questId: string): void {
     this.notifications.push({
       id: `notif_${++notifIdCounter}`,
       type,

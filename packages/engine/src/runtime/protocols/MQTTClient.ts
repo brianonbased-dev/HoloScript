@@ -558,4 +558,3 @@ export function unregisterMQTTClient(name: string): void {
 }
 
 export default MQTTClient;
-

@@ -238,7 +238,6 @@ export class HololandExtensionRegistry implements IHololandExtensionRegistry {
     this.inventoryProviders.clear();
     this.aiProviders.clear();
     this.paymentProcessors.clear();
-
   }
 
   /**

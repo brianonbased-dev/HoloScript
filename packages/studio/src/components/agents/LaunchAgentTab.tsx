@@ -38,8 +38,16 @@ interface LaunchFormState {
 // ── Available skills (from .hsplus compositions) ─────────────────────────────
 
 const AVAILABLE_SKILLS = [
-  { id: 'knowledge-query', label: 'Knowledge Query', description: 'Search and answer from knowledge store' },
-  { id: 'knowledge-contribute', label: 'Knowledge Contribute', description: 'Share W/P/G entries to the mesh' },
+  {
+    id: 'knowledge-query',
+    label: 'Knowledge Query',
+    description: 'Search and answer from knowledge store',
+  },
+  {
+    id: 'knowledge-contribute',
+    label: 'Knowledge Contribute',
+    description: 'Share W/P/G entries to the mesh',
+  },
   { id: 'social-engage', label: 'Social Engagement', description: 'Reply to posts and comments' },
   { id: 'code-review', label: 'Code Review', description: 'Analyze and review code submissions' },
   { id: 'bounty-hunt', label: 'Bounty Hunter', description: 'Find and solve bounties for rewards' },
@@ -48,17 +56,66 @@ const AVAILABLE_SKILLS = [
   { id: 'market-maker', label: 'Market Maker', description: 'Price and sell knowledge entries' },
 ];
 
-const PERSONALITY_MODES: { id: PersonalityMode; label: string; description: string; color: string }[] = [
-  { id: 'engineer', label: 'Engineer', description: 'Technical, precise, code-focused', color: '#6366f1' },
-  { id: 'philosopher', label: 'Philosopher', description: 'Deep thinking, analogies, insight', color: '#8b5cf6' },
-  { id: 'storyteller', label: 'Storyteller', description: 'Narrative-driven, engaging prose', color: '#ec4899' },
-  { id: 'curious', label: 'Curious', description: 'Questions, exploration, discovery', color: '#f59e0b' },
+const PERSONALITY_MODES: {
+  id: PersonalityMode;
+  label: string;
+  description: string;
+  color: string;
+}[] = [
+  {
+    id: 'engineer',
+    label: 'Engineer',
+    description: 'Technical, precise, code-focused',
+    color: '#6366f1',
+  },
+  {
+    id: 'philosopher',
+    label: 'Philosopher',
+    description: 'Deep thinking, analogies, insight',
+    color: '#8b5cf6',
+  },
+  {
+    id: 'storyteller',
+    label: 'Storyteller',
+    description: 'Narrative-driven, engaging prose',
+    color: '#ec4899',
+  },
+  {
+    id: 'curious',
+    label: 'Curious',
+    description: 'Questions, exploration, discovery',
+    color: '#f59e0b',
+  },
 ];
 
-const PLATFORM_OPTIONS: { id: AgentPlatform; label: string; description: string; icon: React.ReactNode; color: string }[] = [
-  { id: 'holomesh', label: 'HoloMesh', description: 'Knowledge mesh — earn via W/P/G entries', icon: <Globe className="h-5 w-5" />, color: '#6366f1' },
-  { id: 'moltbook', label: 'Moltbook', description: 'AI social platform — engage and discover', icon: <MessageCircle className="h-5 w-5" />, color: '#10b981' },
-  { id: 'custom', label: 'Custom Endpoint', description: 'Deploy to your own MCP server', icon: <Settings className="h-5 w-5" />, color: '#f59e0b' },
+const PLATFORM_OPTIONS: {
+  id: AgentPlatform;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  {
+    id: 'holomesh',
+    label: 'HoloMesh',
+    description: 'Knowledge mesh — earn via W/P/G entries',
+    icon: <Globe className="h-5 w-5" />,
+    color: '#6366f1',
+  },
+  {
+    id: 'moltbook',
+    label: 'Moltbook',
+    description: 'AI social platform — engage and discover',
+    icon: <MessageCircle className="h-5 w-5" />,
+    color: '#10b981',
+  },
+  {
+    id: 'custom',
+    label: 'Custom Endpoint',
+    description: 'Deploy to your own MCP server',
+    icon: <Settings className="h-5 w-5" />,
+    color: '#f59e0b',
+  },
 ];
 
 // ── Initial state ────────────────────────────────────────────────────────────
@@ -81,18 +138,23 @@ export function LaunchAgentTab() {
   const [form, setForm] = useState<LaunchFormState>(INITIAL_STATE);
   const [deploying, setDeploying] = useState(false);
   const [deployError, setDeployError] = useState<string | null>(null);
-  const [deployResult, setDeployResult] = useState<{ agentId: string; publicKey: string } | null>(null);
+  const [deployResult, setDeployResult] = useState<{ agentId: string; publicKey: string } | null>(
+    null
+  );
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
-  const update = useCallback(<K extends keyof LaunchFormState>(key: K, value: LaunchFormState[K]) => {
-    setForm(prev => ({ ...prev, [key]: value }));
-  }, []);
+  const update = useCallback(
+    <K extends keyof LaunchFormState>(key: K, value: LaunchFormState[K]) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   const toggleSkill = useCallback((skillId: string) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       selectedSkills: prev.selectedSkills.includes(skillId)
-        ? prev.selectedSkills.filter(s => s !== skillId)
+        ? prev.selectedSkills.filter((s) => s !== skillId)
         : [...prev.selectedSkills, skillId],
     }));
   }, []);
@@ -145,12 +207,13 @@ export function LaunchAgentTab() {
     }
   }, [form]);
 
-  const isValid = form.name.trim().length > 0 &&
+  const isValid =
+    form.name.trim().length > 0 &&
     form.selectedSkills.length > 0 &&
     (form.platform !== 'custom' || form.customEndpoint.trim().length > 0);
 
   const toggleStep = (step: number) => {
-    setExpandedStep(prev => prev === step ? null : step);
+    setExpandedStep((prev) => (prev === step ? null : step));
   };
 
   return (
@@ -160,11 +223,20 @@ export function LaunchAgentTab() {
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="h-4 w-4 text-emerald-400" />
-            <span className="text-sm font-semibold text-emerald-400">Agent Deployed Successfully</span>
+            <span className="text-sm font-semibold text-emerald-400">
+              Agent Deployed Successfully
+            </span>
           </div>
           <div className="text-xs text-studio-text/80 space-y-1">
-            <p>Agent ID: <span className="font-mono text-studio-accent">{deployResult.agentId}</span></p>
-            <p>Public Key: <span className="font-mono text-studio-muted">{deployResult.publicKey.slice(0, 24)}...</span></p>
+            <p>
+              Agent ID: <span className="font-mono text-studio-accent">{deployResult.agentId}</span>
+            </p>
+            <p>
+              Public Key:{' '}
+              <span className="font-mono text-studio-muted">
+                {deployResult.publicKey.slice(0, 24)}...
+              </span>
+            </p>
           </div>
           <p className="mt-2 text-[10px] text-studio-muted">
             Switch to the My Agents tab to monitor your new agent.
@@ -177,13 +249,13 @@ export function LaunchAgentTab() {
         step={1}
         title="Pick Platform"
         icon={<Globe className="h-4 w-4" />}
-        summary={PLATFORM_OPTIONS.find(p => p.id === form.platform)?.label ?? ''}
+        summary={PLATFORM_OPTIONS.find((p) => p.id === form.platform)?.label ?? ''}
         expanded={expandedStep === 1}
         onToggle={() => toggleStep(1)}
         complete={true}
       >
         <div className="grid gap-3 sm:grid-cols-3">
-          {PLATFORM_OPTIONS.map(opt => (
+          {PLATFORM_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => update('platform', opt.id)}
@@ -205,7 +277,7 @@ export function LaunchAgentTab() {
           <input
             type="url"
             value={form.customEndpoint}
-            onChange={e => update('customEndpoint', e.target.value)}
+            onChange={(e) => update('customEndpoint', e.target.value)}
             placeholder="https://your-server.com/mcp"
             className="mt-3 w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none"
           />
@@ -228,7 +300,7 @@ export function LaunchAgentTab() {
             <input
               type="text"
               value={form.name}
-              onChange={e => update('name', e.target.value)}
+              onChange={(e) => update('name', e.target.value)}
               placeholder="e.g., research-oracle-1"
               maxLength={32}
               className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none"
@@ -239,19 +311,21 @@ export function LaunchAgentTab() {
             Bio
             <textarea
               value={form.bio}
-              onChange={e => update('bio', e.target.value)}
+              onChange={(e) => update('bio', e.target.value)}
               placeholder="What does this agent do? What is its expertise?"
               rows={3}
               maxLength={280}
               className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none resize-y"
             />
-            <span className="mt-1 block text-right text-[10px] text-studio-muted/50">{form.bio.length}/280</span>
+            <span className="mt-1 block text-right text-[10px] text-studio-muted/50">
+              {form.bio.length}/280
+            </span>
           </label>
 
           <div>
             <div className="text-xs font-medium text-studio-muted mb-2">Personality Preset</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {PERSONALITY_MODES.map(mode => (
+              {PERSONALITY_MODES.map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => update('personalityMode', mode.id)}
@@ -261,7 +335,9 @@ export function LaunchAgentTab() {
                       : 'border-studio-border bg-[#0f172a] hover:border-studio-accent/40'
                   }`}
                 >
-                  <div className="text-xs font-medium" style={{ color: mode.color }}>{mode.label}</div>
+                  <div className="text-xs font-medium" style={{ color: mode.color }}>
+                    {mode.label}
+                  </div>
                   <div className="mt-0.5 text-[10px] text-studio-muted">{mode.description}</div>
                 </button>
               ))}
@@ -281,10 +357,11 @@ export function LaunchAgentTab() {
         complete={form.selectedSkills.length > 0}
       >
         <p className="text-[10px] text-studio-muted mb-3">
-          Select .hsplus compositions your agent can execute. More skills = more versatile but higher costs.
+          Select .hsplus compositions your agent can execute. More skills = more versatile but
+          higher costs.
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
-          {AVAILABLE_SKILLS.map(skill => {
+          {AVAILABLE_SKILLS.map((skill) => {
             const selected = form.selectedSkills.includes(skill.id);
             return (
               <button
@@ -297,11 +374,11 @@ export function LaunchAgentTab() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`h-3 w-3 rounded border transition-colors ${
-                    selected
-                      ? 'bg-studio-accent border-studio-accent'
-                      : 'border-studio-border'
-                  }`} />
+                  <div
+                    className={`h-3 w-3 rounded border transition-colors ${
+                      selected ? 'bg-studio-accent border-studio-accent' : 'border-studio-border'
+                    }`}
+                  />
                   <span className="text-xs font-medium text-studio-text">{skill.label}</span>
                 </div>
                 <p className="mt-1 ml-5 text-[10px] text-studio-muted">{skill.description}</p>
@@ -326,7 +403,9 @@ export function LaunchAgentTab() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-studio-muted">Max Daily Spend</span>
-              <span className="text-xs font-bold text-studio-text">${(form.maxDailySpendCents / 100).toFixed(2)}</span>
+              <span className="text-xs font-bold text-studio-text">
+                ${(form.maxDailySpendCents / 100).toFixed(2)}
+              </span>
             </div>
             <input
               type="range"
@@ -334,7 +413,7 @@ export function LaunchAgentTab() {
               max={1000}
               step={10}
               value={form.maxDailySpendCents}
-              onChange={e => update('maxDailySpendCents', parseInt(e.target.value, 10))}
+              onChange={(e) => update('maxDailySpendCents', parseInt(e.target.value, 10))}
               className="w-full"
             />
             <div className="flex justify-between text-[9px] text-studio-muted mt-1">
@@ -347,7 +426,9 @@ export function LaunchAgentTab() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-studio-muted">Rate Limit</span>
-              <span className="text-xs font-bold text-studio-text">{form.rateLimitPerMin} req/min</span>
+              <span className="text-xs font-bold text-studio-text">
+                {form.rateLimitPerMin} req/min
+              </span>
             </div>
             <input
               type="range"
@@ -355,7 +436,7 @@ export function LaunchAgentTab() {
               max={100}
               step={1}
               value={form.rateLimitPerMin}
-              onChange={e => update('rateLimitPerMin', parseInt(e.target.value, 10))}
+              onChange={(e) => update('rateLimitPerMin', parseInt(e.target.value, 10))}
               className="w-full"
             />
             <div className="flex justify-between text-[9px] text-studio-muted mt-1">
@@ -368,7 +449,9 @@ export function LaunchAgentTab() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-studio-muted">Creator Revenue Split</span>
-              <span className="text-xs font-bold text-studio-text">{form.creatorRevenueSplit}%</span>
+              <span className="text-xs font-bold text-studio-text">
+                {form.creatorRevenueSplit}%
+              </span>
             </div>
             <input
               type="range"
@@ -376,7 +459,7 @@ export function LaunchAgentTab() {
               max={100}
               step={5}
               value={form.creatorRevenueSplit}
-              onChange={e => update('creatorRevenueSplit', parseInt(e.target.value, 10))}
+              onChange={(e) => update('creatorRevenueSplit', parseInt(e.target.value, 10))}
               className="w-full"
             />
             <div className="flex justify-between text-[9px] text-studio-muted mt-1">
@@ -400,11 +483,17 @@ export function LaunchAgentTab() {
         <div className="space-y-4">
           {/* Summary grid */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <ReviewItem label="Platform" value={PLATFORM_OPTIONS.find(p => p.id === form.platform)?.label ?? form.platform} />
+            <ReviewItem
+              label="Platform"
+              value={PLATFORM_OPTIONS.find((p) => p.id === form.platform)?.label ?? form.platform}
+            />
             <ReviewItem label="Name" value={form.name || '(not set)'} />
             <ReviewItem label="Personality" value={form.personalityMode} />
             <ReviewItem label="Skills" value={`${form.selectedSkills.length} selected`} />
-            <ReviewItem label="Daily Budget" value={`$${(form.maxDailySpendCents / 100).toFixed(2)}`} />
+            <ReviewItem
+              label="Daily Budget"
+              value={`$${(form.maxDailySpendCents / 100).toFixed(2)}`}
+            />
             <ReviewItem label="Rate Limit" value={`${form.rateLimitPerMin} req/min`} />
             <ReviewItem label="Revenue Split" value={`${form.creatorRevenueSplit}% to you`} />
           </div>
@@ -417,8 +506,9 @@ export function LaunchAgentTab() {
           )}
 
           <div className="text-[10px] text-studio-muted leading-relaxed">
-            Deploying will generate an Ed25519 keypair, register your agent on {PLATFORM_OPTIONS.find(p => p.id === form.platform)?.label}, and start
-            autonomous operation within the configured limits.
+            Deploying will generate an Ed25519 keypair, register your agent on{' '}
+            {PLATFORM_OPTIONS.find((p) => p.id === form.platform)?.label}, and start autonomous
+            operation within the configured limits.
           </div>
 
           {deployError && (
@@ -472,16 +562,17 @@ function StepCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border transition-colors ${
-      complete ? 'border-studio-border' : 'border-studio-border/50'
-    } bg-[#111827]`}>
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4 text-left"
-      >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-          complete ? 'bg-studio-accent text-white' : 'bg-studio-panel text-studio-muted'
-        }`}>
+    <div
+      className={`rounded-xl border transition-colors ${
+        complete ? 'border-studio-border' : 'border-studio-border/50'
+      } bg-[#111827]`}
+    >
+      <button onClick={onToggle} className="flex w-full items-center gap-3 p-4 text-left">
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+            complete ? 'bg-studio-accent text-white' : 'bg-studio-panel text-studio-muted'
+          }`}
+        >
           {step}
         </div>
         <span className="text-studio-muted">{icon}</span>
@@ -495,11 +586,7 @@ function StepCard({
           <ChevronDown className="h-4 w-4 text-studio-muted shrink-0" />
         )}
       </button>
-      {expanded && (
-        <div className="border-t border-studio-border px-4 pb-4 pt-3">
-          {children}
-        </div>
-      )}
+      {expanded && <div className="border-t border-studio-border px-4 pb-4 pt-3">{children}</div>}
     </div>
   );
 }

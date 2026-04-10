@@ -28,7 +28,12 @@ export const inferenceHandler: TraitHandler<InferenceConfig> = {
   },
   onUpdate(): void {},
 
-  onEvent(node: HSPlusNode, config: InferenceConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: InferenceConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__inferenceState as { totalRuns: number; totalTokens: number } | undefined;
     if (!state) return;
     if ((typeof event === 'string' ? event : event.type) === 'inference:run') {

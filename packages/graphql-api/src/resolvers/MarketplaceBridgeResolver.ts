@@ -251,7 +251,8 @@ export class MarketplaceBridgeResolver {
         traitVersion: traitData.version,
       };
     } catch (compileError: unknown) {
-      const errMessage = compileError instanceof Error ? compileError.message : 'Unknown compilation error';
+      const errMessage =
+        compileError instanceof Error ? compileError.message : 'Unknown compilation error';
       return {
         success: false,
         output: undefined,

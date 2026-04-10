@@ -213,14 +213,14 @@ export class HoloMeshDiscovery {
         removed.push(did);
       }
     }
-    
+
     // Also prune health cache for any peers that were already removed from this.peers
     for (const did of this.peerHealthCache.keys()) {
       if (!this.peers.has(did)) {
         this.peerHealthCache.delete(did);
       }
     }
-    
+
     if (removed.length > 0) this.savePeerStore();
     return removed;
   }

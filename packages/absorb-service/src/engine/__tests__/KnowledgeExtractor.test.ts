@@ -69,13 +69,33 @@ describe('KnowledgeExtractor', () => {
       const graph = buildGraph([
         makeFile({
           path: 'src/foo.ts',
-          symbols: [{ name: 'Foo', type: 'class', filePath: 'src/foo.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'Foo',
+              type: 'class',
+              filePath: 'src/foo.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
           loc: 100,
         }),
         makeFile({
           path: 'src/bar.ts',
-          symbols: [{ name: 'bar', type: 'function', filePath: 'src/bar.ts', line: 1, language: 'typescript', visibility: 'public' }],
-          imports: [{ fromFile: 'src/bar.ts', toModule: './foo', resolvedPath: 'src/foo.ts', line: 1 }],
+          symbols: [
+            {
+              name: 'bar',
+              type: 'function',
+              filePath: 'src/bar.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
+          imports: [
+            { fromFile: 'src/bar.ts', toModule: './foo', resolvedPath: 'src/foo.ts', line: 1 },
+          ],
           loc: 50,
         }),
       ]);
@@ -88,12 +108,30 @@ describe('KnowledgeExtractor', () => {
       const graph = buildGraph([
         makeFile({
           path: 'src/a.ts',
-          symbols: [{ name: 'A', type: 'class', filePath: 'src/a.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'A',
+              type: 'class',
+              filePath: 'src/a.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
           loc: 100,
         }),
         makeFile({
           path: 'src/b.ts',
-          symbols: [{ name: 'B', type: 'class', filePath: 'src/b.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'B',
+              type: 'class',
+              filePath: 'src/b.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
           loc: 100,
         }),
       ]);
@@ -142,11 +180,29 @@ describe('KnowledgeExtractor', () => {
       const graph = buildGraph([
         makeFile({
           path: 'src/adapters/PostgresAdapter.ts',
-          symbols: [{ name: 'PostgresAdapter', type: 'class', filePath: 'src/adapters/PostgresAdapter.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'PostgresAdapter',
+              type: 'class',
+              filePath: 'src/adapters/PostgresAdapter.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
         }),
         makeFile({
           path: 'src/adapters/MySQLAdapter.ts',
-          symbols: [{ name: 'MySQLAdapter', type: 'class', filePath: 'src/adapters/MySQLAdapter.ts', line: 1, language: 'typescript', visibility: 'public' }],
+          symbols: [
+            {
+              name: 'MySQLAdapter',
+              type: 'class',
+              filePath: 'src/adapters/MySQLAdapter.ts',
+              line: 1,
+              language: 'typescript',
+              visibility: 'public',
+            },
+          ],
         }),
       ]);
       const result = extractor.extract(graph);
@@ -171,9 +227,29 @@ describe('KnowledgeExtractor', () => {
     it('detects community module boundaries', () => {
       // Create files in different directories to trigger directory-based communities
       const graph = buildGraph([
-        makeFile({ path: 'src/auth/login.ts', imports: [{ fromFile: 'src/auth/login.ts', toModule: './session', resolvedPath: 'src/auth/session.ts', line: 1 }] }),
+        makeFile({
+          path: 'src/auth/login.ts',
+          imports: [
+            {
+              fromFile: 'src/auth/login.ts',
+              toModule: './session',
+              resolvedPath: 'src/auth/session.ts',
+              line: 1,
+            },
+          ],
+        }),
         makeFile({ path: 'src/auth/session.ts' }),
-        makeFile({ path: 'src/api/routes.ts', imports: [{ fromFile: 'src/api/routes.ts', toModule: './handlers', resolvedPath: 'src/api/handlers.ts', line: 1 }] }),
+        makeFile({
+          path: 'src/api/routes.ts',
+          imports: [
+            {
+              fromFile: 'src/api/routes.ts',
+              toModule: './handlers',
+              resolvedPath: 'src/api/handlers.ts',
+              line: 1,
+            },
+          ],
+        }),
         makeFile({ path: 'src/api/handlers.ts' }),
       ]);
       const result = extractor.extract(graph);
@@ -190,7 +266,14 @@ describe('KnowledgeExtractor', () => {
         importers.push(
           makeFile({
             path: `src/modules/mod${i}.ts`,
-            imports: [{ fromFile: `src/modules/mod${i}.ts`, toModule: '../utils/helpers', resolvedPath: 'src/utils/helpers.ts', line: 1 }],
+            imports: [
+              {
+                fromFile: `src/modules/mod${i}.ts`,
+                toModule: '../utils/helpers',
+                resolvedPath: 'src/utils/helpers.ts',
+                line: 1,
+              },
+            ],
           })
         );
       }
@@ -202,9 +285,7 @@ describe('KnowledgeExtractor', () => {
     });
 
     it('detects large files', () => {
-      const graph = buildGraph([
-        makeFile({ path: 'src/godfile.ts', loc: 500 }),
-      ]);
+      const graph = buildGraph([makeFile({ path: 'src/godfile.ts', loc: 500 })]);
       const result = extractor.extract(graph);
       const large = result.entries.find((e) => e.content.includes('Large file'));
       expect(large).toBeDefined();
@@ -261,9 +342,7 @@ describe('KnowledgeExtractor', () => {
     });
 
     it('uses custom workspaceId in entry IDs', () => {
-      const graph = buildGraph([
-        makeFile({ path: 'src/a.ts', loc: 100 }),
-      ]);
+      const graph = buildGraph([makeFile({ path: 'src/a.ts', loc: 100 })]);
       const result = extractor.extract(graph, { workspaceId: 'my-project' });
       const hasCustomWs = result.entries.some((e) => e.id.includes('my-project'));
       expect(hasCustomWs).toBe(true);

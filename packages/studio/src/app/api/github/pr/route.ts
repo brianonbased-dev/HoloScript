@@ -25,10 +25,7 @@ import {
 export async function POST(req: NextRequest) {
   const token = await getGitHubToken(req);
   if (!token) {
-    return NextResponse.json(
-      { error: 'Not authenticated. Sign in with GitHub.' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Not authenticated. Sign in with GitHub.' }, { status: 401 });
   }
 
   const body = (await req.json().catch(() => null)) as {

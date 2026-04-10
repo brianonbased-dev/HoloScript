@@ -20,7 +20,12 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE, type ActionHandler } from '@holoscript/engine/runtime';
+import {
+  createHeadlessRuntime,
+  getProfile,
+  HEADLESS_PROFILE,
+  type ActionHandler,
+} from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/HoloScriptPlus';
 const PROFILES_HEADLESS = HEADLESS_PROFILE;
 import { InteropContext } from '../interop/Interoperability';
@@ -371,8 +376,7 @@ function extractTokenUsage(data: unknown): { inputTokens: number; outputTokens: 
   const d = data as ChatResponse;
   const inputTokens =
     d?.usage?.input_tokens ?? d?.usage?.prompt_tokens ?? d?.prompt_eval_count ?? 0;
-  const outputTokens =
-    d?.usage?.output_tokens ?? d?.usage?.completion_tokens ?? d?.eval_count ?? 0;
+  const outputTokens = d?.usage?.output_tokens ?? d?.usage?.completion_tokens ?? d?.eval_count ?? 0;
 
   return {
     inputTokens: Number.isFinite(inputTokens) ? Number(inputTokens) : 0,
@@ -501,7 +505,10 @@ function createDaemonLLMProvider(opts: CLIOptions): LLMProvider {
   return {
     chat: async ({ system, prompt }) => {
       const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
-      if (!baseUrl) throw new Error('Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env');
+      if (!baseUrl)
+        throw new Error(
+          'Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
+        );
       const response = await fetch(`${baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -743,19 +750,19 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
     close();
   });
 
-interface DaemonCommand {
-  op: string;
-  count?: number;
-  event?: string;
-  payload?: any;
-  key?: string;
-  value?: any;
-  name?: string;
-  timeoutMs?: number;
-  actionRequestId?: string;
-  status?: string;
-  success?: boolean;
-}
+  interface DaemonCommand {
+    op: string;
+    count?: number;
+    event?: string;
+    payload?: any;
+    key?: string;
+    value?: any;
+    name?: string;
+    timeoutMs?: number;
+    actionRequestId?: string;
+    status?: string;
+    success?: boolean;
+  }
 
   rl.on('line', (line: string) => {
     const raw = line.trim();
@@ -1590,9 +1597,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /** Extract @economy trait config from composition AST (walks body/children). */
-function extractEconomyConfig(
-  ast: Record<string, unknown>
-):
+function extractEconomyConfig(ast: Record<string, unknown>):
   | {
       budget?: number;
       default_spend_limit?: number;
@@ -1712,8 +1717,8 @@ function loadRuntimeSkillActions(
         }
 
         const runtimeArgs = Array.isArray(params.args)
-          // @ts-expect-error During migration
-          ? params.args.filter((v): v is string => typeof v === 'string')
+          ? // @ts-expect-error During migration
+            params.args.filter((v): v is string => typeof v === 'string')
           : [];
         const timeoutMs =
           typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
@@ -1887,12 +1892,24 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.mkdirSync(skillsDirAbs, { recursive: true });
   }
 
-  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
+  let runtimeSkillActions = loadRuntimeSkillActions(
+    skillsDirAbs,
+    opts,
+    host as any,
+    repoRoot,
+    opts.debug
+  );
   let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
     null;
 
   const reloadRuntimeSkills = () => {
-    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as any, repoRoot, opts.debug);
+    runtimeSkillActions = loadRuntimeSkillActions(
+      skillsDirAbs,
+      opts,
+      host as any,
+      repoRoot,
+      opts.debug
+    );
     if (activeRuntime) {
       for (const [name, handler] of Object.entries(runtimeSkillActions)) {
         activeRuntime.registerAction(name, handler);

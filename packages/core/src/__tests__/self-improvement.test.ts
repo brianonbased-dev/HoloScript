@@ -16,10 +16,18 @@ class SelfImprovementPipeline {
   constructor(_opts?: unknown) {}
   capture(_entry: unknown): void {}
   captureParseError(..._args: unknown[]): void {}
-  getStats(): Record<string, unknown> { return {}; }
-  getTrainingExamples(): unknown[] { return []; }
-  toJSONL(): string { return ''; }
-  getPendingFailures(): unknown[] { return []; }
+  getStats(): Record<string, unknown> {
+    return {};
+  }
+  getTrainingExamples(): unknown[] {
+    return [];
+  }
+  toJSONL(): string {
+    return '';
+  }
+  getPendingFailures(): unknown[] {
+    return [];
+  }
   provideCorrection(..._args: unknown[]): void {}
   clear(): void {}
 }

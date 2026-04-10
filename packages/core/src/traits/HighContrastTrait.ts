@@ -180,7 +180,11 @@ function applyContrast(
   });
 }
 
-function restoreOriginalMaterials(node: HSPlusNode, state: HighContrastState, context: TraitContext): void {
+function restoreOriginalMaterials(
+  node: HSPlusNode,
+  state: HighContrastState,
+  context: TraitContext
+): void {
   const materialId = node.id || 'default';
   const original = state.originalMaterials.get(materialId);
 

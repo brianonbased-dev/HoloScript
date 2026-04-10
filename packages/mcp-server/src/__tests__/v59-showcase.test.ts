@@ -90,7 +90,13 @@ describe('v5.9 Showcase — Developer Portal', () => {
         {
           id: 'delegate-1',
           name: 'weather.fetch',
-          context: { traceId: 'trace-showcase', spanId: 'delegate-1', parentSpanId: 'root', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'trace-showcase',
+            spanId: 'delegate-1',
+            parentSpanId: 'root',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'client',
           startTime: 50,
           endTime: 200,
@@ -103,7 +109,13 @@ describe('v5.9 Showcase — Developer Portal', () => {
         {
           id: 'delegate-2',
           name: 'analytics.process',
-          context: { traceId: 'trace-showcase', spanId: 'delegate-2', parentSpanId: 'root', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'trace-showcase',
+            spanId: 'delegate-2',
+            parentSpanId: 'root',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'client',
           startTime: 100,
           endTime: 450,
@@ -116,7 +128,13 @@ describe('v5.9 Showcase — Developer Portal', () => {
         {
           id: 'db-query',
           name: 'db.query',
-          context: { traceId: 'trace-showcase', spanId: 'db-query', parentSpanId: 'delegate-2', traceFlags: 0, baggage: {} },
+          context: {
+            traceId: 'trace-showcase',
+            spanId: 'db-query',
+            parentSpanId: 'delegate-2',
+            traceFlags: 0,
+            baggage: {},
+          },
           kind: 'internal',
           startTime: 150,
           endTime: 350,

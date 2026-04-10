@@ -8,7 +8,12 @@
  * and supports runtime registration of custom presets.
  */
 
-import type { AnimationPreset, CustomAnimationPreset, PresetCategory, PresetName } from './types.js';
+import type {
+  AnimationPreset,
+  CustomAnimationPreset,
+  PresetCategory,
+  PresetName,
+} from './types.js';
 import { allPresets } from './presets/index.js';
 
 // ---------------------------------------------------------------------------

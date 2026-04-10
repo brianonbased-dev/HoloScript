@@ -20,8 +20,12 @@ describe('BountyManager', () => {
 
   it('rejects zero or negative reward', () => {
     const mgr = new BountyManager();
-    expect(() => mgr.createBounty('t1', { amount: 0, currency: 'credits' }, 'a')).toThrow('positive');
-    expect(() => mgr.createBounty('t1', { amount: -1, currency: 'credits' }, 'a')).toThrow('positive');
+    expect(() => mgr.createBounty('t1', { amount: 0, currency: 'credits' }, 'a')).toThrow(
+      'positive'
+    );
+    expect(() => mgr.createBounty('t1', { amount: -1, currency: 'credits' }, 'a')).toThrow(
+      'positive'
+    );
   });
 
   it('claims an open bounty', () => {
@@ -45,7 +49,12 @@ describe('BountyManager', () => {
   it('rejects claiming an expired bounty', () => {
     const mgr = new BountyManager();
     // Deadline in the past
-    const bounty = mgr.createBounty('task-1', { amount: 1, currency: 'credits' }, 'alice', Date.now() - 1000);
+    const bounty = mgr.createBounty(
+      'task-1',
+      { amount: 1, currency: 'credits' },
+      'alice',
+      Date.now() - 1000
+    );
     const result = mgr.claimBounty(bounty.id, 'bob');
     expect(result.success).toBe(false);
     expect(result.error).toContain('expired');
@@ -55,7 +64,10 @@ describe('BountyManager', () => {
     const mgr = new BountyManager();
     const bounty = mgr.createBounty('task-1', { amount: 0.05, currency: 'USDC' }, 'alice');
     mgr.claimBounty(bounty.id, 'bob');
-    const payout = mgr.completeBounty(bounty.id, { summary: 'Fixed the bug', commitHash: 'abc123' });
+    const payout = mgr.completeBounty(bounty.id, {
+      summary: 'Fixed the bug',
+      commitHash: 'abc123',
+    });
     expect(payout.success).toBe(true);
     expect(payout.amount).toBe(0.05);
     expect(payout.settlement).toBe('ledger'); // < 0.10 USDC = ledger
@@ -161,20 +173,20 @@ describe('KnowledgeMarketplace', () => {
   it('lists and buys knowledge', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    const listing = mp.sellKnowledge(entry, 0.10, 'alice');
+    const listing = mp.sellKnowledge(entry, 0.1, 'alice');
     expect(listing.success).toBe(true);
 
     const purchase = mp.buyKnowledge(listing.listingId, 'bob');
     expect(purchase.success).toBe(true);
-    expect(purchase.price).toBe(0.10);
+    expect(purchase.price).toBe(0.1);
     expect(purchase.entryId).toBe('W.TEST.001');
   });
 
   it('prevents duplicate listings', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    mp.sellKnowledge(entry, 0.10, 'alice');
-    const dup = mp.sellKnowledge(entry, 0.20, 'alice');
+    mp.sellKnowledge(entry, 0.1, 'alice');
+    const dup = mp.sellKnowledge(entry, 0.2, 'alice');
     expect(dup.success).toBe(false);
     expect(dup.error).toContain('already listed');
   });
@@ -182,7 +194,7 @@ describe('KnowledgeMarketplace', () => {
   it('prevents buying your own listing', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    const listing = mp.sellKnowledge(entry, 0.10, 'alice');
+    const listing = mp.sellKnowledge(entry, 0.1, 'alice');
     const purchase = mp.buyKnowledge(listing.listingId, 'alice');
     expect(purchase.success).toBe(false);
     expect(purchase.error).toContain('own listing');
@@ -191,7 +203,7 @@ describe('KnowledgeMarketplace', () => {
   it('prevents buying a sold listing', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    const listing = mp.sellKnowledge(entry, 0.10, 'alice');
+    const listing = mp.sellKnowledge(entry, 0.1, 'alice');
     mp.buyKnowledge(listing.listingId, 'bob');
     const second = mp.buyKnowledge(listing.listingId, 'charlie');
     expect(second.success).toBe(false);
@@ -207,7 +219,7 @@ describe('KnowledgeMarketplace', () => {
   it('delists an active listing', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    const listing = mp.sellKnowledge(entry, 0.10, 'alice');
+    const listing = mp.sellKnowledge(entry, 0.1, 'alice');
     expect(mp.delist(listing.listingId, 'alice')).toBe(true);
     expect(mp.activeListings()).toHaveLength(0);
   });
@@ -215,7 +227,7 @@ describe('KnowledgeMarketplace', () => {
   it('only seller can delist', () => {
     const mp = new KnowledgeMarketplace();
     const entry = mockEntry();
-    const listing = mp.sellKnowledge(entry, 0.10, 'alice');
+    const listing = mp.sellKnowledge(entry, 0.1, 'alice');
     expect(mp.delist(listing.listingId, 'bob')).toBe(false);
   });
 
@@ -223,7 +235,7 @@ describe('KnowledgeMarketplace', () => {
     const mp = new KnowledgeMarketplace();
     const e1 = mockEntry({ id: 'W.TEST.001' });
     const e2 = mockEntry({ id: 'W.TEST.002' });
-    const l1 = mp.sellKnowledge(e1, 0.10, 'alice');
+    const l1 = mp.sellKnowledge(e1, 0.1, 'alice');
     const l2 = mp.sellKnowledge(e2, 0.25, 'alice');
     mp.buyKnowledge(l1.listingId, 'bob');
     mp.buyKnowledge(l2.listingId, 'charlie');
@@ -233,7 +245,7 @@ describe('KnowledgeMarketplace', () => {
   it('tracks purchase history', () => {
     const mp = new KnowledgeMarketplace();
     const e1 = mockEntry({ id: 'W.TEST.001' });
-    const listing = mp.sellKnowledge(e1, 0.10, 'alice');
+    const listing = mp.sellKnowledge(e1, 0.1, 'alice');
     mp.buyKnowledge(listing.listingId, 'bob');
     expect(mp.purchaseHistory('bob')).toHaveLength(1);
     expect(mp.purchaseHistory('charlie')).toHaveLength(0);
@@ -243,11 +255,11 @@ describe('KnowledgeMarketplace', () => {
     const mp = new KnowledgeMarketplace();
     const e1 = mockEntry({ id: 'W.TEST.001' });
     const e2 = mockEntry({ id: 'W.TEST.002' });
-    const l1 = mp.sellKnowledge(e1, 0.10, 'alice');
-    const l2 = mp.sellKnowledge(e2, 0.20, 'bob');
+    const l1 = mp.sellKnowledge(e1, 0.1, 'alice');
+    const l2 = mp.sellKnowledge(e2, 0.2, 'bob');
     mp.buyKnowledge(l1.listingId, 'bob');
     mp.buyKnowledge(l2.listingId, 'alice');
-    expect(mp.totalVolume()).toBeCloseTo(0.30);
+    expect(mp.totalVolume()).toBeCloseTo(0.3);
   });
 });
 
@@ -257,7 +269,13 @@ describe('KnowledgeStore marketplace integration', () => {
   it('prices and lists entries via store', () => {
     const store = new KnowledgeStore({ persist: false });
     const entry = store.publish(
-      { type: 'wisdom', content: 'Cache invalidation matters', domain: 'engineering', confidence: 0.9, source: 'test' },
+      {
+        type: 'wisdom',
+        content: 'Cache invalidation matters',
+        domain: 'engineering',
+        confidence: 0.9,
+        source: 'test',
+      },
       'alice'
     );
     const price = store.priceEntry(entry.id);
@@ -270,7 +288,13 @@ describe('KnowledgeStore marketplace integration', () => {
   it('buys a listed entry and increments reuseCount', () => {
     const store = new KnowledgeStore({ persist: false });
     const entry = store.publish(
-      { type: 'pattern', content: 'Use dependency injection', domain: 'architecture', confidence: 0.8, source: 'test' },
+      {
+        type: 'pattern',
+        content: 'Use dependency injection',
+        domain: 'architecture',
+        confidence: 0.8,
+        source: 'test',
+      },
       'alice'
     );
     const listing = store.listForSale(entry.id, 'alice', 0.05);
@@ -283,7 +307,13 @@ describe('KnowledgeStore marketplace integration', () => {
   it('returns active listings', () => {
     const store = new KnowledgeStore({ persist: false });
     const e1 = store.publish(
-      { type: 'gotcha', content: 'Watch out for NaN', domain: 'js', confidence: 0.7, source: 'test' },
+      {
+        type: 'gotcha',
+        content: 'Watch out for NaN',
+        domain: 'js',
+        confidence: 0.7,
+        source: 'test',
+      },
       'alice'
     );
     store.listForSale(e1.id, 'alice');
@@ -328,7 +358,9 @@ describe('Team bounty integration', () => {
 
   it('rejects bounty for nonexistent task', () => {
     const team = makeTeam();
-    expect(() => team.createBounty('nope', { amount: 1, currency: 'credits' }, 'a')).toThrow('not found');
+    expect(() => team.createBounty('nope', { amount: 1, currency: 'credits' }, 'a')).toThrow(
+      'not found'
+    );
   });
 
   it('claims bounty for a team agent', async () => {

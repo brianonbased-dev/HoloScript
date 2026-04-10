@@ -350,9 +350,7 @@ describe('NeuralStreamingTransport', () => {
 
       // Wait for the async offer creation
       await vi.waitFor(() => {
-        expect(bridge.sendSignal).toHaveBeenCalledWith(
-          expect.objectContaining({ type: 'offer' })
-        );
+        expect(bridge.sendSignal).toHaveBeenCalledWith(expect.objectContaining({ type: 'offer' }));
       });
     });
 
@@ -391,9 +389,7 @@ describe('NeuralStreamingTransport', () => {
       expect(pc.remoteDescription).toEqual(expect.objectContaining({ type: 'offer' }));
 
       // Should have sent an answer
-      expect(bridge.sendSignal).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'answer' })
-      );
+      expect(bridge.sendSignal).toHaveBeenCalledWith(expect.objectContaining({ type: 'answer' }));
     });
 
     it('should handle incoming answer signal', async () => {

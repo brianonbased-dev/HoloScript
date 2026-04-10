@@ -556,7 +556,8 @@ describe('UnifiedBudgetOptimizer', () => {
         // The TRAIT_RESOURCE_COSTS for @gaussian_splat should now be 100K,
         // which is conservative enough to flag potential Quest 3 budget violations
         // (Quest 3 budget = 180K), not the old 10K which silently passed.
-        const { TRAIT_RESOURCE_COSTS } = await import('../../compiler/safety/ResourceBudgetAnalyzer');
+        const { TRAIT_RESOURCE_COSTS } =
+          await import('../../compiler/safety/ResourceBudgetAnalyzer');
         expect(TRAIT_RESOURCE_COSTS['@gaussian_splat'].gaussians).toBe(100_000);
         expect(TRAIT_RESOURCE_COSTS['@gaussian'].gaussians).toBe(100_000);
         expect(TRAIT_RESOURCE_COSTS['@multiview_gaussian_renderer'].gaussians).toBe(200_000);
@@ -591,12 +592,8 @@ describe('UnifiedBudgetOptimizer', () => {
         // scale factors to verify the constructor picked platform-specific curves.
         // We verify indirectly: LOD 2 cost should differ between platforms because
         // they use different scaling curves.
-        const desktopOpt = new UnifiedBudgetOptimizer(
-          createConfig({ platform: 'desktop-vr' })
-        );
-        const mobileOpt = new UnifiedBudgetOptimizer(
-          createConfig({ platform: 'mobile-ar' })
-        );
+        const desktopOpt = new UnifiedBudgetOptimizer(createConfig({ platform: 'desktop-vr' }));
+        const mobileOpt = new UnifiedBudgetOptimizer(createConfig({ platform: 'mobile-ar' }));
 
         // At LOD 0 both use scale=1.0, but at LOD 2 they diverge:
         // desktop-vr LOD 2 = 0.6, mobile-ar LOD 2 = 0.2

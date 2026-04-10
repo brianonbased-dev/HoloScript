@@ -17,13 +17,10 @@ declare global {
   }
 
   interface XRFrame {
-// duplicate/conflict:     session: XRSession;
-    getViewerPose(referenceSpace: XRReferenceSpace):
-      | {
-          views: XRView[];
-        }
-      | null;
+    // duplicate/conflict:     session: XRSession;
+    getViewerPose(referenceSpace: XRReferenceSpace): {
+      views: XRView[];
+    } | null;
     [key: string]: unknown;
   }
 }
-

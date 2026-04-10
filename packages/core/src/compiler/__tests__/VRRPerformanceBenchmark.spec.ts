@@ -269,7 +269,10 @@ describe('VRR Performance Benchmarks', () => {
           name: 'ar_portal',
           traits: [
             { name: 'vrr_twin', params: { mirror: 'portal' } },
-            { name: 'layer_shift', params: { from: 'ar', to: 'vrr', price: 5, persist_state: true } },
+            {
+              name: 'layer_shift',
+              params: { from: 'ar', to: 'vrr', price: 5, persist_state: true },
+            },
           ],
         },
         {
@@ -300,7 +303,10 @@ describe('VRR Performance Benchmarks', () => {
         name: `business_${i}`,
         traits: [
           { name: 'vrr_twin', params: { mirror: `biz_${i}` } },
-          { name: 'quest_hub', params: { quests: [`quest_${i}_a`, `quest_${i}_b`, `quest_${i}_c`] } },
+          {
+            name: 'quest_hub',
+            params: { quests: [`quest_${i}_a`, `quest_${i}_b`, `quest_${i}_c`] },
+          },
         ],
       }));
       const composition = makeComposition(nodes);

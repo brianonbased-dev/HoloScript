@@ -16,15 +16,15 @@ export interface SpatialVector3 {
 
 // 1. Extreme Density Collision Bounding
 export function calculateCollisionLikelihood(
-  numObjects: number, 
-  volumeCubicMeters: number, 
+  numObjects: number,
+  volumeCubicMeters: number,
   objectRadiusMeters: number
 ): number {
   if (volumeCubicMeters <= 0) return 1.0;
   // Calculate total volume occupied by objects
   const volumePerObject = (4 / 3) * Math.PI * Math.pow(objectRadiusMeters, 3);
   const totalOccupiedVolume = numObjects * volumePerObject;
-  
+
   // Assuming a uniformly random distribution, the likelihood of intersecting bounding spheres
   // approaches 100% (1.0) rapidly as occupied volume ratio increases.
   const occupancyRatio = totalOccupiedVolume / volumeCubicMeters;
@@ -49,7 +49,11 @@ export interface TeleportNode {
   targetNodeId: string; // The destination spatial portal
 }
 
-export function detectTeleportLoop(startNodeId: string, portals: Map<string, TeleportNode>, maxHops: number = 20): boolean {
+export function detectTeleportLoop(
+  startNodeId: string,
+  portals: Map<string, TeleportNode>,
+  maxHops: number = 20
+): boolean {
   let hops = 0;
   let currentId: string | null = startNodeId;
   const trace = new Set<string>();
@@ -62,7 +66,7 @@ export function detectTeleportLoop(startNodeId: string, portals: Map<string, Tel
       return true; // Exceeded max hops, classified as loop/desync risk
     }
     trace.add(currentId);
-    
+
     // Jump to the next portal
     const node = portals.get(currentId);
     currentId = node ? node.targetNodeId : null;
@@ -89,10 +93,10 @@ describe('Scenario: Physics — Extreme Density', () => {
 describe('Scenario: Physics — Spatial Trait Conflicts', () => {
   it('Resolves perfectly cancelling zero-gravity forces to null stability', () => {
     const activeForces = [
-      { x: 0, y: 9.8, z: 5 },     // Lift/drift
-      { x: 0, y: -9.8, z: -5 },   // Inverse gravity/drag
-      { x: 10, y: 0, z: 0 },      // Wind East
-      { x: -10, y: 0, z: 0 },     // Counter-wind West
+      { x: 0, y: 9.8, z: 5 }, // Lift/drift
+      { x: 0, y: -9.8, z: -5 }, // Inverse gravity/drag
+      { x: 10, y: 0, z: 0 }, // Wind East
+      { x: -10, y: 0, z: 0 }, // Counter-wind West
     ];
     const resolved = resolveVectorForces(activeForces);
     expect(resolved.x).toBe(0);
@@ -116,9 +120,9 @@ describe('Scenario: Spatial — Teleportation Failures', () => {
     const portals = new Map<string, TeleportNode>([
       ['portal_A', { nodeId: 'portal_A', targetNodeId: 'portal_B' }],
       ['portal_B', { nodeId: 'portal_B', targetNodeId: 'portal_C' }],
-      ['portal_C', { nodeId: 'portal_C', targetNodeId: 'portal_A' }] // Loop back to A
+      ['portal_C', { nodeId: 'portal_C', targetNodeId: 'portal_A' }], // Loop back to A
     ]);
-    
+
     expect(detectTeleportLoop('portal_A', portals)).toBe(true);
   });
 
@@ -126,9 +130,9 @@ describe('Scenario: Spatial — Teleportation Failures', () => {
     const portals = new Map<string, TeleportNode>([
       ['portal_A', { nodeId: 'portal_A', targetNodeId: 'portal_B' }],
       ['portal_B', { nodeId: 'portal_B', targetNodeId: 'portal_C' }],
-      ['portal_C', { nodeId: 'portal_C', targetNodeId: 'exit_node' }] // Exits successfully
+      ['portal_C', { nodeId: 'portal_C', targetNodeId: 'exit_node' }], // Exits successfully
     ]);
-    
+
     expect(detectTeleportLoop('portal_A', portals)).toBe(false);
   });
 });

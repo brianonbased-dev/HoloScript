@@ -157,7 +157,11 @@ export function createIntegrationSystems(eventBus: EventBus): ECSSystem[] {
 /**
  * Register all integration systems with the scheduler.
  */
-export function registerIntegrationSystems(scheduler: SystemScheduler, eventBus: EventBus, world?: World): void {
+export function registerIntegrationSystems(
+  scheduler: SystemScheduler,
+  eventBus: EventBus,
+  world?: World
+): void {
   const systems = createIntegrationSystems(eventBus);
   for (const sys of systems) {
     scheduler.register(
@@ -173,4 +177,3 @@ export function registerIntegrationSystems(scheduler: SystemScheduler, eventBus:
     );
   }
 }
-

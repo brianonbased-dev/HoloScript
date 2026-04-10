@@ -128,7 +128,11 @@ Add to Cursor settings or `.cursor/mcp.json`:
 
 ## Available Tools
 
-The MCP server exposes **122 tools** organized in categories.
+The MCP server exposes tools organized in categories. Verify current inventory via:
+
+```bash
+curl https://mcp.holoscript.net/health
+```
 
 ### generate_object
 

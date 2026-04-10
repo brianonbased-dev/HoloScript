@@ -161,4 +161,3 @@ export class TerrainPaintLayer {
     return this.undoStack.length;
   }
 }
-

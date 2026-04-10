@@ -110,10 +110,10 @@ jobs:
       - name: Install cmake and system dependencies
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
         run: |
-            sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list 2>/dev/null || true
-            sudo find /etc/apt/sources.list.d/ -name "*.list" -exec grep -l "packages.microsoft.com" {} \; | xargs sudo rm -f 2>/dev/null || true
-            sudo apt-get update -qq
-            sudo apt-get install -y cmake libclang-dev
+          sudo rm -f /etc/apt/sources.list.d/azure-cli.list /etc/apt/sources.list.d/microsoft-prod.list 2>/dev/null || true
+          sudo find /etc/apt/sources.list.d/ -name "*.list" -exec grep -l "packages.microsoft.com" {} \; | xargs sudo rm -f 2>/dev/null || true
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev
 
       - name: Install Rust toolchain
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_preflight == 'true') }}
@@ -148,7 +148,6 @@ jobs:
           echo "❌ skip_preflight=true is disabled for production safety."
           echo "Run with full pre-flight checks or use a non-production workflow."
           exit 1
-
 
   deploy-studio:
     needs: [detect-changes, pre-flight]
@@ -455,4 +454,3 @@ jobs:
           echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Absorb Service | ${{ needs.deploy-absorb-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Server | ${{ needs.deploy-mcp-server.result }} |" >> $GITHUB_STEP_SUMMARY
-

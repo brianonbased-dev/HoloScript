@@ -22,7 +22,7 @@ describe('InventorPanel', () => {
     // Check stats (mocked values)
     expect(screen.getByText('3100', { exact: false })).toBeInTheDocument(); // Cost ($3100)
     expect(screen.getByText('8d')).toBeInTheDocument(); // Assembly time
-    
+
     // Check BOM items
     expect(screen.getByText('Titanium Chassis')).toBeInTheDocument();
     expect(screen.getByText('Carbon Fiber Shell')).toBeInTheDocument();

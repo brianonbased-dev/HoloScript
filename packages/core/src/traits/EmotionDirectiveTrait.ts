@@ -942,7 +942,13 @@ export function createEmotionDirectiveTrait(
 }
 
 // ── Handler (delegates to EmotionDirectiveTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const emotionDirectiveHandler = {
   name: 'emotion_directive',

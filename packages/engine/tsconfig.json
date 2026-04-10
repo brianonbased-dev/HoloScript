@@ -17,12 +17,9 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "baseUrl": ".",
-    "paths": {
-    },
+    "paths": {},
     "noImplicitAny": false
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/__tests__/**"]
 }

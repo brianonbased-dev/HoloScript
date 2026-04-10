@@ -27,13 +27,12 @@ export class PythonAstropyBridge {
    * @param params JSON payload of parameters
    * @returns A promise resolving to the astronomical result payload
    */
-  public async executeCommand(command: string, params: Record<string, any>): Promise<AstropyResult> {
+  public async executeCommand(
+    command: string,
+    params: Record<string, any>
+  ): Promise<AstropyResult> {
     return new Promise((resolve, reject) => {
-      const process = spawn('python', [
-        this.scriptPath,
-        command,
-        JSON.stringify(params),
-      ]);
+      const process = spawn('python', [this.scriptPath, command, JSON.stringify(params)]);
 
       let output = '';
       let errorOutput = '';

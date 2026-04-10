@@ -177,4 +177,3 @@ export class Vec3SpringAnimator {
     return this.x.isAtRest() && this.y.isAtRest() && this.z.isAtRest();
   }
 }
-

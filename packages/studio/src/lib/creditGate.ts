@@ -18,9 +18,10 @@
 import { NextResponse } from 'next/server';
 import { getSession } from './api-auth';
 
-const ABSORB_BASE =
-  process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_API_KEY = process.env.ABSORB_API_KEY || process.env.MCP_API_KEY || '';
+import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
+
+const ABSORB_BASE = ENDPOINTS.ABSORB_SERVICE;
+const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 
 // Admin bypass — comma-separated GitHub usernames that skip credit checks
 const ADMIN_GITHUB_USERNAMES = new Set(

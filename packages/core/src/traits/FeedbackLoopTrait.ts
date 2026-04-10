@@ -216,14 +216,24 @@ export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
   // ===========================================================================
   // onUpdate — no per-frame work needed (event-driven)
   // ===========================================================================
-  onUpdate(_node: HSPlusNode, _config: FeedbackConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: FeedbackConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     /* Metric collection and signal emission are event-driven */
   },
 
   // ===========================================================================
   // onEvent
   // ===========================================================================
-  onEvent(node: HSPlusNode, config: FeedbackConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: FeedbackConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     // @ts-expect-error
     const state: FeedbackState | undefined = node.__feedbackState;
     if (!state) return;

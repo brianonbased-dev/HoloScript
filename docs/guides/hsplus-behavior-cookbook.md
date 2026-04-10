@@ -197,32 +197,32 @@ Key pattern: **event routing table** maps webhook event types to handler methods
 
 ## Key .hsplus Constructs for Behaviors
 
-| Construct | Purpose |
-|-----------|---------|
-| `@ai_npc` | Marks composition as an agent |
-| `@llm_agent { model }` | Configures which LLM to use |
-| `@state_machine { }` | Finite state machine with transitions |
-| `@external_api "name" { }` | Declares a tool the agent can call |
-| `@networked { sync_rate }` | Multi-agent state synchronization |
-| `llm_call(name, { prompt })` | Call the LLM within a state |
-| `tool_call(name, args)` | Call a declared external tool |
-| `emit(event, data)` | Publish event for other agents |
-| `spawn Agent { }` | Create agent instances at runtime |
-| `@for / @forEach / @while` | Control flow within states |
-| `@if / @else` | Conditional execution |
-| `@import` | Import from other .hsplus files |
+| Construct                    | Purpose                               |
+| ---------------------------- | ------------------------------------- |
+| `@ai_npc`                    | Marks composition as an agent         |
+| `@llm_agent { model }`       | Configures which LLM to use           |
+| `@state_machine { }`         | Finite state machine with transitions |
+| `@external_api "name" { }`   | Declares a tool the agent can call    |
+| `@networked { sync_rate }`   | Multi-agent state synchronization     |
+| `llm_call(name, { prompt })` | Call the LLM within a state           |
+| `tool_call(name, args)`      | Call a declared external tool         |
+| `emit(event, data)`          | Publish event for other agents        |
+| `spawn Agent { }`            | Create agent instances at runtime     |
+| `@for / @forEach / @while`   | Control flow within states            |
+| `@if / @else`                | Conditional execution                 |
+| `@import`                    | Import from other .hsplus files       |
 
 ## When to Use .hsplus vs .holo vs .hs
 
-| Need | Format | Why |
-|------|--------|-----|
-| Agent that plans and executes | `.hsplus` | State machines + LLM calls |
-| Agent that monitors and alerts | `.hsplus` | Tool calls + event routing |
-| Multi-agent coordination | `.hsplus` | Cross-composition messaging |
-| Governance and norm enforcement | `.hsplus` | Norm checking + graduated sanctions |
-| 3D scene with NPCs | `.holo` | Scene composition with embedded behaviors |
-| Data sync pipeline | `.hs` | Source → transform → sink |
-| Scheduled ETL job | `.hs` | Pipeline with cron schedule |
+| Need                            | Format    | Why                                       |
+| ------------------------------- | --------- | ----------------------------------------- |
+| Agent that plans and executes   | `.hsplus` | State machines + LLM calls                |
+| Agent that monitors and alerts  | `.hsplus` | Tool calls + event routing                |
+| Multi-agent coordination        | `.hsplus` | Cross-composition messaging               |
+| Governance and norm enforcement | `.hsplus` | Norm checking + graduated sanctions       |
+| 3D scene with NPCs              | `.holo`   | Scene composition with embedded behaviors |
+| Data sync pipeline              | `.hs`     | Source → transform → sink                 |
+| Scheduled ETL job               | `.hs`     | Pipeline with cron schedule               |
 
 ## Brittney Integration
 

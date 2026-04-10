@@ -1059,7 +1059,13 @@ export function createDialogTrait(config?: DialogConfig): DialogTrait {
 }
 
 // ── Handler (delegates to DialogTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 
 export const dialogHandler = {
   name: 'dialog',

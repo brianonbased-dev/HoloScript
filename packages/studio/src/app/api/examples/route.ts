@@ -67,7 +67,6 @@ function extractDescription(code: string): string {
   return '';
 }
 
-
 function prettifyName(filename: string): string {
   return filename
     .replace(/\.holo$/, '')

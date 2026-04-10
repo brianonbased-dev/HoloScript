@@ -39,10 +39,7 @@ function createComposition(overrides: Partial<HoloComposition> = {}): HoloCompos
 }
 
 // Helper to create an object with portal traits
-function createPortalObject(
-  name: string,
-  traitNames: string[]
-): HoloObjectDecl {
+function createPortalObject(name: string, traitNames: string[]): HoloObjectDecl {
   return {
     name,
     properties: [],
@@ -315,7 +312,9 @@ describe('Portal AR — IOSCompiler', () => {
     });
     const result = compiler.compile(composition);
     // All per-frame methods should be called in session delegate
-    expect(result.portalARFile).toContain('func session(_ session: ARSession, didUpdate frame: ARFrame)');
+    expect(result.portalARFile).toContain(
+      'func session(_ session: ARSession, didUpdate frame: ARFrame)'
+    );
     expect(result.portalARFile).toContain('checkPeekThrough(frame: frame)');
     expect(result.portalARFile).toContain('updateDepthOcclusion(frame: frame)');
     expect(result.portalARFile).toContain('updatePeopleOcclusion(frame: frame)');

@@ -94,8 +94,8 @@ export interface ConsolidatorConfig {
 }
 
 const DEFAULT_CONFIG: ConsolidatorConfig = {
-  warmDemoteAfterMs: 6 * 60 * 60 * 1000,   // 6 hours
-  coldDemoteAfterMs: 48 * 60 * 60 * 1000,  // 48 hours
+  warmDemoteAfterMs: 6 * 60 * 60 * 1000, // 6 hours
+  coldDemoteAfterMs: 48 * 60 * 60 * 1000, // 48 hours
   hotCapacity: 100,
   warmCapacity: 500,
 };
@@ -127,14 +127,16 @@ export class KnowledgeConsolidator {
         ...entry,
         tier: 'hot',
         tierChangedAt: Date.now(),
-        provenanceChain: [{
-          entryId: entry.id,
-          agentId: entry.authorAgent,
-          timestamp: new Date(entry.createdAt).getTime(),
-          action: 'created',
-          parentEntryId: undefined,
-          hash: entry.provenanceHash,
-        }],
+        provenanceChain: [
+          {
+            entryId: entry.id,
+            agentId: entry.authorAgent,
+            timestamp: new Date(entry.createdAt).getTime(),
+            action: 'created',
+            parentEntryId: undefined,
+            hash: entry.provenanceHash,
+          },
+        ],
       };
       this.tiers.set(entry.id, tiered);
       imported++;
@@ -153,14 +155,16 @@ export class KnowledgeConsolidator {
       ...entry,
       tier: 'hot',
       tierChangedAt: Date.now(),
-      provenanceChain: [{
-        entryId: entry.id,
-        agentId: entry.authorAgent,
-        timestamp: new Date(entry.createdAt).getTime(),
-        action: 'created',
-        parentEntryId,
-        hash: entry.provenanceHash,
-      }],
+      provenanceChain: [
+        {
+          entryId: entry.id,
+          agentId: entry.authorAgent,
+          timestamp: new Date(entry.createdAt).getTime(),
+          action: 'created',
+          parentEntryId,
+          hash: entry.provenanceHash,
+        },
+      ],
     };
     this.tiers.set(entry.id, tiered);
     return tiered;
@@ -176,7 +180,7 @@ export class KnowledgeConsolidator {
   sleepCycle(): ConsolidationStats {
     const now = Date.now();
     let demoted = 0;
-    let evicted = 0;
+    const evicted = 0;
 
     for (const entry of this.tiers.values()) {
       const lastActivity = Math.max(
@@ -295,15 +299,40 @@ export class KnowledgeConsolidator {
    */
   surfaceCrossDomainPatterns(domains?: string[]): CrossDomainPattern[] {
     const entries = domains
-      ? Array.from(this.tiers.values()).filter(e => domains.includes(e.domain))
+      ? Array.from(this.tiers.values()).filter((e) => domains.includes(e.domain))
       : Array.from(this.tiers.values());
 
     // Extract keyword → domain+entry mapping
     const keywordMap = new Map<string, Array<{ id: string; domain: string; snippet: string }>>();
     const STOP_WORDS = new Set([
-      'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were',
-      'not', 'but', 'have', 'has', 'had', 'will', 'would', 'could', 'should',
-      'can', 'may', 'its', 'all', 'each', 'any', 'use', 'used', 'using',
+      'the',
+      'and',
+      'for',
+      'that',
+      'this',
+      'with',
+      'from',
+      'are',
+      'was',
+      'were',
+      'not',
+      'but',
+      'have',
+      'has',
+      'had',
+      'will',
+      'would',
+      'could',
+      'should',
+      'can',
+      'may',
+      'its',
+      'all',
+      'each',
+      'any',
+      'use',
+      'used',
+      'using',
     ]);
 
     for (const entry of entries) {
@@ -311,7 +340,7 @@ export class KnowledgeConsolidator {
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .split(/\s+/)
-        .filter(w => w.length > 3 && !STOP_WORDS.has(w));
+        .filter((w) => w.length > 3 && !STOP_WORDS.has(w));
 
       // Use unique words per entry
       const unique = [...new Set(words)];
@@ -328,7 +357,7 @@ export class KnowledgeConsolidator {
     // Find keywords that span multiple domains
     const patterns: CrossDomainPattern[] = [];
     for (const [keyword, refs] of keywordMap) {
-      const uniqueDomains = [...new Set(refs.map(r => r.domain))];
+      const uniqueDomains = [...new Set(refs.map((r) => r.domain))];
       if (uniqueDomains.length >= 2) {
         patterns.push({
           pattern: keyword,
@@ -340,8 +369,7 @@ export class KnowledgeConsolidator {
     }
 
     // Sort by strength (most entries), then by domain count
-    return patterns
-      .sort((a, b) => b.domains.length - a.domains.length || b.strength - a.strength);
+    return patterns.sort((a, b) => b.domains.length - a.domains.length || b.strength - a.strength);
   }
 
   // ── Contradiction Detection ──
@@ -381,7 +409,7 @@ export class KnowledgeConsolidator {
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, '')
         .split(/\s+/)
-        .filter(w => w.length > 4);
+        .filter((w) => w.length > 4);
       const unique = [...new Set(words)];
       for (const w of unique) {
         if (!keywordIndex.has(w)) keywordIndex.set(w, []);
@@ -464,7 +492,7 @@ export class KnowledgeConsolidator {
   // ── Inspection ──
 
   getByTier(tier: KnowledgeTier): TieredEntry[] {
-    return Array.from(this.tiers.values()).filter(e => e.tier === tier);
+    return Array.from(this.tiers.values()).filter((e) => e.tier === tier);
   }
 
   getEntry(id: string): TieredEntry | undefined {
@@ -476,7 +504,9 @@ export class KnowledgeConsolidator {
   }
 
   stats(): { hot: number; warm: number; cold: number; total: number } {
-    let hot = 0, warm = 0, cold = 0;
+    let hot = 0,
+      warm = 0,
+      cold = 0;
     for (const entry of this.tiers.values()) {
       if (entry.tier === 'hot') hot++;
       else if (entry.tier === 'warm') warm++;
