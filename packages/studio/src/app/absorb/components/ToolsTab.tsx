@@ -106,7 +106,7 @@ export function ToolsTab({
       {/* Project Selector */}
       <div className="flex items-center gap-4">
         <label className="text-xs font-medium text-studio-muted">Project:</label>
-        <select
+        <select aria-label="Select tool"
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
           className="rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
@@ -206,7 +206,7 @@ export function ToolsTab({
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-xs font-medium text-studio-muted">
             Format
-            <select
+            <select aria-label="Select tool"
               value={renderFormat}
               onChange={(e) => setRenderFormat(e.target.value as typeof renderFormat)}
               className="mt-1 block rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
