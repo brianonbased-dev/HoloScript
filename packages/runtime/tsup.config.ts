@@ -1,8 +1,5 @@
 import { defineConfig } from 'tsup';
-
-export default defineConfig([
-  // ES/CJS modules for bundlers
-  {
+export default defineConfig({
     entry: {
       index: 'src/index.ts',
       events: 'src/events.ts',
@@ -32,32 +29,4 @@ export default defineConfig([
       /^@holoscript\/engine\//,
       /^@holoscript\/agent-protocol\//,
     ],
-  },
-  // Global/IIFE bundle for <script> tag loading
-  {
-    entry: {
-      'holoscript.global': 'src/browser/BrowserRuntime.ts',
-    },
-    format: ['iife'],
-    globalName: 'HoloScript',
-    sourcemap: true,
-    minify: true,
-    external: [
-      'three',
-      'monaco-editor',
-      '@holoscript/core',
-      /^@holoscript\/core\//,
-      '@holoscript/engine',
-      /^@holoscript\/engine\//,
-      '@holoscript/framework',
-      /^@holoscript\/framework\//,
-      '@holoscript/agent-protocol',
-      /^@holoscript\/agent-protocol\//,
-    ],
-    esbuildOptions(options) {
-      options.banner = {
-        js: '/* HoloScript Runtime v2.1.0 - https://holoscript.net */',
-      };
-    },
-  },
-]);
+});
