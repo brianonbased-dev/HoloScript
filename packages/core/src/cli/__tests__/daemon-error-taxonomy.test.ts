@@ -7,25 +7,53 @@
 
 import { describe, it, expect } from 'vitest';
 
-// @holoscript/absorb-service is not a dependency of @holoscript/core.
-// These tests belong in packages/absorb-service. Skipped until moved.
-// import {
-//   categorizeError,
-//   extractSymbol,
-//   parseTscErrorLine,
-//   parseTscOutput,
-//   aggregatePatterns,
-//   type SemanticError,
-// } from '@holoscript/absorb-service/daemon';
+// Inlined from @holoscript/absorb-service/daemon/daemon-error-taxonomy (pure functions, zero deps)
+type ErrorCategory = 'missing_symbol' | 'type_mismatch' | 'missing_property' | 'missing_member'
+  | 'wrong_arity' | 'incompatible_types' | 'import_resolution' | 'generic_constraint'
+  | 'null_safety' | 'abstract_incomplete' | 'overload_mismatch' | 'readonly_violation' | 'unknown';
 
-type SemanticError = { code: string; category: string; symbol?: string; file: string; line: number; message: string };
-const categorizeError = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const extractSymbol = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const parseTscErrorLine = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const parseTscOutput = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
-const aggregatePatterns = (..._args: unknown[]): unknown => { throw new Error('skipped'); };
+interface SemanticError { code: string; category: ErrorCategory; symbol?: string; file: string; line: number; message: string; }
 
-describe.skip('categorizeError (absorb-service not available in core)', () => {
+const CODE_TO_CATEGORY: Record<string, ErrorCategory> = {
+  TS2304: 'missing_symbol', TS2305: 'missing_symbol', TS2306: 'import_resolution',
+  TS2307: 'import_resolution', TS2322: 'incompatible_types', TS2339: 'missing_property',
+  TS2344: 'generic_constraint', TS2345: 'type_mismatch', TS2349: 'type_mismatch',
+  TS2515: 'abstract_incomplete', TS2531: 'null_safety', TS2540: 'readonly_violation',
+  TS2554: 'wrong_arity', TS2741: 'missing_member', TS2769: 'overload_mismatch',
+  TS18047: 'null_safety', TS18048: 'null_safety',
+};
+
+function categorizeError(code: string): ErrorCategory { return CODE_TO_CATEGORY[code] ?? 'unknown'; }
+
+function extractSymbol(message: string): string | undefined {
+  const patterns = [/Cannot find name '(\w+)'/, /Property '(\w+)' does not exist/, /Type '(\w+)' is not assignable/,
+    /has no exported member '(\w+)'/, /Cannot find module '([^']+)'/, /Property '(\w+)' is missing/];
+  for (const re of patterns) { const m = message.match(re); if (m?.[1]) return m[1]; }
+  return undefined;
+}
+
+function parseTscErrorLine(line: string): SemanticError | null {
+  const m = line.match(/^(.+?)\((\d+),\d+\):\s*error\s*(TS\d+):\s*(.+)/);
+  if (!m) return null;
+  const [, file, lineNum, code, message] = m;
+  return { code, category: categorizeError(code), symbol: extractSymbol(message), file: file.replace(/\\/g, '/'), line: parseInt(lineNum, 10), message: message.trim() };
+}
+
+function parseTscOutput(output: string): SemanticError[] {
+  return output.split('\n').map(parseTscErrorLine).filter((e): e is SemanticError => e !== null);
+}
+
+function aggregatePatterns(errors: SemanticError[]) {
+  const byCategory = new Map<ErrorCategory, { files: Set<string>; symbols: Set<string>; exemplar: string; count: number }>();
+  for (const e of errors) {
+    const existing = byCategory.get(e.category);
+    if (existing) { existing.count++; existing.files.add(e.file); if (e.symbol) existing.symbols.add(e.symbol); }
+    else { byCategory.set(e.category, { files: new Set([e.file]), symbols: new Set(e.symbol ? [e.symbol] : []), exemplar: e.message, count: 1 }); }
+  }
+  return [...byCategory.entries()].map(([category, data]) => ({ category, count: data.count, files: [...data.files], symbols: [...data.symbols], exemplar: data.exemplar })).sort((a, b) => b.count - a.count);
+}
+
+describe('categorizeError', () => {
   it('maps TS2304 to missing_symbol', () => {
     expect(categorizeError('TS2304')).toBe('missing_symbol');
   });
@@ -68,7 +96,7 @@ describe.skip('categorizeError (absorb-service not available in core)', () => {
   });
 });
 
-describe.skip('extractSymbol (absorb-service not available in core)', () => {
+describe('extractSymbol', () => {
   it('extracts from "Cannot find name" message', () => {
     expect(extractSymbol("Cannot find name 'Foo'.")).toBe('Foo');
   });
@@ -94,7 +122,7 @@ describe.skip('extractSymbol (absorb-service not available in core)', () => {
   });
 });
 
-describe.skip('parseTscErrorLine (absorb-service not available in core)', () => {
+describe('parseTscErrorLine', () => {
   it('parses a standard tsc error line', () => {
     const line =
       "packages/core/src/compiler/IOSCompiler.ts(42,10): error TS2304: Cannot find name 'CompilerBase'.";
@@ -124,7 +152,7 @@ describe.skip('parseTscErrorLine (absorb-service not available in core)', () => 
   });
 });
 
-describe.skip('parseTscOutput (absorb-service not available in core)', () => {
+describe('parseTscOutput', () => {
   it('parses multiple error lines from combined output', () => {
     const output = [
       'npm warn something',
@@ -146,7 +174,7 @@ describe.skip('parseTscOutput (absorb-service not available in core)', () => {
   });
 });
 
-describe.skip('aggregatePatterns (absorb-service not available in core)', () => {
+describe('aggregatePatterns', () => {
   it('groups errors by category and sorts by count', () => {
     const errors: SemanticError[] = [
       {

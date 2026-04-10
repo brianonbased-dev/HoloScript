@@ -26,6 +26,7 @@
     "pg": "^8.11.0",
     "stripe": "^17.0.0",
     "@holoscript/absorb-service": "workspace:*",
+    "@holoscript/config": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1"
   },
