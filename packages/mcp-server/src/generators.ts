@@ -923,7 +923,7 @@ function generateLogic(elements: SceneElement): string {
   return `logic {
     // Auto-generated interaction logic
     on_scene_start() {
-      console.log("Scene loaded!")
+      console.debug("Scene loaded!")
     }
   }`;
 }

@@ -244,7 +244,7 @@ export class MaterialEditor {
     }
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Initialized', this.config);
+      console.debug('[MaterialEditor] Initialized', this.config);
     }
   }
 
@@ -269,7 +269,7 @@ export class MaterialEditor {
     this.updatePresetsList();
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] UI initialized');
+      console.debug('[MaterialEditor] UI initialized');
     }
   }
 
@@ -666,7 +666,7 @@ export class MaterialEditor {
     this.animatePreview();
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Preview initialized');
+      console.debug('[MaterialEditor] Preview initialized');
     }
   }
 
@@ -779,7 +779,7 @@ export class MaterialEditor {
     }
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Material type changed:', type);
+      console.debug('[MaterialEditor] Material type changed:', type);
     }
   }
 
@@ -836,7 +836,7 @@ export class MaterialEditor {
     this.materials.set(id, material);
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Material saved:', material);
+      console.debug('[MaterialEditor] Material saved:', material);
     }
 
     return material;
@@ -946,7 +946,7 @@ export class MaterialEditor {
     });
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Material loaded:', material.name);
+      console.debug('[MaterialEditor] Material loaded:', material.name);
     }
   }
 
@@ -973,7 +973,7 @@ export class MaterialEditor {
     this.loadMaterial(material);
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Preset loaded:', presetName);
+      console.debug('[MaterialEditor] Preset loaded:', presetName);
     }
   }
 
@@ -1036,7 +1036,7 @@ export class MaterialEditor {
     this.materials.clear();
 
     if (this.config.debug) {
-      console.log('[MaterialEditor] Disposed');
+      console.debug('[MaterialEditor] Disposed');
     }
   }
 }

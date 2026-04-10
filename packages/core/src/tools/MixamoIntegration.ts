@@ -447,7 +447,7 @@ export class MixamoAPI {
     };
 
     if (this.config.debug) {
-      console.log('[MixamoAPI] Character uploaded:', result.characterId);
+      console.debug('[MixamoAPI] Character uploaded:', result.characterId);
     }
 
     return result;
@@ -489,7 +489,7 @@ export class MixamoAPI {
     };
 
     if (this.config.debug) {
-      console.log(
+      console.debug(
         `[MixamoAPI] Character rigged: ${result.characterId} (${result.boneCount} bones, quality: ${result.qualityScore})`
       );
     }
@@ -552,7 +552,7 @@ export class MixamoAPI {
     };
 
     if (this.config.debug) {
-      console.log(
+      console.debug(
         `[MixamoAPI] Listed ${result.animations.length} animations (${result.total} total)`
       );
     }
@@ -602,7 +602,7 @@ export class MixamoAPI {
     };
 
     if (this.config.debug) {
-      console.log(
+      console.debug(
         `[MixamoAPI] Animation downloaded: ${result.filename} (${result.sizeBytes} bytes)`
       );
     }
