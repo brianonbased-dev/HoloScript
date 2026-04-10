@@ -2849,6 +2849,19 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
+      // Quality Gate
+      for (const e of entries) {
+        const contentStr = String(e.content || '').trim();
+        if (contentStr.length < 100) {
+          json(res, 400, { error: 'Knowledge entries must be at least 100 characters.' });
+          return true;
+        }
+        if (contentStr.startsWith('[Memory:')) {
+          json(res, 400, { error: 'Raw memory dumps starting with [Memory: are not allowed.' });
+          return true;
+        }
+      }
+
       if (entries.length > 100) {
         json(res, 400, { error: 'Maximum 100 entries per sync' });
         return true;
