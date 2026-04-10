@@ -21,7 +21,8 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:;",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' ws: wss: https:;",
           },
         ],
       },
@@ -33,7 +34,7 @@ const nextConfig = {
       { source: '/workspace/:path*', destination: '/projects/:path*', permanent: true },
       { source: '/scenarios/:path*', destination: '/start', permanent: true },
       { source: '/publish/:path*', destination: '/create', permanent: true },
-      { source: '/operations/:path*', destination: '/admin/:path*', permanent: true }
+      { source: '/operations/:path*', destination: '/admin/:path*', permanent: true },
     ];
   },
   // Enable standard Next.js build checks
@@ -127,14 +128,39 @@ const nextConfig = {
       '@coinbase/agentkit': false,
       // Stub engine + framework deep imports (pulled in via @holoscript/core barrel)
       ...Object.fromEntries(
-        ['@holoscript/engine', '@holoscript/framework'].flatMap(pkg => {
+        ['@holoscript/engine', '@holoscript/framework'].flatMap((pkg) => {
           // Generate false aliases for the base package and common subpaths
-          const subs = ['', '/ai', '/networking', '/multiplayer', '/runtime', '/physics',
-            '/animation', '/rendering', '/scene', '/ecs', '/dialogue', '/environment',
-            '/camera', '/input', '/vr', '/orbital', '/hologram', '/navigation',
-            '/combat', '/character', '/gameplay', '/particles', '/terrain',
-            '/tilemap', '/procedural', '/world', '/vm', '/vm-bridge'];
-          return subs.map(s => [`${pkg}${s}`, false]);
+          const subs = [
+            '',
+            '/ai',
+            '/networking',
+            '/multiplayer',
+            '/runtime',
+            '/physics',
+            '/animation',
+            '/rendering',
+            '/scene',
+            '/ecs',
+            '/dialogue',
+            '/environment',
+            '/camera',
+            '/input',
+            '/vr',
+            '/orbital',
+            '/hologram',
+            '/navigation',
+            '/combat',
+            '/character',
+            '/gameplay',
+            '/particles',
+            '/terrain',
+            '/tilemap',
+            '/procedural',
+            '/world',
+            '/vm',
+            '/vm-bridge',
+          ];
+          return subs.map((s) => [`${pkg}${s}`, false]);
         })
       ),
       '@holoscript/mcp-server': false,
@@ -160,7 +186,7 @@ const nextConfig = {
 
     // Catch-all: stub Node.js-only packages that leak into client bundle via @holoscript/core
     config.plugins.push(
-      new (require('webpack')).NormalModuleReplacementPlugin(
+      new (require('webpack').NormalModuleReplacementPlugin)(
         /^@holoscript\/(engine|framework)(\/.*)?$/,
         require.resolve('./src/lib/empty-module.js')
       )
