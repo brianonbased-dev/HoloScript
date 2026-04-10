@@ -347,3 +347,6 @@ export * from './learning';
 
 // Resolve ambiguous exports between swarm and negotiation
 export type { Vote, VotingResult } from './negotiation';
+
+export * from './training/index.js';
+export * from './learning/index.js';
