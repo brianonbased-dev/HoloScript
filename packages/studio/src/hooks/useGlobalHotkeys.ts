@@ -4,6 +4,7 @@ import { usePanelVisibilityStore } from '../lib/stores/panelVisibilityStore';
 
 interface GlobalHotkeyOptions {
   onOpenHelp?: () => void;
+  enableHistoryShortcuts?: boolean;
 }
 
 export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
@@ -17,8 +18,9 @@ export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
 
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+      const enableHistoryShortcuts = options?.enableHistoryShortcuts ?? true;
 
-      if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
+      if (enableHistoryShortcuts && cmdOrCtrl && e.key.toLowerCase() === 'z') {
         if (e.shiftKey) {
           // Ctrl+Shift+Z = Redo
           e.preventDefault();
@@ -28,7 +30,7 @@ export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
           e.preventDefault();
           useHistoryStore.temporal.getState().undo();
         }
-      } else if (cmdOrCtrl && e.key.toLowerCase() === 'y') {
+      } else if (enableHistoryShortcuts && cmdOrCtrl && e.key.toLowerCase() === 'y') {
         // Ctrl+Y = Redo
         e.preventDefault();
         useHistoryStore.temporal.getState().redo();
@@ -41,5 +43,5 @@ export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [options?.enableHistoryShortcuts, options?.onOpenHelp]);
 }

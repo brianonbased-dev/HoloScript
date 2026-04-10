@@ -389,6 +389,30 @@ describe('useGlobalHotkeys', () => {
   });
 
   describe('Edge Cases', () => {
+    it('should not trigger undo or redo when history shortcuts are disabled', () => {
+      renderHook(() => useGlobalHotkeys({ enableHistoryShortcuts: false }));
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'z',
+            ctrlKey: true,
+            bubbles: true,
+          })
+        );
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'y',
+            ctrlKey: true,
+            bubbles: true,
+          })
+        );
+      });
+
+      expect(mockUndo).not.toHaveBeenCalled();
+      expect(mockRedo).not.toHaveBeenCalled();
+    });
+
     it('should handle events with null target', () => {
       renderHook(() => useGlobalHotkeys());
 

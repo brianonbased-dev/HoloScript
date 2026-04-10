@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { useState, useEffect, type ReactNode, createContext, useContext, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
@@ -114,7 +115,8 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 // ═══════════════════════════════════════════════════════════════════
 
 export function Providers({ children }: { children: ReactNode }) {
-  useGlobalHotkeys();
+  const pathname = usePathname();
+  useGlobalHotkeys({ enableHistoryShortcuts: pathname !== '/create' });
 
   // Onboarding handled by /start (Brittney-first) — no popup wizard
 

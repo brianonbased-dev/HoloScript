@@ -44,13 +44,12 @@
 
 ## HIGH (fix this Sprint)
 
-### PERF-01: 16 Remaining Oversized Components (need splitting)
-*Note: `SliderMaterialInspector.tsx`, `StudioOperationsHub.tsx`, `TraitSupportMatrixDashboard.tsx`, `CinematicCameraPanel.tsx`, and `StudioSetupWizard.tsx` were recently refactored and extracted successfully.*
+### PERF-01: 15 Remaining Oversized Components (need splitting)
+*Note: `SliderMaterialInspector.tsx`, `StudioOperationsHub.tsx`, `TraitSupportMatrixDashboard.tsx`, `CinematicCameraPanel.tsx`, `StudioSetupWizard.tsx`, and `SyntheticDataDashboard.tsx` were recently refactored and extracted successfully.*
 | Component | Lines | Priority |
 | ----------- | ------- | ---------- |
 | ImportRepoWizard.tsx | 915 | Step components |
 | HoloScriptEditor.tsx | 826 | Extract toolbar, minimap, status bar |
-| SyntheticDataDashboard.tsx | 788 | Extract config panel, preview, stats |
 | HoloDiffPanel.tsx | 775 | Extract diff viewer, controls, timeline |
 
 ### TEST-01: Industry Verticals Have 0% Test Coverage

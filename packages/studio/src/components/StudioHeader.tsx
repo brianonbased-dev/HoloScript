@@ -64,7 +64,10 @@ export function StudioHeader() {
   }, [toggleBlameOpen]);
 
   // Global keyboard shortcuts
-  useGlobalHotkeys({ onOpenHelp: () => setHotkeyOverlayOpen(!hotkeyOverlayOpen) });
+  useGlobalHotkeys({
+    onOpenHelp: () => setHotkeyOverlayOpen(!hotkeyOverlayOpen),
+    enableHistoryShortcuts: false,
+  });
 
   // Orchestration keyboard shortcuts
   useOrchestrationKeyboard({

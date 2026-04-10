@@ -43,6 +43,7 @@ const nextConfig = {
   ...(process.platform !== 'win32' && { output: 'standalone' }),
 
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
+  pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx', 'holo'],
   serverExternalPackages: [
     'tree-sitter',
     'tree-sitter-javascript',
@@ -70,10 +71,20 @@ const nextConfig = {
     '@holoscript/std',
     '@holoscript/r3f-renderer',
   ],
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, defaultLoaders }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
       type: 'asset/resource',
+    });
+
+    config.module.rules.push({
+      test: /\.holo$/,
+      use: [
+        defaultLoaders.babel,
+        {
+          loader: require.resolve('./src/lib/holo-loader.mjs'),
+        },
+      ],
     });
 
     // Stub out optional peer deps from @holoscript/core that aren't needed for Studio
