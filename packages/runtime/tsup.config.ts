@@ -42,7 +42,6 @@ export default defineConfig([
     globalName: 'HoloScript',
     sourcemap: true,
     minify: true,
-    noExternal: [/(.*)/], // Bundle everything except explicit externals
     external: [
       'three',
       'monaco-editor',
