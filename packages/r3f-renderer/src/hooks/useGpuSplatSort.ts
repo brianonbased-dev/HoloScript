@@ -41,7 +41,7 @@ export interface GpuSplatSortResult {
  */
 export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResult {
   const { camera, gl } = useThree();
-  const sorterRef = useRef<any>(null);
+  const sorterRef = useRef<unknown>(null);
   const availableRef = useRef(false);
   const positionsRef = useRef<Float32Array | null>(null);
   const countRef = useRef(0);
@@ -52,11 +52,11 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
 
     async function init() {
       // Check WebGPU availability
-      if (typeof navigator === 'undefined' || !('(gpu as any)' in navigator || 'gpu' in navigator))
+      if (typeof navigator === 'undefined' || !('gpu' in navigator))
         return;
 
       try {
-        const adapter = await (navigator as any).gpu.requestAdapter();
+        const adapter = await (navigator as unknown as { gpu: { requestAdapter(): Promise<unknown> } }).gpu.requestAdapter();
         if (!adapter || cancelled) return;
 
         const device = await adapter.requestDevice();
@@ -66,7 +66,7 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
         }
 
         // Dynamically import the core sorter to avoid hard dependency (cast to any for TS2339)
-        const { GaussianSplatSorter } = (await import('@holoscript/core')) as any;
+        const { GaussianSplatSorter } = (await import('@holoscript/core')) as Record<string, unknown>;
         if (cancelled) {
           device.destroy();
           return;

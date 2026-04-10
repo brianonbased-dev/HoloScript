@@ -192,11 +192,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Initialize Keyboard System
-    this.keyboardSystem = new KeyboardSystem(this as any);
-    this.handMenuSystem = new HandMenuSystem(this as any);
+    this.keyboardSystem = new KeyboardSystem(this as unknown as HSPlusRuntime);
+    this.handMenuSystem = new HandMenuSystem(this as unknown as HSPlusRuntime);
 
     // Register Physics Event Handlers
-    this.on('physics_grab', (payload: any) => {
+    this.on('physics_grab', (payload: unknown) => {
       const { nodeId, hand } = payload as { nodeId: string; hand: 'left' | 'right' };
       const handBodyId = this.vrPhysicsBridge.getHandBodyId(hand);
       const objectBody = this.physicsWorld.getBody(nodeId);
@@ -215,7 +215,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       }
     });
 
-    this.on('physics_release', (payload: any) => {
+    this.on('physics_release', (payload: unknown) => {
       const { nodeId, velocity } = payload as { nodeId: string; velocity?: number[] };
       // Remove all constraints involving this node by ID pattern
       this.physicsWorld.removeConstraint(`grab_${nodeId}`);
@@ -229,11 +229,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     });
 
     // Keyboard / UI Events
-    this.on('ui_press_end', (payload: any) => {
+    this.on('ui_press_end', (payload: unknown) => {
       this.keyboardSystem.handleEvent('ui_press_end', payload);
     });
 
-    this.on('physics_add_constraint', (payload: any) => {
+    this.on('physics_add_constraint', (payload: unknown) => {
       const { type, nodeId, axis, min, max, spring } = payload as {
         type: string;
         nodeId: string;
@@ -402,14 +402,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         // Notify renderer to switch to XR mode (if method exists)
         if (renderer.setXRSession) {
           renderer.setXRSession(
-            session as any,
-            this.webXrManager!.getBinding() as any,
-            this.webXrManager!.getProjectionLayer() as any
+            session as unknown,
+            this.webXrManager!.getBinding() as unknown,
+            this.webXrManager!.getProjectionLayer() as unknown
           );
         }
 
         // Start the XR render loop
-        this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this) as any);
+        this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this) as unknown);
       };
 
       this.webXrManager!.onSessionEnd = () => {
@@ -497,9 +497,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // 1. Update Headset Pose
     if (frame) {
-      const viewerPose = frame.getViewerPose(refSpace as any);
+      const viewerPose = frame.getViewerPose(refSpace as unknown);
       if (viewerPose) {
-        const { position, orientation } = (viewerPose as any).transform;
+        const { position, orientation } = (viewerPose as unknown as { transform: { position: DOMPointReadOnly; orientation: DOMPointReadOnly } }).transform;
         this.vrContext.headset.position = { x: position.x, y: position.y, z: position.z };
 
         // Convert Quaternion to Euler for HoloScript compatibility
@@ -516,12 +516,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // 2. Update Controllers / Hands
     for (const source of session.inputSources) {
-      if (!(source as any).gripSpace) continue; // We need a grip space for position
+      if (!(source as unknown as { gripSpace?: XRSpace }).gripSpace) continue; // We need a grip space for position
 
       // If we have a valid frame, get the pose
       let pose: XRPose | undefined;
       if (frame) {
-        pose = frame.getPose((source as any).gripSpace, refSpace as any) ?? undefined;
+        pose = frame.getPose((source as unknown as { gripSpace?: XRSpace }).gripSpace, refSpace as unknown) ?? undefined;
       }
 
       if (pose) {
@@ -539,8 +539,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             orientation.y,
             orientation.z,
             orientation.w,
-          ]) as any,
-          velocity: { x: 0, y: 0, z: 0 } as any, // Not provided by WebXR directly without previous frame diff
+          ]) as unknown,
+          velocity: { x: 0, y: 0, z: 0 }, // Not provided by WebXR directly without previous frame diff
           pinchStrength: 0,
           gripStrength: 0,
         } as unknown as VRHand;
@@ -594,14 +594,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   private loadImports(): void {
     for (const imp of this.ast.imports || []) {
-      const alias = imp.alias || (imp as any).source || imp.path;
+      const alias = imp.alias || ("source" in imp ? (imp as Record<string, unknown>).source : undefined) || imp.path;
       // Companions should be provided via options
       if (this.companions[alias]) {
         // Already loaded
         continue;
       }
       console.warn(
-        `Import ${imp.path || (imp as any).source} not found. Provide via companions option.`
+        `Import ${imp.path || ("source" in imp ? (imp as Record<string, unknown>).source : undefined)} not found. Provide via companions option.`
       );
     }
   }
@@ -2106,9 +2106,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         case 'IfStatement': {
           const condition = this.evaluator.evaluate(String(stmt.condition));
           if (condition) {
-            await this.executeStatementBlock(instance, stmt.consequent as any as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.consequent as unknown as HSPlusStatement[]);
           } else if (stmt.alternate) {
-            await this.executeStatementBlock(instance, stmt.alternate as any as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.alternate as unknown as HSPlusStatement[]);
           }
           break;
         }

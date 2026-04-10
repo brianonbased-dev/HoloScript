@@ -828,7 +828,7 @@ export class PlayCanvasCompiler extends CompilerBase {
       return `new pc.Color(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     if (typeof value === 'object' && value !== null && 'r' in value) {
-      const c = value as any;
+      const c = value as Record<string, unknown>;
       const rVal = Number(c.r);
       const gVal = Number(c.g);
       const bVal = Number(c.b);

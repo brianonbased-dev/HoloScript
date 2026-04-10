@@ -132,7 +132,7 @@ export class HolobCompiler {
     }
 
     const startMs = performance.now();
-    const builder = new (HoloBytecodeBuilder as any)();
+    const builder = new (HoloBytecodeBuilder as unknown as new () => Record<string, unknown>)();
     this.stringTable.clear();
     this.entityCount = 0;
 

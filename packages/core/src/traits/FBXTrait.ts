@@ -632,9 +632,9 @@ function createMockFBXData(config: FBXConfig): {
         index: 0,
         length: 0.1,
         transform: {
-          position: [0, 1, 0] as any,
-          rotation: [0, 0, 0] as any,
-          scale: [1, 1, 1] as any,
+          position: [0, 1, 0] as unknown as Vector3,
+          rotation: [0, 0, 0] as unknown as Vector3,
+          scale: [1, 1, 1] as unknown as Vector3,
         },
       },
       {
@@ -643,9 +643,9 @@ function createMockFBXData(config: FBXConfig): {
         index: 1,
         length: 0.2,
         transform: {
-          position: [0, 0.1, 0] as any,
-          rotation: [0, 0, 0] as any,
-          scale: [1, 1, 1] as any,
+          position: [0, 0.1, 0] as unknown as Vector3,
+          rotation: [0, 0, 0] as unknown as Vector3,
+          scale: [1, 1, 1] as unknown as Vector3,
         },
       },
       {
@@ -654,9 +654,9 @@ function createMockFBXData(config: FBXConfig): {
         index: 2,
         length: 0.2,
         transform: {
-          position: [0, 0.2, 0] as any,
-          rotation: [0, 0, 0] as any,
-          scale: [1, 1, 1] as any,
+          position: [0, 0.2, 0] as unknown as Vector3,
+          rotation: [0, 0, 0] as unknown as Vector3,
+          scale: [1, 1, 1] as unknown as Vector3,
         },
       },
       {
@@ -665,9 +665,9 @@ function createMockFBXData(config: FBXConfig): {
         index: 3,
         length: 0.2,
         transform: {
-          position: [0, 0.2, 0] as any,
-          rotation: [0, 0, 0] as any,
-          scale: [1, 1, 1] as any,
+          position: [0, 0.2, 0] as unknown as Vector3,
+          rotation: [0, 0, 0] as unknown as Vector3,
+          scale: [1, 1, 1] as unknown as Vector3,
         },
       },
       {
@@ -676,9 +676,9 @@ function createMockFBXData(config: FBXConfig): {
         index: 4,
         length: 0.15,
         transform: {
-          position: [0, 0.3, 0] as any,
-          rotation: [0, 0, 0] as any,
-          scale: [1, 1, 1] as any,
+          position: [0, 0.3, 0] as unknown as Vector3,
+          rotation: [0, 0, 0] as unknown as Vector3,
+          scale: [1, 1, 1] as unknown as Vector3,
         },
       },
     ],
@@ -820,11 +820,11 @@ function blendVec3(a: Vector3, b: Vector3, t: number): Vector3 {
     v3x(a) + (v3x(b) - v3x(a)) * t,
     v3y(a) + (v3y(b) - v3y(a)) * t,
     v3z(a) + (v3z(b) - v3z(a)) * t,
-  ] as any;
+  ] as unknown as Vector3;
 }
 
 function addVec3(a: Vector3, b: Vector3): Vector3 {
-  return [v3x(a) + v3x(b), v3y(a) + v3y(b), v3z(a) + v3z(b)] as any;
+  return [v3x(a) + v3x(b), v3y(a) + v3y(b), v3z(a) + v3z(b)] as unknown as Vector3;
 }
 
 function updateSkeletonPose(state: FBXState, _context: TraitContext): void {
@@ -846,9 +846,9 @@ function updateSkeletonPose(state: FBXState, _context: TraitContext): void {
     const bind = state.skeleton.bindPose.get(bone.name);
     if (bind) {
       bone.transform = {
-        position: [v3x(bind.position), v3y(bind.position), v3z(bind.position)] as any,
-        rotation: [v3x(bind.rotation), v3y(bind.rotation), v3z(bind.rotation)] as any,
-        scale: [v3x(bind.scale), v3y(bind.scale), v3z(bind.scale)] as any,
+        position: [v3x(bind.position), v3y(bind.position), v3z(bind.position)] as unknown as Vector3,
+        rotation: [v3x(bind.rotation), v3y(bind.rotation), v3z(bind.rotation)] as unknown as Vector3,
+        scale: [v3x(bind.scale), v3y(bind.scale), v3z(bind.scale)] as unknown as Vector3,
       };
     }
   }
@@ -871,12 +871,12 @@ function updateSkeletonPose(state: FBXState, _context: TraitContext): void {
         Math.sin(normalizedTime * Math.PI * 2) * 0.01,
         Math.cos(normalizedTime * Math.PI * 2) * 0.01,
         0,
-      ] as any;
+      ] as unknown as Vector3;
       const animRot: Vector3 = [
         Math.sin(normalizedTime * Math.PI * 2) * 5,
         0,
         Math.cos(normalizedTime * Math.PI * 2) * 2,
-      ] as any;
+      ] as unknown as Vector3;
 
       if (isAdditive) {
         // Additive: add weighted offset to current pose

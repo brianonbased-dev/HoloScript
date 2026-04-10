@@ -964,8 +964,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
   }
 
   // Create runtime
-  const profile = opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any);
-  const runtime = createHeadlessRuntime(ast as any, {
+  const profile = opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as unknown as string);
+  const runtime = createHeadlessRuntime(ast as unknown as HSPlusAST, {
     profile,
     tickRate: 10,
     debug: opts.debug,
@@ -1014,12 +1014,12 @@ async function runScript(opts: CLIOptions): Promise<void> {
   }
 
   // For headless scripts, run a fixed number of ticks then stop
-  runTicks(runtime as any, opts.ticks);
+  runTicks(runtime as unknown, opts.ticks);
 
   runtime.stop();
 
   // Report
-  const stats = runtime.getStats() as any;
+  const stats = runtime.getStats() as unknown as Record<string, number>;
   console.log(
     `[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`
   );
@@ -1042,16 +1042,16 @@ async function runScript(opts: CLIOptions): Promise<void> {
         const newSource = fs.readFileSync(filePath, 'utf-8');
         const newParseResult = parse(newSource);
         const newAst = newParseResult.ast as HSPlusAST;
-        const newRuntime = createHeadlessRuntime(newAst as any, {
-          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as any),
+        const newRuntime = createHeadlessRuntime(newAst as unknown as HSPlusAST, {
+          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as unknown as string),
           tickRate: 10,
           debug: opts.debug,
           hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
         });
         newRuntime.start();
-        runTicks(newRuntime as any, opts.ticks);
+        runTicks(newRuntime as unknown, opts.ticks);
         newRuntime.stop();
-        const newStats = newRuntime.getStats() as any;
+        const newStats = newRuntime.getStats() as unknown as Record<string, number>;
         console.log(
           `[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`
         );
@@ -1085,21 +1085,21 @@ async function testScript(opts: CLIOptions): Promise<void> {
 
   // Parse and create a headless runtime to populate state for assertions
   const parseResult = parse(source);
-  const ast = parseResult.ast as any;
+  const ast = parseResult.ast as unknown as HSPlusAST;
   const profile = HEADLESS_PROFILE;
   const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
   runtime.start();
-  for (let i = 0; i < 50; i++) (runtime as any).tick();
+  for (let i = 0; i < 50; i++) (runtime as unknown).tick();
 
   const runner = new ScriptTestRunner({
     debug: opts.debug,
-    runtimeState: (runtime as any).getState(),
+    runtimeState: (runtime as unknown).getState(),
   });
   const scriptResults = runner.runTestsFromSource(source, filePath);
 
   // Also run @test blocks (native composition tests with $stateVar syntax)
   // Prefer runtime state (properly parses nested objects) over raw text extraction
-  const runtimeState = (runtime as any).getState();
+  const runtimeState = (runtime as unknown).getState();
   const compositionState =
     Object.keys(runtimeState).length > 0
       ? runtimeState
@@ -1227,7 +1227,7 @@ function generateNodeTarget(ast: HSPlusAST): string {
   if (ast.root && ast.root.children) {
     for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        const name = (node as any).name || 'default';
+        const name = (node as unknown as { name?: string }).name || 'default';
         lines.push(`// ${node.type}: ${name}`);
         lines.push(`module.exports.${name} = ${JSON.stringify(node, null, 2)};`);
         lines.push('');
@@ -1249,7 +1249,7 @@ function generatePythonTarget(ast: HSPlusAST): string {
   if (ast.root && ast.root.children) {
     for (const node of ast.root.children) {
       if (node.type === 'composition' || node.type === 'ObjectDeclaration') {
-        const name = (node as any).name || 'default_obj';
+        const name = (node as unknown as { name?: string }).name || 'default_obj';
         lines.push(`# ${node.type}: ${name}`);
         lines.push(`${name} = json.loads('''${JSON.stringify(node)}''')`);
         lines.push('');
@@ -1898,7 +1898,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   let runtimeSkillActions = loadRuntimeSkillActions(
     skillsDirAbs,
     opts,
-    host as any,
+    host as unknown,
     repoRoot,
     opts.debug
   );
@@ -1909,7 +1909,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     runtimeSkillActions = loadRuntimeSkillActions(
       skillsDirAbs,
       opts,
-      host as any,
+      host as unknown,
       repoRoot,
       opts.debug
     );
@@ -2150,7 +2150,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     }
 
     // Create runtime with profile-aware HeadlessRuntime (auto-tick via setInterval)
-    const runtime = createHeadlessRuntime(cycleAST as any, {
+    const runtime = createHeadlessRuntime(cycleAST as unknown as HSPlusAST, {
       profile: HEADLESS_PROFILE,
       tickRate: 10,
       debug: opts.debug,
@@ -2661,7 +2661,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     const cycleAST = JSON.parse(JSON.stringify(compositionAST));
     materializeTraits(cycleAST);
 
-    const runtime = createHeadlessRuntime(cycleAST as any, {
+    const runtime = createHeadlessRuntime(cycleAST as unknown as HSPlusAST, {
       profile: HEADLESS_PROFILE,
       tickRate: 1,
       debug: opts.debug,

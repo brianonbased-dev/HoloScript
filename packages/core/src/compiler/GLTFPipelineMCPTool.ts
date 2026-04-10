@@ -295,7 +295,7 @@ async function handleExport(args: Record<string, unknown>): Promise<MCPToolCallR
   const agentToken = (args.agentToken as string) ?? '';
 
   // Dynamically import GLTFPipeline to avoid circular dependency at module load
-  const { GLTFPipeline } = (await importGLTFPipeline()) as any;
+  const { GLTFPipeline } = (await importGLTFPipeline()) as Record<string, unknown>;
 
   const pipeline = new GLTFPipeline({
     format,

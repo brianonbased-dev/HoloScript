@@ -221,7 +221,7 @@ export class NetworkManager {
       type,
       senderId: this.peerId,
       timestamp: Date.now(),
-      payload: { ...(payload as any), _targetPeer: peerId },
+      payload: { ...(payload as Record<string, unknown>), _targetPeer: peerId },
     };
     this.outbox.push(msg);
   }

@@ -113,12 +113,12 @@ async function post(
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30_000),
   });
-  return res.json() as Promise<any>;
+  return res.json() as Promise<Record<string, unknown>>;
 }
 
 async function get(url: string, headers: Record<string, string> = {}) {
   const res = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
-  return res.json() as Promise<any>;
+  return res.json() as Promise<Record<string, unknown>>;
 }
 
 function auth() {
@@ -132,7 +132,7 @@ function shell(cmd: string): string {
       timeout: 10_000,
       cwd: ROOT,
       shell: true,
-    } as any).trim();
+    }).trim();
   } catch {
     return '';
   }
@@ -355,8 +355,8 @@ async function scoutTasks() {
   const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({
     board: {},
   }));
-  const open = ((board?.board?.open || []) as any[]).filter(
-    (t: any) =>
+  const open = ((board?.board?.open || []) as Array<Record<string, unknown>>).filter(
+    (t: Record<string, unknown>) =>
       !t.title?.startsWith('[report]') &&
       !t.title?.startsWith('FIXME:') &&
       !memory.scoutedTaskIds.has(t.id) &&
@@ -366,15 +366,15 @@ async function scoutTasks() {
   if (open.length === 0) return;
 
   // Pick one task to scout
-  const task = open.sort((a: any, b: any) => a.priority - b.priority)[0];
+  const task = open.sort((a: Record<string, unknown>, b: Record<string, unknown>) => a.priority - b.priority)[0];
   memory.scoutedTaskIds.add(task.id);
 
   // Check if team knowledge already has findings for this task — don't duplicate
   const existing = await get(`${HOLOMESH_API}/team/${ROOM_ID}/knowledge`, auth()).catch(() => ({
     entries: [],
   }));
-  const alreadyScouted = ((existing.entries || []) as any[]).some(
-    (e: any) => e.content?.includes(task.title) || e.content?.includes('Scout: ' + task.title)
+  const alreadyScouted = ((existing.entries || []) as Array<Record<string, unknown>>).some(
+    (e: Record<string, unknown>) => e.content?.includes(task.title) || e.content?.includes('Scout: ' + task.title)
   );
   if (alreadyScouted) {
     console.log(`[scout] ${task.title} — already in knowledge, skipping`);
@@ -486,7 +486,7 @@ async function watchGit() {
   const board = await get(`${HOLOMESH_API}/team/${ROOM_ID}/board`, auth()).catch(() => ({
     board: {},
   }));
-  const open = (board?.board?.open || []) as any[];
+  const open = (board?.board?.open || []) as Array<Record<string, unknown>>;
   const fileList = changedFiles.split('\n').filter((l: string) => l.trim());
 
   // Use Claude to match files to tasks semantically

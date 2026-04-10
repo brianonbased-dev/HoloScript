@@ -30,7 +30,7 @@ export default function NewTemplatePage() {
     watch,
     formState: { errors },
   } = useForm<TemplateManifestForm>({
-    resolver: (zodResolver as any)(TemplateManifestSchema),
+    resolver: (zodResolver as unknown as (s: unknown) => unknown)(TemplateManifestSchema),
     defaultValues: {
       id: 'template-',
       name: '',

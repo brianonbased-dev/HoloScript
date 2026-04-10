@@ -114,7 +114,7 @@ export class VoiceInputTrait {
    */
   private initializeRecognition(): void {
     // Use native Web Speech API or polyfill
-    const _g = globalThis as any;
+    const _g = globalThis as unknown as Record<string, unknown>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API constructor not in all TS libs
     const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as
       | (new () => any)

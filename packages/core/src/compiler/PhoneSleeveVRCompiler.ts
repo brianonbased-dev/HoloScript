@@ -1122,7 +1122,7 @@ ${handTrackingFrame}
   private resolveOpacity(obj: HoloObjectDecl): number {
     const opacity = this.getProp(obj.properties, 'opacity');
     if (typeof opacity === 'number') return opacity;
-    const material = this.getProp(obj.properties, 'material') as any;
+    const material = this.getProp(obj.properties, 'material') as Record<string, unknown> | undefined;
     if (material && typeof material.opacity === 'number') return material.opacity;
     return 1;
   }
