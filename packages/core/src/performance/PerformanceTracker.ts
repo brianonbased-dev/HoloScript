@@ -332,14 +332,14 @@ export class PerformanceTracker {
    */
   printReport(report: PerformanceReport): void {
     console.log('\n' + '='.repeat(60));
-    console.log('PERFORMANCE REPORT');
-    console.log('='.repeat(60));
+    console.info('PERFORMANCE REPORT');
+    console.info('='.repeat(60));
 
     console.log(`\nStatus: ${report.status}`);
-    console.log(`Timestamp: ${report.timestamp}`);
+    console.info(`Timestamp: ${report.timestamp}`);
 
     if (report.baseline) {
-      console.log(`Baseline Version: ${report.baseline.version} (${report.baseline.timestamp})`);
+      console.info(`Baseline Version: ${report.baseline.version} (${report.baseline.timestamp})`);
     }
 
     console.log('\nMetrics:');
@@ -348,17 +348,17 @@ export class PerformanceTracker {
         comp.changePercent !== undefined
           ? ` (${comp.changePercent > 0 ? '+' : ''}${comp.changePercent}%)`
           : '';
-      console.log(`  ${comp.status}: ${comp.name}: ${comp.current?.toFixed(3)}ms${change}`);
+      console.info(`  ${comp.status}: ${comp.name}: ${comp.current?.toFixed(3)}ms${change}`);
     }
 
     if (report.alerts.length > 0) {
       console.log('\nAlerts:');
       for (const alert of report.alerts) {
-        console.log(`  ${alert}`);
+        console.info(`  ${alert}`);
       }
     }
 
-    console.log('='.repeat(60) + '\n');
+    console.info('='.repeat(60) + '\n');
   }
 
   /**

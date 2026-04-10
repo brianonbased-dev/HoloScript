@@ -286,6 +286,6 @@ export class PerformanceReportGenerator {
    * Print formatted report to console
    */
   printReport(report: PerformanceReport): void {
-    console.log(this.formatReport(report));
+    console.info(this.formatReport(report));
   }
 }

@@ -576,7 +576,7 @@ export class SemanticCache {
    */
   private log(message: string): void {
     if (this.options.debug) {
-      console.log(`[SemanticCache] ${message}`);
+      console.debug(`[SemanticCache] ${message}`);
     }
   }
 }

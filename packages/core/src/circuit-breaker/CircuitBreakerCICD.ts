@@ -425,7 +425,7 @@ jobs:
           COVERAGE=$(node -e "
             const report = require('./packages/core/coverage/coverage-summary.json');
             const lines = report.total.lines.pct;
-            console.log(lines);
+            console.debug(lines);
           ")
           echo "Coverage: \${COVERAGE}%"
           if (( $(echo "\$COVERAGE < \$CB_MIN_TEST_COVERAGE" | bc -l) )); then
@@ -495,7 +495,7 @@ jobs:
             const suite = new CircuitBreakerBenchmarkSuite();
             suite.runAll().then(r => {
               require('fs').writeFileSync('benchmark-current.json', JSON.stringify(r, null, 2));
-              console.log('Benchmarks complete');
+              console.debug('Benchmarks complete');
             });
           " || echo '{}' > benchmark-current.json
       - name: Check for regressions

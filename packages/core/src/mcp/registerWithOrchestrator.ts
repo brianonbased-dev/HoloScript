@@ -237,10 +237,10 @@ export async function unregisterFromOrchestrator(
  * Run registration when executed directly via `npx tsx`.
  */
 async function main(): Promise<void> {
-  console.log('='.repeat(60));
-  console.log('HoloScript MCP Tools - Orchestrator Registration');
-  console.log('='.repeat(60));
-  console.log();
+  console.info('='.repeat(60));
+  console.info('HoloScript MCP Tools - Orchestrator Registration');
+  console.info('='.repeat(60));
+  console.info();
 
   const config: Partial<RegistrationConfig> = {};
 
@@ -256,40 +256,40 @@ async function main(): Promise<void> {
     } else if (args[i] === '--unregister') {
       const result = await unregisterFromOrchestrator(config);
       if (result.success) {
-        console.log('Successfully unregistered from orchestrator.');
+        console.info('Successfully unregistered from orchestrator.');
       } else {
         console.error(`Unregistration failed: ${result.error}`);
         process.exit(1);
       }
       return;
     } else if (args[i] === '--help') {
-      console.log('Usage: npx tsx registerWithOrchestrator.ts [options]');
-      console.log();
-      console.log('Options:');
+      console.info('Usage: npx tsx registerWithOrchestrator.ts [options]');
+      console.info();
+      console.info('Options:');
       console.log(
         '  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)'
       );
-      console.log('  --api-key <key>        API key (or set MCP_API_KEY env var)');
-      console.log('  --server-name <name>   Server name (default: holoscript-tools)');
-      console.log('  --unregister           Remove registration instead of registering');
-      console.log('  --help                 Show this help message');
+      console.info('  --api-key <key>        API key (or set MCP_API_KEY env var)');
+      console.info('  --server-name <name>   Server name (default: holoscript-tools)');
+      console.info('  --unregister           Remove registration instead of registering');
+      console.info('  --help                 Show this help message');
       return;
     }
   }
 
-  console.log('Tools to register:');
+  console.info('Tools to register:');
   for (const tool of HOLOSCRIPT_MCP_TOOLS) {
-    console.log(`  - ${tool.name}: ${tool.description.substring(0, 80)}...`);
+    console.info(`  - ${tool.name}: ${tool.description.substring(0, 80)}...`);
   }
-  console.log();
+  console.info();
 
   const result = await registerWithOrchestrator(config);
 
   if (result.success) {
-    console.log(`Registration successful!`);
-    console.log(`  Server: ${result.serverName}`);
-    console.log(`  Orchestrator: ${result.orchestratorUrl}`);
-    console.log(`  Tools registered: ${result.toolsRegistered.join(', ')}`);
+    console.info(`Registration successful!`);
+    console.info(`  Server: ${result.serverName}`);
+    console.info(`  Orchestrator: ${result.orchestratorUrl}`);
+    console.info(`  Tools registered: ${result.toolsRegistered.join(', ')}`);
   } else {
     console.error('Registration failed:');
     for (const error of result.errors) {

@@ -495,7 +495,7 @@ export class HoloScriptRuntime {
     });
 
     builtins.set('print', (args): HoloScriptValue => {
-      console.log(`[HoloScript]`, ...args);
+      console.debug(`[HoloScript]`, ...args);
       return { printed: args.join(' ') };
     });
     builtins.set('uppercase', (args): HoloScriptValue => String(args[0]).toUpperCase());

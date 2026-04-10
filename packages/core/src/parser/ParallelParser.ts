@@ -658,7 +658,7 @@ export class ParallelParser extends SimpleEventEmitter {
    */
   private log(message: string): void {
     if (this.options.debug) {
-      console.log(`[ParallelParser] ${message}`);
+      console.debug(`[ParallelParser] ${message}`);
     }
   }
 }

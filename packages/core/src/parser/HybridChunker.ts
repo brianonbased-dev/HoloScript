@@ -716,7 +716,7 @@ export class HybridChunker {
    */
   private log(message: string): void {
     if (this.options.debug) {
-      console.log(`[HybridChunker] ${message}`);
+      console.debug(`[HybridChunker] ${message}`);
     }
   }
 }

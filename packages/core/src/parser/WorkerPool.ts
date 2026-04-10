@@ -387,7 +387,7 @@ export class WorkerPool extends EventEmitter {
    */
   private log(message: string): void {
     if (this.options.debug) {
-      console.log(`[WorkerPool] ${message}`);
+      console.debug(`[WorkerPool] ${message}`);
     }
   }
 }
