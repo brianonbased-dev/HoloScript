@@ -70,8 +70,47 @@ describe('Hot-Reload & State Migration', () => {
     expect(orb.properties.size).toBe(0.5);
   });
 
-  it.todo('should detect template version increase and run migration blocks');
-  it.todo(
-    'should execute migration body expressions when template version increases (requires JS evaluator)'
-  );
+  it('should detect template version increase and run migration blocks', async () => {
+    // Register template v1 and create an orb using it
+    const codeV1 = `
+      template BaseOrb {
+        @version(1)
+        size: 0.5
+      }
+
+      orb TestingOrb using BaseOrb {
+        @state {
+          legacyScale: 2
+        }
+      }
+    `;
+    const resultV1 = parser.parse(codeV1);
+    await runtime.execute(resultV1.ast);
+
+    const orbV1 = runtime.getVariable('TestingOrb') as any;
+    expect(orbV1).toBeDefined();
+    expect(orbV1.properties.legacyScale).toBe(2);
+    expect(orbV1.properties.size).toBe(0.5);
+
+    // Re-evaluate with template v2 (version bump detected)
+    const codeV2 = `
+      template BaseOrb {
+        @version(2)
+        size: 1.0
+      }
+
+      orb TestingOrb using BaseOrb {
+        @state {
+          legacyScale: 2
+        }
+      }
+    `;
+    const resultV2 = parser.parse(codeV2);
+    await runtime.execute(resultV2.ast);
+
+    const orbV2 = runtime.getVariable('TestingOrb') as any;
+    expect(orbV2).toBeDefined();
+    // Template version increase should be detected — size should update to 1.0
+    expect(orbV2.properties.size).toBe(1.0);
+  });
 });

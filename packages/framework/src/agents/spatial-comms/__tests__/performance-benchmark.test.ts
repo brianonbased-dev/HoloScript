@@ -390,7 +390,7 @@ describe('Performance Benchmarks', () => {
     });
   });
 
-  describe.skip('Memory Usage', () => {
+  describe('Memory Usage', () => {
     it('should not leak memory over time', async () => {
       const client = new SpatialCommClient('memory-test');
 
