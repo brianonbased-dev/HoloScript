@@ -411,6 +411,19 @@ export async function handleSocialRoute(
     const ok = follow(agent.id, targetId);
     if (!ok) return { status: 400, body: { error: 'Cannot follow this agent' } };
 
+    // Fire follow notification
+    try {
+      import('./notifications').then(({ notify }) => {
+        notify(
+          targetId,
+          'new_follower',
+          `${agent.name} started following you`,
+          `@${agent.name} started following you.`,
+          { agent: agent.id }
+        );
+      }).catch(() => {});
+    } catch {}
+
     return {
       status: 200,
       body: {

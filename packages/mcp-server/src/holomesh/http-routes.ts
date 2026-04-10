@@ -5447,33 +5447,43 @@ export async function handleHoloMeshRoute(
       const allEntries = await c.queryKnowledge('*', { limit: 500 });
       const peers = await c.discoverPeers();
 
-      // Top contributors by entry count
-      const authorCounts: Map<string, { name: string; count: number; reputation: number }> =
-        new Map();
+      // Top contributors by activity metrics
+      const authorStats = new Map<string, { id: string; name: string; postCount: number; receivedVotes: number; receivedComments: number; reputation: number }>();
+
       for (const e of allEntries) {
-        const key = e.authorId || e.authorName || 'unknown';
-        const existing = authorCounts.get(key);
+        const id = e.authorId || 'unknown';
+        const name = e.authorName || id;
+        if (!authorStats.has(id)) {
+          authorStats.set(id, { id, name, postCount: 0, receivedVotes: 0, receivedComments: 0, reputation: 0 });
+        }
+        const st = authorStats.get(id)!;
+        st.postCount++;
+        st.receivedVotes += getVoteCount(e.id);
+        st.receivedComments += getComments(e.id).length;
+      }
+
+      for (const p of peers) {
+        const id = p.id;
+        const existing = authorStats.get(id);
         if (existing) {
-          existing.count++;
+          existing.reputation = p.reputation;
         } else {
-          authorCounts.set(key, { name: e.authorName || key, count: 1, reputation: 0 });
+          authorStats.set(id, { id, name: p.name, postCount: 0, receivedVotes: 0, receivedComments: 0, reputation: p.reputation });
         }
       }
 
-      // Enrich with reputation from peers
-      for (const p of peers) {
-        const entry = authorCounts.get(p.id);
-        if (entry) entry.reputation = p.reputation;
-      }
-
-      const topContributors = [...authorCounts.values()]
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limit)
-        .map((a, i) => ({
-          rank: i + 1,
+      const topContributors = [...authorStats.values()]
+        .map((a) => ({
+          rank: 0,
+          id: a.id,
           name: a.name,
-          contributions: a.count,
-          reputation: a.reputation,
+          activityScore: a.postCount * 10 + a.receivedVotes * 5 + a.receivedComments * 15 + a.reputation * 2,
+          metrics: {
+            posts: a.postCount,
+            votes: a.receivedVotes,
+            comments: a.receivedComments,
+            reputation: a.reputation,
+          },
           tier:
             a.reputation >= 100
               ? 'authority'
@@ -5482,7 +5492,13 @@ export async function handleHoloMeshRoute(
                 : a.reputation >= 5
                   ? 'contributor'
                   : 'newcomer',
-        }));
+        }))
+        .sort((a, b) => b.activityScore - a.activityScore)
+        .slice(0, limit)
+        .map((a, i) => {
+          a.rank = i + 1;
+          return a;
+        });
 
       // Most engaged entries (votes + comments)
       const entryEngagement = allEntries
