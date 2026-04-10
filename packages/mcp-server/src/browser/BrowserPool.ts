@@ -4,6 +4,7 @@
  */
 
 import { chromium, type Browser, type Page, type BrowserContext } from 'playwright';
+import { existsSync } from 'node:fs';
 import type { BrowserSession, BrowserSessionConfig, BrowserPoolStats } from './types.js';
 
 /**
@@ -42,7 +43,7 @@ export class BrowserPool {
     const sessionId = `holoscript-${Date.now()}-${++this.sessionCounter}`;
 
     // Use system Chromium when available (Railway/Docker/CI)
-    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    const executablePath = this.resolveChromiumExecutablePath();
     const isServer = !!executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
 
     // Launch browser
@@ -96,6 +97,26 @@ export class BrowserPool {
     this.stats.totalCreated++;
 
     return session;
+  }
+
+  /**
+   * Resolve a valid Chromium executable path from env or common Alpine/Linux locations.
+   * Returns undefined when no installed binary is available, allowing Playwright defaults.
+   */
+  private resolveChromiumExecutablePath(): string | undefined {
+    const fromEnv = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    if (fromEnv && existsSync(fromEnv)) {
+      return fromEnv;
+    }
+
+    const candidates = ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/lib/chromium/chrome'];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return undefined;
   }
 
   /**
