@@ -127,7 +127,8 @@ router.get('/users/:id', async (req: Request, res: Response) => {
     let creditBalance = 0;
     try {
       const { checkBalance } = await import('@holoscript/absorb-service/credits');
-      creditBalance = await checkBalance(user.id);
+      const result = await (checkBalance as Function)(user.id, 0);
+      creditBalance = (result as any)?.balanceCents ?? 0;
     } catch {
       // Credit system may not be initialized
     }
