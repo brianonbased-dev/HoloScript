@@ -80,6 +80,8 @@ export { MultiLayerCompiler } from './MultiLayerCompiler';
 export { COCOExporter } from './COCOExporter';
 
 // Next.js compilers
+export { NextJSCompiler } from './NextJSCompiler';
+export type { NextJSCompilerOptions, NextJSCompileResult } from './NextJSCompiler';
 export {
   compileToNextJSAPI,
   compileAllToNextJSAPI,

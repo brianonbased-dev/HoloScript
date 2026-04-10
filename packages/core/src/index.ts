@@ -601,6 +601,13 @@ export {
   type MigrationSuggestion,
   type MigrationResult,
   type ApplyResult,
+  // SchemaDiff exports
+  diffState,
+  buildMigrationChain,
+  snapshotState,
+  applyAutoMigration,
+  type SchemaDiffResult,
+  type MigrationChain,
 } from './migration';
 
 // Package Registry (Sprint 5 - Package management MVP)
