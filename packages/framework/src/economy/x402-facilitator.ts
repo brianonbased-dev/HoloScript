@@ -805,7 +805,7 @@ export class X402Facilitator {
     }
 
     let settled = 0;
-    let failed = 0;
+    const failed = 0;
     let totalVolume = 0;
 
     for (const [_payer, entries] of byPayer) {
@@ -1017,7 +1017,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
 
     node.__creditState = state;
 
-    context.emit?.('credit:initialized', {
+    context?.emit?.('credit:initialized', {
       price: config.price,
       chain: config.chain,
       recipient: config.recipient,
@@ -1039,7 +1039,12 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     delete node.__creditState;
   },
 
-  onUpdate(node: HSPlusNode, _config: CreditTraitConfig, context: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    _config: CreditTraitConfig,
+    context: TraitContext,
+    _delta: number
+  ): void {
     const state = node.__creditState as CreditTraitState | undefined;
     if (!state) return;
 
@@ -1053,7 +1058,12 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: CreditTraitConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: CreditTraitConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__creditState as CreditTraitState | undefined;
     if (!state) return;
 
@@ -1975,4 +1985,3 @@ export class PaymentGateway {
     this.eventCounter = 0;
   }
 }
-

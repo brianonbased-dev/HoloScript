@@ -43,7 +43,10 @@ export interface ParseResult {
 export interface TraitHandler<T = any> {
   name: string;
   defaultConfig?: T;
-  onAttach?: (node: any, config: T) => void;
+  onAttach?: (node: any, config: T, context?: TraitContext) => void;
+  onDetach?: (node: any, config: T, context?: TraitContext) => void;
+  onUpdate?: (node: any, config: T, context?: TraitContext, delta?: number) => void;
+  onEvent?: (node: any, config: T, context?: TraitContext, event?: TraitEvent) => void;
   [key: string]: any;
 }
 
@@ -2998,15 +3001,7 @@ export interface Trait {
   [key: string]: any;
 }
 
-export interface TraitHandler<TConfig = unknown> {
-  name: string;
-  defaults?: TConfig;
-  schema?: Record<string, any>;
-  onAttach?(node: any, config: TConfig, ctx: TraitContext): void;
-  onDetach?(node: any, ctx: TraitContext): void;
-  onTick?(node: any, dt: number, ctx: TraitContext): void;
-  onEvent?(node: any, ctx: TraitContext, event: TraitEvent): void;
-}
+
 
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;

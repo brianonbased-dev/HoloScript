@@ -27,3 +27,5 @@ wasm-bindgen-test = "0.3"
 # Profiles now inherited from workspace root Cargo.toml
 # See ../../Cargo.toml for shared optimization profiles
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-bulk-memory"]
