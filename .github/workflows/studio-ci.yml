@@ -91,6 +91,46 @@ jobs:
           path: packages/core/test-results/
           retention-days: 7
 
+  # ─── Studio API contract lane (degraded-mode guarantees) ───────────────────
+  studio-api-contract:
+    name: Studio API Contract (degraded mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check (studio-api)
+        run: pnpm --filter @holoscript/studio-api exec tsc --noEmit
+
+      - name: Guard against null-DB crash regressions
+        run: |
+          set -euo pipefail
+
+          echo "Checking for unsafe getDb()! assertions..."
+          if grep -R "getDb()!" services/studio-api/src/app/api --include="*.ts"; then
+            echo "❌ Found unsafe getDb()! usage in Studio API routes"
+            exit 1
+          fi
+
+          echo "Checking for hard 503 DATABASE_URL fallback responses..."
+          if grep -R "Database not configured" services/studio-api/src/app/api --include="*.ts" | grep "503"; then
+            echo "❌ Found hard 503 DB-missing responses in Studio API routes"
+            exit 1
+          fi
+
+          echo "✅ Studio API degraded-mode contract checks passed"
+
   # ─── E2E tests ───────────────────────────────────────────────────────────────
   e2e:
     name: Playwright E2E
