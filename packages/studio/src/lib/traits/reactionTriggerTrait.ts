@@ -269,7 +269,7 @@ export class ReactionTriggerTrait {
   /**
    * Execute trigger action
    */
-  private executeTrigger(trigger: ReactionTrigger, reaction: DiscordReaction): void {
+  private executeTrigger(trigger: ReactionTrigger, _reaction: DiscordReaction): void {
     logger.debug('[ReactionTriggerTrait] Executing:', trigger.action, trigger.value);
 
     switch (trigger.action) {

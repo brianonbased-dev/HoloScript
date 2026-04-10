@@ -5,7 +5,6 @@ import { devtools, persist } from 'zustand/middleware';
 import { usePanelVisibilityStore } from './panelVisibilityStore';
 import { useEditorStore } from './editorStore';
 import type { PanelKey } from './panelVisibilityStore';
-import type { PanelTab } from '../../types/panels';
 import { STUDIO_PRESETS, getExtraPanels, filterByExperience } from '../presets/studioPresets';
 import type { ExperienceLevel, ProjectSpecifics } from '../presets/studioPresets';
 import { StudioEvents } from '../analytics';
@@ -50,7 +49,6 @@ function capitalize(s: string): string {
 
 /** Open a specific panel by key via the panelVisibility store. */
 function openPanel(key: PanelKey) {
-  const setter = `set${capitalize(key)}Open` as keyof typeof usePanelVisibilityStore;
   const store = usePanelVisibilityStore.getState();
   const fn = (store as unknown as Record<string, unknown>)[`set${capitalize(key)}Open`];
   if (typeof fn === 'function') {

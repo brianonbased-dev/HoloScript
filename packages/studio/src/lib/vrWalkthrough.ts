@@ -103,7 +103,7 @@ export function teleportArc(
 export function validateTeleportTarget(
   target: Vec3,
   bounds: RoomBounds,
-  maxSlope: number = 30 // degrees
+  _maxSlope: number = 30 // degrees
 ): TeleportTarget {
   const dx = target.x - bounds.center.x;
   const dz = target.z - bounds.center.z;

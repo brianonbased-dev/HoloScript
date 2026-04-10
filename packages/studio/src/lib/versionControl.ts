@@ -195,7 +195,7 @@ export class LocalVersionControl implements VersionControlClient {
     };
   }
 
-  async createBranch(workflowId: string, branchName: string, fromCommit?: string): Promise<void> {
+  async createBranch(workflowId: string, branchName: string, _fromCommit?: string): Promise<void> {
     const branches = this.branches.get(workflowId) || ['main'];
     if (!branches.includes(branchName)) {
       branches.push(branchName);

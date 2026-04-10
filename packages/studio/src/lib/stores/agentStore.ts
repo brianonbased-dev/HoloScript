@@ -56,7 +56,7 @@ interface AgentState {
 
 export const useAgentStore = create<AgentState>()(
   devtools(
-    (set, get) => ({
+    (set, _get) => ({
       isRunning: false,
       currentPhase: 'idle',
       currentAction: '',

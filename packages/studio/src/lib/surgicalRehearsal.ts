@@ -311,6 +311,6 @@ export function toolsRequired(procedure: ProcedureStep[]): InstrumentType[] {
   return Array.from(tools);
 }
 
-export function anesthesiaCheck(config: AnesthesiaConfig, _patient: unknown): boolean {
+export function anesthesiaCheck(_config: AnesthesiaConfig, _patient: unknown): boolean {
   return true;
 }

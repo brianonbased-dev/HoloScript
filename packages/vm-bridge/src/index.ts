@@ -9,9 +9,7 @@
  */
 
 import type {
-  HoloVM,
   ECSWorld,
-  Entity,
   TransformComponent,
   GeometryComponent,
   MaterialComponent,

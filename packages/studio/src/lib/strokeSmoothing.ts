@@ -40,7 +40,7 @@ export interface SmoothedStroke {
  */
 export function catmullRomSmooth(
   points: StrokePoint[],
-  tension: number = 0.5,
+  _tension: number = 0.5,
   segments: number = 4
 ): StrokePoint[] {
   if (points.length < 3) return points;
