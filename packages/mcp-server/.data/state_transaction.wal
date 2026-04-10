@@ -1,2 +1,0 @@
-{"entityId":"recovery_agent","field":"x","oldValue":0,"newValue":100,"timestamp":1000,"priority":10,"_seq":1}
-{"entityId":"recovery_agent","field":"y","oldValue":0,"newValue":250,"timestamp":1005,"priority":10,"_seq":2}

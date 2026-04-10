@@ -1,1 +1,0 @@
-export * from './TraitBehavioralContract.js';

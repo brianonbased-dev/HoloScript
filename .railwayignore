@@ -1,7 +1,0 @@
-nul
-node_modules
-.git
-*.log
-dist
-.next
-coverage

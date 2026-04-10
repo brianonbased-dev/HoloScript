@@ -1,7 +1,0 @@
-src/traits/SpatialAgentOrchestrator.ts(1,15): error TS2305: Module '"./TraitTypes"' has no exported member 'Trait'.
-src/traits/SpatialAgentOrchestrator.ts(332,7): error TS2322: Type '{}' is not assignable to type 'string'.
-src/traits/SpatialAgentOrchestrator.ts(339,39): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SpatialAgentConfig'.
-src/traits/SpatialAgentOrchestrator.ts(339,39): error TS2352: Conversion of type 'SpatialAgentConfig' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/traits/SpatialAgentOrchestrator.ts(430,11): error TS2740: Type '{ objects: any; agents: any; }' is missing the following properties from type 'SceneBlueprint': title, description, environment, camera, and 2 more.
-src/traits/SpatialAgentOrchestrator.ts(432,35): error TS2339: Property 'objects' does not exist on type '{}'.
-src/traits/SpatialAgentOrchestrator.ts(433,34): error TS2339: Property 'agents' does not exist on type '{}'.

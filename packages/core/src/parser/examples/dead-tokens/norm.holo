@@ -1,7 +1,0 @@
-composition "NormExample" {
-  norm "NoSpamming" {
-    description: "Agents must not spam chat"
-    category: "communication"
-    priority: 8
-  }
-}

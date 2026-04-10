@@ -1,8 +1,0 @@
-composition "TerrainExample" {
-  terrain Mountains {
-    heightmap: "terrain/mountains_hm.png"
-    size: [1000, 200, 1000]
-    resolution: 256
-    texture_splat: "terrain/splat.png"
-  }
-}

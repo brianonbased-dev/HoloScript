@@ -1,9 +1,0 @@
-composition "Test" {
-  template "Box" {
-    @collidable
-    geometry: "box"
-  }
-  object "MyBox" using "Box" {
-    position: [0, 0, 0]
-  }
-}

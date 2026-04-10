@@ -1,765 +1,0 @@
-/**
- * HoloScript Linter
- * 
- * Static analysis tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
- * Enforces best practices, catches errors, and improves code quality.
- * 
- * Features:
- * - Syntax validation
- * - Naming conventions
- * - Best practice enforcement
- * - Performance warnings
- * - Type checking (HSPlus)
- * - Duplicate detection
- * - Unused symbol detection
- * 
- * @package @hololand/holoscript-linter
- * @version 2.0.0
- */
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-enum Severity {
-  ERROR,
-  WARNING,
-  INFO,
-  HINT
-}
-
-enum RuleCategory {
-  SYNTAX,
-  NAMING,
-  BEST_PRACTICE,
-  PERFORMANCE,
-  STYLE,
-  TYPE_SAFETY
-}
-
-struct LintDiagnostic {
-  ruleId: string
-  message: string
-  severity: Severity
-  line: number
-  column: number
-  endLine: number
-  endColumn: number
-  fix?: LintFix
-}
-
-struct LintFix {
-  range: { start: number, end: number }
-  text: string
-  description: string
-}
-
-struct LintRule {
-  id: string
-  category: RuleCategory
-  severity: Severity
-  description: string
-  enabled: boolean
-  check: (context: LintContext) => LintDiagnostic[]
-}
-
-struct LintContext {
-  text: string
-  lines: string[]
-  isHsplus: boolean
-  filename: string
-  symbols: Map<string, SymbolInfo>
-  templates: Map<string, TemplateInfo>
-  modules: Map<string, ModuleInfo>
-}
-
-struct SymbolInfo {
-  name: string
-  kind: string
-  line: number
-  usages: number[]
-}
-
-struct TemplateInfo {
-  name: string
-  line: number
-  properties: string[]
-  actions: string[]
-}
-
-struct ModuleInfo {
-  name: string
-  line: number
-  exports: string[]
-}
-
-struct LintResult {
-  filename: string
-  diagnostics: LintDiagnostic[]
-  errorCount: number
-  warningCount: number
-  fixableCount: number
-}
-
-struct LinterConfig {
-  rules: Record<string, boolean | Severity>
-  extends?: string[]
-  ignore?: string[]
-}
-
-// =============================================================================
-// DEFAULT RULES
-// =============================================================================
-
-const DEFAULT_RULES: LintRule[] = [
-  // ===== SYNTAX RULES =====
-  {
-    id: "syntax/brace-balance",
-    category: RuleCategory.SYNTAX,
-    severity: Severity.ERROR,
-    description: "Ensure braces are balanced",
-    enabled: true,
-    check: "(ctx) => { const opens = (ctx.text.match(/{/g) || []).length const closes = (ctx.text.match(/}"/g) || []).length
-      
-      if (opens !== closes) {
-        return [{
-          ruleId: "syntax/brace-balance",
-          message: `Brace mismatch: ${opens} opening, ${closes} closing braces`,
-          severity: Severity.ERROR,
-          line: 1, column: 1,
-          endLine: 1, endColumn: 1
-        }]
-      }
-      return []
-    }
-  }
-  {
-    id: "syntax/bracket-balance",
-    category: RuleCategory.SYNTAX,
-    severity: Severity.ERROR,
-    description: "Ensure brackets are balanced",
-    enabled: true,
-    check: "(ctx) => { const opens = (ctx.text.match(/\[/g) || []).length const closes = (ctx.text.match(/\]/g) || []).length if (opens !== closes) { return [{ ruleId: \"syntax/bracket-balance\", message: `Bracket mismatch: ${opens}" opening, ${closes} closing brackets`,
-          severity: Severity.ERROR,
-          line: 1, column: 1,
-          endLine: 1, endColumn: 1
-        }]
-      }
-      return []
-    }
-  }
-  {
-    id: "syntax/string-termination",
-    category: RuleCategory.SYNTAX,
-    severity: Severity.ERROR,
-    description: "Ensure strings are properly terminated",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] for (let i = 0; i < ctx.lines.length; i++) { const line = ctx.lines[i] let inString = false let stringChar = \"\" for (let j = 0; j < line.length; j++) { const char = line[j] if ((char === '\"' || char === \"'\") && (j === 0 || line[j-1] !== \"\\\")) { if (!inString) { inString = true stringChar = char }" else if (char === stringChar) {
-              inString = false
-            }
-          }
-        }
-        
-        if (inString) {
-          diagnostics.push({
-            ruleId: "syntax/string-termination",
-            message: "Unterminated string",
-            severity: Severity.ERROR,
-            line: i + 1, column: 1,
-            endLine: i + 1, endColumn: line.length
-          })
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  
-  // ===== NAMING RULES =====
-  {
-    id: "naming/template-pascal-case",
-    category: RuleCategory.NAMING,
-    severity: Severity.WARNING,
-    description: "Template names should use PascalCase",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const pattern = /template\s+\"([^\"]+)\"/g for (let i = 0; i < ctx.lines.length; i++) { let match: RegExpExecArray | null while ((match = pattern.exec(ctx.lines[i])) !== null) { const name = match[1] if (!/^[A-Z][a-zA-Z0-9]*$/.test(name)) { diagnostics.push({ ruleId: \"naming/template-pascal-case\", message: `Template name \"${name}"" should use PascalCase`,
-              severity: Severity.WARNING,
-              line: i + 1,
-              column: match.index + 11,
-              endLine: i + 1,
-              endColumn: match.index + 11 + name.length,
-              fix: {
-                range: { start: match.index + 10, end: match.index + 10 + name.length + 2 }
-                text: `"${toPascalCase(name)}"`,
-                description: `Rename to "${toPascalCase(name)}"`
-              }
-            })
-          }
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "naming/module-pascal-case",
-    category: RuleCategory.NAMING,
-    severity: Severity.WARNING,
-    description: "Module names should use PascalCase",
-    enabled: true,
-    check: "(ctx) => { if (!ctx.isHsplus) return [] const diagnostics: LintDiagnostic[] = [] const pattern = /module\s+(\w+)/g for (let i = 0; i < ctx.lines.length; i++) { let match: RegExpExecArray | null while ((match = pattern.exec(ctx.lines[i])) !== null) { const name = match[1] if (!/^[A-Z][a-zA-Z0-9]*$/.test(name)) { diagnostics.push({ ruleId: \"naming/module-pascal-case\", message: `Module name \"${name}"" should use PascalCase`,
-              severity: Severity.WARNING,
-              line: i + 1,
-              column: match.index + 8,
-              endLine: i + 1,
-              endColumn: match.index + 8 + name.length,
-              fix: {
-                range: { start: match.index + 7, end: match.index + 7 + name.length }
-                text: toPascalCase(name),
-                description: `Rename to "${toPascalCase(name)}"`
-              }
-            })
-          }
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "naming/constant-screaming-case",
-    category: RuleCategory.NAMING,
-    severity: Severity.INFO,
-    description: "Constants should use SCREAMING_CASE",
-    enabled: true,
-    check: "(ctx) => { if (!ctx.isHsplus) return [] const diagnostics: LintDiagnostic[] = [] const pattern = /const\s+(\w+)\s*[=:]/g for (let i = 0; i < ctx.lines.length; i++) { let match: RegExpExecArray | null while ((match = pattern.exec(ctx.lines[i])) !== null) { const name = match[1] // Skip if it looks like a function or object if (ctx.lines[i].includes(name + \" =\") &&  !ctx.lines[i].includes(\"(\") && !ctx.lines[i].includes(\"{\")) { if (!/^[A-Z][A-Z0-9_]*$/.test(name)) { diagnostics.push({ ruleId: \"naming/constant-screaming-case\", message: `Constant \"${name}"" should use SCREAMING_CASE`,
-                severity: Severity.INFO,
-                line: i + 1,
-                column: match.index + 7,
-                endLine: i + 1,
-                endColumn: match.index + 7 + name.length
-              })
-            }
-          }
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  
-  // ===== BEST PRACTICE RULES =====
-  {
-    id: "best-practice/no-empty-blocks",
-    category: RuleCategory.BEST_PRACTICE,
-    severity: Severity.INFO,
-    description: "Avoid empty blocks",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const pattern = /{\s*}"/g
-      
-      for (let i = 0; i < ctx.lines.length; i++) {
-        let match: RegExpExecArray | null
-        while ((match = pattern.exec(ctx.lines[i])) !== null) {
-          diagnostics.push({
-            ruleId: "best-practice/no-empty-blocks",
-            message: "Empty block - consider adding content or removing it",
-            severity: Severity.INFO,
-            line: i + 1,
-            column: match.index + 1,
-            endLine: i + 1,
-            endColumn: match.index + match[0].length
-          })
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "best-practice/no-duplicate-templates",
-    category: RuleCategory.BEST_PRACTICE,
-    severity: Severity.ERROR,
-    description: "Template names must be unique",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const templateLines = new Map<string, number>() const pattern = /template\s+\"([^\"]+)\"/g for (let i = 0; i < ctx.lines.length; i++) { let match: RegExpExecArray | null while ((match = pattern.exec(ctx.lines[i])) !== null) { const name = match[1] if (templateLines.has(name)) { diagnostics.push({ ruleId: \"best-practice/no-duplicate-templates\", message: `Duplicate template \"${name}"" (first defined at line ${templateLines.get(name)})`,
-              severity: Severity.ERROR,
-              line: i + 1,
-              column: match.index + 1,
-              endLine: i + 1,
-              endColumn: match.index + match[0].length
-            })
-          } else {
-            templateLines.set(name, i + 1)
-          }
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "best-practice/undefined-template-reference",
-    category: RuleCategory.BEST_PRACTICE,
-    severity: Severity.ERROR,
-    description: "Template references must point to defined templates",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const definedTemplates = new Set<string>() // First pass: collect defined templates const defPattern = /template\s+\"([^\"]+)\"/g let defMatch: RegExpExecArray | null while ((defMatch = defPattern.exec(ctx.text)) !== null) { definedTemplates.add(defMatch[1]) }"
-      
-      // Second pass: check references
-      const refPattern = /using\s+"([^"]+)"/g
-      for (let i = 0; i < ctx.lines.length; i++) {
-        let match: RegExpExecArray | null
-        while ((match = refPattern.exec(ctx.lines[i])) !== null) {
-          const name = match[1]
-          if (!definedTemplates.has(name)) {
-            diagnostics.push({
-              ruleId: "best-practice/undefined-template-reference",
-              message: `Template "${name}" is not defined`,
-              severity: Severity.ERROR,
-              line: i + 1,
-              column: match.index + 1,
-              endLine: i + 1,
-              endColumn: match.index + match[0].length
-            })
-          }
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "best-practice/state-should-have-default",
-    category: RuleCategory.BEST_PRACTICE,
-    severity: Severity.WARNING,
-    description: "State properties should have default values",
-    enabled: true,
-    check: "(ctx) => { if (!ctx.isHsplus) return [] const diagnostics: LintDiagnostic[] = [] const pattern = /(\w+)\s*:\s*(\w+)\s*$/g let inState = false for (let i = 0; i < ctx.lines.length; i++) { const line = ctx.lines[i].trim() if (line.includes(\"@state\")) { inState = true continue }"
-        
-        if (inState && line === "}") {
-          inState = false
-          continue
-        }
-        
-        if (inState && line.match(/^\w+\s*:\s*\w+\s*$/) && !line.includes("=")) {
-          diagnostics.push({
-            ruleId: "best-practice/state-should-have-default",
-            message: "State property should have a default value",
-            severity: Severity.WARNING,
-            line: i + 1,
-            column: 1,
-            endLine: i + 1,
-            endColumn: ctx.lines[i].length
-          })
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  
-  // ===== PERFORMANCE RULES =====
-  {
-    id: "performance/no-nested-every",
-    category: RuleCategory.PERFORMANCE,
-    severity: Severity.WARNING,
-    description: "Avoid nested every() calls",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const everyPattern = /every\s*\(/g let everyDepth = 0 let braceDepth = 0 let everyStartLine = -1 for (let i = 0; i < ctx.lines.length; i++) { const line = ctx.lines[i] if (line.match(everyPattern)) { everyDepth++ if (everyDepth === 1) { everyStartLine = i }" else if (everyDepth > 1) {
-            diagnostics.push({
-              ruleId: "performance/no-nested-every",
-              message: "Nested every() calls may cause performance issues",
-              severity: Severity.WARNING,
-              line: i + 1,
-              column: line.indexOf("every") + 1,
-              endLine: i + 1,
-              endColumn: line.indexOf("every") + 6
-            })
-          }
-        }
-        
-        // Track braces to know when we exit every blocks
-        braceDepth += (line.match(/{/g) || []).length
-        braceDepth -= (line.match(/}/g) || []).length
-        
-        if (braceDepth === 0 && everyDepth > 0) {
-          everyDepth = 0
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "performance/no-inline-complex-objects",
-    category: RuleCategory.PERFORMANCE,
-    severity: Severity.INFO,
-    description: "Avoid inline complex objects in every() or event handlers",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] let inHandler = false for (let i = 0; i < ctx.lines.length; i++) { const line = ctx.lines[i] if (line.match(/every\s*\(|on_\w+\s*[:{]/)) { inHandler = true }"
-        
-        if (inHandler && line.match(/new\s+\w+\s*\(|{\s*\w+:\s*[^}]+,/)) {
-          diagnostics.push({
-            ruleId: "performance/no-inline-complex-objects",
-            message: "Consider caching complex objects outside of handlers",
-            severity: Severity.INFO,
-            line: i + 1,
-            column: 1,
-            endLine: i + 1,
-            endColumn: line.length
-          })
-        }
-        
-        if (line.includes("}") && !line.includes("{")) {
-          inHandler = false
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  
-  // ===== STYLE RULES =====
-  {
-    id: "style/consistent-spacing",
-    category: RuleCategory.STYLE,
-    severity: Severity.HINT,
-    description: "Use consistent spacing around operators",
-    enabled: true,
-    check: "(ctx) => { const diagnostics: LintDiagnostic[] = [] const inconsistentPattern = /[a-zA-Z0-9_]=|=[a-zA-Z0-9_\"'\[{]/g for (let i = 0; i < ctx.lines.length; i++) { const line = ctx.lines[i] // Skip if line is in a string or contains URL if (line.includes(\"://\")) continue let match: RegExpExecArray | null while ((match = inconsistentPattern.exec(line)) !== null) { // Skip if it's ===, !==, >=, <=, => if (line.substring(match.index, match.index + 3).match(/===|!==|>=|<=|=>/)) { continue }"
-          
-          diagnostics.push({
-            ruleId: "style/consistent-spacing",
-            message: "Add spaces around assignment operator",
-            severity: Severity.HINT,
-            line: i + 1,
-            column: match.index + 1,
-            endLine: i + 1,
-            endColumn: match.index + match[0].length,
-            fix: {
-              range: { start: match.index, end: match.index + match[0].length }
-              text: match[0].replace(/=/g, " = ").replace(/  /g, " "),
-              description: "Add spaces around ="
-            }
-          })
-        }
-      }
-      
-      return diagnostics
-    }
-  }
-  {
-    id: "style/trailing-comma",
-    category: RuleCategory.STYLE,
-    severity: Severity.HINT,
-    description: "Use trailing commas for multi-line arrays/objects",
-    enabled: false,  // Off by default
-    check: "(ctx) => { // Implementation for trailing comma check return [] }"
-  }
-]
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-function "toPascalCase" : string {
-  return str
-    .replace(/[-_\s]+(.)?/g, (_, c) => c ? c.toUpperCase() : "")
-    .replace(/^(.)/, (c) => c.toUpperCase())
-}
-
-function "toScreamingCase" : string {
-  return str
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .replace(/[-\s]+/g, "_")
-    .toUpperCase()
-}
-
-// =============================================================================
-// LINTER ENGINE
-// =============================================================================
-
-module HoloScriptLinter {
-  @state {
-    rules: LintRule[] = [...DEFAULT_RULES]
-    config: LinterConfig = { rules: {} }
-  }
-  
-  @action configure(config: LinterConfig): void {
-    this.state.config = config
-    
-    // Apply rule overrides
-    for (const [ruleId, value] of Object.entries(config.rules)) {
-      const rule = this.state.rules.find(r => r.id === ruleId)
-      if (rule) {
-        if (typeof value === "boolean") {
-          rule.enabled = value
-        } else {
-          rule.enabled = true
-          rule.severity = value
-        }
-      }
-    }
-  }
-  
-  @action addRule(rule: LintRule): void {
-    this.state.rules.push(rule)
-  }
-  
-  @method lint(text: string, filename: string = "input.holo"): LintResult {
-    const isHsplus = filename.endsWith(".hsplus")
-    const lines = text.split("\n")
-    
-    // Build context
-    const context: LintContext = {
-      text,
-      lines,
-      isHsplus,
-      filename,
-      symbols: new Map(),
-      templates: new Map(),
-      modules: new Map()
-    }
-    
-    // Pre-parse symbols
-    this.parseSymbols(context)
-    
-    // Run all enabled rules
-    const diagnostics: LintDiagnostic[] = []
-    
-    for (const rule of this.state.rules) {
-      if (!rule.enabled) continue
-      
-      try {
-        const ruleDiagnostics = rule.check(context)
-        diagnostics.push(...ruleDiagnostics)
-      } catch (error) {
-        console.error(`Rule ${rule.id} failed:`, error)
-      }
-    }
-    
-    // Sort diagnostics by line
-    diagnostics.sort((a, b) => a.line - b.line || a.column - b.column)
-    
-    // Count errors and warnings
-    const errorCount = diagnostics.filter(d => d.severity === Severity.ERROR).length
-    const warningCount = diagnostics.filter(d => d.severity === Severity.WARNING).length
-    const fixableCount = diagnostics.filter(d => d.fix !== undefined).length
-    
-    return {
-      filename,
-      diagnostics,
-      errorCount,
-      warningCount,
-      fixableCount
-    }
-  }
-  
-  @method parseSymbols(context: LintContext): void {
-    const templatePattern = /template\s+"([^"]+)"/g
-    const modulePattern = /module\s+(\w+)/g
-    const objectPattern = /object\s+"([^"]+)"/g
-    
-    let match: RegExpExecArray | null
-    
-    while ((match = templatePattern.exec(context.text)) !== null) {
-      const line = context.text.substring(0, match.index).split("\n").length
-      context.templates.set(match[1], {
-        name: match[1],
-        line,
-        properties: [],
-        actions: []
-      })
-    }
-    
-    if (context.isHsplus) {
-      while ((match = modulePattern.exec(context.text)) !== null) {
-        const line = context.text.substring(0, match.index).split("\n").length
-        context.modules.set(match[1], {
-          name: match[1],
-          line,
-          exports: []
-        })
-      }
-    }
-  }
-  
-  @method fix(text: string, filename: string = "input.holo"): { text: string, fixCount: number } {
-    const result = this.lint(text, filename)
-    let fixedText = text
-    let fixCount = 0
-    
-    // Apply fixes in reverse order to preserve positions
-    const fixableDiagnostics = result.diagnostics
-      .filter(d => d.fix !== undefined)
-      .sort((a, b) => b.fix!.range.start - a.fix!.range.start)
-    
-    for (const diagnostic of fixableDiagnostics) {
-      const fix = diagnostic.fix!
-      fixedText = fixedText.substring(0, fix.range.start) + 
-                  fix.text + 
-                  fixedText.substring(fix.range.end)
-      fixCount++
-    }
-    
-    return { text: fixedText, fixCount }
-  }
-  
-  @method formatDiagnostic(diagnostic: LintDiagnostic, showCode: boolean = true): string {
-    const severityLabel = {
-      [Severity.ERROR]: "error",
-      [Severity.WARNING]: "warning",
-      [Severity.INFO]: "info",
-      [Severity.HINT]: "hint"
-    }[diagnostic.severity]
-    
-    const codeStr = showCode ? ` (${diagnostic.ruleId})` : ""
-    return `${diagnostic.line}:${diagnostic.column} ${severityLabel}${codeStr}: ${diagnostic.message}`
-  }
-  
-  @method formatResult(result: LintResult): string {
-    const lines: string[] = []
-    
-    lines.push(result.filename)
-    
-    for (const diagnostic of result.diagnostics) {
-      lines.push("  " + this.formatDiagnostic(diagnostic))
-    }
-    
-    lines.push("")
-    lines.push(`${result.errorCount} error(s), ${result.warningCount} warning(s)`)
-    
-    if (result.fixableCount > 0) {
-      lines.push(`${result.fixableCount} issue(s) can be auto-fixed with --fix`)
-    }
-    
-    return lines.join("\n")
-  }
-}
-
-// =============================================================================
-// CLI INTERFACE
-// =============================================================================
-
-module LinterCLI {
-  @method async run(args: string[]): Promise<number> {
-    const files: string[] = []
-    let fix = false
-    let json = false
-    let quiet = false
-    
-    // Parse arguments
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i]
-      
-      if (arg === "--fix") {
-        fix = true
-      } else if (arg === "--json") {
-        json = true
-      } else if (arg === "--quiet" || arg === "-q") {
-        quiet = true
-      } else if (arg === "--config" && args[i + 1]) {
-        // Load config file
-        i++
-      } else if (!arg.startsWith("-")) {
-        files.push(arg)
-      }
-    }
-    
-    if (files.length === 0) {
-      console.log("Usage: holoscript-lint [options] <files...>")
-      console.log("")
-      console.log("Options:")
-      console.log("  --fix     Automatically fix problems")
-      console.log("  --json    Output results as JSON")
-      console.log("  --quiet   Only report errors")
-      console.log("  --config  Path to config file")
-      return 0
-    }
-    
-    const results: LintResult[] = []
-    let totalErrors = 0
-    let totalWarnings = 0
-    
-    const fs = require("fs")
-    
-    for (const file of files) {
-      const text = fs.readFileSync(file, "utf8")
-      
-      if (fix) {
-        const { text: fixedText, fixCount } = HoloScriptLinter.fix(text, file)
-        if (fixCount > 0) {
-          fs.writeFileSync(file, fixedText)
-          if (!quiet) {
-            console.log(`Fixed ${fixCount} issue(s) in ${file}`)
-          }
-        }
-        // Re-lint after fixes
-        const result = HoloScriptLinter.lint(fixedText, file)
-        results.push(result)
-        totalErrors += result.errorCount
-        totalWarnings += result.warningCount
-      } else {
-        const result = HoloScriptLinter.lint(text, file)
-        results.push(result)
-        totalErrors += result.errorCount
-        totalWarnings += result.warningCount
-      }
-    }
-    
-    if (json) {
-      console.log(JSON.stringify(results, null, 2))
-    } else {
-      for (const result of results) {
-        if (result.diagnostics.length > 0) {
-          console.log(HoloScriptLinter.formatResult(result))
-          console.log("")
-        }
-      }
-      
-      console.log(`Total: ${totalErrors} error(s), ${totalWarnings} warning(s)`)
-    }
-    
-    return totalErrors > 0 ? 1 : 0
-  }
-}
-
-// =============================================================================
-// CLI ENTRY POINT
-// =============================================================================
-
-if (require.main === module) {
-  LinterCLI.run(process.argv.slice(2))
-    .then(code => process.exit(code))
-    .catch(err => {
-      console.error("Fatal error:", err)
-      process.exit(1)
-    })
-}
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export {
-  // Types
-  Severity,
-  RuleCategory,
-  LintDiagnostic,
-  LintFix,
-  LintRule,
-  LintContext,
-  LintResult,
-  LinterConfig,
-  
-  // Linter
-  HoloScriptLinter,
-  DEFAULT_RULES,
-  
-  // CLI
-  LinterCLI,
-  
-  // Helpers
-  toPascalCase,
-  toScreamingCase
-}

@@ -1,9 +1,0 @@
-@trait {
-  name: "@intent_driven",
-  category: "ui",
-  description: "Natural-language or agent intent handling (no mouse events).",
-  props: {
-    intents: array<string>,
-    handler: @hs_behavior
-  }
-}

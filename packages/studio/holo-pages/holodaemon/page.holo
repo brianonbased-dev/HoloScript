@@ -1,4 +1,0 @@
-@page {
-  route: "/holodaemon"
-  redirect: "/teams"
-}

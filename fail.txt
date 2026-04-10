@@ -1,3 +1,0 @@
-src/physics/PhysicsActivation.ts(27,45): error TS2307: Cannot find module '../environment/WeatherBlackboard' or its corresponding type declarations.
-src/physics/SoftBodySolver.ts(8,39): error TS2307: Cannot find module '../types/HoloScriptPlus' or its corresponding type declarations.
-src/physics/VRPhysicsBridge.ts(12,33): error TS2307: Cannot find module '../types/HoloScriptPlus' or its corresponding type declarations.
