@@ -43,10 +43,10 @@ export interface ParseResult {
 export interface TraitHandler<T = any> {
   name: string;
   defaultConfig?: T;
-  onAttach?: (node: any, config: T, context?: TraitContext) => void;
-  onDetach?: (node: any, config: T, context?: TraitContext) => void;
-  onUpdate?: (node: any, config: T, context?: TraitContext, delta?: number) => void;
-  onEvent?: (node: any, config: T, context?: TraitContext, event?: TraitEvent) => void;
+  onAttach?: (node: any, config: T, context: TraitContext) => void;
+  onDetach?: (node: any, config: T, context: TraitContext) => void;
+  onUpdate?: (node: any, config: T, context: TraitContext, delta: number) => void;
+  onEvent?: (node: any, config: T, context: TraitContext, event: TraitEvent) => void;
   [key: string]: any;
 }
 
@@ -3001,8 +3001,11 @@ export interface Trait {
   [key: string]: any;
 }
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> c2b19933 (fix(core): make TraitHandler context params required, remove dup block)
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;
   process?: HostProcessCapabilities;
