@@ -34,6 +34,30 @@ export async function GET(req: NextRequest) {
   );
 
   const card = {
+    // Canonical A2A Agent Card fields
+    endpoint: `${apiBase}/a2a`,
+    provider: {
+      organization: process.env.A2A_AGENT_PROVIDER_ORG || 'HoloScript',
+      url: process.env.A2A_AGENT_PROVIDER_URL || 'https://holoscript.net',
+    },
+    capabilities: {
+      streaming: false,
+      pushNotifications: false,
+      stateTransitionHistory: true,
+      extendedAgentCard: false,
+    },
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        description: 'Bearer token or trusted session credential',
+        scheme: 'bearer',
+      },
+    },
+    security: [{ bearerAuth: [] }],
+    defaultInputModes: ['application/json', 'text/plain'],
+    defaultOutputModes: ['application/json', 'text/plain', 'application/holoscript'],
+
+    // Existing compatibility fields
     protocol: 'a2a',
     schemaVersion: '1.0',
     id: process.env.A2A_AGENT_ID || 'holoscript-studio',
@@ -46,7 +70,7 @@ export async function GET(req: NextRequest) {
     documentationUrl: `${origin}/docs`,
     iconUrl: `${origin}/icon-192.png`,
     status: 'online',
-    capabilities: capabilityList,
+    legacyCapabilities: capabilityList,
     skills: skillObjects,
     endpoints: {
       tasks: `${apiBase}/a2a/tasks`,
@@ -58,9 +82,11 @@ export async function GET(req: NextRequest) {
       request: ['application/json'],
       response: ['application/json'],
     },
-    security: {
-      auth: process.env.A2A_AGENT_AUTH_MODE || 'bearer-or-session',
-      notes: 'Use GitHub session token, bearer token, or trusted server-side credentials.',
+    authentication: {
+      schemes: ['Bearer'],
+      credentials:
+        process.env.A2A_AGENT_AUTH_MODE ||
+        'Use GitHub session token, bearer token, or trusted server-side credentials.',
     },
     updatedAt: new Date().toISOString(),
   };
