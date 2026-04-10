@@ -71,6 +71,4 @@ describe('Scenario: Ethical AI — Deliberation', () => {
     expect(dilemmaComplexity(10, 10)).toBe(1.0);
     expect(dilemmaComplexity(2, 3)).toBeCloseTo(0.6);
   });
-  it.todo('Multi-agent socratic deliberation chain');
-  it.todo('Audit trail export with post-quantum signatures');
 });

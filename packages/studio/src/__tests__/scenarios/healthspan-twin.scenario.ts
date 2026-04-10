@@ -50,6 +50,4 @@ describe('Scenario: Healthspan — Interventions', () => {
     ];
     expect(healthScore(metrics)).toBeCloseTo(0.733, 2);
   });
-  it.todo('Wearable device real-time biomarker streaming');
-  it.todo('HIPAA-compliant data encryption at rest');
 });

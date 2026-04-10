@@ -5,7 +5,6 @@
  * to discover novel battery cathode materials in a spatial arena.
  *
  * ✓ it(...)      = PASSING — feature exists
- * ⊡ it.todo(...) = SKIPPED — missing feature (backlog item)
  */
 import { describe, it, expect } from 'vitest';
 
@@ -109,6 +108,4 @@ describe('Scenario: Quantum Materials — Post-Quantum Audit', () => {
     expect(sig.valid).toBe(false);
   });
 
-  it.todo('Crystal structure visualization from Hamiltonian eigenvalues');
-  it.todo('Multi-backend quantum circuit dispatch (IBM, Rigetti, emulator)');
 });

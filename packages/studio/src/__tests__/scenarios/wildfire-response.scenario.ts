@@ -63,6 +63,4 @@ describe('Scenario: Wildfire — Chain of Command', () => {
     expect(chainOfCommandValid('drone_alpha', 'captain_reyes', roster)).toBe(true);
     expect(chainOfCommandValid('drone_alpha', 'unknown', roster)).toBe(false);
   });
-  it.todo('Post-quantum audit log export');
-  it.todo('Cross-jurisdiction resource sharing protocol');
 });

@@ -132,5 +132,4 @@ describe('Scenario: Economy — High Frequency Micro-Failures', () => {
     expect(result.finalBalance).toBe(0);
   });
 
-  it.todo('Integrate robust locking mechanism during P2P Mesh concurrent settlements');
 });

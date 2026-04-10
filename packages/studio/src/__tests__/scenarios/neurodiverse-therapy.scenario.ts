@@ -55,6 +55,4 @@ describe('Scenario: Neurodiverse Therapy — Progress', () => {
     expect(sessionDurationValid(20, 15, 30)).toBe(true);
     expect(sessionDurationValid(10, 15, 30)).toBe(false);
   });
-  it.todo('Biometric device integration (heart rate variability)');
-  it.todo('HIPAA compliance audit trail');
 });

@@ -62,7 +62,6 @@ describe('Scenario: Water Scarcity — Mitigation', () => {
     expect(sensorStaleness(1000, 5000, 3000)).toBe(true);
     expect(sensorStaleness(4000, 5000, 3000)).toBe(false);
   });
-  it.todo('ROS2 bridge integration for real IoT sensors');
 });
 
 // ── Visualization: Satellite Imagery Overlay ──────────────────────────────

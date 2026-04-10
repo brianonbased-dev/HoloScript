@@ -66,6 +66,4 @@ describe('Scenario: Disaster Robotics — Skill Market', () => {
     expect(skillTradePrice(0.8, 1.0)).toBe(16);
     expect(skillTradePrice(0.5, 0.5)).toBe(5);
   });
-  it.todo('ROS2 bridge real robot telemetry');
-  it.todo('Curriculum auto-evolution based on failure patterns');
 });

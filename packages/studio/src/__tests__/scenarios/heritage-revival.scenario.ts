@@ -55,7 +55,6 @@ describe('Scenario: Heritage — Restoration', () => {
     expect(culturalEraClassify(200)).toBe('classical');
     expect(culturalEraClassify(-500)).toBe('modern');
   });
-  it.todo('3D artifact photogrammetry import');
 });
 
 // ── Visualization: Stigmergic Trace on Museum Floor Plan ────────────────────

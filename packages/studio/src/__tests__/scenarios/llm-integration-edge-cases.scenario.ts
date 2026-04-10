@@ -106,5 +106,4 @@ describe('Scenario: AI/LLM — Resource Exhaustion', () => {
     expect(res.error).toContain('RESOURCE_EXHAUSTION');
   });
 
-  it.todo('Monitor GPU memory footprint during heavy @llm_agent local inference');
 });

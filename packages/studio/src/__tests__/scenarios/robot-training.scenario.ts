@@ -61,6 +61,4 @@ describe('Scenario: Robot Training — Sim-to-Real', () => {
     expect(curriculumDifficulty(5, 10)).toBe(0.5);
     expect(curriculumDifficulty(15, 10)).toBe(1.0);
   });
-  it.todo('ROS2 bridge latency measurement');
-  it.todo('Domain randomization validation');
 });

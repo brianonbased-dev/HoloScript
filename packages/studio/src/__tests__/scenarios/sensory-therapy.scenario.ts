@@ -47,6 +47,4 @@ describe('Scenario: Sensory Therapy — Progress', () => {
   it('rewardAmount() scales with level', () => {
     expect(rewardAmount(3, 5)).toBe(11);
   });
-  it.todo('Haptic feedback calibration');
-  it.todo('HIPAA session data encryption');
 });
