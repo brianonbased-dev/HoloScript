@@ -44,12 +44,11 @@
 
 ## HIGH (fix this Sprint)
 
-### PERF-01: 19 Remaining Oversized Components (need splitting)
-*Note: `SliderMaterialInspector.tsx` and `StudioOperationsHub.tsx` were recently refactored and extracted successfully.*
+### PERF-01: 18 Remaining Oversized Components (need splitting)
+*Note: `SliderMaterialInspector.tsx`, `StudioOperationsHub.tsx`, and `TraitSupportMatrixDashboard.tsx` were recently refactored and extracted successfully.*
 | Component | Lines | Priority |
 | ----------- | ------- | ---------- |
 | ImportRepoWizard.tsx | 915 | Step components |
-| TraitSupportMatrixDashboard.tsx | 891 | Extract table, filters, detail panel |
 | CinematicCameraPanel.tsx | 887 | Extract keyframe editor, path preview |
 | HoloScriptEditor.tsx | 826 | Extract toolbar, minimap, status bar |
 | StudioSetupWizard.tsx | 810 | Step components |

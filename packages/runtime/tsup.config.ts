@@ -46,11 +46,14 @@ export default defineConfig([
     external: [
       'three',
       'monaco-editor',
+      '@holoscript/core',
+      /^@holoscript\/core\//,
+      '@holoscript/engine',
+      /^@holoscript\/engine\//,
+      '@holoscript/framework',
+      /^@holoscript\/framework\//,
       '@holoscript/agent-protocol',
       /^@holoscript\/agent-protocol\//,
-      /^@holoscript\/engine\//,
-      /^@holoscript\/framework\//,
-      /^@holoscript\/core\//,
     ],
     esbuildOptions(options) {
       options.banner = {
