@@ -6,10 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-const ABSORB_BASE =
-  process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_API_KEY = process.env.ABSORB_API_KEY || '';
+import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 
 async function proxyToAbsorb(req: NextRequest, segments: string[]) {
   const path = segments.join('/');

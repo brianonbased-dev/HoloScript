@@ -19,6 +19,7 @@ import {
   createGitHubHeaders,
   encodeGitHubPath,
   getGitHubToken,
+  githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
 
@@ -62,9 +63,8 @@ export async function GET(req: NextRequest) {
     );
     if (ref) url.searchParams.set('ref', ref);
 
-    const response = await fetch(url.toString(), {
+    const response = await githubFetchWithRetry(url.toString(), {
       headers: createGitHubHeaders(token),
-      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

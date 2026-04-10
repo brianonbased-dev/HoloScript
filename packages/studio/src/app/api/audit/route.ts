@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import fs from 'fs';
+import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'path';
+import { requireAuth } from '@/lib/api-auth';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -14,6 +15,11 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) {
+      return auth;
+    }
+
     const body = await req.json();
     const { category, message, astPath, rawStack, suggestion } = body;
 
@@ -22,9 +28,7 @@ export async function POST(req: NextRequest) {
     const ledgerPath = path.join(auditDir, 'crash_ledger.txt');
 
     // Ensure directory exists
-    if (!fs.existsSync(auditDir)) {
-      fs.mkdirSync(auditDir, { recursive: true });
-    }
+    await mkdir(auditDir, { recursive: true });
 
     const timestamp = new Date().toISOString();
     
@@ -42,7 +46,7 @@ ${rawStack || 'No stack trace available'}
 ================================================================================
 `;
 
-    fs.appendFileSync(ledgerPath, logEntry, 'utf8');
+    await appendFile(ledgerPath, logEntry, 'utf8');
 
     return NextResponse.json({ success: true, logged: true });
   } catch (error) {

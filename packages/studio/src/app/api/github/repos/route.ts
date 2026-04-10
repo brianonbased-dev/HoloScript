@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger';
 import {
   createGitHubHeaders,
   getGitHubToken,
+  githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
 
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('sort', 'updated');
     url.searchParams.set('per_page', String(perPage));
 
-    const response = await fetch(url.toString(), {
+    const response = await githubFetchWithRetry(url.toString(), {
       headers: createGitHubHeaders(token),
     });
 

@@ -19,68 +19,8 @@ import {
   createGitHubHeaders,
   getGitHubToken,
   GITHUB_API_BASE_URL,
+  githubFetchWithRetry,
 } from '../_shared';
-
-const REQUEST_TIMEOUT_MS = 15_000;
-const MAX_RETRIES = 3;
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
-
-function parseRetryAfterMs(raw: string | null): number | undefined {
-  if (!raw) return undefined;
-
-  const asSeconds = Number(raw);
-  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
-    return asSeconds * 1000;
-  }
-
-  const asDate = Date.parse(raw);
-  if (!Number.isNaN(asDate)) {
-    return Math.max(0, asDate - Date.now());
-  }
-
-  return undefined;
-}
-
-function calculateBackoffMs(attempt: number, retryAfterMs?: number): number {
-  if (retryAfterMs !== undefined) {
-    return Math.min(30_000, Math.max(0, retryAfterMs));
-  }
-
-  return Math.min(30_000, 1000 * Math.pow(2, attempt));
-}
-
-async function sleep(ms: number): Promise<void> {
-  if (process.env.NODE_ENV === 'test') {
-    return;
-  }
-
-  await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
-async function githubFetchWithRetry(url: string, init: RequestInit): Promise<Response> {
-  let attempt = 0;
-
-  while (attempt <= MAX_RETRIES) {
-    const response = await fetch(url, {
-      ...init,
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-
-    if (!RETRYABLE_STATUS.has(response.status) || attempt === MAX_RETRIES) {
-      return response;
-    }
-
-    const retryAfterMs = parseRetryAfterMs(response.headers.get('Retry-After'));
-    const backoffMs = calculateBackoffMs(attempt, retryAfterMs);
-    await sleep(backoffMs);
-    attempt += 1;
-  }
-
-  return fetch(url, {
-    ...init,
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-}
 
 export async function POST(req: NextRequest) {
   const token = await getGitHubToken(req);

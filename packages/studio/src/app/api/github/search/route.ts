@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger';
 import {
   createGitHubHeaders,
   getGitHubToken,
+  githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
 
@@ -65,12 +66,11 @@ export async function GET(req: NextRequest) {
     url.searchParams.set('q', scopedQuery);
     url.searchParams.set('per_page', '30');
 
-    const response = await fetch(url.toString(), {
+    const response = await githubFetchWithRetry(url.toString(), {
       headers: createGitHubHeaders(token, {
         // Request text-match metadata for highlighted snippets
         accept: 'application/vnd.github.text-match+json',
       }),
-      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

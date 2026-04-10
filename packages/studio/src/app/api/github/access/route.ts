@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   createGitHubHeaders,
   getGitHubToken,
+  githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
 
@@ -52,13 +53,11 @@ export async function GET(req: NextRequest) {
   }
 
   const [userResp, repoResp] = await Promise.all([
-    fetch(`${GITHUB_API_BASE_URL}/user`, {
+    githubFetchWithRetry(`${GITHUB_API_BASE_URL}/user`, {
       headers: createGitHubHeaders(token),
-      signal: AbortSignal.timeout(10_000),
     }),
-    fetch(`${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
+    githubFetchWithRetry(`${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
       headers: createGitHubHeaders(token),
-      signal: AbortSignal.timeout(10_000),
     }),
   ]);
 

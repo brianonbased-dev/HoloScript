@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 10;
@@ -11,18 +11,13 @@ const MAX_REQUESTS_PER_MIN = 10;
  *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
  */
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
-  if (!limit.allowed) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': String(limit.retryAfter || 60),
-        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
-        'X-RateLimit-Remaining': '0',
-      },
-    });
+  const limit = rateLimit(
+    req,
+    { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
+    'material-generate'
+  );
+  if (!limit.ok) {
+    return limit.response;
   }
 
   // Credit gate — must pass before any LLM call

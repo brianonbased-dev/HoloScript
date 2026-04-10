@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { rateLimit } from '@/lib/rateLimit';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 
 const MAX_REQUESTS_PER_MIN = 30;
@@ -142,19 +142,14 @@ function getProviders(): Provider[] {
   return providers;
 }
 
-export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
-  if (!limit.allowed) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': String(limit.retryAfter || 60),
-        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
-        'X-RateLimit-Remaining': '0',
-      },
-    });
+export async function POST(request: NextRequest) {
+  const limit = rateLimit(
+    request,
+    { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
+    'autocomplete'
+  );
+  if (!limit.ok) {
+    return limit.response;
   }
 
   // Credit gate — must pass before any LLM call

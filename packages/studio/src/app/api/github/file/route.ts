@@ -18,6 +18,7 @@ import {
   createGitHubHeaders,
   encodeGitHubPath,
   getGitHubToken,
+  githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
 
@@ -50,9 +51,8 @@ export async function GET(req: NextRequest) {
     );
     if (ref) url.searchParams.set('ref', ref);
 
-    const response = await fetch(url.toString(), {
+    const response = await githubFetchWithRetry(url.toString(), {
       headers: createGitHubHeaders(token),
-      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -136,11 +136,10 @@ export async function PUT(req: NextRequest) {
 
     const encodedPath = encodeGitHubPath(filePath);
     const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
-    const response = await fetch(url, {
+    const response = await githubFetchWithRetry(url, {
       method: 'PUT',
       headers: createGitHubHeaders(token, { contentTypeJson: true }),
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15_000),
     });
 
     const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -203,11 +202,10 @@ export async function DELETE(req: NextRequest) {
 
     const encodedPath = encodeGitHubPath(filePath);
     const url = `${GITHUB_API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`;
-    const response = await fetch(url, {
+    const response = await githubFetchWithRetry(url, {
       method: 'DELETE',
       headers: createGitHubHeaders(token, { contentTypeJson: true }),
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {

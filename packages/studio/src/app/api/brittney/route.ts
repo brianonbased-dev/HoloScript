@@ -6,13 +6,14 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { NextRequest } from 'next/server';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimit } from '@/lib/rate-limiter';
 
 const MAX_REQUESTS_PER_MIN = 20;
 
@@ -47,19 +48,14 @@ function getBaseUrl(request: Request): string {
   return `${proto}://${host}`;
 }
 
-export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const limit = rateLimit(ip, MAX_REQUESTS_PER_MIN);
-  if (!limit.allowed) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: limit.retryAfter }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': String(limit.retryAfter || 60),
-        'X-RateLimit-Limit': String(MAX_REQUESTS_PER_MIN),
-        'X-RateLimit-Remaining': '0',
-      },
-    });
+export async function POST(request: NextRequest) {
+  const limit = rateLimit(
+    request,
+    { max: MAX_REQUESTS_PER_MIN, label: 'Rate limit exceeded' },
+    'brittney'
+  );
+  if (!limit.ok) {
+    return limit.response;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

@@ -1,47 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const ABSORB_BASE = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_API_KEY = process.env.ABSORB_API_KEY || process.env.MCP_API_KEY || '';
-
-async function callMcpTool(
-  toolName: string,
-  args: Record<string, unknown>,
-): Promise<{ ok: boolean; data: unknown }> {
-  try {
-    const res = await fetch(`${ABSORB_BASE}/mcp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${ABSORB_API_KEY}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: { name: toolName, arguments: args },
-      }),
-      signal: AbortSignal.timeout(60000), // Absorb can take a while
-    });
-
-    if (!res.ok) return { ok: false, data: null };
-
-    const json = await res.json();
-    if (json.error) return { ok: false, data: json.error };
-
-    const textContent = json.result?.content?.[0]?.text;
-    if (textContent) {
-      try {
-        return { ok: true, data: JSON.parse(textContent) };
-      } catch {
-        return { ok: true, data: { text: textContent } };
-      }
-    }
-
-    return { ok: true, data: json.result };
-  } catch {
-    return { ok: false, data: null };
-  }
-}
+import { callMcpTool, ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 
 export async function POST(
   req: NextRequest,

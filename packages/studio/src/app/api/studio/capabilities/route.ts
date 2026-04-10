@@ -52,19 +52,47 @@ export async function GET() {
       },
     },
 
+    hosting: {
+      description: 'One-click deploy: HoloScript → self-contained HTML → S3/CDN → live URL',
+      endpoints: [
+        'POST /api/deploy — compile + upload, returns live URL',
+        'GET /api/deploy — list deployments (status, URLs)',
+        'GET /api/hosting/worlds — browse all published worlds',
+      ],
+    },
+
+    embed: {
+      description: 'Standalone embeddable components — no Next.js, no Zustand, no Tailwind required',
+      components: ['SceneViewer', 'StudioWidget', 'WebXRViewer'],
+      import_path: '@holoscript/studio/embed',
+    },
+
+    connectors: {
+      description: 'Bridge to external services for deployment and integration',
+      services: ['github', 'railway', 'vscode', 'appstore', 'upstash', 'docker'],
+      endpoints: [
+        'POST /api/connectors/connect — establish connection',
+        'POST /api/connectors/oauth — OAuth flow',
+        'GET /api/connectors/activity — monitor activity',
+      ],
+    },
+
     access: {
-      mcp: 'POST /api/mcp/call — proxy to 122+ MCP tools',
-      rest: '70 REST API endpoints at /api/*',
+      mcp: 'POST /api/mcp/call — proxy to 158+ MCP tools (verify via mcp.holoscript.net/health)',
+      rest: '143 REST API endpoints at /api/*',
       websocket: 'Collaboration rooms via /api/rooms',
       quickstart: 'POST /api/studio/quickstart — one-request onboarding',
       mcp_config: 'GET /api/studio/mcp-config?format=claude|cursor|generic',
     },
 
-    pages: 34,
-    api_routes: 70,
-    mcp_tools: 122,
+    pages: 43,
+    api_routes: 143,
+    mcp_tools: 158,
     absorb_tools: 20,
-    traits: '2000+',
+    traits: '617 trait files (composable behaviors for physics, materials, animation, economics, spatial)',
     compilation_targets: 17,
+    compilers: 47,
+    components: 316,
+    hooks: 148,
   });
 }
