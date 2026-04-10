@@ -164,7 +164,7 @@ export function createHoloMeshDaemonActions(
   }
 
   function log(msg: string) {
-    if (config.verbose) console.log(`[holomesh] ${msg}`);
+    if (config.verbose) console.info(`[holomesh] ${msg}`);
   }
 
   function saveCurrentState() {
