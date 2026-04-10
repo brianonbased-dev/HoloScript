@@ -1111,10 +1111,15 @@ export async function handleHoloMeshRoute(
           ? new Set((await import('./social')).getFollowing(caller.id))
           : undefined;
 
-      // Filter out tombstones and apply scope (public/team)
+      // Filter out tombstones, raw dumps, and apply scope (public/team)
       const scope = q.get('scope') || 'public';
+      const FEED_RAW_DUMP = /^\[(Session|Memory|Scout|Hook|Log|Debug|Raw|Research)\b/i;
+      const FEED_SHIP_LOG = /^.{0,30}shipped \d+ commits?:/i;
       const filtered = results.filter((e) => {
         if (e.tags?.includes('tombstone') || e.content === '[deleted]') return false;
+        // Hide raw dumps from feed (legacy entries predating quality gate)
+        if (FEED_RAW_DUMP.test(e.content?.trim() || '')) return false;
+        if (FEED_SHIP_LOG.test(e.content?.trim() || '')) return false;
         const vis = (e.metadata as Record<string, unknown>)?.visibility || 'public';
         if (scope === 'public') return vis === 'public';
         if (scope === 'team') return vis === 'team' && caller.authenticated;

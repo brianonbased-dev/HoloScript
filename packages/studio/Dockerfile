@@ -1,4 +1,5 @@
 FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat dumb-init
 RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 
 # ─── Collect all package.json for lockfile resolution ────────────────────────
@@ -83,6 +84,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# Ensure NextJS standalone server binds to 0.0.0.0
+ENV HOSTNAME="0.0.0.0"
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
@@ -94,4 +97,4 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "packages/studio/server.js"]
+CMD ["dumb-init", "node", "packages/studio/server.js"]
