@@ -18,7 +18,19 @@ export default defineConfig([
     clean: true,
     splitting: false,
     treeshake: true,
-    external: ['react', '@react-three/fiber', 'three', 'monaco-editor', '@hololand/world'],
+    external: [
+      'react',
+      '@react-three/fiber',
+      'three',
+      'monaco-editor',
+      '@hololand/world',
+      '@holoscript/framework',
+      '@holoscript/engine',
+      '@holoscript/agent-protocol',
+      /^@holoscript\/framework\//,
+      /^@holoscript\/engine\//,
+      /^@holoscript\/agent-protocol\//,
+    ],
   },
   // Global/IIFE bundle for <script> tag loading
   {
@@ -29,8 +41,18 @@ export default defineConfig([
     globalName: 'HoloScript',
     sourcemap: true,
     minify: true,
-    noExternal: [/(.*)/], // Bundle everything except peer deps
-    external: ['three', 'monaco-editor'],
+    external: [
+      'three',
+      'monaco-editor',
+      '@holoscript/core',
+      /^@holoscript\/core\//,
+      '@holoscript/engine',
+      /^@holoscript\/engine\//,
+      '@holoscript/framework',
+      /^@holoscript\/framework\//,
+      '@holoscript/agent-protocol',
+      /^@holoscript\/agent-protocol\//,
+    ],
     esbuildOptions(options) {
       options.banner = {
         js: '/* HoloScript Runtime v2.1.0 - https://holoscript.net */',
