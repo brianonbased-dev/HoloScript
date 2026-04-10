@@ -242,6 +242,14 @@ Browser-based universal IDE. Spatial rendering is one output channel — Studio 
 
 Every number in this README points to a live source. If a number is hardcoded, it's wrong — verify and fix it.
 
+## Release
+
+HoloScript release lanes are managed under `scripts/version-policy.json` (for example, `platform-v6`), and npm publishing is now guarded.
+
+- Use `pnpm release:publish` for production publish flows.
+- Raw `pnpm publish` at repo root is intentionally blocked.
+- Guard checks run via `node scripts/release-guard.js` (git cleanliness, strict version policy, private package rules, semver validation, and tag awareness).
+
 ## Links
 
 - [Full feature reference](./docs/reference/FULL_README.md) — compilers, renderers, identity, domain blocks, GPU pipelines

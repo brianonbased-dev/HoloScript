@@ -260,9 +260,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Release guard
+        run: node scripts/release-guard.js
+
       # Publish scoped packages
       - name: Publish @holoscript/* packages
-        run: pnpm -r publish --access public --no-git-checks
+        run: pnpm release:publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
