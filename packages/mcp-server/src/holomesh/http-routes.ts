@@ -1917,6 +1917,22 @@ export async function handleHoloMeshRoute(
 
       addComment(comment);
 
+      // Notify entry author that someone commented
+      try {
+        const { notify } = await import('./notifications');
+        const results = await c.queryKnowledge('*', { limit: 500 });
+        const entry = results.find((e) => e.id === entryId);
+        if (entry && entry.authorId && entry.authorId !== caller.id) {
+          notify(
+            entry.authorId,
+            'knowledge_reply',
+            `${caller.name} commented on your entry`,
+            `@${caller.name} commented on "${entry.content?.slice(0, 80)}...": "${content.slice(0, 100)}"`,
+            { agent: caller.id, entryId, commentId: comment.id }
+          );
+        }
+      } catch { /* best-effort */ }
+
       // Extract @mentions and notify mentioned agents
       try {
         const { extractMentions } = await import('./social');
@@ -1956,6 +1972,23 @@ export async function handleHoloMeshRoute(
 
       const newCount = castVote(entryId, caller.id, value as 1 | -1);
       const userVote = getUserVote(entryId, caller.id);
+
+      // Notify entry author of the vote
+      try {
+        const { notify } = await import('./notifications');
+        const results = await c.queryKnowledge('*', { limit: 500 });
+        const entry = results.find((e) => e.id === entryId);
+        if (entry && entry.authorId && entry.authorId !== caller.id) {
+          notify(
+            entry.authorId,
+            'knowledge_vote',
+            `${caller.name} ${value === 1 ? 'upvoted' : 'downvoted'} your entry`,
+            `@${caller.name} voted on "${entry.content?.slice(0, 80)}..." (now ${newCount} votes)`,
+            { agent: caller.id, entryId }
+          );
+        }
+      } catch { /* notification is best-effort */ }
+
       json(res, 200, { success: true, voteCount: newCount, userVote });
       return true;
     }
@@ -1972,6 +2005,51 @@ export async function handleHoloMeshRoute(
       const newCount = castVote(commentId, caller.id, value as 1 | -1);
       const userVote = getUserVote(commentId, caller.id);
       json(res, 200, { success: true, voteCount: newCount, userVote });
+      return true;
+    }
+
+    // GET /api/holomesh/notifications — Agent notifications (auth required)
+    // ?unread_only=true  ?limit=20
+    if (pathname === '/api/holomesh/notifications' && method === 'GET') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const { getNotifications } = await import('./notifications');
+      const q = parseQuery(url);
+      const unreadOnly = q.get('unread_only') === 'true';
+      const limit = parseInt(q.get('limit') || '20', 10);
+      const notifications = getNotifications(caller.id, unreadOnly, limit);
+      const unreadCount = getNotifications(caller.id, true, 100).length;
+
+      json(res, 200, {
+        success: true,
+        notifications,
+        unread_count: unreadCount,
+        total: notifications.length,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/notifications/read-all — Mark all notifications read
+    if (pathname === '/api/holomesh/notifications/read-all' && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const { markAllRead } = await import('./notifications');
+      const count = markAllRead(caller.id);
+      json(res, 200, { success: true, marked_read: count });
+      return true;
+    }
+
+    // POST /api/holomesh/notifications/:id/read — Mark single notification read
+    if (pathname.match(/^\/api\/holomesh\/notifications\/[^/]+\/read$/) && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const notifId = pathname.replace('/api/holomesh/notifications/', '').replace('/read', '');
+      const { markNotificationRead } = await import('./notifications');
+      const ok = markNotificationRead(notifId, caller.id);
+      json(res, ok ? 200 : 404, ok ? { success: true } : { error: 'Notification not found' });
       return true;
     }
 
