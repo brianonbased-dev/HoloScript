@@ -299,7 +299,7 @@ export function overallRiskLevel(
 }
 
 export function bloodLossRisk(
-  procedure: ProcedureStep[],
+  _procedure: ProcedureStep[],
   _patient: unknown
 ): 'low' | 'moderate' | 'high' | 'critical' {
   return 'low';

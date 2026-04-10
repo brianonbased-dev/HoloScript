@@ -15,7 +15,7 @@
  * simple base64 (no compression).
  */
 
-import type { SceneNode, TraitConfig } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 import type { Asset } from '@/components/assets/useAssetStore';
 
 // ─── Format types ────────────────────────────────────────────────────────────
