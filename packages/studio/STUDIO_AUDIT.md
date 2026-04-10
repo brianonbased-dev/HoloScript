@@ -13,7 +13,7 @@
 ### ARCH-02: Missing Core Ecosystem Integrations
 - **Universal OAuth2 Access:** The Studio utilizes the `/start` GitHub OAuth provisioning flow to bypass browser sandboxing, routing the entire VFS through natively integrated `isomorphic-git`.
 - **Team Board UI:** — FIXED. `/teams/[id]/board` now exists and provides a native Kanban interface querying `/api/holomesh/team/:id/board`.
-- **Task Chaining:** No interface exists for choreographing multi-agent workflows built with `connector-core` or complex task chaining.
+- **Task Chaining:** — FIXED. A visual composer interface was added at `/pipeline/chaining` to allow interactive orchestration and sequential linking of multi-agent tasks via node-based graphs.
 - **`@holoscript/config` Integration:** Configuration scattered across arbitrary env sets rather than routing through standard unified config libraries.
 - **Dockerfile Hardening:** — FIXED. Added production optimizations in `packages/studio/Dockerfile` including `libc6-compat`, `dumb-init` PID 1 proxying, and `HOSTNAME=0.0.0.0` binding.
 - **Hybrid Compute Topology (NEW):** The Studio now supports Tier 2 "Dual Host Modes" where high-end Edge Nodes volunteer computation power back to the Railway Orchestrator.
