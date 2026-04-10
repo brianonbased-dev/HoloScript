@@ -2695,7 +2695,17 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "type": "logic",
       },
       {
-        "children": [],
+        "children": [
+          {
+            "body": "doSomething ( )",
+            "name": "if",
+            "params": [
+              "condition",
+            ],
+            "returnType": "unknown",
+            "type": "method",
+          },
+        ],
         "directives": [],
         "id": undefined,
         "loc": {
@@ -2711,7 +2721,6 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "name": undefined,
         "properties": {
           "else": true,
-          "if": true,
         },
         "traits": Map {},
         "type": "ConditionalTest",
@@ -2743,7 +2752,17 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "type": "logic",
       },
       {
-        "children": [],
+        "children": [
+          {
+            "body": "doSomething ( )",
+            "name": "if",
+            "params": [
+              "condition",
+            ],
+            "returnType": "unknown",
+            "type": "method",
+          },
+        ],
         "directives": [],
         "id": undefined,
         "loc": {
@@ -2759,7 +2778,6 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "name": undefined,
         "properties": {
           "else": true,
-          "if": true,
         },
         "traits": Map {},
         "type": "ConditionalTest",
@@ -2810,7 +2828,17 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "type": "logic",
         },
         {
-          "children": [],
+          "children": [
+            {
+              "body": "doSomething ( )",
+              "name": "if",
+              "params": [
+                "condition",
+              ],
+              "returnType": "unknown",
+              "type": "method",
+            },
+          ],
           "directives": [],
           "id": undefined,
           "loc": {
@@ -2826,7 +2854,6 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "name": undefined,
           "properties": {
             "else": true,
-            "if": true,
           },
           "traits": Map {},
           "type": "ConditionalTest",
@@ -2858,7 +2885,17 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "type": "logic",
         },
         {
-          "children": [],
+          "children": [
+            {
+              "body": "doSomething ( )",
+              "name": "if",
+              "params": [
+                "condition",
+              ],
+              "returnType": "unknown",
+              "type": "method",
+            },
+          ],
           "directives": [],
           "id": undefined,
           "loc": {
@@ -2874,7 +2911,6 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "name": undefined,
           "properties": {
             "else": true,
-            "if": true,
           },
           "traits": Map {},
           "type": "ConditionalTest",
