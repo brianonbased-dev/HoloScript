@@ -180,6 +180,10 @@ cd HoloScript && pnpm install && pnpm build && pnpm test
 
 TypeScript is the last resort — for parsers, CLI, adapters, infrastructure. If you're writing `.ts` for business logic, you're doing it wrong.
 
+### Versioning
+
+npm and PyPI packages share the same major version. See the [Release Versioning Guide](./docs/guides/release-versioning.md).
+
 ## Agent quick reference
 
 For agents connecting via MCP — what's available beyond the problems listed above.

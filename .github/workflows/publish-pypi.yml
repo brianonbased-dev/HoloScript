@@ -47,12 +47,14 @@ jobs:
       - name: Type check with mypy
         run: |
           cd packages/python-bindings
-          mypy holoscript/ --ignore-missing-imports || true
+          mypy holoscript/ --ignore-missing-imports
 
   build-and-publish:
     name: Build and Publish to PyPI
     needs: test-python
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
     environment:
       name: ${{ github.event.inputs.environment || 'pypi' }}
       url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/p/holoscript' || 'https://pypi.org/p/holoscript' }}
@@ -80,6 +82,21 @@ jobs:
           else
             echo "VERSION=dev" >> $GITHUB_OUTPUT
           fi
+
+      - name: Validate version alignment
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          NPM_MAJOR=$(node -e "console.log(require('./package.json').version.split('.')[0])")
+          TAG_MAJOR=$(echo "$TAG_VERSION" | cut -d. -f1)
+
+          if [ "$TAG_MAJOR" != "$NPM_MAJOR" ]; then
+            echo "::error::PyPI tag major ($TAG_MAJOR) does not match npm root major ($NPM_MAJOR)"
+            echo "Either align the tag or document the intentional divergence in docs/guides/release-versioning.md"
+            exit 1
+          fi
+
+          echo "Version alignment OK: tag=$TAG_VERSION, npm major=$NPM_MAJOR"
 
       - name: Update version in pyproject.toml (if tag-based release)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -143,7 +160,7 @@ jobs:
         run: |
           # Wait for PyPI to process the upload
           sleep 30
-          pip install holoscript==${{ needs.build-and-publish.outputs.version || '' }} || pip install holoscript
+          pip install holoscript==${{ needs.build-and-publish.outputs.version }}
 
       - name: Smoke test
         run: |
