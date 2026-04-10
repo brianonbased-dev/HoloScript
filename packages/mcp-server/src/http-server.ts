@@ -121,7 +121,9 @@ if (process.env.DATABASE_URL) {
       CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions (user_id);
       CREATE INDEX IF NOT EXISTS idx_credit_tx_type ON credit_transactions (type);
       CREATE INDEX IF NOT EXISTS idx_credit_tx_time ON credit_transactions (created_at);
-    `).then(() => console.log('[credits] Tables ready')).catch((e: Error) => console.error('[credits] Migration failed:', e.message));
+    `)
+      .then(() => console.info('[credits] Tables ready'))
+      .catch((e: Error) => console.error('[credits] Migration failed:', e.message));
   } catch (err) {
     console.error('[auth] Failed to initialize PostgreSQL pool:', err);
     console.warn('[auth] Falling back to in-memory token store');
@@ -2300,62 +2302,62 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
-  console.log(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
-  console.log(`   Transport: Streamable HTTP (MCP spec 2025-03-26)`);
-  console.log(`   Port: ${PORT}`);
-  console.log(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
-  console.log(
+  console.info(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
+  console.info(`   Transport: Streamable HTTP (MCP spec 2025-03-26)`);
+  console.info(`   Port: ${PORT}`);
+  console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+  console.info(
     `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
   );
-  console.log(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
-  console.log(`   Legacy API Key: ${MCP_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
-  console.log(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
-  console.log(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
-  console.log(`   Audit: EU AI Act compliant (Articles 12-14)`);
-  console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
-  console.log(
+  console.info(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
+  console.info(`   Legacy API Key: ${MCP_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
+  console.info(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
+  console.info(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
+  console.info(`   Audit: EU AI Act compliant (Articles 12-14)`);
+  console.info(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
+  console.info(
     `   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`
   );
-  console.log(`   Endpoints:`);
-  console.log(`     GET  /health                       - Health check (public)`);
-  console.log(`     GET  /.well-known/mcp              - MCP discovery (public)`);
-  console.log(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
-  console.log(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
-  console.log(`     POST /oauth/register               - Client registration`);
-  console.log(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
-  console.log(`     POST /oauth/authorize              - Authorization code (PKCE)`);
-  console.log(`     POST /oauth/token                  - Token exchange`);
-  console.log(`     POST /oauth/revoke                 - Token revocation`);
-  console.log(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
-  console.log(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
-  console.log(`     GET  /mcp                          - MCP session messages (authenticated)`);
-  console.log(`     DELETE /mcp                        - Close session (authenticated)`);
-  console.log(`     GET  /a2a                          - A2A protocol info (public)`);
-  console.log(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
-  console.log(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
-  console.log(`     GET  /a2a/tasks                    - A2A list tasks`);
-  console.log(`     GET  /a2a/tasks/:id                - A2A get task`);
-  console.log(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
-  console.log(`     GET  /api/health                   - API health + capabilities (public)`);
-  console.log(`     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`);
-  console.log(`     POST /api/render                   - Render HoloScript preview`);
-  console.log(`     POST /api/share                    - Create share links`);
-  console.log(`     POST /api/publish                  - Studio full publish flow`);
-  console.log(`     POST /api/extract                  - Pre-publish trait extraction`);
-  console.log(`     POST /api/scene                    - Store scene, get short URL`);
-  console.log(`     GET  /scene/:id                    - View stored scene (public)`);
-  console.log(`     GET  /embed/:id                    - Embed stored scene (public)`);
-  console.log(`     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`);
-  console.log(`     GET  /api/audit                    - Query audit log (admin)`);
-  console.log(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
-  console.log(`     GET  /api/audit/export             - Export audit log (admin)`);
+  console.info(`   Endpoints:`);
+  console.info(`     GET  /health                       - Health check (public)`);
+  console.info(`     GET  /.well-known/mcp              - MCP discovery (public)`);
+  console.info(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
+  console.info(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
+  console.info(`     POST /oauth/register               - Client registration`);
+  console.info(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
+  console.info(`     POST /oauth/authorize              - Authorization code (PKCE)`);
+  console.info(`     POST /oauth/token                  - Token exchange`);
+  console.info(`     POST /oauth/revoke                 - Token revocation`);
+  console.info(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
+  console.info(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
+  console.info(`     GET  /mcp                          - MCP session messages (authenticated)`);
+  console.info(`     DELETE /mcp                        - Close session (authenticated)`);
+  console.info(`     GET  /a2a                          - A2A protocol info (public)`);
+  console.info(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
+  console.info(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
+  console.info(`     GET  /a2a/tasks                    - A2A list tasks`);
+  console.info(`     GET  /a2a/tasks/:id                - A2A get task`);
+  console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
+  console.info(`     GET  /api/health                   - API health + capabilities (public)`);
+  console.info(`     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`);
+  console.info(`     POST /api/render                   - Render HoloScript preview`);
+  console.info(`     POST /api/share                    - Create share links`);
+  console.info(`     POST /api/publish                  - Studio full publish flow`);
+  console.info(`     POST /api/extract                  - Pre-publish trait extraction`);
+  console.info(`     POST /api/scene                    - Store scene, get short URL`);
+  console.info(`     GET  /scene/:id                    - View stored scene (public)`);
+  console.info(`     GET  /embed/:id                    - Embed stored scene (public)`);
+  console.info(`     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`);
+  console.info(`     GET  /api/audit                    - Query audit log (admin)`);
+  console.info(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
+  console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
 });
 
 // Graceful shutdown
 function shutdown(signal: string) {
-  console.log(`${signal} received, closing server...`);
+  console.info(`${signal} received, closing server...`);
   httpServer.close(() => {
-    console.log('Server closed');
+    console.info('Server closed');
     process.exit(0);
   });
   // Force exit after 10s if connections don't drain
