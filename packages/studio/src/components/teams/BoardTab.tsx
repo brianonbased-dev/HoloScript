@@ -197,7 +197,7 @@ export function BoardTab({ teamId }: { teamId: string }) {
               </div>
 
               {/* Column tasks */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div role="listbox" aria-label={col.label + " tasks"} className="flex-1 overflow-y-auto p-3 space-y-2">
                 {tasks.length === 0 && (
                   <div className="rounded-lg border border-dashed border-studio-border/50 bg-studio-bg p-4 text-center text-xs text-studio-muted">
                     {col.emptyText}
@@ -207,7 +207,7 @@ export function BoardTab({ teamId }: { teamId: string }) {
                 {tasks.map((task) => (
                   <div
                     key={task.id}
-                    className={`rounded-lg border bg-studio-panel p-3 transition-colors hover:border-studio-accent/30 ${col.color}`}
+                    role="option" tabIndex={0} aria-label={task.title} className={`rounded-lg border bg-studio-panel p-3 transition-colors hover:border-studio-accent/30 focus:outline-none focus:ring-2 focus:ring-studio-accent/50 ${col.color}`}
                   >
                     <div className="min-w-0 text-xs leading-snug">{task.title}</div>
 
@@ -252,7 +252,7 @@ export function BoardTab({ teamId }: { teamId: string }) {
 
                       {col.key === 'open' && (
                         <button
-                          onClick={() => claimTask(task.id)}
+                          aria-label={`Claim task: ${task.title}`} onClick={() => claimTask(task.id)}
                           disabled={actingTask === task.id}
                           className="shrink-0 rounded px-2 py-0.5 text-[10px] bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 disabled:opacity-50"
                         >
@@ -261,7 +261,7 @@ export function BoardTab({ teamId }: { teamId: string }) {
                       )}
                       {col.key === 'claimed' && (
                         <button
-                          onClick={() => doneTask(task.id)}
+                          aria-label={`Complete task: ${task.title}`} onClick={() => doneTask(task.id)}
                           disabled={actingTask === task.id}
                           className="shrink-0 rounded px-2 py-0.5 text-[10px] bg-green-500/20 text-green-400 hover:bg-green-500/30 disabled:opacity-50"
                         >
