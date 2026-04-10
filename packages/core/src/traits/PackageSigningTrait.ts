@@ -42,16 +42,6 @@ export const PackageSigningTrait: TraitHandler<PackageSigningConfig> = {
   name: 'package_signing',
 
   validate(config: PackageSigningConfig): boolean {
-    // Recommend Ed25519 for performance and security
-    if (config.signature_algorithm !== 'ed25519') {
-      console.info('Ed25519 recommended for best performance and security');
-    }
-
-    // Timestamps improve security
-    if (!config.include_timestamp) {
-      console.warn('Timestamps recommended to prevent replay attacks');
-    }
-
     // Chain of trust for production
     if (config.chain_of_trust && !config.code_signing_certificate) {
       throw new Error('Chain of trust requires code signing certificate');

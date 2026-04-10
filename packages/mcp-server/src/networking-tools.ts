@@ -18,9 +18,6 @@ function loadStateFromDisk(): Record<string, any> {
     }
   } catch {
     // Corrupt file — start fresh
-    console.warn(
-      `[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=parse-or-io-error`
-    );
   }
   return {};
 }
@@ -33,7 +30,6 @@ function saveStateToDisk(state: Record<string, any>): void {
     fs.writeFileSync(STATE_AUTHORITY_FILE, JSON.stringify(state), 'utf-8');
   } catch {
     // Best-effort
-    console.warn(`[CacheDebug][networking] save miss path=${STATE_AUTHORITY_FILE}`);
   }
 }
 

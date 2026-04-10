@@ -24,9 +24,6 @@ function loadSnapshotsFromDisk(): Map<string, TemporalSnapshot> {
     }
   } catch {
     // If file is corrupt, start fresh
-    console.warn(
-      `[CacheDebug][snapshot] load miss path=${SNAPSHOTS_FILE} reason=parse-or-io-error`
-    );
   }
   return new Map();
 }
@@ -43,7 +40,6 @@ function saveSnapshotsToDisk(): void {
     fs.writeFileSync(SNAPSHOTS_FILE, JSON.stringify(obj), 'utf-8');
   } catch {
     // Best-effort — don't fail the tool call if disk write fails
-    console.warn(`[CacheDebug][snapshot] save miss path=${SNAPSHOTS_FILE}`);
   }
 }
 
