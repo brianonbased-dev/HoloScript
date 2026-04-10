@@ -713,7 +713,7 @@ export class BuildCache {
    */
   private log(message: string): void {
     if (this.options.debug) {
-      console.log(`[BuildCache] ${message}`);
+      console.info(`[BuildCache] ${message}`);
     }
   }
 }
@@ -814,7 +814,7 @@ export class ContentAddressableStore {
 
   private log(message: string): void {
     if (this.debug) {
-      console.log(`[CAS] ${message}`);
+      console.info(`[CAS] ${message}`);
     }
   }
 }
