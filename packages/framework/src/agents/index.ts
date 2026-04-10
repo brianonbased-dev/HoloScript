@@ -65,8 +65,11 @@ export {
 export {
   TaskDelegationService,
   type TaskDelegationConfig,
+  type A2ATransportAdapter,
   type DelegationRequest,
   type DelegationResult,
+  type DelegationTraceEvent,
+  type DelegationTracePhase,
 } from './TaskDelegationService';
 
 // Skill Workflow Engine (v5.5 Skill Composition/Chaining)

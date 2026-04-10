@@ -300,6 +300,9 @@ export type {
   SwarmResult,
 } from './swarm-protocol';
 
+export { A2AHSNAPBridge } from './A2AHSNAPBridge';
+export type { BridgeEnvelopeOptions } from './A2AHSNAPBridge';
+
 export {
   CANONICAL_TASK_BRIDGE_SCHEMA,
   a2aSendMessageToCanonicalTaskEnvelope,

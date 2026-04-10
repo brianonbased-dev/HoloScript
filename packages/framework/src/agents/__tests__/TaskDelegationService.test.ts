@@ -119,6 +119,61 @@ describe('TaskDelegationService', () => {
       expect(result.delegatedTo.endpoint).toBe('https://remote.example.com/a2a');
     });
 
+    it('sends idempotency key header and payload for remote delegation', async () => {
+      await registry.register(makeRemoteAgent());
+
+      let capturedInit: RequestInit | undefined;
+      const service = new TaskDelegationService(registry, undefined, {
+        idempotencyKeyFactory: () => 'idem-fixed-key',
+        fetchFn: async (_url, init) => {
+          capturedInit = init;
+          return {
+            ok: true,
+            json: async () => ({ result: { status: 'completed' } }),
+          } as Response;
+        },
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'remote-agent-1',
+        skillId: 'compile_hs',
+        arguments: { code: 'x' },
+      });
+
+      expect(result.status).toBe('completed');
+      const headers = (capturedInit?.headers ?? {}) as Record<string, string>;
+      expect(headers['Idempotency-Key']).toBe('idem-fixed-key');
+
+      const body = JSON.parse(String(capturedInit?.body ?? '{}')) as {
+        params?: { message?: { parts?: Array<{ data?: Record<string, unknown> }> } };
+      };
+      const data = body.params?.message?.parts?.[0]?.data;
+      expect(data?.idempotencyKey).toBe('idem-fixed-key');
+      expect(data?.schema).toBe('holoscript.task-bridge.v1');
+      expect((data?.task as Record<string, unknown> | undefined)?.skillId).toBe('compile_hs');
+      expect((data?.task as Record<string, unknown> | undefined)?.idempotency_key).toBe('idem-fixed-key');
+    });
+
+    it('uses transport adapter when configured', async () => {
+      await registry.register(makeRemoteAgent());
+
+      const send = vi.fn(async () => ({ status: 'completed', via: 'adapter' }));
+      const service = new TaskDelegationService(registry, undefined, {
+        transportAdapter: { send },
+        idempotencyKeyFactory: () => 'adapter-idem',
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'remote-agent-1',
+        skillId: 'compile_hs',
+        arguments: { code: 'x' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0].idempotencyKey).toBe('adapter-idem');
+    });
+
     it('handles remote agent HTTP errors', async () => {
       await registry.register(makeRemoteAgent());
 
@@ -331,6 +386,61 @@ describe('TaskDelegationService', () => {
       expect(stats.completed).toBe(1);
       expect(stats.failed).toBe(1);
       expect(stats.rejected).toBe(1);
+    });
+
+    it('emits trace events via traceHook and exposes trace history', async () => {
+      await registry.register(makeLocalAgent());
+
+      const traceEvents: string[] = [];
+      const service = new TaskDelegationService(registry, undefined, {
+        localExecutor: async () => ({ ok: true }),
+        traceHook: (event) => {
+          traceEvents.push(event.phase);
+        },
+      });
+
+      const result = await service.delegateTo({
+        targetAgentId: 'local-agent-1',
+        skillId: 'traceable_skill',
+        arguments: {},
+      });
+
+      const taskTrace = service.getTraceHistory(result.taskId);
+      expect(traceEvents).toContain('start');
+      expect(traceEvents).toContain('attempt');
+      expect(traceEvents).toContain('success');
+      expect(taskTrace.length).toBeGreaterThan(0);
+      expect(taskTrace[0].taskId).toBe(result.taskId);
+    });
+
+    it('replays a delegated task from stored request history', async () => {
+      await registry.register(makeLocalAgent());
+
+      const service = new TaskDelegationService(registry, undefined, {
+        localExecutor: async () => ({ replayable: true }),
+      });
+
+      const initial = await service.delegateTo({
+        targetAgentId: 'local-agent-1',
+        skillId: 'replay_skill',
+        arguments: { pass: 1 },
+      });
+
+      const replay = await service.replay(initial.taskId, {
+        arguments: { pass: 2 },
+      });
+
+      expect(replay.status).toBe('completed');
+      expect(replay.taskId).not.toBe(initial.taskId);
+
+      const originalTrace = service.getTraceHistory(initial.taskId).map((event) => event.phase);
+      expect(originalTrace).toContain('replay_requested');
+      expect(originalTrace).toContain('replay_completed');
+    });
+
+    it('throws when replaying unknown task id', async () => {
+      const service = new TaskDelegationService(registry);
+      await expect(service.replay('missing-task-id')).rejects.toThrow('Replay unavailable');
     });
   });
 });

@@ -57,6 +57,99 @@ export interface TaskDelegationConfig {
   fetchFn?: (url: string, init?: RequestInit) => Promise<Response>;
   /** Local tool executor for in-process agents */
   localExecutor?: (skillId: string, args: Record<string, unknown>) => Promise<unknown>;
+  /** Optional observability hook for per-task delegation trace events */
+  traceHook?: (event: DelegationTraceEvent) => void;
+  /** Optional transport adapter for remote A2A calls */
+  transportAdapter?: A2ATransportAdapter;
+  /** Optional idempotency key factory for remote A2A calls */
+  idempotencyKeyFactory?: (ctx: {
+    taskId: string;
+    attempt: number;
+    endpointUrl: string;
+    skillId: string;
+  }) => string;
+}
+
+export interface A2ATransportAdapter {
+  send(input: {
+    endpointUrl: string;
+    requestBody: Record<string, unknown>;
+    idempotencyKey: string;
+    fetchFn: (url: string, init?: RequestInit) => Promise<Response>;
+  }): Promise<unknown>;
+}
+
+export type DelegationTracePhase =
+  | 'start'
+  | 'attempt'
+  | 'retry'
+  | 'success'
+  | 'failure'
+  | 'timeout'
+  | 'rejected'
+  | 'replay_requested'
+  | 'replay_completed'
+  | 'replay_failed';
+
+export interface DelegationTraceEvent {
+  taskId: string;
+  phase: DelegationTracePhase;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+const CANONICAL_TASK_BRIDGE_SCHEMA = 'holoscript.task-bridge.v1' as const;
+
+interface DelegationTaskEnvelope {
+  id: string;
+  intent: string;
+  skillId: string;
+  input: Record<string, unknown>;
+  idempotency_key: string;
+  timeout: number;
+}
+
+interface CanonicalTaskEnvelope {
+  schema: typeof CANONICAL_TASK_BRIDGE_SCHEMA;
+  task: DelegationTaskEnvelope;
+}
+
+function createCanonicalTaskEnvelope(task: DelegationTaskEnvelope): CanonicalTaskEnvelope {
+  return {
+    schema: CANONICAL_TASK_BRIDGE_SCHEMA,
+    task,
+  };
+}
+
+function canonicalTaskToA2ASendMessage(
+  envelope: CanonicalTaskEnvelope,
+  requestId: string,
+  timestamp = new Date().toISOString()
+) {
+  return {
+    jsonrpc: '2.0' as const,
+    id: requestId,
+    method: 'a2a.sendMessage' as const,
+    params: {
+      message: {
+        role: 'user' as const,
+        parts: [
+          {
+            type: 'data' as const,
+            mimeType: 'application/json',
+            data: {
+              schema: envelope.schema,
+              task: envelope.task,
+              skillId: envelope.task.skillId,
+              arguments: envelope.task.input,
+              idempotencyKey: envelope.task.idempotency_key,
+            },
+          },
+        ],
+        timestamp,
+      },
+    },
+  };
 }
 
 const DEFAULT_CONFIG: TaskDelegationConfig = {
@@ -73,6 +166,8 @@ export class TaskDelegationService {
   private adapter?: FederatedRegistryAdapter;
   private config: TaskDelegationConfig;
   private history: DelegationResult[] = [];
+  private traceHistory: DelegationTraceEvent[] = [];
+  private requestHistory = new Map<string, DelegationRequest>();
 
   constructor(
     registry: AgentRegistry,
@@ -97,6 +192,14 @@ export class TaskDelegationService {
     const timeout = request.timeout ?? this.config.defaultTimeout;
     const maxRetries = request.retries ?? 0;
 
+    this.requestHistory.set(taskId, { ...request, arguments: { ...request.arguments } });
+    this.emitTrace(taskId, 'start', {
+      targetAgentId: request.targetAgentId,
+      skillId: request.skillId,
+      timeout,
+      maxRetries,
+    });
+
     // Resolve target agent
     const manifest = this.registry.get(request.targetAgentId);
     if (!manifest) {
@@ -108,6 +211,7 @@ export class TaskDelegationService {
         delegatedTo: { agentId: request.targetAgentId, endpoint: 'unknown' },
       };
       this.addToHistory(result);
+      this.emitTrace(taskId, 'rejected', { reason: result.error });
       return result;
     }
 
@@ -117,15 +221,24 @@ export class TaskDelegationService {
     // Retry loop
     let lastError = '';
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      this.emitTrace(taskId, 'attempt', { attempt, maxRetries });
       if (attempt > 0) {
         // Exponential backoff with jitter
         const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 200, 10_000);
+        this.emitTrace(taskId, 'retry', { attempt, delayMs: delay });
         await this.sleep(delay);
       }
 
       try {
         const result = await this.executeWithTimeout(
-          () => this.executeOnAgent(manifest, request.skillId, request.arguments),
+          () =>
+            this.executeOnAgent(
+              manifest,
+              request.skillId,
+              request.arguments,
+              taskId,
+              attempt
+            ),
           timeout
         );
 
@@ -137,6 +250,7 @@ export class TaskDelegationService {
           delegatedTo,
         };
         this.addToHistory(delegationResult);
+        this.emitTrace(taskId, 'success', { attempt });
         return delegationResult;
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
@@ -149,8 +263,10 @@ export class TaskDelegationService {
             delegatedTo,
           };
           this.addToHistory(result);
+          this.emitTrace(taskId, 'timeout', { attempt, timeoutMs: timeout });
           return result;
         }
+        this.emitTrace(taskId, 'failure', { attempt, error: lastError });
         // Continue retrying on non-timeout errors
       }
     }
@@ -164,6 +280,7 @@ export class TaskDelegationService {
       delegatedTo,
     };
     this.addToHistory(result);
+    this.emitTrace(taskId, 'failure', { retriesExhausted: true, error: result.error });
     return result;
   }
 
@@ -219,6 +336,48 @@ export class TaskDelegationService {
   }
 
   /**
+   * Get observability trace events for delegations (optionally filtered by taskId).
+   */
+  getTraceHistory(taskId?: string): DelegationTraceEvent[] {
+    if (!taskId) return [...this.traceHistory];
+    return this.traceHistory.filter((event) => event.taskId === taskId);
+  }
+
+  /**
+   * Replay a previously delegated task using its original request payload.
+   */
+  async replay(taskId: string, overrides: Partial<DelegationRequest> = {}): Promise<DelegationResult> {
+    const original = this.requestHistory.get(taskId);
+    if (!original) {
+      throw new Error(`Replay unavailable for taskId: ${taskId}`);
+    }
+
+    const replayRequest: DelegationRequest = {
+      ...original,
+      ...overrides,
+      arguments: {
+        ...original.arguments,
+        ...(overrides.arguments ?? {}),
+      },
+    };
+
+    this.emitTrace(taskId, 'replay_requested', {
+      targetAgentId: replayRequest.targetAgentId,
+      skillId: replayRequest.skillId,
+    });
+
+    try {
+      const replayResult = await this.delegateTo(replayRequest);
+      this.emitTrace(taskId, 'replay_completed', { replayTaskId: replayResult.taskId });
+      return replayResult;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.emitTrace(taskId, 'replay_failed', { error: message });
+      throw error;
+    }
+  }
+
+  /**
    * Get delegation stats.
    */
   getStats(): {
@@ -247,7 +406,9 @@ export class TaskDelegationService {
   private async executeOnAgent(
     manifest: AgentManifest,
     skillId: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    taskId: string,
+    attempt: number
   ): Promise<unknown> {
     const endpoint = this.getPrimaryEndpoint(manifest);
 
@@ -261,7 +422,7 @@ export class TaskDelegationService {
 
     // Remote agent: A2A JSON-RPC sendMessage
     if (endpoint.protocol === 'http' || endpoint.protocol === 'https') {
-      return this.executeRemote(endpoint.address, skillId, args);
+      return this.executeRemote(endpoint.address, skillId, args, taskId, attempt);
     }
 
     throw new Error(`Unsupported endpoint protocol: ${endpoint.protocol}`);
@@ -273,32 +434,45 @@ export class TaskDelegationService {
   private async executeRemote(
     endpointUrl: string,
     skillId: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    taskId: string,
+    attempt: number
   ): Promise<unknown> {
     const fetchFn = this.config.fetchFn || globalThis.fetch;
+    const idempotencyKey =
+      this.config.idempotencyKeyFactory?.({
+        taskId,
+        attempt,
+        endpointUrl,
+        skillId,
+      }) ?? `hs-delegation-${taskId}-attempt-${attempt}`;
 
-    const jsonRpcRequest = {
-      jsonrpc: '2.0',
-      id: randomUUID(),
-      method: 'a2a.sendMessage',
-      params: {
-        message: {
-          role: 'user',
-          parts: [
-            {
-              type: 'data',
-              data: { skillId, arguments: args },
-              mimeType: 'application/json',
-            },
-          ],
-          timestamp: new Date().toISOString(),
-        },
-      },
-    };
+    const envelope = createCanonicalTaskEnvelope({
+      id: taskId,
+      intent: skillId,
+      skillId,
+      input: args,
+      idempotency_key: idempotencyKey,
+      timeout: this.config.defaultTimeout,
+    });
+
+    const jsonRpcRequest = canonicalTaskToA2ASendMessage(envelope, randomUUID());
+
+    if (this.config.transportAdapter) {
+      return this.config.transportAdapter.send({
+        endpointUrl,
+        requestBody: jsonRpcRequest as Record<string, unknown>,
+        idempotencyKey,
+        fetchFn,
+      });
+    }
 
     const response = await fetchFn(endpointUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
       body: JSON.stringify(jsonRpcRequest),
     });
 
@@ -343,8 +517,29 @@ export class TaskDelegationService {
   private addToHistory(result: DelegationResult): void {
     this.history.push(result);
     while (this.history.length > this.config.maxHistory) {
-      this.history.shift();
+      const evicted = this.history.shift();
+      if (evicted) {
+        this.requestHistory.delete(evicted.taskId);
+      }
     }
+  }
+
+  /**
+   * Emit and store delegation observability traces.
+   */
+  private emitTrace(
+    taskId: string,
+    phase: DelegationTracePhase,
+    metadata?: Record<string, unknown>
+  ): void {
+    const event: DelegationTraceEvent = {
+      taskId,
+      phase,
+      timestamp: new Date().toISOString(),
+      ...(metadata ? { metadata } : {}),
+    };
+    this.traceHistory.push(event);
+    this.config.traceHook?.(event);
   }
 
   /**
