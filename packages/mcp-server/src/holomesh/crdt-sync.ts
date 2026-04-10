@@ -397,7 +397,8 @@ Insight("${this.agentDid}_${Date.now()}") {
     if (!raw || typeof raw !== 'string') return null;
     try {
       return JSON.parse(raw);
-    } catch {
+    } catch (e) {
+      console.warn(`[crdt-sync] Failed to parse reputation for agent ${agentDid}: ${(e as Error)?.message}. Raw data: ${String(raw).slice(0, 80)}. Entry skipped.`);
       return null;
     }
   }
@@ -966,7 +967,8 @@ Insight("${this.agentDid}_${Date.now()}") {
       this.reconsolidationWindows.set(entryId, reconEvent);
 
       return { entry, reconsolidation: reconEvent };
-    } catch {
+    } catch (e) {
+      console.warn(`[crdt-sync] Failed to deserialize knowledge entry ${domain}/${entryId}: ${(e as Error)?.message}. Raw: ${String(raw).slice(0, 80)}. Entry skipped — may need manual repair.`);
       return null;
     }
   }
