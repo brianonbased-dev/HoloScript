@@ -993,7 +993,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     optimistic: true,
   },
 
-  onAttach(node: HSPlusNode, config: CreditTraitConfig, context: TraitContext): void {
+  onAttach(node: HSPlusNode, config: CreditTraitConfig, context?: TraitContext): void {
     const facilitator = new X402Facilitator({
       recipientAddress: config.recipient,
       chain: config.chain,
@@ -1017,7 +1017,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
 
     node.__creditState = state;
 
-    context.emit?.('credit:initialized', {
+    context?.emit?.('credit:initialized', {
       price: config.price,
       chain: config.chain,
       recipient: config.recipient,
