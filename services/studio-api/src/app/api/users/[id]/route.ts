@@ -19,7 +19,21 @@ export async function GET(
 
   const db = getDb();
   if (!db) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    return NextResponse.json({
+      user: {
+        id,
+        name: 'Unknown user',
+        avatar: null,
+        bio: null,
+        website: null,
+        joinedAt: new Date(0).toISOString(),
+      },
+      projects: [],
+      listings: [],
+      degraded: true,
+      reason: 'DATABASE_URL not configured',
+      mcpProxy: '/api/mcp/call',
+    });
   }
 
   // Fetch user
@@ -123,7 +137,15 @@ export async function PUT(
 
   const db = getDb();
   if (!db) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    return NextResponse.json(
+      {
+        ok: false,
+        degraded: true,
+        reason: 'DATABASE_URL not configured',
+        mcpProxy: '/api/mcp/call',
+      },
+      { status: 202 }
+    );
   }
 
   // Upsert creator profile

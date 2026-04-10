@@ -285,7 +285,24 @@ export async function POST(request: NextRequest) {
 
   const db = getDb();
   if (!db) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    return NextResponse.json(
+      {
+        asset: {
+          id: assetId,
+          url,
+          thumbnailUrl: body.thumbnailUrl ?? null,
+          name: body.name ?? null,
+          metadata: {
+            ...(body.metadata ?? {}),
+            status: 'ready',
+          },
+        },
+        degraded: true,
+        reason: 'DATABASE_URL not configured',
+        mcpProxy: '/api/mcp/call',
+      },
+      { status: 202 }
+    );
   }
 
   const [updated] = await db

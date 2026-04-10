@@ -13,13 +13,11 @@ import { eq, and } from 'drizzle-orm';
  */
 
 async function requireOrgAccess(
+  db: NonNullable<ReturnType<typeof getDb>>,
   userId: string,
   orgId: string,
   requiredRole?: string
 ) {
-  const db = getDb();
-  if (!db) return { error: 'Database not configured', status: 503 };
-
   const [membership] = await db
     .select()
     .from(orgMembers)
@@ -47,12 +45,21 @@ export async function GET(
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
-  const access = await requireOrgAccess(auth.user.id, orgId);
+  const db = getDb();
+  if (!db) {
+    return NextResponse.json({
+      members: [],
+      degraded: true,
+      reason: 'DATABASE_URL not configured',
+      mcpProxy: '/api/mcp/call',
+    });
+  }
+
+  const access = await requireOrgAccess(db, auth.user.id, orgId);
   if ('error' in access) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const db = getDb()!;
   const members = await db
     .select({
       userId: orgMembers.userId,
@@ -86,8 +93,21 @@ export async function POST(
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
+  const db = getDb();
+  if (!db) {
+    return NextResponse.json(
+      {
+        ok: false,
+        degraded: true,
+        reason: 'DATABASE_URL not configured',
+        mcpProxy: '/api/mcp/call',
+      },
+      { status: 202 }
+    );
+  }
+
   // Only admins/owners can add members
-  const access = await requireOrgAccess(auth.user.id, orgId, 'admin');
+  const access = await requireOrgAccess(db, auth.user.id, orgId, 'admin');
   if ('error' in access) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
@@ -107,8 +127,6 @@ export async function POST(
   if (!['member', 'admin'].includes(role)) {
     return NextResponse.json({ error: 'role must be "member" or "admin"' }, { status: 400 });
   }
-
-  const db = getDb()!;
 
   // Find user by email
   const [user] = await db
@@ -162,8 +180,21 @@ export async function DELETE(
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
+  const db = getDb();
+  if (!db) {
+    return NextResponse.json(
+      {
+        ok: false,
+        degraded: true,
+        reason: 'DATABASE_URL not configured',
+        mcpProxy: '/api/mcp/call',
+      },
+      { status: 202 }
+    );
+  }
+
   // Only owners can remove members
-  const access = await requireOrgAccess(auth.user.id, orgId, 'owner');
+  const access = await requireOrgAccess(db, auth.user.id, orgId, 'owner');
   if ('error' in access) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
@@ -178,7 +209,6 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot remove yourself as owner' }, { status: 400 });
   }
 
-  const db = getDb()!;
   const deleted = await db
     .delete(orgMembers)
     .where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, targetUserId)))
