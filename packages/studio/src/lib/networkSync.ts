@@ -242,7 +242,7 @@ export function snapshotDiff(
   unchanged: string[];
 } {
   const delta = deltaCompress(a, b);
-  const aIds = new Set(a.entities.map((e) => e.id));
+  const _aIds = new Set(a.entities.map((e) => e.id));
   const bIds = new Set(b.entities.map((e) => e.id));
   const unchanged = a.entities
     .filter((e) => bIds.has(e.id) && !delta.changes.some((d) => d.id === e.id))
@@ -294,3 +294,4 @@ export function networkQuality(
   if (rttMs < 500) return 'poor';
   return 'disconnected';
 }
+

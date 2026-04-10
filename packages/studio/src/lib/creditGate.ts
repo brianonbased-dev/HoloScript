@@ -215,8 +215,9 @@ export async function deductCredits(
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  } catch (err) {
+  }  catch (_err) {
     dlq.push({ userId, operation, timestamp: Date.now() });
     console.error(`[creditGate] Failed to deduct credits for ${userId}/${operation}. Queued for retry.`);
   }
 }
+

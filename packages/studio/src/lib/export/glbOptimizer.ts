@@ -53,7 +53,7 @@ export interface CacheEntry {
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const CACHE_NAME = 'holoscript-glb-cache-v1';
+const _CACHE_NAME = 'holoscript-glb-cache-v1';
 const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 const CACHE_MAX_SIZE = 500 * 1024 * 1024; // 500MB total cache size
 
@@ -337,7 +337,7 @@ export class OptimizedGLBLoader {
     return allChunks.buffer;
   }
 
-  private parseArrayBuffer(arrayBuffer: ArrayBuffer, url: string): Promise<GLTF> {
+  private parseArrayBuffer(arrayBuffer: ArrayBuffer, _url: string): Promise<GLTF> {
     return new Promise((resolve, reject) => {
       this.loader.parse(
         arrayBuffer,
@@ -500,3 +500,5 @@ if (typeof window !== 'undefined') {
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 export { glbCache };
+
+

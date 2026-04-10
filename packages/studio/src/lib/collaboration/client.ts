@@ -10,7 +10,6 @@ import type { Awareness } from 'y-protocols/awareness';
 import type {
   User,
   UserPresence,
-  CollaborationSession,
   AwarenessState,
   ConnectionStatus,
   ChatMessage,
@@ -335,3 +334,4 @@ export function getCollaborationClient(config?: CollaborationClientConfig): Coll
 export function setCollaborationClient(client: CollaborationClient) {
   collaborationClientInstance = client;
 }
+

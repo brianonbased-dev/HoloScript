@@ -350,9 +350,9 @@ export function getCustomKeyboardShortcuts() {
  * Auto-enable plugins marked for auto-enable on startup
  */
 export async function initializePlugins() {
-  const { plugins, enablePlugin } = usePluginManager.getState();
+  const { plugins, _enablePlugin } = usePluginManager.getState();
 
-  for (const [id, entry] of plugins.entries()) {
+  for (const [_id, entry] of plugins.entries()) {
     if (entry.installed && !entry.enabled) {
       // Check if plugin should be auto-enabled (saved state)
       // For now, we'll skip auto-enable to avoid conflicts
@@ -361,3 +361,4 @@ export async function initializePlugins() {
     }
   }
 }
+
