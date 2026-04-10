@@ -1,6 +1,30 @@
-# HoloScript Studio — Full Audit (2026-04-09)
+# HoloScript Studio — Full Audit (2026-04-10)
 
 302 components, 203 lib files, 60 industry files, 74 API routes, 34 pages audited.
+
+---
+
+## 🔄 DELTA RE-AUDIT (task_1775721964311_iiwz)
+
+This pass re-validates the audit against post-2026-04-01 architecture changes.
+
+### Newly validated since older audit snapshots
+
+- **Native HoloScript hosting:** `@holoscript/nextjs-compiler` integration and `.holo` page support are now represented in Studio architecture notes.
+- **Universal access path:** `/start` OAuth2/GitHub provisioning flow is integrated into the Studio onboarding sequence.
+- **Team board UX:** `/teams/[id]/board` is now in the route inventory and no longer treated as a missing surface.
+- **Task chaining UX:** `/pipeline/chaining` exists and should be treated as shipped (not planned-only).
+- **Dockerfile dependency closure:** `packages/studio/Dockerfile` now includes `connector-core` build/copy steps, closing a prior packaging gap.
+
+### Remaining gaps that still require work
+
+- **Config unification:** runtime/environment config is still partially fragmented; full migration to `@holoscript/config` conventions remains incomplete.
+- **Studio API contract coverage:** route behavior under degraded infrastructure (DB/MCP partial outages) still needs a focused contract test lane.
+- **Score coherence:** several sections are marked “FIXED” while corresponding score dimensions still understate progress.
+
+### Re-audit decision
+
+The studio is **no longer blocked by “not HoloScript-native”** concerns. The current risk profile has shifted from foundational architecture to consistency/verification (config standardization + API contract tests).
 
 ---
 
@@ -98,13 +122,13 @@ Includes items in AssetImportDropZone, MarketplacePanel, and DiagnosticsPanel.
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
-| Feature Completeness | 9/10 | 26+ complete pages, missing Holo Mesh universal team tools |
-| Code Quality | 9/10 | Architecture cleanup applied, `any` and swallowed catches fixed. |
-| Test Coverage | 3/10 | Still lacking e2e coverage for UI rendering paths |
-| Security | 7/10 | CSP Active, overrides resolved high-sev CVEs |
-| Performance | 8/10 | Good lazy loading, Web Workers active |
-| Accessibility | 6/10 | Missing Error Boundaries for graceful UI fallbacks |
-| Maintainability | 9/10 | Clean, type-safe architecture. Oversized trees effectively being split. |
-| Architecture Alignment | 9/10 | Architecture aligned with NextJSCompiler allowing native execution of `.holo` sources. |
+| Feature Completeness | 9/10 | Native hosting, board UX, and chaining UX are now present; remaining gaps are mostly polish/integration. |
+| Code Quality | 9/10 | Architecture cleanup applied, `any` and swallowed catches largely addressed. |
+| Test Coverage | 5/10 | Improved from prior state, but still lacks dedicated Studio API contract lane and deeper end-to-end coverage. |
+| Security | 8/10 | CSP and key-handling hardening in place; continue tightening auth and route-level guarantees. |
+| Performance | 8/10 | Good lazy loading and worker usage; monitor bundle growth and route hot paths. |
+| Accessibility | 6/10 | Core coverage improved; additional subtree boundaries and interaction audits still needed. |
+| Maintainability | 9/10 | Major modularization complete; remaining work is consistency and test enforcement. |
+| Architecture Alignment | 10/10 | Studio is now aligned with HoloScript-native execution and no longer structurally off-model. |
 
-**Overall: 8.5/10 — Secure, functional, and fundamentally transformed by the native HoloScript (.holo) compiler pipeline.**
+**Overall: 8.8/10 — Architecture is now aligned; the next quality jump comes from contract testing and config convergence, not core rewrites.**
