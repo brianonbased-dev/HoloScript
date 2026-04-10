@@ -993,7 +993,7 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
     optimistic: true,
   },
 
-  onAttach(node: HSPlusNode, config: CreditTraitConfig, context?: TraitContext): void {
+  onAttach(node: HSPlusNode, config: CreditTraitConfig, context: TraitContext): void {
     const facilitator = new X402Facilitator({
       recipientAddress: config.recipient,
       chain: config.chain,
@@ -1975,3 +1975,4 @@ export class PaymentGateway {
     this.eventCounter = 0;
   }
 }
+
