@@ -53,11 +53,11 @@ class MemStore {
     return Promise.resolve(this.data.get(String(key)) ?? null);
   }
 
-  getAll(query?: unknown) {
+  getAll(_query?: unknown) {
     return Promise.resolve(Array.from(this.data.values()));
   }
 
-  getAllKeys(query?: unknown) {
+  getAllKeys(_query?: unknown) {
     return Promise.resolve(Array.from(this.data.keys()));
   }
 
@@ -118,14 +118,14 @@ class MemDatabase {
   private stores: Map<string, MemStore> = new Map();
   objectStoreNames = { contains: (name: string) => this.stores.has(name) };
 
-  createObjectStore(name: string, opts?: { keyPath?: string }) {
+  createObjectStore(name: string, _opts?: { keyPath?: string }) {
     const store = new MemStore();
     this.stores.set(name, store);
     return store;
   }
 
-  transaction(storeNames: string | string[], mode?: string) {
-    const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+  transaction(storeNames: string | string[], _mode?: string) {
+    const _names = Array.isArray(storeNames) ? storeNames : [storeNames];
     const tx: Record<string, MemStore> & {
       done: Promise<void>;
       objectStore: (n: string) => MemStore;
@@ -238,3 +238,4 @@ if (!('memory' in performance)) {
 if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView = vi.fn();
 }
+

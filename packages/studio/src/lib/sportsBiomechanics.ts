@@ -142,7 +142,7 @@ export function vo2AtIntensity(vo2Max: number, intensityPercent: number): number
   return vo2Max * (intensityPercent / 100);
 }
 
-export function caloriesBurned(vo2Ml: number, durationMin: number, massKg: number): number {
+export function caloriesBurned(vo2Ml: number, durationMin: number, _massKg: number): number {
   // kcal ≈ VO₂ (L/min) × 5.0 × duration
   return (vo2Ml / 1000) * 5.0 * durationMin;
 }
@@ -225,3 +225,4 @@ export function motionCaptureReplay(
       .map((j) => `⚠ ${j.joint}: ${j.angleDeg.toFixed(0)}° (extreme)`),
   }));
 }
+

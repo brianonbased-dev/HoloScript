@@ -63,8 +63,7 @@ export function groupNodes(
  * Returns nodes with a `depth` field for indentation.
  */
 export function flattenSceneGraph(nodes: SceneNode[]): Array<SceneNode & { depth: number }> {
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const children = new Map<string | null, SceneNode[]>();
+    const children = new Map<string | null, SceneNode[]>();
   for (const n of nodes) {
     const key = n.parentId ?? null;
     if (!children.has(key)) children.set(key, []);
@@ -171,3 +170,4 @@ export function computeBounds(nodes: SceneNode[]): {
     center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
   };
 }
+

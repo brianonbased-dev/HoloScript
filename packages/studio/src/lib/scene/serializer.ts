@@ -15,7 +15,7 @@
  * simple base64 (no compression).
  */
 
-import type { SceneNode, TraitConfig } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 import type { Asset } from '@/components/assets/useAssetStore';
 
 // ─── Format types ────────────────────────────────────────────────────────────
@@ -191,3 +191,4 @@ export async function copyShareURL(scene: HoloScene): Promise<void> {
   const url = `${window.location.origin}/create?scene=${encoded}`;
   await navigator.clipboard.writeText(url);
 }
+
