@@ -61,6 +61,9 @@ export default defineConfig({
       clean: true,
     },
   },
+  esbuild: {
+    jsxInject: `import React from 'react'`,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

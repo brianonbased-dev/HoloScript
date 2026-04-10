@@ -147,7 +147,12 @@ const ScenarioCard = React.memo(function ScenarioCard({
       </div>
     </div>
   );
-});
+}, (prev, next) => (
+  prev.scenario.id === next.scenario.id &&
+  prev.isActive === next.isActive &&
+  prev.className === next.className &&
+  prev.onSelect === next.onSelect
+));
 ScenarioCard.displayName = 'ScenarioCard';
 
 export { ScenarioCard };

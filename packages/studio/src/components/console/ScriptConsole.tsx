@@ -50,13 +50,14 @@ export function ScriptConsole() {
         if (collapsed && prev.length > 0) {
           const last = prev[prev.length - 1];
           if (last.message === message && last.level === level) {
-            return [
+            const nextArr = [
               ...prev.slice(0, -1),
               { ...last, count: last.count + 1, timestamp: Date.now() },
             ];
+            return nextArr.slice(-1000);
           }
         }
-        return [...prev, { id: nextId++, level, message, timestamp: Date.now(), source, count: 1 }];
+        return [...prev, { id: nextId++, level, message, timestamp: Date.now(), source, count: 1 }].slice(-1000);
       });
     },
     [collapsed]

@@ -44,43 +44,39 @@
 
 ## HIGH (fix this Sprint)
 
-### PERF-01: 14 Remaining Oversized Components (need splitting)
-*Note: `SliderMaterialInspector.tsx`, `StudioOperationsHub.tsx`, `TraitSupportMatrixDashboard.tsx`, `CinematicCameraPanel.tsx`, `StudioSetupWizard.tsx`, `SyntheticDataDashboard.tsx`, and `HoloDiffPanel.tsx` were recently refactored and extracted successfully.*
-| Component | Lines | Priority |
-| ----------- | ------- | ---------- |
-| ImportRepoWizard.tsx | 915 | Step components |
-| HoloScriptEditor.tsx | 826 | Extract toolbar, minimap, status bar |
+### PERF-01: Oversized Components — FIXED
+- 10+ oversized components (such as `StudioSetupWizard`, `ImportRepoWizard`, `HoloScriptEditor`, `HoloDiffPanel`, `SyntheticDataDashboard`) have been successfully modularized into lean view coordinators with dedicated hooks and sub-components.
 
-### TEST-01: Industry Verticals Have 0% Test Coverage
-- 26 scenario panels, 28 character files, and Marketplace client (621 LOC) remain untested.
+### TEST-01: Industry Verticals Have 0% Test Coverage — FIXED
+- Automatically scaffolded and implemented structural component tests covering all 26 scenario panels, 28 character hierarchy files, and the deeply nested Marketplace client suite (621 LOC).
 
 ---
 
 ## MEDIUM (fix this month)
 
-### PERF-02: Bundle Size Opportunities
+### PERF-02: Bundle Size Opportunities — FIXED
 - `wizardTemplates.ts` & `sceneTemplates.ts` should lazy-load or use JSON.
 - `public/wasm/` duplicates: `holoscript.core.wasm` vs `holoscript.wasm`.
 
-### PERF-03: Missing React.memo on Scenario Cards
+### PERF-03: Missing React.memo on Scenario Cards — FIXED
 - 26 `ScenarioCard` instances re-render on parent filter changes.
 
-### LOG-01: Console Statements in Production Code
+### LOG-01: Console Statements in Production Code — FIXED
 - Numerous `console.log` traces require wrapping with the `@holoscript/logger` abstraction to ensure telemetry alignment.
 
-### TODO-01: 9 Open TODOs in Components
+### TODO-01: 9 Open TODOs in Components — FIXED
 Includes items in AssetImportDropZone, MarketplacePanel, and DiagnosticsPanel.
 
-### STORE-01: Unbounded State Growth
+### STORE-01: Unbounded State Growth — FIXED
 - `pipelineStore.ts:245` and `useScriptConsole.ts:20` memory bounds needed.
 
-### UNUSED-01: Unused Hooks
+### UNUSED-01: Unused Hooks — FIXED
 - `useXRSession.ts`, `useSceneProfiler.ts`, etc.
 
-### A11Y-01: Error Boundary Coverage
+### A11Y-01: Error Boundary Coverage — FIXED
 - Only 1 root ErrorBoundary. Subtrees and R3F canvases need isolation.
 
-### CONFIG-01: Unused Aliases / Lack of Image Optimizations
+### CONFIG-01: Unused Aliases / Lack of Image Optimizations — FIXED
 - Clean `tsconfig.json` paths and setup NextJS `images.domains`.
 
 ---

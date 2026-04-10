@@ -12,9 +12,9 @@
  *   - Both filters combine
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { SCENE_TEMPLATES, searchTemplates, type SceneTemplate } from '@/lib/sceneTemplates';
+import type { SceneTemplate } from '@/lib/sceneTemplates';
 import { useSceneStore } from '@/lib/stores';
 
 interface TemplatePickerProps {
@@ -86,24 +86,34 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const [templatesList, setTemplatesList] = useState<SceneTemplate[]>([]);
+  const [searchFn, setSearchFn] = useState<((q: string) => SceneTemplate[]) | null>(null);
+
+  useEffect(() => {
+    import('@/lib/sceneTemplates').then((m) => {
+      setTemplatesList(m.SCENE_TEMPLATES);
+      setSearchFn(() => m.searchTemplates);
+    });
+  }, []);
+
   const setCode = useSceneStore((s) => s.setCode);
   const setMetadata = useSceneStore((s) => s.setMetadata);
   const markClean = useSceneStore((s) => s.markClean);
 
   // Derive unique sorted categories
   const categories = useMemo(() => {
-    const cats = new Set(SCENE_TEMPLATES.map((t) => t.category ?? 'General'));
+    const cats = new Set(templatesList.map((t) => t.category ?? 'General'));
     return Array.from(cats).sort();
-  }, []);
+  }, [templatesList]);
 
   // Combined filter: search query + active category
   const results = useMemo(() => {
-    let list = searchTemplates(query);
+    let list = searchFn ? searchFn(query) : [];
     if (activeCategory) {
       list = list.filter((t) => (t.category ?? 'General') === activeCategory);
     }
     return list;
-  }, [query, activeCategory]);
+  }, [query, activeCategory, searchFn]);
 
   const handleSelect = useCallback(
     (template: SceneTemplate) => {
