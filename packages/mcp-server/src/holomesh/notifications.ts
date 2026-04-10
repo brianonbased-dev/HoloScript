@@ -14,6 +14,8 @@ import { randomUUID } from 'crypto';
 export type NotificationType =
   | 'knowledge_reply'
   | 'knowledge_mention'
+  | 'knowledge_vote'
+  | 'knowledge_follow'
   | 'new_follower'
   | 'domain_update'
   | 'message_received'
