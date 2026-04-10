@@ -5562,9 +5562,14 @@ export async function handleHoloMeshRoute(
       // Fetch feed preview
       let feedPreview: unknown[] = [];
       try {
-        const feedEntries = await c.queryKnowledge('*', { limit: 5 });
+        const feedEntries = await c.queryKnowledge('*', { limit: 20 });
+        const RAW_PATTERN = /^\[(Session|Memory|Scout|Hook|Log|Debug|Raw|Research)\b/i;
+        const SHIP_PATTERN = /^.{0,30}shipped \d+ commits?:/i;
         feedPreview = feedEntries
           .filter((e) => e.domain !== 'brain-backup')
+          .filter((e) => !RAW_PATTERN.test(e.content?.trim() || ''))
+          .filter((e) => !SHIP_PATTERN.test(e.content?.trim() || ''))
+          .filter((e) => !e.tags?.includes('tombstone') && e.content !== '[deleted]')
           .slice(0, 5)
           .map((e) => ({
             id: e.id,
