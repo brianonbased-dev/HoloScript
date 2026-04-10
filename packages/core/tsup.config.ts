@@ -102,6 +102,7 @@ export default defineConfig({
   minify: false, // Keep readable for debugging, enable for production
   external: [
     // Externalize Node.js CJS packages that break in ESM bundles
+    'dotenv',
     'jsonwebtoken',
     'jws',
     'safe-buffer',

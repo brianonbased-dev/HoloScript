@@ -158,7 +158,7 @@ async function initializeCreditSystem(): Promise<void> {
   if (db) {
     try {
       const { setDbProvider } = await import('@holoscript/absorb-service/credits');
-      setDbProvider(db);
+      setDbProvider(() => db);
       console.log('[absorb-service] Credit system initialized with database');
     } catch (e: any) {
       console.warn('[absorb-service] Credit system init skipped:', e.message);
@@ -169,11 +169,10 @@ async function initializeCreditSystem(): Promise<void> {
 }
 
 // --- Start server ---
-// @ts-expect-error - TS2307 structural type mismatch
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 
 async function start(): Promise<void> {
-  requireConfig(REQUIRED_VARS.ABSORB_SERVICE, 'absorb-service');
+  requireConfig([...REQUIRED_VARS.ABSORB_SERVICE], 'absorb-service');
   await initializeCreditSystem();
 
   const server = app.listen(PORT, () => {

@@ -24,15 +24,15 @@ router.get('/balance', async (req: Request, res: Response) => {
     const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const account = await getOrCreateAccount(userId);
-    const balance = await checkBalance(userId);
+    const balance = await (checkBalance as Function)(userId, 0) as any;
 
     res.json({
       userId,
-      balanceCents: account.balanceCents,
-      tier: account.tier,
-      canAfford: balance,
-      lifetimeSpent: account.lifetimeSpentCents,
-      lifetimePurchased: account.lifetimePurchasedCents,
+      balanceCents: account?.balanceCents ?? 0,
+      tier: account?.tier ?? 'free',
+      canAfford: balance.sufficient,
+      lifetimeSpent: account?.lifetimeSpentCents ?? 0,
+      lifetimePurchased: account?.lifetimePurchasedCents ?? 0,
     });
   } catch (error: any) {
     console.error('[credits/balance] Error:', error.message);
@@ -52,7 +52,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
       const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
       await addCredits(userId, body.amountCents, 'Direct purchase (dev mode)', {
-        mode: 'development',
+        metadata: { mode: 'development' },
       });
 
       res.json({
