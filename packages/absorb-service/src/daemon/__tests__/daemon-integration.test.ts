@@ -1,24 +1,17 @@
+/**
+ * Daemon Integration Tests
+ * Moved from packages/core/src/cli/__tests__/holoscript-daemon-integration.test.ts
+ * Tests belong here because they import createDaemonActions from absorb-service.
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// @holoscript/absorb-service is not a dependency of @holoscript/core.
-// These tests belong in packages/absorb-service. Skipped until moved.
-// import {
-//   createDaemonActions,
-//   type DaemonConfig,
-//   type DaemonExecResult,
-//   type DaemonHost,
-//   type LLMProvider,
-// } from '@holoscript/absorb-service/daemon';
-
-type DaemonExecResult = { code: number; stdout: string; stderr: string };
-type DaemonHost = unknown;
-type DaemonConfig = Record<string, unknown>;
-type LLMProvider = unknown;
-const createDaemonActions = (
-  ..._args: unknown[]
-): { actions: Record<string, (...a: unknown[]) => Promise<boolean>> } => {
-  throw new Error('skipped');
-};
+import {
+  createDaemonActions,
+  type DaemonConfig,
+  type DaemonExecResult,
+  type DaemonHost,
+  type LLMProvider,
+} from '../daemon-actions';
 
 type Blackboard = Record<string, unknown>;
 
@@ -79,7 +72,7 @@ function createConfig(): DaemonConfig {
   };
 }
 
-describe.skip('holoscript daemon integration (absorb-service not available in core)', () => {
+describe('holoscript daemon integration', () => {
   let host: MockHost;
   let llm: LLMProvider;
   let blackboard: Blackboard;
@@ -112,7 +105,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     host.seedFile('.holoscript/accumulated-wisdom.json', JSON.stringify([{ pattern: 'typefix' }]));
     host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const ok = await actions.identity_intake({}, blackboard, context);
 
     expect(ok).toBe(true);
@@ -136,7 +129,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
       return { code: 0, stdout: '', stderr: '' };
     });
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
 
@@ -157,11 +150,11 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     blackboard.focus = 'typefix';
     blackboard.perFileErrors = {
       'packages/core/src/example.ts': [
-        'packages/core/src/example.ts(1,14): error TS2322: Type \"false\" is not assignable to type \"true\".',
+        'packages/core/src/example.ts(1,14): error TS2322: Type "false" is not assignable to type "true".',
       ],
     };
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(true);
@@ -192,7 +185,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
       })),
     };
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(false);
@@ -215,7 +208,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     blackboard.focus = 'target-sweep';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -247,7 +240,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     blackboard.focus = 'trait-sampling';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -278,7 +271,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     blackboard.focus = 'runtime-matrix';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -307,7 +300,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     blackboard.focus = 'absorb-roundtrip';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -324,7 +317,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
   it('blocks shell_exec when shell access is disabled by policy', async () => {
     host.setExecResponses(() => ({ code: 0, stdout: 'ok', stderr: '' }));
 
-    const { actions } = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       toolPolicy: {
         allowShell: false,
@@ -337,7 +330,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
   });
 
   it('enforces file_write path sandbox policy', async () => {
-    const { actions } = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       toolPolicy: {
         allowedPaths: ['packages/core/src'],
@@ -362,7 +355,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
   });
 
   it('blocks web_fetch for non-allowlisted hosts', async () => {
-    const { actions } = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       toolPolicy: {
         allowedHosts: ['api.openai.com'],
@@ -375,7 +368,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
   });
 
   it('creates a runtime skill file in the configured skills directory', async () => {
-    const { actions } = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       skillsDir: 'compositions/skills',
       toolPolicy: {
@@ -400,7 +393,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
   });
 
   it('writes outbound channel messages to queue and ingests inbound messages', async () => {
-    const { actions } = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, createConfig());
 
     const sent = await actions.channel_send(
       {
@@ -428,8 +421,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     host.writeFile('packages/core/src/test.ts', 'console.log("x");');
     host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
 
-    // With a positive budget, first call goes through (no prior spend)
-    const { actions } = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       economyConfig: { budget: 5.0 },
     });
@@ -441,8 +433,7 @@ describe.skip('holoscript daemon integration (absorb-service not available in co
     expect(typeof first).toBe('boolean');
     expect(blackboard.budget_exhausted).toBeUndefined();
 
-    // With budget=0 (unlimited), should also proceed
-    const { actions: unlimitedActions } = createDaemonActions(host, llm, {
+    const { actions: unlimitedActions } = createDaemonActions(host as unknown as DaemonHost, llm, {
       ...createConfig(),
       economyConfig: { budget: 0 },
     });

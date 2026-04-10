@@ -71,6 +71,7 @@ describe('Hot-Reload & State Migration', () => {
   });
 
   it('should detect template version increase and run migration blocks', async () => {
+    // V1: template with version 1
     const codeV1 = `
       template BaseOrb {
         @version(1)
@@ -89,7 +90,7 @@ describe('Hot-Reload & State Migration', () => {
     expect(orbV1.properties.size).toBe(0.5);
     expect(orbV1.properties.legacyScale).toBe(2);
 
-    // V2: version bump should be detected
+    // V2: template with version 2 and migration block
     const codeV2 = `
       template BaseOrb {
         @version(2)
@@ -104,19 +105,33 @@ describe('Hot-Reload & State Migration', () => {
     `;
 
     const resultV2 = parser.parse(codeV2);
+    // Verify the parser captured the migration block
+    const templateNode = resultV2.ast.find(
+      (n: any) => n.type === 'template' && n.name === 'BaseOrb'
+    ) as any;
+    expect(templateNode).toBeDefined();
+    expect(templateNode.version).toBe(2);
+    expect(templateNode.migrations).toBeDefined();
+    expect(templateNode.migrations.length).toBe(1);
+    expect(templateNode.migrations[0].fromVersion).toBe(1);
+
+    // Re-evaluate: version increase should be detected and migration should run without error
     await runtime.execute(resultV2.ast);
 
     const orbV2 = runtime.getVariable('TestOrb') as any;
     expect(orbV2).toBeDefined();
-    // Template properties updated to v2
+    // Template properties are updated to v2 values
     expect(orbV2.properties.size).toBe(1.0);
-    // @state preserved across hot-reload
+    // @state properties are preserved across hot-reload
     expect(orbV2.properties.legacyScale).toBe(2);
   });
 
   it.todo(
-    // Migration body eval needs HoloScript property assignment support
-    // (this.properties.x = ...) which the evaluator doesn't handle yet
+    // The migration body is parsed as HoloScript, not JS. The HoloScript evaluator
+    // can execute `let x = value` but cannot do dotted property assignment like
+    // `this.properties.size = this.properties.size * 2`. Until the runtime supports
+    // property mutation expressions in migration bodies (e.g. via a JS sandbox or
+    // extended HoloScript assignment syntax), this test cannot be implemented.
     'should execute migration body expressions when template version increases (requires JS evaluator)'
   );
 });

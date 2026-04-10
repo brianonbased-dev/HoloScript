@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -46,17 +46,23 @@ function startDaemon(): DaemonHarness {
     'utf-8'
   );
 
-  // Always use tsx to run from source — the compiled dist bundle has ESM/CJS
-  // compat issues (dotenv uses require('fs') which fails in ESM bundles).
-  const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
-  const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
-  const spawnArgs = [
-    tsxCliPath,
-    path.resolve(__dirname, '../holoscript-runner.ts'),
-    'run',
-    sourcePath,
-    '--daemon',
-  ];
+  // Prefer pre-built JS (CI path, fast startup). Fall back to tsx for local dev.
+  const compiledRunnerPath = path.resolve(__dirname, '../../../dist/cli/holoscript-runner.js');
+  const useCompiled = existsSync(compiledRunnerPath);
+
+  const spawnArgs = useCompiled
+    ? [compiledRunnerPath, 'run', sourcePath, '--daemon']
+    : (() => {
+        const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
+        const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
+        return [
+          tsxCliPath,
+          path.resolve(__dirname, '../holoscript-runner.ts'),
+          'run',
+          sourcePath,
+          '--daemon',
+        ];
+      })();
 
   const proc = spawn(process.execPath, spawnArgs, {
     cwd: path.resolve(__dirname, '../../../..'),
