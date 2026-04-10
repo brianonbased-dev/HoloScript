@@ -9,27 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// WalletTrait, TokenGatedTrait, NFTTrait modules were never created.
-// Provide minimal stubs so module-level code doesn't crash.
-const walletHandler = {
-  defaultConfig: {},
-  onAttach: () => {},
-  onDetach: () => {},
-  onEvent: () => {},
-} as any;
-const tokenGatedHandler = {
-  defaultConfig: {},
-  onAttach: () => {},
-  onDetach: () => {},
-  onEvent: () => {},
-} as any;
-const nftHandler = {
-  defaultConfig: {},
-  onAttach: () => {},
-  onDetach: () => {},
-  onEvent: () => {},
-} as any;
+import { walletHandler, tokenGatedHandler, nftHandler } from '@holoscript/core';
 
 // =============================================================================
 // HELPERS
@@ -110,8 +90,6 @@ const NFT_CFG = {
   ...nftHandler.defaultConfig,
   contract_address: '0xNFTContract',
   token_id: '42',
-  standard: 'ERC721',
-  auto_verify_on_attach: false,
 };
 
 function attachNFT(node: any, ctx: any) {
@@ -122,7 +100,7 @@ function attachNFT(node: any, ctx: any) {
 // TESTS
 // =============================================================================
 
-describe.skip('Web3 Journey — Capstone Integration (skipped: WalletTrait/TokenGatedTrait/NFTTrait not implemented)', () => {
+describe('Web3 Journey — Capstone Integration', () => {
   let node: any;
   let ctx: ReturnType<typeof makeCtx>;
 

@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
 function resolveRunnerCommand(): { args: string[] } {
-  const compiledRunnerPath = path.resolve(__dirname, '../../../dist/cli/holoscript-runner.js');
-  if (existsSync(compiledRunnerPath)) {
-    return { args: [compiledRunnerPath, 'daemon', 'status', '--json'] };
-  }
-
+  // Always use tsx to run from source — the compiled dist bundle has ESM/CJS
+  // compat issues (dotenv uses require('fs') which fails in ESM bundles).
   const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
   const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
   return {
@@ -41,7 +38,7 @@ function runStatusJson(cwd: string): Record<string, unknown> {
   return JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
 }
 
-describe.skip('holoscript daemon status --json (holoscript-runner.js imports @holoscript/absorb-service which is not available in core)', () => {
+describe('holoscript daemon status --json', () => {
   it('returns missing_state_dir payload when no .holoscript state exists', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'holo-daemon-status-missing-'));
     try {

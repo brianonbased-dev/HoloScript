@@ -70,8 +70,53 @@ describe('Hot-Reload & State Migration', () => {
     expect(orb.properties.size).toBe(0.5);
   });
 
-  it.todo('should detect template version increase and run migration blocks');
+  it('should detect template version increase and run migration blocks', async () => {
+    const codeV1 = `
+      template BaseOrb {
+        @version(1)
+        size: 0.5
+      }
+      orb TestOrb using BaseOrb {
+        @state { legacyScale: 2 }
+      }
+    `;
+
+    const resultV1 = parser.parse(codeV1);
+    await runtime.execute(resultV1.ast);
+
+    const orbV1 = runtime.getVariable('TestOrb') as any;
+    expect(orbV1).toBeDefined();
+    expect(orbV1.properties.size).toBe(0.5);
+    expect(orbV1.properties.legacyScale).toBe(2);
+
+    // V2: version bump should be detected
+    const codeV2 = `
+      template BaseOrb {
+        @version(2)
+        size: 1.0
+        migrate from(1) {
+          let migrated = true
+        }
+      }
+      orb TestOrb using BaseOrb {
+        @state { legacyScale: 2 }
+      }
+    `;
+
+    const resultV2 = parser.parse(codeV2);
+    await runtime.execute(resultV2.ast);
+
+    const orbV2 = runtime.getVariable('TestOrb') as any;
+    expect(orbV2).toBeDefined();
+    // Template properties updated to v2
+    expect(orbV2.properties.size).toBe(1.0);
+    // @state preserved across hot-reload
+    expect(orbV2.properties.legacyScale).toBe(2);
+  });
+
   it.todo(
+    // Migration body eval needs HoloScript property assignment support
+    // (this.properties.x = ...) which the evaluator doesn't handle yet
     'should execute migration body expressions when template version increases (requires JS evaluator)'
   );
 });

@@ -36,7 +36,7 @@ import { AbsorbProcessor } from '../traits/AbsorbTrait';
 import { HotReloadWatcher } from '../traits/HotReloadTrait';
 import { registerStdlib } from '../stdlib';
 import type { HostCapabilities } from '../traits/TraitTypes';
-import { createDaemonActions, getDaemonFileState } from '@holoscript/absorb-service/daemon';
+// Lazy-loaded in daemonScript() to avoid module-load failures when absorb-service isn't available
 import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-service/daemon';
 import { generateProvenance } from '../deploy/provenance';
 import type { LicenseType } from '../deploy/provenance';
@@ -1758,6 +1758,9 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     console.error(`Error: File not found: ${filePath}`);
     process.exit(1);
   }
+
+  // Lazy-load absorb-service daemon (not a dependency of core — avoids module-load failures in tests)
+  const { createDaemonActions, getDaemonFileState } = await import('@holoscript/absorb-service/daemon');
 
   const repoRoot = findGitRoot(path.dirname(filePath));
   const source = fs.readFileSync(filePath, 'utf-8');
