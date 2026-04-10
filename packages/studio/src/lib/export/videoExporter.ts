@@ -195,7 +195,7 @@ class FrameByFrameRenderer {
 
     // Create encoder
     this.encoder = new VideoEncoder({
-      output: (chunk, metadata) => {
+      output: (chunk, _metadata) => {
         const data = new Uint8Array(chunk.byteLength);
         chunk.copyTo(data);
         this.chunks.push(data);
@@ -326,7 +326,7 @@ export class VideoExporter {
     this.offscreenRenderer = null;
     this.offscreenCanvas = null;
 
-    const url = URL.createObjectURL(blob);
+    const _url = URL.createObjectURL(blob);
 
     logger.debug(
       `[VideoExport] Export complete: ${(blob.size / 1024 / 1024).toFixed(2)} MB in ${(
@@ -359,7 +359,7 @@ export class VideoExporter {
 
     // Stage 2: Rendering frames
     for (let frame = 0; frame < totalFrames; frame++) {
-      const t = (frame / totalFrames) * duration;
+      const _t = (frame / totalFrames) * duration;
 
       // Render frame
       this.offscreenRenderer!.render(scene, camera);
@@ -426,7 +426,7 @@ export class VideoExporter {
           return;
         }
 
-        const t = (currentFrame / totalFrames) * duration;
+        const _t = (currentFrame / totalFrames) * duration;
 
         // Render frame
         this.offscreenRenderer!.render(scene, camera);
@@ -559,3 +559,7 @@ if (typeof window !== 'undefined') {
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 export { VideoExporter as default };
+
+
+
+
