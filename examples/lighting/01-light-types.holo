@@ -1,0 +1,380 @@
+/**
+ * Light Types Example
+ *
+ * Demonstrates core light types in HoloScript: directional, point, spot,
+ * area, and volumetric lights with physical light units.
+ *
+ * Key Features:
+ * - Directional Light: Infinite parallel rays (sun, moon)
+ * - Point Light: Omnidirectional (bulbs, candles)
+ * - Spotlight: Cone-shaped (flashlight, stage light)
+ * - Area Light: Finite surface emitter (softbox, window)
+ * - Volumetric Light: Light scattering in participating media (fog, smoke)
+ *
+ * Physical Units:
+ * - Luminous Intensity: candela (cd)
+ * - Luminous Flux: lumen (lm)
+ * - Illuminance: lux (lx)
+ * - Luminance: cd/m²
+ *
+ * @version 5.1.0
+ * @category Lighting
+ */
+
+composition LightTypesShowcase {
+  // Scene geometry
+  entity Floor {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.5, 0.5, 0.5],
+      metallic: 0.0,
+      roughness: 0.8,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [-90.0, 0.0, 0.0],
+    },
+  }
+
+  // Test spheres for lighting comparison
+  entity TestSphere1 {
+    mesh: { type: "sphere", radius: 0.5, segments: 64 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    transform: { position: [-4.0, 0.5, 0.0] },
+  }
+
+  entity TestSphere2 {
+    mesh: { type: "sphere", radius: 0.5, segments: 64 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    transform: { position: [-2.0, 0.5, 0.0] },
+  }
+
+  entity TestSphere3 {
+    mesh: { type: "sphere", radius: 0.5, segments: 64 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    transform: { position: [0.0, 0.5, 0.0] },
+  }
+
+  entity TestSphere4 {
+    mesh: { type: "sphere", radius: 0.5, segments: 64 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    transform: { position: [2.0, 0.5, 0.0] },
+  }
+
+  entity TestSphere5 {
+    mesh: { type: "sphere", radius: 0.5, segments: 64 },
+    advanced_pbr: { base_color: [0.8, 0.8, 0.8], metallic: 0.0, roughness: 0.5 },
+    transform: { position: [4.0, 0.5, 0.0] },
+  }
+
+  // 1. Directional Light - Sun
+  entity SunLight {
+    light_source: {
+      type: "directional",
+      color: [1.0, 0.98, 0.95],     // Warm daylight
+      intensity: 3.0,                // Arbitrary units (scales lux)
+      illuminance: 100000.0,         // 100,000 lux (direct sunlight)
+      cast_shadows: true,
+    },
+
+    shadow_caster: {
+      resolution: 2048,
+      cascade_count: 4,
+      cascade_splits: [0.067, 0.133, 0.267, 1.0],
+      bias: 0.0005,
+      normal_bias: 0.01,
+    },
+
+    transform: {
+      rotation: [-45.0, 30.0, 0.0],  // Direction vector
+    },
+  }
+
+  // 2. Point Light - Light bulb
+  entity BulbLight {
+    point_light: {
+      color: [1.0, 0.95, 0.8],       // Warm incandescent
+      intensity: 800.0,               // Lumens (60W incandescent)
+      radius: 0.05,                   // Physical light size
+      falloff: "inverse_square",      // Realistic attenuation
+
+      // Physical parameters
+      luminous_flux: 800.0,           // Total emitted light (lm)
+      luminous_intensity: 63.7,       // Intensity (cd) = flux / (4π)
+    },
+
+    transform: {
+      position: [-2.0, 2.0, 0.0],
+    },
+  }
+
+  // 3. Spotlight - Stage light
+  entity StageSpotlight {
+    spotlight: {
+      color: [1.0, 1.0, 1.0],
+      intensity: 5000.0,              // Lumens
+      inner_cone_angle: 15.0,         // Degrees (bright core)
+      outer_cone_angle: 30.0,         // Degrees (falloff edge)
+      radius: 0.1,
+
+      // Spotlight-specific
+      falloff: "inverse_square",
+      blend: "smooth",                // "smooth" or "hard"
+      cast_shadows: true,
+    },
+
+    shadow_caster: {
+      resolution: 1024,
+      bias: 0.001,
+    },
+
+    transform: {
+      position: [0.0, 4.0, 0.0],
+      rotation: [-90.0, 0.0, 0.0],   // Pointing down
+    },
+  }
+
+  // 4. Area Light - Softbox
+  entity SoftboxLight {
+    area_light: {
+      type: "rect",                   // "rect", "disk", or "sphere"
+      width: 1.0,
+      height: 1.0,
+      color: [0.9, 0.95, 1.0],       // Cool LED
+      intensity: 3000.0,              // Lumens
+
+      // Physical parameters
+      luminance: 3000.0,              // cd/m² (surface brightness)
+      two_sided: false,               // Emit from one side only
+
+      // Quality
+      samples: 16,                    // Shadow samples (soft shadows)
+      cast_shadows: true,
+    },
+
+    transform: {
+      position: [2.0, 2.0, 2.0],
+      rotation: [-45.0, -45.0, 0.0],
+    },
+  }
+
+  // 5. Volumetric Light - God rays through fog
+  entity VolumetricSpot {
+    spotlight: {
+      color: [1.0, 0.95, 0.85],
+      intensity: 8000.0,
+      inner_cone_angle: 20.0,
+      outer_cone_angle: 35.0,
+      radius: 0.15,
+      falloff: "inverse_square",
+      cast_shadows: true,
+    },
+
+    volumetric_light: {
+      enabled: true,
+      scattering: 0.5,                // Fog density
+      anisotropy: 0.6,                // Forward scattering (Henyey-Greenstein)
+      samples: 64,                    // Ray marching samples
+      max_distance: 20.0,             // Ray march distance
+
+      // Performance
+      dithering: true,                // Temporal dithering
+      bilateral_blur: true,           // Smooth noise
+    },
+
+    transform: {
+      position: [4.0, 4.0, 0.0],
+      rotation: [-60.0, 0.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 100.0,
+      position: [0.0, 3.0, 8.0],
+      target: [0.0, 1.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on SunLight.light_source.changed -> (event) {
+    console.log(`Directional light: illuminance=${event.illuminance}lx, color=[${event.color}]`);
+  }
+
+  on BulbLight.point_light.changed -> (event) {
+    console.log(`Point light: flux=${event.luminous_flux}lm, intensity=${event.luminous_intensity.toFixed(1)}cd`);
+  }
+
+  on StageSpotlight.spotlight.changed -> (event) {
+    console.log(`Spotlight: inner=${event.inner_cone_angle}°, outer=${event.outer_cone_angle}°, intensity=${event.intensity}lm`);
+  }
+
+  on SoftboxLight.area_light.computed -> (event) {
+    console.log(`Area light: luminance=${event.luminance}cd/m², area=${event.area.toFixed(2)}m², samples=${event.samples}`);
+  }
+
+  on VolumetricSpot.volumetric_light.ray_marched -> (event) {
+    console.log(`Volumetric light: samples=${event.samples}, scattering=${event.scattering}, time=${event.time_ms.toFixed(2)}ms`);
+
+    if (event.time_ms > 5.0) {
+      console.warn(`⚠ Volumetric light slow: ${event.time_ms.toFixed(2)}ms`);
+    }
+  }
+}
+
+// Light controls
+ui LightControls {
+  panel "Light Types" {
+    section "Directional (Sun)" {
+      slider "Illuminance (lux)" {
+        min: 1000.0, max: 120000.0, value: 100000.0, step: 1000.0,
+        onChange: (value) => {
+          SunLight.light_source.illuminance = value;
+        }
+      }
+
+      color_picker "Color" {
+        value: [1.0, 0.98, 0.95],
+        onChange: (color) => {
+          SunLight.light_source.color = color;
+        }
+      }
+
+      slider "Rotation Y" {
+        min: -180.0, max: 180.0, value: 30.0, step: 5.0,
+        onChange: (value) => {
+          SunLight.transform.rotation[1] = value;
+        }
+      }
+    }
+
+    section "Point (Bulb)" {
+      slider "Luminous Flux (lm)" {
+        min: 100.0, max: 3000.0, value: 800.0, step: 50.0,
+        onChange: (value) => {
+          BulbLight.point_light.luminous_flux = value;
+          BulbLight.point_light.intensity = value;
+        }
+      }
+
+      slider "Radius" {
+        min: 0.01, max: 0.5, value: 0.05, step: 0.01,
+        onChange: (value) => {
+          BulbLight.point_light.radius = value;
+        }
+      }
+
+      button "Preset: 40W Bulb" -> () {
+        BulbLight.point_light.luminous_flux = 470.0;
+        BulbLight.point_light.intensity = 470.0;
+      }
+
+      button "Preset: 60W Bulb" -> () {
+        BulbLight.point_light.luminous_flux = 800.0;
+        BulbLight.point_light.intensity = 800.0;
+      }
+
+      button "Preset: 100W Bulb" -> () {
+        BulbLight.point_light.luminous_flux = 1600.0;
+        BulbLight.point_light.intensity = 1600.0;
+      }
+    }
+
+    section "Spotlight (Stage)" {
+      slider "Inner Cone (°)" {
+        min: 5.0, max: 45.0, value: 15.0, step: 1.0,
+        onChange: (value) => {
+          StageSpotlight.spotlight.inner_cone_angle = value;
+        }
+      }
+
+      slider "Outer Cone (°)" {
+        min: 10.0, max: 90.0, value: 30.0, step: 1.0,
+        onChange: (value) => {
+          StageSpotlight.spotlight.outer_cone_angle = value;
+        }
+      }
+
+      slider "Intensity (lm)" {
+        min: 1000.0, max: 20000.0, value: 5000.0, step: 500.0,
+        onChange: (value) => {
+          StageSpotlight.spotlight.intensity = value;
+        }
+      }
+    }
+
+    section "Area Light (Softbox)" {
+      slider "Width (m)" {
+        min: 0.5, max: 3.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          SoftboxLight.area_light.width = value;
+        }
+      }
+
+      slider "Height (m)" {
+        min: 0.5, max: 3.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          SoftboxLight.area_light.height = value;
+        }
+      }
+
+      slider "Luminance (cd/m²)" {
+        min: 500.0, max: 10000.0, value: 3000.0, step: 100.0,
+        onChange: (value) => {
+          SoftboxLight.area_light.luminance = value;
+        }
+      }
+
+      slider "Shadow Samples" {
+        min: 4, max: 64, value: 16, step: 4,
+        onChange: (value) => {
+          SoftboxLight.area_light.samples = value;
+        }
+      }
+    }
+
+    section "Volumetric Light" {
+      slider "Scattering" {
+        min: 0.0, max: 1.0, value: 0.5, step: 0.05,
+        onChange: (value) => {
+          VolumetricSpot.volumetric_light.scattering = value;
+        }
+      }
+
+      slider "Anisotropy" {
+        min: -1.0, max: 1.0, value: 0.6, step: 0.05,
+        onChange: (value) => {
+          VolumetricSpot.volumetric_light.anisotropy = value;
+        }
+      }
+
+      slider "Samples" {
+        min: 16, max: 128, value: 64, step: 16,
+        onChange: (value) => {
+          VolumetricSpot.volumetric_light.samples = value;
+        }
+      }
+
+      checkbox "Bilateral Blur" {
+        value: true,
+        onChange: (checked) => {
+          VolumetricSpot.volumetric_light.bilateral_blur = checked;
+        }
+      }
+
+      text "Render Time" {
+        value: () => `${VolumetricSpot.volumetric_light.time_ms.toFixed(2)} ms`
+      }
+    }
+  }
+}

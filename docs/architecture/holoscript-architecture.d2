@@ -1,0 +1,309 @@
+direction: right
+
+title: |md
+  # HoloScript Architecture
+  Parser → Compiler → Runtime pipeline with 84,831 symbols across 71 packages
+|
+
+# ============================================================
+# SOURCE FILES
+# ============================================================
+source: "Source Files" {
+  style.fill: "#1a1a2e"
+  style.font-color: "#e0e0e0"
+
+  holo: ".holo\n(Scene Graph)" {
+    style.fill: "#16213e"
+    style.font-color: "#a5d8ff"
+    style.border-radius: 8
+  }
+  hs: ".hs\n(Core Language)" {
+    style.fill: "#16213e"
+    style.font-color: "#a5d8ff"
+    style.border-radius: 8
+  }
+  hsplus: ".hsplus\n(TypeScript for XR)" {
+    style.fill: "#16213e"
+    style.font-color: "#a5d8ff"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# PARSERS
+# ============================================================
+parsers: "Parser Layer (5 Parsers)" {
+  style.fill: "#0f3460"
+  style.font-color: "#e0e0e0"
+
+  comp: "CompositionParser\n.holo → AST" {
+    style.fill: "#1a5276"
+    style.font-color: "#aed6f1"
+    style.border-radius: 8
+  }
+  base: "HoloScriptParser\n.hs → AST" {
+    style.fill: "#1a5276"
+    style.font-color: "#aed6f1"
+    style.border-radius: 8
+  }
+  plus: "HoloScriptPlusParser\n.hsplus → AST" {
+    style.fill: "#1a5276"
+    style.font-color: "#aed6f1"
+    style.border-radius: 8
+  }
+  twod: "HoloScript2DParser" {
+    style.fill: "#1a5276"
+    style.font-color: "#7fb3d8"
+    style.border-radius: 8
+  }
+  persist: "PersistenceParser" {
+    style.fill: "#1a5276"
+    style.font-color: "#7fb3d8"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# TRAIT SYSTEM
+# ============================================================
+traits: "Trait System (2,000+ traits)" {
+  style.fill: "#1b4332"
+  style.font-color: "#e0e0e0"
+
+  registry: "CrossReality\nTraitRegistry" {
+    style.fill: "#2d6a4f"
+    style.font-color: "#b7e4c7"
+    style.border-radius: 8
+  }
+  depgraph: "TraitDependency\nGraph" {
+    style.fill: "#2d6a4f"
+    style.font-color: "#b7e4c7"
+    style.border-radius: 8
+  }
+  matrix: "TraitSupport\nMatrix" {
+    style.fill: "#2d6a4f"
+    style.font-color: "#b7e4c7"
+    style.border-radius: 8
+  }
+  mome: "MoME Trait\nDatabase" {
+    style.fill: "#2d6a4f"
+    style.font-color: "#95d5b2"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# COMPILERS
+# ============================================================
+compilers: "Compiler Fleet (18+ Targets)" {
+  style.fill: "#4a1942"
+  style.font-color: "#e0e0e0"
+
+  game: "Game Engines" {
+    style.fill: "#6b2d5b"
+    style.font-color: "#f0a6ca"
+    style.border-radius: 8
+    unity: "Unity"
+    unreal: "Unreal"
+    godot: "Godot"
+  }
+  web: "Web" {
+    style.fill: "#6b2d5b"
+    style.font-color: "#f0a6ca"
+    style.border-radius: 8
+    r3f: "R3F"
+    babylon: "Babylon"
+    webgpu: "WebGPU"
+    wasm: "WASM"
+  }
+  xr: "XR Platforms" {
+    style.fill: "#6b2d5b"
+    style.font-color: "#f0a6ca"
+    style.border-radius: 8
+    visionos: "VisionOS"
+    openxr: "OpenXR"
+    vrchat: "VRChat"
+  }
+  industrial: "Industrial" {
+    style.fill: "#6b2d5b"
+    style.font-color: "#f0a6ca"
+    style.border-radius: 8
+    urdf: "URDF"
+    sdf: "SDF"
+    dtdl: "DTDL"
+    usd: "USD"
+  }
+}
+
+# ============================================================
+# RUNTIME
+# ============================================================
+runtime: "Runtime & ECS" {
+  style.fill: "#3c1518"
+  style.font-color: "#e0e0e0"
+
+  scene: "SceneRunner\n(AST Walker)" {
+    style.fill: "#69140e"
+    style.font-color: "#f8d7da"
+    style.border-radius: 8
+  }
+  headless: "Headless\nRuntime" {
+    style.fill: "#69140e"
+    style.font-color: "#f8d7da"
+    style.border-radius: 8
+  }
+  ecs: "ECS\n(Entity-Component)" {
+    style.fill: "#69140e"
+    style.font-color: "#f8d7da"
+    style.border-radius: 8
+  }
+  renderer: "RuntimeRenderer\n(PBR, Particles)" {
+    style.fill: "#69140e"
+    style.font-color: "#f8d7da"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# INTELLIGENCE
+# ============================================================
+intelligence: "Codebase Intelligence" {
+  style.fill: "#2d2d44"
+  style.font-color: "#e0e0e0"
+
+  scanner: "Codebase\nScanner" {
+    style.fill: "#3d3d5c"
+    style.font-color: "#c4b5fd"
+    style.border-radius: 8
+  }
+  graph: "Codebase\nGraph" {
+    style.fill: "#3d3d5c"
+    style.font-color: "#c4b5fd"
+    style.border-radius: 8
+  }
+  embeddings: "Embedding\nIndex" {
+    style.fill: "#3d3d5c"
+    style.font-color: "#c4b5fd"
+    style.border-radius: 8
+  }
+  graphrag: "GraphRAG\nEngine" {
+    style.fill: "#3d3d5c"
+    style.font-color: "#c4b5fd"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# MCP LAYER
+# ============================================================
+mcp: "MCP (Dual Layer)" {
+  style.fill: "#1a3a1a"
+  style.font-color: "#e0e0e0"
+
+  external: "External MCP Server\n(65+ tools for AI agents)" {
+    style.fill: "#2a5a2a"
+    style.font-color: "#90ee90"
+    style.border-radius: 8
+  }
+  internal: "Internal MCP\n(Spatial Agent Comms)" {
+    style.fill: "#2a5a2a"
+    style.font-color: "#90ee90"
+    style.border-radius: 8
+  }
+  layer3: "Layer3 MCP Client\n(Agent-to-Agent)" {
+    style.fill: "#2a5a2a"
+    style.font-color: "#70cc70"
+    style.border-radius: 8
+  }
+}
+
+# ============================================================
+# CONNECTIONS
+# ============================================================
+
+# Source → Parsers
+source.holo -> parsers.comp: ".holo" {
+  style.stroke: "#5dade2"
+  style.animated: true
+}
+source.hs -> parsers.base: ".hs" {
+  style.stroke: "#5dade2"
+  style.animated: true
+}
+source.hsplus -> parsers.plus: ".hsplus" {
+  style.stroke: "#5dade2"
+  style.animated: true
+}
+
+# Parsers → Traits
+parsers.comp -> traits.registry: "AST" {
+  style.stroke: "#82e0aa"
+}
+parsers.base -> traits.registry: "AST" {
+  style.stroke: "#82e0aa"
+}
+parsers.plus -> traits.registry: "AST" {
+  style.stroke: "#82e0aa"
+}
+
+# Traits internal
+traits.registry -> traits.depgraph: "resolve" {
+  style.stroke: "#52be80"
+  style.stroke-dash: 3
+}
+traits.registry -> traits.matrix: "detect" {
+  style.stroke: "#52be80"
+  style.stroke-dash: 3
+}
+
+# Traits → Compilers
+traits.registry -> compilers: "traits → platform" {
+  style.stroke: "#d7bde2"
+  style.animated: true
+}
+
+# Parsers → Runtime
+parsers.comp -> runtime.scene: "AST direct" {
+  style.stroke: "#e6b0aa"
+  style.stroke-dash: 5
+}
+
+# Runtime internal
+runtime.scene -> runtime.ecs: "spawn" {
+  style.stroke: "#e74c3c"
+  style.stroke-dash: 3
+}
+runtime.scene -> runtime.renderer: "render" {
+  style.stroke: "#e74c3c"
+  style.stroke-dash: 3
+}
+
+# Intelligence pipeline
+intelligence.scanner -> intelligence.graph: "scan" {
+  style.stroke: "#a29bfe"
+  style.animated: true
+}
+intelligence.graph -> intelligence.embeddings: "index" {
+  style.stroke: "#a29bfe"
+  style.animated: true
+}
+intelligence.embeddings -> intelligence.graphrag: "search" {
+  style.stroke: "#a29bfe"
+  style.animated: true
+}
+
+# MCP connections
+intelligence.graphrag -> mcp.external: "exposes" {
+  style.stroke: "#27ae60"
+  style.stroke-dash: 3
+}
+mcp.internal -> mcp.layer3: "uses" {
+  style.stroke: "#27ae60"
+  style.stroke-dash: 3
+}
+
+# Cross-system
+runtime.scene -> mcp.internal: "agent comms" {
+  style.stroke: "#f39c12"
+  style.stroke-dash: 5
+}

@@ -1,0 +1,896 @@
+/**
+ * Enterprise Tenant Lifecycle — .hsplus Behavior Example
+ *
+ * Demonstrates multi-tenant management with the TenantTrait and RBAC
+ * system for enterprise deployments.
+ * WHY .hsplus: Tenant provisioning, suspension, and deletion are
+ * multi-step workflows with strict ordering constraints (cannot archive
+ * without suspending first, cannot delete without archiving). Role
+ * transitions require approval guards (viewer -> editor needs admin
+ * approval). These lifecycle constraints are naturally expressed as
+ * state machine guards. The audit trail requires event-driven logging
+ * of every state change. Neither .holo nor .hs can express guarded
+ * multi-actor state machines with audit event streams.
+ *
+ * Features:
+ * - TenantManager module for tenant CRUD and lifecycle
+ * - RBACEngine module for role assignment, permission checks, transitions
+ * - AuditLogger module for comprehensive event logging
+ * - Tenant lifecycle state machine with ordering guards
+ * - RBAC role transition sub-state-machine with approval workflow
+ * - @tenant with enterprise configuration
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+
+composition "EnterpriseTenantLifecycle" {
+  environment {
+    skybox: "office"
+    ambient_light: 0.7
+    physics: false
+  }
+
+  // ========================================================================
+  // AUDIT LOGGER MODULE
+  // ========================================================================
+  // Captures every significant event in the tenant/RBAC lifecycle for
+  // compliance and forensic analysis. Immutable append-only log.
+
+  module AuditLogger {
+    state {
+      entries: []
+      entry_count: 0
+      categories: {
+        tenant: 0,
+        rbac: 0,
+        security: 0,
+        system: 0
+      }
+    }
+
+    // Log an audit event
+    action log(category, action, actor_id, target_id, details) {
+      this.state.entry_count += 1;
+      if (this.state.categories[category] !== undefined) {
+        this.state.categories[category] += 1;
+      }
+
+      const entry = {
+        id: this.state.entry_count,
+        category: category,
+        action: action,
+        actor_id: actor_id,
+        target_id: target_id,
+        details: details || {},
+        timestamp: current_time(),
+        ip_address: "10.0.0.1"  // simulated
+      };
+
+      this.state.entries.push(entry);
+
+      // Keep last 500 entries in memory (production: stream to external store)
+      if (this.state.entries.length > 500) {
+        this.state.entries.shift();
+      }
+
+      emit("audit:logged", {
+        id: entry.id,
+        category: category,
+        action: action
+      });
+
+      return entry.id;
+    }
+
+    // Query audit log by category
+    action query(category, limit) {
+      const max = limit || 20;
+      return this.state.entries
+        .filter(e => !category || e.category === category)
+        .slice(-max);
+    }
+
+    // Get audit summary for a specific target
+    action get_target_history(target_id) {
+      return this.state.entries.filter(e => e.target_id === target_id);
+    }
+
+    exports {
+      log
+      query
+      get_target_history
+      state
+    }
+  }
+
+  // ========================================================================
+  // RBAC ENGINE MODULE
+  // ========================================================================
+  // Manages roles, permissions, and role transitions. Supports the
+  // five standard roles: owner, admin, editor, viewer, spectator.
+  // Role transitions require approval from an admin or owner.
+
+  module RBACEngine {
+    state {
+      assignments: {}
+      pending_transitions: []
+      role_hierarchy: ["spectator", "viewer", "editor", "admin", "owner"]
+      permissions: {
+        owner: {
+          scenes: ["create", "read", "update", "delete", "execute"],
+          traits: ["create", "read", "update", "delete"],
+          assets: ["create", "read", "update", "delete"],
+          analytics: ["create", "read"],
+          system: ["create", "read", "update", "delete", "execute"]
+        },
+        admin: {
+          scenes: ["create", "read", "update", "delete"],
+          traits: ["create", "read", "update"],
+          assets: ["create", "read", "update", "delete"],
+          analytics: ["read"],
+          system: ["read", "update"]
+        },
+        editor: {
+          scenes: ["create", "read", "update"],
+          traits: ["read", "update"],
+          assets: ["create", "read", "update"],
+          analytics: ["read"],
+          system: ["read"]
+        },
+        viewer: {
+          scenes: ["read"],
+          traits: ["read"],
+          assets: ["read"],
+          analytics: ["read"],
+          system: []
+        },
+        spectator: {
+          scenes: ["read"],
+          traits: [],
+          assets: ["read"],
+          analytics: [],
+          system: []
+        }
+      }
+    }
+
+    // Assign a role to a user within a tenant
+    action assign_role(tenant_id, user_id, role, assigner_id) {
+      // Verify assigner has permission to assign roles
+      if (!this.can_assign(tenant_id, assigner_id, role)) {
+        AuditLogger.log("security", "role_assign_denied", assigner_id, user_id, {
+          tenant_id: tenant_id,
+          requested_role: role,
+          reason: "Insufficient permissions"
+        });
+        emit("rbac:assign_denied", {
+          user_id: user_id,
+          role: role,
+          reason: "Insufficient permissions"
+        });
+        return false;
+      }
+
+      const key = tenant_id + ":" + user_id;
+      const previous_role = this.state.assignments[key];
+      this.state.assignments[key] = {
+        tenant_id: tenant_id,
+        user_id: user_id,
+        role: role,
+        assigned_by: assigner_id,
+        assigned_at: current_time()
+      };
+
+      AuditLogger.log("rbac", "role_assigned", assigner_id, user_id, {
+        tenant_id: tenant_id,
+        role: role,
+        previous_role: previous_role ? previous_role.role : null
+      });
+
+      emit("rbac:role_assigned", {
+        tenant_id: tenant_id,
+        user_id: user_id,
+        role: role
+      });
+      return true;
+    }
+
+    // Check if a user can assign a specific role
+    action can_assign(tenant_id, assigner_id, target_role) {
+      const key = tenant_id + ":" + assigner_id;
+      const assignment = this.state.assignments[key];
+      if (!assignment) return false;
+
+      const assigner_level = this.state.role_hierarchy.indexOf(assignment.role);
+      const target_level = this.state.role_hierarchy.indexOf(target_role);
+
+      // Can only assign roles below your own level
+      return assigner_level > target_level;
+    }
+
+    // Check if a user has a specific permission
+    action check_permission(tenant_id, user_id, category, action) {
+      const key = tenant_id + ":" + user_id;
+      const assignment = this.state.assignments[key];
+      if (!assignment) return false;
+
+      const role_perms = this.state.permissions[assignment.role];
+      if (!role_perms || !role_perms[category]) return false;
+
+      return role_perms[category].includes(action);
+    }
+
+    // Request a role transition (requires approval)
+    action request_transition(tenant_id, user_id, target_role) {
+      const key = tenant_id + ":" + user_id;
+      const current = this.state.assignments[key];
+      if (!current) {
+        emit("rbac:transition_denied", { reason: "No current role" });
+        return null;
+      }
+
+      const current_level = this.state.role_hierarchy.indexOf(current.role);
+      const target_level = this.state.role_hierarchy.indexOf(target_role);
+
+      // Can only request upward transitions (promotions)
+      if (target_level <= current_level) {
+        emit("rbac:transition_denied", {
+          reason: "Cannot request demotion or same-level transition"
+        });
+        return null;
+      }
+
+      const request = {
+        id: "tr_" + (this.state.pending_transitions.length + 1),
+        tenant_id: tenant_id,
+        user_id: user_id,
+        current_role: current.role,
+        target_role: target_role,
+        requested_at: current_time(),
+        status: "pending",
+        approved_by: null
+      };
+
+      this.state.pending_transitions.push(request);
+      AuditLogger.log("rbac", "transition_requested", user_id, user_id, {
+        tenant_id: tenant_id,
+        from: current.role,
+        to: target_role
+      });
+
+      emit("rbac:transition_requested", {
+        request_id: request.id,
+        user_id: user_id,
+        from: current.role,
+        to: target_role
+      });
+      return request.id;
+    }
+
+    // Approve a pending role transition (must be admin or owner)
+    action approve_transition(request_id, approver_id) {
+      const request = this.state.pending_transitions.find(t => t.id === request_id);
+      if (!request || request.status !== "pending") return false;
+
+      // Verify approver has authority
+      if (!this.can_assign(request.tenant_id, approver_id, request.target_role)) {
+        AuditLogger.log("security", "transition_approve_denied", approver_id, request.user_id, {
+          request_id: request_id,
+          reason: "Insufficient authority"
+        });
+        return false;
+      }
+
+      // Apply the role change
+      this.assign_role(
+        request.tenant_id,
+        request.user_id,
+        request.target_role,
+        approver_id
+      );
+
+      request.status = "approved";
+      request.approved_by = approver_id;
+
+      AuditLogger.log("rbac", "transition_approved", approver_id, request.user_id, {
+        request_id: request_id,
+        from: request.current_role,
+        to: request.target_role
+      });
+
+      emit("rbac:transition_approved", {
+        request_id: request_id,
+        user_id: request.user_id,
+        role: request.target_role
+      });
+      return true;
+    }
+
+    // Deny a pending role transition
+    action deny_transition(request_id, denier_id, reason) {
+      const request = this.state.pending_transitions.find(t => t.id === request_id);
+      if (!request || request.status !== "pending") return false;
+
+      request.status = "denied";
+      request.denied_by = denier_id;
+      request.deny_reason = reason;
+
+      AuditLogger.log("rbac", "transition_denied", denier_id, request.user_id, {
+        request_id: request_id,
+        reason: reason
+      });
+
+      emit("rbac:transition_denied", {
+        request_id: request_id,
+        user_id: request.user_id,
+        reason: reason
+      });
+      return true;
+    }
+
+    // Get user's current role in a tenant
+    action get_role(tenant_id, user_id) {
+      const key = tenant_id + ":" + user_id;
+      const assignment = this.state.assignments[key];
+      return assignment ? assignment.role : null;
+    }
+
+    exports {
+      assign_role
+      check_permission
+      request_transition
+      approve_transition
+      deny_transition
+      get_role
+      state
+    }
+  }
+
+  // ========================================================================
+  // TENANT MANAGER MODULE
+  // ========================================================================
+  // Handles tenant creation, configuration, and lifecycle transitions.
+
+  module TenantManager {
+    state {
+      tenants: {}
+      tenant_count: 0
+    }
+
+    // Create a new tenant
+    action create_tenant(tenant_id, tenant_name, tier, owner_id) {
+      if (this.state.tenants[tenant_id]) {
+        emit("tenant:error", { reason: "Tenant ID already exists" });
+        return false;
+      }
+
+      const tenant = {
+        tenant_id: tenant_id,
+        tenant_name: tenant_name,
+        tier: tier || "free",
+        isolation_level: (tier === "enterprise") ? "physical" : "logical",
+        namespace_prefix: tenant_id.substring(0, 8),
+        owner_id: owner_id,
+        status: "provisioning",
+        created_at: current_time(),
+        suspended_at: null,
+        archived_at: null,
+        config: {
+          max_users: this.get_tier_limit(tier, "max_users"),
+          max_scenes: this.get_tier_limit(tier, "max_scenes"),
+          max_storage_gb: this.get_tier_limit(tier, "max_storage_gb"),
+          sso_enabled: (tier === "professional" || tier === "enterprise"),
+          custom_domain: (tier === "enterprise"),
+          audit_retention_days: this.get_tier_limit(tier, "audit_retention_days")
+        }
+      };
+
+      this.state.tenants[tenant_id] = tenant;
+      this.state.tenant_count += 1;
+
+      // Assign owner role
+      RBACEngine.assign_role(tenant_id, owner_id, "owner", "system");
+
+      AuditLogger.log("tenant", "tenant_created", owner_id, tenant_id, {
+        tier: tier,
+        isolation: tenant.isolation_level
+      });
+
+      emit("tenant:created", { tenant_id: tenant_id, tier: tier });
+      return true;
+    }
+
+    // Get tier-specific limits
+    action get_tier_limit(tier, limit_name) {
+      const limits = {
+        free: { max_users: 3, max_scenes: 5, max_storage_gb: 1, audit_retention_days: 7 },
+        starter: { max_users: 10, max_scenes: 25, max_storage_gb: 10, audit_retention_days: 30 },
+        professional: { max_users: 50, max_scenes: 100, max_storage_gb: 100, audit_retention_days: 90 },
+        enterprise: { max_users: -1, max_scenes: -1, max_storage_gb: -1, audit_retention_days: 365 }
+      };
+      const tier_limits = limits[tier] || limits.free;
+      return tier_limits[limit_name] || 0;
+    }
+
+    // Activate a provisioned tenant
+    action activate_tenant(tenant_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "provisioning") return false;
+
+      tenant.status = "active";
+      AuditLogger.log("tenant", "tenant_activated", "system", tenant_id, {});
+      emit("tenant:activated", { tenant_id: tenant_id });
+      return true;
+    }
+
+    // Suspend a tenant (requires active status)
+    action suspend_tenant(tenant_id, reason, actor_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "active") return false;
+
+      tenant.status = "suspended";
+      tenant.suspended_at = current_time();
+
+      AuditLogger.log("tenant", "tenant_suspended", actor_id, tenant_id, {
+        reason: reason
+      });
+
+      emit("tenant:suspended", { tenant_id: tenant_id, reason: reason });
+      return true;
+    }
+
+    // Reactivate a suspended tenant
+    action reactivate_tenant(tenant_id, actor_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "suspended") return false;
+
+      tenant.status = "active";
+      tenant.suspended_at = null;
+
+      AuditLogger.log("tenant", "tenant_reactivated", actor_id, tenant_id, {});
+      emit("tenant:reactivated", { tenant_id: tenant_id });
+      return true;
+    }
+
+    // Archive a tenant (requires suspended status -- cannot skip suspension)
+    action archive_tenant(tenant_id, actor_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "suspended") {
+        emit("tenant:error", {
+          reason: "Cannot archive: tenant must be suspended first",
+          current_status: tenant ? tenant.status : "not_found"
+        });
+        return false;
+      }
+
+      tenant.status = "archived";
+      tenant.archived_at = current_time();
+
+      AuditLogger.log("tenant", "tenant_archived", actor_id, tenant_id, {});
+      emit("tenant:archived", { tenant_id: tenant_id });
+      return true;
+    }
+
+    // Delete a tenant (requires archived status -- cannot skip archiving)
+    action delete_tenant(tenant_id, actor_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "archived") {
+        emit("tenant:error", {
+          reason: "Cannot delete: tenant must be archived first",
+          current_status: tenant ? tenant.status : "not_found"
+        });
+        return false;
+      }
+
+      tenant.status = "deleted";
+
+      AuditLogger.log("tenant", "tenant_deleted", actor_id, tenant_id, {
+        final: true,
+        data_retention: "30_days"
+      });
+
+      emit("tenant:deleted", { tenant_id: tenant_id });
+      return true;
+    }
+
+    // Upgrade tenant tier
+    action upgrade_tier(tenant_id, new_tier, actor_id) {
+      const tenant = this.state.tenants[tenant_id];
+      if (!tenant || tenant.status !== "active") return false;
+
+      const old_tier = tenant.tier;
+      tenant.tier = new_tier;
+      tenant.config.max_users = this.get_tier_limit(new_tier, "max_users");
+      tenant.config.max_scenes = this.get_tier_limit(new_tier, "max_scenes");
+      tenant.config.max_storage_gb = this.get_tier_limit(new_tier, "max_storage_gb");
+      tenant.config.sso_enabled = (new_tier === "professional" || new_tier === "enterprise");
+      tenant.config.custom_domain = (new_tier === "enterprise");
+
+      AuditLogger.log("tenant", "tier_upgraded", actor_id, tenant_id, {
+        from: old_tier,
+        to: new_tier
+      });
+
+      emit("tenant:tier_changed", {
+        tenant_id: tenant_id,
+        from: old_tier,
+        to: new_tier
+      });
+      return true;
+    }
+
+    exports {
+      create_tenant
+      activate_tenant
+      suspend_tenant
+      reactivate_tenant
+      archive_tenant
+      delete_tenant
+      upgrade_tier
+      state
+    }
+  }
+
+  // ========================================================================
+  // TENANT LIFECYCLE CONTROLLER -- master state machine
+  // ========================================================================
+
+  object "LifecycleController" {
+    @tenant {
+      tenant_id: "demo-tenant-001"
+      tenant_name: "Demo Enterprise"
+      tier: "enterprise"
+      isolation_level: "physical"
+      namespace_prefix: "demo"
+    }
+
+    @state_machine {
+      initial: "provisioning"
+
+      states: {
+        provisioning: {
+          on_provisioned: -> "active" action(finalize_provisioning)
+          on_provision_failed: -> "provisioning"  // retry
+        }
+
+        active: {
+          on_suspend: -> "suspended" guard(state.suspension_reason != null) action(execute_suspension)
+          on_upgrade: -> "active" action(apply_upgrade)
+          on_rbac_change: -> "active"
+        }
+
+        suspended: {
+          on_reactivate: -> "active" action(execute_reactivation)
+          on_archive: -> "archived" action(execute_archive)
+        }
+
+        archived: {
+          on_delete: -> "deleted" guard(state.deletion_confirmed) action(execute_deletion)
+          on_restore: -> "suspended" action(execute_restore)
+        }
+
+        deleted: {
+          // Terminal state -- data retention period begins
+          enter: {
+            emit("lifecycle:terminated");
+          }
+        }
+      }
+
+      actions: {
+        finalize_provisioning: () => {
+          TenantManager.activate_tenant(state.tenant_id);
+          state.provisioned_at = current_time();
+          emit("lifecycle:active", { tenant_id: state.tenant_id });
+        }
+
+        execute_suspension: () => {
+          TenantManager.suspend_tenant(
+            state.tenant_id, state.suspension_reason, state.actor_id
+          );
+          state.suspension_reason = null;
+        }
+
+        execute_reactivation: () => {
+          TenantManager.reactivate_tenant(state.tenant_id, state.actor_id);
+        }
+
+        execute_archive: () => {
+          TenantManager.archive_tenant(state.tenant_id, state.actor_id);
+          state.archived_at = current_time();
+        }
+
+        execute_deletion: () => {
+          TenantManager.delete_tenant(state.tenant_id, state.actor_id);
+          state.deletion_confirmed = false;
+        }
+
+        apply_upgrade: () => {
+          TenantManager.upgrade_tier(
+            state.tenant_id, state.pending_tier, state.actor_id
+          );
+          state.pending_tier = null;
+        }
+
+        execute_restore: () => {
+          // Restored tenants go to suspended, not directly active
+          emit("lifecycle:restored", { tenant_id: state.tenant_id });
+        }
+      }
+    }
+
+    state {
+      tenant_id: "demo-tenant-001"
+      actor_id: "admin-001"
+      provisioned_at: null
+      suspension_reason: null
+      pending_tier: null
+      deletion_confirmed: false
+      archived_at: null
+    }
+
+    // Auto-provision on creation
+    @on_event("tenant:created"): (data) => {
+      if (data.tenant_id === state.tenant_id) {
+        // Simulate async provisioning completion
+        setTimeout(() => {
+          emit("on_provisioned");
+        }, 1000);
+      }
+    }
+  }
+
+  // ========================================================================
+  // RBAC TRANSITION CONTROLLER -- role upgrade workflow
+  // ========================================================================
+  // Sub-state-machine for managing the role transition approval process.
+  // viewer -> editor requires admin approval; editor -> admin requires owner.
+
+  object "RBACWorkflow" {
+    @state_machine {
+      initial: "idle"
+
+      states: {
+        idle: {
+          on_transition_requested: -> "awaiting_approval"
+        }
+
+        awaiting_approval: {
+          on_approved: -> "applying" action(apply_role_change)
+          on_denied: -> "idle" action(notify_denial)
+          on_timeout: -> "idle" action(expire_request)
+        }
+
+        applying: {
+          on_applied: -> "idle" action(notify_success)
+          on_apply_failed: -> "idle" action(notify_failure)
+        }
+      }
+
+      actions: {
+        apply_role_change: () => {
+          RBACEngine.approve_transition(state.current_request_id, state.approver_id);
+          emit("on_applied");
+        }
+
+        notify_denial: () => {
+          emit("rbac_workflow:denied", {
+            request_id: state.current_request_id,
+            reason: state.deny_reason
+          });
+          state.current_request_id = null;
+        }
+
+        expire_request: () => {
+          RBACEngine.deny_transition(
+            state.current_request_id, "system", "Request expired"
+          );
+          state.current_request_id = null;
+        }
+
+        notify_success: () => {
+          emit("rbac_workflow:completed", {
+            request_id: state.current_request_id
+          });
+          state.current_request_id = null;
+        }
+
+        notify_failure: () => {
+          emit("rbac_workflow:failed", {
+            request_id: state.current_request_id
+          });
+          state.current_request_id = null;
+        }
+      }
+    }
+
+    state {
+      current_request_id: null
+      approver_id: null
+      deny_reason: null
+      approval_timeout: 60000  // 60 seconds
+      request_timer: 0
+    }
+
+    @on_event("rbac:transition_requested"): (data) => {
+      state.current_request_id = data.request_id;
+      state.request_timer = current_time();
+      emit("on_transition_requested");
+    }
+
+    @on_event("rbac:transition_approved"): (data) => {
+      if (data.request_id === state.current_request_id) {
+        state.approver_id = data.approved_by;
+        emit("on_approved");
+      }
+    }
+
+    @on_event("rbac:transition_denied"): (data) => {
+      if (data.request_id === state.current_request_id) {
+        state.deny_reason = data.reason;
+        emit("on_denied");
+      }
+    }
+
+    @on_update: (delta) => {
+      // Check for approval timeout
+      if (this.current_state === "awaiting_approval" && state.current_request_id) {
+        if (current_time() - state.request_timer > state.approval_timeout) {
+          emit("on_timeout");
+        }
+      }
+    }
+  }
+
+  // ========================================================================
+  // SCENE OBJECTS
+  // ========================================================================
+
+  object "Floor" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0, 0]
+    scale: [16, 0.1, 10]
+    color: "#1e1e2e"
+  }
+
+  // Tenant status indicator tower
+  object "TenantTower" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 2, -3]
+    scale: [1, 3, 1]
+    color: "#3498db"
+    emissive: "#3498db"
+    emissiveIntensity: 0.3
+
+    @on_event("lifecycle:active"): () => {
+      this.color = "#2ecc71";
+      this.emissive = "#2ecc71";
+    }
+
+    @on_event("tenant:suspended"): () => {
+      this.color = "#f39c12";
+      this.emissive = "#f39c12";
+    }
+
+    @on_event("tenant:archived"): () => {
+      this.color = "#95a5a6";
+      this.emissive = "#95a5a6";
+      this.emissiveIntensity = 0.1;
+    }
+
+    @on_event("lifecycle:terminated"): () => {
+      this.color = "#e74c3c";
+      this.emissive = "#e74c3c";
+      this.emissiveIntensity = 0.05;
+    }
+  }
+
+  // RBAC role indicator lights
+  object "RoleLight_Owner" {
+    @glowing
+    geometry: "sphere"
+    position: [-4, 1, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#e74c3c"
+    emissive: "#e74c3c"
+    emissiveIntensity: 0.8
+  }
+
+  object "RoleLight_Admin" {
+    @glowing
+    geometry: "sphere"
+    position: [-2, 1, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#f39c12"
+    emissive: "#f39c12"
+    emissiveIntensity: 0.6
+  }
+
+  object "RoleLight_Editor" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 1, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#2ecc71"
+    emissive: "#2ecc71"
+    emissiveIntensity: 0.6
+  }
+
+  object "RoleLight_Viewer" {
+    @glowing
+    geometry: "sphere"
+    position: [2, 1, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#3498db"
+    emissive: "#3498db"
+    emissiveIntensity: 0.4
+  }
+
+  object "RoleLight_Spectator" {
+    @glowing
+    geometry: "sphere"
+    position: [4, 1, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#95a5a6"
+    emissive: "#95a5a6"
+    emissiveIntensity: 0.2
+  }
+
+  // ========================================================================
+  // HUD -- Enterprise management panels
+  // ========================================================================
+
+  panel "TenantHUD" {
+    position: "top-left"
+
+    text "TenantState" {
+      bind: "Tenant: " + LifecycleController.current_state
+      style: "info"
+    }
+    text "TenantTier" {
+      bind: "Tier: enterprise | Isolation: physical"
+      style: "info"
+    }
+    text "TenantCount" {
+      bind: "Tenants: " + TenantManager.state.tenant_count
+      style: "info"
+    }
+  }
+
+  panel "RBACHUD" {
+    position: "top-right"
+
+    text "RBACState" {
+      bind: "RBAC Workflow: " + RBACWorkflow.current_state
+      style: "info"
+    }
+    text "PendingTransitions" {
+      bind: "Pending: " + RBACEngine.state.pending_transitions.filter(t => t.status === "pending").length
+      style: "info"
+    }
+    text "Assignments" {
+      bind: "Assignments: " + Object.keys(RBACEngine.state.assignments).length
+      style: "info"
+    }
+  }
+
+  panel "AuditHUD" {
+    position: "bottom-left"
+
+    text "AuditCount" {
+      bind: "Audit entries: " + AuditLogger.state.entry_count
+      style: "info"
+    }
+    text "TenantEvents" {
+      bind: "Tenant: " + AuditLogger.state.categories.tenant + " | RBAC: " + AuditLogger.state.categories.rbac
+      style: "info"
+    }
+    text "SecurityEvents" {
+      bind: "Security: " + AuditLogger.state.categories.security
+      style: "warning"
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "holoscript_export": {
+    "version": "3.4.0",
+    "target": "unity",
+    "source": "simple-cube.holo",
+    "timestamp": "2026-02-16T18:00:00Z"
+  },
+  "prefab": {
+    "name": "SimpleCube",
+    "guid": "a1b2c3d4e5f6g7h8i9j0",
+    "components": [
+      {
+        "type": "Transform",
+        "position": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      {
+        "type": "MeshFilter",
+        "mesh": {
+          "type": "Cube",
+          "primitiveType": "Cube"
+        }
+      },
+      {
+        "type": "MeshRenderer",
+        "materials": [
+          {
+            "name": "CubeMaterial",
+            "shader": "Standard",
+            "properties": {
+              "_Color": {
+                "r": 1.0,
+                "g": 0.0,
+                "b": 0.0,
+                "a": 1.0
+              },
+              "_Metallic": 0.0,
+              "_Glossiness": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "type": "XR.Interaction.Toolkit.Interactables.XRGrabInteractable",
+        "comment": "Unity XR Interaction Toolkit component for @grabbable",
+        "throwOnDetach": true,
+        "trackPosition": true,
+        "trackRotation": true,
+        "smoothPosition": true,
+        "smoothRotation": true,
+        "attachTransform": null,
+        "useDynamicAttach": true
+      },
+      {
+        "type": "Rigidbody",
+        "comment": "Required for XR grab physics",
+        "mass": 1.0,
+        "useGravity": false,
+        "isKinematic": false,
+        "interpolation": "Interpolate"
+      },
+      {
+        "type": "BoxCollider",
+        "comment": "Required for XR interaction",
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "size": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "isTrigger": false
+      }
+    ],
+    "holoscript_metadata": {
+      "traits": [
+        "@color(red)",
+        "@position(0, 1, 0)",
+        "@grabbable"
+      ],
+      "object_type": "cube",
+      "compilation_notes": {
+        "@color(red)": "Mapped to Material._Color (1.0, 0.0, 0.0, 1.0)",
+        "@position(0, 1, 0)": "Mapped to Transform.position",
+        "@grabbable": "Mapped to XRGrabInteractable + Rigidbody + Collider"
+      }
+    }
+  },
+  "dependencies": {
+    "unity_version": "2022.3+",
+    "packages_required": [
+      "com.unity.xr.interaction.toolkit@2.5.0+"
+    ]
+  },
+  "setup_instructions": [
+    "1. Import Unity XR Interaction Toolkit package",
+    "2. Create GameObject from this prefab JSON",
+    "3. Ensure XR Origin exists in scene",
+    "4. Configure XR Interaction Manager",
+    "5. Test in VR mode"
+  ]
+}

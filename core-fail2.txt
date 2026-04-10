@@ -1,0 +1,16 @@
+src/agents/OrchestratorAgent.ts(22,1): error TS2578: Unused '@ts-expect-error' directive.
+src/editor/AssetBrowserPanel.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/EditorPersistence.ts(111,28): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/types/HoloScriptPlus").HSPlusNode'.
+  Types of property 'traits' are incompatible.
+    Type 'Map<string, unknown> | undefined' is not assignable to type 'Map<VRTraitName, Record<string, unknown>> | undefined'.
+      Type 'Map<string, unknown>' is not assignable to type 'Map<VRTraitName, Record<string, unknown>>'.
+        Type 'unknown' is not assignable to type 'Record<string, unknown>'.
+src/editor/EditorUI.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/GizmoSystem.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/Inspector.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/InspectorPanel.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/MarketplacePanel.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/SelectionManager.ts(2,10): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/editor/UIBuilder.ts(1,17): error TS2305: Module '"../ecs/World"' has no exported member 'Entity'.
+src/HoloScriptRuntime.ts(24,10): error TS2305: Module '"./orbital/AttentionEngine"' has no exported member 'AttentionEngine'.
+src/traits/SpatialAgentOrchestrator.ts(331,5): error TS2578: Unused '@ts-expect-error' directive.

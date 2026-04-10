@@ -1,0 +1,498 @@
+/**
+ * XR Platform Trait Showcase -- Coverage for 35 XR Platform traits
+ *
+ * TARGET: examples/traits/xr-platform-showcase.hsplus
+ *
+ * Covers: @hand_tracking, @eye_tracking, @passthrough, @spatial_anchor,
+ * @plane_detection, @mesh_detection, @scene_understanding, @hit_test,
+ * @depth_sensing, @light_estimation, @body_tracking, @face_tracking,
+ * @controller_haptics, @guardian_boundary, @foveated_rendering,
+ * @space_warp, @reprojection, @hand_mesh, @gesture_recognition,
+ * @room_scale, @seated_experience, @standing_experience,
+ * @shared_spatial_anchor, @cloud_anchor, @image_tracking,
+ * @object_tracking, @world_mesh, @semantic_label, @occlusion,
+ * @raycasting, @teleport, @snap_turn, @smooth_locomotion,
+ * @comfort_vignette, @stage_bounds
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ * @coverage XR Platform (35 traits)
+ */
+
+composition "XRPlatformShowcase" {
+  environment {
+    skybox: "clear_sky"
+    ambient_light: 0.6
+    physics: true
+    xr_mode: "immersive-ar"
+  }
+
+  // ========================================================================
+  // HAND TRACKING AND GESTURE RECOGNITION
+  // ========================================================================
+
+  module HandTrackingSystem {
+    state {
+      left_hand_detected: false
+      right_hand_detected: false
+      current_gesture: "none"
+      pinch_strength: 0.0
+      grab_strength: 0.0
+    }
+
+    action update_hand(hand, joints) {
+      if (hand === "left") {
+        this.state.left_hand_detected = true;
+      } else {
+        this.state.right_hand_detected = true;
+      }
+    }
+
+    action update_gesture(gesture, confidence) {
+      if (confidence > 0.8) {
+        this.state.current_gesture = gesture;
+        emit("gesture:detected", { gesture: gesture, confidence: confidence });
+      }
+    }
+
+    exports { update_hand, update_gesture, state }
+  }
+
+  // ========================================================================
+  // SPATIAL ANCHOR MANAGER
+  // ========================================================================
+
+  module SpatialAnchorManager {
+    state {
+      anchors: {}
+      cloud_anchors: {}
+      shared_anchors: {}
+      total_anchors: 0
+    }
+
+    action create_anchor(id, position, rotation) {
+      this.state.anchors[id] = {
+        position: position,
+        rotation: rotation,
+        created_at: current_time(),
+        persistent: false
+      };
+      this.state.total_anchors += 1;
+      emit("anchor:created", { id: id, position: position });
+    }
+
+    action create_cloud_anchor(id, position, rotation) {
+      this.state.cloud_anchors[id] = {
+        position: position,
+        rotation: rotation,
+        cloud_id: null,
+        status: "uploading"
+      };
+      emit("cloud_anchor:creating", { id: id });
+    }
+
+    action share_anchor(id, session_id) {
+      const anchor = this.state.anchors[id] || this.state.cloud_anchors[id];
+      if (anchor) {
+        this.state.shared_anchors[id] = {
+          ...anchor,
+          shared_with: [session_id],
+          shared_at: current_time()
+        };
+        emit("anchor:shared", { id: id, session: session_id });
+      }
+    }
+
+    exports { create_anchor, create_cloud_anchor, share_anchor, state }
+  }
+
+  // ========================================================================
+  // AR HAND TRACKING OBJECT
+  // ========================================================================
+
+  object "HandTracker" {
+    @hand_tracking {
+      model: "full_skeleton"
+      joints: 26
+      update_rate: 60
+      prediction: true
+    }
+
+    @hand_mesh {
+      visible: true
+      material: "skin"
+      opacity: 0.8
+      occlusion: true
+    }
+
+    @gesture_recognition {
+      gestures: ["pinch", "grab", "point", "thumbs_up", "open_palm", "fist"]
+      min_confidence: 0.85
+      debounce_ms: 200
+      custom_gestures: ["peace_sign", "ok_sign"]
+    }
+
+    @controller_haptics {
+      intensity: 0.5
+      duration_ms: 50
+      pattern: "pulse"
+      on_gesture: true
+    }
+
+    @on_event("hand:joint_update"): (data) => {
+      HandTrackingSystem.update_hand(data.hand, data.joints);
+    }
+
+    @on_event("gesture:recognized"): (data) => {
+      HandTrackingSystem.update_gesture(data.gesture, data.confidence);
+
+      if (data.gesture === "pinch") {
+        emit("interaction:pinch", {
+          hand: data.hand,
+          position: data.position,
+          strength: data.strength
+        });
+      }
+    }
+  }
+
+  // ========================================================================
+  // EYE AND BODY TRACKING
+  // ========================================================================
+
+  object "BodyTrackingAvatar" {
+    @eye_tracking {
+      enabled: true
+      fixation_threshold_ms: 300
+      saccade_detection: true
+      pupil_dilation: true
+    }
+
+    @body_tracking {
+      joints: ["head", "neck", "spine", "hips", "shoulders", "elbows", "wrists", "knees", "ankles"]
+      update_rate: 30
+      prediction: true
+      ik_enabled: true
+    }
+
+    @face_tracking {
+      blend_shapes: 52
+      expression_detection: true
+      lip_tracking: true
+      eye_gaze: true
+    }
+
+    @foveated_rendering {
+      mode: "dynamic"
+      inner_radius: 9
+      middle_radius: 20
+      outer_radius: 60
+      inner_quality: 1.0
+      middle_quality: 0.6
+      outer_quality: 0.3
+    }
+
+    geometry: "humanoid"
+    position: [0, 0, -2]
+
+    @on_event("eye:fixation"): (data) => {
+      emit("gaze:focused", {
+        target: data.target_object,
+        duration: data.duration_ms,
+        position: data.gaze_point
+      });
+    }
+
+    @on_event("face:expression"): (data) => {
+      emit("avatar:expression_update", {
+        expression: data.expression,
+        blend_weights: data.weights
+      });
+    }
+  }
+
+  // ========================================================================
+  // AR SCENE UNDERSTANDING
+  // ========================================================================
+
+  object "ARSceneUnderstanding" {
+    @passthrough {
+      mode: "mixed_reality"
+      opacity: 1.0
+      edge_rendering: true
+      depth_overlay: true
+    }
+
+    @plane_detection {
+      types: ["horizontal", "vertical", "ceiling"]
+      min_area: 0.25
+      merge_coplanar: true
+      update_rate: 5
+    }
+
+    @mesh_detection {
+      resolution: "medium"
+      update_rate: 3
+      max_mesh_count: 50
+      classification: true
+    }
+
+    @scene_understanding {
+      semantic_labels: true
+      room_layout: true
+      furniture_detection: true
+      wall_classification: true
+      categories: ["floor", "wall", "ceiling", "table", "chair", "door", "window"]
+    }
+
+    @hit_test {
+      types: ["plane", "mesh", "point"]
+      continuous: true
+      rate: 30
+    }
+
+    @depth_sensing {
+      mode: "smooth"
+      range_near: 0.1
+      range_far: 10.0
+      raw_depth: false
+    }
+
+    @light_estimation {
+      mode: "ambient_intensity"
+      probe_resolution: 64
+      update_rate: 10
+      shadow_estimation: true
+    }
+
+    @occlusion {
+      mode: "environmental"
+      edge_smoothing: true
+      soft_occlusion: true
+      depth_comparison: true
+    }
+
+    @world_mesh {
+      resolution: 0.05
+      range: 5.0
+      update_mode: "incremental"
+      normals: true
+    }
+
+    @semantic_label {
+      categories: ["floor", "wall", "ceiling", "table", "chair", "door", "window", "person"]
+      confidence_threshold: 0.7
+      label_display: true
+    }
+
+    @image_tracking {
+      max_tracked: 5
+      reference_images: ["marker_a.png", "marker_b.png", "logo.png"]
+      physical_size: [0.15, 0.15]
+    }
+
+    @object_tracking {
+      reference_objects: ["cup.usdz", "bottle.usdz"]
+      max_tracked: 3
+    }
+
+    @on_event("plane:detected"): (data) => {
+      SpatialAnchorManager.create_anchor(
+        "plane_" + data.id,
+        data.center,
+        data.orientation
+      );
+    }
+
+    @on_event("scene:label"): (data) => {
+      emit("ar:semantic_update", {
+        label: data.category,
+        confidence: data.confidence,
+        bounds: data.bounding_box
+      });
+    }
+
+    @on_event("image:tracked"): (data) => {
+      emit("ar:image_found", {
+        image: data.reference_name,
+        transform: data.transform,
+        tracking_state: data.state
+      });
+    }
+  }
+
+  // ========================================================================
+  // SPATIAL ANCHORS
+  // ========================================================================
+
+  object "AnchorPlacer" {
+    @spatial_anchor {
+      persistent: true
+      ttl_hours: 720
+      accuracy: "high"
+    }
+
+    @cloud_anchor {
+      provider: "azure_spatial_anchors"
+      account_id: "env:AZURE_SPATIAL_ACCOUNT"
+      sharing: true
+      expiration_days: 30
+    }
+
+    @shared_spatial_anchor {
+      discovery: "nearby"
+      range: 20
+      auto_resolve: true
+      session_sync: true
+    }
+
+    @raycasting {
+      source: "controller"
+      layers: ["interactable", "surface"]
+      max_distance: 50.0
+      visualize: true
+      line_color: "#00ffff"
+      line_width: 2
+    }
+
+    geometry: "ring"
+    color: "#00ff88"
+    scale: [0.1, 0.1, 0.1]
+    visible: false
+
+    @on_event("raycast:hit"): (data) => {
+      if (data.trigger === "select") {
+        this.visible = true;
+        this.position = data.point;
+        SpatialAnchorManager.create_anchor(
+          "user_anchor_" + current_time(),
+          data.point,
+          data.normal
+        );
+      }
+    }
+  }
+
+  // ========================================================================
+  // LOCOMOTION SYSTEM
+  // ========================================================================
+
+  object "LocomotionRig" {
+    @teleport {
+      mode: "arc"
+      max_distance: 10.0
+      valid_surfaces: ["floor", "platform"]
+      fade_duration: 0.3
+      indicator_color: "#00ff00"
+      invalid_color: "#ff0000"
+    }
+
+    @snap_turn {
+      angle: 45
+      speed: "instant"
+      haptic_feedback: true
+    }
+
+    @smooth_locomotion {
+      speed: 2.0
+      acceleration: 5.0
+      deceleration: 8.0
+      strafe: true
+      direction_source: "head"
+    }
+
+    @comfort_vignette {
+      enabled: true
+      intensity: 0.4
+      inner_radius: 0.5
+      outer_radius: 0.8
+      activation_speed: 0.5
+      color: "#000000"
+    }
+
+    @room_scale {
+      boundary_visible: true
+      boundary_color: "#ff8800"
+      guardian_distance: 0.5
+      floor_height: 0.0
+    }
+
+    @guardian_boundary {
+      mode: "soft_wall"
+      warning_distance: 0.5
+      fade_color: "#ff000040"
+      passthrough_on_close: true
+      haptic_warning: true
+    }
+
+    @stage_bounds {
+      width: 3.0
+      depth: 3.0
+      shape: "rectangular"
+      center_offset: [0, 0, 0]
+    }
+
+    @seated_experience {
+      eye_height: 1.2
+      desk_height: 0.75
+      reachable_radius: 0.8
+    }
+
+    @standing_experience {
+      eye_height: 1.7
+      play_area: [3, 3]
+      step_detection: true
+    }
+
+    position: [0, 0, 0]
+
+    state {
+      locomotion_mode: "teleport"
+      is_moving: false
+      comfort_level: "high"
+    }
+
+    @on_event("locomotion:mode_change"): (data) => {
+      state.locomotion_mode = data.mode;
+      emit("rig:locomotion_changed", { mode: data.mode });
+    }
+  }
+
+  // ========================================================================
+  // PERFORMANCE OPTIMIZATION OBJECTS
+  // ========================================================================
+
+  object "PerformanceManager" {
+    @space_warp {
+      enabled: true
+      mode: "application"
+      fallback: "reprojection"
+    }
+
+    @reprojection {
+      mode: "positional"
+      late_latch: true
+      prediction_ms: 11
+    }
+
+    state {
+      current_fps: 72
+      dropped_frames: 0
+      foveation_level: "dynamic"
+    }
+
+    @on_update: (delta) => {
+      // Monitor frame rate and adjust quality
+      const fps = 1.0 / delta;
+      state.current_fps = fps;
+
+      if (fps < 60) {
+        state.dropped_frames += 1;
+        emit("performance:warning", {
+          fps: fps,
+          dropped: state.dropped_frames
+        });
+      }
+    }
+  }
+}

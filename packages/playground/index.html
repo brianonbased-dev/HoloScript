@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Playground - Try HoloScript in Your Browser</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>"
+    />
+
+    <!-- Monaco Editor -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css"
+    />
+
+    <!-- Custom Styles -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-primary: #1e1e1e;
+        --bg-secondary: #252526;
+        --bg-tertiary: #2d2d30;
+        --text-primary: #cccccc;
+        --text-secondary: #969696;
+        --accent-blue: #007acc;
+        --accent-green: #16c60c;
+        --accent-orange: #ff8c00;
+        --border-color: #3c3c3c;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        overflow: hidden;
+        height: 100vh;
+      }
+
+      /* Header */
+      .header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .logo-icon {
+        font-size: 32px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      /* Buttons */
+      button {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      button:hover {
+        background: var(--border-color);
+        border-color: var(--text-secondary);
+      }
+
+      button.primary {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+        color: white;
+      }
+
+      button.primary:hover {
+        background: #005a9e;
+        border-color: #005a9e;
+      }
+
+      button.success {
+        background: var(--accent-green);
+        border-color: var(--accent-green);
+        color: white;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Main Layout */
+      .main-container {
+        display: flex;
+        height: calc(100vh - 60px);
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: 250px;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .sidebar-section {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .sidebar-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+
+      .example-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .example-item {
+        padding: 10px 12px;
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+      }
+
+      .example-item:hover {
+        background: var(--border-color);
+        border-color: var(--accent-blue);
+      }
+
+      .example-item.active {
+        background: var(--accent-blue);
+        color: white;
+      }
+
+      .example-name {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .example-desc {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .example-item.active .example-desc {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Runtime selector */
+      .runtime-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .runtime-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+
+      .runtime-option:hover {
+        border-color: var(--accent-blue);
+      }
+
+      .runtime-option.active {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+      }
+
+      .runtime-radio {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .runtime-option.active .runtime-radio {
+        border-color: white;
+      }
+
+      .runtime-radio::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: transparent;
+      }
+
+      .runtime-option.active .runtime-radio::after {
+        background: white;
+      }
+
+      /* Editor & Preview */
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .editor-container {
+        height: 50%;
+        border-bottom: 1px solid var(--border-color);
+        position: relative;
+      }
+
+      #editor {
+        width: 100%;
+        height: 100%;
+      }
+
+      .preview-container {
+        height: 50%;
+        background: var(--bg-primary);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .preview-header {
+        background: var(--bg-secondary);
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .preview-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .preview-stats {
+        display: flex;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .stat-item {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .stat-value {
+        color: var(--accent-green);
+        font-weight: 600;
+      }
+
+      #canvas-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1e1e1e 0%, #2d2d30 100%);
+        position: relative;
+      }
+
+      #preview-canvas {
+        max-width: 100%;
+        max-height: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .canvas-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: var(--text-secondary);
+      }
+
+      .canvas-overlay-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+      }
+
+      /* Console */
+      .console {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-color);
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 12px 20px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        display: none;
+      }
+
+      .console.visible {
+        display: block;
+      }
+
+      .console-entry {
+        padding: 4px 0;
+        display: flex;
+        gap: 12px;
+      }
+
+      .console-timestamp {
+        color: var(--text-secondary);
+      }
+
+      .console-level {
+        font-weight: 600;
+      }
+
+      .console-level.log {
+        color: var(--text-primary);
+      }
+      .console-level.info {
+        color: var(--accent-blue);
+      }
+      .console-level.warn {
+        color: var(--accent-orange);
+      }
+      .console-level.error {
+        color: #f14c4c;
+      }
+
+      /* Loading */
+      .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--text-secondary);
+        border-top-color: var(--accent-blue);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 200px;
+        }
+
+        .header-actions {
+          gap: 6px;
+        }
+
+        button {
+          padding: 6px 12px;
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">🌐</span>
+        <span>HoloScript Playground</span>
+      </div>
+      <div class="header-actions">
+        <button id="run-btn" class="primary">
+          <span>▶</span>
+          <span>Run</span>
+        </button>
+        <button id="reset-btn">
+          <span>🔄</span>
+          <span>Reset</span>
+        </button>
+        <button id="share-btn">
+          <span>🔗</span>
+          <span>Share</span>
+        </button>
+        <button id="download-btn">
+          <span>⬇️</span>
+          <span>Export</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Examples -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">Examples</div>
+          <div class="example-list" id="example-list">
+            <!-- Examples loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Runtime Selection -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">Runtime Engine</div>
+          <div class="runtime-selector" id="runtime-selector">
+            <!-- Runtime options loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">Settings</div>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+            <input type="checkbox" id="auto-run" checked />
+            <span style="font-size: 14px">Auto-run on change</span>
+          </label>
+          <label
+            style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px"
+          >
+            <input type="checkbox" id="show-console" />
+            <span style="font-size: 14px">Show console</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Editor -->
+        <div class="editor-container">
+          <div id="editor"></div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-container">
+          <div class="preview-header">
+            <div class="preview-title">Live Preview</div>
+            <div class="preview-stats">
+              <div class="stat-item">
+                <span>FPS:</span>
+                <span class="stat-value" id="fps-stat">--</span>
+              </div>
+              <div class="stat-item">
+                <span>Particles:</span>
+                <span class="stat-value" id="particles-stat">--</span>
+              </div>
+              <div class="stat-item">
+                <span>Status:</span>
+                <span class="stat-value" id="status-stat">Ready</span>
+              </div>
+            </div>
+          </div>
+          <div id="canvas-container">
+            <canvas id="preview-canvas" width="800" height="600"></canvas>
+            <div class="canvas-overlay" id="canvas-overlay">
+              <div class="canvas-overlay-icon">▶️</div>
+              <div>Click "Run" to execute your HoloScript code</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console" id="console">
+          <!-- Console entries -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+    <!-- Playground Logic -->
+    <script type="module" src="./playground.js"></script>
+  </body>
+</html>

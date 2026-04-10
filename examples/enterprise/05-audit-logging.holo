@@ -1,0 +1,337 @@
+/**
+ * Audit Logging — HoloScript v5.0 Enterprise Example
+ *
+ * Demonstrates compliance-grade audit logging with AuditLogTrait.
+ * This example shows:
+ *  - Tamper-proof event logging
+ *  - GDPR, SOC 2, HIPAA compliance
+ *  - User activity tracking
+ *  - System event auditing
+ *  - Log retention policies
+ *  - Searchable audit trails
+ *
+ * Use Case: Enterprise Compliance
+ *   - Regulatory compliance (GDPR, SOC 2, HIPAA)
+ *   - Security incident investigation
+ *   - User activity forensics
+ *   - Access control auditing
+ *
+ * Run this example:
+ *   holoc examples/enterprise/05-audit-logging.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene ComplianceAuditLog {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AUDIT LOG CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AuditLogger {
+    traits: [audit_log];
+
+    audit_log: {
+      // Compliance standards
+      compliance: ["GDPR", "SOC2", "HIPAA"],
+
+      // Tamper-proof signatures (cryptographic hashing)
+      tamperProofEnabled: true,
+      hashAlgorithm: "SHA-256",
+
+      // Retention policy
+      retentionDays: 2555,            // 7 years (SOC 2 requirement)
+
+      // PII anonymization
+      anonymizePII: false,            // Keep full data for compliance
+
+      // Log destinations
+      destinations: [
+        { type: "local", path: "/var/log/holoscript/audit" },
+        { type: "s3", bucket: "acme-audit-logs", region: "us-east-1" },
+        { type: "siem", endpoint: "https://siem.acme.com/api/events" },
+      ],
+
+      // Event categories to log
+      categories: [
+        "authentication",             // Login, logout, session events
+        "authorization",              // Permission checks, role changes
+        "data_access",                // Read, write, delete operations
+        "system_config",              // Setting changes, admin actions
+        "security",                   // Failed logins, suspicious activity
+        "compliance",                 // GDPR requests, data exports
+      ],
+
+      // Real-time alerts for critical events
+      alertOn: [
+        "authentication.failed_login",
+        "authorization.permission_denied",
+        "data_access.delete_production",
+        "security.suspicious_activity",
+      ],
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Authentication Events
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AuditLogger, "audit_logged") {
+    log(`📝 Audit log entry created`);
+    log(`  Event ID: ${event.eventId}`);
+    log(`  Category: ${event.category}`);
+    log(`  Action: ${event.action}`);
+    log(`  Actor: ${event.actor}`);
+    log(`  Resource: ${event.resource}`);
+    log(`  Timestamp: ${event.timestamp}`);
+    log(`  Hash: ${event.hash.substring(0, 16)}...`);
+  }
+
+  on(AuditLogger, "audit_integrity_verified") {
+    log(`✅ Audit log integrity verified`);
+    log(`  Event ID: ${event.eventId}`);
+    log(`  Hash matches: ${event.hashMatches}`);
+    log(`  Tamper-proof: ${event.tamperProof}`);
+  }
+
+  on(AuditLogger, "audit_tampering_detected") {
+    log(`🚨 AUDIT LOG TAMPERING DETECTED!`);
+    log(`  Event ID: ${event.eventId}`);
+    log(`  Expected hash: ${event.expectedHash}`);
+    log(`  Actual hash: ${event.actualHash}`);
+    log(`  CRITICAL SECURITY INCIDENT`);
+  }
+
+  on(AuditLogger, "audit_alert_triggered") {
+    log(`🚨 AUDIT ALERT: ${event.alertType}`);
+    log(`  Event: ${event.category}.${event.action}`);
+    log(`  Actor: ${event.actor}`);
+    log(`  Details: ${event.details}`);
+    log(`  Severity: ${event.severity}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Log successful login
+  on(DemoControls, "click") {
+    if (event.target === "login_success_button") {
+      emit(AuditLogger, "log_event", {
+        category: "authentication",
+        action: "login_success",
+        actor: "user_alice@acme.com",
+        resource: "platform",
+        metadata: {
+          ip: "203.0.113.42",
+          userAgent: "Mozilla/5.0...",
+          mfa: true,
+          location: "New York, US",
+        },
+      });
+      log("✅ Logging successful login...");
+    }
+  }
+
+  // Demo 2: Log failed login (triggers alert)
+  on(DemoControls, "click") {
+    if (event.target === "login_failed_button") {
+      emit(AuditLogger, "log_event", {
+        category: "authentication",
+        action: "failed_login",
+        actor: "unknown@example.com",
+        resource: "platform",
+        metadata: {
+          ip: "198.51.100.23",
+          reason: "invalid_credentials",
+          attempts: 5,
+          location: "Unknown",
+        },
+      });
+      log("❌ Logging failed login (will trigger alert)...");
+    }
+  }
+
+  // Demo 3: Log permission denial
+  on(DemoControls, "click") {
+    if (event.target === "permission_denied_button") {
+      emit(AuditLogger, "log_event", {
+        category: "authorization",
+        action: "permission_denied",
+        actor: "user_viewer@acme.com",
+        resource: "scenes/production_scene_v2",
+        metadata: {
+          action: "delete",
+          role: "viewer",
+          requiredRole: "admin",
+        },
+      });
+      log("🚫 Logging permission denial...");
+    }
+  }
+
+  // Demo 4: Log data access (read)
+  on(DemoControls, "click") {
+    if (event.target === "data_read_button") {
+      emit(AuditLogger, "log_event", {
+        category: "data_access",
+        action: "read",
+        actor: "user_alice@acme.com",
+        resource: "database/customer_records",
+        metadata: {
+          table: "customers",
+          recordCount: 1,
+          query: "SELECT * FROM customers WHERE id = 42",
+          piiAccessed: true,
+        },
+      });
+      log("👁️  Logging data read access...");
+    }
+  }
+
+  // Demo 5: Log data deletion (production)
+  on(DemoControls, "click") {
+    if (event.target === "data_delete_button") {
+      emit(AuditLogger, "log_event", {
+        category: "data_access",
+        action: "delete_production",
+        actor: "user_admin@acme.com",
+        resource: "scenes/legacy_training_scene",
+        metadata: {
+          environment: "production",
+          dataSize: "2.5GB",
+          backupCreated: true,
+          approvedBy: "cto@acme.com",
+        },
+      });
+      log("🗑️  Logging production data deletion (will trigger alert)...");
+    }
+  }
+
+  // Demo 6: Log system configuration change
+  on(DemoControls, "click") {
+    if (event.target === "config_change_button") {
+      emit(AuditLogger, "log_event", {
+        category: "system_config",
+        action: "setting_changed",
+        actor: "user_admin@acme.com",
+        resource: "platform/settings",
+        metadata: {
+          setting: "session_timeout",
+          oldValue: "3600",
+          newValue: "7200",
+          reason: "Extend session for better UX",
+        },
+      });
+      log("⚙️  Logging configuration change...");
+    }
+  }
+
+  // Demo 7: Log GDPR data export request
+  on(DemoControls, "click") {
+    if (event.target === "gdpr_export_button") {
+      emit(AuditLogger, "log_event", {
+        category: "compliance",
+        action: "gdpr_data_export",
+        actor: "user_alice@acme.com",
+        resource: "gdpr/data_export",
+        metadata: {
+          requestType: "Article 15 - Right to Access",
+          dataTypes: ["profile", "activity_logs", "preferences"],
+          format: "JSON",
+          encrypted: true,
+        },
+      });
+      log("📦 Logging GDPR data export request...");
+    }
+  }
+
+  // Demo 8: Log GDPR data deletion request
+  on(DemoControls, "click") {
+    if (event.target === "gdpr_delete_button") {
+      emit(AuditLogger, "log_event", {
+        category: "compliance",
+        action: "gdpr_data_deletion",
+        actor: "user_bob@acme.com",
+        resource: "gdpr/right_to_be_forgotten",
+        metadata: {
+          requestType: "Article 17 - Right to Erasure",
+          dataTypes: ["profile", "activity_logs", "analytics"],
+          retentionOverride: false,
+          completedAt: new Date().toISOString(),
+        },
+      });
+      log("🗑️  Logging GDPR data deletion request...");
+    }
+  }
+
+  // Demo 9: Log suspicious activity
+  on(DemoControls, "click") {
+    if (event.target === "suspicious_activity_button") {
+      emit(AuditLogger, "log_event", {
+        category: "security",
+        action: "suspicious_activity",
+        actor: "user_unknown@example.com",
+        resource: "platform",
+        metadata: {
+          pattern: "rapid_api_calls",
+          rate: "10000 requests/minute",
+          threshold: "1000 requests/minute",
+          blocked: true,
+          ip: "198.51.100.99",
+        },
+      });
+      log("🚨 Logging suspicious activity (will trigger alert)...");
+    }
+  }
+
+  // Demo 10: Query audit logs
+  on(DemoControls, "click") {
+    if (event.target === "query_logs_button") {
+      emit(AuditLogger, "query_logs", {
+        category: "authentication",
+        startDate: "2026-03-01T00:00:00Z",
+        endDate: "2026-03-07T23:59:59Z",
+        actor: "user_alice@acme.com",
+        limit: 100,
+      });
+      log("🔍 Querying audit logs for user_alice...");
+    }
+  }
+
+  on(AuditLogger, "query_results") {
+    log("📋 AUDIT LOG QUERY RESULTS");
+    log(`  Total matches: ${event.total}`);
+    log(`  Returned: ${event.results.length}`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    for (const entry of event.results.slice(0, 5)) {
+      log(`  ${entry.timestamp} | ${entry.category}.${entry.action}`);
+      log(`    Actor: ${entry.actor}`);
+      log(`    Resource: ${entry.resource}`);
+    }
+    if (event.results.length > 5) {
+      log(`  ... and ${event.results.length - 5} more`);
+    }
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AuditDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "AUDIT LOGGING & COMPLIANCE\n\n📋 Event Categories:\n  • Authentication (login, logout, MFA)\n  • Authorization (permissions, roles)\n  • Data Access (read, write, delete)\n  • System Config (settings, admin)\n  • Security (threats, incidents)\n  • Compliance (GDPR, data export)\n\n🔒 Compliance Standards:\n  • GDPR (7-year retention)\n  • SOC 2 (tamper-proof)\n  • HIPAA (PHI access logs)\n  • ISO 27001\n\n🛡️  Security Features:\n  • SHA-256 cryptographic hashing\n  • Tamper detection\n  • Real-time alerts\n  • Searchable audit trails\n  • Multi-destination logging\n  • PII anonymization (optional)\n\n📊 Use Cases:\n  • Incident investigation\n  • Compliance audits\n  • User activity forensics\n  • Access control review",
+      fontSize: 0.09,
+      color: "#ef4444",
+    };
+  }
+}

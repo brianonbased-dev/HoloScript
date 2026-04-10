@@ -1,0 +1,464 @@
+/**
+ * Gaussian Splat Photogrammetry Pipeline — HoloScript v4.1
+ *
+ * Complete photogrammetry to 3DGS workflow for film/entertainment production.
+ * Demonstrates:
+ *  - Multi-camera capture synchronization
+ *  - Structure-from-Motion (SfM) preprocessing
+ *  - 3D Gaussian Splatting (3DGS) training integration
+ *  - Real-time rendering with quality/speed tradeoffs
+ *  - Production-ready asset optimization
+ *
+ * Use Case: Film & Entertainment Volumetric Capture
+ *   - Actor/prop capture for VFX integration
+ *   - Virtual production set scanning
+ *   - On-set reference for CG matching
+ *   - Real-time previsualization
+ *   - Archival digital preservation
+ *
+ * Performance Budget (Quest 3 @ 90Hz):
+ *   - Target: 11.1ms/frame (90 FPS)
+ *   - Gaussian budget: 800K-1.2M splats
+ *   - Render: 8-9ms, Sort: 1.5-2ms, Overhead: 1ms
+ *
+ * Quality vs Speed Tradeoffs:
+ *   - Ultra: 2M splats, SH degree 3, 60 FPS (desktop only)
+ *   - High: 1.2M splats, SH degree 2, 90 FPS (Quest 3)
+ *   - Medium: 600K splats, SH degree 1, 120 FPS (mobile)
+ *   - Low: 300K splats, SH degree 0, 144 FPS (performance mode)
+ *
+ * Run:
+ *   holoc examples/volumetric-advanced/gaussian-splat-photogrammetry.holo --target webgpu
+ *
+ * @version 4.1.0
+ * @vertical film-entertainment
+ */
+
+scene PhotogrammetryStudio {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PHOTOGRAMMETRY CAPTURE RIG (Multi-Camera Array)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CaptureRig {
+    traits: [photogrammetry_capture];
+
+    photogrammetry_capture: {
+      // Camera array configuration
+      camera_count: 64,           // 64 synchronized cameras (8×8 dome array)
+      camera_layout: "dome",      // dome | ring | arc | custom
+      dome_radius: 3.5,           // 3.5m radius dome
+      dome_elevation_range: [15, 75],  // 15-75° elevation angles
+
+      // Capture settings
+      resolution: [4096, 3072],   // 12 megapixels per camera
+      capture_mode: "synchronized",  // Hardware-synced shutters (<1ms jitter)
+      exposure_bracketing: 3,     // 3 exposures: -1EV, 0EV, +1EV (HDR)
+      white_balance: 5500,        // Daylight balanced (K)
+
+      // Timing
+      sync_precision: 0.5,        // Sub-millisecond sync (motion capture grade)
+      capture_fps: 24,            // 24 FPS for film production
+
+      // Output
+      format: "raw",              // RAW for maximum dynamic range
+      color_space: "aces_cg",     // ACES color space (VFX standard)
+      bit_depth: 16,              // 16-bit per channel
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STRUCTURE-FROM-MOTION (SfM) PREPROCESSING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SfMPipeline {
+    traits: [structure_from_motion];
+
+    structure_from_motion: {
+      // Feature detection (SIFT/ORB)
+      feature_detector: "sift",   // SIFT for photometric quality
+      features_per_image: 8000,   // 8K features per image
+
+      // Feature matching
+      matcher: "exhaustive",      // Exhaustive pairwise matching (64 cameras)
+      match_threshold: 0.8,       // Lowe's ratio test threshold
+      geometric_verification: "fundamental_matrix",  // F-matrix RANSAC
+
+      // Incremental reconstruction
+      reconstruction_mode: "incremental",  // incremental | global | hybrid
+      max_reprojection_error: 1.0,  // 1 pixel reprojection error
+      min_triangulation_angle: 2.0,  // 2° minimum baseline angle
+
+      // Bundle adjustment
+      bundle_adjustment: "full",  // Full BA every 10 images
+      ba_iterations: 100,
+      ba_loss_function: "huber",  // Robust loss (outlier rejection)
+
+      // Output
+      sparse_point_cloud: true,   // Generate sparse point cloud
+      camera_calibration: true,   // Intrinsic + extrinsic parameters
+      depth_maps: true,           // MVS depth maps for 3DGS initialization
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 3D GAUSSIAN SPLATTING TRAINING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity GaussianTraining {
+    traits: [gaussian_training];
+
+    gaussian_training: {
+      // Initialization (from SfM sparse cloud)
+      init_mode: "sfm_sparse",    // Initialize from SfM point cloud
+      init_scale: 1.0,            // Scale factor
+
+      // Training hyperparameters (from 3DGS paper)
+      iterations: 30000,          // 30K iterations (production quality)
+      position_lr: 0.00016,       // Position learning rate
+      feature_lr: 0.0025,         // Feature learning rate (SH coeffs)
+      opacity_lr: 0.05,           // Opacity learning rate
+      scaling_lr: 0.005,          // Scaling learning rate
+      rotation_lr: 0.001,         // Rotation learning rate
+
+      // Densification (adaptive Gaussian splitting)
+      densify_from_iter: 500,
+      densify_until_iter: 15000,
+      densify_grad_threshold: 0.0002,  // Position gradient threshold
+      densify_size_threshold: 0.01,    // Large Gaussian split threshold
+
+      // Pruning (remove low-opacity Gaussians)
+      prune_opacity_threshold: 0.005,
+      prune_from_iter: 3000,
+      prune_interval: 100,
+
+      // Spherical harmonics
+      sh_degree_interval: 1000,   // Increase SH degree every 1000 iters
+      sh_max_degree: 3,           // Max SH degree 3 (16 coefficients)
+
+      // Regularization
+      opacity_reset_interval: 3000,  // Reset opacity every 3K iters
+
+      // Optimization
+      optimizer: "adam",
+      batch_size: 1,              // Full batch (all cameras)
+
+      // Output
+      checkpoint_interval: 5000,  // Save checkpoint every 5K iters
+      eval_interval: 1000,        // Evaluate on validation set
+      tensorboard: true,          // TensorBoard logging
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PRODUCTION-READY GAUSSIAN SPLAT ASSET
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity FilmQualityAsset {
+    traits: [gaussian_splat, performance_profiler];
+
+    gaussian_splat: {
+      // Trained asset (output from GaussianTraining)
+      source: "./assets/actor_capture_30k.splat",
+      format: "splat",
+      quality: "ultra",           // Ultra quality for film production
+      max_splats: 2000000,        // 2M Gaussians (desktop target)
+
+      // Rendering
+      sort_mode: "radix",         // GPU radix sort (fastest)
+      sh_degree: 3,               // Full SH degree 3 (view-dependent)
+      scale_modifier: 1.0,
+
+      // Culling optimizations
+      cull_invisible: true,
+      alpha_threshold: 0.005,     // Aggressive culling
+      frustum_culling: true,
+      occlusion_culling: false,   // Disabled (quality priority)
+
+      // LOD (Level of Detail) for performance scaling
+      lod: {
+        mode: "distance",         // Distance-based LOD
+        octree_depth: 8,          // Octree for spatial partitioning
+        anchor_thresholds: [
+          { distance: 0.0,  splat_density: 1.0 },   // 0-2m: 100% density
+          { distance: 2.0,  splat_density: 0.8 },   // 2-5m: 80% density
+          { distance: 5.0,  splat_density: 0.5 },   // 5-10m: 50% density
+          { distance: 10.0, splat_density: 0.25 },  // 10-20m: 25% density
+          { distance: 20.0, splat_density: 0.1 },   // >20m: 10% density
+        ],
+      },
+
+      // Temporal (static for now, 4D future extension)
+      temporal_mode: "static",
+
+      // Budget management
+      gaussian_budget: {
+        total_cap: 2000000,       // 2M cap (desktop)
+        per_avatar_reservation: 0,
+      },
+
+      // Compression (SPZ v2.0)
+      compression: true,
+      spz: {
+        version: "2.0",
+        quaternion_encoding: "smallest_three",  // Rotation compression
+      },
+    };
+
+    performance_profiler: {
+      metrics: ["fps", "frame_time", "gaussian_count", "sort_time", "render_time", "memory"],
+      target_fps: 90,             // Quest 3 target
+      warn_threshold: 0.9,        // Warn at 81 FPS (90% of target)
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ADAPTIVE QUALITY SYSTEM (Platform Detection)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AdaptiveQuality {
+    traits: [platform_detector, quality_manager];
+
+    platform_detector: {
+      detect_gpu: true,
+      detect_vr_headset: true,
+      detect_memory: true,
+    };
+
+    quality_manager: {
+      presets: {
+        desktop_ultra: {
+          max_splats: 2000000,
+          sh_degree: 3,
+          lod_enabled: false,
+          target_fps: 60,
+        },
+        desktop_high: {
+          max_splats: 1500000,
+          sh_degree: 3,
+          lod_enabled: true,
+          target_fps: 90,
+        },
+        quest3_high: {
+          max_splats: 1200000,
+          sh_degree: 2,
+          lod_enabled: true,
+          target_fps: 90,
+        },
+        quest3_medium: {
+          max_splats: 800000,
+          sh_degree: 1,
+          lod_enabled: true,
+          target_fps: 90,
+        },
+        mobile_low: {
+          max_splats: 300000,
+          sh_degree: 0,
+          lod_enabled: true,
+          target_fps: 60,
+        },
+      },
+      auto_select: true,          // Auto-select based on platform
+      allow_dynamic_adjustment: true,  // Adjust quality if FPS drops
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Capture & Training Pipeline
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CaptureRig, "capture_started") {
+    log("📸 Photogrammetry capture started");
+    log(`  Cameras: ${event.cameraCount} (${event.cameraLayout} array)`);
+    log(`  Resolution: ${event.resolution[0]}×${event.resolution[1]} (${(event.resolution[0]*event.resolution[1]/1000000).toFixed(1)}MP)`);
+    log(`  Sync precision: ${event.syncPrecision}ms`);
+    log(`  Capture FPS: ${event.captureFps}`);
+  }
+
+  on(CaptureRig, "capture_frame_complete") {
+    log(`📷 Frame ${event.frameNumber} captured`);
+    log(`  Exposure bracket: ${event.exposureBracket} (${event.exposureValue}EV)`);
+    log(`  Storage: ${(event.frameSize / 1024 / 1024).toFixed(2)} MB/frame × ${event.cameraCount} cameras = ${(event.frameSize * event.cameraCount / 1024 / 1024).toFixed(2)} MB total`);
+  }
+
+  on(SfMPipeline, "sfm_started") {
+    log("🔬 Structure-from-Motion pipeline started");
+    log(`  Images: ${event.imageCount}`);
+    log(`  Feature detector: ${event.featureDetector}`);
+    log(`  Matcher: ${event.matcher}`);
+  }
+
+  on(SfMPipeline, "feature_extraction_progress") {
+    const percent = (event.processedImages / event.totalImages * 100).toFixed(1);
+    log(`  Feature extraction: ${percent}% (${event.processedImages}/${event.totalImages} images)`);
+  }
+
+  on(SfMPipeline, "feature_matching_progress") {
+    const percent = (event.matchedPairs / event.totalPairs * 100).toFixed(1);
+    log(`  Feature matching: ${percent}% (${event.matchedPairs}/${event.totalPairs} pairs)`);
+  }
+
+  on(SfMPipeline, "reconstruction_progress") {
+    log(`  Reconstruction: ${event.registeredImages}/${event.totalImages} cameras registered`);
+    log(`    Sparse points: ${event.sparsePoints.toLocaleString()}`);
+    log(`    Mean reprojection error: ${event.meanReprojectionError.toFixed(3)} px`);
+  }
+
+  on(SfMPipeline, "sfm_complete") {
+    log("✅ Structure-from-Motion complete");
+    log(`  Registered cameras: ${event.registeredCameras}/${event.totalCameras}`);
+    log(`  Sparse points: ${event.sparsePoints.toLocaleString()}`);
+    log(`  Mean track length: ${event.meanTrackLength.toFixed(2)}`);
+    log(`  Mean reprojection error: ${event.meanReprojectionError.toFixed(3)} px`);
+    log(`  Processing time: ${(event.processingTimeSeconds / 60).toFixed(1)} minutes`);
+  }
+
+  on(GaussianTraining, "training_started") {
+    log("🧠 3D Gaussian Splatting training started");
+    log(`  Initialization: ${event.initMode} (${event.initialGaussians.toLocaleString()} Gaussians)`);
+    log(`  Iterations: ${event.totalIterations.toLocaleString()}`);
+    log(`  SH max degree: ${event.shMaxDegree}`);
+  }
+
+  on(GaussianTraining, "training_iteration") {
+    if (event.iteration % 1000 === 0) {  // Log every 1000 iterations
+      const percent = (event.iteration / event.totalIterations * 100).toFixed(1);
+      log(`  Iteration ${event.iteration}/${event.totalIterations} (${percent}%)`);
+      log(`    Gaussians: ${event.currentGaussians.toLocaleString()}`);
+      log(`    Loss: ${event.loss.toFixed(4)} (L1: ${event.l1Loss.toFixed(4)}, SSIM: ${event.ssimLoss.toFixed(4)})`);
+      log(`    PSNR: ${event.psnr.toFixed(2)} dB`);
+      log(`    SH degree: ${event.currentShDegree}`);
+    }
+  }
+
+  on(GaussianTraining, "densification") {
+    log(`  📈 Densification @ iteration ${event.iteration}`);
+    log(`    Gaussians added: ${event.gaussiansAdded.toLocaleString()}`);
+    log(`    Total: ${event.totalGaussians.toLocaleString()}`);
+  }
+
+  on(GaussianTraining, "pruning") {
+    log(`  ✂️  Pruning @ iteration ${event.iteration}`);
+    log(`    Gaussians removed: ${event.gaussiansRemoved.toLocaleString()}`);
+    log(`    Total: ${event.totalGaussians.toLocaleString()}`);
+  }
+
+  on(GaussianTraining, "checkpoint_saved") {
+    log(`💾 Checkpoint saved @ iteration ${event.iteration}`);
+    log(`  Path: ${event.checkpointPath}`);
+    log(`  Size: ${(event.checkpointSize / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  on(GaussianTraining, "training_complete") {
+    log("✅ 3D Gaussian Splatting training complete");
+    log(`  Final Gaussians: ${event.finalGaussians.toLocaleString()}`);
+    log(`  Final loss: ${event.finalLoss.toFixed(4)}`);
+    log(`  Final PSNR: ${event.finalPsnr.toFixed(2)} dB`);
+    log(`  Training time: ${(event.trainingTimeSeconds / 3600).toFixed(2)} hours`);
+    log(`  Output: ${event.outputPath}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Real-Time Rendering
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(FilmQualityAsset, "splat_loaded") {
+    log("✅ Film-quality Gaussian splat loaded");
+    log(`  Gaussians: ${event.splatCount.toLocaleString()}`);
+    log(`  Memory: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log(`  SH degree: ${event.shDegree}`);
+    log(`  Bounding box: (${event.boundingBox.min.map(v => v.toFixed(2)).join(", ")}) to (${event.boundingBox.max.map(v => v.toFixed(2)).join(", ")})`);
+  }
+
+  on(FilmQualityAsset, "performance_metrics") {
+    if (event.frameNumber % 90 === 0) {  // Log every second @ 90 FPS
+      log(`📊 Performance (${event.frameNumber} frames)`);
+      log(`  FPS: ${event.fps.toFixed(1)} / ${event.targetFps} (${((event.fps / event.targetFps) * 100).toFixed(1)}%)`);
+      log(`  Frame time: ${event.frameTime.toFixed(2)}ms (budget: ${(1000 / event.targetFps).toFixed(2)}ms)`);
+      log(`    - Sort: ${event.sortTime.toFixed(2)}ms`);
+      log(`    - Render: ${event.renderTime.toFixed(2)}ms`);
+      log(`    - Overhead: ${(event.frameTime - event.sortTime - event.renderTime).toFixed(2)}ms`);
+      log(`  Visible Gaussians: ${event.visibleGaussians.toLocaleString()} / ${event.totalGaussians.toLocaleString()} (${((event.visibleGaussians / event.totalGaussians) * 100).toFixed(1)}%)`);
+      log(`  Memory: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    }
+  }
+
+  on(AdaptiveQuality, "platform_detected") {
+    log("🖥️  Platform detected");
+    log(`  GPU: ${event.gpu}`);
+    log(`  VR Headset: ${event.vrHeadset || "None"}`);
+    log(`  Memory: ${(event.memory / 1024 / 1024 / 1024).toFixed(2)} GB`);
+    log(`  Selected preset: ${event.selectedPreset}`);
+  }
+
+  on(AdaptiveQuality, "quality_adjusted") {
+    log(`⚙️  Quality adjusted: ${event.oldPreset} → ${event.newPreset}`);
+    log(`  Reason: ${event.reason}`);
+    log(`  New settings:`);
+    log(`    - Max splats: ${event.newSettings.maxSplats.toLocaleString()}`);
+    log(`    - SH degree: ${event.newSettings.shDegree}`);
+    log(`    - LOD: ${event.newSettings.lodEnabled ? "✅" : "❌"}`);
+    log(`    - Target FPS: ${event.newSettings.targetFps}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Run full pipeline (capture → SfM → training)
+  on(DemoControls, "click") {
+    if (event.target === "run_pipeline_button") {
+      emit(CaptureRig, "start_capture", {
+        frames: 1,  // Single frame capture
+      });
+      log("🚀 Starting full photogrammetry pipeline...");
+    }
+  }
+
+  // Adjust quality preset
+  on(DemoControls, "click") {
+    if (event.target === "quality_ultra_button") {
+      emit(AdaptiveQuality, "set_quality_preset", {
+        preset: "desktop_ultra",
+      });
+      log("⚙️  Setting quality to ULTRA (desktop)...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "quality_quest3_button") {
+      emit(AdaptiveQuality, "set_quality_preset", {
+        preset: "quest3_high",
+      });
+      log("⚙️  Setting quality to HIGH (Quest 3)...");
+    }
+  }
+
+  // Toggle LOD
+  on(DemoControls, "click") {
+    if (event.target === "toggle_lod_button") {
+      emit(FilmQualityAsset, "toggle_lod", {});
+      log("🔄 Toggling LOD system...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION — Production Dashboard
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity ProductionDashboard {
+    geometry: plane;
+    position: [0, 2.5, -5];
+    scale: [7, 4, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "PHOTOGRAMMETRY → 3DGS PIPELINE (Film/Entertainment)\n\n📸 CAPTURE RIG:\n  • 64-camera dome array (8×8, 3.5m radius)\n  • 12MP per camera (4096×3072)\n  • Hardware-synced shutters (<1ms jitter)\n  • HDR exposure bracketing (±1EV)\n  • ACES color space (16-bit)\n  • 24 FPS capture for film\n\n🔬 STRUCTURE-FROM-MOTION:\n  • SIFT feature detection (8K features/image)\n  • Exhaustive pairwise matching\n  • Incremental reconstruction + Bundle Adjustment\n  • Sparse point cloud → MVS depth maps\n  • <1px reprojection error\n\n🧠 3DGS TRAINING:\n  • 30K iterations (4-8 hours on RTX 4090)\n  • Adaptive densification (500-15K iters)\n  • SH degree 3 (16 coefficients)\n  • Final asset: 1.5-2M Gaussians\n  • PSNR: 28-32 dB (production quality)\n\n⚡ PERFORMANCE BUDGETS:\n  Desktop Ultra: 2M splats, SH3, 60 FPS\n  Desktop High: 1.5M splats, SH3, 90 FPS\n  Quest 3 High: 1.2M splats, SH2, 90 FPS (11.1ms)\n  Quest 3 Medium: 800K splats, SH1, 90 FPS\n  Mobile: 300K splats, SH0, 60 FPS\n\n🎯 QUALITY vs SPEED TRADEOFFS:\n  SH0 → SH1: +30% render cost, 2× visual quality\n  SH1 → SH2: +25% render cost, 1.5× visual quality\n  SH2 → SH3: +20% render cost, 1.2× visual quality\n  LOD: 40-60% Gaussian reduction @ >5m distance\n\n💾 FILE SIZES (1.5M Gaussians):\n  Raw PLY: ~200 MB\n  SPZ v2: ~60 MB (3.3× compression)\n  SPZ v2 + quantization: ~30 MB (6.7×)\n\n🎬 USE CASES:\n  • VFX actor/prop capture\n  • Virtual production sets\n  • On-set previsualization\n  • Digital archival preservation",
+      fontSize: 0.070,
+      color: "#a78bfa",
+    };
+  }
+}

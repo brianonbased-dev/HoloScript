@@ -1,0 +1,570 @@
+/**
+ * Noise Algorithms & Mathematical Systems Example
+ *
+ * Demonstrates foundational procedural algorithms: noise generators,
+ * Wave Function Collapse, L-Systems, Voronoi, fractals, cellular automata,
+ * and marching cubes for advanced procedural content.
+ *
+ * Key Features:
+ * - Noise Generator: Perlin, Simplex, Worley, Value noise
+ * - Wave Function Collapse: Constraint-based tile generation
+ * - L-Systems: Grammar-based plant/structure generation
+ * - Voronoi: Distance-based cell patterns
+ * - Fractals: Mandelbrot, Julia sets, recursive patterns
+ * - Cellular Automata: Conway's Life, custom rulesets
+ * - Marching Cubes: Isosurface extraction for volumetric data
+ *
+ * @version 5.1.0
+ * @category Procedural
+ */
+
+composition NoiseAlgorithmsShowcase {
+  // 1. Noise Generator
+  entity NoiseField {
+    noise_generator: {
+      enabled: true,
+      type: "perlin",                   // "perlin", "simplex", "worley", "value"
+      dimensions: 2,                    // 1D, 2D, 3D, 4D
+
+      // Perlin/Simplex parameters
+      octaves: 6,
+      frequency: 1.0,
+      amplitude: 1.0,
+      lacunarity: 2.0,                  // Frequency multiplier
+      persistence: 0.5,                 // Amplitude multiplier
+      seed: 42,
+
+      // Worley/Voronoi noise
+      worley_distance: "euclidean",     // "euclidean", "manhattan", "chebyshev"
+      cell_count: 100,
+      jitter: 1.0,                      // Cell randomization
+
+      // Domain warping
+      domain_warp: {
+        enabled: false,
+        strength: 0.5,
+        octaves: 2,
+      },
+
+      // Fractal types
+      fractal_type: "fbm",              // "fbm", "ridged", "billow", "domain_warp"
+
+      // Output
+      range: [-1.0, 1.0],               // Output range
+      normalize: true,
+    },
+
+    transform: {
+      position: [-150.0, 0.0, 0.0],
+    },
+  }
+
+  // 2. Wave Function Collapse
+  entity WFCGenerator {
+    wave_function_collapse: {
+      enabled: true,
+      grid_size: [50, 50],
+
+      // Tile set
+      tiles: [
+        { id: "grass", weight: 10.0 },
+        { id: "dirt", weight: 5.0 },
+        { id: "water", weight: 3.0 },
+        { id: "stone", weight: 2.0 },
+      ],
+
+      // Adjacency rules (which tiles can be neighbors)
+      rules: [
+        { tile: "grass", neighbors: { north: ["grass", "dirt"], south: ["grass", "dirt"], east: ["grass"], west: ["grass", "water"] } },
+        { tile: "water", neighbors: { north: ["water"], south: ["water"], east: ["water", "grass"], west: ["water"] } },
+        { tile: "dirt", neighbors: { north: ["dirt", "grass", "stone"], south: ["dirt"], east: ["dirt"], west: ["dirt"] } },
+        { tile: "stone", neighbors: { north: ["stone"], south: ["stone", "dirt"], east: ["stone"], west: ["stone"] } },
+      ],
+
+      // Algorithm parameters
+      propagation_strategy: "full",     // "full", "lazy", "constrained"
+      backtracking: true,               // Undo contradictions
+      seed: 12345,
+
+      // Constraints
+      boundary_constraints: "wrap",     // "wrap", "fixed", "open"
+      pattern_size: 3,                  // NxN patterns
+
+      // Performance
+      max_iterations: 10000,
+      contradiction_limit: 100,
+    },
+
+    transform: {
+      position: [-75.0, 0.0, 0.0],
+    },
+  }
+
+  // 3. L-System Generator
+  entity LSystemPlant {
+    l_system: {
+      enabled: true,
+
+      // Grammar rules
+      axiom: "F",
+      rules: [
+        { symbol: "F", replacement: "FF+[+F-F-F]-[-F+F+F]" },  // Branching plant
+      ],
+
+      iterations: 4,
+
+      // Turtle graphics interpretation
+      turtle: {
+        angle: 25.0,                    // Degrees for + and -
+        step_length: 1.0,               // Distance for F
+        thickness_ratio: 0.7,           // Branch tapering
+
+        // Symbols
+        symbols: {
+          "F": "forward",               // Move forward and draw
+          "+": "turn_left",             // Rotate left
+          "-": "turn_right",            // Rotate right
+          "[": "push_state",            // Save position/angle
+          "]": "pop_state",             // Restore position/angle
+          "A": "forward_no_draw",       // Move without drawing
+        },
+      },
+
+      // 3D L-Systems
+      use_3d: true,
+      tropism: [0.0, -0.1, 0.0],        // Gravity effect
+
+      // Variations
+      stochastic: {
+        enabled: false,
+        rule_probabilities: true,
+      },
+
+      // Rendering
+      leaf_probability: 0.3,            // Probability to add leaf at branch end
+      flower_probability: 0.1,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 4. Voronoi Diagram
+  entity VoronoiField {
+    voronoi: {
+      enabled: true,
+      dimensions: 2,                    // 2D or 3D
+
+      // Sites (cell centers)
+      site_count: 50,
+      distribution: "random",           // "random", "poisson_disk", "grid"
+      bounds: [100.0, 100.0],
+
+      // Distance metrics
+      distance_metric: "euclidean",     // "euclidean", "manhattan", "chebyshev"
+
+      // Diagram type
+      type: "standard",                 // "standard", "centroidal", "weighted"
+
+      // Weighted Voronoi (power diagram)
+      weights: null,                    // Array of weights per site
+
+      // Rendering
+      render_cells: true,
+      render_edges: true,
+      render_vertices: true,
+
+      // Relaxation (Lloyd's algorithm)
+      relaxation_iterations: 0,         // 0 = no relaxation
+    },
+
+    transform: {
+      position: [75.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Fractal Generator
+  entity FractalSystem {
+    fractal: {
+      enabled: true,
+      type: "mandelbrot",               // "mandelbrot", "julia", "sierpinski", "koch"
+
+      // Complex plane parameters (for Mandelbrot/Julia)
+      center: [0.0, 0.0],
+      zoom: 1.0,
+      max_iterations: 100,
+
+      // Julia set parameter
+      julia_c: [-0.7, 0.27015],         // Complex constant
+
+      // Coloring
+      color_scheme: "gradient",         // "gradient", "iteration_count", "smooth"
+      color_palette: [
+        { iteration: 0, color: [0.0, 0.0, 0.5] },
+        { iteration: 50, color: [0.0, 0.5, 1.0] },
+        { iteration: 100, color: [1.0, 1.0, 1.0] },
+      ],
+
+      // Geometric fractals
+      recursion_depth: 7,               // For Sierpinski, Koch, etc.
+
+      // 3D fractals
+      use_3d: false,
+      fractal_3d_type: "mandelbulb",    // "mandelbulb", "menger_sponge"
+    },
+
+    transform: {
+      position: [150.0, 0.0, 0.0],
+    },
+  }
+
+  // 6. Cellular Automata
+  entity CellularAutomaton {
+    cellular_automata: {
+      enabled: true,
+      grid_size: [100, 100],
+
+      // Rule set
+      ruleset: "conway_life",           // "conway_life", "custom", "1d_elementary"
+
+      // Conway's Game of Life rules
+      birth_rule: [3],                  // Cell born if N neighbors
+      survival_rule: [2, 3],            // Cell survives if N neighbors
+
+      // 1D Elementary CA (Rule 30, 110, etc.)
+      elementary_rule: 110,
+
+      // Initial state
+      initial_state: "random",          // "random", "pattern", "empty"
+      initial_density: 0.3,             // 30% alive
+
+      // Patterns
+      patterns: {
+        glider: { pattern: [[0,1,0],[0,0,1],[1,1,1]], position: [10, 10] },
+        blinker: { pattern: [[1,1,1]], position: [20, 20] },
+      },
+
+      // Simulation
+      update_rate: 10,                  // Updates per second
+      wrap_edges: true,                 // Toroidal grid
+
+      // Neighborhood
+      neighborhood_type: "moore",       // "moore" (8), "von_neumann" (4)
+      neighborhood_range: 1,
+    },
+
+    transform: {
+      position: [-150.0, 0.0, 75.0],
+    },
+  }
+
+  // 7. Marching Cubes
+  entity MarchingCubesVolume {
+    marching_cubes: {
+      enabled: true,
+      grid_resolution: [64, 64, 64],
+
+      // Scalar field (implicit surface)
+      scalar_field: {
+        type: "metaballs",              // "metaballs", "noise", "sdf", "custom"
+
+        // Metaballs
+        metaballs: [
+          { center: [32, 32, 32], radius: 20.0, strength: 1.0 },
+          { center: [48, 32, 32], radius: 15.0, strength: 0.8 },
+        ],
+
+        // Noise-based field
+        noise_frequency: 0.1,
+        noise_amplitude: 1.0,
+      },
+
+      // Isosurface
+      iso_value: 0.5,                   // Threshold for surface
+
+      // Mesh generation
+      generate_normals: true,
+      smooth_normals: true,
+      generate_uvs: false,
+
+      // Optimization
+      adaptive_resolution: false,       // Higher res near surface
+      vertex_welding: true,             // Merge duplicate vertices
+      decimation: 0.0,                  // 0-1 (mesh simplification)
+
+      // Material
+      material: {
+        color: [0.5, 0.7, 1.0],
+        metallic: 0.3,
+        roughness: 0.6,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 75.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 500.0,
+      position: [0.0, 50.0, 200.0],
+      target: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on NoiseField.noise_generator.generated -> (event) {
+    console.log(`Noise generated: ${event.type}, ${event.dimensions}D, size=${event.size}`);
+    console.log(`  Range: [${event.min_value.toFixed(3)}, ${event.max_value.toFixed(3)}]`);
+  }
+
+  on WFCGenerator.wave_function_collapse.complete -> (event) {
+    console.log(`WFC complete: ${event.iterations} iterations, ${event.contradictions} contradictions`);
+    console.log(`  Grid: ${event.grid_size[0]}×${event.grid_size[1]}, Success: ${event.success}`);
+  }
+
+  on LSystemPlant.l_system.generated -> (event) {
+    console.log(`L-System generated: ${event.iterations} iterations, ${event.segment_count} segments`);
+    console.log(`  Axiom: "${event.axiom}", Length: ${event.total_length.toFixed(1)}m`);
+  }
+
+  on VoronoiField.voronoi.generated -> (event) {
+    console.log(`Voronoi diagram: ${event.cell_count} cells, ${event.edge_count} edges`);
+    console.log(`  Relaxation: ${event.relaxation_iterations} iterations`);
+  }
+
+  on FractalSystem.fractal.rendered -> (event) {
+    console.log(`Fractal rendered: ${event.type}, zoom=${event.zoom}, iterations=${event.max_iterations}`);
+    console.log(`  Render time: ${event.time_ms.toFixed(2)}ms`);
+  }
+
+  on CellularAutomaton.cellular_automata.stepped -> (event) {
+    console.log(`CA step ${event.generation}: ${event.alive_cells} alive, ${event.dead_cells} dead`);
+
+    if (event.stable) {
+      console.log('  System reached stable state');
+    }
+  }
+
+  on MarchingCubesVolume.marching_cubes.meshed -> (event) {
+    console.log(`Marching cubes: ${event.vertex_count} vertices, ${event.triangle_count} triangles`);
+    console.log(`  Iso-value: ${event.iso_value}, time=${event.time_ms.toFixed(2)}ms`);
+  }
+}
+
+// Algorithm controls
+ui AlgorithmControls {
+  panel "Noise & Math Systems" {
+    section "Noise" {
+      dropdown "Type" {
+        options: ["perlin", "simplex", "worley", "value"],
+        value: "perlin",
+        onChange: (v) => {
+          NoiseField.noise_generator.type = v;
+          NoiseField.noise_generator.regenerate();
+        }
+      }
+
+      slider "Octaves" {
+        min: 1, max: 10, value: 6, step: 1,
+        onChange: (v) => {
+          NoiseField.noise_generator.octaves = v;
+          NoiseField.noise_generator.regenerate();
+        }
+      }
+
+      slider "Frequency" {
+        min: 0.1, max: 5.0, value: 1.0, step: 0.1,
+        onChange: (v) => {
+          NoiseField.noise_generator.frequency = v;
+          NoiseField.noise_generator.regenerate();
+        }
+      }
+
+      button "Regenerate" -> () {
+        NoiseField.noise_generator.regenerate();
+      }
+    }
+
+    section "Wave Function Collapse" {
+      button "Generate" -> () {
+        WFCGenerator.wave_function_collapse.generate();
+      }
+
+      button "Step" -> () {
+        WFCGenerator.wave_function_collapse.step();
+      }
+
+      button "Reset" -> () {
+        WFCGenerator.wave_function_collapse.reset();
+      }
+
+      checkbox "Backtracking" {
+        value: true,
+        onChange: (v) => {
+          WFCGenerator.wave_function_collapse.backtracking = v;
+        }
+      }
+    }
+
+    section "L-System" {
+      slider "Iterations" {
+        min: 1, max: 7, value: 4, step: 1,
+        onChange: (v) => {
+          LSystemPlant.l_system.iterations = v;
+          LSystemPlant.l_system.regenerate();
+        }
+      }
+
+      slider "Angle" {
+        min: 10.0, max: 90.0, value: 25.0, step: 5.0,
+        onChange: (v) => {
+          LSystemPlant.l_system.turtle.angle = v;
+          LSystemPlant.l_system.regenerate();
+        }
+      }
+
+      button "Regenerate" -> () {
+        LSystemPlant.l_system.regenerate();
+      }
+
+      button "Tree Preset" -> () {
+        LSystemPlant.l_system.axiom = "F";
+        LSystemPlant.l_system.rules = [{ symbol: "F", replacement: "FF+[+F-F-F]-[-F+F+F]" }];
+        LSystemPlant.l_system.regenerate();
+      }
+
+      button "Fern Preset" -> () {
+        LSystemPlant.l_system.axiom = "X";
+        LSystemPlant.l_system.rules = [
+          { symbol: "X", replacement: "F+[[X]-X]-F[-FX]+X" },
+          { symbol: "F", replacement: "FF" }
+        ];
+        LSystemPlant.l_system.regenerate();
+      }
+    }
+
+    section "Voronoi" {
+      slider "Sites" {
+        min: 10, max: 200, value: 50, step: 10,
+        onChange: (v) => {
+          VoronoiField.voronoi.site_count = v;
+          VoronoiField.voronoi.regenerate();
+        }
+      }
+
+      slider "Relaxation" {
+        min: 0, max: 10, value: 0, step: 1,
+        onChange: (v) => {
+          VoronoiField.voronoi.relaxation_iterations = v;
+          VoronoiField.voronoi.regenerate();
+        }
+      }
+
+      dropdown "Distance" {
+        options: ["euclidean", "manhattan", "chebyshev"],
+        value: "euclidean",
+        onChange: (v) => {
+          VoronoiField.voronoi.distance_metric = v;
+          VoronoiField.voronoi.regenerate();
+        }
+      }
+
+      button "Regenerate" -> () {
+        VoronoiField.voronoi.regenerate();
+      }
+    }
+
+    section "Fractals" {
+      dropdown "Type" {
+        options: ["mandelbrot", "julia", "sierpinski", "koch"],
+        value: "mandelbrot",
+        onChange: (v) => {
+          FractalSystem.fractal.type = v;
+          FractalSystem.fractal.regenerate();
+        }
+      }
+
+      slider "Zoom" {
+        min: 0.1, max: 100.0, value: 1.0, step: 0.1,
+        onChange: (v) => {
+          FractalSystem.fractal.zoom = v;
+          FractalSystem.fractal.regenerate();
+        }
+      }
+
+      slider "Iterations" {
+        min: 10, max: 500, value: 100, step: 10,
+        onChange: (v) => {
+          FractalSystem.fractal.max_iterations = v;
+          FractalSystem.fractal.regenerate();
+        }
+      }
+    }
+
+    section "Cellular Automata" {
+      button "Start" -> () {
+        CellularAutomaton.cellular_automata.start();
+      }
+
+      button "Stop" -> () {
+        CellularAutomaton.cellular_automata.stop();
+      }
+
+      button "Step" -> () {
+        CellularAutomaton.cellular_automata.step();
+      }
+
+      button "Reset" -> () {
+        CellularAutomaton.cellular_automata.reset();
+      }
+
+      slider "Speed (gen/s)" {
+        min: 1, max: 60, value: 10, step: 1,
+        onChange: (v) => {
+          CellularAutomaton.cellular_automata.update_rate = v;
+        }
+      }
+
+      text "Generation" {
+        value: () => `${CellularAutomaton.cellular_automata.generation}`
+      }
+
+      text "Alive Cells" {
+        value: () => `${CellularAutomaton.cellular_automata.alive_count}`
+      }
+    }
+
+    section "Marching Cubes" {
+      slider "Iso-Value" {
+        min: 0.0, max: 1.0, value: 0.5, step: 0.05,
+        onChange: (v) => {
+          MarchingCubesVolume.marching_cubes.iso_value = v;
+          MarchingCubesVolume.marching_cubes.regenerate();
+        }
+      }
+
+      slider "Resolution" {
+        min: 16, max: 128, value: 64, step: 16,
+        onChange: (v) => {
+          MarchingCubesVolume.marching_cubes.grid_resolution = [v, v, v];
+          MarchingCubesVolume.marching_cubes.regenerate();
+        }
+      }
+
+      button "Regenerate" -> () {
+        MarchingCubesVolume.marching_cubes.regenerate();
+      }
+
+      text "Triangles" {
+        value: () => `${MarchingCubesVolume.marching_cubes.triangle_count.toLocaleString()}`
+      }
+    }
+  }
+}

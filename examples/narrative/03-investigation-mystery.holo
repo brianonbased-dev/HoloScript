@@ -1,0 +1,839 @@
+/**
+ * Investigation & Mystery Example
+ *
+ * Demonstrates detective mechanics: clue discovery, evidence collection,
+ * witness interrogation, suspect tracking, alibi verification, and
+ * testimony analysis for mystery-solving gameplay.
+ *
+ * Key Features:
+ * - Clue: Interactive discovery, examination, relationship mapping
+ * - Evidence: Chain of custody, forensic analysis, admissibility
+ * - Witness: Testimony, credibility, memory accuracy
+ * - Suspect: Profiles, motives, opportunity, means
+ * - Alibi: Timeline verification, corroboration, contradictions
+ * - Testimony: Statement collection, consistency checking, cross-examination
+ *
+ * @version 5.1.0
+ * @category Narrative
+ */
+
+composition InvestigationMysteryShowcase {
+  // Crime scene
+  entity CrimeScene {
+    mesh: { type: "plane", width: 50.0, height: 50.0 },
+    advanced_pbr: { base_color: [0.25, 0.2, 0.2], metallic: 0.0, roughness: 0.8 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Clue System
+  entity BloodstainClue {
+    clue: {
+      enabled: true,
+      clue_type: "physical",             // "physical", "testimonial", "digital", "environmental"
+      clue_id: "clue_bloodstain",
+
+      // Discovery
+      discovery: {
+        method: "visual",                // "visual", "search", "interaction", "tool_required"
+        difficulty: 0.3,                 // 0-1 (how hard to find)
+        required_skill: null,            // Or "forensics", "perception", etc.
+        required_item: null,             // Or "magnifying_glass", "UV_light"
+        hint_available: true,
+        hint_text: "Something dark stains the floor near the desk...",
+      },
+
+      // Examination
+      examination: {
+        examine_time: 3.0,               // Seconds to examine
+        auto_examine: false,             // Or auto-collect on discovery
+        detail_levels: [
+          {
+            level: 1,
+            description: "A dark stain on the wooden floor.",
+            reveal_time: 0.0,
+          },
+          {
+            level: 2,
+            description: "The stain appears to be blood, relatively fresh.",
+            reveal_time: 3.0,
+            required_skill: "basic_forensics",
+          },
+          {
+            level: 3,
+            description: "Blood type O-negative. Estimated time: 2-4 hours ago.",
+            reveal_time: 6.0,
+            required_skill: "advanced_forensics",
+            required_item: "forensic_kit",
+          },
+        ],
+        current_level: 1,
+      },
+
+      // Visual presentation
+      visual: {
+        highlight_color: [1.0, 1.0, 0.0, 0.5],  // Yellow outline
+        glow_intensity: 0.8,
+        show_label: true,
+        label_text: "Bloodstain",
+        icon: "clue_blood.png",
+      },
+
+      // Relationships (connects to other clues/evidence)
+      relationships: [
+        {
+          clue_id: "evidence_knife",
+          relationship_type: "likely_source",
+          confidence: 0.8,               // 0-1
+          reasoning: "Blood type matches victim",
+        },
+        {
+          clue_id: "suspect_butler",
+          relationship_type: "implicates",
+          confidence: 0.6,
+          reasoning: "Butler was near this area at the time",
+        },
+      ],
+
+      // Significance
+      importance: 0.9,                   // 0-1 (critical to case)
+      category: "forensic",
+      tags: ["blood", "forensic", "timeline", "victim"],
+
+      // Collection
+      collectible: true,
+      collected: false,
+      collection_method: "photograph",   // "photograph", "sample", "note"
+    },
+
+    transform: {
+      position: [5.0, 0.01, 3.0],        // Floor location
+    },
+  }
+
+  entity FootprintClue {
+    clue: {
+      enabled: true,
+      clue_type: "physical",
+      clue_id: "clue_footprint",
+
+      discovery: {
+        method: "tool_required",
+        required_item: "UV_light",
+        difficulty: 0.7,                 // Hard to find
+        hint_text: "Use UV light to reveal hidden prints.",
+      },
+
+      examination: {
+        detail_levels: [
+          {
+            level: 1,
+            description: "A faint footprint, size 11 men's shoe.",
+          },
+          {
+            level: 2,
+            description: "Distinctive wear pattern on left heel. Expensive leather sole.",
+            required_skill: "tracking",
+          },
+        ],
+      },
+
+      visual: {
+        visible_without_tool: false,     // Only visible with UV light
+        highlight_color: [0.6, 0.2, 1.0, 0.6],  // Purple (UV)
+      },
+
+      relationships: [
+        {
+          clue_id: "suspect_businessman",
+          relationship_type: "matches",
+          confidence: 0.95,
+          reasoning: "Shoe size and brand match suspect's footwear",
+        },
+      ],
+
+      importance: 0.7,
+      collectible: true,
+      collection_method: "cast",         // Plaster cast
+    },
+
+    transform: {
+      position: [8.0, 0.01, -2.0],
+    },
+  }
+
+  // 2. Evidence System
+  entity KnifeEvidence {
+    evidence: {
+      enabled: true,
+      evidence_id: "evidence_knife",
+      evidence_type: "weapon",           // "weapon", "document", "personal_item", "biological"
+
+      // Item details
+      description: "Kitchen knife with 8-inch blade, blood on handle and blade.",
+      physical_properties: {
+        weight: 0.3,                     // kg
+        dimensions: [0.3, 0.05, 0.02],   // meters (L×W×H)
+        material: "stainless_steel",
+        condition: "used",
+        distinctive_features: ["ornate_handle", "blood_traces"],
+      },
+
+      // Chain of custody (legal admissibility)
+      chain_of_custody: {
+        discovered_by: "Detective Player",
+        discovery_time: "2026-03-07 14:30",
+        discovery_location: [5.0, 0.5, 3.0],
+        collected_by: "Forensics Team",
+        collection_time: "2026-03-07 14:45",
+        storage_location: "Evidence Locker A7",
+        handlers: [
+          { name: "Detective Player", time: "2026-03-07 14:30", action: "discovered" },
+          { name: "Forensics Officer", time: "2026-03-07 14:45", action: "collected" },
+          { name: "Lab Technician", time: "2026-03-07 16:00", action: "analyzed" },
+        ],
+        integrity: "intact",             // "intact", "compromised", "contaminated"
+      },
+
+      // Forensic analysis
+      forensics: {
+        fingerprints: {
+          found: true,
+          matches: [
+            { person: "suspect_butler", confidence: 0.92, location: "handle" },
+          ],
+        },
+        dna: {
+          found: true,
+          samples: [
+            { type: "blood", person: "victim", confidence: 0.98, location: "blade" },
+            { type: "skin_cells", person: "suspect_butler", confidence: 0.85, location: "handle" },
+          ],
+        },
+        trace_evidence: [
+          { type: "fiber", description: "Black wool, matches butler's uniform" },
+        ],
+      },
+
+      // Connections
+      related_to: [
+        { type: "victim", id: "victim_001", connection: "murder_weapon" },
+        { type: "suspect", id: "suspect_butler", connection: "fingerprints_match" },
+        { type: "location", id: "kitchen", connection: "originated_from" },
+      ],
+
+      // Legal status
+      admissibility: {
+        court_admissible: true,
+        admissibility_score: 0.95,       // 0-1
+        issues: [],                      // ["chain_broken", "improper_collection"]
+      },
+
+      // Significance
+      importance: 1.0,                   // Critical evidence
+      case_impact: "conclusive",         // "conclusive", "supporting", "circumstantial"
+    },
+
+    transform: {
+      position: [5.0, 0.5, 3.0],         // On desk
+    },
+  }
+
+  // 3. Witness System
+  entity MaidWitness {
+    witness: {
+      enabled: true,
+      witness_id: "witness_maid",
+      name: "Mary Thompson",
+
+      // Witness profile
+      role: "housemaid",
+      relationship_to_victim: "employee",
+      relationship_to_suspects: [
+        { suspect: "suspect_butler", relationship: "coworker" },
+      ],
+
+      // Credibility
+      credibility: {
+        base_credibility: 0.7,           // 0-1
+        factors: [
+          { factor: "no_criminal_record", modifier: 0.1 },
+          { factor: "nervous_demeanor", modifier: -0.1 },
+          { factor: "consistent_story", modifier: 0.15 },
+        ],
+        current_credibility: 0.75,
+      },
+
+      // Memory accuracy
+      memory: {
+        accuracy: 0.8,                   // 0-1 (how reliable is memory)
+        stress_level: 0.6,               // High stress = lower accuracy
+        time_since_event: 2.0,           // Hours (fresher = better)
+        intoxication: 0.0,               // 0-1 (sober = 0)
+        factors_affecting: ["stress", "time_delay"],
+      },
+
+      // What they saw/heard
+      observations: [
+        {
+          observation_id: "obs_001",
+          type: "visual",
+          time: "2026-03-07 14:00",
+          description: "Saw the butler entering the study",
+          certainty: 0.9,                // 0-1
+          details: {
+            location: "hallway",
+            activity: "walking_quickly",
+            unusual_aspects: ["looked_nervous"],
+          },
+        },
+        {
+          observation_id: "obs_002",
+          type: "auditory",
+          time: "2026-03-07 14:05",
+          description: "Heard raised voices from the study",
+          certainty: 0.7,
+          details: {
+            voices: ["victim", "unknown_male"],
+            tone: "argument",
+            duration: "2_minutes",
+          },
+        },
+        {
+          observation_id: "obs_003",
+          type: "visual",
+          time: "2026-03-07 14:10",
+          description: "Saw butler leaving, looking disheveled",
+          certainty: 0.85,
+          details: {
+            appearance: ["sweating", "shirt_untucked"],
+            behavior: ["rushed", "avoided_eye_contact"],
+          },
+        },
+      ],
+
+      // Bias/motivation
+      bias: {
+        has_bias: true,
+        bias_type: "protective",         // Wants to protect butler
+        bias_strength: 0.4,
+        may_lie: true,
+        lie_probability: 0.2,
+      },
+
+      // Emotional state
+      emotional_state: {
+        current: "nervous",
+        fear_level: 0.6,
+        cooperation_level: 0.7,
+      },
+    },
+
+    transform: {
+      position: [-5.0, 0.0, 5.0],
+    },
+  }
+
+  // 4. Suspect System
+  entity ButlerSuspect {
+    suspect: {
+      enabled: true,
+      suspect_id: "suspect_butler",
+      name: "James Reeves",
+
+      // Profile
+      profile: {
+        age: 45,
+        occupation: "butler",
+        criminal_record: [
+          { crime: "fraud", year: 2015, severity: "misdemeanor" },
+        ],
+        personality_traits: ["meticulous", "resentful", "secretive"],
+      },
+
+      // Motive
+      motive: {
+        has_motive: true,
+        motive_type: "financial",        // "financial", "revenge", "passion", "fear"
+        motive_strength: 0.8,            // 0-1
+        description: "Victim recently discovered embezzlement, threatened to fire butler and press charges.",
+        evidence_supporting_motive: ["ledger_discrepancies", "threatening_letter"],
+      },
+
+      // Means (ability to commit crime)
+      means: {
+        has_means: true,
+        physical_capability: 0.9,        // 0-1 (strength, skill)
+        access_to_weapon: true,
+        weapon_familiarity: 0.7,
+        evidence_supporting_means: ["evidence_knife", "kitchen_access"],
+      },
+
+      // Opportunity (was present, had chance)
+      opportunity: {
+        has_opportunity: true,
+        was_at_scene: true,
+        time_at_scene: "2026-03-07 14:00-14:15",
+        witnesses_placing_at_scene: ["witness_maid"],
+        evidence_placing_at_scene: ["clue_footprint", "evidence_knife"],
+        opportunity_strength: 0.95,
+      },
+
+      // Alibi (see alibi entity below)
+      alibi_id: "alibi_butler",
+
+      // Behavior
+      behavior: {
+        cooperation_level: 0.4,          // 0-1 (uncooperative)
+        nervousness: 0.8,
+        deception_detected: true,
+        body_language: ["avoiding_eye_contact", "fidgeting", "defensive_posture"],
+      },
+
+      // Suspicion level
+      suspicion: {
+        initial_suspicion: 0.5,
+        current_suspicion: 0.9,          // 0-1 (very suspicious)
+        suspicion_factors: [
+          { factor: "motive", weight: 0.3 },
+          { factor: "opportunity", weight: 0.3 },
+          { factor: "physical_evidence", weight: 0.4 },
+        ],
+      },
+
+      // Status
+      status: "prime_suspect",           // "person_of_interest", "suspect", "prime_suspect", "cleared", "arrested"
+    },
+
+    transform: {
+      position: [-8.0, 0.0, -5.0],
+    },
+  }
+
+  // 5. Alibi System
+  entity ButlerAlibi {
+    alibi: {
+      enabled: true,
+      alibi_id: "alibi_butler",
+      suspect_id: "suspect_butler",
+
+      // Claimed timeline
+      claimed_timeline: [
+        {
+          time: "13:45",
+          location: "kitchen",
+          activity: "preparing_tea",
+          duration: 15,                  // Minutes
+        },
+        {
+          time: "14:00",
+          location: "pantry",
+          activity: "inventory",
+          duration: 20,
+        },
+        {
+          time: "14:20",
+          location: "servant_quarters",
+          activity: "break",
+          duration: 10,
+        },
+      ],
+
+      // Actual timeline (detective's reconstruction)
+      actual_timeline: [
+        {
+          time: "13:45",
+          location: "kitchen",
+          activity: "preparing_tea",
+          verified: true,
+          evidence: ["witness_cook"],
+        },
+        {
+          time: "14:00",
+          location: "study",             // Contradiction!
+          activity: "argument_with_victim",
+          verified: true,
+          evidence: ["witness_maid", "clue_footprint"],
+        },
+        {
+          time: "14:10",
+          location: "hallway",
+          activity: "fleeing_scene",
+          verified: true,
+          evidence: ["witness_maid"],
+        },
+      ],
+
+      // Corroboration
+      corroboration: {
+        witnesses_supporting: [],        // No one supports his alibi
+        witnesses_contradicting: ["witness_maid"],
+        physical_evidence_supporting: [],
+        physical_evidence_contradicting: ["clue_footprint", "evidence_knife"],
+      },
+
+      // Verification status
+      verification: {
+        verified: false,
+        verification_score: 0.1,         // 0-1 (very weak alibi)
+        contradictions: [
+          {
+            time: "14:00",
+            claimed: "pantry inventory",
+            actual: "at crime scene",
+            evidence: ["witness_maid", "clue_footprint"],
+            severity: "major",
+          },
+        ],
+      },
+
+      // Timeline gaps
+      unaccounted_time: [
+        {
+          start: "14:00",
+          end: "14:15",
+          duration: 15,                  // Minutes unaccounted
+          significance: "critical",      // Time of murder
+        },
+      ],
+
+      // Alibi strength
+      alibi_strength: 0.1,               // 0-1 (very weak)
+      alibi_status: "contradicted",      // "verified", "unverified", "contradicted", "impossible"
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 6. Testimony System
+  entity ButlerTestimony {
+    testimony: {
+      enabled: true,
+      testimony_id: "testimony_butler",
+      witness_id: "suspect_butler",      // Suspects can give testimony too
+      testimony_type: "suspect_statement",  // "witness_statement", "suspect_statement", "expert_testimony"
+
+      // Statement
+      statement: {
+        given_time: "2026-03-07 15:00",
+        given_location: "interrogation_room",
+        interviewer: "Detective Player",
+        recording_method: "video",       // "video", "audio", "written_notes"
+        under_oath: false,
+        miranda_read: true,              // Legal rights
+        lawyer_present: false,
+      },
+
+      // Content
+      content: [
+        {
+          question: "Where were you between 2:00 PM and 2:30 PM?",
+          answer: "I was in the pantry doing inventory, then took a break in my quarters.",
+          timestamp: "00:02:15",
+          tone: "defensive",
+          body_language: "nervous",
+        },
+        {
+          question: "Did you enter the study at any point?",
+          answer: "No, I had no reason to go there.",
+          timestamp: "00:03:42",
+          tone: "evasive",
+          body_language: "avoiding_eye_contact",
+          detected_deception: true,      // Lie detector / player intuition
+          deception_confidence: 0.85,
+        },
+        {
+          question: "How do you explain your fingerprints on the knife?",
+          answer: "I... I use that knife in the kitchen all the time. It's a kitchen knife.",
+          timestamp: "00:07:30",
+          tone: "panicked",
+          body_language: "sweating",
+          detected_deception: true,
+          deception_confidence: 0.7,
+        },
+      ],
+
+      // Consistency analysis
+      consistency: {
+        internal_consistency: 0.4,       // 0-1 (story contradicts itself)
+        external_consistency: 0.2,       // 0-1 (contradicts other evidence)
+        contradictions: [
+          {
+            statement_part: "was in pantry at 2:00 PM",
+            contradicted_by: "witness testimony + footprint evidence",
+            contradiction_type: "direct",
+            severity: "major",
+          },
+        ],
+      },
+
+      // Credibility
+      credibility_assessment: {
+        truthfulness: 0.2,               // 0-1 (likely lying)
+        reliability: 0.3,
+        factors: [
+          { factor: "contradicts_evidence", impact: -0.4 },
+          { factor: "deceptive_behavior", impact: -0.3 },
+          { factor: "inconsistent_timeline", impact: -0.2 },
+        ],
+      },
+
+      // Cross-examination
+      cross_examination: {
+        available: true,
+        pressure_points: [
+          {
+            topic: "timeline_contradiction",
+            effectiveness: 0.9,
+            likely_to_break: true,
+          },
+          {
+            topic: "fingerprint_evidence",
+            effectiveness: 0.8,
+          },
+        ],
+      },
+
+      // Legal weight
+      legal_weight: {
+        admissible: true,
+        weight: 0.3,                     // 0-1 (weak testimony)
+        issues: ["inconsistencies", "clear_motive_to_lie"],
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 70.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 10.0, 20.0],
+      target: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on BloodstainClue.clue.discovered -> (event) {
+    console.log(`🔍 Clue discovered: "${event.clue_name}" (${event.clue_type})`);
+    console.log(`  Importance: ${(event.importance * 100).toFixed(0)}%, Difficulty: ${(event.difficulty * 100).toFixed(0)}%`);
+  }
+
+  on BloodstainClue.clue.examined -> (event) {
+    console.log(`Examined clue: "${event.clue_name}" → Detail level ${event.detail_level}`);
+    console.log(`  "${event.description}"`);
+  }
+
+  on BloodstainClue.clue.relationship_discovered -> (event) {
+    console.log(`Connection found: "${event.clue_1}" → "${event.clue_2}" (${event.relationship_type})`);
+    console.log(`  Confidence: ${(event.confidence * 100).toFixed(0)}%`);
+  }
+
+  on KnifeEvidence.evidence.collected -> (event) {
+    console.log(`📦 Evidence collected: "${event.evidence_name}"`);
+    console.log(`  Type: ${event.evidence_type}, Impact: ${event.case_impact}`);
+    console.log(`  Chain of custody: ${event.integrity}`);
+  }
+
+  on KnifeEvidence.evidence.forensics_complete -> (event) {
+    console.log(`Forensic analysis complete: "${event.evidence_name}"`);
+
+    if (event.fingerprints_found) {
+      console.log(`  Fingerprints: ${event.fingerprint_matches.length} matches`);
+    }
+
+    if (event.dna_found) {
+      console.log(`  DNA: ${event.dna_samples.length} samples`);
+    }
+  }
+
+  on MaidWitness.witness.interviewed -> (event) {
+    console.log(`👤 Witness interviewed: ${event.witness_name}`);
+    console.log(`  Credibility: ${(event.credibility * 100).toFixed(0)}%`);
+    console.log(`  Observations: ${event.observation_count}`);
+  }
+
+  on MaidWitness.witness.observation_revealed -> (event) {
+    console.log(`Witness observation: "${event.description}"`);
+    console.log(`  Time: ${event.time}, Certainty: ${(event.certainty * 100).toFixed(0)}%`);
+  }
+
+  on ButlerSuspect.suspect.suspicion_increased -> (event) {
+    console.log(`⚠️ Suspicion increased: ${event.suspect_name} (${(event.old_suspicion * 100).toFixed(0)}% → ${(event.new_suspicion * 100).toFixed(0)}%)`);
+    console.log(`  Reason: ${event.reason}`);
+  }
+
+  on ButlerSuspect.suspect.status_changed -> (event) {
+    console.log(`Suspect status changed: ${event.suspect_name} → ${event.new_status}`);
+  }
+
+  on ButlerAlibi.alibi.contradiction_found -> (event) {
+    console.log(`❌ Alibi contradiction: ${event.suspect_name}`);
+    console.log(`  Claimed: "${event.claimed}" at ${event.time}`);
+    console.log(`  Evidence shows: "${event.actual}"`);
+    console.log(`  Severity: ${event.severity}`);
+  }
+
+  on ButlerAlibi.alibi.verification_complete -> (event) {
+    console.log(`Alibi verification: ${event.suspect_name} → ${event.status}`);
+    console.log(`  Strength: ${(event.alibi_strength * 100).toFixed(0)}%`);
+    console.log(`  Contradictions: ${event.contradiction_count}`);
+  }
+
+  on ButlerTestimony.testimony.deception_detected -> (event) {
+    console.log(`🚨 Deception detected in testimony!`);
+    console.log(`  Statement: "${event.statement}"`);
+    console.log(`  Confidence: ${(event.confidence * 100).toFixed(0)}%`);
+  }
+
+  on ButlerTestimony.testimony.contradiction_found -> (event) {
+    console.log(`Testimony contradiction:`);
+    console.log(`  Statement: "${event.statement_part}"`);
+    console.log(`  Contradicted by: ${event.contradicted_by}`);
+  }
+}
+
+// Investigation controls
+ui InvestigationControls {
+  panel "Investigation" {
+    section "Clues" {
+      button "Discover Bloodstain" -> () {
+        BloodstainClue.clue.trigger_discovery();
+      }
+
+      button "Examine Bloodstain" -> () {
+        BloodstainClue.clue.examine();
+      }
+
+      button "Discover Footprint" -> () {
+        FootprintClue.clue.trigger_discovery();
+      }
+
+      text "Clues Found" {
+        value: () => {
+          const discovered = [BloodstainClue.clue.discovered, FootprintClue.clue.discovered].filter(Boolean).length;
+          return `${discovered} / 2`;
+        }
+      }
+    }
+
+    section "Evidence" {
+      button "Collect Knife" -> () {
+        KnifeEvidence.evidence.collect();
+      }
+
+      button "Run Forensics" -> () {
+        KnifeEvidence.evidence.analyze_forensics();
+      }
+
+      text "Chain of Custody" {
+        value: () => `${KnifeEvidence.evidence.chain_of_custody.integrity}`
+      }
+
+      text "Admissibility" {
+        value: () => `${(KnifeEvidence.evidence.admissibility.admissibility_score * 100).toFixed(0)}%`
+      }
+    }
+
+    section "Witnesses" {
+      button "Interview Maid" -> () {
+        MaidWitness.witness.conduct_interview();
+      }
+
+      slider "Maid Credibility" {
+        min: 0.0, max: 1.0, value: 0.75, step: 0.05,
+        onChange: (v) => { MaidWitness.witness.credibility.current_credibility = v; }
+      }
+
+      text "Observations" {
+        value: () => `${MaidWitness.witness.observations.length} recorded`
+      }
+    }
+
+    section "Suspects" {
+      button "Interrogate Butler" -> () {
+        ButlerSuspect.suspect.interrogate();
+      }
+
+      text "Suspicion Level" {
+        value: () => `${(ButlerSuspect.suspect.suspicion.current_suspicion * 100).toFixed(0)}%`
+      }
+
+      text "Status" {
+        value: () => `${ButlerSuspect.suspect.status}`
+      }
+
+      text "Motive" {
+        value: () => `${ButlerSuspect.suspect.motive.motive_type} (${(ButlerSuspect.suspect.motive.motive_strength * 100).toFixed(0)}%)`
+      }
+    }
+
+    section "Alibi" {
+      button "Verify Alibi" -> () {
+        ButlerAlibi.alibi.verify();
+      }
+
+      text "Alibi Status" {
+        value: () => `${ButlerAlibi.alibi.alibi_status}`
+      }
+
+      text "Strength" {
+        value: () => `${(ButlerAlibi.alibi.alibi_strength * 100).toFixed(0)}%`
+      }
+
+      text "Contradictions" {
+        value: () => `${ButlerAlibi.alibi.verification.contradictions.length}`
+      }
+    }
+
+    section "Testimony" {
+      button "Take Statement" -> () {
+        ButlerTestimony.testimony.record_statement();
+      }
+
+      button "Cross-Examine" -> () {
+        ButlerTestimony.testimony.cross_examine("timeline_contradiction");
+      }
+
+      text "Truthfulness" {
+        value: () => `${(ButlerTestimony.testimony.credibility_assessment.truthfulness * 100).toFixed(0)}%`
+      }
+
+      text "Contradictions" {
+        value: () => `${ButlerTestimony.testimony.consistency.contradictions.length}`
+      }
+    }
+
+    section "Case Summary" {
+      text "Evidence Collected" {
+        value: () => "1 / 1 (knife)"
+      }
+
+      text "Witnesses Interviewed" {
+        value: () => "1 / 1 (maid)"
+      }
+
+      text "Suspects Identified" {
+        value: () => "1 (butler)"
+      }
+
+      text "Case Strength" {
+        value: () => {
+          const strength = (
+            (ButlerSuspect.suspect.suspicion.current_suspicion * 0.4) +
+            ((1 - ButlerAlibi.alibi.alibi_strength) * 0.3) +
+            (KnifeEvidence.evidence.admissibility.admissibility_score * 0.3)
+          );
+          return `${(strength * 100).toFixed(0)}%`;
+        }
+      }
+    }
+  }
+}

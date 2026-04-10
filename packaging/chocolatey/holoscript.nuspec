@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HoloScript Chocolatey Package Specification -->
+<!-- Submit to: https://community.chocolatey.org/packages/upload -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>holoscript</id>
+    <version>3.0.0</version>
+    <packageSourceUrl>https://github.com/brianonbased-dev/HoloScript</packageSourceUrl>
+    <owners>HoloScript Team</owners>
+
+    <title>HoloScript</title>
+    <authors>Brian X Base Team</authors>
+    <projectUrl>https://holoscript.net</projectUrl>
+    <iconUrl>https://holoscript.net/logo.png</iconUrl>
+    <copyright>2024-2026 HoloScript Team</copyright>
+    <licenseUrl>https://github.com/brianonbased-dev/HoloScript/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/brianonbased-dev/HoloScript</projectSourceUrl>
+    <docsUrl>https://holoscript.net/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/brianonbased-dev/HoloScript/issues</bugTrackerUrl>
+    <tags>holoscript vr ar xr webxr programming-language compiler spatial-computing</tags>
+
+    <summary>Open source VR scene description language and compiler</summary>
+    <description>
+HoloScript is a full-featured programming language for VR/AR spatial computing.
+
+## Features
+* Declarative syntax for 3D scenes
+* Compiles to 15+ targets (Unity, Unreal, Godot, WebXR, etc.)
+* LSP server for IDE integration
+* Type checking and linting
+* Reactive state management
+* VR-native interactions (voice, gestures, spatial)
+
+## Installation
+After installation, the `holoscript` command will be available in your PATH.
+
+## Usage
+```
+holoscript compile scene.hs --target unity
+holoscript lint scene.hs
+holoscript format scene.hs
+```
+
+## Documentation
+Visit https://holoscript.net/docs for full documentation.
+    </description>
+    <releaseNotes>https://github.com/brianonbased-dev/HoloScript/releases/tag/v3.0.0</releaseNotes>
+  </metadata>
+
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

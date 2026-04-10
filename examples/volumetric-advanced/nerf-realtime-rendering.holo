@@ -1,0 +1,435 @@
+/**
+ * Real-Time NeRF Rendering (Instant-NGP) — HoloScript v4.1
+ *
+ * Neural Radiance Fields with Instant-NGP acceleration for real-time rendering.
+ * Demonstrates:
+ *  - Multi-resolution hash encoding (Instant-NGP architecture)
+ *  - Tiny MLP network (2 hidden layers, 64 neurons)
+ *  - Real-time ray marching with early termination
+ *  - Hierarchical sampling for speed/quality tradeoff
+ *  - Dynamic resolution scaling for VR performance
+ *
+ * Use Case: Interactive Neural Scene Exploration
+ *   - Real-time novel view synthesis
+ *   - Interactive VR/AR experiences
+ *   - Dynamic lighting editing
+ *   - Material property manipulation
+ *   - Photorealistic virtual tours
+ *
+ * Performance Budget (Quest 3 @ 90Hz):
+ *   - Target: 11.1ms/frame (90 FPS)
+ *   - Ray marching: 7-8ms
+ *   - Neural inference: 2-3ms
+ *   - Overhead: 1ms
+ *
+ * Quality vs Speed Tradeoffs:
+ *   - Ultra: 1024² rays, 128 samples/ray, 10 FPS (offline)
+ *   - High: 512² rays, 64 samples/ray, 30 FPS (desktop)
+ *   - Medium: 256² rays, 32 samples/ray, 60 FPS (desktop VR)
+ *   - Low: 128² rays, 16 samples/ray, 90 FPS (Quest 3)
+ *
+ * Run:
+ *   holoc examples/volumetric-advanced/nerf-realtime-rendering.holo --target webgpu
+ *
+ * @version 4.1.0
+ * @vertical film-entertainment
+ */
+
+scene NeuralRadianceField {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // INSTANT-NGP ARCHITECTURE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity InstantNGP {
+    traits: [nerf_model];
+
+    nerf_model: {
+      // Model source (pre-trained Instant-NGP checkpoint)
+      source: "./assets/studio_scene.ingp",  // Instant-NGP checkpoint
+      format: "instant-ngp",                 // Instant-NGP format
+
+      // Architecture (Instant-NGP paper settings)
+      architecture: {
+        // Multi-resolution hash encoding
+        encoding: "hash",
+        hash_table_size: 2^19,     // 524,288 entries per level
+        n_levels: 16,              // 16 resolution levels
+        n_features_per_level: 2,   // 2 features per hash entry
+        log2_hashmap_size: 19,     // 2^19 hash table
+        base_resolution: 16,       // Coarsest level: 16³ voxels
+        per_level_scale: 1.5,      // 1.5× resolution increase per level
+
+        // Tiny MLP network (fast inference)
+        mlp_layers: 2,             // 2 hidden layers
+        mlp_width: 64,             // 64 neurons per layer
+        activation: "relu",
+        output_activation: "sigmoid",  // RGB ∈ [0, 1]
+
+        // Density network
+        density_layers: 1,
+        density_activation: "exponential",  // σ = exp(network_output)
+
+        // View-dependent color (spherical harmonics encoding)
+        view_dependent: true,
+        sh_encoding_degree: 4,     // SH degree 4 for view direction
+      },
+
+      // Training configuration (if training on-device)
+      training: {
+        enabled: false,            // Inference-only mode
+        optimizer: "adam",
+        learning_rate: 1e-2,       // High LR for hash encoding
+        batch_size: 2^18,          // 262K rays per batch
+        n_training_steps: 35000,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // REAL-TIME RAY MARCHING RENDERER
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity NerfRenderer {
+    traits: [nerf_renderer, performance_profiler];
+
+    nerf_renderer: {
+      // Rendering resolution
+      resolution: [512, 512],      // 512² for desktop VR (Medium)
+      render_scale: 1.0,           // 1.0 = native resolution
+
+      // Ray marching parameters
+      near_plane: 0.1,
+      far_plane: 10.0,
+      n_samples_coarse: 64,        // Coarse samples per ray
+      n_samples_fine: 128,         // Fine samples per ray (hierarchical)
+
+      // Sampling strategy
+      sampling_strategy: "hierarchical",  // hierarchical | uniform | importance
+      perturb_samples: true,       // Stratified sampling (anti-aliasing)
+
+      // Early termination (speed optimization)
+      early_termination: true,
+      opacity_threshold: 0.95,     // Stop ray at 95% opacity
+      max_ray_steps: 1024,         // Max steps before forced termination
+
+      // Hierarchical sampling (coarse-to-fine)
+      hierarchical_sampling: {
+        enabled: true,
+        coarse_network: true,      // Use separate coarse network
+        fine_samples_from_pdf: true,  // Sample fine points from PDF
+      },
+
+      // Occupancy grid acceleration (skip empty space)
+      occupancy_grid: {
+        enabled: true,
+        resolution: 128,             // 128³ occupancy grid
+        update_interval: 16,         // Update every 16 frames
+        density_threshold: 0.01,     // Skip voxels with σ < 0.01
+      },
+
+      // Background handling
+      background_color: [1.0, 1.0, 1.0],  // White background
+      background_mode: "constant",  // constant | env_map | transparent
+
+      // Anti-aliasing
+      anti_aliasing: "jittered",   // jittered | msaa_4x | none
+
+      // GPU acceleration
+      device: "webgpu",
+      precision: "fp16",           // FP16 for faster inference
+      tensor_cores: true,          // Use Tensor Cores (NVIDIA)
+    };
+
+    performance_profiler: {
+      metrics: ["fps", "frame_time", "ray_march_time", "inference_time", "memory"],
+      target_fps: 90,
+      warn_threshold: 0.9,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DYNAMIC QUALITY SCALING (FPS-based)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DynamicQuality {
+    traits: [adaptive_resolution];
+
+    adaptive_resolution: {
+      // Quality presets
+      presets: {
+        ultra: {
+          resolution: [1024, 1024],
+          n_samples_coarse: 128,
+          n_samples_fine: 256,
+          target_fps: 10,
+        },
+        high: {
+          resolution: [512, 512],
+          n_samples_coarse: 64,
+          n_samples_fine: 128,
+          target_fps: 30,
+        },
+        medium: {
+          resolution: [256, 256],
+          n_samples_coarse: 32,
+          n_samples_fine: 64,
+          target_fps: 60,
+        },
+        low: {
+          resolution: [128, 128],
+          n_samples_coarse: 16,
+          n_samples_fine: 32,
+          target_fps: 90,
+        },
+      },
+
+      // Auto-scaling settings
+      auto_scale: true,            // Enable dynamic scaling
+      target_fps: 90,              // Target 90 FPS (Quest 3)
+      fps_window: 30,              // Average FPS over 30 frames
+      upscale_threshold: 1.1,      // Upscale if FPS > 110% of target
+      downscale_threshold: 0.9,    // Downscale if FPS < 90% of target
+      min_resolution: [64, 64],
+      max_resolution: [1024, 1024],
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // INTERACTIVE EDITING (NeRF Studio features)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity NerfEditor {
+    traits: [nerf_editing];
+
+    nerf_editing: {
+      // Dynamic lighting adjustment
+      lighting: {
+        adjustable: true,
+        exposure: 1.0,             // Exposure multiplier
+        gamma: 2.2,                // Gamma correction
+        tonemapping: "aces",       // aces | filmic | reinhard | none
+      },
+
+      // Material editing (experimental)
+      material_editing: {
+        enabled: false,            // Disabled (requires retraining)
+        editable_properties: ["roughness", "metallic", "albedo"],
+      },
+
+      // Appearance embedding (multi-image NeRFs)
+      appearance_embedding: {
+        enabled: false,
+        n_appearance_codes: 64,    // 64-dimensional appearance code
+        interpolate: true,         // Interpolate between captures
+      },
+
+      // Scene composition
+      composition: {
+        enabled: true,
+        allow_object_removal: true,  // Remove objects via mask
+        allow_background_replacement: true,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Model Loading
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(InstantNGP, "nerf_loading_started") {
+    log("🧠 Loading Instant-NGP NeRF model...");
+    log(`  Source: ${event.source}`);
+    log(`  Format: ${event.format}`);
+  }
+
+  on(InstantNGP, "nerf_loaded") {
+    log("✅ Instant-NGP model loaded");
+    log(`  Architecture:`);
+    log(`    - Hash encoding: ${event.architecture.nLevels} levels, ${event.architecture.hashTableSize.toLocaleString()} entries`);
+    log(`    - MLP: ${event.architecture.mlpLayers} layers × ${event.architecture.mlpWidth} neurons`);
+    log(`    - View-dependent: ${event.architecture.viewDependent ? "✅" : "❌"}`);
+    log(`  Bounding box: (${event.boundingBox.min.map(v => v.toFixed(2)).join(", ")}) to (${event.boundingBox.max.map(v => v.toFixed(2)).join(", ")})`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  on(InstantNGP, "occupancy_grid_built") {
+    log("🗺️  Occupancy grid built");
+    log(`  Resolution: ${event.resolution}³`);
+    log(`  Occupied voxels: ${event.occupiedVoxels.toLocaleString()} / ${(event.resolution ** 3).toLocaleString()} (${((event.occupiedVoxels / (event.resolution ** 3)) * 100).toFixed(1)}%)`);
+    log(`  Empty space skipping: ${((1 - event.occupiedVoxels / (event.resolution ** 3)) * 100).toFixed(1)}% speedup`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Real-Time Rendering
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(NerfRenderer, "frame_rendered") {
+    if (event.frameNumber % 90 === 0) {  // Log every second @ 90 FPS
+      log(`🎨 Frame ${event.frameNumber} rendered`);
+      log(`  Resolution: ${event.resolution[0]}×${event.resolution[1]}`);
+      log(`  Rays cast: ${event.raysCast.toLocaleString()}`);
+      log(`  Avg samples/ray: ${event.avgSamplesPerRay.toFixed(1)} (coarse: ${event.avgCoarseSamples}, fine: ${event.avgFineSamples})`);
+      log(`  Early terminations: ${event.earlyTerminations.toLocaleString()} (${((event.earlyTerminations / event.raysCast) * 100).toFixed(1)}%)`);
+    }
+  }
+
+  on(NerfRenderer, "performance_metrics") {
+    if (event.frameNumber % 90 === 0) {
+      log(`📊 Performance (${event.frameNumber} frames)`);
+      log(`  FPS: ${event.fps.toFixed(1)} / ${event.targetFps}`);
+      log(`  Frame time: ${event.frameTime.toFixed(2)}ms (budget: ${(1000 / event.targetFps).toFixed(2)}ms)`);
+      log(`    - Ray marching: ${event.rayMarchTime.toFixed(2)}ms (${((event.rayMarchTime / event.frameTime) * 100).toFixed(1)}%)`);
+      log(`    - Neural inference: ${event.inferenceTime.toFixed(2)}ms (${((event.inferenceTime / event.frameTime) * 100).toFixed(1)}%)`);
+      log(`    - Overhead: ${(event.frameTime - event.rayMarchTime - event.inferenceTime).toFixed(2)}ms`);
+      log(`  GPU memory: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Dynamic Quality Scaling
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DynamicQuality, "resolution_changed") {
+    log(`⚙️  Resolution scaled: ${event.oldResolution[0]}×${event.oldResolution[1]} → ${event.newResolution[0]}×${event.newResolution[1]}`);
+    log(`  Reason: FPS ${event.currentFps.toFixed(1)} (target: ${event.targetFps})`);
+    log(`  Samples: coarse ${event.newSamplesCoarse}, fine ${event.newSamplesFine}`);
+  }
+
+  on(DynamicQuality, "quality_preset_changed") {
+    log(`⚙️  Quality preset: ${event.oldPreset} → ${event.newPreset}`);
+    log(`  Settings:`);
+    log(`    - Resolution: ${event.newSettings.resolution[0]}×${event.newSettings.resolution[1]}`);
+    log(`    - Samples (coarse/fine): ${event.newSettings.nSamplesCoarse}/${event.newSettings.nSamplesFine}`);
+    log(`    - Target FPS: ${event.newSettings.targetFps}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Interactive Editing
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(NerfEditor, "exposure_changed") {
+    log(`💡 Exposure adjusted: ${event.oldExposure.toFixed(2)} → ${event.newExposure.toFixed(2)}`);
+  }
+
+  on(NerfEditor, "gamma_changed") {
+    log(`🎨 Gamma correction: ${event.oldGamma.toFixed(2)} → ${event.newGamma.toFixed(2)}`);
+  }
+
+  on(NerfEditor, "tonemapping_changed") {
+    log(`🌈 Tonemapping: ${event.oldTonemapping} → ${event.newTonemapping}`);
+  }
+
+  on(NerfEditor, "object_removed") {
+    log(`✂️  Object removed via mask`);
+    log(`  Mask pixels: ${event.maskPixels.toLocaleString()}`);
+    log(`  Affected rays: ${event.affectedRays.toLocaleString()}`);
+  }
+
+  on(NerfEditor, "background_replaced") {
+    log(`🖼️  Background replaced`);
+    log(`  New background: ${event.newBackground}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Adjust quality preset
+  on(DemoControls, "click") {
+    if (event.target === "quality_ultra_button") {
+      emit(DynamicQuality, "set_preset", { preset: "ultra" });
+      log("⚙️  Setting quality to ULTRA...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "quality_high_button") {
+      emit(DynamicQuality, "set_preset", { preset: "high" });
+      log("⚙️  Setting quality to HIGH...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "quality_medium_button") {
+      emit(DynamicQuality, "set_preset", { preset: "medium" });
+      log("⚙️  Setting quality to MEDIUM...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "quality_low_button") {
+      emit(DynamicQuality, "set_preset", { preset: "low" });
+      log("⚙️  Setting quality to LOW (Quest 3 90 FPS)...");
+    }
+  }
+
+  // Toggle auto-scaling
+  on(DemoControls, "click") {
+    if (event.target === "toggle_autoscale_button") {
+      emit(DynamicQuality, "toggle_auto_scale", {});
+      log("🔄 Toggling auto-scaling...");
+    }
+  }
+
+  // Adjust exposure
+  on(DemoControls, "slider") {
+    if (event.target === "exposure_slider") {
+      emit(NerfEditor, "set_exposure", {
+        exposure: event.value,  // 0.1 - 5.0
+      });
+    }
+  }
+
+  // Adjust gamma
+  on(DemoControls, "slider") {
+    if (event.target === "gamma_slider") {
+      emit(NerfEditor, "set_gamma", {
+        gamma: event.value,  // 1.0 - 3.0
+      });
+    }
+  }
+
+  // Change tonemapping
+  on(DemoControls, "click") {
+    if (event.target === "tonemap_aces_button") {
+      emit(NerfEditor, "set_tonemapping", { mode: "aces" });
+      log("🌈 Tonemapping: ACES");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "tonemap_filmic_button") {
+      emit(NerfEditor, "set_tonemapping", { mode: "filmic" });
+      log("🌈 Tonemapping: Filmic");
+    }
+  }
+
+  // Toggle occupancy grid visualization
+  on(DemoControls, "click") {
+    if (event.target === "toggle_occupancy_button") {
+      emit(NerfRenderer, "toggle_occupancy_visualization", {});
+      log("🗺️  Toggling occupancy grid visualization...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION — NeRF Technical Details
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity NerfDashboard {
+    geometry: plane;
+    position: [0, 2.5, -5];
+    scale: [7, 4, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "INSTANT-NGP: REAL-TIME NEURAL RADIANCE FIELDS\n\n🧠 ARCHITECTURE:\n  • Multi-resolution hash encoding (16 levels)\n    - Base: 16³ → Finest: 2048³ (1.5× per level)\n    - 524K entries per level × 2 features = 16.8M params\n  • Tiny MLP: 2 layers × 64 neurons (~50K params)\n  • Total: ~17M parameters (vs 5M for vanilla NeRF)\n  • FP16 precision on GPU Tensor Cores\n\n⚡ RAY MARCHING:\n  • Hierarchical sampling (coarse → fine)\n    - Coarse: 64 uniform samples along ray\n    - Fine: 128 importance samples from PDF\n  • Early termination @ 95% opacity (40% speedup)\n  • Occupancy grid (128³) skips empty space\n  • Stratified sampling for anti-aliasing\n\n📊 PERFORMANCE BUDGETS:\n  Ultra: 1024² rays, 128+256 samples, 10 FPS\n  High: 512² rays, 64+128 samples, 30 FPS\n  Medium: 256² rays, 32+64 samples, 60 FPS\n  Low: 128² rays, 16+32 samples, 90 FPS (Quest 3)\n\n🎯 SPEED vs QUALITY TRADEOFFS:\n  Resolution: 2× rays = 4× cost (linear with pixels)\n  Samples: 2× samples = 2× cost (linear)\n  Fine samples: Most expensive (neural inference)\n  Occupancy grid: 30-60% speedup (scene-dependent)\n\n⚙️ INSTANT-NGP vs VANILLA NeRF:\n  Training: 5 min vs 1-2 days (300× faster)\n  Inference: 30 FPS vs 0.1 FPS (300× faster)\n  Quality: Comparable (PSNR ~30 dB)\n  Memory: 17M params vs 5M (but faster)\n\n💡 INTERACTIVE EDITING:\n  • Exposure adjustment (real-time)\n  • Gamma correction\n  • Tonemapping (ACES/Filmic/Reinhard)\n  • Background replacement\n  • Object removal (mask-based)\n\n🎬 FILM/ENTERTAINMENT USE CASES:\n  • Virtual location scouting\n  • On-set lighting previsualization\n  • Dynamic relighting for VFX\n  • Interactive walk-throughs\n  • Real-time background replacement",
+      fontSize: 0.067,
+      color: "#34d399",
+    };
+  }
+}

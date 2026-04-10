@@ -1,0 +1,470 @@
+// Brittney Workspace — VR Development Environment
+// Phase 3: Spatial Brittney — the environment where Brittney lives as an agent in VR
+// Vision: Put on a headset. Brittney is there. Tell her what you want. She builds it.
+
+composition "Brittney Workspace" {
+  environment {
+    skybox: "nebula"
+    ambient_light: 0.35
+    fog: { color: "#0a0a2a", density: 0.005 }
+    shadows: true
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TEMPLATES
+  // ═══════════════════════════════════════════════════════════
+
+  template "CodePanel" {
+    @billboard
+    @glowing
+    @pointable
+    geometry: "plane"
+    material: "glass"
+    color: "#0d1117"
+    opacity: 0.92
+    emissive: "#1a1a3a"
+    emissiveIntensity: 0.15
+
+    state {
+      content: ""
+      language: "hsplus"
+      scrollOffset: 0
+      highlighted: false
+    }
+
+    on_point() {
+      state.highlighted = true
+      haptic.feedback("light")
+    }
+
+    onHoverExit() {
+      state.highlighted = false
+    }
+  }
+
+  template "FloatingButton" {
+    @pointable
+    @hoverable
+    @glowing
+    geometry: "capsule"
+    scale: [0.12, 0.04, 0.04]
+    color: "#6e40c9"
+    emissive: "#6e40c9"
+    emissiveIntensity: 0.3
+
+    state {
+      pressed: false
+    }
+
+    onHoverEnter() {
+      emissiveIntensity = 0.6
+      haptic.feedback("light")
+    }
+
+    onHoverExit() {
+      emissiveIntensity = 0.3
+    }
+
+    on_point() {
+      state.pressed = true
+      haptic.feedback("medium")
+      audio.play("ui_click")
+    }
+  }
+
+  template "GlowOrb" {
+    @glowing
+    geometry: "sphere"
+    emissiveIntensity: 0.8
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // BRITTNEY AVATAR
+  // ═══════════════════════════════════════════════════════════
+
+  import "./brittney-avatar.holo"
+
+  object "Brittney" using "BrittneyAvatar" {
+    position: [0, 0, -2.5]
+    rotation: [0, 180, 0]
+
+    state {
+      speaking: false
+      thinking: false
+      idle: true
+      mood: "friendly"
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CODE PANELS — Surround-view code editing
+  // ═══════════════════════════════════════════════════════════
+
+  spatial_group "CodePanels" {
+    // Main editor panel — front and center
+    object "MainEditor" using "CodePanel" {
+      position: [-1.2, 1.6, -3]
+      scale: [1.8, 1.2, 0.01]
+
+      state {
+        content: "// Your composition here..."
+        language: "hsplus"
+      }
+    }
+
+    // Output/compiled panel — right side
+    object "OutputPanel" using "CodePanel" {
+      position: [1.8, 1.6, -2.2]
+      rotation: [0, -30, 0]
+      scale: [1.4, 1.0, 0.01]
+
+      state {
+        content: "// Compiled R3F output"
+        language: "tsx"
+      }
+    }
+
+    // Console/log panel — left side
+    object "ConsolePanel" using "CodePanel" {
+      position: [-2.8, 1.2, -1.5]
+      rotation: [0, 35, 0]
+      scale: [1.2, 0.8, 0.01]
+
+      state {
+        content: "> Ready."
+        language: "log"
+      }
+    }
+
+    // Diagnostics panel — below main editor
+    object "DiagnosticsPanel" using "CodePanel" {
+      position: [-1.2, 0.5, -2.8]
+      rotation: [15, 0, 0]
+      scale: [1.6, 0.4, 0.01]
+
+      state {
+        content: "✓ No errors"
+        language: "diagnostics"
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 3D PREVIEW ZONE — Where generated scenes materialize
+  // ═══════════════════════════════════════════════════════════
+
+  spatial_group "PreviewZone" {
+    // Preview platform
+    object "PreviewPlatform" {
+      @collidable
+      @static
+      geometry: "cylinder"
+      position: [4, 0, -1]
+      scale: [3, 0.05, 3]
+      color: "#1a1a3a"
+      material: "glass"
+      opacity: 0.3
+    }
+
+    // Preview boundary ring
+    object "PreviewRing" {
+      @glowing
+      geometry: "torus"
+      position: [4, 0.1, -1]
+      scale: [3, 3, 0.05]
+      rotation: [90, 0, 0]
+      color: "#00ffff"
+      emissive: "#00ffff"
+      emissiveIntensity: 0.4
+    }
+
+    // Preview label
+    object "PreviewLabel" {
+      @billboard
+      position: [4, 3.5, -1]
+      text: "PREVIEW ZONE"
+      fontSize: 0.15
+      color: "#00ffff"
+    }
+
+    // Dynamic preview container — scenes render here at runtime
+    object "PreviewContainer" {
+      position: [4, 0.1, -1]
+
+      state {
+        activeScene: null
+        loading: false
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // VOICE INPUT ZONE — Spatial voice activation
+  // ═══════════════════════════════════════════════════════════
+
+  spatial_group "VoiceZone" {
+    // Voice activation indicator
+    object "VoiceMicOrb" using "GlowOrb" {
+      position: [0, 2.8, -2.5]
+      scale: [0.08, 0.08, 0.08]
+      color: "#00ff88"
+      emissive: "#00ff88"
+
+      state {
+        listening: false
+        level: 0
+      }
+
+      animation pulse {
+        property: "scale"
+        from: [0.08, 0.08, 0.08]
+        to: [0.12, 0.12, 0.12]
+        duration: 800
+        loop: infinite
+        easing: "easeInOut"
+      }
+    }
+
+    // Voice status text
+    object "VoiceStatus" {
+      @billboard
+      position: [0, 3.0, -2.5]
+      text: "Say 'Hey Brittney' to activate"
+      fontSize: 0.06
+      color: "#888888"
+
+      state {
+        status: "idle"
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TOOLBAR — Floating action buttons
+  // ═══════════════════════════════════════════════════════════
+
+  spatial_group "Toolbar" {
+    object "RunButton" using "FloatingButton" {
+      position: [-0.5, 0.9, -2.6]
+      color: "#238636"
+      emissive: "#238636"
+      label: "▶ Run"
+
+      on_point() {
+        emit("compile_and_run")
+      }
+    }
+
+    object "SaveButton" using "FloatingButton" {
+      position: [-0.2, 0.9, -2.6]
+      color: "#1f6feb"
+      emissive: "#1f6feb"
+      label: "💾 Save"
+
+      on_point() {
+        emit("save_file")
+      }
+    }
+
+    object "UndoButton" using "FloatingButton" {
+      position: [0.1, 0.9, -2.6]
+      color: "#8b949e"
+      emissive: "#8b949e"
+      label: "↩ Undo"
+
+      on_point() {
+        emit("undo_last")
+      }
+    }
+
+    object "NewFileButton" using "FloatingButton" {
+      position: [0.4, 0.9, -2.6]
+      color: "#f0883e"
+      emissive: "#f0883e"
+      label: "+ New"
+
+      on_point() {
+        emit("new_file")
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ENVIRONMENT DECORATIONS
+  // ═══════════════════════════════════════════════════════════
+
+  // Ground platform
+  object "FloorPlatform" {
+    @collidable
+    @static
+    geometry: "cylinder"
+    position: [0, -0.05, 0]
+    scale: [12, 0.05, 12]
+    color: "#111122"
+    material: "brushed_metal"
+  }
+
+  // Ambient light orbs
+  spatial_group "AmbientLights" {
+    object "AmbientOrb1" using "GlowOrb" {
+      position: [-5, 4, -3]
+      scale: [0.15, 0.15, 0.15]
+      color: "#6e40c9"
+      emissive: "#6e40c9"
+    }
+
+    object "AmbientOrb2" using "GlowOrb" {
+      position: [5, 3.5, -4]
+      scale: [0.1, 0.1, 0.1]
+      color: "#00ffff"
+      emissive: "#00ffff"
+    }
+
+    object "AmbientOrb3" using "GlowOrb" {
+      position: [0, 5, -2]
+      scale: [0.2, 0.2, 0.2]
+      color: "#ff6ec7"
+      emissive: "#ff6ec7"
+      emissiveIntensity: 0.3
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SYSTEMS
+  // ═══════════════════════════════════════════════════════════
+
+  system VoiceCommandSystem {
+    state {
+      listening: false
+      lastTranscript: ""
+      processing: false
+    }
+
+    on_init() {
+      speech.configure({
+        language: "en-US",
+        continuous: true,
+        wakeWord: "brittney"
+      })
+    }
+
+    on_wake_word() {
+      state.listening = true
+      VoiceMicOrb.state.listening = true
+      VoiceStatus.text = "Listening..."
+      VoiceStatus.color = "#00ff88"
+      audio.play("wake_chime")
+    }
+
+    on_speech_result(transcript) {
+      state.lastTranscript = transcript
+      state.processing = true
+      VoiceStatus.text = "Processing: " + transcript
+      Brittney.state.thinking = true
+
+      // Route to MCP tool via Brittney
+      const result = mcp.call("brittney_generate_holoscript", {
+        prompt: transcript,
+        context: MainEditor.state.content
+      })
+
+      MainEditor.state.content = result.holoScript
+      OutputPanel.state.content = result.r3fCode
+      ConsolePanel.state.content = "> " + transcript + "\n" + result.explanation
+
+      // Render preview
+      PreviewContainer.loadScene(result.r3fCode)
+
+      Brittney.state.thinking = false
+      Brittney.state.speaking = true
+      speech.speak(result.explanation)
+
+      state.processing = false
+      state.listening = false
+      VoiceMicOrb.state.listening = false
+      VoiceStatus.text = "Say 'Hey Brittney' to activate"
+      VoiceStatus.color = "#888888"
+    }
+
+    on_speech_error(error) {
+      ConsolePanel.state.content += "\n⚠ Voice error: " + error
+      state.listening = false
+      VoiceMicOrb.state.listening = false
+    }
+  }
+
+  system CompileSystem {
+    on_event("compile_and_run") {
+      DiagnosticsPanel.state.content = "⏳ Compiling..."
+
+      const source = MainEditor.state.content
+      const result = mcp.call("validate_holoscript", { code: source })
+
+      if (result.valid) {
+        const compiled = mcp.call("compile_holoscript", {
+          code: source,
+          target: "r3f"
+        })
+
+        OutputPanel.state.content = compiled.output
+        PreviewContainer.loadScene(compiled.output)
+        DiagnosticsPanel.state.content = "✓ Compiled successfully"
+        audio.play("success_chime")
+      } else {
+        DiagnosticsPanel.state.content = "✗ " + result.errors.join("\n✗ ")
+        audio.play("error_tone")
+      }
+    }
+  }
+
+  system FileSystem {
+    on_event("save_file") {
+      const source = MainEditor.state.content
+      storage.set("workspace_current_file", source)
+      ConsolePanel.state.content += "\n> File saved."
+      audio.play("save_chime")
+    }
+
+    on_event("new_file") {
+      MainEditor.state.content = 'composition "Untitled" {\n  environment {\n    skybox: "default"\n    ambient_light: 0.5\n  }\n}'
+      OutputPanel.state.content = ""
+      DiagnosticsPanel.state.content = "✓ New file"
+      audio.play("new_file_chime")
+    }
+
+    on_event("undo_last") {
+      mcp.call("git_undo_last")
+      ConsolePanel.state.content += "\n> Reverted last change."
+      audio.play("undo_chime")
+    }
+
+    on_init() {
+      const saved = storage.get("workspace_current_file")
+      if (saved) {
+        MainEditor.state.content = saved
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LOGIC — Event routing and coordination
+  // ═══════════════════════════════════════════════════════════
+
+  logic {
+    on_start {
+      ConsolePanel.state.content = "> Brittney Workspace ready.\n> Say 'Hey Brittney' or point at objects to begin."
+    }
+
+    // Gesture: point at preview object → suggest traits
+    on_user_point_at(PreviewContainer, object) {
+      const suggestions = mcp.call("suggest_traits", { object: object.type })
+      ConsolePanel.state.content += "\n> Suggested traits for " + object.id + ": " + suggestions.traits.join(", ")
+    }
+
+    // Gesture: grab from preview → extract to editor
+    on_user_grab(PreviewContainer, object) {
+      MainEditor.state.content += "\n\n  object \"" + object.id + "\" {\n    position: " + object.position + "\n  }"
+      haptic.feedback("medium")
+    }
+  }
+}

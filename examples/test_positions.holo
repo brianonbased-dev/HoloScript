@@ -1,0 +1,33 @@
+// Simple Circular Orbit Test
+// Planets in perfect circles for testing
+
+composition "Solar System Test" {
+  object "Sun" {
+    geometry: "sphere"
+    position: [0, 0, 0]
+    scale: 3
+    color: "#FDB813"
+    glow: true
+  }
+  
+  object "Planet1" {
+    geometry: "sphere"
+    color: "#FF0000"
+    scale: 0.5
+    position: [5, 0, 0]
+  }
+  
+  object "Planet2" {
+    geometry: "sphere"
+    color: "#00FF00"
+    scale: 0.5
+    position: [10, 0, 0]
+  }
+  
+  object "Planet3" {
+    geometry: "sphere"
+    color: "#0000FF"
+    scale: 0.5
+    position: [15, 0, 0]
+  }
+}

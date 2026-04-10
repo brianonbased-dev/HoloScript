@@ -1,0 +1,4 @@
+@page {
+  route: "/learn"
+  redirect: "http://localhost:3102/learn"
+}

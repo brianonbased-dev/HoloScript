@@ -1,0 +1,33 @@
+/**
+ * Lighting & Illumination Traits
+ */
+export const LIGHTING_TRAITS = [
+  'shadow_caster',
+  'light_source',
+  'spotlight',
+  'point_light',
+  'area_light',
+  'backlit',
+  'candlelight',
+  'torchlight',
+  'lantern',
+  'neon_sign',
+  'fluorescent',
+  'incandescent',
+  'led',
+  'strobe',
+  'blacklight',
+  'floodlight',
+  'chandelier',
+  'lamp',
+  'sconce',
+  'light_strip',
+  'projection',
+  'volumetric_light',
+  'caustics',
+  'god_rays',
+  'ambient_glow',
+  'flickering',
+  'dimmable',
+  'color_temperature',
+] as const;

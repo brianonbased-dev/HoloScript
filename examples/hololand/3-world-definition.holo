@@ -1,0 +1,74 @@
+// World Definition Example
+// Complete scene with environment and objects
+
+@world {
+  backgroundColor: "#0a0a1a"
+  ambient: 0.4
+  fog: { type: "linear", color: "#0a0a1a", near: 10, far: 50 }
+  shadows: true
+}
+
+// Central structure
+object "tower" @collidable {
+  position: [0, 3, 0]
+  scale: [1, 6, 1]
+  color: "#4a4a6a"
+  geometry: "cube"
+  material: "concrete"
+}
+
+// Tower top
+object "tower_cap" @glowing {
+  position: [0, 6.5, 0]
+  scale: [1.5, 0.5, 1.5]
+  color: "#00aaff"
+  geometry: "cube"
+  emissive: "#00aaff"
+  emissiveIntensity: 0.6
+}
+
+// Floating platforms
+object "platform_1" @collidable {
+  position: [-3, 2, 0]
+  scale: [2, 0.2, 2]
+  color: "#3a3a5a"
+  geometry: "cube"
+}
+
+object "platform_2" @collidable {
+  position: [3, 3, 0]
+  scale: [2, 0.2, 2]
+  color: "#3a3a5a"
+  geometry: "cube"
+}
+
+// Ambient orbs
+orb "orb_1" @glowing @animated {
+  position: [-2, 4, 2]
+  scale: [0.3, 0.3, 0.3]
+  color: "#ff00ff"
+  geometry: "sphere"
+  animate: "float"
+  animSpeed: 0.8
+  emissive: "#ff00ff"
+  emissiveIntensity: 1
+}
+
+orb "orb_2" @glowing @animated {
+  position: [2, 5, -2]
+  scale: [0.3, 0.3, 0.3]
+  color: "#00ffff"
+  geometry: "sphere"
+  animate: "float"
+  animSpeed: 0.6
+  emissive: "#00ffff"
+  emissiveIntensity: 1
+}
+
+// Ground
+object "ground" @collidable {
+  position: [0, 0, 0]
+  scale: [20, 0.1, 20]
+  color: "#1a1a2a"
+  geometry: "cube"
+}

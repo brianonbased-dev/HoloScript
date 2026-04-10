@@ -1,0 +1,307 @@
+/**
+ * Cultural Governance Demo
+ *
+ * Demonstrates HoloScript's Norm Lifecycle DSL extension for declarative
+ * cultural engineering using the CRSEC model:
+ *   C - Creation:       How norms are proposed and authored
+ *   R - Representation: Formal encoding of rules and constraints
+ *   S - Spreading:      How norms propagate through agents
+ *   E - Evaluation:     Voting rules and adoption thresholds
+ *   C - Compliance:     Enforcement, violations, and sanctions
+ *
+ * Also demonstrates metanorms (norms about norms) for governance
+ * of the norm system itself.
+ *
+ * Use Cases:
+ * - Multi-agent virtual communities with self-governance
+ * - AI agent societies with emergent social norms
+ * - Collaborative VR workspaces with behavioral standards
+ * - Gaming worlds with player-driven rule systems
+ *
+ * @version 4.5.0
+ */
+
+composition "CulturalGovernanceDemo" {
+  environment {
+    theme: "governance_hall"
+    skybox: "twilight_parliament"
+    ambient_light: 0.7
+  }
+
+  state {
+    active_norms: 0
+    total_violations: 0
+    community_trust: 0.8
+    governance_epoch: 1
+  }
+
+  // ==========================================================================
+  // NORM: Anti-Spam Policy
+  // Full CRSEC lifecycle for communication norms
+  // ==========================================================================
+
+  norm "NoSpamming" @enforceable @community_driven {
+    description: "Agents must not flood channels with unsolicited messages"
+    category: "communication"
+    priority: 8
+
+    creation {
+      author: "community_moderators"
+      rationale: "Prevent message flooding that degrades shared experiences"
+      initial_status: "proposed"
+      created_at: 1709251200
+    }
+
+    representation {
+      condition: "message_count_per_minute < 10"
+      scope: "all_agents"
+      exceptions: ["system_announcements", "emergency_alerts", "moderator_messages"]
+    }
+
+    spreading {
+      mechanism: "broadcast"
+      visibility: "public"
+      adoption_incentive: 5
+      channels: ["global_chat", "norm_board", "onboarding_guide"]
+    }
+
+    evaluation {
+      voting: "majority"
+      quorum: 0.6
+      approval_threshold: 0.5
+      review_period: 86400
+      auto_adopt: false
+      max_rounds: 2
+    }
+
+    compliance {
+      monitoring: "continuous"
+      violation_threshold: 3
+      severity: "moderate"
+      sanctions: ["warn", "restrict", "suspend"]
+      appeal_allowed: true
+      grace_period: 3600
+      sanction_cooldown: 86400
+    }
+  }
+
+  // ==========================================================================
+  // NORM: Respectful Interaction
+  // Community-driven behavioral standard
+  // ==========================================================================
+
+  norm "RespectfulInteraction" @enforceable {
+    description: "All agents must interact respectfully with others"
+    category: "behavior"
+    priority: 10
+
+    creation {
+      author: "founding_council"
+      rationale: "Establish a safe and welcoming environment for all participants"
+      initial_status: "adopted"
+    }
+
+    representation {
+      condition: "toxicity_score < 0.2 && respect_metric > 0.7"
+      scope: "all_agents"
+      exceptions: ["roleplay_zones", "debate_arenas"]
+    }
+
+    spreading {
+      mechanism: "broadcast"
+      visibility: "public"
+      adoption_incentive: 10
+    }
+
+    evaluation {
+      voting: "lazy_consensus"
+      quorum: 0.3
+      approval_threshold: 0.5
+      review_period: 172800
+      auto_adopt: true
+    }
+
+    compliance {
+      monitoring: "continuous"
+      violation_threshold: 1
+      severity: "major"
+      sanctions: ["warn", "restrict", "suspend", "ban"]
+      appeal_allowed: true
+      grace_period: 0
+    }
+  }
+
+  // ==========================================================================
+  // NORM: Resource Sharing
+  // Economic norm with quadratic voting
+  // ==========================================================================
+
+  norm "FairResourceSharing" @economic {
+    description: "Resources in shared spaces must be distributed fairly"
+    category: "economics"
+    priority: 6
+
+    creation {
+      author: "economics_committee"
+      rationale: "Prevent resource hoarding and ensure equitable access"
+    }
+
+    representation {
+      condition: "resource_share_ratio > 0.3 && hoarding_index < 0.5"
+      scope: "verified_agents"
+    }
+
+    spreading {
+      mechanism: "observation"
+      visibility: "public"
+      adoption_incentive: 3
+    }
+
+    evaluation {
+      voting: "quadratic"
+      quorum: 0.5
+      approval_threshold: 0.6
+      review_period: 259200
+    }
+
+    compliance {
+      monitoring: "periodic"
+      violation_threshold: 5
+      severity: "minor"
+      sanctions: ["warn", "penalize"]
+      appeal_allowed: true
+      grace_period: 86400
+    }
+  }
+
+  // ==========================================================================
+  // NORM: Knowledge Sharing
+  // Social norm that spreads through imitation
+  // ==========================================================================
+
+  norm "KnowledgeSharing" {
+    description: "Agents should share useful knowledge with the community"
+    category: "social"
+    priority: 4
+
+    creation {
+      author: "research_collective"
+      rationale: "Accelerate collective learning and innovation"
+    }
+
+    representation {
+      condition: "knowledge_contributions_per_week > 0"
+      scope: "all_agents"
+    }
+
+    spreading {
+      mechanism: "imitation"
+      visibility: "public"
+      adoption_incentive: 8
+    }
+
+    evaluation {
+      voting: "ranked_choice"
+      quorum: 0.4
+      approval_threshold: 0.5
+      review_period: 604800
+      auto_adopt: true
+    }
+
+    compliance {
+      monitoring: "periodic"
+      violation_threshold: 10
+      severity: "info"
+      sanctions: ["warn"]
+      appeal_allowed: false
+      grace_period: 604800
+    }
+  }
+
+  // ==========================================================================
+  // METANORM: Amendment Process
+  // Governance rules for modifying norms
+  // ==========================================================================
+
+  metanorm "NormAmendmentProcess" @governance {
+    description: "Rules governing how existing norms can be amended"
+    applies_to: "all_norms"
+
+    rules {
+      amendment_quorum: 0.75
+      amendment_voting: "supermajority"
+      cooldown_period: 604800
+      max_amendments_per_cycle: 3
+      retroactive_allowed: false
+    }
+
+    escalation {
+      authority: "governance_council"
+      override_threshold: 0.9
+      appeal_levels: 2
+    }
+  }
+
+  // ==========================================================================
+  // METANORM: Conflict Resolution
+  // How to handle conflicting norms
+  // ==========================================================================
+
+  metanorm "NormConflictResolution" @governance {
+    description: "Protocol for resolving conflicts between active norms"
+    applies_to: "all_norms"
+
+    rules {
+      amendment_quorum: 0.8
+      amendment_voting: "consensus"
+      cooldown_period: 259200
+      max_amendments_per_cycle: 1
+    }
+
+    escalation {
+      authority: "supreme_arbitrator"
+      override_threshold: 0.95
+      appeal_levels: 3
+    }
+  }
+
+  // ==========================================================================
+  // METANORM: Norm Sunset Policy
+  // When and how norms expire
+  // ==========================================================================
+
+  metanorm "NormSunsetPolicy" {
+    description: "Automatic deprecation rules for unused norms"
+    applies_to: "all_norms"
+
+    rules {
+      amendment_quorum: 0.5
+      amendment_voting: "majority"
+      cooldown_period: 2592000
+      max_amendments_per_cycle: 5
+      retroactive_allowed: true
+    }
+  }
+
+  // ==========================================================================
+  // SCENE OBJECTS
+  // ==========================================================================
+
+  object "GovernanceHall" {
+    position: [0, 0, 0]
+    model: "governance_hall.glb"
+    scale: [1, 1, 1]
+  }
+
+  object "NormBoard" {
+    position: [0, 2, -5]
+    model: "holographic_board.glb"
+    scale: [3, 2, 0.1]
+  }
+
+  object "VotingPodium" {
+    position: [0, 0, -3]
+    model: "podium.glb"
+    scale: [1, 1, 1]
+  }
+}

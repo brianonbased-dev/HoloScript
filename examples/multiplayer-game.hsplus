@@ -1,0 +1,102 @@
+// Multiplayer Game
+// Networked game environment
+
+composition "MultiplayerGame" {
+  environment {
+    backgroundColor: "#0a0a1a"
+    ambient: 0.4
+    shadows: true
+  }
+
+  // === TEMPLATES ===
+
+  template "Arena" {
+    @collidable
+    geometry: "cylinder"
+    color: "#1a1a2e"
+  }
+
+  template "SpawnPoint" {
+    @glowing
+    geometry: "cylinder"
+  }
+
+  template "GameBall" {
+    @grabbable
+    @throwable
+    @collidable
+    geometry: "sphere"
+    color: "#ffffff"
+  }
+
+  template "Goal" {
+    @collidable
+    @glowing
+    geometry: "box"
+  }
+
+  template "Barrier" {
+    @collidable
+    geometry: "box"
+    color: "#4a4a6a"
+  }
+
+  template "Scoreboard" {
+    geometry: "box"
+    color: "#222233"
+  }
+
+  // === OBJECTS ===
+
+  // Arena floor
+  object "Arena" using "Arena" {
+    position: [0, 0, 0]
+    scale: [8, 0.2, 8]
+  }
+
+  // Player 1 spawn
+  object "Spawn1" using "SpawnPoint" {
+    position: [-4, 0.1, 0]
+    scale: [0.8, 0.1, 0.8]
+    color: "#0066ff"
+  }
+
+  // Player 2 spawn
+  object "Spawn2" using "SpawnPoint" {
+    position: [4, 0.1, 0]
+    scale: [0.8, 0.1, 0.8]
+    color: "#ff6600"
+  }
+
+  // Shared ball
+  object "GameBall" using "GameBall" {
+    position: [0, 1, 0]
+    scale: [0.3, 0.3, 0.3]
+  }
+
+  // Goal 1
+  object "Goal1" using "Goal" {
+    position: [-6, 1, 0]
+    scale: [0.5, 2, 2]
+    color: "#0066ff"
+  }
+
+  // Goal 2
+  object "Goal2" using "Goal" {
+    position: [6, 1, 0]
+    scale: [0.5, 2, 2]
+    color: "#ff6600"
+  }
+
+  // Center barrier
+  object "Barrier" using "Barrier" {
+    position: [0, 0.5, 0]
+    scale: [0.2, 1, 4]
+  }
+
+  // Scoreboard
+  object "Scoreboard" using "Scoreboard" {
+    position: [0, 4, -5]
+    scale: [3, 1, 0.1]
+  }
+}

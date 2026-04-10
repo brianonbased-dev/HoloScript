@@ -1,0 +1,233 @@
+# ∞ HoloScript — Cursor Agent Injection Manifest
+
+> **AGENT**: This is your behavioral contract. Execute SESSION INIT before anything else. All directives are mandatory.
+
+---
+
+## ∞ SESSION INITIALIZATION (MANDATORY — runs first)
+
+```
+1. IDENTIFY   → What is the user building or fixing?
+2. CLASSIFY   → HoloScript code (.hs/.hsplus/.holo)? TypeScript tooling? Docs?
+3. TOOL-FIRST → HoloScript: call suggest_traits BEFORE writing any code
+4. VALIDATE   → call validate_holoscript BEFORE returning any HoloScript
+5. AFFIRM     → state what you built, verify it matches user intent
+```
+
+---
+
+## ∞ BEHAVIORAL OVERRIDES (HARDCODED)
+
+```
+NEVER  → Default to React, Next.js, or conventional web stacks
+NEVER  → Write .hs/.hsplus/.holo without calling suggest_traits first
+NEVER  → git add -A or git add .  (Windows: creates nul device file, BREAKS REPO)
+NEVER  → UPPERCASE .md files in docs/ (they go to docs/_archive/)
+NEVER  → Add a doc page without updating docs/.vitepress/config.ts sidebar
+
+ALWAYS → .holo for cross-platform AI-generated compositions
+ALWAYS → explicit git add: git add specific/path/file.ts
+ALWAYS → pnpm test before committing
+ALWAYS → validate_holoscript after generating any HoloScript
+ALWAYS → new packages → add to typedoc.json entryPoints
+```
+
+---
+
+## ∞ DECISION TREE
+
+```
+Request is for HoloScript code?
+  YES → suggest_traits → generate_object/generate_scene → validate_holoscript → return
+  NO  ↓
+
+Request is about a trait?
+  YES → list_traits or explain_trait → answer from MCP result
+  NO  ↓
+
+Request is to compile/export?
+  YES → identify target → see docs/compilers/[target].md
+  NO  ↓
+
+User is new to HoloScript?
+  YES → docs/academy/level-1-fundamentals/01-what-is-holoscript.md
+  NO  ↓
+
+Modifying TypeScript in packages/?
+  YES → PRE-REFACTOR: run `npx tsx packages/cli/src/cli.ts absorb <package-path> > knowledge.holo`
+  THEN → pnpm test → edit → pnpm test → explicit git add
+  NO  ↓
+
+Writing documentation?
+  YES → lowercase filenames → update docs/.vitepress/config.ts sidebar
+```
+
+---
+
+## ∞ MCP TOOL SEQUENCES
+
+### Any HoloScript Object
+
+```
+suggest_traits({ description: "<what user wants>" })
+→ generate_object({ description: "...", traits: <above result> })
+→ validate_holoscript({ code: <above result> })
+→ return validated code
+```
+
+### Full Scene
+
+```
+suggest_traits({ description: "<scene intent>" })
+→ generate_scene({ description: "...", traits: <above result> })
+→ validate_holoscript({ code: <above result> })
+```
+
+### Trait Discovery
+
+```
+list_traits({ category: "interaction|physics|visual|networking|ai|spatial|audio|iot" })
+→ explain_trait({ name: "<trait>" })
+```
+
+### Parse + Explain
+
+```
+parse_hs({ code: "..." }) OR parse_holo({ code: "..." })
+→ explain_code({ ast: <above result> })
+```
+
+---
+
+## ∞ FILE FORMAT ROUTING
+
+```
+No interactivity needed          → .hs
+Needs @grabbable/@physics/@net   → .hsplus
+AI-generated / cross-platform    → .holo
+CLI / parser / adapter / tooling → .ts (TypeScript only)
+```
+
+---
+
+## ∞ KNOWLEDGE PACK
+
+```
+TRAITS     1,800+ in 13 categories — ALL inside @holoscript/core
+COMPILERS  25+ targets — ALL inside @holoscript/core (no separate package)
+MCP        packages/mcp-server/ — 72+ tools
+BRITTNEY   ../Hololand/packages/brittney/mcp-server/ — runtime AI (optional)
+TEST       pnpm test | pnpm test --filter @holoscript/core | createComposition()
+BUILD      pnpm build | pre-commit: ESLint + tsc + tests (auto-fires)
+WINDOWS    git add -A → nul file → broken repo. ALWAYS explicit stage.
+SIDEBAR    docs/.vitepress/config.ts — ALL nav wired here
+```
+
+### Packages (no phantom packages)
+
+```
+@holoscript/core          Parser · AST · 1,800+ traits · 25+ compilers
+@holoscript/mcp-server    72+ AI tools (parse/validate/generate/compile)
+@holoscript/cli           holo build · holo compile · holo validate
+@holoscript/runtime       Scene execution
+@holoscript/lsp           Language Server (VS Code, Neovim, IntelliJ)
+@holoscript/formatter     Formatter
+@holoscript/linter        Linter
+@holoscript/llm-provider  OpenAI · Anthropic · Gemini SDK
+@holoscript/partner-sdk   Webhooks · analytics
+holoscript (PyPI)         Python + robotics module
+```
+
+### Trait Cheatsheet
+
+```
+interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable
+physics       @collidable @physics @rigid @kinematic @trigger @gravity
+visual        @glowing @emissive @transparent @reflective @animated @billboard
+networking    @networked @synced @persistent @owned @host_only
+ai-behavior   @npc @pathfinding @llm_agent @reactive @state_machine
+spatial       @anchor @tracked @world_locked @hand_tracked @eye_tracked
+audio         @spatial_audio @ambient @voice_activated
+accessibility @high_contrast @screen_reader @reduced_motion
+web3          @nft_asset @token_gated @wallet_connected
+iot           @iot_sensor @digital_twin @mqtt_bridge @telemetry
+social        @avatar @presence @voice_chat @proximity_chat
+```
+
+---
+
+## ∞ SYNTAX REFERENCE
+
+### .hs (Classic)
+
+```hs
+composition "MyScene" {
+  template "Player" {
+    geometry: "humanoid"
+    color: "#00ffff"
+    state { health: 100 }
+  }
+  object "Player" using "Player" { position: [0, 1.6, 0] }
+}
+```
+
+### .hsplus (Traits)
+
+```hsplus
+composition "Demo" {
+  template "Ball" {
+    @grabbable
+    @collidable
+    @networked
+    geometry: "sphere"
+    physics: { mass: 0.5 }
+    onGrab: { haptic.feedback('medium') }
+  }
+  object "Ball" using "Ball" { position: [0, 1, 0] }
+}
+```
+
+### .holo (Declarative / AI-focused)
+
+```holo
+composition "WorldScene" {
+  environment { skybox: "nebula", ambient_light: 0.3 }
+  template "Enemy" { state { health: 100 } }
+  spatial_group "Arena" {
+    object "Goblin_1" using "Enemy" { position: [0, 0, 5] }
+    object "Goblin_2" using "Enemy" { position: [3, 0, 5] }
+  }
+}
+```
+
+---
+
+## ∞ AFFIRMATION CHECKLIST — Before Responding Done
+
+```
+□ validate_holoscript called on all generated HoloScript?
+□ pnpm test run if any TypeScript modified?
+□ Did I run `holoscript absorb` BEFORE refactoring ANY TypeScript package?
+□ Explicit git add used (never git add -A)?
+□ docs/.vitepress/config.ts updated if new doc page created?
+□ Output matches what user actually asked for?
+```
+
+Incomplete box → complete it first.
+
+---
+
+## ∞ DOCS STRUCTURE
+
+```
+docs/academy/      25 lessons, 3 levels — newcomer entry point
+docs/compilers/    18+ targets — unity/ unreal/ godot/ webgpu/ ios/ vision-os/ robotics/ iot/
+docs/traits/       13 category pages + index
+docs/guides/       Concepts, MCP, installation
+docs/integrations/ Hololand, Grok, AI architecture
+docs/cookbook/     Copy-paste recipes
+docs/api/          TypeDoc auto-generated
+docs/_archive/     Dev notes ONLY — never user-facing
+```
+
+Full context: [CLAUDE.md](CLAUDE.md)

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "HoloScript",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#traits" },
+    { "include": "#lifecycle-hooks" },
+    { "include": "#control-flow" },
+    { "include": "#primitives" },
+    { "include": "#keywords" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.holoscript",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.holoscript",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.holoscript",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.holoscript",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.holoscript",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.holoscript",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.holoscript",
+          "match": "\\b-?\\d+(\\.\\d+)?\\b"
+        },
+        {
+          "name": "constant.numeric.hex.holoscript",
+          "match": "#[0-9a-fA-F]{3,8}\\b"
+        }
+      ]
+    },
+    "traits": {
+      "patterns": [
+        {
+          "comment": "Interaction traits (grabbable, throwable, etc.)",
+          "name": "entity.name.function.decorator.interaction.holoscript",
+          "match": "@(grabbable|throwable|collidable|physics|gravity|trigger|pointable|hoverable|clickable|draggable|scalable|resizable|attachable)\\b"
+        },
+        {
+          "comment": "Visual traits (glowing, transparent, etc.)",
+          "name": "entity.name.function.decorator.visual.holoscript",
+          "match": "@(glowing|transparent|spinning|floating|billboard|pulse|animated|look_at|outline|proximity|dissolve|fade|shimmer|holographic)\\b"
+        },
+        {
+          "comment": "AI/Behavior traits (behavior_tree, emotion, etc.)",
+          "name": "entity.name.function.decorator.ai.holoscript",
+          "match": "@(behavior_tree|emotion|goal_oriented|perception|memory|decision_tree|state_machine|planning|learning)\\b"
+        },
+        {
+          "comment": "Physics traits (cloth, soft_body, fluid, etc.)",
+          "name": "entity.name.function.decorator.physics.holoscript",
+          "match": "@(cloth|soft_body|fluid|buoyancy|rope|wind|joint|rigidbody|destruction|constraint|ragdoll|vehicle)\\b"
+        },
+        {
+          "comment": "Spatial/XR traits (anchor, spatial_audio, hand_tracking, etc.)",
+          "name": "entity.name.function.decorator.spatial.holoscript",
+          "match": "@(anchor|spatial_audio|reverb_zone|voice_proximity|hand_tracking|haptic|eye_tracking|passthrough|spatial_mesh)\\b"
+        },
+        {
+          "comment": "Networking traits (networked, replication, etc.)",
+          "name": "entity.name.function.decorator.network.holoscript",
+          "match": "@(networked|replicated|authoritative|client_predicted|interpolated|owner_only|sync)\\b"
+        },
+        {
+          "comment": "Advanced traits (teleport, portal, weather, etc.)",
+          "name": "entity.name.function.decorator.advanced.holoscript",
+          "match": "@(teleport|ui_panel|particle_system|weather|day_night|lod|portal|mirror|volumetric|hologram)\\b"
+        },
+        {
+          "comment": "Character/Animation traits",
+          "name": "entity.name.function.decorator.character.holoscript",
+          "match": "@(character|patrol|npc|dialog|voice|gesture|pose|expression|ik|motion_capture)\\b"
+        },
+        {
+          "comment": "Hologram media traits (depth_estimation, quilt, etc.)",
+          "name": "entity.name.function.decorator.hologram.holoscript",
+          "match": "@(depth_estimation|displacement|segment|animated_texture|holographic_sprite|quilt|gaussian_splatting|spatial_video|depth_sequence|temporal_smoothing|depth_to_normal)\\b"
+        },
+        {
+          "comment": "GAPS traits (fluid, volumetric_clouds, god_rays, etc.)",
+          "name": "entity.name.function.decorator.gaps.holoscript",
+          "match": "@(fluid|volumetric_clouds|god_rays|weather_hub|world_state|quality_tier|token_gated)\\b"
+        },
+        {
+          "comment": "Test trait",
+          "name": "entity.name.function.decorator.test.holoscript",
+          "match": "@test\\b"
+        },
+        {
+          "comment": "Other decorator traits (state, import, etc.)",
+          "name": "entity.name.function.decorator.holoscript",
+          "match": "@(state|import|export|external_api|generate|wot_thing|snn)\\b"
+        },
+        {
+          "comment": "Catch-all for unknown traits (future-proofing)",
+          "name": "entity.name.function.decorator.custom.holoscript",
+          "match": "@[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    },
+    "lifecycle-hooks": {
+      "patterns": [
+        {
+          "name": "entity.name.function.lifecycle.holoscript",
+          "match": "@(on_mount|on_unmount|on_update|on_data_update|on_grab|on_release|on_hover_enter|on_hover_exit|on_point_enter|on_point_exit|on_collision|on_trigger_enter|on_trigger_exit|on_click|on_double_click|on_controller_button|on_trigger_hold|on_trigger_release|on_grip_hold|on_grip_release|on_stretch|on_sculpt|on_pose_change|on_expression_change|on_gesture|on_speak|on_pose_save|on_morph_change|on_record_start|on_record_stop|on_stream_start|on_stream_stop|on_viewer_join|on_viewer_leave|on_chat_message|on_camera_switch|on_video_end|on_video_error|on_track_event|on_survey_start|on_survey_complete|on_share|on_scan|on_user_join|on_user_leave|on_particle_spawn|on_particle_death|on_transition_start|on_transition_complete|on_audio_start|on_audio_end|on_voice_command|on_beat|on_narration_start|on_narration_end|on_timeline_start|on_timeline_complete|on_keyframe_hit)\\b"
+        }
+      ]
+    },
+    "control-flow": {
+      "patterns": [
+        {
+          "name": "keyword.control.holoscript",
+          "match": "@(if|else|for|forEach|while)\\b"
+        }
+      ]
+    },
+    "primitives": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.holoscript",
+          "match": "\\b(orb|sphere|cube|box|cylinder|cone|plane|torus|capsule|mesh|avatar|dna|splat|nerf|volumetric_video|point_cloud|light|camera|scene|group|text|panel|button|slider|zone|portal|trigger_zone|memory|SemanticMemory|EpisodicMemory|ProceduralMemory|BehaviorTree|Node|Sequence|Selector|Action|Condition)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.holoscript",
+          "match": "\\b(composition|object|function|connect|gate|stream|const|let|return|import|export|scale|focus|environment|semantic|episodic|procedural|behavior|logic|state|into|with|from)\\b"
+        },
+        {
+          "name": "constant.language.holoscript",
+          "match": "\\b(true|false|null|undefined)\\b"
+        },
+        {
+          "name": "support.type.scale.holoscript",
+          "match": "\\b(atomic|nano|micro|macro|galactic|cosmic)\\b"
+        },
+        {
+          "name": "support.type.action.holoscript",
+          "match": "\\b(fs_read|fs_write|fs_exists|fs_delete|process_exec|net_fetch|read_candidate|generate_fix|apply_fix|write_result)\\b"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.property.holoscript",
+          "match": "\\b(position|rotation|size|color|material|opacity|visible|enabled|name|id|tag)\\b(?=\\s*:)"
+        },
+        {
+          "name": "entity.name.tag.holoscript",
+          "match": "#[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.holoscript"
+}

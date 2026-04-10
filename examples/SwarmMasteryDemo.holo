@@ -1,0 +1,102 @@
+/**
+ * Swarm Mastery Demo
+ * 
+ * Demonstrates hierarchical agentic mitosis and delegation.
+ * Phase 6 Verification Scene.
+ */
+
+composition "SwarmMastery" {
+  
+  // ==========================================================================
+  // TEMPLATES
+  // ==========================================================================
+
+  template "Miner" {
+    @mitosis(strategy: "autonomous")
+    @llm_agent
+    
+    geometry: "cube"
+    color: "#ff8800"
+    
+    state {
+      parent_id: null
+      target_resource: "iron"
+      progress: 0
+    }
+
+    on mount() {
+      print("Miner online. Mining " + this.state.target_resource)
+      this.mine()
+    }
+
+    action mine() {
+      // Simulate mining work
+      while (this.state.progress < 100) {
+        this.state.progress += 25
+        print("Mining progress: " + this.state.progress + "%")
+        await sleep(500)
+      }
+      
+      print("Mining complete. Notifying Commander.")
+      notifyParent(this.state.parent_id, { resource: this.state.target_resource, quantity: 50 }, this.id)
+    }
+  }
+
+  template "Commander" {
+    @mitosis(strategy: "collaborative")
+    @llm_agent
+    
+    geometry: "humanoid"
+    color: "#0088ff"
+    
+    state {
+      miners_deployed: 0
+      total_resources: 0
+    }
+
+    on mount() {
+      print("Commander online. Deploying miners...")
+      this.deployMiners(2)
+    }
+
+    action deployMiners(count) {
+      for (let i = 0; i < count; i++) {
+        spawn({
+          template: "Miner",
+          id: "Miner_" + i,
+          parentId: this.id,
+          position: [i * 2 - 1, 0, 5],
+          config: {
+            parent_id: this.id,
+            target_resource: i == 0 ? "Gold" : "Iron"
+          }
+        })
+        this.state.miners_deployed += 1
+      }
+    }
+
+    // This event is triggered by the mitosis trait when a child reports success
+    on mitosis_synced(childId, result) {
+      print("Commander received report from " + childId)
+      print("Collected: " + result.quantity + " " + result.resource)
+      this.state.total_resources += result.quantity
+      
+      // Once all miners are done, celebrate
+      if (this.state.total_resources >= 100) {
+        print("All resources collected. Total: " + this.state.total_resources)
+        pulsate(this.id, { color: "#00ff00", duration: 2000 })
+      }
+    }
+  }
+
+  // ==========================================================================
+  // INSTANTIATION
+  // ==========================================================================
+
+  object "AlphaCommander" using "Commander" {
+    position: [0, 0, 0]
+    properties: {
+      name: "Commander Prime"
+    }
+  }
+}

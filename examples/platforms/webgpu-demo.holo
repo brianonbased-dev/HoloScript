@@ -1,0 +1,248 @@
+// WebGPU High-Performance Graphics Example
+// Compile: holoscript compile webgpu-demo.holo --target webgpu
+// Output: TypeScript with WebGPU compute/render pipeline
+
+composition "WebGPU Particle Galaxy" {
+  environment {
+    adapter: {
+      power_preference: "high-performance"
+      required_features: [
+        "shader-f16",
+        "timestamp-query"
+      ]
+    }
+    present_mode: "mailbox"  // fifo | mailbox | immediate
+    format: "bgra8unorm"
+  }
+
+  // === Compute Shader Particles ===
+  compute_pipeline "ParticleSimulation" {
+    shader: '''
+      struct Particle {
+        position: vec3f,
+        velocity: vec3f,
+        color: vec4f,
+        life: f32,
+        size: f32,
+      }
+
+      @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
+      @group(0) @binding(1) var<uniform> params: SimParams;
+
+      struct SimParams {
+        delta_time: f32,
+        gravity_center: vec3f,
+        gravity_strength: f32,
+        particle_count: u32,
+      }
+
+      @compute @workgroup_size(256)
+      fn main(@builtin(global_invocation_id) id: vec3u) {
+        let idx = id.x;
+        if (idx >= params.particle_count) { return; }
+        
+        var p = particles[idx];
+        
+        // Gravity towards center
+        let to_center = params.gravity_center - p.position;
+        let dist = length(to_center);
+        let gravity = normalize(to_center) * params.gravity_strength / (dist * dist + 0.1);
+        
+        p.velocity += gravity * params.delta_time;
+        p.position += p.velocity * params.delta_time;
+        p.life -= params.delta_time * 0.1;
+        
+        // Reset dead particles
+        if (p.life <= 0.0) {
+          p.position = random_sphere_point(idx);
+          p.velocity = vec3f(0.0);
+          p.life = 1.0;
+        }
+        
+        particles[idx] = p;
+      }
+    '''
+    
+    workgroup_size: [256, 1, 1]
+    dispatch_size: "particle_count / 256"
+  }
+
+  // === Render Pipeline ===
+  render_pipeline "ParticleRender" {
+    vertex_shader: '''
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) color: vec4f,
+        @location(1) uv: vec2f,
+      }
+
+      @group(0) @binding(0) var<storage, read> particles: array<Particle>;
+      @group(0) @binding(1) var<uniform> camera: CameraUniforms;
+
+      @vertex
+      fn main(
+        @builtin(instance_index) instance: u32,
+        @builtin(vertex_index) vertex: u32
+      ) -> VertexOutput {
+        let p = particles[instance];
+        let quad = get_billboard_quad(vertex, p.size);
+        
+        var out: VertexOutput;
+        out.position = camera.viewProj * vec4f(p.position + quad.xyz, 1.0);
+        out.color = p.color * p.life;
+        out.uv = quad_uvs[vertex];
+        return out;
+      }
+    '''
+
+    fragment_shader: '''
+      @group(1) @binding(0) var particle_texture: texture_2d<f32>;
+      @group(1) @binding(1) var particle_sampler: sampler;
+
+      @fragment
+      fn main(
+        @location(0) color: vec4f,
+        @location(1) uv: vec2f
+      ) -> @location(0) vec4f {
+        let tex = textureSample(particle_texture, particle_sampler, uv);
+        return color * tex;
+      }
+    '''
+
+    primitive: {
+      topology: "triangle-strip"
+      cull_mode: "none"
+    }
+
+    depth_stencil: {
+      format: "depth24plus"
+      depth_write: false
+      depth_compare: "less"
+    }
+
+    blend: {
+      color: {
+        src_factor: "src-alpha"
+        dst_factor: "one"
+        operation: "add"
+      }
+    }
+
+    instance_count: 100000
+  }
+
+  // === Resources ===
+  buffer "ParticleBuffer" {
+    size: 100000 * 48  // 100k particles * sizeof(Particle)
+    usage: ["storage", "vertex"]
+    
+    init: {
+      type: "random_distribution"
+      distribution: "sphere"
+      radius: 10.0
+    }
+  }
+
+  buffer "SimParamsBuffer" {
+    size: 32
+    usage: ["uniform"]
+    
+    data: {
+      delta_time: 0.016
+      gravity_center: [0, 0, 0]
+      gravity_strength: 5.0
+      particle_count: 100000
+    }
+  }
+
+  texture "ParticleTexture" {
+    source: "textures/particle_soft.png"
+    format: "rgba8unorm"
+    usage: ["texture_binding", "copy_dst"]
+    generate_mipmaps: true
+  }
+
+  sampler "ParticleSampler" {
+    mag_filter: "linear"
+    min_filter: "linear"
+    mipmap_filter: "linear"
+    address_mode: "clamp-to-edge"
+  }
+
+  // === Camera ===
+  camera "MainCamera" {
+    position: [0, 5, 20]
+    target: [0, 0, 0]
+    fov: 60
+    near: 0.1
+    far: 1000
+
+    controls: {
+      type: "orbit"
+      damping: 0.05
+      zoom_speed: 1.0
+      rotate_speed: 0.5
+      min_distance: 5
+      max_distance: 100
+    }
+  }
+
+  // === Post-Processing ===
+  post_process "Bloom" {
+    enabled: true
+    threshold: 0.8
+    intensity: 0.5
+    radius: 4
+  }
+
+  post_process "ToneMapping" {
+    enabled: true
+    type: "aces"
+    exposure: 1.2
+  }
+
+  // === Frame Loop ===
+  frame_loop {
+    // Update simulation params
+    update_buffer("SimParamsBuffer", {
+      delta_time: frame.delta_time
+    })
+
+    // Run compute pass
+    compute_pass {
+      pipeline: "ParticleSimulation"
+      dispatch: [ceil(100000 / 256), 1, 1]
+    }
+
+    // Render pass
+    render_pass {
+      color_attachments: [{
+        view: "swapchain"
+        clear_color: [0.02, 0.02, 0.05, 1.0]
+        load_op: "clear"
+        store_op: "store"
+      }]
+      
+      depth_attachment: {
+        view: "depth_texture"
+        clear_value: 1.0
+      }
+
+      draw {
+        pipeline: "ParticleRender"
+        vertex_count: 4
+        instance_count: 100000
+      }
+    }
+
+    // Post-processing
+    post_process_pass: ["Bloom", "ToneMapping"]
+  }
+
+  // === Performance Monitoring ===
+  profiler {
+    enabled: true
+    gpu_timing: true
+    show_stats: true
+  }
+}

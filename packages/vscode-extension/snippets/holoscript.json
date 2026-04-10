@@ -1,0 +1,805 @@
+{
+  "Composition": {
+    "prefix": ["composition", "comp"],
+    "body": ["composition \"${1:SceneName}\" {", "\t${2:// Scene content}", "}"],
+    "description": "Create a new composition (scene/world)"
+  },
+
+  "Object": {
+    "prefix": ["object", "obj"],
+    "body": [
+      "object \"${1:ObjectName}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\t${5:// Additional properties}",
+      "}"
+    ],
+    "description": "Create a 3D object"
+  },
+
+  "Object with Template": {
+    "prefix": ["objusing", "objectusing"],
+    "body": [
+      "object \"${1:ObjectName}\" using \"${2:TemplateName}\" {",
+      "\tposition: [${3:0}, ${4:0}, ${5:0}]",
+      "}"
+    ],
+    "description": "Create an object from a template"
+  },
+
+  "Template": {
+    "prefix": ["template", "tmpl"],
+    "body": [
+      "template \"${1:TemplateName}\" {",
+      "\tstate {",
+      "\t\t${2:property}: ${3:value}",
+      "\t}",
+      "\t",
+      "\taction ${4:actionName}() {",
+      "\t\t${5:// Action logic}",
+      "\t}",
+      "}"
+    ],
+    "description": "Define a reusable template"
+  },
+
+  "Spatial Group": {
+    "prefix": ["spatialgroup", "sgroup", "sg"],
+    "body": ["spatial_group \"${1:GroupName}\" {", "\t${2:// Objects in this group}", "}"],
+    "description": "Create a spatial group for organizing objects"
+  },
+
+  "Logic Block": {
+    "prefix": ["logic", "lgc"],
+    "body": ["logic {", "\t${1:// Event handlers and game logic}", "}"],
+    "description": "Define logic handlers for a composition"
+  },
+
+  "Function": {
+    "prefix": ["function", "func", "fn"],
+    "body": [
+      "function ${1:functionName}(${2:params}) {",
+      "\t${3:// Function body}",
+      "\treturn ${4:result}",
+      "}"
+    ],
+    "description": "Define a function"
+  },
+
+  "Async Function": {
+    "prefix": ["asyncfunction", "asyncfn", "afn"],
+    "body": [
+      "async function ${1:functionName}(${2:params}) {",
+      "\t${3:// Async function body}",
+      "\treturn await ${4:result}",
+      "}"
+    ],
+    "description": "Define an async function"
+  },
+
+  "Orb Variable": {
+    "prefix": ["orb", "var"],
+    "body": "orb ${1:name} = ${2:value}",
+    "description": "Declare a variable (orb)"
+  },
+
+  "Const Variable": {
+    "prefix": ["const"],
+    "body": "const ${1:name} = ${2:value}",
+    "description": "Declare a constant"
+  },
+
+  "Gate (If Statement)": {
+    "prefix": ["gate", "if"],
+    "body": ["gate (${1:condition}) {", "\t${2:// True branch}", "}"],
+    "description": "Conditional statement (gate/if)"
+  },
+
+  "Gate Else": {
+    "prefix": ["gateelse", "ifelse"],
+    "body": [
+      "gate (${1:condition}) {",
+      "\t${2:// True branch}",
+      "} else {",
+      "\t${3:// False branch}",
+      "}"
+    ],
+    "description": "Conditional with else branch"
+  },
+
+  "For Loop": {
+    "prefix": ["for", "forloop"],
+    "body": [
+      "for (orb ${1:i} = ${2:0}; ${1:i} < ${3:count}; ${1:i}++) {",
+      "\t${4:// Loop body}",
+      "}"
+    ],
+    "description": "For loop"
+  },
+
+  "ForEach Loop": {
+    "prefix": ["foreach", "forin"],
+    "body": ["forEach (${1:item} in ${2:collection}) {", "\t${3:// Loop body}", "}"],
+    "description": "ForEach loop over collection"
+  },
+
+  "While Loop": {
+    "prefix": ["while", "whileloop"],
+    "body": ["while (${1:condition}) {", "\t${2:// Loop body}", "}"],
+    "description": "While loop"
+  },
+
+  "Event Handler": {
+    "prefix": ["on", "onevent", "handler"],
+    "body": ["on_${1:event_name}(${2:params}) {", "\t${3:// Handle event}", "}"],
+    "description": "Define an event handler"
+  },
+
+  "On Click Handler": {
+    "prefix": ["onclick", "click"],
+    "body": ["on_click {", "\t${1:// Handle click}", "}"],
+    "description": "Click event handler"
+  },
+
+  "On Interact Handler": {
+    "prefix": ["oninteract", "interact"],
+    "body": ["on_interact {", "\t${1:// Handle interaction}", "}"],
+    "description": "Interact event handler"
+  },
+
+  "On Collision Handler": {
+    "prefix": ["oncollision", "collision"],
+    "body": ["on_collision(${1:other}) {", "\t${2:// Handle collision}", "}"],
+    "description": "Collision event handler"
+  },
+
+  "On Enter Trigger": {
+    "prefix": ["onenter", "enter"],
+    "body": ["on_enter(${1:entity}) {", "\t${2:// Handle enter}", "}"],
+    "description": "Trigger enter event handler"
+  },
+
+  "On Exit Trigger": {
+    "prefix": ["onexit", "exit"],
+    "body": ["on_exit(${1:entity}) {", "\t${2:// Handle exit}", "}"],
+    "description": "Trigger exit event handler"
+  },
+
+  "Animate": {
+    "prefix": ["animate", "anim"],
+    "body": "animate ${1:target} property: \"${2:position}\" from: ${3:0} to: ${4:1} duration: ${5:1000}",
+    "description": "Animate an object property"
+  },
+
+  "Modify Object": {
+    "prefix": ["modify", "mod"],
+    "body": ["modify ${1:target} {", "\t${2:property}: ${3:value}", "}"],
+    "description": "Modify object properties"
+  },
+
+  "Every (Timer)": {
+    "prefix": ["every", "timer", "interval"],
+    "body": ["every(${1:1000}) {", "\t${2:// Runs every N milliseconds}", "}"],
+    "description": "Periodic timer execution"
+  },
+
+  "After (Delay)": {
+    "prefix": ["after", "delay", "timeout"],
+    "body": ["after(${1:1000}) {", "\t${2:// Runs once after N milliseconds}", "}"],
+    "description": "Delayed execution"
+  },
+
+  "Connect Flow": {
+    "prefix": ["connect", "conn", "flow"],
+    "body": "connect ${1:source} to ${2:target}",
+    "description": "Connect data flow between nodes"
+  },
+
+  "Stream": {
+    "prefix": ["stream"],
+    "body": [
+      "stream ${1:name} from ${2:source} through ${3:transform} {",
+      "\t${4:// Stream processing}",
+      "}"
+    ],
+    "description": "Create a data stream"
+  },
+
+  "NPC Definition": {
+    "prefix": ["npc", "character"],
+    "body": [
+      "object \"${1:NPCName}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\tmodel: \"${5:character}\"",
+      "\ttraits: [\"talkable\", \"${6:patrol}\"]",
+      "\t",
+      "\ton_interact {",
+      "\t\t${7:// NPC interaction}",
+      "\t}",
+      "}"
+    ],
+    "description": "Define an NPC with traits"
+  },
+
+  "Interactive Object": {
+    "prefix": ["interactive", "intobj"],
+    "body": [
+      "object \"${1:ObjectName}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\tinteractive: true",
+      "\ton_interact {",
+      "\t\t${5:// Interaction logic}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create an interactive object"
+  },
+
+  "Spawn Entity": {
+    "prefix": ["spawn"],
+    "body": "spawn \"${1:TemplateName}\" at [${2:0}, ${3:0}, ${4:0}]",
+    "description": "Spawn an entity at position"
+  },
+
+  "Destroy Entity": {
+    "prefix": ["destroy"],
+    "body": "destroy ${1:target}",
+    "description": "Destroy an entity"
+  },
+
+  "Play Sound": {
+    "prefix": ["playsound", "sound", "audio"],
+    "body": "play_sound(\"${1:sound_file}\")",
+    "description": "Play a sound effect"
+  },
+
+  "Load Scene": {
+    "prefix": ["loadscene", "scene"],
+    "body": "load_scene(\"${1:SceneName}\")",
+    "description": "Load a new scene"
+  },
+
+  "Teleport": {
+    "prefix": ["teleport", "tp"],
+    "body": "teleport ${1:target} to [${2:0}, ${3:0}, ${4:0}]",
+    "description": "Teleport entity to position"
+  },
+
+  "Set State": {
+    "prefix": ["setstate", "state"],
+    "body": "${1:entity}.state.${2:property} = ${3:value}",
+    "description": "Set entity state property"
+  },
+
+  "Get State": {
+    "prefix": ["getstate"],
+    "body": "${1:entity}.state.${2:property}",
+    "description": "Get entity state property"
+  },
+
+  "Import": {
+    "prefix": ["import"],
+    "body": "import { ${1:module} } from \"${2:path}\"",
+    "description": "Import a module"
+  },
+
+  "Export": {
+    "prefix": ["export"],
+    "body": "export ${1:item}",
+    "description": "Export an item"
+  },
+
+  "Try Catch": {
+    "prefix": ["trycatch", "try"],
+    "body": [
+      "try {",
+      "\t${1:// Code that might throw}",
+      "} catch (${2:error}) {",
+      "\t${3:// Handle error}",
+      "}"
+    ],
+    "description": "Try-catch error handling"
+  },
+
+  "Class Definition": {
+    "prefix": ["class"],
+    "body": [
+      "class ${1:ClassName} {",
+      "\tconstructor(${2:params}) {",
+      "\t\t${3:// Initialize}",
+      "\t}",
+      "\t",
+      "\t${4:method}() {",
+      "\t\t${5:// Method body}",
+      "\t}",
+      "}"
+    ],
+    "description": "Define a class"
+  },
+
+  "Environment Settings": {
+    "prefix": ["environment", "env"],
+    "body": [
+      "environment {",
+      "\tskybox: \"${1:default}\"",
+      "\tambient_light: ${2:0.5}",
+      "\tfog: ${3:false}",
+      "}"
+    ],
+    "description": "Define environment settings"
+  },
+
+  "Settings Block": {
+    "prefix": ["settings"],
+    "body": ["settings {", "\t${1:key}: ${2:value}", "}"],
+    "description": "Define settings"
+  },
+
+  "Parallel Execution": {
+    "prefix": ["parallel", "par"],
+    "body": ["parallel {", "\t${1:// Task 1}", "\t${2:// Task 2}", "}"],
+    "description": "Run tasks in parallel"
+  },
+
+  "Await": {
+    "prefix": ["await"],
+    "body": "await ${1:promise}",
+    "description": "Await a promise"
+  },
+
+  "Physics Rigidbody": {
+    "prefix": ["rigidbody", "rb", "physics"],
+    "body": [
+      "rigidbody {",
+      "\tmass: ${1:1.0}",
+      "\tgravity: ${2:true}",
+      "\tfriction: ${3:0.5}",
+      "}"
+    ],
+    "description": "Add rigidbody physics"
+  },
+
+  "Collider": {
+    "prefix": ["collider", "coll"],
+    "body": [
+      "collider {",
+      "\ttype: \"${1|box,sphere,capsule,mesh|}\"",
+      "\tsize: [${2:1}, ${3:1}, ${4:1}]",
+      "}"
+    ],
+    "description": "Add a collider"
+  },
+
+  "Trigger Zone": {
+    "prefix": ["trigger", "zone"],
+    "body": [
+      "object \"${1:TriggerZone}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\ttrigger: true",
+      "\tsize: [${5:5}, ${6:5}, ${7:5}]",
+      "\t",
+      "\ton_enter(entity) {",
+      "\t\t${8:// Entity entered trigger}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a trigger zone"
+  },
+
+  "Light Source": {
+    "prefix": ["light"],
+    "body": [
+      "light \"${1:LightName}\" {",
+      "\ttype: \"${2|point,directional,spot|}\"",
+      "\tcolor: [${3:1}, ${4:1}, ${5:1}]",
+      "\tintensity: ${6:1.0}",
+      "\tposition: [${7:0}, ${8:5}, ${9:0}]",
+      "}"
+    ],
+    "description": "Create a light source"
+  },
+
+  "Camera": {
+    "prefix": ["camera", "cam"],
+    "body": [
+      "camera \"${1:MainCamera}\" {",
+      "\tposition: [${2:0}, ${3:2}, ${4:-10}]",
+      "\tlook_at: [${5:0}, ${6:0}, ${7:0}]",
+      "\tfov: ${8:60}",
+      "}"
+    ],
+    "description": "Create a camera"
+  },
+
+  "UI Element": {
+    "prefix": ["ui", "uielement"],
+    "body": [
+      "ui \"${1:UIElement}\" {",
+      "\ttype: \"${2|text,button,panel,image|}\"",
+      "\tposition: [${3:0}, ${4:0}]",
+      "\ttext: \"${5:Label}\"",
+      "}"
+    ],
+    "description": "Create a UI element"
+  },
+
+  "Button": {
+    "prefix": ["button", "btn"],
+    "body": [
+      "ui \"${1:ButtonName}\" {",
+      "\ttype: \"button\"",
+      "\ttext: \"${2:Click Me}\"",
+      "\tposition: [${3:0}, ${4:0}]",
+      "\t",
+      "\ton_click {",
+      "\t\t${5:// Button clicked}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a UI button"
+  },
+
+  "Networked Object": {
+    "prefix": ["networked", "net", "multiplayer"],
+    "body": [
+      "object \"${1:NetObject}\" {",
+      "\tnetworked: true",
+      "\towner: \"${2:server}\"",
+      "\tsync: [\"position\", \"rotation\"]",
+      "}"
+    ],
+    "description": "Create a networked object"
+  },
+
+  "Dialog": {
+    "prefix": ["dialog", "dlg", "conversation"],
+    "body": [
+      "dialog \"${1:DialogName}\" {",
+      "\tspeaker: \"${2:NPC}\"",
+      "\tlines: [",
+      "\t\t\"${3:Hello, traveler!}\"",
+      "\t]",
+      "\toptions: [",
+      "\t\t{ text: \"${4:Continue}\", next: \"${5:dialog2}\" }",
+      "\t]",
+      "}"
+    ],
+    "description": "Create a dialog tree"
+  },
+
+  "Patrol Path": {
+    "prefix": ["patrol", "path"],
+    "body": [
+      "patrol_path \"${1:PatrolName}\" {",
+      "\twaypoints: [",
+      "\t\t[${2:0}, ${3:0}, ${4:0}],",
+      "\t\t[${5:5}, ${6:0}, ${7:0}],",
+      "\t\t[${8:5}, ${9:0}, ${10:5}]",
+      "\t]",
+      "\tloop: ${11:true}",
+      "}"
+    ],
+    "description": "Define a patrol path"
+  },
+
+  "State Machine": {
+    "prefix": ["statemachine", "fsm"],
+    "body": [
+      "state_machine \"${1:StateMachine}\" {",
+      "\tinitial: \"${2:idle}\"",
+      "\t",
+      "\tstate \"idle\" {",
+      "\t\ton_enter { ${3:// Entering idle} }",
+      "\t\ttransition \"${4:walk}\" when ${5:moving}",
+      "\t}",
+      "\t",
+      "\tstate \"walk\" {",
+      "\t\ton_enter { ${6:// Entering walk} }",
+      "\t\ttransition \"idle\" when !${5:moving}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a state machine"
+  },
+
+  "Log Debug": {
+    "prefix": ["log", "debug", "print"],
+    "body": "log(\"${1:message}\", ${2:data})",
+    "description": "Log a debug message"
+  },
+
+  "Comment Block": {
+    "prefix": ["comment", "block"],
+    "body": ["/*", " * ${1:Description}", " */"],
+    "description": "Multi-line comment block"
+  },
+
+  "Grabbable Trait": {
+    "prefix": ["@grabbable", "grabbable"],
+    "body": "@grabbable",
+    "description": "Make object grabbable in VR"
+  },
+
+  "Physics Trait": {
+    "prefix": ["@physics"],
+    "body": "@physics(mass: ${1:1.0}, restitution: ${2:0.3})",
+    "description": "Add physics simulation to object"
+  },
+
+  "Collidable Trait": {
+    "prefix": ["@collidable"],
+    "body": "@collidable",
+    "description": "Enable collision detection"
+  },
+
+  "Static Trait": {
+    "prefix": ["@static"],
+    "body": "@static",
+    "description": "Make object static (no physics movement)"
+  },
+
+  "Kinematic Trait": {
+    "prefix": ["@kinematic"],
+    "body": "@kinematic",
+    "description": "Make object kinematic (script-controlled movement)"
+  },
+
+  "Glowing Trait": {
+    "prefix": ["@glowing"],
+    "body": "@glowing(color: \"${1:#00ffff}\", intensity: ${2:1.0})",
+    "description": "Add glowing effect to object"
+  },
+
+  "Billboard Trait": {
+    "prefix": ["@billboard"],
+    "body": "@billboard",
+    "description": "Make object always face the camera"
+  },
+
+  "Throwable Trait": {
+    "prefix": ["@throwable"],
+    "body": "@throwable(force: ${1:10})",
+    "description": "Make object throwable"
+  },
+
+  "Climbable Trait": {
+    "prefix": ["@climbable"],
+    "body": "@climbable",
+    "description": "Make object climbable in VR"
+  },
+
+  "Hand Tracking": {
+    "prefix": ["handtracking", "hands"],
+    "body": [
+      "hand_tracking {",
+      "\tenabled: true",
+      "\tgestures: [\"${1|pinch,grab,point,open|}\"]",
+      "\ton_gesture(gesture, hand) {",
+      "\t\t${2:// Handle gesture}",
+      "\t}",
+      "}"
+    ],
+    "description": "Enable hand tracking"
+  },
+
+  "Portal": {
+    "prefix": ["portal", "teleportzone"],
+    "body": [
+      "object \"${1:Portal}\" {",
+      "\t@collidable",
+      "\tgeometry: \"cylinder\"",
+      "\tposition: [${2:0}, ${3:1}, ${4:0}]",
+      "\tscale: [1, 2, 1]",
+      "\tmaterial: {",
+      "\t\tshader: \"portal\"",
+      "\t\ttarget_scene: \"${5:TargetScene}\"",
+      "\t}",
+      "\t",
+      "\ton_enter(player) {",
+      "\t\tload_scene(\"${5:TargetScene}\")",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a portal to another scene"
+  },
+
+  "Spatial Anchor": {
+    "prefix": ["anchor", "spatialanchor"],
+    "body": [
+      "spatial_anchor \"${1:AnchorName}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\tpersistent: ${5:true}",
+      "\ton_located {",
+      "\t\t${6:// Anchor found}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a spatial anchor for AR"
+  },
+
+  "Raycast": {
+    "prefix": ["raycast", "ray"],
+    "body": [
+      "raycast from ${1:origin} direction ${2:forward} {",
+      "\tmax_distance: ${3:100}",
+      "\tlayers: [\"${4:default}\"]",
+      "\ton_hit(target, point, normal) {",
+      "\t\t${5:// Handle hit}",
+      "\t}",
+      "}"
+    ],
+    "description": "Perform a raycast"
+  },
+
+  "Spatial Audio": {
+    "prefix": ["spatialaudio", "audio3d"],
+    "body": [
+      "audio \"${1:SoundSource}\" {",
+      "\tfile: \"${2:sound.mp3}\"",
+      "\tspatial: true",
+      "\tposition: [${3:0}, ${4:0}, ${5:0}]",
+      "\trolloff: ${6:1.0}",
+      "\tmax_distance: ${7:50}",
+      "}"
+    ],
+    "description": "Create spatial 3D audio source"
+  },
+
+  "VR Controller Input": {
+    "prefix": ["controller", "vrinput"],
+    "body": [
+      "on_controller_${1|trigger,grip,button_a,button_b,thumbstick|}(${2:hand}) {",
+      "\t${3:// Handle input}",
+      "}"
+    ],
+    "description": "Handle VR controller input"
+  },
+
+  "Particle System": {
+    "prefix": ["particles", "particle"],
+    "body": [
+      "particles \"${1:ParticleEffect}\" {",
+      "\tposition: [${2:0}, ${3:0}, ${4:0}]",
+      "\temission_rate: ${5:100}",
+      "\tlifetime: ${6:2.0}",
+      "\tcolor: [\"${7:#ff0000}\", \"${8:#ffff00}\"]",
+      "\tsize: [${9:0.1}, ${10:0.01}]",
+      "\tgravity: ${11:-0.5}",
+      "}"
+    ],
+    "description": "Create a particle system"
+  },
+
+  "Animation Clip": {
+    "prefix": ["animclip", "animation"],
+    "body": [
+      "animation \"${1:AnimName}\" {",
+      "\ttarget: ${2:object}",
+      "\tproperty: \"${3|position,rotation,scale,color,opacity|}\"",
+      "\tkeyframes: [",
+      "\t\t{ time: 0, value: ${4:[0, 0, 0]} },",
+      "\t\t{ time: ${5:1}, value: ${6:[0, 1, 0]} }",
+      "\t]",
+      "\tloop: ${7:true}",
+      "\teasing: \"${8|linear,ease-in,ease-out,ease-in-out|}\"",
+      "}"
+    ],
+    "description": "Define an animation clip"
+  },
+
+  "Material": {
+    "prefix": ["material", "mat"],
+    "body": [
+      "material {",
+      "\tcolor: \"${1:#ffffff}\"",
+      "\tmetallic: ${2:0.0}",
+      "\troughness: ${3:0.5}",
+      "\ttexture: \"${4:texture.png}\"",
+      "}"
+    ],
+    "description": "Define material properties"
+  },
+
+  "Inventory System": {
+    "prefix": ["inventory", "inv"],
+    "body": [
+      "inventory \"${1:PlayerInventory}\" {",
+      "\tslots: ${2:10}",
+      "\titems: []",
+      "\t",
+      "\taction add(item) {",
+      "\t\t${3:// Add item}",
+      "\t}",
+      "\t",
+      "\taction remove(item) {",
+      "\t\t${4:// Remove item}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create an inventory system"
+  },
+
+  "Quest": {
+    "prefix": ["quest"],
+    "body": [
+      "quest \"${1:QuestName}\" {",
+      "\ttitle: \"${2:Quest Title}\"",
+      "\tdescription: \"${3:Complete the objective}\"",
+      "\t",
+      "\tobjective \"${4:main}\" {",
+      "\t\tdescription: \"${5:Do something}\"",
+      "\t\ttarget: ${6:1}",
+      "\t\ton_complete {",
+      "\t\t\t${7:// Objective completed}",
+      "\t\t}",
+      "\t}",
+      "}"
+    ],
+    "description": "Define a quest"
+  },
+
+  "Skybox": {
+    "prefix": ["skybox", "sky"],
+    "body": [
+      "skybox {",
+      "\ttype: \"${1|cubemap,gradient,procedural|}\"",
+      "\ttexture: \"${2:skybox.hdr}\"",
+      "\trotation: ${3:0}",
+      "}"
+    ],
+    "description": "Configure skybox"
+  },
+
+  "LOD Group": {
+    "prefix": ["lod", "levelofdetail"],
+    "body": [
+      "lod_group {",
+      "\tlevels: [",
+      "\t\t{ distance: ${1:0}, model: \"${2:high_detail}\" },",
+      "\t\t{ distance: ${3:10}, model: \"${4:medium_detail}\" },",
+      "\t\t{ distance: ${5:50}, model: \"${6:low_detail}\" }",
+      "\t]",
+      "}"
+    ],
+    "description": "Define LOD levels"
+  },
+
+  "Mirror": {
+    "prefix": ["mirror", "reflection"],
+    "body": [
+      "object \"${1:Mirror}\" {",
+      "\tgeometry: \"plane\"",
+      "\tposition: [${2:0}, ${3:1.5}, ${4:0}]",
+      "\trotation: [0, ${5:0}, 0]",
+      "\tmaterial: {",
+      "\t\treflective: true",
+      "\t\treflection_quality: ${6:1.0}",
+      "\t}",
+      "}"
+    ],
+    "description": "Create a reflective mirror"
+  },
+
+  "Spread Properties": {
+    "prefix": ["spread", "..."],
+    "body": "...${1:source}",
+    "description": "Spread operator for object/array"
+  },
+
+  "Arrow Function": {
+    "prefix": ["arrow", "=>"],
+    "body": "(${1:params}) => ${2:expression}",
+    "description": "Arrow function expression"
+  },
+
+  "Arrow Function Block": {
+    "prefix": ["arrowblock", "=>{}"],
+    "body": ["(${1:params}) => {", "\t${2:// body}", "\treturn ${3:result}", "}"],
+    "description": "Arrow function with block body"
+  },
+
+  "Rest Parameters": {
+    "prefix": ["rest", "...args"],
+    "body": "...${1:args}",
+    "description": "Rest parameters in function"
+  }
+}

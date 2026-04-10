@@ -1,0 +1,97 @@
+// =============================================================================
+// HoloScript v5.9 — "Developer Portal" Showcase
+// =============================================================================
+//
+// This composition demonstrates the developer experience tools:
+// - Dev server with HMR for live preview
+// - Distributed trace waterfall visualization
+// - Workspace monorepo management
+// - API documentation generation
+// - Developer dashboard panels
+
+@world {
+  name: "Hello World — Developer Portal"
+  version: "5.9.0"
+  description: "A getting-started composition showcasing HoloScript DX tooling"
+}
+
+// --- Scene Setup ---
+
+object Ground {
+  geometry: plane
+  scale: [10, 1, 10]
+  position: [0, -0.5, 0]
+  material: {
+    color: "#2a2a4a"
+    roughness: 0.8
+  }
+}
+
+object WelcomeCube {
+  geometry: box
+  position: [0, 1, 0]
+  scale: [1, 1, 1]
+  material: {
+    color: "#00d4ff"
+    metalness: 0.3
+  }
+  animation: {
+    property: "rotation.y"
+    duration: 4000
+    loop: true
+    easing: "linear"
+    from: 0
+    to: 6.28
+  }
+}
+
+object InfoPanel {
+  geometry: plane
+  position: [0, 3, -2]
+  scale: [4, 2, 1]
+  material: {
+    color: "#1a1a2e"
+    opacity: 0.9
+  }
+  text: {
+    content: "Welcome to HoloScript v5.9"
+    font_size: 24
+    color: "#00d4ff"
+    align: "center"
+  }
+}
+
+// --- Lighting ---
+
+object MainLight {
+  type: directional_light
+  position: [5, 10, 5]
+  intensity: 1.2
+  color: "#ffffff"
+  cast_shadow: true
+}
+
+object AmbientLight {
+  type: ambient_light
+  intensity: 0.4
+  color: "#e0e0ff"
+}
+
+// --- Camera ---
+
+object MainCamera {
+  type: perspective_camera
+  position: [3, 3, 5]
+  look_at: [0, 1, 0]
+  fov: 60
+}
+
+// --- Developer Workflow ---
+// Start the dev server: holoscript serve --watch --open
+// Edit this file → see changes reflected instantly via HMR
+// Open /dashboard for trace waterfall + agent registry + metrics
+
+// --- Workspace Config ---
+// Create a workspace: holoscript workspace init my-project
+// Build order is computed from composition imports
+// Use get_workspace_info MCP tool for programmatic access

@@ -1,0 +1,166 @@
+// Two-DOF Robot Arm - HoloScript v3.0 Robotics Example
+// Demonstrates: Joint hierarchies, URDF/SDF export, Isaac Sim compatibility
+//
+// Target platforms: ROS 2 / Gazebo / NVIDIA Isaac Sim
+// Compile with: holoscript compile --target urdf two-dof-robot-arm.holo
+
+composition "TwoDoFRobotArm" {
+  environment {
+    physics_engine: "ode"
+    gravity: [0, 0, -9.81]
+  }
+
+  // ============================================
+  // TEMPLATES - Reusable robot components
+  // ============================================
+
+  template "RobotLink" {
+    @physics {
+      type: "dynamic"
+      mass: 1.0
+    }
+    @collidable
+    
+    color: "#4a5568"
+    material: "metal"
+  }
+
+  template "RevoluteJoint" {
+    @joint {
+      jointType: "hinge"
+      axis: { x: 0, y: 0, z: 1 }
+      limits: { min: -180, max: 180 }
+      damping: 0.1
+    }
+  }
+
+  // ============================================
+  // ROBOT STRUCTURE - Kinematic chain
+  // ============================================
+
+  // Base (mounted to world)
+  object "BaseLink" {
+    @physics {
+      type: "static"
+      mass: 10.0
+    }
+    @collidable
+    
+    geometry: "cylinder"
+    position: [0, 0, 0.05]
+    scale: [0.15, 0.1, 0.15]
+    color: "#2d3748"
+    material: "metal"
+  }
+
+  // Shoulder (first DOF - rotates around Z)
+  spatial_group "ShoulderAssembly" {
+    origin: [0, 0, 0.1]
+    
+    object "ShoulderJoint" {
+      @joint {
+        jointType: "hinge"
+        connectedBody: "BaseLink"
+        anchor: { x: 0, y: 0, z: 0 }
+        axis: { x: 0, y: 0, z: 1 }
+        limits: { min: -180, max: 180 }
+        motor: {
+          targetVelocity: 0
+          maxForce: 100
+        }
+      }
+      
+      geometry: "cylinder"
+      scale: [0.05, 0.05, 0.05]
+      color: "#e53e3e"
+    }
+
+    object "UpperArm" using "RobotLink" {
+      position: [0.2, 0, 0]
+      scale: [0.4, 0.08, 0.08]
+      geometry: "cube"
+      physics: {
+        mass: 2.0
+        inertia: { ixx: 0.01, iyy: 0.05, izz: 0.05 }
+      }
+    }
+  }
+
+  // Elbow (second DOF - rotates around Y)
+  spatial_group "ElbowAssembly" {
+    origin: [0.4, 0, 0.1]
+    
+    object "ElbowJoint" {
+      @joint {
+        jointType: "hinge"
+        connectedBody: "UpperArm"
+        anchor: { x: 0, y: 0, z: 0 }
+        axis: { x: 0, y: 1, z: 0 }
+        limits: { min: -135, max: 135 }
+        motor: {
+          targetVelocity: 0
+          maxForce: 50
+        }
+      }
+      
+      geometry: "cylinder"
+      scale: [0.04, 0.04, 0.04]
+      color: "#38a169"
+    }
+
+    object "Forearm" using "RobotLink" {
+      position: [0.15, 0, 0]
+      scale: [0.3, 0.06, 0.06]
+      geometry: "cube"
+      physics: {
+        mass: 1.0
+        inertia: { ixx: 0.005, iyy: 0.02, izz: 0.02 }
+      }
+    }
+
+    // End effector
+    object "EndEffector" {
+      @physics {
+        type: "dynamic"
+        mass: 0.2
+      }
+      @touchable
+      
+      position: [0.3, 0, 0]
+      geometry: "sphere"
+      scale: [0.05, 0.05, 0.05]
+      color: "#4299e1"
+    }
+  }
+
+  // ============================================
+  // ROBOT LOGIC - Control and sensing
+  // ============================================
+
+  logic {
+    // Forward kinematics
+    function forward_kinematics(theta1, theta2) {
+      const L1 = 0.4  // Upper arm length
+      const L2 = 0.3  // Forearm length
+      
+      const x = L1 * cos(theta1) + L2 * cos(theta1 + theta2)
+      const y = L1 * sin(theta1) + L2 * sin(theta1 + theta2)
+      
+      return { x, y }
+    }
+
+    // Move to position
+    action move_to(x, y) {
+      // Inverse kinematics would go here
+      // For demo, direct joint control
+      ShoulderJoint.motor.target = x * 45  // degrees
+      ElbowJoint.motor.target = y * 45     // degrees
+    }
+
+    // Home position
+    action home() {
+      ShoulderJoint.motor.target = 0
+      ElbowJoint.motor.target = 0
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "taskId": "task_1775352094932_46cz",
+  "commit": "a0d15068",
+  "summary": "A.011.02d: Training/Learning extraction complete. 17 training files + 4 learning files migrated to framework. ESM builds: Training 94.35 KB, Learning 6.17 KB. Shims created in core. Isolated builds validate correctness."
+}

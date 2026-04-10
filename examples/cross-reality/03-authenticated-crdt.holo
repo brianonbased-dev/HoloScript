@@ -1,0 +1,422 @@
+/**
+ * Authenticated CRDT — HoloScript v5.0 Conflict-Free State Sync Example
+ *
+ * Demonstrates authenticated Conflict-Free Replicated Data Types (CRDTs).
+ * This example shows:
+ *  - CRDT types: Counter, Set, Map, Register
+ *  - Authenticated CRDT operations (signed with ML-DSA-65)
+ *  - Multi-device concurrent edits
+ *  - Eventual consistency guarantees
+ *  - Conflict-free merge algorithms
+ *  - Operation validation and replay protection
+ *
+ * Use Case: Multi-Device Agent State
+ *   - Multiple devices edit agent state concurrently
+ *   - No central server needed (peer-to-peer)
+ *   - Guaranteed eventual consistency
+ *   - Cryptographically authenticated operations
+ *
+ * Run this example:
+ *   holoc examples/cross-reality/03-authenticated-crdt.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+@platform(vr, ar, mobile, desktop, automotive, wearable)
+scene AuthenticatedCRDT {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AUTHENTICATED CRDT CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CRDTStateManager {
+    traits: [authenticated_crdt, cross_reality];
+
+    authenticated_crdt: {
+      // Authentication configuration
+      authentication: {
+        algorithm: "ml-dsa-65",      // Post-quantum signatures
+        requireSignatures: true,     // All ops must be signed
+        verifySignatures: true,      // Verify all ops
+        trustModel: "multi_agent",   // Multiple agents, trust verified
+      },
+
+      // CRDT types in use
+      crdtTypes: {
+        // G-Counter: Grow-only counter (increment only)
+        taskCompletionCount: {
+          type: "GCounter",
+          agentId: "assistant-001",
+          value: 0,
+        },
+
+        // PN-Counter: Positive-Negative counter (increment + decrement)
+        creditBalance: {
+          type: "PNCounter",
+          agentId: "assistant-001",
+          positive: 100,
+          negative: 0,
+        },
+
+        // OR-Set: Observed-Remove Set (add/remove elements)
+        activeTaskIds: {
+          type: "ORSet",
+          agentId: "assistant-001",
+          elements: new Set(["task-1", "task-2", "task-3"]),
+          tombstones: new Map(),
+        },
+
+        // LWW-Register: Last-Write-Wins Register (single value)
+        currentTopic: {
+          type: "LWWRegister",
+          agentId: "assistant-001",
+          value: "meeting_schedule",
+          timestamp: Date.now(),
+          lamportClock: 1,
+        },
+
+        // LWW-Map: Last-Write-Wins Map (key-value pairs)
+        userPreferences: {
+          type: "LWWMap",
+          agentId: "assistant-001",
+          entries: new Map([
+            ["theme", { value: "dark", timestamp: Date.now(), clock: 1 }],
+            ["language", { value: "en-US", timestamp: Date.now(), clock: 1 }],
+          ]),
+        },
+      },
+
+      // Operation log (for replay and sync)
+      operationLog: {
+        enabled: true,
+        maxOperations: 1000,
+        compactionEnabled: true,
+        compactionThreshold: 500,
+      },
+
+      // Sync configuration
+      sync: {
+        strategy: "eventual_consistency",
+        antiEntropyInterval: 5000,   // Gossip every 5s
+        vectorClockEnabled: true,
+        causalityTracking: true,
+      },
+
+      // Replay protection
+      replayProtection: {
+        enabled: true,
+        windowMs: 300000,            // 5 minutes
+        nonceRequired: true,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — CRDT Operations
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CRDTStateManager, "operation_created") {
+    log(`📝 CRDT operation created: ${event.operationType}`);
+    log(`  CRDT: ${event.crdtName} (${event.crdtType})`);
+    log(`  Agent: ${event.agentId}`);
+    log(`  Operation: ${JSON.stringify(event.operation)}`);
+    log(`  Lamport clock: ${event.lamportClock}`);
+    log(`  Nonce: ${event.nonce.substring(0, 16)}...`);
+  }
+
+  on(CRDTStateManager, "operation_signed") {
+    log(`✍️  Operation signed`);
+    log(`  Signature algorithm: ${event.algorithm}`);
+    log(`  Signature: ${event.signature.substring(0, 32)}...`);
+    log(`  Signed at: ${event.signedAt}`);
+  }
+
+  on(CRDTStateManager, "operation_verified") {
+    log(`✅ Operation signature verified`);
+    log(`  Agent: ${event.agentId}`);
+    log(`  Operation: ${event.operationType}`);
+    log(`  Signature valid: ${event.signatureValid ? "✅" : "❌"}`);
+    log(`  Replay check: ${event.replayCheckPassed ? "✅" : "❌"}`);
+  }
+
+  on(CRDTStateManager, "operation_rejected") {
+    log(`❌ Operation REJECTED`);
+    log(`  Reason: ${event.reason}`);
+    log(`  Agent: ${event.agentId}`);
+    log(`  Operation: ${event.operationType}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — CRDT Updates
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CRDTStateManager, "gcounter_incremented") {
+    log(`⬆️  G-Counter incremented: ${event.crdtName}`);
+    log(`  Old value: ${event.oldValue}`);
+    log(`  New value: ${event.newValue}`);
+    log(`  Increment: +${event.increment}`);
+  }
+
+  on(CRDTStateManager, "pncounter_updated") {
+    log(`📊 PN-Counter updated: ${event.crdtName}`);
+    log(`  Positive: ${event.positive} (${event.positiveChange >= 0 ? "+" : ""}${event.positiveChange})`);
+    log(`  Negative: ${event.negative} (${event.negativeChange >= 0 ? "+" : ""}${event.negativeChange})`);
+    log(`  Net value: ${event.netValue}`);
+  }
+
+  on(CRDTStateManager, "orset_element_added") {
+    log(`➕ OR-Set element added: ${event.crdtName}`);
+    log(`  Element: ${event.element}`);
+    log(`  Unique tag: ${event.uniqueTag}`);
+    log(`  Set size: ${event.setSize}`);
+  }
+
+  on(CRDTStateManager, "orset_element_removed") {
+    log(`➖ OR-Set element removed: ${event.crdtName}`);
+    log(`  Element: ${event.element}`);
+    log(`  Tags removed: ${event.tagsRemoved.length}`);
+    log(`  Set size: ${event.setSize}`);
+  }
+
+  on(CRDTStateManager, "lwwregister_updated") {
+    log(`🔄 LWW-Register updated: ${event.crdtName}`);
+    log(`  Old value: ${event.oldValue}`);
+    log(`  New value: ${event.newValue}`);
+    log(`  Timestamp: ${event.timestamp}`);
+    log(`  Lamport clock: ${event.lamportClock}`);
+  }
+
+  on(CRDTStateManager, "lwwmap_key_updated") {
+    log(`🗝️  LWW-Map key updated: ${event.crdtName}`);
+    log(`  Key: ${event.key}`);
+    log(`  Old value: ${event.oldValue}`);
+    log(`  New value: ${event.newValue}`);
+    log(`  Timestamp: ${event.timestamp}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Merge & Sync
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CRDTStateManager, "merge_started") {
+    log("🔀 Merging CRDT states");
+    log(`  Local agent: ${event.localAgentId}`);
+    log(`  Remote agent: ${event.remoteAgentId}`);
+    log(`  CRDTs to merge: ${event.crdtCount}`);
+  }
+
+  on(CRDTStateManager, "merge_conflict_resolved") {
+    log(`⚖️  Merge conflict resolved: ${event.crdtName}`);
+    log(`  CRDT type: ${event.crdtType}`);
+    log(`  Resolution strategy: ${event.resolutionStrategy}`);
+    log(`  Local value: ${event.localValue}`);
+    log(`  Remote value: ${event.remoteValue}`);
+    log(`  Merged value: ${event.mergedValue}`);
+  }
+
+  on(CRDTStateManager, "merge_completed") {
+    log("✅ Merge completed");
+    log(`  CRDTs merged: ${event.crdtsMerged}`);
+    log(`  Conflicts resolved: ${event.conflictsResolved}`);
+    log(`  Operations applied: ${event.operationsApplied}`);
+    log(`  Merge time: ${event.mergeTimeMs.toFixed(2)}ms`);
+  }
+
+  on(CRDTStateManager, "sync_started") {
+    log("🔄 CRDT sync started");
+    log(`  Local agent: ${event.localAgentId}`);
+    log(`  Remote agents: ${event.remoteAgentIds.join(", ")}`);
+    log(`  Sync strategy: ${event.strategy}`);
+  }
+
+  on(CRDTStateManager, "sync_completed") {
+    log("✅ CRDT sync completed");
+    log(`  Agents synced: ${event.agentsSynced}`);
+    log(`  Operations exchanged: ${event.operationsExchanged}`);
+    log(`  Bytes transferred: ${event.bytesTransferred}`);
+    log(`  Sync latency: ${event.latencyMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Vector Clocks & Causality
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CRDTStateManager, "vector_clock_updated") {
+    log("⏱️  Vector clock updated");
+    log(`  Agent: ${event.agentId}`);
+    log(`  Clock: ${JSON.stringify(event.vectorClock)}`);
+  }
+
+  on(CRDTStateManager, "causality_violation_detected") {
+    log("⚠️  Causality violation detected");
+    log(`  Operation: ${event.operationType}`);
+    log(`  Local clock: ${JSON.stringify(event.localClock)}`);
+    log(`  Operation clock: ${JSON.stringify(event.operationClock)}`);
+    log(`  Action: Buffering operation until causality satisfied`);
+  }
+
+  on(CRDTStateManager, "causality_satisfied") {
+    log("✅ Causality satisfied, applying buffered operations");
+    log(`  Buffered operations: ${event.bufferedOperationCount}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Increment G-Counter (task completion count)
+  on(DemoControls, "click") {
+    if (event.target === "increment_gcounter_button") {
+      emit(CRDTStateManager, "increment", {
+        crdt: "taskCompletionCount",
+        increment: 1,
+      });
+      log("⬆️  Incrementing task completion counter...");
+    }
+  }
+
+  // Demo 2: Increment PN-Counter (credit balance)
+  on(DemoControls, "click") {
+    if (event.target === "increment_pncounter_button") {
+      emit(CRDTStateManager, "update_pncounter", {
+        crdt: "creditBalance",
+        positive: 50,   // Add 50 credits
+        negative: 0,
+      });
+      log("💰 Adding 50 credits to balance...");
+    }
+  }
+
+  // Demo 3: Decrement PN-Counter (spend credits)
+  on(DemoControls, "click") {
+    if (event.target === "decrement_pncounter_button") {
+      emit(CRDTStateManager, "update_pncounter", {
+        crdt: "creditBalance",
+        positive: 0,
+        negative: 25,   // Spend 25 credits
+      });
+      log("💸 Spending 25 credits...");
+    }
+  }
+
+  // Demo 4: Add element to OR-Set (active task IDs)
+  on(DemoControls, "click") {
+    if (event.target === "orset_add_button") {
+      emit(CRDTStateManager, "orset_add", {
+        crdt: "activeTaskIds",
+        element: "task-4",
+      });
+      log("➕ Adding task-4 to active tasks...");
+    }
+  }
+
+  // Demo 5: Remove element from OR-Set
+  on(DemoControls, "click") {
+    if (event.target === "orset_remove_button") {
+      emit(CRDTStateManager, "orset_remove", {
+        crdt: "activeTaskIds",
+        element: "task-1",
+      });
+      log("➖ Removing task-1 from active tasks...");
+    }
+  }
+
+  // Demo 6: Update LWW-Register (current topic)
+  on(DemoControls, "click") {
+    if (event.target === "lwwregister_update_button") {
+      emit(CRDTStateManager, "lwwregister_update", {
+        crdt: "currentTopic",
+        value: "project_status",
+      });
+      log("🔄 Updating current topic...");
+    }
+  }
+
+  // Demo 7: Update LWW-Map key (user preferences)
+  on(DemoControls, "click") {
+    if (event.target === "lwwmap_update_button") {
+      emit(CRDTStateManager, "lwwmap_update", {
+        crdt: "userPreferences",
+        key: "theme",
+        value: "light",
+      });
+      log("🗝️  Updating theme preference to light...");
+    }
+  }
+
+  // Demo 8: Merge from remote agent
+  on(DemoControls, "click") {
+    if (event.target === "merge_remote_button") {
+      // Simulate remote agent state
+      const remoteState = {
+        agentId: "assistant-002",
+        crdts: {
+          taskCompletionCount: { type: "GCounter", value: 15 },
+          creditBalance: { type: "PNCounter", positive: 120, negative: 30 },
+        },
+      };
+
+      emit(CRDTStateManager, "merge", {
+        remoteState: remoteState,
+      });
+      log("🔀 Merging state from assistant-002...");
+    }
+  }
+
+  // Demo 9: Sync with all agents
+  on(DemoControls, "click") {
+    if (event.target === "sync_all_button") {
+      emit(CRDTStateManager, "sync_all", {
+        remoteAgents: ["assistant-002", "assistant-003", "assistant-004"],
+      });
+      log("🔄 Syncing with all agents...");
+    }
+  }
+
+  // Demo 10: Get current CRDT state
+  on(DemoControls, "click") {
+    if (event.target === "get_state_button") {
+      emit(CRDTStateManager, "get_state", {});
+      log("📊 Fetching current CRDT state...");
+    }
+  }
+
+  on(CRDTStateManager, "state_retrieved") {
+    log("📋 CURRENT CRDT STATE");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Agent ID: ${event.agentId}`);
+    log(`  Vector clock: ${JSON.stringify(event.vectorClock)}`);
+    log("");
+    log(`  G-Counter (taskCompletionCount): ${event.state.taskCompletionCount.value}`);
+    log(`  PN-Counter (creditBalance): ${event.state.creditBalance.positive - event.state.creditBalance.negative}`);
+    log(`    Positive: ${event.state.creditBalance.positive}`);
+    log(`    Negative: ${event.state.creditBalance.negative}`);
+    log(`  OR-Set (activeTaskIds): [${Array.from(event.state.activeTaskIds.elements).join(", ")}]`);
+    log(`  LWW-Register (currentTopic): "${event.state.currentTopic.value}"`);
+    log(`  LWW-Map (userPreferences):`);
+    for (const [key, entry] of event.state.userPreferences.entries) {
+      log(`    ${key}: "${entry.value}" (clock: ${entry.clock})`);
+    }
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CRDTDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "AUTHENTICATED CRDTs\n\n📊 CRDT Types:\n  • G-Counter - Grow-only counter (increment only)\n  • PN-Counter - Positive-Negative counter\n  • OR-Set - Observed-Remove Set\n  • LWW-Register - Last-Write-Wins Register\n  • LWW-Map - Last-Write-Wins Map\n\n🔐 Authentication:\n  • Algorithm: ML-DSA-65 (post-quantum)\n  • All operations signed\n  • Signature verification on merge\n  • Replay protection (5-min window)\n  • Nonce-based duplicate detection\n\n🔀 Eventual Consistency:\n  • Conflict-free merge algorithms\n  • Commutative, associative operations\n  • Guaranteed convergence\n  • Causality tracking (vector clocks)\n  • Anti-entropy sync (gossip)\n\n⏱️  Causality:\n  • Vector clocks per agent\n  • Lamport timestamps for LWW\n  • Causal ordering guarantees\n  • Buffer out-of-order ops\n\n💡 Use Cases:\n  • Multi-device agent state\n  • Collaborative editing\n  • Offline-first apps\n  • P2P synchronization\n  • Distributed consensus\n\n✅ Properties:\n  • No central server needed\n  • Peer-to-peer sync\n  • Partition-tolerant\n  • Eventually consistent\n  • Conflict-free by design",
+      fontSize: 0.077,
+      color: "#c084fc",
+    };
+  }
+}

@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Three.js Demo - Physics & Traits</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        background: #0f0f1a;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #info {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        padding: 20px;
+        border-radius: 12px;
+        color: #00ffff;
+        max-width: 420px;
+        z-index: 1000;
+        border: 1px solid #00ffff33;
+      }
+      #info h1 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #fff;
+      }
+      #info p {
+        font-size: 14px;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      #info code {
+        background: #1a1a3e;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #ff88ff;
+      }
+      #info .highlight {
+        color: #00ff88;
+        font-weight: bold;
+      }
+      #source-code {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        max-height: 220px;
+        overflow: auto;
+        background: rgba(0, 0, 0, 0.95);
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Fira Code', 'Consolas', monospace;
+        font-size: 12px;
+        color: #00ff88;
+        white-space: pre-wrap;
+        z-index: 1000;
+        border: 1px solid #00ff8833;
+      }
+      #controls {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+        border: 1px solid #00ffff33;
+      }
+      #controls button {
+        background: #00ffff;
+        color: #000;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        margin: 5px;
+        transition: background 0.2s;
+      }
+      #controls button:hover {
+        background: #00cccc;
+      }
+      #stats {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-size: 12px;
+        color: #888;
+        border: 1px solid #33333366;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="info">
+      <h1>🎮 HoloScript Physics Demo</h1>
+      <p>This demo shows <span class="highlight">trait configurations</span> with physics:</p>
+      <p>• <code>@physics(mass: 2, bounciness: 0.8)</code> - Heavy bouncy ball</p>
+      <p>• <code>@glowing(intensity: 0.8)</code> - Bright glow effect</p>
+      <p>• <code>@transparent(opacity: 0.5)</code> - See-through objects</p>
+      <p>Objects inherit traits from templates and configs are passed to handlers!</p>
+    </div>
+
+    <div id="controls">
+      <button onclick="toggleSourceCode()">Show/Hide Code</button>
+      <button onclick="resetScene()">Reset Physics</button>
+    </div>
+
+    <div id="stats">Loading...</div>
+
+    <div id="source-code" style="display: none"></div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // Demo HoloScript code showing trait configurations
+      const holoScriptCode = `
+composition "PhysicsDemo" {
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.4
+    gravity: [0, -9.82, 0]
+  }
+
+  // Template with physics configuration
+  template "BouncyBall" {
+    @physics(mass: 2, bounciness: 0.9, friction: 0.1)
+    @glowing(intensity: 0.6)
+    geometry: "sphere"
+    color: "#00ffff"
+  }
+
+  template "HeavyBall" {
+    @physics(mass: 5, bounciness: 0.3)  // Heavier, less bouncy
+    @glowing(intensity: 0.3)
+    geometry: "sphere"
+    color: "#ff6600"
+  }
+
+  template "GhostBall" {
+    @physics(mass: 1, bounciness: 0.5)
+    @transparent(opacity: 0.4)
+    @glowing(intensity: 0.8)
+    geometry: "sphere"
+    color: "#ff00ff"
+  }
+
+  template "Floor" {
+    @physics(mass: 0, static: true)  // Static floor
+    @collidable
+    geometry: "plane"
+    color: "#222244"
+  }
+
+  // Objects using templates - inherit all traits with configs
+  object "Ball1" using "BouncyBall" {
+    position: [-2, 4, 0]
+  }
+
+  object "Ball2" using "HeavyBall" {
+    position: [0, 6, 0]
+  }
+
+  object "Ball3" using "GhostBall" {
+    position: [2, 5, 0]
+  }
+
+  object "Ground" using "Floor" {
+    position: [0, 0, 0]
+    scale: [10, 0.2, 10]
+  }
+}
+`;
+
+      // Display source code
+      document.getElementById('source-code').textContent = holoScriptCode;
+
+      function toggleSourceCode() {
+        const el = document.getElementById('source-code');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      }
+      window.toggleSourceCode = toggleSourceCode;
+
+      // Initialize Three.js scene with physics
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+      const container = document.getElementById('app');
+      const objects = [];
+      let physicsEnabled = true;
+
+      // Scene setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f0f1a);
+
+      // Camera
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(8, 6, 10);
+
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.target.set(0, 2, 0);
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(5, 10, 5);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
+
+      // Physics state for each object
+      class PhysicsBody {
+        constructor(mesh, config = {}) {
+          this.mesh = mesh;
+          this.velocity = new THREE.Vector3(0, 0, 0);
+          this.mass = config.mass ?? 1;
+          this.bounciness = config.bounciness ?? 0.5;
+          this.friction = config.friction ?? 0.3;
+          this.isStatic = config.static ?? false;
+          this.groundY = 0.5; // Where ground is
+        }
+
+        update(dt, gravity = -9.82) {
+          if (this.isStatic) return;
+
+          // Apply gravity
+          this.velocity.y += gravity * dt;
+
+          // Update position
+          this.mesh.position.x += this.velocity.x * dt;
+          this.mesh.position.y += this.velocity.y * dt;
+          this.mesh.position.z += this.velocity.z * dt;
+
+          // Ground collision
+          if (this.mesh.position.y <= this.groundY) {
+            this.mesh.position.y = this.groundY;
+            // Bounce
+            if (Math.abs(this.velocity.y) > 0.1) {
+              this.velocity.y = -this.velocity.y * this.bounciness;
+            } else {
+              this.velocity.y = 0;
+            }
+            // Friction
+            this.velocity.x *= 1 - this.friction;
+            this.velocity.z *= 1 - this.friction;
+          }
+
+          // Rotation based on velocity
+          this.mesh.rotation.x += this.velocity.z * dt * 2;
+          this.mesh.rotation.z -= this.velocity.x * dt * 2;
+        }
+      }
+
+      // Parse and render HoloScript
+      function parseAndRender(code) {
+        const templates = new Map();
+
+        // Extract templates with configs
+        const templateRegex = /template\s+"(\w+)"\s*\{([^}]+)\}/g;
+        let match;
+        while ((match = templateRegex.exec(code)) !== null) {
+          const name = match[1];
+          const body = match[2];
+
+          // Parse traits with configurations
+          const traits = [];
+          const traitRegex = /@(\w+)(?:\(([^)]*)\))?/g;
+          let traitMatch;
+          while ((traitMatch = traitRegex.exec(body)) !== null) {
+            const traitName = traitMatch[1];
+            const configStr = traitMatch[2] || '';
+            const config = {};
+
+            // Parse config like "mass: 2, bounciness: 0.8"
+            if (configStr) {
+              const pairs = configStr.split(',');
+              for (const pair of pairs) {
+                const [key, value] = pair.split(':').map((s) => s.trim());
+                if (key && value) {
+                  config[key] =
+                    value === 'true'
+                      ? true
+                      : value === 'false'
+                        ? false
+                        : isNaN(parseFloat(value))
+                          ? value
+                          : parseFloat(value);
+                }
+              }
+            }
+
+            traits.push({ name: traitName, config });
+          }
+
+          const geometryMatch = body.match(/geometry:\s*"(\w+)"/);
+          const colorMatch = body.match(/color:\s*"([^"]+)"/);
+
+          templates.set(name, {
+            traits,
+            geometry: geometryMatch ? geometryMatch[1] : 'box',
+            color: colorMatch ? colorMatch[1] : '#ffffff',
+          });
+
+          console.log(`[HoloScript] Template "${name}" traits:`, traits);
+        }
+
+        // Extract objects
+        const objectRegex = /object\s+"(\w+)"\s+using\s+"(\w+)"\s*\{([^}]+)\}/g;
+        while ((match = objectRegex.exec(code)) !== null) {
+          const name = match[1];
+          const templateName = match[2];
+          const body = match[3];
+          const template = templates.get(templateName);
+
+          const posMatch = body.match(/position:\s*\[([^\]]+)\]/);
+          const scaleMatch = body.match(/scale:\s*\[([^\]]+)\]/);
+
+          const position = posMatch
+            ? posMatch[1].split(',').map((n) => parseFloat(n.trim()))
+            : [0, 0, 0];
+          const scale = scaleMatch
+            ? scaleMatch[1].split(',').map((n) => parseFloat(n.trim()))
+            : [1, 1, 1];
+
+          createObject(name, template, position, scale);
+        }
+      }
+
+      function createObject(name, template, position, scale) {
+        // Get trait configs
+        const getTraitConfig = (traitName) => {
+          const trait = template?.traits.find((t) => t.name === traitName);
+          return trait?.config || {};
+        };
+
+        // Create geometry
+        let geometry;
+        switch (template?.geometry) {
+          case 'sphere':
+            geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            break;
+          case 'plane':
+            geometry = new THREE.BoxGeometry(1, 1, 1);
+            break;
+          default:
+            geometry = new THREE.BoxGeometry(1, 1, 1);
+        }
+
+        // Create material with trait effects
+        const color = template?.color || '#ffffff';
+        const material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(color),
+          metalness: 0.3,
+          roughness: 0.7,
+        });
+
+        // Apply glowing trait with config
+        const glowConfig = getTraitConfig('glowing');
+        if (
+          Object.keys(glowConfig).length > 0 ||
+          template?.traits.some((t) => t.name === 'glowing')
+        ) {
+          material.emissive = new THREE.Color(color);
+          material.emissiveIntensity = glowConfig.intensity ?? 0.5;
+        }
+
+        // Apply transparent trait with config
+        const transparentConfig = getTraitConfig('transparent');
+        if (
+          Object.keys(transparentConfig).length > 0 ||
+          template?.traits.some((t) => t.name === 'transparent')
+        ) {
+          material.transparent = true;
+          material.opacity = transparentConfig.opacity ?? 0.7;
+        }
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(...position);
+        mesh.scale.set(...scale);
+        mesh.name = name;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        scene.add(mesh);
+
+        // Create physics body if has physics trait
+        const physicsConfig = getTraitConfig('physics');
+        if (
+          Object.keys(physicsConfig).length > 0 ||
+          template?.traits.some((t) => t.name === 'physics')
+        ) {
+          const body = new PhysicsBody(mesh, physicsConfig);
+          objects.push({ mesh, body, name, traits: template?.traits || [] });
+          console.log(`[HoloScript] Created "${name}" with physics:`, physicsConfig);
+        } else {
+          objects.push({ mesh, body: null, name, traits: template?.traits || [] });
+        }
+      }
+
+      // Reset scene
+      function resetScene() {
+        objects.forEach((obj) => {
+          if (obj.body) {
+            const posMatch = holoScriptCode.match(
+              new RegExp(`object\\s+"${obj.name}"[^{]*\\{[^}]*position:\\s*\\[([^\\]]+)\\]`)
+            );
+            if (posMatch) {
+              const pos = posMatch[1].split(',').map((n) => parseFloat(n.trim()));
+              obj.mesh.position.set(...pos);
+              obj.body.velocity.set(0, 0, 0);
+            }
+          }
+        });
+      }
+      window.resetScene = resetScene;
+
+      // Parse the demo code
+      parseAndRender(holoScriptCode);
+
+      // Stats update
+      let frameCount = 0;
+      let lastTime = performance.now();
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        const now = performance.now();
+        const dt = Math.min((now - lastTime) / 1000, 0.1);
+        lastTime = now;
+
+        // Update physics
+        if (physicsEnabled) {
+          objects.forEach((obj) => {
+            if (obj.body) {
+              obj.body.update(dt);
+            }
+          });
+        }
+
+        renderer.render(scene, camera);
+
+        // Update stats
+        frameCount++;
+        if (frameCount % 30 === 0) {
+          const physicsObjects = objects.filter((o) => o.body).length;
+          document.getElementById('stats').innerHTML = `
+          Objects: ${objects.length}<br>
+          Physics bodies: ${physicsObjects}<br>
+          Traits active: ${objects.reduce((sum, o) => sum + (o.traits?.length || 0), 0)}
+        `;
+        }
+      }
+      animate();
+
+      // Handle resize
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      console.log(
+        '[HoloScript] Physics demo initialized. Trait configs are now passed to handlers!'
+      );
+    </script>
+  </body>
+</html>

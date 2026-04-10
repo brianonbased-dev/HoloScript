@@ -1,0 +1,543 @@
+// ============================================================
+// Multiplayer Meeting Room - HoloScript Sample Project
+// ============================================================
+// A professional virtual conference room designed for multi-
+// user collaboration. Features a conference table with chairs,
+// a shared whiteboard, avatar spawn points, spatial audio
+// zones, and networked objects that stay synchronized across
+// all connected clients.
+// ============================================================
+
+composition "Multiplayer Meeting Room" {
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // ----------------------------------------------------------
+  // Clean office-style environment with neutral lighting
+  // suitable for professional meetings.
+
+  environment {
+    skybox: "office"
+    ambient_light: 0.55
+    shadows: true
+  }
+
+  // ----------------------------------------------------------
+  // TEMPLATES
+  // ----------------------------------------------------------
+
+  template "OfficeChair" {
+    @collidable
+    @sittable
+    @networked
+
+    geometry: "cube"
+    color: "#2c3e50"
+    material: "leather"
+  }
+
+  template "AvatarSpawn" {
+    // Invisible markers that define where users appear
+    // when they join the room. Each spawn point has a
+    // unique ID so the server can assign positions.
+    @networked
+
+    geometry: "cylinder"
+    scale: [0.4, 0.02, 0.4]
+    color: "#00ffff"
+    emissive: "#00ffff"
+    emissiveIntensity: 0.3
+    visible: true
+  }
+
+  // ----------------------------------------------------------
+  // ROOM STRUCTURE
+  // ----------------------------------------------------------
+  // A rectangular conference room with walls, floor, and
+  // ceiling. Neutral corporate palette.
+
+  // Floor -- carpet tile
+  object "Floor" @collidable {
+    geometry: "cube"
+    position: [0, -0.05, 0]
+    scale: [10, 0.1, 8]
+    color: "#34495e"
+    material: "carpet"
+  }
+
+  // Ceiling with recessed lighting look
+  object "Ceiling" {
+    geometry: "cube"
+    position: [0, 3.2, 0]
+    scale: [10, 0.1, 8]
+    color: "#ecf0f1"
+  }
+
+  // Walls
+  object "WallNorth" @collidable {
+    geometry: "cube"
+    position: [0, 1.6, -4]
+    scale: [10, 3.2, 0.12]
+    color: "#bdc3c7"
+    material: "drywall"
+  }
+
+  object "WallSouth" @collidable {
+    geometry: "cube"
+    position: [0, 1.6, 4]
+    scale: [10, 3.2, 0.12]
+    color: "#bdc3c7"
+    material: "drywall"
+  }
+
+  object "WallWest" @collidable {
+    geometry: "cube"
+    position: [-5, 1.6, 0]
+    scale: [0.12, 3.2, 8]
+    color: "#bdc3c7"
+    material: "drywall"
+  }
+
+  object "WallEast" @collidable {
+    geometry: "cube"
+    position: [5, 1.6, 0]
+    scale: [0.12, 3.2, 8]
+    color: "#bdc3c7"
+    material: "drywall"
+  }
+
+  // ----------------------------------------------------------
+  // CONFERENCE TABLE
+  // ----------------------------------------------------------
+  // A large rectangular table that serves as the room's
+  // centerpiece. Networked so all users see the same state.
+
+  object "ConferenceTable" @collidable @networked {
+    geometry: "cube"
+    position: [0, 0.72, 0]
+    scale: [3.5, 0.08, 1.6]
+    color: "#5d4037"
+    material: "wood"
+  }
+
+  // Table legs
+  object "TableLeg_FL" @collidable {
+    geometry: "cube"
+    position: [-1.6, 0.34, 0.7]
+    scale: [0.08, 0.68, 0.08]
+    color: "#4e342e"
+    material: "wood"
+  }
+
+  object "TableLeg_FR" @collidable {
+    geometry: "cube"
+    position: [1.6, 0.34, 0.7]
+    scale: [0.08, 0.68, 0.08]
+    color: "#4e342e"
+    material: "wood"
+  }
+
+  object "TableLeg_BL" @collidable {
+    geometry: "cube"
+    position: [-1.6, 0.34, -0.7]
+    scale: [0.08, 0.68, 0.08]
+    color: "#4e342e"
+    material: "wood"
+  }
+
+  object "TableLeg_BR" @collidable {
+    geometry: "cube"
+    position: [1.6, 0.34, -0.7]
+    scale: [0.08, 0.68, 0.08]
+    color: "#4e342e"
+    material: "wood"
+  }
+
+  // ----------------------------------------------------------
+  // CHAIRS
+  // ----------------------------------------------------------
+  // Six chairs positioned around the table. The @sittable trait
+  // lets avatar sit down. @networked keeps seat states in sync
+  // so others see who is seated where.
+
+  // Front side (facing north wall)
+  object "Chair_F1" using "OfficeChair" {
+    position: [-1.2, 0.35, 1.4]
+    scale: [0.45, 0.7, 0.45]
+  }
+
+  object "Chair_F2" using "OfficeChair" {
+    position: [0, 0.35, 1.4]
+    scale: [0.45, 0.7, 0.45]
+  }
+
+  object "Chair_F3" using "OfficeChair" {
+    position: [1.2, 0.35, 1.4]
+    scale: [0.45, 0.7, 0.45]
+  }
+
+  // Back side (facing south wall)
+  object "Chair_B1" using "OfficeChair" {
+    position: [-1.2, 0.35, -1.4]
+    scale: [0.45, 0.7, 0.45]
+    rotation: [0, 180, 0]
+  }
+
+  object "Chair_B2" using "OfficeChair" {
+    position: [0, 0.35, -1.4]
+    scale: [0.45, 0.7, 0.45]
+    rotation: [0, 180, 0]
+  }
+
+  object "Chair_B3" using "OfficeChair" {
+    position: [1.2, 0.35, -1.4]
+    scale: [0.45, 0.7, 0.45]
+    rotation: [0, 180, 0]
+  }
+
+  // ----------------------------------------------------------
+  // WHITEBOARD
+  // ----------------------------------------------------------
+  // An interactive whiteboard on the north wall. All connected
+  // users can draw on it in real time. The @clickable trait
+  // activates drawing mode, and @networked ensures every
+  // stroke is broadcast to every client.
+
+  // Whiteboard surface
+  object "Whiteboard" @clickable @networked {
+    geometry: "cube"
+    position: [0, 1.9, -3.88]
+    scale: [3.0, 1.6, 0.06]
+    color: "#ffffff"
+    material: "matte"
+
+    state {
+      drawing_active: false
+      current_color: "#333333"
+    }
+
+    on_click() {
+      state.drawing_active = !state.drawing_active
+      if (state.drawing_active) {
+        trigger "whiteboard_draw_mode"
+      } else {
+        trigger "whiteboard_view_mode"
+      }
+    }
+  }
+
+  // Whiteboard frame
+  object "WhiteboardFrame" {
+    geometry: "cube"
+    position: [0, 1.9, -3.90]
+    scale: [3.15, 1.75, 0.04]
+    color: "#7f8c8d"
+    material: "metal"
+  }
+
+  // Whiteboard marker tray
+  object "MarkerTray" @collidable {
+    geometry: "cube"
+    position: [0, 1.0, -3.82]
+    scale: [1.5, 0.04, 0.1]
+    color: "#95a5a6"
+    material: "metal"
+  }
+
+  // Colored markers on the tray -- clickable to change draw color
+  object "Marker_Black" @clickable @grabbable @networked {
+    geometry: "cylinder"
+    position: [-0.4, 1.06, -3.82]
+    scale: [0.02, 0.12, 0.02]
+    rotation: [0, 0, 90]
+    color: "#2c3e50"
+
+    on_click() {
+      Whiteboard.state.current_color = "#333333"
+    }
+  }
+
+  object "Marker_Red" @clickable @grabbable @networked {
+    geometry: "cylinder"
+    position: [-0.15, 1.06, -3.82]
+    scale: [0.02, 0.12, 0.02]
+    rotation: [0, 0, 90]
+    color: "#e74c3c"
+
+    on_click() {
+      Whiteboard.state.current_color = "#e74c3c"
+    }
+  }
+
+  object "Marker_Blue" @clickable @grabbable @networked {
+    geometry: "cylinder"
+    position: [0.1, 1.06, -3.82]
+    scale: [0.02, 0.12, 0.02]
+    rotation: [0, 0, 90]
+    color: "#3498db"
+
+    on_click() {
+      Whiteboard.state.current_color = "#3498db"
+    }
+  }
+
+  object "Marker_Green" @clickable @grabbable @networked {
+    geometry: "cylinder"
+    position: [0.35, 1.06, -3.82]
+    scale: [0.02, 0.12, 0.02]
+    rotation: [0, 0, 90]
+    color: "#2ecc71"
+
+    on_click() {
+      Whiteboard.state.current_color = "#2ecc71"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PRESENTATION SCREEN
+  // ----------------------------------------------------------
+  // A large display screen on the east wall for slides or
+  // screen-sharing during meetings.
+
+  object "PresentationScreen" @clickable @glowing @networked {
+    geometry: "cube"
+    position: [4.88, 1.8, 0]
+    scale: [0.06, 1.5, 2.5]
+    color: "#1a1a2e"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.6
+
+    state {
+      presenting: false
+    }
+
+    on_click() {
+      state.presenting = !state.presenting
+      if (state.presenting) {
+        set emissiveIntensity: 0.9
+        trigger "start_presentation"
+      } else {
+        set emissiveIntensity: 0.3
+        trigger "stop_presentation"
+      }
+    }
+  }
+
+  // Screen bezel
+  object "ScreenBezel" {
+    geometry: "cube"
+    position: [4.90, 1.8, 0]
+    scale: [0.04, 1.65, 2.65]
+    color: "#2c3e50"
+    material: "metal"
+  }
+
+  // ----------------------------------------------------------
+  // AVATAR SPAWN POINTS
+  // ----------------------------------------------------------
+  // Six spawn points positioned behind each chair. When a new
+  // user connects, they materialize at the next available
+  // spawn point. The glowing discs on the floor mark each
+  // location visually.
+
+  spatial_group "SpawnPoints" {
+
+    object "Spawn_1" using "AvatarSpawn" {
+      position: [-1.2, 0.01, 2.2]
+      spawn_id: 1
+    }
+
+    object "Spawn_2" using "AvatarSpawn" {
+      position: [0, 0.01, 2.2]
+      spawn_id: 2
+    }
+
+    object "Spawn_3" using "AvatarSpawn" {
+      position: [1.2, 0.01, 2.2]
+      spawn_id: 3
+    }
+
+    object "Spawn_4" using "AvatarSpawn" {
+      position: [-1.2, 0.01, -2.2]
+      spawn_id: 4
+    }
+
+    object "Spawn_5" using "AvatarSpawn" {
+      position: [0, 0.01, -2.2]
+      spawn_id: 5
+    }
+
+    object "Spawn_6" using "AvatarSpawn" {
+      position: [1.2, 0.01, -2.2]
+      spawn_id: 6
+    }
+  }
+
+  // ----------------------------------------------------------
+  // SPATIAL AUDIO ZONES
+  // ----------------------------------------------------------
+  // Audio zones that apply spatial effects. The main conference
+  // area has a reverb zone to simulate a room acoustic. A quiet
+  // zone near the door reduces crosstalk for side conversations.
+
+  // Main room reverb -- gives voices a natural room resonance
+  object "RoomReverb" @spatial_audio @reverb_zone {
+    position: [0, 1.6, 0]
+    audio_falloff: "linear"
+    audio_max_distance: 12
+    reverb_type: "room"
+    reverb_decay: 0.8
+    reverb_wet: 0.25
+    reverb_dry: 0.75
+    room_size: [10, 3.2, 8]
+  }
+
+  // Quiet corner -- near the door (south-west corner)
+  // Reduced audio propagation for private conversations
+  object "QuietZone" @spatial_audio @reverb_zone {
+    position: [-4, 1.6, 3]
+    audio_falloff: "exponential"
+    audio_max_distance: 2.5
+    reverb_type: "dampened"
+    reverb_decay: 0.3
+    reverb_wet: 0.1
+    reverb_dry: 0.9
+    room_size: [2, 3.2, 2]
+  }
+
+  // Presentation audio -- directional audio zone focused
+  // toward the audience when the screen is active
+  object "PresentationAudio" @spatial_audio {
+    position: [4.5, 1.8, 0]
+    audio_falloff: "linear"
+    audio_max_distance: 8
+    audio_directional: true
+    audio_cone_inner: 90
+    audio_cone_outer: 140
+    audio_direction: [-1, 0, 0]
+  }
+
+  // ----------------------------------------------------------
+  // NETWORKED SHARED OBJECTS
+  // ----------------------------------------------------------
+  // Objects on the table that any participant can interact
+  // with. All state changes are broadcast to every client.
+
+  // Shared notepad -- click to add notes
+  object "SharedNotepad" @clickable @grabbable @networked {
+    geometry: "cube"
+    position: [-0.5, 0.8, 0.3]
+    scale: [0.25, 0.02, 0.35]
+    color: "#f1c40f"
+    material: "paper"
+
+    on_click() {
+      trigger "open_notepad"
+    }
+  }
+
+  // Coffee mug -- grabbable decoration
+  object "CoffeeMug" @grabbable @networked @collidable {
+    geometry: "cylinder"
+    position: [0.8, 0.82, -0.4]
+    scale: [0.05, 0.1, 0.05]
+    color: "#ecf0f1"
+    material: "ceramic"
+  }
+
+  // Pointer stick -- for gesturing at the whiteboard
+  object "Pointer" @grabbable @networked {
+    geometry: "cylinder"
+    position: [0.3, 0.8, 0.5]
+    scale: [0.015, 0.4, 0.015]
+    rotation: [0, 0, 90]
+    color: "#e74c3c"
+    material: "metal"
+  }
+
+  // ----------------------------------------------------------
+  // LIGHTING
+  // ----------------------------------------------------------
+  // Overhead panel lights to simulate fluorescent office
+  // lighting. Soft glowing panels on the ceiling.
+
+  object "CeilingLight_1" @glowing {
+    geometry: "cube"
+    position: [-2, 3.1, -1.5]
+    scale: [1.5, 0.04, 0.4]
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.9
+  }
+
+  object "CeilingLight_2" @glowing {
+    geometry: "cube"
+    position: [2, 3.1, -1.5]
+    scale: [1.5, 0.04, 0.4]
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.9
+  }
+
+  object "CeilingLight_3" @glowing {
+    geometry: "cube"
+    position: [-2, 3.1, 1.5]
+    scale: [1.5, 0.04, 0.4]
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.9
+  }
+
+  object "CeilingLight_4" @glowing {
+    geometry: "cube"
+    position: [2, 3.1, 1.5]
+    scale: [1.5, 0.04, 0.4]
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.9
+  }
+
+  // ----------------------------------------------------------
+  // DECORATIVE ELEMENTS
+  // ----------------------------------------------------------
+
+  // Potted plant in the corner for ambiance
+  object "PlantPot" @collidable {
+    geometry: "cylinder"
+    position: [-4.2, 0.25, -3.2]
+    scale: [0.2, 0.5, 0.2]
+    color: "#5d4037"
+    material: "ceramic"
+  }
+
+  object "PlantLeaves" @animated {
+    geometry: "sphere"
+    position: [-4.2, 0.7, -3.2]
+    scale: [0.35, 0.4, 0.35]
+    color: "#27ae60"
+    animate: "sway"
+    animSpeed: 0.3
+  }
+
+  // Clock on the west wall
+  object "WallClock" @animated @networked {
+    geometry: "cylinder"
+    position: [-4.88, 2.4, 0]
+    scale: [0.01, 0.3, 0.3]
+    rotation: [0, 0, 90]
+    color: "#ecf0f1"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.1
+    animate: "clock_tick"
+  }
+
+  // Company logo placeholder on south wall
+  object "CompanyLogo" @glowing {
+    geometry: "cube"
+    position: [0, 2.4, 3.88]
+    scale: [1.2, 0.6, 0.04]
+    color: "#2980b9"
+    emissive: "#2980b9"
+    emissiveIntensity: 0.3
+  }
+}

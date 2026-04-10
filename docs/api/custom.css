@@ -1,0 +1,135 @@
+/* HoloScript TypeDoc Custom Styles */
+
+:root {
+  --color-background: #0d1117;
+  --color-background-secondary: #161b22;
+  --color-text: #e6edf3;
+  --color-text-aside: #8b949e;
+  --color-link: #58a6ff;
+  --color-accent: #7c3aed;
+  --color-warning: #d29922;
+  --color-success: #3fb950;
+}
+
+/* Header branding */
+.tsd-page-title h1::before {
+  content: '⬡ ';
+  color: var(--color-accent);
+}
+
+/* Trait badges */
+.tsd-signature .tsd-kind-type-alias[data-kind='trait'] {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+/* Category headers */
+.tsd-index-group h3 {
+  border-bottom: 2px solid var(--color-accent);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+/* Code blocks */
+pre {
+  background: #161b22 !important;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Trait lifecycle badges */
+.lifecycle-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.lifecycle-attach {
+  background: #3fb950;
+  color: #0d1117;
+}
+.lifecycle-detach {
+  background: #f85149;
+  color: white;
+}
+.lifecycle-update {
+  background: #58a6ff;
+  color: #0d1117;
+}
+.lifecycle-event {
+  background: #d29922;
+  color: #0d1117;
+}
+
+/* Performance badges */
+.perf-badge {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 700;
+}
+
+/* API navigation improvements */
+.tsd-navigation {
+  font-size: 0.9em;
+}
+
+.tsd-navigation a:hover {
+  color: var(--color-accent);
+}
+
+/* Table improvements */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+th {
+  background: var(--color-background-secondary);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--color-accent);
+}
+
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #30363d;
+}
+
+tr:hover td {
+  background: var(--color-background-secondary);
+}
+
+/* Member visibility indicators */
+.tsd-is-protected {
+  opacity: 0.7;
+}
+.tsd-is-inherited {
+  font-style: italic;
+}
+
+/* Search improvements */
+#tsd-search-input {
+  background: var(--color-background-secondary);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+}
+
+/* Footer */
+.tsd-generator {
+  color: var(--color-text-aside);
+  font-size: 0.85em;
+}

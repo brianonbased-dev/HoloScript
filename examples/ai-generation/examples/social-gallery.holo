@@ -1,0 +1,57 @@
+// Social Gallery — demonstrates @shareable, @collaborative, @tweetable traits
+// These traits enable X/social platform integration for VR scenes.
+
+composition "Social Art Gallery" {
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.6
+    fog: { enabled: true, density: 0.005 }
+  }
+
+  // Shareable sculpture — auto-generates X-optimized previews
+  object "FloatingCrystal" @shareable @glowing @animated {
+    geometry: "sphere"
+    color: "#00ffff"
+    position: [0, 2.5, 0]
+    scale: 1.2
+    emissive: "#00ffff"
+    emissiveIntensity: 0.4
+  }
+
+  // Collaborative workspace — real-time multi-user editing
+  spatial_group "ArtStudio" @collaborative {
+    sync: "realtime"
+    maxUsers: 10
+    permissions: ["edit", "view"]
+
+    object "Canvas" @grabbable {
+      geometry: "plane"
+      color: "#ffffff"
+      position: [-2, 1.5, 0]
+      scale: [2, 2, 1]
+    }
+
+    object "PaintBrush" @grabbable @throwable {
+      geometry: "cylinder"
+      color: "#ff4488"
+      position: [-1, 1, 1]
+      scale: [0.05, 0.3, 0.05]
+    }
+  }
+
+  // Tweetable exhibit — generates tweet with preview when shared
+  object "TweetCube" @tweetable @clickable {
+    geometry: "cube"
+    color: "#1da1f2"
+    position: [2, 1, 0]
+    scale: 0.8
+  }
+
+  // Gallery pedestal (non-social, structural)
+  object "Pedestal" @collidable {
+    geometry: "cylinder"
+    color: "#333333"
+    position: [0, 0.5, 0]
+    scale: [0.8, 1, 0.8]
+  }
+}

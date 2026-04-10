@@ -1,0 +1,564 @@
+/**
+ * Haptic & Force Feedback Example
+ *
+ * Demonstrates tactile and force feedback systems: haptic feedback patterns,
+ * force feedback simulation, vibration motors, resistance simulation, and
+ * advanced haptic rendering for VR/AR applications.
+ *
+ * Key Features:
+ * - Haptic Feedback: Vibration patterns, pulse sequences, spatial haptics
+ * - Force Feedback: Resistance, impact simulation, weight simulation
+ * - Tactile Feedback: Surface textures, friction, temperature sensation
+ * - Vibration: Motor control, frequency/amplitude modulation, bone conduction
+ *
+ * @version 5.1.0
+ * @category Multisensory
+ */
+
+composition HapticForceFeedbackShowcase {
+  // Virtual environment
+  entity HapticTestArea {
+    mesh: { type: "plane", width: 10.0, height: 10.0 },
+    advanced_pbr: { base_color: [0.3, 0.3, 0.35], metallic: 0.0, roughness: 0.9 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Haptic Feedback System
+  entity HapticFeedbackController {
+    haptic_feedback: {
+      enabled: true,
+      device: "vr_controller",           // "vr_controller", "gamepad", "haptic_glove", "vest"
+      device_hand: "right",              // "left", "right", "both"
+
+      // Haptic actuators
+      actuators: {
+        count: 2,                        // Dual actuators (left/right controller)
+        type: "linear_resonant",         // "linear_resonant", "eccentric_rotating_mass", "piezoelectric"
+        frequency_range: [10.0, 300.0],  // Hz
+        max_amplitude: 1.0,              // 0-1
+      },
+
+      // Haptic patterns
+      patterns: {
+        // Simple patterns
+        click: {
+          duration: 0.05,                // Seconds
+          intensity: 0.8,
+          frequency: 160.0,              // Hz
+          waveform: "square",            // "sine", "square", "sawtooth", "triangle"
+        },
+
+        pulse: {
+          duration: 0.1,
+          intensity: 0.6,
+          frequency: 120.0,
+          waveform: "sine",
+        },
+
+        buzz: {
+          duration: 0.3,
+          intensity: 0.5,
+          frequency: 200.0,
+          waveform: "square",
+        },
+
+        // Complex patterns
+        heartbeat: {
+          pattern: [
+            { time: 0.0, intensity: 0.8, frequency: 80.0, duration: 0.1 },
+            { time: 0.15, intensity: 0.6, frequency: 80.0, duration: 0.08 },
+            { time: 0.8, intensity: 0.8, frequency: 80.0, duration: 0.1 },
+            { time: 0.95, intensity: 0.6, frequency: 80.0, duration: 0.08 },
+          ],
+          loop: true,
+          loop_interval: 1.2,            // Seconds (60 BPM)
+        },
+
+        impact: {
+          pattern: [
+            { time: 0.0, intensity: 1.0, frequency: 300.0, duration: 0.02 },
+            { time: 0.02, intensity: 0.5, frequency: 150.0, duration: 0.05 },
+            { time: 0.07, intensity: 0.2, frequency: 80.0, duration: 0.1 },
+          ],
+          loop: false,
+        },
+
+        explosion: {
+          pattern: [
+            { time: 0.0, intensity: 1.0, frequency: 250.0, duration: 0.1 },
+            { time: 0.1, intensity: 0.8, frequency: 200.0, duration: 0.15 },
+            { time: 0.25, intensity: 0.4, frequency: 100.0, duration: 0.2 },
+            { time: 0.45, intensity: 0.2, frequency: 50.0, duration: 0.3 },
+          ],
+          loop: false,
+        },
+      },
+
+      // Spatial haptics (for haptic vests/suits)
+      spatial_haptics: {
+        enabled: false,
+        actuator_grid: [4, 4],           // 4×4 grid of actuators
+        spatialization: "wave",          // "wave", "point", "directional"
+        wave_speed: 2.0,                 // m/s across body
+      },
+
+      // Haptic rendering
+      rendering: {
+        sample_rate: 1000.0,             // Hz (1000 Hz = 1ms precision)
+        interpolation: "linear",         // Smooth between keyframes
+        clipping_prevention: true,
+        normalize_intensity: true,
+      },
+
+      // Event-based haptics
+      event_haptics: {
+        on_collision: "impact",
+        on_button_press: "click",
+        on_object_grab: "pulse",
+        on_object_release: "click",
+        on_error: "buzz",
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 2. Force Feedback System
+  entity ForceFeedbackDevice {
+    force_feedback: {
+      enabled: true,
+      device_type: "haptic_glove",       // "haptic_glove", "exoskeleton", "force_controller"
+
+      // Force actuators (per finger for gloves)
+      actuators: [
+        { finger: "thumb", max_force: 20.0 },      // Newtons
+        { finger: "index", max_force: 15.0 },
+        { finger: "middle", max_force: 15.0 },
+        { finger: "ring", max_force: 12.0 },
+        { finger: "pinky", max_force: 10.0 },
+      ],
+
+      // Resistance simulation
+      resistance: {
+        enabled: true,
+
+        // Object hardness
+        hardness_simulation: {
+          soft: { force_curve: "exponential", max_force: 2.0 },   // Foam
+          medium: { force_curve: "linear", max_force: 8.0 },      // Wood
+          hard: { force_curve: "step", max_force: 15.0 },         // Metal
+        },
+
+        // Surface contact
+        contact_force: {
+          normal_force: 0.0,             // Perpendicular to surface
+          friction_force: 0.0,           // Parallel to surface
+          force_direction: [0.0, 0.0, 0.0],
+        },
+      },
+
+      // Weight simulation
+      weight_simulation: {
+        enabled: true,
+        simulated_mass: 0.0,             // kg
+        gravity_factor: 9.8,             // m/s²
+        inertia_simulation: true,
+        force_distribution: "realistic",  // Distribute across fingers
+      },
+
+      // Impact simulation
+      impact: {
+        enabled: true,
+        impact_force_multiplier: 2.0,    // Amplify for perception
+        impact_duration: 0.05,           // Seconds
+        decay_curve: "exponential",
+      },
+
+      // Texture simulation (via vibration + resistance)
+      texture_feedback: {
+        enabled: true,
+        texture_library: [
+          {
+            texture_id: "rough_wood",
+            vibration_frequency: 120.0,  // Hz
+            vibration_amplitude: 0.4,
+            resistance_variation: 0.3,   // 0-1
+          },
+          {
+            texture_id: "smooth_metal",
+            vibration_frequency: 200.0,
+            vibration_amplitude: 0.1,
+            resistance_variation: 0.05,
+          },
+          {
+            texture_id: "fabric",
+            vibration_frequency: 80.0,
+            vibration_amplitude: 0.6,
+            resistance_variation: 0.5,
+          },
+        ],
+      },
+
+      // Safety limits
+      safety: {
+        max_continuous_force: 10.0,      // Newtons (prevent strain)
+        max_force_duration: 2.0,         // Seconds
+        emergency_release: true,
+        force_ramping: 0.1,              // Seconds to full force
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 3. Tactile Feedback System
+  entity TactileFeedbackArray {
+    tactile_feedback: {
+      enabled: true,
+      array_type: "ultrasonic",          // "ultrasonic", "electrotactile", "vibrotactile"
+
+      // Ultrasonic mid-air haptics
+      ultrasonic_array: {
+        enabled: true,
+        emitter_count: 256,              // Phased array
+        frequency: 40000.0,              // Hz (ultrasonic)
+        focal_point: [0.0, 0.0, 0.0],
+        focal_distance: 0.3,             // Meters
+        intensity: 0.7,                  // 0-1
+        pattern: "point",                // "point", "line", "shape"
+      },
+
+      // Electrotactile (electrical stimulation)
+      electrotactile: {
+        enabled: false,
+        electrode_count: 16,
+        stimulation_frequency: 50.0,     // Hz
+        pulse_width: 0.2,                // ms
+        current: 2.0,                    // mA
+        safety_threshold: 5.0,           // mA max
+      },
+
+      // Vibrotactile (vibration motors)
+      vibrotactile: {
+        enabled: true,
+        actuator_count: 8,
+        actuators: [
+          { id: 0, position: [0.0, 0.0], intensity: 0.0, frequency: 100.0 },
+          { id: 1, position: [0.1, 0.0], intensity: 0.0, frequency: 100.0 },
+          // ... more actuators
+        ],
+      },
+
+      // Tactile sensations
+      sensations: {
+        pressure: {
+          intensity: 0.5,                // 0-1
+          area: 0.01,                    // m² (contact area)
+          duration: null,                // Continuous
+        },
+
+        vibration: {
+          frequency: 150.0,              // Hz
+          amplitude: 0.6,
+          pattern: "continuous",         // "continuous", "pulsed", "modulated"
+        },
+
+        texture: {
+          texture_type: "rough",         // "smooth", "rough", "bumpy", "soft"
+          detail_frequency: 200.0,       // Hz
+          detail_amplitude: 0.3,
+        },
+
+        temperature_sensation: {
+          enabled: false,                // (see temperature simulation below)
+          simulated_temp: 25.0,          // Celsius
+        },
+      },
+
+      // Spatial resolution
+      spatial_resolution: {
+        two_point_threshold: 0.002,      // Meters (fingertip: ~2mm)
+        actuator_spacing: 0.005,         // Meters
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 4. Vibration Motor System
+  entity VibrationMotorArray {
+    vibration: {
+      enabled: true,
+      motor_type: "eccentric_rotating_mass",  // "eccentric_rotating_mass", "linear_resonant_actuator"
+
+      // Motors
+      motors: [
+        {
+          motor_id: "left_controller",
+          intensity: 0.0,                // 0-1
+          frequency: 0.0,                // Hz (ERM: controlled by voltage, not frequency)
+          active: false,
+        },
+        {
+          motor_id: "right_controller",
+          intensity: 0.0,
+          frequency: 0.0,
+          active: false,
+        },
+      ],
+
+      // Control parameters
+      control: {
+        pwm_frequency: 100.0,            // Hz (PWM for intensity control)
+        duty_cycle: 0.0,                 // 0-1
+        ramp_up_time: 0.05,              // Seconds
+        ramp_down_time: 0.05,
+      },
+
+      // Vibration patterns
+      vibration_patterns: {
+        steady: {
+          type: "constant",
+          intensity: 0.7,
+        },
+
+        pulsed: {
+          type: "periodic",
+          on_time: 0.1,                  // Seconds
+          off_time: 0.1,
+          intensity: 0.8,
+        },
+
+        ascending: {
+          type: "ramp",
+          start_intensity: 0.2,
+          end_intensity: 1.0,
+          duration: 1.0,
+        },
+
+        heartbeat: {
+          type: "custom",
+          keyframes: [
+            { time: 0.0, intensity: 0.9 },
+            { time: 0.05, intensity: 0.0 },
+            { time: 0.1, intensity: 0.7 },
+            { time: 0.15, intensity: 0.0 },
+          ],
+        },
+      },
+
+      // Bone conduction (for audio haptics)
+      bone_conduction: {
+        enabled: false,
+        frequency_range: [20.0, 1000.0], // Hz
+        transducer_location: "skull",    // "skull", "jaw", "finger"
+        audio_to_vibration: true,        // Convert audio to vibration
+      },
+
+      // Synchronization
+      sync: {
+        sync_with_audio: true,
+        sync_with_visual: true,
+        latency_compensation: 0.02,      // Seconds
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Interactive objects
+  entity HapticCube {
+    mesh: { type: "box", width: 0.2, height: 0.2, depth: 0.2 },
+    advanced_pbr: { base_color: [0.8, 0.3, 0.2], metallic: 0.0, roughness: 0.6 },
+
+    // Haptic properties
+    haptic_properties: {
+      texture: "rough_wood",
+      hardness: "medium",
+      weight: 0.5,                       // kg
+      temperature: 20.0,                 // Celsius
+    },
+
+    transform: {
+      position: [0.0, 1.0, -1.0],
+    },
+  }
+
+  // VR Camera
+  entity VRCamera {
+    camera: {
+      type: "vr_stereo",
+      ipd: 0.063,
+      fov: 110.0,
+      near: 0.01,
+      far: 1000.0,
+    },
+    transform: {
+      position: [0.0, 1.7, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on HapticFeedbackController.haptic_feedback.pattern_triggered -> (event) {
+    console.log(`🔊 Haptic pattern: ${event.pattern_name}`);
+    console.log(`  Duration: ${event.duration.toFixed(3)}s, Intensity: ${(event.intensity * 100).toFixed(0)}%`);
+  }
+
+  on ForceFeedbackDevice.force_feedback.force_applied -> (event) {
+    console.log(`💪 Force feedback: ${event.force.toFixed(2)}N`);
+    console.log(`  Finger: ${event.finger}, Direction: [${event.direction.map(v => v.toFixed(2)).join(', ')}]`);
+  }
+
+  on ForceFeedbackDevice.force_feedback.object_grabbed -> (event) {
+    console.log(`✊ Object grabbed: ${event.object_id}`);
+    console.log(`  Weight: ${event.mass.toFixed(2)}kg, Hardness: ${event.hardness}`);
+  }
+
+  on ForceFeedbackDevice.force_feedback.texture_detected -> (event) {
+    console.log(`🖐️ Texture contact: ${event.texture_id}`);
+    console.log(`  Vibration: ${event.frequency.toFixed(0)}Hz @ ${(event.amplitude * 100).toFixed(0)}%`);
+  }
+
+  on TactileFeedbackArray.tactile_feedback.sensation_triggered -> (event) {
+    console.log(`👆 Tactile sensation: ${event.sensation_type}`);
+    console.log(`  Intensity: ${(event.intensity * 100).toFixed(0)}%, Area: ${(event.area * 10000).toFixed(1)}cm²`);
+  }
+
+  on VibrationMotorArray.vibration.vibration_started -> (event) {
+    console.log(`📳 Vibration started: motor ${event.motor_id}`);
+    console.log(`  Pattern: ${event.pattern}, Intensity: ${(event.intensity * 100).toFixed(0)}%`);
+  }
+
+  on VibrationMotorArray.vibration.vibration_stopped -> (event) {
+    console.log(`Vibration stopped: motor ${event.motor_id} (${event.duration.toFixed(2)}s)`);
+  }
+}
+
+// Haptic controls UI
+ui HapticFeedbackControls {
+  panel "Haptic & Force Feedback" {
+    section "Haptic Feedback" {
+      checkbox "Haptics Enabled" {
+        value: true,
+        onChange: (v) => { HapticFeedbackController.haptic_feedback.enabled = v; }
+      }
+
+      button "Click" -> () {
+        HapticFeedbackController.haptic_feedback.play_pattern("click");
+      }
+
+      button "Pulse" -> () {
+        HapticFeedbackController.haptic_feedback.play_pattern("pulse");
+      }
+
+      button "Heartbeat" -> () {
+        HapticFeedbackController.haptic_feedback.play_pattern("heartbeat");
+      }
+
+      button "Impact" -> () {
+        HapticFeedbackController.haptic_feedback.play_pattern("impact");
+      }
+
+      button "Explosion" -> () {
+        HapticFeedbackController.haptic_feedback.play_pattern("explosion");
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 1.0, value: 0.8, step: 0.1,
+        onChange: (v) => { HapticFeedbackController.haptic_feedback.global_intensity = v; }
+      }
+    }
+
+    section "Force Feedback" {
+      checkbox "Force Feedback Enabled" {
+        value: true,
+        onChange: (v) => { ForceFeedbackDevice.force_feedback.enabled = v; }
+      }
+
+      checkbox "Weight Simulation" {
+        value: true,
+        onChange: (v) => { ForceFeedbackDevice.force_feedback.weight_simulation.enabled = v; }
+      }
+
+      slider "Simulated Mass (kg)" {
+        min: 0.0, max: 5.0, value: 0.0, step: 0.1,
+        onChange: (v) => { ForceFeedbackDevice.force_feedback.weight_simulation.simulated_mass = v; }
+      }
+
+      button "Test Resistance (Soft)" -> () {
+        ForceFeedbackDevice.force_feedback.simulate_resistance("soft", 2.0);
+      }
+
+      button "Test Resistance (Hard)" -> () {
+        ForceFeedbackDevice.force_feedback.simulate_resistance("hard", 10.0);
+      }
+
+      text "Current Force" {
+        value: () => {
+          const force = ForceFeedbackDevice.force_feedback.resistance.contact_force.normal_force;
+          return `${force.toFixed(2)}N`;
+        }
+      }
+    }
+
+    section "Tactile Feedback" {
+      checkbox "Tactile Feedback Enabled" {
+        value: true,
+        onChange: (v) => { TactileFeedbackArray.tactile_feedback.enabled = v; }
+      }
+
+      dropdown "Array Type" {
+        options: ["ultrasonic", "electrotactile", "vibrotactile"],
+        value: "ultrasonic",
+        onChange: (v) => { TactileFeedbackArray.tactile_feedback.array_type = v; }
+      }
+
+      slider "Ultrasonic Intensity" {
+        min: 0.0, max: 1.0, value: 0.7, step: 0.1,
+        onChange: (v) => { TactileFeedbackArray.tactile_feedback.ultrasonic_array.intensity = v; }
+      }
+
+      slider "Focal Distance (m)" {
+        min: 0.1, max: 1.0, value: 0.3, step: 0.05,
+        onChange: (v) => { TactileFeedbackArray.tactile_feedback.ultrasonic_array.focal_distance = v; }
+      }
+    }
+
+    section "Vibration" {
+      checkbox "Vibration Enabled" {
+        value: true,
+        onChange: (v) => { VibrationMotorArray.vibration.enabled = v; }
+      }
+
+      button "Steady" -> () {
+        VibrationMotorArray.vibration.play_pattern("steady");
+      }
+
+      button "Pulsed" -> () {
+        VibrationMotorArray.vibration.play_pattern("pulsed");
+      }
+
+      button "Ascending" -> () {
+        VibrationMotorArray.vibration.play_pattern("ascending");
+      }
+
+      button "Stop All" -> () {
+        VibrationMotorArray.vibration.stop_all();
+      }
+
+      checkbox "Sync with Audio" {
+        value: true,
+        onChange: (v) => { VibrationMotorArray.vibration.sync.sync_with_audio = v; }
+      }
+    }
+  }
+}

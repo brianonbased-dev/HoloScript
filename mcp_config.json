@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "holoscript": {
+      "url": "https://mcp.holoscript.net/mcp",
+      "transport": "streamable-http",
+      "description": "HoloScript universal semantic platform — parsing, compiling, graph analysis, trait management, browser control, codebase intelligence",
+      "discovery": "https://mcp.holoscript.net/.well-known/mcp",
+      "auth": {
+        "type": "bearer",
+        "envVar": "MCP_API_KEY"
+      },
+      "endpoints": {
+        "mcp": "https://mcp.holoscript.net/mcp",
+        "health": "https://mcp.holoscript.net/health",
+        "compile": "https://mcp.holoscript.net/api/compile",
+        "render": "https://mcp.holoscript.net/api/render",
+        "agentCard": "https://mcp.holoscript.net/.well-known/agent-card.json"
+      }
+    },
+    "absorb": {
+      "url": "https://absorb.holoscript.net/mcp",
+      "transport": "streamable-http",
+      "description": "Codebase intelligence — scan repos into knowledge graphs, semantic search, Graph RAG, impact analysis, recursive code improvement",
+      "discovery": "https://absorb.holoscript.net/.well-known/mcp",
+      "auth": {
+        "type": "bearer",
+        "envVar": "ABSORB_API_KEY"
+      },
+      "endpoints": {
+        "mcp": "https://absorb.holoscript.net/mcp",
+        "health": "https://absorb.holoscript.net/health"
+      }
+    }
+  }
+}

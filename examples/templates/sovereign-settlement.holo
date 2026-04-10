@@ -1,0 +1,476 @@
+/**
+ * Sovereign Settlement Template
+ * 
+ * Demonstrates HoloScript's Web3 marketplace integration:
+ * - @marketplace for tradeable spatial experiences
+ * - @token_gated for access control
+ * - @nft for ownership representation
+ * - @wallet for transaction management
+ * 
+ * Powered by the ZoraCoinsTrait for Base L2 deployment.
+ * 
+ * Use Cases:
+ * - Tokenized virtual galleries
+ * - NFT-gated VR experiences
+ * - Creator economy spaces
+ * - Tradeable digital real estate
+ * 
+ * @version 3.1.0
+ */
+
+composition "SovereignSettlementDemo" {
+  // Web3 Configuration
+  config {
+    chain: "base"  // Base L2 for low fees
+    marketplace: {
+      royalty_percentage: 5
+      creator_rewards: true
+      secondary_sales: true
+    }
+    wallet: {
+      supported: ["metamask", "coinbase", "walletconnect"]
+      auto_prompt: true
+    }
+  }
+
+  // ==========================================================================
+  // TOKENIZED GALLERY SPACE
+  // ==========================================================================
+
+  template "TokenizedGallery" {
+    @marketplace(collection: "sovereign-spaces")
+    @token_gated
+    @nft(standard: "erc721")
+    
+    geometry: "model/gallery_space.glb"
+    
+    state {
+      owner_address: null
+      token_id: null
+      price_eth: 0.1
+      is_listed: false
+      visitor_count: 0
+      revenue_earned: 0
+    }
+
+    // List space for sale
+    action listForSale(priceInEth) {
+      if (!requireOwnership()) return
+      
+      this.state.price_eth = priceInEth
+      this.state.is_listed = true
+      
+      marketplace.list({
+        token_id: this.state.token_id,
+        price: priceInEth,
+        currency: "ETH"
+      })
+      
+      emit("space_listed", {
+        token_id: this.state.token_id,
+        price: priceInEth
+      })
+    }
+
+    // Remove from marketplace
+    action delist() {
+      if (!requireOwnership()) return
+      
+      this.state.is_listed = false
+      marketplace.delist(this.state.token_id)
+    }
+
+    // Transfer ownership
+    action transfer(toAddress) {
+      if (!requireOwnership()) return
+      
+      await nft.transfer({
+        token_id: this.state.token_id,
+        to: toAddress
+      })
+      
+      this.state.owner_address = toAddress
+      emit("ownership_transferred", {
+        token_id: this.state.token_id,
+        new_owner: toAddress
+      })
+    }
+
+    // Handle purchase
+    on marketplace_sale(sale) {
+      this.state.owner_address = sale.buyer
+      this.state.is_listed = false
+      this.state.revenue_earned += sale.creator_royalty
+      
+      emit("space_sold", {
+        token_id: this.state.token_id,
+        price: sale.price,
+        buyer: sale.buyer
+      })
+    }
+
+    // Gate access to owners and authorized visitors
+    on player_enter(player) {
+      const hasAccess = await checkAccess(player.wallet)
+      
+      if (!hasAccess) {
+        rejectEntry(player, "This space requires NFT ownership")
+        return
+      }
+      
+      this.state.visitor_count += 1
+    }
+  }
+
+  // ==========================================================================
+  // TOKEN-GATED EXPERIENCE PORTAL
+  // ==========================================================================
+
+  template "GatedPortal" {
+    @token_gated(collection: "access-passes")
+    @pointable
+    @collidable
+    
+    geometry: "torus"
+    scale: [2, 2, 0.3]
+    color: "#9d4edd"
+    
+    state {
+      destination_world: null
+      required_token: null
+      minimum_balance: 1
+      passes_today: 0
+    }
+
+    // Check if player has required token
+    action checkAccess(walletAddress) {
+      const balance = await nft.balanceOf({
+        collection: this.state.required_token,
+        owner: walletAddress
+      })
+      
+      return balance >= this.state.minimum_balance
+    }
+
+    on player_approach(player) {
+      const hasAccess = await this.checkAccess(player.wallet)
+      
+      if (hasAccess) {
+        this.color = "#00ff00"  // Green glow
+        showMessage(player, "Access granted - step through to enter")
+      } else {
+        this.color = "#ff0000"  // Red glow
+        showMintPrompt(player, this.state.required_token)
+      }
+    }
+
+    on collision_enter(entity) {
+      if (entity.type != "player") return
+      
+      const hasAccess = await this.checkAccess(entity.wallet)
+      
+      if (hasAccess) {
+        this.state.passes_today += 1
+        teleportPlayer(entity, this.state.destination_world)
+      } else {
+        bounceBack(entity)
+        showError(entity, "Acquire an Access Pass to enter")
+      }
+    }
+  }
+
+  // ==========================================================================
+  // ZORA COIN AUTO-MINT
+  // ==========================================================================
+
+  template "ZoraCoinScene" {
+    @marketplace(auto_mint: true)
+    @nft(standard: "erc20", chain: "base")
+    
+    geometry: "model/scene_preview.glb"
+    
+    state {
+      coin_address: null
+      total_supply: 1000000
+      circulating: 0
+      price_usd: 0
+      holders: 0
+    }
+
+    // Auto-mint on first publish
+    on publish() {
+      const coin = await marketplace.mintCoin({
+        name: this.name,
+        symbol: generateSymbol(this.name),
+        supply: this.state.total_supply,
+        chain: "base",
+        metadata: {
+          scene_id: this.id,
+          preview_url: generatePreview(this),
+          creator: getCreatorAddress()
+        }
+      })
+      
+      this.state.coin_address = coin.address
+      emit("coin_minted", coin)
+    }
+
+    // Creator can airdrop coins
+    action airdrop(addresses, amount) {
+      if (!requireCreator()) return
+      
+      for (const addr of addresses) {
+        await token.transfer({
+          to: addr,
+          amount: amount
+        })
+      }
+      
+      this.state.circulating += amount * addresses.length
+    }
+
+    // Track coin stats
+    action refreshStats() {
+      const stats = await marketplace.getCoinStats(this.state.coin_address)
+      this.state.price_usd = stats.price_usd
+      this.state.holders = stats.holder_count
+      this.state.circulating = stats.circulating_supply
+    }
+  }
+
+  // ==========================================================================
+  // WALLET CONNECTION UI
+  // ==========================================================================
+
+  template "WalletConnector" {
+    @wallet
+    @ui_panel
+    @pointable
+    
+    geometry: "plane"
+    scale: [0.8, 0.5, 0.05]
+    
+    state {
+      connected: false
+      address: null
+      chain_id: null
+      balance_eth: 0
+      owned_nfts: []
+    }
+
+    action connect() {
+      const wallet = await wallet.connect()
+      
+      if (wallet) {
+        this.state.connected = true
+        this.state.address = wallet.address
+        this.state.chain_id = wallet.chainId
+        this.state.balance_eth = await wallet.getBalance()
+        
+        emit("wallet_connected", {
+          address: wallet.address
+        })
+      }
+    }
+
+    action disconnect() {
+      await wallet.disconnect()
+      this.state.connected = false
+      this.state.address = null
+      
+      emit("wallet_disconnected")
+    }
+
+    action refreshNFTs() {
+      if (!this.state.connected) return
+      
+      const nfts = await nft.getOwned(this.state.address)
+      this.state.owned_nfts = nfts
+    }
+
+    action switchChain(chainId) {
+      await wallet.switchChain(chainId)
+      this.state.chain_id = chainId
+    }
+  }
+
+  // ==========================================================================
+  // MARKETPLACE LISTING DISPLAY
+  // ==========================================================================
+
+  template "MarketplaceBooth" {
+    @marketplace
+    @pointable
+    @hoverable
+    
+    geometry: "model/display_stand.glb"
+    
+    state {
+      listed_item: null
+      current_bid: 0
+      auction_end: null
+      bids: []
+    }
+
+    action createListing(item, startPrice, duration) {
+      this.state.listed_item = item
+      this.state.current_bid = startPrice
+      this.state.auction_end = Date.now() + duration
+      
+      await marketplace.createAuction({
+        item: item,
+        start_price: startPrice,
+        duration: duration
+      })
+      
+      emit("auction_started", {
+        item: item,
+        start_price: startPrice
+      })
+    }
+
+    action placeBid(amount, bidderAddress) {
+      if (amount <= this.state.current_bid) {
+        throw new Error("Bid must be higher than current bid")
+      }
+      
+      if (Date.now() > this.state.auction_end) {
+        throw new Error("Auction has ended")
+      }
+      
+      await marketplace.placeBid({
+        item: this.state.listed_item,
+        amount: amount,
+        bidder: bidderAddress
+      })
+      
+      this.state.current_bid = amount
+      this.state.bids.push({
+        amount: amount,
+        bidder: bidderAddress,
+        timestamp: Date.now()
+      })
+      
+      emit("bid_placed", { amount, bidder: bidderAddress })
+    }
+
+    action settleDon() {
+      if (Date.now() < this.state.auction_end) {
+        throw new Error("Auction still active")
+      }
+      
+      const winner = this.state.bids[this.state.bids.length - 1]
+      
+      await marketplace.settleAuction({
+        item: this.state.listed_item,
+        winner: winner.bidder,
+        amount: winner.amount
+      })
+      
+      emit("auction_settled", {
+        item: this.state.listed_item,
+        winner: winner.bidder,
+        price: winner.amount
+      })
+    }
+
+    on hover_enter() {
+      if (this.state.listed_item) {
+        showTooltip({
+          item: this.state.listed_item,
+          current_bid: this.state.current_bid,
+          time_remaining: this.state.auction_end - Date.now()
+        })
+      }
+    }
+  }
+
+  // ==========================================================================
+  // CREATOR REWARDS DASHBOARD
+  // ==========================================================================
+
+  template "CreatorDashboard" {
+    @wallet
+    @ui_panel
+    
+    geometry: "plane"
+    scale: [1.5, 1, 0.05]
+    
+    state {
+      total_earnings: 0
+      pending_withdrawals: 0
+      royalties_earned: 0
+      created_items: []
+      sales_history: []
+    }
+
+    action refreshEarnings() {
+      const earnings = await marketplace.getCreatorEarnings(wallet.address)
+      this.state.total_earnings = earnings.total
+      this.state.pending_withdrawals = earnings.pending
+      this.state.royalties_earned = earnings.royalties
+    }
+
+    action withdraw() {
+      if (this.state.pending_withdrawals <= 0) return
+      
+      await marketplace.withdraw()
+      
+      this.state.pending_withdrawals = 0
+      emit("withdrawal_complete", {
+        amount: this.state.pending_withdrawals
+      })
+    }
+
+    action getAnalytics(period) {
+      return await marketplace.getCreatorAnalytics({
+        creator: wallet.address,
+        period: period
+      })
+    }
+  }
+
+  // ==========================================================================
+  // INSTANTIATE MARKETPLACE
+  // ==========================================================================
+
+  // Main gallery with NFT gate
+  object "MainGallery" using "TokenizedGallery" {
+    position: [0, 0, 0]
+    token_id: 1
+    owner_address: "0x..."
+  }
+
+  // VIP portal
+  object "VIPPortal" using "GatedPortal" {
+    position: [10, 1.5, 0]
+    required_token: "sovereign-vip-pass"
+    destination_world: "holohub://vip-lounge"
+  }
+
+  // Mintable scene
+  object "SceneCoin" using "ZoraCoinScene" {
+    position: [0, 5, 0]
+  }
+
+  // Wallet connect
+  object "WalletUI" using "WalletConnector" {
+    position: [-5, 1.5, 0]
+    rotation: [0, 30, 0]
+  }
+
+  // Marketplace booths
+  object "Booth1" using "MarketplaceBooth" {
+    position: [5, 0, 5]
+  }
+
+  object "Booth2" using "MarketplaceBooth" {
+    position: [5, 0, -5]
+  }
+
+  // Creator dashboard
+  object "Dashboard" using "CreatorDashboard" {
+    position: [-10, 1.5, 0]
+    rotation: [0, -30, 0]
+  }
+}

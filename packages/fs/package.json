@@ -1,0 +1,66 @@
+{
+  "name": "@holoscript/fs",
+  "version": "3.1.0",
+  "description": "File system library for HoloScript Plus",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./path": {
+      "types": "./dist/path.d.ts",
+      "import": "./dist/path.js",
+      "default": "./dist/path.js"
+    },
+    "./watch": {
+      "types": "./dist/watch.d.ts",
+      "import": "./dist/watch.js",
+      "default": "./dist/watch.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "glob": "^13.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "rimraf": "^5.0.5",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@holoscript/std": "workspace:^"
+  },
+  "keywords": [
+    "holoscript",
+    "hololand",
+    "filesystem",
+    "file-io"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/fs"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

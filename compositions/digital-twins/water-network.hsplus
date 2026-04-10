@@ -1,0 +1,180 @@
+/**
+ * Water Network — Digital Twin Showcase
+ *
+ * Hydraulic simulation with pipe network. Interactive valve controls,
+ * pressure/flow visualization with animated particles.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @see HL-RENDER-3: Simulation Showcase Worlds
+ * @see W.249: Five simulation domains needed for industrial utility
+ */
+
+composition "WaterNetwork" {
+
+  state {
+    version: "1.0.0"
+    showPressureOverlay: true
+    showFlowAnimation: true
+    valve1_open: 1.0
+    valve2_open: 0.5
+    pumpPressure: 50
+    colormap: "viridis"
+    demandMultiplier: 1.0
+  }
+
+  simulation "hydraulic" {
+    @hydraulic_pipe {
+      solver: hardy_cross
+      max_iterations: 100
+      convergence: 0.001
+
+      pipes {
+        pipe "main_supply" {
+          diameter: 0.3
+          length: 200
+          roughness: 0.015
+          material: "ductile_iron"
+        }
+        pipe "branch_north" {
+          diameter: 0.2
+          length: 150
+          roughness: 0.015
+          material: "ductile_iron"
+        }
+        pipe "branch_south" {
+          diameter: 0.2
+          length: 120
+          roughness: 0.015
+          material: "ductile_iron"
+        }
+        pipe "dist_north_1" {
+          diameter: 0.1
+          length: 80
+          roughness: 0.007
+          material: "pvc"
+        }
+        pipe "dist_north_2" {
+          diameter: 0.1
+          length: 60
+          roughness: 0.007
+          material: "pvc"
+        }
+        pipe "dist_south_1" {
+          diameter: 0.1
+          length: 70
+          roughness: 0.007
+          material: "pvc"
+        }
+        pipe "loop_return" {
+          diameter: 0.15
+          length: 100
+          roughness: 0.015
+          material: "ductile_iron"
+        }
+      }
+
+      nodes {
+        reservoir "water_tower" {
+          head: $state.pumpPressure
+          position: [0, 15, 0]
+        }
+        junction "J1" { elevation: 5, demand: 0.002 * $state.demandMultiplier }
+        junction "J2" { elevation: 8, demand: 0.003 * $state.demandMultiplier }
+        junction "J3" { elevation: 3, demand: 0.004 * $state.demandMultiplier }
+        junction "J4" { elevation: 6, demand: 0.001 * $state.demandMultiplier }
+        junction "J5" { elevation: 4, demand: 0.005 * $state.demandMultiplier }
+      }
+
+      valves {
+        valve "V1" {
+          pipe: "branch_north"
+          position: 0.2
+          opening: $state.valve1_open
+        }
+        valve "V2" {
+          pipe: "branch_south"
+          position: 0.3
+          opening: $state.valve2_open
+        }
+      }
+
+      connections: [
+        ["water_tower", "main_supply", "J1"],
+        ["J1", "branch_north", "J2"],
+        ["J1", "branch_south", "J3"],
+        ["J2", "dist_north_1", "J4"],
+        ["J2", "dist_north_2", "J5"],
+        ["J3", "dist_south_1", "J5"],
+        ["J5", "loop_return", "J1"]
+      ]
+    }
+
+    @scalar_field_overlay {
+      source: $hydraulic.pressure
+      colormap: $state.colormap
+      range: [0, 60]
+      opacity: 0.6
+      visible: $state.showPressureOverlay
+      label: "Pressure (m head)"
+    }
+  }
+
+  // Pipe geometry visualization
+  object "PipeNetwork" {
+    @mesh { source: "assets/models/pipe_network.glb" }
+    @material {
+      name: "pipe_metal"
+      base_color: "#556677"
+      roughness: 0.5
+      metalness: 0.7
+    }
+  }
+
+  object "WaterTower" {
+    @mesh { source: "assets/models/water_tower.glb" }
+    @material { base_color: "#8899aa", roughness: 0.4 }
+    position: [0, 0, 0]
+  }
+
+  environment "ground" {
+    @terrain {
+      size: [500, 500]
+      resolution: 64
+      max_height: 15
+      generation {
+        base: fbm_noise { octaves: 4, persistence: 0.4, lacunarity: 2.0 }
+      }
+      biomes {
+        grass: { height: [0.0, 0.7], material: "grass_pbr" }
+        road: { height: [0.7, 1.0], material: "asphalt_pbr" }
+      }
+    }
+  }
+
+  environment "sky" {
+    @atmosphere {
+      model: bruneton_precomputed
+      sun_direction: [0.3, 0.8, 0.1]
+      turbidity: 2.5
+      exposure: 1.0
+    }
+  }
+
+  environment "lighting" {
+    @global_illumination {
+      method: light_probes
+      intensity: 0.7
+    }
+  }
+
+  environment "post" {
+    @post_processing {
+      steps: [
+        { effect: ssao, radius: 0.4, intensity: 0.5 },
+        { effect: tone_mapping, exposure: 1.0 },
+        { effect: fxaa }
+      ]
+    }
+  }
+}

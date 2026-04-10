@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "name": "AutoTurret MK1",
+    "version": "1.0.0",
+    "author": "HoloCorp",
+    "description": "Automated defense turret with AI targeting.",
+    "tags": ["defense", "weapon", "ai"]
+  },
+  "script": "object TurretBase {\n  geometry: 'cylinder'\n  size: [1, 0.5, 1]\n  color: '#444'\n  physics: { type: 'static' }\n}\n\nobject TurretHead @pointable {\n  geometry: 'sphere'\n  position: [0, 0.5, 0]\n  color: '#666'\n  \n  animation scan {\n    property: 'rotation.y'\n    from: -45\n    to: 45\n    duration: 2000\n    loop: true\n    easing: 'easeInOut'\n  }\n\n  onPoint: {\n    this.color = '#ff0000'\n    audio.play('target_locked')\n  }\n}",
+  "physics": {
+    "mass": 200,
+    "colliderType": "box"
+  },
+  "ai": {
+    "personality": "aggressive"
+  }
+}

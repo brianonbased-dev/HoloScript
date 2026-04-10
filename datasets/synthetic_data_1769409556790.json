@@ -1,0 +1,502 @@
+[
+  {
+    "id": "gen_1769409556789_0.9656520328524028",
+    "type": "generation",
+    "input": "Create a cylinder that is grabbable",
+    "output": "orb cylinder_187 {\n  shape: \"cylinder\"\n  color: \"#ffff00\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.41108905284098807",
+    "type": "correction",
+    "input": "orb pyramid_err_243 {\n  shape: \"pyramid\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb pyramid_err_243 {\n  shape: \"pyramid\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.029913293940362795",
+    "type": "correction",
+    "input": "orb pyramid_err_206 {\n  shape: \"pyramid\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb pyramid_err_206 {\n  shape: \"pyramid\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.18349709895420085",
+    "type": "correction",
+    "input": "orb sphere_err_752 {\n  shape: \"sphere\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb sphere_err_752 {\n  shape: \"sphere\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.9223994857179054",
+    "type": "correction",
+    "input": "orb pyramid_err_983 {\n  shape: \"pyramid\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb pyramid_err_983 {\n  shape: \"pyramid\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.8898893031846584",
+    "type": "correction",
+    "input": "orb cylinder_err_86 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb cylinder_err_86 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.7871817815690179",
+    "type": "generation",
+    "input": "Create a plane that is networked",
+    "output": "orb plane_602 {\n  shape: \"plane\"\n  color: \"#00ff00\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.5545198495373285",
+    "type": "generation",
+    "input": "Create a cylinder that is networked",
+    "output": "orb cylinder_166 {\n  shape: \"cylinder\"\n  color: \"#ff0000\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.47869903842155415",
+    "type": "generation",
+    "input": "Create a cylinder that is grabbable",
+    "output": "orb cylinder_924 {\n  shape: \"cylinder\"\n  color: \"#ff0000\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.8330608311270025",
+    "type": "generation",
+    "input": "Create a sphere that is grabbable",
+    "output": "orb sphere_527 {\n  shape: \"sphere\"\n  color: \"#ffff00\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.8103929237629981",
+    "type": "correction",
+    "input": "orb plane_err_749 {\n  shape: \"plane\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb plane_err_749 {\n  shape: \"plane\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.578600959181339",
+    "type": "correction",
+    "input": "orb plane_err_241 {\n  shape: \"plane\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb plane_err_241 {\n  shape: \"plane\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.3201232621078467",
+    "type": "generation",
+    "input": "Create a pyramid that is hoverable",
+    "output": "orb pyramid_473 {\n  shape: \"pyramid\"\n  color: \"#ffff00\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.7010442314061993",
+    "type": "generation",
+    "input": "Create a cylinder that is pointable",
+    "output": "orb cylinder_135 {\n  shape: \"cylinder\"\n  color: \"#00ffff\"\n  @pointable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "pointable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.3092103866202569",
+    "type": "generation",
+    "input": "Create a pyramid that is grabbable",
+    "output": "orb pyramid_114 {\n  shape: \"pyramid\"\n  color: \"#ff00ff\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.046199056646568204",
+    "type": "correction",
+    "input": "orb cylinder_err_681 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb cylinder_err_681 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.10121938056269353",
+    "type": "generation",
+    "input": "Create a cylinder that is hoverable",
+    "output": "orb cylinder_21 {\n  shape: \"cylinder\"\n  color: \"#ffff00\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.6478390271116519",
+    "type": "generation",
+    "input": "Create a plane that is pointable",
+    "output": "orb plane_952 {\n  shape: \"plane\"\n  color: \"#ff00ff\"\n  @pointable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "pointable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.709613299787607",
+    "type": "generation",
+    "input": "Create a cylinder that is grabbable",
+    "output": "orb cylinder_777 {\n  shape: \"cylinder\"\n  color: \"#00ffff\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.3422282712584952",
+    "type": "generation",
+    "input": "Create a cube that is hoverable",
+    "output": "orb cube_543 {\n  shape: \"cube\"\n  color: \"#ff0000\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.29138901726262567",
+    "type": "generation",
+    "input": "Create a plane that is grabbable",
+    "output": "orb plane_864 {\n  shape: \"plane\"\n  color: \"#ffff00\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.3631344884104408",
+    "type": "generation",
+    "input": "Create a cylinder that is throwable",
+    "output": "orb cylinder_842 {\n  shape: \"cylinder\"\n  color: \"#00ff00\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.11638399884553396",
+    "type": "generation",
+    "input": "Create a cube that is networked",
+    "output": "orb cube_111 {\n  shape: \"cube\"\n  color: \"#ff00ff\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.4333083365607351",
+    "type": "generation",
+    "input": "Create a cylinder that is throwable",
+    "output": "orb cylinder_68 {\n  shape: \"cylinder\"\n  color: \"#00ffff\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.5096443572946161",
+    "type": "generation",
+    "input": "Create a sphere that is networked",
+    "output": "orb sphere_244 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.5316223578062442",
+    "type": "generation",
+    "input": "Create a pyramid that is throwable",
+    "output": "orb pyramid_118 {\n  shape: \"pyramid\"\n  color: \"#ff0000\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.3503430320771663",
+    "type": "generation",
+    "input": "Create a plane that is hoverable",
+    "output": "orb plane_579 {\n  shape: \"plane\"\n  color: \"#ffff00\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.6620214364937642",
+    "type": "correction",
+    "input": "orb cylinder_err_778 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb cylinder_err_778 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.6881645323887693",
+    "type": "generation",
+    "input": "Create a sphere that is hoverable",
+    "output": "orb sphere_742 {\n  shape: \"sphere\"\n  color: \"#ffff00\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.05064159534317536",
+    "type": "correction",
+    "input": "orb cylinder_err_818 {\n  shape: \"cylinder\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb cylinder_err_818 {\n  shape: \"cylinder\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.6136889169992636",
+    "type": "generation",
+    "input": "Create a sphere that is throwable",
+    "output": "orb sphere_652 {\n  shape: \"sphere\"\n  color: \"#ff00ff\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.37710704048358834",
+    "type": "generation",
+    "input": "Create a pyramid that is pointable",
+    "output": "orb pyramid_716 {\n  shape: \"pyramid\"\n  color: \"#ff00ff\"\n  @pointable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "pointable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.4438436772139389",
+    "type": "generation",
+    "input": "Create a cube that is sync",
+    "output": "orb cube_774 {\n  shape: \"cube\"\n  color: \"#ff0000\"\n  @sync\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "sync"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.7952829308103155",
+    "type": "generation",
+    "input": "Create a sphere that is grabbable",
+    "output": "orb sphere_65 {\n  shape: \"sphere\"\n  color: \"#00ff00\"\n  @grabbable\n  on_grab: {\n    haptic.pulse(0.5)\n  }\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "grabbable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.34618455935482695",
+    "type": "generation",
+    "input": "Create a plane that is sync",
+    "output": "orb plane_657 {\n  shape: \"plane\"\n  color: \"#0000ff\"\n  @sync\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "sync"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.06888582407122112",
+    "type": "generation",
+    "input": "Create a cube that is networked",
+    "output": "orb cube_321 {\n  shape: \"cube\"\n  color: \"#0000ff\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.19350585360627615",
+    "type": "generation",
+    "input": "Create a cylinder that is hoverable",
+    "output": "orb cylinder_266 {\n  shape: \"cylinder\"\n  color: \"#00ffff\"\n  @hoverable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "hoverable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.8416543558511824",
+    "type": "generation",
+    "input": "Create a cube that is pointable",
+    "output": "orb cube_702 {\n  shape: \"cube\"\n  color: \"#ff0000\"\n  @pointable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "pointable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.9038788512604414",
+    "type": "generation",
+    "input": "Create a sphere that is throwable",
+    "output": "orb sphere_809 {\n  shape: \"sphere\"\n  color: \"#0000ff\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.8146313989868228",
+    "type": "generation",
+    "input": "Create a pyramid that is throwable",
+    "output": "orb pyramid_110 {\n  shape: \"pyramid\"\n  color: \"#00ffff\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.5369959366693904",
+    "type": "correction",
+    "input": "orb sper_err_767 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb sphere_err_767 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.8308996005519411",
+    "type": "correction",
+    "input": "orb cylinder_err_219 {\n  shape: \"cylinder\"\n  on_grab: { log(\"Grabbed\") }\n}",
+    "output": "orb cylinder_err_219 {\n  shape: \"cylinder\"\n  @grabbable\n  on_grab: { log(\"Grabbed\") }\n}",
+    "metadata": {
+      "patterns": ["missing_trait", "grabbable"],
+      "complexity": 2
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.20248238944243147",
+    "type": "correction",
+    "input": "orb plane_err_313 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb plane_err_313 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.26017368864452606",
+    "type": "generation",
+    "input": "Create a sphere that is networked",
+    "output": "orb sphere_678 {\n  shape: \"sphere\"\n  color: \"#ff00ff\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.7966981948145766",
+    "type": "generation",
+    "input": "Create a plane that is throwable",
+    "output": "orb plane_92 {\n  shape: \"plane\"\n  color: \"#0000ff\"\n  @throwable\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "throwable"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.5210096819067898",
+    "type": "generation",
+    "input": "Create a sphere that is sync",
+    "output": "orb sphere_81 {\n  shape: \"sphere\"\n  color: \"#0000ff\"\n  @sync\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "sync"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.24763205252161669",
+    "type": "generation",
+    "input": "Create a sphere that is sync",
+    "output": "orb sphere_709 {\n  shape: \"sphere\"\n  color: \"#00ffff\"\n  @sync\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "sync"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "fix_1769409556789_0.35694294339727395",
+    "type": "correction",
+    "input": "orb plane_err_243 {\n  shape: \"sper\"\n  color: \"red\"\n}",
+    "output": "orb plane_err_243 {\n  shape: \"sphere\"\n  color: \"#ff0000\"\n}",
+    "metadata": {
+      "patterns": ["typo", "shape_name"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.7825652299783026",
+    "type": "generation",
+    "input": "Create a plane that is sync",
+    "output": "orb plane_312 {\n  shape: \"plane\"\n  color: \"#0000ff\"\n  @sync\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "sync"],
+      "complexity": 1
+    }
+  },
+  {
+    "id": "gen_1769409556789_0.9153510788759995",
+    "type": "generation",
+    "input": "Create a sphere that is networked",
+    "output": "orb sphere_200 {\n  shape: \"sphere\"\n  color: \"#00ffff\"\n  @networked\n}",
+    "metadata": {
+      "patterns": ["vr_trait", "networked"],
+      "complexity": 1
+    }
+  }
+]

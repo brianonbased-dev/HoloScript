@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Runtime - End-to-End Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        background: #0f0f1a;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #overlay {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.88);
+        padding: 20px;
+        border-radius: 12px;
+        color: #fff;
+        max-width: 500px;
+        z-index: 1000;
+        border: 1px solid #00ffff33;
+      }
+      #overlay h1 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #00ffff;
+      }
+      #overlay p {
+        font-size: 13px;
+        margin-bottom: 6px;
+        line-height: 1.5;
+        color: #aaa;
+      }
+      #overlay .tag {
+        display: inline-block;
+        background: #00ffff22;
+        color: #00ffff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-right: 4px;
+      }
+      #status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.88);
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-size: 12px;
+        font-family: monospace;
+        color: #888;
+        border: 1px solid #33333366;
+      }
+      #status .ok {
+        color: #00ff88;
+      }
+      #status .fail {
+        color: #ff4444;
+      }
+      #status .pending {
+        color: #ffaa00;
+      }
+      #code-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        max-height: 300px;
+        background: rgba(0, 0, 0, 0.95);
+        border-radius: 8px;
+        z-index: 1000;
+        border: 1px solid #00ff8833;
+        overflow: hidden;
+      }
+      #code-panel.collapsed {
+        max-height: 40px;
+      }
+      #code-header {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      #code-content {
+        padding: 15px;
+        font-family: 'Fira Code', 'Consolas', monospace;
+        font-size: 12px;
+        color: #00ff88;
+        white-space: pre-wrap;
+        overflow: auto;
+        max-height: 260px;
+      }
+      #code-panel.collapsed #code-content {
+        display: none;
+      }
+      #controls {
+        position: fixed;
+        top: 20px;
+        right: 250px;
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+      }
+      #controls button {
+        background: #00ffff22;
+        color: #00ffff;
+        border: 1px solid #00ffff44;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
+      #controls button:hover {
+        background: #00ffff44;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="overlay">
+      <h1>HoloScript Runtime Demo</h1>
+      <p>This demo uses the <strong>actual BrowserRuntime</strong> - the real pipeline:</p>
+      <p>.holo source &rarr; Parser &rarr; AST &rarr; BrowserRuntime &rarr; Three.js scene</p>
+      <p style="margin-top: 10px">
+        <span class="tag">@physics</span>
+        <span class="tag">@glowing</span>
+        <span class="tag">@spinning</span>
+        <span class="tag">@floating</span>
+        <span class="tag">@transparent</span>
+        <span class="tag">@pulse</span>
+        <span class="tag">@collidable</span>
+      </p>
+    </div>
+
+    <div id="status">
+      <div>Runtime: <span id="s-runtime" class="pending">loading...</span></div>
+      <div>Parse: <span id="s-parse" class="pending">waiting</span></div>
+      <div>Objects: <span id="s-objects" class="pending">0</span></div>
+      <div>Traits: <span id="s-traits" class="pending">0</span></div>
+      <div>Render: <span id="s-render" class="pending">waiting</span></div>
+    </div>
+
+    <div id="controls">
+      <button onclick="toggleCode()">Show/Hide Code</button>
+      <button onclick="loadAltScene()">Load Alt Scene</button>
+    </div>
+
+    <div id="code-panel">
+      <div id="code-header" onclick="toggleCode()">
+        <span style="color: #00ffff">HoloScript Source</span>
+        <span style="color: #666">click to toggle</span>
+      </div>
+      <div id="code-content"></div>
+    </div>
+
+    <!-- Load the actual HoloScript runtime IIFE bundle -->
+    <script src="../packages/runtime/dist/holoscript.global.global.js"></script>
+
+    <script>
+      // =========================================================================
+      // HoloScript source - uses real composition syntax
+      // =========================================================================
+      const mainScene = `
+composition "TraitShowcase" {
+  environment {
+    skybox: "nebula"
+    ambient_light: 0.5
+    grid: true
+  }
+
+  template "GlowOrb" {
+    @glowing(intensity: 0.7, pulse: true)
+    @floating(amplitude: 0.3, speed: 1.5)
+    geometry: "sphere"
+    color: "#00ffff"
+  }
+
+  template "PhysicsBlock" {
+    @physics(mass: 2, bounciness: 0.7)
+    @collidable
+    @glowing(intensity: 0.3)
+    geometry: "cube"
+    color: "#ff6600"
+  }
+
+  template "SpinRing" {
+    @spinning(speed: 2, axis: "y")
+    @glowing(intensity: 0.5)
+    geometry: "torus"
+    color: "#ff00ff"
+  }
+
+  object "orb1" using "GlowOrb" {
+    position: [-3, 2, 0]
+    color: "#00ffff"
+  }
+
+  object "orb2" using "GlowOrb" {
+    position: [3, 2.5, 0]
+    color: "#ff88ff"
+  }
+
+  object "orb3" using "GlowOrb" {
+    position: [0, 3, -3]
+    color: "#88ff00"
+  }
+
+  object "block1" using "PhysicsBlock" {
+    position: [-1, 1, 2]
+  }
+
+  object "block2" using "PhysicsBlock" {
+    position: [1, 1, 2]
+    color: "#ffaa00"
+  }
+
+  object "ring1" using "SpinRing" {
+    position: [0, 2, 0]
+    scale: [2, 2, 2]
+  }
+
+  object "ghostBox" {
+    @transparent(opacity: 0.4)
+    @pulse(speed: 1.5, minScale: 0.8, maxScale: 1.2)
+    @glowing(intensity: 0.8)
+    geometry: "cube"
+    color: "#ff00ff"
+    position: [0, 1, -2]
+    scale: [1.5, 1.5, 1.5]
+  }
+
+  object "floor" {
+    @collidable
+    geometry: "box"
+    color: "#1a1a3e"
+    position: [0, -0.1, 0]
+    scale: [12, 0.2, 12]
+  }
+}`;
+
+      const altScene = `
+composition "MinimalTest" {
+  environment {
+    skybox: "night"
+    grid: true
+  }
+
+  object "redSphere" {
+    @glowing(intensity: 0.5)
+    @floating(amplitude: 0.5, speed: 2)
+    geometry: "sphere"
+    color: "#ff0000"
+    position: [-2, 2, 0]
+  }
+
+  object "greenCube" {
+    @spinning(speed: 3, axis: "y")
+    geometry: "cube"
+    color: "#00ff00"
+    position: [0, 1, 0]
+  }
+
+  object "blueCylinder" {
+    @pulse(speed: 2)
+    @transparent(opacity: 0.6)
+    geometry: "cylinder"
+    color: "#0088ff"
+    position: [2, 1, 0]
+  }
+
+  object "ground" {
+    @collidable
+    geometry: "box"
+    color: "#222244"
+    position: [0, -0.1, 0]
+    scale: [10, 0.2, 10]
+  }
+}`;
+
+      // =========================================================================
+      // Runtime initialization
+      // =========================================================================
+
+      let runtime = null;
+      let currentSource = mainScene;
+
+      document.getElementById('code-content').textContent = mainScene;
+
+      function updateStatus(id, text, cls) {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.className = cls;
+      }
+
+      function toggleCode() {
+        document.getElementById('code-panel').classList.toggle('collapsed');
+      }
+
+      async function initRuntime(source) {
+        try {
+          // Check that the IIFE bundle loaded
+          if (typeof HoloScript === 'undefined' || !HoloScript.createRuntime) {
+            updateStatus('s-runtime', 'IIFE bundle not loaded!', 'fail');
+            console.error(
+              '[Demo] HoloScript global not found. Ensure holoscript.global.global.js is loaded.'
+            );
+            return;
+          }
+
+          updateStatus('s-runtime', 'creating...', 'pending');
+
+          const container = document.getElementById('app');
+
+          // Create runtime using the actual BrowserRuntime
+          runtime = HoloScript.createRuntime({
+            container: container,
+            mode: 'web',
+            quality: 'high',
+            features: {
+              monaco: false,
+              brittney: false,
+              networking: false,
+              xr: false,
+            },
+          });
+
+          updateStatus('s-runtime', 'created', 'ok');
+
+          // Load the composition
+          updateStatus('s-parse', 'parsing...', 'pending');
+
+          await runtime.load(source);
+
+          updateStatus('s-parse', 'success', 'ok');
+
+          // Count objects and traits from the scene
+          const state = runtime.getState ? runtime.getState() : {};
+          // Access internal data for stats
+          const composition = runtime.composition || {};
+          const objects = composition.objects || [];
+          let traitCount = 0;
+          for (const obj of objects) {
+            traitCount += (obj.traits || []).length;
+          }
+
+          updateStatus('s-objects', String(objects.length), 'ok');
+          updateStatus('s-traits', String(traitCount), 'ok');
+
+          // Start the render loop
+          runtime.start();
+
+          updateStatus('s-render', 'running', 'ok');
+          console.log('[Demo] Runtime started successfully!');
+          console.log('[Demo] Objects:', objects.length, 'Traits:', traitCount);
+        } catch (error) {
+          console.error('[Demo] Runtime error:', error);
+          updateStatus('s-runtime', 'error: ' + error.message, 'fail');
+        }
+      }
+
+      function loadAltScene() {
+        if (currentSource === mainScene) {
+          currentSource = altScene;
+          document.getElementById('code-content').textContent = altScene;
+        } else {
+          currentSource = mainScene;
+          document.getElementById('code-content').textContent = mainScene;
+        }
+
+        // Dispose current runtime properly to free WebGL context
+        if (runtime) {
+          runtime.stop();
+          if (runtime.renderer) {
+            runtime.renderer.dispose();
+          }
+        }
+        // Clear container
+        const container = document.getElementById('app');
+        container.innerHTML = '';
+
+        // Reinitialize with new source
+        initRuntime(currentSource);
+      }
+
+      // Start!
+      initRuntime(mainScene);
+    </script>
+  </body>
+</html>

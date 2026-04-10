@@ -1,0 +1,416 @@
+// VRChat-Compatible Avatar
+// Full VRChat SDK3 avatar with clothing system, morph targets, and performance ranking
+// Target: Quest 3 (VRChat "Good" performance rank)
+
+composition "VRChatAvatar" {
+  environment {
+    backgroundColor: "#0d1117"
+    ambient: 0.3
+    fog: {
+      enabled: true
+      color: "#1a1a2e"
+      density: 0.015
+    }
+  }
+
+  // ─── VRChat Avatar Base ──────────────────────────────────────────────────────
+
+  object "VRCAvatar" {
+    @skeleton {
+      rigType: "humanoid"
+      humanoidMap: {
+        hips: "Hips"
+        spine: "Spine"
+        chest: "Chest"
+        upperChest: "UpperChest"
+        neck: "Neck"
+        head: "Head"
+
+        leftShoulder: "Left shoulder"
+        leftUpperArm: "Left arm"
+        leftLowerArm: "Left elbow"
+        leftHand: "Left wrist"
+
+        rightShoulder: "Right shoulder"
+        rightUpperArm: "Right arm"
+        rightLowerArm: "Right elbow"
+        rightHand: "Right wrist"
+
+        leftUpperLeg: "Left leg"
+        leftLowerLeg: "Left knee"
+        leftFoot: "Left ankle"
+        leftToes: "Left toe"
+
+        rightUpperLeg: "Right leg"
+        rightLowerLeg: "Right knee"
+        rightFoot: "Right ankle"
+        rightToes: "Right toe"
+      }
+
+      // VRChat standard animations
+      clips: [
+        { name: "Idle", duration: 3.33, loop: true, rootMotion: false }
+        { name: "Walk", duration: 0.667, loop: true, rootMotion: true }
+        { name: "Run", duration: 0.5, loop: true, rootMotion: true }
+        { name: "Jump", duration: 0.5, loop: false, rootMotion: false }
+        { name: "Fall", duration: 1.0, loop: true, rootMotion: false }
+        { name: "Sitting", duration: 2.0, loop: false, rootMotion: false }
+        { name: "TPose", duration: 1.0, loop: false, rootMotion: false }
+        { name: "Dance", duration: 4.0, loop: true, rootMotion: false }
+      ]
+
+      // VRChat locomotion blend tree
+      blendTrees: {
+        Locomotion: {
+          type: "2D-freeform"
+          parameter: "VelocityX"
+          parameter2: "VelocityZ"
+          motions: [
+            { clip: "Idle", position: { x: 0, y: 0 } }
+            { clip: "Walk", position: { x: 0, y: 1 }, speed: 1.0 }
+            { clip: "Run", position: { x: 0, y: 2 }, speed: 1.5 }
+            { clip: "Walk", position: { x: -1, y: 0 }, mirror: true }
+            { clip: "Walk", position: { x: 1, y: 0 } }
+          ]
+        }
+      }
+
+      // VRChat animation layers
+      layers: [
+        { name: "Base", weight: 1.0, blendMode: "override" }
+        { name: "Additive", weight: 1.0, blendMode: "additive" }
+        { name: "Gesture", weight: 1.0, blendMode: "override", mask: ["LeftArm", "RightArm"] }
+        { name: "Action", weight: 0.0, blendMode: "override" }
+        { name: "FX", weight: 1.0, blendMode: "override" }
+      ]
+
+      // VRChat parameters (exposed to expressions menu)
+      parameters: {
+        VelocityX: 0
+        VelocityZ: 0
+        VelocityMagnitude: 0
+        Grounded: true
+        Seated: false
+        AFK: false
+        Upright: 1
+        AngularY: 0
+        InStation: false
+        Viseme: 0  // 0-14 for viseme index
+        Voice: 0    // 0-1 for voice amplitude
+        GestureLeft: 0  // 0-7 for left hand gesture
+        GestureRight: 0  // 0-7 for right hand gesture
+        GestureLeftWeight: 0
+        GestureRightWeight: 0
+        TrackingType: 0  // 0=Uninitialized, 1=Generic, 3=VR Hands, 4=VR + Feet, 6=Full Body
+        VRMode: 0  // 0=Desktop, 1=VR
+        MuteSelf: false
+        IsLocal: true
+      }
+    }
+
+    @morph {
+      // VRChat viseme blend shapes (15 total: sil + 14 visemes)
+      targets: [
+        // Visemes (VRChat standard)
+        { name: "vrc.v_sil", weight: 1, category: "viseme" }  // Silence
+        { name: "vrc.v_pp", weight: 0, category: "viseme" }   // PP, BB, M
+        { name: "vrc.v_ff", weight: 0, category: "viseme" }   // FF, V
+        { name: "vrc.v_th", weight: 0, category: "viseme" }   // TH
+        { name: "vrc.v_dd", weight: 0, category: "viseme" }   // DD, T, N, L
+        { name: "vrc.v_kk", weight: 0, category: "viseme" }   // K, G, NG, CH
+        { name: "vrc.v_ch", weight: 0, category: "viseme" }   // CH, J, SH
+        { name: "vrc.v_ss", weight: 0, category: "viseme" }   // S, Z
+        { name: "vrc.v_nn", weight: 0, category: "viseme" }   // NN
+        { name: "vrc.v_rr", weight: 0, category: "viseme" }   // RR, W, Y
+        { name: "vrc.v_aa", weight: 0, category: "viseme" }   // AA, AH
+        { name: "vrc.v_e", weight: 0, category: "viseme" }    // E, EH, UH
+        { name: "vrc.v_i", weight: 0, category: "viseme" }    // I, IH
+        { name: "vrc.v_o", weight: 0, category: "viseme" }    // O, OW
+        { name: "vrc.v_u", weight: 0, category: "viseme" }    // U, UW
+
+        // Eye blinks
+        { name: "Blink", weight: 0, category: "eyes" }
+        { name: "BlinkLeft", weight: 0, category: "eyes" }
+        { name: "BlinkRight", weight: 0, category: "eyes" }
+
+        // Eye movements
+        { name: "LookUp", weight: 0, category: "eyes" }
+        { name: "LookDown", weight: 0, category: "eyes" }
+        { name: "LookLeft", weight: 0, category: "eyes" }
+        { name: "LookRight", weight: 0, category: "eyes" }
+
+        // Custom expressions
+        { name: "Happy", weight: 0, category: "expression" }
+        { name: "Sad", weight: 0, category: "expression" }
+        { name: "Angry", weight: 0, category: "expression" }
+        { name: "Surprised", weight: 0, category: "expression" }
+      ]
+
+      autoBlink: {
+        enabled: true
+        targets: ["Blink"]
+        interval: 3.5
+        duration: 0.12
+        randomize: 1.5
+      }
+    }
+
+    @clothing {
+      // VRChat clothing toggle system
+      slots: [
+        {
+          name: "Hat"
+          mesh: "Hat_Mesh"
+          enabled: true
+          toggleParameter: "Hat_Toggle"
+        }
+        {
+          name: "Glasses"
+          mesh: "Glasses_Mesh"
+          enabled: false
+          toggleParameter: "Glasses_Toggle"
+        }
+        {
+          name: "Jacket"
+          mesh: "Jacket_Mesh"
+          enabled: true
+          toggleParameter: "Jacket_Toggle"
+        }
+        {
+          name: "Shoes"
+          mesh: "Shoes_Mesh"
+          enabled: true
+          toggleParameter: "Shoes_Toggle"
+        }
+      ]
+
+      // Clothing physics (PhysBones equivalent)
+      physics: {
+        Hair: {
+          gravity: 0.2
+          damping: 0.4
+          stiffness: 0.3
+          inertia: 0.1
+          radius: 0.05
+        }
+        Tail: {
+          gravity: 0.3
+          damping: 0.5
+          stiffness: 0.2
+          inertia: 0.15
+          radius: 0.08
+        }
+      }
+    }
+
+    model: "/models/vrchat/avatar_base.fbx"
+    scale: [1, 1, 1]
+
+    // VRChat Performance Ranking (Target: "Good" for Quest)
+    performance: {
+      // Good rank thresholds for Quest:
+      maxTriangles: 7500       // Limit: 10,000
+      maxMaterialSlots: 1      // Limit: 1
+      maxMeshes: 1             // Limit: 1
+      maxBones: 75             // Limit: 75
+      maxPhysBones: 8          // Limit: 8
+      maxPhysBoneColliders: 8  // Limit: 8
+      maxAudioSources: 4       // Limit: 4
+      maxParticleSystems: 2    // Limit: 4
+      maxTrailRenderers: 1     // Limit: 2
+      maxLineRenderers: 0      // Limit: 1
+      maxLights: 0             // Limit: 0
+      maxClothVertices: 0      // Limit: 0
+      textureMemoryMB: 40      // Limit: 40 MB
+      downloadSizeMB: 10       // Limit: 10 MB
+      animatorCount: 1         // Limit: 1
+
+      // Optimizations
+      combineMeshes: true
+      atlasTextures: true
+      crunchCompression: true
+      mipmaps: true
+      maxTextureSize: 512      // Quest: 512x512 max
+      useGPUSkinning: true
+      batchStatic: true
+    }
+
+    // VRChat-specific settings
+    vrchat: {
+      viewPosition: [0, 1.6, 0]  // Eye height
+      lipSync: "Viseme"           // Viseme or Jaw Flap
+      lipSyncJawBone: "Jaw"
+      eyelidType: "Blendshapes"   // Blendshapes or Bones
+      eyeLookSettings: {
+        eyes: {
+          left: "LeftEye"
+          right: "RightEye"
+        }
+        rotation: {
+          up: 15
+          down: 12
+          left: 18
+          right: 18
+        }
+      }
+
+      // Expressions menu
+      expressionsMenu: {
+        controls: [
+          { name: "Happy", type: "Toggle", parameter: "Happy" }
+          { name: "Sad", type: "Toggle", parameter: "Sad" }
+          { name: "Hat", type: "Toggle", parameter: "Hat_Toggle" }
+          { name: "Glasses", type: "Toggle", parameter: "Glasses_Toggle" }
+          { name: "Dance", type: "Button", parameter: "Dance_Trigger" }
+        ]
+      }
+
+      // Gesture overrides
+      gestureTransforms: {
+        0: "Idle"     // Neutral
+        1: "Fist"
+        2: "HandOpen"
+        3: "Fingerpoint"
+        4: "Victory"
+        5: "RockNRoll"
+        6: "HandGun"
+        7: "Thumbsup"
+      }
+    }
+
+    state {
+      currentViseme: 0
+      voiceLevel: 0
+      leftGesture: 0
+      rightGesture: 0
+      isSitting: false
+      isDancing: false
+    }
+
+    on_init() {
+      skeleton.activateBlendTree("Locomotion")
+      skeleton.setParameter("Grounded", true)
+      skeleton.setParameter("IsLocal", true)
+      morph.startAutoBlink()
+    }
+
+    on_event("move", data) {
+      skeleton.setParameter("VelocityX", data.x)
+      skeleton.setParameter("VelocityZ", data.z)
+      skeleton.setParameter("VelocityMagnitude", Math.sqrt(data.x * data.x + data.z * data.z))
+    }
+
+    on_event("viseme", index) {
+      // Clear all visemes
+      for (let i = 0; i <= 14; i++) {
+        const visemeName = i == 0 ? "vrc.v_sil" : `vrc.v_${["pp","ff","th","dd","kk","ch","ss","nn","rr","aa","e","i","o","u"][i-1]}`
+        morph.setWeight(visemeName, i == index ? 1 : 0)
+      }
+      state.currentViseme = index
+    }
+
+    on_event("gesture", data) {
+      if (data.hand == "left") {
+        state.leftGesture = data.type
+        skeleton.setParameter("GestureLeft", data.type)
+      } else {
+        state.rightGesture = data.type
+        skeleton.setParameter("GestureRight", data.type)
+      }
+    }
+
+    on_event("sit") {
+      state.isSitting = true
+      skeleton.play("Sitting", { layer: 3 })
+      skeleton.setParameter("Seated", true)
+    }
+
+    on_event("stand") {
+      state.isSitting = false
+      skeleton.setParameter("Seated", false)
+    }
+
+    on_event("dance") {
+      state.isDancing = !state.isDancing
+      if (state.isDancing) {
+        skeleton.play("Dance", { layer: 3, weight: 1.0 })
+      } else {
+        skeleton.setLayerWeight(3, 0)
+      }
+    }
+
+    on_event("toggleClothing", slot) {
+      clothing.toggle(slot)
+    }
+  }
+
+  // ─── VRChat World Station (Sitting) ──────────────────────────────────────────
+
+  object "Station" {
+    @vrc_station {
+      seated: true
+      mobility: "Immobilize"
+      canUseStationFromStation: false
+      animatorController: "SittingAnimations"
+      disableStationExit: false
+    }
+
+    geometry: "cube"
+    position: [2, 0.25, 0]
+    scale: [0.5, 0.5, 0.5]
+    color: "#4a4a6a"
+  }
+
+  // ─── Performance Stats Display ──────────────────────────────────────────────
+
+  object "PerformanceRank" {
+    @billboard
+    geometry: "plane"
+    position: [0, 2.5, 0]
+    scale: [1, 0.3, 0.1]
+
+    text: "Performance: Good"
+    fontSize: 0.08
+    color: "#00ff88"
+
+    state {
+      rank: "Good"
+      polyCount: 7500
+      matSlots: 1
+    }
+  }
+
+  // ─── Avatar Platform ─────────────────────────────────────────────────────────
+
+  object "Platform" {
+    geometry: "cylinder"
+    position: [0, 0, 0]
+    scale: [1.2, 0.08, 1.2]
+    color: "#2a2a4a"
+
+    material: {
+      metalness: 0.6
+      roughness: 0.4
+      emissive: "#0088ff"
+      emissiveIntensity: 0.2
+    }
+  }
+
+  // ─── Lighting ────────────────────────────────────────────────────────────────
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    rotation: [-30, 45, 0]
+    cast_shadows: true
+  }
+
+  light "FillLight" {
+    type: "point"
+    color: "#6688ff"
+    intensity: 0.4
+    position: [-2, 2, 1]
+    range: 6
+  }
+}

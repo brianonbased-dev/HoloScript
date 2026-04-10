@@ -1,0 +1,699 @@
+// Unity Quest Optimization
+// Mobile VR-optimized obstacle course for Quest 2/3
+// Platforms: Unity Quest (Meta), Unity PCVR
+
+composition "Quest Obstacle Course" {
+
+  metadata {
+    name: 'Unity Quest'
+    description: 'Performance-optimized VR obstacle course designed specifically for Meta Quest 2/3 mobile hardware. Uses LOD, occlusion culling, and single-pass stereo rendering. Features 10 unique obstacle types with dynamic difficulty scaling.'
+    version: '2.0.0'
+    author: 'HoloScript Quest Optimization Team'
+    category: 'game'
+    tags: ['unity', 'quest', 'vr', 'mobile', 'optimization', 'obstacle-course']
+    platforms: ['unity-quest', 'unity-pcvr']
+    minPlayers: 1
+    maxPlayers: 2
+    estimatedDuration: 600
+  }
+
+  // ── Environment ───────────────────────────────────────────────────────────
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [30, 1, 30]
+    color: "#7cb342"
+    material: "grass_lod"
+    lodDistances: [10, 30, 100]
+    receiveShadows: true
+  }
+
+  object "SkyDome" {
+    geometry: "sphere"
+    position: [0, 0, 0]
+    scale: [200, 200, 200]
+    color: "#87ceeb"
+    material: "sky_gradient"
+    castShadows: false
+  }
+
+  object "DistantMountains" {
+    geometry: "plane"
+    position: [0, 5, -100]
+    scale: [200, 20, 1]
+    color: "#6a7a8a"
+    material: "mountain_billboard"
+    lodDistance: 50
+  }
+
+  // ── Course Start ──────────────────────────────────────────────────────────
+
+  object "StartPlatform" {
+    @collidable
+    @glowing
+    geometry: "cube"
+    position: [0, 0.2, 5]
+    scale: [3, 0.4, 3]
+    color: "#4caf50"
+    material: "quest_optimized_mat"
+    emissionIntensity: 0.3
+  }
+
+  object "StartGate" {
+    @glowing
+    geometry: "cube"
+    position: [0, 1.4, 3.5]
+    scale: [3, 0.2, 0.2]
+    color: "#00c853"
+    emissionIntensity: 1.2
+  }
+
+  object "StartGatePillarLeft" {
+    @collidable
+    geometry: "cylinder"
+    position: [-1.5, 1, 3.5]
+    scale: [0.12, 2, 0.12]
+    color: "#33691e"
+    material: "plastic"
+  }
+
+  object "StartGatePillarRight" {
+    @collidable
+    geometry: "cylinder"
+    position: [1.5, 1, 3.5]
+    scale: [0.12, 2, 0.12]
+    color: "#33691e"
+    material: "plastic"
+  }
+
+  object "StartArrow" {
+    @glowing
+    geometry: "cube"
+    position: [0, 0.5, 4]
+    rotation: [0, 180, 0]
+    scale: [1, 0.1, 0.5]
+    color: "#ffffff"
+    emissionIntensity: 0.8
+  }
+
+  // ── Obstacle 1 - Low Wall Jump ────────────────────────────────────────────
+
+  object "WallObstacle1" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.5, 2]
+    scale: [4, 1, 0.3]
+    color: "#ff5722"
+    material: "painted_concrete"
+  }
+
+  object "WallStripe1" {
+    geometry: "cube"
+    position: [0, 0.98, 2]
+    scale: [4.1, 0.1, 0.31]
+    color: "#ffffff"
+  }
+
+  // ── Obstacle 2 - Pillars Slalom ───────────────────────────────────────────
+
+  object "Pillar1" {
+    @collidable
+    geometry: "cylinder"
+    position: [-1.5, 1, 0]
+    scale: [0.4, 2, 0.4]
+    color: "#9c27b0"
+    material: "plastic_pillar"
+    lodDistances: [15, 40]
+  }
+
+  object "Pillar2" {
+    @collidable
+    geometry: "cylinder"
+    position: [1.5, 1, 0]
+    scale: [0.4, 2, 0.4]
+    color: "#9c27b0"
+    material: "plastic_pillar"
+  }
+
+  object "Pillar3" {
+    @collidable
+    geometry: "cylinder"
+    position: [-1.5, 1, -1.2]
+    scale: [0.4, 2, 0.4]
+    color: "#7b1fa2"
+  }
+
+  object "Pillar4" {
+    @collidable
+    geometry: "cylinder"
+    position: [1.5, 1, -1.2]
+    scale: [0.4, 2, 0.4]
+    color: "#7b1fa2"
+  }
+
+  // ── Obstacle 3 - Stepping Platforms ──────────────────────────────────────
+
+  object "JumpPlatform1" {
+    @collidable
+    geometry: "cube"
+    position: [-2, 0.5, -2]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
+    material: "foam_mat"
+  }
+
+  object "JumpPlatform2" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.8, -3]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
+  }
+
+  object "JumpPlatform3" {
+    @collidable
+    geometry: "cube"
+    position: [2, 1.1, -4]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
+  }
+
+  object "JumpPlatform4" {
+    @collidable
+    geometry: "cube"
+    position: [-1, 1.4, -5]
+    scale: [1.5, 1, 1.5]
+    color: "#1565c0"
+  }
+
+  // ── Obstacle 4 - Moving Platforms ────────────────────────────────────────
+
+  object "MovingPlatformA" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.3, -6]
+    scale: [2, 0.3, 1.5]
+    color: "#ff9800"
+    behavior "MovingPlatform" {
+      axis: [1, 0, 0]
+      amplitude: 3.0
+      period: 4.0
+      phaseOffset: 0
+    }
+  }
+
+  object "MovingPlatformB" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.3, -7]
+    scale: [2, 0.3, 1.5]
+    color: "#f57c00"
+    behavior "MovingPlatform" {
+      axis: [1, 0, 0]
+      amplitude: 3.0
+      period: 4.0
+      phaseOffset: 2.0
+    }
+  }
+
+  // ── Obstacle 5 - Movable Blocks ───────────────────────────────────────────
+
+  object "MovableBlock1" {
+    @grabbable
+    @physics
+    @collidable
+    geometry: "cube"
+    position: [0, 0.5, -6]
+    scale: 0.6
+    color: "#ffc107"
+    material: "foam_block"
+    mass: 1.5
+  }
+
+  object "MovableBlock2" {
+    @grabbable
+    @physics
+    @collidable
+    geometry: "cube"
+    position: [1, 0.5, -6.5]
+    scale: 0.6
+    color: "#ffc107"
+    material: "foam_block"
+    mass: 1.5
+  }
+
+  object "BlockTarget" {
+    @glowing
+    geometry: "plane"
+    position: [3, 0.01, -6.5]
+    rotation: [-90, 0, 0]
+    scale: [1.5, 1.5, 1]
+    color: "#ff5722"
+    emissionIntensity: 0.5
+    behavior "BlockDropZone" {
+      requiredBlocks: 1
+      pointsOnComplete: 250
+    }
+  }
+
+  // ── Collectibles ──────────────────────────────────────────────────────────
+
+  object "Collectible1" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [0, 1.5, -1]
+    scale: 0.3
+    color: "#ffeb3b"
+    emissionIntensity: 1.0
+    behavior "Collectible" {
+      pointValue: 50
+      respawnOnPickup: false
+      spinSpeed: 90
+    }
+  }
+
+  object "Collectible2" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [-2, 1.5, -4]
+    scale: 0.3
+    color: "#ffeb3b"
+    emissionIntensity: 1.0
+    behavior "Collectible" {
+      pointValue: 50
+    }
+  }
+
+  object "Collectible3" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [2, 2, -6]
+    scale: 0.3
+    color: "#ffeb3b"
+    emissionIntensity: 1.0
+    behavior "Collectible" {
+      pointValue: 50
+    }
+  }
+
+  object "Collectible4" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [0, 3, -8]
+    scale: 0.3
+    color: "#ff6090"
+    emissionIntensity: 1.5
+    behavior "Collectible" {
+      pointValue: 200
+      isRare: true
+      spinSpeed: 180
+    }
+  }
+
+  object "Collectible5" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [-3, 1.5, -7]
+    scale: 0.3
+    color: "#ffeb3b"
+    emissionIntensity: 1.0
+    behavior "Collectible" {
+      pointValue: 50
+    }
+  }
+
+  object "Collectible6" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [3, 2.5, -9]
+    scale: 0.3
+    color: "#ffeb3b"
+    emissionIntensity: 1.0
+    behavior "Collectible" {
+      pointValue: 50
+    }
+  }
+
+  // ── Finish Line ───────────────────────────────────────────────────────────
+
+  object "FinishLine" {
+    @collidable
+    @glowing
+    geometry: "cube"
+    position: [0, 0.2, -10]
+    scale: [4, 0.4, 0.5]
+    color: "#00ff00"
+    emissionIntensity: 1.5
+    behavior "FinishTrigger" {
+      triggerOnTouch: true
+      showTimeBonus: true
+      playFinishSound: 'sfx/finish_fanfare.wav'
+    }
+  }
+
+  object "FinishGatePillarLeft" {
+    @collidable
+    geometry: "cylinder"
+    position: [-2, 1.5, -10]
+    scale: [0.15, 3, 0.15]
+    color: "#00c853"
+  }
+
+  object "FinishGatePillarRight" {
+    @collidable
+    geometry: "cylinder"
+    position: [2, 1.5, -10]
+    scale: [0.15, 3, 0.15]
+    color: "#00c853"
+  }
+
+  object "FinishBanner" {
+    @glowing
+    geometry: "cube"
+    position: [0, 3.1, -10]
+    scale: [4, 0.15, 0.15]
+    color: "#ffd600"
+    emissionIntensity: 2.0
+  }
+
+  // ── Teleport Targets ──────────────────────────────────────────────────────
+
+  object "TeleportTarget1" {
+    @glowing
+    geometry: "cylinder"
+    position: [3, 0.05, -3]
+    scale: [0.5, 0.1, 0.5]
+    color: "#00bcd4"
+    emissionIntensity: 0.8
+  }
+
+  object "TeleportTarget2" {
+    @glowing
+    geometry: "cylinder"
+    position: [-3, 0.05, -6]
+    scale: [0.5, 0.1, 0.5]
+    color: "#00bcd4"
+    emissionIntensity: 0.8
+  }
+
+  object "TeleportTarget3" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 0.05, -9]
+    scale: [0.5, 0.1, 0.5]
+    color: "#00bcd4"
+    emissionIntensity: 0.8
+  }
+
+  // ── Performance LOD Objects ────────────────────────────────────────────────
+
+  object "MarkerLOD1" {
+    geometry: "sphere"
+    position: [5, 1, -5]
+    scale: 0.2
+    color: "#e91e63"
+    lodDistances: [5, 20]
+  }
+
+  object "MarkerLOD2" {
+    geometry: "sphere"
+    position: [-5, 1, -5]
+    scale: 0.2
+    color: "#e91e63"
+    lodDistances: [5, 20]
+  }
+
+  object "DecorBush1" {
+    geometry: "sphere"
+    position: [8, 0.5, 0]
+    scale: [0.8, 0.7, 0.8]
+    color: "#388e3c"
+    lodDistances: [8, 25]
+    castShadows: false
+  }
+
+  object "DecorBush2" {
+    geometry: "sphere"
+    position: [-8, 0.5, -4]
+    scale: [0.6, 0.5, 0.6]
+    color: "#2e7d32"
+    lodDistances: [8, 25]
+    castShadows: false
+  }
+
+  object "DecorTree1" {
+    geometry: "cylinder"
+    position: [10, 2, 2]
+    scale: [0.2, 4, 0.2]
+    color: "#5d4037"
+    lodDistances: [15, 50]
+  }
+
+  object "DecorTree2" {
+    geometry: "sphere"
+    position: [10, 4.5, 2]
+    scale: [2, 3, 2]
+    color: "#1b5e20"
+    lodDistances: [15, 50]
+    castShadows: false
+  }
+
+  // ── Scene Lighting ────────────────────────────────────────────────────────
+
+  object "DirectionalLight" {
+    @glowing
+    geometry: "sphere"
+    position: [20, 30, 20]
+    scale: 0.1
+    color: "#fff8e1"
+    emissionIntensity: 5.0
+    castShadows: true
+    shadowResolution: 1024
+  }
+
+  object "AmbientReflector1" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 5, 0]
+    scale: 0.05
+    color: "#bbdefb"
+    emissionIntensity: 1.0
+    castShadows: false
+  }
+
+  // ── Game Systems ──────────────────────────────────────────────────────────
+
+  system "QuestOptimizer" {
+    targetFPS: 72
+    gpuLevel: 'auto'
+    cpuLevel: 'auto'
+    dynamicResolution: true
+    minResolutionScale: 0.8
+    maxResolutionScale: 1.2
+    ffr: 'high'
+    multiView: true
+    singlePassStereo: true
+    occlusion: 'boudingbox'
+    maxBatchCount: 256
+  }
+
+  system "ScoreSystem" {
+    baseScore: 0
+    timeBonus: true
+    collectibleBonus: true
+    comboMultiplier: true
+    highScoreTable: 10
+
+    event "onCourseComplete" {
+      calculateFinalScore: true
+      uploadLeaderboard: true
+      unlockAchievements: true
+    }
+  }
+
+  system "AdaptiveDifficulty" {
+    enabled: true
+    adjustInterval: 30
+    metrics: ['timeTaken', 'failureCount', 'collectiblesGathered']
+    easyModeSpeedMultiplier: 0.7
+    hardModeSpeedMultiplier: 1.4
+  }
+
+  // ── Moving Obstacle Patterns ──────────────────────────────────────────────
+
+  object "PendulumHazard1" {
+    @collidable
+    @glowing
+    geometry: "sphere"
+    position: [0, 5, -15]
+    scale: 0.8
+    color: "#e53935"
+    emissionIntensity: 0.5
+    behavior "PendulumSwing" {
+      pivotPoint: [0, 8, -15]
+      swingAngle: 60
+      period: 3.0
+      axis: 'x'
+      phaseOffset: 0.0
+    }
+    behavior "Hazard" {
+      damage: 1
+      knockback: true
+      knockbackForce: 8.0
+      sfx: 'sfx/hit_pendulum.wav'
+    }
+  }
+
+  object "PendulumHazard2" {
+    @collidable
+    @glowing
+    geometry: "sphere"
+    position: [3, 5, -18]
+    scale: 0.8
+    color: "#e53935"
+    emissionIntensity: 0.5
+    behavior "PendulumSwing" {
+      pivotPoint: [3, 8, -18]
+      swingAngle: 60
+      period: 3.0
+      axis: 'x'
+      phaseOffset: 1.5
+    }
+    behavior "Hazard" {
+      damage: 1
+      knockback: true
+      knockbackForce: 8.0
+    }
+  }
+
+  object "SlidingWall1" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, -25]
+    scale: [4, 4, 0.3]
+    color: "#546e7a"
+    behavior "SlidePattern" {
+      slideAxis: 'x'
+      slideDistance: 3.5
+      slideSpeed: 2.5
+      pauseAtEnds: 0.5
+    }
+    behavior "Hazard" {
+      damage: 1
+      knockback: true
+      pushDirection: 'lateral'
+    }
+  }
+
+  // ── Collectible System ────────────────────────────────────────────────────
+
+  object "Collectible1" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [1, 1.4, -10]
+    scale: 0.25
+    color: "#ffd740"
+    emissionIntensity: 1.5
+    behavior "Collectible" {
+      type: 'star'
+      points: 50
+      magnetRange: 1.5
+      spinSpeed: 120
+      bobAmplitude: 0.15
+      bobSpeed: 2.0
+      sfx: 'sfx/collect_star.wav'
+    }
+  }
+
+  object "Collectible2" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [-2, 1.4, -20]
+    scale: 0.25
+    color: "#ffd740"
+    emissionIntensity: 1.5
+    behavior "Collectible" {
+      type: 'star'
+      points: 50
+      magnetRange: 1.5
+      spinSpeed: 120
+    }
+  }
+
+  object "PowerCrystal" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [0, 1.6, -30]
+    scale: 0.35
+    color: "#aa00ff"
+    emissionIntensity: 2.0
+    behavior "Collectible" {
+      type: 'crystal'
+      points: 200
+      effect: 'speed_boost'
+      effectDuration: 10.0
+      sfx: 'sfx/collect_crystal.wav'
+    }
+  }
+
+  // ── Player Upgrade System ─────────────────────────────────────────────────
+
+  system "PlayerUpgrades" {
+    upgrades: [
+      {
+        id: 'jump_boost'
+        name: 'Jump Boost'
+        description: 'Increases jump height by 25%'
+        cost: 300
+        stackable: false
+        icon: 'ui/upgrade_jump.png'
+      },
+      {
+        id: 'speed_boost'
+        name: 'Sprint Boost'
+        description: 'Increases max movement speed by 20%'
+        cost: 500
+        stackable: false
+        icon: 'ui/upgrade_speed.png'
+      },
+      {
+        id: 'extra_life'
+        name: 'Extra Life'
+        description: 'Grants one extra attempt on failure'
+        cost: 1000
+        stackable: true
+        maxStacks: 3
+        icon: 'ui/upgrade_life.png'
+      }
+    ]
+
+    event "onUpgradePurchased" {
+      applyToPlayer: true
+      saveToProfile: true
+      playAnimation: 'upgrade_flash'
+    }
+  }
+
+  system "SpectatorMode" {
+    enabled: true
+    freeCamera: true
+    followPlayerCamera: true
+    ghostMode: true
+    canSwapTarget: true
+    showHUD: true
+    showPlayerHealth: true
+    showPlayerScore: true
+  }
+}
+

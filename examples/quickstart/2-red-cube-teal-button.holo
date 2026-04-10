@@ -1,0 +1,26 @@
+// 2-red-cube-teal-button.holo
+// A throwable red cube and a teal cylinder button
+
+composition "Red Cube and Teal Button" {
+  object "RedCube" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
+    
+    geometry: "cube"
+    position: [0, 1, -2]
+    scale: 0.3
+    color: "#ff6b6b"
+  }
+
+  object "TealButton" {
+    @pointable
+    @clickable
+    
+    geometry: "cylinder"
+    position: [1.5, 1, -2]
+    scale: [0.2, 0.05, 0.2]
+    color: "#4ecdc4"
+  }
+}

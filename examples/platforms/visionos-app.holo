@@ -1,0 +1,209 @@
+// Apple Vision Pro / visionOS Example
+// Compile: holoscript compile visionos-app.holo --target visionos
+// Output: Swift with RealityKit for visionOS
+
+composition "visionOS Productivity Space" {
+  environment {
+    style: "mixed"  // mixed | full | progressive
+    passthrough: true
+    hand_tracking: true
+    eye_tracking: true
+  }
+
+  // === Volumetric Windows ===
+  spatial_group "WorkspaceWindows" {
+    object "BrowserWindow" {
+      @window
+      @resizable
+      @eye_tracked
+      position: [0, 1.5, -1]
+      scale: [0.8, 0.5, 0.01]
+      
+      window: {
+        type: "volumetric"
+        min_size: [400, 300]
+        max_size: [1200, 800]
+        corner_radius: 20
+      }
+
+      content: {
+        type: "webview"
+        url: "https://example.com"
+      }
+    }
+
+    object "NotesWindow" {
+      @window
+      @resizable
+      @hand_tracked
+      position: [-0.6, 1.4, -0.8]
+      rotation: [0, 20, 0]
+      scale: [0.5, 0.6, 0.01]
+      
+      window: {
+        type: "volumetric"
+        glass_background: true
+        opacity: 0.95
+      }
+
+      content: {
+        type: "swiftui"
+        view: "NotesEditorView"
+      }
+    }
+
+    object "VideoWindow" {
+      @window
+      @spatial_video
+      position: [0.6, 1.5, -1.2]
+      rotation: [0, -15, 0]
+      scale: [0.6, 0.35, 0.01]
+      
+      content: {
+        type: "avplayer"
+        source: "spatial_video.mov"
+        spatial_audio: true
+      }
+    }
+  }
+
+  // === 3D Objects ===
+  spatial_group "VolumetricObjects" {
+    object "3DChart" {
+      @volumetric
+      @hand_tracked
+      @rotatable
+      geometry: "model/data_visualization.usdz"
+      position: [0, 1.2, -0.6]
+      scale: [0.3, 0.3, 0.3]
+
+      animation "rotate" {
+        property: "rotation.y"
+        from: 0
+        to: 360
+        duration: 30000
+        loop: infinite
+      }
+    }
+
+    object "GlobeModel" {
+      @volumetric
+      @hand_tracked
+      @scalable
+      geometry: "model/earth_globe.usdz"
+      position: [0.4, 1.0, -0.5]
+      scale: [0.2, 0.2, 0.2]
+      
+      state {
+        spin_speed: 10
+      }
+
+      on_pinch: {
+        this.state.spin_speed = 0
+      }
+
+      on_release: {
+        this.state.spin_speed = 10
+      }
+    }
+  }
+
+  // === Ornaments (Window Attachments) ===
+  object "CloseButton" {
+    @ornament
+    @eye_tracked
+    attach_to: "BrowserWindow"
+    position: "top-left"
+    offset: [-20, 10, 0]
+    
+    ui: {
+      type: "button"
+      icon: "xmark.circle.fill"
+      size: 32
+    }
+
+    on_gaze_tap: {
+      close_window("BrowserWindow")
+    }
+  }
+
+  object "ToolsPalette" {
+    @ornament
+    @hand_tracked
+    attach_to: "NotesWindow"
+    position: "bottom"
+    offset: [0, -40, 0]
+    
+    ui: {
+      type: "toolbar"
+      items: ["pencil", "highlighter", "eraser", "shapes"]
+      style: "glass"
+    }
+  }
+
+  // === Immersive Portal ===
+  object "ImmersivePortal" {
+    @portal
+    @eye_tracked
+    geometry: "sphere"
+    position: [-0.8, 1.2, -0.8]
+    scale: [0.3, 0.3, 0.3]
+    
+    portal: {
+      destination: "ImmersiveSpace"
+      preview: true
+      transition: "zoom"
+      duration: 500
+    }
+
+    material: {
+      type: "shader"
+      shader: "PortalPreview"
+    }
+  }
+
+  // === Hand Menu ===
+  object "HandMenu" {
+    @hand_tracked
+    @palm_menu
+    visible_when: "palm_up"
+    attach_to: "left_palm"
+    offset: [0, 0.05, 0]
+    
+    ui: {
+      layout: "radial"
+      items: [
+        { icon: "plus", action: "new_window" },
+        { icon: "folder", action: "open_files" },
+        { icon: "photo", action: "capture" },
+        { icon: "gearshape", action: "settings" }
+      ]
+    }
+  }
+
+  // === Spatial Audio ===
+  audio "AmbientMusic" {
+    source: "ambient_workspace.mp3"
+    volume: 0.2
+    spatial: false
+  }
+
+  audio "NotificationSound" {
+    source: "notification.mp3"
+    spatial: true
+    head_tracked: true
+    trigger_on: "notification_received"
+  }
+
+  // === SharePlay Integration ===
+  shareplay {
+    enabled: true
+    activity_type: "collaborative_workspace"
+    
+    sync: {
+      window_positions: true
+      object_transforms: true
+      annotations: true
+    }
+  }
+}

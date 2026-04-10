@@ -1,0 +1,195 @@
+// ============================================================================
+// WebGPU Compute Showcase
+// ============================================================================
+// Demonstrates HoloScript's GPU compute traits for massively parallel
+// simulations running entirely on WebGPU compute shaders.
+//
+// Traits covered (4 traits, previously 0% coverage):
+//   @compute        -- General-purpose GPU compute dispatch
+//   @gpu_particle   -- GPU-accelerated particle system (1M+ particles)
+//   @gpu_physics    -- Physics simulation on compute shaders
+//   @gpu_buffer     -- Raw GPU buffer allocation and data transfer
+// ============================================================================
+
+composition "WebGPU Compute Showcase" {
+
+  metadata {
+    title: "WebGPU Compute Showcase"
+    description: "GPU-accelerated particle systems, fluid simulation, and N-body gravity"
+    version: "1.0"
+    tags: ["webgpu", "compute", "particles", "physics", "gpu", "fluid", "n-body"]
+  }
+
+  scene {
+    environment {
+      skybox: "deep_space"
+      lighting: "night"
+    }
+
+    // ----------------------------------------------------------
+    // SHARED GPU BUFFERS
+    // ----------------------------------------------------------
+    // Pre-allocated VRAM for compute passes. @gpu_buffer reserves
+    // memory and exposes read/write access to shaders.
+
+    // Position buffer: vec4 x 1M particles = 16MB
+    object "ParticlePositionBuffer" {
+      @gpu_buffer(size: 16777216, usage: "storage|vertex", label: "particle_pos")
+      @gpu_buffer(format: "float32x4", element_count: 1000000)
+      visible: false
+    }
+
+    // Velocity buffer: vec4 x 1M particles = 16MB
+    object "ParticleVelocityBuffer" {
+      @gpu_buffer(size: 16777216, usage: "storage", label: "particle_vel")
+      @gpu_buffer(format: "float32x4", element_count: 1000000)
+      visible: false
+    }
+
+    // Fluid density field: 256^3 grid = 64MB
+    object "FluidDensityField" {
+      @gpu_buffer(size: 67108864, usage: "storage|copy_src", label: "fluid_density")
+      @gpu_buffer(format: "float32", element_count: 16777216)
+      visible: false
+    }
+
+    // N-body buffer: vec4 x 16384 bodies
+    object "GravityBodyBuffer" {
+      @gpu_buffer(size: 262144, usage: "storage|vertex", label: "gravity_bodies")
+      @gpu_buffer(format: "float32x4", element_count: 16384)
+      visible: false
+    }
+
+    // ----------------------------------------------------------
+    // ZONE 1: MILLION-PARTICLE FOUNTAIN
+    // ----------------------------------------------------------
+    // @gpu_particle handles spawn/update/render on GPU.
+    // @compute defines the custom WGSL update kernel.
+
+    object "ParticleFountain" {
+      @gpu_particle(max_count: 1000000, emit_rate: 500000, lifetime: 4.0)
+      @gpu_particle(render_mode: "point_sprite", size: 0.02)
+      @gpu_particle(color_over_life: ["#ff6600", "#ff2200", "#440000"])
+      @compute(shader: "shaders/fountain_update.wgsl", workgroup: [256, 1, 1])
+      @compute(dispatch: "auto", bind_group: ["ParticlePositionBuffer", "ParticleVelocityBuffer"])
+      geometry: "point_cloud"
+      position: [0, 0, -8]
+      emitter_shape: "cone"
+      emitter_radius: 0.5
+      emitter_angle: 25
+      initial_speed: [8, 15]
+      gravity: [0, -9.81, 0]
+      drag: 0.02
+      turbulence: 1.5
+    }
+
+    object "FountainBase" {
+      @collidable
+      geometry: "cylinder"
+      position: [0, 0.15, -8]
+      scale: [1.2, 0.3, 1.2]
+      color: "#2a2a3a"
+      material: "polished_stone"
+    }
+
+    // ----------------------------------------------------------
+    // ZONE 2: REAL-TIME FLUID SIMULATION
+    // ----------------------------------------------------------
+    // Eulerian fluid on 256^3 grid. @compute runs advection +
+    // pressure solve. @gpu_physics handles fluid-solid coupling.
+
+    object "FluidVolume" {
+      @compute(shader: "shaders/fluid_advect.wgsl", workgroup: [8, 8, 8])
+      @compute(shader: "shaders/fluid_pressure.wgsl", workgroup: [8, 8, 8])
+      @compute(dispatch: [32, 32, 32], bind_group: ["FluidDensityField"])
+      @gpu_physics(type: "fluid", solver: "eulerian", iterations: 40)
+      @gpu_physics(viscosity: 0.001, density: 1000, grid_resolution: [256, 256, 256])
+      @gpu_buffer(size: 67108864, usage: "storage", label: "fluid_vel_field")
+      geometry: "volume"
+      position: [-8, 2, -8]
+      scale: [4, 4, 4]
+      color: "#0066cc"
+      opacity: 0.6
+      render_mode: "ray_march"
+      ray_march_steps: 128
+    }
+
+    object "FluidObstacle" {
+      @gpu_physics(type: "solid", coupling: "two_way")
+      @collidable
+      geometry: "sphere"
+      position: [-8, 2, -8]
+      scale: [0.8, 0.8, 0.8]
+      color: "#cc3300"
+      metalness: 0.9
+      roughness: 0.2
+    }
+
+    // ----------------------------------------------------------
+    // ZONE 3: N-BODY GRAVITATIONAL SIMULATION
+    // ----------------------------------------------------------
+    // 16,384 bodies via Barnes-Hut O(N log N) approximation.
+    // Rendered as glowing billboard points with motion trails.
+
+    object "GravitySimulation" {
+      @compute(shader: "shaders/nbody_barnes_hut.wgsl", workgroup: [256, 1, 1])
+      @compute(dispatch: [64, 1, 1], bind_group: ["GravityBodyBuffer"])
+      @gpu_particle(max_count: 16384, emit_rate: 0, lifetime: -1)
+      @gpu_particle(render_mode: "billboard", size: 0.06)
+      @gpu_particle(color_over_life: ["#ffffff", "#aaccff", "#4488ff"])
+      @gpu_physics(type: "n_body", softening: 0.1, gravitational_constant: 6.674e-3)
+      @gpu_physics(integrator: "leapfrog", time_step: 0.016)
+      geometry: "point_cloud"
+      position: [8, 4, -8]
+      scale: [6, 6, 6]
+      init_distribution: "dual_disc"
+      disc_radius: 2.5
+      mass_range: [0.5, 5.0]
+      trail_length: 16
+      trail_fade: 0.85
+    }
+
+    // ----------------------------------------------------------
+    // ZONE 4: GPU CLOTH (512x512 vertices)
+    // ----------------------------------------------------------
+    // Position-based dynamics on GPU. @compute for constraints,
+    // @gpu_physics for collision, @gpu_buffer for vertex data.
+
+    object "GPUCloth" {
+      @compute(shader: "shaders/cloth_pbd.wgsl", workgroup: [16, 16, 1])
+      @compute(dispatch: [32, 32, 1])
+      @gpu_physics(type: "cloth", solver: "pbd", iterations: 16)
+      @gpu_physics(stretch_stiffness: 0.95, bend_stiffness: 0.3)
+      @gpu_buffer(size: 4194304, usage: "storage|vertex", label: "cloth_pos")
+      geometry: "plane"
+      position: [0, 5, 0]
+      scale: [4, 1, 4]
+      color: "#8844cc"
+      material: "silk"
+      cloth_resolution: [512, 512]
+      pin_points: [0, 511]
+    }
+
+    // ----------------------------------------------------------
+    // GROUND AND STATS HUD
+    // ----------------------------------------------------------
+
+    object "Ground" {
+      @collidable
+      geometry: "plane"
+      position: [0, 0, 0]
+      scale: [40, 1, 40]
+      color: "#111118"
+    }
+
+    object "StatsOverlay" {
+      @gpu_buffer(size: 256, usage: "map_read|copy_dst", label: "stats")
+      geometry: "plane"
+      position: [0, 7, -6]
+      scale: [3, 1, 1]
+      color: "#000000"
+      opacity: 0.7
+      display_stats: ["particle_count", "gpu_time_ms", "vram_mb"]
+    }
+  }
+}

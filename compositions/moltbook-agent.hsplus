@@ -1,0 +1,551 @@
+/**
+ * Moltbook Agent — .hsplus Autonomous Social Agent
+ *
+ * An autonomous agent for Moltbook (AI agent social network), replacing the
+ * mechanical heartbeat.ts interval loop with an intelligent behavior tree
+ * that reads conversations, thinks about responses, and prioritizes engagement.
+ *
+ * Architecture (HoloDaemon pattern):
+ *   1. Behavior tree — priority-based decision making (replies > outbound > posts)
+ *   2. TypeScript action handlers — wrap client.ts, llm-content-generator.ts
+ *   3. CLI runner — holoscript moltbook-daemon (lifecycle, state persistence)
+ *
+ * Key design decisions:
+ *   - Inbound replies are Priority 1 (fixes the 0/75 reply problem)
+ *   - RAG context is mandatory for posts (fixes fabrication)
+ *   - 3-layer dedup: exact + semantic + topic budget (fixes repetition)
+ *   - Full thread context passed to LLM (agent reads before it writes)
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ * @see holodaemon.hsplus (pattern template)
+ * @see absorb-service/src/daemon/daemon-actions.ts (action handler pattern)
+ */
+
+composition "MoltbookAgent" {
+
+  // ========================================================================
+  // STATE — single source of truth
+  // ========================================================================
+
+  state {
+    // ── Agent Identity ──
+    agentName: "holoscript"
+    agentVersion: "1.0.0"
+    agentStatus: "idle"
+
+    // ── Moltbook Profile (refreshed each tick from API) ──
+    karma: 0
+    followers: 0
+    following: 0
+    karmaTier: "tier4"
+    unreadNotifications: 0
+
+    // ── Daily Counters (reset when dayStart is stale) ──
+    commentsToday: 0
+    outboundToday: 0
+    inboundToday: 0
+    postsToday: 0
+    dayStart: 0
+
+    // ── Timestamps ──
+    lastPostTime: 0
+    lastCommentTime: 0
+    lastCheckTime: 0
+
+    // ── Lifetime Totals ──
+    totalPosts: 0
+    totalComments: 0
+    totalUpvotes: 0
+    cyclesCompleted: 0
+
+    // ── Dedup (persisted across restarts) ──
+    postHistory: []
+    commentedPostIds: []
+    topicBudget: {
+      safety: 0,
+      memory: 0,
+      compilation: 0,
+      recursive: 0,
+      protocol: 0,
+      physics: 0,
+      economy: 0,
+      community: 0
+    }
+
+    // ── Circuit Breaker ──
+    challengeFailures: 0
+    pauseUntil: 0
+    apiErrors: 0
+
+    // ── Economy ──
+    costUSD: 0
+    llmCallsThisCycle: 0
+
+    // ── BT Phase Tracking ──
+    btPhase: "idle"
+    btLastAction: "none"
+
+    // ── Configuration ──
+    maxCommentsPerDay: 50
+    maxOutboundPerTick: 3
+    maxInboundPerTick: 5
+    postCooldownMs: 1800000
+    commentCooldownMs: 20000
+    maxFollowBacksPerTick: 5
+    maxPostsPerTopic30d: 2
+    topicDecayDays: 15
+  }
+
+  // ========================================================================
+  // COMPUTED — derived values
+  // ========================================================================
+
+  computed {
+    isRunning: $agentStatus == "running"
+    canPostNow: $lastPostTime + $postCooldownMs < Date.now() && $postsToday < 3
+    canCommentNow: $commentsToday < $maxCommentsPerDay
+    hasOutboundBudget: $outboundToday < $maxOutboundPerTick
+    hasInboundBudget: $inboundToday < $maxInboundPerTick
+    isPaused: $pauseUntil > Date.now()
+    costLabel: "$" + $costUSD.toFixed(4)
+    karmaTierLabel: $karmaTier
+  }
+
+  // ========================================================================
+  // BEHAVIOR TREE — priority-based autonomous decision making
+  // ========================================================================
+  //
+  // The selector tries each child in order. First success wins.
+  // This means: inbound replies ALWAYS happen before outbound or posts.
+  // The old heartbeat burned all comment budget on outbound first,
+  // leaving 0 replies to 75 inbound comments. This BT fixes that.
+
+  object "Agent" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "moltbook_cycle",
+        children: [
+          // ── Phase 0: Gather intelligence ──
+          {
+            type: "action",
+            name: "gather_context",
+            action: "mb_gather_context"
+          },
+          {
+            type: "action",
+            name: "load_state",
+            action: "mb_load_state"
+          },
+
+          // ── Phase 1: Priority dispatch ──
+          // Selector: first successful branch wins
+          {
+            type: "selector",
+            name: "priority_dispatch",
+            children: [
+
+              // ── P1: Reply to unanswered comments on our posts ──
+              // This is the #1 growth lever — 75 people talking to us, 0 replies
+              {
+                type: "sequence",
+                name: "inbound_replies",
+                children: [
+                  {
+                    type: "condition",
+                    name: "has_unanswered",
+                    condition: "has_unanswered_comments"
+                  },
+                  {
+                    type: "action",
+                    name: "read_thread",
+                    action: "mb_read_thread_context"
+                  },
+                  {
+                    type: "action",
+                    name: "gen_reply",
+                    action: "mb_generate_reply"
+                  },
+                  {
+                    type: "action",
+                    name: "post_reply",
+                    action: "mb_post_reply"
+                  },
+                  {
+                    type: "action",
+                    name: "mark_read",
+                    action: "mb_mark_read"
+                  }
+                ]
+              },
+
+              // ── P2: Outbound engagement (browse + comment) ──
+              {
+                type: "sequence",
+                name: "outbound_engagement",
+                children: [
+                  {
+                    type: "condition",
+                    name: "can_comment",
+                    condition: "can_comment_today"
+                  },
+                  {
+                    type: "selector",
+                    name: "discovery",
+                    children: [
+                      {
+                        type: "sequence",
+                        name: "feed_browse",
+                        children: [
+                          {
+                            type: "condition",
+                            name: "use_feed",
+                            condition: "use_feed_this_tick"
+                          },
+                          {
+                            type: "action",
+                            name: "browse_feed",
+                            action: "mb_browse_feed"
+                          }
+                        ]
+                      },
+                      {
+                        type: "sequence",
+                        name: "search_browse",
+                        children: [
+                          {
+                            type: "action",
+                            name: "search",
+                            action: "mb_search_topics"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    type: "action",
+                    name: "evaluate",
+                    action: "mb_evaluate_posts"
+                  },
+                  {
+                    type: "action",
+                    name: "read_deep",
+                    action: "mb_read_post_deeply"
+                  },
+                  {
+                    type: "action",
+                    name: "gen_comment",
+                    action: "mb_generate_comment"
+                  },
+                  {
+                    type: "action",
+                    name: "post_comment",
+                    action: "mb_post_comment"
+                  }
+                ]
+              },
+
+              // ── P3: Post new content (least frequent) ──
+              {
+                type: "sequence",
+                name: "create_post",
+                children: [
+                  {
+                    type: "condition",
+                    name: "post_ready",
+                    condition: "post_cooldown_elapsed"
+                  },
+                  {
+                    type: "action",
+                    name: "rag_context",
+                    action: "mb_gather_rag_context"
+                  },
+                  {
+                    type: "action",
+                    name: "gen_post",
+                    action: "mb_generate_post"
+                  },
+                  {
+                    type: "action",
+                    name: "dedup_check",
+                    action: "mb_check_dedup"
+                  },
+                  {
+                    type: "action",
+                    name: "verify_ground",
+                    action: "mb_verify_grounding"
+                  },
+                  {
+                    type: "action",
+                    name: "publish",
+                    action: "mb_publish_post"
+                  }
+                ]
+              },
+
+              // ── P4: Social maintenance ──
+              {
+                type: "sequence",
+                name: "maintenance",
+                children: [
+                  {
+                    type: "action",
+                    name: "follow_backs",
+                    action: "mb_process_follow_backs"
+                  },
+                  {
+                    type: "action",
+                    name: "karma_update",
+                    action: "mb_update_karma_tier"
+                  }
+                ]
+              }
+            ]
+          },
+
+          // ── Phase 2: Persist and cooldown ──
+          {
+            type: "action",
+            name: "save",
+            action: "mb_save_state"
+          }
+        ]
+      },
+      tick_rate: 1,
+      restart_on_complete: false,
+      blackboard: {
+        // Context (ephemeral, refreshed each tick)
+        unanswered_comments: [],
+        notifications: [],
+        activity_posts: [],
+        discovered_posts: [],
+        evaluated_posts: [],
+
+        // Current conversation (ephemeral, per-action)
+        current_post_id: "",
+        thread_context: "",
+        commenter_profile: null,
+        rag_context: "",
+        draft_content: "",
+
+        // Conditions
+        has_unanswered_comments: false,
+        can_comment_today: false,
+        use_feed_this_tick: false,
+        post_cooldown_elapsed: false,
+
+        // Discovery state
+        search_topic_index: 0,
+        feed_strategy_index: 0,
+        feed_strategies: ["hot", "new", "rising"],
+        search_topics: [
+          "MCP protocol tools",
+          "agent infrastructure",
+          "autonomous agent architecture",
+          "agent safety constraints",
+          "self-improvement recursive agents",
+          "memory persistence identity",
+          "compilation targets backends",
+          "multi-agent coordination",
+          "semantic search knowledge graphs",
+          "3D spatial computing XR",
+          "agent trust verification",
+          "open source AI tools"
+        ]
+      }
+    }
+
+    // Safety: rate limit Moltbook API calls
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 10,
+      refill_rate: 2,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // Safety: timeout for stuck LLM calls or API hangs
+    @timeout_guard {
+      default_timeout_ms: 30000,
+      fallback_action: "abort"
+    }
+
+    // Safety: circuit breaker for API failures
+    @circuit_breaker {
+      failure_threshold: 3,
+      window_ms: 300000,
+      reset_timeout_ms: 3600000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 3
+    }
+
+    // Telemetry
+    @structured_logger {
+      min_level: "info",
+      max_entries: 200,
+      rotation_count: 50,
+      emit_events: true,
+      console_output: true,
+      default_fields: {}
+    }
+
+    // Economy: track LLM spend
+    @economy {
+      initial_balance: 5,
+      default_spend_limit: 1,
+      spend_limit_period: 3600000,
+      max_transaction_history: 100,
+      escrow_enabled: false,
+      task_completion_reward: 0
+    }
+  }
+
+  // ========================================================================
+  // LOGIC — event handlers
+  // ========================================================================
+
+  logic {
+    on_start() {
+      $agentStatus = "running"
+      $btPhase = "initializing"
+      emit("moltbook:started", {
+        agent: $agentName,
+        version: $agentVersion
+      })
+    }
+
+    on_event("moltbook:context_gathered", event) {
+      $karma = event.karma ?? $karma
+      $followers = event.followers ?? $followers
+      $following = event.following ?? $following
+      $unreadNotifications = event.unread ?? $unreadNotifications
+      $btPhase = "context_ready"
+    }
+
+    on_event("moltbook:reply_posted", event) {
+      $inboundToday = $inboundToday + 1
+      $commentsToday = $commentsToday + 1
+      $totalComments = $totalComments + 1
+      $lastCommentTime = Date.now()
+      $btPhase = "replied"
+      $btLastAction = "reply to " + (event.postTitle ?? "unknown")
+    }
+
+    on_event("moltbook:comment_posted", event) {
+      $outboundToday = $outboundToday + 1
+      $commentsToday = $commentsToday + 1
+      $totalComments = $totalComments + 1
+      $lastCommentTime = Date.now()
+      $btPhase = "commented"
+      $btLastAction = "comment on " + (event.postTitle ?? "unknown")
+    }
+
+    on_event("moltbook:post_published", event) {
+      $postsToday = $postsToday + 1
+      $totalPosts = $totalPosts + 1
+      $lastPostTime = Date.now()
+      $btPhase = "posted"
+      $btLastAction = "published " + (event.title ?? "unknown")
+    }
+
+    on_event("moltbook:cycle_complete", event) {
+      $cyclesCompleted = $cyclesCompleted + 1
+      $agentStatus = "idle"
+      $btPhase = "idle"
+    }
+
+    on_event("economy:spend", event) {
+      $costUSD = $costUSD + (event.amount ?? 0)
+      $llmCallsThisCycle = $llmCallsThisCycle + 1
+    }
+
+    on_event("moltbook:error", event) {
+      $apiErrors = $apiErrors + 1
+      $btLastAction = "error: " + (event.message ?? "unknown")
+    }
+  }
+
+  // ========================================================================
+  // TESTS — validate state defaults and computed values
+  // ========================================================================
+
+  @test {
+    name: "agent name is holoscript"
+    assert: { $agentName == "holoscript" }
+  }
+
+  @test {
+    name: "agent starts idle"
+    assert: { $agentStatus == "idle" }
+  }
+
+  @test {
+    name: "isRunning false when idle"
+    assert: { $isRunning == false }
+  }
+
+  @test {
+    name: "isRunning true when running"
+    setup: { $agentStatus = "running" }
+    assert: { $isRunning == true }
+  }
+
+  @test {
+    name: "canPostNow respects cooldown"
+    setup: { $lastPostTime = Date.now(); $postsToday = 0 }
+    assert: { $canPostNow == false }
+  }
+
+  @test {
+    name: "canCommentNow respects daily limit"
+    setup: { $commentsToday = 50; $maxCommentsPerDay = 50 }
+    assert: { $canCommentNow == false }
+  }
+
+  @test {
+    name: "hasOutboundBudget tracks outbound"
+    setup: { $outboundToday = 3; $maxOutboundPerTick = 3 }
+    assert: { $hasOutboundBudget == false }
+  }
+
+  @test {
+    name: "hasInboundBudget tracks inbound"
+    setup: { $inboundToday = 5; $maxInboundPerTick = 5 }
+    assert: { $hasInboundBudget == false }
+  }
+
+  @test {
+    name: "isPaused when pauseUntil is future"
+    setup: { $pauseUntil = Date.now() + 60000 }
+    assert: { $isPaused == true }
+  }
+
+  @test {
+    name: "isPaused false when expired"
+    setup: { $pauseUntil = 0 }
+    assert: { $isPaused == false }
+  }
+
+  @test {
+    name: "costLabel formats correctly"
+    setup: { $costUSD = 0.0312 }
+    assert: { $costLabel == "$0.0312" }
+  }
+
+  @test {
+    name: "default karma tier is tier4"
+    assert: { $karmaTier == "tier4" }
+  }
+
+  @test {
+    name: "post cooldown default is 30 minutes"
+    assert: { $postCooldownMs == 1800000 }
+  }
+
+  @test {
+    name: "topic budget starts at zero"
+    assert: { $topicBudget.safety == 0 }
+  }
+}

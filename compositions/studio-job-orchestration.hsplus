@@ -1,0 +1,95 @@
+composition "StudioJobOrchestration" {
+  state {
+    workspaceId: "repo-001"
+    branchName: "main"
+    queueOpen: true
+    activeRuntime: "headless"
+    nextActivityId: 4
+    jobs: [
+      {
+        id: "job-1024",
+        type: "absorb",
+        status: "running",
+        runtime: "headless",
+        progress: 64,
+        requiresReview: false,
+        assignedAgent: "planner"
+      },
+      {
+        id: "job-1025",
+        type: "validate",
+        status: "queued",
+        runtime: "minimal",
+        progress: 0,
+        requiresReview: false,
+        assignedAgent: "verifier"
+      },
+      {
+        id: "job-1026",
+        type: "patch",
+        status: "awaiting_review",
+        runtime: "full",
+        progress: 100,
+        requiresReview: true,
+        assignedAgent: "reviewer"
+      }
+    ]
+    activities: [
+      { id: 1, kind: "upload", message: "Repository upload completed." },
+      { id: 2, kind: "planner", message: "Project DNA classified as legacy TypeScript workspace." },
+      { id: 3, kind: "daemon", message: "Orchestration cycle started." }
+    ]
+    forks: [
+      { id: "fork-main", branch: "studio/main", status: "tracking" },
+      { id: "fork-review", branch: "studio/review/job-1026", status: "open" }
+    ]
+    agents: [
+      { id: "planner", mode: "planning", available: false },
+      { id: "verifier", mode: "validation", available: true },
+      { id: "reviewer", mode: "governance", available: true }
+    ]
+  }
+
+  object "Coordinator" {
+    @behavior_tree {
+      root: {
+        type: "selector",
+        name: "studio_job_cycle",
+        children: [
+          {
+            type: "sequence",
+            name: "review_gate",
+            children: [
+              {
+                type: "condition",
+                name: "has_review_jobs",
+                condition: "has_review_jobs"
+              },
+              {
+                type: "action",
+                name: "report_review_gate",
+                action: "report_review_gate"
+              }
+            ]
+          },
+          {
+            type: "sequence",
+            name: "dispatch_cycle",
+            children: [
+              {
+                type: "condition",
+                name: "queue_open",
+                condition: "queue_open"
+              },
+              {
+                type: "action",
+                name: "dispatch_next_job",
+                action: "dispatchNext"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

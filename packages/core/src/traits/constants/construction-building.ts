@@ -1,0 +1,30 @@
+/**
+ * Construction & Building Traits
+ */
+export const CONSTRUCTION_BUILDING_TRAITS = [
+  'buildable',
+  'placeable',
+  'alignable',
+  'resizable',
+  'paintable_surface',
+  'terrain_modifiable',
+  'blueprint',
+  'foundation',
+  'wall',
+  'roof',
+  'door',
+  'window',
+  'staircase',
+  'ladder',
+  'bridge',
+  'elevator',
+  'conveyor',
+  'pipe',
+  'wire',
+  'switch',
+  'lever',
+  'button',
+  'pressure_plate',
+  'tripwire',
+  'alarm',
+] as const;

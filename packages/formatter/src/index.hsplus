@@ -1,0 +1,643 @@
+/**
+ * HoloScript Formatter
+ * 
+ * Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files.
+ * Enforces consistent code style and formatting across the codebase.
+ * 
+ * Features:
+ * - Indentation normalization
+ * - Brace style enforcement
+ * - Line length limits
+ * - Trailing comma handling
+ * - Import sorting
+ * - Whitespace cleanup
+ * - Array/object formatting
+ * 
+ * @package @hololand/holoscript-formatter
+ * @version 2.0.0
+ */
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+struct FormatterConfig {
+  // Indentation
+  indentSize: number = 2
+  useTabs: boolean = false
+  
+  // Line length
+  maxLineLength: number = 100
+  
+  // Braces
+  braceStyle: BraceStyle = BraceStyle.SAME_LINE
+  
+  // Arrays/Objects
+  trailingComma: TrailingComma = TrailingComma.MULTI_LINE
+  bracketSpacing: boolean = true
+  
+  // Semicolons (HSPlus)
+  semicolons: boolean = false
+  
+  // Quotes
+  singleQuote: boolean = false
+  
+  // Imports
+  sortImports: boolean = true
+  
+  // Blank lines
+  maxBlankLines: number = 1
+  blankLineBeforeComposition: boolean = true
+  blankLineBeforeModule: boolean = true
+  
+  // Comments
+  preserveComments: boolean = true
+}
+
+enum BraceStyle {
+  SAME_LINE,      // { on same line
+  NEW_LINE,       // { on new line
+  STROUSTRUP      // } else { pattern
+}
+
+enum TrailingComma {
+  NONE,           // Never trailing commas
+  MULTI_LINE,     // Trailing commas in multi-line only
+  ALL             // Always trailing commas
+}
+
+struct FormatResult {
+  text: string
+  changed: boolean
+  changeCount: number
+}
+
+// =============================================================================
+// TOKEN TYPES
+// =============================================================================
+
+enum TokenType {
+  KEYWORD,
+  IDENTIFIER,
+  STRING,
+  NUMBER,
+  OPERATOR,
+  PUNCTUATION,
+  COMMENT,
+  WHITESPACE,
+  NEWLINE,
+  EOF
+}
+
+struct Token {
+  type: TokenType
+  value: string
+  line: number
+  column: number
+}
+
+// =============================================================================
+// LEXER
+// =============================================================================
+
+module Lexer {
+  @method tokenize(text: string): Token[] {
+    const tokens: Token[] = []
+    let pos = 0
+    let line = 1
+    let column = 1
+    
+    const keywords = new Set([
+      "orb", "world", "composition", "template", "spatial_group", "object",
+      "logic", "state", "action", "using", "traits", "import", "from", "export",
+      "module", "struct", "enum", "const", "let", "var", "function",
+      "if", "else", "for", "while", "return", "break", "continue",
+      "async", "await", "new", "this", "true", "false", "null"
+    ])
+    
+    while (pos < text.length) {
+      const char = text[pos]
+      
+      // Newline
+      if (char === "\n") {
+        tokens.push({ type: TokenType.NEWLINE, value: "\n", line, column })
+        pos++
+        line++
+        column = 1
+        continue
+      }
+      
+      // Whitespace
+      if (/\s/.test(char)) {
+        let value = ""
+        while (pos < text.length && /[ \t]/.test(text[pos])) {
+          value += text[pos]
+          pos++
+          column++
+        }
+        tokens.push({ type: TokenType.WHITESPACE, value, line, column: column - value.length })
+        continue
+      }
+      
+      // Comments
+      if (text.slice(pos, pos + 2) === "//") {
+        let value = ""
+        while (pos < text.length && text[pos] !== "\n") {
+          value += text[pos]
+          pos++
+          column++
+        }
+        tokens.push({ type: TokenType.COMMENT, value, line, column: column - value.length })
+        continue
+      }
+      
+      if (text.slice(pos, pos + 2) === "/*") {
+        let value = "/*"
+        pos += 2
+        column += 2
+        while (pos < text.length && text.slice(pos, pos + 2) !== "*/") {
+          if (text[pos] === "\n") {
+            line++
+            column = 1
+          } else {
+            column++
+          }
+          value += text[pos]
+          pos++
+        }
+        if (pos < text.length) {
+          value += "*/"
+          pos += 2
+          column += 2
+        }
+        tokens.push({ type: TokenType.COMMENT, value, line, column: column - value.length })
+        continue
+      }
+      
+      // Strings
+      if (char === '"' || char === "'") {
+        const quote = char
+        let value = quote
+        pos++
+        column++
+        while (pos < text.length && text[pos] !== quote) {
+          if (text[pos] === "\\" && pos + 1 < text.length) {
+            value += text[pos] + text[pos + 1]
+            pos += 2
+            column += 2
+          } else {
+            value += text[pos]
+            pos++
+            column++
+          }
+        }
+        if (pos < text.length) {
+          value += quote
+          pos++
+          column++
+        }
+        tokens.push({ type: TokenType.STRING, value, line, column: column - value.length })
+        continue
+      }
+      
+      // Numbers
+      if (/\d/.test(char) || (char === "." && /\d/.test(text[pos + 1]))) {
+        let value = ""
+        while (pos < text.length && /[\d._]/.test(text[pos])) {
+          value += text[pos]
+          pos++
+          column++
+        }
+        tokens.push({ type: TokenType.NUMBER, value, line, column: column - value.length })
+        continue
+      }
+      
+      // Identifiers and keywords
+      if (/[a-zA-Z_@]/.test(char)) {
+        let value = ""
+        while (pos < text.length && /[a-zA-Z0-9_]/.test(text[pos])) {
+          value += text[pos]
+          pos++
+          column++
+        }
+        const type = keywords.has(value) ? TokenType.KEYWORD : TokenType.IDENTIFIER
+        tokens.push({ type, value, line, column: column - value.length })
+        continue
+      }
+      
+      // Operators
+      const operators = ["===", "!==", "...", "=>", "<=", ">=", "==", "!=", "&&", "||", "++", "--", "+=", "-=", "*=", "/="]
+      let matched = false
+      for (const op of operators) {
+        if (text.slice(pos, pos + op.length) === op) {
+          tokens.push({ type: TokenType.OPERATOR, value: op, line, column })
+          pos += op.length
+          column += op.length
+          matched = true
+          break
+        }
+      }
+      if (matched) continue
+      
+      // Single-char operators and punctuation
+      if (/[+\-*/%=<>!&|^~?]/.test(char)) {
+        tokens.push({ type: TokenType.OPERATOR, value: char, line, column })
+        pos++
+        column++
+        continue
+      }
+      
+      // Punctuation
+      if (/[{}[\]():;,.]/.test(char)) {
+        tokens.push({ type: TokenType.PUNCTUATION, value: char, line, column })
+        pos++
+        column++
+        continue
+      }
+      
+      // Unknown character
+      pos++
+      column++
+    }
+    
+    tokens.push({ type: TokenType.EOF, value: "", line, column })
+    return tokens
+  }
+}
+
+// =============================================================================
+// FORMATTER ENGINE
+// =============================================================================
+
+module HoloScriptFormatter {
+  @state {
+    config: FormatterConfig = new FormatterConfig()
+  }
+  
+  @action configure(config: Partial<FormatterConfig>): void {
+    this.state.config = { ...this.state.config, ...config }
+  }
+  
+  @method format(text: string, filename: string = "input.holo"): FormatResult {
+    const isHsplus = filename.endsWith(".hsplus")
+    const config = this.state.config
+    
+    // Quick format approach (line-by-line)
+    const lines = text.split("\n")
+    const formattedLines: string[] = []
+    let indentLevel = 0
+    let previousBlankLines = 0
+    let inMultiLineComment = false
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i]
+      
+      // Track multi-line comments
+      if (line.includes("/*") && !line.includes("*/")) {
+        inMultiLineComment = true
+      }
+      if (line.includes("*/")) {
+        inMultiLineComment = false
+      }
+      
+      // Preserve comments
+      if (inMultiLineComment || line.trim().startsWith("//") || line.trim().startsWith("/*")) {
+        formattedLines.push(this.applyIndent(line.trim(), indentLevel, config))
+        previousBlankLines = 0
+        continue
+      }
+      
+      // Handle blank lines
+      if (line.trim() === "") {
+        if (previousBlankLines < config.maxBlankLines) {
+          formattedLines.push("")
+          previousBlankLines++
+        }
+        continue
+      }
+      previousBlankLines = 0
+      
+      // Trim line
+      line = line.trim()
+      
+      // Decrease indent before closing braces
+      if (line.startsWith("}") || line.startsWith("]") || line.startsWith(")")) {
+        indentLevel = Math.max(0, indentLevel - 1)
+      }
+      
+      // Format the line
+      let formattedLine = line
+      
+      // Normalize spacing around operators
+      formattedLine = this.normalizeOperatorSpacing(formattedLine)
+      
+      // Format arrays
+      formattedLine = this.formatArrays(formattedLine, config)
+      
+      // Format colons in properties
+      formattedLine = this.formatPropertyColons(formattedLine)
+      
+      // Handle brace style
+      if (config.braceStyle === BraceStyle.SAME_LINE) {
+        // Ensure { is on same line
+        if (formattedLine === "{" && formattedLines.length > 0) {
+          const lastLine = formattedLines.pop()!
+          formattedLine = lastLine + " {"
+        }
+      }
+      
+      // Apply indentation
+      formattedLine = this.applyIndent(formattedLine, indentLevel, config)
+      
+      // Add blank line before composition/module
+      if (config.blankLineBeforeComposition && 
+          (formattedLine.trim().startsWith("composition") || 
+           formattedLine.trim().startsWith("module")) &&
+          formattedLines.length > 0 &&
+          formattedLines[formattedLines.length - 1] !== "") {
+        formattedLines.push("")
+      }
+      
+      formattedLines.push(formattedLine)
+      
+      // Increase indent after opening braces
+      const opens = (line.match(/{/g) || []).length
+      const closes = (line.match(/}/g) || []).length
+      indentLevel += opens - closes
+      indentLevel = Math.max(0, indentLevel)
+    }
+    
+    // Remove trailing blank lines
+    while (formattedLines.length > 0 && formattedLines[formattedLines.length - 1] === "") {
+      formattedLines.pop()
+    }
+    
+    // Ensure single trailing newline
+    formattedLines.push("")
+    
+    const formatted = formattedLines.join("\n")
+    
+    return {
+      text: formatted,
+      changed: text !== formatted,
+      changeCount: this.countDifferences(text, formatted)
+    }
+  }
+  
+  @method applyIndent(line: string, level: number, config: FormatterConfig): string {
+    if (line === "") return ""
+    
+    const indent = config.useTabs
+      ? "\t".repeat(level)
+      : " ".repeat(level * config.indentSize)
+    
+    return indent + line
+  }
+  
+  @method normalizeOperatorSpacing(line: string): string {
+    // Add spaces around assignment operators
+    line = line.replace(/(\w+)\s*=\s*(?!=)/g, "$1 = ")
+    
+    // Add spaces around comparison operators
+    line = line.replace(/(\w+)\s*(===|!==|==|!=|<=|>=|<|>)\s*/g, "$1 $2 ")
+    
+    // Add spaces around arithmetic operators (but not in array indices)
+    line = line.replace(/(\w+)\s*(\+\+|--)/g, "$1$2")  // Preserve ++/--
+    line = line.replace(/(\w+)\s*(\+=|-=|\*=|\/=)\s*/g, "$1 $2 ")
+    
+    // Clean up multiple spaces
+    line = line.replace(/  +/g, " ")
+    
+    return line
+  }
+  
+  @method formatArrays(line: string, config: FormatterConfig): string {
+    // Format array brackets with consistent spacing
+    if (config.bracketSpacing) {
+      // Add spaces inside brackets for short arrays
+      line = line.replace(/\[\s*([^\[\]]{1,30})\s*\]/g, (match, content) => {
+        if (content.includes("\n")) return match
+        return `[ ${content.trim()} ]`
+      })
+    } else {
+      // Remove spaces inside brackets
+      line = line.replace(/\[\s+/g, "[")
+      line = line.replace(/\s+\]/g, "]")
+    }
+    
+    return line
+  }
+  
+  @method formatPropertyColons(line: string): string {
+    // Format property: value with consistent spacing
+    line = line.replace(/(\w+)\s*:\s*/g, "$1: ")
+    return line
+  }
+  
+  @method countDifferences(original: string, formatted: string): number {
+    const origLines = original.split("\n")
+    const formLines = formatted.split("\n")
+    let changes = 0
+    
+    const maxLen = Math.max(origLines.length, formLines.length)
+    for (let i = 0; i < maxLen; i++) {
+      if (origLines[i] !== formLines[i]) {
+        changes++
+      }
+    }
+    
+    return changes
+  }
+  
+  @method formatImports(text: string): string {
+    if (!this.state.config.sortImports) return text
+    
+    const lines = text.split("\n")
+    const importLines: string[] = []
+    const otherLines: string[] = []
+    let inImports = true
+    
+    for (const line of lines) {
+      if (inImports && line.trim().startsWith("import")) {
+        importLines.push(line)
+      } else if (inImports && line.trim() === "") {
+        // Skip blank lines in import section
+      } else {
+        inImports = false
+        otherLines.push(line)
+      }
+    }
+    
+    // Sort imports
+    importLines.sort((a, b) => {
+      // Sort by module path
+      const pathA = a.match(/from\s+["']([^"']+)["']/)?.[1] || ""
+      const pathB = b.match(/from\s+["']([^"']+)["']/)?.[1] || ""
+      
+      // External imports first (starting with @)
+      if (pathA.startsWith("@") && !pathB.startsWith("@")) return -1
+      if (!pathA.startsWith("@") && pathB.startsWith("@")) return 1
+      
+      // Then by path
+      return pathA.localeCompare(pathB)
+    })
+    
+    if (importLines.length > 0) {
+      return [...importLines, "", ...otherLines].join("\n")
+    }
+    
+    return text
+  }
+  
+  @method check(text: string, filename: string = "input.holo"): { formatted: boolean, issues: string[] } {
+    const result = this.format(text, filename)
+    
+    if (!result.changed) {
+      return { formatted: true, issues: [] }
+    }
+    
+    // Find specific issues
+    const issues: string[] = []
+    const origLines = text.split("\n")
+    const formLines = result.text.split("\n")
+    
+    for (let i = 0; i < Math.max(origLines.length, formLines.length); i++) {
+      if (origLines[i] !== formLines[i]) {
+        issues.push(`Line ${i + 1}: formatting differs`)
+      }
+    }
+    
+    return { formatted: false, issues }
+  }
+}
+
+// =============================================================================
+// CLI INTERFACE
+// =============================================================================
+
+module FormatterCLI {
+  @method async run(args: string[]): Promise<number> {
+    const files: string[] = []
+    let write = false
+    let check = false
+    let json = false
+    
+    // Parse arguments
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      
+      if (arg === "--write" || arg === "-w") {
+        write = true
+      } else if (arg === "--check" || arg === "-c") {
+        check = true
+      } else if (arg === "--json") {
+        json = true
+      } else if (arg === "--tab") {
+        HoloScriptFormatter.configure({ useTabs: true })
+      } else if (arg === "--tab-width" && args[i + 1]) {
+        HoloScriptFormatter.configure({ indentSize: parseInt(args[++i]) })
+      } else if (arg === "--single-quote") {
+        HoloScriptFormatter.configure({ singleQuote: true })
+      } else if (arg === "--trailing-comma" && args[i + 1]) {
+        const value = args[++i]
+        const mapping: Record<string, TrailingComma> = {
+          none: TrailingComma.NONE,
+          "multi-line": TrailingComma.MULTI_LINE,
+          all: TrailingComma.ALL
+        }
+        HoloScriptFormatter.configure({ trailingComma: mapping[value] || TrailingComma.MULTI_LINE })
+      } else if (!arg.startsWith("-")) {
+        files.push(arg)
+      }
+    }
+    
+    if (files.length === 0) {
+      console.log("Usage: holoscript-format [options] <files...>")
+      console.log("")
+      console.log("Options:")
+      console.log("  --write, -w           Write formatted output to file")
+      console.log("  --check, -c           Check if files are formatted")
+      console.log("  --json                Output results as JSON")
+      console.log("  --tab                 Use tabs instead of spaces")
+      console.log("  --tab-width <n>       Spaces per indent (default: 2)")
+      console.log("  --single-quote        Use single quotes")
+      console.log("  --trailing-comma      Trailing comma style (none, multi-line, all)")
+      return 0
+    }
+    
+    const fs = require("fs")
+    const results: { file: string, changed: boolean, changeCount: number }[] = []
+    let hasUnformatted = false
+    
+    for (const file of files) {
+      const text = fs.readFileSync(file, "utf8")
+      const result = HoloScriptFormatter.format(text, file)
+      
+      results.push({
+        file,
+        changed: result.changed,
+        changeCount: result.changeCount
+      })
+      
+      if (result.changed) {
+        hasUnformatted = true
+        
+        if (write) {
+          fs.writeFileSync(file, result.text)
+          if (!json) {
+            console.log(`Formatted: ${file}`)
+          }
+        } else if (check) {
+          if (!json) {
+            console.log(`Needs formatting: ${file}`)
+          }
+        } else {
+          // Print formatted output
+          console.log(result.text)
+        }
+      } else {
+        if (!json) {
+          console.log(`Already formatted: ${file}`)
+        }
+      }
+    }
+    
+    if (json) {
+      console.log(JSON.stringify(results, null, 2))
+    }
+    
+    return check && hasUnformatted ? 1 : 0
+  }
+}
+
+// =============================================================================
+// CLI ENTRY POINT
+// =============================================================================
+
+if (require.main === module) {
+  FormatterCLI.run(process.argv.slice(2))
+    .then(code => process.exit(code))
+    .catch(err => {
+      console.error("Fatal error:", err)
+      process.exit(1)
+    })
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+export {
+  // Types
+  FormatterConfig,
+  BraceStyle,
+  TrailingComma,
+  FormatResult,
+  Token,
+  TokenType,
+  
+  // Modules
+  Lexer,
+  HoloScriptFormatter,
+  FormatterCLI
+}

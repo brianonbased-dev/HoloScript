@@ -1,0 +1,142 @@
+@manifest {
+  title: "Large Scene - 200 Orbs"
+  version: "1.0.0"
+}
+
+template "Box" { @collidable @physics(mass: 0.5) }
+template "Sphere" { @grabbable @hoverable }
+template "Interactive" { @clickable on_click: { console.log("interacted"); } }
+
+orb root {
+  position: [0, 0, 0]
+  scale: [1, 1, 1]
+  
+  children: [
+    orb layer_0 { position: [0, 0, 0]; children: [
+      orb a_0 using "Box" { position: [0, 1, 0]; color: "red"; },
+      orb a_1 using "Sphere" { position: [1, 1, 0]; color: "blue"; },
+      orb a_2 using "Interactive" { position: [2, 1, 0]; color: "green"; },
+      orb a_3 using "Box" { position: [3, 1, 0]; color: "yellow"; },
+      orb a_4 using "Sphere" { position: [4, 1, 0]; color: "purple"; },
+      orb a_5 using "Interactive" { position: [5, 1, 0]; color: "orange"; },
+      orb a_6 using "Box" { position: [6, 1, 0]; color: "red"; },
+      orb a_7 using "Sphere" { position: [7, 1, 0]; color: "blue"; },
+      orb a_8 using "Interactive" { position: [0, 1, 1]; color: "green"; },
+      orb a_9 using "Box" { position: [1, 1, 1]; color: "yellow"; }
+    ]},
+    orb layer_1 { position: [0, 2, 0]; children: [
+      orb b_0 using "Sphere" { position: [0, 1, 0]; color: "purple"; },
+      orb b_1 using "Interactive" { position: [1, 1, 0]; color: "orange"; },
+      orb b_2 using "Box" { position: [2, 1, 0]; color: "red"; },
+      orb b_3 using "Sphere" { position: [3, 1, 0]; color: "blue"; },
+      orb b_4 using "Interactive" { position: [4, 1, 0]; color: "green"; },
+      orb b_5 using "Box" { position: [5, 1, 0]; color: "yellow"; },
+      orb b_6 using "Sphere" { position: [6, 1, 0]; color: "purple"; },
+      orb b_7 using "Interactive" { position: [7, 1, 0]; color: "orange"; },
+      orb b_8 using "Box" { position: [0, 1, 1]; color: "red"; },
+      orb b_9 using "Sphere" { position: [1, 1, 1]; color: "blue"; }
+    ]},
+    orb layer_2 { position: [0, 4, 0]; children: [
+      orb c_0 using "Interactive" { position: [0, 1, 0]; color: "green"; },
+      orb c_1 using "Box" { position: [1, 1, 0]; color: "yellow"; },
+      orb c_2 using "Sphere" { position: [2, 1, 0]; color: "purple"; },
+      orb c_3 using "Interactive" { position: [3, 1, 0]; color: "orange"; },
+      orb c_4 using "Box" { position: [4, 1, 0]; color: "red"; },
+      orb c_5 using "Sphere" { position: [5, 1, 0]; color: "blue"; },
+      orb c_6 using "Interactive" { position: [6, 1, 0]; color: "green"; },
+      orb c_7 using "Box" { position: [7, 1, 0]; color: "yellow"; },
+      orb c_8 using "Sphere" { position: [0, 1, 1]; color: "purple"; },
+      orb c_9 using "Interactive" { position: [1, 1, 1]; color: "orange"; }
+    ]},
+    orb layer_3 { position: [0, 6, 0]; children: [
+      orb d_0 using "Box" { position: [0, 1, 0]; color: "red"; },
+      orb d_1 using "Sphere" { position: [1, 1, 0]; color: "blue"; },
+      orb d_2 using "Interactive" { position: [2, 1, 0]; color: "green"; },
+      orb d_3 using "Box" { position: [3, 1, 0]; color: "yellow"; },
+      orb d_4 using "Sphere" { position: [4, 1, 0]; color: "purple"; },
+      orb d_5 using "Interactive" { position: [5, 1, 0]; color: "orange"; },
+      orb d_6 using "Box" { position: [6, 1, 0]; color: "red"; },
+      orb d_7 using "Sphere" { position: [7, 1, 0]; color: "blue"; },
+      orb d_8 using "Interactive" { position: [0, 1, 1]; color: "green"; },
+      orb d_9 using "Box" { position: [1, 1, 1]; color: "yellow"; }
+    ]},
+    orb layer_4 { position: [0, 8, 0]; children: [
+      orb e_0 using "Sphere" { position: [0, 1, 0]; color: "purple"; },
+      orb e_1 using "Interactive" { position: [1, 1, 0]; color: "orange"; },
+      orb e_2 using "Box" { position: [2, 1, 0]; color: "red"; },
+      orb e_3 using "Sphere" { position: [3, 1, 0]; color: "blue"; },
+      orb e_4 using "Interactive" { position: [4, 1, 0]; color: "green"; },
+      orb e_5 using "Box" { position: [5, 1, 0]; color: "yellow"; },
+      orb e_6 using "Sphere" { position: [6, 1, 0]; color: "purple"; },
+      orb e_7 using "Interactive" { position: [7, 1, 0]; color: "orange"; },
+      orb e_8 using "Box" { position: [0, 1, 1]; color: "red"; },
+      orb e_9 using "Sphere" { position: [1, 1, 1]; color: "blue"; }
+    ]},
+    orb layer_5 { position: [8, 0, 0]; children: [
+      orb f_0 using "Interactive" { position: [0, 1, 0]; color: "green"; },
+      orb f_1 using "Box" { position: [1, 1, 0]; color: "yellow"; },
+      orb f_2 using "Sphere" { position: [2, 1, 0]; color: "purple"; },
+      orb f_3 using "Interactive" { position: [3, 1, 0]; color: "orange"; },
+      orb f_4 using "Box" { position: [4, 1, 0]; color: "red"; },
+      orb f_5 using "Sphere" { position: [5, 1, 0]; color: "blue"; },
+      orb f_6 using "Interactive" { position: [6, 1, 0]; color: "green"; },
+      orb f_7 using "Box" { position: [7, 1, 0]; color: "yellow"; },
+      orb f_8 using "Sphere" { position: [0, 1, 1]; color: "purple"; },
+      orb f_9 using "Interactive" { position: [1, 1, 1]; color: "orange"; }
+    ]},
+    orb layer_6 { position: [8, 2, 0]; children: [
+      orb g_0 using "Box" { position: [0, 1, 0]; color: "red"; },
+      orb g_1 using "Sphere" { position: [1, 1, 0]; color: "blue"; },
+      orb g_2 using "Interactive" { position: [2, 1, 0]; color: "green"; },
+      orb g_3 using "Box" { position: [3, 1, 0]; color: "yellow"; },
+      orb g_4 using "Sphere" { position: [4, 1, 0]; color: "purple"; },
+      orb g_5 using "Interactive" { position: [5, 1, 0]; color: "orange"; },
+      orb g_6 using "Box" { position: [6, 1, 0]; color: "red"; },
+      orb g_7 using "Sphere" { position: [7, 1, 0]; color: "blue"; },
+      orb g_8 using "Interactive" { position: [0, 1, 1]; color: "green"; },
+      orb g_9 using "Box" { position: [1, 1, 1]; color: "yellow"; }
+    ]},
+    orb layer_7 { position: [8, 4, 0]; children: [
+      orb h_0 using "Sphere" { position: [0, 1, 0]; color: "purple"; },
+      orb h_1 using "Interactive" { position: [1, 1, 0]; color: "orange"; },
+      orb h_2 using "Box" { position: [2, 1, 0]; color: "red"; },
+      orb h_3 using "Sphere" { position: [3, 1, 0]; color: "blue"; },
+      orb h_4 using "Interactive" { position: [4, 1, 0]; color: "green"; },
+      orb h_5 using "Box" { position: [5, 1, 0]; color: "yellow"; },
+      orb h_6 using "Sphere" { position: [6, 1, 0]; color: "purple"; },
+      orb h_7 using "Interactive" { position: [7, 1, 0]; color: "orange"; },
+      orb h_8 using "Box" { position: [0, 1, 1]; color: "red"; },
+      orb h_9 using "Sphere" { position: [1, 1, 1]; color: "blue"; }
+    ]},
+    orb layer_8 { position: [8, 6, 0]; children: [
+      orb i_0 using "Interactive" { position: [0, 1, 0]; color: "green"; },
+      orb i_1 using "Box" { position: [1, 1, 0]; color: "yellow"; },
+      orb i_2 using "Sphere" { position: [2, 1, 0]; color: "purple"; },
+      orb i_3 using "Interactive" { position: [3, 1, 0]; color: "orange"; },
+      orb i_4 using "Box" { position: [4, 1, 0]; color: "red"; },
+      orb i_5 using "Sphere" { position: [5, 1, 0]; color: "blue"; },
+      orb i_6 using "Interactive" { position: [6, 1, 0]; color: "green"; },
+      orb i_7 using "Box" { position: [7, 1, 0]; color: "yellow"; },
+      orb i_8 using "Sphere" { position: [0, 1, 1]; color: "purple"; },
+      orb i_9 using "Interactive" { position: [1, 1, 1]; color: "orange"; }
+    ]},
+    orb layer_9 { position: [8, 8, 0]; children: [
+      orb j_0 using "Box" { position: [0, 1, 0]; color: "red"; },
+      orb j_1 using "Sphere" { position: [1, 1, 0]; color: "blue"; },
+      orb j_2 using "Interactive" { position: [2, 1, 0]; color: "green"; },
+      orb j_3 using "Box" { position: [3, 1, 0]; color: "yellow"; },
+      orb j_4 using "Sphere" { position: [4, 1, 0]; color: "purple"; },
+      orb j_5 using "Interactive" { position: [5, 1, 0]; color: "orange"; },
+      orb j_6 using "Box" { position: [6, 1, 0]; color: "red"; },
+      orb j_7 using "Sphere" { position: [7, 1, 0]; color: "blue"; },
+      orb j_8 using "Interactive" { position: [0, 1, 1]; color: "green"; },
+      orb j_9 using "Box" { position: [1, 1, 1]; color: "yellow"; }
+    ]}
+  ]
+}
+
+environment {
+  background: "dark"
+  lighting: "realistic"
+  @zones enabled
+}

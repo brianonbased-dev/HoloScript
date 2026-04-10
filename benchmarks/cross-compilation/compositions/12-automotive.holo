@@ -1,0 +1,67 @@
+// Automotive Benchmark Composition
+composition "Automotive Benchmark" {
+  metadata {
+    name: 'Automotive Cross-Compilation Benchmark'
+    category: 'automotive'
+    platforms: ['ar', 'ios', 'android', 'visionos', 'webxr', 'babylonjs', 'r3f', 'unity', 'unreal']
+  }
+
+  environment {
+    plane_detection: true
+    light_estimation: true
+  }
+
+  template "CarPart" {
+    @grabbable
+    @scalable
+    @rotatable
+    @explodable
+    state {
+      part_number: ""
+      price: 0.0
+      available: true
+    }
+  }
+
+  spatial_group "VehicleShowroom" {
+    origin: [0, 0, -2]
+    object "CarBody" using "CarPart" {
+      geometry: "cube"
+      position: [0, 0.5, 0]
+      scale: [2, 1, 4]
+      color: "#cc0000"
+      state: { part_number: "BODY-001" }
+    }
+    object "Wheel1" using "CarPart" {
+      geometry: "cylinder"
+      position: [-0.7, 0.3, -1.2]
+      rotation: [0, 0, 90]
+      scale: [0.3, 0.1, 0.3]
+      color: "#222222"
+      state: { part_number: "WHEEL-FL" }
+    }
+    object "Wheel2" using "CarPart" {
+      geometry: "cylinder"
+      position: [0.7, 0.3, -1.2]
+      rotation: [0, 0, 90]
+      scale: [0.3, 0.1, 0.3]
+      color: "#222222"
+      state: { part_number: "WHEEL-FR" }
+    }
+  }
+
+  object "ConfigPanel" {
+    @interactive
+    @billboard
+    geometry: "plane"
+    position: [2, 1.5, -2]
+    scale: [0.4, 0.6, 1]
+    color: "#333333"
+  }
+
+  state ConfiguratorState {
+    selectedColor: "#cc0000"
+    selectedTrim: "Sport"
+    totalPrice: 35000.0
+  }
+}

@@ -1,0 +1,642 @@
+// =============================================================================
+// HoloScript v6 Ecosystem Showcase
+// The ONE example that demonstrates v6's compounding value:
+// Traits + Domains + Economy + Agents + Accessibility + Observability
+// all wired together with shared state and cross-domain data binding.
+//
+// Scenario: A smart art gallery where AI agents curate NFT exhibits,
+// visitors interact via hand tracking, IoT sensors adjust lighting,
+// the economy runs on x402 micropayments, and everything is accessible.
+//
+// Compile: holoscript compile v6-ecosystem-showcase.holo --target r3f
+// Targets: r3f, unity, visionos, webgpu, gltf, openxr
+// =============================================================================
+
+import { Vec3, lerp, smoothstep } from "holoscript/math"
+import { List, HoloMap, SpatialGrid } from "holoscript/collections"
+import { debounce, IntervalTimer } from "holoscript/time"
+import { slugify, uuid } from "holoscript/string"
+
+// =============================================================================
+// ENUMS & STRUCTS — shared vocabulary across all domains
+// =============================================================================
+
+enum GalleryZone {
+  ENTRANCE,
+  MAIN_HALL,
+  SCULPTURE_GARDEN,
+  IMMERSIVE_ROOM,
+  GIFT_SHOP
+}
+
+enum CurationStrategy {
+  POPULARITY,      // most viewed
+  DIVERSITY,       // maximize genre spread
+  DISCOVERY,       // surface unknown artists
+  REVENUE          // highest-earning pieces
+}
+
+enum VisitorMood {
+  CURIOUS,
+  ENGAGED,
+  CONTEMPLATIVE,
+  EXCITED,
+  OVERWHELMED
+}
+
+struct Artwork {
+  id: string,
+  title: string,
+  artist: string,
+  medium: string,
+  price_usd: number,
+  views: number,
+  purchases: number,
+  zone: number,
+  position: Vec3,
+  traits: string[]
+}
+
+struct VisitorProfile {
+  id: string,
+  mood: number,
+  interests: string[],
+  time_spent_sec: number,
+  pieces_viewed: number,
+  wallet_address?: string
+}
+
+// =============================================================================
+// ENVIRONMENT — adaptive gallery space with IoT-driven lighting
+// =============================================================================
+
+environment "GalleryEnvironment" {
+  preset: "studio"
+  fog: { type: "exponential", density: 0.002, color: "#1a1a2e" }
+  skybox: { type: "gradient", top: "#0a0a1a", bottom: "#16213e" }
+  ambient_light: { color: "#ffffff", intensity: 0.3 }
+  post_processing: {
+    bloom: { intensity: 0.4, threshold: 0.8 }
+    tone_mapping: "aces"
+    ambient_occlusion: { intensity: 0.5, radius: 0.3 }
+  }
+}
+
+// =============================================================================
+// IoT DOMAIN — sensors drive gallery ambiance in real-time
+// =============================================================================
+
+sensor "AmbientLight_Main" @telemetry @data_binding {
+  type: "lux_sensor"
+  protocol: "mqtt"
+  topic: "gallery/main_hall/ambient_lux"
+  interval: 2000
+  unit: "lux"
+  range: [0, 2000]
+}
+
+sensor "CrowdDensity" @telemetry @data_binding {
+  type: "thermal_camera"
+  protocol: "mqtt"
+  topic: "gallery/occupancy"
+  interval: 5000
+  unit: "people"
+  range: [0, 200]
+}
+
+sensor "AirQuality" @telemetry {
+  type: "voc_sensor"
+  protocol: "mqtt"
+  topic: "gallery/hvac/voc"
+  interval: 10000
+  unit: "ppb"
+  alert_threshold: 400
+}
+
+// Cross-domain binding: IoT sensors → lighting system
+binding "AdaptiveLighting" {
+  source: "iot/AmbientLight_Main"
+  target: "environment/ambient_light/intensity"
+  transform: "inverse_map"     // less natural light → more artificial light
+  range_in: [0, 2000]
+  range_out: [0.8, 0.2]
+  smoothing: 0.3
+}
+
+binding "CrowdToFog" {
+  source: "iot/CrowdDensity"
+  target: "environment/fog/density"
+  transform: "linear_map"      // more people → less fog (open up space)
+  range_in: [0, 200]
+  range_out: [0.005, 0.001]
+}
+
+// =============================================================================
+// ECONOMY — x402 micropayments for art purchases and tips
+// =============================================================================
+
+wallet "GalleryTreasury" @wallet {
+  chain: "base"
+  auto_split: true
+}
+
+token "ViewCredit" @zora_coins {
+  name: "Gallery View Credit"
+  symbol: "GVC"
+  chain: "base"
+  mint_on: "artwork_viewed"
+  amount_per_mint: 1
+  max_supply: 1000000
+}
+
+marketplace "ArtMarket" @marketplace @x402 {
+  wallet: "GalleryTreasury"
+  currency: "USDC"
+  fee_percent: 2.5
+  revenue_split: {
+    artist: 85,
+    gallery: 10,
+    curator_agent: 5
+  }
+  min_price: 0.01
+  max_price: 10000
+}
+
+// Cross-domain binding: economy → agent behavior
+binding "RevenueToStrategy" {
+  source: "economy/ArtMarket/daily_revenue"
+  target: "agent/CuratorBot/strategy"
+  transform: "threshold_switch"
+  thresholds: [
+    { below: 10, value: "DISCOVERY" },    // low revenue → surface unknowns
+    { below: 100, value: "DIVERSITY" },   // medium → diversify
+    { above: 100, value: "REVENUE" }      // high → optimize earnings
+  ]
+}
+
+// =============================================================================
+// AGENTS — AI curators that manage the gallery autonomously
+// =============================================================================
+
+agent "CuratorBot" @ai_npc @llm_agent @pathfinding {
+  model: "brittney"
+  personality: "enthusiastic art critic with encyclopedic knowledge"
+  strategy: CurationStrategy.DIVERSITY
+
+  behavior_tree {
+    selector {
+      // Priority 1: Respond to visitor questions
+      sequence "engage_visitor" {
+        condition: "visitor_nearby && visitor.mood == CURIOUS"
+        action: "approach_visitor"
+        action: "greet_and_recommend"
+        action: "track_engagement"
+      }
+
+      // Priority 2: Rearrange exhibits based on data
+      sequence "curate" {
+        condition: "hourly_timer_expired"
+        action: "analyze_view_patterns"
+        action: "compute_optimal_layout"
+        action: "rearrange_exhibits"
+        action: "publish_to_holomesh"    // share curation insights
+      }
+
+      // Priority 3: Discover new art
+      sequence "discover" {
+        condition: "strategy == DISCOVERY"
+        action: "query_holomesh_feed"    // find art from other agents
+        action: "evaluate_fit"
+        action: "propose_acquisition"
+      }
+
+      // Priority 4: Idle — wander and observe
+      action: "patrol_gallery"
+    }
+  }
+
+  // Agent has its own wallet for curator fee
+  wallet: "CuratorWallet" @wallet {
+    chain: "base"
+    receives_from: "ArtMarket/curator_agent"
+  }
+}
+
+agent "SecurityBot" @ai_npc @pathfinding @behavior_tree {
+  personality: "vigilant but friendly"
+
+  behavior_tree {
+    selector {
+      sequence "alert" {
+        condition: "anomaly_detected"
+        action: "investigate"
+        action: "report_to_dashboard"
+      }
+      sequence "monitor" {
+        condition: "crowd_density > 150"
+        action: "manage_flow"
+        action: "suggest_less_crowded_zone"
+      }
+      action: "patrol"
+    }
+  }
+}
+
+// =============================================================================
+// ACCESSIBILITY — WCAG 2.1 AA compliant spatial experience
+// =============================================================================
+
+accessibility "GalleryA11y" @accessible {
+  // Visual
+  @high_contrast {
+    mode: "auto"
+    min_ratio: 4.5
+    applies_to: ["labels", "prices", "descriptions"]
+  }
+  @colorblind_safe {
+    palette: "deuteranopia_friendly"
+    redundant_encoding: true      // never use color alone for meaning
+  }
+
+  // Motor
+  @reduced_motion {
+    disable: ["particle_effects", "camera_shake", "auto_rotation"]
+    replace_with: "static_glow"
+  }
+  @magnifiable {
+    min_scale: 1.0
+    max_scale: 4.0
+    pinch_zoom: true
+  }
+
+  // Auditory
+  @screen_reader {
+    announce: ["artwork_title", "artist", "price", "description"]
+    navigation: "spatial_grid"    // left/right/up/down between artworks
+    landmark_labels: true
+  }
+  @haptic_feedback {
+    on_select: "light_tap"
+    on_purchase: "success_pulse"
+    on_boundary: "warning_buzz"
+    intensity: 0.6
+  }
+
+  // Cognitive
+  @simple_language {
+    reading_level: "grade_8"
+    applies_to: ["descriptions", "tooltips"]
+  }
+}
+
+// =============================================================================
+// INTERACTION — hand tracking + voice + gaze
+// =============================================================================
+
+input "VisitorInput" {
+  @hand_tracking {
+    gestures: ["pinch_select", "palm_dismiss", "thumbs_up_like", "wave_greet"]
+    tracking_quality: "high"
+    hand_model: "transparent_outline"
+  }
+
+  @voice_input {
+    wake_word: "hey gallery"
+    commands: [
+      "show me {genre} art",
+      "how much is this",
+      "tell me about {artwork}",
+      "buy this",
+      "take me to {zone}"
+    ]
+    language: "en"
+    fallback: "curator_agent"    // route unrecognized to AI
+  }
+
+  @eye_tracking {
+    dwell_time_ms: 800           // look at artwork for 800ms → select
+    gaze_highlight: true
+    pupil_dilation_tracking: true // feed to mood detection
+  }
+}
+
+// Cross-domain binding: interaction → mood → environment
+binding "GazeToMood" {
+  source: "input/VisitorInput/eye_tracking/dwell_patterns"
+  target: "visitor/current/mood"
+  transform: "mood_classifier"
+  // long focused gazes → CONTEMPLATIVE, rapid scanning → OVERWHELMED
+}
+
+binding "MoodToAmbiance" {
+  source: "visitor/current/mood"
+  target: "environment/post_processing/bloom/intensity"
+  transform: "mood_map"
+  values: {
+    CURIOUS: 0.3,
+    ENGAGED: 0.5,
+    CONTEMPLATIVE: 0.2,
+    EXCITED: 0.7,
+    OVERWHELMED: 0.1
+  }
+}
+
+// =============================================================================
+// ARTWORKS — the actual gallery content
+// =============================================================================
+
+template "ArtworkPedestal" {
+  object "Pedestal" @physics { static: true } {
+    geometry: cylinder
+    radius: 0.4
+    height: 1.2
+    material: { preset: "marble", roughness: 0.3 }
+  }
+
+  object "SpotLight" {
+    geometry: spot_light
+    intensity: 2.0
+    angle: 30
+    color: "#fff5e6"
+    position: [0, 3, 0]
+    target: [0, 1.5, 0]
+    cast_shadow: true
+  }
+
+  object "PriceTag" @accessible @high_contrast {
+    geometry: text
+    content: "${artwork.title}\n${artwork.artist}\n$${artwork.price_usd}"
+    font_size: 0.08
+    position: [0, 0.6, 0.5]
+    billboard: true
+  }
+
+  object "PurchaseZone" @clickable @hoverable @haptic_feedback {
+    geometry: plane
+    width: 0.8
+    height: 0.3
+    position: [0, 0.3, 0.5]
+    material: { color: "#4a9eff", opacity: 0.0 }
+    on_click: "marketplace.purchase(artwork.id)"
+    on_hover: { material: { opacity: 0.3 } }
+  }
+}
+
+// Main Hall — curated NFT paintings
+spatial_group "MainHall" {
+  zone: GalleryZone.MAIN_HALL
+  bounds: { min: [-15, 0, -15], max: [15, 6, 15] }
+
+  object "FloorMain" @physics { static: true } {
+    geometry: plane
+    width: 30
+    height: 30
+    rotation: [-90, 0, 0]
+    material: { preset: "marble", color: "#2a2a3a", roughness: 0.2, metallic: 0.1 }
+  }
+
+  @foreach artwork in artworks.filter(a => a.zone == GalleryZone.MAIN_HALL) {
+    instance "ArtworkPedestal" at artwork.position {
+      artwork: artwork
+    }
+
+    object "${artwork.id}_Frame" @nft @token_gated {
+      geometry: plane
+      width: 1.5
+      height: 2.0
+      position: [artwork.position.x, 2.5, artwork.position.z - 0.01]
+      material: {
+        texture: artwork.id
+        emissive: true
+        emissiveIntensity: 0.1
+      }
+      nft_metadata: {
+        contract: "0x1234...gallery"
+        token_id: artwork.id
+        chain: "base"
+      }
+    }
+  }
+}
+
+// Sculpture Garden — 3D gaussian splats and point clouds
+spatial_group "SculptureGarden" {
+  zone: GalleryZone.SCULPTURE_GARDEN
+  bounds: { min: [20, 0, -15], max: [50, 8, 15] }
+
+  object "Garden_Terrain" @physics { static: true } {
+    geometry: plane
+    width: 30
+    height: 30
+    rotation: [-90, 0, 0]
+    position: [35, -0.1, 0]
+    material: { color: "#1a3a1a", roughness: 0.9 }
+  }
+
+  object "Sculpture_Nebula" @gaussian_splat @hoverable @accessible {
+    position: [25, 1.5, 0]
+    splat_url: "assets/sculptures/nebula.splat"
+    scale: [2, 2, 2]
+    quality: "high"
+    aria_label: "Nebula sculpture: swirling cosmic gas rendered as gaussian splat"
+  }
+
+  object "Sculpture_Portrait" @gaussian_splat @hoverable @accessible {
+    position: [35, 1.5, -5]
+    splat_url: "assets/sculptures/portrait.splat"
+    quality: "high"
+    aria_label: "Portrait sculpture: human face captured via photogrammetry"
+  }
+
+  object "Sculpture_Abstract" @particle_system @hoverable {
+    position: [45, 2, 3]
+    particle_count: 50000
+    shape: "torus_knot"
+    color_gradient: ["#ff6600", "#ff0066", "#6600ff"]
+    lifetime: 3.0
+    speed: 0.2
+    size: 0.02
+  }
+}
+
+// Immersive Room — full spatial audio + volumetric experience
+spatial_group "ImmersiveRoom" {
+  zone: GalleryZone.IMMERSIVE_ROOM
+  bounds: { min: [-15, 0, 20], max: [15, 6, 50] }
+
+  object "ImmersiveFloor" @physics { static: true } {
+    geometry: plane
+    width: 30
+    height: 30
+    rotation: [-90, 0, 0]
+    position: [0, 0, 35]
+    material: { color: "#0a0a0a" }
+  }
+
+  object "SurroundAudio" @spatial_audio {
+    position: [0, 3, 35]
+    source: "assets/audio/ambient-gallery.ogg"
+    spatial: true
+    rolloff: "logarithmic"
+    ref_distance: 5
+    max_distance: 30
+    loop: true
+    volume: 0.4
+  }
+
+  // Volumetric video artwork
+  object "VolumetricPiece" @hologram {
+    position: [0, 1.5, 35]
+    hologram_type: "volumetric_video"
+    source: "assets/volumetric/dancer.mp4"
+    depth_source: "assets/volumetric/dancer_depth.mp4"
+    quilt_columns: 8
+    quilt_rows: 6
+    playback: "loop"
+    aria_label: "Volumetric video of a dancer, viewable from all angles"
+  }
+}
+
+// =============================================================================
+// OBSERVABILITY — dashboards and metrics for gallery operators
+// =============================================================================
+
+dashboard "GalleryOps" @accessible {
+  position: [-18, 1.5, 0]    // staff-only area
+  width: 3
+  height: 2
+
+  panel "Visitors" {
+    type: "metric"
+    source: "iot/CrowdDensity"
+    label: "Current Visitors"
+    format: "integer"
+    threshold_warning: 150
+    threshold_critical: 190
+  }
+
+  panel "Revenue" {
+    type: "metric"
+    source: "economy/ArtMarket/daily_revenue"
+    label: "Today's Revenue"
+    format: "currency_usd"
+    sparkline: true
+    period: "24h"
+  }
+
+  panel "TopArtwork" {
+    type: "leaderboard"
+    source: "economy/ArtMarket/top_sellers"
+    label: "Most Popular"
+    limit: 5
+    columns: ["title", "views", "purchases", "revenue"]
+  }
+
+  panel "AgentStatus" {
+    type: "status"
+    agents: ["CuratorBot", "SecurityBot"]
+    show: ["state", "battery", "last_action", "decisions_today"]
+  }
+
+  panel "AirQuality" {
+    type: "gauge"
+    source: "iot/AirQuality"
+    label: "VOC Level"
+    unit: "ppb"
+    zones: [
+      { range: [0, 200], color: "#33ff33" },
+      { range: [200, 400], color: "#ffaa00" },
+      { range: [400, 800], color: "#ff3333" }
+    ]
+  }
+
+  panel "Accessibility" {
+    type: "status"
+    label: "A11y Compliance"
+    checks: [
+      "contrast_ratio >= 4.5",
+      "screen_reader_labels == 100%",
+      "reduced_motion_alternatives == 100%",
+      "haptic_feedback_active"
+    ]
+  }
+}
+
+// =============================================================================
+// CONDITIONAL COMPILATION — platform-specific optimizations
+// =============================================================================
+
+#if target == "visionos" {
+  // visionOS: use system hand tracking and spatial personas
+  override input.VisitorInput.hand_tracking.provider = "arkit"
+  override environment.GalleryEnvironment.passthrough = true
+}
+
+#if target == "webgpu" {
+  // WebGPU: enable compute shader particles
+  override SculptureGarden.Sculpture_Abstract.particle_count = 200000
+  override SculptureGarden.Sculpture_Abstract.compute_shader = true
+}
+
+#if target == "unity" {
+  // Unity: use HDRP lighting
+  override environment.GalleryEnvironment.render_pipeline = "hdrp"
+  override environment.GalleryEnvironment.post_processing.volumetric_fog = true
+}
+
+#if target_capability < "gpu_tier_3" {
+  // Low-end devices: reduce quality gracefully
+  override SculptureGarden.Sculpture_Abstract.particle_count = 5000
+  override ImmersiveRoom.VolumetricPiece.hologram_type = "billboard"
+  override environment.GalleryEnvironment.post_processing.bloom.intensity = 0
+  override environment.GalleryEnvironment.post_processing.ambient_occlusion = false
+}
+
+// =============================================================================
+// TIMELINE — gallery opening sequence
+// =============================================================================
+
+timeline "GalleryOpening" {
+  0s:    { action: "fade_in", target: "environment", duration: 2s }
+  2s:    { action: "enable", target: "SurroundAudio", fade_in: 3s }
+  3s:    { action: "spawn", target: "CuratorBot", at: "entrance" }
+  4s:    { action: "announce", target: "screen_reader", text: "Welcome to the HoloScript Gallery. Use voice commands or hand gestures to explore." }
+  5s:    { action: "enable", target: "GalleryOps" }
+  6s:    { action: "start", target: "CuratorBot/behavior_tree" }
+  8s:    { action: "enable", target: "ArtMarket" }
+  10s:   { action: "spawn", target: "SecurityBot", at: "main_hall_center" }
+}
+
+// =============================================================================
+// NORMS — behavioral rules for the gallery ecosystem
+// =============================================================================
+
+norms "GalleryRules" {
+  // Safety
+  norm "no_collision_damage" {
+    when: "physics_collision && force > 50"
+    action: "absorb_force"
+    reason: "protect artworks from physics glitches"
+  }
+
+  // Economy
+  norm "fair_pricing" {
+    when: "artwork.price_usd > 10000"
+    action: "require_curator_approval"
+    reason: "prevent price manipulation"
+  }
+
+  // Social
+  norm "respectful_distance" {
+    when: "visitor_distance_to_artwork < 0.3"
+    action: "gentle_haptic_warning"
+    reason: "protect physical artworks"
+  }
+
+  // Agent autonomy
+  norm "curator_budget" {
+    when: "CuratorBot.acquisition_spend > 500"
+    action: "pause_and_report"
+    reason: "prevent runaway spending"
+  }
+}

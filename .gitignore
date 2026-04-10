@@ -1,0 +1,379 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# TypeScript compiled outputs (exclude from Git, generated from .ts files)
+*.d.ts
+*.js
+*.js.map
+
+# Exception: Keep essential config files that should be committed
+!*.config.js
+!playwright.config.js
+!jest.config.js
+!rollup.config.js
+!webpack.config.js
+!tsup.config.js
+!vite.config.js
+!next.config.js
+!tailwind.config.js
+!postcss.config.js
+!prettier.config.js
+!eslint.config.js
+
+# Exception: Keep scripts directory (committed utilities)
+!scripts/**/*.js
+
+# Exception: Keep package entry points in certain contexts
+!packages/*/dist/**/*.js
+!packages/*/dist/**/*.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Environment
+.env
+.env.local
+.env.*.local
+.local-worker-key
+.local-worker-key*
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+
+# Build artifact management
+.build-archives/
+.build-logs/
+
+# AI Workspace (Proprietary Research)
+.ai-workspace/
+
+# Proprietary Training Data
+*.jsonl
+training_audit.csv
+synthetic_*.txt
+scripts/data/
+scripts/*synthetic*.py
+scripts/*train*.py
+scripts/inference_test.py
+scripts/debug_gen.py
+scripts/training/
+
+# Package manager - NOTE: lockfiles should be committed for reproducible builds
+# pnpm-lock.yaml  # KEEP for CI
+# package-lock.json
+# yarn.lock
+
+# Python
+__pycache__/
+*.pyc
+
+.performance-reports/
+
+# Mutation Testing
+.stryker-tmp/
+.stryker-cache/
+reports/stryker/
+stryker.config.json
+
+# Benchmarks
+bench/
+
+# Rust Build Artifacts
+target/
+
+# Debug & Test Output
+test_*.txt
+debug_*.txt
+*_output.txt
+*_output_*.txt
+*_errors.txt
+*_errors*.txt
+*_error.txt
+*_error_*.txt
+ci-log.txt
+build_log.txt
+build_output.txt
+compile_output.txt
+full-run.txt
+full-test-output.txt
+full-test-results.txt
+test-results.txt
+test-out.txt
+test-output.txt
+call_log.txt
+coverage-full.txt
+coverage-output.txt
+coverage_phase*.txt
+err.txt
+
+# Root debug files (anchored to root with /)
+/debug-*.ts
+/debug-*.js
+/debug-*.d.ts
+
+# Build logs at root
+build.log
+build-log.txt
+build-log-utf8.txt
+build-rust.log
+build-rust-utf8.log
+build-ts.log
+build-ts-utf8.log
+build-utf8.log
+build-visual.log
+build-visual-utf8.log
+
+# VSIX binary artifacts (publish via VS Code Marketplace instead)
+*.vsix
+
+# Audit results (regenerated on demand)
+audit-results/
+
+# AI-Generated Session Reports
+*SUMMARY*.md
+*REPORT*.md
+PHASE_*.md
+RELEASE_v3.0.md
+INFRASTRUCTURE_*.md
+QUICK_REFERENCE_v*.md
+SESSION_*.md
+TEST_EXECUTION_*.md
+VISUAL_*.md
+
+# AI Ecosystem
+.ai-context-stream.jsonl
+
+# Temporary test/debug output files
+*_result.txt
+*_result*.txt
+hitl_*.txt
+hotreload_*.txt
+mcp_v*.txt
+ast_v*.txt
+full_suite_result.txt
+full_suite_*.txt
+parser_snap_v*.txt
+ci-debug*.txt
+c[0-9]*_result*.txt
+c[0-9]*_*.txt
+snap_fail.txt
+resilience_v*.txt
+webrtc_v*.txt
+tsc_output.txt
+runtime_debug.log
+stryker-run.log
+stryker.log
+
+# Temp debug/test output (various naming conventions)
+*_test_log*.txt
+*_test_out.txt
+
+# Session temp files
+temp/
+absorb-output.txt
+codebase-graph.json
+codebase.holo
+core-graph.json
+.holo_audits/
+
+# Daemon local runtime artifacts (entire directory is runtime state)
+.holoscript/
+tmp-daemon-run.txt
+
+# Deploy artifacts (ephemeral)
+deploy_logs.json
+deploy_result.json
+
+# Tauri auto-generated code
+packages/tauri-app/src-tauri/gen/
+
+# Build temp files (tsup generates with random hashes)
+tsup.config.bundled_*.mjs
+
+# Core debug/investigation scripts (not source)
+packages/core/check-fork-heap.cjs
+packages/core/check-fork.mjs
+packages/core/em-results.json
+packages/core/test_mem.mjs
+
+# Windows device file (created by accident with git add -A on Windows)
+nul
+shader*.txt
+tsc-*.txt
+tsc*.txt
+vitest*.txt
+live-test-output.txt
+full_test_log*.txt
+
+# WASI preview shims (downloaded, not source)
+wasi_snapshot_preview1.*.wasm
+
+# Native addon build artifacts
+packages/tree-sitter-holoscript/build/
+
+# Next.js build output
+.next/
+
+# Studio build artifacts
+packages/studio/.next/
+
+# Video tutorial rendered output (large MP4 files — tracked via GitHub Releases)
+packages/video-tutorials/out/*.mp4
+packages/video-tutorials/out/*.webm
+packages/video-tutorials/out/*.mov
+packages/video-tutorials/public/narration/*.mp3
+packages/video-tutorials/public/captures/*.webm
+packages/video-tutorials/public/captures/*.mp4
+.secrets/
+
+# GitNexus (external tool artifacts — not source code)
+.gitnexus
+AGENTS.md
+.claude/skills/gitnexus/
+
+# Benchmark scripts (temporary, not part of the project)
+benchmark-absorb.ts
+
+# Temporary text/json dump files (agent session artifacts)
+tmp/
+tmp_*.txt
+tmp_*.json
+*.tmp
+absorb_help.txt
+build_err.txt
+git_status_clean.txt
+gitdiff.txt
+plan_query.txt
+runs.json
+
+# One-off scripts (not part of codebase)
+scripts/deprecated-inventory.ts
+scripts/migrate-deprecated.ts
+scripts/validate-tm-traits.ts
+scripts/tm-traits-validation-report.json
+
+# HoloMesh local state
+.holomesh/
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+playwright-results.xml
+
+# Studio debug/scratch files
+packages/studio/check-canvas*.ts
+packages/studio/knowledge.holo
+packages/studio/final*.txt
+packages/studio/targeted*.txt
+packages/studio/full_final_out.txt
+packages/studio/useshader_out.txt
+
+packages/video-tutorials/build
+packages/vscode-extension/out/
+
+# Misc temp output (agent session artifacts)
+*.out
+/tmp.txt
+/qg.txt
+/cv.txt
+*_out.txt
+*_out.json
+/lint*.json
+/lint*.txt
+/a2a_out.txt
+/absorb_test.json
+/mcp-server-basic.txt
+/mcp-server-test-out.txt
+/mcp_server_test_results.json
+/test_sse.cjs
+/temp_knowledge*.json
+
+# Root-level test/debug artifacts (agent session dumps)
+/any-*.txt
+/board_add_payload*.json
+/board.json
+/board_latest.json
+/claim_*payload*.json
+/chat.mjs
+/check-types.mjs
+/claude_msg.txt
+/commit_log.txt
+/compile.txt
+/core-tsc-report*.txt
+/core_failures.txt
+/derive_*payload*.json
+/derive_content*.txt
+/derive_from_*.json
+/done_*payload*.json
+/fetch_result.json
+/fixer3.ts
+/fixer_ast.ts
+/git-status*.txt
+/matched_files*.txt
+/messages.json
+/msg.json
+/msg_utf8.json
+/orchestrator_scout_payload.json
+/out.txt
+/query.json
+/scout_payload.json
+/target-files.txt
+/team_chat.txt
+/team_chat2.json
+/test-auth.mjs
+/test.ts
+/ts-error*.txt
+/tmp-board*.json
+/tmp-diff*.txt
+room_*.ps1
+
+# Package-level test/debug artifacts
+packages/absorb-service/vitest_err*.json
+packages/cli/failed.txt
+packages/cli/out.txt
+packages/cli/out_clean.txt
+packages/cli/report.json
+packages/core/all_core_tests.json
+packages/core/errors.json
+packages/core/errors.md
+packages/core/errors*.txt
+packages/core/fix_imports.cjs
+packages/core/fix_props.cjs
+packages/core/func*.txt
+packages/core/out.txt
+packages/core/remaining*.txt
+packages/core/replace.cjs
+packages/core/search.txt
+packages/core/test_out_*.json
+packages/core/test_parse.ts
+packages/core/test_parse_out_utf8.json
+packages/core/vitest_report.json
+scripts/pitch-stats.md
+
+# Build artifacts (engine/studio debug logs)
+absorb_output.json
+build_full_v2.txt
+engine-build-log.txt
+packages/engine/build_report.txt
+packages/engine/ts-err*.txt
+packages/engine/ts-error*.txt
+packages/studio/log-utf8.txt
+packages/studio/next-build*.txt
+packages/studio/npx-log.txt

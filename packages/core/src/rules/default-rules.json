@@ -1,0 +1,340 @@
+{
+  "version": "1.0.0",
+  "description": "Default trait composition rules for the top 200 most-used traits",
+  "rules": [
+    {
+      "id": "conflict-static-physics",
+      "type": "conflict",
+      "traits": ["static", "physics"],
+      "description": "Static objects cannot have dynamic physics simulation",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "error",
+      "replacement": "Use @kinematic for controlled physics"
+    },
+    {
+      "id": "conflict-invisible-glowing",
+      "type": "conflict",
+      "traits": ["invisible", "glowing"],
+      "description": "Invisible objects should not emit light via @glowing",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning"
+    },
+    {
+      "id": "conflict-static-grabbable",
+      "type": "conflict",
+      "traits": ["static", "grabbable"],
+      "description": "Static objects cannot be grabbed (they have no physics body)",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "error",
+      "replacement": "Use @kinematic + @grabbable instead"
+    },
+    {
+      "id": "conflict-vr-only-ar-only",
+      "type": "conflict",
+      "traits": ["vr_only", "ar_only"],
+      "description": "Object cannot be both VR-only and AR-only",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "error"
+    },
+    {
+      "id": "conflict-vr-only-desktop-only",
+      "type": "conflict",
+      "traits": ["vr_only", "desktop_only"],
+      "description": "Object cannot be both VR-only and desktop-only",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "error"
+    },
+    {
+      "id": "conflict-frozen-boiling",
+      "type": "conflict",
+      "traits": ["frozen_liquid", "boiling"],
+      "description": "A fluid cannot be both frozen and boiling simultaneously",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "error"
+    },
+    {
+      "id": "conflict-predator-prey-self",
+      "type": "conflict",
+      "traits": ["predator", "prey"],
+      "description": "An entity should not be both predator and prey",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning"
+    },
+    {
+      "id": "conflict-hostile-friendly",
+      "type": "conflict",
+      "traits": ["hostile", "friendly"],
+      "description": "An NPC cannot be both hostile and friendly simultaneously",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning",
+      "replacement": "Use @neutral or faction-based behavior"
+    },
+    {
+      "id": "conflict-cloaking-glowing",
+      "type": "conflict",
+      "traits": ["cloaking", "glowing"],
+      "description": "A cloaked object should not emit visible glow",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning"
+    },
+    {
+      "id": "conflict-zero-gravity-buoyancy",
+      "type": "conflict",
+      "traits": ["zero_gravity", "buoyancy"],
+      "description": "Buoyancy requires gravity to function",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning"
+    },
+    {
+      "id": "expansion-networked-serializable",
+      "type": "expansion",
+      "traits": ["networked"],
+      "description": "Networked objects must be serializable for state sync",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["synced"]
+    },
+    {
+      "id": "expansion-grabbable-physics",
+      "type": "expansion",
+      "traits": ["grabbable"],
+      "description": "Grabbable objects need a physics body for hand interaction",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-throwable-physics",
+      "type": "expansion",
+      "traits": ["throwable"],
+      "description": "Throwable objects need a physics body for trajectory simulation",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-lip-sync-voice",
+      "type": "expansion",
+      "traits": ["lip_sync"],
+      "description": "Lip sync requires voice/TTS to drive mouth animation",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["voice"]
+    },
+    {
+      "id": "expansion-voice-proximity-networked",
+      "type": "expansion",
+      "traits": ["voice_proximity"],
+      "description": "Voice proximity requires networking for multi-user audio",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["networked"]
+    },
+    {
+      "id": "expansion-rideable-physics",
+      "type": "expansion",
+      "traits": ["rideable"],
+      "description": "Rideable objects need physics for realistic movement",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-destructible-physics",
+      "type": "expansion",
+      "traits": ["destructible"],
+      "description": "Destructible objects need physics for fragment simulation",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-cloth-physics",
+      "type": "expansion",
+      "traits": ["cloth"],
+      "description": "Cloth simulation requires the physics subsystem",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-fluid-physics",
+      "type": "expansion",
+      "traits": ["fluid"],
+      "description": "Fluid simulation requires the physics subsystem",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["physics"]
+    },
+    {
+      "id": "expansion-nft-wallet",
+      "type": "expansion",
+      "traits": ["nft"],
+      "description": "NFT interactions require a connected wallet",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["wallet"]
+    },
+    {
+      "id": "expansion-zora-coins-wallet",
+      "type": "expansion",
+      "traits": ["zora_coins"],
+      "description": "Zora Coins require a connected wallet",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["wallet"]
+    },
+    {
+      "id": "expansion-llm-agent-memory",
+      "type": "expansion",
+      "traits": ["llm_agent"],
+      "description": "LLM agents benefit from memory for context retention",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info",
+      "implies": ["memory"]
+    },
+    {
+      "id": "deprecation-talkable",
+      "type": "deprecation",
+      "traits": ["talkable"],
+      "description": "Use @voice instead of @talkable",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning",
+      "replacement": "voice"
+    },
+    {
+      "id": "deprecation-collision",
+      "type": "deprecation",
+      "traits": ["collision"],
+      "description": "Use @physics or @trigger instead of @collision",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning",
+      "replacement": "physics"
+    },
+    {
+      "id": "deprecation-collidable",
+      "type": "deprecation",
+      "traits": ["collidable"],
+      "description": "Use @physics instead of @collidable",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning",
+      "replacement": "physics"
+    },
+    {
+      "id": "deprecation-interactive",
+      "type": "deprecation",
+      "traits": ["interactive"],
+      "description": "Use @grabbable, @pointable, or @hoverable instead of @interactive",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "warning",
+      "replacement": "grabbable"
+    },
+    {
+      "id": "composition-grabbable-throwable",
+      "type": "composition",
+      "traits": ["grabbable", "throwable"],
+      "description": "Grabbable + throwable creates a pick-up-and-throw interaction",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-behavior-tree-goal-oriented",
+      "type": "composition",
+      "traits": ["behavior_tree", "goal_oriented"],
+      "description": "Behavior tree with GOAP planning creates advanced AI behavior",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-llm-agent-dialogue",
+      "type": "composition",
+      "traits": ["llm_agent", "dialogue"],
+      "description": "LLM agent with dialogue enables conversational NPCs",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-physics-particle",
+      "type": "composition",
+      "traits": ["physics", "particle"],
+      "description": "Physics + particle creates physics-driven particle effects",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-networked-persistent",
+      "type": "composition",
+      "traits": ["networked", "persistent"],
+      "description": "Networked + persistent enables shared persistent worlds",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-eye-tracking-hand-tracking",
+      "type": "composition",
+      "traits": ["eye_tracking", "hand_tracking"],
+      "description": "Eye + hand tracking enables multimodal spatial input",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-spatial-audio-reverb-zone",
+      "type": "composition",
+      "traits": ["spatial_audio", "reverb_zone"],
+      "description": "Spatial audio + reverb creates realistic acoustic environments",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-digital-twin-sensor",
+      "type": "composition",
+      "traits": ["digital_twin", "sensor"],
+      "description": "Digital twin + sensor enables real-time IoT visualization",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    },
+    {
+      "id": "composition-gaussian-splat-lod",
+      "type": "composition",
+      "traits": ["gaussian_splat", "lod"],
+      "description": "Gaussian splatting + LOD enables efficient volumetric rendering",
+      "commutative": true,
+      "ruleVersion": "1.0.0",
+      "severity": "info"
+    }
+  ]
+}

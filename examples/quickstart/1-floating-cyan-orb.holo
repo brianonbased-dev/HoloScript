@@ -1,0 +1,14 @@
+// 1-floating-cyan-orb.holo
+// A single glowing cyan sphere floating at eye level
+
+composition "Floating Cyan Orb" {
+  object "CyanOrb" {
+    @grabbable
+    @glowing
+    
+    geometry: "sphere"
+    position: [0, 1.5, -2]
+    scale: 0.3
+    color: "#00ffff"
+  }
+}

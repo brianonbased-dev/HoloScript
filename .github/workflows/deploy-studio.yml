@@ -1,0 +1,26 @@
+# Deploy HoloScript Studio to Railway
+name: Deploy Studio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/studio/**'
+      - 'packages/core/**'
+      - '.github/workflows/deploy-studio.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service studio
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

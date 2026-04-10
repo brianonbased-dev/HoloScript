@@ -1,0 +1,96 @@
+// VR Meeting Room - HoloScript v2.1
+// Professional virtual conference space
+
+composition "VR Meeting Room" {
+  environment {
+    skybox: "office"
+    ambient_light: 0.6
+    shadows: true
+  }
+
+  // ===================
+  // TEMPLATES
+  // ===================
+
+  template "Chair" {
+    @collidable
+    @sittable
+    
+    geometry: "cube"
+    color: "#34495e"
+  }
+
+  template "LightOrb" {
+    @glowing
+    
+    geometry: "sphere"
+    color: "#f0f0f0"
+    emissive: "#ffffff"
+    emissiveIntensity: 1
+  }
+
+  // ===================
+  // OBJECTS
+  // ===================
+
+  // Conference table
+  object "Table" {
+    @collidable
+    
+    position: [0, 0.75, 0]
+    scale: [3, 0.1, 1.5]
+    geometry: "cube"
+    color: "#2c3e50"
+    material: "wood"
+  }
+
+  // Chairs around table
+  object "Chair1" using "Chair" {
+    position: [-1, 0.5, 1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+
+  object "Chair2" using "Chair" {
+    position: [1, 0.5, 1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+
+  object "Chair3" using "Chair" {
+    position: [-1, 0.5, -1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+
+  object "Chair4" using "Chair" {
+    position: [1, 0.5, -1.2]
+    scale: [0.4, 0.5, 0.4]
+  }
+
+  // Presentation screen
+  object "Screen" {
+    @glowing
+    @pointable
+    
+    position: [0, 2, -3]
+    scale: [4, 2.25, 0.1]
+    geometry: "cube"
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.8
+    
+    on_point() {
+      // Toggle presentation mode
+      trigger "screen_activated"
+    }
+  }
+
+  // Ambient lighting orbs
+  object "Light1" using "LightOrb" {
+    position: [-2, 3, -1]
+    scale: [0.2, 0.2, 0.2]
+  }
+
+  object "Light2" using "LightOrb" {
+    position: [2, 3, -1]
+    scale: [0.2, 0.2, 0.2]
+  }
+}

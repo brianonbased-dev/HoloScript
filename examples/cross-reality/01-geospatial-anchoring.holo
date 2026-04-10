@@ -1,0 +1,347 @@
+/**
+ * Geospatial Anchoring — HoloScript v5.0 Cross-Reality Example
+ *
+ * Demonstrates universal geospatial anchoring across platforms.
+ * This example shows:
+ *  - Universal lat/lon/alt coordinate system
+ *  - Cross-platform positioning (VR, AR, mobile, desktop, automotive, wearable)
+ *  - Platform-specific embodiments (FullAvatar, FloatingAgent, UI2D, VoiceOnly)
+ *  - Geospatial handoff between devices
+ *  - Real-world anchor persistence
+ *
+ * Use Case: Multi-Device Agent Continuity
+ *   - Agent appears in same real-world location across all devices
+ *   - Seamless handoff from VR → AR → Mobile → Watch → Car
+ *   - Universal positioning without platform-specific anchors
+ *   - Persistent world-scale agent experiences
+ *
+ * Run this example:
+ *   holoc examples/cross-reality/01-geospatial-anchoring.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+@platform(vr, ar, mobile, desktop, automotive, wearable)
+scene GeospatialAgent {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GEOSPATIAL ANCHOR CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AssistantAgent {
+    traits: [cross_reality, geospatial_anchor];
+
+    // Geospatial position (universal anchor)
+    geospatial_anchor: {
+      // WGS84 coordinates (lat, lon, alt)
+      latitude: 37.7749,          // San Francisco, CA
+      longitude: -122.4194,
+      altitude: 15.0,             // 15 meters above ground
+
+      // Coordinate system
+      coordinateSystem: "WGS84",  // World Geodetic System 1984
+      verticalDatum: "EGM96",     // Earth Gravitational Model 1996
+
+      // Accuracy requirements
+      horizontalAccuracyMeters: 5.0,  // ±5m horizontal
+      verticalAccuracyMeters: 2.0,    // ±2m vertical
+
+      // Persistence
+      persistent: true,           // Anchor persists across sessions
+      anchorId: "sf-assistant-001",
+    };
+
+    // Cross-reality embodiment (platform-specific)
+    cross_reality: {
+      // Embodiment per platform category
+      embodiments: {
+        vr: "FullAvatar",         // Full-body avatar in VR
+        ar: "FloatingAgent",      // Floating assistant in AR
+        mobile: "UI2D",           // 2D interface on phone
+        desktop: "UI2D",          // 2D interface on desktop
+        automotive: "VoiceOnly",  // Voice-only in car (safety)
+        wearable: "UIMinimal",    // Minimal UI on watch
+      },
+
+      // Handoff configuration
+      handoff: {
+        enabled: true,
+        preserveState: true,      // Preserve agent state across devices
+        latencyBudgetMs: 500,     // Max handoff latency
+      },
+
+      // Capability requirements
+      capabilities: {
+        vr: ["6dof", "hand-tracking"],
+        ar: ["world-tracking", "plane-detection"],
+        mobile: ["gps", "gyroscope"],
+        automotive: ["voice-input", "voice-output"],
+        wearable: ["haptic-feedback"],
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Geospatial Anchor
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AssistantAgent, "anchor_created") {
+    log("📍 Geospatial anchor created");
+    log(`  Anchor ID: ${event.anchorId}`);
+    log(`  Latitude: ${event.latitude.toFixed(6)}°`);
+    log(`  Longitude: ${event.longitude.toFixed(6)}°`);
+    log(`  Altitude: ${event.altitude.toFixed(2)}m`);
+    log(`  Accuracy: ±${event.horizontalAccuracyMeters}m horizontal, ±${event.verticalAccuracyMeters}m vertical`);
+  }
+
+  on(AssistantAgent, "anchor_resolved") {
+    log("✅ Anchor resolved to platform coordinates");
+    log(`  Platform: ${event.platform}`);
+    log(`  Embodiment: ${event.embodiment}`);
+    log(`  Local position: (${event.localX.toFixed(2)}, ${event.localY.toFixed(2)}, ${event.localZ.toFixed(2)})`);
+    log(`  Geospatial: (${event.latitude.toFixed(6)}°, ${event.longitude.toFixed(6)}°, ${event.altitude.toFixed(2)}m)`);
+  }
+
+  on(AssistantAgent, "anchor_updated") {
+    log("🔄 Anchor position updated");
+    log(`  Old: (${event.oldLatitude.toFixed(6)}°, ${event.oldLongitude.toFixed(6)}°)`);
+    log(`  New: (${event.newLatitude.toFixed(6)}°, ${event.newLongitude.toFixed(6)}°)`);
+    log(`  Distance moved: ${event.distanceMeters.toFixed(2)}m`);
+  }
+
+  on(AssistantAgent, "anchor_tracking_lost") {
+    log("⚠️  Geospatial tracking lost");
+    log(`  Reason: ${event.reason}`);
+    log(`  Last known position: (${event.lastLatitude.toFixed(6)}°, ${event.lastLongitude.toFixed(6)}°)`);
+    log(`  Fallback: Using last known position`);
+  }
+
+  on(AssistantAgent, "anchor_tracking_restored") {
+    log("✅ Geospatial tracking restored");
+    log(`  New position: (${event.latitude.toFixed(6)}°, ${event.longitude.toFixed(6)}°)`);
+    log(`  Accuracy: ±${event.horizontalAccuracyMeters}m`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Platform Handoff
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AssistantAgent, "handoff_initiated") {
+    log("🔄 Cross-platform handoff initiated");
+    log(`  From: ${event.sourcePlatform} (${event.sourceEmbodiment})`);
+    log(`  To: ${event.targetPlatform} (${event.targetEmbodiment})`);
+    log(`  Geospatial anchor: (${event.latitude.toFixed(6)}°, ${event.longitude.toFixed(6)}°)`);
+    log(`  State size: ${event.stateSizeBytes} bytes`);
+  }
+
+  on(AssistantAgent, "embodiment_changed") {
+    log("🎭 Agent embodiment changed");
+    log(`  Platform: ${event.platform}`);
+    log(`  Old embodiment: ${event.oldEmbodiment}`);
+    log(`  New embodiment: ${event.newEmbodiment}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  on(AssistantAgent, "handoff_completed") {
+    log("✅ Handoff completed");
+    log(`  Target platform: ${event.targetPlatform}`);
+    log(`  Embodiment: ${event.targetEmbodiment}`);
+    log(`  Handoff latency: ${event.latencyMs.toFixed(2)}ms`);
+    log(`  State preserved: ${event.statePreserved ? "✅" : "❌"}`);
+    log(`  Geospatial position maintained: (${event.latitude.toFixed(6)}°, ${event.longitude.toFixed(6)}°)`);
+  }
+
+  on(AssistantAgent, "handoff_failed") {
+    log("❌ Handoff FAILED");
+    log(`  Source: ${event.sourcePlatform}`);
+    log(`  Target: ${event.targetPlatform}`);
+    log(`  Reason: ${event.reason}`);
+    log(`  Fallback: ${event.fallback}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Capability Negotiation
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AssistantAgent, "capability_check") {
+    log("🔍 Checking platform capabilities");
+    log(`  Platform: ${event.platform}`);
+    log(`  Required: ${event.requiredCapabilities.join(", ")}`);
+  }
+
+  on(AssistantAgent, "capability_satisfied") {
+    log(`✅ Capabilities satisfied for ${event.platform}`);
+    for (const cap of event.capabilities) {
+      log(`  ${cap.name}: ${cap.available ? "✅ Available" : "❌ Missing"}`);
+    }
+  }
+
+  on(AssistantAgent, "capability_degraded") {
+    log(`⚠️  Degraded mode for ${event.platform}`);
+    log(`  Missing capabilities: ${event.missingCapabilities.join(", ")}`);
+    log(`  Fallback mode: ${event.fallbackMode}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Create geospatial anchor
+  on(DemoControls, "click") {
+    if (event.target === "create_anchor_button") {
+      emit(AssistantAgent, "create_anchor", {
+        latitude: 37.7749,   // San Francisco
+        longitude: -122.4194,
+        altitude: 15.0,
+        anchorId: "sf-assistant-001",
+      });
+      log("📍 Creating geospatial anchor...");
+    }
+  }
+
+  // Demo 2: Resolve anchor for current platform
+  on(DemoControls, "click") {
+    if (event.target === "resolve_anchor_button") {
+      emit(AssistantAgent, "resolve_anchor", {
+        platform: "vr",  // Current platform
+      });
+      log("🔍 Resolving anchor for VR platform...");
+    }
+  }
+
+  // Demo 3: Update anchor position (agent moves)
+  on(DemoControls, "click") {
+    if (event.target === "update_position_button") {
+      emit(AssistantAgent, "update_position", {
+        latitude: 37.7750,   // Moved 11 meters north
+        longitude: -122.4194,
+        altitude: 15.0,
+      });
+      log("🔄 Updating anchor position...");
+    }
+  }
+
+  // Demo 4: Handoff VR → AR
+  on(DemoControls, "click") {
+    if (event.target === "handoff_vr_ar_button") {
+      emit(AssistantAgent, "handoff", {
+        sourcePlatform: "vr",
+        targetPlatform: "ar",
+        preserveState: true,
+      });
+      log("🔄 Handing off VR → AR...");
+    }
+  }
+
+  // Demo 5: Handoff AR → Mobile
+  on(DemoControls, "click") {
+    if (event.target === "handoff_ar_mobile_button") {
+      emit(AssistantAgent, "handoff", {
+        sourcePlatform: "ar",
+        targetPlatform: "mobile",
+        preserveState: true,
+      });
+      log("🔄 Handing off AR → Mobile...");
+    }
+  }
+
+  // Demo 6: Handoff Mobile → Automotive (intermediate step required)
+  on(DemoControls, "click") {
+    if (event.target === "handoff_mobile_car_button") {
+      emit(AssistantAgent, "handoff", {
+        sourcePlatform: "mobile",
+        targetPlatform: "automotive",
+        preserveState: true,
+      });
+      log("🔄 Handing off Mobile → Automotive...");
+    }
+  }
+
+  // Demo 7: Handoff Automotive → Wearable
+  on(DemoControls, "click") {
+    if (event.target === "handoff_car_wearable_button") {
+      emit(AssistantAgent, "handoff", {
+        sourcePlatform: "automotive",
+        targetPlatform: "wearable",
+        preserveState: true,
+      });
+      log("🔄 Handing off Automotive → Wearable...");
+    }
+  }
+
+  // Demo 8: Get current platform info
+  on(DemoControls, "click") {
+    if (event.target === "get_platform_info_button") {
+      emit(AssistantAgent, "get_platform_info", {});
+      log("📊 Fetching platform info...");
+    }
+  }
+
+  on(AssistantAgent, "platform_info") {
+    log("📋 PLATFORM INFO");
+    log(`  Platform: ${event.platform}`);
+    log(`  Category: ${event.category}`);
+    log(`  Embodiment: ${event.embodiment}`);
+    log(`  Capabilities:`);
+    for (const cap of event.capabilities) {
+      log(`    ${cap}: ${event.capabilityStatus[cap] ? "✅" : "❌"}`);
+    }
+    log(`  Geospatial accuracy: ±${event.gpsAccuracyMeters}m`);
+  }
+
+  // Demo 9: Test all platform embodiments
+  on(DemoControls, "click") {
+    if (event.target === "test_all_platforms_button") {
+      const platforms = ["vr", "ar", "mobile", "desktop", "automotive", "wearable"];
+      for (const platform of platforms) {
+        emit(AssistantAgent, "test_embodiment", {
+          platform: platform,
+        });
+      }
+      log("🎭 Testing all platform embodiments...");
+    }
+  }
+
+  on(AssistantAgent, "embodiment_tested") {
+    log(`  ${event.platform}: ${event.embodiment} ${event.supported ? "✅" : "❌"}`);
+  }
+
+  // Demo 10: Simulate GPS tracking loss/restore
+  on(DemoControls, "click") {
+    if (event.target === "simulate_gps_loss_button") {
+      emit(AssistantAgent, "simulate_tracking_loss", {
+        reason: "GPS signal lost (tunnel)",
+      });
+      log("⚠️  Simulating GPS tracking loss...");
+
+      // Restore after 3 seconds
+      setTimeout(() => {
+        emit(AssistantAgent, "simulate_tracking_restore", {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          altitude: 15.0,
+        });
+      }, 3000);
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity GeospatialDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "GEOSPATIAL ANCHORING\n\n🌍 Universal Coordinates:\n  • WGS84: lat/lon/alt (world standard)\n  • Platform-agnostic anchor system\n  • ±5m horizontal, ±2m vertical accuracy\n  • Persistent across sessions\n\n🎭 Platform Embodiments:\n  • VR: FullAvatar (6DOF, hand tracking)\n  • AR: FloatingAgent (world tracking)\n  • Mobile: UI2D (GPS, gyroscope)\n  • Desktop: UI2D (mouse, keyboard)\n  • Automotive: VoiceOnly (safety-first)\n  • Wearable: UIMinimal (haptic feedback)\n\n🔄 Handoff Latency Budgets:\n  • VR ↔ Mobile: 500ms\n  • AR ↔ Desktop: 300ms\n  • Mobile ↔ Automotive: 600ms\n  • VR ↔ Automotive: BLOCKED (safety)\n    → Intermediate step: VR → Mobile → Car\n\n📊 Why Geospatial Anchors:\n  ✅ Platform-agnostic (works everywhere)\n  ✅ Persistent (same location always)\n  ✅ No vendor lock-in (WGS84 standard)\n  ❌ Platform-specific anchors:\n    - ARCore Cloud Anchors (Android only)\n    - ARKit anchors (iOS only)\n    - visionOS anchors (visionOS only)\n    - No interop between platforms\n\n💡 Use Cases:\n  • Multi-device agent continuity\n  • World-scale AR experiences\n  • VR ↔ AR handoff\n  • Mobile → Car safety transitions",
+      fontSize: 0.078,
+      color: "#fb923c",
+    };
+  }
+}

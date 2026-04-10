@@ -1,0 +1,50 @@
+// Dead Code Finder — unused export detection skill
+// Uses TypeScript compiler API to find unreferenced exports.
+// Reports candidates for removal to HoloClaw activity stream.
+
+composition "dead-code-finder" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.10)
+  @timeout_guard (default_timeout_ms: 120000)
+
+  state phase: string = "idle"
+  state unusedExports: number = 0
+  state filesScanned: number = 0
+  state bytesReclaimable: number = 0
+  state lastScanAt: string = ""
+
+  sequence "find-dead-code" {
+    action "shell_exec" {
+      command: "npx"
+      args: ["ts-prune", "--error", "--skip", "*.test.ts,*.spec.ts"]
+      timeoutMs: 90000
+    }
+
+    action "channel_send" {
+      channel: "dead-code"
+      // Blackboard: unusedExports, filesScanned, bytesReclaimable
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "unused exports starts at zero"
+    assert: { $unusedExports == 0 }
+  }
+
+  @test {
+    name: "files scanned starts at zero"
+    assert: { $filesScanned == 0 }
+  }
+
+  @test {
+    name: "bytes reclaimable starts at zero"
+    assert: { $bytesReclaimable == 0 }
+  }
+}

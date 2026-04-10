@@ -1,0 +1,19 @@
+{
+  "name": "@holoscript/cross-compilation-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HoloScript cross-compilation benchmark suite",
+  "scripts": {
+    "bench": "ts-node run-benchmark.ts",
+    "bench:healthcare": "ts-node run-benchmark.ts --vertical healthcare",
+    "bench:robotics": "ts-node run-benchmark.ts --vertical robotics"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.3"
+  }
+}

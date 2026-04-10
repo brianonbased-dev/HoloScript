@@ -1,0 +1,211 @@
+// OpenXR Standard VR Example
+// Compile: holoscript compile openxr-app.holo --target openxr
+// Output: OpenXR-compliant C++ with standard extensions
+
+composition "OpenXR Training Simulator" {
+  environment {
+    reference_space: "stage"  // local | stage | unbounded
+    blend_mode: "opaque"       // opaque | additive | alpha_blend
+    extensions: [
+      "XR_EXT_hand_tracking",
+      "XR_FB_passthrough",
+      "XR_MSFT_spatial_anchor"
+    ]
+  }
+
+  // === Controller Tracking ===
+  object "LeftController" {
+    @tracked
+    @controller
+    action_set: "gameplay"
+    subaction_path: "/user/hand/left"
+    
+    bindings: {
+      grip: "/input/squeeze/value"
+      trigger: "/input/trigger/value"
+      thumbstick: "/input/thumbstick"
+      a_button: "/input/a/click"
+      b_button: "/input/b/click"
+    }
+
+    model: {
+      type: "controller"
+      render_model: true
+    }
+  }
+
+  object "RightController" {
+    @tracked
+    @controller
+    action_set: "gameplay"
+    subaction_path: "/user/hand/right"
+    
+    bindings: {
+      grip: "/input/squeeze/value"
+      trigger: "/input/trigger/value"
+      thumbstick: "/input/thumbstick"
+      a_button: "/input/a/click"
+      b_button: "/input/b/click"
+    }
+  }
+
+  // === Hand Tracking ===
+  object "LeftHand" {
+    @hand_tracked
+    hand: "left"
+    skeleton: true
+    
+    gestures: {
+      pinch: { thumb: "tip", index: "tip", threshold: 0.02 }
+      fist: { fingers: "curled", threshold: 0.8 }
+      point: { index: "extended", others: "curled" }
+    }
+
+    on_gesture: {
+      match gesture:
+        "pinch": grab_nearest_object()
+        "point": raycast_interact()
+    }
+  }
+
+  object "RightHand" {
+    @hand_tracked
+    hand: "right"
+    skeleton: true
+    gestures: same_as("LeftHand")
+  }
+
+  // === Training Equipment ===
+  spatial_group "Tools" {
+    object "Screwdriver" {
+      @grabbable
+      @tool
+      geometry: "model/screwdriver.glb"
+      position: [0.5, 1, -0.5]
+      
+      attach_point: {
+        position: [0, 0, 0.15]
+        rotation: [0, 0, 0]
+      }
+
+      haptics: {
+        on_grab: { amplitude: 0.3, duration: 100 }
+        on_use: { amplitude: 0.5, duration: 50, frequency: 200 }
+      }
+    }
+
+    object "Wrench" {
+      @grabbable
+      @tool
+      geometry: "model/wrench.glb"
+      position: [-0.5, 1, -0.5]
+      
+      attach_point: {
+        position: [0, 0, 0.1]
+        rotation: [0, 0, 0]
+      }
+    }
+
+    object "Multimeter" {
+      @grabbable
+      @tool
+      @ui_interactive
+      geometry: "model/multimeter.glb"
+      position: [0, 1, -0.3]
+      
+      display: {
+        type: "lcd"
+        size: [0.03, 0.015]
+        position: [0, 0.02, 0.01]
+      }
+
+      state {
+        reading: 0.0
+        mode: "voltage"
+      }
+    }
+  }
+
+  // === Training Station ===
+  object "ElectricalPanel" {
+    @interactable
+    @training_target
+    geometry: "model/electrical_panel.glb"
+    position: [0, 1.2, -1]
+    
+    interaction_points: [
+      { name: "screw_1", position: [-0.1, 0.1, 0], requires: "Screwdriver" },
+      { name: "screw_2", position: [0.1, 0.1, 0], requires: "Screwdriver" },
+      { name: "bolt_1", position: [0, -0.15, 0], requires: "Wrench" },
+      { name: "test_point", position: [0, 0, 0.05], requires: "Multimeter" }
+    ]
+
+    state {
+      screws_removed: 0
+      panel_open: false
+      power_isolated: false
+    }
+
+    on_tool_interact: {
+      match interaction.point:
+        "screw_1", "screw_2":
+          if tool.name == "Screwdriver":
+            this.state.screws_removed += 1
+            haptic_feedback(tool.hand, { amplitude: 0.6, duration: 200 })
+        
+        "test_point":
+          if tool.name == "Multimeter":
+            var voltage = this.state.power_isolated ? 0.0 : 240.0
+            Multimeter.state.reading = voltage
+    }
+  }
+
+  // === Spatial Anchors ===
+  anchor "WorkstationAnchor" {
+    persist: true
+    objects: ["ElectricalPanel", "Tools"]
+  }
+
+  // === Passthrough (if supported) ===
+  passthrough {
+    enabled: false  // Toggle with button
+    style: "mono"
+    opacity: 1.0
+  }
+
+  // === Actions ===
+  action_set "gameplay" {
+    action "grab" {
+      type: "boolean"
+      bindings: [
+        "grip > 0.9"
+      ]
+    }
+
+    action "use" {
+      type: "boolean"
+      bindings: [
+        "trigger > 0.8"
+      ]
+    }
+
+    action "toggle_passthrough" {
+      type: "boolean"
+      bindings: [
+        "b_button"
+      ]
+      on_press: {
+        passthrough.enabled = !passthrough.enabled
+      }
+    }
+  }
+
+  // === Lighting ===
+  light "OverheadLight" {
+    type: "point"
+    color: "#ffffff"
+    intensity: 300
+    position: [0, 2.5, -0.5]
+    range: 5
+  }
+}

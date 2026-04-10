@@ -1,0 +1,204 @@
+/**
+ * Neurodiverse Sensory Therapy Persistent Worlds
+ *
+ * SensoryCompanion agents use cultural + sensory traits to adjust particle
+ * density, haptics, color spectrum, and audio in real time. They migrate
+ * across devices with full state (including user progress bounties) and
+ * self-optimize via FeedbackLoop on biometric calm scores. HIPAA-ready.
+ *
+ * v5 Traits: agent_portal, economy, cultural_profile, feedback_loop, tenant
+ *
+ * Studio prompt: "Build a persistent sensory therapy world with color,
+ *   sound, and particle zones that adapt to each user's needs across
+ *   home, clinic, and school devices."
+ *
+ * Targets: AWE Healthcare, AWE Education, AWE Societal Impact
+ * @version 5.0.0
+ */
+composition "SensoryTherapyWorlds" {
+
+  metadata {
+    name: "Neurodiverse Sensory Therapy Persistent Worlds"
+    category: "mental_health"
+    platforms: ["webxr", "visionos", "quest", "r3f", "unity"]
+  }
+
+  environment {
+    skybox: "soft_aurora"
+    ambient_light: 0.4
+    physics: false
+    bloom: true
+  }
+
+  state {
+    sessions_completed: 0
+    sensory_adjustments: 0
+    biometric_samples: 0
+    avg_comfort: 0.0
+    progress_milestones: 0
+    device_migrations: 0
+  }
+
+  entity PortalHub {
+    traits: [agent_portal];
+    agent_portal: {
+      scene_id: "sensory_home_001",
+      scene_name: "Sensory Home Safe Space",
+      agent_id: "sensory_coordinator",
+      capabilities: ["sensory_adaptation", "biometric_analysis", "progress_tracking"],
+      relay_url: "wss://portal.holoscript.dev/sensory",
+      auto_reconnect: true, max_hop_count: 3,
+      default_ttl: 300000, max_outbox_size: 200,
+    };
+  }
+
+  entity EconomyEngine {
+    traits: [economy];
+    economy: {
+      initial_balance: 30,
+      default_spend_limit: 20,
+      spend_limit_period: 86400000,
+      max_transaction_history: 200,
+      default_bounty_deadline: 2592000000,
+      max_bounties_per_agent: 3,
+      escrow_enabled: true,
+      task_completion_reward: 5,
+    };
+  }
+
+  entity FeedbackEngine {
+    traits: [feedback_loop];
+    feedback_loop: {
+      metrics: {
+        sensory_comfort:    { target: 0.85, min: 0, max: 1.0 },
+        calm_score:         { target: 0.8,  min: 0, max: 1.0 },
+        focus_duration:     { target: 600,  min: 0, max: 3600 },
+        overwhelm_events:   { target: 0,    min: 0, max: 50 },
+        user_rating:        { target: 4.0,  min: 0, max: 5.0 },
+      },
+      history_window: 30,
+      min_samples_for_trend: 4,
+      alert_threshold: 20,
+      critical_threshold: 40,
+      auto_signal: true,
+    };
+  }
+
+  // ━━━ SENSORY ZONES ━━━
+
+  object "ColorZone_Warm" {
+    position: [-10, 0, 0]; geometry: "cylinder"; scale: [8, 0.05, 8]
+    color: "#ff8844"; opacity: 0.15
+  }
+  object "ColorZone_Cool" {
+    position: [10, 0, 0]; geometry: "cylinder"; scale: [8, 0.05, 8]
+    color: "#4488ff"; opacity: 0.15
+  }
+  object "SoundZone_Nature" {
+    position: [0, 0, -12]; geometry: "cylinder"; scale: [8, 0.05, 8]
+    color: "#44cc66"; opacity: 0.15
+  }
+
+  // ━━━ AGENT TEMPLATE ━━━
+
+  template "SensoryCompanion" {
+    @llm_agent
+    @perception(range: 12)
+    @cultural_profile {
+      cooperation_index: 0.98
+      cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["sensory_safety", "user_autonomy", "gentleness"]
+    }
+    @tenant { tenantId: "hipaa_sensory_01"; role: "therapy_agent"; rbac: true }
+
+    geometry: "sphere"; color: "#aaccff"; scale: [0.6, 0.6, 0.6]
+
+    state {
+      sensory_profile: "default"
+      particle_density: 0.4
+      color_temp_k: 4500
+      audio_db: 30
+      haptic_freq: 0.3
+      comfort_score: 0.5
+      progress_level: 0
+    }
+
+    on mount() {
+      print("SensoryCompanion " + this.id + " — adjusting to user profile")
+    }
+
+    action adjust_environment(params) {
+      if (params.particle_density !== undefined) state.particle_density = params.particle_density
+      if (params.color_temp_k !== undefined) state.color_temp_k = params.color_temp_k
+      if (params.audio_db !== undefined) state.audio_db = params.audio_db
+      if (params.haptic_freq !== undefined) state.haptic_freq = params.haptic_freq
+      emit("sensory_adjusted", { companionId: this.id, params: params })
+    }
+
+    action process_biometric(comfort, overwhelm) {
+      state.comfort_score = comfort
+      emit("feedback:update_metric", { name: "sensory_comfort", value: comfort })
+      emit("feedback:update_metric", { name: "overwhelm_events", value: overwhelm })
+
+      if (comfort < 0.3) {
+        this.adjust_environment({
+          particle_density: 0.1, audio_db: 15, haptic_freq: 0.0
+        })
+        print("🌙 Reducing all stimulation — comfort critically low")
+      }
+    }
+
+    action record_progress(milestone) {
+      state.progress_level += 1
+      emit("economy:earn", {
+        agentId: "user_current", amount: 5,
+        reason: "Progress milestone: " + milestone
+      })
+      emit("progress_recorded", { level: state.progress_level, milestone: milestone })
+    }
+
+    action migrate_to(targetScene) {
+      emit(PortalHub, "portal:migrate_out", {
+        agentId: this.id, name: "SensoryCompanion",
+        capabilities: ["sensory_adaptation", "biometric_analysis"],
+        memory: { profile: state.sensory_profile, progress: state.progress_level },
+        state: {
+          particle_density: state.particle_density,
+          color_temp_k: state.color_temp_k,
+          audio_db: state.audio_db,
+          haptic_freq: state.haptic_freq
+        },
+        targetScene: targetScene,
+      })
+    }
+  }
+
+  // ━━━ INSTANCES ━━━
+
+  object "Ground" { geometry: "plane"; scale: [35, 1, 35]; color: "#1a1a2e"; position: [0, -0.5, 0] }
+  object "Companion_Sky" using "SensoryCompanion" { position: [-8, 1.5, 2]; color: "#aaccff" }
+  object "Companion_Sun" using "SensoryCompanion" { position: [8, 1.5, 2]; color: "#ffddaa" }
+
+  // ━━━ GLOBAL EVENTS ━━━
+
+  on_sensory_adjusted(data) { state.sensory_adjustments += 1 }
+  on_progress_recorded(data) { state.progress_milestones += 1 }
+  on(PortalHub, "portal:agent_migrated") { state.device_migrations += 1 }
+
+  on(FeedbackEngine, "feedback:optimization_signal") {
+    if (event.suggestedAction === "reduce_all_stimulation") {
+      print("🌙 Auto: global stimulation reduction for overwhelm protection")
+    }
+  }
+
+  panel "SensoryDashboard" {
+    position: "top-right"
+    text "Title" { content: "SENSORY THERAPY"; style: "heading" }
+    text "S1"    { bind: "'Sessions: ' + state.sessions_completed"; style: "info" }
+    text "S2"    { bind: "'Adjustments: ' + state.sensory_adjustments"; style: "info" }
+    text "S3"    { bind: "'Milestones: ' + state.progress_milestones"; color: "#00ff88" }
+    text "S4"    { bind: "'Migrations: ' + state.device_migrations"; style: "info" }
+    text "HIPAA" { content: "HIPAA: TenantTrait RBAC ✅"; color: "#2ecc71" }
+  }
+}

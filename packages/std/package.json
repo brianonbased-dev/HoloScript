@@ -1,0 +1,78 @@
+{
+  "name": "@holoscript/std",
+  "version": "3.1.1",
+  "description": "HoloScript Standard Library - Core types and utilities",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./math": {
+      "types": "./dist/math.d.ts",
+      "import": "./dist/math.js",
+      "require": "./dist/math.cjs"
+    },
+    "./collections": {
+      "types": "./dist/collections.d.ts",
+      "import": "./dist/collections.js",
+      "require": "./dist/collections.cjs"
+    },
+    "./string": {
+      "types": "./dist/string.d.ts",
+      "import": "./dist/string.js",
+      "require": "./dist/string.cjs"
+    },
+    "./time": {
+      "types": "./dist/time.d.ts",
+      "import": "./dist/time.js",
+      "require": "./dist/time.cjs"
+    },
+    "./economic": {
+      "types": "./dist/traits/EconomicPrimitives.d.ts",
+      "import": "./dist/traits/EconomicPrimitives.js",
+      "require": "./dist/traits/EconomicPrimitives.cjs"
+    },
+    "./economic-traits": {
+      "types": "./dist/traits/EconomicTraits.d.ts",
+      "import": "./dist/traits/EconomicTraits.js",
+      "require": "./dist/traits/EconomicTraits.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "watch": "tsc -w",
+    "clean": "rm -rf dist",
+    "test": "vitest run --passWithNoTests"
+  },
+  "keywords": [
+    "holoscript",
+    "std",
+    "standard-library",
+    "3d",
+    "spatial",
+    "economic",
+    "bonding-curve",
+    "pid-controller"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/std"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

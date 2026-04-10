@@ -1,0 +1,565 @@
+// AR Foundation - Face Tracking Example
+// Demonstrates face mesh tracking, blend shapes, and AR face effects
+// Compatible with iOS ARKit (TrueDepth camera) and Android ARCore (front camera)
+// Compile: holoscript compile face-tracking.holo --target ios/android
+
+composition "AR Face Tracking & Effects" {
+  metadata {
+    description: "Real-time face mesh tracking with blend shapes, eye gaze, and AR face effects"
+    platform: ["ios", "android"]
+    ar_features: ["face_tracking", "blend_shapes", "eye_tracking", "occlusion"]
+    author: "HoloScript AR Foundation Examples"
+    version: "1.0.0"
+  }
+
+  // === AR Environment Configuration ===
+  environment {
+    ar_mode: true
+
+    face_tracking: {
+      enabled: true
+      max_faces: 1
+      blend_shapes: true
+      mesh_topology: "arkit"
+      eye_tracking: true
+      update_rate: 60
+    }
+
+    camera {
+      clear_mode: "ar_background"
+      mode: "front_facing"
+      near_clip: 0.01
+      far_clip: 5
+    }
+  }
+
+  // === Face Tracking Manager ===
+  object "FaceTrackingSystem" @face_tracking {
+    blend_shapes: true
+    mesh_topology: "arkit"
+    eye_tracking: true
+    lip_sync: true
+    smoothing: 0.3
+    confidence_threshold: 0.5
+
+    state {
+      face_detected: false
+      blend_shapes: {}
+      eye_gaze: {
+        left: null,
+        right: null
+      },
+      head_pose: {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1]
+      },
+      current_expression: "neutral",
+      lip_sync_phoneme: null,
+      tracking_quality: "none" // "none", "limited", "normal"
+    }
+
+    onFaceDetected: {
+      this.state.face_detected = true;
+      this.state.tracking_quality = "normal";
+
+      emit("face_tracking_started");
+      emit("ui_update", { status: "Face Detected" });
+
+      haptic_feedback("light");
+    }
+
+    onBlendShapeUpdate: {
+      const shapes = event.blend_shapes;
+      this.state.blend_shapes = shapes;
+
+      // Detect expression from blend shapes
+      this.detectExpression(shapes);
+
+      // Forward to avatar
+      emit("avatar_blend_shapes", {
+        shapes: shapes,
+        smoothed: true
+      });
+    }
+
+    detectExpression: function(shapes) {
+      const jawOpen = shapes.jawOpen || 0;
+      const mouthSmileL = shapes.mouthSmileLeft || 0;
+      const mouthSmileR = shapes.mouthSmileRight || 0;
+      const browDownL = shapes.browDownLeft || 0;
+      const browDownR = shapes.browDownRight || 0;
+      const browInnerUp = shapes.browInnerUp || 0;
+      const eyeBlinkL = shapes.eyeBlinkLeft || 0;
+      const eyeBlinkR = shapes.eyeBlinkRight || 0;
+      const cheekPuff = shapes.cheekPuff || 0;
+
+      let expression = "neutral";
+
+      const smileAvg = (mouthSmileL + mouthSmileR) / 2;
+      const browDownAvg = (browDownL + browDownR) / 2;
+      const blinkAvg = (eyeBlinkL + eyeBlinkR) / 2;
+
+      if (smileAvg > 0.5) {
+        expression = "happy";
+      } else if (jawOpen > 0.6) {
+        expression = "surprised";
+      } else if (browDownAvg > 0.5) {
+        expression = "angry";
+      } else if (browInnerUp > 0.5 && smileAvg < 0.2) {
+        expression = "sad";
+      } else if (blinkAvg > 0.8) {
+        expression = "winking";
+      } else if (cheekPuff > 0.6) {
+        expression = "cheekPuff";
+      }
+
+      if (expression !== this.state.current_expression) {
+        this.state.current_expression = expression;
+        emit("expression_changed", { expression });
+
+        // Trigger effects based on expression
+        this.triggerExpressionEffect(expression);
+      }
+    }
+
+    triggerExpressionEffect: function(expression) {
+      const effects = {
+        happy: { particles: "sparkles", color: "#FFD700" },
+        surprised: { particles: "burst", color: "#FF6B6B" },
+        angry: { particles: "fire", color: "#FF4500" },
+        sad: { particles: "rain", color: "#4FC3F7" },
+        winking: { particles: "stars", color: "#E040FB" },
+        cheekPuff: { particles: "bubbles", color: "#81D4FA" }
+      };
+
+      const effect = effects[expression];
+      if (effect) {
+        emit("spawn_face_effect", effect);
+      }
+    }
+
+    onEyeGazeUpdate: {
+      this.state.eye_gaze = {
+        left: event.left_eye,
+        right: event.right_eye
+      };
+
+      emit("eye_gaze_update", this.state.eye_gaze);
+    }
+
+    onHeadPoseUpdate: {
+      this.state.head_pose = {
+        position: event.position,
+        rotation: event.rotation
+      };
+    }
+
+    onFaceLost: {
+      this.state.face_detected = false;
+      this.state.tracking_quality = "none";
+      this.state.current_expression = "neutral";
+
+      emit("face_tracking_lost");
+      emit("ui_update", { status: "No Face Detected" });
+    }
+  }
+
+  // === Face Mesh Visualizer ===
+  object "FaceMeshVisualizer" {
+    @anchor
+    @dynamic_mesh
+
+    visible: false // Toggle for debug visualization
+    wireframe: true
+    color: "#00FF00"
+    opacity: 0.3
+
+    state {
+      mesh_vertices: null
+      mesh_indices: null
+      show_mesh: false
+    }
+
+    onUpdate: {
+      const faceSystem = getObject("FaceTrackingSystem");
+
+      if (faceSystem.state.face_detected && this.state.show_mesh) {
+        this.visible = true;
+        this.position = faceSystem.state.head_pose.position;
+        this.rotation = faceSystem.state.head_pose.rotation;
+      } else {
+        this.visible = false;
+      }
+    }
+
+    onToggleMesh: {
+      this.state.show_mesh = !this.state.show_mesh;
+    }
+  }
+
+  // === AR Face Filter Effects ===
+
+  // Sunglasses overlay
+  template "SunglassesEffect" {
+    @anchor
+
+    props {
+      style: "aviator" // "aviator", "round", "cat_eye"
+    }
+
+    geometry: "model"
+    source: "assets/filters/sunglasses_${this.props.style}.usdz"
+    scale: [1, 1, 1]
+
+    state {
+      attached_to_face: false
+    }
+
+    onUpdate: {
+      const faceSystem = getObject("FaceTrackingSystem");
+
+      if (faceSystem.state.face_detected) {
+        this.visible = true;
+        this.position = faceSystem.state.head_pose.position;
+        this.rotation = faceSystem.state.head_pose.rotation;
+
+        // Adjust position relative to eyes
+        const shapes = faceSystem.state.blend_shapes;
+        // Fine-tune vertical position based on brow position
+        const browOffset = (shapes.browInnerUp || 0) * 0.002;
+        this.position[1] += browOffset;
+      } else {
+        this.visible = false;
+      }
+    }
+  }
+
+  // Crown / hat effect
+  template "CrownEffect" {
+    @anchor
+
+    geometry: "model"
+    source: "assets/filters/crown.usdz"
+    scale: [0.8, 0.8, 0.8]
+
+    onUpdate: {
+      const faceSystem = getObject("FaceTrackingSystem");
+
+      if (faceSystem.state.face_detected) {
+        this.visible = true;
+        // Position above head
+        const headPos = faceSystem.state.head_pose.position;
+        this.position = [headPos[0], headPos[1] + 0.12, headPos[2]];
+        this.rotation = faceSystem.state.head_pose.rotation;
+      } else {
+        this.visible = false;
+      }
+    }
+
+    animation "float" {
+      property: "position.y"
+      from: "${this.position[1]}"
+      to: "${this.position[1] + 0.01}"
+      duration: 1500
+      loop: infinite
+      easing: "easeInOutSine"
+    }
+  }
+
+  // Particle effect spawner (triggered by expressions)
+  template "FaceParticleEffect" {
+    @anchor
+    @gpu_particle
+
+    props {
+      particle_type: "sparkles"
+      color: "#FFD700"
+    }
+
+    state {
+      active: false
+      lifetime: 2000
+    }
+
+    particle_config: {
+      count: 50
+      size: [0.005, 0.01]
+      lifetime: [0.5, 1.5]
+      velocity: [0, 0.05, 0]
+      spread: 0.1
+      gravity: -0.02
+      color: "${this.props.color}"
+      opacity_fade: true
+    }
+
+    onInit: {
+      this.state.active = true;
+
+      // Auto-destroy after lifetime
+      setTimeout(() => {
+        this.destroy();
+      }, this.state.lifetime);
+    }
+  }
+
+  // === Expression Reaction System ===
+  object "ExpressionReactionSystem" {
+    state {
+      reaction_cooldown: 0
+      last_reaction_time: 0
+      reactions_count: 0
+    }
+
+    onExpressionChanged: {
+      const now = Date.now();
+      const cooldown = 1500; // ms between reactions
+
+      if (now - this.state.last_reaction_time < cooldown) {
+        return; // Rate limit reactions
+      }
+
+      this.state.last_reaction_time = now;
+      this.state.reactions_count += 1;
+
+      const faceSystem = getObject("FaceTrackingSystem");
+      const headPos = faceSystem.state.head_pose.position;
+
+      // Spawn particle effect near face
+      if (event.expression !== "neutral") {
+        const effects = {
+          happy: { particles: "sparkles", color: "#FFD700" },
+          surprised: { particles: "burst", color: "#FF6B6B" },
+          angry: { particles: "fire", color: "#FF4500" },
+          sad: { particles: "rain", color: "#4FC3F7" },
+          winking: { particles: "stars", color: "#E040FB" },
+          cheekPuff: { particles: "bubbles", color: "#81D4FA" }
+        };
+
+        const effect = effects[event.expression];
+        if (effect) {
+          spawn("FaceParticleEffect", {
+            position: [headPos[0], headPos[1] + 0.05, headPos[2] + 0.1],
+            particle_type: effect.particles,
+            color: effect.color
+          });
+        }
+      }
+    }
+  }
+
+  // === Eye Gaze Visualization ===
+  object "EyeGazeVisualizer" {
+    @anchor
+
+    visible: false // Toggle for debug
+
+    state {
+      show_gaze: false
+    }
+
+    children: [
+      {
+        type: "sphere"
+        id: "left_gaze_marker"
+        scale: [0.005, 0.005, 0.005]
+        color: "#00FF00"
+        opacity: 0.8
+      },
+      {
+        type: "sphere"
+        id: "right_gaze_marker"
+        scale: [0.005, 0.005, 0.005]
+        color: "#00FF00"
+        opacity: 0.8
+      },
+      {
+        type: "line"
+        id: "left_gaze_ray"
+        color: "#00FF00"
+        opacity: 0.3
+        width: 0.001
+      },
+      {
+        type: "line"
+        id: "right_gaze_ray"
+        color: "#00FF00"
+        opacity: 0.3
+        width: 0.001
+      }
+    ]
+
+    onUpdate: {
+      if (!this.state.show_gaze) return;
+
+      const faceSystem = getObject("FaceTrackingSystem");
+      const gaze = faceSystem.state.eye_gaze;
+
+      if (gaze.left) {
+        this.children[0].position = gaze.left.origin;
+        this.children[2].start = gaze.left.origin;
+        this.children[2].end = [
+          gaze.left.origin[0] + gaze.left.direction[0] * 0.5,
+          gaze.left.origin[1] + gaze.left.direction[1] * 0.5,
+          gaze.left.origin[2] + gaze.left.direction[2] * 0.5
+        ];
+      }
+
+      if (gaze.right) {
+        this.children[1].position = gaze.right.origin;
+        this.children[3].start = gaze.right.origin;
+        this.children[3].end = [
+          gaze.right.origin[0] + gaze.right.direction[0] * 0.5,
+          gaze.right.origin[1] + gaze.right.direction[1] * 0.5,
+          gaze.right.origin[2] + gaze.right.direction[2] * 0.5
+        ];
+      }
+    }
+  }
+
+  // === Filter Selection Controller ===
+  object "FilterController" {
+    state {
+      active_filter: "none" // "none", "sunglasses", "crown", "mask"
+      filter_instances: {}
+    }
+
+    onSelectFilter: {
+      const filter_name = event.filter;
+
+      // Remove current filter
+      if (this.state.active_filter !== "none") {
+        emit("remove_filter", { name: this.state.active_filter });
+      }
+
+      // Apply new filter
+      if (filter_name !== "none") {
+        const template_map = {
+          sunglasses: "SunglassesEffect",
+          crown: "CrownEffect"
+        };
+
+        const template = template_map[filter_name];
+        if (template) {
+          const instance = spawn(template, {});
+          this.state.filter_instances[filter_name] = instance;
+        }
+      }
+
+      this.state.active_filter = filter_name;
+      haptic_feedback("light");
+    }
+  }
+
+  // === Face Occlusion ===
+  object "FaceOcclusionRenderer" @occlusion {
+    mode: "environment"
+    depth_api: true
+    hand_occlusion: false
+    soft_edges: true
+
+    state {
+      enabled: true
+    }
+
+    material: "face_occlusion_material"
+    visible: true
+    render_queue: 900
+
+    onUpdate: {
+      const faceSystem = getObject("FaceTrackingSystem");
+      if (faceSystem.state.face_detected && this.state.enabled) {
+        // Use face mesh for accurate occlusion
+        this.position = faceSystem.state.head_pose.position;
+        this.rotation = faceSystem.state.head_pose.rotation;
+      }
+    }
+  }
+
+  // === AR Lighting ===
+  light "AREnvironmentLight" @light_estimation {
+    type: "environment"
+    use_ar_estimation: true
+    apply_ambient: true
+    apply_directional: true
+    apply_reflections: true
+  }
+
+  light "FaceFillLight" {
+    type: "point"
+    color: "#FFF5E6"
+    intensity: 0.4
+    position: [0, 0.1, 0.3]
+    distance: 1.0
+    cast_shadows: false
+  }
+
+  // === Gestures ===
+  gesture "tap" {
+    action: "toggle_filter"
+  }
+
+  gesture "swipe_left" {
+    action: "next_filter"
+  }
+
+  gesture "swipe_right" {
+    action: "prev_filter"
+  }
+
+  gesture "double_tap" {
+    action: "capture_photo"
+  }
+
+  // === State Machine ===
+  state_machine "FaceTrackingSession" {
+    initial: "initializing"
+
+    state "initializing" {
+      on_ar_ready: transition("awaiting_face")
+    }
+
+    state "awaiting_face" {
+      description: "Waiting for face detection"
+      on_face_detected: transition("tracking")
+    }
+
+    state "tracking" {
+      description: "Tracking face and applying effects"
+      on_face_lost: transition("awaiting_face")
+      on_filter_selected: transition("tracking")
+    }
+
+    state "capturing" {
+      description: "Capturing photo"
+      on_capture_complete: transition("tracking")
+    }
+
+    state "error" {
+      description: "Face tracking not supported (no front camera)"
+    }
+  }
+
+  // === Analytics ===
+  analytics {
+    track_event("face_detected", {
+      tracking_quality: "${event.quality}"
+    })
+
+    track_event("expression_detected", {
+      expression: "${event.expression}"
+    })
+
+    track_event("filter_applied", {
+      filter_name: "${event.filter}",
+      session_time: "${event.session_time}"
+    })
+
+    track_event("photo_captured", {
+      filter: "${event.active_filter}",
+      expression: "${event.expression}"
+    })
+
+    track_metric("face_tracking_fps", "${face_tracking_fps}")
+    track_metric("blend_shape_count", "${blend_shape_count}")
+  }
+}

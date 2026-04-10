@@ -1,0 +1,29 @@
+[package]
+name = "holoscript-wasm"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description = "HoloScript parser and type checker compiled to WebAssembly"
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+wasm-bindgen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+console_error_panic_hook = { version = "0.1.7", optional = true }
+js-sys.workspace = true
+typeshare.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+# Profiles now inherited from workspace root Cargo.toml
+# See ../../Cargo.toml for shared optimization profiles
+

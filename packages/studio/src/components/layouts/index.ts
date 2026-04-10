@@ -1,0 +1,1 @@
+export { ResponsiveStudioLayout } from './ResponsiveStudioLayout';

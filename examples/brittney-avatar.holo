@@ -1,0 +1,337 @@
+// Brittney Avatar — Spatial AI agent with lip-sync, animations, and spatial audio
+// Sprint J — Updated to current HoloScript composition syntax
+// v4.0: template → npc + object style, action → named handlers, moods → properties
+
+composition "Brittney Avatar" {
+
+  // ─── NPC definition — registers Brittney in the AI agent system ─────────────
+
+  npc "Brittney" {
+    npc_type: "ai_assistant"
+    model: "/models/brittney/brittney_v2.glb"
+    dialogue_tree: "brittney_greeting"
+  }
+
+  // ─── Avatar object — the 3D spatial presence ────────────────────────────────
+
+  object "BrittneyAvatar" {
+    @animated
+    @spatial_audio
+    @tracked
+    @billboard
+
+    geometry: "avatar"
+    model: "/models/brittney/brittney_v2.glb"
+    scale: [1, 1, 1]
+
+    state {
+      speaking: false
+      thinking: false
+      idle: true
+      mood: "friendly"
+      lipSyncLevel: 0
+      blinkTimer: 0
+
+      // Mood → emissive map (queried at runtime)
+      moodEmissive: {
+        friendly:  { color: "#00ffff", intensity: 0.2 }
+        thinking:  { color: "#ffaa00", intensity: 0.3 }
+        excited:   { color: "#ff6ec7", intensity: 0.4 }
+        focused:   { color: "#6e40c9", intensity: 0.25 }
+        error:     { color: "#ff4444", intensity: 0.35 }
+      }
+    }
+
+    // Voice TTS configuration
+    voice: {
+      provider: "elevenlabs"
+      voiceId: "nova"
+      rate: 1.0
+      pitch: 1.0
+    }
+
+    // Spatial audio cone profile
+    spatial_audio: {
+      refDistance: 1.5
+      maxDistance: 15
+      rolloffFactor: 1.2
+      coneInnerAngle: 120
+      coneOuterAngle: 240
+      coneOuterGain: 0.3
+    }
+
+    // ─── Idle Animations ───
+
+    animation idle_float {
+      property: "position.y"
+      from: 0
+      to: 0.05
+      duration: 3000
+      loop: infinite
+      easing: "easeInOut"
+    }
+
+    animation idle_sway {
+      property: "rotation.y"
+      from: -2
+      to: 2
+      duration: 5000
+      loop: infinite
+      easing: "easeInOut"
+    }
+
+    animation blink {
+      property: "morph.blink"
+      keyframes: [
+        { time: 0,   value: 0 }
+        { time: 50,  value: 1 }
+        { time: 150, value: 0 }
+      ]
+      loop: false
+    }
+
+    // ─── Speaking Animations ───
+
+    animation talk_gesture_left {
+      property: "bone.leftArm.rotation.x"
+      keyframes: [
+        { time: 0,   value: 0 }
+        { time: 300, value: -25 }
+        { time: 600, value: -15 }
+        { time: 900, value: 0 }
+      ]
+      easing: "easeInOut"
+    }
+
+    animation talk_gesture_right {
+      property: "bone.rightArm.rotation.x"
+      keyframes: [
+        { time: 0,    value: 0 }
+        { time: 400,  value: -20 }
+        { time: 700,  value: -30 }
+        { time: 1000, value: 0 }
+      ]
+      easing: "easeInOut"
+    }
+
+    animation nod {
+      property: "bone.head.rotation.x"
+      keyframes: [
+        { time: 0,   value: 0 }
+        { time: 200, value: 8 }
+        { time: 400, value: 0 }
+      ]
+      easing: "easeOut"
+    }
+
+    // ─── Thinking Animations ───
+
+    animation think_tilt {
+      property: "bone.head.rotation.z"
+      keyframes: [
+        { time: 0,    value: 0 }
+        { time: 500,  value: 8 }
+        { time: 2000, value: 8 }
+        { time: 2500, value: 0 }
+      ]
+      easing: "easeInOut"
+    }
+
+    animation think_hand_chin {
+      property: "bone.rightArm.rotation.x"
+      keyframes: [
+        { time: 0,    value: 0 }
+        { time: 400,  value: -60 }
+        { time: 2000, value: -60 }
+        { time: 2500, value: 0 }
+      ]
+      easing: "easeInOut"
+    }
+
+    // ─── Per-frame update — lip sync + blink timer ───────────────────────────
+
+    on_update(delta) {
+      // Random blink every 3–6 s
+      state.blinkTimer += delta
+      if (state.blinkTimer > 3000 + Math.random() * 3000) {
+        play("blink")
+        state.blinkTimer = 0
+      }
+
+      // Lip sync morphs
+      morph.jawOpen    = state.speaking ? state.lipSyncLevel * 0.4 : 0
+      morph.mouthOpen  = state.speaking ? state.lipSyncLevel * 0.6 : 0
+      morph.lipSync_aa = state.speaking ? state.lipSyncLevel * 0.3 : 0
+
+      // Apply mood emissive color
+      const m = state.moodEmissive[state.mood]
+      if (m) {
+        material.emissive = m.color
+        material.emissiveIntensity = m.intensity
+      }
+    }
+
+    // ─── Event handlers ──────────────────────────────────────────────────────
+
+    on_init() {
+      play("idle_float")
+      play("idle_sway")
+    }
+
+    on_speech_audio_level(level) {
+      state.lipSyncLevel = level
+    }
+
+    on_speech_end() {
+      state.speaking = false
+      state.idle = true
+      state.lipSyncLevel = 0
+      play("nod")
+    }
+
+    on_event("startSpeaking", text) {
+      state.speaking = true
+      state.idle = false
+      state.mood = "friendly"
+      speech.speak(text, voice)
+      if (text.length > 50) {
+        play("talk_gesture_left")
+        schedule(500, () -> play("talk_gesture_right"))
+      }
+      if (text.includes("!")) {
+        state.mood = "excited"
+      }
+    }
+
+    on_event("stopSpeaking") {
+      state.speaking = false
+      state.idle = true
+      state.lipSyncLevel = 0
+      play("nod")
+    }
+
+    on_event("startThinking") {
+      state.thinking = true
+      state.idle = false
+      state.mood = "thinking"
+      play("think_tilt")
+      play("think_hand_chin")
+    }
+
+    on_event("stopThinking") {
+      state.thinking = false
+      state.idle = true
+      state.mood = "friendly"
+    }
+
+    on_event("react", emotion) {
+      state.mood = emotion
+      if (emotion == "excited") {
+        play("nod")
+        play("talk_gesture_left")
+        play("talk_gesture_right")
+      }
+    }
+
+    on_event("lookAt", target) {
+      bone.head.lookAt(target.position)
+      bone.eyes.lookAt(target.position)
+    }
+
+    onHoverEnter() {
+      if (state.idle) {
+        state.mood = "friendly"
+        play("nod")
+      }
+    }
+  }
+
+  // ─── Thought Bubble (visible while thinking) ─────────────────────────────
+
+  object "ThoughtBubble" {
+    @billboard
+    @glowing
+    geometry: "plane"
+    material: "glass"
+    color: "#1a1a3a"
+    opacity: 0.85
+    scale: [0.6, 0.2, 0.01]
+    visible: false
+
+    state {
+      text: "..."
+    }
+
+    animation dots {
+      property: "state.text"
+      keyframes: [
+        { time: 0,   value: "." }
+        { time: 300, value: ".." }
+        { time: 600, value: "..." }
+      ]
+      loop: infinite
+    }
+
+    on_event("startThinking") {
+      visible = true
+      play("dots")
+    }
+
+    on_event("stopThinking") {
+      visible = false
+    }
+  }
+
+  // ─── Name Tag ─────────────────────────────────────────────────────────────
+
+  object "NameTag" {
+    @billboard
+    geometry: "plane"
+    text: "Brittney"
+    fontSize: 0.06
+    color: "#00ffff"
+    opacity: 0.8
+    scale: [0.3, 0.08, 0.01]
+  }
+
+  // ─── Greeting dialogue tree ───────────────────────────────────────────────
+
+  dialogue "brittney_greeting" {
+    character: "Brittney"
+    emotion: "friendly"
+    content: "Hey! I'm Brittney. Tell me what you want to build."
+    options: [
+      {
+        text: "Help me create a scene"
+        next: "brittney_create"
+      }
+      {
+        text: "What can you do?"
+        next: "brittney_capabilities"
+      }
+      {
+        text: "Nothing right now"
+        next: "end"
+      }
+    ]
+  }
+
+  dialogue "brittney_create" {
+    character: "Brittney"
+    emotion: "excited"
+    content: "Awesome! Describe it and I'll write the HoloScript for you."
+    options: []
+  }
+
+  dialogue "brittney_capabilities" {
+    character: "Brittney"
+    emotion: "friendly"
+    content: "I can write scenes, generate shaders, manage assets, and live-compile your code."
+    options: [
+      {
+        text: "Let's get started!"
+        next: "brittney_create"
+      }
+    ]
+  }
+}

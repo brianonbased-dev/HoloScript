@@ -1,0 +1,143 @@
+// iOS ARKit Example
+// Compile: holoscript compile ios-ar-app.holo --target ios
+// Output: Swift/SwiftUI with ARKit integration
+
+composition "iOS AR Showroom" {
+  environment {
+    plane_detection: true
+    light_estimation: true
+    world_tracking: {
+      enabled: true
+      plane_detection: "horizontal"
+    }
+  }
+
+  // === Product Display ===
+  template "ProductModel" {
+    @anchor
+    @clickable
+    @scalable
+    
+    state {
+      selected: false
+      rotation_speed: 0
+    }
+
+    on_tap: {
+      this.state.selected = !this.state.selected
+      if (this.state.selected) {
+        this.state.rotation_speed = 30
+        show_info_panel(this.name)
+      } else {
+        this.state.rotation_speed = 0
+        hide_info_panel()
+      }
+    }
+  }
+
+  object "Sneaker" using "ProductModel" {
+    geometry: "model/sneaker.usdz"
+    position: [0, 0, -0.5]
+    scale: [0.3, 0.3, 0.3]
+
+    animation "rotate" {
+      property: "rotation.y"
+      from: 0
+      to: 360
+      duration: 12000
+      loop: infinite
+    }
+  }
+
+  object "Watch" using "ProductModel" {
+    geometry: "model/watch.usdz"
+    position: [0.3, 0, -0.5]
+    scale: [0.15, 0.15, 0.15]
+  }
+
+  object "Headphones" using "ProductModel" {
+    geometry: "model/headphones.usdz"
+    position: [-0.3, 0, -0.5]
+    scale: [0.2, 0.2, 0.2]
+  }
+
+  // === UI Elements ===
+  object "ProductInfoCard" {
+    @billboard
+    @ui_element
+    geometry: "plane"
+    position: [0, 0.25, -0.5]
+    scale: [0.3, 0.15, 1]
+    visible: false
+    
+    ui: {
+      background: "#ffffff"
+      corner_radius: 8
+      shadow: true
+    }
+  }
+
+  object "PlacementIndicator" {
+    @surface_indicator
+    geometry: "model/placement_ring.usdz"
+    scale: [0.1, 0.1, 0.1]
+    color: "#00ff00"
+    opacity: 0.6
+    visible_when: "placing"
+  }
+
+  // === Lighting (AR estimates + supplements) ===
+  light "AREnvironment" {
+    type: "probe"
+    use_ar_estimation: true
+  }
+
+  light "ProductSpotlight" {
+    type: "spot"
+    color: "#ffffff"
+    intensity: 500
+    position: [0, 0.5, -0.3]
+    target: [0, 0, -0.5]
+    angle: 45
+    cast_shadows: true
+  }
+
+  // === Gestures ===
+  gesture "pinch" {
+    action: "scale_selected"
+    min_scale: 0.5
+    max_scale: 2.0
+  }
+
+  gesture "rotate" {
+    action: "rotate_selected"
+    axis: "y"
+  }
+
+  gesture "pan" {
+    action: "move_selected"
+    constrain_to: "horizontal_plane"
+  }
+
+  // === State Machine ===
+  state_machine "AppState" {
+    initial: "scanning"
+
+    state "scanning" {
+      on_plane_detected: transition("placing")
+    }
+
+    state "placing" {
+      on_tap: transition("viewing")
+    }
+
+    state "viewing" {
+      on_product_tap: transition("product_detail")
+      on_reset: transition("scanning")
+    }
+
+    state "product_detail" {
+      on_close: transition("viewing")
+    }
+  }
+}

@@ -1,0 +1,32 @@
+@manifest {
+  title: "Small Scene"
+  version: "1.0.0"
+}
+
+template "Box" {
+  @collidable
+  @physics
+  material: "metal"
+}
+
+orb cube using "Box" {
+  position: [0, 1, 0]
+  scale: [1, 1, 1]
+  color: "blue"
+  
+  on_click: {
+    console.log("Clicked!")
+  }
+}
+
+orb sphere {
+  @grabbable
+  position: [2, 1, 0]
+  scale: [0.5, 0.5, 0.5]
+  color: "red"
+}
+
+environment {
+  background: "sky"
+  lighting: "bright"
+}

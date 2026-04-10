@@ -1,0 +1,1438 @@
+================================================================================
+Service Block - Basic Service
+================================================================================
+
+service "UserAPI" {
+  port: 3000
+  base_path: "/api/v1"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - With Traits
+================================================================================
+
+service "PaymentGateway" @auth @rate_limit {
+  port: 8080
+  protocol: "https"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - With Nested Object
+================================================================================
+
+service "ItemAPI" @cors {
+  port: 3000
+
+  object "HealthCheck" @http {
+    method: "GET"
+    path: "/health"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (object
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string)))))
+
+================================================================================
+Service Block - Endpoint
+================================================================================
+
+endpoint "ListUsers" {
+  method: "GET"
+  path: "/users"
+  handler: "listUsers"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - Route
+================================================================================
+
+route "GetUser" @auth {
+  method: "GET"
+  path: "/users/:id"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - Handler
+================================================================================
+
+handler "CreateUser" @validation {
+  method: "POST"
+  path: "/users"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - Middleware
+================================================================================
+
+middleware "RateLimit" {
+  max_requests: 100
+  window: 60
+  strategy: "sliding_window"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - Gateway
+================================================================================
+
+gateway "APIGateway" @cors @rate_limit {
+  port: 443
+  protocol: "https"
+  upstream: "http://backend:3000"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Service Block - Proxy
+================================================================================
+
+proxy "BackendProxy" {
+  target: "http://localhost:8080"
+  rewrite_path: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Service Block - Load Balancer
+================================================================================
+
+load_balancer "AppLB" @health_check {
+  algorithm: "round_robin"
+  max_connections: 1000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Service Block - With Event Handler
+================================================================================
+
+service "NotificationService" {
+  port: 4000
+
+  on_start {
+    log("Service started")
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (event_handler
+      event: (event_name)
+      (block
+        (function_call
+          function: (identifier)
+          (argument
+            (string)))))))
+
+================================================================================
+Service Block - Identifier Name
+================================================================================
+
+service UserService {
+  port: 5000
+  version: "2.0"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key)
+      value: (string))))
+
+================================================================================
+Service Block - Multiple Nested Objects
+================================================================================
+
+service "CRUD" {
+  object "Create" @http {
+    method: "POST"
+    path: "/items"
+  }
+
+  object "Read" @http {
+    method: "GET"
+    path: "/items/:id"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (service_block
+    name: (string)
+    (object
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string)))
+    (object
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string)))))
+
+================================================================================
+Contract Block - Basic Schema
+================================================================================
+
+schema "User" {
+  table: "users"
+  primary_key: "id"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Contract Block - Validator
+================================================================================
+
+validator "UserInput" @strict {
+  target: "User"
+  max_length: 255
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Contract Block - Serializer
+================================================================================
+
+serializer "JSONSerializer" {
+  format: "json"
+  pretty_print: true
+  max_depth: 10
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Contract Block - OpenAPI
+================================================================================
+
+openapi "PetStore" @versioned {
+  version: "3.1.0"
+  title: "Pet Store API"
+  base_url: "https://api.petstore.io"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Contract Block - AsyncAPI
+================================================================================
+
+asyncapi "EventBus" {
+  version: "2.6.0"
+  protocol: "amqp"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Contract Block - Protobuf
+================================================================================
+
+protobuf "Messages" {
+  package: "com.app.messages"
+  syntax: "proto3"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Contract Block - GraphQL Schema
+================================================================================
+
+graphql_schema "API" @federation {
+  endpoint: "/graphql"
+  introspection: true
+  max_depth: 5
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Contract Block - With Nested Object
+================================================================================
+
+schema "Order" {
+  table: "orders"
+
+  object "LineItem" {
+    quantity: 1
+    price: 0.0
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (object
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))))
+
+================================================================================
+Contract Block - Identifier Name
+================================================================================
+
+schema UserSchema {
+  version: 1
+  strict: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (identifier)
+    (property
+      key: (property_key)
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Contract Block - Validator Multiple Properties
+================================================================================
+
+validator "EmailValidator" {
+  pattern: "^[a-zA-Z0-9]+@[a-zA-Z]+$"
+  max_length: 320
+  required: true
+  trim: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Data Block - Basic Data Model
+================================================================================
+
+data_model "User" {
+  table: "users"
+  primary_key: "id"
+  engine: "InnoDB"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Data Block - Migration
+================================================================================
+
+migration "001_create_users" {
+  action: "create_table"
+  table: "users"
+  reversible: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Data Block - Seed
+================================================================================
+
+seed "InitialData" @idempotent {
+  table: "categories"
+  count: 10
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Data Block - Data View
+================================================================================
+
+data_view "ActiveUsers" {
+  source: "users"
+  filter: "active = true"
+  cache_ttl: 300
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Data Block - Data Index
+================================================================================
+
+data_index "UserEmail" @unique {
+  table: "users"
+  columns: "email"
+  type: "btree"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Data Block - Stored Procedure
+================================================================================
+
+stored_procedure "GetUserOrders" {
+  language: "plpgsql"
+  returns: "table"
+  volatile: false
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Data Block - Data Trigger
+================================================================================
+
+data_trigger "AuditLog" @async {
+  event: "INSERT"
+  table: "orders"
+  timing: "AFTER"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Data Block - With Nested Object
+================================================================================
+
+data_model "Product" {
+  table: "products"
+
+  object "PriceInfo" {
+    currency: "USD"
+    precision: 2
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (object
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))))
+
+================================================================================
+Data Block - Identifier Name
+================================================================================
+
+data_model UserTable {
+  engine: "postgres"
+  schema: "public"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Data Block - Data Model With Multiple Properties
+================================================================================
+
+data_model "Session" @encrypted {
+  table: "sessions"
+  primary_key: "id"
+  ttl: 3600
+  max_size: 1048576
+  compress: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Data Block - Data Trigger With Traits
+================================================================================
+
+data_trigger "SyncCache" @async @idempotent {
+  event: "UPDATE"
+  table: "products"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (data_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key)
+      value: (string))))
+
+================================================================================
+Pipeline Block - Basic Pipeline
+================================================================================
+
+pipeline "EventIngestion" {
+  max_concurrency: 10
+  timeout: 30000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - Stage
+================================================================================
+
+stage "Transform" @retry {
+  input: "raw_events"
+  output: "processed_events"
+  batch_size: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - Queue
+================================================================================
+
+queue "EmailQueue" {
+  backend: "redis"
+  max_retries: 3
+  retry_delay: 5000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - Worker
+================================================================================
+
+worker "EmailWorker" @scalable {
+  concurrency: 5
+  poll_interval: 1000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - Scheduler
+================================================================================
+
+scheduler "Cleanup" {
+  cron: "0 2 * * *"
+  timezone: "UTC"
+  enabled: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Pipeline Block - Consumer
+================================================================================
+
+consumer "OrderConsumer" @idempotent {
+  topic: "orders"
+  group: "order-processing"
+  auto_commit: false
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Pipeline Block - Producer
+================================================================================
+
+producer "EventProducer" {
+  topic: "events"
+  partition_key: "event_id"
+  acks: "all"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Pipeline Block - Dead Letter Queue
+================================================================================
+
+dead_letter "FailedOrders" {
+  source: "order-queue"
+  max_retries: 5
+  retention_days: 30
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - With Nested Object
+================================================================================
+
+pipeline "DataSync" {
+  interval: 5000
+
+  object "SourceConfig" {
+    url: "postgres://localhost/db"
+    batch_size: 500
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (object
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))))
+
+================================================================================
+Pipeline Block - With Event Handler
+================================================================================
+
+pipeline "StreamProcessor" {
+  buffer_size: 1024
+
+  on_error {
+    log("Pipeline error")
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (event_handler
+      event: (event_name)
+      (block
+        (function_call
+          function: (identifier)
+          (argument
+            (string)))))))
+
+================================================================================
+Pipeline Block - Identifier Name
+================================================================================
+
+worker BackgroundWorker {
+  max_jobs: 50
+  idle_timeout: 60000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Pipeline Block - Multiple Traits
+================================================================================
+
+queue "PriorityQueue" @persistent @ordered @bounded {
+  capacity: 10000
+  priority_levels: 5
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (pipeline_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Backward Compat - Object Still Parses After v6 Blocks
+================================================================================
+
+object "Cube" @physics @collidable {
+  geometry: "box"
+  position: [0, 1, 0]
+  scale: [1, 1, 1]
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (array
+        (number)
+        (number)
+        (number)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (array
+        (number)
+        (number)
+        (number)))))
+
+================================================================================
+Backward Compat - IoT Block Still Parses
+================================================================================
+
+sensor "Temperature" @realtime {
+  protocol: "mqtt"
+  interval: 5000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (iot_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Backward Compat - Web3 Block Still Parses
+================================================================================
+
+contract "Token" @upgradeable {
+  chain: "ethereum"
+  version: "0.8.20"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (web3_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key)
+      value: (string))))
+
+================================================================================
+Backward Compat - Education Block Still Parses
+================================================================================
+
+lesson "Intro" @interactive {
+  subject: "math"
+  duration: 30
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (education_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Backward Compat - Trait Definition Still Parses
+================================================================================
+
+trait Hoverable {
+  highlight_color: "#ff0"
+  hover_scale: 1.1
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (trait_definition
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))

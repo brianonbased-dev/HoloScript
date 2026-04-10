@@ -1,0 +1,52 @@
+{
+  "name": "@holoscript/uaal",
+  "version": "6.0.0",
+  "description": "uAAL — Universal Autonomous Agent Language VM. Stack-based bytecode execution engine for the uAA2++ 7-Phase Protocol.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "uaal",
+    "uaa2",
+    "agent",
+    "protocol",
+    "bytecode",
+    "vm",
+    "ai-native"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/uaal"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

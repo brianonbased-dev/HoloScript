@@ -1,0 +1,666 @@
+// Virtual Art Gallery
+// Museum exhibition with interactive artwork
+// Platforms: Unity, Unreal, BabylonJS, WebXR
+
+composition "Virtual Museum Exhibition" {
+
+  metadata {
+    name: 'Virtual Art Gallery'
+    description: 'An immersive virtual museum with curated exhibitions, interactive artworks, audio guides, and educational content. Supports multi-user gallery visits up to 50 concurrent visitors.'
+    version: '4.2.0'
+    author: 'HoloScript Cultural Arts Division'
+    category: 'cultural'
+    tags: ['art', 'museum', 'gallery', 'education', 'cultural', 'multiplayer']
+    platforms: ['unity', 'unreal', 'babylonjs', 'webxr']
+    minPlayers: 1
+    maxPlayers: 50
+  }
+
+  // ── Architecture ──────────────────────────────────────────────────────────
+
+  object "GalleryFloor" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [30, 1, 30]
+    color: "#f5f5dc"
+    material: "white_oak_parquet"
+    receiveShadows: true
+  }
+
+  object "GalleryCeiling" {
+    geometry: "plane"
+    position: [0, 6, 0]
+    rotation: [180, 0, 0]
+    scale: [30, 1, 30]
+    color: "#ffffff"
+    material: "plaster"
+  }
+
+  object "NorthWall" {
+    @collidable
+    geometry: "cube"
+    position: [0, 3, -15]
+    scale: [30, 6, 0.2]
+    color: "#ffffff"
+    material: "smooth_plaster"
+  }
+
+  object "SouthWall" {
+    @collidable
+    geometry: "cube"
+    position: [0, 3, 15]
+    scale: [30, 6, 0.2]
+    color: "#ffffff"
+    material: "smooth_plaster"
+  }
+
+  object "EastWall" {
+    @collidable
+    geometry: "cube"
+    position: [15, 3, 0]
+    rotation: [0, 90, 0]
+    scale: [30, 6, 0.2]
+    color: "#ffffff"
+    material: "smooth_plaster"
+  }
+
+  object "WestWall" {
+    @collidable
+    geometry: "cube"
+    position: [-15, 3, 0]
+    rotation: [0, 90, 0]
+    scale: [30, 6, 0.2]
+    color: "#ffffff"
+    material: "smooth_plaster"
+  }
+
+  object "PartitionWall" {
+    @collidable
+    geometry: "cube"
+    position: [0, 3, 0]
+    scale: [0.2, 6, 10]
+    color: "#f8f8f0"
+    material: "smooth_plaster"
+  }
+
+  // ── Main Gallery Artworks ─────────────────────────────────────────────────
+
+  object "AbstractPainting" {
+    @clickable
+    @pointable
+    @glowing
+    geometry: "plane"
+    position: [0, 2, -14.8]
+    scale: [2, 1.5, 1]
+    color: "#ff6347"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'Chromatic Resonance No. 7'
+      artist: 'Isabella Fontaine'
+      year: 2023
+      medium: 'Acrylic on canvas'
+      price: 12500
+      currency: 'USD'
+      audioGuide: 'audio/abstract-guide.mp3'
+    }
+  }
+
+  object "AbstractPaintingFrame" {
+    geometry: "cube"
+    position: [0, 2, -14.85]
+    scale: [2.1, 1.6, 0.05]
+    color: "#8b7355"
+    material: "gilt_frame"
+  }
+
+  object "AbstractSpotlight" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 5.5, -14]
+    rotation: [-20, 0, 0]
+    scale: [0.1, 0.5, 0.1]
+    color: "#fffacd"
+    emissionIntensity: 4.0
+    castShadows: true
+  }
+
+  object "LandscapePainting" {
+    @clickable
+    @pointable
+    @glowing
+    geometry: "plane"
+    position: [-5, 2, -14.8]
+    scale: [2, 1.5, 1]
+    color: "#87ceeb"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'Autumn Valley at Dusk'
+      artist: 'Marcus Chen'
+      year: 2021
+      medium: 'Oil on canvas'
+      price: 8750
+      currency: 'USD'
+    }
+  }
+
+  object "LandscapeFrame" {
+    geometry: "cube"
+    position: [-5, 2, -14.85]
+    scale: [2.1, 1.6, 0.05]
+    color: "#2c2c2c"
+    material: "ebony_frame"
+  }
+
+  object "LandscapeSpotlight" {
+    @glowing
+    geometry: "cylinder"
+    position: [-5, 5.5, -14]
+    rotation: [-20, 0, 0]
+    scale: [0.1, 0.5, 0.1]
+    color: "#fffacd"
+    emissionIntensity: 4.0
+  }
+
+  object "PortraitPainting" {
+    @clickable
+    @pointable
+    @glowing
+    geometry: "plane"
+    position: [5, 2, -14.8]
+    scale: [2, 1.5, 1]
+    color: "#daa520"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'The Philosopher\'s Gaze'
+      artist: 'Elena Morozova'
+      year: 2022
+      medium: 'Oil on linen'
+      price: 6800
+      currency: 'USD'
+    }
+  }
+
+  object "PortraitFrame" {
+    geometry: "cube"
+    position: [5, 2, -14.85]
+    scale: [2.1, 1.6, 0.05]
+    color: "#8b7355"
+    material: "gilt_frame"
+  }
+
+  object "PortraitSpotlight" {
+    @glowing
+    geometry: "cylinder"
+    position: [5, 5.5, -14]
+    rotation: [-20, 0, 0]
+    scale: [0.1, 0.5, 0.1]
+    color: "#fffacd"
+    emissionIntensity: 4.0
+  }
+
+  // ── West Wall Gallery ─────────────────────────────────────────────────────
+
+  object "AbstractionPainting2" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [-14.8, 2.5, -8]
+    rotation: [0, 90, 0]
+    scale: [2.5, 1.8, 1]
+    color: "#6a0dad"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'Violet Dissolution'
+      artist: 'Henri Leblanc'
+      year: 2024
+      medium: 'Mixed media on board'
+      price: 5500
+    }
+  }
+
+  object "AbstractionFrame2" {
+    geometry: "cube"
+    position: [-14.85, 2.5, -8]
+    rotation: [0, 90, 0]
+    scale: [2.6, 1.9, 0.05]
+    color: "#5c4033"
+    material: "rustic_frame"
+  }
+
+  object "ContemporaryPainting" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [-14.8, 2.5, 2]
+    rotation: [0, 90, 0]
+    scale: [2, 1.5, 1]
+    color: "#ff4500"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'Urban Fragments IV'
+      artist: 'Rosa Fuentes'
+      year: 2023
+      medium: 'Spray paint on canvas'
+      price: 3200
+    }
+  }
+
+  object "MinimalistPainting" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [-14.8, 2.5, 12]
+    rotation: [0, 90, 0]
+    scale: [2, 2, 1]
+    color: "#f5f5f5"
+    material: "canvas"
+    behavior "ArtworkInfo" {
+      title: 'White on White Study'
+      artist: 'Erik Strand'
+      year: 2022
+      medium: 'Tempera on gessoed canvas'
+      price: 7800
+    }
+  }
+
+  // ── Sculpture Hall ────────────────────────────────────────────────────────
+
+  object "Pedestal" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0.5, -5]
+    scale: [0.5, 1, 0.5]
+    color: "#d3d3d3"
+    material: "marble"
+  }
+
+  object "ModernSculpture" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [0, 1.5, -5]
+    scale: 0.6
+    color: "#4169e1"
+    material: "polished_bronze"
+    behavior "ArtworkInfo" {
+      title: 'Infinite Loop'
+      artist: 'James Nakamura'
+      year: 2024
+      medium: 'Cast bronze with gold patina'
+      price: 22000
+      currency: 'USD'
+    }
+    behavior "Interactive360" {
+      allowSpin: true
+      spinSpeed: 0.5
+    }
+  }
+
+  object "Pedestal2" {
+    @collidable
+    geometry: "cylinder"
+    position: [8, 0.5, -5]
+    scale: [0.4, 1, 0.4]
+    color: "#d3d3d3"
+    material: "marble_black"
+  }
+
+  object "CopperSculpture" {
+    @clickable
+    geometry: "cube"
+    position: [8, 1.5, -5]
+    rotation: [0, 45, 0]
+    scale: [0.5, 0.5, 0.5]
+    color: "#b87333"
+    material: "copper"
+    behavior "ArtworkInfo" {
+      title: 'Tessellation Study IV'
+      artist: 'Amara Diallo'
+      year: 2023
+      price: 9500
+    }
+  }
+
+  object "Pedestal3" {
+    @collidable
+    geometry: "cylinder"
+    position: [-8, 0.5, -5]
+    scale: [0.4, 1, 0.4]
+    color: "#d3d3d3"
+    material: "plinth_black"
+  }
+
+  object "GlassSculpture" {
+    @clickable
+    @glowing
+    geometry: "sphere"
+    position: [-8, 1.5, -5]
+    scale: [0.4, 0.7, 0.4]
+    color: "#a0d8ef"
+    material: "blown_glass"
+    transparency: 0.3
+    behavior "ArtworkInfo" {
+      title: 'Ocean Memory'
+      artist: 'Sofia Andersson'
+      year: 2022
+      price: 4200
+    }
+  }
+
+  // ── Seating & Wayfinding ──────────────────────────────────────────────────
+
+  object "BenchLeft" {
+    @collidable
+    geometry: "cube"
+    position: [-8, 0.3, -8]
+    scale: [2, 0.6, 0.5]
+    color: "#8b4513"
+    material: "teak_wood"
+  }
+
+  object "BenchRight" {
+    @collidable
+    geometry: "cube"
+    position: [8, 0.3, -8]
+    scale: [2, 0.6, 0.5]
+    color: "#8b4513"
+    material: "teak_wood"
+  }
+
+  object "BenchCenter" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.3, -8]
+    scale: [2, 0.6, 0.5]
+    color: "#8b4513"
+    material: "teak_wood"
+  }
+
+  object "InfoPlaque1" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [0, 1, -14.5]
+    scale: [0.5, 0.3, 1]
+    color: "#000000"
+  }
+
+  object "InfoPlaque2" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [-5, 1, -14.5]
+    scale: [0.5, 0.3, 1]
+    color: "#000000"
+  }
+
+  object "InfoPlaque3" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [5, 1, -14.5]
+    scale: [0.5, 0.3, 1]
+    color: "#000000"
+  }
+
+  object "WayfindingSign" {
+    @glowing
+    geometry: "plane"
+    position: [0, 3.5, -12]
+    scale: [1.5, 0.5, 1]
+    color: "#222222"
+  }
+
+  object "EntranceArch" {
+    @collidable
+    geometry: "cube"
+    position: [0, 4, 13]
+    scale: [5, 2, 0.3]
+    color: "#c8b88a"
+    material: "limestone"
+  }
+
+  // ── Ambient Lighting ──────────────────────────────────────────────────────
+
+  object "AmbientLight1" {
+    @glowing
+    geometry: "sphere"
+    position: [-8, 5.5, -8]
+    scale: 0.2
+    color: "#fff8f0"
+    emissionIntensity: 3.0
+    castShadows: true
+  }
+
+  object "AmbientLight2" {
+    @glowing
+    geometry: "sphere"
+    position: [8, 5.5, -8]
+    scale: 0.2
+    color: "#fff8f0"
+    emissionIntensity: 3.0
+    castShadows: true
+  }
+
+  object "AmbientLight3" {
+    @glowing
+    geometry: "sphere"
+    position: [-8, 5.5, 8]
+    scale: 0.2
+    color: "#fff8f0"
+    emissionIntensity: 3.0
+  }
+
+  object "AmbientLight4" {
+    @glowing
+    geometry: "sphere"
+    position: [8, 5.5, 8]
+    scale: 0.2
+    color: "#fff8f0"
+    emissionIntensity: 3.0
+  }
+
+  object "SkyLight" {
+    @glowing
+    geometry: "plane"
+    position: [0, 5.9, 0]
+    rotation: [180, 0, 0]
+    scale: [10, 1, 10]
+    color: "#e8f4ff"
+    emissionIntensity: 2.0
+  }
+
+  // ── Museum Systems ────────────────────────────────────────────────────────
+
+  system "VisitorSystem" {
+    maxConcurrentVisitors: 50
+    queueEnabled: true
+    guidedTourMode: true
+    freeRoamMode: true
+    event "onVisitorEnter" {
+      assignAudioGuide: true
+      logEntry: true
+      showWelcome: true
+    }
+    event "onArtworkInteract" {
+      playAudioGuide: true
+      logInteraction: true
+      showDetailPanel: true
+    }
+    event "onVisitorExit" {
+      rateExperience: true
+      suggestRelated: true
+    }
+  }
+
+  system "ExhibitionManager" {
+    currentExhibition: 'Contemporary Masters 2025'
+    exhibitionStartDate: '2025-01-15'
+    exhibitionEndDate: '2025-06-30'
+    totalArtworks: 24
+    rotateExhibition: true
+    rotationIntervalDays: 30
+  }
+
+  system "AudioGuideSystem" {
+    defaultLanguage: 'en'
+    supportedLanguages: ['en', 'es', 'fr', 'de', 'zh', 'ja']
+    autoTriggerDistance: 2.0
+    volume: 0.8
+  }
+
+  // ── Sculpture Garden ──────────────────────────────────────────────────────
+
+  object "Sculpture1" {
+    @clickable
+    @collidable
+    geometry: "sphere"
+    position: [-6, 0.8, -6]
+    scale: [0.6, 1.2, 0.6]
+    color: "#b0bec5"
+    material: "polished_marble"
+    behavior "ArtworkInfo" {
+      title: 'Convergence I'
+      artist: 'Elena Vasquez'
+      year: 2021
+      medium: 'Carrara Marble'
+      price: 28000.00
+    }
+  }
+
+  object "Sculpture2" {
+    @clickable
+    @collidable
+    geometry: "cube"
+    position: [6, 0.9, -6]
+    scale: [0.5, 1.8, 0.5]
+    rotation: [0, 45, 0]
+    color: "#78909c"
+    material: "cast_bronze"
+    behavior "ArtworkInfo" {
+      title: 'Ascending Form'
+      artist: 'Marcus Chen'
+      year: 2019
+      medium: 'Bronze'
+      price: 45000.00
+    }
+  }
+
+  object "Sculpture3" {
+    @clickable
+    @collidable
+    geometry: "cylinder"
+    position: [0, 1, 6]
+    scale: [0.4, 2, 0.4]
+    color: "#cfd8dc"
+    material: "polished_aluminum"
+    behavior "ArtworkInfo" {
+      title: 'Infinite Loop'
+      artist: 'Sophie Laurent'
+      year: 2023
+      medium: 'Polished Aluminum'
+      price: 22000.00
+    }
+  }
+
+  object "SculpturePedestal1" {
+    @collidable
+    geometry: "cube"
+    position: [-6, 0.3, -6]
+    scale: [0.8, 0.6, 0.8]
+    color: "#ffffff"
+    material: "plinth_marble"
+  }
+
+  object "SculpturePedestal2" {
+    @collidable
+    geometry: "cube"
+    position: [6, 0.3, -6]
+    scale: [0.8, 0.6, 0.8]
+    color: "#ffffff"
+  }
+
+  object "SculpturePedestal3" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.3, 6]
+    scale: [0.8, 0.6, 0.8]
+    color: "#ffffff"
+  }
+
+  // ── Gift Shop ─────────────────────────────────────────────────────────────
+
+  object "GiftShopCounter" {
+    @collidable
+    geometry: "cube"
+    position: [8, 0.5, 8]
+    scale: [2, 1, 0.6]
+    color: "#4e342e"
+    material: "mahogany"
+  }
+
+  object "ArtBookDisplay" {
+    @clickable
+    @collidable
+    geometry: "cube"
+    position: [9, 0.8, 8]
+    scale: [0.5, 0.8, 0.5]
+    color: "#fafafa"
+    behavior "GiftShopItem" {
+      name: 'Exhibition Catalog'
+      price: 39.99
+    }
+  }
+
+  object "PostcardStand" {
+    @clickable
+    @collidable
+    geometry: "cylinder"
+    position: [7.5, 0.8, 8]
+    scale: [0.3, 0.8, 0.3]
+    color: "#efebe9"
+    behavior "GiftShopItem" {
+      name: 'Art Postcards (Set of 10)'
+      price: 12.99
+    }
+  }
+
+  // ── Visitor Systems ───────────────────────────────────────────────────────
+
+  system "VisitorAnalytics" {
+    trackDwellTime: true
+    trackArtworkInteractions: true
+    trackAudioGuideUsage: true
+    trackVisitorFlow: true
+    heatmapEnabled: true
+
+    event "onArtworkViewed" {
+      logArtworkId: true
+      logDwellTimeSeconds: true
+      logAudioPlayed: true
+    }
+  }
+
+  system "ExhibitionCuration" {
+    exhibitionName: 'Visions of Tomorrow'
+    curators: ['Dr. Amara Osei', 'Prof. James Whitfield']
+    openDate: '2025-06-01'
+    closeDate: '2025-12-31'
+    totalArtworks: 42
+    totalVisitors: 0
+    ticketPrice: 18.00
+    membersFree: true
+  }
+
+  system "AccessibilitySupport" {
+    wheelchairAccessible: true
+    audioDescriptionsEnabled: true
+    subtitlesEnabled: true
+    largeTextMode: false
+    signLanguageVideos: true
+    tactileMapAvailable: true
+    guideDogFriendly: true
+  }
+}
+

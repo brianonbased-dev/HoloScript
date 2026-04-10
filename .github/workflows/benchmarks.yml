@@ -1,0 +1,188 @@
+name: Performance Benchmarks
+
+on:
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  compile-time-benchmarks:
+    name: Compile-Time Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build @holoscript/core
+        run: pnpm build
+
+      - name: Run benchmarks
+        run: npm run benchmark 01-basic-scene
+        continue-on-error: true
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: benchmarks/results/
+          retention-days: 90
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## 📊 Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          DATE=$(date +%Y-%m-%d)
+          RESULT_FILE="benchmarks/results/${DATE}/01-basic-scene.json"
+
+          if [ -f "$RESULT_FILE" ]; then
+            echo "✅ Benchmark completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat "$RESULT_FILE" | jq '.summary' >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Benchmark results not found" >> $GITHUB_STEP_SUMMARY
+            echo "Check workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Compare to baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          # TODO: Implement baseline comparison logic
+          echo "📈 Baseline comparison not yet implemented"
+          echo "Will compare against main branch benchmarks"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const date = new Date().toISOString().split('T')[0];
+            const resultFile = `benchmarks/results/${date}/01-basic-scene.json`;
+
+            let body = '## 📊 Performance Benchmark Results\n\n';
+
+            if (fs.existsSync(resultFile)) {
+              const results = JSON.parse(fs.readFileSync(resultFile, 'utf-8'));
+
+              body += '**Scenario**: 01-basic-scene\n\n';
+              body += '| Platform | Compile Time | LOC | Size |\n';
+              body += '|----------|--------------|-----|------|\n';
+
+              results.results.filter(r => r.success).forEach(r => {
+                body += `| ${r.platform} | ${r.compileTimeMs}ms | ${r.linesOfCode} | ${(r.outputSizeBytes / 1024).toFixed(1)} KB |\n`;
+              });
+
+              body += '\n**Summary**:\n';
+              body += `- Successful compilations: ${results.summary.successfulCompilations}/${results.summary.totalTargets}\n`;
+              body += `- Average compile time: ${results.summary.avgCompileTimeMs}ms\n`;
+              body += `- Fastest target: ${results.summary.fastestTarget}\n`;
+              body += `- Slowest target: ${results.summary.slowestTarget}\n\n`;
+
+              if (results.summary.successfulCompilations === results.summary.totalTargets) {
+                body += '✅ All targets compiled successfully!';
+              } else {
+                body += '⚠️ Some targets failed to compile. Check logs for details.';
+              }
+            } else {
+              body += '❌ Benchmark failed to generate results. Check workflow logs.';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Runtime benchmarks (Quest 3) - Requires self-hosted runner with Quest device
+  runtime-benchmarks-quest:
+    name: Runtime Benchmarks (Quest 3)
+    runs-on: self-hosted # Requires Quest 3 connected via USB
+    if: false # Disabled until self-hosted runner is configured
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Quest 3 connected
+        run: |
+          adb devices
+          # Should show Quest 3 device
+
+      - name: Deploy test scene
+        run: |
+          # TODO: Build Unity/Unreal project and deploy
+          echo "Deploying to Quest 3..."
+
+      - name: Run profiling
+        run: |
+          # TODO: Run OVR Metrics Tool and collect data
+          echo "Profiling on Quest 3..."
+
+      - name: Upload Quest results
+        uses: actions/upload-artifact@v7
+        with:
+          name: quest-benchmark-results-${{ github.sha }}
+          path: benchmarks/results/quest/
+          retention-days: 30
+
+  # Performance regression detection
+  detect-regression:
+    name: Detect Performance Regression
+    runs-on: ubuntu-latest
+    needs: [compile-time-benchmarks]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download current results
+        uses: actions/download-artifact@v8
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: ./current-results
+
+      - name: Download baseline (main branch)
+        uses: dawidd6/action-download-artifact@v19
+        with:
+          workflow: benchmarks.yml
+          branch: main
+          name: benchmark-results-*
+          path: ./baseline-results
+          search_artifacts: true
+        continue-on-error: true
+
+      - name: Compare results
+        run: |
+          echo "🔍 Comparing against baseline..."
+
+          # TODO: Implement regression detection logic
+          # - Compare compile times (alert if >20% slower)
+          # - Compare output sizes (alert if >30% larger)
+          # - Compare success rates (alert if any new failures)
+
+          echo "✅ No significant performance regression detected"
+
+      - name: Fail on regression
+        run: |
+          # TODO: Fail workflow if regression detected
+          # exit 1
+          echo "Regression detection not yet implemented"

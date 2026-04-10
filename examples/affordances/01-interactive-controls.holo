@@ -1,0 +1,452 @@
+/**
+ * Interactive Controls Example
+ *
+ * Demonstrates physical affordances for VR interaction: knobs, dials, cranks,
+ * handles, valves, joysticks, steering wheels, pedals, throttles, and sliders.
+ *
+ * Key Features:
+ * - Knob: Rotary control with detents and range limits
+ * - Dial: Precision angular input with gradual marks
+ * - Crank: Continuous rotation with torque feedback
+ * - Handle: Grab-and-pull/push interactions
+ * - Valve: Turn-to-open/close with resistance
+ * - Joystick: 2-axis analog control with centering
+ * - Steering Wheel: Full rotation with force feedback
+ * - Pedal: Pressure-sensitive foot control
+ * - Throttle: Linear sliding with locking positions
+ * - Slider Control: Track-based linear positioning
+ *
+ * @version 5.1.0
+ * @category Affordances
+ */
+
+composition InteractiveControlsShowcase {
+  // 1. Knob - Volume control style
+  entity VolumeKnob {
+    knob: {
+      enabled: true,
+      axis: [0.0, 1.0, 0.0],          // Rotation axis
+
+      // Range
+      min_angle: 0.0,                 // Degrees
+      max_angle: 270.0,               // Degrees (3/4 turn)
+      current_angle: 135.0,           // Start at middle
+
+      // Detents (click positions)
+      detents: {
+        enabled: true,
+        count: 10,
+        snap_strength: 0.5,           // 0-1 (magnetic pull)
+        haptic_feedback: true,
+      },
+
+      // Physics
+      rotation_resistance: 0.1,       // Friction
+      inertia: 0.05,
+
+      // Visual
+      indicator_mark: true,           // Pointer on top
+      range_arc: true,                // Visual arc showing range
+    },
+
+    transform: {
+      position: [-3.0, 1.5, 0.0],
+      scale: [0.2, 0.2, 0.2],
+    },
+  }
+
+  // 2. Dial - Precision control
+  entity PrecisionDial {
+    dial: {
+      enabled: true,
+      axis: [0.0, 0.0, 1.0],          // Front-facing rotation
+
+      // Range
+      min_value: 0.0,
+      max_value: 100.0,
+      current_value: 50.0,
+      precision: 0.1,                 // Step size
+
+      // Graduations
+      major_ticks: 10,                // Large marks
+      minor_ticks: 50,                // Small marks
+      display_value: true,            // Show numeric readout
+
+      // Interaction
+      grab_radius: 0.15,              // Meters (interaction zone)
+      rotation_multiplier: 1.0,       // Sensitivity
+    },
+
+    transform: {
+      position: [-2.0, 1.5, 0.0],
+      scale: [0.25, 0.25, 0.25],
+    },
+  }
+
+  // 3. Crank - Continuous rotation
+  entity HandCrank {
+    crank: {
+      enabled: true,
+      axis: [1.0, 0.0, 0.0],          // Horizontal axis
+
+      // Rotation
+      continuous: true,               // No limits
+      current_rotation: 0.0,          // Degrees
+      rotation_speed: 0.0,            // deg/s (dynamic)
+
+      // Torque
+      torque_required: 5.0,           // Newton-meters
+      resistance_curve: "linear",     // "linear", "exponential"
+
+      // Handle
+      handle_radius: 0.3,             // Meters from center
+      handle_grabbable: true,
+
+      // Output
+      gear_ratio: 4.0,                // Output rotations per input
+      mechanical_advantage: 2.0,
+    },
+
+    transform: {
+      position: [-1.0, 1.5, 0.0],
+      scale: [0.5, 0.5, 0.5],
+    },
+  }
+
+  // 4. Handle - Door handle style
+  entity DoorHandle {
+    handle: {
+      enabled: true,
+      interaction_type: "lever",      // "lever", "pull", "push", "twist"
+
+      // Lever motion
+      pivot_axis: [0.0, 0.0, 1.0],
+      min_angle: 0.0,
+      max_angle: 45.0,                // Degrees down
+
+      // Spring return
+      spring_return: true,
+      return_speed: 2.0,              // Seconds to return
+      rest_position: 0.0,
+
+      // Grab points
+      grab_positions: [
+        { offset: [0.0, 0.0, 0.15], radius: 0.05 },
+      ],
+
+      // Trigger event
+      activation_threshold: 40.0,     // Degrees (almost fully down)
+    },
+
+    transform: {
+      position: [0.0, 1.3, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Valve - Wheel valve
+  entity WheelValve {
+    valve: {
+      enabled: true,
+      valve_type: "wheel",            // "wheel", "lever", "ball"
+
+      // Rotation
+      turns_to_open: 3.0,             // Full rotations
+      current_turns: 0.0,             // Closed position
+      direction: "clockwise",         // To open
+
+      // Resistance
+      resistance: 0.5,                // Base resistance
+      resistance_increase: 0.1,       // Per turn (gets harder)
+      seized: false,                  // Stuck/immovable
+
+      // Flow
+      flow_rate: 0.0,                 // L/min (output)
+      max_flow_rate: 100.0,
+      flow_curve: "linear",           // How opening affects flow
+
+      // Visual
+      flow_indicator: true,
+      valve_state_color: {
+        closed: [1.0, 0.0, 0.0],
+        open: [0.0, 1.0, 0.0],
+      },
+    },
+
+    transform: {
+      position: [1.0, 1.5, 0.0],
+      scale: [0.3, 0.3, 0.3],
+    },
+  }
+
+  // 6. Joystick - Flight stick
+  entity FlightJoystick {
+    joystick: {
+      enabled: true,
+      axes: 2,                        // 2-axis (X/Y), can be 3 with twist
+
+      // Range
+      max_deflection: 25.0,           // Degrees from center
+      current_x: 0.0,                 // -1 to 1
+      current_y: 0.0,                 // -1 to 1
+      twist: 0.0,                     // Optional Z-axis rotation
+
+      // Centering
+      auto_center: true,
+      centering_force: 0.8,           // Spring strength
+      deadzone: 0.05,                 // Center deadzone (0-1)
+
+      // Force feedback
+      force_feedback: {
+        enabled: true,
+        resistance: 0.3,
+        vibration: true,
+      },
+
+      // Buttons
+      buttons: [
+        { id: "trigger", position: "front" },
+        { id: "thumb", position: "top" },
+      ],
+    },
+
+    transform: {
+      position: [2.0, 1.2, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // 7. Steering Wheel - Car steering
+  entity CarSteeringWheel {
+    steering_wheel: {
+      enabled: true,
+      diameter: 0.35,                 // Meters
+
+      // Rotation
+      max_rotation: 450.0,            // Degrees (1.25 turns each way)
+      current_rotation: 0.0,
+      rotation_speed: 0.0,            // deg/s
+
+      // Force feedback
+      force_feedback: {
+        enabled: true,
+        road_feel: 0.7,               // Texture/bumps
+        centering_force: 0.5,
+        resistance: 0.3,
+      },
+
+      // Grip points
+      grip_positions: [
+        { angle: 90.0, radius: 0.175 },   // 3 o'clock
+        { angle: 270.0, radius: 0.175 },  // 9 o'clock
+      ],
+
+      // Output
+      steering_ratio: 15.0,           // Degrees wheel per degree tire
+    },
+
+    transform: {
+      position: [3.0, 1.3, 0.0],
+      rotation: [0.0, 90.0, 0.0],
+    },
+  }
+
+  // 8. Pedal - Gas/brake pedal
+  entity GasPedal {
+    pedal: {
+      enabled: true,
+      pedal_type: "gas",              // "gas", "brake", "clutch"
+
+      // Travel
+      max_travel: 0.1,                // Meters
+      current_travel: 0.0,            // 0-1 (0 = released)
+
+      // Resistance
+      resistance_curve: "progressive", // "linear", "progressive", "staged"
+      initial_resistance: 5.0,        // Newtons
+      max_resistance: 50.0,
+
+      // Spring
+      spring_return: true,
+      return_speed: 0.3,              // Seconds
+
+      // Pressure sensing
+      pressure_sensitive: true,
+      pressure_range: [0.0, 100.0],   // Newtons
+
+      // Output
+      output_value: 0.0,              // 0-1 (mapped from travel)
+    },
+
+    transform: {
+      position: [4.0, 0.3, 0.0],
+      rotation: [-30.0, 0.0, 0.0],
+    },
+  }
+
+  // 9. Throttle - Aircraft throttle lever
+  entity AircraftThrottle {
+    throttle: {
+      enabled: true,
+      axis: [0.0, 1.0, 0.0],          // Vertical slide
+
+      // Range
+      min_position: 0.0,              // Idle
+      max_position: 1.0,              // Full power
+      current_position: 0.0,
+
+      // Detents/locks
+      detents: [
+        { position: 0.0, name: "idle" },
+        { position: 0.5, name: "cruise" },
+        { position: 1.0, name: "full" },
+      ],
+      detent_strength: 0.7,
+
+      // Friction
+      friction: 0.2,                  // Stays where positioned
+      friction_lock: true,            // Can lock in place
+
+      // Handle
+      handle_grip: true,
+      handle_length: 0.15,            // Meters
+    },
+
+    transform: {
+      position: [5.0, 1.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 10. Slider Control - Mixing desk fader
+  entity MixerSlider {
+    slider_control: {
+      enabled: true,
+      axis: [0.0, 1.0, 0.0],          // Vertical track
+
+      // Range
+      track_length: 0.1,              // Meters
+      min_value: 0.0,
+      max_value: 100.0,
+      current_value: 75.0,
+
+      // Fader properties
+      fader_width: 0.02,              // Meters
+      smooth_movement: true,
+
+      // Notches
+      notches: false,
+      notch_positions: [],
+
+      // Visual
+      track_markings: true,
+      value_display: true,
+    },
+
+    transform: {
+      position: [6.0, 1.5, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 100.0,
+      position: [1.5, 1.5, 5.0],
+      target: [1.5, 1.5, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on VolumeKnob.knob.rotated -> (event) {
+    console.log(`Knob: ${event.angle.toFixed(1)}° (value=${event.normalized_value.toFixed(2)})`);
+    if (event.detent_triggered) {
+      console.log(`  *Click* Detent ${event.detent_index}`);
+    }
+  }
+
+  on PrecisionDial.dial.value_changed -> (event) {
+    console.log(`Dial: ${event.value.toFixed(1)} (${(event.percentage * 100).toFixed(0)}%)`);
+  }
+
+  on HandCrank.crank.rotated -> (event) {
+    console.log(`Crank: ${event.total_rotations.toFixed(2)} turns, speed=${event.rpm.toFixed(1)} RPM`);
+    console.log(`  Output: ${event.output_rotations.toFixed(2)} turns (ratio=${event.gear_ratio})`);
+  }
+
+  on DoorHandle.handle.activated -> (event) {
+    console.log(`Handle activated! Angle=${event.angle.toFixed(1)}°`);
+  }
+
+  on WheelValve.valve.turned -> (event) {
+    console.log(`Valve: ${event.turns.toFixed(2)} turns (${(event.open_percentage * 100).toFixed(0)}% open)`);
+    console.log(`  Flow rate: ${event.flow_rate.toFixed(1)} L/min`);
+  }
+
+  on FlightJoystick.joystick.moved -> (event) {
+    console.log(`Joystick: X=${event.x.toFixed(2)}, Y=${event.y.toFixed(2)}, Twist=${event.twist.toFixed(2)}`);
+  }
+
+  on CarSteeringWheel.steering_wheel.rotated -> (event) {
+    console.log(`Steering: ${event.rotation.toFixed(1)}°, speed=${event.rotation_speed.toFixed(1)}°/s`);
+    console.log(`  Tire angle: ${event.tire_angle.toFixed(2)}°`);
+  }
+
+  on GasPedal.pedal.pressed -> (event) {
+    console.log(`Pedal: ${(event.position * 100).toFixed(0)}%, pressure=${event.pressure.toFixed(1)}N`);
+  }
+
+  on AircraftThrottle.throttle.moved -> (event) {
+    console.log(`Throttle: ${(event.position * 100).toFixed(0)}%, setting=${event.setting_name}`);
+    if (event.detent_locked) {
+      console.log(`  Locked at ${event.setting_name}`);
+    }
+  }
+
+  on MixerSlider.slider_control.value_changed -> (event) {
+    console.log(`Slider: ${event.value.toFixed(1)} (${(event.percentage * 100).toFixed(0)}%)`);
+  }
+}
+
+// Control calibration UI
+ui ControlsCalibration {
+  panel "Interactive Controls" {
+    section "Knob (Volume)" {
+      text "Angle" { value: () => `${VolumeKnob.knob.current_angle.toFixed(1)}°` }
+      text "Value" { value: () => `${(VolumeKnob.knob.normalized_value * 100).toFixed(0)}%` }
+      slider "Detent Strength" { min: 0.0, max: 1.0, value: 0.5, step: 0.1, onChange: (v) => { VolumeKnob.knob.detents.snap_strength = v; } }
+      button "Reset" -> () { VolumeKnob.knob.current_angle = 135.0; }
+    }
+
+    section "Joystick" {
+      text "X Axis" { value: () => `${FlightJoystick.joystick.current_x.toFixed(2)}` }
+      text "Y Axis" { value: () => `${FlightJoystick.joystick.current_y.toFixed(2)}` }
+      slider "Deadzone" { min: 0.0, max: 0.3, value: 0.05, step: 0.01, onChange: (v) => { FlightJoystick.joystick.deadzone = v; } }
+      checkbox "Auto-Center" { value: true, onChange: (v) => { FlightJoystick.joystick.auto_center = v; } }
+      button "Calibrate" -> () { FlightJoystick.joystick.calibrate(); }
+    }
+
+    section "Steering Wheel" {
+      text "Rotation" { value: () => `${CarSteeringWheel.steering_wheel.current_rotation.toFixed(1)}°` }
+      slider "Force Feedback" { min: 0.0, max: 1.0, value: 0.7, step: 0.1, onChange: (v) => { CarSteeringWheel.steering_wheel.force_feedback.road_feel = v; } }
+      button "Center" -> () { CarSteeringWheel.steering_wheel.current_rotation = 0.0; }
+    }
+
+    section "Pedal" {
+      text "Position" { value: () => `${(GasPedal.pedal.current_travel * 100).toFixed(0)}%` }
+      text "Pressure" { value: () => `${GasPedal.pedal.current_pressure.toFixed(1)}N` }
+      dropdown "Curve" { options: ["linear", "progressive", "staged"], value: "progressive", onChange: (v) => { GasPedal.pedal.resistance_curve = v; } }
+    }
+
+    section "Valve" {
+      text "Turns" { value: () => `${WheelValve.valve.current_turns.toFixed(2)}` }
+      text "Flow Rate" { value: () => `${WheelValve.valve.flow_rate.toFixed(1)} L/min` }
+      text "State" { value: () => WheelValve.valve.current_turns >= WheelValve.valve.turns_to_open ? "OPEN" : "CLOSED" }
+      button "Close Valve" -> () { WheelValve.valve.current_turns = 0.0; }
+    }
+  }
+}

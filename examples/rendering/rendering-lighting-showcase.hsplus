@@ -1,0 +1,644 @@
+/**
+ * Rendering & Lighting Trait Showcase -- Coverage for 24+28=52 traits
+ *
+ * TARGET: examples/traits/rendering-lighting-showcase.hsplus
+ *
+ * Rendering (24): @pbr_material, @subsurface_scattering, @iridescence,
+ *   @clearcoat, @sheen, @anisotropy, @transmission, @volume,
+ *   @custom_shader, @instanced_rendering, @lod, @billboard_renderer,
+ *   @sprite_sheet, @line_renderer, @point_cloud, @decal,
+ *   @post_process, @outline, @wireframe, @vertex_colors,
+ *   @morph_targets, @skeleton_mesh, @gpu_particles, @compute_shader
+ *
+ * Lighting (28): @point_light, @spot_light, @directional_light,
+ *   @area_light, @hemisphere_light, @ambient_light, @environment_light,
+ *   @light_probe, @reflection_probe, @shadow_caster, @shadow_receiver,
+ *   @baked_lighting, @lightmap, @volumetric_light, @god_rays,
+ *   @caustics, @gi_probe, @light_cookie, @ies_light,
+ *   @neon_light, @emissive_light, @fog_light, @rim_light,
+ *   @fill_light, @key_light, @back_light, @accent_light,
+ *   @color_temperature
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ * @coverage Rendering (24 traits), Lighting (28 traits)
+ */
+
+composition "RenderingLightingShowcase" {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.3
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.2
+    fog: { type: "exponential", density: 0.02, color: "#1a1a2e" }
+  }
+
+  // ========================================================================
+  // PBR MATERIAL GALLERY
+  // ========================================================================
+
+  // Subsurface scattering marble
+  object "MarbleSphere" {
+    @pbr_material {
+      albedo: "#f0e8e0"
+      metallic: 0.0
+      roughness: 0.3
+      normal_scale: 0.5
+    }
+
+    @subsurface_scattering {
+      color: "#ff9966"
+      radius: [0.8, 0.3, 0.1]
+      thickness: 0.5
+      power: 2.0
+    }
+
+    @shadow_receiver
+    @shadow_caster
+
+    geometry: "sphere"
+    position: [-6, 1.5, 0]
+    scale: [1, 1, 1]
+  }
+
+  // Iridescent beetle shell
+  object "IridescentShell" {
+    @pbr_material {
+      albedo: "#1a3a1a"
+      metallic: 0.8
+      roughness: 0.15
+    }
+
+    @iridescence {
+      factor: 1.0
+      ior: 1.3
+      thickness_range: [100, 400]
+      color_shift: true
+    }
+
+    @clearcoat {
+      factor: 0.8
+      roughness: 0.1
+      normal_scale: 0.5
+    }
+
+    @shadow_caster
+
+    geometry: "sphere"
+    position: [-4, 1.5, 0]
+    scale: [0.8, 0.5, 1.2]
+  }
+
+  // Velvet fabric with sheen
+  object "VelvetCushion" {
+    @pbr_material {
+      albedo: "#8b0000"
+      metallic: 0.0
+      roughness: 0.9
+    }
+
+    @sheen {
+      color: "#ff6666"
+      roughness: 0.3
+      factor: 1.0
+    }
+
+    @shadow_receiver
+
+    geometry: "cube"
+    position: [-2, 0.5, 0]
+    scale: [1.2, 0.4, 1.2]
+  }
+
+  // Brushed metal with anisotropy
+  object "BrushedMetalPanel" {
+    @pbr_material {
+      albedo: "#c0c0c0"
+      metallic: 1.0
+      roughness: 0.35
+    }
+
+    @anisotropy {
+      strength: 0.8
+      direction: [1, 0, 0]
+      rotation: 0
+    }
+
+    @shadow_receiver
+    @shadow_caster
+
+    geometry: "cube"
+    position: [0, 1.5, -2]
+    scale: [2, 2, 0.05]
+  }
+
+  // Glass with transmission
+  object "GlassOrb" {
+    @pbr_material {
+      albedo: "#ffffff"
+      metallic: 0.0
+      roughness: 0.0
+    }
+
+    @transmission {
+      factor: 0.95
+      ior: 1.52
+      thickness: 0.5
+      attenuation_color: "#e0f0ff"
+      attenuation_distance: 2.0
+    }
+
+    @volume {
+      thickness: 0.5
+      attenuation_color: "#ccddff"
+      attenuation_distance: 1.0
+    }
+
+    @shadow_caster
+    @caustics {
+      enabled: true
+      intensity: 0.8
+      resolution: 512
+    }
+
+    geometry: "sphere"
+    position: [2, 1.5, 0]
+    scale: [0.8, 0.8, 0.8]
+  }
+
+  // Custom shader holographic
+  object "HologramDisplay" {
+    @custom_shader {
+      vertex: """
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        void main() {
+          vUv = uv;
+          vNormal = normalMatrix * normal;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      """
+      fragment: """
+        uniform float time;
+        uniform vec3 baseColor;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        void main() {
+          float scanline = sin(vUv.y * 100.0 + time * 5.0) * 0.1 + 0.9;
+          float edge = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+          vec3 color = baseColor * scanline + vec3(0.0, 0.5, 1.0) * edge;
+          float alpha = 0.6 + edge * 0.4;
+          gl_FragColor = vec4(color, alpha);
+        }
+      """
+      uniforms: {
+        time: { type: "float", value: 0.0 },
+        baseColor: { type: "vec3", value: [0.0, 0.8, 1.0] }
+      }
+      transparent: true
+      side: "double"
+    }
+
+    geometry: "cube"
+    position: [4, 1.5, 0]
+    scale: [1.5, 2, 0.1]
+
+    @on_update: (delta) => {
+      this.uniforms.time += delta;
+    }
+  }
+
+  // Compute shader particles
+  object "ParticleField" {
+    @compute_shader {
+      workgroup_size: [64, 1, 1]
+      dispatch: [1024, 1, 1]
+      shader: "particle_simulation.wgsl"
+    }
+
+    @gpu_particles {
+      count: 65536
+      emit_rate: 1000
+      lifetime: [2.0, 5.0]
+      size: [0.01, 0.05]
+      color_over_lifetime: ["#ff6600", "#ffcc00", "#ffffff00"]
+      velocity: [0, 2, 0]
+      velocity_spread: [1, 0.5, 1]
+      gravity: -2.0
+      blend_mode: "additive"
+    }
+
+    position: [6, 0, 0]
+  }
+
+  // ========================================================================
+  // RENDERING TECHNIQUE OBJECTS
+  // ========================================================================
+
+  object "InstancedForest" {
+    @instanced_rendering {
+      count: 500
+      positions: "random_scatter"
+      scatter_area: [20, 0, 20]
+      scatter_center: [0, 0, -10]
+      rotation_variance: [0, 360, 0]
+      scale_variance: [0.8, 1.2]
+    }
+
+    @lod {
+      levels: [
+        { distance: 0, detail: "high" },
+        { distance: 10, detail: "medium" },
+        { distance: 30, detail: "low" },
+        { distance: 60, detail: "billboard" }
+      ]
+      fade_transition: true
+      fade_distance: 2.0
+    }
+
+    @shadow_caster
+
+    geometry: "tree_pine"
+    color: "#2d5a27"
+  }
+
+  object "DistantMountain" {
+    @billboard_renderer {
+      mode: "camera_facing"
+      axis: "y"
+      scale_with_distance: false
+    }
+
+    @sprite_sheet {
+      texture: "mountain_sprites.png"
+      columns: 4
+      rows: 2
+      frame: 0
+      animation_fps: 0
+    }
+
+    position: [0, 5, -50]
+    scale: [30, 15, 1]
+  }
+
+  object "LaserBeam" {
+    @line_renderer {
+      points: [[0, 2, 0], [10, 2, -5], [20, 2, 0]]
+      width: 0.05
+      color: "#ff0000"
+      glow: true
+      glow_intensity: 2.0
+    }
+
+    position: [-8, 0, -3]
+  }
+
+  object "ScanData" {
+    @point_cloud {
+      count: 10000
+      size: 0.02
+      color_mode: "height_gradient"
+      gradient: ["#0000ff", "#00ff00", "#ffff00", "#ff0000"]
+      attenuation: true
+    }
+
+    position: [8, 0, -5]
+  }
+
+  object "BulletHole" {
+    @decal {
+      texture: "bullet_hole.png"
+      size: [0.2, 0.2]
+      depth: 0.01
+      normal_blend: 0.8
+      fade_time: 30
+      max_angle: 60
+    }
+
+    position: [0, 1.5, -2.01]
+  }
+
+  object "OutlinedCube" {
+    @outline {
+      color: "#ff8800"
+      width: 3
+      mode: "screen_space"
+      pulse: true
+      pulse_speed: 2.0
+    }
+
+    @wireframe {
+      color: "#ffffff20"
+      line_width: 1
+      overlay: true
+    }
+
+    geometry: "cube"
+    position: [-3, 1.5, -4]
+    color: "#334455"
+  }
+
+  object "ColorfulTerrain" {
+    @vertex_colors {
+      enabled: true
+      blend_mode: "multiply"
+    }
+
+    @morph_targets {
+      targets: ["flat", "hills", "mountains"]
+      weights: [0.3, 0.5, 0.2]
+      interpolation: "linear"
+    }
+
+    geometry: "plane_subdivided"
+    position: [0, -0.5, -8]
+    scale: [20, 1, 20]
+  }
+
+  object "AnimatedCharacter" {
+    @skeleton_mesh {
+      skeleton: "humanoid_skeleton.json"
+      skin_weights: 4
+      animation_clip: "idle"
+      blend_tree: true
+    }
+
+    position: [5, 0, -3]
+    scale: [1, 1, 1]
+  }
+
+  // ========================================================================
+  // POST-PROCESSING
+  // ========================================================================
+
+  object "PostProcessStack" {
+    @post_process {
+      effects: [
+        { type: "bloom", intensity: 0.5, threshold: 0.8, radius: 0.4 },
+        { type: "chromatic_aberration", intensity: 0.002 },
+        { type: "vignette", intensity: 0.3, smoothness: 0.5 },
+        { type: "color_grading", saturation: 1.1, contrast: 1.05, temperature: 6500 },
+        { type: "ssao", radius: 0.5, intensity: 0.3, bias: 0.025 },
+        { type: "ssr", max_distance: 10, resolution: 0.5, thickness: 0.5 }
+      ]
+      order: ["ssao", "ssr", "bloom", "color_grading", "chromatic_aberration", "vignette"]
+    }
+  }
+
+  // ========================================================================
+  // LIGHTING SETUP -- Three-Point + Environment
+  // ========================================================================
+
+  object "KeyLight" {
+    @directional_light {
+      color: "#fff5e0"
+      intensity: 2.0
+      direction: [-1, -2, -1]
+    }
+
+    @key_light {
+      role: "primary"
+      shadow_bias: 0.001
+    }
+
+    @shadow_caster {
+      map_size: 2048
+      cascade_count: 3
+      cascade_distances: [5, 15, 50]
+      bias: 0.001
+      normal_bias: 0.01
+    }
+
+    @color_temperature {
+      kelvin: 5600
+      tint: 0.0
+    }
+
+    position: [10, 20, 10]
+  }
+
+  object "FillLight" {
+    @area_light {
+      color: "#aaccff"
+      intensity: 0.8
+      width: 5
+      height: 5
+      shape: "rect"
+    }
+
+    @fill_light {
+      role: "secondary"
+      ratio: 0.4
+    }
+
+    @color_temperature {
+      kelvin: 7500
+      tint: 0.0
+    }
+
+    position: [-8, 8, 5]
+    rotation: [0, 45, 0]
+  }
+
+  object "BackLight" {
+    @spot_light {
+      color: "#ffddaa"
+      intensity: 1.5
+      angle: 35
+      penumbra: 0.3
+      distance: 30
+      decay: 2
+    }
+
+    @back_light {
+      role: "separation"
+      rim_intensity: 0.6
+    }
+
+    @shadow_caster {
+      map_size: 1024
+      bias: 0.002
+    }
+
+    @light_cookie {
+      texture: "gobo_pattern.png"
+      scale: [1, 1]
+      rotation: 0
+      animate: false
+    }
+
+    position: [0, 8, 10]
+    rotation: [-30, 0, 0]
+  }
+
+  object "AccentSpot" {
+    @spot_light {
+      color: "#ff4400"
+      intensity: 2.0
+      angle: 15
+      penumbra: 0.5
+      distance: 10
+    }
+
+    @accent_light {
+      role: "highlight"
+      target: "GlassOrb"
+    }
+
+    @ies_light {
+      profile: "spot_narrow.ies"
+      multiplier: 1.0
+    }
+
+    position: [2, 5, 3]
+    rotation: [-60, 0, 0]
+  }
+
+  // ========================================================================
+  // POINT AND HEMISPHERE LIGHTS
+  // ========================================================================
+
+  object "WarmLantern" {
+    @point_light {
+      color: "#ffaa44"
+      intensity: 3.0
+      distance: 8
+      decay: 2
+    }
+
+    @neon_light {
+      color: "#ff6600"
+      glow_radius: 0.5
+      flicker: false
+      intensity: 1.5
+    }
+
+    @emissive_light {
+      color: "#ffaa44"
+      intensity: 2.0
+      bounce: true
+    }
+
+    @shadow_caster {
+      map_size: 512
+      bias: 0.003
+    }
+
+    position: [-5, 3, -2]
+  }
+
+  object "SkyHemisphere" {
+    @hemisphere_light {
+      sky_color: "#87ceeb"
+      ground_color: "#3a3a2a"
+      intensity: 0.5
+    }
+
+    @ambient_light {
+      color: "#1a1a2e"
+      intensity: 0.2
+    }
+
+    @environment_light {
+      texture: "studio_hdr.exr"
+      intensity: 0.8
+      rotation: 45
+    }
+  }
+
+  object "GIProbe" {
+    @gi_probe {
+      mode: "baked"
+      resolution: 64
+      range: 20
+      energy: 1.0
+      bias: 0.5
+      normal_bias: 0.5
+      indirect_energy: 1.0
+    }
+
+    @light_probe {
+      resolution: 128
+      update_rate: 0
+      influence_radius: 15.0
+    }
+
+    @reflection_probe {
+      resolution: 256
+      update_mode: "once"
+      box_size: [20, 10, 20]
+      box_offset: [0, 5, 0]
+      intensity: 1.0
+    }
+
+    position: [0, 5, 0]
+  }
+
+  // ========================================================================
+  // ATMOSPHERIC LIGHTING
+  // ========================================================================
+
+  object "VolumetricSunbeam" {
+    @volumetric_light {
+      density: 0.5
+      scattering: 0.8
+      color: "#fff5e0"
+      max_steps: 64
+      step_size: 0.1
+    }
+
+    @god_rays {
+      intensity: 0.6
+      decay: 0.95
+      density: 0.7
+      weight: 0.4
+      samples: 100
+      source: "KeyLight"
+    }
+
+    position: [10, 20, 10]
+  }
+
+  object "RimHighlight" {
+    @rim_light {
+      color: "#88ccff"
+      intensity: 0.5
+      power: 3.0
+      target: "AnimatedCharacter"
+    }
+
+    position: [-3, 4, -5]
+  }
+
+  object "FogVolume" {
+    @fog_light {
+      color: "#334466"
+      density: 0.03
+      height_falloff: 0.5
+      scattering_anisotropy: 0.3
+    }
+
+    position: [0, 0, -10]
+    scale: [30, 5, 30]
+  }
+
+  object "BakedLightingZone" {
+    @baked_lighting {
+      mode: "progressive"
+      quality: "medium"
+      bounces: 3
+      resolution: 1.0
+    }
+
+    @lightmap {
+      resolution: 512
+      padding: 2
+      format: "hdr"
+      denoiser: true
+    }
+
+    position: [0, 0, 0]
+    scale: [20, 10, 20]
+  }
+}

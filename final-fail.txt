@@ -1,0 +1,3 @@
+src/physics/SoftBodySolver.ts(8,10): error TS2724: '"@holoscript/core"' has no exported member named 'Vector3'. Did you mean 'IVector3'?
+src/physics/VRPhysicsBridge.ts(12,10): error TS2305: Module '"@holoscript/core"' has no exported member 'VRHand'.
+src/physics/VRPhysicsBridge.ts(12,18): error TS2724: '"@holoscript/core"' has no exported member named 'Vector3'. Did you mean 'IVector3'?

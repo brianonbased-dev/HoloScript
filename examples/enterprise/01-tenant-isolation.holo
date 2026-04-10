@@ -1,0 +1,310 @@
+/**
+ * Tenant Isolation — HoloScript v5.0 Enterprise Example
+ *
+ * Demonstrates multi-tenant organization isolation with TenantTrait.
+ * This example shows:
+ *  - Complete data isolation between organizations
+ *  - Tenant-scoped trait registries
+ *  - Cross-tenant resource sharing with explicit grants
+ *  - Tenant lifecycle management (provision, suspend, archive)
+ *  - Namespace prefixing for resource isolation
+ *
+ * Use Case: SaaS HoloScript Platform
+ *   - Multiple companies share the same HoloScript infrastructure
+ *   - Each company (tenant) has complete data isolation
+ *   - Companies can optionally share resources (scenes, traits, assets)
+ *
+ * Run this example:
+ *   holoc examples/enterprise/01-tenant-isolation.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene MultiTenantPlatform {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // TENANT 1: ACME CORPORATION (Enterprise Tier)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AcmeTenant {
+    traits: [tenant];
+
+    tenant: {
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+      organizationName: "ACME Corporation",
+
+      // Lifecycle
+      status: "active",
+      tier: "enterprise",
+
+      // Isolation configuration
+      isolationLevel: "physical",  // Physical = dedicated infrastructure
+      customDomain: "acme.holoscript.cloud",
+      allowedOrigins: ["https://acme.com", "https://*.acme.com"],
+
+      // Namespace for all resources
+      namespacePrefix: "acme_",    // All resources prefixed with "acme_"
+
+      // Limits
+      maxUsers: 500,
+
+      // Sharing
+      crossTenantSharingEnabled: true,
+
+      // Metadata
+      tags: {
+        industry: "manufacturing",
+        region: "us-east",
+        contract: "annual_2026",
+      },
+
+      createdAt: "2026-01-15T10:00:00Z",
+      lastActivityAt: "2026-03-07T14:30:00Z",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // TENANT 2: STARTUP INC (Starter Tier)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity StartupTenant {
+    traits: [tenant];
+
+    tenant: {
+      tenantId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      organizationName: "Startup Inc",
+
+      status: "active",
+      tier: "starter",
+
+      // Logical isolation = shared infrastructure, isolated data
+      isolationLevel: "logical",
+      allowedOrigins: ["https://startup.io"],
+
+      namespacePrefix: "startup_",
+
+      // Smaller limits for starter tier
+      maxUsers: 10,
+
+      crossTenantSharingEnabled: false,  // No sharing on starter tier
+
+      tags: {
+        industry: "saas",
+        region: "eu-west",
+        trial: "true",
+      },
+
+      createdAt: "2026-03-01T09:00:00Z",
+      lastActivityAt: "2026-03-07T14:15:00Z",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Tenant Lifecycle
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AcmeTenant, "tenant_provisioned") {
+    log("🏢 Tenant provisioned: ACME Corporation");
+    log(`  Tenant ID: ${event.tenantId}`);
+    log(`  Organization: ${event.organizationName}`);
+    log(`  Tier: ${event.tier}`);
+  }
+
+  on(StartupTenant, "tenant_provisioned") {
+    log("🏢 Tenant provisioned: Startup Inc");
+    log(`  Tenant ID: ${event.tenantId}`);
+    log(`  Tier: ${event.tier}`);
+  }
+
+  on(AcmeTenant, "tenant_suspended") {
+    log("⚠️  ACME tenant suspended");
+    log(`  Reason: ${event.reason}`);
+    log(`  By: ${event.suspendedBy}`);
+  }
+
+  on(AcmeTenant, "tenant_reactivated") {
+    log("✅ ACME tenant reactivated");
+    log(`  By: ${event.reactivatedBy}`);
+  }
+
+  on(AcmeTenant, "tenant_archived") {
+    log("📦 ACME tenant archived");
+    log(`  All data preserved for ${event.retentionDays} days`);
+  }
+
+  on(AcmeTenant, "tenant_deleted") {
+    log("🗑️  ACME tenant permanently deleted");
+    log(`  All data destroyed at: ${event.deletedAt}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Cross-Tenant Resource Sharing
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AcmeTenant, "grant_created") {
+    log("🔓 Cross-tenant grant created");
+    log(`  Resource: ${event.resourceType}/${event.resourceId}`);
+    log(`  Granted to: ${event.targetTenantId}`);
+    log(`  Access level: ${event.accessLevel}`);
+    log(`  Expires: ${event.expiresAt || "never"}`);
+    log(`  Granted by: ${event.grantedBy}`);
+  }
+
+  on(StartupTenant, "grant_received") {
+    log("🎁 Received cross-tenant grant");
+    log(`  From tenant: ${event.sourceTenantId}`);
+    log(`  Resource: ${event.resourceType}/${event.resourceId}`);
+    log(`  Access: ${event.accessLevel}`);
+  }
+
+  on(AcmeTenant, "grant_revoked") {
+    log("🔒 Cross-tenant grant revoked");
+    log(`  Grant ID: ${event.grantId}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  on(AcmeTenant, "grant_expired") {
+    log("⏰ Cross-tenant grant expired");
+    log(`  Grant ID: ${event.grantId}`);
+    log(`  Expired at: ${event.expiresAt}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Trait Registry (Tenant-Scoped)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AcmeTenant, "trait_registered") {
+    log(`📝 Trait registered for ACME: ${event.traitName}`);
+    log(`  Custom trait: ${event.isCustom}`);
+    log(`  Required tier: ${event.requiredTier}`);
+  }
+
+  on(AcmeTenant, "trait_disabled") {
+    log(`🚫 Trait disabled for ACME: ${event.traitName}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  on(AcmeTenant, "trait_usage") {
+    log(`📊 Trait used: ${event.traitName}`);
+    log(`  Usage count: ${event.usageCount}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Session Tracking
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AcmeTenant, "session_started") {
+    log(`👤 User session started (ACME)`);
+    log(`  User ID: ${event.userId}`);
+    log(`  Active sessions: ${event.activeSessions}`);
+  }
+
+  on(AcmeTenant, "session_ended") {
+    log(`👋 User session ended (ACME)`);
+    log(`  Session duration: ${event.durationMs}ms`);
+    log(`  Active sessions: ${event.activeSessions}`);
+  }
+
+  on(AcmeTenant, "session_limit_reached") {
+    log(`⚠️  Session limit reached for ACME`);
+    log(`  Max sessions: ${event.maxSessions}`);
+    log(`  Current: ${event.activeSessions}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Grant cross-tenant access from ACME to Startup
+  on(DemoControls, "click") {
+    if (event.target === "grant_access_button") {
+      emit(AcmeTenant, "create_grant", {
+        targetTenantId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        resourceType: "scene",
+        resourceId: "acme_training_simulation_v2",
+        accessLevel: "reference",  // Can reference but not clone
+        expiresAt: "2026-04-07T00:00:00Z",  // 30 days
+        grantedBy: "admin@acme.com",
+      });
+      log("🔓 Creating cross-tenant grant...");
+    }
+  }
+
+  // Demo 2: Revoke cross-tenant access
+  on(DemoControls, "click") {
+    if (event.target === "revoke_access_button") {
+      emit(AcmeTenant, "revoke_grant", {
+        grantId: "grant_12345",
+        reason: "End of collaboration period",
+        revokedBy: "admin@acme.com",
+      });
+      log("🔒 Revoking cross-tenant grant...");
+    }
+  }
+
+  // Demo 3: Suspend tenant (e.g., non-payment)
+  on(DemoControls, "click") {
+    if (event.target === "suspend_tenant_button") {
+      emit(StartupTenant, "suspend_tenant", {
+        reason: "Payment failed - trial expired",
+        suspendedBy: "system",
+      });
+      log("⚠️  Suspending Startup Inc tenant...");
+    }
+  }
+
+  // Demo 4: Reactivate suspended tenant
+  on(DemoControls, "click") {
+    if (event.target === "reactivate_tenant_button") {
+      emit(StartupTenant, "reactivate_tenant", {
+        reactivatedBy: "billing@holoscript.io",
+        reason: "Payment received",
+      });
+      log("✅ Reactivating Startup Inc tenant...");
+    }
+  }
+
+  // Demo 5: Archive tenant (soft delete)
+  on(DemoControls, "click") {
+    if (event.target === "archive_tenant_button") {
+      emit(StartupTenant, "archive_tenant", {
+        retentionDays: 90,  // Keep data for 90 days
+        archivedBy: "admin@holoscript.io",
+      });
+      log("📦 Archiving Startup Inc tenant...");
+    }
+  }
+
+  // Demo 6: Register custom trait for ACME
+  on(DemoControls, "click") {
+    if (event.target === "register_trait_button") {
+      emit(AcmeTenant, "register_trait", {
+        traitName: "acme_manufacturing_simulator",
+        isCustom: true,
+        enabled: true,
+        requiredTier: "enterprise",
+      });
+      log("📝 Registering custom trait for ACME...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity TenantDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "MULTI-TENANT PLATFORM\n\n🏢 Tenant Isolation:\n  • Physical/Logical/Hybrid isolation levels\n  • Namespace prefixing (acme_, startup_)\n  • Tenant-scoped trait registries\n  • Per-tenant CORS origins\n\n🔐 Resource Sharing:\n  • Explicit cross-tenant grants\n  • Access levels: read, clone, reference\n  • Expiration timestamps\n  • Grant revocation\n\n📊 Tiers:\n  • Free (5 users, logical isolation)\n  • Starter (10 users)\n  • Professional (100 users)\n  • Enterprise (500+ users, physical isolation)\n  • Unlimited (custom)\n\n🔄 Lifecycle:\n  • Provisioning → Active → Suspended\n  • Archive (90-day retention)\n  • Permanent deletion",
+      fontSize: 0.10,
+      color: "#00aaff",
+    };
+  }
+}

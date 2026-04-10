@@ -1,0 +1,1577 @@
+[
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "ios",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "playcanvas",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "No compiler found for target: playcanvas"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "aframe",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "ios",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "godot",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[GodotCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "vrchat",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VRChatCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "playcanvas",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "No compiler found for target: playcanvas"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "dtdl",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[DTDLCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "urdf",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[URDFCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "sdf",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[SDFCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "webgpu",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[WebGPUCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "vrchat",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VRChatCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "ios",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "vrchat",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VRChatCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "ios",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "unity",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "unreal",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "dtdl",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[DTDLCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "ar",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "ios",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "visionos",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "webxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "r3f",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "openxr",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "[OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token\nAgent Role: unknown\nRequired Permission: unknown"
+  }
+]

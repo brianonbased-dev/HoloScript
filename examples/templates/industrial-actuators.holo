@@ -1,0 +1,399 @@
+/**
+ * Industrial Actuators Template
+ * 
+ * Demonstrates HoloScript's Digital Twin system for industrial IoT:
+ * - @twin_sync for bidirectional state synchronization
+ * - @twin_actuator for sending commands to physical devices
+ * - @digital_twin for complete device representation
+ * - @sensor for reading physical measurements
+ * 
+ * Use Cases:
+ * - Factory floor monitoring
+ * - Robotic arm control
+ * - Industrial process visualization
+ * - Predictive maintenance
+ * 
+ * @version 3.1.0
+ */
+
+composition "IndustrialActuatorsDemo" {
+  // MQTT/IoT Configuration
+  config {
+    iot: {
+      broker: "mqtt://factory.example.com:1883"
+      auth: "cert"
+      reconnect_interval: 5000
+    }
+    digital_twin: {
+      sync_interval: 100
+      history_retention: 3600
+      simulation_mode: false
+    }
+  }
+
+  // ==========================================================================
+  // ROBOTIC ARM DIGITAL TWIN
+  // ==========================================================================
+
+  template "RoboticArm" {
+    @digital_twin(physical_id: "arm_01")
+    @twin_sync(topic: "factory/cell_01/arm", interval: 100)
+    @twin_actuator(actuator_id: "arm_01_control")
+    
+    geometry: "model/robotic_arm.glb"
+    
+    state {
+      // Synchronized from physical device
+      joint_angles: [0, 0, 0, 0, 0, 0]  // 6-DOF arm
+      end_effector_position: [0, 0, 0]
+      gripper_state: "open"
+      temperature: 25
+      load_current: 0
+      
+      // Local state
+      is_synced: false
+      last_sync: 0
+      error_count: 0
+    }
+
+    // Sync properties mapping
+    sync_properties: [
+      { physical: "joint_1", virtual: "joint_angles[0]", direction: "bidirectional" },
+      { physical: "joint_2", virtual: "joint_angles[1]", direction: "bidirectional" },
+      { physical: "joint_3", virtual: "joint_angles[2]", direction: "bidirectional" },
+      { physical: "joint_4", virtual: "joint_angles[3]", direction: "bidirectional" },
+      { physical: "joint_5", virtual: "joint_angles[4]", direction: "bidirectional" },
+      { physical: "joint_6", virtual: "joint_angles[5]", direction: "bidirectional" },
+      { physical: "gripper", virtual: "gripper_state", direction: "bidirectional" },
+      { physical: "temp_c", virtual: "temperature", direction: "in" },
+      { physical: "current_ma", virtual: "load_current", direction: "in" }
+    ]
+
+    // Move arm to position
+    action moveTo(targetPosition, speed) {
+      const trajectory = calculateTrajectory(
+        this.state.end_effector_position,
+        targetPosition,
+        speed
+      )
+      
+      // Send command to physical actuator
+      actuate({
+        command: "move_trajectory",
+        trajectory: trajectory,
+        speed: speed
+      })
+    }
+
+    // Control gripper
+    action setGripper(state) {
+      actuate({
+        command: "gripper",
+        state: state  // "open", "close", "partial"
+      })
+      
+      this.state.gripper_state = state
+    }
+
+    // Emergency stop
+    action emergencyStop() {
+      actuate({
+        command: "e_stop",
+        priority: "critical"
+      })
+    }
+
+    // Handle sync events
+    on twin_sync() {
+      this.state.is_synced = true
+      this.state.last_sync = Date.now()
+      
+      // Check for anomalies
+      if (this.state.temperature > 80) {
+        emit("temperature_warning", { temp: this.state.temperature })
+      }
+    }
+
+    on twin_sync_error(error) {
+      this.state.error_count += 1
+      log(`Sync error: ${error}`)
+    }
+  }
+
+  // ==========================================================================
+  // CONVEYOR BELT SYSTEM
+  // ==========================================================================
+
+  template "ConveyorBelt" {
+    @digital_twin(physical_id: "conveyor_main")
+    @twin_sync(topic: "factory/conveyor/main")
+    @twin_actuator(actuator_id: "conveyor_motor")
+    
+    geometry: "model/conveyor.glb"
+    
+    state {
+      speed: 0  // m/s
+      direction: "forward"
+      is_running: false
+      items_on_belt: []
+      motor_temp: 25
+      belt_tension: 100
+    }
+
+    sync_properties: [
+      { physical: "motor_speed", virtual: "speed", direction: "bidirectional" },
+      { physical: "motor_temp", virtual: "motor_temp", direction: "in" },
+      { physical: "tension_pct", virtual: "belt_tension", direction: "in" },
+      { physical: "running", virtual: "is_running", direction: "bidirectional" }
+    ]
+
+    action start(speed) {
+      actuate({
+        command: "motor_start",
+        speed: speed
+      })
+      this.state.is_running = true
+      this.state.speed = speed
+    }
+
+    action stop() {
+      actuate({ command: "motor_stop" })
+      this.state.is_running = false
+      this.state.speed = 0
+    }
+
+    action setSpeed(newSpeed) {
+      actuate({
+        command: "motor_speed",
+        speed: newSpeed
+      })
+      this.state.speed = newSpeed
+    }
+
+    action reverse() {
+      this.state.direction = this.state.direction == "forward" ? "reverse" : "forward"
+      actuate({
+        command: "motor_direction",
+        direction: this.state.direction
+      })
+    }
+  }
+
+  // ==========================================================================
+  // TEMPERATURE SENSOR
+  // ==========================================================================
+
+  template "TemperatureSensor" {
+    @sensor(type: "temperature", unit: "celsius")
+    @twin_sync(topic: "factory/sensors/temp_01")
+    
+    geometry: "cylinder"
+    scale: [0.1, 0.2, 0.1]
+    color: "#ff6600"
+    
+    state {
+      value: 0
+      min_threshold: 10
+      max_threshold: 40
+      history: []
+      is_alarming: false
+    }
+
+    sync_properties: [
+      { physical: "temp_value", virtual: "value", direction: "in" }
+    ]
+
+    on twin_sync() {
+      // Record history
+      this.state.history.push({
+        timestamp: Date.now(),
+        value: this.state.value
+      })
+      
+      // Keep last hour only
+      const oneHourAgo = Date.now() - 3600000
+      this.state.history = this.state.history.filter(h => h.timestamp > oneHourAgo)
+      
+      // Check thresholds
+      if (this.state.value > this.state.max_threshold) {
+        this.state.is_alarming = true
+        emit("sensor_alarm", {
+          sensor_id: this.id,
+          type: "high_temp",
+          value: this.state.value
+        })
+      } else if (this.state.value < this.state.min_threshold) {
+        this.state.is_alarming = true
+        emit("sensor_alarm", {
+          sensor_id: this.id,
+          type: "low_temp",
+          value: this.state.value
+        })
+      } else {
+        this.state.is_alarming = false
+      }
+    }
+
+    action getAverage(periodMinutes) {
+      const cutoff = Date.now() - (periodMinutes * 60000)
+      const relevant = this.state.history.filter(h => h.timestamp > cutoff)
+      const sum = relevant.reduce((a, b) => a + b.value, 0)
+      return sum / relevant.length
+    }
+  }
+
+  // ==========================================================================
+  // PRESSURE SENSOR
+  // ==========================================================================
+
+  template "PressureSensor" {
+    @sensor(type: "pressure", unit: "psi")
+    @twin_sync(topic: "factory/sensors/pressure_01")
+    
+    geometry: "sphere"
+    scale: [0.15, 0.15, 0.15]
+    color: "#0066ff"
+    
+    state {
+      value: 0
+      target_pressure: 100
+      tolerance: 5
+    }
+
+    sync_properties: [
+      { physical: "psi_value", virtual: "value", direction: "in" }
+    ]
+
+    action isWithinTolerance() {
+      const diff = Math.abs(this.state.value - this.state.target_pressure)
+      return diff <= this.state.tolerance
+    }
+  }
+
+  // ==========================================================================
+  // FACTORY CELL CONTROLLER
+  // ==========================================================================
+
+  template "FactoryCellController" {
+    @digital_twin(physical_id: "cell_01")
+    @twin_actuator(actuator_id: "cell_01_plc")
+    
+    geometry: "box"
+    scale: [2, 0.5, 1]
+    color: "#333333"
+    
+    state {
+      mode: "idle"  // idle, running, maintenance, error
+      cycle_count: 0
+      last_cycle_time: 0
+      efficiency: 100
+    }
+
+    action startProduction() {
+      actuate({ command: "start_cycle" })
+      this.state.mode = "running"
+    }
+
+    action stopProduction() {
+      actuate({ command: "stop_cycle" })
+      this.state.mode = "idle"
+    }
+
+    action enterMaintenance() {
+      actuate({ command: "maintenance_mode" })
+      this.state.mode = "maintenance"
+    }
+
+    action resetError() {
+      actuate({ command: "error_reset" })
+      this.state.mode = "idle"
+    }
+
+    on cycle_complete(data) {
+      this.state.cycle_count += 1
+      this.state.last_cycle_time = data.duration
+      
+      // Calculate efficiency
+      const targetTime = 60  // seconds
+      this.state.efficiency = Math.min(100, (targetTime / data.duration) * 100)
+    }
+  }
+
+  // ==========================================================================
+  // HMI PANEL - Human Machine Interface
+  // ==========================================================================
+
+  template "HMIPanel" {
+    @pointable
+    @ui_panel
+    
+    geometry: "plane"
+    scale: [1.5, 1, 0.05]
+    
+    state {
+      connected_devices: []
+      active_alarms: []
+    }
+
+    action displayDeviceStatus(deviceId) {
+      const device = findDevice(deviceId)
+      updatePanel({
+        device_id: deviceId,
+        status: device.state,
+        health: calculateHealth(device)
+      })
+    }
+
+    action acknowledgeAlarm(alarmId) {
+      this.state.active_alarms = this.state.active_alarms
+        .filter(a => a.id != alarmId)
+    }
+
+    on sensor_alarm(alarm) {
+      this.state.active_alarms.push({
+        id: generateId(),
+        ...alarm,
+        timestamp: Date.now()
+      })
+    }
+  }
+
+  // ==========================================================================
+  // INSTANTIATE FACTORY FLOOR
+  // ==========================================================================
+
+  // Robotic arm station
+  object "RobotArm01" using "RoboticArm" {
+    position: [0, 0, 0]
+  }
+
+  // Conveyor system
+  object "MainConveyor" using "ConveyorBelt" {
+    position: [3, 0, 0]
+    rotation: [0, 90, 0]
+  }
+
+  // Sensors
+  object "TempSensor01" using "TemperatureSensor" {
+    position: [1, 2, 0]
+  }
+
+  object "TempSensor02" using "TemperatureSensor" {
+    position: [5, 2, 0]
+  }
+
+  object "PressureSensor01" using "PressureSensor" {
+    position: [3, 1, 2]
+  }
+
+  // Cell controller
+  object "CellController" using "FactoryCellController" {
+    position: [-2, 0.25, 3]
+  }
+
+  // HMI Panel
+  object "ControlPanel" using "HMIPanel" {
+    position: [-3, 1.5, 0]
+    rotation: [0, 45, 0]
+  }
+}

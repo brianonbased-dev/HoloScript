@@ -1,0 +1,4 @@
+@page {
+  route: "/holoclaw"
+  redirect: "/teams"
+}

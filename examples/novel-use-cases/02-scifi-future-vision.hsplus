@@ -1,0 +1,316 @@
+/**
+ * Optimistic Sci-Fi Future Vision Builder — .hsplus Behavior
+ *
+ * WHY .hsplus: Story co-creation requires reactive event chains
+ * (citizen proposes → vote → branch → export), state machine for
+ * the narrative lifecycle, and module-encapsulated lore tracking.
+ * The .holo declares the world; this file defines the story engine.
+ *
+ * Features:
+ * - NarrativeEngine module: plot branch management, lore graph
+ * - VotingSystem module: proposal/vote/tally lifecycle
+ * - @state_machine on CitizenAgent: idle → proposing → voting → creating → exporting
+ * - @on_event reactive handlers for vote results and cultural events
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "SciFiFutureVision" {
+  environment {
+    skybox: "utopia_sunrise"
+    ambient_light: 0.6
+    physics: false
+    bloom: true
+  }
+
+  // ========================================================================
+  // NARRATIVE ENGINE MODULE
+  // ========================================================================
+
+  module NarrativeEngine {
+    state {
+      lore_graph: {}
+      plot_branches: []
+      active_branch: null
+      total_entries: 0
+      coherence_score: 1.0
+    }
+
+    action add_lore(entry, author_id, faction) {
+      const id = generate_id();
+      this.state.lore_graph[id] = {
+        id: id,
+        entry: entry,
+        author: author_id,
+        faction: faction,
+        timestamp: current_time(),
+        votes: 0,
+        canonical: false
+      };
+      this.state.total_entries += 1;
+      emit("narrative:lore_added", { id: id, faction: faction, entry: entry });
+      return id;
+    }
+
+    action create_branch(title, parent_branch_id) {
+      const branch = {
+        id: generate_id(),
+        title: title,
+        parent: parent_branch_id,
+        created_at: current_time(),
+        lore_ids: [],
+        viewer_rating: 0,
+        status: "open"
+      };
+      this.state.plot_branches.push(branch);
+      this.state.active_branch = branch.id;
+      emit("narrative:branch_created", { id: branch.id, title: title });
+      return branch.id;
+    }
+
+    action attach_lore_to_branch(lore_id, branch_id) {
+      const branch = this.state.plot_branches.find(b => b.id === branch_id);
+      if (branch && this.state.lore_graph[lore_id]) {
+        branch.lore_ids.push(lore_id);
+        this.state.lore_graph[lore_id].canonical = true;
+      }
+    }
+
+    action calculate_coherence() {
+      // Coherence = ratio of connected lore to total lore
+      const canonical = Object.values(this.state.lore_graph).filter(l => l.canonical).length;
+      this.state.coherence_score = this.state.total_entries > 0
+        ? canonical / this.state.total_entries
+        : 1.0;
+      emit("feedback:update_metric", {
+        name: "lore_coherence",
+        value: this.state.coherence_score
+      });
+    }
+
+    exports {
+      add_lore
+      create_branch
+      attach_lore_to_branch
+      calculate_coherence
+      state
+    }
+  }
+
+  // ========================================================================
+  // VOTING SYSTEM MODULE
+  // ========================================================================
+
+  module VotingSystem {
+    state {
+      proposals: []
+      active_proposal: null
+      votes_cast: 0
+      quorum: 3
+    }
+
+    action submit_proposal(title, proposer_id, lore_id) {
+      const proposal = {
+        id: generate_id(),
+        title: title,
+        proposer: proposer_id,
+        lore_id: lore_id,
+        votes_for: 0,
+        votes_against: 0,
+        voters: [],
+        status: "open",
+        created_at: current_time(),
+        deadline: current_time() + 60000
+      };
+      this.state.proposals.push(proposal);
+      this.state.active_proposal = proposal.id;
+      emit("voting:proposal_submitted", { id: proposal.id, title: title });
+      return proposal.id;
+    }
+
+    action cast_vote(proposal_id, voter_id, approve) {
+      const proposal = this.state.proposals.find(p => p.id === proposal_id);
+      if (!proposal || proposal.status !== "open") return false;
+      if (proposal.voters.includes(voter_id)) return false;
+
+      proposal.voters.push(voter_id);
+      if (approve) { proposal.votes_for += 1; }
+      else { proposal.votes_against += 1; }
+      this.state.votes_cast += 1;
+
+      emit("voting:vote_cast", {
+        proposal_id: proposal_id,
+        voter: voter_id,
+        approve: approve
+      });
+
+      // Auto-tally if quorum reached
+      if (proposal.voters.length >= this.state.quorum) {
+        this.tally(proposal_id);
+      }
+      return true;
+    }
+
+    action tally(proposal_id) {
+      const proposal = this.state.proposals.find(p => p.id === proposal_id);
+      if (!proposal) return;
+
+      const approved = proposal.votes_for > proposal.votes_against;
+      proposal.status = approved ? "approved" : "rejected";
+
+      emit("voting:tally_complete", {
+        proposal_id: proposal_id,
+        approved: approved,
+        votes_for: proposal.votes_for,
+        votes_against: proposal.votes_against
+      });
+
+      if (approved) {
+        NarrativeEngine.attach_lore_to_branch(
+          proposal.lore_id,
+          NarrativeEngine.state.active_branch
+        );
+      }
+    }
+
+    exports {
+      submit_proposal
+      cast_vote
+      tally
+      state
+    }
+  }
+
+  // ========================================================================
+  // CITIZEN AGENT — Narrative State Machine
+  // ========================================================================
+
+  template "CitizenAgent" {
+    @llm_agent
+    @perception(range: 25)
+    @cultural_profile {
+      cooperation_index: 0.8
+      cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["story_continuity", "constructive_vote", "lore_respect"]
+    }
+
+    @state_machine {
+      initial: "idle"
+
+      states: {
+        idle: {
+          on_inspiration: -> "proposing"
+          on_vote_requested: -> "voting"
+        }
+
+        proposing: {
+          on_proposal_submitted: -> "idle" action(on_proposed)
+          on_proposal_rejected: -> "idle"
+        }
+
+        voting: {
+          on_vote_cast: -> "idle" action(on_voted)
+          on_vote_timeout: -> "idle"
+        }
+      }
+
+      actions: {
+        on_proposed: () => {
+          state.proposals_made += 1;
+          emit("economy:earn", {
+            agentId: state.agent_id, amount: 5,
+            reason: "Lore proposal submitted"
+          });
+        }
+
+        on_voted: () => {
+          state.votes_cast += 1;
+        }
+      }
+    }
+
+    state {
+      agent_id: null
+      faction: null
+      proposals_made: 0
+      votes_cast: 0
+    }
+
+    @on_event("voting:proposal_submitted"): (data) => {
+      if (data.proposer !== state.agent_id) {
+        // Other citizen proposed — consider voting
+        emit("on_vote_requested");
+      }
+    }
+
+    @on_event("voting:tally_complete"): (data) => {
+      if (data.approved) {
+        NarrativeEngine.calculate_coherence();
+      }
+    }
+
+    action propose_story(entry) {
+      const lore_id = NarrativeEngine.add_lore(entry, state.agent_id, state.faction);
+      VotingSystem.submit_proposal(entry, state.agent_id, lore_id);
+      emit("on_proposal_submitted");
+    }
+  }
+
+  // ========================================================================
+  // INSTANCES
+  // ========================================================================
+
+  object "CityPlatform" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0, 0]
+    scale: [20, 0.2, 20]
+    color: "#0d0d1a"
+  }
+
+  object "Citizen_Sol_A" using "CitizenAgent" {
+    position: [-5, 1, 3]
+    geometry: "humanoid"
+    color: "#ffd700"
+    state { agent_id: "sol_001"; faction: "Solaris Council" }
+  }
+
+  object "Citizen_Sol_B" using "CitizenAgent" {
+    position: [-3, 1, 5]
+    geometry: "humanoid"
+    color: "#ffd700"
+    state { agent_id: "sol_002"; faction: "Solaris Council" }
+  }
+
+  object "Citizen_Guild_A" using "CitizenAgent" {
+    position: [5, 1, 3]
+    geometry: "humanoid"
+    color: "#0088ff"
+    state { agent_id: "guild_001"; faction: "Deep Space Guild" }
+  }
+
+  // ========================================================================
+  // HUD
+  // ========================================================================
+
+  panel "StoryStatus" {
+    position: "top-right"
+    text "Lore" {
+      bind: "Lore entries: " + NarrativeEngine.state.total_entries
+      style: "info"
+    }
+    text "Branches" {
+      bind: "Plot branches: " + NarrativeEngine.state.plot_branches.length
+      style: "info"
+    }
+    text "Votes" {
+      bind: "Votes cast: " + VotingSystem.state.votes_cast
+      style: "info"
+    }
+    text "Coherence" {
+      bind: "Coherence: " + NarrativeEngine.state.coherence_score
+      color: "#00ff88"
+    }
+  }
+}

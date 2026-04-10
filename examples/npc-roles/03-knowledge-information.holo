@@ -1,0 +1,1325 @@
+/**
+ * Knowledge & Information Specialists
+ *
+ * Demonstrates scholar, librarian, archaeologist, diplomat, spy, oracle,
+ * prophet, hermit, bard, jester, thief, monk, and warden traits for
+ * NPCs who deal with knowledge, information, and wisdom.
+ *
+ * Key Features:
+ * - Scholars & Librarians: Research, books, knowledge databases
+ * - Diplomats & Spies: Negotiations, intelligence, covert operations
+ * - Mystics: Oracles, prophets, visions, predictions
+ * - Entertainers: Bards, jesters, performance arts
+ * - Specialists: Thieves (information brokers), monks, wardens
+ *
+ * @version 1.0.0
+ * @sprint 15
+ */
+
+composition KnowledgeInformationScene {
+  /**
+   * University Scholar - Scholar
+   *
+   * A learned academic who researches ancient texts and teaches students.
+   */
+  entity UniversityScholar {
+    scholar: {
+      // Academic profile
+      field_of_study: "ancient_history",
+      expertise_level: 9, // 1-10
+      specializations: [
+        "dragon_lore",
+        "lost_civilizations",
+        "ancient_languages",
+        "magical_theory"
+      ],
+
+      // Academic credentials
+      credentials: {
+        degrees: ["Bachelor of Magic", "Master of History", "Doctorate in Ancient Studies"],
+        institution: "Arcanum University",
+        years_of_study: 25,
+        publications: 47,
+        citations: 1420
+      },
+
+      // Research
+      research: {
+        current_projects: [
+          {
+            project: "Deciphering the Dragon Codex",
+            progress: 67, // %
+            started: 1577836800000, // 5 years ago
+            funding: 5000,
+            breakthrough_chance: 0.3 // 30% chance per year
+          },
+          {
+            project: "Lost City of Atlantia Expedition",
+            progress: 42,
+            started: 1609459200000, // 3 years ago
+            funding: 10000,
+            breakthrough_chance: 0.2
+          }
+        ],
+
+        research_methods: [
+          "textual_analysis",
+          "field_expeditions",
+          "magical_divination",
+          "peer_collaboration"
+        ],
+
+        can_provide_research_assistance: true,
+        research_assistance_cost: 100 // per day
+      },
+
+      // Knowledge services
+      services: {
+        identify_items: {
+          enabled: true,
+          accuracy: 0.95, // 95% accurate
+          cost: 50,
+          specialties: ["artifacts", "ancient_texts", "magical_items"]
+        },
+
+        translations: {
+          enabled: true,
+          languages_known: [
+            "draconic",
+            "elvish",
+            "dwarvish",
+            "ancient_common",
+            "celestial",
+            "infernal"
+          ],
+          cost_per_page: 25,
+          turnaround_time: 86400000 // 1 day per page
+        },
+
+        consultations: {
+          enabled: true,
+          topics: ["history", "magic", "monsters", "geography"],
+          cost_per_hour: 50,
+          accuracy: 0.92
+        },
+
+        teaching: {
+          enabled: true,
+          subjects: ["history", "magical_theory", "ancient_languages"],
+          cost_per_lesson: 100,
+          lesson_duration: 7200000 // 2 hours
+        }
+      },
+
+      // Academic reputation
+      reputation: {
+        academic_standing: "renowned",
+        peer_respect: 9.2, // 0-10
+        public_fame: 6.5, // Known in academic circles
+        controversial_theories: 2 // Some controversial ideas
+      }
+    }
+
+    on_research_breakthrough(event) {
+      console.log(`[UniversityScholar] Research breakthrough:
+        - Project: ${event.project}
+        - Discovery: ${event.discovery}
+        - Impact: ${event.impact_level}
+        - Publication Pending: ${event.will_publish}
+      `);
+    }
+
+    on_item_identified(event) {
+      console.log(`[UniversityScholar] Item identified:
+        - Item: ${event.item}
+        - Identification: ${event.identification}
+        - Confidence: ${event.confidence}%
+        - Historical Significance: ${event.significance}
+      `);
+    }
+
+    on_translation_completed(event) {
+      console.log(`[UniversityScholar] Translation completed:
+        - Text: ${event.text_name}
+        - From Language: ${event.from_language}
+        - Pages: ${event.page_count}
+        - Revelations: ${event.important_findings}
+      `);
+    }
+  }
+
+  /**
+   * Grand Library - Librarian
+   *
+   * The keeper of the grand library with vast book collections.
+   */
+  entity GrandLibrarian {
+    librarian: {
+      // Library info
+      library_name: "Grand Library of Eternal Knowledge",
+      library_size: "massive",
+      collection_size: 50000, // books
+
+      // Collections
+      collections: {
+        categories: [
+          { category: "history", book_count: 8000 },
+          { category: "magic", book_count: 12000 },
+          { category: "science", book_count: 6000 },
+          { category: "philosophy", book_count: 4000 },
+          { category: "fiction", book_count: 10000 },
+          { category: "rare_texts", book_count: 2000 },
+          { category: "maps", book_count: 3000 },
+          { category: "scrolls", book_count: 5000 }
+        ],
+
+        rare_books: [
+          {
+            title: "The Necromancer's Grimoire",
+            author: "Unknown",
+            age: 800, // years
+            condition: "fragile",
+            accessibility: "restricted",
+            value: 50000
+          },
+          {
+            title: "Chronicle of the Dragon Wars",
+            author: "Historian Aldric",
+            age: 500,
+            condition: "good",
+            accessibility: "by_appointment",
+            value: 15000
+          }
+        ]
+      },
+
+      // Library services
+      services: {
+        book_lending: {
+          enabled: true,
+          loan_period: 1209600000, // 2 weeks
+          late_fee_per_day: 1,
+          max_books_at_once: 5,
+          restricted_books_require: "special_permission"
+        },
+
+        research_assistance: {
+          enabled: true,
+          can_help_find_information: true,
+          search_time: 3600000, // 1 hour per search
+          search_cost: 25,
+          success_rate: 0.88 // 88% find rate
+        },
+
+        copying_services: {
+          enabled: true,
+          cost_per_page: 2,
+          copying_time_per_page: 1800000, // 30 minutes
+          can_copy_restricted: false
+        },
+
+        reading_rooms: {
+          available: true,
+          room_count: 10,
+          currently_occupied: 6,
+          reservation_required: false,
+          quiet_hours_enforced: true
+        }
+      },
+
+      // Library rules
+      rules: {
+        silence_required: true,
+        no_food_or_drink: true,
+        no_magic_near_books: true,
+        damages_must_be_paid: true,
+        theft_consequences: "lifetime_ban_and_fine"
+      },
+
+      // Librarian knowledge
+      knowledge: {
+        knows_every_book_location: true,
+        photographic_memory_of_catalog: true,
+        can_recommend_books: true,
+        reading_speed: "exceptional",
+        languages_read: 12
+      }
+    }
+
+    on_book_requested(event) {
+      console.log(`[GrandLibrarian] Book requested:
+        - Title: ${event.book_title}
+        - Borrower: ${event.borrower}
+        - Availability: ${event.available}
+        - Location: ${event.shelf_location}
+      `);
+    }
+
+    on_research_query(event) {
+      console.log(`[GrandLibrarian] Research query:
+        - Query: ${event.query}
+        - Researcher: ${event.researcher}
+        - Estimated Search Time: ${event.search_time}
+        - Likely Success: ${event.success_probability}
+      `);
+    }
+
+    on_book_overdue(event) {
+      console.log(`[GrandLibrarian] Book overdue:
+        - Book: ${event.book_title}
+        - Borrower: ${event.borrower}
+        - Days Overdue: ${event.days_overdue}
+        - Fine: ${event.fine} gold
+      `);
+    }
+  }
+
+  /**
+   * Field Researcher - Archaeologist
+   *
+   * Explores ancient ruins and excavates historical artifacts.
+   */
+  entity FieldArchaeologist {
+    archaeologist: {
+      // Professional profile
+      specialization: "ancient_civilizations",
+      field_experience_years: 15,
+      expedition_count: 47,
+
+      // Current expedition
+      current_expedition: {
+        site: "Ruins of the First Kingdom",
+        location: [1200.0, 50.0, 800.0],
+        started: 1636156800000,
+        estimated_duration: 15552000000, // 6 months
+        progress: 35, // %
+
+        team: {
+          team_size: 8,
+          specialists: ["excavator", "historian", "cartographer", "security"]
+        },
+
+        finds: [
+          {
+            artifact: "Royal Seal",
+            age_estimated: 2000, // years
+            condition: "excellent",
+            value: 5000,
+            historical_significance: "high"
+          },
+          {
+            artifact: "Ancient Pottery Shards",
+            age_estimated: 2000,
+            condition: "fragmentary",
+            value: 100,
+            historical_significance: "medium"
+          }
+        ]
+      },
+
+      // Excavation techniques
+      techniques: {
+        careful_excavation: true,
+        documentation_quality: "meticulous",
+        uses_magic_for_dating: true,
+        preservation_methods: "advanced",
+        site_mapping: "3d_magical_scanning"
+      },
+
+      // Artifact handling
+      artifact_services: {
+        authentication: {
+          enabled: true,
+          accuracy: 0.93,
+          cost: 200,
+          methods: ["magical_dating", "stylistic_analysis", "material_testing"]
+        },
+
+        appraisal: {
+          enabled: true,
+          accuracy: 0.88,
+          cost: 100
+        },
+
+        restoration: {
+          enabled: true,
+          success_rate: 0.82,
+          cost_multiplier: 0.5, // 50% of item value
+          restoration_time_base: 604800000 // 1 week
+        }
+      },
+
+      // Knowledge
+      knowledge_areas: [
+        "ancient_architecture",
+        "burial_practices",
+        "trade_routes",
+        "lost_languages",
+        "artifact_dating"
+      ],
+
+      // Expeditions available
+      can_hire_for_expeditions: true,
+      expedition_cost_per_day: 200,
+      profit_share_model: {
+        archaeologist_share: 0.4, // 40% of finds value
+        client_share: 0.6
+      }
+    }
+
+    on_artifact_discovered(event) {
+      console.log(`[FieldArchaeologist] Artifact discovered:
+        - Artifact: ${event.artifact}
+        - Location: ${event.location}
+        - Estimated Age: ${event.age} years
+        - Condition: ${event.condition}
+        - Significance: ${event.significance}
+      `);
+    }
+
+    on_expedition_completed(event) {
+      console.log(`[FieldArchaeologist] Expedition completed:
+        - Site: ${event.site}
+        - Duration: ${event.duration}
+        - Artifacts Found: ${event.artifact_count}
+        - Total Value: ${event.total_value} gold
+        - Major Discoveries: ${event.major_discoveries}
+      `);
+    }
+  }
+
+  /**
+   * Royal Ambassador - Diplomat
+   *
+   * Negotiates treaties and handles international relations.
+   */
+  entity RoyalAmbassador {
+    diplomat: {
+      // Diplomatic profile
+      rank: "ambassador",
+      represents: "Kingdom of Valoria",
+      assigned_to: "Elven Confederation",
+      years_of_service: 12,
+
+      // Diplomatic skills
+      skills: {
+        negotiation: 9, // 1-10
+        persuasion: 8,
+        cultural_sensitivity: 9,
+        languages_spoken: 8,
+        etiquette: 10,
+        deception_detection: 7
+      },
+
+      // Current negotiations
+      current_negotiations: [
+        {
+          negotiation: "Trade Agreement Renewal",
+          parties: ["Kingdom of Valoria", "Elven Confederation"],
+          status: "in_progress",
+          progress: 65, // %
+          started: 1635552000000,
+          issues: ["tariff_rates", "lumber_export_quotas", "magical_artifact_restrictions"],
+          our_position: "seeking_favorable_terms",
+          their_position: "protecting_forest_resources"
+        }
+      ],
+
+      // Diplomatic actions
+      actions_available: [
+        "propose_treaty",
+        "request_audience",
+        "deliver_message",
+        "arrange_meeting",
+        "mediate_dispute",
+        "issue_diplomatic_protest",
+        "negotiate_terms"
+      ],
+
+      // Diplomatic immunity
+      immunity: {
+        has_diplomatic_immunity: true,
+        cannot_be_arrested: true,
+        residence_is_sovereign_territory: true,
+        correspondence_is_confidential: true
+      },
+
+      // Relations management
+      relations: {
+        current_relationship: "friendly",
+        relationship_score: 75, // 0-100
+        relationship_trend: "improving",
+        key_allies: ["Elf Lord Thandor", "Trade Minister Elara"],
+        key_opponents: ["Isolationist Faction"]
+      },
+
+      // Communication
+      communication: {
+        formal_correspondence: true,
+        diplomatic_pouch_access: true,
+        can_send_messages_to: "all_kingdoms",
+        message_encryption: true
+      }
+    }
+
+    on_negotiation_started(event) {
+      console.log(`[RoyalAmbassador] Negotiation started:
+        - Topic: ${event.topic}
+        - Parties: ${event.parties}
+        - Our Objectives: ${event.objectives}
+        - Estimated Duration: ${event.estimated_duration}
+      `);
+    }
+
+    on_treaty_proposed(event) {
+      console.log(`[RoyalAmbassador] Treaty proposed:
+        - Treaty: ${event.treaty_name}
+        - Terms: ${event.key_terms}
+        - Expected Response: ${event.expected_response}
+      `);
+    }
+
+    on_diplomatic_incident(event) {
+      console.log(`[RoyalAmbassador] Diplomatic incident:
+        - Incident: ${event.incident_type}
+        - Severity: ${event.severity}
+        - Response Required: ${event.response_needed}
+        - Impact on Relations: ${event.impact}
+      `);
+    }
+  }
+
+  /**
+   * Shadow Agent - Spy
+   *
+   * Gathers intelligence through covert operations and espionage.
+   */
+  entity ShadowAgent {
+    spy: {
+      // Spy profile
+      code_name: "Nightingale",
+      affiliation: "Royal Intelligence Service",
+      cover_identity: {
+        name: "Merchant Marcus",
+        occupation: "traveling_trader",
+        backstory: "Trades in spices and silks",
+        believability: 0.92 // 92% convincing
+      },
+
+      // Spy skills
+      skills: {
+        stealth: 9, // 1-10
+        disguise: 8,
+        lock_picking: 9,
+        forgery: 7,
+        poison_knowledge: 6,
+        interrogation: 7,
+        coding_decoding: 9,
+        observation: 10
+      },
+
+      // Intelligence gathering
+      intelligence_ops: {
+        active_operations: [
+          {
+            operation: "Observe enemy troop movements",
+            target: "Northern Alliance",
+            priority: "high",
+            risk_level: "medium",
+            progress: 78, // %
+            intelligence_gathered: [
+              "3 regiments moving south",
+              "Supply lines stretched thin",
+              "Morale reports: low"
+            ]
+          }
+        ],
+
+        methods: [
+          "surveillance",
+          "infiltration",
+          "bribery",
+          "blackmail",
+          "eavesdropping",
+          "dead_drops",
+          "coded_messages"
+        ],
+
+        information_quality: {
+          accuracy_rate: 0.87, // 87% accurate intel
+          verification_level: "cross_referenced",
+          timeliness: "current"
+        }
+      },
+
+      // Contacts & network
+      network: {
+        informants: 12,
+        handler: "spymaster_corvus",
+        safe_houses: 4,
+        dead_drop_locations: 8,
+        emergency_extraction_protocol: true
+      },
+
+      // Covert actions
+      covert_actions: [
+        "gather_intelligence",
+        "sabotage",
+        "assassination", // Available but rarely used
+        "document_theft",
+        "recruitment",
+        "disinformation"
+      ],
+
+      // Security
+      security: {
+        counter_surveillance_training: true,
+        poison_resistance: true,
+        escape_artist: true,
+        capture_protocol: "suicide_pill", // Last resort
+        knows_interrogation_resistance: true
+      },
+
+      // Loyalty
+      loyalty: {
+        allegiance: "kingdom",
+        can_be_turned: false, // Very loyal
+        loyalty_score: 95
+      }
+    }
+
+    on_intelligence_gathered(event) {
+      console.log(`[ShadowAgent] Intelligence gathered:
+        - Source: ${event.source}
+        - Information: ${event.information}
+        - Reliability: ${event.reliability}
+        - Priority: ${event.priority}
+        - Sent to Handler: ${event.reported}
+      `);
+    }
+
+    on_cover_threatened(event) {
+      console.log(`[ShadowAgent] Cover threatened:
+        - Threat: ${event.threat}
+        - Risk Level: ${event.risk_level}
+        - Cover Integrity: ${event.cover_integrity}%
+        - Action Taken: ${event.action}
+      `);
+    }
+
+    on_mission_compromised(event) {
+      console.log(`[ShadowAgent] Mission compromised:
+        - Mission: ${event.mission}
+        - Compromise Reason: ${event.reason}
+        - Extraction Needed: ${event.extraction}
+        - Intelligence Secured: ${event.intelligence_secured}
+      `);
+    }
+  }
+
+  /**
+   * Temple Oracle - Oracle & Prophet
+   *
+   * Provides divine prophecies and visions of the future.
+   */
+  entity TempleOracle {
+    oracle: {
+      // Oracle profile
+      divine_connection: "Goddess of Fate",
+      oracle_type: "prophetic_visions",
+      accuracy_rate: 0.73, // 73% of prophecies come true
+      years_as_oracle: 30,
+
+      // Divination methods
+      divination_methods: [
+        "trance_visions",
+        "scrying",
+        "dream_interpretation",
+        "augury",
+        "tarot_reading",
+        "star_reading"
+      ],
+
+      // Services
+      services: {
+        prophecies: {
+          enabled: true,
+          cost: 500,
+          ritual_time: 7200000, // 2 hours
+          clarity: "often_cryptic",
+          specificity: "vague_to_specific",
+          timeframe: "near_or_far_future"
+        },
+
+        question_answering: {
+          enabled: true,
+          cost: 200,
+          simple_yes_no_only: false,
+          can_ask_about: ["future", "fate", "destiny", "divine_will"],
+          cannot_ask_about: ["trivial_matters", "gambling", "stock_market"]
+        },
+
+        divine_guidance: {
+          enabled: true,
+          cost: 100,
+          provides: "advice_on_life_path"
+        }
+      },
+
+      // Known prophecies
+      prophecies_given: [
+        {
+          prophecy: "When three stars align, the dragon shall wake",
+          given_to: "King Aldric",
+          date_given: 1546300800000, // 5 years ago
+          fulfillment_status: "pending",
+          interpretation: "unclear"
+        },
+        {
+          prophecy: "The child of two worlds shall unite or destroy",
+          given_to: "player_hero",
+          date_given: 1638230400000,
+          fulfillment_status: "pending",
+          interpretation: "player's_destiny"
+        }
+      ],
+
+      // Oracle trance
+      trance: {
+        enters_trance_for_visions: true,
+        trance_duration: 1800000, // 30 minutes
+        dangerous_if_interrupted: true,
+        speaks_in_altered_voice: true,
+        remembers_visions: "partially"
+      }
+    }
+
+    prophet: {
+      // Prophetic role
+      prophet_of: "coming_age_of_magic",
+      prophecy_focus: "major_world_events",
+
+      // Major prophecies
+      major_prophecies: [
+        {
+          prophecy: "The Age of Magic Returns",
+          content: "In the seventh generation, magic long dormant shall awaken, and the world shall tremble with power renewed",
+          proclaimed: 946684800000, // 30 years ago
+          believed_by: 0.4, // 40% believe
+          status: "early_signs_appearing"
+        }
+      ],
+
+      // Prophetic warnings
+      warnings: [
+        {
+          warning: "Beware the shadow from the north",
+          urgency: "high",
+          timeframe: "imminent",
+          specificity: "cryptic",
+          action_advised: "prepare_defenses"
+        }
+      ],
+
+      // Followers
+      followers: {
+        follower_count: 247,
+        devotion_level: "moderate",
+        organization: "Temple of Prophecy",
+        spread_prophecies: true
+      }
+    }
+
+    on_prophecy_given(event) {
+      console.log(`[TempleOracle] Prophecy given:
+        - Prophecy: ${event.prophecy}
+        - Recipient: ${event.recipient}
+        - Clarity: ${event.clarity}
+        - Timeframe: ${event.timeframe}
+      `);
+    }
+
+    on_vision_received(event) {
+      console.log(`[TempleOracle] Vision received:
+        - Vision: ${event.vision_content}
+        - Intensity: ${event.intensity}
+        - Symbolic: ${event.is_symbolic}
+        - Interpretation: ${event.interpretation}
+      `);
+    }
+
+    on_prophecy_fulfilled(event) {
+      console.log(`[TempleOracle] Prophecy fulfilled:
+        - Prophecy: ${event.prophecy}
+        - Fulfillment: ${event.fulfillment_details}
+        - Accuracy: ${event.accuracy_match}
+        - Impact: ${event.impact}
+      `);
+    }
+  }
+
+  /**
+   * Mountain Sage - Hermit
+   *
+   * A reclusive wise person living in isolation with deep wisdom.
+   */
+  entity MountainSage {
+    hermit: {
+      // Hermit lifestyle
+      dwelling: "mountain_cave",
+      location: [2000.0, 500.0, 3000.0], // Remote mountains
+      years_in_isolation: 40,
+      reason_for_isolation: "seeking_enlightenment",
+
+      // Reclusive nature
+      social_interaction: {
+        prefers_solitude: true,
+        visitors_per_year: 12,
+        accepts_visitors: "reluctantly",
+        visiting_requirements: "difficult_journey_and_worthy_purpose"
+      },
+
+      // Wisdom
+      wisdom: {
+        life_experience: "vast",
+        philosophical_insight: "profound",
+        practical_knowledge: "extensive",
+        spiritual_enlightenment: "advanced",
+
+        can_provide_wisdom_on: [
+          "life_purpose",
+          "inner_peace",
+          "nature_of_reality",
+          "overcoming_challenges",
+          "spiritual_growth"
+        ]
+      },
+
+      // Services (rare)
+      services: {
+        counsel: {
+          provided: "to_worthy_seekers",
+          cost: 0, // Free, but must earn trust
+          format: "cryptic_advice",
+          value: "priceless"
+        },
+
+        meditation_training: {
+          provided: true,
+          duration: 2592000000, // 30 days minimum
+          difficulty: "extreme",
+          benefits: "spiritual_awakening"
+        },
+
+        rare_knowledge: {
+          possesses: "ancient_secrets",
+          shares: "only_with_destined_individuals",
+          knowledge_areas: ["forgotten_magic", "ancient_history", "cosmic_truths"]
+        }
+      },
+
+      // Hermit skills
+      skills: {
+        survival: 10, // 1-10
+        meditation: 10,
+        herbalism: 9,
+        weather_prediction: 8,
+        animal_communication: 7
+      },
+
+      // Tests for seekers
+      tests_visitors: true,
+      tests: [
+        {
+          test: "Journey to find the hermit",
+          difficulty: "very_hard",
+          purpose: "test_determination"
+        },
+        {
+          test: "Silence for seven days",
+          difficulty: "hard",
+          purpose: "test_patience_and_discipline"
+        },
+        {
+          test: "Riddle of existence",
+          difficulty: "extreme",
+          purpose: "test_wisdom_and_insight"
+        }
+      ]
+    }
+
+    on_visitor_arrived(event) {
+      console.log(`[MountainSage] Visitor arrived:
+        - Visitor: ${event.visitor}
+        - Purpose: ${event.stated_purpose}
+        - Will Receive: ${event.will_help}
+        - Test Required: ${event.test_required}
+      `);
+    }
+
+    on_wisdom_shared(event) {
+      console.log(`[MountainSage] Wisdom shared:
+        - Seeker: ${event.seeker}
+        - Question: ${event.question}
+        - Wisdom: ${event.wisdom}
+        - Cryptic Level: ${event.cryptic_level}
+      `);
+    }
+
+    on_test_passed(event) {
+      console.log(`[MountainSage] Test passed:
+        - Seeker: ${event.seeker}
+        - Test: ${event.test}
+        - Reward: ${event.reward_knowledge}
+      `);
+    }
+  }
+
+  /**
+   * Wandering Minstrel - Bard
+   *
+   * A traveling performer who tells tales through song and story.
+   */
+  entity WanderingMinstrel {
+    bard: {
+      // Performer profile
+      stage_name: "Lyric the Golden Voice",
+      performance_style: "songs_and_tales",
+      skill_level: 8, // 1-10
+      fame: "well_known_regionally",
+
+      // Performance repertoire
+      repertoire: {
+        songs_known: 87,
+        tales_known: 134,
+        instruments_mastered: ["lute", "flute", "harp", "drums"],
+        preferred_instrument: "lute",
+
+        song_genres: [
+          "heroic_ballads",
+          "love_songs",
+          "drinking_songs",
+          "laments",
+          "historical_epics"
+        ],
+
+        famous_pieces: [
+          "The Ballad of the Dragon Slayer",
+          "Song of the Fallen King",
+          "The Maiden and the Moon"
+        ]
+      },
+
+      // Performance
+      performance: {
+        can_perform: true,
+        performance_duration: 1800000, // 30 min average
+        audience_engagement: 0.85, // 85% engagement
+        tips_earned_per_show: 25, // gold (average)
+
+        special_abilities: {
+          inspire_allies: true, // +10% combat effectiveness
+          charm_audience: true,
+          spread_rumors: true,
+          gather_information: true // People talk to bards
+        }
+      },
+
+      // Information network
+      information: {
+        travels_frequently: true,
+        hears_news_in_taverns: true,
+        knows_current_events: true,
+        information_accuracy: 0.70, // Often secondhand
+        will_share_rumors: true,
+        can_spread_disinformation_for_price: true
+      },
+
+      // Services
+      services: {
+        private_performance: {
+          cost: 100,
+          duration: 3600000, // 1 hour
+          customized_songs: true
+        },
+
+        compose_custom_song: {
+          cost: 500,
+          about: "your_heroic_deeds",
+          duration: 604800000, // 1 week to compose
+          immortalizes_in_song: true
+        },
+
+        teach_instrument: {
+          cost: 50, // per lesson
+          lesson_duration: 7200000 // 2 hours
+        }
+      }
+    }
+
+    jester: {
+      // Jester skills (secondary)
+      humor_level: 7,
+      acrobatics: 6,
+      improvisation: 9,
+
+      // Jesting
+      jesting: {
+        tells_jokes: true,
+        performs_tricks: true,
+        satirical_commentary: true,
+        can_mock_powerful: "carefully",
+
+        humor_styles: [
+          "slapstick",
+          "wordplay",
+          "observational",
+          "satirical",
+          "dark_humor"
+        ]
+      },
+
+      // Court jester role (occasional)
+      court_positions: [
+        {
+          court: "Royal Court of Valoria",
+          position: "visiting_jester",
+          frequency: "quarterly",
+          pay: 200, // per visit
+          privileges: "fool's_immunity" // Can say things others can't
+        }
+      ]
+    }
+
+    on_performance_started(event) {
+      console.log(`[WanderingMinstrel] Performance started:
+        - Venue: ${event.venue}
+        - Audience Size: ${event.audience_size}
+        - Opening Piece: ${event.opening_piece}
+      `);
+    }
+
+    on_song_requested(event) {
+      console.log(`[WanderingMinstrel] Song requested:
+        - Requester: ${event.requester}
+        - Song: ${event.song_requested}
+        - Tip Offered: ${event.tip}
+      `);
+    }
+
+    on_rumor_heard(event) {
+      console.log(`[WanderingMinstrel] Rumor heard:
+        - Rumor: ${event.rumor}
+        - Source: ${event.source}
+        - Will Spread: ${event.will_spread}
+      `);
+    }
+  }
+
+  /**
+   * Master Thief - Thief (Information Broker)
+   *
+   * A skilled thief who trades in secrets and stolen information.
+   */
+  entity MasterThief {
+    thief: {
+      // Thief profile
+      alias: "The Shadow",
+      thief_level: 9, // 1-10
+      specialization: "information_theft",
+      notoriety: "known_in_underworld",
+
+      // Thievery skills
+      skills: {
+        stealth: 10,
+        lockpicking: 9,
+        pickpocketing: 8,
+        sleight_of_hand: 9,
+        acrobatics: 8,
+        trap_disarming: 7,
+        forgery: 8
+      },
+
+      // Information brokering (primary business now)
+      information_broker: {
+        deals_in_secrets: true,
+        information_types: [
+          "blackmail_material",
+          "business_secrets",
+          "political_scandals",
+          "treasure_locations",
+          "security_weaknesses"
+        ],
+
+        pricing: {
+          common_information: 50,
+          rare_information: 200,
+          exclusive_secrets: 1000,
+          custom_theft_job: 5000 // Steals specific information
+        },
+
+        reliability: 0.92, // 92% accurate information
+        confidentiality: "absolute" // Never reveals clients
+      },
+
+      // Thief services
+      services: {
+        steal_documents: true,
+        lockpick_doors: true,
+        bypass_security: true,
+        steal_items: "only_information_related",
+        teaches_thief_skills: "to_guild_members_only"
+      },
+
+      // Guild affiliation
+      guild: {
+        guild_name: "Thieves Guild",
+        rank: "master_thief",
+        guild_loyalty: 0.85,
+        pays_guild_dues: true
+      }
+    }
+
+    on_information_sold(event) {
+      console.log(`[MasterThief] Information sold:
+        - Information: ${event.information_type}
+        - Buyer: "anonymous", // Never revealed
+        - Price: ${event.price} gold
+        - Exclusivity: ${event.exclusive}
+      `);
+    }
+
+    on_theft_job_completed(event) {
+      console.log(`[MasterThief] Theft job completed:
+        - Target: ${event.target}
+        - Item Stolen: ${event.item}
+        - Difficulty: ${event.difficulty}
+        - Clean Escape: ${event.clean}
+      `);
+    }
+  }
+
+  /**
+   * Zen Master - Monk
+   *
+   * A disciplined monk with martial arts mastery and spiritual wisdom.
+   */
+  entity ZenMaster {
+    monk: {
+      // Monastic profile
+      monastery: "Temple of the Eternal Path",
+      monastic_order: "Order of the Open Hand",
+      rank: "master",
+      years_in_order: 35,
+
+      // Monk disciplines
+      disciplines: {
+        martial_arts: 9, // 1-10
+        meditation: 10,
+        spiritual_wisdom: 9,
+        self_discipline: 10,
+        physical_conditioning: 9
+      },
+
+      // Martial arts
+      martial_arts: {
+        fighting_style: "unarmed_combat",
+        techniques_mastered: 47,
+        can_teach: true,
+
+        special_techniques: [
+          "stunning_strike",
+          "flurry_of_blows",
+          "ki_blast",
+          "diamond_body",
+          "slow_fall"
+        ],
+
+        ki_power: {
+          ki_points: 15,
+          ki_regeneration: "meditation",
+          ki_techniques: ["healing", "enhanced_strikes", "defensive_barrier"]
+        }
+      },
+
+      // Monastic lifestyle
+      lifestyle: {
+        vows: ["poverty", "non_violence_unless_necessary", "discipline"],
+        owns_nothing: true,
+        vegetarian: true,
+        meditates_daily: true,
+        meditation_hours_per_day: 4
+      },
+
+      // Teaching
+      teaching: {
+        accepts_students: true,
+        student_requirements: {
+          dedication: "absolute",
+          patience: "high",
+          discipline: "strict"
+        },
+        training_duration: 31536000000, // 1 year minimum
+        teaching_cost: 0 // Free, but demanding
+      }
+    }
+
+    warden: {
+      // Guardian role (also serves as temple warden)
+      protects: "Temple of the Eternal Path",
+      protection_duty_years: 20,
+
+      // Warden skills
+      warden_skills: {
+        vigilance: 9,
+        threat_detection: 8,
+        protective_combat: 9,
+        area_control: 8
+      },
+
+      // Protection duties
+      duties: {
+        guard_temple: true,
+        patrol_grounds: true,
+        investigate_threats: true,
+        train_guards: true,
+        maintain_security: true
+      },
+
+      // Protective abilities
+      abilities: {
+        sanctuary_spell: {
+          creates_protected_zone: true,
+          radius: 50, // meters
+          duration: 3600000, // 1 hour
+          blocks: ["violence", "theft", "harmful_magic"]
+        },
+
+        guardian_stance: {
+          defense_bonus: 50, // %
+          protects_area: true
+        }
+      }
+    }
+
+    on_training_session(event) {
+      console.log(`[ZenMaster] Training session:
+        - Student: ${event.student}
+        - Technique: ${event.technique}
+        - Progress: ${event.progress}
+        - Mastery Level: ${event.mastery}
+      `);
+    }
+
+    on_threat_detected(event) {
+      console.log(`[ZenMaster] Threat detected:
+        - Threat: ${event.threat_type}
+        - Location: ${event.location}
+        - Severity: ${event.severity}
+        - Response: ${event.response_action}
+      `);
+    }
+  }
+
+  /**
+   * Knowledge UI Panel
+   */
+  entity UIPanel {
+    // Scholar Controls
+    on_request_research_click() {
+      emit scholar_research to UniversityScholar {
+        client: "player_hero",
+        topic: "dragon_lore",
+        urgency: "normal"
+      }
+    }
+
+    // Librarian Controls
+    on_borrow_book_click() {
+      emit librarian_borrow to GrandLibrarian {
+        borrower: "player_hero",
+        book_title: "Chronicle of the Dragon Wars",
+        loan_period: 1209600000
+      }
+    }
+
+    // Archaeologist Controls
+    on_hire_expedition_click() {
+      emit archaeologist_hire to FieldArchaeologist {
+        client: "player_hero",
+        site: "Lost Temple",
+        duration: 2592000000 // 30 days
+      }
+    }
+
+    // Diplomat Controls
+    on_request_audience_click() {
+      emit diplomat_audience to RoyalAmbassador {
+        requester: "player_hero",
+        purpose: "trade_discussion"
+      }
+    }
+
+    // Spy Controls (if player knows)
+    on_request_intelligence_click() {
+      emit spy_intel_request to ShadowAgent {
+        client: "spymaster_corvus",
+        target: "Northern Alliance",
+        information_needed: "troop_movements"
+      }
+    }
+
+    // Oracle Controls
+    on_request_prophecy_click() {
+      emit oracle_prophecy to TempleOracle {
+        seeker: "player_hero",
+        question: "What is my destiny?"
+      }
+    }
+
+    // Hermit Controls
+    on_seek_wisdom_click() {
+      emit hermit_wisdom to MountainSage {
+        seeker: "player_hero",
+        question: "How do I find inner peace?"
+      }
+    }
+
+    // Bard Controls
+    on_request_performance_click() {
+      emit bard_perform to WanderingMinstrel {
+        requester: "player_hero",
+        song_requested: "The Ballad of the Dragon Slayer",
+        tip: 10
+      }
+    }
+
+    // Thief Controls (if connected)
+    on_buy_information_click() {
+      emit thief_info_buy to MasterThief {
+        buyer: "anonymous",
+        information_type: "treasure_location",
+        max_price: 500
+      }
+    }
+
+    // Monk Controls
+    on_request_training_click() {
+      emit monk_training to ZenMaster {
+        student: "player_hero",
+        technique: "stunning_strike"
+      }
+    }
+  }
+
+  /**
+   * VR Camera
+   */
+  entity MainCamera {
+    camera: {
+      position: [0.0, 1.7, 5.0],
+      rotation: [0.0, 0.0, 0.0],
+      fov: 90.0
+    }
+  }
+}

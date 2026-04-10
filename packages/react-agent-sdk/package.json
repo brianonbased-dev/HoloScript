@@ -1,0 +1,90 @@
+{
+  "name": "@hololand/react-agent-sdk",
+  "version": "0.1.0",
+  "description": "React SDK for declarative agent usage - hooks and components for building agent-powered UIs",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks/index.mjs",
+      "require": "./dist/hooks/index.js",
+      "types": "./dist/hooks/index.d.ts"
+    },
+    "./components": {
+      "import": "./dist/components/index.mjs",
+      "require": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:^",
+    "zustand": "^4.5.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@storybook/addon-docs": "^10.2.17",
+    "@storybook/addon-links": "^10.2.17",
+    "@storybook/react": "^10.2.17",
+    "@storybook/react-vite": "^10.2.17",
+    "@testing-library/react": "^14.1.0",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/user-event": "^14.5.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint-plugin-storybook": "10.2.17",
+    "jsdom": "^28.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4",
+    "storybook": "^10.2.17",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "react",
+    "hooks",
+    "agent",
+    "ai",
+    "uAA2++",
+    "holoscript",
+    "hololand",
+    "sdk",
+    "circuit-breaker",
+    "resilience"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/react-agent-sdk"
+  },
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

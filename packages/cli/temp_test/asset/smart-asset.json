@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "name": "Test Turret",
+    "version": "1.0.0",
+    "author": "Tester",
+    "description": "A test turret asset"
+  },
+  "script": "import { Turret } from './turret.hs';\n\nconst t = new Turret();",
+  "physics": {
+    "mass": 50,
+    "colliderType": "box"
+  },
+  "ai": {
+    "personality": "aggressive"
+  }
+}

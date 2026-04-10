@@ -1,0 +1,551 @@
+/**
+ * Cross-Format Comparison: Interactive Game (.holo format)
+ * Same functionality in three formats: .hs, .hsplus, .holo
+ * This is the ADVANCED (.holo entity+trait pattern) version
+ */
+
+composition TargetPracticeGameVR {
+
+  // === GAME CONTROLLER ENTITY ===
+  entity GameController {
+    // Game state trait
+    game_state: {
+      score: 0,
+      time_remaining: 60.0,
+      is_active: false,
+      target_hits: 0,
+      target_misses: 0,
+      difficulty: 1.0
+    }
+
+    // Statistics tracking
+    statistics: {
+      total_games_played: 0,
+      high_score: 0,
+      total_hits: 0,
+      total_shots: 0,
+      average_accuracy: 0.0
+    }
+
+    // Persistence for high scores
+    save_state: {
+      enabled: true,
+      auto_save: true,
+      save_interval: 5.0,
+      include_fields: ["statistics", "high_score"]
+    }
+
+    // Update loop
+    on_update(deltaTime) {
+      if (!this.game_state.is_active) return;
+
+      // Update timer
+      this.game_state.time_remaining -= deltaTime;
+
+      if (this.game_state.time_remaining <= 0) {
+        this.game_state.time_remaining = 0;
+        this.endGame();
+      }
+
+      // Difficulty increase over time
+      this.game_state.difficulty = 1.0 + (60.0 - this.game_state.time_remaining) / 60.0;
+    }
+
+    startGame() {
+      this.game_state.is_active = true;
+      this.game_state.score = 0;
+      this.game_state.time_remaining = 60.0;
+      this.game_state.target_hits = 0;
+      this.game_state.target_misses = 0;
+      this.game_state.difficulty = 1.0;
+
+      this.statistics.total_games_played += 1;
+
+      console.log("VR Target Practice Started!");
+    }
+
+    endGame() {
+      this.game_state.is_active = false;
+
+      // Update statistics
+      this.statistics.total_hits += this.game_state.target_hits;
+      this.statistics.total_shots += (this.game_state.target_hits + this.game_state.target_misses);
+
+      if (this.statistics.total_shots > 0) {
+        this.statistics.average_accuracy = (this.statistics.total_hits / this.statistics.total_shots) * 100;
+      }
+
+      if (this.game_state.score > this.statistics.high_score) {
+        this.statistics.high_score = this.game_state.score;
+        console.log("NEW HIGH SCORE:", this.statistics.high_score);
+      }
+
+      console.log("Game Over! Final Score:", this.game_state.score);
+    }
+
+    hitTarget(targetName, points) {
+      if (!this.game_state.is_active) return;
+
+      this.game_state.score += points;
+      this.game_state.target_hits += 1;
+
+      console.log("Hit", targetName, "! +", points, "points");
+    }
+
+    missedShot() {
+      if (!this.game_state.is_active) return;
+
+      this.game_state.target_misses += 1;
+    }
+
+    getAccuracy() {
+      const totalShots = this.game_state.target_hits + this.game_state.target_misses;
+      if (totalShots === 0) return 0;
+      return ((this.game_state.target_hits / totalShots) * 100).toFixed(1);
+    }
+  }
+
+  // === FLOOR ENTITY ===
+  entity Floor {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0
+    }
+
+    advanced_pbr: {
+      base_color: [0.16, 0.16, 0.23],
+      metallic: 0.0,
+      roughness: 0.9
+    }
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    collider: {
+      type: "box",
+      is_trigger: false,
+      size: [20.0, 0.1, 20.0]
+    }
+
+    // Clicking floor counts as miss
+    on_click(event) {
+      const gameController = this.composition.getEntity("GameController");
+      gameController.missedShot();
+    }
+  }
+
+  // === TARGET ENTITIES ===
+  entity RedTarget {
+    mesh: {
+      type: "sphere",
+      radius: 0.4
+    }
+
+    advanced_pbr: {
+      base_color: [1.0, 0.27, 0.27],
+      metallic: 0.3,
+      roughness: 0.5,
+      emissive: [0.0, 0.0, 0.0],
+      emissive_intensity: 0.0
+    }
+
+    transform: {
+      position: [-2.0, 1.5, -5.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    // VR interaction
+    grabbable: {
+      enabled: false  // Not grabbable, just clickable
+    }
+
+    // Collision detection
+    collider: {
+      type: "sphere",
+      is_trigger: false
+    }
+
+    // Audio feedback
+    audio: {
+      sound: "target_hit",
+      volume: 0.8,
+      spatial: true,
+      max_distance: 10.0
+    }
+
+    // Visual effects
+    particle_emitter: {
+      enabled: false,
+      particle_type: "burst",
+      emission_rate: 0,
+      particle_lifetime: 0.5,
+      start_color: [1.0, 0.27, 0.27, 1.0],
+      end_color: [1.0, 0.27, 0.27, 0.0]
+    }
+
+    // Local state
+    target_state: {
+      is_active: true,
+      hit_count: 0,
+      last_hit_time: 0,
+      cooldown_duration: 0.5
+    }
+
+    // Click/poke interaction
+    on_click(event) {
+      this.handleHit(event);
+    }
+
+    on_poke_start(event) {
+      // VR hand poke
+      this.handleHit(event);
+
+      // Haptic feedback
+      if (event.controller) {
+        event.controller.pulse(0.7, 150);
+      }
+    }
+
+    handleHit(event) {
+      if (!this.target_state.is_active) return;
+
+      const gameController = this.composition.getEntity("GameController");
+      if (!gameController.game_state.is_active) return;
+
+      // Calculate points (bonus for consecutive hits)
+      this.target_state.hit_count += 1;
+      const basePoints = 10;
+      const comboBonus = (this.target_state.hit_count - 1) * 2;
+      const difficultyMultiplier = gameController.game_state.difficulty;
+      const points = Math.floor((basePoints + comboBonus) * difficultyMultiplier);
+
+      gameController.hitTarget("RedTarget", points);
+
+      // Visual feedback
+      this.advanced_pbr.emissive = [1.0, 0.27, 0.27];
+      this.advanced_pbr.emissive_intensity = 2.0;
+
+      // Particle burst
+      this.particle_emitter.enabled = true;
+      this.particle_emitter.emission_rate = 50;
+
+      // Audio feedback
+      this.playSound("target_hit");
+
+      // Cooldown
+      this.target_state.is_active = false;
+      this.target_state.last_hit_time = Date.now();
+
+      setTimeout(() => {
+        this.target_state.is_active = true;
+        this.advanced_pbr.emissive = [0.0, 0.0, 0.0];
+        this.advanced_pbr.emissive_intensity = 0.0;
+        this.particle_emitter.enabled = false;
+        this.particle_emitter.emission_rate = 0;
+      }, this.target_state.cooldown_duration * 1000);
+    }
+
+    on_pointer_enter(event) {
+      if (this.target_state.is_active) {
+        // Subtle highlight
+        this.advanced_pbr.emissive = [0.5, 0.13, 0.13];
+        this.advanced_pbr.emissive_intensity = 0.5;
+      }
+    }
+
+    on_pointer_exit(event) {
+      if (this.target_state.is_active) {
+        this.advanced_pbr.emissive = [0.0, 0.0, 0.0];
+        this.advanced_pbr.emissive_intensity = 0.0;
+      }
+    }
+  }
+
+  entity GreenTarget {
+    mesh: {
+      type: "sphere",
+      radius: 0.4
+    }
+
+    advanced_pbr: {
+      base_color: [0.27, 1.0, 0.27],
+      metallic: 0.3,
+      roughness: 0.5
+    }
+
+    transform: {
+      position: [0.0, 1.5, -5.0]
+    }
+
+    collider: {
+      type: "sphere",
+      is_trigger: false
+    }
+
+    audio: {
+      sound: "target_hit",
+      volume: 0.8,
+      spatial: true
+    }
+
+    particle_emitter: {
+      enabled: false,
+      particle_type: "burst",
+      start_color: [0.27, 1.0, 0.27, 1.0],
+      end_color: [0.27, 1.0, 0.27, 0.0]
+    }
+
+    target_state: {
+      is_active: true,
+      hit_count: 0
+    }
+
+    on_click(event) {
+      this.handleHit(event);
+    }
+
+    handleHit(event) {
+      if (!this.target_state.is_active) return;
+
+      const gameController = this.composition.getEntity("GameController");
+      if (!gameController.game_state.is_active) return;
+
+      this.target_state.hit_count += 1;
+      const points = Math.floor((10 + (this.target_state.hit_count - 1) * 2) * gameController.game_state.difficulty);
+      gameController.hitTarget("GreenTarget", points);
+
+      this.advanced_pbr.emissive = [0.27, 1.0, 0.27];
+      this.advanced_pbr.emissive_intensity = 2.0;
+      this.particle_emitter.enabled = true;
+      this.playSound("target_hit");
+
+      this.target_state.is_active = false;
+      setTimeout(() => {
+        this.target_state.is_active = true;
+        this.advanced_pbr.emissive = [0.0, 0.0, 0.0];
+        this.advanced_pbr.emissive_intensity = 0.0;
+        this.particle_emitter.enabled = false;
+      }, 500);
+    }
+  }
+
+  entity BlueTarget {
+    mesh: {
+      type: "sphere",
+      radius: 0.4
+    }
+
+    advanced_pbr: {
+      base_color: [0.27, 0.27, 1.0],
+      metallic: 0.3,
+      roughness: 0.5
+    }
+
+    transform: {
+      position: [2.0, 1.5, -5.0]
+    }
+
+    collider: {
+      type: "sphere",
+      is_trigger: false
+    }
+
+    audio: {
+      sound: "target_hit",
+      volume: 0.8,
+      spatial: true
+    }
+
+    particle_emitter: {
+      enabled: false,
+      particle_type: "burst",
+      start_color: [0.27, 0.27, 1.0, 1.0],
+      end_color: [0.27, 0.27, 1.0, 0.0]
+    }
+
+    target_state: {
+      is_active: true,
+      hit_count: 0
+    }
+
+    on_click(event) {
+      this.handleHit(event);
+    }
+
+    handleHit(event) {
+      if (!this.target_state.is_active) return;
+
+      const gameController = this.composition.getEntity("GameController");
+      if (!gameController.game_state.is_active) return;
+
+      this.target_state.hit_count += 1;
+      const points = Math.floor((10 + (this.target_state.hit_count - 1) * 2) * gameController.game_state.difficulty);
+      gameController.hitTarget("BlueTarget", points);
+
+      this.advanced_pbr.emissive = [0.27, 0.27, 1.0];
+      this.advanced_pbr.emissive_intensity = 2.0;
+      this.particle_emitter.enabled = true;
+      this.playSound("target_hit");
+
+      this.target_state.is_active = false;
+      setTimeout(() => {
+        this.target_state.is_active = true;
+        this.advanced_pbr.emissive = [0.0, 0.0, 0.0];
+        this.advanced_pbr.emissive_intensity = 0.0;
+        this.particle_emitter.enabled = false;
+      }, 500);
+    }
+  }
+
+  // === LIGHTING ===
+  entity MainLight {
+    light: {
+      type: "point",
+      color: [1.0, 1.0, 1.0],
+      intensity: 1.0,
+      range: 20.0,
+      cast_shadows: true,
+      shadow_resolution: 2048
+    }
+
+    transform: {
+      position: [0.0, 4.0, 0.0]
+    }
+  }
+
+  // === VR CAMERA ===
+  entity VRCamera {
+    camera: {
+      type: "vr",
+      field_of_view: 90.0,
+      near_clip: 0.01,
+      far_clip: 1000.0
+    }
+
+    transform: {
+      position: [0.0, 1.7, 0.0]
+    }
+
+    vr_controllers: {
+      left: {
+        model: "oculus_touch_left",
+        haptics_enabled: true
+      },
+      right: {
+        model: "oculus_touch_right",
+        haptics_enabled: true
+      }
+    }
+  }
+
+  // === VR UI PANEL ===
+  entity UIPanel {
+    mesh: {
+      type: "plane",
+      width: 1.0,
+      height: 0.6
+    }
+
+    transform: {
+      position: [-3.0, 2.0, -4.0],
+      rotation: [0.0, 25.0, 0.0]
+    }
+
+    ui_panel: {
+      resolution: { width: 512, height: 307 },
+      interactive: true,
+      render_mode: "world_space"
+    }
+
+    // UI content rendered on panel
+    ui_content: {
+      type: "container",
+      children: [
+        {
+          type: "text",
+          id: "score",
+          text: "Score: 0",
+          position: { x: 10, y: 10 },
+          fontSize: 32,
+          color: "#ffffff"
+        },
+        {
+          type: "text",
+          id: "timer",
+          position: { x: 10, y: 50 },
+          fontSize: 32,
+          color: "#ffffff"
+        },
+        {
+          type: "text",
+          id: "accuracy",
+          position: { x: 10, y: 90 },
+          fontSize: 24,
+          color: "#aaaaaa"
+        },
+        {
+          type: "button",
+          id: "startButton",
+          text: "Start Game",
+          position: { x: 10, y: 140 },
+          width: 200,
+          height: 60,
+          fontSize: 24
+        }
+      ]
+    }
+
+    on_update(deltaTime) {
+      const gameController = this.composition.getEntity("GameController");
+
+      // Update UI text
+      this.updateUIElement("score", `Score: ${gameController.game_state.score}`);
+
+      const minutes = Math.floor(gameController.game_state.time_remaining / 60);
+      const seconds = Math.floor(gameController.game_state.time_remaining % 60);
+      this.updateUIElement("timer", `Time: ${minutes}:${seconds.toString().padStart(2, '0')}`);
+
+      this.updateUIElement("accuracy", `Accuracy: ${gameController.getAccuracy()}%`);
+
+      // Show/hide start button
+      const showButton = !gameController.game_state.is_active || gameController.game_state.time_remaining <= 0;
+      this.setUIElementVisible("startButton", showButton);
+    }
+
+    on_ui_button_click(event) {
+      if (event.buttonId === "startButton") {
+        const gameController = this.composition.getEntity("GameController");
+        gameController.startGame();
+      }
+    }
+  }
+}
+
+// === ADVANTAGES OF .holo ENTITY PATTERN ===
+// + Advanced trait system (game_state, statistics, save_state, etc.)
+// + Entity-component architecture
+// + Fine-grained control over all properties
+// + Advanced PBR materials with emissive
+// + Particle systems for visual feedback
+// + Spatial audio
+// + VR-native features (controllers, haptics, world-space UI)
+// + State persistence with save_state trait
+// + Complex event handlers with full logic
+// + Composition-level entity queries
+// + Proper VR camera setup
+// + World-space UI panels
+// + Good for: Advanced VR/AR, spatial computing, complex interactive experiences
+
+// === WHEN TO USE .holo FORMAT ===
+// - VR/AR applications
+// - Advanced spatial computing
+// - Complex entity systems
+// - Trait-based architecture
+// - Fine-grained control needed
+// - Performance-critical applications
+// - Professional XR development

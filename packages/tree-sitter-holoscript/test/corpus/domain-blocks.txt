@@ -1,0 +1,1595 @@
+================================================================================
+Education Block - Lesson
+================================================================================
+
+lesson "Intro to Physics" @interactive {
+  subject: "physics"
+  difficulty: 3
+  duration: 45
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (education_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Education Block - Quiz with Nested Object
+================================================================================
+
+quiz "Chapter 1 Review" {
+  passing_score: 70
+  time_limit: 600
+  randomize: true
+
+  object "QuestionPanel" {
+    geometry: "panel"
+    position: [0, 1.5, 0]
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (education_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))
+    (object
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (array
+          (number)
+          (number)
+          (number))))))
+
+================================================================================
+Education Block - Lab Experiment
+================================================================================
+
+lab_experiment "ChemMix" {
+  safety_level: "high"
+  max_participants: 4
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (education_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Healthcare Block - Procedure
+================================================================================
+
+procedure "Appendectomy" @sterile {
+  specialty: "surgery"
+  risk_level: 3
+  estimated_time: 60
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (healthcare_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Healthcare Block - Vital Monitor
+================================================================================
+
+vital_monitor "PatientA" {
+  heart_rate: 72
+  blood_pressure: "120/80"
+  oxygen_saturation: 98.5
+  alert_threshold: 60
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (healthcare_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Music Block - Instrument
+================================================================================
+
+instrument "Piano" @spatial {
+  type: "keyboard"
+  octaves: 7
+  velocity_sensitivity: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (music_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Music Block - Beat Pattern and Chord Progression
+================================================================================
+
+beat_pattern "FunkDrum" {
+  bpm: 120
+  time_signature: "4/4"
+  swing: 0.6
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (music_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Architecture Block - Floor Plan with Room
+================================================================================
+
+floor_plan "MainLevel" {
+  scale: 0.01
+  unit: "meters"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (architecture_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Architecture Block - HVAC System
+================================================================================
+
+hvac_system "CentralAir" @automated {
+  capacity: 5000
+  zones: 4
+  efficiency_rating: "A+"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (architecture_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Web3 Block - Contract
+================================================================================
+
+contract "NFTMarket" @upgradeable {
+  chain: "ethereum"
+  version: "0.8.20"
+  gas_limit: 300000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (web3_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Web3 Block - Staking Pool
+================================================================================
+
+staking_pool "ETHVault" {
+  apy: 5.2
+  min_stake: 0.1
+  lock_period: 30
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (web3_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Custom Block
+================================================================================
+
+gameplay "BossFight" @epic {
+  phase: 1
+  health_multiplier: 2.5
+
+  object "BossModel" {
+    geometry: "dragon"
+    scale: [3, 3, 3]
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (custom_block
+    kind: (identifier)
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (object
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (array
+          (number)
+          (number)
+          (number))))))
+
+================================================================================
+Procedural Block with Noise Function
+================================================================================
+
+procedural "TerrainGen" {
+  seed: 42
+  resolution: 256
+
+  perlin heightmap {
+    octaves: 6
+    frequency: 0.01
+    amplitude: 100
+    lacunarity: 2.0
+    persistence: 0.5
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (procedural_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (noise_function
+      name: (identifier)
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))))
+
+================================================================================
+Procedural Block with Biome Rule
+================================================================================
+
+generate "WorldMap" {
+  size: 1024
+
+  biome "Desert" {
+    temperature_min: 30
+    moisture_max: 0.2
+    elevation: [0.3, 0.7]
+  }
+
+  biome "Forest" {
+    temperature_min: 10
+    moisture_min: 0.5
+    elevation: [0.2, 0.6]
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (procedural_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (biome_rule
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (array
+          (number)
+          (number))))
+    (biome_rule
+      name: (string)
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number))
+      (property
+        key: (property_key
+          (identifier))
+        value: (array
+          (number)
+          (number))))))
+
+================================================================================
+Navigation Block with Behavior Node
+================================================================================
+
+behavior_tree "EnemyAI" {
+  tick_rate: 10
+
+  selector root {
+    condition canSeePlayer {
+      range: 20
+    }
+    leaf patrol {
+      speed: 3
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (navigation_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (behavior_node
+      name: (identifier)
+      (behavior_node
+        name: (identifier)
+        (property
+          key: (property_key
+            (identifier))
+          value: (number)))
+      (behavior_node
+        name: (identifier)
+        (property
+          key: (property_key
+            (identifier))
+          value: (number))))))
+
+================================================================================
+Navigation Block - Nav Agent
+================================================================================
+
+nav_agent "Guard" @avoidance {
+  speed: 5
+  radius: 0.5
+  height: 2.0
+  max_slope: 45
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (navigation_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Input Block with Bindings
+================================================================================
+
+input "PlayerControls" {
+  deadzone: 0.1
+
+  jump => "space"
+  crouch => "ctrl"
+  interact => "e"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (input_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (input_binding
+      action: (identifier)
+      binding: (string))
+    (input_binding
+      action: (identifier)
+      binding: (string))
+    (input_binding
+      action: (identifier)
+      binding: (string))))
+
+================================================================================
+Annotation
+================================================================================
+
+#[debug, profile("gpu")]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (annotation
+    (annotation_entry
+      key: (identifier))
+    (annotation_entry
+      key: (identifier)
+      (string))))
+
+================================================================================
+Test Block with Given When Then
+================================================================================
+
+test "player takes damage" {
+  given {
+    let health = 100
+  }
+  when {
+    health -= 25
+  }
+  then {
+    assert health == 75
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (test_block
+    name: (string)
+    (test_given
+      (variable_declaration_stmt
+        name: (identifier)
+        value: (number)))
+    (test_when
+      (assignment
+        left: (identifier)
+        right: (number)))
+    (test_then
+      (test_assertion
+        expression: (binary_expression
+          left: (identifier)
+          right: (number))))))
+
+================================================================================
+Test Block with Lifecycle
+================================================================================
+
+test "spawning system" {
+  before_each {
+    let count = 0
+  }
+
+  assert count == 0
+
+  after_each {
+    count = 0
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (test_block
+    name: (string)
+    (test_lifecycle
+      (variable_declaration_stmt
+        name: (identifier)
+        value: (number)))
+    (test_assertion
+      expression: (binary_expression
+        left: (identifier)
+        right: (number)))
+    (test_lifecycle
+      (assignment
+        left: (identifier)
+        right: (number)))))
+
+================================================================================
+LOD Block with Levels
+================================================================================
+
+lod {
+  level 0 {
+    mesh: "high_poly.glb"
+    triangles: 50000
+  }
+  level 50 {
+    mesh: "mid_poly.glb"
+    triangles: 10000
+  }
+  level 200 {
+    mesh: "low_poly.glb"
+    triangles: 500
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (lod_block
+    (lod_level
+      distance: (number)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))
+    (lod_level
+      distance: (number)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))
+    (lod_level
+      distance: (number)
+      (property
+        key: (property_key
+          (identifier))
+        value: (string))
+      (property
+        key: (property_key
+          (identifier))
+        value: (number)))))
+
+================================================================================
+Render Hints
+================================================================================
+
+render {
+  shadow_mode: "soft"
+  draw_order: 100
+  layer: "transparent"
+  instancing: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (render_hints
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Import Statement - Named Imports
+================================================================================
+
+import { Vector3, Quaternion } from "holoscript/math"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    (import_specifier
+      name: (identifier))
+    (import_specifier
+      name: (identifier))
+    source: (string)))
+
+================================================================================
+Import Statement - Default Import
+================================================================================
+
+import PlayerController from "game/player"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    default: (identifier)
+    source: (string)))
+
+================================================================================
+Import Statement - Namespace Import
+================================================================================
+
+import * as Physics from "holoscript/physics"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    alias: (identifier)
+    source: (string)))
+
+================================================================================
+Export Statement - Function
+================================================================================
+
+export function greet(name: string): void {
+  log(name)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (export_statement
+    (function_declaration
+      name: (identifier)
+      (parameter_list
+        (parameter
+          name: (identifier)
+          type: (type)))
+      return_type: (type)
+      (block
+        (function_call
+          function: (identifier)
+          (argument
+            (identifier)))))))
+
+================================================================================
+Export Statement - Named Exports
+================================================================================
+
+export { health, score }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (export_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Interface Definition with Extends
+================================================================================
+
+interface Damageable extends Entity {
+  health: number
+  armor: number
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_definition
+    name: (identifier)
+    base: (identifier)
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))))
+
+================================================================================
+Enum Definition
+================================================================================
+
+enum Direction {
+  North,
+  South = 1,
+  East,
+  West
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (enum_definition
+    name: (identifier)
+    (enum_member
+      name: (identifier))
+    (enum_member
+      name: (identifier)
+      value: (number))
+    (enum_member
+      name: (identifier))
+    (enum_member
+      name: (identifier))))
+
+================================================================================
+Module Declaration
+================================================================================
+
+module Utils {
+  function clamp(val: number): number {
+    return val
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (module_declaration
+    name: (identifier)
+    (function_declaration
+      name: (identifier)
+      (parameter_list
+        (parameter
+          name: (identifier)
+          type: (type)))
+      return_type: (type)
+      (block
+        (return_statement
+          (identifier))))))
+
+================================================================================
+Struct Definition
+================================================================================
+
+struct Transform {
+  position: vec3
+  rotation: quaternion
+  scale: vec3
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    name: (identifier)
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))))
+
+================================================================================
+Function Declaration with Return Type
+================================================================================
+
+function calculateDamage(base: number, multiplier: number): number {
+  return base * multiplier
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        name: (identifier)
+        type: (type))
+      (parameter
+        name: (identifier)
+        type: (type)))
+    return_type: (type)
+    (block
+      (return_statement
+        (binary_expression
+          left: (identifier)
+          right: (identifier))))))
+
+================================================================================
+Zone Declaration
+================================================================================
+
+zone "SafeArea" {
+  bounds: [100, 50, 100]
+  spawn_protection: true
+  pvp_enabled: false
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (zone_declaration
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (array
+        (number)
+        (number)
+        (number)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))
+
+================================================================================
+Spawn Group
+================================================================================
+
+spawn_group "EnemyWave" {
+  template: "Zombie"
+  count: 10
+  interval: 2.5
+  radius: 15
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (spawn_group
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Waypoints Block
+================================================================================
+
+waypoints "PatrolRoute" [[0, 0, 0], [10, 0, 0], [10, 0, 10], [0, 0, 10]]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (waypoints_block
+    name: (string)
+    (array
+      (array
+        (number)
+        (number)
+        (number))
+      (array
+        (number)
+        (number)
+        (number))
+      (array
+        (number)
+        (number)
+        (number))
+      (array
+        (number)
+        (number)
+        (number)))))
+
+================================================================================
+Constraint Block
+================================================================================
+
+constraint lookAt {
+  target: "Player"
+  axis: "y"
+  damping: 0.5
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (constraint_block
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Terrain Block
+================================================================================
+
+terrain landscape {
+  heightmap: "terrain/height.png"
+  size: 1024
+  max_height: 200
+  detail_resolution: 512
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (terrain_block
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+IoT Block - Sensor
+================================================================================
+
+sensor "TempSensor" @realtime {
+  protocol: "mqtt"
+  topic: "home/temperature"
+  interval: 5000
+  unit: "celsius"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (iot_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+IoT Block - Digital Twin
+================================================================================
+
+digital_twin "FactoryFloor" {
+  model: "factory_3d.glb"
+  update_rate: 1000
+  sync_mode: "bidirectional"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (iot_block
+    name: (string)
+    (property
+      key: (property_key)
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Robotics Block - Joint
+================================================================================
+
+joint "Shoulder" @servo {
+  axis: [0, 1, 0]
+  min_angle: -90
+  max_angle: 90
+  torque: 50
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (robotics_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (array
+        (number)
+        (number)
+        (number)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (unary_expression
+        operand: (number)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Robotics Block - Path Planner
+================================================================================
+
+path_planner "ArmPlanner" {
+  algorithm: "rrt_star"
+  max_iterations: 1000
+  step_size: 0.05
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (robotics_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+DataViz Block - Dashboard
+================================================================================
+
+dashboard "SystemMonitor" {
+  refresh_rate: 1000
+  layout: "grid"
+  columns: 3
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (dataviz_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+DataViz Block - Chart
+================================================================================
+
+chart "CPUUsage" @realtime {
+  type: "line"
+  x_axis: "time"
+  y_axis: "percent"
+  max_points: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (dataviz_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Trait Definition
+================================================================================
+
+trait Glowing {
+  intensity: 1.0
+  color: "#ffcc00"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (trait_definition
+    name: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Trait Definition with Extends
+================================================================================
+
+trait Explosive extends Damageable {
+  blast_radius: 5
+  force: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (trait_definition
+    name: (identifier)
+    base: (identifier)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Import with Alias
+================================================================================
+
+import { Vector3 as Vec3 } from "holoscript/math"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    (import_specifier
+      name: (identifier)
+      alias: (identifier))
+    source: (string)))
+
+================================================================================
+Interface Definition without Extends
+================================================================================
+
+interface Renderable {
+  visible: boolean
+  opacity: number
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_definition
+    name: (identifier)
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))))
+
+================================================================================
+Input Block - Gesture Profile
+================================================================================
+
+gesture_profile "VRHands" @xr {
+  sensitivity: 0.8
+
+  grab => "trigger"
+  point => "index_pinch"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (input_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (input_binding
+      action: (identifier)
+      binding: (string))
+    (input_binding
+      action: (identifier)
+      binding: (string))))
+
+================================================================================
+Annotation with Multiple Entries
+================================================================================
+
+#[benchmark, timeout(5000), category("rendering")]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (annotation
+    (annotation_entry
+      key: (identifier))
+    (annotation_entry
+      key: (identifier)
+      (number))
+    (annotation_entry
+      key: (identifier)
+      (string))))
+
+================================================================================
+Codebase Block - Basic
+================================================================================
+
+codebase "HoloScript" @absorbed {
+  source: "./packages"
+  language: "typescript"
+  max_files: 10000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))))
+
+================================================================================
+Codebase Block - Module Map with Nested Objects
+================================================================================
+
+module_map "Architecture" {
+  layout: "layered"
+  group_by: "community"
+
+  object "ApiLayer" @spatial_group {
+    position: [0, 2, 0]
+    color: "blue"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (object
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (property_key
+          (identifier))
+        value: (array
+          (number)
+          (number)
+          (number)))
+      (property
+        key: (property_key
+          (identifier))
+        value: (string)))))
+
+================================================================================
+Codebase Block - Dependency Graph
+================================================================================
+
+dependency_graph "Imports" {
+  depth: 3
+  highlight: "blast_radius"
+  entry_point: "src/index.ts"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))))
+
+================================================================================
+Codebase Block - Call Graph
+================================================================================
+
+call_graph "DataFlow" @interactive @vr {
+  entry: "handleRequest"
+  depth: 5
+  show_args: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (property_key
+        (identifier))
+      value: (string))
+    (property
+      key: (property_key
+        (identifier))
+      value: (number))
+    (property
+      key: (property_key
+        (identifier))
+      value: (boolean))))

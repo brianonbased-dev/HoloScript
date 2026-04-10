@@ -1,0 +1,48 @@
+{
+  "name": "@holoscript/ai-validator",
+  "version": "1.2.0",
+  "description": "AI hallucination validation layer for HoloScript - prevents invalid AI-generated code from breaking user workflows",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:^",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "holoscript",
+    "ai",
+    "validation",
+    "llm",
+    "code-generation",
+    "hallucination-detection"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/ai-validator"
+  },
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

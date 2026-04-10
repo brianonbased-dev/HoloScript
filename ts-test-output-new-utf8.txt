@@ -1,0 +1,334 @@
+﻿
+> tree-sitter-holoscript@2.1.0 test C:\Users\josep\Documents\GitHub\HoloScript\packages\tree-sitter-holoscript
+> tree-sitter test || exit 0
+
+  domain-blocks:
+      1. Γ£ô [32mEducation Block - Lesson[0m[33m -- Warning: Slow parse rate (383.838 bytes/ms)[0m
+      2. Γ£ô [32mEducation Block - Quiz with Nested Object[0m
+      3. Γ£ô [32mEducation Block - Lab Experiment[0m
+      4. Γ£ô [32mHealthcare Block - Procedure[0m
+      5. Γ£ô [32mHealthcare Block - Vital Monitor[0m
+      6. Γ£ô [32mMusic Block - Instrument[0m
+      7. Γ£ô [32mMusic Block - Beat Pattern and Chord Progression[0m
+      8. Γ£ô [32mArchitecture Block - Floor Plan with Room[0m
+      9. Γ£ô [32mArchitecture Block - HVAC System[0m
+     10. Γ£ô [32mWeb3 Block - Contract[0m
+     11. Γ£ô [32mWeb3 Block - Staking Pool[0m
+     12. Γ£ô [32mCustom Block[0m
+     13. Γ£ô [32mProcedural Block with Noise Function[0m
+     14. Γ£ô [32mProcedural Block with Biome Rule[0m
+     15. Γ£ô [32mNavigation Block with Behavior Node[0m
+     16. Γ£ô [32mNavigation Block - Nav Agent[0m
+     17. Γ£ô [32mInput Block with Bindings[0m
+     18. Γ£ô [32mAnnotation[0m
+     19. Γ£ô [32mTest Block with Given When Then[0m
+     20. Γ£ô [32mTest Block with Lifecycle[0m
+     21. Γ£ô [32mLOD Block with Levels[0m
+     22. Γ£ù [31mRender Hints[0m
+     23. Γ£ô [32mImport Statement - Named Imports[0m
+     24. Γ£ô [32mImport Statement - Default Import[0m
+     25. Γ£ô [32mImport Statement - Namespace Import[0m
+     26. Γ£ô [32mExport Statement - Function[0m
+     27. Γ£ô [32mExport Statement - Named Exports[0m
+     28. Γ£ô [32mInterface Definition with Extends[0m
+     29. Γ£ô [32mEnum Definition[0m
+     30. Γ£ô [32mModule Declaration[0m
+     31. Γ£ô [32mStruct Definition[0m
+     32. Γ£ô [32mFunction Declaration with Return Type[0m
+     33. Γ£ô [32mZone Declaration[0m
+     34. Γ£ô [32mSpawn Group[0m
+     35. Γ£ô [32mWaypoints Block[0m
+     36. Γ£ô [32mConstraint Block[0m
+     37. Γ£ô [32mTerrain Block[0m
+     38. Γ£ô [32mIoT Block - Sensor[0m
+     39. Γ£ù [31mIoT Block - Digital Twin[0m
+     40. Γ£ô [32mRobotics Block - Joint[0m
+     41. Γ£ô [32mRobotics Block - Path Planner[0m
+     42. Γ£ô [32mDataViz Block - Dashboard[0m
+     43. Γ£ô [32mDataViz Block - Chart[0m
+     44. Γ£ô [32mTrait Definition[0m
+     45. Γ£ô [32mTrait Definition with Extends[0m
+     46. Γ£ô [32mImport with Alias[0m
+     47. Γ£ô [32mInterface Definition without Extends[0m
+     48. Γ£ô [32mInput Block - Gesture Profile[0m
+     49. Γ£ô [32mAnnotation with Multiple Entries[0m
+     50. Γ£ô [32mCodebase Block - Basic[0m
+     51. Γ£ô [32mCodebase Block - Module Map with Nested Objects[0m
+     52. Γ£ô [32mCodebase Block - Dependency Graph[0m
+     53. Γ£ô [32mCodebase Block - Call Graph[0m
+  holoscript:
+     54. Γ£ô [32mComposition[0m
+     55. Γ£ô [32mTemplate with State[0m
+     56. Γ£ô [32mObject with Physics[0m
+     57. Γ£ô [32mTimeline Animation[0m
+     58. Γ£ô [32mNetworked Object[0m
+     59. Γ£ô [32mAction with Parameters[0m
+     60. Γ£ô [32mComments[0m
+     61. Γ£ô [32mWorld with Entity[0m
+     62. Γ£ô [32mPBR Material with Inline Properties[0m
+     63. Γ£ô [32mPBR Material with Inline Texture Maps[0m
+     64. Γ£ô [32mPBR Material with Texture Map Sub-Blocks[0m
+     65. Γ£ô [32mGlass Material with Transparency[0m
+     66. Γ£ô [32mShader with Pass and Connection[0m
+     67. Γ£ô [32mMaterial inside Composition[0m
+     68. Γ£ô [32mStructured Physics Block with Collider and Rigidbody[0m
+     69. Γ£ô [32mCollider with Sphere Shape[0m
+     70. Γ£ô [32mForce Field Block[0m
+     71. Γ£ô [32mArticulation with Joint Sub-Blocks[0m
+     72. Γ£ô [32mPhysics Block with Force Field Inside[0m
+     73. Γ£ô [32mRigidbody Directly in Object[0m
+     74. Γ£ô [32mParticle System with Modules[0m
+     75. Γ£ô [32mVFX Emitter (Particle Block Variant)[0m
+     76. Γ£ô [32mPost-Processing Pipeline with Effects[0m
+     77. Γ£ô [32mPost-Processing with Fog and Volumetrics[0m
+     78. Γ£ô [32mAudio Source with Spatial Properties[0m
+     79. Γ£ô [32mReverb Zone Audio Block[0m
+     80. Γ£ô [32mWeather System with Layers[0m
+     81. Γ£ô [32mAtmosphere Block (Weather Variant)[0m
+     82. Γ£ô [32mPerception Blocks inside Composition[0m
+  platform:
+     83. Γ£ô [32mPlatform Decorator - Single Platform[0m
+     84. Γ£ô [32mPlatform Decorator - Multiple Platforms[0m
+     85. Γ£ô [32mPlatform Decorator - Category Form[0m
+     86. Γ£ô [32mPlatform Decorator - Negation Form[0m
+     87. Γ£ô [32mPlatform Decorator - Negation with Multiple Platforms[0m
+     88. Γ£ô [32mPlatform Decorator - On Template[0m
+     89. Γ£ô [32mPlatform Decorator - On Spatial Group[0m
+     90. Γ£ô [32mPlatform Decorator - On Light[0m
+     91. Γ£ô [32mPlatform Decorator - On Norm Block[0m
+     92. Γ£ù [31mComplex Platform Example - Multi-Platform Composition[0m
+     93. Γ£ô [32mNorm Block - Full CRSEC Lifecycle[0m
+  v6-universal-blocks:
+     94. Γ£ô [32mService Block - Basic Service[0m
+     95. Γ£ô [32mService Block - With Traits[0m
+     96. Γ£ô [32mService Block - With Nested Object[0m
+     97. Γ£ô [32mService Block - Endpoint[0m
+     98. Γ£ô [32mService Block - Route[0m
+     99. Γ£ô [32mService Block - Handler[0m
+    100. Γ£ô [32mService Block - Middleware[0m
+    101. Γ£ô [32mService Block - Gateway[0m
+    102. Γ£ô [32mService Block - Proxy[0m
+    103. Γ£ô [32mService Block - Load Balancer[0m
+    104. Γ£ù [31mService Block - With Event Handler[0m
+    105. Γ£ô [32mService Block - Identifier Name[0m
+    106. Γ£ô [32mService Block - Multiple Nested Objects[0m
+    107. Γ£ô [32mContract Block - Basic Schema[0m
+    108. Γ£ô [32mContract Block - Validator[0m
+    109. Γ£ô [32mContract Block - Serializer[0m
+    110. Γ£ô [32mContract Block - OpenAPI[0m
+    111. Γ£ô [32mContract Block - AsyncAPI[0m
+    112. Γ£ô [32mContract Block - Protobuf[0m
+    113. Γ£ô [32mContract Block - GraphQL Schema[0m
+    114. Γ£ô [32mContract Block - With Nested Object[0m
+    115. Γ£ô [32mContract Block - Identifier Name[0m
+    116. Γ£ô [32mContract Block - Validator Multiple Properties[0m
+    117. Γ£ô [32mData Block - Basic Data Model[0m
+    118. Γ£ù [31mData Block - Migration[0m
+    119. Γ£ô [32mData Block - Seed[0m
+    120. Γ£ô [32mData Block - Data View[0m
+    121. Γ£ô [32mData Block - Data Index[0m
+    122. Γ£ô [32mData Block - Stored Procedure[0m
+    123. Γ£ù [31mData Block - Data Trigger[0m
+    124. Γ£ô [32mData Block - With Nested Object[0m
+    125. Γ£ô [32mData Block - Identifier Name[0m
+    126. Γ£ô [32mData Block - Data Model With Multiple Properties[0m
+    127. Γ£ù [31mData Block - Data Trigger With Traits[0m
+    128. Γ£ô [32mPipeline Block - Basic Pipeline[0m
+    129. Γ£ô [32mPipeline Block - Stage[0m
+    130. Γ£ô [32mPipeline Block - Queue[0m
+    131. Γ£ô [32mPipeline Block - Worker[0m
+    132. Γ£ô [32mPipeline Block - Scheduler[0m
+    133. Γ£ô [32mPipeline Block - Consumer[0m
+    134. Γ£ô [32mPipeline Block - Producer[0m
+    135. Γ£ô [32mPipeline Block - Dead Letter Queue[0m
+    136. Γ£ô [32mPipeline Block - With Nested Object[0m
+    137. Γ£ù [31mPipeline Block - With Event Handler[0m
+    138. Γ£ô [32mPipeline Block - Identifier Name[0m
+    139. Γ£ô [32mPipeline Block - Multiple Traits[0m
+    140. Γ£ô [32mBackward Compat - Object Still Parses After v6 Blocks[0m
+    141. Γ£ô [32mBackward Compat - IoT Block Still Parses[0m
+    142. Γ£ô [32mBackward Compat - Web3 Block Still Parses[0m
+    143. Γ£ô [32mBackward Compat - Education Block Still Parses[0m
+    144. Γ£ô [32mBackward Compat - Trait Definition Still Parses[0m
+
+8 failures:
+
+correct / [32mexpected[0m / [31munexpected[0m
+  1. Render Hints:
+
+    (source_file
+      (render_hints
+        (property
+          key: (identifier)
+          value: (string))
+        (property
+          key: (identifier)
+          value: (number))
+        (property
+[32m          key: (identifier)
+[0m          value: (string))
+        (property
+          key: (identifier)
+          value: (boolean))))
+
+
+  2. IoT Block - Digital Twin:
+
+    (source_file
+      (iot_block
+        name: (string)
+        (property
+[32m          key: (identifier)
+[0m          value: (string))
+        (property
+          key: (identifier)
+          value: (number))
+        (property
+          key: (identifier)
+          value: (string))))
+
+
+  3. Complex Platform Example - Multi-Platform Composition:
+
+    (source_file
+      (composition
+        name: (string)
+        (object
+          (platform_decorator
+            (platform_list
+              (platform_name)))
+          name: (string)
+          (trait_list
+            (trait_inline
+              name: (identifier)))
+          (property
+            key: (identifier)
+            value: (array
+              (number)
+              (number)
+[31m              (unary_expression
+[0m[31m                operand: (number))))
+[0m[32m              (number)))
+[0m          (property
+            key: (identifier)
+            value: (string)))
+        (object
+          (platform_decorator
+            (platform_list
+              (platform_name)))
+          name: (string)
+          (property
+            key: (identifier)
+            value: (array
+              (number)
+              (number)
+              (number)))
+          (property
+            key: (identifier)
+            value: (string)))
+        (object
+          (platform_decorator
+            (platform_list
+              (platform_name)))
+          name: (string)
+          (property
+            key: (identifier)
+            value: (array
+              (number)
+              (number)
+              (number)))
+          (property
+            key: (identifier)
+            value: (string)))))
+
+
+  4. Service Block - With Event Handler:
+
+    (source_file
+      (service_block
+        name: (string)
+        (property
+          key: (identifier)
+          value: (number))
+        (event_handler
+[31m          event: (event_name)
+[0m[32m          event: (identifier)
+[0m          (block
+            (function_call
+              function: (identifier)
+              (argument
+                (string)))))))
+
+
+  5. Data Block - Migration:
+
+    (source_file
+      (data_block
+        name: (string)
+        (property
+[32m          key: (identifier)
+[0m          value: (string))
+        (property
+          key: (identifier)
+          value: (string))
+        (property
+          key: (identifier)
+          value: (boolean))))
+
+
+  6. Data Block - Data Trigger:
+
+    (source_file
+      (data_block
+        name: (string)
+        (trait_list
+          (trait_inline
+            name: (identifier)))
+        (property
+[32m          key: (identifier)
+[0m          value: (string))
+        (property
+          key: (identifier)
+          value: (string))
+        (property
+          key: (identifier)
+          value: (string))))
+
+
+  7. Data Block - Data Trigger With Traits:
+
+    (source_file
+      (data_block
+        name: (string)
+        (trait_list
+          (trait_inline
+            name: (identifier))
+          (trait_inline
+            name: (identifier)))
+        (property
+[32m          key: (identifier)
+[0m          value: (string))
+        (property
+          key: (identifier)
+          value: (string))))
+
+
+  8. Pipeline Block - With Event Handler:
+
+    (source_file
+      (pipeline_block
+        name: (string)
+        (property
+          key: (identifier)
+          value: (number))
+        (event_handler
+[31m          event: (event_name)
+[0m[32m          event: (identifier)
+[0m          (block
+            (function_call
+              function: (identifier)
+              (argument
+                (string)))))))
+
+Total parses: 144; successful parses: 136; failed parses: 8; success percentage: 94.44%; average speed: 5364 bytes/ms
+

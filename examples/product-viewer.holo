@@ -1,0 +1,123 @@
+// Product Viewer - HoloScript v2.1
+// 3D product showcase with interactivity
+
+composition "Product Viewer" {
+  environment {
+    skybox: "studio"
+    background_color: "#f5f5f5"
+    ambient_light: 0.7
+    shadows: true
+  }
+
+  // ===================
+  // PRODUCT STATE
+  // ===================
+  
+  object "ProductState" {
+    state {
+      selected_color: "silver"
+      rotation_speed: 0.3
+      is_rotating: true
+    }
+    
+    action set_color(color) {
+      state.selected_color = color
+      trigger "color_changed"
+    }
+    
+    action toggle_rotation() {
+      state.is_rotating = !state.is_rotating
+    }
+  }
+
+  // ===================
+  // OBJECTS
+  // ===================
+
+  // Display pedestal
+  object "Pedestal" {
+    @collidable
+    
+    position: [0, 0.5, 0]
+    scale: [1, 1, 1]
+    geometry: "cylinder"
+    color: "#ffffff"
+    material: "marble"
+  }
+
+  // Product model (watch example)
+  object "Product" {
+    @grabbable
+    @animated
+    
+    position: [0, 1.5, 0]
+    scale: [0.5, 0.5, 0.5]
+    geometry: "torus"
+    color: "#c0c0c0"
+    material: "metal"
+    animate: "spin"
+    animSpeed: 0.3
+    
+    on_grab() {
+      ProductState.toggle_rotation()
+    }
+    
+    on_release() {
+      ProductState.toggle_rotation()
+    }
+  }
+
+  // Info panel
+  object "InfoPanel" {
+    @glowing
+    @pointable
+    
+    position: [2, 1.5, 0]
+    scale: [1, 0.8, 0.05]
+    geometry: "cube"
+    color: "#222222"
+    emissive: "#00aaff"
+    emissiveIntensity: 0.3
+    
+    on_point() {
+      flash_color("#00ffff", 100ms)
+      trigger "show_details"
+    }
+  }
+
+  // Price tag
+  object "PriceTag" {
+    position: [0, 0.2, 1]
+    scale: [0.5, 0.3, 0.02]
+    geometry: "cube"
+    color: "#ffffff"
+  }
+
+  // Spotlight effect
+  object "Spotlight" {
+    @glowing
+    
+    position: [0, 3, 0]
+    scale: [0.1, 0.1, 0.1]
+    geometry: "sphere"
+    color: "#ffffff"
+    emissive: "#ffffff"
+    emissiveIntensity: 2
+  }
+
+  // ===================
+  // UI PANELS
+  // ===================
+
+  panel "ProductInfo" {
+    position: "bottom-center"
+    visible: false
+    
+    on "show_details" {
+      visible = true
+    }
+
+    text "Name" { bind: "Premium Watch"; style: "title" }
+    text "Price" { bind: "$299.99"; style: "price" }
+  }
+}

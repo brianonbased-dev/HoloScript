@@ -1,0 +1,158 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "HoloScript Compiler v3.4.0",
+    "copyright": "Generated from HoloScript source",
+    "extras": {
+      "holoscript": {
+        "source": "simple-cube.holo",
+        "timestamp": "2026-02-16T18:00:00Z",
+        "compiler_version": "3.4.0"
+      }
+    }
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Simple Cube Scene",
+      "nodes": [0]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Cube",
+      "mesh": 0,
+      "translation": [0.0, 1.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "extras": {
+        "holoscript": {
+          "type": "cube",
+          "traits": {
+            "@color": {
+              "value": "red",
+              "mapping": "material.pbrMetallicRoughness.baseColorFactor"
+            },
+            "@position": {
+              "value": [0, 1, 0],
+              "mapping": "node.translation"
+            },
+            "@grabbable": {
+              "value": true,
+              "implementation_note": "Use KHR_interactivity extension or custom extension",
+              "suggested_extensions": ["KHR_interactivity", "EXT_mesh_gpu_instancing"]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Cube Mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Red Material",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [1.0, 0.0, 0.0, 1.0],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.5
+      },
+      "extras": {
+        "holoscript": {
+          "trait": "@color(red)"
+        }
+      }
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "max": [0.5, 0.5, 0.5],
+      "min": [-0.5, -0.5, -0.5]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 288,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 576,
+      "byteLength": 192,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 768,
+      "byteLength": 72,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "simple-cube.bin",
+      "byteLength": 840
+    }
+  ],
+  "extensionsUsed": [],
+  "extensionsRequired": [],
+  "extras": {
+    "holoscript_metadata": {
+      "traits_preserved": 3,
+      "traits_list": ["@color(red)", "@position(0, 1, 0)", "@grabbable"],
+      "export_notes": {
+        "@grabbable": "No standard glTF extension for interaction. Consider KHR_interactivity (in development) or custom extension."
+      },
+      "validation": {
+        "gltf_validator": "2.0",
+        "errors": 0,
+        "warnings": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,324 @@
+// ============================================================
+// Interactive Art Gallery - HoloScript Sample Project
+// ============================================================
+// A virtual museum with paintings on the walls, a central
+// sculpture, and ambient lighting. Visitors can click on
+// paintings to view details and hover to highlight frames.
+// ============================================================
+
+composition "Interactive Art Gallery" {
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // ----------------------------------------------------------
+  // Museum-style lighting: warm ambient with directional spots.
+  // A neutral skybox keeps the focus on the artwork.
+
+  environment {
+    skybox: "solid"
+    background_color: "#0a0a0f"
+    ambient_light: 0.3
+    shadows: true
+  }
+
+  // ----------------------------------------------------------
+  // TEMPLATES
+  // ----------------------------------------------------------
+  // Reusable definitions to keep painting objects consistent.
+
+  template "Painting" {
+    @clickable
+    @hoverable
+
+    geometry: "cube"
+    material: "canvas"
+
+    // When hovered, a subtle glow highlights the frame
+    on_hover_enter() {
+      set emissiveIntensity: 0.4
+    }
+    on_hover_exit() {
+      set emissiveIntensity: 0.0
+    }
+
+    // When clicked, display artwork information panel
+    on_click() {
+      trigger "show_info_panel"
+    }
+  }
+
+  template "SpotLightOrb" {
+    @glowing
+
+    geometry: "sphere"
+    scale: 0.08
+    color: "#fff5e0"
+    emissive: "#fff5e0"
+    emissiveIntensity: 1.2
+  }
+
+  // ----------------------------------------------------------
+  // ROOM STRUCTURE
+  // ----------------------------------------------------------
+  // A rectangular gallery room: floor, four walls, and ceiling.
+
+  // Floor -- polished dark stone
+  object "Floor" @collidable {
+    geometry: "cube"
+    position: [0, -0.05, 0]
+    scale: [12, 0.1, 8]
+    color: "#1a1a24"
+    material: "stone"
+  }
+
+  // Ceiling
+  object "Ceiling" {
+    geometry: "cube"
+    position: [0, 4, 0]
+    scale: [12, 0.1, 8]
+    color: "#0f0f18"
+  }
+
+  // Back wall (north) -- paintings hang here
+  object "WallNorth" @collidable {
+    geometry: "cube"
+    position: [0, 2, -4]
+    scale: [12, 4, 0.15]
+    color: "#1c1c28"
+    material: "plaster"
+  }
+
+  // Front wall (south) -- entrance side
+  object "WallSouth" @collidable {
+    geometry: "cube"
+    position: [0, 2, 4]
+    scale: [12, 4, 0.15]
+    color: "#1c1c28"
+    material: "plaster"
+  }
+
+  // Left wall (west)
+  object "WallWest" @collidable {
+    geometry: "cube"
+    position: [-6, 2, 0]
+    scale: [0.15, 4, 8]
+    color: "#1c1c28"
+    material: "plaster"
+  }
+
+  // Right wall (east)
+  object "WallEast" @collidable {
+    geometry: "cube"
+    position: [6, 2, 0]
+    scale: [0.15, 4, 8]
+    color: "#1c1c28"
+    material: "plaster"
+  }
+
+  // ----------------------------------------------------------
+  // PAINTINGS
+  // ----------------------------------------------------------
+  // Five paintings distributed across the walls. Each uses the
+  // Painting template for consistent click/hover behavior.
+
+  // Painting 1 -- "Neon Horizon" on the north wall, left side
+  object "Painting_NeonHorizon" using "Painting" {
+    position: [-3.5, 2.2, -3.88]
+    scale: [1.6, 1.2, 0.05]
+    color: "#e74c3c"
+    emissive: "#e74c3c"
+    emissiveIntensity: 0.0
+  }
+
+  // Painting 2 -- "Digital Ocean" on the north wall, center
+  object "Painting_DigitalOcean" using "Painting" {
+    position: [0, 2.2, -3.88]
+    scale: [2.0, 1.4, 0.05]
+    color: "#3498db"
+    emissive: "#3498db"
+    emissiveIntensity: 0.0
+  }
+
+  // Painting 3 -- "Solar Flare" on the north wall, right side
+  object "Painting_SolarFlare" using "Painting" {
+    position: [3.5, 2.2, -3.88]
+    scale: [1.6, 1.2, 0.05]
+    color: "#f39c12"
+    emissive: "#f39c12"
+    emissiveIntensity: 0.0
+  }
+
+  // Painting 4 -- "Emerald Dream" on the west wall
+  object "Painting_EmeraldDream" using "Painting" {
+    position: [-5.88, 2.2, -1]
+    scale: [0.05, 1.2, 1.6]
+    color: "#2ecc71"
+    emissive: "#2ecc71"
+    emissiveIntensity: 0.0
+  }
+
+  // Painting 5 -- "Violet Nebula" on the east wall
+  object "Painting_VioletNebula" using "Painting" {
+    position: [5.88, 2.2, 1]
+    scale: [0.05, 1.4, 1.8]
+    color: "#9b59b6"
+    emissive: "#9b59b6"
+    emissiveIntensity: 0.0
+  }
+
+  // ----------------------------------------------------------
+  // PAINTING FRAMES
+  // ----------------------------------------------------------
+  // Thin gold borders around each painting for realism.
+
+  object "Frame_NeonHorizon" {
+    geometry: "cube"
+    position: [-3.5, 2.2, -3.90]
+    scale: [1.72, 1.32, 0.03]
+    color: "#c8a84e"
+    material: "metal"
+  }
+
+  object "Frame_DigitalOcean" {
+    geometry: "cube"
+    position: [0, 2.2, -3.90]
+    scale: [2.12, 1.52, 0.03]
+    color: "#c8a84e"
+    material: "metal"
+  }
+
+  object "Frame_SolarFlare" {
+    geometry: "cube"
+    position: [3.5, 2.2, -3.90]
+    scale: [1.72, 1.32, 0.03]
+    color: "#c8a84e"
+    material: "metal"
+  }
+
+  object "Frame_EmeraldDream" {
+    geometry: "cube"
+    position: [-5.90, 2.2, -1]
+    scale: [0.03, 1.32, 1.72]
+    color: "#c8a84e"
+    material: "metal"
+  }
+
+  object "Frame_VioletNebula" {
+    geometry: "cube"
+    position: [5.90, 2.2, 1]
+    scale: [0.03, 1.52, 1.92]
+    color: "#c8a84e"
+    material: "metal"
+  }
+
+  // ----------------------------------------------------------
+  // CENTRAL SCULPTURE
+  // ----------------------------------------------------------
+  // An abstract geometric sculpture on a pedestal. It spins
+  // slowly and emits a soft cyan glow.
+
+  // Pedestal
+  object "Pedestal" @collidable {
+    geometry: "cylinder"
+    position: [0, 0.4, 0]
+    scale: [0.6, 0.8, 0.6]
+    color: "#2d2d3d"
+    material: "marble"
+  }
+
+  // Sculpture -- a spinning, glowing shape
+  object "Sculpture" @spinning @glowing {
+    geometry: "cube"
+    position: [0, 1.4, 0]
+    scale: [0.5, 0.5, 0.5]
+    rotation: [45, 45, 0]
+    color: "#00ffff"
+    emissive: "#00ffff"
+    emissiveIntensity: 0.6
+    material: "glass"
+    spinSpeed: 0.3
+  }
+
+  // ----------------------------------------------------------
+  // AMBIENT LIGHTING OBJECTS
+  // ----------------------------------------------------------
+  // Small glowing orbs mounted near the ceiling act as
+  // spotlights for each painting.
+
+  // Spot lights above paintings -- north wall
+  object "SpotLight_1" using "SpotLightOrb" {
+    position: [-3.5, 3.6, -3.5]
+  }
+
+  object "SpotLight_2" using "SpotLightOrb" {
+    position: [0, 3.6, -3.5]
+  }
+
+  object "SpotLight_3" using "SpotLightOrb" {
+    position: [3.5, 3.6, -3.5]
+  }
+
+  // Spot light for west wall painting
+  object "SpotLight_4" using "SpotLightOrb" {
+    position: [-5.5, 3.6, -1]
+  }
+
+  // Spot light for east wall painting
+  object "SpotLight_5" using "SpotLightOrb" {
+    position: [5.5, 3.6, 1]
+  }
+
+  // Ambient corner orbs -- subtle warm glow in the corners
+  object "AmbientOrb_SW" @glowing @floating {
+    geometry: "sphere"
+    position: [-5, 3.2, 3]
+    scale: 0.12
+    color: "#ffddaa"
+    emissive: "#ffddaa"
+    emissiveIntensity: 0.6
+  }
+
+  object "AmbientOrb_SE" @glowing @floating {
+    geometry: "sphere"
+    position: [5, 3.2, 3]
+    scale: 0.12
+    color: "#ffddaa"
+    emissive: "#ffddaa"
+    emissiveIntensity: 0.6
+  }
+
+  // ----------------------------------------------------------
+  // DECORATIVE ELEMENTS
+  // ----------------------------------------------------------
+
+  // Information placard near the entrance
+  object "WelcomePlacard" @clickable {
+    geometry: "cube"
+    position: [0, 1.4, 3.5]
+    scale: [1.2, 0.6, 0.04]
+    color: "#222233"
+    emissive: "#ffffff"
+    emissiveIntensity: 0.1
+
+    on_click() {
+      trigger "show_gallery_info"
+    }
+  }
+
+  // Velvet rope posts near the sculpture (decorative boundaries)
+  object "RopePost_Left" @collidable {
+    geometry: "cylinder"
+    position: [-1.2, 0.4, 1]
+    scale: [0.06, 0.8, 0.06]
+    color: "#8b7355"
+    material: "metal"
+  }
+
+  object "RopePost_Right" @collidable {
+    geometry: "cylinder"
+    position: [1.2, 0.4, 1]
+    scale: [0.06, 0.8, 0.06]
+    color: "#8b7355"
+    material: "metal"
+  }
+}

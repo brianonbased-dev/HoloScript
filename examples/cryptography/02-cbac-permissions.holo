@@ -1,0 +1,336 @@
+/**
+ * CBAC Permissions — HoloScript v5.0 Capability-Based Access Control Example
+ *
+ * Demonstrates capability-based access control with post-quantum signatures.
+ * This example shows:
+ *  - Capability token issuance with ML-DSA-65 signatures
+ *  - Fine-grained permission delegation
+ *  - Proof-of-Possession (PoP) token binding
+ *  - Time-bounded capabilities with expiration
+ *  - Capability attenuation (reduce permissions when delegating)
+ *  - Zero-trust security model
+ *
+ * Use Case: Decentralized Agent Permissions
+ *   - No central authority needed for permission checks
+ *   - Capabilities are cryptographically signed tokens
+ *   - Delegatable permissions with attenuation
+ *   - Quantum-resistant capability tokens
+ *
+ * Run this example:
+ *   holoc examples/cryptography/02-cbac-permissions.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene CapabilityBasedSecurity {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CAPABILITY TOKEN ISSUER CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CapabilityIssuer {
+    traits: [token_issuer];
+
+    token_issuer: {
+      // Token format
+      tokenFormat: "hybrid",  // JWT + UCAN capability token
+
+      // Signature algorithm
+      signatureAlgorithm: "ml-dsa-65",  // Post-quantum signatures
+
+      // Token lifetime
+      defaultExpirationMs: 3600000,  // 1 hour
+      maxExpirationMs: 86400000,     // 24 hours max
+
+      // Proof-of-Possession binding
+      popBindingEnabled: true,       // Bind token to agent's public key
+      popAlgorithm: "jwk-thumbprint", // JWK SHA-256 thumbprint
+
+      // Capability delegation
+      delegationEnabled: true,
+      maxDelegationDepth: 3,         // Alice → Bob → Charlie (max)
+      attenuationRequired: true,     // Delegated caps must be subset
+
+      // Revocation
+      revocationEnabled: true,
+      revocationCheckUrl: "https://revocation.holoscript.io/check",
+
+      // Audience validation
+      strictAudienceValidation: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Token Issuance
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CapabilityIssuer, "token_issued") {
+    log("🎫 Capability token issued");
+    log(`  Agent ID: ${event.agentId}`);
+    log(`  Role: ${event.agentRole}`);
+    log(`  Capabilities:`);
+    for (const cap of event.capabilities) {
+      log(`    - ${cap.action} on ${cap.resource} (${cap.effect})`);
+    }
+    log(`  Token type: ${event.tokenFormat}`);
+    log(`  JWT: ${event.jwt.substring(0, 50)}...`);
+    log(`  UCAN: ${event.capabilityToken.substring(0, 50)}...`);
+    log(`  Issued at: ${event.issuedAt}`);
+    log(`  Expires at: ${event.expiresAt}`);
+    log(`  PoP binding: ${event.popBinding ? "✅ Enabled" : "❌ Disabled"}`);
+  }
+
+  on(CapabilityIssuer, "token_verified") {
+    log("✅ Token verification successful");
+    log(`  Agent ID: ${event.agentId}`);
+    log(`  Role: ${event.agentRole}`);
+    log(`  Signature: ${event.signatureValid ? "✅ VALID" : "❌ INVALID"}`);
+    log(`  Expiration: ${event.notExpired ? "✅ VALID" : "❌ EXPIRED"}`);
+    log(`  PoP binding: ${event.popValid ? "✅ VALID" : "❌ INVALID"}`);
+    log(`  Revocation: ${event.notRevoked ? "✅ NOT REVOKED" : "❌ REVOKED"}`);
+  }
+
+  on(CapabilityIssuer, "token_verification_failed") {
+    log("❌ Token verification FAILED");
+    log(`  Reason: ${event.reason}`);
+    log(`  Details: ${event.details}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Capability Checks
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CapabilityIssuer, "capability_granted") {
+    log(`✅ Capability GRANTED`);
+    log(`  Agent: ${event.agentId}`);
+    log(`  Action: ${event.action}`);
+    log(`  Resource: ${event.resource}`);
+    log(`  Effect: ${event.effect}`);
+    log(`  Matched capability: ${event.matchedCapability}`);
+  }
+
+  on(CapabilityIssuer, "capability_denied") {
+    log(`🚫 Capability DENIED`);
+    log(`  Agent: ${event.agentId}`);
+    log(`  Action: ${event.action}`);
+    log(`  Resource: ${event.resource}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Delegation
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CapabilityIssuer, "capability_delegated") {
+    log("👥 Capability delegated");
+    log(`  From: ${event.delegatorAgentId}`);
+    log(`  To: ${event.delegateeAgentId}`);
+    log(`  Original capabilities: ${event.originalCapabilities.length}`);
+    log(`  Delegated capabilities: ${event.delegatedCapabilities.length}`);
+    log(`  Attenuation applied: ${event.attenuated ? "✅ Yes" : "❌ No"}`);
+    log(`  Delegation depth: ${event.delegationDepth}`);
+    log(`  Expires at: ${event.expiresAt}`);
+
+    log("  Delegated capabilities:");
+    for (const cap of event.delegatedCapabilities) {
+      log(`    - ${cap.action} on ${cap.resource}`);
+    }
+  }
+
+  on(CapabilityIssuer, "delegation_denied") {
+    log("🚫 Delegation DENIED");
+    log(`  Delegator: ${event.delegatorAgentId}`);
+    log(`  Delegatee: ${event.delegateeAgentId}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Revocation
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CapabilityIssuer, "token_revoked") {
+    log("🚫 Token revoked");
+    log(`  Token ID: ${event.tokenId}`);
+    log(`  Agent ID: ${event.agentId}`);
+    log(`  Reason: ${event.reason}`);
+    log(`  Revoked by: ${event.revokedBy}`);
+    log(`  Revoked at: ${event.revokedAt}`);
+  }
+
+  on(CapabilityIssuer, "token_refresh_requested") {
+    log("🔄 Token refresh requested");
+    log(`  Agent ID: ${event.agentId}`);
+    log(`  Old token expires: ${event.oldExpiresAt}`);
+    log(`  New token expires: ${event.newExpiresAt}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Issue token with full capabilities (Admin role)
+  on(DemoControls, "click") {
+    if (event.target === "issue_admin_token_button") {
+      emit(CapabilityIssuer, "issue_token", {
+        agentId: "agent_alice",
+        agentRole: "admin",
+        capabilities: [
+          { action: "read", resource: "scenes/*", effect: "allow" },
+          { action: "write", resource: "scenes/*", effect: "allow" },
+          { action: "delete", resource: "scenes/*", effect: "allow" },
+          { action: "execute", resource: "traits/*", effect: "allow" },
+        ],
+        expirationMs: 3600000,  // 1 hour
+        audience: "holoscript-platform",
+      });
+      log("🎫 Issuing admin token for Alice...");
+    }
+  }
+
+  // Demo 2: Issue token with limited capabilities (Viewer role)
+  on(DemoControls, "click") {
+    if (event.target === "issue_viewer_token_button") {
+      emit(CapabilityIssuer, "issue_token", {
+        agentId: "agent_bob",
+        agentRole: "viewer",
+        capabilities: [
+          { action: "read", resource: "scenes/*", effect: "allow" },
+          { action: "read", resource: "traits/*", effect: "allow" },
+        ],
+        expirationMs: 3600000,
+        audience: "holoscript-platform",
+      });
+      log("🎫 Issuing viewer token for Bob...");
+    }
+  }
+
+  // Demo 3: Verify valid token
+  on(DemoControls, "click") {
+    if (event.target === "verify_valid_token_button") {
+      emit(CapabilityIssuer, "verify_token", {
+        jwt: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
+        capabilityToken: "eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJVQ0FOIn0...",
+        audience: "holoscript-platform",
+      });
+      log("✅ Verifying token...");
+    }
+  }
+
+  // Demo 4: Verify expired token
+  on(DemoControls, "click") {
+    if (event.target === "verify_expired_token_button") {
+      emit(CapabilityIssuer, "verify_token", {
+        jwt: "EXPIRED_TOKEN...",
+        capabilityToken: "EXPIRED_UCAN...",
+        audience: "holoscript-platform",
+      });
+      log("⏰ Verifying expired token...");
+    }
+  }
+
+  // Demo 5: Check capability (read scenes) - GRANTED
+  on(DemoControls, "click") {
+    if (event.target === "check_read_capability_button") {
+      emit(CapabilityIssuer, "check_capability", {
+        agentId: "agent_alice",
+        action: "read",
+        resource: "scenes/training_simulation_v2",
+        token: "alice_admin_token...",
+      });
+      log("🔍 Checking read capability...");
+    }
+  }
+
+  // Demo 6: Check capability (delete scenes) - DENIED for viewer
+  on(DemoControls, "click") {
+    if (event.target === "check_delete_capability_button") {
+      emit(CapabilityIssuer, "check_capability", {
+        agentId: "agent_bob",
+        action: "delete",
+        resource: "scenes/training_simulation_v2",
+        token: "bob_viewer_token...",
+      });
+      log("🔍 Checking delete capability (should be denied)...");
+    }
+  }
+
+  // Demo 7: Delegate capabilities (Alice delegates to Charlie)
+  on(DemoControls, "click") {
+    if (event.target === "delegate_capabilities_button") {
+      emit(CapabilityIssuer, "delegate_capabilities", {
+        delegatorAgentId: "agent_alice",
+        delegateeAgentId: "agent_charlie",
+        originalToken: "alice_admin_token...",
+        delegatedCapabilities: [
+          // Attenuated: only read, not write/delete
+          { action: "read", resource: "scenes/training_*", effect: "allow" },
+          { action: "execute", resource: "traits/navigation_*", effect: "allow" },
+        ],
+        expirationMs: 1800000,  // 30 minutes (shorter than original)
+      });
+      log("👥 Delegating capabilities from Alice to Charlie...");
+    }
+  }
+
+  // Demo 8: Attempt over-delegation (should fail)
+  on(DemoControls, "click") {
+    if (event.target === "over_delegate_button") {
+      emit(CapabilityIssuer, "delegate_capabilities", {
+        delegatorAgentId: "agent_bob",  // Bob only has viewer role
+        delegateeAgentId: "agent_dave",
+        originalToken: "bob_viewer_token...",
+        delegatedCapabilities: [
+          // Trying to delegate DELETE capability Bob doesn't have
+          { action: "delete", resource: "scenes/*", effect: "allow" },
+        ],
+        expirationMs: 1800000,
+      });
+      log("🚫 Attempting over-delegation (should fail)...");
+    }
+  }
+
+  // Demo 9: Revoke token
+  on(DemoControls, "click") {
+    if (event.target === "revoke_token_button") {
+      emit(CapabilityIssuer, "revoke_token", {
+        tokenId: "token_12345",
+        agentId: "agent_charlie",
+        reason: "Delegation period ended",
+        revokedBy: "agent_alice",
+      });
+      log("🚫 Revoking token...");
+    }
+  }
+
+  // Demo 10: Refresh token before expiration
+  on(DemoControls, "click") {
+    if (event.target === "refresh_token_button") {
+      emit(CapabilityIssuer, "refresh_token", {
+        oldToken: "alice_admin_token...",
+        agentId: "agent_alice",
+        expirationMs: 3600000,  // Extend for another hour
+      });
+      log("🔄 Refreshing token...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CBACDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "CAPABILITY-BASED ACCESS CONTROL\n\n🎫 Token Format:\n  • JWT - Standard claims (iss, sub, aud, exp)\n  • UCAN - User Controlled Authorization Network\n  • Hybrid - Both JWT + UCAN for compatibility\n\n🔐 Signatures:\n  • ML-DSA-65 - Post-quantum signatures\n  • PoP binding - JWK SHA-256 thumbprint\n  • Quantum-resistant capability tokens\n\n📜 Capabilities:\n  • Fine-grained permissions (action + resource)\n  • Effect: allow | deny\n  • Wildcard resources: scenes/*\n  • Time-bounded expiration\n\n👥 Delegation:\n  • Attenuation required (subset only)\n  • Max depth: 3 levels\n  • Shorter expiration than parent\n  • Cryptographically verifiable chain\n\n🛡️  Zero-Trust Model:\n  • No central authority for checks\n  • Tokens are self-contained proofs\n  • Revocation via distributed list\n  • Offline-first verification\n\n🚀 Use Cases:\n  • Decentralized agent permissions\n  • Cross-scene capability delegation\n  • Temporary access grants\n  • Least-privilege enforcement",
+      fontSize: 0.085,
+      color: "#fbbf24",
+    };
+  }
+}

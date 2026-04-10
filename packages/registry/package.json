@@ -1,0 +1,42 @@
+{
+  "name": "@holoscript/registry",
+  "version": "3.9.0",
+  "description": "HoloScript package registry and team workspace API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "dev": "tsc --watch",
+    "test": "vitest run --passWithNoTests",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "holoscript",
+    "registry",
+    "packages",
+    "workspaces"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^13.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/uuid": "^9.0.7",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

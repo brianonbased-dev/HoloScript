@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript World Builder - Live Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        min-height: 100vh;
+        color: #fff;
+      }
+      .container {
+        display: flex;
+        height: 100vh;
+      }
+      .code-panel {
+        width: 40%;
+        background: #0d1117;
+        padding: 20px;
+        overflow: auto;
+        border-right: 2px solid #00ffff33;
+      }
+      .preview-panel {
+        width: 60%;
+        position: relative;
+      }
+      h1 {
+        color: #00ffff;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+      }
+      pre {
+        background: #161b22;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Fira Code', 'Consolas', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-x: auto;
+        border: 1px solid #30363d;
+      }
+      .keyword {
+        color: #ff79c6;
+      }
+      .trait {
+        color: #50fa7b;
+      }
+      .string {
+        color: #f1fa8c;
+      }
+      .number {
+        color: #bd93f9;
+      }
+      .comment {
+        color: #6272a4;
+      }
+      .property {
+        color: #8be9fd;
+      }
+
+      .toolbar {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 100;
+      }
+      .tool-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .tool-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px currentColor;
+      }
+      .tool-btn.active {
+        border-color: #fff;
+        box-shadow: 0 0 30px currentColor;
+      }
+      .cube-btn {
+        background: #ff6b6b;
+        color: #fff;
+      }
+      .sphere-btn {
+        background: #4ecdc4;
+        color: #fff;
+      }
+      .cylinder-btn {
+        background: #ffe66d;
+        color: #333;
+      }
+      .grid-btn {
+        background: #333;
+        color: #00ff00;
+      }
+
+      .stats {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px 20px;
+        border-radius: 10px;
+        border: 1px solid #00ffff33;
+      }
+      .stat-value {
+        font-size: 2rem;
+        color: #00ffff;
+        font-weight: bold;
+      }
+
+      #canvas {
+        width: 100%;
+        height: 100%;
+      }
+
+      .instructions {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 30px;
+        border-radius: 25px;
+        border: 1px solid #00ffff;
+      }
+
+      .badge {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: linear-gradient(135deg, #ff6b6b, #ffe66d);
+        padding: 20px 40px;
+        border-radius: 20px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        animation: none;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .badge.show {
+        animation: badgePop 2s ease-out forwards;
+      }
+      @keyframes badgePop {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 0;
+        }
+        20% {
+          transform: translate(-50%, -50%) scale(1.2);
+          opacity: 1;
+        }
+        30% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 1;
+        }
+        80% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(0.8);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="code-panel">
+        <h1>🎮 HoloScript: World Builder</h1>
+        <p style="color: #8b949e; margin-bottom: 20px">~100 lines of .holo → Full VR experience</p>
+        <pre id="code"></pre>
+      </div>
+      <div class="preview-panel">
+        <div class="toolbar">
+          <button class="tool-btn cube-btn active" onclick="selectTool('cube')" title="Cube">
+            ◼
+          </button>
+          <button class="tool-btn sphere-btn" onclick="selectTool('sphere')" title="Sphere">
+            ●
+          </button>
+          <button class="tool-btn cylinder-btn" onclick="selectTool('cylinder')" title="Cylinder">
+            ▮
+          </button>
+          <button class="tool-btn grid-btn" onclick="toggleGrid()" title="Grid Snap">⊞</button>
+        </div>
+        <div class="stats">
+          <div style="color: #8b949e; font-size: 0.8rem">OBJECTS PLACED</div>
+          <div class="stat-value" id="count">0</div>
+        </div>
+        <canvas id="canvas"></canvas>
+        <div class="instructions">
+          🖱️ <strong>Click</strong> to place &nbsp;|&nbsp; 🔄 <strong>Drag</strong> to rotate
+          &nbsp;|&nbsp; 🔍 <strong>Scroll</strong> to zoom
+        </div>
+        <div class="badge" id="badge"></div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+      // HoloScript source code display with syntax highlighting
+      const holoCode = `<span class="comment">// HoloScript Killer Demo: World Builder</span>
+<span class="keyword">composition</span> <span class="string">"World Builder Sandbox"</span> {
+  <span class="keyword">environment</span> {
+    <span class="property">skybox</span>: <span class="string">"gradient"</span>
+    <span class="property">ambient_light</span>: <span class="number">0.5</span>
+    <span class="property">gravity</span>: <span class="number">-9.81</span>
+  }
+
+  <span class="trait">@state</span> {
+    <span class="property">selected_tool</span>: <span class="string">"cube"</span>
+    <span class="property">grid_snap</span>: <span class="keyword">true</span>
+    <span class="property">object_count</span>: <span class="number">0</span>
+  }
+
+  <span class="keyword">template</span> <span class="string">"BuildBlock"</span> {
+    <span class="trait">@grabbable</span>(snap_to_hand: <span class="keyword">true</span>)
+    <span class="trait">@physics</span>(mass: <span class="number">1</span>)
+    <span class="trait">@collidable</span>
+    <span class="trait">@stackable</span>(snap_distance: <span class="number">0.1</span>)
+    <span class="trait">@networked</span>
+    
+    <span class="property">on_release</span>: {
+      <span class="keyword">if</span> (<span class="trait">@state</span>.grid_snap) {
+        this.position = snap_to_grid(<span class="number">0.5</span>)
+      }
+      <span class="trait">@state</span>.object_count++
+    }
+  }
+
+  <span class="keyword">spatial_group</span> <span class="string">"ToolPalette"</span> {
+    <span class="trait">@world_locked</span>
+    
+    <span class="keyword">object</span> <span class="string">"CubeTool"</span> {
+      <span class="trait">@clickable</span> <span class="trait">@hoverable</span> <span class="trait">@glowing</span>
+      <span class="property">color</span>: <span class="string">"#ff6b6b"</span>
+      <span class="property">on_click</span>: { spawn_block(<span class="string">"cube"</span>) }
+    }
+  }
+
+  <span class="keyword">object</span> <span class="string">"BuildPlatform"</span> {
+    <span class="trait">@collidable</span>
+    <span class="property">model</span>: <span class="string">"platform_grid.glb"</span>
+  }
+
+  <span class="keyword">logic</span> {
+    <span class="keyword">when</span> <span class="trait">@state</span>.object_count > <span class="number">50</span> {
+      notify(<span class="string">"Amazing builder!"</span>)
+    }
+  }
+}`;
+      document.getElementById('code').innerHTML = holoCode;
+
+      // Three.js scene
+      let scene, camera, renderer, controls;
+      let selectedTool = 'cube';
+      let gridSnap = true;
+      let objectCount = 0;
+      const objects = [];
+
+      function init() {
+        scene = new THREE.Scene();
+
+        // Gradient background
+        const canvas = document.createElement('canvas');
+        canvas.width = 2;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+        gradient.addColorStop(0, '#1a1a2e');
+        gradient.addColorStop(0.5, '#16213e');
+        gradient.addColorStop(1, '#0f3460');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 2, 512);
+        const bgTexture = new THREE.CanvasTexture(canvas);
+        scene.background = bgTexture;
+
+        camera = new THREE.PerspectiveCamera(
+          60,
+          (window.innerWidth * 0.6) / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(8, 6, 8);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({
+          canvas: document.getElementById('canvas'),
+          antialias: true,
+        });
+        renderer.setSize(window.innerWidth * 0.6, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        // Orbit controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2;
+
+        // Lighting
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+
+        const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+        directional.position.set(10, 20, 10);
+        directional.castShadow = true;
+        scene.add(directional);
+
+        // Grid platform
+        const platformGeom = new THREE.BoxGeometry(10, 0.2, 10);
+        const platformMat = new THREE.MeshStandardMaterial({
+          color: 0x1a1a2e,
+          metalness: 0.3,
+          roughness: 0.7,
+        });
+        const platform = new THREE.Mesh(platformGeom, platformMat);
+        platform.position.y = -0.1;
+        platform.receiveShadow = true;
+        scene.add(platform);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(10, 20, 0x00ffff, 0x00ffff);
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+
+        // Raycaster for clicking
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener('click', (event) => {
+          const rect = renderer.domElement.getBoundingClientRect();
+          mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+          raycaster.setFromCamera(mouse, camera);
+          const intersects = raycaster.intersectObject(platform);
+
+          if (intersects.length > 0) {
+            let point = intersects[0].point;
+            if (gridSnap) {
+              point.x = Math.round(point.x * 2) / 2;
+              point.z = Math.round(point.z * 2) / 2;
+            }
+            spawnBlock(point);
+          }
+        });
+
+        window.addEventListener('resize', onWindowResize);
+        animate();
+      }
+
+      function spawnBlock(position) {
+        let geometry;
+        const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        switch (selectedTool) {
+          case 'sphere':
+            geometry = new THREE.SphereGeometry(0.25, 32, 32);
+            break;
+          case 'cylinder':
+            geometry = new THREE.CylinderGeometry(0.2, 0.2, 0.5, 32);
+            break;
+          default:
+            geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        }
+
+        const material = new THREE.MeshStandardMaterial({
+          color,
+          metalness: 0.2,
+          roughness: 0.5,
+          emissive: color,
+          emissiveIntensity: 0.1,
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(position.x, 0.25, position.z);
+        mesh.castShadow = true;
+
+        // Spawn animation
+        mesh.scale.set(0, 0, 0);
+        const targetScale = { x: 1, y: 1, z: 1 };
+        const startTime = Date.now();
+
+        function animateSpawn() {
+          const elapsed = (Date.now() - startTime) / 200;
+          if (elapsed < 1) {
+            const ease = 1 - Math.pow(1 - elapsed, 3);
+            mesh.scale.setScalar(ease);
+            requestAnimationFrame(animateSpawn);
+          } else {
+            mesh.scale.set(1, 1, 1);
+          }
+        }
+        animateSpawn();
+
+        scene.add(mesh);
+        objects.push(mesh);
+        objectCount++;
+        document.getElementById('count').textContent = objectCount;
+
+        // Check for achievements
+        if (objectCount === 10) showBadge('🎉 First 10!');
+        if (objectCount === 50) showBadge('🏆 Master Builder!');
+        if (objectCount === 100) showBadge('🌟 Legendary!');
+      }
+
+      function showBadge(text) {
+        const badge = document.getElementById('badge');
+        badge.textContent = text;
+        badge.classList.remove('show');
+        void badge.offsetWidth; // Trigger reflow
+        badge.classList.add('show');
+      }
+
+      function selectTool(tool) {
+        selectedTool = tool;
+        document.querySelectorAll('.tool-btn').forEach((btn) => btn.classList.remove('active'));
+        document.querySelector(`.${tool}-btn`).classList.add('active');
+      }
+
+      function toggleGrid() {
+        gridSnap = !gridSnap;
+        document.querySelector('.grid-btn').style.color = gridSnap ? '#00ff00' : '#666';
+      }
+
+      function onWindowResize() {
+        camera.aspect = (window.innerWidth * 0.6) / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth * 0.6, window.innerHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        // Gentle float animation for objects
+        objects.forEach((obj, i) => {
+          obj.position.y = 0.25 + Math.sin(Date.now() * 0.001 + i) * 0.02;
+          obj.rotation.y += 0.002;
+        });
+
+        renderer.render(scene, camera);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+// Atomic/molecular building fixture
+
+composition "StretchableAtoms" {
+  template "HydrogenAtom" {
+    @stretchable(mode: "bond", snap_to: "atoms", bond_type: "single")
+    geometry: "sphere"
+    color: "#ffffff"
+    tag: "atom"
+    element: "H"
+
+    @on_stretch(delta) => update_bond_visualization(delta)
+  }
+
+  template "OxygenAtom" {
+    @stretchable(mode: "bond", snap_to: "atoms", bond_type: "single")
+    geometry: "sphere"
+    color: "#ff0000"
+    tag: "atom"
+    element: "O"
+  }
+
+  template "ClayBlock" {
+    @moldable(tool: "fingers", softness: 0.7, symmetry: true)
+    geometry: "mesh"
+    material: "clay"
+
+    @on_sculpt(region, pressure) => update_mesh(region, pressure)
+  }
+
+  object "Hydrogen1" using "HydrogenAtom" {
+    position: [0, 0, 0]
+    scale: [0.3, 0.3, 0.3]
+  }
+
+  object "Hydrogen2" using "HydrogenAtom" {
+    position: [1.5, 0, 0]
+    scale: [0.3, 0.3, 0.3]
+  }
+
+  object "Oxygen" using "OxygenAtom" {
+    position: [0.75, 0.5, 0]
+    scale: [0.4, 0.4, 0.4]
+  }
+
+  // Clay sculpting example
+  object "ClayBlock" using "ClayBlock" {
+    position: [5, 1, 0]
+  }
+}

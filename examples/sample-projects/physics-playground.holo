@@ -1,0 +1,441 @@
+// ============================================================
+// Physics Playground - HoloScript Sample Project
+// ============================================================
+// An interactive sandbox for testing physics behaviors.
+// Features stackable crates, bouncing balls, cloth simulation,
+// wind effects, ramps, and platforms. Everything is grabbable,
+// throwable, or breakable -- experiment freely.
+// ============================================================
+
+composition "Physics Playground" {
+
+  // ----------------------------------------------------------
+  // ENVIRONMENT
+  // ----------------------------------------------------------
+  // Open-air playground with bright ambient light so players
+  // can clearly see object collisions and physics reactions.
+
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.55
+    gravity: -9.81
+    shadows: true
+  }
+
+  // ----------------------------------------------------------
+  // TEMPLATES
+  // ----------------------------------------------------------
+  // Reusable object definitions for crates, balls, and planks.
+
+  template "PhysicsCrate" {
+    @physics
+    @grabbable
+    @stackable
+    @breakable
+    @collidable
+
+    geometry: "cube"
+    material: "wood"
+    mass: 2.0
+    friction: 0.6
+    restitution: 0.1
+  }
+
+  template "BouncyBall" {
+    @physics
+    @throwable
+    @collidable
+    @grabbable
+
+    geometry: "sphere"
+    material: "rubber"
+    mass: 0.5
+    friction: 0.4
+    restitution: 0.85
+  }
+
+  template "StaticPlatform" {
+    @collidable
+
+    geometry: "cube"
+    color: "#3a3a5a"
+    material: "concrete"
+    mass: 0
+  }
+
+  // ----------------------------------------------------------
+  // GROUND PLANE
+  // ----------------------------------------------------------
+  // The main floor that everything rests on or bounces off of.
+
+  object "Ground" @collidable {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [30, 1, 30]
+    color: "#2d3436"
+    material: "concrete"
+    friction: 0.8
+  }
+
+  // ----------------------------------------------------------
+  // STACKABLE CRATE ZONE
+  // ----------------------------------------------------------
+  // A set of wooden crates arranged in a pyramid. Players can
+  // grab and rearrange them, stack them higher, or smash
+  // through the pile. The @breakable trait means a hard enough
+  // impact will shatter a crate into fragments.
+
+  spatial_group "CrateZone" {
+
+    // Bottom row (4 crates)
+    object "Crate_B1" using "PhysicsCrate" {
+      position: [-3.75, 0.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#a0522d"
+    }
+
+    object "Crate_B2" using "PhysicsCrate" {
+      position: [-3.25, 0.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#8b4513"
+    }
+
+    object "Crate_B3" using "PhysicsCrate" {
+      position: [-2.75, 0.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#a0522d"
+    }
+
+    object "Crate_B4" using "PhysicsCrate" {
+      position: [-2.25, 0.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#8b4513"
+    }
+
+    // Middle row (3 crates)
+    object "Crate_M1" using "PhysicsCrate" {
+      position: [-3.5, 0.75, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#a0522d"
+    }
+
+    object "Crate_M2" using "PhysicsCrate" {
+      position: [-3.0, 0.75, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#8b4513"
+    }
+
+    object "Crate_M3" using "PhysicsCrate" {
+      position: [-2.5, 0.75, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#a0522d"
+    }
+
+    // Top row (2 crates)
+    object "Crate_T1" using "PhysicsCrate" {
+      position: [-3.25, 1.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#8b4513"
+    }
+
+    object "Crate_T2" using "PhysicsCrate" {
+      position: [-2.75, 1.25, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#a0522d"
+    }
+
+    // Capstone
+    object "Crate_Cap" using "PhysicsCrate" {
+      position: [-3.0, 1.75, -4]
+      scale: [0.5, 0.5, 0.5]
+      color: "#cd853f"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // BOUNCING BALL ZONE
+  // ----------------------------------------------------------
+  // Colorful rubber balls ready to be thrown. High restitution
+  // makes them bounce energetically off surfaces and each other.
+
+  spatial_group "BallZone" {
+
+    object "RedBall" using "BouncyBall" {
+      position: [2, 1.0, -3]
+      scale: 0.2
+      color: "#e74c3c"
+    }
+
+    object "BlueBall" using "BouncyBall" {
+      position: [2.6, 1.2, -3]
+      scale: 0.2
+      color: "#3498db"
+    }
+
+    object "GreenBall" using "BouncyBall" {
+      position: [3.2, 1.4, -3]
+      scale: 0.2
+      color: "#2ecc71"
+    }
+
+    object "OrangeBall" using "BouncyBall" {
+      position: [2.3, 1.6, -3.5]
+      scale: 0.25
+      color: "#e67e22"
+    }
+
+    object "PurpleBall" using "BouncyBall" {
+      position: [2.9, 1.8, -3.5]
+      scale: 0.18
+      color: "#9b59b6"
+    }
+
+    // Ball dispenser -- click to spawn a new random ball
+    object "BallDispenser" @clickable @glowing {
+      geometry: "cylinder"
+      position: [3.5, 1.5, -2]
+      scale: [0.3, 0.3, 0.3]
+      color: "#00ffff"
+      emissive: "#00ffff"
+      emissiveIntensity: 0.5
+
+      on_click() {
+        spawn using "BouncyBall" at [3.5, 2.5, -2]
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // RAMPS AND PLATFORMS
+  // ----------------------------------------------------------
+  // Static ramps for rolling balls down and elevated platforms
+  // for stacking challenges.
+
+  spatial_group "RampsAndPlatforms" {
+
+    // Main ramp -- tilted surface for rolling objects down
+    object "Ramp_Main" using "StaticPlatform" {
+      position: [0, 0.6, -1]
+      rotation: [0, 0, -15]
+      scale: [3, 0.1, 1.2]
+      color: "#636e72"
+    }
+
+    // Catch ramp -- at the bottom to redirect rolling objects
+    object "Ramp_Catch" using "StaticPlatform" {
+      position: [-2, 0.15, -1]
+      rotation: [0, 0, 10]
+      scale: [1.5, 0.1, 1.2]
+      color: "#636e72"
+    }
+
+    // Elevated platform -- left side
+    object "Platform_Left" using "StaticPlatform" {
+      position: [-5, 1.0, 0]
+      scale: [2, 0.15, 2]
+      color: "#4a4a6a"
+    }
+
+    // Elevated platform -- right side, higher
+    object "Platform_Right" using "StaticPlatform" {
+      position: [5, 1.8, 0]
+      scale: [2, 0.15, 2]
+      color: "#4a4a6a"
+    }
+
+    // Staircase platforms -- three ascending steps
+    object "Step_1" using "StaticPlatform" {
+      position: [4, 0.3, 2]
+      scale: [1, 0.15, 0.8]
+      color: "#555577"
+    }
+
+    object "Step_2" using "StaticPlatform" {
+      position: [4, 0.75, 1.2]
+      scale: [1, 0.15, 0.8]
+      color: "#555577"
+    }
+
+    object "Step_3" using "StaticPlatform" {
+      position: [4, 1.2, 0.4]
+      scale: [1, 0.15, 0.8]
+      color: "#555577"
+    }
+
+    // Half-pipe ramp for trick shots
+    object "HalfPipe_Left" using "StaticPlatform" {
+      position: [0, 0.4, 4]
+      rotation: [0, 0, 30]
+      scale: [1.5, 0.08, 2]
+      color: "#636e72"
+    }
+
+    object "HalfPipe_Right" using "StaticPlatform" {
+      position: [3, 0.4, 4]
+      rotation: [0, 0, -30]
+      scale: [1.5, 0.08, 2]
+      color: "#636e72"
+    }
+  }
+
+  // ----------------------------------------------------------
+  // CLOTH BANNER
+  // ----------------------------------------------------------
+  // A fabric banner hanging between two posts. The @cloth trait
+  // enables soft-body cloth simulation so it ripples and sways
+  // realistically in the wind.
+
+  spatial_group "ClothArea" {
+
+    // Left pole
+    object "Pole_Left" @collidable {
+      geometry: "cylinder"
+      position: [-2, 1.5, 3]
+      scale: [0.06, 3, 0.06]
+      color: "#7f8c8d"
+      material: "metal"
+    }
+
+    // Right pole
+    object "Pole_Right" @collidable {
+      geometry: "cylinder"
+      position: [2, 1.5, 3]
+      scale: [0.06, 3, 0.06]
+      color: "#7f8c8d"
+      material: "metal"
+    }
+
+    // The cloth banner itself
+    // Pinned at top-left and top-right corners to the poles
+    object "Banner" @cloth {
+      geometry: "plane"
+      position: [0, 2.5, 3]
+      scale: [4, 1.5, 1]
+      color: "#e74c3c"
+      material: "fabric"
+
+      cloth_resolution: 24
+      cloth_mass: 0.3
+      cloth_stiffness: 0.8
+      cloth_damping: 0.05
+      pin_corners: ["top_left", "top_right"]
+    }
+  }
+
+  // ----------------------------------------------------------
+  // WIND EFFECT
+  // ----------------------------------------------------------
+  // A directional wind zone that affects cloth and lightweight
+  // physics objects. The wind blows from east to west.
+
+  object "WindZone" @wind {
+    position: [0, 2, 0]
+    wind_direction: [-1, 0.1, 0.3]
+    wind_strength: 3.5
+    wind_turbulence: 0.6
+    wind_radius: 15
+  }
+
+  // Wind indicator -- a small flag to visualize wind direction
+  object "WindFlag" @cloth {
+    geometry: "plane"
+    position: [6, 2.2, -5]
+    scale: [0.6, 0.4, 1]
+    color: "#f39c12"
+    material: "fabric"
+    cloth_resolution: 8
+    cloth_mass: 0.1
+    cloth_stiffness: 0.5
+    pin_corners: ["top_left", "bottom_left"]
+  }
+
+  object "FlagPole" @collidable {
+    geometry: "cylinder"
+    position: [6, 1.2, -5]
+    scale: [0.04, 2.4, 0.04]
+    color: "#7f8c8d"
+    material: "metal"
+  }
+
+  // ----------------------------------------------------------
+  // INTERACTIVE ELEMENTS
+  // ----------------------------------------------------------
+
+  // Reset button -- click to respawn all physics objects
+  // to their original positions
+  object "ResetButton" @clickable @glowing {
+    geometry: "cylinder"
+    position: [0, 0.15, 6]
+    scale: [0.4, 0.1, 0.4]
+    color: "#e74c3c"
+    emissive: "#e74c3c"
+    emissiveIntensity: 0.4
+
+    on_click() {
+      trigger "reset_scene"
+    }
+  }
+
+  // Gravity toggle -- click to switch between normal and
+  // low gravity for zero-G experiments
+  object "GravityToggle" @clickable @glowing {
+    geometry: "sphere"
+    position: [1.2, 0.3, 6]
+    scale: 0.2
+    color: "#9b59b6"
+    emissive: "#9b59b6"
+    emissiveIntensity: 0.4
+
+    state {
+      low_gravity: false
+    }
+
+    on_click() {
+      if (state.low_gravity) {
+        set environment.gravity: -9.81
+        state.low_gravity = false
+      } else {
+        set environment.gravity: -1.62
+        state.low_gravity = true
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // BOUNDARY WALLS
+  // ----------------------------------------------------------
+  // Invisible collision walls to keep objects from flying
+  // off the edge of the playground.
+
+  object "BoundaryNorth" @collidable {
+    geometry: "cube"
+    position: [0, 2, -8]
+    scale: [30, 4, 0.1]
+    color: "#00000000"
+    visible: false
+  }
+
+  object "BoundarySouth" @collidable {
+    geometry: "cube"
+    position: [0, 2, 8]
+    scale: [30, 4, 0.1]
+    color: "#00000000"
+    visible: false
+  }
+
+  object "BoundaryEast" @collidable {
+    geometry: "cube"
+    position: [8, 2, 0]
+    scale: [0.1, 4, 30]
+    color: "#00000000"
+    visible: false
+  }
+
+  object "BoundaryWest" @collidable {
+    geometry: "cube"
+    position: [-8, 2, 0]
+    scale: [0.1, 4, 30]
+    color: "#00000000"
+    visible: false
+  }
+}

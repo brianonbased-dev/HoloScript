@@ -1,0 +1,394 @@
+/**
+ * Storm Systems Example
+ *
+ * Demonstrates dynamic storm weather: lightning, thunderstorms, tornadoes,
+ * hurricanes, and severe weather events with procedural generation.
+ *
+ * Key Features:
+ * - Lightning: Procedural bolt generation, branching, illumination
+ * - Thunderstorm: Combined rain, wind, lightning, sound
+ * - Tornado: Vortex physics, debris system, destruction
+ * - Hurricane: Large-scale wind patterns, rain bands, eye wall
+ * - Typhoon: Pacific equivalent to hurricane
+ *
+ * @version 5.1.0
+ * @category Weather
+ */
+
+composition StormSystemsShowcase {
+  // Environment
+  entity Terrain {
+    mesh: {
+      type: "plane",
+      width: 200.0,
+      height: 200.0,
+      subdivisions: 64,
+    },
+    advanced_pbr: { base_color: [0.3, 0.4, 0.2], metallic: 0.0, roughness: 0.9 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Lightning Bolt System
+  entity LightningStrike1 {
+    lightning_bolt: {
+      enabled: false,                   // Triggered on demand
+      frequency: 0.5,                   // Strikes per second (when enabled)
+
+      // Bolt generation
+      start_point: [0.0, 50.0, 0.0],   // Sky position
+      end_point: null,                  // Auto-target ground
+      target_mode: "highest_point",     // Or "random", "manual"
+
+      // Procedural branching
+      branch_probability: 0.4,          // 40% chance per segment
+      max_branches: 8,
+      branch_angle: 30.0,               // Degrees
+      segments: 32,                     // Bolt resolution
+
+      // Visual
+      thickness: 0.15,
+      color: [0.9, 0.95, 1.0],
+      glow_intensity: 5.0,
+      duration: 0.15,                   // Seconds per strike
+
+      // Illumination
+      flash_scene: true,                // Bright environmental flash
+      flash_intensity: 10.0,
+      flash_duration: 0.1,
+      flash_color: [0.95, 0.98, 1.0],
+
+      // Sound
+      thunder_enabled: true,
+      thunder_delay: 2.0,               // Distance-based (speed of sound)
+      thunder_volume: 0.8,
+    },
+
+    transform: {
+      position: [-20.0, 0.0, -20.0],
+    },
+  }
+
+  // 2. Thunderstorm System
+  entity ThunderstormSystem {
+    thunderstorm: {
+      enabled: true,
+      intensity: 0.7,                   // 0-1 severity
+
+      // Storm components
+      rain: {
+        enabled: true,
+        rate: 20000.0,                  // Heavy rain
+        wind_speed: 15.0,               // m/s
+        wind_gusts: true,
+        gust_frequency: 0.2,            // Hz
+        gust_strength: 2.0,             // Multiplier
+      },
+
+      lightning: {
+        enabled: true,
+        frequency: 0.3,                 // Strikes per second
+        flash_intensity: 8.0,
+      },
+
+      clouds: {
+        coverage: 1.0,                  // 100% overcast
+        type: "cumulonimbus",           // Storm clouds
+        height: 3000.0,                 // Meters
+        thickness: 2000.0,
+        darkness: 0.8,                  // Darken scene
+      },
+
+      wind: {
+        base_speed: 12.0,               // m/s
+        turbulence: 0.6,
+        direction: [1.0, 0.0, 0.5],     // Wind direction vector
+      },
+
+      // Progression
+      build_up_time: 10.0,              // Seconds to full intensity
+      duration: 60.0,                   // Storm duration
+      dissipate_time: 15.0,             // Fade out time
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],        // Center of storm
+    },
+  }
+
+  // 3. Tornado System
+  entity TornadoVortex {
+    tornado: {
+      enabled: false,                   // Triggered
+      intensity: 0.8,                   // EF-scale (0-1 = EF0-EF5)
+
+      // Vortex physics
+      rotation_speed: 200.0,            // m/s tangential
+      upward_velocity: 50.0,            // m/s vertical
+      radius: 50.0,                     // Meters at base
+      height: 500.0,                    // Meters tall
+
+      // Shape
+      funnel_shape: "tapered",          // "cylinder", "tapered", "rope"
+      wall_thickness: 10.0,
+      core_pressure: -100.0,            // Pa (negative = suction)
+
+      // Movement
+      path_speed: 15.0,                 // m/s translation
+      path_direction: [1.0, 0.0, 0.5],
+      path_wobble: 0.3,                 // Erratic movement
+
+      // Debris system
+      debris: {
+        enabled: true,
+        particle_count: 5000,
+        particle_types: ["dirt", "leaves", "wood", "metal"],
+        lifting_force: 100.0,           // N
+        max_debris_size: 2.0,           // Meters
+      },
+
+      // Destruction
+      destruction_enabled: true,
+      destruction_radius: 30.0,
+      damage_curve: "exponential",      // Center = max damage
+
+      // Visual
+      dust_cloud: true,
+      condensation_funnel: true,
+      color: [0.3, 0.3, 0.2, 0.6],     // Brown dust
+    },
+
+    transform: {
+      position: [50.0, 0.0, -50.0],
+    },
+  }
+
+  // 4. Hurricane System
+  entity HurricaneSystem {
+    hurricane: {
+      enabled: false,                   // Large-scale event
+      category: 3,                      // Saffir-Simpson (1-5)
+
+      // Structure
+      eye_radius: 20000.0,              // Meters (20 km)
+      eye_wall_radius: 40000.0,         // Meters (40 km)
+      outer_radius: 200000.0,           // Meters (200 km)
+      center_position: [0.0, 0.0],      // Lat/lon or local coords
+
+      // Wind patterns
+      max_wind_speed: 58.0,             // m/s (Category 3 = 50-58 m/s)
+      wind_profile: "exponential",      // Wind increases toward eye wall
+      eye_calm: true,                   // Calm in eye
+
+      // Rain bands
+      rain_bands: {
+        enabled: true,
+        band_count: 8,
+        band_spacing: 20000.0,          // Meters
+        rain_rate: 50.0,                // mm/hr
+        rotation_period: 3600.0,        // Seconds (1 hour rotation)
+      },
+
+      // Rotation
+      rotation_speed: 0.5,              // Degrees per hour
+      coriolis_effect: true,            // Northern hemisphere = CCW
+
+      // Storm surge (if near coast)
+      storm_surge: {
+        enabled: false,
+        height: 3.0,                    // Meters above normal
+        radius: 50000.0,                // Affected area
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Typhoon (Pacific Hurricane)
+  entity TyphoonSystem {
+    typhoon: {
+      enabled: false,
+      category: 4,                      // Super typhoon
+
+      // Similar to hurricane but different naming
+      eye_radius: 15000.0,
+      eye_wall_radius: 35000.0,
+      outer_radius: 300000.0,           // Larger than Atlantic hurricanes
+      max_wind_speed: 65.0,             // m/s (Category 4)
+
+      // More intense characteristics
+      rain_rate: 100.0,                 // mm/hr (heavier rain)
+      rotation_speed: 0.8,              // Faster rotation
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 70.0,
+      near: 1.0,
+      far: 10000.0,
+      position: [0.0, 100.0, 200.0],
+      target: [0.0, 50.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on LightningStrike1.lightning_bolt.strike -> (event) {
+    console.log(`Lightning strike at [${event.strike_point}], branches=${event.branch_count}`);
+    console.log(`  Thunder delay: ${event.thunder_delay.toFixed(2)}s (distance=${(event.distance / 343).toFixed(0)}m)`);
+  }
+
+  on ThunderstormSystem.thunderstorm.intensity_changed -> (event) {
+    console.log(`Thunderstorm intensity: ${(event.intensity * 100).toFixed(0)}%`);
+    console.log(`  Rain: ${event.rain_rate.toFixed(0)} particles/s, Wind: ${event.wind_speed.toFixed(1)} m/s`);
+  }
+
+  on ThunderstormSystem.thunderstorm.lightning_flash -> (event) {
+    console.log(`Lightning flash: intensity=${event.flash_intensity}`);
+  }
+
+  on TornadoVortex.tornado.spawned -> (event) {
+    console.log(`Tornado spawned: EF-${event.ef_scale}, radius=${event.radius}m, height=${event.height}m`);
+  }
+
+  on TornadoVortex.tornado.debris_lifted -> (event) {
+    console.log(`Debris lifted: ${event.object_type}, mass=${event.mass}kg, height=${event.height.toFixed(1)}m`);
+  }
+
+  on TornadoVortex.tornado.destruction -> (event) {
+    console.log(`Tornado destroyed object at [${event.position}], damage=${event.damage_percent}%`);
+  }
+
+  on HurricaneSystem.hurricane.eye_entered -> (event) {
+    console.log('Entered hurricane eye - calm conditions');
+  }
+
+  on HurricaneSystem.hurricane.wind_speed_changed -> (event) {
+    console.log(`Hurricane wind: ${event.wind_speed.toFixed(1)} m/s at radius ${event.radius.toFixed(0)}m`);
+  }
+}
+
+// Storm controls
+ui StormControls {
+  panel "Storm Systems" {
+    section "Lightning" {
+      button "Strike Now!" -> () {
+        LightningStrike1.lightning_bolt.trigger_strike();
+      }
+
+      slider "Strike Frequency (Hz)" {
+        min: 0.1, max: 5.0, value: 0.5, step: 0.1,
+        onChange: (v) => { LightningStrike1.lightning_bolt.frequency = v; }
+      }
+
+      slider "Flash Intensity" {
+        min: 0.0, max: 20.0, value: 10.0, step: 0.5,
+        onChange: (v) => { LightningStrike1.lightning_bolt.flash_intensity = v; }
+      }
+
+      checkbox "Thunder" {
+        value: true,
+        onChange: (v) => { LightningStrike1.lightning_bolt.thunder_enabled = v; }
+      }
+    }
+
+    section "Thunderstorm" {
+      checkbox "Enable Storm" {
+        value: true,
+        onChange: (v) => { ThunderstormSystem.thunderstorm.enabled = v; }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 1.0, value: 0.7, step: 0.05,
+        onChange: (v) => { ThunderstormSystem.thunderstorm.intensity = v; }
+      }
+
+      slider "Wind Speed (m/s)" {
+        min: 0.0, max: 30.0, value: 12.0, step: 1.0,
+        onChange: (v) => { ThunderstormSystem.thunderstorm.wind.base_speed = v; }
+      }
+
+      slider "Cloud Darkness" {
+        min: 0.0, max: 1.0, value: 0.8, step: 0.05,
+        onChange: (v) => { ThunderstormSystem.thunderstorm.clouds.darkness = v; }
+      }
+    }
+
+    section "Tornado" {
+      button "Spawn Tornado" -> () {
+        TornadoVortex.tornado.enabled = true;
+      }
+
+      button "Stop Tornado" -> () {
+        TornadoVortex.tornado.enabled = false;
+      }
+
+      slider "Intensity (EF-Scale)" {
+        min: 0.0, max: 1.0, value: 0.8, step: 0.1,
+        onChange: (v) => { TornadoVortex.tornado.intensity = v; }
+      }
+
+      slider "Rotation Speed (m/s)" {
+        min: 50.0, max: 400.0, value: 200.0, step: 10.0,
+        onChange: (v) => { TornadoVortex.tornado.rotation_speed = v; }
+      }
+
+      checkbox "Debris System" {
+        value: true,
+        onChange: (v) => { TornadoVortex.tornado.debris.enabled = v; }
+      }
+
+      text "Debris Count" {
+        value: () => `${TornadoVortex.tornado.debris.active_count}`
+      }
+    }
+
+    section "Hurricane" {
+      button "Activate Hurricane" -> () {
+        HurricaneSystem.hurricane.enabled = true;
+      }
+
+      dropdown "Category" {
+        options: ["1", "2", "3", "4", "5"],
+        value: "3",
+        onChange: (v) => { HurricaneSystem.hurricane.category = parseInt(v); }
+      }
+
+      slider "Eye Radius (km)" {
+        min: 5.0, max: 50.0, value: 20.0, step: 1.0,
+        onChange: (v) => { HurricaneSystem.hurricane.eye_radius = v * 1000.0; }
+      }
+
+      slider "Max Wind Speed (m/s)" {
+        min: 30.0, max: 85.0, value: 58.0, step: 1.0,
+        onChange: (v) => { HurricaneSystem.hurricane.max_wind_speed = v; }
+      }
+
+      text "Current Wind" {
+        value: () => `${HurricaneSystem.hurricane.current_wind_speed.toFixed(1)} m/s`
+      }
+    }
+
+    section "Warning" {
+      text "⚠ Storm Safety" {
+        value: () => {
+          if (TornadoVortex.tornado.enabled) {
+            return "TORNADO ACTIVE - SEEK SHELTER";
+          } else if (HurricaneSystem.hurricane.enabled) {
+            return `HURRICANE CAT ${HurricaneSystem.hurricane.category} ACTIVE`;
+          } else if (ThunderstormSystem.thunderstorm.enabled) {
+            return "Thunderstorm in progress";
+          }
+          return "No active severe weather";
+        }
+      }
+    }
+  }
+}

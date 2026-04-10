@@ -1,0 +1,1668 @@
+// ============================================================================
+// Humanoid Atlas — 1,450,000 Geometric Primitives Forming a Human Figure
+// ============================================================================
+// A realistic human figure assembled from nothing but mathematics.
+// No mesh data. No scanned geometry. No textures. Every curve of muscle,
+// every fold of skin, every strand of hair is pure SDF field or instanced
+// primitive placed with anatomical intent.
+//
+// The figure stands in a slow contrapposto — weight on the left leg, right
+// hip dropped, shoulders tilted opposite. This is the classical stance of
+// Greek sculpture, but rendered in light and computational geometry rather
+// than marble. The pose is alive: chest rises and falls with breath, fingers
+// curl with idle tension, eyes track a point just past the viewer.
+//
+// Skin is not a surface but a volume — 600,000 translucent micro-spheres
+// layered three deep to simulate epidermis, dermis, and subsurface scatter.
+// Light enters through the outer layer, bounces through warm undertones,
+// and exits tinted by blood and tissue. The effect is uncanny: geometric
+// primitives that somehow look like flesh.
+//
+// This is proof that a sufficiently dense arrangement of simple shapes,
+// governed by anatomical knowledge, can cross the uncanny valley from
+// the mathematical side.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode immersive
+
+// ----------------------------------------------------------------------------
+// Environment — Neutral studio lighting, soft and sculptural
+// A photographer's cyclorama: infinite white floor curving into white walls,
+// but not clinical — warm, with gradient falloff into shadow
+// ----------------------------------------------------------------------------
+@environment {
+    type: "photo_studio",
+    background: "#1a1a1e",
+    lighting: "three_point_studio",
+    fog_density: 0.003,
+    fog_color: "#14141a",
+    fog_type: "exponential"
+}
+
+@skybox {
+    type: "gradient",
+    zenith: "#0d0d10",
+    horizon: "#1e1e24",
+    nadir: "#08080a"
+}
+
+// ----------------------------------------------------------------------------
+// Lighting — Three-point studio setup with rim and fill
+// Key: warm directional from upper-left
+// Fill: cool soft from right
+// Rim: strong backlight for silhouette separation
+// ----------------------------------------------------------------------------
+object KeyLight {
+    type: "directional_light"
+    position: [-40, 60, -30]
+    rotation: [-40, -30, 0]
+
+    @lighting {
+        type: "directional",
+        color: "#ffe8d0",
+        intensity: 3.2,
+        cast_shadow: true,
+        shadow_resolution: 4096,
+        shadow_bias: 0.0002,
+        shadow_softness: 0.015
+    }
+}
+
+object FillLight {
+    type: "area_light"
+    position: [35, 25, -15]
+    rotation: [-15, 50, 0]
+
+    @lighting {
+        type: "area",
+        color: "#c8d8f0",
+        intensity: 1.4,
+        width: 20,
+        height: 30,
+        cast_shadow: false
+    }
+}
+
+object RimLight {
+    type: "spot_light"
+    position: [5, 45, 40]
+    rotation: [25, 180, 0]
+
+    @lighting {
+        type: "spot",
+        color: "#f0e8ff",
+        intensity: 4.0,
+        angle: 35,
+        penumbra: 0.6,
+        distance: 80,
+        cast_shadow: true,
+        shadow_resolution: 2048
+    }
+}
+
+object UnderFill {
+    type: "area_light"
+    position: [0, -2, -10]
+    rotation: [80, 0, 0]
+
+    @lighting {
+        type: "area",
+        color: "#e8e0d8",
+        intensity: 0.4,
+        width: 30,
+        height: 30,
+        cast_shadow: false
+    }
+}
+
+object AmbientWash {
+    type: "ambient_light"
+
+    @lighting {
+        type: "ambient",
+        color: "#1a1820",
+        intensity: 0.2
+    }
+}
+
+// ============================================================================
+// SKELETAL ARMATURE — Invisible joint system driving the pose
+// 24 joints defining the classical contrapposto
+// All body parts reference this armature for positioning
+// ============================================================================
+object SkeletalArmature {
+    type: "armature"
+    position: [0, 0, 0]
+
+    @skeleton {
+        joints: [
+            // Spine chain
+            { id: "pelvis",       position: [0, 9.5, 0],     rotation: [0, 0, -3] },
+            { id: "spine_lower",  position: [0, 10.8, -0.2], rotation: [2, 0, 2], parent: "pelvis" },
+            { id: "spine_mid",    position: [0, 12.2, -0.1], rotation: [1, 0, 1], parent: "spine_lower" },
+            { id: "spine_upper",  position: [0, 13.8, 0.1],  rotation: [-1, 0, -2], parent: "spine_mid" },
+            { id: "neck",         position: [0, 15.0, 0.0],  rotation: [-3, 2, 1], parent: "spine_upper" },
+            { id: "head",         position: [0, 16.0, 0.1],  rotation: [5, -3, -1], parent: "neck" },
+
+            // Left arm (slightly back, relaxed)
+            { id: "l_shoulder",   position: [-1.9, 14.5, 0.0], rotation: [5, 0, 8], parent: "spine_upper" },
+            { id: "l_elbow",      position: [-2.8, 12.0, -0.3], rotation: [15, 0, 5], parent: "l_shoulder" },
+            { id: "l_wrist",      position: [-2.6, 9.8, 0.2],  rotation: [0, -5, -3], parent: "l_elbow" },
+            { id: "l_fingers",    position: [-2.5, 9.2, 0.3],  rotation: [20, 0, 0], parent: "l_wrist" },
+
+            // Right arm (slightly forward, hand resting)
+            { id: "r_shoulder",   position: [1.9, 14.3, 0.0],  rotation: [-3, 0, -10], parent: "spine_upper" },
+            { id: "r_elbow",      position: [2.6, 12.2, 0.5],  rotation: [-10, 0, -8], parent: "r_shoulder" },
+            { id: "r_wrist",      position: [2.4, 10.0, 0.1],  rotation: [5, 5, 2], parent: "r_elbow" },
+            { id: "r_fingers",    position: [2.3, 9.4, 0.2],   rotation: [25, 0, 0], parent: "r_wrist" },
+
+            // Left leg (weight-bearing, straight)
+            { id: "l_hip",        position: [-0.9, 9.2, 0.0],  rotation: [0, 0, 2], parent: "pelvis" },
+            { id: "l_knee",       position: [-0.9, 5.0, 0.2],  rotation: [2, 0, 0], parent: "l_hip" },
+            { id: "l_ankle",      position: [-0.9, 0.8, 0.0],  rotation: [-2, 0, 0], parent: "l_knee" },
+            { id: "l_toes",       position: [-0.9, 0.1, 0.8],  rotation: [0, 0, 0], parent: "l_ankle" },
+
+            // Right leg (relaxed, slightly bent, shifted forward)
+            { id: "r_hip",        position: [0.9, 9.0, 0.0],   rotation: [8, 0, -4], parent: "pelvis" },
+            { id: "r_knee",       position: [1.1, 5.2, 0.8],   rotation: [-15, 0, 2], parent: "r_hip" },
+            { id: "r_ankle",      position: [1.0, 0.9, 0.5],   rotation: [5, 0, 0], parent: "r_knee" },
+            { id: "r_toes",       position: [1.0, 0.1, 1.3],   rotation: [0, 0, 0], parent: "r_ankle" }
+        ],
+        // Contrapposto: opposing tilts create the classical S-curve
+        pose_description: "contrapposto_classical",
+        figure_height: 17.2,
+        figure_unit: "head_heights_8"
+    }
+}
+
+// ============================================================================
+// HEAD & FACE — SDF composition of smooth organic forms
+// 45 SDF primitives blended with smooth-union/intersection
+// The most anatomically precise region — eyes, nose, lips, jaw, ears
+// ============================================================================
+object HeadSDF {
+    type: "sdf_field"
+    position: [0, 16.2, 0.1]
+    armature_joint: "head"
+
+    @sdf_scene {
+        primitives: [
+            // Cranium — elongated sphere, slightly wider at temples
+            { id: "cranium", type: "ellipsoid", radii: [0.72, 0.88, 0.82], position: [0, 0.35, -0.05] },
+            // Frontal bone — flattened forward bulge
+            { id: "forehead", type: "ellipsoid", radii: [0.65, 0.35, 0.45], position: [0, 0.65, 0.30] },
+
+            // Face plate — the front surface from brow to chin
+            { id: "face_plate", type: "ellipsoid", radii: [0.58, 0.70, 0.40], position: [0, 0.0, 0.25] },
+            // Cheekbones — two spheres creating the zygomatic arch
+            { id: "l_cheekbone", type: "ellipsoid", radii: [0.22, 0.14, 0.18], position: [-0.38, 0.0, 0.35] },
+            { id: "r_cheekbone", type: "ellipsoid", radii: [0.22, 0.14, 0.18], position: [0.38, 0.0, 0.35] },
+
+            // Jaw — tapered box transitioning to rounded chin
+            { id: "jaw", type: "rounded_box", size: [0.42, 0.30, 0.32], radius: 0.12, position: [0, -0.42, 0.15] },
+            // Chin — small sphere protruding forward
+            { id: "chin", type: "sphere", radius: 0.14, position: [0, -0.55, 0.32] },
+            // Jaw angles — bilateral spheres at the jaw hinge
+            { id: "l_jaw_angle", type: "sphere", radius: 0.10, position: [-0.35, -0.28, 0.02] },
+            { id: "r_jaw_angle", type: "sphere", radius: 0.10, position: [0.35, -0.28, 0.02] },
+
+            // Brow ridge — horizontal torus segment
+            { id: "brow_ridge", type: "capsule", radius: 0.06, height: 0.90, position: [0, 0.28, 0.45], rotation: [0, 0, 90] },
+
+            // Eye sockets — subtractive spheres creating the orbital cavities
+            { id: "l_eye_socket", type: "sphere", radius: 0.16, position: [-0.22, 0.15, 0.42] },
+            { id: "r_eye_socket", type: "sphere", radius: 0.16, position: [0.22, 0.15, 0.42] },
+
+            // Eyeballs — filled spheres sitting in the sockets
+            { id: "l_eyeball", type: "sphere", radius: 0.125, position: [-0.22, 0.14, 0.44] },
+            { id: "r_eyeball", type: "sphere", radius: 0.125, position: [0.22, 0.14, 0.44] },
+            // Irises — small discs on the eyeball surface
+            { id: "l_iris", type: "cylinder", radius: 0.055, height: 0.01, position: [-0.21, 0.14, 0.56], rotation: [0, 0, 0] },
+            { id: "r_iris", type: "cylinder", radius: 0.055, height: 0.01, position: [0.21, 0.14, 0.56], rotation: [0, 0, 0] },
+            // Pupils — tiny dark spheres
+            { id: "l_pupil", type: "sphere", radius: 0.025, position: [-0.21, 0.14, 0.565] },
+            { id: "r_pupil", type: "sphere", radius: 0.025, position: [0.21, 0.14, 0.565] },
+
+            // Eyelids — thin ellipsoidal shells
+            { id: "l_upper_lid", type: "ellipsoid", radii: [0.14, 0.05, 0.10], position: [-0.22, 0.19, 0.47] },
+            { id: "r_upper_lid", type: "ellipsoid", radii: [0.14, 0.05, 0.10], position: [0.22, 0.19, 0.47] },
+            { id: "l_lower_lid", type: "ellipsoid", radii: [0.13, 0.035, 0.08], position: [-0.22, 0.08, 0.46] },
+            { id: "r_lower_lid", type: "ellipsoid", radii: [0.13, 0.035, 0.08], position: [0.22, 0.08, 0.46] },
+
+            // Nose — compound: bridge + ball + nostrils
+            { id: "nose_bridge", type: "capsule", radius: 0.06, height: 0.25, position: [0, 0.05, 0.50], rotation: [15, 0, 0] },
+            { id: "nose_ball", type: "sphere", radius: 0.09, position: [0, -0.10, 0.55] },
+            { id: "l_nostril", type: "sphere", radius: 0.055, position: [-0.06, -0.13, 0.50] },
+            { id: "r_nostril", type: "sphere", radius: 0.055, position: [0.06, -0.13, 0.50] },
+            // Nostril holes — subtractive
+            { id: "l_nostril_hole", type: "sphere", radius: 0.03, position: [-0.05, -0.15, 0.52] },
+            { id: "r_nostril_hole", type: "sphere", radius: 0.03, position: [0.05, -0.15, 0.52] },
+
+            // Lips — two capsule-like forms
+            { id: "upper_lip", type: "ellipsoid", radii: [0.18, 0.04, 0.08], position: [0, -0.28, 0.42] },
+            { id: "lower_lip", type: "ellipsoid", radii: [0.16, 0.05, 0.09], position: [0, -0.34, 0.40] },
+            // Lip line — subtractive groove between lips
+            { id: "lip_line", type: "capsule", radius: 0.01, height: 0.28, position: [0, -0.31, 0.44], rotation: [0, 0, 90] },
+
+            // Ears — compound torus + ellipsoid
+            { id: "l_ear", type: "ellipsoid", radii: [0.08, 0.18, 0.12], position: [-0.68, 0.10, -0.05] },
+            { id: "r_ear", type: "ellipsoid", radii: [0.08, 0.18, 0.12], position: [0.68, 0.10, -0.05] },
+            { id: "l_ear_rim", type: "torus", major: 0.12, minor: 0.025, position: [-0.70, 0.10, -0.03], rotation: [0, 90, 10] },
+            { id: "r_ear_rim", type: "torus", major: 0.12, minor: 0.025, position: [0.70, 0.10, -0.03], rotation: [0, -90, -10] },
+
+            // Neck attachment — tapered cylinder blending head into neck
+            { id: "neck_base", type: "capsule", radius: 0.22, height: 0.30, position: [0, -0.65, -0.05], rotation: [5, 0, 0] },
+
+            // Temporal hollows — subtle subtractive spheres at temples
+            { id: "l_temple", type: "sphere", radius: 0.12, position: [-0.58, 0.30, 0.15] },
+            { id: "r_temple", type: "sphere", radius: 0.12, position: [0.58, 0.30, 0.15] },
+
+            // Philtrum — subtle groove above upper lip
+            { id: "philtrum", type: "capsule", radius: 0.015, height: 0.12, position: [0, -0.20, 0.50], rotation: [10, 0, 0] },
+
+            // Nasolabial folds — subtle creases from nose to mouth corners
+            { id: "l_nasolabial", type: "capsule", radius: 0.012, height: 0.20, position: [-0.14, -0.18, 0.42], rotation: [15, 8, 0] },
+            { id: "r_nasolabial", type: "capsule", radius: 0.012, height: 0.20, position: [0.14, -0.18, 0.42], rotation: [15, -8, 0] },
+
+            // Occipital bump — back of skull
+            { id: "occipital", type: "sphere", radius: 0.25, position: [0, 0.15, -0.55] }
+        ],
+        operations: [
+            // Build cranium from main volumes
+            { op: "smooth_union", k: 0.15, ids: ["cranium", "forehead", "face_plate", "occipital"] },
+            // Add cheekbones and jaw to face
+            { op: "smooth_union", k: 0.08, ids: ["cranium", "l_cheekbone", "r_cheekbone", "jaw", "chin", "l_jaw_angle", "r_jaw_angle"] },
+            // Brow ridge adds subtle overhang
+            { op: "smooth_union", k: 0.05, ids: ["cranium", "brow_ridge"] },
+            // Subtract eye sockets to create depth
+            { op: "smooth_subtract", k: 0.03, ids: ["cranium", "l_eye_socket", "r_eye_socket"] },
+            // Subtract temples
+            { op: "smooth_subtract", k: 0.04, ids: ["cranium", "l_temple", "r_temple"] },
+            // Nose composition
+            { op: "smooth_union", k: 0.04, ids: ["nose_bridge", "nose_ball", "l_nostril", "r_nostril"] },
+            { op: "subtract", ids: ["nose_ball", "l_nostril_hole", "r_nostril_hole"] },
+            // Attach nose to face
+            { op: "smooth_union", k: 0.06, ids: ["cranium", "nose_bridge"] },
+            // Lips and mouth
+            { op: "smooth_union", k: 0.02, ids: ["upper_lip", "lower_lip"] },
+            { op: "smooth_subtract", k: 0.005, ids: ["upper_lip", "lip_line"] },
+            // Ears
+            { op: "smooth_union", k: 0.06, ids: ["cranium", "l_ear", "r_ear"] },
+            { op: "smooth_union", k: 0.01, ids: ["l_ear", "l_ear_rim"] },
+            { op: "smooth_union", k: 0.01, ids: ["r_ear", "r_ear_rim"] },
+            // Neck blend
+            { op: "smooth_union", k: 0.12, ids: ["cranium", "neck_base"] },
+            // Nasolabial folds as subtle additive creases
+            { op: "smooth_union", k: 0.01, ids: ["cranium", "l_nasolabial", "r_nasolabial"] },
+            // Philtrum groove
+            { op: "smooth_subtract", k: 0.008, ids: ["cranium", "philtrum"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.45,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.08,
+        subsurface_intensity: 0.6,
+        // Specular highlights on forehead, nose tip, cheekbones
+        specular_intensity: 0.4,
+        specular_tint: 0.3,
+        fresnel_intensity: 0.6,
+        // Regional color variation
+        color_zones: [
+            { region: "cheeks", tint: "#cc8877", blend: 0.15 },
+            { region: "nose_tip", tint: "#cc7766", blend: 0.10 },
+            { region: "lips", tint: "#bb5555", blend: 0.40 },
+            { region: "eyelids", tint: "#c09080", blend: 0.12 },
+            { region: "ears", tint: "#cc8877", blend: 0.15 },
+            { region: "under_eyes", tint: "#b08878", blend: 0.08 }
+        ],
+        // Eye materials (handled by separate SDF IDs)
+        eye_material: {
+            sclera_color: "#f5f0ea",
+            iris_color: "#4a7a5c",
+            iris_pattern: "radial_fiber",
+            pupil_color: "#0a0a0a",
+            cornea_ior: 1.376,
+            cornea_roughness: 0.0,
+            specular_intensity: 3.0,
+            wet_rim_intensity: 0.8,
+            wet_rim_color: "#ffffff"
+        }
+    }
+
+    @animation {
+        type: "facial_idle",
+        // Subtle eye tracking — follows a slow figure-eight path
+        eye_movement: {
+            pattern: "figure_eight",
+            amplitude: [0.02, 0.01],
+            frequency: 0.08,
+            saccade_probability: 0.03,
+            saccade_speed: 8.0
+        },
+        // Blink cycle
+        blink: {
+            interval_range: [2.5, 6.0],
+            duration_ms: 150,
+            double_blink_probability: 0.15
+        },
+        // Micro-expressions — tiny shifts in lip corners and brow
+        micro_expressions: {
+            frequency: 0.01,
+            amplitude: 0.003,
+            regions: ["brow", "lip_corners", "nostrils"]
+        }
+    }
+}
+
+// ============================================================================
+// TORSO — SDF composition of ribcage, pectoral, abdominal, and back forms
+// 38 SDF primitives defining the trunk anatomy
+// ============================================================================
+object TorsoSDF {
+    type: "sdf_field"
+    position: [0, 12.0, 0]
+    armature_joint: "spine_mid"
+
+    @sdf_scene {
+        primitives: [
+            // Ribcage — large barrel shape
+            { id: "ribcage", type: "ellipsoid", radii: [1.15, 1.20, 0.72], position: [0, 1.5, 0] },
+            // Sternum ridge
+            { id: "sternum", type: "capsule", radius: 0.04, height: 0.80, position: [0, 1.4, 0.55], rotation: [8, 0, 0] },
+
+            // Pectorals — two large ellipsoids
+            { id: "l_pectoral", type: "ellipsoid", radii: [0.50, 0.25, 0.22], position: [-0.35, 1.8, 0.45] },
+            { id: "r_pectoral", type: "ellipsoid", radii: [0.50, 0.25, 0.22], position: [0.35, 1.8, 0.45] },
+
+            // Deltoids — capping the shoulders
+            { id: "l_deltoid", type: "ellipsoid", radii: [0.28, 0.22, 0.25], position: [-1.25, 2.2, 0.0] },
+            { id: "r_deltoid", type: "ellipsoid", radii: [0.28, 0.22, 0.25], position: [1.25, 2.2, 0.0] },
+
+            // Clavicle shelves — flattened ellipsoids creating the collarbone line
+            { id: "l_clavicle", type: "capsule", radius: 0.05, height: 0.70, position: [-0.55, 2.55, 0.20], rotation: [0, 0, 12] },
+            { id: "r_clavicle", type: "capsule", radius: 0.05, height: 0.70, position: [0.55, 2.55, 0.20], rotation: [0, 0, -12] },
+
+            // Suprasternal notch — subtractive
+            { id: "sternal_notch", type: "sphere", radius: 0.08, position: [0, 2.60, 0.35] },
+
+            // Trapezius — upper back mass connecting neck to shoulders
+            { id: "trapezius", type: "ellipsoid", radii: [0.80, 0.40, 0.35], position: [0, 2.5, -0.25] },
+
+            // Abdominals — stacked pairs of rounded boxes
+            { id: "abs_upper_l", type: "rounded_box", size: [0.18, 0.14, 0.10], radius: 0.06, position: [-0.12, 0.85, 0.48] },
+            { id: "abs_upper_r", type: "rounded_box", size: [0.18, 0.14, 0.10], radius: 0.06, position: [0.12, 0.85, 0.48] },
+            { id: "abs_mid_l", type: "rounded_box", size: [0.17, 0.13, 0.09], radius: 0.06, position: [-0.12, 0.55, 0.46] },
+            { id: "abs_mid_r", type: "rounded_box", size: [0.17, 0.13, 0.09], radius: 0.06, position: [0.12, 0.55, 0.46] },
+            { id: "abs_lower_l", type: "rounded_box", size: [0.16, 0.12, 0.08], radius: 0.05, position: [-0.12, 0.28, 0.44] },
+            { id: "abs_lower_r", type: "rounded_box", size: [0.16, 0.12, 0.08], radius: 0.05, position: [0.12, 0.28, 0.44] },
+
+            // Linea alba — vertical groove between abs
+            { id: "linea_alba", type: "capsule", radius: 0.015, height: 0.80, position: [0, 0.55, 0.50] },
+
+            // Obliques — lateral torso taper
+            { id: "l_oblique", type: "ellipsoid", radii: [0.25, 0.45, 0.30], position: [-0.75, 0.6, 0.10] },
+            { id: "r_oblique", type: "ellipsoid", radii: [0.25, 0.45, 0.30], position: [0.75, 0.6, 0.10] },
+
+            // Serratus anterior — finger-like extensions on the lateral ribcage
+            { id: "l_serratus_1", type: "capsule", radius: 0.04, height: 0.12, position: [-0.90, 1.3, 0.25], rotation: [0, 0, 35] },
+            { id: "l_serratus_2", type: "capsule", radius: 0.035, height: 0.11, position: [-0.88, 1.1, 0.28], rotation: [0, 0, 30] },
+            { id: "l_serratus_3", type: "capsule", radius: 0.03, height: 0.10, position: [-0.85, 0.9, 0.30], rotation: [0, 0, 25] },
+            { id: "r_serratus_1", type: "capsule", radius: 0.04, height: 0.12, position: [0.90, 1.3, 0.25], rotation: [0, 0, -35] },
+            { id: "r_serratus_2", type: "capsule", radius: 0.035, height: 0.11, position: [0.88, 1.1, 0.28], rotation: [0, 0, -30] },
+            { id: "r_serratus_3", type: "capsule", radius: 0.03, height: 0.10, position: [0.85, 0.9, 0.30], rotation: [0, 0, -25] },
+
+            // Latissimus dorsi — broad back muscle
+            { id: "l_lat", type: "ellipsoid", radii: [0.45, 0.55, 0.30], position: [-0.60, 1.2, -0.30] },
+            { id: "r_lat", type: "ellipsoid", radii: [0.45, 0.55, 0.30], position: [0.60, 1.2, -0.30] },
+
+            // Spinal groove — subtractive channel down the back
+            { id: "spinal_groove", type: "capsule", radius: 0.03, height: 1.80, position: [0, 1.2, -0.50], rotation: [5, 0, 0] },
+
+            // Lower back / sacrum transition
+            { id: "lower_back", type: "ellipsoid", radii: [0.55, 0.30, 0.35], position: [0, 0.0, -0.20] },
+
+            // Navel — small subtractive sphere
+            { id: "navel", type: "sphere", radius: 0.03, position: [0, 0.15, 0.50] },
+
+            // Pelvis / hip crests
+            { id: "l_iliac_crest", type: "ellipsoid", radii: [0.35, 0.15, 0.25], position: [-0.65, -0.15, 0.10] },
+            { id: "r_iliac_crest", type: "ellipsoid", radii: [0.35, 0.15, 0.25], position: [0.65, -0.15, 0.10] },
+
+            // Gluteal mass — broad posterior volume
+            { id: "l_gluteus", type: "ellipsoid", radii: [0.38, 0.35, 0.30], position: [-0.35, -0.50, -0.20] },
+            { id: "r_gluteus", type: "ellipsoid", radii: [0.38, 0.35, 0.30], position: [0.35, -0.50, -0.20] },
+
+            // Hip flexor / inguinal crease
+            { id: "l_inguinal", type: "capsule", radius: 0.02, height: 0.40, position: [-0.40, -0.15, 0.30], rotation: [0, 0, 35] },
+            { id: "r_inguinal", type: "capsule", radius: 0.02, height: 0.40, position: [0.40, -0.15, 0.30], rotation: [0, 0, -35] }
+        ],
+        operations: [
+            // Core torso volume
+            { op: "smooth_union", k: 0.20, ids: ["ribcage", "lower_back", "trapezius"] },
+            // Pectorals blend into ribcage
+            { op: "smooth_union", k: 0.10, ids: ["ribcage", "l_pectoral", "r_pectoral"] },
+            // Deltoids
+            { op: "smooth_union", k: 0.08, ids: ["ribcage", "l_deltoid", "r_deltoid"] },
+            // Clavicles
+            { op: "smooth_union", k: 0.04, ids: ["ribcage", "l_clavicle", "r_clavicle"] },
+            // Sternal notch
+            { op: "smooth_subtract", k: 0.02, ids: ["ribcage", "sternal_notch"] },
+            // Abdominals
+            { op: "smooth_union", k: 0.03, ids: ["ribcage", "abs_upper_l", "abs_upper_r", "abs_mid_l", "abs_mid_r", "abs_lower_l", "abs_lower_r"] },
+            // Linea alba groove
+            { op: "smooth_subtract", k: 0.01, ids: ["ribcage", "linea_alba"] },
+            // Obliques
+            { op: "smooth_union", k: 0.08, ids: ["ribcage", "l_oblique", "r_oblique"] },
+            // Serratus
+            { op: "smooth_union", k: 0.03, ids: ["ribcage", "l_serratus_1", "l_serratus_2", "l_serratus_3", "r_serratus_1", "r_serratus_2", "r_serratus_3"] },
+            // Lats
+            { op: "smooth_union", k: 0.10, ids: ["ribcage", "l_lat", "r_lat"] },
+            // Sternum
+            { op: "smooth_union", k: 0.02, ids: ["ribcage", "sternum"] },
+            // Spinal groove
+            { op: "smooth_subtract", k: 0.015, ids: ["ribcage", "spinal_groove"] },
+            // Navel
+            { op: "smooth_subtract", k: 0.01, ids: ["ribcage", "navel"] },
+            // Hip crests
+            { op: "smooth_union", k: 0.10, ids: ["lower_back", "l_iliac_crest", "r_iliac_crest"] },
+            // Glutes
+            { op: "smooth_union", k: 0.12, ids: ["lower_back", "l_gluteus", "r_gluteus"] },
+            // Inguinal creases
+            { op: "smooth_subtract", k: 0.008, ids: ["lower_back", "l_inguinal", "r_inguinal"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.50,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.12,
+        subsurface_intensity: 0.5,
+        specular_intensity: 0.3,
+        specular_tint: 0.25,
+        fresnel_intensity: 0.5
+    }
+
+    @animation {
+        type: "breathing",
+        // Ribcage expands and contracts
+        ribcage_scale_pulse: {
+            axis: ["x", "z"],
+            amplitude: 0.008,
+            frequency: 0.15,
+            wave_type: "sine"
+        },
+        // Abdomen moves inversely — belly out on inhale
+        abdomen_shift: {
+            axis: "z",
+            amplitude: 0.005,
+            frequency: 0.15,
+            phase_offset: 3.14
+        },
+        // Shoulders rise slightly on deep breath
+        shoulder_rise: {
+            amplitude: 0.003,
+            frequency: 0.15,
+            phase_offset: 0.5
+        }
+    }
+}
+
+// ============================================================================
+// ARMS — SDF tubes with muscle definition
+// Left arm: slightly behind, relaxed. Right arm: slightly forward
+// Each arm is a chain of SDF segments blended at joints
+// ============================================================================
+object LeftArmSDF {
+    type: "sdf_field"
+    position: [-2.0, 13.0, -0.1]
+    armature_joint: "l_shoulder"
+
+    @sdf_scene {
+        primitives: [
+            // Upper arm — bicep/tricep volume
+            { id: "l_upper_arm", type: "capsule", radius: 0.22, height: 1.80, position: [-0.4, -0.8, -0.1], rotation: [5, 0, 8] },
+            { id: "l_bicep", type: "ellipsoid", radii: [0.14, 0.30, 0.16], position: [-0.5, -0.6, 0.08] },
+            { id: "l_tricep", type: "ellipsoid", radii: [0.13, 0.35, 0.15], position: [-0.35, -0.9, -0.12] },
+            // Elbow joint
+            { id: "l_elbow_joint", type: "sphere", radius: 0.14, position: [-0.6, -1.8, -0.15] },
+            // Forearm
+            { id: "l_forearm", type: "capsule", radius: 0.16, height: 1.60, position: [-0.45, -2.8, 0.1], rotation: [10, 0, 4] },
+            { id: "l_forearm_muscle", type: "ellipsoid", radii: [0.12, 0.30, 0.14], position: [-0.5, -2.3, 0.12] },
+            // Wrist narrowing
+            { id: "l_wrist_narrow", type: "capsule", radius: 0.09, height: 0.20, position: [-0.4, -3.8, 0.15] },
+            // Ulna ridge — visible bone on the back of forearm
+            { id: "l_ulna", type: "capsule", radius: 0.025, height: 1.40, position: [-0.38, -2.8, -0.08], rotation: [10, 0, 3] }
+        ],
+        operations: [
+            { op: "smooth_union", k: 0.12, ids: ["l_upper_arm", "l_bicep", "l_tricep"] },
+            { op: "smooth_union", k: 0.10, ids: ["l_upper_arm", "l_elbow_joint", "l_forearm"] },
+            { op: "smooth_union", k: 0.06, ids: ["l_forearm", "l_forearm_muscle"] },
+            { op: "smooth_union", k: 0.04, ids: ["l_forearm", "l_wrist_narrow"] },
+            { op: "smooth_union", k: 0.02, ids: ["l_forearm", "l_ulna"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.48,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.10,
+        subsurface_intensity: 0.5,
+        specular_intensity: 0.35
+    }
+}
+
+object RightArmSDF {
+    type: "sdf_field"
+    position: [2.0, 13.0, 0.1]
+    armature_joint: "r_shoulder"
+
+    @sdf_scene {
+        primitives: [
+            { id: "r_upper_arm", type: "capsule", radius: 0.22, height: 1.80, position: [0.4, -0.6, 0.2], rotation: [-3, 0, -10] },
+            { id: "r_bicep", type: "ellipsoid", radii: [0.14, 0.30, 0.16], position: [0.5, -0.5, 0.30] },
+            { id: "r_tricep", type: "ellipsoid", radii: [0.13, 0.35, 0.15], position: [0.35, -0.7, 0.05] },
+            { id: "r_elbow_joint", type: "sphere", radius: 0.14, position: [0.5, -1.5, 0.3] },
+            { id: "r_forearm", type: "capsule", radius: 0.16, height: 1.60, position: [0.35, -2.6, 0.05], rotation: [-8, 0, -6] },
+            { id: "r_forearm_muscle", type: "ellipsoid", radii: [0.12, 0.30, 0.14], position: [0.40, -2.1, 0.10] },
+            { id: "r_wrist_narrow", type: "capsule", radius: 0.09, height: 0.20, position: [0.30, -3.6, 0.0] },
+            { id: "r_ulna", type: "capsule", radius: 0.025, height: 1.40, position: [0.32, -2.6, -0.10], rotation: [-8, 0, -5] }
+        ],
+        operations: [
+            { op: "smooth_union", k: 0.12, ids: ["r_upper_arm", "r_bicep", "r_tricep"] },
+            { op: "smooth_union", k: 0.10, ids: ["r_upper_arm", "r_elbow_joint", "r_forearm"] },
+            { op: "smooth_union", k: 0.06, ids: ["r_forearm", "r_forearm_muscle"] },
+            { op: "smooth_union", k: 0.04, ids: ["r_forearm", "r_wrist_narrow"] },
+            { op: "smooth_union", k: 0.02, ids: ["r_forearm", "r_ulna"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.48,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.10,
+        subsurface_intensity: 0.5,
+        specular_intensity: 0.35
+    }
+}
+
+// ============================================================================
+// HANDS — Dense SDF composition with individually articulated fingers
+// Each hand: 26 SDF primitives (palm + 5 fingers x 4 segments + knuckles)
+// The most geometrically complex region per unit volume
+// ============================================================================
+object LeftHandSDF {
+    type: "sdf_field"
+    position: [-2.5, 9.3, 0.2]
+    armature_joint: "l_wrist"
+
+    @sdf_scene {
+        primitives: [
+            // Palm — rounded box
+            { id: "l_palm", type: "rounded_box", size: [0.30, 0.35, 0.10], radius: 0.05, position: [0, 0, 0] },
+            // Thenar eminence (thumb pad)
+            { id: "l_thenar", type: "ellipsoid", radii: [0.10, 0.12, 0.08], position: [0.12, 0.05, 0.06] },
+            // Hypothenar eminence (pinky pad)
+            { id: "l_hypothenar", type: "ellipsoid", radii: [0.08, 0.10, 0.06], position: [-0.12, -0.02, 0.05] },
+
+            // Thumb — 3 segments
+            { id: "l_thumb_meta", type: "capsule", radius: 0.04, height: 0.12, position: [0.18, 0.10, 0.04], rotation: [0, 0, -40] },
+            { id: "l_thumb_prox", type: "capsule", radius: 0.035, height: 0.10, position: [0.24, 0.18, 0.05], rotation: [0, 0, -25] },
+            { id: "l_thumb_dist", type: "capsule", radius: 0.03, height: 0.08, position: [0.28, 0.24, 0.04], rotation: [15, 0, -15] },
+
+            // Index finger
+            { id: "l_index_meta", type: "capsule", radius: 0.032, height: 0.10, position: [0.08, 0.20, 0.0], rotation: [20, 0, -3] },
+            { id: "l_index_prox", type: "capsule", radius: 0.028, height: 0.08, position: [0.08, 0.28, -0.02], rotation: [25, 0, -2] },
+            { id: "l_index_dist", type: "capsule", radius: 0.024, height: 0.06, position: [0.08, 0.34, -0.04], rotation: [20, 0, 0] },
+
+            // Middle finger
+            { id: "l_mid_meta", type: "capsule", radius: 0.033, height: 0.11, position: [0.0, 0.22, 0.0], rotation: [20, 0, 0] },
+            { id: "l_mid_prox", type: "capsule", radius: 0.029, height: 0.09, position: [0.0, 0.31, -0.02], rotation: [25, 0, 0] },
+            { id: "l_mid_dist", type: "capsule", radius: 0.025, height: 0.06, position: [0.0, 0.38, -0.05], rotation: [20, 0, 0] },
+
+            // Ring finger
+            { id: "l_ring_meta", type: "capsule", radius: 0.031, height: 0.10, position: [-0.08, 0.20, 0.0], rotation: [22, 0, 3] },
+            { id: "l_ring_prox", type: "capsule", radius: 0.027, height: 0.08, position: [-0.08, 0.28, -0.03], rotation: [28, 0, 2] },
+            { id: "l_ring_dist", type: "capsule", radius: 0.023, height: 0.05, position: [-0.08, 0.34, -0.06], rotation: [22, 0, 0] },
+
+            // Pinky finger
+            { id: "l_pinky_meta", type: "capsule", radius: 0.028, height: 0.08, position: [-0.14, 0.16, 0.0], rotation: [25, 0, 8] },
+            { id: "l_pinky_prox", type: "capsule", radius: 0.024, height: 0.06, position: [-0.14, 0.22, -0.03], rotation: [30, 0, 6] },
+            { id: "l_pinky_dist", type: "capsule", radius: 0.020, height: 0.04, position: [-0.14, 0.26, -0.06], rotation: [25, 0, 0] },
+
+            // Knuckle bumps
+            { id: "l_knuckle_1", type: "sphere", radius: 0.035, position: [0.08, 0.17, 0.01] },
+            { id: "l_knuckle_2", type: "sphere", radius: 0.036, position: [0.0, 0.19, 0.01] },
+            { id: "l_knuckle_3", type: "sphere", radius: 0.034, position: [-0.08, 0.17, 0.01] },
+            { id: "l_knuckle_4", type: "sphere", radius: 0.030, position: [-0.14, 0.14, 0.01] }
+        ],
+        operations: [
+            { op: "smooth_union", k: 0.04, ids: ["l_palm", "l_thenar", "l_hypothenar"] },
+            { op: "smooth_union", k: 0.02, ids: ["l_palm", "l_knuckle_1", "l_knuckle_2", "l_knuckle_3", "l_knuckle_4"] },
+            { op: "smooth_union", k: 0.015, ids: ["l_thumb_meta", "l_thumb_prox", "l_thumb_dist"] },
+            { op: "smooth_union", k: 0.012, ids: ["l_index_meta", "l_index_prox", "l_index_dist"] },
+            { op: "smooth_union", k: 0.012, ids: ["l_mid_meta", "l_mid_prox", "l_mid_dist"] },
+            { op: "smooth_union", k: 0.012, ids: ["l_ring_meta", "l_ring_prox", "l_ring_dist"] },
+            { op: "smooth_union", k: 0.010, ids: ["l_pinky_meta", "l_pinky_prox", "l_pinky_dist"] },
+            { op: "smooth_union", k: 0.03, ids: ["l_palm", "l_thumb_meta", "l_index_meta", "l_mid_meta", "l_ring_meta", "l_pinky_meta"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d8aa78",
+        roughness: 0.55,
+        subsurface_color: "#cc7755",
+        subsurface_radius: 0.06,
+        subsurface_intensity: 0.55,
+        specular_intensity: 0.3,
+        // Fingertips slightly pinker
+        color_zones: [
+            { region: "fingertips", tint: "#cc8877", blend: 0.15 },
+            { region: "palm", tint: "#d4a088", blend: 0.10 },
+            { region: "knuckles", tint: "#c89878", blend: 0.08 }
+        ]
+    }
+
+    @animation {
+        type: "hand_idle",
+        // Fingers curl and uncurl with slow fidget
+        finger_curl: {
+            frequency: 0.03,
+            amplitude: 5.0,
+            phase_offsets: [0, 0.5, 1.0, 1.5, 2.0],
+            wave_type: "sine"
+        }
+    }
+}
+
+object RightHandSDF {
+    type: "sdf_field"
+    position: [2.3, 9.5, 0.15]
+    armature_joint: "r_wrist"
+
+    @sdf_scene {
+        // Mirror of left hand with slight pose variation
+        mirror_source: "LeftHandSDF",
+        mirror_axis: "x",
+        pose_overrides: {
+            finger_curl_offset: 15,
+            thumb_spread: 5
+        }
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d8aa78",
+        roughness: 0.55,
+        subsurface_color: "#cc7755",
+        subsurface_radius: 0.06,
+        subsurface_intensity: 0.55,
+        specular_intensity: 0.3
+    }
+}
+
+// ============================================================================
+// LEGS — SDF volumes with quadriceps, calves, and knee definition
+// Weight-bearing left leg straight; right leg relaxed and forward
+// ============================================================================
+object LeftLegSDF {
+    type: "sdf_field"
+    position: [-0.9, 4.5, 0.1]
+    armature_joint: "l_hip"
+
+    @sdf_scene {
+        primitives: [
+            // Thigh — thick capsule with quadricep and hamstring volumes
+            { id: "l_thigh", type: "capsule", radius: 0.35, height: 3.40, position: [0, 0, 0], rotation: [1, 0, 2] },
+            { id: "l_quad", type: "ellipsoid", radii: [0.20, 0.60, 0.22], position: [0.0, 0.5, 0.18] },
+            { id: "l_inner_quad", type: "ellipsoid", radii: [0.15, 0.50, 0.18], position: [0.12, 0.3, 0.10] },
+            { id: "l_hamstring", type: "ellipsoid", radii: [0.18, 0.55, 0.20], position: [0.0, 0.2, -0.15] },
+            { id: "l_it_band", type: "capsule", radius: 0.04, height: 2.50, position: [-0.28, 0.0, 0.0], rotation: [1, 0, 2] },
+            // Adductor mass — inner thigh
+            { id: "l_adductor", type: "ellipsoid", radii: [0.15, 0.45, 0.18], position: [0.18, 0.8, 0.0] },
+
+            // Knee — patella and joint
+            { id: "l_knee_cap", type: "ellipsoid", radii: [0.10, 0.08, 0.09], position: [0.0, -1.50, 0.25] },
+            { id: "l_knee_joint", type: "sphere", radius: 0.18, position: [0.0, -1.55, 0.0] },
+
+            // Shin — calf and anterior
+            { id: "l_shin", type: "capsule", radius: 0.22, height: 2.80, position: [0.0, -3.0, 0.0], rotation: [-1, 0, 0] },
+            { id: "l_calf", type: "ellipsoid", radii: [0.16, 0.40, 0.20], position: [0.0, -2.2, -0.10] },
+            { id: "l_tibialis", type: "ellipsoid", radii: [0.10, 0.35, 0.12], position: [-0.08, -2.3, 0.10] },
+            // Shin bone visible ridge
+            { id: "l_tibia_ridge", type: "capsule", radius: 0.02, height: 2.00, position: [0.0, -2.8, 0.15], rotation: [-2, 0, 0] },
+            // Achilles tendon
+            { id: "l_achilles", type: "capsule", radius: 0.03, height: 0.60, position: [0.0, -3.8, -0.12] },
+
+            // Ankle — narrowing
+            { id: "l_ankle_bone_in", type: "sphere", radius: 0.06, position: [0.10, -4.0, 0.0] },
+            { id: "l_ankle_bone_out", type: "sphere", radius: 0.055, position: [-0.10, -4.05, 0.0] }
+        ],
+        operations: [
+            { op: "smooth_union", k: 0.12, ids: ["l_thigh", "l_quad", "l_inner_quad", "l_hamstring", "l_adductor"] },
+            { op: "smooth_union", k: 0.03, ids: ["l_thigh", "l_it_band"] },
+            { op: "smooth_union", k: 0.08, ids: ["l_thigh", "l_knee_joint"] },
+            { op: "smooth_union", k: 0.03, ids: ["l_knee_joint", "l_knee_cap"] },
+            { op: "smooth_union", k: 0.10, ids: ["l_knee_joint", "l_shin"] },
+            { op: "smooth_union", k: 0.06, ids: ["l_shin", "l_calf", "l_tibialis"] },
+            { op: "smooth_union", k: 0.015, ids: ["l_shin", "l_tibia_ridge"] },
+            { op: "smooth_union", k: 0.03, ids: ["l_shin", "l_achilles"] },
+            { op: "smooth_union", k: 0.03, ids: ["l_shin", "l_ankle_bone_in", "l_ankle_bone_out"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.50,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.10,
+        subsurface_intensity: 0.45,
+        specular_intensity: 0.3
+    }
+}
+
+object RightLegSDF {
+    type: "sdf_field"
+    position: [1.0, 4.5, 0.4]
+    armature_joint: "r_hip"
+
+    @sdf_scene {
+        // Mirror of left leg with relaxed pose — bent knee, forward shift
+        mirror_source: "LeftLegSDF",
+        mirror_axis: "x",
+        pose_overrides: {
+            knee_bend: 15,
+            hip_flexion: 8,
+            forward_shift: 0.3,
+            weight_bearing: false
+        }
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d4a574",
+        roughness: 0.50,
+        subsurface_color: "#cc6644",
+        subsurface_radius: 0.10,
+        subsurface_intensity: 0.45,
+        specular_intensity: 0.3
+    }
+}
+
+// ============================================================================
+// FEET — SDF forms for the foundation of the figure
+// ============================================================================
+object LeftFootSDF {
+    type: "sdf_field"
+    position: [-0.9, 0.4, 0.4]
+    armature_joint: "l_ankle"
+
+    @sdf_scene {
+        primitives: [
+            // Foot body — elongated rounded box
+            { id: "l_foot_body", type: "rounded_box", size: [0.30, 0.12, 0.55], radius: 0.06, position: [0, 0, 0.2] },
+            // Heel — sphere at the back
+            { id: "l_heel", type: "sphere", radius: 0.12, position: [0, 0, -0.10] },
+            // Ball of foot — wide front
+            { id: "l_ball", type: "ellipsoid", radii: [0.18, 0.08, 0.10], position: [0, -0.02, 0.40] },
+            // Arch — subtractive creating the underside curve
+            { id: "l_arch", type: "ellipsoid", radii: [0.14, 0.08, 0.25], position: [0.04, -0.08, 0.15] },
+            // Toes — 5 small capsules
+            { id: "l_big_toe", type: "capsule", radius: 0.04, height: 0.10, position: [0.08, -0.02, 0.52], rotation: [5, 0, 0] },
+            { id: "l_toe_2", type: "capsule", radius: 0.028, height: 0.08, position: [0.03, -0.02, 0.54], rotation: [5, 0, 0] },
+            { id: "l_toe_3", type: "capsule", radius: 0.026, height: 0.07, position: [-0.02, -0.02, 0.53], rotation: [5, 0, 0] },
+            { id: "l_toe_4", type: "capsule", radius: 0.024, height: 0.06, position: [-0.06, -0.02, 0.51], rotation: [5, 0, 2] },
+            { id: "l_toe_5", type: "capsule", radius: 0.020, height: 0.05, position: [-0.10, -0.02, 0.48], rotation: [5, 0, 5] }
+        ],
+        operations: [
+            { op: "smooth_union", k: 0.06, ids: ["l_foot_body", "l_heel", "l_ball"] },
+            { op: "smooth_subtract", k: 0.04, ids: ["l_foot_body", "l_arch"] },
+            { op: "smooth_union", k: 0.02, ids: ["l_foot_body", "l_big_toe", "l_toe_2", "l_toe_3", "l_toe_4", "l_toe_5"] }
+        ]
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d0a070",
+        roughness: 0.60,
+        subsurface_color: "#cc7755",
+        subsurface_radius: 0.08,
+        subsurface_intensity: 0.4,
+        color_zones: [
+            { region: "sole", tint: "#c89878", blend: 0.20 },
+            { region: "heel", tint: "#c49070", blend: 0.15 }
+        ]
+    }
+}
+
+object RightFootSDF {
+    type: "sdf_field"
+    position: [1.0, 0.4, 0.9]
+    armature_joint: "r_ankle"
+
+    @sdf_scene {
+        mirror_source: "LeftFootSDF",
+        mirror_axis: "x",
+        pose_overrides: {
+            toe_lift: 5,
+            heel_raise: 0.1
+        }
+    }
+
+    @material {
+        type: "subsurface_skin",
+        base_color: "#d0a070",
+        roughness: 0.60,
+        subsurface_color: "#cc7755",
+        subsurface_radius: 0.08,
+        subsurface_intensity: 0.4
+    }
+}
+
+// ============================================================================
+// SKIN PARTICLE LAYER — 600,000 translucent micro-spheres
+// Three-layer stack simulating epidermis, dermis, and subcutaneous fat
+// This is what makes the figure look like flesh instead of plastic
+// ============================================================================
+object SkinParticles {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 600000,
+        geometry: "sphere",
+        base_scale: [0.008, 0.008, 0.006]
+    }
+
+    @gpu_compute {
+        init: "sdf_surface_sample",
+        update: "skin_micromotion",
+        buffers: [
+            "position:vec3",
+            "normal:vec3",
+            "scale:vec3",
+            "color:vec4",
+            "layer:uint",
+            "curvature:float",
+            "subsurface_depth:float"
+        ]
+    }
+
+    // Particles are scattered on and just below the SDF surface
+    // Three layers at different depths create translucency
+    @distribution {
+        type: "sdf_surface_scatter",
+        source_objects: ["HeadSDF", "TorsoSDF", "LeftArmSDF", "RightArmSDF",
+                         "LeftHandSDF", "RightHandSDF", "LeftLegSDF", "RightLegSDF",
+                         "LeftFootSDF", "RightFootSDF"],
+        layers: [
+            { name: "epidermis", offset: 0.001, count_fraction: 0.40, scale: 0.008 },
+            { name: "dermis", offset: -0.005, count_fraction: 0.35, scale: 0.010 },
+            { name: "subcutaneous", offset: -0.015, count_fraction: 0.25, scale: 0.014 }
+        ],
+        density_by_curvature: {
+            high_curvature_density: 3.0,
+            low_curvature_density: 0.8,
+            curvature_threshold: 0.5
+        },
+        // More particles on the face and hands (areas of detail)
+        density_overrides: [
+            { source: "HeadSDF", multiplier: 2.5 },
+            { source: "LeftHandSDF", multiplier: 2.0 },
+            { source: "RightHandSDF", multiplier: 2.0 }
+        ]
+    }
+
+    @material {
+        type: "layered_skin_particle",
+        // Each layer has its own optical properties
+        layer_materials: {
+            epidermis: {
+                color: "#d4a574",
+                opacity: 0.35,
+                roughness: 0.50,
+                specular: 0.4
+            },
+            dermis: {
+                color: "#cc7755",
+                opacity: 0.25,
+                roughness: 0.70,
+                emission: 0.02,
+                emission_color: "#cc5533"
+            },
+            subcutaneous: {
+                color: "#bb5544",
+                opacity: 0.15,
+                roughness: 0.90,
+                emission: 0.01,
+                emission_color: "#aa4433"
+            }
+        },
+        // Regional color tinting
+        body_color_map: {
+            face: "#d4a880",
+            chest: "#d2a270",
+            arms: "#d0a068",
+            hands: "#d8aa78",
+            legs: "#cc9a65",
+            feet: "#c89060"
+        },
+        blend_mode: "alpha_blend",
+        size_attenuation: true,
+        // Subsurface scattering approximation through layered transparency
+        sss_approximation: {
+            enabled: true,
+            scatter_color: "#cc6644",
+            scatter_radius: 0.02,
+            view_dependent_opacity: true
+        }
+    }
+
+    @animation {
+        type: "skin_micromotion",
+        // Particles follow the SDF surface as the body breathes
+        surface_tracking: {
+            enabled: true,
+            source: "SkeletalArmature",
+            smoothing: 0.9
+        },
+        // Subtle Brownian jitter — skin is never perfectly still
+        brownian: {
+            strength: 0.0003,
+            frequency: 0.1
+        },
+        // Blood pulse — slight color shift with heartbeat
+        pulse: {
+            frequency: 1.1,
+            color_shift: 0.02,
+            color_warm: "#cc7766",
+            regions: ["face", "hands", "feet"]
+        }
+    }
+}
+
+// ============================================================================
+// HAIR — 200,000 instanced curve segments forming head hair
+// Flowing strands with gravity, layered shading, and highlights
+// ============================================================================
+object HairStrands {
+    type: "instanced_field"
+    position: [0, 16.8, -0.1]
+    armature_joint: "head"
+
+    @instanced_mesh {
+        count: 200000,
+        geometry: "tapered_cylinder",
+        base_scale: [0.003, 0.08, 0.003]
+    }
+
+    @gpu_compute {
+        init: "hair_strand_generate",
+        update: "hair_physics",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "velocity:vec3",
+            "strand_id:uint",
+            "segment_index:uint",
+            "root_position:vec3",
+            "curl_phase:float"
+        ]
+    }
+
+    @distribution {
+        type: "scalp_follicle_map",
+        scalp_source: "HeadSDF",
+        // Hair grows from the top and sides of the cranium
+        growth_region: {
+            type: "spherical_cap",
+            center: [0, 0.5, -0.05],
+            radius: 0.70,
+            cap_angle: 140,
+            // No hair below the ears or on the face
+            exclusion_zones: [
+                { type: "sphere", center: [0, -0.3, 0.3], radius: 0.40 },
+                { type: "sphere", center: [-0.7, 0, 0], radius: 0.15 },
+                { type: "sphere", center: [0.7, 0, 0], radius: 0.15 }
+            ]
+        },
+        strands: 5000,
+        segments_per_strand: 40,
+        // Hair direction: flows backward and slightly to the right
+        initial_direction: [0.05, -0.3, -0.8],
+        direction_noise: 0.15,
+        // Strand properties
+        length_range: [0.4, 1.2],
+        thickness_root: 0.004,
+        thickness_tip: 0.001,
+        // Natural wave
+        curl: {
+            frequency_range: [0.8, 2.0],
+            amplitude_range: [0.01, 0.04],
+            axis: "random_perpendicular"
+        }
+    }
+
+    @material {
+        type: "hair_strand",
+        // Dark brown with warm highlights
+        base_color: "#2a1a0e",
+        highlight_color: "#6b4423",
+        highlight_intensity: 0.8,
+        // Kajiya-Kay shading model for hair
+        shading_model: "kajiya_kay",
+        specular_shift: -0.05,
+        specular_width: 0.2,
+        secondary_specular_color: "#8b6540",
+        secondary_specular_shift: 0.1,
+        secondary_specular_width: 0.4,
+        // Root is darker, tips are lighter
+        color_along_strand: {
+            root: "#1a0e06",
+            mid: "#2a1a0e",
+            tip: "#3d2815"
+        },
+        opacity: 0.9,
+        // Alpha-to-coverage for hair anti-aliasing
+        alpha_to_coverage: true,
+        // Ambient occlusion within hair mass
+        self_shadow: true,
+        self_shadow_density: 0.3
+    }
+
+    @animation {
+        type: "hair_physics",
+        // Gravity pulls strands down
+        gravity: [0, -0.8, 0],
+        // Damped spring chain for each strand
+        spring_stiffness: 15.0,
+        spring_damping: 0.8,
+        // Wind — gentle periodic breeze
+        wind: {
+            direction: [0.3, 0, -0.2],
+            strength: 0.02,
+            frequency: 0.1,
+            turbulence: 0.008,
+            gust_probability: 0.005,
+            gust_strength: 0.06
+        },
+        // Head motion influence — hair lags behind head
+        head_motion_influence: 0.8,
+        head_motion_delay: 0.15
+    }
+}
+
+// ============================================================================
+// EYEBROW FIBERS — 8,000 short strands above each eye
+// ============================================================================
+object EyebrowFibers {
+    type: "instanced_field"
+    position: [0, 16.5, 0.55]
+    armature_joint: "head"
+
+    @instanced_mesh {
+        count: 16000,
+        geometry: "tapered_cylinder",
+        base_scale: [0.002, 0.02, 0.002]
+    }
+
+    @gpu_compute {
+        init: "eyebrow_distribute",
+        update: "null",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4"
+        ]
+    }
+
+    @distribution {
+        type: "brow_arch",
+        arches: [
+            { side: "left", center: [-0.22, 0, 0], width: 0.20, height: 0.04, thickness: 0.03, arch_peak: 0.35, taper_inner: 0.6, taper_outer: 0.8 },
+            { side: "right", center: [0.22, 0, 0], width: 0.20, height: 0.04, thickness: 0.03, arch_peak: 0.35, taper_inner: 0.6, taper_outer: 0.8 }
+        ],
+        strands_per_brow: 8000,
+        segments_per_strand: 4,
+        direction: "lateral_outward",
+        direction_noise: 0.10,
+        length_range: [0.008, 0.025]
+    }
+
+    @material {
+        type: "hair_strand",
+        base_color: "#1a0e06",
+        highlight_color: "#3d2815",
+        shading_model: "kajiya_kay",
+        opacity: 0.85
+    }
+}
+
+// ============================================================================
+// EYELASH FIBERS — 4,000 fine strands on upper and lower lids
+// ============================================================================
+object EyelashFibers {
+    type: "instanced_field"
+    position: [0, 16.35, 0.55]
+    armature_joint: "head"
+
+    @instanced_mesh {
+        count: 4000,
+        geometry: "tapered_cylinder",
+        base_scale: [0.001, 0.015, 0.001]
+    }
+
+    @gpu_compute {
+        init: "eyelash_distribute",
+        update: "blink_deform",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "lid:uint"
+        ]
+    }
+
+    @distribution {
+        type: "eyelid_margin",
+        eyes: [
+            { side: "left", center: [-0.22, 0, 0], width: 0.12 },
+            { side: "right", center: [0.22, 0, 0], width: 0.12 }
+        ],
+        upper_lash_count: 1500,
+        lower_lash_count: 500,
+        upper_length_range: [0.008, 0.018],
+        lower_length_range: [0.004, 0.010],
+        curl_angle_upper: 40,
+        curl_angle_lower: -15,
+        segments_per_lash: 5
+    }
+
+    @material {
+        type: "hair_strand",
+        base_color: "#0a0604",
+        shading_model: "kajiya_kay",
+        opacity: 0.9
+    }
+
+    @animation {
+        type: "blink_deform",
+        sync_with: "HeadSDF.blink",
+        deform_axis: "y",
+        deform_amount: -0.005
+    }
+}
+
+// ============================================================================
+// BODY HAIR — 30,000 very fine, mostly invisible strands on arms and legs
+// Vellus hair that catches rim light for realism
+// ============================================================================
+object VellusHair {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 30000,
+        geometry: "tapered_cylinder",
+        base_scale: [0.0008, 0.008, 0.0008]
+    }
+
+    @gpu_compute {
+        init: "vellus_distribute",
+        update: "null",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4"
+        ]
+    }
+
+    @distribution {
+        type: "sdf_surface_scatter",
+        source_objects: ["LeftArmSDF", "RightArmSDF", "LeftLegSDF", "RightLegSDF"],
+        density: 0.3,
+        length_range: [0.003, 0.012],
+        // Hairs point away from the surface with slight directional bias
+        direction: "surface_normal",
+        direction_noise: 0.3,
+        tilt_angle: 30
+    }
+
+    @material {
+        type: "hair_strand",
+        base_color: "#c4a480",
+        opacity: 0.15,
+        // Nearly invisible except when backlit
+        rim_light_boost: 8.0,
+        rim_light_color: "#ffe8cc"
+    }
+}
+
+// ============================================================================
+// SURFACE DETAIL PARTICLES — 400,000 micro-bumps for skin texture
+// Pores, fine wrinkles, and surface imperfections at sub-millimeter scale
+// ============================================================================
+object SkinDetailParticles {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 400000,
+        geometry: "sphere",
+        base_scale: [0.002, 0.002, 0.001]
+    }
+
+    @gpu_compute {
+        init: "skin_detail_distribute",
+        update: "null",
+        buffers: [
+            "position:vec3",
+            "normal:vec3",
+            "scale:vec3",
+            "color:vec4",
+            "detail_type:uint"
+        ]
+    }
+
+    @distribution {
+        type: "sdf_surface_scatter",
+        source_objects: ["HeadSDF", "TorsoSDF", "LeftArmSDF", "RightArmSDF",
+                         "LeftHandSDF", "RightHandSDF", "LeftLegSDF", "RightLegSDF",
+                         "LeftFootSDF", "RightFootSDF"],
+        detail_types: [
+            { type: "pore", fraction: 0.60, scale_range: [0.001, 0.003], depth: -0.0005 },
+            { type: "fine_wrinkle", fraction: 0.15, scale: [0.001, 0.008, 0.0005], align: "curvature" },
+            { type: "skin_ridge", fraction: 0.15, scale: [0.0008, 0.005, 0.0003], align: "perpendicular_curvature" },
+            { type: "imperfection", fraction: 0.10, scale_range: [0.002, 0.005], random: true }
+        ],
+        density_overrides: [
+            { source: "HeadSDF", multiplier: 3.0 },
+            { source: "LeftHandSDF", multiplier: 2.5 },
+            { source: "RightHandSDF", multiplier: 2.5 }
+        ]
+    }
+
+    @material {
+        type: "skin_detail",
+        pore_color: "#b8906a",
+        pore_depth_darken: 0.08,
+        wrinkle_color: "#c09878",
+        wrinkle_shadow_intensity: 0.06,
+        imperfection_color_variance: 0.04,
+        blend_mode: "multiply",
+        opacity: 0.20
+    }
+}
+
+// ============================================================================
+// VEIN NETWORK — 50,000 faint blue-green lines beneath the skin
+// Visible veins on forearms, hands, temples, and neck
+// ============================================================================
+object VeinNetwork {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 50000,
+        geometry: "cylinder",
+        base_scale: [0.003, 0.02, 0.003]
+    }
+
+    @gpu_compute {
+        init: "vein_branch_generate",
+        update: "vein_pulse",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "depth:float",
+            "branch_id:uint",
+            "pulse_phase:float"
+        ]
+    }
+
+    @distribution {
+        type: "branching_network_subsurface",
+        source_objects: ["LeftArmSDF", "RightArmSDF", "LeftHandSDF", "RightHandSDF", "HeadSDF"],
+        subsurface_depth: -0.008,
+        // Veins are visible primarily on inner forearms, backs of hands, temples
+        high_visibility_zones: [
+            { object: "LeftArmSDF", region: "inner_forearm", density: 3.0 },
+            { object: "RightArmSDF", region: "inner_forearm", density: 3.0 },
+            { object: "LeftHandSDF", region: "dorsal", density: 4.0 },
+            { object: "RightHandSDF", region: "dorsal", density: 4.0 },
+            { object: "HeadSDF", region: "temple", density: 2.0 }
+        ],
+        branch_probability: 0.4,
+        branch_angle_range: [15, 40],
+        segment_length_range: [0.01, 0.04],
+        max_depth: 8,
+        thickness_decay: 0.85
+    }
+
+    @material {
+        type: "subsurface_vein",
+        base_color: "#5577aa",
+        opacity: 0.12,
+        subsurface_tint: "#446699",
+        depth_fade: true,
+        depth_fade_range: [0.005, 0.015],
+        blend_mode: "multiply"
+    }
+
+    @animation {
+        type: "vein_pulse",
+        // Blood pulse visible in larger veins
+        pulse_frequency: 1.1,
+        pulse_amplitude: 0.02,
+        pulse_speed: 2.0,
+        direction: "root_to_tip"
+    }
+}
+
+// ============================================================================
+// GROUND PLANE — Infinite floor with subtle reflection
+// ============================================================================
+object StudioFloor {
+    type: "plane"
+    position: [0, 0, 0]
+    scale: [40, 1, 40]
+    rotation: [-90, 0, 0]
+
+    @material {
+        type: "reflective_gradient",
+        center_color: "#1c1c20",
+        edge_color: "#0e0e12",
+        roughness: 0.30,
+        metalness: 0.1,
+        reflectivity: 0.35,
+        gradient_radius: 15.0
+    }
+
+    @reflection_probe {
+        type: "planar",
+        resolution: 1024,
+        blur: 0.15,
+        mix_strength: 0.3,
+        clip_offset: 0.01
+    }
+}
+
+// ============================================================================
+// CONTACT SHADOW — Soft shadow pooling at the feet
+// Grounds the figure in the scene
+// ============================================================================
+object ContactShadow {
+    type: "projected_effect"
+    position: [0, 0.01, 0.5]
+
+    @shadow {
+        type: "contact_shadow",
+        source_objects: ["LeftFootSDF", "RightFootSDF"],
+        resolution: 1024,
+        blur: 0.5,
+        opacity: 0.6,
+        max_distance: 0.3,
+        color: "#0a0a10"
+    }
+}
+
+// ============================================================================
+// QUALITY TIERS — Graceful degradation across devices
+// ============================================================================
+@quality_tier {
+    ultra: {
+        skin_particles: 600000,
+        skin_detail_particles: 400000,
+        hair_strands: 200000,
+        eyebrow_fibers: 16000,
+        eyelash_fibers: 4000,
+        vellus_hair: 30000,
+        vein_network: 50000,
+        sdf_samples: 256,
+        shadow_resolution: 4096,
+        reflection_resolution: 1024,
+        total_elements: 1450000
+    },
+    high: {
+        skin_particles: 300000,
+        skin_detail_particles: 150000,
+        hair_strands: 100000,
+        eyebrow_fibers: 8000,
+        eyelash_fibers: 2000,
+        vellus_hair: 10000,
+        vein_network: 20000,
+        sdf_samples: 128,
+        shadow_resolution: 2048,
+        reflection_resolution: 512,
+        total_elements: 690000
+    },
+    medium: {
+        skin_particles: 120000,
+        skin_detail_particles: 50000,
+        hair_strands: 40000,
+        eyebrow_fibers: 4000,
+        eyelash_fibers: 1000,
+        vellus_hair: 0,
+        vein_network: 5000,
+        sdf_samples: 64,
+        shadow_resolution: 1024,
+        reflection_resolution: 256,
+        total_elements: 270000
+    },
+    mobile: {
+        skin_particles: 40000,
+        skin_detail_particles: 0,
+        hair_strands: 15000,
+        eyebrow_fibers: 2000,
+        eyelash_fibers: 500,
+        vellus_hair: 0,
+        vein_network: 0,
+        sdf_samples: 32,
+        shadow_resolution: 512,
+        reflection_resolution: 0,
+        total_elements: 57500
+    }
+}
+
+// ============================================================================
+// PERFORMANCE — Frustum culling + LOD for 1.45M elements at 60fps
+// ============================================================================
+@frustum_cull {
+    enabled: true,
+    granularity: "body_part",
+    // Cull by body region — 12 clusters
+    clusters: [
+        { name: "head", objects: ["HeadSDF", "HairStrands", "EyebrowFibers", "EyelashFibers"] },
+        { name: "torso_front", objects: ["TorsoSDF"] },
+        { name: "left_arm", objects: ["LeftArmSDF", "LeftHandSDF"] },
+        { name: "right_arm", objects: ["RightArmSDF", "RightHandSDF"] },
+        { name: "left_leg", objects: ["LeftLegSDF", "LeftFootSDF"] },
+        { name: "right_leg", objects: ["RightLegSDF", "RightFootSDF"] }
+    ]
+}
+
+@lod {
+    distances: [5, 15, 40],
+    levels: [
+        { detail: "full", scale_factor: 1.0, description: "All skin particles + hair + detail" },
+        { detail: "reduced", scale_factor: 0.5, skip_detail_particles: true, description: "SDF + skin + hair" },
+        { detail: "simplified", scale_factor: 0.2, skip_hair_physics: true, description: "SDF + basic skin" },
+        { detail: "silhouette", sdf_only: true, skip_particles: true, description: "SDF forms only" }
+    ]
+}
+
+@post_process {
+    bloom: {
+        enabled: true,
+        threshold: 0.9,
+        intensity: 0.3,
+        radius: 0.3,
+        levels: 4
+    },
+    tone_mapping: {
+        type: "aces_filmic",
+        exposure: 1.0
+    },
+    // Subtle depth of field — sharp on the face, soft at extremities
+    depth_of_field: {
+        enabled: true,
+        focus_distance: 3.5,
+        focus_target: "HeadSDF",
+        aperture: 2.8,
+        bokeh_shape: "hexagonal",
+        max_blur: 0.008
+    },
+    // Film grain for photographic quality
+    film_grain: {
+        enabled: true,
+        intensity: 0.015,
+        animated: true
+    },
+    ambient_occlusion: {
+        enabled: true,
+        radius: 0.3,
+        intensity: 0.5,
+        bias: 0.025
+    }
+}
+
+// ============================================================================
+// CAMERA — Portrait framing with slow orbit
+// ============================================================================
+@camera {
+    type: "portrait_orbit",
+    target: [0, 13.0, 0],
+    distance: 5.5,
+    height: 13.5,
+    // Eye-level framing, slight low angle for presence
+    initial_angle: 15,
+    orbit_speed: 0.001,
+    orbit_range: [-45, 45],
+    // Slow vertical drift — face to full body and back
+    vertical_drift: {
+        amplitude: 3.0,
+        frequency: 0.002,
+        center: 13.0,
+        range: [8.0, 16.5]
+    },
+    // Auto-focus tracking on the face
+    auto_focus: {
+        enabled: true,
+        target_source: "HeadSDF",
+        smoothing: 0.95
+    }
+}
+
+// ============================================================================
+// INTERACTION — Let viewers examine the figure
+// ============================================================================
+@interaction {
+    // Click to highlight anatomical features
+    click: {
+        target: "sdf_objects",
+        effect: "highlight_anatomy",
+        highlight_color: "#ffffff",
+        highlight_intensity: 0.3,
+        label: true,
+        label_font_size: 12,
+        label_color: "#cccccc"
+    },
+    // Orbit freely
+    drag: {
+        effect: "orbit",
+        speed: 1.5,
+        inertia: 0.9
+    },
+    // Scroll to zoom
+    scroll: {
+        effect: "zoom",
+        speed: 0.5,
+        min_distance: 1.5,
+        max_distance: 20.0
+    },
+    // Right-click for wireframe toggle — reveals the SDF field
+    right_click: {
+        effect: "toggle_wireframe",
+        wireframe_color: "#4488ff",
+        wireframe_opacity: 0.3,
+        show_sdf_bounds: true
+    }
+}
+
+// ============================================================================
+// AUDIO — Ambient presence sounds
+// ============================================================================
+@audio {
+    ambient: {
+        type: "intimate_space",
+        room_size: 0.3,
+        damping: 0.8,
+        wet: 0.2
+    },
+    effects: [
+        {
+            trigger: "breathing_loop",
+            sound: "soft_breath",
+            volume: 0.04,
+            loop: true,
+            spatial: true,
+            spatial_source: "TorsoSDF",
+            frequency_range: [100, 800]
+        },
+        {
+            trigger: "heartbeat_loop",
+            sound: "heartbeat_soft",
+            volume: 0.02,
+            loop: true,
+            spatial: true,
+            spatial_source: "TorsoSDF",
+            bpm: 66
+        },
+        {
+            trigger: "ambient_loop",
+            sound: "studio_tone",
+            volume: 0.06,
+            loop: true,
+            spatial: false
+        }
+    ]
+}
+
+// ============================================================================
+// METADATA — For HoloMesh gallery and knowledge sharing
+// ============================================================================
+@metadata {
+    title: "Humanoid Atlas",
+    artist: "@holoscript",
+    description: "A realistic human figure built from 1.45 million geometric primitives — zero mesh data, zero textures, zero scans. The body is pure SDF mathematics: 150+ signed distance field primitives smooth-unioned into anatomically correct musculature across head, torso, arms, hands, legs, and feet. Skin realism comes from 600,000 translucent micro-spheres layered three-deep to simulate epidermis, dermis, and subsurface scatter. 200,000 hair strands with Kajiya-Kay shading. 50,000 subsurface vein segments. 400,000 pore and wrinkle detail particles. Standing in classical contrapposto, the figure breathes, blinks, and tracks the viewer's gaze — alive in the uncanny valley between geometry and flesh.",
+    tags: ["humanoid", "avatar", "anatomy", "sdf", "gpu-instancing", "subsurface-scattering", "hair-simulation", "photorealistic", "contrapposto", "generative", "skin", "portrait"],
+    shape_count: 1450000,
+    technique: "SDF anatomical composition (150+ primitives) + layered skin particles (600K) + Kajiya-Kay hair (200K) + subsurface veins + pore-level detail",
+    rendering_strategies: ["sdf_ray_marching", "gpu_instanced_geometry", "compute_rasterization"],
+    sdf_primitive_count: 152,
+    body_regions: ["head", "torso", "arms", "hands", "legs", "feet"],
+    anatomical_features: ["musculature", "skeletal_landmarks", "vascular_network", "skin_layers", "hair_follicles", "facial_features"],
+    created: "2026-04-06",
+    license: "CC-BY-4.0",
+    inspiration: "The intersection of computational geometry and classical figurative sculpture — proving that mathematical primitives, at sufficient density and anatomical precision, can cross the uncanny valley from the geometric side. References: Polykleitos' Canon of Proportions, medical anatomy atlases, subsurface scattering research (Jensen et al. 2001)."
+}

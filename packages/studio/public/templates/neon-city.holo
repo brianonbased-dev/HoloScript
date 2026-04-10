@@ -1,0 +1,86 @@
+composition "Neon City" {
+  environment {
+    skybox: "cyberpunk_city"
+    ambient: 0.15
+  }
+
+  object "Street" @collidable {
+    geometry: "plane"
+    position: [0, 0, -8]
+    scale: [20, 30, 1]
+    color: "#1a1a2e"
+    material: "shiny"
+  }
+
+  object "Building Left" @collidable {
+    geometry: "cube"
+    position: [-4, 4, -10]
+    scale: [3, 8, 3]
+    color: "#222244"
+    material: "metal"
+  }
+
+  object "Building Right" @collidable {
+    geometry: "cube"
+    position: [4, 3, -10]
+    scale: [3, 6, 4]
+    color: "#1a1a3a"
+    material: "metal"
+  }
+
+  object "Neon Sign Pink" @glowing {
+    geometry: "plane"
+    position: [-4, 5, -8.4]
+    scale: [2, 0.5, 1]
+    color: "#ff00ff"
+    material: "neon"
+  }
+
+  object "Neon Sign Cyan" @glowing {
+    geometry: "plane"
+    position: [4, 4, -7.9]
+    scale: [2.5, 0.4, 1]
+    color: "#00ffff"
+    material: "neon"
+  }
+
+  object "Hologram Pillar" @glowing @animated {
+    geometry: "cylinder"
+    position: [0, 2, -6]
+    scale: [0.3, 4, 0.3]
+    color: "#00ffff"
+    material: "hologram"
+  }
+
+  object "Hologram Orb" @glowing @animated {
+    geometry: "sphere"
+    position: [0, 4.5, -6]
+    scale: [0.8, 0.8, 0.8]
+    color: "#ff44ff"
+    material: "hologram"
+  }
+
+  object "Street Light 1" @glowing {
+    geometry: "sphere"
+    position: [-2, 3, -5]
+    scale: [0.15, 0.15, 0.15]
+    color: "#ffaa00"
+    material: "emissive"
+  }
+
+  object "Street Light 2" @glowing {
+    geometry: "sphere"
+    position: [2, 3, -5]
+    scale: [0.15, 0.15, 0.15]
+    color: "#ffaa00"
+    material: "emissive"
+  }
+
+  object "Puddle" {
+    geometry: "plane"
+    position: [1, 0.01, -5]
+    scale: [2, 1.5, 1]
+    color: "#1a1a3a"
+    material: "shiny"
+  }
+}

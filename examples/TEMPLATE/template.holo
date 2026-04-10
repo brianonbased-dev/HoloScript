@@ -1,0 +1,61 @@
+// [Your Example Name] - HoloScript Template
+//
+// This is a minimal template for creating HoloScript examples.
+// Replace placeholders with your actual implementation.
+//
+// SYNTAX REFERENCE:
+// - Comments: // (not #)
+// - Objects: object "Name" { }
+// - Traits: @trait (inside object block)
+// - Position/rotation/scale: Arrays [x, y, z]
+// - Colors: Quoted strings "#rrggbb"
+
+composition "[Your Example Name]" {
+
+  // Ground plane
+  object "Ground" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    color: "#228b22"
+  }
+
+  // Interactive cube
+  object "InteractiveCube" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
+
+    geometry: "cube"
+    position: [0, 1.5, -3]
+    scale: 0.5
+    color: "#ff6347"
+  }
+
+  // Glowing orb
+  object "GlowingOrb" {
+    @glowing
+    @pointable
+    @clickable
+
+    geometry: "sphere"
+    position: [2, 1.5, -3]
+    scale: 0.3
+    color: "#00ffff"
+  }
+
+  // Button
+  object "Button" {
+    @clickable
+    @pointable
+
+    geometry: "cylinder"
+    position: [-2, 1, -3]
+    rotation: [90, 0, 0]
+    scale: [0.2, 0.05, 0.2]
+    color: "#4ecdc4"
+  }
+}

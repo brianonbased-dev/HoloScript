@@ -1,0 +1,79 @@
+// Tourism Benchmark Composition
+composition "Tourism Benchmark" {
+  metadata {
+    name: 'Tourism Cross-Compilation Benchmark'
+    category: 'tourism'
+    platforms: ['ar', 'ios', 'android', 'visionos', 'webxr', 'babylonjs', 'r3f', 'openxr']
+  }
+
+  environment {
+    skybox: "ancient_ruins"
+    ambient_light: 0.7
+    image_tracking: true
+  }
+
+  template "Landmark" {
+    @hoverable
+    @eye_tracking
+    @metadata_display
+    @audio_guide
+    state {
+      name: ""
+      historical_period: ""
+      description: ""
+    }
+  }
+
+  spatial_group "HistoricalSite" {
+    origin: [0, 0, -8]
+    object "Temple" using "Landmark" {
+      geometry: "cube"
+      position: [0, 2, 0]
+      scale: [4, 4, 3]
+      color: "#d2b48c"
+      state: {
+        name: "Ancient Temple"
+        historical_period: "Classical"
+        description: "Built in 500 BCE"
+      }
+    }
+    object "Pillar1" using "Landmark" {
+      geometry: "cylinder"
+      position: [-2, 1.5, 0]
+      scale: [0.3, 3, 0.3]
+      color: "#c0c0c0"
+      state: { name: "Ionic Column" }
+    }
+    object "Pillar2" using "Landmark" {
+      geometry: "cylinder"
+      position: [2, 1.5, 0]
+      scale: [0.3, 3, 0.3]
+      color: "#c0c0c0"
+      state: { name: "Ionic Column" }
+    }
+  }
+
+  object "InfoPanel" {
+    @billboard
+    @anchor
+    @interactive
+    @eye_tracking
+    geometry: "plane"
+    position: [3, 1.5, -8]
+    scale: [0.4, 0.6, 1]
+    color: "#222222"
+  }
+
+  audio "AmbientSound" {
+    source: "audio/ancient_site.mp3"
+    volume: 0.3
+    loop: true
+    spatial: true
+  }
+
+  state TourState {
+    currentStop: 1
+    totalStops: 5
+    language: "en"
+  }
+}

@@ -1,0 +1,23 @@
+// Humanoid avatar fixture
+avatar#player
+  @skeleton(type: "humanoid", ik_enabled: true)
+  @body(preset: "athletic", height: 1.8)
+  @face(shape: "oval")
+  @expressive(blend_shapes: true, auto_blink: true)
+  @locomotion(style: "realistic", walk_speed: 1.4)
+{
+  name: "Player Avatar"
+
+  @on_pose_change(pose) => sync_animation(pose)
+  @on_expression_change(emotion) => update_face(emotion)
+}
+
+hair#player_hair @hair(style: "medium", physics: true) {
+  color: "#2c1810"
+  parent: "player"
+}
+
+outfit#player_outfit @clothing(type: "full_body", physics: "cloth") {
+  style: "casual"
+  parent: "player"
+}

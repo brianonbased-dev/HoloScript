@@ -1,0 +1,270 @@
+import type { TraitVisualConfig } from '../types';
+
+/**
+ * Visual configs for data visualization traits (46 traits).
+ * Data display and visualization UI elements.
+ */
+export const DATA_VISUALIZATION_VISUALS: Record<string, TraitVisualConfig> = {
+  chart: {
+    material: { roughness: 0.3, color: '#1A1A2E' },
+    emissive: { color: '#44AAFF', intensity: 0.2 },
+    tags: ['display', 'data'],
+    layer: 'visual_effect',
+  },
+  graph: {
+    material: { roughness: 0.3, color: '#1A1A2E' },
+    emissive: { color: '#44CCFF', intensity: 0.2 },
+    tags: ['display', 'data'],
+    layer: 'visual_effect',
+  },
+  dashboard: {
+    material: { roughness: 0.3, color: '#111111' },
+    emissive: { color: '#4488FF', intensity: 0.25 },
+    tags: ['display', 'data', 'complex'],
+    layer: 'visual_effect',
+  },
+  annotation: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FFCC00', intensity: 0.15 },
+    tags: ['text', 'overlay'],
+    layer: 'visual_effect',
+  },
+  measurement_tool: {
+    material: { roughness: 0.3, metalness: 0.4 },
+    emissive: { color: '#44FF88', intensity: 0.15 },
+    tags: ['tool', 'data'],
+    layer: 'visual_effect',
+  },
+  overlay: {
+    material: { roughness: 0.3 },
+    opacity: 0.7,
+    tags: ['ui', 'transparent'],
+    layer: 'visual_effect',
+  },
+  x_ray_view: {
+    material: { roughness: 0.2 },
+    opacity: 0.6,
+    emissive: { color: '#88CCFF', intensity: 0.3 },
+    tags: ['medical', 'transparent'],
+    layer: 'visual_effect',
+  },
+  exploded_view: {
+    material: { roughness: 0.3 },
+    tags: ['educational', 'animated'],
+    layer: 'visual_effect',
+  },
+  cutaway: {
+    material: { roughness: 0.4 },
+    tags: ['educational', 'cross-section'],
+    layer: 'visual_effect',
+  },
+  training_mode: {
+    material: { roughness: 0.4 },
+    emissive: { color: '#44CC88', intensity: 0.15 },
+    tags: ['educational', 'guided'],
+    layer: 'visual_effect',
+  },
+  simulation_mode: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FF8844', intensity: 0.15 },
+    tags: ['technical', 'dynamic'],
+    layer: 'visual_effect',
+  },
+  presentation_mode: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FFFFFF', intensity: 0.1 },
+    tags: ['display', 'clean'],
+    layer: 'visual_effect',
+  },
+  whiteboard: {
+    material: { roughness: 0.3, color: '#FFFFFF' },
+    tags: ['surface', 'writable', 'clean'],
+    layer: 'base_material',
+  },
+  sticky_note: {
+    material: { roughness: 0.7, color: '#FFFF88' },
+    tags: ['paper', 'writable'],
+    layer: 'base_material',
+  },
+  kanban: {
+    material: { roughness: 0.4, color: '#E8E8E8' },
+    tags: ['display', 'organized'],
+    layer: 'visual_effect',
+  },
+  timeline_view: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#88AAFF', intensity: 0.15 },
+    tags: ['display', 'temporal'],
+    layer: 'visual_effect',
+  },
+  gantt: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44AACC', intensity: 0.15 },
+    tags: ['display', 'temporal'],
+    layer: 'visual_effect',
+  },
+  org_chart: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#6688CC', intensity: 0.1 },
+    tags: ['display', 'structured'],
+    layer: 'visual_effect',
+  },
+  mind_map: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#CC88FF', intensity: 0.15 },
+    tags: ['display', 'creative'],
+    layer: 'visual_effect',
+  },
+  flowchart: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44AAFF', intensity: 0.15 },
+    tags: ['display', 'structured'],
+    layer: 'visual_effect',
+  },
+  schematic: {
+    material: { roughness: 0.3, color: '#F0F0FF' },
+    emissive: { color: '#4488FF', intensity: 0.1 },
+    tags: ['technical', 'display'],
+    layer: 'visual_effect',
+  },
+  wireframe_view: {
+    material: { roughness: 0.3 },
+    opacity: 0.6,
+    emissive: { color: '#44FF88', intensity: 0.2 },
+    tags: ['technical', 'transparent'],
+    layer: 'visual_effect',
+  },
+  heatmap_view: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FF4400', intensity: 0.3 },
+    tags: ['data', 'thermal'],
+    layer: 'visual_effect',
+  },
+  scatter_plot: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#4488FF', intensity: 0.15 },
+    tags: ['data', 'display'],
+    layer: 'visual_effect',
+  },
+  bar_chart: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44CC88', intensity: 0.15 },
+    tags: ['data', 'display'],
+    layer: 'visual_effect',
+  },
+  pie_chart: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FF8844', intensity: 0.15 },
+    tags: ['data', 'display'],
+    layer: 'visual_effect',
+  },
+  line_graph: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#88AAFF', intensity: 0.15 },
+    tags: ['data', 'display'],
+    layer: 'visual_effect',
+  },
+  tree_map: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#88CC44', intensity: 0.15 },
+    tags: ['data', 'structured'],
+    layer: 'visual_effect',
+  },
+  network_graph: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#CC88FF', intensity: 0.2 },
+    tags: ['data', 'connected'],
+    layer: 'visual_effect',
+  },
+  sankey: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44CCAA', intensity: 0.15 },
+    tags: ['data', 'flow'],
+    layer: 'visual_effect',
+  },
+  histogram: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#FF6644', intensity: 0.15 },
+    tags: ['data', 'display'],
+    layer: 'visual_effect',
+  },
+  gauge: {
+    material: { roughness: 0.3, metalness: 0.4 },
+    emissive: { color: '#44FF88', intensity: 0.2 },
+    tags: ['instrument', 'display'],
+    layer: 'visual_effect',
+  },
+  speedometer: {
+    material: { roughness: 0.3, metalness: 0.5, color: '#1A1A1A' },
+    emissive: { color: '#FF4400', intensity: 0.25 },
+    tags: ['instrument', 'display'],
+    layer: 'visual_effect',
+  },
+  progress_bar: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44CC88', intensity: 0.2 },
+    tags: ['ui', 'progress'],
+    layer: 'visual_effect',
+  },
+  status_indicator: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#44FF44', intensity: 0.25 },
+    tags: ['ui', 'signal'],
+    layer: 'visual_effect',
+  },
+  data_table: {
+    material: { roughness: 0.3, color: '#F0F0F0' },
+    tags: ['display', 'structured'],
+    layer: 'visual_effect',
+  },
+  spreadsheet: {
+    material: { roughness: 0.3, color: '#F0F0F0' },
+    emissive: { color: '#44AA44', intensity: 0.1 },
+    tags: ['display', 'data'],
+    layer: 'visual_effect',
+  },
+  code_editor: {
+    material: { roughness: 0.3, color: '#1E1E2E' },
+    emissive: { color: '#88CCFF', intensity: 0.15 },
+    tags: ['display', 'text'],
+    layer: 'visual_effect',
+  },
+  terminal: {
+    material: { roughness: 0.3, color: '#0A0A0A' },
+    emissive: { color: '#00FF00', intensity: 0.25 },
+    tags: ['display', 'text'],
+    layer: 'visual_effect',
+  },
+  file_browser: {
+    material: { roughness: 0.3, color: '#E8E8E8' },
+    tags: ['display', 'structured'],
+    layer: 'visual_effect',
+  },
+  media_player: {
+    material: { roughness: 0.3, color: '#1A1A2E' },
+    emissive: { color: '#FF4488', intensity: 0.15 },
+    tags: ['media', 'display'],
+    layer: 'visual_effect',
+  },
+  image_viewer: {
+    material: { roughness: 0.2 },
+    tags: ['media', 'display'],
+    layer: 'visual_effect',
+  },
+  model_viewer: {
+    material: { roughness: 0.3 },
+    emissive: { color: '#4488FF', intensity: 0.1 },
+    tags: ['3d', 'display'],
+    layer: 'visual_effect',
+  },
+  pdf_viewer: {
+    material: { roughness: 0.3, color: '#F5F5F5' },
+    tags: ['document', 'display'],
+    layer: 'visual_effect',
+  },
+  web_view: {
+    material: { roughness: 0.3 },
+    tags: ['display', 'embedded'],
+    layer: 'visual_effect',
+  },
+};

@@ -1,0 +1,177 @@
+// Android ARCore Example
+// Compile: holoscript compile android-ar-app.holo --target android
+// Output: Kotlin with ARCore and Sceneform
+
+composition "Android AR Furniture" {
+  environment {
+    plane_detection: true
+    depth_mode: "automatic"
+    instant_placement: true
+    light_estimation: {
+      mode: "environmental_hdr"
+      enabled: true
+    }
+  }
+
+  // === Furniture Catalog ===
+  template "FurnitureItem" {
+    @anchor
+    @draggable
+    @scalable
+    @rotatable
+    
+    state {
+      placed: false
+      selected: false
+    }
+
+    on_drag_start: {
+      this.state.selected = true
+      haptic_feedback("light")
+    }
+
+    on_drag_end: {
+      this.state.selected = false
+      haptic_feedback("medium")
+    }
+  }
+
+  // === Furniture Objects ===
+  object "ModernSofa" using "FurnitureItem" {
+    geometry: "model/sofa_modern.glb"
+    position: [0, 0, -2]
+    scale: [1, 1, 1]
+    category: "seating"
+    price: 899.99
+  }
+
+  object "CoffeeTable" using "FurnitureItem" {
+    geometry: "model/coffee_table.glb"
+    position: [0, 0, -1.5]
+    scale: [1, 1, 1]
+    category: "tables"
+    price: 299.99
+  }
+
+  object "FloorLamp" using "FurnitureItem" {
+    geometry: "model/floor_lamp.glb"
+    position: [0.5, 0, -2]
+    scale: [1, 1, 1]
+    category: "lighting"
+    price: 149.99
+    
+    state {
+      light_on: false
+    }
+
+    on_tap: {
+      this.state.light_on = !this.state.light_on
+      toggle_lamp_light(this.name, this.state.light_on)
+    }
+  }
+
+  object "Bookshelf" using "FurnitureItem" {
+    geometry: "model/bookshelf.glb"
+    position: [-0.5, 0, -2.5]
+    scale: [1, 1, 1]
+    category: "storage"
+    price: 449.99
+    
+    // Wall-mounted constraint
+    placement: {
+      surface: "vertical"
+      offset: 0.1
+    }
+  }
+
+  // === UI Overlays ===
+  object "PlacementReticle" {
+    @surface_indicator
+    geometry: "model/reticle.glb"
+    scale: [0.1, 0.1, 0.1]
+    color: "#4CAF50"
+    animation: {
+      property: "scale"
+      from: [0.09, 0.09, 0.09]
+      to: [0.11, 0.11, 0.11]
+      duration: 1000
+      loop: infinite
+      easing: "easeInOut"
+    }
+  }
+
+  object "MeasureTape" {
+    @measurement_tool
+    visible: false
+    color: "#2196F3"
+    units: "meters"
+    
+    on_measure_complete: {
+      show_measurement_result(distance)
+    }
+  }
+
+  // === Depth Occlusion ===
+  depth_occlusion {
+    enabled: true
+    mode: "automatic"
+  }
+
+  // === Shadow Plane ===
+  object "ShadowReceiver" {
+    @shadow_receiver
+    geometry: "plane"
+    scale: [10, 10, 1]
+    rotation: [-90, 0, 0]
+    material: "shadow_only"
+    receives_shadows: true
+  }
+
+  // === Lighting ===
+  light "AREnvironmentLight" {
+    type: "environment"
+    use_ar_estimation: true
+  }
+
+  light "FillLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.3
+    rotation: [-30, 45, 0]
+    cast_shadows: true
+  }
+
+  // === Gestures ===
+  gesture "tap" {
+    action: "place_or_select"
+  }
+
+  gesture "drag" {
+    action: "move_object"
+    constrain_to: "detected_plane"
+  }
+
+  gesture "pinch" {
+    action: "scale_object"
+    min_scale: 0.5
+    max_scale: 1.5
+  }
+
+  gesture "rotate" {
+    action: "rotate_object"
+    axis: "y"
+    snap_angles: [0, 45, 90, 135, 180, 225, 270, 315]
+  }
+
+  // === Actions ===
+  action "take_photo" {
+    capture_ar_frame: true
+    include_ui: false
+    save_to_gallery: true
+  }
+
+  action "share_room" {
+    export_format: "usdz"
+    include_furniture: true
+  }
+}

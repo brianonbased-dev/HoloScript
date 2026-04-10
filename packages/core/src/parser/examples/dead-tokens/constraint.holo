@@ -1,0 +1,8 @@
+composition "ConstraintExample" {
+  constraint LookAt {
+    source: "Camera"
+    target: "Player"
+    axis: "y"
+    damping: 0.1
+  }
+}

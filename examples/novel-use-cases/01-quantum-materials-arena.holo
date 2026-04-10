@@ -1,0 +1,269 @@
+/**
+ * Quantum-Ready Materials Discovery Arena
+ * 
+ * A persistent spatial lab where QuantumExplorer agents run hybrid 
+ * quantum / classical simulations, migrate across visionOS headsets,
+ * ROS 2 lab robots, and Azure Digital Twin back-ends, and earn compute
+ * credits for each validated molecular discovery.
+ *
+ * v5 Traits: agent_portal, economy, feedback_loop, post_quantum_audit
+ * Compile targets: visionOS, r3f, webxr, unity, azure_dt, urdf
+ *
+ * Studio prompt:
+ *   "Build a quantum materials discovery lab where AI explorer agents
+ *    migrate between a VR headset, a lab robot, and Azure Digital Twins.
+ *    They earn credits for every valid molecule they discover, and the
+ *    system self-tunes simulation fidelity in real time."
+ *
+ * Prize targets:
+ *   - XPRIZE Quantum Applications $5M (health/climate/materials)
+ *   - AWE Auggie "Best Enterprise"
+ *   - AWE "Best Content Creation Tool"
+ *
+ * @version 5.0.0
+ */
+composition "QuantumMaterialsArena" {
+
+  metadata {
+    name: "Quantum-Ready Materials Discovery Arena"
+    category: "materials_science"
+    platforms: ["visionos", "r3f", "webxr", "unity", "urdf", "dtdl"]
+  }
+
+  environment {
+    skybox: "deep_space_nebula"
+    ambient_light: 0.4
+    physics: true
+    post_quantum_crypto: true   // ML-KEM-768 envelope on all relay traffic
+  }
+
+  state {
+    molecules_discovered: 0
+    simulations_run: 0
+    total_fidelity_score: 0.0
+    avg_fidelity: 0.0
+    active_explorers: 0
+    credits_awarded: 0
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PORTAL HUB — cross-scene agent migration
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity PortalHub {
+    traits: [agent_portal];
+
+    agent_portal: {
+      scene_id: "quantum_arena_001",
+      scene_name: "Quantum Materials Arena",
+      agent_id: "arena_coordinator",
+      capabilities: ["quantum_sim", "molecule_validation", "fidelity_tuning"],
+      relay_url: "wss://portal.holoscript.dev/quantum",
+      auto_reconnect: true,
+      reconnect_delay: 3000,
+      max_hop_count: 5,
+      default_ttl: 120000,
+      max_outbox_size: 500,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ECONOMY ENGINE — compute credits for discoveries
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity EconomyEngine {
+    traits: [economy];
+
+    economy: {
+      initial_balance: 50,
+      default_spend_limit: 100,
+      spend_limit_period: 3600000,
+      max_transaction_history: 500,
+      default_bounty_deadline: 600000,
+      max_bounties_per_agent: 20,
+      escrow_enabled: true,
+      task_completion_reward: 25,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FEEDBACK LOOP — self-tuning fidelity
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity FeedbackEngine {
+    traits: [feedback_loop];
+
+    feedback_loop: {
+      metrics: {
+        fidelity_score:       { target: 0.95, min: 0, max: 1.0 },
+        sim_throughput:       { target: 100,  min: 0, max: 1000 },
+        convergence_rate:     { target: 0.8,  min: 0, max: 1.0 },
+        gpu_utilization:      { target: 80,   min: 0, max: 100 },
+        quantum_error_rate:   { target: 0.01, min: 0, max: 1.0 },
+      },
+      history_window: 120,
+      min_samples_for_trend: 8,
+      alert_threshold: 15,
+      critical_threshold: 40,
+      max_feedback_entries: 1000,
+      max_signals: 200,
+      auto_signal: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT TEMPLATES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  template "QuantumExplorer" {
+    @llm_agent
+    @perception(range: 25)
+    @post_quantum_audit { algorithm: "ML-KEM-768"; log_all: true }
+
+    geometry: "capsule"
+    color: "#7b2ff7"
+    scale: [0.6, 1.2, 0.6]
+
+    state {
+      target_molecule: null
+      fidelity_score: 0.0
+      discoveries: 0
+      credits: 50
+      migration_target: null
+    }
+
+    on mount() {
+      print("QuantumExplorer online — scanning candidate molecules…")
+      emit("economy:earn", { agentId: this.id, amount: 50, reason: "Initial allocation" })
+    }
+
+    action run_simulation(candidate) {
+      state.target_molecule = candidate
+      print("Running hybrid quantum sim for " + candidate.formula)
+      // spend credits on compute
+      emit("economy:spend", {
+        agentId: this.id, amount: 10,
+        reason: "Quantum sim: " + candidate.formula, target: "__quantum_compute__"
+      })
+      // report fidelity metric
+      emit("feedback:update_metric", { name: "fidelity_score", value: candidate.fidelity })
+      emit("feedback:update_metric", { name: "sim_throughput",  value: 1 })
+    }
+
+    action validate_discovery(result) {
+      if (result.fidelity >= 0.9) {
+        state.discoveries += 1
+        emit("economy:earn", { agentId: this.id, amount: 25, reason: "Valid molecule: " + result.formula })
+        emit("molecule_discovered", {
+          agentId: this.id, formula: result.formula,
+          fidelity: result.fidelity, timestamp: Date.now()
+        })
+      }
+    }
+
+    // migrate to lab robot or cloud
+    action migrate_to(target) {
+      state.migration_target = target
+      emit(PortalHub, "portal:migrate_out", {
+        agentId: this.id,
+        name: "QuantumExplorer",
+        capabilities: ["quantum_sim", "molecule_validation"],
+        memory: { discoveries: state.discoveries, credits: state.credits },
+        state: { target_molecule: state.target_molecule },
+        targetScene: target,
+      })
+    }
+  }
+
+  template "LabRobotBridge" {
+    @digital_twin(
+      physical_id: "ros2_lab_arm_01",
+      sync_properties: [
+        { physical_key: "sample_temp",  virtual_property: "temperature", direction: "in" },
+        { physical_key: "spectrometer", virtual_property: "spectrum",    direction: "in" }
+      ],
+      update_mode: "push"
+    )
+    geometry: "cube"
+    scale: [1, 2, 1]
+    color: "#2c3e50"
+
+    state { temperature: 0; spectrum: null }
+
+    on on_twin_sync(data) {
+      if (data.state.sample_temp > 500) {
+        pulsate(this.id, { color: "#ff4444", duration: 800 })
+      }
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // INSTANCES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  object "Floor" {
+    geometry: "plane"; scale: [30, 1, 30]; color: "#111118"; position: [0, -0.5, 0]
+  }
+
+  object "Explorer_Alpha" using "QuantumExplorer" {
+    position: [-3, 1, 0]; color: "#7b2ff7"
+  }
+  object "Explorer_Beta" using "QuantumExplorer" {
+    position: [3, 1, 0]; color: "#00ccff"
+  }
+  object "LabArm" using "LabRobotBridge" {
+    position: [0, 1, -8]
+  }
+
+  system "ROS2Bridge" {
+    nodeName: "/quantum_lab"
+    publishRate: 60
+    topics: { sampleData: "/lab/sample_data", armControl: "/lab/arm_cmd" }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GLOBAL EVENT HANDLERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on_molecule_discovered(data) {
+    state.molecules_discovered += 1
+    state.total_fidelity_score += data.fidelity
+    state.avg_fidelity = state.total_fidelity_score / state.molecules_discovered
+    state.credits_awarded += 25
+    emit("system_log", {
+      level: "info",
+      message: "Discovery #" + state.molecules_discovered + ": " + data.formula +
+               " (fidelity " + data.fidelity.toFixed(3) + ") by " + data.agentId
+    })
+  }
+
+  on(FeedbackEngine, "feedback:optimization_signal") {
+    if (event.suggestedAction === "reduce_sim_fidelity") {
+      print("⚙️  Auto-tuning: reducing simulation resolution to maintain throughput")
+      emit(FeedbackEngine, "feedback:acknowledge_signal", { signalId: event.id })
+    }
+    if (event.suggestedAction === "increase_sim_fidelity") {
+      print("⚙️  Auto-tuning: boosting fidelity — GPU headroom available")
+      emit(FeedbackEngine, "feedback:acknowledge_signal", { signalId: event.id })
+    }
+  }
+
+  on(PortalHub, "portal:agent_arrived") {
+    state.active_explorers += 1
+    print("🎉 Explorer arrived from " + event.sourceScene + ": " + event.agentId)
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DASHBOARD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  panel "QuantumDashboard" {
+    position: "top-right"
+    text "Title"  { content: "QUANTUM MATERIALS ARENA"; style: "heading" }
+    text "D1"     { bind: "'Molecules discovered: ' + state.molecules_discovered"; style: "info" }
+    text "D2"     { bind: "'Avg fidelity: ' + state.avg_fidelity.toFixed(3)"; style: "info" }
+    text "D3"     { bind: "'Credits awarded: ' + state.credits_awarded"; color: "#00ff88" }
+    text "D4"     { bind: "'Active explorers: ' + state.active_explorers"; style: "info" }
+    text "Label"  { content: "Post-Quantum: ML-KEM-768 ✅"; color: "#7b2ff7" }
+  }
+}

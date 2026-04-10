@@ -1,0 +1,22 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   git_status.txt
+	modified:   packages/core/src/cli/__tests__/holoscript-runner.daemon-status.test.ts
+	modified:   packages/core/src/cli/__tests__/holoscript-runner.daemon.test.ts
+	modified:   packages/core/src/cli/holoscript-runner.ts
+	modified:   packages/marketplace-api/src/traits/__tests__/Web3Journey.capstone.test.ts
+	modified:   packages/studio/src/lib/networkSync.ts
+	modified:   packages/studio/src/lib/plugins/pluginManager.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	clean_board.json
+	docs/guides/metrics-ssot.md
+	studio_tsc.txt
+	studio_tsc_utf8.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

@@ -1,0 +1,731 @@
+// Retro Pinball Table
+// A complete pinball game built with HoloScript+
+// Controls: A/Left = Left Flipper, D/Right = Right Flipper, Space = Launch Ball
+
+composition "RetroPinball" {
+  environment {
+    backgroundColor: "#0a0a1a"
+    ambient: 0.4
+    shadows: true
+    physics: true
+    physics_substeps: 4  // Per research: prevents tunneling at high velocities
+  }
+
+  // === GAME STATE MODULE ===
+  module GameState {
+    export let score: number = 0;
+    export let ballsRemaining: number = 3;
+    export let isPlaying: boolean = false;
+    export let ballLaunched: boolean = false;
+    export let multiplier: number = 1;
+
+    export function addScore(points: number) {
+      score += points * multiplier;
+      emit("score_changed", score);
+    }
+
+    export function loseBall() {
+      ballsRemaining--;
+      ballLaunched = false;
+      emit("ball_lost", ballsRemaining);
+      if (ballsRemaining <= 0) {
+        emit("game_over", score);
+      }
+    }
+
+    export function reset() {
+      score = 0;
+      ballsRemaining = 3;
+      multiplier = 1;
+      isPlaying = true;
+      emit("game_reset");
+    }
+  }
+
+  // === PHYSICS MODULE ===
+  module PinballPhysics {
+    // Per research: classic pinball physics constants
+    const GRAVITY = 9.8;
+    const TABLE_TILT = 6.5; // degrees
+    const BALL_MASS = 0.08; // kg (standard steel ball)
+    const BALL_RADIUS = 0.0135; // meters
+    const RESTITUTION = 0.7; // bounce coefficient 0.5-0.8 range
+    const FLIPPER_SPEED = 1700; // degrees/sec
+
+    export interface BallState {
+      position: Vector3;
+      velocity: Vector3;
+    }
+
+    export function applyTableGravity(ball: BallState, dt: number) {
+      const tiltRad = TABLE_TILT * Math.PI / 180;
+      ball.velocity.z += GRAVITY * Math.sin(tiltRad) * dt;
+    }
+
+    export function checkBumperCollision(ball: BallState, bumperPos: Vector3, radius: number): boolean {
+      const dx = ball.position.x - bumperPos.x;
+      const dz = ball.position.z - bumperPos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      return dist < (BALL_RADIUS + radius);
+    }
+
+    export function bounceOffBumper(ball: BallState, bumperPos: Vector3, strength: number) {
+      const angle = Math.atan2(ball.position.z - bumperPos.z, ball.position.x - bumperPos.x);
+      ball.velocity.x = Math.cos(angle) * strength;
+      ball.velocity.z = Math.sin(angle) * strength;
+    }
+  }
+
+  // === INPUT SYSTEM MODULE ===
+  module InputSystem {
+    let leftFlipperActive = false;
+    let rightFlipperActive = false;
+
+    export function onKeyDown(key: string) {
+      if (key === 'a' || key === 'ArrowLeft') {
+        leftFlipperActive = true;
+        emit("flipper_left", true);
+      }
+      if (key === 'd' || key === 'ArrowRight') {
+        rightFlipperActive = true;
+        emit("flipper_right", true);
+      }
+      if (key === ' ') {
+        emit("launch_ball");
+      }
+    }
+
+    export function onKeyUp(key: string) {
+      if (key === 'a' || key === 'ArrowLeft') {
+        leftFlipperActive = false;
+        emit("flipper_left", false);
+      }
+      if (key === 'd' || key === 'ArrowRight') {
+        rightFlipperActive = false;
+        emit("flipper_right", false);
+      }
+    }
+  }
+
+  // ============================================================
+  // TEMPLATES
+  // ============================================================
+
+  // === TABLE TEMPLATES ===
+  template "TableBase" {
+    @collidable
+    geometry: "box"
+    color: "#1a1a2e"
+  }
+
+  template "TableSurface" {
+    @collidable
+    geometry: "box"
+    color: "#16213e"
+    friction: 0.3
+  }
+
+  // === WALL TEMPLATES ===
+  template "Wall" {
+    @collidable
+    geometry: "box"
+    color: "#e94560"
+    restitution: 0.8
+  }
+
+  template "WallGlowing" {
+    @collidable
+    @glowing
+    geometry: "box"
+    color: "#e94560"
+    emissive: "#e94560"
+    emissiveIntensity: 0.3
+    restitution: 0.9
+  }
+
+  // === FLIPPER TEMPLATES ===
+  template "Flipper" {
+    @kinematic
+    @collidable
+    geometry: "box"
+    color: "#ff6b6b"
+  }
+
+  template "FlipperPivot" {
+    @glowing
+    geometry: "cylinder"
+    color: "#ffd700"
+    emissive: "#ffd700"
+    emissiveIntensity: 0.8
+  }
+
+  // === PINBALL TEMPLATE ===
+  template "Pinball" {
+    @physics
+    @collidable
+    @gravity
+    geometry: "sphere"
+    color: "#c0c0c0"
+    material: "metal"
+    mass: 0.08
+    restitution: 0.7
+    friction: 0.1
+    linearDamping: 0.1
+
+    state {
+      launched: false
+      velocity: [0, 0, 0]
+    }
+
+    @on_event("launch_ball"): () => {
+      if (!this.state.launched && GameState.ballsRemaining > 0) {
+        this.state.launched = true;
+        this.state.velocity = [random(-0.5, 0.5), 0, -5];
+        play_sound("plunger_launch");
+      }
+    }
+
+    @on_collision: (other) => {
+      if (other.id.startsWith("bumper")) {
+        GameState.addScore(100);
+        play_sound("bumper_hit");
+        other.flash();
+      }
+      if (other.id.startsWith("target")) {
+        GameState.addScore(500);
+        play_sound("target_hit");
+      }
+    }
+
+    @on_trigger("ballDrain"): () => {
+      GameState.loseBall();
+      this.reset();
+    }
+
+    action reset() {
+      this.position = [1.5, 0.3, 2];
+      this.state.velocity = [0, 0, 0];
+      this.state.launched = false;
+    }
+  }
+
+  // === BUMPER TEMPLATES ===
+  template "PopBumper" {
+    @collidable
+    @glowing
+    @animated
+    geometry: "cylinder"
+    animate: "pulse"
+    impulseStrength: 3.5
+    points: 100
+
+    action flash() {
+      this.emissiveIntensity = 2.0;
+      setTimeout(() => { this.emissiveIntensity = 0.6; }, 100);
+    }
+  }
+
+  template "BumperTop" {
+    @glowing
+    geometry: "cylinder"
+    color: "#ffffff"
+    emissiveIntensity: 1
+  }
+
+  // === TARGET TEMPLATE ===
+  template "DropTarget" {
+    @collidable
+    @glowing
+    geometry: "box"
+    color: "#4ecdc4"
+    emissive: "#4ecdc4"
+    emissiveIntensity: 0.4
+    points: 500
+
+    state {
+      hit: false
+    }
+
+    @on_collision: (ball) => {
+      if (!this.state.hit) {
+        this.state.hit = true;
+        GameState.addScore(this.points);
+        this.position.y = 0.1;
+        play_sound("target_drop");
+      }
+    }
+  }
+
+  // === SPINNER TEMPLATE ===
+  template "Spinner" {
+    @animated
+    @collidable
+    geometry: "box"
+    color: "#9b59b6"
+    animate: "spin"
+    animSpeed: 0
+    points: 10
+
+    @on_collision: (ball) => {
+      this.animSpeed += 2;
+      GameState.addScore(this.points);
+    }
+
+    @on_update: (dt) => {
+      this.animSpeed = Math.max(0, this.animSpeed - dt * 0.5);
+    }
+  }
+
+  template "SpinnerPost" {
+    geometry: "cylinder"
+    color: "#666666"
+  }
+
+  // === PLUNGER TEMPLATES ===
+  template "PlungerWall" {
+    @collidable
+    geometry: "box"
+    color: "#333333"
+  }
+
+  template "Plunger" {
+    @kinematic
+    geometry: "cylinder"
+    color: "#ff4444"
+
+    state {
+      pulled: false
+      pullDistance: 0
+    }
+
+    @on_event("launch_ball"): () => {
+      this.position.z = 2.7;
+      setTimeout(() => { this.position.z = 2.5; }, 100);
+    }
+  }
+
+  template "PlungerTip" {
+    geometry: "sphere"
+    color: "#cc0000"
+  }
+
+  // === RAMP TEMPLATE ===
+  template "Ramp" {
+    @collidable
+    geometry: "box"
+    restitution: 0.5
+  }
+
+  // === SLINGSHOT TEMPLATE ===
+  template "Slingshot" {
+    @collidable
+    @kinematic
+    geometry: "box"
+    color: "#f39c12"
+    impulseStrength: 2.5
+  }
+
+  // === LANE GUIDE TEMPLATE ===
+  template "LaneGuide" {
+    @collidable
+    geometry: "box"
+    color: "#555555"
+  }
+
+  // === DECORATIVE LIGHT TEMPLATE ===
+  template "LightStrip" {
+    @glowing
+    @animated
+    geometry: "box"
+    animate: "flicker"
+    emissiveIntensity: 1
+  }
+
+  // === SCORE DISPLAY TEMPLATES ===
+  template "ScoreBoard" {
+    @glowing
+    geometry: "box"
+    color: "#111111"
+    emissive: "#222222"
+    emissiveIntensity: 0.3
+
+    @on_event("score_changed"): (newScore) => {
+      this.updateDisplay(newScore);
+    }
+  }
+
+  template "ScoreDigit" {
+    @glowing
+    geometry: "box"
+    color: "#00ff00"
+    emissive: "#00ff00"
+    emissiveIntensity: 1
+  }
+
+  // === BALL DRAIN TEMPLATE ===
+  template "BallDrain" {
+    @trigger
+    geometry: "box"
+    color: "#ff0000"
+    visible: false
+
+    @on_trigger_enter: (other) => {
+      if (other.id === "pinball") {
+        emit("ballDrain");
+      }
+    }
+  }
+
+  template "BallReturn" {
+    @collidable
+    geometry: "box"
+    color: "#1a1a2e"
+  }
+
+  // ============================================================
+  // SCENE OBJECTS
+  // ============================================================
+
+  // === TABLE SURFACE ===
+  object "TableBase" using "TableBase" {
+    position: [0, 0, 0]
+    scale: [4, 0.2, 6]
+  }
+
+  object "TableSurface" using "TableSurface" {
+    position: [0, 0.15, 0]
+    scale: [3.8, 0.05, 5.8]
+  }
+
+  // === WALLS ===
+  object "WallLeft" using "Wall" {
+    position: [-1.85, 0.35, 0]
+    scale: [0.1, 0.4, 6]
+  }
+
+  object "WallRight" using "Wall" {
+    position: [1.85, 0.35, 0]
+    scale: [0.1, 0.4, 6]
+  }
+
+  object "WallTop" using "WallGlowing" {
+    position: [0, 0.35, -2.85]
+    scale: [3.8, 0.4, 0.1]
+  }
+
+  // === FLIPPERS ===
+  object "FlipperLeft" using "Flipper" {
+    position: [-0.5, 0.25, 2.2]
+    scale: [0.6, 0.1, 0.15]
+    rotation: [0, 15, 0]
+
+    joint: {
+      type: "hinge"
+      anchor: [-0.75, 0.25, 2.2]
+      axis: [0, 1, 0]
+      limits: [-30, 30]
+      motor_speed: 1700
+    }
+
+    @on_event("flipper_left"): (active) => {
+      if (active) {
+        this.rotation.y = 45;
+        play_sound("flipper_up");
+      } else {
+        this.rotation.y = 15;
+      }
+    }
+  }
+
+  object "FlipperRight" using "Flipper" {
+    position: [0.5, 0.25, 2.2]
+    scale: [0.6, 0.1, 0.15]
+    rotation: [0, -15, 0]
+
+    joint: {
+      type: "hinge"
+      anchor: [0.75, 0.25, 2.2]
+      axis: [0, 1, 0]
+      limits: [-30, 30]
+      motor_speed: 1700
+    }
+
+    @on_event("flipper_right"): (active) => {
+      if (active) {
+        this.rotation.y = -45;
+        play_sound("flipper_up");
+      } else {
+        this.rotation.y = -15;
+      }
+    }
+  }
+
+  object "FlipperPivotLeft" using "FlipperPivot" {
+    position: [-0.75, 0.25, 2.2]
+    scale: [0.08, 0.15, 0.08]
+  }
+
+  object "FlipperPivotRight" using "FlipperPivot" {
+    position: [0.75, 0.25, 2.2]
+    scale: [0.08, 0.15, 0.08]
+  }
+
+  // === PINBALL ===
+  object "Pinball" using "Pinball" {
+    position: [1.5, 0.3, 2]
+    scale: [0.12, 0.12, 0.12]
+  }
+
+  // === POP BUMPERS ===
+  object "Bumper1" using "PopBumper" {
+    position: [0, 0.3, -1.2]
+    scale: [0.25, 0.2, 0.25]
+    color: "#00ffff"
+    emissive: "#00ffff"
+    emissiveIntensity: 0.6
+    animSpeed: 2
+  }
+
+  object "Bumper2" using "PopBumper" {
+    position: [-0.5, 0.3, -0.6]
+    scale: [0.25, 0.2, 0.25]
+    color: "#ff00ff"
+    emissive: "#ff00ff"
+    emissiveIntensity: 0.6
+    animSpeed: 2.5
+  }
+
+  object "Bumper3" using "PopBumper" {
+    position: [0.5, 0.3, -0.6]
+    scale: [0.25, 0.2, 0.25]
+    color: "#ffff00"
+    emissive: "#ffff00"
+    emissiveIntensity: 0.6
+    animSpeed: 1.8
+  }
+
+  // Bumper tops
+  object "BumperTop1" using "BumperTop" {
+    position: [0, 0.42, -1.2]
+    scale: [0.2, 0.05, 0.2]
+    emissive: "#00ffff"
+  }
+
+  object "BumperTop2" using "BumperTop" {
+    position: [-0.5, 0.42, -0.6]
+    scale: [0.2, 0.05, 0.2]
+    emissive: "#ff00ff"
+  }
+
+  object "BumperTop3" using "BumperTop" {
+    position: [0.5, 0.42, -0.6]
+    scale: [0.2, 0.05, 0.2]
+    emissive: "#ffff00"
+  }
+
+  // === DROP TARGETS ===
+  object "Target1" using "DropTarget" {
+    position: [-1.2, 0.3, -1.8]
+    scale: [0.08, 0.25, 0.3]
+  }
+
+  object "Target2" using "DropTarget" {
+    position: [-1.2, 0.3, -1.4]
+    scale: [0.08, 0.25, 0.3]
+  }
+
+  object "Target3" using "DropTarget" {
+    position: [-1.2, 0.3, -1.0]
+    scale: [0.08, 0.25, 0.3]
+
+    @on_collision: (ball) => {
+      if (!this.state.hit) {
+        this.state.hit = true;
+        GameState.addScore(this.points);
+        this.position.y = 0.1;
+        play_sound("target_drop");
+        // All targets hit - bonus!
+        if (Target1.state.hit && Target2.state.hit) {
+          GameState.addScore(2000);
+          GameState.multiplier = 2;
+          play_sound("bonus");
+        }
+      }
+    }
+  }
+
+  // === SPINNER ===
+  object "Spinner" using "Spinner" {
+    position: [1.2, 0.3, -1.5]
+    scale: [0.02, 0.25, 0.3]
+  }
+
+  object "SpinnerPost" using "SpinnerPost" {
+    position: [1.2, 0.25, -1.5]
+    scale: [0.04, 0.2, 0.04]
+  }
+
+  // === PLUNGER ===
+  object "PlungerWall" using "PlungerWall" {
+    position: [1.55, 0.3, 1]
+    scale: [0.05, 0.3, 2.5]
+  }
+
+  object "Plunger" using "Plunger" {
+    position: [1.65, 0.25, 2.5]
+    scale: [0.1, 0.3, 0.1]
+  }
+
+  object "PlungerTip" using "PlungerTip" {
+    position: [1.65, 0.35, 2.5]
+    scale: [0.12, 0.06, 0.12]
+  }
+
+  // === RAMPS ===
+  object "RampLeft" using "Ramp" {
+    position: [-1, 0.25, 0.5]
+    scale: [0.6, 0.08, 1.2]
+    rotation: [-10, 25, 0]
+    color: "#2ecc71"
+  }
+
+  object "RampRight" using "Ramp" {
+    position: [1, 0.25, 0.5]
+    scale: [0.6, 0.08, 1.2]
+    rotation: [-10, -25, 0]
+    color: "#e74c3c"
+  }
+
+  // === SLINGSHOTS ===
+  object "SlingshotLeft" using "Slingshot" {
+    position: [-1, 0.25, 1.8]
+    scale: [0.5, 0.15, 0.08]
+    rotation: [0, -35, 0]
+
+    @on_collision: (ball) => {
+      GameState.addScore(50);
+      play_sound("slingshot");
+      ball.velocity.x += 1.5;
+      ball.velocity.z -= 1.0;
+    }
+  }
+
+  object "SlingshotRight" using "Slingshot" {
+    position: [1, 0.25, 1.8]
+    scale: [0.5, 0.15, 0.08]
+    rotation: [0, 35, 0]
+
+    @on_collision: (ball) => {
+      GameState.addScore(50);
+      play_sound("slingshot");
+      ball.velocity.x -= 1.5;
+      ball.velocity.z -= 1.0;
+    }
+  }
+
+  // === LANE GUIDES ===
+  object "GuideLeft" using "LaneGuide" {
+    position: [-1.4, 0.25, 1.5]
+    scale: [0.05, 0.2, 1.5]
+    rotation: [0, 15, 0]
+  }
+
+  object "GuideRight" using "LaneGuide" {
+    position: [1.4, 0.25, 1.5]
+    scale: [0.05, 0.2, 1.5]
+    rotation: [0, -15, 0]
+  }
+
+  // === DECORATIVE LIGHTS ===
+  object "LightStrip1" using "LightStrip" {
+    position: [-1.7, 0.45, -2]
+    scale: [0.05, 0.05, 0.3]
+    color: "#00ff88"
+    emissive: "#00ff88"
+  }
+
+  object "LightStrip2" using "LightStrip" {
+    position: [-1.7, 0.45, -1.5]
+    scale: [0.05, 0.05, 0.3]
+    color: "#ff0088"
+    emissive: "#ff0088"
+  }
+
+  object "LightStrip3" using "LightStrip" {
+    position: [-1.7, 0.45, -1]
+    scale: [0.05, 0.05, 0.3]
+    color: "#0088ff"
+    emissive: "#0088ff"
+  }
+
+  object "LightStrip4" using "LightStrip" {
+    position: [1.7, 0.45, -2]
+    scale: [0.05, 0.05, 0.3]
+    color: "#ffff00"
+    emissive: "#ffff00"
+  }
+
+  object "LightStrip5" using "LightStrip" {
+    position: [1.7, 0.45, -1.5]
+    scale: [0.05, 0.05, 0.3]
+    color: "#ff8800"
+    emissive: "#ff8800"
+  }
+
+  object "LightStrip6" using "LightStrip" {
+    position: [1.7, 0.45, -1]
+    scale: [0.05, 0.05, 0.3]
+    color: "#88ff00"
+    emissive: "#88ff00"
+  }
+
+  // === SCORE DISPLAY ===
+  object "ScoreBoard" using "ScoreBoard" {
+    position: [0, 0.6, -2.7]
+    scale: [2, 0.4, 0.1]
+  }
+
+  object "ScoreDigit1" using "ScoreDigit" {
+    position: [-0.6, 0.6, -2.65]
+    scale: [0.15, 0.25, 0.02]
+  }
+
+  object "ScoreDigit2" using "ScoreDigit" {
+    position: [-0.35, 0.6, -2.65]
+    scale: [0.15, 0.25, 0.02]
+  }
+
+  object "ScoreDigit3" using "ScoreDigit" {
+    position: [-0.1, 0.6, -2.65]
+    scale: [0.15, 0.25, 0.02]
+  }
+
+  object "ScoreDigit4" using "ScoreDigit" {
+    position: [0.15, 0.6, -2.65]
+    scale: [0.15, 0.25, 0.02]
+  }
+
+  object "ScoreDigit5" using "ScoreDigit" {
+    position: [0.4, 0.6, -2.65]
+    scale: [0.15, 0.25, 0.02]
+  }
+
+  // === BALL DRAIN (trigger zone) ===
+  object "BallDrain" using "BallDrain" {
+    position: [0, 0.1, 3]
+    scale: [1.5, 0.1, 0.3]
+  }
+
+  // === BALL RETURN GUIDES ===
+  object "BallReturnLeft" using "BallReturn" {
+    position: [-0.3, 0.15, 2.8]
+    scale: [0.4, 0.1, 0.3]
+    rotation: [20, 0, 0]
+  }
+
+  object "BallReturnRight" using "BallReturn" {
+    position: [0.3, 0.15, 2.8]
+    scale: [0.4, 0.1, 0.3]
+    rotation: [20, 0, 0]
+  }
+}

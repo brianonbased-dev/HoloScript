@@ -1,0 +1,2 @@
+src/physics/PhysicsActivation.ts(27,15): error TS2614: Module '"@holoscript/core"' has no exported member 'WeatherBlackboardState'. Did you mean to use 'import WeatherBlackboardState from "@holoscript/core"' instead?
+src/physics/SoftBodySolver.ts(8,19): error TS2614: Module '"@holoscript/core"' has no exported member 'Vector3Tuple'. Did you mean to use 'import Vector3Tuple from "@holoscript/core"' instead?

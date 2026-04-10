@@ -1,0 +1,478 @@
+/**
+ * SPZ Compression Example
+ *
+ * Demonstrates the SPZ v2.0 compression format for 3D Gaussian splats
+ * with 90% size reduction and smallest-three quaternion encoding.
+ *
+ * Key Features (v4.1):
+ * - SPZ v2.0 format with 90% size reduction (W.031)
+ * - Smallest-three quaternion encoding (4 bytes → 3 bytes)
+ * - Runtime decompression performance monitoring
+ * - Side-by-side comparison: uncompressed PLY vs compressed SPZ
+ * - Compression quality metrics (PSNR, SSIM)
+ * - Streaming decompression for large datasets
+ * - Memory usage tracking
+ *
+ * Research References:
+ * - W.031: SPZ compression achieves 90% size reduction with minimal quality loss
+ * - Smallest-three quaternion: Store 3 largest components, reconstruct 4th
+ * - WebGPU compute shader for parallel decompression
+ *
+ * Performance Targets:
+ * - Compression ratio: 8-12× (PLY → SPZ)
+ * - Decompression throughput: >10M Gaussians/sec (WebGPU)
+ * - Quality: PSNR >35 dB, SSIM >0.95
+ * - Memory overhead: <10% during decompression
+ *
+ * @version 4.1.0
+ * @category Volumetric
+ * @research W.031
+ */
+
+composition SPZCompressionExample {
+  // Uncompressed PLY reference (full 32-bit precision)
+  entity UncompressedScene {
+    gaussian_splat: {
+      source: "./assets/garden.ply",
+      format: "ply",
+      quality: "high",
+      max_splats: 2000000,
+
+      // Full precision settings
+      sort_mode: "distance",
+      sh_degree: 3,
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+
+      // Track uncompressed metrics
+      track_memory: true,
+      track_load_time: true,
+    },
+
+    // Position side-by-side for comparison
+    transform: {
+      position: [-3.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Compressed SPZ version (8-12× smaller)
+  entity CompressedScene {
+    gaussian_splat: {
+      source: "./assets/garden.spz",
+      format: "spz",
+      quality: "high",
+      max_splats: 2000000,
+
+      // SPZ v2.0 configuration
+      spz: {
+        version: "2.0",
+
+        // Smallest-three quaternion encoding
+        quaternion_encoding: "smallest_three",  // 4 bytes → 3 bytes
+
+        // Position quantization (3×float32 → 3×uint16)
+        position_quantization: {
+          enabled: true,
+          bits: 16,
+          min_bounds: [-10.0, -10.0, -10.0],
+          max_bounds: [10.0, 10.0, 10.0],
+        },
+
+        // Scale quantization (3×float32 → 3×uint8)
+        scale_quantization: {
+          enabled: true,
+          bits: 8,
+          min_scale: -8.0,   // log scale
+          max_scale: 2.0,
+        },
+
+        // Color quantization (3×float32 → RGB565)
+        color_encoding: "rgb565",  // 12 bytes → 2 bytes
+
+        // Alpha quantization (float32 → uint8)
+        alpha_encoding: "uint8",
+
+        // SH coefficient quantization
+        sh_quantization: {
+          enabled: true,
+          bits: 8,
+          per_component: true,
+        },
+
+        // Streaming decompression
+        streaming: {
+          enabled: true,
+          chunk_size: 100000,  // Decompress 100K Gaussians at a time
+          prefetch_chunks: 2,
+        },
+
+        // Compression validation
+        validate_decompression: true,
+      },
+
+      // Track compressed metrics
+      track_memory: true,
+      track_load_time: true,
+      track_decompression_time: true,
+    },
+
+    // Position side-by-side for comparison
+    transform: {
+      position: [3.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Camera for side-by-side viewing
+  entity ComparisonCamera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 1.6, 5.0],
+      rotation: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Event handlers for compression/decompression monitoring
+
+  // Track uncompressed loading metrics
+  on UncompressedScene.gaussian_splat.loading -> (event) {
+    const startTime = performance.now();
+    console.log('Uncompressed PLY loading started');
+    console.log(`Expected splat count: ${event.expected_count}`);
+  }
+
+  on UncompressedScene.gaussian_splat.loaded -> (event) {
+    const loadTime = performance.now() - event.start_time;
+    const fileSize = event.file_size_bytes;
+    const splatCount = event.splat_count;
+
+    console.log('Uncompressed PLY loaded:');
+    console.log(`  Splat count: ${splatCount.toLocaleString()}`);
+    console.log(`  File size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Load time: ${loadTime.toFixed(2)} ms`);
+    console.log(`  Memory usage: ${(event.memory_bytes / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Bytes per splat: ${(fileSize / splatCount).toFixed(1)}`);
+  }
+
+  // Track compressed loading and decompression metrics
+  on CompressedScene.gaussian_splat.loading -> (event) {
+    console.log('Compressed SPZ loading started');
+    console.log(`SPZ version: ${event.spz_version}`);
+    console.log(`Expected splat count: ${event.expected_count}`);
+  }
+
+  on CompressedScene.gaussian_splat.decompressing -> (event) {
+    console.log('SPZ decompression started');
+    console.log(`Decompression mode: ${event.mode}`);  // 'streaming' or 'full'
+    console.log(`Chunk size: ${event.chunk_size}`);
+  }
+
+  on CompressedScene.gaussian_splat.decompression_progress -> (event) {
+    const progress = (event.decompressed_count / event.total_count) * 100;
+    console.log(`Decompression progress: ${progress.toFixed(1)}% (${event.decompressed_count.toLocaleString()}/${event.total_count.toLocaleString()} Gaussians)`);
+    console.log(`  Throughput: ${(event.throughput / 1000000).toFixed(2)} M Gaussians/sec`);
+    console.log(`  Elapsed time: ${event.elapsed_ms.toFixed(2)} ms`);
+  }
+
+  on CompressedScene.gaussian_splat.loaded -> (event) {
+    const loadTime = performance.now() - event.start_time;
+    const compressedSize = event.file_size_bytes;
+    const splatCount = event.splat_count;
+    const decompressionTime = event.decompression_time_ms;
+
+    console.log('Compressed SPZ loaded and decompressed:');
+    console.log(`  Splat count: ${splatCount.toLocaleString()}`);
+    console.log(`  Compressed file size: ${(compressedSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Total load time: ${loadTime.toFixed(2)} ms`);
+    console.log(`  Decompression time: ${decompressionTime.toFixed(2)} ms`);
+    console.log(`  Memory usage: ${(event.memory_bytes / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Bytes per splat: ${(compressedSize / splatCount).toFixed(1)}`);
+
+    // Calculate compression metrics
+    const uncompressedSize = UncompressedScene.gaussian_splat.file_size_bytes;
+    const compressionRatio = uncompressedSize / compressedSize;
+    const spaceSavings = ((uncompressedSize - compressedSize) / uncompressedSize) * 100;
+
+    console.log('Compression metrics:');
+    console.log(`  Compression ratio: ${compressionRatio.toFixed(2)}×`);
+    console.log(`  Space savings: ${spaceSavings.toFixed(1)}%`);
+    console.log(`  Size reduction: ${((uncompressedSize - compressedSize) / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  // Track decompression quality metrics
+  on CompressedScene.gaussian_splat.quality_validation -> (event) {
+    console.log('SPZ decompression quality metrics:');
+    console.log(`  PSNR: ${event.psnr.toFixed(2)} dB`);
+    console.log(`  SSIM: ${event.ssim.toFixed(4)}`);
+    console.log(`  Max position error: ${event.max_position_error.toFixed(6)} units`);
+    console.log(`  Max rotation error: ${event.max_rotation_error.toFixed(6)} radians`);
+    console.log(`  Max scale error: ${event.max_scale_error.toFixed(6)} units`);
+    console.log(`  Max color error: ${event.max_color_error.toFixed(6)}`);
+
+    // Validate quality thresholds
+    if (event.psnr >= 35.0 && event.ssim >= 0.95) {
+      console.log('✓ Quality validation passed (PSNR ≥35 dB, SSIM ≥0.95)');
+    } else {
+      console.warn('⚠ Quality below target thresholds');
+    }
+  }
+
+  // Track memory usage during decompression
+  on CompressedScene.gaussian_splat.memory_update -> (event) {
+    const memoryOverhead = ((event.current_memory - event.final_memory) / event.final_memory) * 100;
+    console.log(`Memory usage: ${(event.current_memory / 1024 / 1024).toFixed(2)} MB (${memoryOverhead.toFixed(1)}% overhead)`);
+
+    // Validate memory overhead target (<10%)
+    if (memoryOverhead > 10.0) {
+      console.warn(`⚠ Memory overhead exceeds 10% target: ${memoryOverhead.toFixed(1)}%`);
+    }
+  }
+
+  // Handle decompression errors
+  on CompressedScene.gaussian_splat.decompression_error -> (event) {
+    console.error('SPZ decompression error:');
+    console.error(`  Error type: ${event.error_type}`);
+    console.error(`  Message: ${event.message}`);
+    console.error(`  Chunk index: ${event.chunk_index}`);
+    console.error(`  Gaussian index: ${event.gaussian_index}`);
+
+    // Attempt recovery
+    if (event.recoverable) {
+      console.log('Attempting to skip corrupted chunk and continue...');
+      CompressedScene.gaussian_splat.skip_chunk(event.chunk_index);
+    }
+  }
+
+  // Track rendering performance for both scenes
+  on frame_rendered -> (event) {
+    const uncompressedFPS = UncompressedScene.gaussian_splat.fps;
+    const compressedFPS = CompressedScene.gaussian_splat.fps;
+
+    // Performance should be identical (decompression is one-time cost)
+    if (Math.abs(uncompressedFPS - compressedFPS) > 2.0) {
+      console.warn(`FPS mismatch detected: uncompressed=${uncompressedFPS.toFixed(1)}, compressed=${compressedFPS.toFixed(1)}`);
+    }
+  }
+}
+
+// Demo controls for compression testing
+ui ComparisonControls {
+  panel "SPZ Compression Demo" {
+    section "Scene Selection" {
+      button "Load Garden Scene" -> () {
+        UncompressedScene.gaussian_splat.load("./assets/garden.ply");
+        CompressedScene.gaussian_splat.load("./assets/garden.spz");
+      }
+
+      button "Load City Scene" -> () {
+        UncompressedScene.gaussian_splat.load("./assets/city.ply");
+        CompressedScene.gaussian_splat.load("./assets/city.spz");
+      }
+
+      button "Load Avatar Scene" -> () {
+        UncompressedScene.gaussian_splat.load("./assets/avatar.ply");
+        CompressedScene.gaussian_splat.load("./assets/avatar.spz");
+      }
+    }
+
+    section "Compression Settings" {
+      slider "Position Quantization Bits" {
+        min: 8, max: 24, value: 16, step: 1,
+        onChange: (value) => {
+          CompressedScene.gaussian_splat.spz.position_quantization.bits = value;
+        }
+      }
+
+      slider "Scale Quantization Bits" {
+        min: 4, max: 16, value: 8, step: 1,
+        onChange: (value) => {
+          CompressedScene.gaussian_splat.spz.scale_quantization.bits = value;
+        }
+      }
+
+      dropdown "Color Encoding" {
+        options: ["rgb565", "rgb888", "yuv420"],
+        value: "rgb565",
+        onChange: (value) => {
+          CompressedScene.gaussian_splat.spz.color_encoding = value;
+        }
+      }
+
+      checkbox "Enable SH Quantization" {
+        value: true,
+        onChange: (checked) => {
+          CompressedScene.gaussian_splat.spz.sh_quantization.enabled = checked;
+        }
+      }
+    }
+
+    section "Decompression Settings" {
+      checkbox "Enable Streaming" {
+        value: true,
+        onChange: (checked) => {
+          CompressedScene.gaussian_splat.spz.streaming.enabled = checked;
+        }
+      }
+
+      slider "Chunk Size" {
+        min: 10000, max: 500000, value: 100000, step: 10000,
+        onChange: (value) => {
+          CompressedScene.gaussian_splat.spz.streaming.chunk_size = value;
+        }
+      }
+
+      slider "Prefetch Chunks" {
+        min: 0, max: 8, value: 2, step: 1,
+        onChange: (value) => {
+          CompressedScene.gaussian_splat.spz.streaming.prefetch_chunks = value;
+        }
+      }
+    }
+
+    section "Camera Controls" {
+      button "Focus Uncompressed" -> () {
+        ComparisonCamera.camera.focus_on(UncompressedScene);
+      }
+
+      button "Focus Compressed" -> () {
+        ComparisonCamera.camera.focus_on(CompressedScene);
+      }
+
+      button "Center View" -> () {
+        ComparisonCamera.camera.position = [0.0, 1.6, 5.0];
+        ComparisonCamera.camera.rotation = [0.0, 0.0, 0.0];
+      }
+    }
+
+    section "Actions" {
+      button "Reload Both Scenes" -> () {
+        UncompressedScene.gaussian_splat.reload();
+        CompressedScene.gaussian_splat.reload();
+      }
+
+      button "Export Comparison Report" -> () {
+        const report = {
+          uncompressed: UncompressedScene.gaussian_splat.get_metrics(),
+          compressed: CompressedScene.gaussian_splat.get_metrics(),
+          compression_ratio: UncompressedScene.gaussian_splat.file_size_bytes / CompressedScene.gaussian_splat.file_size_bytes,
+          quality_metrics: CompressedScene.gaussian_splat.get_quality_metrics(),
+        };
+        console.log('Compression Report:', JSON.stringify(report, null, 2));
+      }
+
+      button "Clear Metrics" -> () {
+        UncompressedScene.gaussian_splat.clear_metrics();
+        CompressedScene.gaussian_splat.clear_metrics();
+      }
+    }
+  }
+}
+
+// Visualization dashboard
+ui MetricsDashboard {
+  panel "Compression Metrics" {
+    section "File Sizes" {
+      text "Uncompressed Size" {
+        value: () => `${(UncompressedScene.gaussian_splat.file_size_bytes / 1024 / 1024).toFixed(2)} MB`
+      }
+
+      text "Compressed Size" {
+        value: () => `${(CompressedScene.gaussian_splat.file_size_bytes / 1024 / 1024).toFixed(2)} MB`
+      }
+
+      text "Compression Ratio" {
+        value: () => {
+          const ratio = UncompressedScene.gaussian_splat.file_size_bytes / CompressedScene.gaussian_splat.file_size_bytes;
+          return `${ratio.toFixed(2)}×`;
+        }
+      }
+
+      text "Space Savings" {
+        value: () => {
+          const uncompressed = UncompressedScene.gaussian_splat.file_size_bytes;
+          const compressed = CompressedScene.gaussian_splat.file_size_bytes;
+          const savings = ((uncompressed - compressed) / uncompressed) * 100;
+          return `${savings.toFixed(1)}%`;
+        }
+      }
+    }
+
+    section "Load Times" {
+      text "Uncompressed Load Time" {
+        value: () => `${UncompressedScene.gaussian_splat.load_time_ms.toFixed(2)} ms`
+      }
+
+      text "Compressed Load Time" {
+        value: () => `${CompressedScene.gaussian_splat.load_time_ms.toFixed(2)} ms`
+      }
+
+      text "Decompression Time" {
+        value: () => `${CompressedScene.gaussian_splat.decompression_time_ms.toFixed(2)} ms`
+      }
+
+      text "Decompression Throughput" {
+        value: () => {
+          const throughput = CompressedScene.gaussian_splat.decompression_throughput;
+          return `${(throughput / 1000000).toFixed(2)} M Gaussians/sec`;
+        }
+      }
+    }
+
+    section "Memory Usage" {
+      text "Uncompressed Memory" {
+        value: () => `${(UncompressedScene.gaussian_splat.memory_bytes / 1024 / 1024).toFixed(2)} MB`
+      }
+
+      text "Compressed Memory" {
+        value: () => `${(CompressedScene.gaussian_splat.memory_bytes / 1024 / 1024).toFixed(2)} MB`
+      }
+
+      text "Memory Overhead" {
+        value: () => {
+          const overhead = ((CompressedScene.gaussian_splat.current_memory - CompressedScene.gaussian_splat.memory_bytes) / CompressedScene.gaussian_splat.memory_bytes) * 100;
+          return `${overhead.toFixed(1)}%`;
+        }
+      }
+    }
+
+    section "Quality Metrics" {
+      text "PSNR" {
+        value: () => `${CompressedScene.gaussian_splat.quality_metrics.psnr.toFixed(2)} dB`
+      }
+
+      text "SSIM" {
+        value: () => `${CompressedScene.gaussian_splat.quality_metrics.ssim.toFixed(4)}`
+      }
+
+      text "Max Position Error" {
+        value: () => `${CompressedScene.gaussian_splat.quality_metrics.max_position_error.toFixed(6)} units`
+      }
+
+      text "Max Color Error" {
+        value: () => `${CompressedScene.gaussian_splat.quality_metrics.max_color_error.toFixed(6)}`
+      }
+    }
+
+    section "Rendering Performance" {
+      text "Uncompressed FPS" {
+        value: () => `${UncompressedScene.gaussian_splat.fps.toFixed(1)}`
+      }
+
+      text "Compressed FPS" {
+        value: () => `${CompressedScene.gaussian_splat.fps.toFixed(1)}`
+      }
+
+      text "Performance Parity" {
+        value: () => {
+          const delta = Math.abs(UncompressedScene.gaussian_splat.fps - CompressedScene.gaussian_splat.fps);
+          return delta < 2.0 ? "✓ Identical" : `⚠ ${delta.toFixed(1)} FPS difference`;
+        }
+      }
+    }
+  }
+}

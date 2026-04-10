@@ -1,0 +1,104 @@
+// Solar System with Real Orbital Mechanics
+// Accurate Keplerian orbital elements for inner planets and Earth's Moon
+
+composition "Solar System" {
+  // Central star (Sun)
+  object "Sun" {
+    geometry: "sphere"
+    position: [0, 0, 0]
+    scale: 5
+    color: "#FDB813"
+    glow: true
+  }
+  
+  // Mercury
+  object "Mercury" {
+    geometry: "sphere"
+    color: "#8C7853"
+    scale: 0.4
+    
+    semiMajorAxis: 0.387098
+    eccentricity: 0.205630
+    inclination: 7.005
+    longitudeAscending: 48.331
+    argumentPeriapsis: 29.124
+    meanAnomalyEpoch: 174.796
+    orbitalPeriod: 87.969
+    rotationPeriod: 58.646
+
+    @orbital()
+  }
+  
+  // Venus
+  object "Venus" {
+    geometry: "sphere"
+    color: "#FFC649"
+    scale: 0.9
+    
+    semiMajorAxis: 0.723332
+    eccentricity: 0.006773
+    inclination: 3.3947
+    longitudeAscending: 76.680
+    argumentPeriapsis: 54.891
+    meanAnomalyEpoch: 50.115
+    orbitalPeriod: 224.701
+    rotationPeriod: -243.025
+
+    @orbital()
+  }
+  
+  // Earth
+  object "Earth" {
+    geometry: "sphere"
+    color: "#0088FF"
+    scale: 1.0
+    
+    semiMajorAxis: 1.000000
+    eccentricity: 0.016710
+    inclination: 0.00005
+    longitudeAscending: -11.26064
+    argumentPeriapsis: 114.2078
+    meanAnomalyEpoch: 357.517
+    orbitalPeriod: 365.256
+    rotationPeriod: 0.997269
+
+    @orbital()
+  }
+  
+  // Mars
+  object "Mars" {
+    geometry: "sphere"
+    color: "#CD5C5C"
+    scale: 0.5
+    
+    semiMajorAxis: 1.523662
+    eccentricity: 0.093412
+    inclination: 1.8506
+    longitudeAscending: 49.578
+    argumentPeriapsis: 286.462
+    meanAnomalyEpoch: 19.412
+    orbitalPeriod: 686.980
+    rotationPeriod: 1.025957
+
+    @orbital()
+  }
+  
+  // Moon orbiting Earth
+  object "Moon" {
+    geometry: "sphere"
+    color: "#AAAAAA"
+    scale: 0.27
+    
+    parent: "Earth"
+    semiMajorAxis: 0.002570
+    eccentricity: 0.054900
+    inclination: 5.145
+    longitudeAscending: 125.08
+    argumentPeriapsis: 318.15
+    meanAnomalyEpoch: 135.27
+    orbitalPeriod: 27.321
+    rotationPeriod: 27.321
+
+    @orbital()
+  }
+}

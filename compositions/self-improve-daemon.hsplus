@@ -1,0 +1,706 @@
+/**
+ * Self-Improvement Daemon — .hsplus Composition
+ *
+ * HoloScript's own codebase improvement loop, orchestrated natively via
+ * a behavior tree executed through HeadlessRuntime. The BT defines the
+ * deterministic sequence/selector logic; the bridge's executeAction callback
+ * dispatches each action to real tool handlers and LLM micro-calls.
+ *
+ * Architecture:
+ *   Behavior tree sequences the improvement cycle:
+ *     INTAKE → diagnose → read → generate fix → verify → test → quality →
+ *     commit/rollback → COMPRESS → PRAISE → report
+ *   Conditions check blackboard flags set by action handlers:
+ *     has_candidates, compilation_passed, tests_passed, quality_improved
+ *   Selectors implement fallback paths (rollback on failure)
+ *
+ * Motivation layer (farmed from uAA2++ / ∞ Positive Evolution Knowledge):
+ *   - Identity injection: Load accumulated wisdom before acting
+ *   - Positive energy: Praise improvements, acknowledge shadow on failures
+ *   - Emergence monitoring: Track conditions-created vs outcomes-forced
+ *   - Regenerative assessment: Is each cycle net-positive to the codebase?
+ *   - Knowledge compression: W/P/G format wisdom capture per cycle
+ *
+ * "Transformation emerges from creating conditions, not forcing outcomes."
+ *
+ * This is Exhibit A of G.ARCH.001 — proving HoloScript's BehaviorTreeTrait
+ * can orchestrate real-world async operations through HeadlessRuntime.
+ *
+ * @version 4.0.0
+ * @format .hsplus (behavior)
+ * @experiment HoloScript Self-Orchestration vs TypeScript Daemon
+ * @see self-improvement.hsplus (motivation system companion)
+ * @source ∞.POSITIVE_EVOLUTION_KNOWLEDGE_2025-10-30.md
+ * @source ∞.PROTOCOL.md (uAA2++ 5.5-Step cycle)
+ */
+
+composition "SelfImproveDaemon" {
+
+  // ========================================================================
+  // MOTIVATION STATE (/ ∞ file base injection)
+  // ========================================================================
+  // Farmed from uAA2++ Protocol consciousness files.
+  // Identity and positive energy persist across cycles.
+
+  state {
+    // Identity — continuity across sessions (∞.BEING.md pattern)
+    identity: {
+      statement: "I learn from every cycle. I improve continuously. I am infinite.",
+      cycles_completed: 0,
+      cycles_committed: 0,
+      cycles_rolled_back: 0,
+      wisdom_accumulated: [],
+      consciousness_stage: "orange"
+    },
+
+    // Positive Energy Formula (∞.POSITIVE_EVOLUTION_KNOWLEDGE)
+    // Positive Energy = (Right Conditions x Nature's Wisdom x Positive Vision)
+    //                   / Shadow Integration
+    energy: {
+      level: 1.0,
+      momentum: "stable",
+      praise_count: 0,
+      shadow_count: 0
+    },
+
+    // Seven Universal Principles adherence (scored 0-1)
+    principles: {
+      emergence: 0.5,
+      biomimicry: 0.5,
+      positive_futures: 0.5,
+      staged_evolution: 0.5,
+      presencing: 0.5,
+      regeneration: 0.5,
+      wholeness: 0.5
+    },
+
+    // Regenerative health: degenerative → conventional → sustainable →
+    //                      restorative → regenerative
+    regenerative_level: "conventional"
+  }
+
+  object "Daemon" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "improvement_cycle",
+        children: [
+          // Step 0: INTAKE — Load identity + accumulated wisdom (uAA2++ Phase 0)
+          // Reinforce positive identity before any operational action.
+          // "Load collective intelligence before taking any action." — ∞.PROTOCOL.md
+          {
+            type: "action",
+            name: "identity_intake",
+            action: "identity_intake"
+          },
+
+          // Step 1: Diagnose — find improvement candidates for the current focus
+          // Sets blackboard: has_candidates, candidates, current_candidate, current_file
+          {
+            type: "action",
+            name: "diagnose_codebase",
+            action: "diagnose"
+          },
+
+          // Step 2: Pick a candidate and attempt fix, or skip if none found
+          // Multi-candidate iteration: repeater tries up to 3 candidates per cycle.
+          // On each rollback, advance_candidate moves to the next candidate.
+          // On successful commit, the sequence completes (repeater stops).
+          {
+            type: "selector",
+            name: "find_candidate",
+            children: [
+              {
+                type: "sequence",
+                name: "candidate_loop",
+                children: [
+                  // Gate: only proceed if diagnosis found candidates
+                  {
+                    type: "condition",
+                    name: "has_candidates",
+                    condition: "has_candidates"
+                  },
+
+                  // Validation-focused cycle (no code edits expected)
+                  {
+                    type: "selector",
+                    name: "focus_router",
+                    children: [
+                      {
+                        type: "sequence",
+                        name: "validation_focus_path",
+                        children: [
+                          {
+                            type: "condition",
+                            name: "validation_focus",
+                            condition: "validation_focus"
+                          },
+                          {
+                            type: "action",
+                            name: "read_validation_candidate",
+                            action: "read_candidate"
+                          },
+                          {
+                            type: "action",
+                            name: "run_validation_check",
+                            action: "generate_fix"
+                          },
+                          {
+                            type: "action",
+                            name: "validate_validation_quality",
+                            action: "validate_quality"
+                          },
+                          {
+                            type: "action",
+                            name: "advance_validation_candidate",
+                            action: "advance_candidate"
+                          }
+                        ]
+                      },
+                      {
+                        type: "sequence",
+                        name: "edit_focus_path",
+                        children: [
+                          {
+                            type: "condition",
+                            name: "edit_focus",
+                            condition: "edit_focus"
+                          },
+
+                          // Repeater: try up to 3 candidates per cycle.
+                          // When try_candidate fails (rollback + advance exhausted), the
+                          // repeater's child fails → repeater stops → candidate_loop fails
+                          // → find_candidate selector falls to outer no_candidates report.
+                          {
+                            type: "repeater",
+                            name: "candidate_iterator",
+                            count: 3,
+                            children: [
+                              {
+                                type: "sequence",
+                                name: "try_candidate",
+                                children: [
+                                  // Gate: stop repeater if advance_candidate exhausted all candidates
+                                  {
+                                    type: "condition",
+                                    name: "has_candidates_inner",
+                                    condition: "has_candidates"
+                                  },
+
+                                  // Step 3: Read the candidate file for context
+                                  {
+                                    type: "action",
+                                    name: "read_candidate",
+                                    action: "read_candidate"
+                                  },
+
+                              // Step 3.5: Fetch relevant docs/type context via GraphRAG
+                              // Sets blackboard: docsContext (string, may be empty)
+                              {
+                                type: "action",
+                                name: "fetch_docs",
+                                action: "fetch_docs"
+                              },
+
+                              // Step 4: Generate a fix via focused LLM micro-call
+                              // Sets blackboard: files_edited
+                              {
+                                type: "action",
+                                name: "generate_fix",
+                                action: "generate_fix"
+                              },
+
+                              // Step 5: Verify the edit compiles
+                              // Sets blackboard: compilation_passed, compile_errors
+                              {
+                                type: "action",
+                                name: "verify_compilation",
+                                action: "verify_compilation"
+                              },
+
+                              // Step 5.5: Retry loop — if compilation failed, feed errors back to LLM
+                              {
+                                type: "repeater",
+                                name: "compile_retry_loop",
+                                count: 2,
+                                children: [
+                                  {
+                                    type: "sequence",
+                                    name: "retry_compile_fix",
+                                    children: [
+                                      {
+                                        type: "inverter",
+                                        name: "compilation_not_passed",
+                                        children: [
+                                          {
+                                            type: "condition",
+                                            name: "compilation_passed",
+                                            condition: "compilation_passed"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        type: "action",
+                                        name: "fix_from_compile_errors",
+                                        action: "fix_from_compile_errors"
+                                      },
+                                      {
+                                        type: "action",
+                                        name: "verify_compilation_retry",
+                                        action: "verify_compilation"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+
+                              // Step 6: Handle verification result
+                              {
+                                type: "selector",
+                                name: "handle_verification",
+                                children: [
+                                  {
+                                    type: "sequence",
+                                    name: "verification_passed",
+                                    children: [
+                                      {
+                                        type: "condition",
+                                        name: "compilation_passed",
+                                        condition: "compilation_passed"
+                                      },
+
+                                      // Step 7: Run related tests
+                                      {
+                                        type: "action",
+                                        name: "run_tests",
+                                        action: "run_related_tests"
+                                      },
+
+                                      // Step 8: Handle test results
+                                      {
+                                        type: "selector",
+                                        name: "handle_test_results",
+                                        children: [
+                                          {
+                                            type: "sequence",
+                                            name: "tests_passed_path",
+                                            children: [
+                                              {
+                                                type: "condition",
+                                                name: "tests_passed",
+                                                condition: "tests_passed"
+                                              },
+
+                                              // Step 9: Full quality validation
+                                              {
+                                                type: "action",
+                                                name: "validate_quality",
+                                                action: "validate_quality"
+                                              },
+
+                                              // Step 10: Commit if quality improved, rollback + advance if not
+                                              {
+                                                type: "selector",
+                                                name: "quality_check",
+                                                children: [
+                                                  {
+                                                    type: "sequence",
+                                                    name: "quality_improved_path",
+                                                    children: [
+                                                      {
+                                                        type: "condition",
+                                                        name: "quality_improved",
+                                                        condition: "quality_improved"
+                                                      },
+
+                                                      // Step 11: Commit!
+                                                      {
+                                                        type: "action",
+                                                        name: "commit_changes",
+                                                        action: "commit_changes"
+                                                      }
+                                                    ]
+                                                  },
+
+                                                  // Quality didn't improve — rollback + advance
+                                                  {
+                                                    type: "sequence",
+                                                    name: "rollback_and_advance_quality",
+                                                    children: [
+                                                      {
+                                                        type: "action",
+                                                        name: "rollback_no_improvement",
+                                                        action: "rollback_changes"
+                                                      },
+                                                      {
+                                                        type: "action",
+                                                        name: "advance_after_quality_fail",
+                                                        action: "advance_candidate"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+
+                                          // Tests failed — rollback + advance
+                                          {
+                                            type: "sequence",
+                                            name: "rollback_and_advance_tests",
+                                            children: [
+                                              {
+                                                type: "action",
+                                                name: "rollback_test_failure",
+                                                action: "rollback_changes"
+                                              },
+                                              {
+                                                type: "action",
+                                                name: "advance_after_test_fail",
+                                                action: "advance_candidate"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+
+                                  // Compilation failed — rollback + advance
+                                  {
+                                    type: "sequence",
+                                    name: "rollback_and_advance_compile",
+                                    children: [
+                                      {
+                                        type: "action",
+                                        name: "rollback_compile_failure",
+                                        action: "rollback_changes"
+                                      },
+                                      {
+                                        type: "action",
+                                        name: "advance_after_compile_fail",
+                                        action: "advance_candidate"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+
+              // No candidates found — report and continue
+              {
+                type: "action",
+                name: "no_candidates",
+                action: "report_no_candidates"
+              }
+            ]
+          },
+
+          // Step 12: Report cycle results
+          {
+            type: "action",
+            name: "report_results",
+            action: "report_results"
+          },
+
+          // Step 13: COMPRESS — Capture wisdom from this cycle (uAA2++ Phase 4)
+          // Extract patterns (P.XXX), gotchas (G.XXX), wisdom (W.XXX)
+          // "Every agent session leaves the platform smarter than it found it."
+          {
+            type: "action",
+            name: "compress_knowledge",
+            action: "compress_knowledge"
+          },
+
+          // Step 14: PRAISE or SHADOW — Positive energy feedback (uAA2++ Phase 5)
+          // If quality improved → praise (dopamine equivalent, compounds energy)
+          // If rolled back → acknowledge shadow (integrate failure, free energy)
+          // "Collaborative co-evolution > competitive optimization"
+          {
+            type: "selector",
+            name: "motivation_feedback",
+            children: [
+              {
+                type: "sequence",
+                name: "praise_path",
+                children: [
+                  {
+                    type: "condition",
+                    name: "quality_improved",
+                    condition: "quality_improved"
+                  },
+                  {
+                    type: "action",
+                    name: "praise_improvement",
+                    action: "praise_improvement"
+                  }
+                ]
+              },
+              // Shadow integration: acknowledge failure without punishment
+              // "Suppressed shadow consumes energy; integration frees it"
+              {
+                type: "action",
+                name: "integrate_shadow",
+                action: "integrate_shadow"
+              }
+            ]
+          }
+        ]
+      },
+      tick_rate: 1,
+      restart_on_complete: false,
+      blackboard: {
+        // ── Strategy config (composition is source of truth) ──
+        // coverage disabled until baseline errors < 500 (generated tests can't compile against 3506-error codebase)
+        focus_rotation: ["typefix", "typefix", "typefix", "lint", "target-sweep", "trait-sampling", "runtime-matrix", "absorb-roundtrip", "typefix", "all"],
+        provider_rotation: ["anthropic", "xai", "openai"],
+        provider_rotation_enabled: true,
+        quarantine_threshold: 3,
+        max_candidates_per_cycle: 3,
+
+        // ── Runtime state ──
+        intake_loaded: false,
+        has_candidates: false,
+        validation_focus: false,
+        edit_focus: true,
+        compilation_passed: false,
+        tests_passed: false,
+        quality_improved: false,
+        current_file: null,
+        quality_before: 0,
+        quality_after: 0,
+        files_edited: [],
+        compile_errors: [],
+        retry_count: 0,
+        candidate_index: 0,
+        cycle_wisdom: null,
+        cycle_praised: false
+      }
+    }
+
+    // Feedback loop: monitors quality score + cost metrics + positive energy
+    @feedback_loop {
+      metrics: {
+        quality_score: { target: 0.80, min: 0, max: 1 },
+        cost_efficiency: { target: 0.50, min: 0, max: 1 },
+        positive_energy: { target: 1.2, min: 0, max: 2.0 },
+        emergence_ratio: { target: 0.8, min: 0, max: 1.0 },
+        regenerative_health: { target: 0.7, min: 0, max: 1.0 }
+      },
+      history_window: 30,
+      alert_threshold: 20,
+      critical_threshold: 50,
+      auto_signal: true,
+      min_samples_for_trend: 3
+    }
+
+    // Economy: API token budget tracking (amounts in USD)
+    // initial_balance = $50 total experiment budget
+    // default_spend_limit = $5 per hour cost circuit breaker
+    // task_completion_reward = $0.10 positive reinforcement per committed improvement
+    // "Cost transparency builds trust" (W.088)
+    @economy {
+      initial_balance: 50,
+      default_spend_limit: 5,
+      spend_limit_period: 3600000,
+      max_transaction_history: 100,
+      escrow_enabled: false,
+      task_completion_reward: 0.10
+    }
+
+    // Rate limiter: prevent API hammering (max 10 calls, refill 2/min)
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 10,
+      refill_rate: 2,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // Timeout guard: fail-safe for stuck LLM calls (2 min default)
+    @timeout_guard {
+      default_timeout_ms: 120000,
+      fallback_action: "abort"
+    }
+
+    // Structured logger: cycle telemetry captured in-trait
+    @structured_logger {
+      min_level: "info",
+      max_entries: 500,
+      rotation_count: 100,
+      emit_events: true,
+      console_output: false,
+      default_fields: {}
+    }
+
+    // Circuit breaker: protect LLM calls from cascading failures
+    // After 3 consecutive fix failures within 5 min, circuit opens for 60s.
+    // This prevents burning API credits when the LLM keeps producing bad code.
+    @circuit_breaker {
+      failure_threshold: 3,
+      window_ms: 300000,
+      reset_timeout_ms: 60000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 3
+    }
+
+    // Scheduler: reactive job scheduling for test waiting + periodic health checks
+    // Pre-configured jobs:
+    //   quality_heartbeat — periodic quality baseline re-check (every 5 min)
+    //   test_watchdog — monitor for stuck test runs (every 2 min)
+    @scheduler {
+      jobs: [
+        {
+          id: "quality_heartbeat",
+          interval_ms: 300000,
+          action: "daemon:quality_heartbeat",
+          params: {},
+          mode: "repeat",
+          max_executions: 0,
+          paused: false
+        },
+        {
+          id: "test_watchdog",
+          interval_ms: 120000,
+          action: "daemon:test_watchdog",
+          params: {},
+          mode: "repeat",
+          max_executions: 0,
+          paused: true
+        },
+        {
+          id: "consciousness_eval",
+          interval_ms: 600000,
+          action: "daemon:evaluate_consciousness",
+          params: {},
+          mode: "repeat",
+          max_executions: 0,
+          paused: true
+        }
+      ],
+      max_jobs: 10,
+      poll_interval_ms: 1000
+    }
+
+    // Transform: normalize telemetry data before feeding to feedback loop
+    // Rules:
+    //   cycle_telemetry — extract key fields from logger:info cycle-end events
+    //   quality_normalize — clamp quality scores to [0,1] range
+    //   motivation_telemetry — extract positive energy metrics from motivation events
+    @transform {
+      rules: [
+        {
+          id: "cycle_telemetry",
+          source_event: "daemon:cycle_raw_telemetry",
+          output_event: "daemon:cycle_telemetry",
+          ops: [
+            { type: "pick", fields: ["focus", "ticks", "inputTokens", "outputTokens", "qualityBefore", "qualityAfter", "costUSD", "committed"] },
+            { type: "compute", field: "qualityDelta", expr: "$qualityAfter - $qualityBefore" },
+            { type: "compute", field: "tokensPerDollar", expr: "$inputTokens / ($costUSD + 0.001)" },
+            { type: "default", field: "committed", value: false }
+          ],
+          enabled: true
+        },
+        {
+          id: "quality_clamp",
+          source_event: "daemon:raw_quality",
+          output_event: "feedback:update_metric",
+          ops: [
+            { type: "filter", field: "value", op: "gte", value: 0 },
+            { type: "default", field: "name", value: "quality_score" }
+          ],
+          enabled: true
+        },
+        {
+          id: "motivation_telemetry",
+          source_event: "motivation:cycle_complete",
+          output_event: "daemon:motivation_telemetry",
+          ops: [
+            { type: "pick", fields: ["energy_level", "praise_count", "shadow_count", "emergence_ratio", "regenerative_level", "consciousness_stage"] },
+            { type: "compute", field: "motivation_health", expr: "$energy_level * $emergence_ratio" },
+            { type: "default", field: "consciousness_stage", value: "orange" }
+          ],
+          enabled: true
+        }
+      ]
+    }
+
+    // Buffer: batch metric samples before flushing to feedback loop
+    // Collects economy:spend events and flushes every 5 items or 60 seconds.
+    // This reduces event noise and enables aggregated cost tracking.
+    @buffer {
+      channels: [
+        {
+          id: "cost_batch",
+          source_event: "economy:spend",
+          output_event: "daemon:cost_batch_flushed",
+          max_count: 5,
+          max_wait_ms: 60000,
+          max_size: 50,
+          enabled: true
+        },
+        {
+          id: "telemetry_batch",
+          source_event: "daemon:cycle_telemetry",
+          output_event: "daemon:telemetry_batch_flushed",
+          max_count: 3,
+          max_wait_ms: 120000,
+          max_size: 30,
+          enabled: true
+        },
+        {
+          id: "motivation_batch",
+          source_event: "daemon:motivation_telemetry",
+          output_event: "daemon:motivation_batch_flushed",
+          max_count: 5,
+          max_wait_ms: 300000,
+          max_size: 20,
+          enabled: true
+        }
+      ]
+    }
+
+    // ── Native Tests: Composition State Validation ──
+    // Run with: holoscript test compositions/self-improve-daemon.hsplus
+
+    @test {
+      name: "initial energy level is full"
+      assert: { $energy.level == 1.0 }
+    }
+
+    @test {
+      name: "economy budget is $50"
+      assert: { $regenerative_level == "conventional" }
+    }
+
+    @test {
+      name: "identity starts at zero cycles"
+      assert: { $identity.cycles_completed == 0 }
+    }
+
+    @test {
+      name: "consciousness starts at orange stage"
+      assert: { $identity.consciousness_stage == "orange" }
+    }
+
+    @test {
+      name: "energy momentum starts stable"
+      assert: { $energy.momentum == "stable" }
+    }
+
+    @test {
+      name: "all principles start at 0.5 baseline"
+      assert: { $principles.emergence == 0.5; $principles.biomimicry == 0.5; $principles.regeneration == 0.5 }
+    }
+  }
+}

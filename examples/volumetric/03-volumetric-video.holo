@@ -1,0 +1,362 @@
+/**
+ * Volumetric Video — HoloScript v4.1 4D Temporal Mode Example
+ *
+ * Demonstrates 4D volumetric video playback with temporal Gaussian splats.
+ * This example shows:
+ *  - 4D-MoDe delta encoding for temporal animation
+ *  - Frame interpolation and playback control
+ *  - Adaptive quality based on bandwidth
+ *  - Streaming volumetric video
+ *  - Temporal compression
+ *  - Loop and seek controls
+ *
+ * Use Case: Volumetric Video Playback
+ *   - Render animated photorealistic humans/objects
+ *   - Volumetric capture playback (RGB-D + depth)
+ *   - Time-varying Gaussian splat scenes
+ *   - Immersive video experiences in VR/AR
+ *
+ * Run this example:
+ *   holoc examples/volumetric/03-volumetric-video.holo --target r3f
+ *
+ * @version 4.1.0
+ */
+
+scene VolumetricPerformance {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 4D VOLUMETRIC VIDEO CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DancerPerformance {
+    traits: [gaussian_splat];
+
+    gaussian_splat: {
+      // 4D volumetric video source (multi-frame Gaussian splat sequence)
+      source: "./assets/dancer_performance.4dgs",  // 600 frames @ 30 FPS = 20 seconds
+      format: "spz",  // SPZ format supports 4D temporal mode
+      quality: "high",
+      max_splats: 1500000,  // 1.5M Gaussians per frame
+
+      // Sorting (per-frame)
+      sort_mode: "radix",
+
+      // Spherical harmonics
+      sh_degree: 2,
+
+      // Culling
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+      scale_modifier: 1.0,
+
+      // LOD (disabled for temporal mode)
+      lod: {
+        mode: "none",
+        octree_depth: 0,
+        anchor_thresholds: [],
+      },
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 4D TEMPORAL MODE (W.033, W.036)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      temporal_mode: "4d",  // 4D volumetric video (time-varying)
+
+      // Playback configuration
+      playback: {
+        fps: 30,            // Target playback frame rate
+        loop: true,         // Loop video
+        autoplay: true,     // Start playing on load
+        startFrame: 0,
+        endFrame: 599,      // 600 frames total
+      },
+
+      // 4D-MoDe delta encoding (W.033)
+      temporal_compression: {
+        enabled: true,
+        deltaEncoding: "4d-mode",  // Motion-aware delta encoding
+        keyframeInterval: 30,      // Keyframe every 1 second (30 frames)
+        predictionMode: "motion",  // Motion prediction for delta frames
+      },
+
+      // Streaming configuration
+      streaming: true,
+      streaming_config: {
+        chunkSize: 30,       // Stream 30 frames at a time (1 second chunks)
+        prebufferFrames: 60, // Prebuffer 2 seconds
+        adaptiveQuality: true,
+      },
+
+      // Compression
+      compression: true,
+
+      // Gaussian budget
+      gaussian_budget: {
+        total_cap: 1500000,  // 1.5M Gaussians per frame
+        per_avatar_reservation: 0,
+      },
+
+      spz: {
+        version: "2.0",
+        quaternion_encoding: "smallest_three",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Video Loading
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DancerPerformance, "volumetric_video_loading_started") {
+    log("🎬 Loading volumetric video...");
+    log(`  Source: ${event.source}`);
+    log(`  Total frames: ${event.totalFrames}`);
+    log(`  Duration: ${event.durationSeconds.toFixed(2)}s @ ${event.fps} FPS`);
+    log(`  Estimated size: ${(event.estimatedBytes / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  on(DancerPerformance, "volumetric_video_loading_progress") {
+    const percent = (event.framesLoaded / event.totalFrames * 100).toFixed(1);
+    log(`  Loading: ${percent}% (${event.framesLoaded} / ${event.totalFrames} frames)`);
+  }
+
+  on(DancerPerformance, "volumetric_video_loaded") {
+    log("✅ Volumetric video loaded");
+    log(`  Total frames: ${event.totalFrames}`);
+    log(`  Gaussians per frame: ${event.gaussiansPerFrame.toLocaleString()}`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Compression ratio: ${event.compressionRatio.toFixed(2)}× (${((1 - 1/event.compressionRatio) * 100).toFixed(1)}% reduction)`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Playback Control
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DancerPerformance, "playback_started") {
+    log("▶️  Volumetric video playback started");
+    log(`  FPS: ${event.fps}`);
+    log(`  Loop: ${event.loop ? "✅" : "❌"}`);
+    log(`  Start frame: ${event.startFrame}`);
+    log(`  End frame: ${event.endFrame}`);
+  }
+
+  on(DancerPerformance, "playback_paused") {
+    log("⏸️  Playback paused");
+    log(`  Current frame: ${event.currentFrame} / ${event.totalFrames}`);
+    log(`  Timestamp: ${event.timestampSeconds.toFixed(2)}s`);
+  }
+
+  on(DancerPerformance, "playback_resumed") {
+    log("▶️  Playback resumed");
+    log(`  Current frame: ${event.currentFrame}`);
+  }
+
+  on(DancerPerformance, "playback_stopped") {
+    log("⏹️  Playback stopped");
+  }
+
+  on(DancerPerformance, "playback_looped") {
+    log("🔁 Video looped (returning to frame 0)");
+  }
+
+  on(DancerPerformance, "frame_changed") {
+    if (event.currentFrame % 30 === 0) {  // Log every second
+      const percent = (event.currentFrame / event.totalFrames * 100).toFixed(1);
+      log(`  Frame: ${event.currentFrame} / ${event.totalFrames} (${percent}%) | ${event.timestampSeconds.toFixed(2)}s`);
+    }
+  }
+
+  on(DancerPerformance, "seek_completed") {
+    log(`⏩ Seek completed`);
+    log(`  Target frame: ${event.targetFrame}`);
+    log(`  Actual frame: ${event.actualFrame}`);
+    log(`  Seek time: ${event.seekTimeMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Temporal Compression
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DancerPerformance, "keyframe_decoded") {
+    log(`🔑 Keyframe decoded: ${event.frameIndex}`);
+    log(`  Gaussians: ${event.gaussianCount.toLocaleString()}`);
+    log(`  Decode time: ${event.decodeTimeMs.toFixed(2)}ms`);
+  }
+
+  on(DancerPerformance, "delta_frame_decoded") {
+    log(`Δ Delta frame decoded: ${event.frameIndex}`);
+    log(`  Deltas applied: ${event.deltaCount.toLocaleString()}`);
+    log(`  Prediction mode: ${event.predictionMode}`);
+    log(`  Decode time: ${event.decodeTimeMs.toFixed(2)}ms`);
+  }
+
+  on(DancerPerformance, "temporal_buffer_underrun") {
+    log("⚠️  Temporal buffer underrun (playback stutter)");
+    log(`  Current frame: ${event.currentFrame}`);
+    log(`  Buffered frames: ${event.bufferedFrames}`);
+    log(`  Action: Reducing quality to catch up`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Adaptive Quality
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DancerPerformance, "quality_adjusted") {
+    log(`⚙️  Quality adjusted: ${event.oldQuality} → ${event.newQuality}`);
+    log(`  Reason: ${event.reason}`);
+    log(`  Bandwidth: ${(event.bandwidthMbps).toFixed(2)} Mbps`);
+    log(`  Target FPS: ${event.targetFps}`);
+  }
+
+  on(DancerPerformance, "streaming_chunk_loaded") {
+    log(`📥 Streaming chunk loaded`);
+    log(`  Chunk: ${event.chunkIndex} (frames ${event.startFrame}-${event.endFrame})`);
+    log(`  Frames: ${event.frameCount}`);
+    log(`  Size: ${(event.chunkSizeBytes / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Load time: ${event.loadTimeMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Rendering
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(DancerPerformance, "temporal_frame_rendered") {
+    if (event.frameIndex % 30 === 0) {  // Log every second
+      log(`🎨 Rendered frame ${event.frameIndex}`);
+      log(`  Gaussians: ${event.visibleGaussians.toLocaleString()}`);
+      log(`  Render time: ${event.renderTimeMs.toFixed(2)}ms (${(1000 / event.renderTimeMs).toFixed(1)} FPS)`);
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Play volumetric video
+  on(DemoControls, "click") {
+    if (event.target === "play_button") {
+      emit(DancerPerformance, "play", {});
+      log("▶️  Playing volumetric video...");
+    }
+  }
+
+  // Demo 2: Pause playback
+  on(DemoControls, "click") {
+    if (event.target === "pause_button") {
+      emit(DancerPerformance, "pause", {});
+      log("⏸️  Pausing playback...");
+    }
+  }
+
+  // Demo 3: Stop playback
+  on(DemoControls, "click") {
+    if (event.target === "stop_button") {
+      emit(DancerPerformance, "stop", {});
+      log("⏹️  Stopping playback...");
+    }
+  }
+
+  // Demo 4: Seek to specific frame
+  on(DemoControls, "click") {
+    if (event.target === "seek_middle_button") {
+      emit(DancerPerformance, "seek", {
+        frame: 300,  // Seek to middle (frame 300 / 600)
+      });
+      log("⏩ Seeking to middle (frame 300)...");
+    }
+  }
+
+  // Demo 5: Adjust playback speed
+  on(DemoControls, "click") {
+    if (event.target === "speed_2x_button") {
+      emit(DancerPerformance, "set_playback_speed", {
+        speed: 2.0,  // 2× speed
+      });
+      log("⏩ Setting playback speed to 2×...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "speed_half_button") {
+      emit(DancerPerformance, "set_playback_speed", {
+        speed: 0.5,  // Half speed (slow motion)
+      });
+      log("🐌 Setting playback speed to 0.5× (slow motion)...");
+    }
+  }
+
+  // Demo 6: Toggle loop
+  on(DemoControls, "click") {
+    if (event.target === "toggle_loop_button") {
+      emit(DancerPerformance, "toggle_loop", {});
+      log("🔁 Toggling loop...");
+    }
+  }
+
+  on(DancerPerformance, "loop_toggled") {
+    log(`  Loop: ${event.enabled ? "✅ Enabled" : "❌ Disabled"}`);
+  }
+
+  // Demo 7: Adjust adaptive quality
+  on(DemoControls, "click") {
+    if (event.target === "force_high_quality_button") {
+      emit(DancerPerformance, "force_quality", {
+        quality: "high",
+      });
+      log("⚙️  Forcing high quality...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "adaptive_quality_button") {
+      emit(DancerPerformance, "enable_adaptive_quality", {});
+      log("⚙️  Enabling adaptive quality...");
+    }
+  }
+
+  // Demo 8: Get playback statistics
+  on(DemoControls, "click") {
+    if (event.target === "get_playback_stats_button") {
+      emit(DancerPerformance, "get_playback_statistics", {});
+      log("📊 Fetching playback statistics...");
+    }
+  }
+
+  on(DancerPerformance, "playback_statistics_retrieved") {
+    log("📋 VOLUMETRIC VIDEO STATISTICS");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Total frames: ${event.totalFrames}`);
+    log(`  Current frame: ${event.currentFrame} (${event.timestampSeconds.toFixed(2)}s)`);
+    log(`  FPS: ${event.fps}`);
+    log(`  Playback speed: ${event.playbackSpeed}×`);
+    log(`  Loop: ${event.loop ? "✅" : "❌"}`);
+    log(`  Quality: ${event.quality}`);
+    log(`  Gaussians per frame: ${event.gaussiansPerFrame.toLocaleString()}`);
+    log(`  Buffered frames: ${event.bufferedFrames}`);
+    log(`  Avg frame decode time: ${event.avgDecodeTimeMs.toFixed(2)}ms`);
+    log(`  Avg render time: ${event.avgRenderTimeMs.toFixed(2)}ms`);
+    log(`  Compression ratio: ${event.compressionRatio.toFixed(2)}×`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity VolumetricVideoDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "VOLUMETRIC VIDEO (4D)\n\n🎬 4D Temporal Mode:\n  • Time-varying Gaussian splat sequences\n  • Photorealistic human/object animation\n  • Volumetric capture playback (RGB-D + depth)\n  • 30-60 FPS playback\n\n📦 4D-MoDe Compression (W.033):\n  • Motion-aware delta encoding\n  • Keyframes every 1 second (30 frames)\n  • Deltas for intermediate frames\n  • 70-90% size reduction vs raw frames\n\n📥 Streaming:\n  • Chunk-based loading (1 second chunks)\n  • Prebuffer 2 seconds for smooth playback\n  • Adaptive quality based on bandwidth\n  • Progressive refinement\n\n⚡ Performance:\n  • 1M Gaussians/frame @ 30 FPS (desktop)\n  • 500K Gaussians/frame @ 30 FPS (Quest 3)\n  • Decode time: 2-5ms per frame\n  • Render time: 10-20ms per frame\n\n💾 File Sizes (20s video @ 30 FPS = 600 frames):\n  • Raw: 30-60 GB (uncompressed)\n  • SPZ v2: 3-6 GB (10× reduction)\n  • 4D-MoDe: 500MB - 1.5GB (20-60× reduction)\n\n🎯 Use Cases:\n  • Volumetric telepresence\n  • Immersive concerts/performances\n  • Training simulations\n  • AR/VR storytelling",
+      fontSize: 0.075,
+      color: "#fb7185",
+    };
+  }
+}

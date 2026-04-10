@@ -1,0 +1,311 @@
+// E-Commerce VR Showroom
+// A real-world example of a virtual shopping experience
+// Compile: holoscript compile vr-showroom.holo --target threejs
+
+composition "VR Showroom" {
+  environment {
+    skybox: "showroom_hdri"
+    ambient_light: 0.5
+    post_process: {
+      bloom: 0.3
+      ambient_occlusion: true
+      tone_mapping: "aces"
+    }
+  }
+
+  // ========== Product Templates ==========
+
+  template "Product" {
+    @grabbable
+    @rotatable
+    @scalable
+    @clickable
+    
+    state {
+      selected: false
+      viewing: false
+      price: 0
+      name: ""
+      description: ""
+      inCart: false
+    }
+
+    onGrab: {
+      this.state.viewing = true
+      showProductDetails(this)
+      camera.focusOn(this, { distance: 0.5 })
+    }
+
+    onRelease: {
+      this.state.viewing = false
+      hideProductDetails()
+    }
+
+    onClick: {
+      if (!this.state.inCart) {
+        addToCart(this)
+        this.state.inCart = true
+        showNotification("Added to cart!")
+      }
+    }
+  }
+
+  template "ProductPedestal" {
+    geometry: "cylinder"
+    scale: [0.4, 0.05, 0.4]
+    color: "#222222"
+    
+    light: {
+      type: "spot"
+      position: [0, 1.5, 0]
+      target: [0, 0, 0]
+      intensity: 200
+      angle: 30
+      color: "#ffffff"
+    }
+  }
+
+  // ========== Showroom Layout ==========
+
+  spatial_group "Floor" {
+    object "MainFloor" {
+      geometry: "cube"
+      position: [0, -0.1, 0]
+      scale: [30, 0.2, 30]
+      material: "marble_white"
+    }
+
+    object "CarpetArea" {
+      geometry: "cube"
+      position: [0, 0.01, 0]
+      scale: [15, 0.02, 15]
+      material: "carpet_gray"
+    }
+  }
+
+  spatial_group "MainDisplay" {
+    // Luxury Watch Section
+    object "WatchPedestal1" using "ProductPedestal" {
+      position: [-4, 0.5, -3]
+    }
+
+    object "LuxuryWatch" using "Product" {
+      geometry: "model/products/luxury_watch.glb"
+      position: [-4, 0.8, -3]
+      scale: [0.15, 0.15, 0.15]
+      name: "Chronograph Elite"
+      price: 4999.99
+      description: "Swiss-made automatic chronograph with sapphire crystal"
+    }
+
+    // Sneaker Section
+    object "SneakerPedestal" using "ProductPedestal" {
+      position: [0, 0.5, -3]
+    }
+
+    object "DesignerSneaker" using "Product" {
+      geometry: "model/products/sneaker.glb"
+      position: [0, 0.7, -3]
+      scale: [0.3, 0.3, 0.3]
+      name: "AeroStep Pro"
+      price: 299.99
+      description: "Limited edition performance sneaker with carbon fiber sole"
+    }
+
+    // Bag Section
+    object "BagPedestal" using "ProductPedestal" {
+      position: [4, 0.5, -3]
+    }
+
+    object "DesignerBag" using "Product" {
+      geometry: "model/products/handbag.glb"
+      position: [4, 0.8, -3]
+      scale: [0.25, 0.25, 0.25]
+      name: "Artisan Tote"
+      price: 1599.99
+      description: "Hand-crafted Italian leather with gold hardware"
+    }
+  }
+
+  spatial_group "SecondaryDisplay" {
+    object "GlassesPedestal" using "ProductPedestal" {
+      position: [-2, 0.5, 0]
+    }
+
+    object "Sunglasses" using "Product" {
+      geometry: "model/products/sunglasses.glb"
+      position: [-2, 0.7, 0]
+      scale: [0.2, 0.2, 0.2]
+      name: "Aviator Classic"
+      price: 449.99
+      description: "Polarized titanium frame sunglasses"
+    }
+
+    object "HeadphonesPedestal" using "ProductPedestal" {
+      position: [2, 0.5, 0]
+    }
+
+    object "Headphones" using "Product" {
+      geometry: "model/products/headphones.glb"
+      position: [2, 0.75, 0]
+      scale: [0.2, 0.2, 0.2]
+      name: "Studio Pro X"
+      price: 549.99
+      description: "Wireless noise-canceling with spatial audio"
+    }
+  }
+
+  // ========== Shopping Cart UI ==========
+
+  ui_panel "CartPanel" {
+    @billboard
+    position: [6, 1.5, 0]
+    rotation: [0, -30, 0]
+    
+    panel: {
+      width: 400
+      height: 500
+      background: "rgba(0,0,0,0.8)"
+      corner_radius: 16
+    }
+
+    text "CartTitle" {
+      content: "Shopping Cart"
+      font_size: 24
+      color: "#ffffff"
+      position: [20, 20]
+    }
+
+    list "CartItems" {
+      position: [20, 60]
+      size: [360, 350]
+      item_template: "CartItemTemplate"
+      data: CartState.items
+    }
+
+    text "CartTotal" {
+      content: "Total: ${formatPrice(CartState.total)}"
+      font_size: 20
+      color: "#00ff88"
+      position: [20, 430]
+    }
+
+    button "CheckoutButton" {
+      text: "Checkout"
+      position: [20, 460]
+      size: [360, 40]
+      color: "#00ff88"
+      onClick: checkout()
+    }
+  }
+
+  template "CartItemTemplate" {
+    layout: "horizontal"
+    
+    text "ItemName" {
+      content: "${item.name}"
+      flex: 1
+    }
+    
+    text "ItemPrice" {
+      content: "${formatPrice(item.price)}"
+    }
+    
+    button "RemoveButton" {
+      text: "×"
+      onClick: removeFromCart(item)
+    }
+  }
+
+  // ========== Navigation ==========
+
+  object "ExitPortal" {
+    @portal
+    @glowing
+    geometry: "torus"
+    position: [0, 1.5, 8]
+    scale: [1.5, 1.5, 0.3]
+    color: "#0088ff"
+    emission: 2.0
+    destination: "lobby"
+  }
+
+  object "CollectionPortal" {
+    @portal
+    @glowing
+    geometry: "torus"
+    position: [-8, 1.5, 0]
+    rotation: [0, 90, 0]
+    scale: [1.5, 1.5, 0.3]
+    color: "#ff8800"
+    emission: 2.0
+    destination: "new_collection"
+  }
+
+  // ========== Lighting ==========
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-45, 30, 0]
+  }
+
+  light "FillLight" {
+    type: "hemisphere"
+    skyColor: "#ffffff"
+    groundColor: "#444444"
+    intensity: 0.3
+  }
+
+  // ========== State Management ==========
+
+  state CartState {
+    items: []
+    total: 0
+    itemCount: 0
+  }
+
+  action addToCart(product) {
+    CartState.items.push({
+      id: product.id,
+      name: product.state.name,
+      price: product.state.price
+    })
+    CartState.total += product.state.price
+    CartState.itemCount += 1
+    updateCartUI()
+  }
+
+  action removeFromCart(item) {
+    const index = CartState.items.findIndex(i => i.id === item.id)
+    if (index >= 0) {
+      CartState.total -= CartState.items[index].price
+      CartState.items.splice(index, 1)
+      CartState.itemCount -= 1
+      updateCartUI()
+    }
+  }
+
+  action checkout() {
+    if (CartState.items.length > 0) {
+      showCheckoutModal()
+    }
+  }
+
+  // ========== Audio ==========
+
+  audio "AmbientMusic" {
+    source: "audio/showroom_ambient.mp3"
+    volume: 0.2
+    loop: true
+    autoplay: true
+    spatial: false
+  }
+
+  audio "AddToCartSound" {
+    source: "audio/add_to_cart.mp3"
+    volume: 0.5
+    trigger_on: "cart_add"
+  }
+}

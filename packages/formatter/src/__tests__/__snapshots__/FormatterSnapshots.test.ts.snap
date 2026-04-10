@@ -1,0 +1,353 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Formatter Visual Regression > Basic HoloScript Structures > array with multiple elements 1`] = `
+"composition ColorPalette {
+  colors: [
+  "red",
+  "green",
+  "blue",
+  "yellow"
+  ]
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Basic HoloScript Structures > object with nested properties 1`] = `
+"object ComplexCube {
+  geometry: "cube"
+  material: {
+    color: "blue",
+    metalness: 0.8,
+    roughness: 0.2
+  }
+transform: {
+  position: { x: 0, y: 0, z: 0 },
+  rotation: { x: 45, y: 0, z: 0 },
+  scale: { x: 1, y: 1, z: 1 }
+}
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Basic HoloScript Structures > simple orb composition 1`] = `
+"composition Orb {
+  geometry: "sphere"
+  color: "cyan"
+  position: { x: 0, y: 1.5, z: -2 }
+  @grabbable
+  @hoverable
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Basic HoloScript Structures > state machine 1`] = `
+"state-machine DoorController {
+  initial: "closed"
+
+  state closed {
+    on: "open" -> "opening"
+  }
+
+state opening {
+  on: "opened" -> "open"
+}
+
+state open {
+  on: "close" -> "closing"
+}
+
+state closing {
+  on: "closed" -> "closed"
+}
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Basic HoloScript Structures > template definition 1`] = `
+"template Button {
+  geometry: "cube"
+  scale: { x: 0.2, y: 0.05, z: 0.1 }
+  color: "white"
+  @clickable
+  @hoverable
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Complex Real-World Scenarios > UI components with accessibility 1`] = `
+"ui_panel AccessibleMenu {
+  @accessible
+  @alt_text("Main navigation menu")
+
+  items: [
+  ui_button {
+    text: "Home"
+    @screen_reader("Navigate to home")
+  },
+ui_button {
+  text: "Settings"
+  @screen_reader("Open settings")
+}
+]
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Complex Real-World Scenarios > import statements 1`] = `
+"import { Button } from "./ui/Button.holo"
+import { Controller } from "./logic/Controller.hsplus"
+import { Panel } from "./ui/Panel.holo"
+
+composition Dashboard {
+  panel: Panel {
+    buttons: [
+    Button { label: "Start" },
+    Button { label: "Stop" }
+    ]
+  }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Complex Real-World Scenarios > interactive button panel 1`] = `
+"composition ButtonPanel {
+  group: "ui"
+  position: { x: 0, y: 1.5, z: -1 }
+
+  buttons: [ {
+    id: "red",
+    color: "red",
+    position: { x: -0.3, y: 0, z: 0 },
+    @clickable
+  }, {
+  id: "green",
+  color: "green",
+  position: { x: 0, y: 0, z: 0 },
+  @clickable
+}, {
+  id: "blue",
+  color: "blue",
+  position: { x: 0.3, y: 0, z: 0 },
+  @clickable
+}
+]
+
+@hoverable
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Complex Real-World Scenarios > timeline animation 1`] = `
+"timeline RotatingCube {
+  target: "cube"
+  duration: 5000
+  loop: true
+
+  keyframes: [ { time: 0, rotation: { x: 0, y: 0, z: 0 } }, { time: 2500, rotation: { x: 180, y: 180, z: 0 } }, { time: 5000, rotation: { x: 360, y: 360, z: 0 } }
+  ]
+
+  easing: "ease-in-out"
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Complex Real-World Scenarios > zone with environment settings 1`] = `
+"zone Gallery {
+  bounds: {
+    center: { x: 0, y: 0, z: 0 },
+    size: { x: 10, y: 3, z: 10 }
+  }
+
+environment: {
+  skybox: "gradient",
+  lighting: "soft",
+  ambientColor: "#404040",
+  fogColor: "#808080",
+  fogDensity: 0.01
+}
+
+@plane_detection
+@anchor
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Configuration Variations > format with 4-space indentation 1`] = `
+"composition FourSpace {
+    nested: {
+        value: "test"
+    }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Configuration Variations > format with next-line braces 1`] = `
+"composition NextLine
+{
+  nested:
+  {
+    value: "test"
+  }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Configuration Variations > format with no trailing commas 1`] = `
+"composition NoTrailing {
+  items: [
+  "one",
+  "two",
+  "three"
+  ]
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Configuration Variations > format with single quotes 1`] = `
+"composition Singles {
+  text: "double quotes"
+  label: 'single quotes'
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Configuration Variations > format with tabs instead of spaces 1`] = `
+"composition Tabbed {
+	color: "red"
+	size: 1.0
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > comments preservation 1`] = `
+"// Main composition
+composition Documented {
+  // Color property
+  color: "blue" // Sky blue
+
+  // Position
+  position: { x: 0, y: 0, z: 0 }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > deeply nested structures 1`] = `
+"composition Nested {
+  level1: {
+    level2: {
+      level3: {
+        level4: {
+          value: "deep"
+        }
+    }
+}
+}
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > empty composition 1`] = `
+"composition Empty {}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > long property values 1`] = `
+"composition LongValues {
+  description: "This is a very long description that exceeds the typical line length and might need special handling"
+  url: "https://example.com/very/long/path/to/resource/that/might/need/formatting"
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > mixed indentation styles 1`] = `
+"composition Mixed {
+  property1: "value"
+  property2: "value"
+  property3: "value"
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > multiple blank lines 1`] = `
+"composition WithBlanks {
+  prop1: "value1"
+
+  prop2: "value2"
+
+  prop3: "value3"
+}
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > single-line composition 1`] = `
+"composition Minimal { color: "red" }
+"
+`;
+
+exports[`Formatter Visual Regression > Edge Cases and Boundary Conditions > trailing commas in arrays 1`] = `
+"composition TrailingCommas {
+  items: [
+  "one",
+  "two",
+  "three",
+  ]
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > logic blocks with TypeScript code 1`] = `
+"logic InteractionHandler {
+  function onGrab(orb: Orb) {
+    orb.scale *= 1.2
+    orb.emit("grabbed", { time: Date.now() })
+  }
+  
+  function onRelease(orb: Orb) {
+    orb.scale /= 1.2
+    orb.emit("released")
+  }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > null coalescing assignment 1`] = `
+"logic Setup {
+  count ??= 0
+  name ??= "Unnamed"
+  position ??= { x: 0, y: 0, z: 0 }
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > null coalescing operator 1`] = `
+"composition ConfigWithDefaults {
+  color: userColor ?? "white"
+  size: userSize ?? 1.0
+  enabled: userEnabled ?? true
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > spread operator in arrays 1`] = `
+"composition MergedArray {
+  items: [...defaults, "extra1", "extra2", ...more]
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > spread operator in objects 1`] = `
+"composition ExtendedOrb {
+  ...BaseOrb
+  color: "red"
+  glow: true
+}
+"
+`;
+
+exports[`Formatter Visual Regression > HoloScript+ Features > ternary operator 1`] = `
+"composition ConditionalColor {
+  color: isActive ? "green" : "gray"
+  opacity: isVisible ? 1.0 : 0.0
+}
+"
+`;

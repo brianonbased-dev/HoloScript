@@ -1,0 +1,60 @@
+{
+  "name": "@holoscript/visual",
+  "version": "3.7.0",
+  "description": "Node-based visual programming interface for HoloScript",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "vite",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4",
+    "reactflow": "^11.11.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^14.2.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "jsdom": "^28.1.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4"
+  },
+  "keywords": [
+    "holoscript",
+    "visual-programming",
+    "node-editor",
+    "vr",
+    "xr"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holoscript/holoscript.git",
+    "directory": "packages/visual"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "author": "Brian X Base Team"
+}

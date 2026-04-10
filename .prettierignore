@@ -1,0 +1,55 @@
+# Build output
+**/dist/
+*.tsbuildinfo
+
+# Dependencies
+**/node_modules/
+
+# Generated files
+**/*.d.ts
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# WASM and Rust
+packages/compiler-wasm/pkg/
+packages/compiler-wasm/target/
+**/*.wasm
+
+# Benchmark data
+*.json
+!package.json
+!tsconfig.json
+!tsconfig.*.json
+!.prettierrc
+!.eslintrc.json
+!vitest.config.json
+
+# Coverage
+coverage/
+
+# Docs build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# Services
+services/
+
+# IntelliJ plugin
+intellij-plugin/
+
+# Python
+__pycache__/
+*.pyc
+packages/python-bindings/
+
+# Performance reports
+.performance-reports/
+
+# AI Workspace
+.ai-workspace/
+
+# Training data
+*.jsonl

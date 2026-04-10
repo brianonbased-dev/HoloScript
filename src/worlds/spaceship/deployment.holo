@@ -1,0 +1,592 @@
+/**
+ * Deployment Configuration - World Infrastructure Layer
+ *
+ * Environment-specific configurations for uAA2++ and MCP services.
+ * Defines deployment targets, service mesh, and infrastructure settings.
+ *
+ * Pattern: P.DEPLOY.CONFIG.01
+ * Wisdom: W.DEPLOY.01 - "Configuration is code, infrastructure is declarative"
+ */
+
+@meta {
+  id: "DEPLOYMENT_CONFIG"
+  name: "uAA2++ Deployment Configuration"
+  version: "1.0.0"
+  author: "Infrastructure Team"
+}
+
+// =============================================================================
+// ENVIRONMENT DEFINITIONS
+// =============================================================================
+
+@environments {
+  /**
+   * Development environment
+   */
+  @env development {
+    name: "Development"
+    short: "dev"
+
+    @services {
+      mcp_orchestrator: {
+        enabled: true
+        port: 5566
+        host: "localhost"
+        api_key: "${MCP_API_KEY}"
+      }
+
+      holoscript_server: {
+        enabled: true
+        port: 5556
+        transport: "stdio"
+      }
+
+      uaa2_service: {
+        enabled: true
+        port: 3000
+        hot_reload: true
+      }
+
+      redis: {
+        enabled: false
+        fallback: "memory"
+      }
+    }
+
+    @logging {
+      level: "debug"
+      pretty: true
+      include_stack_traces: true
+    }
+
+    @features {
+      hot_reload: true
+      debug_mode: true
+      mock_external_services: true
+      skip_rate_limits: true
+    }
+  }
+
+  /**
+   * Staging environment
+   */
+  @env staging {
+    name: "Staging"
+    short: "stg"
+
+    @services {
+      mcp_orchestrator: {
+        enabled: true
+        port: 5566
+        host: "${STAGING_HOST}"
+        api_key: "${MCP_API_KEY}"
+        tls: true
+      }
+
+      holoscript_server: {
+        enabled: true
+        port: 5556
+        transport: "sse"
+      }
+
+      uaa2_service: {
+        enabled: true
+        port: 3000
+        replicas: 2
+      }
+
+      redis: {
+        enabled: true
+        url: "${UPSTASH_REDIS_REST_URL}"
+        token: "${UPSTASH_REDIS_REST_TOKEN}"
+      }
+    }
+
+    @logging {
+      level: "info"
+      pretty: false
+      json_format: true
+    }
+
+    @features {
+      hot_reload: false
+      debug_mode: false
+      mock_external_services: false
+      skip_rate_limits: false
+    }
+  }
+
+  /**
+   * Production environment
+   */
+  @env production {
+    name: "Production"
+    short: "prod"
+
+    @services {
+      mcp_orchestrator: {
+        enabled: true
+        port: 5566
+        host: "${PROD_ORCHESTRATOR_HOST}"
+        api_key: "${MCP_API_KEY}"
+        tls: true
+        replicas: 3
+        load_balancer: "round_robin"
+      }
+
+      holoscript_server: {
+        enabled: true
+        port: 5556
+        transport: "sse"
+        replicas: 2
+      }
+
+      uaa2_service: {
+        enabled: true
+        port: 3000
+        replicas: 5
+        auto_scale: {
+          min: 2
+          max: 10
+          target_cpu: 70
+        }
+      }
+
+      redis: {
+        enabled: true
+        url: "${UPSTASH_REDIS_REST_URL}"
+        token: "${UPSTASH_REDIS_REST_TOKEN}"
+        cluster: true
+      }
+    }
+
+    @logging {
+      level: "warn"
+      pretty: false
+      json_format: true
+      redact_pii: true
+    }
+
+    @features {
+      hot_reload: false
+      debug_mode: false
+      mock_external_services: false
+      skip_rate_limits: false
+    }
+
+    @security {
+      require_api_key: true
+      rate_limit_requests: 100
+      rate_limit_window_seconds: 60
+      ip_whitelist: ["${ALLOWED_IPS}"]
+    }
+  }
+}
+
+// =============================================================================
+// SERVICE MESH CONFIGURATION
+// =============================================================================
+
+@mesh {
+  /**
+   * Quantum MCP Mesh Orchestrator
+   */
+  @service orchestrator {
+    name: "mcp-orchestrator"
+    role: "coordinator"
+
+    @health {
+      endpoint: "/health"
+      interval_seconds: 30
+      timeout_seconds: 5
+      unhealthy_threshold: 3
+      healthy_threshold: 1
+    }
+
+    @discovery {
+      register_on_start: true
+      heartbeat_interval_seconds: 30
+      deregister_on_stop: true
+    }
+
+    @endpoints {
+      health: "/health"
+      servers: "/servers"
+      knowledge: "/knowledge"
+      tools: "/tools"
+      agents: "/agents"
+      metrics: "/metrics"
+    }
+  }
+
+  /**
+   * HoloScript Compiler Service
+   */
+  @service holoscript {
+    name: "holoscript-server"
+    role: "compiler"
+
+    @capabilities {
+      tools: [
+        "parse_hs"
+        "compile_hs"
+        "validate_syntax"
+        "generate_scene"
+        "generate_object"
+        "semantic_expand"
+      ]
+    }
+
+    @health {
+      endpoint: "tools/list"
+      interval_seconds: 60
+      timeout_seconds: 10
+    }
+
+    @mesh_integration {
+      register_with_orchestrator: true
+      workspace: "holoscript"
+      visibility: "public"
+    }
+  }
+
+  /**
+   * uAA2++ Agent Service
+   */
+  @service uaa2 {
+    name: "uaa2-service"
+    role: "agent_runtime"
+
+    @capabilities {
+      agents: true
+      knowledge: true
+      protocol_execution: true
+    }
+
+    @health {
+      endpoint: "/api/health"
+      interval_seconds: 30
+      timeout_seconds: 5
+    }
+
+    @mesh_integration {
+      register_with_orchestrator: true
+      workspace: "uaa2"
+      visibility: "private"
+      sync_knowledge: true
+    }
+  }
+
+  /**
+   * Inter-service communication
+   */
+  @communication {
+    protocol: "http"
+    timeout_ms: 30000
+    retry_count: 3
+    retry_delay_ms: 1000
+
+    @circuit_breaker {
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout_seconds: 30
+    }
+  }
+}
+
+// =============================================================================
+// INFRASTRUCTURE CONFIGURATION
+// =============================================================================
+
+@infrastructure {
+  /**
+   * Railway deployment
+   */
+  @platform railway {
+    project: "uaa2-service"
+
+    @services {
+      web: {
+        dockerfile: "Dockerfile"
+        port: 3000
+        health_check: "/api/health"
+        replicas: 1
+        memory: "512Mi"
+        cpu: "0.5"
+      }
+
+      orchestrator: {
+        dockerfile: "Dockerfile.orchestrator"
+        port: 5566
+        health_check: "/health"
+        replicas: 1
+        memory: "256Mi"
+        cpu: "0.25"
+      }
+    }
+
+    @environment {
+      inherit: ["MCP_API_KEY", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]
+      NODE_ENV: "production"
+    }
+  }
+
+  /**
+   * Vercel deployment (frontend/API)
+   */
+  @platform vercel {
+    project: "infinitus-portal"
+
+    @build {
+      framework: "nextjs"
+      output_directory: ".next"
+      install_command: "npm ci"
+      build_command: "npm run build"
+    }
+
+    @functions {
+      maxDuration: 30
+      memory: 1024
+    }
+
+    @environment {
+      inherit: ["MCP_ORCHESTRATOR_URL", "MCP_API_KEY"]
+    }
+  }
+
+  /**
+   * Docker local development
+   */
+  @platform docker {
+    compose_file: "docker-compose.yml"
+
+    @services {
+      orchestrator: {
+        image: "mcp-orchestrator:latest"
+        ports: ["5566:5566"]
+        environment: {
+          MCP_API_KEY: "${MCP_API_KEY}"
+          NODE_ENV: "development"
+        }
+        healthcheck: {
+          test: "curl -f http://localhost:5566/health"
+          interval: "30s"
+          timeout: "5s"
+          retries: 3
+        }
+      }
+
+      holoscript: {
+        image: "holoscript-server:latest"
+        ports: ["5556:5556"]
+        volumes: [
+          "./src/worlds:/app/worlds:ro"
+        ]
+      }
+
+      redis: {
+        image: "redis:7-alpine"
+        ports: ["6379:6379"]
+        volumes: [
+          "redis-data:/data"
+        ]
+      }
+    }
+
+    @volumes {
+      redis-data: {}
+    }
+
+    @networks {
+      mesh: {
+        driver: "bridge"
+      }
+    }
+  }
+}
+
+// =============================================================================
+// MONITORING & OBSERVABILITY
+// =============================================================================
+
+@observability {
+  /**
+   * Metrics collection
+   */
+  @metrics {
+    enabled: true
+    endpoint: "/metrics"
+    format: "prometheus"
+
+    @collectors {
+      http_requests: {
+        labels: ["method", "path", "status"]
+      }
+      agent_cycles: {
+        labels: ["agent_id", "phase", "success"]
+      }
+      knowledge_operations: {
+        labels: ["type", "workspace"]
+      }
+      mcp_tool_calls: {
+        labels: ["server", "tool", "success"]
+      }
+    }
+  }
+
+  /**
+   * Distributed tracing
+   */
+  @tracing {
+    enabled: env.production
+    sampler: 0.1  // 10% sampling
+    exporter: "jaeger"
+    endpoint: "${JAEGER_ENDPOINT}"
+
+    @propagation {
+      headers: ["traceparent", "tracestate"]
+    }
+  }
+
+  /**
+   * Log aggregation
+   */
+  @logging {
+    format: env.production ? "json" : "pretty"
+    level: env.production ? "info" : "debug"
+
+    @fields {
+      always: ["timestamp", "level", "message", "service"]
+      include_trace_id: true
+    }
+
+    @redaction {
+      patterns: [
+        "password"
+        "token"
+        "apiKey"
+        "secret"
+        "authorization"
+      ]
+    }
+  }
+
+  /**
+   * Alerting
+   */
+  @alerts {
+    @rule high_error_rate {
+      condition: "error_rate > 0.05"
+      duration: "5m"
+      severity: "critical"
+      notify: ["slack", "pagerduty"]
+    }
+
+    @rule service_down {
+      condition: "up == 0"
+      duration: "1m"
+      severity: "critical"
+      notify: ["slack", "pagerduty"]
+    }
+
+    @rule high_latency {
+      condition: "p99_latency > 5s"
+      duration: "10m"
+      severity: "warning"
+      notify: ["slack"]
+    }
+  }
+}
+
+// =============================================================================
+// SECRETS MANAGEMENT
+// =============================================================================
+
+@secrets {
+  /**
+   * Required secrets by environment
+   */
+  @required {
+    all: [
+      "MCP_API_KEY"
+    ]
+
+    production: [
+      "MCP_API_KEY"
+      "UPSTASH_REDIS_REST_URL"
+      "UPSTASH_REDIS_REST_TOKEN"
+      "ANTHROPIC_API_KEY"
+    ]
+
+    staging: [
+      "MCP_API_KEY"
+      "UPSTASH_REDIS_REST_URL"
+      "UPSTASH_REDIS_REST_TOKEN"
+    ]
+  }
+
+  /**
+   * Secret rotation
+   */
+  @rotation {
+    MCP_API_KEY: {
+      frequency: "90d"
+      auto_rotate: false
+      notify_before: "7d"
+    }
+  }
+}
+
+// =============================================================================
+// STARTUP SEQUENCE
+// =============================================================================
+
+@startup {
+  /**
+   * Service startup order
+   */
+  @sequence {
+    1: redis { wait_for: "healthy", timeout: "30s" }
+    2: orchestrator { wait_for: "healthy", timeout: "60s", depends: [redis] }
+    3: holoscript { wait_for: "healthy", timeout: "30s" }
+    4: uaa2 { wait_for: "healthy", timeout: "60s", depends: [orchestrator] }
+  }
+
+  /**
+   * Initialization tasks
+   */
+  @init {
+    // Register with orchestrator
+    @task register_servers {
+      run: "curl -X POST ${ORCHESTRATOR_URL}/servers/register"
+      retry: 3
+      delay: "5s"
+    }
+
+    // Warm caches
+    @task warm_cache {
+      run: "node scripts/warm-cache.js"
+      timeout: "120s"
+      optional: true
+    }
+
+    // Run health check
+    @task health_check {
+      run: "curl ${SERVICE_URL}/health"
+      assert: "status == 200"
+    }
+  }
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+@export {
+  environments
+  mesh
+  infrastructure
+  observability
+  secrets
+  startup
+}

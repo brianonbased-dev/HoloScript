@@ -1,0 +1,30 @@
+/**
+ * Object Interaction Traits
+ */
+export const OBJECT_INTERACTION_TRAITS = [
+  'openable',
+  'closable',
+  'lockable',
+  'unlockable',
+  'pushable',
+  'pullable',
+  'liftable',
+  'carryable',
+  'wearable',
+  'equippable',
+  'consumable',
+  'craftable',
+  'combinable',
+  'splittable',
+  'foldable',
+  'fillable',
+  'pourable',
+  'readable',
+  'writable',
+  'paintable',
+  'cuttable',
+  'toggleable',
+  'tunable',
+  'insertable',
+  'removable',
+] as const;

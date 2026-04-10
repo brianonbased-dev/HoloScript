@@ -1,0 +1,301 @@
+/**
+ * Gaussian Splat Static — HoloScript v4.1 Volumetric Media Example
+ *
+ * Demonstrates basic 3D Gaussian Splatting scene loading and rendering.
+ * This example shows:
+ *  - Loading .ply/.splat Gaussian splat scenes
+ *  - Distance-based Gaussian sorting
+ *  - Spherical harmonics (SH) view-dependent appearance
+ *  - Invisible Gaussian culling
+ *  - Alpha threshold filtering
+ *  - Real-time camera-dependent rendering
+ *
+ * Use Case: Photorealistic Novel View Synthesis
+ *   - Render photorealistic 3D scenes from multi-view captures
+ *   - Real-time novel view synthesis at 60+ FPS
+ *   - No traditional geometry (meshes/textures)
+ *   - Volumetric representation with millions of 3D Gaussians
+ *
+ * Run this example:
+ *   holoc examples/volumetric/01-gaussian-splat-static.holo --target r3f
+ *
+ * @version 4.1.0
+ */
+
+scene PhotorealisticGarden {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GAUSSIAN SPLAT CONFIGURATION (Static Scene)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity GardenScene {
+    traits: [gaussian_splat];
+
+    gaussian_splat: {
+      // Source file (PLY or SPLAT format)
+      source: "./assets/garden.ply",  // Multi-view capture of a garden
+      format: "ply",                   // Raw PLY format
+
+      // Quality settings
+      quality: "high",                 // low | medium | high | ultra
+      max_splats: 2000000,             // 2M Gaussians max
+
+      // Sorting (required for correct alpha blending)
+      sort_mode: "distance",           // Distance-based sorting from camera
+
+      // Spherical harmonics (view-dependent appearance)
+      sh_degree: 3,                    // 0-3 (higher = more view-dependent detail)
+
+      // Culling optimizations
+      cull_invisible: true,            // Cull Gaussians outside view frustum
+      alpha_threshold: 0.01,           // Cull nearly-transparent Gaussians
+
+      // Scale modifier (adjust Gaussian sizes)
+      scale_modifier: 1.0,             // 1.0 = original size
+
+      // Advanced features (disabled for basic example)
+      streaming: false,                // No progressive loading
+      compression: false,              // No SPZ compression
+      lod: {
+        mode: "none",                  // No LOD (single detail level)
+        octree_depth: 0,
+        anchor_thresholds: [],
+      },
+      temporal_mode: "static",         // Static scene (no temporal animation)
+      gaussian_budget: {
+        total_cap: 0,                  // No budget limit
+        per_avatar_reservation: 0,
+      },
+      spz: {
+        version: "2.0",
+        quaternion_encoding: "smallest_three",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Loading
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(GardenScene, "splat_loading_started") {
+    log("📦 Loading Gaussian splat scene...");
+    log(`  Source: ${event.source}`);
+    log(`  Format: ${event.format}`);
+    log(`  Expected splats: ~${(event.estimatedSplats / 1000000).toFixed(2)}M`);
+  }
+
+  on(GardenScene, "splat_loading_progress") {
+    const percent = (event.loaded / event.total * 100).toFixed(1);
+    log(`  Loading: ${percent}% (${(event.loaded / 1024 / 1024).toFixed(2)} MB / ${(event.total / 1024 / 1024).toFixed(2)} MB)`);
+  }
+
+  on(GardenScene, "splat_loaded") {
+    log("✅ Gaussian splat scene loaded");
+    log(`  Total Gaussians: ${event.splatCount.toLocaleString()}`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Bounding box:`);
+    log(`    Min: (${event.boundingBox.min.map(v => v.toFixed(2)).join(", ")})`);
+    log(`    Max: (${event.boundingBox.max.map(v => v.toFixed(2)).join(", ")})`);
+    log(`  SH degree: ${event.shDegree}`);
+  }
+
+  on(GardenScene, "splat_loading_failed") {
+    log("❌ Failed to load Gaussian splat scene");
+    log(`  Reason: ${event.reason}`);
+    log(`  Error: ${event.error}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Rendering
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(GardenScene, "splat_render_started") {
+    log("🎨 Rendering Gaussian splats...");
+    log(`  Camera position: (${event.cameraPosition.x.toFixed(2)}, ${event.cameraPosition.y.toFixed(2)}, ${event.cameraPosition.z.toFixed(2)})`);
+    log(`  View frustum culling: ${event.frustumCullingEnabled ? "✅" : "❌"}`);
+  }
+
+  on(GardenScene, "splat_sorted") {
+    log("🔄 Gaussians sorted by distance");
+    log(`  Sort mode: ${event.sortMode}`);
+    log(`  Gaussians sorted: ${event.sortedCount.toLocaleString()}`);
+    log(`  Sort time: ${event.sortTimeMs.toFixed(2)}ms`);
+  }
+
+  on(GardenScene, "splat_rendered") {
+    log(`📊 Frame rendered`);
+    log(`  Visible Gaussians: ${event.visibleSplats.toLocaleString()} / ${event.totalSplats.toLocaleString()}`);
+    log(`  Culled: ${event.culledSplats.toLocaleString()} (${((event.culledSplats / event.totalSplats) * 100).toFixed(1)}%)`);
+    log(`  Render time: ${event.renderTimeMs.toFixed(2)}ms`);
+    log(`  FPS: ${(1000 / event.renderTimeMs).toFixed(1)}`);
+  }
+
+  on(GardenScene, "camera_moved") {
+    log("📷 Camera moved, triggering resort");
+    log(`  Old position: (${event.oldPosition.x.toFixed(2)}, ${event.oldPosition.y.toFixed(2)}, ${event.oldPosition.z.toFixed(2)})`);
+    log(`  New position: (${event.newPosition.x.toFixed(2)}, ${event.newPosition.y.toFixed(2)}, ${event.newPosition.z.toFixed(2)})`);
+    log(`  Distance moved: ${event.distanceMoved.toFixed(2)} units`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Spherical Harmonics
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(GardenScene, "sh_evaluated") {
+    log("✨ Spherical harmonics evaluated");
+    log(`  SH degree: ${event.shDegree}`);
+    log(`  View direction: (${event.viewDirection.x.toFixed(2)}, ${event.viewDirection.y.toFixed(2)}, ${event.viewDirection.z.toFixed(2)})`);
+    log(`  Coefficients evaluated: ${event.coefficientCount}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Performance
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(GardenScene, "performance_warning") {
+    log(`⚠️  Performance warning: ${event.warning}`);
+    log(`  Current FPS: ${event.currentFPS.toFixed(1)}`);
+    log(`  Target FPS: ${event.targetFPS}`);
+    log(`  Recommendation: ${event.recommendation}`);
+  }
+
+  on(GardenScene, "memory_warning") {
+    log(`⚠️  Memory warning`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Memory limit: ${(event.memoryLimit / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Recommendation: Reduce max_splats or enable compression`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Load Gaussian splat scene
+  on(DemoControls, "click") {
+    if (event.target === "load_splat_button") {
+      emit(GardenScene, "load_splat", {
+        source: "./assets/garden.ply",
+      });
+      log("📦 Loading Gaussian splat scene...");
+    }
+  }
+
+  // Demo 2: Adjust quality level
+  on(DemoControls, "click") {
+    if (event.target === "quality_high_button") {
+      emit(GardenScene, "set_quality", {
+        quality: "high",
+      });
+      log("⚙️  Setting quality to HIGH...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "quality_medium_button") {
+      emit(GardenScene, "set_quality", {
+        quality: "medium",
+      });
+      log("⚙️  Setting quality to MEDIUM...");
+    }
+  }
+
+  // Demo 3: Adjust SH degree (view-dependent detail)
+  on(DemoControls, "click") {
+    if (event.target === "sh_degree_3_button") {
+      emit(GardenScene, "set_sh_degree", {
+        degree: 3,  // Maximum detail
+      });
+      log("✨ Setting SH degree to 3 (maximum view-dependent detail)...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "sh_degree_0_button") {
+      emit(GardenScene, "set_sh_degree", {
+        degree: 0,  // Flat shading
+      });
+      log("✨ Setting SH degree to 0 (flat shading)...");
+    }
+  }
+
+  // Demo 4: Adjust scale modifier
+  on(DemoControls, "click") {
+    if (event.target === "scale_larger_button") {
+      emit(GardenScene, "set_scale_modifier", {
+        scale: 1.5,  // 50% larger Gaussians
+      });
+      log("🔍 Increasing Gaussian scale (1.5×)...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "scale_smaller_button") {
+      emit(GardenScene, "set_scale_modifier", {
+        scale: 0.7,  // 30% smaller Gaussians
+      });
+      log("🔍 Decreasing Gaussian scale (0.7×)...");
+    }
+  }
+
+  // Demo 5: Toggle frustum culling
+  on(DemoControls, "click") {
+    if (event.target === "toggle_culling_button") {
+      emit(GardenScene, "toggle_culling", {});
+      log("👁️  Toggling frustum culling...");
+    }
+  }
+
+  on(GardenScene, "culling_toggled") {
+    log(`  Frustum culling: ${event.enabled ? "✅ Enabled" : "❌ Disabled"}`);
+  }
+
+  // Demo 6: Force resort (debug)
+  on(DemoControls, "click") {
+    if (event.target === "force_resort_button") {
+      emit(GardenScene, "force_resort", {});
+      log("🔄 Forcing Gaussian resort...");
+    }
+  }
+
+  // Demo 7: Get statistics
+  on(DemoControls, "click") {
+    if (event.target === "get_stats_button") {
+      emit(GardenScene, "get_statistics", {});
+      log("📊 Fetching statistics...");
+    }
+  }
+
+  on(GardenScene, "statistics_retrieved") {
+    log("📋 GAUSSIAN SPLAT STATISTICS");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Total Gaussians: ${event.totalSplats.toLocaleString()}`);
+    log(`  Visible Gaussians: ${event.visibleSplats.toLocaleString()}`);
+    log(`  Culled: ${event.culledSplats.toLocaleString()} (${((event.culledSplats / event.totalSplats) * 100).toFixed(1)}%)`);
+    log(`  Memory usage: ${(event.memoryUsage / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Avg render time: ${event.avgRenderTimeMs.toFixed(2)}ms`);
+    log(`  Avg FPS: ${event.avgFPS.toFixed(1)}`);
+    log(`  SH degree: ${event.shDegree}`);
+    log(`  Sort mode: ${event.sortMode}`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity GaussianSplatDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "3D GAUSSIAN SPLATTING (3DGS)\n\n🎨 Novel View Synthesis:\n  • Photorealistic 3D scenes from multi-view photos\n  • No traditional meshes/textures\n  • Millions of 3D Gaussians (oriented ellipsoids)\n  • Real-time rendering at 60+ FPS\n\n✨ Spherical Harmonics (SH):\n  • View-dependent appearance\n  • SH degree 0: Flat shading (1 coeff)\n  • SH degree 1: Directional (4 coeffs)\n  • SH degree 2: More detail (9 coeffs)\n  • SH degree 3: Maximum detail (16 coeffs)\n\n🔄 Distance Sorting:\n  • Gaussians sorted back-to-front\n  • Required for correct alpha blending\n  • Resort on camera movement\n  • WebGPU radix sort (~1-2ms)\n\n📊 Typical Splat Counts:\n  • Room: 500K - 1M Gaussians\n  • Building: 1M - 5M Gaussians\n  • City block: 5M - 20M Gaussians\n\n⚡ Performance:\n  • 2M Gaussians @ 60 FPS (desktop RTX 3080)\n  • 500K Gaussians @ 72 FPS (Quest 3)\n  • Frustum culling: 30-70% reduction\n\n💾 Memory:\n  • ~60-80 bytes per Gaussian\n  • 1M Gaussians ≈ 60-80 MB\n  • Compression available (SPZ format)",
+      fontSize: 0.078,
+      color: "#22d3ee",
+    };
+  }
+}

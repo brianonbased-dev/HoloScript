@@ -1,0 +1,218 @@
+/**
+ * Longevity / Healthspan Personal Digital Twin
+ *
+ * LongevityCompanion agent migrates from home Quest → clinic visionOS →
+ * ROS 2 lab hardware. EconomyPrimitives let the twin "pay" for compute
+ * or reward user adherence with credential bounties. FeedbackLoop
+ * auto-adjusts simulation on biometric feedback. TenantTrait + audit = HIPAA.
+ * Cultural traits adapt coaching style.
+ *
+ * v5 Traits: agent_portal, economy, feedback_loop, tenant, cultural_profile
+ *
+ * Studio prompt: "Build a personal longevity twin that migrates between
+ *   my Quest, my clinic's visionOS, and a lab robot. It tracks my
+ *   biomarkers, adjusts coaching style, and rewards adherence."
+ *
+ * Targets: Healthspan XPRIZE $101M, AWE Healthcare, AWE Education
+ * @version 5.0.0
+ */
+composition "HealthspanTwin" {
+
+  metadata {
+    name: "Longevity / Healthspan Personal Digital Twin"
+    category: "longevity"
+    platforms: ["quest", "visionos", "webxr", "r3f", "urdf", "unity"]
+  }
+
+  environment {
+    skybox: "serene_dawn"
+    ambient_light: 0.6
+    physics: false
+    bloom: true
+  }
+
+  state {
+    biomarker_readings: 0
+    adherence_score: 0.0
+    interventions_simulated: 0
+    credentials_awarded: 0
+    coaching_adaptations: 0
+    device_migrations: 0
+  }
+
+  entity PortalHub {
+    traits: [agent_portal];
+    agent_portal: {
+      scene_id: "healthspan_home_001",
+      scene_name: "Healthspan Home",
+      agent_id: "healthspan_coordinator",
+      capabilities: ["biomarker_tracking", "intervention_sim", "coaching"],
+      relay_url: "wss://portal.holoscript.dev/healthspan",
+      auto_reconnect: true,
+      max_hop_count: 3,
+      default_ttl: 300000,
+      max_outbox_size: 200,
+    };
+  }
+
+  entity EconomyEngine {
+    traits: [economy];
+    economy: {
+      initial_balance: 100,
+      default_spend_limit: 50,
+      spend_limit_period: 86400000,
+      max_transaction_history: 500,
+      default_bounty_deadline: 604800000,
+      max_bounties_per_agent: 5,
+      escrow_enabled: true,
+      task_completion_reward: 10,
+    };
+  }
+
+  entity FeedbackEngine {
+    traits: [feedback_loop];
+    feedback_loop: {
+      metrics: {
+        biometric_score:     { target: 0.85, min: 0, max: 1.0 },
+        adherence_rate:      { target: 0.9,  min: 0, max: 1.0 },
+        vo2_max:             { target: 45,   min: 0, max: 90 },
+        resting_hr:          { target: 60,   min: 30, max: 120 },
+        sleep_quality:       { target: 0.85, min: 0, max: 1.0 },
+        user_rating:         { target: 4.5,  min: 0, max: 5.0 },
+      },
+      history_window: 90,
+      min_samples_for_trend: 7,
+      alert_threshold: 15,
+      critical_threshold: 35,
+      auto_signal: true,
+    };
+  }
+
+  // ━━━ AGENT TEMPLATES ━━━
+
+  template "LongevityCompanion" {
+    @llm_agent
+    @perception(range: 10)
+    @cultural_profile {
+      cooperation_index: 0.95
+      cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["user_autonomy", "evidence_based", "privacy_first"]
+    }
+    @tenant { tenantId: "hipaa_healthspan_01"; role: "health_agent"; rbac: true }
+
+    geometry: "sphere"
+    color: "#00ddaa"
+    scale: [0.6, 0.6, 0.6]
+
+    state {
+      coaching_style: "motivational"
+      biomarkers: {}
+      adherence_streak: 0
+      interventions_tested: 0
+      credits: 100
+    }
+
+    on mount() {
+      print("LongevityCompanion " + this.id + " — coaching style: " + state.coaching_style)
+    }
+
+    action ingest_biomarker(name, value) {
+      state.biomarkers[name] = value
+      emit("feedback:update_metric", { name: "biometric_score", value: value })
+      emit("biomarker_logged", { companionId: this.id, marker: name, value: value })
+    }
+
+    action simulate_intervention(intervention) {
+      state.interventions_tested += 1
+      emit("economy:spend", {
+        agentId: this.id, amount: 5,
+        reason: "Simulate: " + intervention.name, target: "__compute__"
+      })
+      emit("intervention_result", {
+        companionId: this.id, intervention: intervention.name,
+        predicted_impact: intervention.impact
+      })
+    }
+
+    action reward_adherence() {
+      state.adherence_streak += 1
+      emit("economy:earn", {
+        agentId: "user_current", amount: 10,
+        reason: "Adherence streak: " + state.adherence_streak + " days"
+      })
+      if (state.adherence_streak % 7 === 0) {
+        emit("credential_awarded", {
+          userId: "user_current",
+          credential: "Weekly Adherence Champion",
+          streak: state.adherence_streak
+        })
+      }
+    }
+
+    action adapt_coaching(style) {
+      state.coaching_style = style
+      emit("coaching_adapted", { companionId: this.id, newStyle: style })
+    }
+
+    action migrate_to_clinic() {
+      emit(PortalHub, "portal:migrate_out", {
+        agentId: this.id, name: "LongevityCompanion",
+        capabilities: ["biomarker_tracking", "intervention_sim", "coaching"],
+        memory: { biomarkers: state.biomarkers, streak: state.adherence_streak },
+        state: { coaching_style: state.coaching_style, credits: state.credits },
+        targetScene: "clinic_visionos_001",
+      })
+    }
+  }
+
+  // ━━━ INSTANCES ━━━
+
+  object "Floor" { geometry: "plane"; scale: [20, 1, 20]; color: "#f0f5f0"; position: [0, -0.5, 0] }
+
+  object "Twin_Alpha" using "LongevityCompanion" { position: [0, 1, 0]; color: "#00ddaa" }
+
+  object "BioDisplay" {
+    geometry: "plane"; position: [0, 2.5, -3]; scale: [4, 2, 1]
+    traits: [text_display];
+    text_display: {
+      content: "HEALTHSPAN TWIN\n\n🫀 Biomarkers tracked in real time\n🏃 Intervention simulations\n🏆 Adherence credential bounties\n🔒 HIPAA: TenantTrait RBAC",
+      fontSize: 0.14, color: "#00aa88",
+    };
+  }
+
+  // ━━━ GLOBAL EVENTS ━━━
+
+  on_biomarker_logged(data) {
+    state.biomarker_readings += 1
+  }
+
+  on_credential_awarded(data) {
+    state.credentials_awarded += 1
+    emit("system_log", { level: "info",
+      message: "🏆 Credential: " + data.credential + " (streak: " + data.streak + ")"
+    })
+  }
+
+  on_coaching_adapted(data) {
+    state.coaching_adaptations += 1
+  }
+
+  on(PortalHub, "portal:agent_migrated") { state.device_migrations += 1 }
+
+  on(FeedbackEngine, "feedback:optimization_signal") {
+    if (event.suggestedAction === "switch_coaching_data_driven") {
+      print("📊 Auto-adapting: switching to data-driven coaching for analytical user")
+    }
+  }
+
+  panel "HealthDashboard" {
+    position: "top-right"
+    text "Title" { content: "HEALTHSPAN TWIN"; style: "heading" }
+    text "H1"    { bind: "'Biomarker readings: ' + state.biomarker_readings"; style: "info" }
+    text "H2"    { bind: "'Interventions simulated: ' + state.interventions_simulated"; style: "info" }
+    text "H3"    { bind: "'Credentials awarded: ' + state.credentials_awarded"; color: "#00ff88" }
+    text "H4"    { bind: "'Device migrations: ' + state.device_migrations"; style: "info" }
+    text "HIPAA" { content: "HIPAA: TenantTrait RBAC ✅"; color: "#2ecc71" }
+  }
+}

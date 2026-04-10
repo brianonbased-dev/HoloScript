@@ -1,0 +1,74 @@
+composition "HoloHub Spatial Gallery" {
+    @author("HoloScript_Core")
+    @version("1.0.0")
+    @networked
+    @tags(["hub", "marketplace", "spatial"])
+
+    environment {
+        skyColor: "#0a0a20"
+        horizonColor: "#1a1a40"
+        groundColor: "#050510"
+        grid: true
+    }
+
+    // Main Gallery Structure
+    object "Gallery_Floor" {
+        geometry: "plane"
+        scale: [100, 1, 100]
+        material: "grid_dark"
+    }
+
+    // Welcome Hologram
+    object "Welcome_Sign" {
+        @hologram
+        position: [0, 2, -5]
+        geometry: "text"
+        properties: {
+            text: "Welcome to HoloHub Spatial"
+            fontSize: 48
+            color: "#00ffff"
+        }
+    }
+
+    // Display Pedestals for Featured Scenes
+    // These will be populated dynamically or via logic blocks in production
+    
+    object "Scene_Pedestal_01" {
+        @hologram
+        @portal(sceneId: "smart-city-nexus")
+        position: [-5, 0, -10]
+        geometry: "models/hub_pedestal.glb"
+        
+        onInteraction: {
+            emit "holohub:spawn_preview" { sceneId: "smart-city-nexus" }
+        }
+    }
+
+    object "Scene_Pedestal_02" {
+        @hologram
+        @portal(sceneId: "neon-combat-arena")
+        position: [5, 0, -10]
+        geometry: "models/hub_pedestal.glb"
+        
+        onInteraction: {
+            emit "holohub:spawn_preview" { sceneId: "neon-combat-arena" }
+        }
+    }
+
+    // Central Spawner Pad
+    object "Spawner_Pad" {
+        @physics(type: "static")
+        position: [0, 0.1, -15]
+        geometry: "cylinder"
+        scale: [4, 0.2, 4]
+        material: "neon_blue"
+        
+        @tooltip("Drop Hub Previews here to instantiate them")
+    }
+
+    logic {
+        on_preview_spawned(data) {
+            emit "ui_notification" "Holographic preview of " + data.sceneId + " manifest."
+        }
+    }
+}

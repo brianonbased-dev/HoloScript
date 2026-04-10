@@ -1,0 +1,693 @@
+/**
+ * NPC Roles, Physical Affordances, Social, Multisensory & Game Mechanics Showcase
+ *
+ * TARGET: examples/traits/npc-affordance-social-game-showcase.hsplus
+ *
+ * NPC Roles (62): @merchant, @guard, @healer, @blacksmith, @innkeeper,
+ *   @farmer, @miner, @fisher, @hunter, @scholar, @priest, @bard,
+ *   @thief, @assassin, @knight, @mage, @archer, @scout, @messenger,
+ *   @noble, @peasant, @beggar, @bartender, @cook, @tailor,
+ *   @alchemist, @enchanter, @cartographer, @librarian, @judge,
+ *   @mayor, @tax_collector, @stablemaster, @shipwright, @dockworker,
+ *   @gravedigger, @executioner, @jailer, @spy, @diplomat,
+ *   @smuggler, @pirate, @monk, @oracle, @druid, @ranger,
+ *   @paladin, @necromancer, @warlock, @shaman, @berserker,
+ *   @gladiator, @arena_master, @trainer, @mentor, @apprentice,
+ *   @companion, @rival, @boss, @mini_boss, @wanderer, @hermit
+ *
+ * Physical Affordances (22): @openable, @closeable, @lockable,
+ *   @breakable_lock, @pushable, @pullable, @liftable, @carriable,
+ *   @mountable, @sittable, @climbable, @swingable, @slideable,
+ *   @rollable, @foldable, @extendable, @retractable, @pivotable,
+ *   @detachable, @attachable, @stackable, @nestable
+ *
+ * Multisensory & Haptic (16): @haptic_feedback, @force_feedback,
+ *   @thermal_feedback, @texture_feedback, @vibration, @pressure,
+ *   @wind_simulation, @scent_emitter, @taste_signal,
+ *   @spatial_audio_3d, @bone_conduction, @ultrasonic,
+ *   @electrotactile, @pneumatic, @weight_simulation,
+ *   @resistance_feedback
+ *
+ * Social & Commerce (12+8): @tradeable, @purchasable, @auctionable,
+ *   @giftable, @shareable, @ratable, @reviewable, @wishlisted,
+ *   @currency, @price_dynamic, @marketplace, @escrow,
+ *   @social_reaction, @like, @comment, @follow, @group,
+ *   @leaderboard, @achievement, @badge
+ *
+ * Game Mechanics (31): @health, @mana, @stamina, @experience,
+ *   @level, @skill_tree, @inventory, @equipment, @crafting,
+ *   @recipe, @loot_table, @spawn_point, @respawn, @checkpoint_game,
+ *   @score_system, @combo_system, @cooldown, @buff, @debuff,
+ *   @status_effect, @damage_type, @resistance, @armor,
+ *   @projectile, @area_of_effect, @line_of_sight,
+ *   @aggro_range, @patrol_route, @waypoint, @trigger_zone,
+ *   @death_zone
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ */
+
+composition "NPCAffordanceSocialGame" {
+  environment {
+    skybox: "medieval_village"
+    ambient_light: 0.5
+    physics: true
+    time_of_day: 10.0
+  }
+
+  // ========================================================================
+  // GAME SYSTEMS
+  // ========================================================================
+
+  module PlayerSystem {
+    state {
+      health: 100
+      max_health: 100
+      mana: 50
+      max_mana: 50
+      stamina: 100
+      max_stamina: 100
+      experience: 0
+      level: 1
+      gold: 50
+      inventory: []
+      equipment: {}
+      buffs: []
+      debuffs: []
+      score: 0
+      combo: 0
+    }
+
+    action take_damage(amount, type) {
+      const effective = calculate_damage(amount, type);
+      this.state.health = Math.max(0, this.state.health - effective);
+      emit("player:damaged", { amount: effective, type: type, remaining: this.state.health });
+      if (this.state.health <= 0) {
+        emit("player:death");
+      }
+    }
+
+    action gain_xp(amount) {
+      this.state.experience += amount;
+      const next_level_xp = this.state.level * 100;
+      if (this.state.experience >= next_level_xp) {
+        this.state.level += 1;
+        this.state.experience -= next_level_xp;
+        this.state.max_health += 10;
+        this.state.health = this.state.max_health;
+        emit("player:level_up", { level: this.state.level });
+      }
+    }
+
+    action calculate_damage(amount, type) {
+      const armor_value = this.state.equipment.armor ? this.state.equipment.armor.defense : 0;
+      return Math.max(1, amount - armor_value);
+    }
+
+    exports { take_damage, gain_xp, state }
+  }
+
+  // ========================================================================
+  // NPC ROLES -- Village Population
+  // ========================================================================
+
+  // --- MERCHANT ---
+  object "VillageMerchant" {
+    @merchant {
+      inventory: [
+        { id: "health_potion", price: 25, stock: 10 },
+        { id: "mana_potion", price: 30, stock: 8 },
+        { id: "iron_sword", price: 150, stock: 3 },
+        { id: "leather_armor", price: 200, stock: 2 }
+      ]
+      buy_rate: 0.5
+      sell_rate: 1.0
+      restock_interval: 600
+      haggle_enabled: true
+    }
+
+    @tradeable {
+      accept: ["gold", "gems", "rare_materials"]
+      offer: ["weapons", "armor", "potions"]
+      min_reputation: 0
+    }
+
+    @marketplace {
+      type: "local"
+      fee_percent: 5
+      listing_duration: 3600
+      search_enabled: true
+    }
+
+    geometry: "humanoid"
+    position: [3, 0, -2]
+    color: "#aa8833"
+  }
+
+  // --- GUARD ---
+  object "TownGuard" {
+    @guard {
+      patrol_area: [[-10, -10], [10, 10]]
+      alert_range: 15
+      combat_range: 5
+      faction: "town"
+      weapon: "spear"
+      armor_class: 14
+    }
+
+    @knight {
+      order: "town_watch"
+      rank: "sergeant"
+      oath: "protect_citizens"
+    }
+
+    @patrol_route {
+      waypoints: [[5, 0, 5], [5, 0, -5], [-5, 0, -5], [-5, 0, 5]]
+      speed: 2.0
+      pause_duration: 3
+      loop: true
+    }
+
+    @aggro_range {
+      detection: 15
+      chase: 25
+      leash: 40
+      alert_allies_range: 20
+    }
+
+    @line_of_sight {
+      range: 20
+      angle: 120
+      blocked_by: ["walls", "buildings"]
+      night_penalty: 0.5
+    }
+
+    @health { current: 80, max: 80, regen: 1 }
+    @armor { type: "chain", defense: 5, durability: 100 }
+    @damage_type { primary: "piercing", secondary: "bludgeoning" }
+    @resistance { fire: 0, ice: 0, poison: 0.2, physical: 0.3 }
+
+    geometry: "humanoid"
+    position: [5, 0, 5]
+    color: "#556677"
+  }
+
+  // --- HEALER ---
+  object "VillageHealer" {
+    @healer {
+      heal_power: 30
+      mana_cost: 15
+      cooldown_seconds: 5
+      area_heal: false
+      cure_conditions: ["poison", "bleed", "weakness"]
+    }
+
+    @priest {
+      deity: "sun_goddess"
+      blessings: ["protection", "healing", "purification"]
+      shrine: "temple"
+    }
+
+    @buff {
+      type: "regeneration"
+      value: 5
+      duration: 30
+      stackable: false
+      icon: "regen_icon"
+    }
+
+    geometry: "humanoid"
+    position: [-5, 0, -2]
+    color: "#ffdd88"
+  }
+
+  // --- BLACKSMITH & CRAFTING ---
+  object "VillageBlacksmith" {
+    @blacksmith {
+      specialization: "weapons"
+      skill_level: 7
+      forge_temperature: 1200
+      quench_type: "oil"
+    }
+
+    @crafting {
+      recipes: [
+        { id: "iron_sword", materials: [{ id: "iron_ingot", count: 3 }, { id: "leather_strip", count: 1 }], time: 10, skill_required: 3 },
+        { id: "steel_shield", materials: [{ id: "steel_ingot", count: 4 }, { id: "wood_plank", count: 2 }], time: 15, skill_required: 5 }
+      ]
+      station_type: "anvil"
+      failure_chance: 0.1
+      quality_range: [0.5, 1.5]
+    }
+
+    @recipe {
+      id: "iron_sword"
+      category: "weapons"
+      discovered: true
+      mastery: 0
+    }
+
+    geometry: "humanoid"
+    position: [8, 0, 0]
+    color: "#664422"
+  }
+
+  // --- MORE NPC ROLES (compact) ---
+  object "Innkeeper" { @innkeeper { rooms: 5, price: 10, rest_bonus: "full_heal" } geometry: "humanoid" position: [-8, 0, 3] }
+  object "Farmer" { @farmer { crops: ["wheat", "corn"], harvest_cycle: 300, yield: 10 } geometry: "humanoid" position: [-12, 0, 8] }
+  object "Miner" { @miner { resources: ["iron", "gold", "gems"], depth: 3, stamina_cost: 5 } geometry: "humanoid" position: [12, 0, 8] }
+  object "Fisher" { @fisher { bait: ["worm", "fly"], catch_rate: 0.3, rare_chance: 0.05 } geometry: "humanoid" position: [0, 0, 15] }
+  object "Hunter" { @hunter { prey: ["deer", "boar", "rabbit"], tracking: 0.8, range: 30 } geometry: "humanoid" position: [10, 0, 12] }
+  object "Scholar" { @scholar { knowledge: ["history", "magic", "alchemy"], teach_cost: 20 } geometry: "humanoid" position: [-6, 0, -8] }
+  object "Bard" { @bard { songs: ["ballad", "march", "lullaby"], instrument: "lute", buff_radius: 10 } geometry: "humanoid" position: [0, 0, -6] }
+  object "Alchemist" { @alchemist { potions: ["health", "mana", "strength"], ingredients: 20, lab_level: 3 } geometry: "humanoid" position: [-10, 0, -5] }
+  object "Enchanter" { @enchanter { enchants: ["fire", "ice", "lightning"], charges: 5, skill: 6 } geometry: "humanoid" position: [-10, 0, -8] }
+  object "Cartographer" { @cartographer { maps: ["village", "forest", "dungeon"], reveal_radius: 50 } geometry: "humanoid" position: [6, 0, -8] }
+  object "Librarian" { @librarian { books: 200, categories: ["lore", "spells", "history"], search: true } geometry: "humanoid" position: [-8, 0, -10] }
+  object "Tailor" { @tailor { materials: ["silk", "leather", "cotton"], outfits: 15 } geometry: "humanoid" position: [4, 0, 6] }
+  object "Cook" { @cook { recipes: 25, ingredients: ["meat", "vegetables", "spices"], buff_food: true } geometry: "humanoid" position: [-4, 0, 4] }
+
+  // Dangerous NPCs
+  object "RogueThief" { @thief { stealth: 0.8, pickpocket: 0.4, lockpick: 0.7, escape_speed: 6 } geometry: "humanoid" position: [8, 0, -10] color: "#333333" }
+  object "ShadowAssassin" { @assassin { stealth: 0.95, critical_multiplier: 3.0, poison_use: true, contract: "target_noble" } geometry: "humanoid" position: [12, 0, -12] color: "#1a1a1a" }
+
+  // Combat NPCs
+  object "VillageMage" { @mage { spells: ["fireball", "ice_shard", "shield"], mana: 100, cast_speed: 1.5 } geometry: "humanoid" position: [-3, 0, -12] color: "#4444aa" }
+  object "ForestArcher" { @archer { range: 30, accuracy: 0.85, arrow_types: ["normal", "fire", "ice"], quiver: 20 } geometry: "humanoid" position: [15, 0, 0] color: "#557744" }
+  object "LoneScout" { @scout { detection_range: 40, stealth: 0.6, report_to: "TownGuard", speed: 4 } geometry: "humanoid" position: [20, 0, 5] color: "#667755" }
+  object "RoyalMessenger" { @messenger { route: ["castle", "village", "outpost"], speed: 5, message_queue: 3 } geometry: "humanoid" position: [0, 0, 20] color: "#aa7733" }
+
+  // Leadership NPCs
+  object "VillageNoble" { @noble { rank: "baron", influence: 0.8, guards: 2, wealth: 5000 } geometry: "humanoid" position: [-15, 0, 0] color: "#8844aa" }
+  object "VillageMayor" { @mayor { town: "riverside", popularity: 0.7, tax_rate: 0.1, decrees: 3 } geometry: "humanoid" position: [-15, 0, -3] color: "#aa6644" }
+  object "TaxCollector" { @tax_collector { rate: 0.1, frequency: "weekly", enforcement: "guards", exemptions: ["temple"] } geometry: "humanoid" position: [-12, 0, -3] color: "#886644" }
+
+  // Spiritual NPCs
+  object "ForestDruid" { @druid { nature_affinity: 0.9, shapeshift: ["wolf", "bear", "eagle"], grove: "ancient_oak" } geometry: "humanoid" position: [18, 0, -8] color: "#448833" }
+  object "MountainMonk" { @monk { martial_style: "tiger_crane", ki: 50, meditation_bonus: 1.5, unarmed_damage: 12 } geometry: "humanoid" position: [20, 0, -5] color: "#cc8844" }
+  object "VillageOracle" { @oracle { visions: true, prophecy_cooldown: 300, accuracy: 0.7, cost: 50 } geometry: "humanoid" position: [-18, 0, 0] color: "#9966cc" }
+  object "SwampShaman" { @shaman { spirits: ["wolf", "eagle", "bear"], totem_power: 0.8, ritual_duration: 30 } geometry: "humanoid" position: [-20, 0, 5] color: "#446633" }
+
+  // Training NPCs
+  object "CombatTrainer" { @trainer { skills: ["swordsmanship", "archery", "magic"], cost: 100, xp_bonus: 1.5 } geometry: "humanoid" position: [10, 0, -5] color: "#774433" }
+  object "WiseMentor" { @mentor { guidance: "quest_hints", bond_level: 0, unlock_at_bond: 5, passive_buff: "wisdom" } geometry: "humanoid" position: [-5, 0, -15] color: "#888888" }
+  object "YoungApprentice" { @apprentice { master: "VillageBlacksmith", progress: 0.3, tasks: ["fetch_ore", "pump_bellows"] } geometry: "humanoid" position: [9, 0, 1] color: "#aa9977" }
+
+  // Special NPCs
+  object "LoyalCompanion" { @companion { follow_distance: 2, combat_support: true, carry_capacity: 50, loyalty: 0.9 } geometry: "humanoid" position: [1, 0, 1] color: "#77aa55" }
+  object "RivalAdventurer" { @rival { skill_level: "match_player", encounters: 3, escalation: true, grudge: 0.5 } geometry: "humanoid" position: [25, 0, 0] color: "#cc3333" }
+  object "DungeonBoss" { @boss { phase_count: 3, health_multiplier: 10, abilities: ["charge", "aoe_slam", "summon"], loot_table: "boss_loot" } geometry: "humanoid" position: [0, 0, -30] scale: [2, 2, 2] color: "#880000" }
+  object "MiniBossGuardian" { @mini_boss { health_multiplier: 3, abilities: ["shield_bash", "whirlwind"], arena: true } geometry: "humanoid" position: [0, 0, -20] scale: [1.5, 1.5, 1.5] color: "#664400" }
+  object "DesertWanderer" { @wanderer { route: "random", speed: 1.5, stories: 5, trade: true, rare_items: 2 } geometry: "humanoid" position: [30, 0, 0] color: "#bb9955" }
+  object "MountainHermit" { @hermit { location: "cave", knowledge: "ancient_secrets", trust_threshold: 0.8, gift_preference: "herbs" } geometry: "humanoid" position: [-25, 5, -10] color: "#555555" }
+
+  // More roles
+  object "Stablemaster" { @stablemaster { mounts: ["horse", "donkey"], rental_cost: 20, care_level: 0.9 } geometry: "humanoid" position: [15, 0, 5] }
+  object "Shipwright" { @shipwright { vessels: ["rowboat", "sloop"], repair_rate: 0.5, build_time: 300 } geometry: "humanoid" position: [0, 0, 25] }
+  object "Dockworker" { @dockworker { cargo_speed: 2, strength: 8, shift: "day" } geometry: "humanoid" position: [2, 0, 25] }
+  object "VillageJudge" { @judge { cases: ["theft", "assault", "dispute"], fairness: 0.9, bribe_resistance: 0.8 } geometry: "humanoid" position: [-15, 0, -6] }
+  object "Gravedigger" { @gravedigger { cemetery: "north_hill", dig_speed: 1, secrets: 3, night_shift: true } geometry: "humanoid" position: [-20, 0, -10] }
+  object "JailKeeper" { @jailer { cells: 4, escape_difficulty: 0.9, key_location: "belt", bribeable: false } geometry: "humanoid" position: [-15, 0, -10] }
+  object "VillageSpy" { @spy { allegiance: "hidden", intel_range: 30, cover: "merchant", report_to: "noble" } geometry: "humanoid" position: [5, 0, 3] }
+  object "RoyalDiplomat" { @diplomat { factions: ["village", "kingdom", "forest_elves"], reputation: {}, negotiation: 0.8 } geometry: "humanoid" position: [-10, 0, 0] }
+  object "Smuggler" { @smuggler { contraband: ["rare_herbs", "stolen_gems"], routes: 3, risk: 0.3 } geometry: "humanoid" position: [0, 0, 22] }
+  object "Pirate" { @pirate { crew: 12, ship: "sloop", treasure_maps: 2, combat: 0.7 } geometry: "humanoid" position: [5, 0, 25] }
+  object "GladiatorChampion" { @gladiator { wins: 47, losses: 3, fighting_style: "dual_wield", arena_rank: 1 } geometry: "humanoid" position: [20, 0, -10] }
+  object "ArenaMaster" { @arena_master { matches_per_day: 5, entry_fee: 50, prize_pool: 1000, ranking_system: true } geometry: "humanoid" position: [22, 0, -10] }
+
+  // Caster NPCs
+  object "ForestRanger" { @ranger { terrain: "forest", tracking: 0.9, companion: "wolf", favored_enemy: "undead" } geometry: "humanoid" position: [18, 0, -3] }
+  object "HolyPaladin" { @paladin { smite_damage: 20, lay_on_hands: 30, aura: "protection", oath: "devotion" } geometry: "humanoid" position: [-12, 0, -8] }
+  object "DarkNecromancer" { @necromancer { undead_limit: 5, raise_cost: 20, phylactery: true, dark_ritual: true } geometry: "humanoid" position: [25, 0, -15] color: "#2a0a2a" }
+  object "ChaosWarlock" { @warlock { patron: "fiend", pact_boon: "blade", eldritch_blast: 15, invocations: 3 } geometry: "humanoid" position: [28, 0, -12] color: "#550055" }
+  object "FrenzyBerserker" { @berserker { rage_damage: 2.0, rage_duration: 30, damage_resistance: 0.5, exhaustion: true } geometry: "humanoid" position: [22, 0, -15] color: "#882222" }
+
+  // ========================================================================
+  // PHYSICAL AFFORDANCES -- Interactive Furniture & Objects
+  // ========================================================================
+
+  object "WoodenDoor" {
+    @openable { angle: 90, speed: 2.0, auto_close: true, auto_close_delay: 5 }
+    @closeable { sound: "door_close", force: 1.0 }
+    @lockable { key_id: "iron_key", pick_difficulty: 5, lock_sound: "lock_click" }
+    @breakable_lock { force_required: 50, break_sound: "lock_break", repair_cost: 20 }
+    @pushable { resistance: 0.3, max_speed: 2.0 }
+    @pullable { handle: true, pull_force: 0.5 }
+
+    geometry: "cube"
+    position: [0, 1.5, -1]
+    scale: [1, 2.5, 0.1]
+    color: "#8B4513"
+  }
+
+  object "HeavyCrate" {
+    @liftable { weight: 20, min_strength: 5, two_handed: true }
+    @carriable { carry_position: "front", speed_penalty: 0.5, drop_on_damage: true }
+    @pushable { resistance: 0.6, max_speed: 1.0, surface_friction: 0.4 }
+    @stackable { max_height: 4, snap_grid: 1.0, weight_limit: 100 }
+    @nestable { inner_space: [0.8, 0.8, 0.8], accept_types: ["small_item"] }
+    @detachable { attach_points: ["top", "front"], force_to_detach: 10 }
+    @attachable { attach_to: ["wall_hook", "crane"], magnetic: false }
+
+    @grabbable
+    @physics { mass: 20 }
+
+    geometry: "cube"
+    position: [3, 0.5, 3]
+    scale: [1, 1, 1]
+    color: "#a0722e"
+  }
+
+  object "Throne" {
+    @sittable { sit_position: [0, 0.5, 0], sit_rotation: [0, 0, 0], stand_up_anim: "rise" }
+    @mountable { mount_position: [0, 0.8, 0], mount_anim: "sit_down", dismount_anim: "stand_up" }
+    @pivotable { axis: [0, 1, 0], angle_range: [-30, 30], spring: 0.5 }
+
+    geometry: "throne_model"
+    position: [-15, 0, -4]
+    color: "#cc8800"
+  }
+
+  object "RopeLadder" {
+    @climbable { speed: 1.5, stamina_cost: 2, hand_holds: 10, swing: true }
+    @swingable { pivot: [0, 5, 0], max_angle: 45, damping: 0.1 }
+    @extendable { min_length: 1, max_length: 5, extend_speed: 1.0 }
+    @retractable { retract_speed: 2.0, auto_retract: false }
+
+    position: [6, 0, 8]
+    scale: [0.3, 5, 0.1]
+    color: "#886644"
+  }
+
+  object "SlidingPanel" {
+    @slideable { axis: [1, 0, 0], range: [-2, 2], friction: 0.2, snap_positions: [-2, 0, 2] }
+    @rollable { axis: [0, 0, 1], friction: 0.1, max_speed: 5 }
+    @foldable { fold_axis: [0, 1, 0], fold_angle: 180, segments: 3 }
+
+    geometry: "cube"
+    position: [0, 1, 8]
+    scale: [2, 2, 0.1]
+    color: "#aaaaaa"
+  }
+
+  // ========================================================================
+  // MULTISENSORY & HAPTIC
+  // ========================================================================
+
+  object "HapticExperience" {
+    @haptic_feedback {
+      mode: "continuous"
+      intensity: 0.5
+      pattern: "heartbeat"
+      device: "controller"
+    }
+
+    @force_feedback {
+      enabled: true
+      max_force_n: 5
+      direction: "opposing"
+      surface_simulation: true
+    }
+
+    @thermal_feedback {
+      temperature: 25
+      range: [10, 40]
+      rate_of_change: 2
+      zones: ["palm", "fingertips"]
+    }
+
+    @texture_feedback {
+      pattern: "rough_stone"
+      frequency: 200
+      amplitude: 0.3
+      spatial: true
+    }
+
+    @vibration {
+      frequency: 150
+      amplitude: 0.4
+      duration: 100
+      waveform: "sine"
+    }
+
+    @pressure {
+      level: 0.5
+      distribution: "uniform"
+      feedback_device: "glove"
+    }
+
+    @wind_simulation {
+      speed: 5
+      direction: [1, 0, 0]
+      fan_zones: ["face", "arms"]
+      gusts: true
+    }
+
+    @scent_emitter {
+      scent: "pine_forest"
+      intensity: 0.3
+      radius: 3
+      duration: 30
+      device: "olfactory_display"
+    }
+
+    @taste_signal {
+      flavor: "sweet"
+      intensity: 0.2
+      electrode_pattern: "tip_of_tongue"
+    }
+
+    @spatial_audio_3d {
+      hrtf: true
+      distance_model: "inverse"
+      rolloff: 1.0
+      doppler: true
+      reverb: "medium_room"
+    }
+
+    @bone_conduction {
+      frequency_range: [200, 4000]
+      volume: 0.4
+      spatial: true
+    }
+
+    @ultrasonic {
+      frequency: 40000
+      modulation: "amplitude"
+      focal_point: [0, 0.5, 0]
+      feedback_area: 0.01
+    }
+
+    @electrotactile {
+      electrode_count: 16
+      current_ma: 2
+      frequency: 100
+      pattern: "texture_map"
+    }
+
+    @pneumatic {
+      pressure_kpa: 20
+      inflation_speed: 0.5
+      zones: 8
+      pattern: "squeeze"
+    }
+
+    @weight_simulation {
+      mass_kg: 2.0
+      center_of_gravity: [0, 0, -0.1]
+      dynamic: true
+    }
+
+    @resistance_feedback {
+      force_n: 3
+      direction: "movement_opposing"
+      viscosity: 0.5
+      threshold: 0.1
+    }
+
+    position: [0, 1, 5]
+    geometry: "cube"
+    color: "#00aacc"
+  }
+
+  // ========================================================================
+  // SOCIAL & COMMERCE
+  // ========================================================================
+
+  object "MarketplaceItem" {
+    @tradeable { value: 100, currency: "gold", trade_cooldown: 60 }
+    @purchasable { price: 150, discount: 0, bulk_discount: { threshold: 5, percent: 10 } }
+    @auctionable { starting_bid: 50, buy_now: 200, duration: 3600, min_increment: 5 }
+    @giftable { wrappable: true, message_max_chars: 200, delivery: "instant" }
+    @shareable { visibility: "public", link_type: "deep_link", preview_image: true }
+    @ratable { max_stars: 5, require_purchase: true, editable: true }
+    @reviewable { min_chars: 20, max_chars: 500, moderated: true }
+    @wishlisted { notify_on_sale: true, notify_on_restock: true }
+    @currency { type: "gold", symbol: "G", decimal_places: 0 }
+    @price_dynamic { base: 150, demand_factor: 0.1, supply_factor: 0.05, update_interval: 300 }
+    @escrow { hold_duration: 86400, dispute_window: 172800, auto_release: true }
+
+    geometry: "cube"
+    position: [5, 1, 6]
+    scale: [0.3, 0.3, 0.3]
+    color: "#ffcc00"
+  }
+
+  object "SocialHub" {
+    @social_reaction { types: ["like", "love", "wow", "sad", "angry"], cooldown: 5 }
+    @like { target: "content", count: 0, notify_creator: true }
+    @comment { max_length: 280, threading: true, moderation: "auto", emoji: true }
+    @follow { mutual: false, notify: true, feed_priority: 1.0 }
+    @group { name: "Adventurers Guild", max_members: 50, privacy: "invite_only", roles: ["leader", "officer", "member"] }
+    @leaderboard { metric: "score", window: "weekly", display: 10, anonymous: false }
+    @achievement { id: "first_quest", title: "First Steps", description: "Complete your first quest", xp_reward: 50, icon: "trophy" }
+    @badge { id: "veteran", title: "Veteran Adventurer", condition: "level >= 10", display: true }
+
+    position: [0, 2, -10]
+  }
+
+  // ========================================================================
+  // GAME MECHANICS OBJECTS
+  // ========================================================================
+
+  object "PlayerCharacter" {
+    @health { current: 100, max: 100, regen: 1, regen_delay: 5 }
+    @mana { current: 50, max: 50, regen: 2, regen_delay: 3 }
+    @stamina { current: 100, max: 100, regen: 10, sprint_cost: 5 }
+    @experience { current: 0, next_level: 100, multiplier: 1.0 }
+    @level { current: 1, max: 50, stat_points_per_level: 3 }
+
+    @skill_tree {
+      trees: {
+        combat: { skills: ["power_strike", "shield_bash", "whirlwind"], points_spent: 0 },
+        magic: { skills: ["fireball", "heal", "shield"], points_spent: 0 },
+        stealth: { skills: ["sneak", "backstab", "lockpick"], points_spent: 0 }
+      }
+      total_points: 0
+    }
+
+    @inventory {
+      slots: 20
+      weight_limit: 100
+      categories: ["weapon", "armor", "consumable", "quest", "material"]
+      auto_sort: true
+    }
+
+    @equipment {
+      slots: {
+        head: null,
+        chest: null,
+        legs: null,
+        feet: null,
+        main_hand: null,
+        off_hand: null,
+        ring_1: null,
+        ring_2: null,
+        amulet: null
+      }
+      set_bonuses: true
+    }
+
+    @combo_system {
+      max_combo: 20
+      decay_time: 3
+      multiplier_per_hit: 0.1
+      finisher_at: 10
+    }
+
+    @cooldown {
+      abilities: {
+        power_strike: { duration: 5, remaining: 0 },
+        heal: { duration: 10, remaining: 0 },
+        dodge: { duration: 2, remaining: 0 }
+      }
+      global_cooldown: 1.0
+    }
+
+    geometry: "humanoid"
+    position: [0, 0, 0]
+    color: "#3388ff"
+  }
+
+  // Game world objects
+  object "LootChest" {
+    @loot_table {
+      entries: [
+        { id: "gold", weight: 50, min: 10, max: 50 },
+        { id: "health_potion", weight: 30, min: 1, max: 3 },
+        { id: "rare_gem", weight: 10, min: 1, max: 1 },
+        { id: "legendary_sword", weight: 1, min: 1, max: 1 }
+      ]
+      rolls: 3
+      guaranteed: ["gold"]
+      once_only: true
+    }
+
+    @openable { angle: 90, speed: 1.0, sound: "chest_open" }
+    @lockable { key_id: "chest_key", pick_difficulty: 3 }
+
+    geometry: "cube"
+    position: [0, 0.4, -15]
+    scale: [0.8, 0.6, 0.5]
+    color: "#8B6914"
+  }
+
+  object "RespawnShrine" {
+    @spawn_point { id: "village_spawn", priority: 1, radius: 2 }
+    @respawn { delay: 5, invulnerability: 3, health_percent: 50, mana_percent: 25 }
+    @checkpoint_game { auto_activate: true, range: 5, save_state: true, visual: "glow" }
+    @trigger_zone { shape: "sphere", radius: 5, on_enter: "activate_shrine", on_exit: null, once: false }
+
+    @glowing
+    geometry: "obelisk"
+    position: [0, 0, 5]
+    color: "#88aaff"
+    emissive: "#4466ff"
+    emissiveIntensity: 0.5
+  }
+
+  object "PoisonSwamp" {
+    @status_effect { type: "poison", damage: 5, interval: 2, duration: 10, stackable: false, icon: "poison" }
+    @debuff { type: "slow", value: 0.5, duration: 5, cleansable: true }
+    @area_of_effect { shape: "circle", radius: 5, height: 1, damage: 3, damage_type: "poison", tick_rate: 1 }
+    @death_zone { instant: false, damage: 10, warning: true, warning_distance: 2 }
+
+    geometry: "plane"
+    position: [-20, 0, -20]
+    scale: [10, 1, 10]
+    color: "#336622"
+  }
+
+  object "Arrow" {
+    @projectile {
+      speed: 30
+      damage: 15
+      damage_type: "piercing"
+      gravity: true
+      range: 50
+      piercing: false
+      trail: true
+      trail_color: "#ffcc00"
+    }
+
+    geometry: "cylinder"
+    scale: [0.02, 0.5, 0.02]
+    color: "#886633"
+  }
+
+  object "GuardWaypoint1" { @waypoint { id: "wp_1", next: "wp_2", pause: 3, look_direction: [0, 0, -1] } position: [5, 0, 5] }
+  object "GuardWaypoint2" { @waypoint { id: "wp_2", next: "wp_3", pause: 2 } position: [5, 0, -5] }
+  object "GuardWaypoint3" { @waypoint { id: "wp_3", next: "wp_1", pause: 3 } position: [-5, 0, -5] }
+
+  object "ScoreDisplay" {
+    @score_system {
+      categories: { combat: 0, exploration: 0, quests: 0, social: 0 }
+      multiplier: 1.0
+      high_score_board: "global"
+    }
+
+    @buff { type: "double_xp", value: 2.0, duration: 600, stackable: false, visual: "golden_glow" }
+
+    position: [0, 4, -3]
+  }
+}

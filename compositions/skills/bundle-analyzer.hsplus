@@ -1,0 +1,59 @@
+// Bundle Analyzer — build size tracking skill
+// Runs the studio build and measures output bundle sizes.
+// Flags regressions when bundles grow beyond thresholds.
+
+composition "bundle-analyzer" {
+  @rate_limiter (max_tokens: 5, refill_rate: 1, window_ms: 3600000)
+  @economy (default_spend_limit: 0.20)
+  @timeout_guard (default_timeout_ms: 300000)
+
+  state phase: string = "idle"
+  state totalSizeKB: number = 0
+  state jsChunks: number = 0
+  state cssChunks: number = 0
+  state largestChunkKB: number = 0
+  state sizeThresholdKB: number = 5000
+  state regressionDetected: boolean = false
+  state lastAnalysisAt: string = ""
+
+  sequence "analyze-bundle" {
+    action "shell_exec" {
+      command: "npx"
+      args: ["next", "build"]
+      timeoutMs: 240000
+    }
+
+    action "shell_exec" {
+      command: "npx"
+      args: ["next-bundle-analyzer"]
+      timeoutMs: 30000
+    }
+
+    action "channel_send" {
+      channel: "bundle-analysis"
+      // Blackboard: totalSizeKB, jsChunks, largestChunkKB, regressionDetected
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "total size starts at zero"
+    assert: { $totalSizeKB == 0 }
+  }
+
+  @test {
+    name: "size threshold defaults to 5000"
+    assert: { $sizeThresholdKB == 5000 }
+  }
+
+  @test {
+    name: "regression not detected initially"
+    assert: { $regressionDetected == false }
+  }
+}

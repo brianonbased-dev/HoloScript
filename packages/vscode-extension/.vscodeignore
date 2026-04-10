@@ -1,0 +1,42 @@
+# VSCode Extension Ignore
+# Controls what files are excluded from the VSIX package
+
+# Source files (only include compiled output)
+.vscode/**
+.vscode-test/**
+src/**
+tsconfig.json
+**/*.ts
+!**/*.d.ts
+**/*.map
+vsc-extension-quickstart.md
+
+# Development files
+.gitignore
+.eslintrc.*
+.prettierrc.*
+.editorconfig
+
+# Build artifacts
+node_modules/**
+!node_modules/@holoscript/**
+
+# Test files
+test/**
+__tests__/**
+*.test.*
+*.spec.*
+
+# Documentation (keep README.md and CHANGELOG.md)
+CONTRIBUTING.md
+
+# Package manager
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Scripts (but keep binaries)
+scripts/**
+
+# Platform-specific binaries are included selectively by vsce --target
+# bin/** is kept, filtered automatically

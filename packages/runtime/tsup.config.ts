@@ -1,0 +1,32 @@
+import { defineConfig } from 'tsup';
+export default defineConfig({
+    entry: {
+      index: 'src/index.ts',
+      events: 'src/events.ts',
+      storage: 'src/storage.ts',
+      device: 'src/device.ts',
+      timing: 'src/timing.ts',
+      math: 'src/math.ts',
+      navigation: 'src/navigation.ts',
+      browser: 'src/browser/BrowserRuntime.ts',
+    },
+    format: ['esm', 'cjs'],
+    dts: true,
+    sourcemap: true,
+    clean: true,
+    splitting: false,
+    treeshake: true,
+    external: [
+      'react',
+      '@react-three/fiber',
+      'three',
+      'monaco-editor',
+      '@hololand/world',
+      '@holoscript/framework',
+      '@holoscript/engine',
+      '@holoscript/agent-protocol',
+      /^@holoscript\/framework\//,
+      /^@holoscript\/engine\//,
+      /^@holoscript\/agent-protocol\//,
+    ],
+});

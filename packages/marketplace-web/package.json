@@ -1,0 +1,54 @@
+{
+  "name": "@holoscript/marketplace-web",
+  "version": "1.0.0",
+  "description": "HoloScript Trait Marketplace Web UI",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@holoscript/marketplace-api": "workspace:*",
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.90.20",
+    "autoprefixer": "^10.4.17",
+    "clsx": "^2.1.0",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.314.0",
+    "next": "^15.5.14",
+    "postcss": "^8.4.33",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.4",
+    "semver": "^7.7.4",
+    "tailwindcss": "^3.4.1",
+    "viem": "^2.46.3",
+    "wagmi": "^3.5.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^14.2.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/semver": "^7.5.6",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.1.0",
+    "jsdom": "^28.1.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "holoscript",
+    "marketplace",
+    "traits",
+    "web",
+    "next.js"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT"
+}

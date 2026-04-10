@@ -1,0 +1,100 @@
+@composition {
+  name: "LearnHub"
+  type: "UI"
+}
+
+@metadata {
+  title: "HoloScript Academy"
+  description: "Learn how to build sovereign environments."
+}
+
+@page {
+  route: "/learn"
+  client: true
+}
+
+@node Container {
+  components {
+    UIContainer { class: "flex items-center justify-center min-h-screen bg-[var(--studio-bg)] p-4" }
+  }
+}
+
+@node Card {
+  components {
+    UIContainer { class: "bg-[var(--studio-panel)] border border-[var(--studio-border)] rounded-2xl p-10 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden" }
+  }
+}
+
+@node Title {
+  components {
+    UIText { text: "HoloScript VR Academy"; class: "text-3xl font-bold text-[var(--studio-text)] mb-3 relative z-10" }
+  }
+}
+
+@node SubText {
+  components {
+    UIText { text: "Welcome to the interactive learning hub. This entire page is compiled natively from a .holo source file via NextJSCompiler."; class: "text-[var(--studio-muted)] text-sm mb-8 leading-relaxed relative z-10" }
+  }
+}
+
+@node GridContainer {
+  components {
+    UIContainer { class: "grid grid-cols-1 md:grid-cols-2 gap-4 text-left relative z-10" }
+  }
+}
+
+@node Module1 {
+  components {
+    UIContainer { class: "p-5 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-bg)] hover:border-[var(--studio-accent)] transition-colors cursor-pointer" }
+  }
+}
+@node Module1Title {
+  components {
+    UIText { text: "1. Spatial Primitives"; class: "text-[var(--studio-accent)] font-semibold text-sm mb-1" }
+  }
+}
+@node Module1Desc {
+  components {
+    UIText { text: "Learn to spawn and manipulate 3D geometry using native traits."; class: "text-[var(--studio-muted)] text-xs" }
+  }
+}
+
+@node Module2 {
+  components {
+    UIContainer { class: "p-5 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-bg)] hover:border-[var(--studio-accent)] transition-colors cursor-pointer" }
+  }
+}
+@node Module2Title {
+  components {
+    UIText { text: "2. HoloMesh Federation"; class: "text-[var(--studio-accent)] font-semibold text-sm mb-1" }
+  }
+}
+@node Module2Desc {
+  components {
+    UIText { text: "Sync agents and workloads across Phase 21 P2P node architectures."; class: "text-[var(--studio-muted)] text-xs" }
+  }
+}
+
+@node DecorCircle {
+  components {
+    UIContainer { class: "absolute -top-24 -right-24 w-64 h-64 bg-pink-500 rounded-full mix-blend-screen filter blur-[80px] opacity-20 pointer-events-none" }
+  }
+}
+@node DecorCircle2 {
+  components {
+    UIContainer { class: "absolute -bottom-24 -left-24 w-64 h-64 bg-blue-500 rounded-full mix-blend-screen filter blur-[80px] opacity-20 pointer-events-none" }
+  }
+}
+
+@link Container -> Card
+@link Card -> DecorCircle
+@link Card -> DecorCircle2
+@link Card -> Title
+@link Card -> SubText
+@link Card -> GridContainer
+@link GridContainer -> Module1
+@link Module1 -> Module1Title
+@link Module1 -> Module1Desc
+@link GridContainer -> Module2
+@link Module2 -> Module2Title
+@link Module2 -> Module2Desc

@@ -1,0 +1,6 @@
+﻿src/swarm/messaging/__tests__/SwarmEventBus.test.ts(105,37): error TS2322: Type 'number' is not assignable to type 'void | Promise<void>'.
+src/swarm/messaging/__tests__/SwarmEventBus.test.ts(109,42): error TS2322: Type 'number' is not assignable to type 'void | Promise<void>'.
+src/swarm/SwarmCoordinator.ts(128,36): error TS18048: 'effectivePopulation' is possibly 'undefined'.
+undefined
+C:\Users\josep\Documents\GitHub\HoloScript\packages\framework:
+ΓÇëERR_PNPM_RECURSIVE_EXEC_FIRST_FAILΓÇë Command failed with exit code 2: tsc --noEmit

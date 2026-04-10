@@ -1,0 +1,22 @@
+{
+  "name": "holoscript-docs",
+  "version": "3.0.0",
+  "description": "HoloScript documentation site - holoscript.net",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "keywords": [
+    "holoscript",
+    "vr",
+    "ar",
+    "spatial-computing"
+  ],
+  "author": "Hololand",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

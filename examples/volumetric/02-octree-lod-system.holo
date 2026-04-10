@@ -1,0 +1,326 @@
+/**
+ * Octree LOD System — HoloScript v4.1 Level-of-Detail Example
+ *
+ * Demonstrates octree-based LOD for city-scale Gaussian splat scenes.
+ * This example shows:
+ *  - Octree spatial hierarchy (depth 4-8)
+ *  - Anchor-based LOD level selection (W.032)
+ *  - Camera distance thresholds per level
+ *  - Dynamic LOD switching based on view
+ *  - Performance optimization for large scenes
+ *  - Memory budget management
+ *
+ * Use Case: City-Scale Volumetric Scenes
+ *   - Render massive Gaussian splat scenes (10M+ Gaussians)
+ *   - Adaptive detail based on camera distance
+ *   - Maintain 60+ FPS with intelligent culling
+ *   - Stream LOD levels on demand
+ *
+ * Run this example:
+ *   holoc examples/volumetric/02-octree-lod-system.holo --target r3f
+ *
+ * @version 4.1.0
+ */
+
+scene CityScaleScene {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // OCTREE LOD CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CityBlock {
+    traits: [gaussian_splat];
+
+    gaussian_splat: {
+      // City-scale Gaussian splat scene
+      source: "./assets/city_block.ply",  // 10M+ Gaussians
+      format: "ply",
+      quality: "high",
+      max_splats: 15000000,  // 15M max
+
+      // Sorting
+      sort_mode: "radix",    // WebGPU radix sort (faster for large scenes)
+
+      // Spherical harmonics
+      sh_degree: 2,          // Reduced SH for performance
+
+      // Culling
+      cull_invisible: true,
+      alpha_threshold: 0.02,
+      scale_modifier: 1.0,
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // OCTREE LOD CONFIGURATION (W.032 — TPAMI 2025)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      lod: {
+        mode: "octree",      // Octree-based LOD
+
+        // Octree depth (4-8 typical for city-scale)
+        octree_depth: 6,     // 2^6 = 64 nodes per dimension
+
+        // Camera distance thresholds per LOD level (ascending order, in meters)
+        // LOD 0: 0-10m (highest detail, near camera)
+        // LOD 1: 10-30m (high detail)
+        // LOD 2: 30-60m (medium detail)
+        // LOD 3: 60-120m (low detail)
+        // LOD 4: 120m+ (lowest detail, far from camera)
+        anchor_thresholds: [10.0, 30.0, 60.0, 120.0],
+      },
+
+      // Advanced features
+      streaming: true,       // Stream LOD levels on demand
+      compression: true,     // Enable SPZ compression
+      temporal_mode: "static",
+
+      // Memory budget
+      gaussian_budget: {
+        total_cap: 5000000,  // 5M Gaussians active at once
+        per_avatar_reservation: 0,
+      },
+
+      spz: {
+        version: "2.0",
+        quaternion_encoding: "smallest_three",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Octree Construction
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CityBlock, "octree_construction_started") {
+    log("🌳 Building octree spatial hierarchy...");
+    log(`  Depth: ${event.depth}`);
+    log(`  Total Gaussians: ${event.totalGaussians.toLocaleString()}`);
+    log(`  Estimated nodes: ${Math.pow(8, event.depth).toLocaleString()}`);
+  }
+
+  on(CityBlock, "octree_construction_progress") {
+    const percent = (event.processed / event.total * 100).toFixed(1);
+    log(`  Processing: ${percent}% (${event.processed.toLocaleString()} / ${event.total.toLocaleString()} Gaussians)`);
+  }
+
+  on(CityBlock, "octree_constructed") {
+    log("✅ Octree constructed");
+    log(`  Total nodes: ${event.nodeCount.toLocaleString()}`);
+    log(`  Leaf nodes: ${event.leafNodeCount.toLocaleString()}`);
+    log(`  Max Gaussians per leaf: ${event.maxGaussiansPerLeaf.toLocaleString()}`);
+    log(`  Avg Gaussians per leaf: ${event.avgGaussiansPerLeaf.toFixed(1)}`);
+    log(`  Construction time: ${event.constructionTimeMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — LOD Selection
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CityBlock, "lod_level_selected") {
+    log(`📊 LOD level selected for octree node`);
+    log(`  Node ID: ${event.nodeId}`);
+    log(`  LOD level: ${event.lodLevel} (0 = highest detail)`);
+    log(`  Camera distance: ${event.cameraDistance.toFixed(2)}m`);
+    log(`  Threshold: ${event.threshold ? event.threshold.toFixed(2) + "m" : "N/A"}`);
+    log(`  Gaussians in node: ${event.gaussiansInNode.toLocaleString()}`);
+  }
+
+  on(CityBlock, "lod_level_changed") {
+    log(`🔄 LOD level changed`);
+    log(`  Node ID: ${event.nodeId}`);
+    log(`  Old LOD: ${event.oldLodLevel}`);
+    log(`  New LOD: ${event.newLodLevel}`);
+    log(`  Reason: ${event.reason}`);
+  }
+
+  on(CityBlock, "lod_streaming_started") {
+    log(`📥 Streaming LOD level ${event.lodLevel} for node ${event.nodeId}...`);
+    log(`  Gaussians to load: ${event.gaussianCount.toLocaleString()}`);
+    log(`  Estimated size: ${(event.estimatedBytes / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  on(CityBlock, "lod_streaming_completed") {
+    log(`✅ LOD streaming completed`);
+    log(`  Node ID: ${event.nodeId}`);
+    log(`  LOD level: ${event.lodLevel}`);
+    log(`  Gaussians loaded: ${event.gaussiansLoaded.toLocaleString()}`);
+    log(`  Load time: ${event.loadTimeMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Rendering with LOD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CityBlock, "lod_render_frame") {
+    log("🎨 Rendering with LOD");
+    log(`  Visible nodes: ${event.visibleNodes}`);
+    log(`  LOD breakdown:`);
+    for (let i = 0; i < event.lodBreakdown.length; i++) {
+      log(`    LOD ${i}: ${event.lodBreakdown[i].nodeCount} nodes, ${event.lodBreakdown[i].gaussianCount.toLocaleString()} Gaussians`);
+    }
+    log(`  Total visible Gaussians: ${event.totalVisibleGaussians.toLocaleString()}`);
+    log(`  Render time: ${event.renderTimeMs.toFixed(2)}ms (${(1000 / event.renderTimeMs).toFixed(1)} FPS)`);
+  }
+
+  on(CityBlock, "budget_exceeded") {
+    log("⚠️  Gaussian budget exceeded");
+    log(`  Budget: ${event.budgetCap.toLocaleString()} Gaussians`);
+    log(`  Requested: ${event.requestedGaussians.toLocaleString()} Gaussians`);
+    log(`  Action: Reducing LOD detail for distant nodes`);
+  }
+
+  on(CityBlock, "budget_adjusted") {
+    log("✅ Budget satisfied by LOD reduction");
+    log(`  Nodes downgraded: ${event.nodesDowngraded}`);
+    log(`  Gaussians freed: ${event.gaussiansFreed.toLocaleString()}`);
+    log(`  New total: ${event.newTotalGaussians.toLocaleString()}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Performance
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CityBlock, "octree_traversal_stats") {
+    log("📊 Octree traversal statistics");
+    log(`  Nodes visited: ${event.nodesVisited}`);
+    log(`  Nodes culled: ${event.nodesCulled} (${((event.nodesCulled / (event.nodesVisited + event.nodesCulled)) * 100).toFixed(1)}%)`);
+    log(`  Traversal time: ${event.traversalTimeMs.toFixed(2)}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Build octree
+  on(DemoControls, "click") {
+    if (event.target === "build_octree_button") {
+      emit(CityBlock, "build_octree", {
+        depth: 6,
+      });
+      log("🌳 Building octree (depth 6)...");
+    }
+  }
+
+  // Demo 2: Adjust LOD thresholds (more aggressive)
+  on(DemoControls, "click") {
+    if (event.target === "aggressive_lod_button") {
+      emit(CityBlock, "set_lod_thresholds", {
+        thresholds: [5.0, 15.0, 30.0, 60.0],  // More aggressive LOD switching
+      });
+      log("⚙️  Setting aggressive LOD thresholds (switch earlier)...");
+    }
+  }
+
+  // Demo 3: Adjust LOD thresholds (conservative)
+  on(DemoControls, "click") {
+    if (event.target === "conservative_lod_button") {
+      emit(CityBlock, "set_lod_thresholds", {
+        thresholds: [20.0, 50.0, 100.0, 200.0],  // More conservative (higher detail longer)
+      });
+      log("⚙️  Setting conservative LOD thresholds (keep detail longer)...");
+    }
+  }
+
+  // Demo 4: Adjust octree depth
+  on(DemoControls, "click") {
+    if (event.target === "octree_depth_8_button") {
+      emit(CityBlock, "set_octree_depth", {
+        depth: 8,  // Deeper tree, finer granularity
+      });
+      log("🌳 Setting octree depth to 8 (finer LOD control)...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "octree_depth_4_button") {
+      emit(CityBlock, "set_octree_depth", {
+        depth: 4,  // Shallower tree, coarser granularity
+      });
+      log("🌳 Setting octree depth to 4 (coarser LOD control)...");
+    }
+  }
+
+  // Demo 5: Adjust Gaussian budget
+  on(DemoControls, "click") {
+    if (event.target === "budget_3m_button") {
+      emit(CityBlock, "set_gaussian_budget", {
+        totalCap: 3000000,  // 3M Gaussians
+      });
+      log("💾 Setting Gaussian budget to 3M...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "budget_8m_button") {
+      emit(CityBlock, "set_gaussian_budget", {
+        totalCap: 8000000,  // 8M Gaussians
+      });
+      log("💾 Setting Gaussian budget to 8M...");
+    }
+  }
+
+  // Demo 6: Toggle LOD streaming
+  on(DemoControls, "click") {
+    if (event.target === "toggle_streaming_button") {
+      emit(CityBlock, "toggle_lod_streaming", {});
+      log("📥 Toggling LOD streaming...");
+    }
+  }
+
+  on(CityBlock, "lod_streaming_toggled") {
+    log(`  LOD streaming: ${event.enabled ? "✅ Enabled" : "❌ Disabled"}`);
+  }
+
+  // Demo 7: Force LOD refresh
+  on(DemoControls, "click") {
+    if (event.target === "refresh_lod_button") {
+      emit(CityBlock, "refresh_lod", {});
+      log("🔄 Refreshing LOD levels...");
+    }
+  }
+
+  // Demo 8: Get LOD statistics
+  on(DemoControls, "click") {
+    if (event.target === "get_lod_stats_button") {
+      emit(CityBlock, "get_lod_statistics", {});
+      log("📊 Fetching LOD statistics...");
+    }
+  }
+
+  on(CityBlock, "lod_statistics_retrieved") {
+    log("📋 OCTREE LOD STATISTICS");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Octree depth: ${event.octreeDepth}`);
+    log(`  Total nodes: ${event.totalNodes.toLocaleString()}`);
+    log(`  Active nodes: ${event.activeNodes.toLocaleString()}`);
+    log(`  Total Gaussians: ${event.totalGaussians.toLocaleString()}`);
+    log(`  Active Gaussians: ${event.activeGaussians.toLocaleString()}`);
+    log(`  Budget: ${event.gaussianBudget.toLocaleString()}`);
+    log(`  Budget usage: ${((event.activeGaussians / event.gaussianBudget) * 100).toFixed(1)}%`);
+    log(`  LOD breakdown:`);
+    for (let i = 0; i < event.lodBreakdown.length; i++) {
+      log(`    LOD ${i}: ${event.lodBreakdown[i].percentage.toFixed(1)}% (${event.lodBreakdown[i].gaussianCount.toLocaleString()} Gaussians)`);
+    }
+    log(`  Avg FPS: ${event.avgFPS.toFixed(1)}`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity OctreeLODDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "OCTREE LOD SYSTEM (W.032)\n\n🌳 Octree Spatial Hierarchy:\n  • Depth 4: 4,096 leaf nodes (small scenes)\n  • Depth 6: 262,144 leaf nodes (city blocks)\n  • Depth 8: 16,777,216 leaf nodes (cities)\n  • Anchor-based LOD selection (TPAMI 2025)\n\n📊 LOD Levels (Distance Thresholds):\n  • LOD 0: 0-10m (highest detail)\n  • LOD 1: 10-30m (high detail)\n  • LOD 2: 30-60m (medium detail)\n  • LOD 3: 60-120m (low detail)\n  • LOD 4: 120m+ (lowest detail)\n\n⚡ Performance Benefits:\n  • 10M Gaussians → 3-5M active (40-70% reduction)\n  • Frustum culling + LOD = 60-90% reduction\n  • Maintain 60+ FPS for city-scale scenes\n  • Memory budget enforcement\n\n📥 Streaming:\n  • Load LOD levels on demand\n  • Unload distant nodes\n  • Progressive refinement as camera moves\n\n💾 Gaussian Budget:\n  • Desktop: 5M - 10M Gaussians\n  • VR (Quest 3): 500K - 1M Gaussians\n  • Mobile: 200K - 500K Gaussians\n\n🎯 Use Cases:\n  • City-scale scenes (10M+ Gaussians)\n  • Building exteriors/interiors\n  • Large outdoor environments\n  • Aerial/drone captures",
+      fontSize: 0.075,
+      color: "#4ade80",
+    };
+  }
+}

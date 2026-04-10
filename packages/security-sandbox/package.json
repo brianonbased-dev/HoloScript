@@ -1,0 +1,48 @@
+{
+  "name": "@holoscript/security-sandbox",
+  "version": "1.2.0",
+  "description": "VM-based sandbox for secure HoloScript execution - protects against AI-generated code injection",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:^",
+    "vm2": "^3.9.19"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "holoscript",
+    "security",
+    "sandbox",
+    "vm",
+    "ai-safety",
+    "code-execution"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/security-sandbox"
+  },
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

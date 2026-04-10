@@ -1,0 +1,33 @@
+/**
+ * Signs & Communication Traits
+ */
+export const SIGNS_COMMUNICATION_TRAITS = [
+  'sign',
+  'label',
+  'plaque',
+  'billboard_sign',
+  'map',
+  'waypoint',
+  'information_kiosk',
+  'direction_arrow',
+  'warning_sign',
+  'exit_sign',
+  'name_tag',
+  'speech_bubble',
+  'thought_bubble',
+  'exclamation_mark',
+  'question_mark',
+  'icon',
+  'symbol',
+  'logo',
+  'graffiti',
+  'inscription',
+  'scroll',
+  'book',
+  'newspaper',
+  'letter',
+  'postcard',
+  'telegram',
+  'holographic_display',
+  'heads_up_display',
+] as const;

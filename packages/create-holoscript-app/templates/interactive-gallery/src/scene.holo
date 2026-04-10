@@ -1,0 +1,160 @@
+// Interactive Gallery — HoloScript Template
+//
+// An art gallery with clickable panels, portals, and ambient lighting.
+// Click panels to interact, walk through portals.
+
+composition "Interactive Gallery" {
+
+  // Soft ambient lighting
+  object "AmbientLight" {
+    type: "ambient_light"
+    intensity: 0.25
+    color: "#e8e0ff"
+  }
+
+  // Warm spotlight
+  object "Spotlight1" {
+    type: "directional_light"
+    intensity: 0.6
+    color: "#ffe4b5"
+    position: [-3, 8, 2]
+  }
+
+  object "Spotlight2" {
+    type: "directional_light"
+    intensity: 0.6
+    color: "#b5d4ff"
+    position: [3, 8, 2]
+  }
+
+  // Gallery floor — polished dark
+  object "Floor" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [20, 20, 1]
+    color: "#0d0d15"
+  }
+
+  // Back wall
+  object "BackWall" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 4, -8]
+    scale: [20, 8, 1]
+    color: "#1a1a28"
+  }
+
+  // Art Panel 1 — Warm abstract
+  object "PanelWarm" {
+    @clickable
+    @hoverable(highlight_color: "#ff6b35")
+    @glowing(intensity: 0.8, color: "#ff6b35")
+
+    geometry: "cube"
+    position: [-3, 2.5, -7.9]
+    scale: [2.5, 2.5, 0.08]
+    color: "#ff6b35"
+
+    on_click {
+      toggle_trait "glowing"
+    }
+  }
+
+  // Art Panel 2 — Cool blue
+  object "PanelCool" {
+    @clickable
+    @hoverable(highlight_color: "#4ecdc4")
+    @glowing(intensity: 0.8, color: "#4ecdc4")
+
+    geometry: "cube"
+    position: [0, 2.5, -7.9]
+    scale: [2.5, 2.5, 0.08]
+    color: "#4ecdc4"
+
+    on_click {
+      toggle_trait "glowing"
+    }
+  }
+
+  // Art Panel 3 — Purple dream
+  object "PanelDream" {
+    @clickable
+    @hoverable(highlight_color: "#a855f7")
+    @glowing(intensity: 0.8, color: "#a855f7")
+
+    geometry: "cube"
+    position: [3, 2.5, -7.9]
+    scale: [2.5, 2.5, 0.08]
+    color: "#a855f7"
+
+    on_click {
+      toggle_trait "glowing"
+    }
+  }
+
+  // Sculpture — floating torus
+  object "Sculpture" {
+    @glowing(intensity: 1.5, color: "#ffd700")
+    @hoverable
+
+    geometry: "torus"
+    position: [0, 1.8, -4]
+    rotation: [45, 0, 0]
+    scale: [0.8, 0.8, 0.8]
+    color: "#ffd700"
+  }
+
+  // Portal ring — left
+  object "PortalLeft" {
+    @clickable
+    @glowing(intensity: 2.0, color: "#00d4ff")
+    @hoverable
+
+    geometry: "torus"
+    position: [-6, 2, -3]
+    rotation: [0, 90, 0]
+    scale: [1.5, 1.5, 1.5]
+    color: "#00d4ff"
+  }
+
+  // Portal ring — right
+  object "PortalRight" {
+    @clickable
+    @glowing(intensity: 2.0, color: "#ff00d4")
+    @hoverable
+
+    geometry: "torus"
+    position: [6, 2, -3]
+    rotation: [0, 90, 0]
+    scale: [1.5, 1.5, 1.5]
+    color: "#ff00d4"
+  }
+
+  // Bench
+  object "Bench" {
+    @collidable
+
+    geometry: "cube"
+    position: [0, 0.3, 0]
+    scale: [3, 0.15, 0.8]
+    color: "#3d2b1f"
+  }
+
+  object "BenchLeg1" {
+    geometry: "cube"
+    position: [-1.2, 0.15, 0]
+    scale: [0.1, 0.3, 0.6]
+    color: "#2c1a0e"
+  }
+
+  object "BenchLeg2" {
+    geometry: "cube"
+    position: [1.2, 0.15, 0]
+    scale: [0.1, 0.3, 0.6]
+    color: "#2c1a0e"
+  }
+}

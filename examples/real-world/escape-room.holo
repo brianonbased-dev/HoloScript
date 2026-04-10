@@ -1,0 +1,470 @@
+// Multiplayer VR Escape Room
+// A collaborative puzzle-solving experience
+// Compile: holoscript compile escape-room.holo --target vrchat
+
+composition "VR Escape Room" {
+  environment {
+    skybox: "none"
+    ambient_light: 0.1
+    fog: {
+      enabled: true
+      color: "#111122"
+      density: 0.05
+    }
+  }
+
+  // ========== Game State ==========
+
+  state GameState {
+    started: false
+    solved: false
+    timeRemaining: 3600  // 60 minutes
+    puzzlesSolved: 0
+    totalPuzzles: 5
+    hints_used: 0
+    players: []
+  }
+
+  // ========== Room Structure ==========
+
+  spatial_group "Room" {
+    object "Floor" {
+      @collidable
+      geometry: "cube"
+      position: [0, 0, 0]
+      scale: [10, 0.2, 10]
+      material: "wood_dark"
+    }
+
+    object "WallNorth" {
+      @collidable
+      geometry: "cube"
+      position: [0, 2, -5]
+      scale: [10, 4, 0.3]
+      material: "brick_old"
+    }
+
+    object "WallSouth" {
+      @collidable
+      geometry: "cube"
+      position: [0, 2, 5]
+      scale: [10, 4, 0.3]
+      material: "brick_old"
+    }
+
+    object "WallEast" {
+      @collidable
+      geometry: "cube"
+      position: [5, 2, 0]
+      scale: [0.3, 4, 10]
+      material: "brick_old"
+    }
+
+    object "WallWest" {
+      @collidable
+      geometry: "cube"
+      position: [-5, 2, 0]
+      scale: [0.3, 4, 10]
+      material: "brick_old"
+    }
+
+    object "Ceiling" {
+      geometry: "cube"
+      position: [0, 4, 0]
+      scale: [10, 0.2, 10]
+      material: "plaster_dark"
+    }
+  }
+
+  // ========== Puzzle 1: Combination Lock ==========
+
+  spatial_group "Puzzle1_CombinationLock" {
+    object "SafeBox" {
+      geometry: "model/safe.glb"
+      position: [-4, 1, -4]
+      
+      state {
+        locked: true
+        combination: [7, 2, 5]
+        entered: [0, 0, 0]
+      }
+    }
+
+    object "Dial1" {
+      @clickable
+      @rotatable
+      geometry: "cylinder"
+      position: [-4.2, 1.1, -3.7]
+      scale: [0.08, 0.02, 0.08]
+      color: "#888888"
+      
+      state {
+        value: 0
+      }
+
+      onClick: {
+        this.state.value = (this.state.value + 1) % 10
+        SafeBox.state.entered[0] = this.state.value
+        checkCombination()
+      }
+    }
+
+    object "Dial2" {
+      @clickable
+      geometry: "cylinder"
+      position: [-4, 1.1, -3.7]
+      scale: [0.08, 0.02, 0.08]
+      color: "#888888"
+      
+      state { value: 0 }
+
+      onClick: {
+        this.state.value = (this.state.value + 1) % 10
+        SafeBox.state.entered[1] = this.state.value
+        checkCombination()
+      }
+    }
+
+    object "Dial3" {
+      @clickable
+      geometry: "cylinder"
+      position: [-3.8, 1.1, -3.7]
+      scale: [0.08, 0.02, 0.08]
+      color: "#888888"
+      
+      state { value: 0 }
+
+      onClick: {
+        this.state.value = (this.state.value + 1) % 10
+        SafeBox.state.entered[2] = this.state.value
+        checkCombination()
+      }
+    }
+
+    object "CombinationClue" {
+      @hidden
+      geometry: "plane"
+      position: [2, 2, -4.8]
+      scale: [0.5, 0.3, 1]
+      texture: "clue_painting.png"
+      hint: "The numbers hide in the painting..."
+    }
+  }
+
+  action checkCombination() {
+    const safe = SafeBox.state
+    if (arraysEqual(safe.entered, safe.combination)) {
+      safe.locked = false
+      playAnimation(SafeBox, "open")
+      audio.play("safe_open.mp3")
+      puzzleSolved(1)
+      revealKey()
+    } else {
+      audio.play("wrong.mp3")
+      haptic.feedback("light")
+    }
+  }
+
+  // ========== Puzzle 2: Pressure Plates ==========
+
+  spatial_group "Puzzle2_PressurePlates" {
+    template "PressurePlate" {
+      @trigger
+      @collidable
+      geometry: "cube"
+      scale: [0.8, 0.05, 0.8]
+      color: "#666666"
+      
+      state {
+        pressed: false
+        correctOrder: 0
+      }
+
+      onTriggerEnter: {
+        this.state.pressed = true
+        this.color = "#00ff00"
+        checkPressurePlateOrder(this)
+      }
+
+      onTriggerExit: {
+        this.state.pressed = false
+        this.color = "#666666"
+        resetPressurePlateSequence()
+      }
+    }
+
+    object "Plate1" using "PressurePlate" {
+      position: [3, 0.12, -2]
+      correctOrder: 3
+    }
+
+    object "Plate2" using "PressurePlate" {
+      position: [3, 0.12, 0]
+      correctOrder: 1
+    }
+
+    object "Plate3" using "PressurePlate" {
+      position: [3, 0.12, 2]
+      correctOrder: 4
+    }
+
+    object "Plate4" using "PressurePlate" {
+      position: [4, 0.12, -1]
+      correctOrder: 2
+    }
+
+    object "SequenceClue" {
+      @hidden
+      geometry: "plane"
+      position: [4.8, 1.5, 0]
+      rotation: [0, -90, 0]
+      scale: [1, 0.5, 1]
+      texture: "sequence_clue.png"
+    }
+  }
+
+  state PressurePlateState {
+    sequence: []
+    expectedSequence: [2, 4, 1, 3]  // Plate2, Plate4, Plate1, Plate3
+  }
+
+  action checkPressurePlateOrder(plate) {
+    PressurePlateState.sequence.push(plate.state.correctOrder)
+    
+    const seq = PressurePlateState.sequence
+    const expected = PressurePlateState.expectedSequence
+    
+    // Check if current sequence matches
+    for (let i = 0; i < seq.length; i++) {
+      if (seq[i] !== expected[i]) {
+        resetPressurePlateSequence()
+        audio.play("wrong.mp3")
+        return
+      }
+    }
+    
+    // Check if complete
+    if (seq.length === expected.length) {
+      puzzleSolved(2)
+      openSecretDoor()
+    }
+  }
+
+  // ========== Puzzle 3: Symbol Matching ==========
+
+  spatial_group "Puzzle3_Symbols" {
+    template "SymbolTile" {
+      @grabbable
+      @collidable
+      geometry: "cube"
+      scale: [0.3, 0.3, 0.05]
+      
+      state {
+        symbol: ""
+        placed: false
+        correctSlot: ""
+      }
+    }
+
+    template "SymbolSlot" {
+      @trigger
+      geometry: "cube"
+      scale: [0.35, 0.35, 0.02]
+      color: "#333333"
+      
+      state {
+        expectedSymbol: ""
+        filled: false
+        currentTile: null
+      }
+
+      onTriggerEnter(tile) {
+        if (tile.template === "SymbolTile" && !this.state.filled) {
+          this.state.currentTile = tile
+          tile.state.placed = true
+          tile.position = this.position + [0, 0, 0.05]
+          checkSymbolPuzzle()
+        }
+      }
+    }
+
+    // Tiles to grab
+    object "TileSun" using "SymbolTile" {
+      position: [0, 0.5, 3]
+      texture: "symbol_sun.png"
+      symbol: "sun"
+      correctSlot: "Slot1"
+    }
+
+    object "TileMoon" using "SymbolTile" {
+      position: [0.5, 0.5, 3]
+      texture: "symbol_moon.png"
+      symbol: "moon"
+      correctSlot: "Slot2"
+    }
+
+    object "TileStar" using "SymbolTile" {
+      position: [1, 0.5, 3]
+      texture: "symbol_star.png"
+      symbol: "star"
+      correctSlot: "Slot3"
+    }
+
+    // Slots on wall
+    object "Slot1" using "SymbolSlot" {
+      position: [-3, 1.5, -4.8]
+      expectedSymbol: "sun"
+    }
+
+    object "Slot2" using "SymbolSlot" {
+      position: [-2.5, 1.5, -4.8]
+      expectedSymbol: "moon"
+    }
+
+    object "Slot3" using "SymbolSlot" {
+      position: [-2, 1.5, -4.8]
+      expectedSymbol: "star"
+    }
+  }
+
+  // ========== Exit Door ==========
+
+  object "ExitDoor" {
+    @collidable
+    geometry: "model/heavy_door.glb"
+    position: [0, 0, -5]
+    
+    state {
+      locked: true
+      keysRequired: 3
+      keysInserted: 0
+    }
+  }
+
+  // ========== Timer Display ==========
+
+  ui_panel "TimerDisplay" {
+    @billboard
+    position: [0, 3.5, -4.8]
+    
+    panel: {
+      width: 300
+      height: 80
+      background: "rgba(0,0,0,0.9)"
+    }
+
+    text "TimeRemaining" {
+      content: formatTime(GameState.timeRemaining)
+      font_size: 48
+      color: GameState.timeRemaining < 300 ? "#ff0000" : "#00ff00"
+      align: "center"
+    }
+
+    text "PuzzleProgress" {
+      content: "${GameState.puzzlesSolved} / ${GameState.totalPuzzles}"
+      font_size: 24
+      color: "#ffffff"
+      position: [0, 60]
+      align: "center"
+    }
+  }
+
+  // ========== Multiplayer Sync ==========
+
+  networked {
+    sync_rate: 20hz
+    
+    sync GameState {
+      started
+      puzzlesSolved
+      timeRemaining
+    }
+
+    sync SafeBox.state {
+      locked
+      entered
+    }
+
+    sync PressurePlateState.sequence
+  }
+
+  // ========== Lighting ==========
+
+  light "CeilingLight" {
+    type: "point"
+    color: "#ffddaa"
+    intensity: 50
+    position: [0, 3.8, 0]
+    range: 12
+  }
+
+  light "Candle1" {
+    type: "point"
+    color: "#ff6600"
+    intensity: 10
+    position: [-4, 1.5, 0]
+    range: 3
+    animation: {
+      property: "intensity"
+      from: 8
+      to: 12
+      duration: 500
+      loop: infinite
+      easing: "random"
+    }
+  }
+
+  // ========== Audio ==========
+
+  audio "Ambience" {
+    source: "audio/dungeon_ambience.mp3"
+    volume: 0.3
+    loop: true
+    autoplay: true
+  }
+
+  audio "Tension" {
+    source: "audio/tension_music.mp3"
+    volume: 0.2
+    loop: true
+    trigger_when: GameState.timeRemaining < 600
+  }
+
+  // ========== Game Logic ==========
+
+  logic {
+    onUpdate(dt) {
+      if (GameState.started && !GameState.solved) {
+        GameState.timeRemaining -= dt
+        
+        if (GameState.timeRemaining <= 0) {
+          gameOver(false)
+        }
+      }
+    }
+  }
+
+  action puzzleSolved(puzzleNumber) {
+    GameState.puzzlesSolved += 1
+    audio.play("puzzle_complete.mp3")
+    
+    if (GameState.puzzlesSolved >= GameState.totalPuzzles) {
+      gameWin()
+    }
+  }
+
+  action gameWin() {
+    GameState.solved = true
+    ExitDoor.playAnimation("open")
+    audio.play("victory.mp3")
+    showVictoryScreen()
+  }
+
+  action gameOver(won) {
+    GameState.started = false
+    if (!won) {
+      audio.play("game_over.mp3")
+      showGameOverScreen()
+    }
+  }
+}

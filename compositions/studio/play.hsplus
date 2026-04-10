@@ -1,0 +1,169 @@
+/**
+ * Play Mode — Studio Page Composition
+ *
+ * Defines the UI surface for the /play page. The header bar and footer
+ * hints render natively via HoloSurfaceRenderer. The 3D canvas, toolbar
+ * buttons, and property panels stay in React.
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /play
+ */
+
+composition "PlayMode" {
+
+  state {
+    pageTitle: "Play Mode"
+    pageSubtitle: "3D Scene Builder"
+    objectCount: 0
+    physicsEnabled: false
+    transformMode: "translate"
+    activeTool: "box"
+    lightingPreset: "Sunset"
+    gardenActive: false
+    harvestCount: 0
+    simPanelOpen: false
+  }
+
+  computed {
+    objectCountLabel: String($objectCount) + " object" + ($objectCount == 1 ? "" : "s")
+    physicsLabel: $physicsEnabled ? "Physics ON" : "Physics OFF"
+    transformLabel: $transformMode == "translate" ? "Move" : ($transformMode == "rotate" ? "Rotate" : "Scale")
+    gardenLabel: $gardenActive ? "Exit Garden" : "Garden Mode"
+    harvestLabel: String($harvestCount) + " harvested"
+    hasObjects: $objectCount > 0
+  }
+
+  object "PlayShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1440
+    height: 64
+    backgroundColor: "#020617"
+    cornerRadius: 0
+
+    // ── Header Bar ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 1440
+      height: 48
+      position: [0, 0]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: $pageTitle
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [56, 14]
+      }
+
+      object "Subtitle" {
+        type: "ui"
+        uiType: "text"
+        text: $pageSubtitle
+        fontSize: 12
+        color: "#64748b"
+        position: [160, 18]
+      }
+
+      object "PhysicsStatus" {
+        type: "ui"
+        uiType: "text"
+        text: $physicsLabel
+        fontSize: 12
+        fontWeight: "bold"
+        color: "#38bdf8"
+        position: [1100, 18]
+      }
+
+      object "ObjectCount" {
+        type: "ui"
+        uiType: "text"
+        text: $objectCountLabel
+        fontSize: 12
+        color: "#94a3b8"
+        position: [1250, 18]
+      }
+
+      object "TransformIndicator" {
+        type: "ui"
+        uiType: "text"
+        text: $transformLabel
+        fontSize: 11
+        color: "#64748b"
+        position: [1350, 18]
+      }
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "initial page title is Play Mode"
+    assert: { $pageTitle == "Play Mode" }
+  }
+
+  @test {
+    name: "physics starts disabled"
+    assert: { $physicsEnabled == false }
+  }
+
+  @test {
+    name: "physics label shows OFF initially"
+    assert: { $physicsLabel == "Physics OFF" }
+  }
+
+  @test {
+    name: "physics label shows ON when enabled"
+    setup: { $physicsEnabled = true }
+    assert: { $physicsLabel == "Physics ON" }
+  }
+
+  @test {
+    name: "object count label pluralizes for zero"
+    assert: { $objectCountLabel == "0 objects" }
+  }
+
+  @test {
+    name: "object count label singular for 1"
+    setup: { $objectCount = 1 }
+    assert: { $objectCountLabel == "1 object" }
+  }
+
+  @test {
+    name: "object count label plural for many"
+    setup: { $objectCount = 7 }
+    assert: { $objectCountLabel == "7 objects" }
+  }
+
+  @test {
+    name: "transform label defaults to Move"
+    assert: { $transformLabel == "Move" }
+  }
+
+  @test {
+    name: "transform label shows Rotate"
+    setup: { $transformMode = "rotate" }
+    assert: { $transformLabel == "Rotate" }
+  }
+
+  @test {
+    name: "transform label shows Scale"
+    setup: { $transformMode = "scale" }
+    assert: { $transformLabel == "Scale" }
+  }
+
+  @test {
+    name: "hasObjects is false when empty"
+    assert: { $hasObjects == false }
+  }
+
+  @test {
+    name: "garden starts inactive"
+    assert: { $gardenActive == false }
+  }
+}

@@ -1,0 +1,553 @@
+// AR Foundation - Image Tracking Example
+// Demonstrates image target detection and augmented content overlay
+// Compatible with iOS ARKit (ARImageTrackingConfiguration) and Android ARCore (Augmented Images)
+// Compile: holoscript compile image-tracking.holo --target ios/android
+
+composition "AR Image Tracking & Augmented Content" {
+  metadata {
+    description: "Detect and track 2D image targets with augmented content overlay"
+    platform: ["ios", "android"]
+    ar_features: ["image_tracking", "object_tracking", "anchor", "light_estimation"]
+    author: "HoloScript AR Foundation Examples"
+    version: "1.0.0"
+  }
+
+  // === AR Environment Configuration ===
+  environment {
+    ar_mode: true
+
+    image_tracking: {
+      enabled: true
+      max_tracked_images: 4
+      reference_images: [
+        {
+          name: "product_poster"
+          physical_width: 0.3 // meters
+          source: "assets/targets/product_poster.jpg"
+        },
+        {
+          name: "business_card"
+          physical_width: 0.09
+          source: "assets/targets/business_card.jpg"
+        },
+        {
+          name: "album_cover"
+          physical_width: 0.12
+          source: "assets/targets/album_cover.jpg"
+        },
+        {
+          name: "museum_plaque"
+          physical_width: 0.25
+          source: "assets/targets/museum_plaque.jpg"
+        }
+      ]
+    }
+
+    camera {
+      clear_mode: "ar_background"
+      near_clip: 0.01
+      far_clip: 50
+    }
+  }
+
+  // === Image Tracking Manager ===
+  object "ImageTrackingManager" @object_tracking {
+    tracking_target: "objects"
+    anchor_persistence: "session"
+    tracking_quality: "high"
+
+    state {
+      tracked_images: {}
+      active_count: 0
+      total_detections: 0
+      detection_log: []
+    }
+
+    onImageDetected: {
+      const image = event.image;
+
+      this.state.total_detections += 1;
+      this.state.active_count += 1;
+
+      this.state.tracked_images[image.name] = {
+        id: image.id,
+        name: image.name,
+        physical_size: image.physical_size,
+        tracking_state: "tracking",
+        position: image.position,
+        rotation: image.rotation,
+        detected_at: Date.now()
+      };
+
+      this.state.detection_log.push({
+        event: "detected",
+        name: image.name,
+        timestamp: Date.now()
+      });
+
+      // Spawn augmented content based on image
+      this.spawnContentForImage(image);
+
+      emit("ui_update", {
+        active: this.state.active_count,
+        total: this.state.total_detections
+      });
+
+      haptic_feedback("medium");
+    }
+
+    spawnContentForImage: function(image) {
+      const content_map = {
+        product_poster: "ProductOverlay",
+        business_card: "ContactCardOverlay",
+        album_cover: "MediaPlayerOverlay",
+        museum_plaque: "MuseumInfoOverlay"
+      };
+
+      const template = content_map[image.name];
+      if (template) {
+        spawn(template, {
+          image_id: image.id,
+          image_name: image.name,
+          position: image.position,
+          rotation: image.rotation,
+          physical_size: image.physical_size
+        });
+      }
+    }
+
+    onImageUpdated: {
+      const image = event.image;
+      const tracked = this.state.tracked_images[image.name];
+
+      if (tracked) {
+        tracked.position = image.position;
+        tracked.rotation = image.rotation;
+        tracked.tracking_state = image.tracking_state;
+
+        emit("update_overlay_transform", {
+          image_id: image.id,
+          position: image.position,
+          rotation: image.rotation
+        });
+      }
+    }
+
+    onImageLost: {
+      const image = event.image;
+      const tracked = this.state.tracked_images[image.name];
+
+      if (tracked) {
+        tracked.tracking_state = "lost";
+        this.state.active_count -= 1;
+
+        this.state.detection_log.push({
+          event: "lost",
+          name: image.name,
+          timestamp: Date.now()
+        });
+
+        emit("hide_overlay", { image_id: image.id });
+        emit("ui_update", {
+          active: this.state.active_count,
+          total: this.state.total_detections
+        });
+      }
+    }
+  }
+
+  // === Product Poster Overlay ===
+  template "ProductOverlay" {
+    @anchor
+    @billboard(axis: "y")
+    @clickable
+
+    props {
+      image_id: ""
+      image_name: ""
+      physical_size: [0.3, 0.3]
+    }
+
+    geometry: "plane"
+    scale: [0.3, 0.2, 1]
+    position: [0, 0.18, 0] // Float slightly above the image
+    opacity: 0.95
+
+    state {
+      expanded: false
+      showing_details: false
+    }
+
+    // 3D product model floating above poster
+    children: [
+      {
+        type: "model"
+        source: "assets/models/product_3d.usdz"
+        scale: [0.1, 0.1, 0.1]
+        position: [0, 0.15, 0]
+        animation: "rotate_showcase"
+      },
+      {
+        type: "plane"
+        scale: [0.28, 0.06, 1]
+        position: [0, 0.02, 0.01]
+        color: "#1E1E1E"
+        opacity: 0.9
+        ui: {
+          text: "Tap to view details"
+          text_color: "#FFFFFF"
+          text_size: 12
+          corner_radius: 8
+        }
+      }
+    ]
+
+    animation "float" {
+      property: "position.y"
+      from: 0.16
+      to: 0.20
+      duration: 2000
+      loop: infinite
+      easing: "easeInOutSine"
+    }
+
+    onTap: {
+      this.state.expanded = !this.state.expanded;
+
+      if (this.state.expanded) {
+        spawn("ProductDetailPanel", {
+          position: [this.position[0] + 0.2, this.position[1], this.position[2]],
+          product_name: "AR Product"
+        });
+      } else {
+        emit("hide_product_detail");
+      }
+
+      haptic_feedback("light");
+    }
+  }
+
+  // === Business Card Overlay ===
+  template "ContactCardOverlay" {
+    @anchor
+    @billboard
+
+    props {
+      image_id: ""
+      image_name: ""
+      physical_size: [0.09, 0.05]
+    }
+
+    geometry: "plane"
+    scale: [0.09, 0.06, 1]
+    position: [0, 0.04, 0]
+    opacity: 0.95
+
+    state {
+      contact_saved: false
+    }
+
+    ui: {
+      background: "#FFFFFF"
+      corner_radius: 4
+      padding: 8
+      shadow: true
+    }
+
+    children: [
+      {
+        type: "button"
+        label: "Save Contact"
+        position: [0, -0.03, 0.01]
+        scale: [0.06, 0.015, 1]
+        color: "#2196F3"
+      },
+      {
+        type: "button"
+        label: "Call"
+        position: [-0.025, -0.03, 0.01]
+        scale: [0.04, 0.015, 1]
+        color: "#4CAF50"
+      },
+      {
+        type: "button"
+        label: "Email"
+        position: [0.025, -0.03, 0.01]
+        scale: [0.04, 0.015, 1]
+        color: "#FF5722"
+      }
+    ]
+
+    animation "slideIn" {
+      property: "position.y"
+      from: 0
+      to: 0.04
+      duration: 400
+      easing: "easeOutBack"
+    }
+  }
+
+  // === Album Cover Media Player ===
+  template "MediaPlayerOverlay" {
+    @anchor
+    @billboard
+
+    props {
+      image_id: ""
+      image_name: ""
+      physical_size: [0.12, 0.12]
+    }
+
+    geometry: "composite"
+    scale: [0.14, 0.14, 0.05]
+    position: [0, 0.08, 0]
+
+    state {
+      playing: false
+      progress: 0
+      volume: 0.8
+    }
+
+    children: [
+      {
+        type: "sphere"
+        scale: [0.03, 0.03, 0.03]
+        position: [0, 0.08, 0]
+        color: "#FF5722"
+        animation: "spin"
+      },
+      {
+        type: "plane"
+        scale: [0.12, 0.02, 1]
+        position: [0, 0, 0.01]
+        color: "#1E1E1E"
+        opacity: 0.9
+        ui: {
+          corner_radius: 8
+        }
+      }
+    ]
+
+    onTap: {
+      this.state.playing = !this.state.playing;
+
+      if (this.state.playing) {
+        emit("play_audio", { track: this.props.image_name });
+      } else {
+        emit("pause_audio");
+      }
+
+      haptic_feedback("light");
+    }
+  }
+
+  // === Museum Info Overlay ===
+  template "MuseumInfoOverlay" {
+    @anchor
+    @billboard
+    @clickable
+
+    props {
+      image_id: ""
+      image_name: ""
+      physical_size: [0.25, 0.15]
+    }
+
+    geometry: "plane"
+    scale: [0.3, 0.25, 1]
+    position: [0, 0.2, 0]
+    opacity: 0.95
+
+    state {
+      language: "en"
+      audio_playing: false
+      detail_level: "summary" // "summary", "full", "expert"
+    }
+
+    ui: {
+      background: "#1E1E1E"
+      corner_radius: 12
+      padding: 16
+      shadow: true
+    }
+
+    children: [
+      {
+        type: "text"
+        value: "Museum Exhibit Information"
+        position: [0, 0.08, 0.01]
+        text_size: 16
+        text_color: "#FFFFFF"
+        font_weight: "bold"
+      },
+      {
+        type: "button"
+        label: "Audio Guide"
+        position: [-0.08, -0.08, 0.01]
+        scale: [0.08, 0.02, 1]
+        color: "#4CAF50"
+      },
+      {
+        type: "button"
+        label: "3D View"
+        position: [0.08, -0.08, 0.01]
+        scale: [0.08, 0.02, 1]
+        color: "#2196F3"
+      }
+    ]
+
+    animation "fadeIn" {
+      property: "opacity"
+      from: 0
+      to: 0.95
+      duration: 500
+      easing: "easeOutCubic"
+    }
+
+    onTap: {
+      // Cycle detail levels
+      const levels = ["summary", "full", "expert"];
+      const currentIdx = levels.indexOf(this.state.detail_level);
+      this.state.detail_level = levels[(currentIdx + 1) % levels.length];
+
+      haptic_feedback("light");
+    }
+  }
+
+  // === Product Detail Panel ===
+  template "ProductDetailPanel" {
+    @billboard
+    @ui_element
+    @anchor
+
+    props {
+      product_name: ""
+    }
+
+    geometry: "plane"
+    scale: [0.25, 0.35, 1]
+    opacity: 0.95
+
+    ui: {
+      background: "#FFFFFF"
+      corner_radius: 12
+      shadow: true
+      padding: 16
+    }
+
+    // Auto-dismiss after 10 seconds
+    onInit: {
+      setTimeout(() => {
+        this.destroy();
+      }, 10000);
+    }
+  }
+
+  // === Tracking Quality Indicator ===
+  object "TrackingQualityIndicator" {
+    @billboard
+    @ui_element
+
+    geometry: "plane"
+    scale: [0.15, 0.04, 1]
+    position: [0, 1.8, -1.5]
+    visible: true
+
+    state {
+      quality: "none" // "none", "limited", "normal"
+    }
+
+    ui: {
+      background: "#1E1E1E"
+      corner_radius: 4
+      padding: 4
+      opacity: 0.8
+    }
+
+    onUpdate: {
+      const mgr = getObject("ImageTrackingManager");
+
+      if (mgr.state.active_count > 0) {
+        this.state.quality = "normal";
+        this.ui.background = "#4CAF50";
+      } else if (mgr.state.total_detections > 0) {
+        this.state.quality = "limited";
+        this.ui.background = "#FF9800";
+      } else {
+        this.state.quality = "none";
+        this.ui.background = "#F44336";
+      }
+    }
+  }
+
+  // === AR Lighting ===
+  light "AREnvironmentLight" @light_estimation {
+    type: "environment"
+    use_ar_estimation: true
+    apply_ambient: true
+    apply_directional: true
+    apply_reflections: true
+  }
+
+  light "SoftFill" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.3
+    rotation: [-30, 45, 0]
+    cast_shadows: false
+  }
+
+  // === Gestures ===
+  gesture "tap" {
+    action: "interact_overlay"
+  }
+
+  gesture "pinch" {
+    action: "scale_overlay"
+    min_scale: 0.5
+    max_scale: 2.0
+  }
+
+  // === State Machine ===
+  state_machine "ImageTrackingSession" {
+    initial: "initializing"
+
+    state "initializing" {
+      on_ar_ready: transition("scanning")
+    }
+
+    state "scanning" {
+      description: "Scanning for image targets"
+      on_image_detected: transition("tracking")
+    }
+
+    state "tracking" {
+      description: "Tracking detected images"
+      on_all_images_lost: transition("scanning")
+    }
+
+    state "error" {
+      description: "Image tracking not supported or no reference images"
+    }
+  }
+
+  // === Analytics ===
+  analytics {
+    track_event("image_detected", {
+      image_name: "${event.image_name}",
+      tracking_quality: "${event.tracking_quality}"
+    })
+
+    track_event("image_lost", {
+      image_name: "${event.image_name}",
+      tracking_duration: "${event.duration}"
+    })
+
+    track_event("overlay_interaction", {
+      image_name: "${event.image_name}",
+      interaction_type: "${event.type}"
+    })
+
+    track_metric("active_tracked_images", "${active_count}")
+  }
+}

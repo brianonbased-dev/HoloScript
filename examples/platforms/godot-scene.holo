@@ -1,0 +1,209 @@
+// Godot 4 Scene Example
+// Compile: holoscript compile godot-scene.holo --target godot
+// Output: GDScript + .tscn scene files
+
+composition "Godot Puzzle Game" {
+  environment {
+    background: "sky"
+    ambient_light: {
+      color: "#a0b0c0"
+      energy: 0.3
+    }
+    world_environment: {
+      glow_enabled: true
+      ssao_enabled: true
+    }
+  }
+
+  // === Player Character ===
+  object "Player" {
+    @character_body_3d
+    @controllable
+    geometry: "model/robot_character.glb"
+    position: [0, 0, 0]
+    
+    physics: {
+      type: "character"
+      mass: 70
+      floor_snap_length: 0.2
+    }
+
+    state {
+      speed: 5.0
+      jump_velocity: 4.5
+      gravity: 9.8
+    }
+
+    collision_shape: {
+      shape: "capsule"
+      radius: 0.4
+      height: 1.8
+    }
+
+    on_physics_process: {
+      // Gravity
+      if not is_on_floor():
+        velocity.y -= gravity * delta
+      
+      // Jump
+      if Input.is_action_just_pressed("jump") and is_on_floor():
+        velocity.y = jump_velocity
+      
+      // Movement
+      var input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+      var direction = basis * Vector3(input_dir.x, 0, input_dir.y)
+      velocity.x = direction.x * speed
+      velocity.z = direction.z * speed
+      
+      move_and_slide()
+    }
+  }
+
+  // === Puzzle Elements ===
+  template "PressurePlate" {
+    @static_body_3d
+    @area_3d
+    geometry: "cube"
+    scale: [1, 0.1, 1]
+    color: "#666666"
+
+    state {
+      pressed: false
+      target_signal: ""
+    }
+
+    on_body_entered: {
+      if body.is_in_group("pushable"):
+        this.state.pressed = true
+        this.color = "#00ff00"
+        emit_signal("plate_activated", this.state.target_signal)
+    }
+
+    on_body_exited: {
+      if body.is_in_group("pushable"):
+        this.state.pressed = false
+        this.color = "#666666"
+        emit_signal("plate_deactivated", this.state.target_signal)
+    }
+  }
+
+  template "PushBlock" {
+    @rigid_body_3d
+    @pushable
+    geometry: "cube"
+    scale: [0.8, 0.8, 0.8]
+    color: "#8888ff"
+    
+    physics: {
+      type: "rigid"
+      mass: 10.0
+      friction: 0.8
+    }
+
+    groups: ["pushable"]
+  }
+
+  template "Door" {
+    @static_body_3d
+    @animatable
+    geometry: "model/door.glb"
+
+    state {
+      open: false
+      required_plates: 1
+      active_plates: 0
+    }
+
+    animation "open" {
+      property: "position.y"
+      from: 0
+      to: 3
+      duration: 1000
+      easing: "ease_out"
+    }
+
+    on_signal: {
+      match signal_name:
+        "plate_activated":
+          this.state.active_plates += 1
+        "plate_deactivated":
+          this.state.active_plates -= 1
+      
+      if this.state.active_plates >= this.state.required_plates:
+        play_animation("open")
+      else:
+        play_animation("open", reverse=true)
+    }
+  }
+
+  // === Level Layout ===
+  spatial_group "Level1" {
+    object "Floor" {
+      @static_body_3d
+      geometry: "cube"
+      position: [0, -0.5, 0]
+      scale: [20, 1, 20]
+      color: "#404040"
+    }
+
+    object "Plate1" using "PressurePlate" {
+      position: [3, 0.05, 3]
+      target_signal: "door1"
+    }
+
+    object "Plate2" using "PressurePlate" {
+      position: [-3, 0.05, 3]
+      target_signal: "door1"
+    }
+
+    object "Block1" using "PushBlock" {
+      position: [5, 0.4, 0]
+    }
+
+    object "Block2" using "PushBlock" {
+      position: [-5, 0.4, 0]
+    }
+
+    object "ExitDoor" using "Door" {
+      position: [0, 0, 8]
+      required_plates: 2
+    }
+  }
+
+  // === Lighting ===
+  light "Sun" {
+    type: "directional"
+    color: "#fffbe6"
+    energy: 1.2
+    rotation: [-45, 30, 0]
+    shadow_enabled: true
+  }
+
+  // === Camera ===
+  camera "MainCamera" {
+    @camera_3d
+    position: [0, 10, 10]
+    rotation: [-35, 0, 0]
+    projection: "perspective"
+    fov: 60
+    follow: "Player"
+    follow_offset: [0, 8, 8]
+    follow_smoothing: 5.0
+  }
+
+  // === Audio ===
+  audio "BGM" {
+    @audio_stream_player
+    source: "res://audio/puzzle_ambient.ogg"
+    volume_db: -10
+    autoplay: true
+    loop: true
+  }
+
+  audio "StepSound" {
+    @audio_stream_player_3d
+    source: "res://audio/footstep.ogg"
+    attach_to: "Player"
+    trigger_on: "player_step"
+  }
+}

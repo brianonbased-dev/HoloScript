@@ -1,0 +1,269 @@
+/**
+ * Analytics Dashboard — HoloScript v5.0 Enterprise Example
+ *
+ * Demonstrates tenant-level analytics with AnalyticsTrait.
+ * This example shows:
+ *  - User engagement metrics
+ *  - Resource usage analytics
+ *  - Performance monitoring
+ *  - Custom dashboards
+ *  - Anomaly detection
+ *  - Real-time metrics
+ *
+ * Use Case: SaaS Platform Analytics
+ *   - Track user behavior
+ *   - Monitor platform health
+ *   - Identify usage patterns
+ *   - Detect anomalies
+ *
+ * Run this example:
+ *   holoc examples/enterprise/06-analytics-dashboard.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene PlatformAnalytics {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ANALYTICS CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AnalyticsEngine {
+    traits: [analytics];
+
+    analytics: {
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+
+      // Metric collection intervals
+      collectionIntervals: {
+        realtime: 1000,               // 1 second for real-time metrics
+        standard: 60000,              // 1 minute for standard metrics
+        aggregated: 3600000,          // 1 hour for aggregated metrics
+      },
+
+      // Data retention
+      retentionPeriods: {
+        realtime: 3600000,            // 1 hour
+        standard: 2592000000,         // 30 days
+        aggregated: 31536000000,      // 365 days
+      },
+
+      // Anomaly detection
+      anomalyDetection: {
+        enabled: true,
+        algorithm: "isolation_forest",
+        sensitivity: 0.85,
+        minSamples: 100,
+      },
+
+      // Custom dashboards
+      dashboards: [
+        {
+          id: "user_engagement",
+          name: "User Engagement",
+          metrics: ["active_users", "session_duration", "feature_usage"],
+        },
+        {
+          id: "platform_health",
+          name: "Platform Health",
+          metrics: ["error_rate", "latency", "uptime"],
+        },
+        {
+          id: "resource_usage",
+          name: "Resource Usage",
+          metrics: ["storage_used", "compute_hours", "api_calls"],
+        },
+      ],
+
+      // Alert thresholds
+      alerts: {
+        error_rate: { threshold: 5, operator: "greater_than" },
+        latency_p95: { threshold: 1000, operator: "greater_than" },
+        active_users: { threshold: 10, operator: "less_than" },
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Metric Collection
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AnalyticsEngine, "metric_collected") {
+    log(`📊 Metric collected: ${event.metric}`);
+    log(`  Value: ${event.value}`);
+    log(`  Timestamp: ${event.timestamp}`);
+    log(`  Tags: ${JSON.stringify(event.tags)}`);
+  }
+
+  on(AnalyticsEngine, "metric_aggregated") {
+    log(`📈 Metric aggregated: ${event.metric}`);
+    log(`  Count: ${event.count}`);
+    log(`  Sum: ${event.sum}`);
+    log(`  Avg: ${event.avg.toFixed(2)}`);
+    log(`  Min: ${event.min}`);
+    log(`  Max: ${event.max}`);
+    log(`  P50: ${event.p50}`);
+    log(`  P95: ${event.p95}`);
+    log(`  P99: ${event.p99}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Anomaly Detection
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AnalyticsEngine, "anomaly_detected") {
+    log(`🚨 ANOMALY DETECTED: ${event.metric}`);
+    log(`  Value: ${event.value}`);
+    log(`  Expected range: ${event.expectedMin} - ${event.expectedMax}`);
+    log(`  Deviation: ${event.deviation.toFixed(2)} std devs`);
+    log(`  Confidence: ${(event.confidence * 100).toFixed(1)}%`);
+    log(`  Timestamp: ${event.timestamp}`);
+  }
+
+  on(AnalyticsEngine, "anomaly_resolved") {
+    log(`✅ Anomaly resolved: ${event.metric}`);
+    log(`  Duration: ${event.durationMs}ms`);
+    log(`  Current value: ${event.currentValue}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Dashboard Updates
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(AnalyticsEngine, "dashboard_updated") {
+    log(`📊 Dashboard updated: ${event.dashboardId}`);
+    log(`  Metrics refreshed: ${event.metricsCount}`);
+    log(`  Last updated: ${event.timestamp}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Track user engagement
+  on(DemoControls, "click") {
+    if (event.target === "track_engagement_button") {
+      emit(AnalyticsEngine, "track_metric", {
+        metric: "session_duration",
+        value: 1843,                  // 30 minutes 43 seconds
+        tags: { userId: "user_alice", page: "dashboard" },
+      });
+      log("📊 Tracking session duration...");
+    }
+  }
+
+  // Demo 2: Track feature usage
+  on(DemoControls, "click") {
+    if (event.target === "track_feature_button") {
+      emit(AnalyticsEngine, "track_event", {
+        event: "feature_used",
+        properties: {
+          feature: "agent_portal",
+          userId: "user_bob",
+          timestamp: Date.now(),
+        },
+      });
+      log("🎯 Tracking feature usage...");
+    }
+  }
+
+  // Demo 3: Track performance metrics
+  on(DemoControls, "click") {
+    if (event.target === "track_performance_button") {
+      emit(AnalyticsEngine, "track_metric", {
+        metric: "api_latency",
+        value: 234,                   // 234ms
+        tags: { endpoint: "/api/scenes", method: "GET" },
+      });
+      log("⚡ Tracking API latency...");
+    }
+  }
+
+  // Demo 4: Track error rate
+  on(DemoControls, "click") {
+    if (event.target === "track_error_button") {
+      emit(AnalyticsEngine, "track_metric", {
+        metric: "error_rate",
+        value: 8.5,                   // 8.5% error rate (anomaly!)
+        tags: { service: "renderer" },
+      });
+      log("❌ Tracking error rate (will trigger anomaly)...");
+    }
+  }
+
+  // Demo 5: Get dashboard data
+  on(DemoControls, "click") {
+    if (event.target === "dashboard_data_button") {
+      emit(AnalyticsEngine, "get_dashboard", {
+        dashboardId: "user_engagement",
+        timeRange: {
+          start: "2026-03-01T00:00:00Z",
+          end: "2026-03-07T23:59:59Z",
+        },
+      });
+      log("📊 Loading user engagement dashboard...");
+    }
+  }
+
+  on(AnalyticsEngine, "dashboard_data") {
+    log("📊 DASHBOARD DATA: " + event.dashboardName);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    for (const metric of event.metrics) {
+      log(`  ${metric.name}:`);
+      log(`    Current: ${metric.current}`);
+      log(`    Trend: ${metric.trend} (${metric.change >= 0 ? "+" : ""}${metric.change}%)`);
+      log(`    Avg (period): ${metric.avg.toFixed(2)}`);
+    }
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // Demo 6: Generate report
+  on(DemoControls, "click") {
+    if (event.target === "generate_report_button") {
+      emit(AnalyticsEngine, "generate_report", {
+        reportType: "monthly_summary",
+        timeRange: {
+          start: "2026-02-01T00:00:00Z",
+          end: "2026-02-28T23:59:59Z",
+        },
+        format: "json",
+      });
+      log("📄 Generating monthly summary report...");
+    }
+  }
+
+  on(AnalyticsEngine, "report_generated") {
+    log("📄 MONTHLY SUMMARY REPORT");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Total Users: ${event.summary.totalUsers}`);
+    log(`  Active Users: ${event.summary.activeUsers}`);
+    log(`  New Users: ${event.summary.newUsers}`);
+    log(`  Churned Users: ${event.summary.churnedUsers}`);
+    log(`  Avg Session Duration: ${event.summary.avgSessionDuration}s`);
+    log(`  Total API Calls: ${event.summary.totalApiCalls}`);
+    log(`  Avg Latency: ${event.summary.avgLatency}ms`);
+    log(`  Error Rate: ${event.summary.errorRate}%`);
+    log(`  Uptime: ${event.summary.uptime}%`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AnalyticsDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "PLATFORM ANALYTICS\n\n📊 Metric Categories:\n  • User Engagement (sessions, duration, DAU/MAU)\n  • Platform Health (errors, latency, uptime)\n  • Resource Usage (storage, compute, API calls)\n  • Feature Adoption (usage rates, trends)\n\n🔍 Anomaly Detection:\n  • Isolation Forest algorithm\n  • 85% sensitivity\n  • Real-time alerting\n  • Auto-resolution tracking\n\n📈 Dashboard Features:\n  • Custom dashboards\n  • Real-time metrics (1s)\n  • Aggregated metrics (1h)\n  • Percentiles (P50, P95, P99)\n  • Trend analysis\n  • Report generation\n\n⏱️  Data Retention:\n  • Real-time: 1 hour\n  • Standard: 30 days\n  • Aggregated: 365 days",
+      fontSize: 0.11,
+      color: "#3b82f6",
+    };
+  }
+}

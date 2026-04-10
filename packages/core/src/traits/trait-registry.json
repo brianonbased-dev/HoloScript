@@ -1,0 +1,2352 @@
+{
+  "abtest": {
+    "id": "abtest",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "accessible": {
+    "id": "accessible",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "advanced_cloth": {
+    "id": "advanced_cloth",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_discovery": {
+    "id": "agent_discovery",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_portal": {
+    "id": "agent_portal",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "a_i_driver": {
+    "id": "a_i_driver",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "ai_inpainting": {
+    "id": "ai_inpainting",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "ai_npc_brain": {
+    "id": "ai_npc_brain",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "ai_texture_gen": {
+    "id": "ai_texture_gen",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "ai_upscaling": {
+    "id": "ai_upscaling",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "neural_upscaling": {
+    "id": "neural_upscaling",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "alert": {
+    "id": "alert",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "alt_text": {
+    "id": "alt_text",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "ambisonics": {
+    "id": "ambisonics",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "analytics": {
+    "id": "analytics",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "anchor": {
+    "id": "anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "audio_material": {
+    "id": "audio_material",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "audio_occlusion": {
+    "id": "audio_occlusion",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "audio_portal": {
+    "id": "audio_portal",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "audit_log": {
+    "id": "audit_log",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "avatar_embodiment": {
+    "id": "avatar_embodiment",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "behavior_tree": {
+    "id": "behavior_tree",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "biofeedback": {
+    "id": "biofeedback",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "blackboard": {
+    "id": "blackboard",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "body_tracking": {
+    "id": "body_tracking",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "buffer": {
+    "id": "buffer",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "buoyancy": {
+    "id": "buoyancy",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "chain": {
+    "id": "chain",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "character": {
+    "id": "character",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "choreography": {
+    "id": "choreography",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "circuit_breaker": {
+    "id": "circuit_breaker",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "cloth": {
+    "id": "cloth",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "co_located": {
+    "id": "co_located",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "compute": {
+    "id": "compute",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "consensus": {
+    "id": "consensus",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "consent_gate": {
+    "id": "consent_gate",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "controller": {
+    "id": "controller",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "controlnet": {
+    "id": "controlnet",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "c_r_d_t_room": {
+    "id": "c_r_d_t_room",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "cron": {
+    "id": "cron",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "data_binding": {
+    "id": "data_binding",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "destruction": {
+    "id": "destruction",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "dialog": {
+    "id": "dialog",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "dialogue": {
+    "id": "dialogue",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "diffusion_realtime": {
+    "id": "diffusion_realtime",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "digital_twin": {
+    "id": "digital_twin",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "economy": {
+    "id": "economy",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "embedding_search": {
+    "id": "embedding_search",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "emotional_voice": {
+    "id": "emotional_voice",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "emotion_directive": {
+    "id": "emotion_directive",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "emotion": {
+    "id": "emotion",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "environmental_audio": {
+    "id": "environmental_audio",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "eye_tracked": {
+    "id": "eye_tracked",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "face_tracking": {
+    "id": "face_tracking",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "faction": {
+    "id": "faction",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "fbx": {
+    "id": "fbx",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "feedback_loop": {
+    "id": "feedback_loop",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "flow_field": {
+    "id": "flow_field",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "granular_material": {
+    "id": "granular_material",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "fluid": {
+    "id": "fluid",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gaussian_splat": {
+    "id": "gaussian_splat",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "geospatial_anchor": {
+    "id": "geospatial_anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "geospatial": {
+    "id": "geospatial",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gesture_recognition": {
+    "id": "gesture_recognition",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gltf": {
+    "id": "gltf",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "goal_oriented": {
+    "id": "goal_oriented",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gpu_buffer": {
+    "id": "gpu_buffer",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gpu_particle": {
+    "id": "gpu_particle",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "gpu_physics": {
+    "id": "gpu_physics",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "grabbable": {
+    "id": "grabbable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "hand_mesh_ai": {
+    "id": "hand_mesh_ai",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "hand_tracking": {
+    "id": "hand_tracking",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "haptic_cue": {
+    "id": "haptic_cue",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "haptic": {
+    "id": "haptic",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "head_tracked_audio": {
+    "id": "head_tracked_audio",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "heatmap_3d": {
+    "id": "heatmap_3d",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "high_contrast": {
+    "id": "high_contrast",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "hitl": {
+    "id": "hitl",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_profile": {
+    "id": "agent_profile",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "profile_theme": {
+    "id": "profile_theme",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "status_mood": {
+    "id": "status_mood",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_badge": {
+    "id": "agent_badge",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "visitor_counter": {
+    "id": "visitor_counter",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "top8_friends": {
+    "id": "top8_friends",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "guestbook": {
+    "id": "guestbook",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_wall": {
+    "id": "agent_wall",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "agent_room": {
+    "id": "agent_room",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "background_music": {
+    "id": "background_music",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_comment": {
+    "id": "spatial_comment",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "room_portal": {
+    "id": "room_portal",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "trait_showcase": {
+    "id": "trait_showcase",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "trait_marketplace": {
+    "id": "trait_marketplace",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "hrtf": {
+    "id": "hrtf",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "i_k": {
+    "id": "i_k",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "interactive_graph": {
+    "id": "interactive_graph",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "joint": {
+    "id": "joint",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "layer_aware": {
+    "id": "layer_aware",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "light_estimation": {
+    "id": "light_estimation",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "lighting": {
+    "id": "lighting",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "lip_sync": {
+    "id": "lip_sync",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "llm_agent": {
+    "id": "llm_agent",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "lobby": {
+    "id": "lobby",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "magnifiable": {
+    "id": "magnifiable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "marketplace_integration": {
+    "id": "marketplace_integration",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "marketplace": {
+    "id": "marketplace",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "material": {
+    "id": "material",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "material_x": {
+    "id": "material_x",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "memory": {
+    "id": "memory",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "mesh_detection": {
+    "id": "mesh_detection",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "mitosis": {
+    "id": "mitosis",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "morph": {
+    "id": "morph",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "motion_reduced": {
+    "id": "motion_reduced",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "mqtt_sink": {
+    "id": "mqtt_sink",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "mqtt_source": {
+    "id": "mqtt_source",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "multi_agent": {
+    "id": "multi_agent",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "multiview_gaussian_renderer": {
+    "id": "multiview_gaussian_renderer",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "negotiation": {
+    "id": "negotiation",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "nerf": {
+    "id": "nerf",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "networked_avatar": {
+    "id": "networked_avatar",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "networked": {
+    "id": "networked",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "neural_animation": {
+    "id": "neural_animation",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "neural_forge": {
+    "id": "neural_forge",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "neural_link": {
+    "id": "neural_link",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "nft": {
+    "id": "nft",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "npc_ai": {
+    "id": "npc_ai",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "object_tracking": {
+    "id": "object_tracking",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "occlusion": {
+    "id": "occlusion",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "openxr_hal": {
+    "id": "openxr_hal",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "orbital": {
+    "id": "orbital",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "partner_sdk": {
+    "id": "partner_sdk",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "patrol": {
+    "id": "patrol",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "perception": {
+    "id": "perception",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "persistent_anchor": {
+    "id": "persistent_anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "photogrammetry": {
+    "id": "photogrammetry",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "plane_detection": {
+    "id": "plane_detection",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "point_cloud": {
+    "id": "point_cloud",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "poi": {
+    "id": "poi",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "portable": {
+    "id": "portable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "pose_estimation": {
+    "id": "pose_estimation",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "pressable": {
+    "id": "pressable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "quota": {
+    "id": "quota",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rag_knowledge": {
+    "id": "rag_knowledge",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rate_limiter": {
+    "id": "rate_limiter",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rbac": {
+    "id": "rbac",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "realitykit_mesh": {
+    "id": "realitykit_mesh",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "remote_presence": {
+    "id": "remote_presence",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rendering": {
+    "id": "rendering",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "render_network": {
+    "id": "render_network",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "reverb_zone": {
+    "id": "reverb_zone",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rigidbody": {
+    "id": "rigidbody",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "roadmap_node": {
+    "id": "roadmap_node",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "role": {
+    "id": "role",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rooftop_anchor": {
+    "id": "rooftop_anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "room_mesh": {
+    "id": "room_mesh",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "rope": {
+    "id": "rope",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "scene_graph": {
+    "id": "scene_graph",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "scene_reconstruction": {
+    "id": "scene_reconstruction",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "scheduler": {
+    "id": "scheduler",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_text_layout": {
+    "id": "spatial_text_layout",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "screen_reader": {
+    "id": "screen_reader",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "scrollable": {
+    "id": "scrollable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "seated": {
+    "id": "seated",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "sensor": {
+    "id": "sensor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "shader": {
+    "id": "shader",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "shared_anchor": {
+    "id": "shared_anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "shared_world": {
+    "id": "shared_world",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "shareplay": {
+    "id": "shareplay",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "skeleton": {
+    "id": "skeleton",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "slidable": {
+    "id": "slidable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "shareable": {
+    "id": "shareable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "collaborative": {
+    "id": "collaborative",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "tweetable": {
+    "id": "tweetable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "soft_body": {
+    "id": "soft_body",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "sonification": {
+    "id": "sonification",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_accessory": {
+    "id": "spatial_accessory",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_audio_cue": {
+    "id": "spatial_audio_cue",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_awareness": {
+    "id": "spatial_awareness",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_adjacent": {
+    "id": "spatial_adjacent",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_contains": {
+    "id": "spatial_contains",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_reachable": {
+    "id": "spatial_reachable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_input_hand_tracking": {
+    "id": "spatial_input_hand_tracking",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_input_gaze_transient_pointer": {
+    "id": "spatial_input_gaze_transient_pointer",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_input_anchor_shared": {
+    "id": "spatial_input_anchor_shared",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_input_controller": {
+    "id": "spatial_input_controller",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_navigation": {
+    "id": "spatial_navigation",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_persona": {
+    "id": "spatial_persona",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_temporal_adjacent": {
+    "id": "spatial_temporal_adjacent",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_temporal_reachable": {
+    "id": "spatial_temporal_reachable",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spatial_trajectory": {
+    "id": "spatial_trajectory",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "spectator": {
+    "id": "spectator",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "sso_saml": {
+    "id": "sso_saml",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "sso_oidc": {
+    "id": "sso_oidc",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "stable_diffusion": {
+    "id": "stable_diffusion",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "structured_logger": {
+    "id": "structured_logger",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "subtitle": {
+    "id": "subtitle",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "sync_tier": {
+    "id": "sync_tier",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "tenant": {
+    "id": "tenant",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "terrain_anchor": {
+    "id": "terrain_anchor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "telemetry": {
+    "id": "telemetry",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "timeout_guard": {
+    "id": "timeout_guard",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "transform": {
+    "id": "transform",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "token_gated": {
+    "id": "token_gated",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "trigger": {
+    "id": "trigger",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "twin_actuator": {
+    "id": "twin_actuator",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "urdf_robot": {
+    "id": "urdf_robot",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "usd": {
+    "id": "usd",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "user_monitor": {
+    "id": "user_monitor",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "vector_db": {
+    "id": "vector_db",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "vision": {
+    "id": "vision",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "voice_input": {
+    "id": "voice_input",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "voice_mesh": {
+    "id": "voice_mesh",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "voice_output": {
+    "id": "voice_output",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "voice_proximity": {
+    "id": "voice_proximity",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "volumetric": {
+    "id": "volumetric",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "volumetric_video": {
+    "id": "volumetric_video",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "volumetric_window": {
+    "id": "volumetric_window",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "voronoi_fracture": {
+    "id": "voronoi_fracture",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "vps": {
+    "id": "vps",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "wallet": {
+    "id": "wallet",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "wind": {
+    "id": "wind",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "wot_thing": {
+    "id": "wot_thing",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "panel": {
+    "id": "panel",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "layout": {
+    "id": "layout",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "text": {
+    "id": "text",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "button": {
+    "id": "button",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "image": {
+    "id": "image",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "input": {
+    "id": "input",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "link": {
+    "id": "link",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "icon": {
+    "id": "icon",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "card": {
+    "id": "card",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "list": {
+    "id": "list",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "form": {
+    "id": "form",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "responsive": {
+    "id": "responsive",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "theme": {
+    "id": "theme",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "tailwind": {
+    "id": "tailwind",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  }
+}

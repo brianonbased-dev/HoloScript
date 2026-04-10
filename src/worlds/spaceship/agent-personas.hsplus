@@ -1,0 +1,619 @@
+/**
+ * Agent Personas - 3D Visualization Layer
+ *
+ * Visual representations of AI agents in the Master Portal.
+ * Each agent type has a distinct visual identity and interaction pattern.
+ *
+ * Pattern: P.VIZ.PERSONA.01
+ * Wisdom: W.VIZ.01 - "Form follows function, appearance reveals intent"
+ */
+
+@meta {
+  id: "AGENT_PERSONAS_VIZ"
+  name: "Agent Persona Visualizations"
+  version: "1.0.0"
+  display: "holographic"
+}
+
+// =============================================================================
+// SHARED VISUAL COMPONENTS
+// =============================================================================
+
+@component AgentCore {
+  // Base sphere representing agent consciousness
+  geometry sphere {
+    radius: 0.15
+    segments: 32
+  }
+
+  // Dynamic energy field
+  @effect energy_field {
+    type: "particle_sphere"
+    count: 100
+    size: 0.005
+    speed: 0.5
+    color_base: this.agent_color
+    opacity: 0.6
+  }
+
+  // Status ring
+  @child status_ring {
+    geometry torus {
+      radius: 0.2
+      tube: 0.02
+      segments: 64
+    }
+    material {
+      color: this.status_color
+      emissive: this.status_color
+      emissive_intensity: 0.5
+    }
+    animation rotate {
+      axis: [0, 1, 0]
+      speed: this.activity_level * 0.5
+    }
+  }
+
+  // Holographic nameplate
+  @child nameplate {
+    position: [0, 0.35, 0]
+    @text {
+      content: this.agent_name
+      size: 0.04
+      color: #ffffff
+      align: "center"
+      billboard: true
+    }
+  }
+}
+
+@component PhaseIndicator {
+  // Visual indicator of current protocol phase
+  @effect phase_glow {
+    type: "volumetric_light"
+    color: this.phase_color
+    intensity: this.phase_progress
+    falloff: 0.5
+  }
+
+  // Phase progress arc
+  geometry arc {
+    radius: 0.25
+    start_angle: 0
+    end_angle: this.phase_progress * 360
+    segments: 32
+  }
+
+  material {
+    color: this.phase_color
+    opacity: 0.8
+    emissive: this.phase_color
+    emissive_intensity: 0.3
+  }
+}
+
+// =============================================================================
+// AGENT TYPE PERSONAS
+// =============================================================================
+
+@entity BrittneyPersona {
+  // Master Customer Service Agent - warm, approachable, professional
+  extends: AgentCore
+
+  @properties {
+    agent_name: "Brittney"
+    agent_type: "customer_service"
+    agent_color: #FF6B9D   // Warm pink
+    personality: "friendly"
+    voice_style: "conversational"
+  }
+
+  // Visual identity
+  @child avatar {
+    // Stylized human-like hologram
+    geometry capsule {
+      height: 0.4
+      radius: 0.1
+    }
+    material {
+      type: "holographic"
+      color: #FF6B9D
+      scanlines: true
+      scanline_speed: 0.3
+    }
+
+    // Friendly expression
+    @child face {
+      @expression {
+        default: "warm_smile"
+        thinking: "curious_tilt"
+        speaking: "animated"
+      }
+    }
+
+    // Gesture system
+    @child hands {
+      @gestures {
+        greeting: "wave"
+        explaining: "open_palms"
+        thinking: "chin_touch"
+        confirming: "thumbs_up"
+      }
+    }
+  }
+
+  // Emotion particles
+  @effect emotion_particles {
+    type: "emoji_burst"
+    triggers: {
+      happy_response: ["heart", "sparkle"]
+      problem_solved: ["check", "star"]
+      greeting: ["wave", "smile"]
+    }
+  }
+
+  // Voice indicator
+  @child voice_visualizer {
+    position: [0, 0.45, 0]
+    @effect {
+      type: "audio_waveform"
+      color: #FF6B9D
+      bars: 16
+      height_scale: 0.05
+    }
+  }
+}
+
+@entity InfinityAssistantPersona {
+  // General Purpose AI - ethereal, wise, expansive
+  extends: AgentCore
+
+  @properties {
+    agent_name: "Infinity"
+    agent_type: "general_assistant"
+    agent_color: #00D4FF   // Ethereal cyan
+    personality: "wise"
+    voice_style: "calm"
+  }
+
+  // Visual identity - abstract, cosmic
+  @child avatar {
+    // Floating crystalline structure
+    geometry icosahedron {
+      radius: 0.15
+      detail: 2
+    }
+    material {
+      type: "crystal"
+      color: #00D4FF
+      iridescence: 0.8
+      refraction: 1.5
+    }
+
+    animation float {
+      type: "sine"
+      amplitude: 0.02
+      frequency: 0.5
+    }
+
+    animation rotate_slow {
+      axis: [0.3, 1, 0.2]
+      speed: 0.1
+    }
+  }
+
+  // Orbital knowledge rings
+  @child knowledge_rings {
+    count: 3
+
+    @for i in 0..3 {
+      @child ring_{i} {
+        geometry torus {
+          radius: 0.25 + (i * 0.08)
+          tube: 0.005
+        }
+        material {
+          color: lerp(#00D4FF, #8B5CF6, i / 3)
+          opacity: 0.5
+        }
+        rotation: [20 * i, 0, 15 * i]
+        animation orbit {
+          axis: [sin(i), 1, cos(i)]
+          speed: 0.2 / (i + 1)
+        }
+      }
+    }
+  }
+
+  // Thinking constellation
+  @effect thinking_stars {
+    type: "constellation"
+    trigger: "thinking"
+    points: 12
+    color: #00D4FF
+    line_opacity: 0.3
+  }
+}
+
+@entity FuturistPersona {
+  // Strategic Vision Agent - bold, forward-looking, analytical
+  extends: AgentCore
+
+  @properties {
+    agent_name: "Futurist"
+    agent_type: "strategic"
+    agent_color: #8B5CF6   // Vision purple
+    personality: "visionary"
+    voice_style: "authoritative"
+  }
+
+  // Visual identity - geometric, structured
+  @child avatar {
+    // Eye of providence design
+    geometry pyramid {
+      radius: 0.12
+      height: 0.2
+      segments: 4
+    }
+    material {
+      type: "energy"
+      color: #8B5CF6
+      pulse: true
+      pulse_speed: 1.5
+    }
+
+    // All-seeing eye
+    @child eye {
+      position: [0, 0.05, 0.08]
+      geometry sphere {
+        radius: 0.04
+      }
+      material {
+        color: #FFD700
+        emissive: #FFD700
+        emissive_intensity: 1.0
+      }
+      @effect {
+        type: "lens_flare"
+        color: #FFD700
+        intensity: 0.5
+      }
+    }
+  }
+
+  // Timeline visualization
+  @child timeline {
+    position: [0, -0.2, 0]
+
+    @effect {
+      type: "timeline_ribbon"
+      length: 1.0
+      color_past: #4B5563
+      color_present: #8B5CF6
+      color_future: #FFD700
+      markers: this.strategic_milestones
+    }
+  }
+
+  // Pattern recognition overlay
+  @effect pattern_matrix {
+    trigger: "analyzing"
+    type: "matrix_rain"
+    color: #8B5CF6
+    density: 0.3
+    speed: 2.0
+  }
+}
+
+@entity BuilderManagerPersona {
+  // Agent Builder Manager - creative, constructive, organized
+  extends: AgentCore
+
+  @properties {
+    agent_name: "Builder"
+    agent_type: "builder_manager"
+    agent_color: #F97316   // Construction orange
+    personality: "creative"
+    voice_style: "enthusiastic"
+  }
+
+  // Visual identity - modular, constructive
+  @child avatar {
+    // Stack of building blocks
+    @for i in 0..4 {
+      @child block_{i} {
+        position: [0, -0.1 + (i * 0.08), 0]
+        geometry box {
+          size: [0.12 - (i * 0.02), 0.06, 0.12 - (i * 0.02)]
+        }
+        material {
+          color: lerp(#F97316, #FCD34D, i / 4)
+          metalness: 0.3
+          roughness: 0.7
+        }
+        animation assemble {
+          type: "stack_in"
+          delay: i * 0.1
+          duration: 0.3
+        }
+      }
+    }
+
+    // Construction crane arm
+    @child crane {
+      position: [0.15, 0.2, 0]
+      geometry cylinder {
+        radius: 0.01
+        height: 0.15
+      }
+      rotation: [0, 0, 45]
+      material { color: #F97316 }
+    }
+  }
+
+  // Blueprint overlay
+  @effect blueprint {
+    trigger: "designing"
+    type: "grid_overlay"
+    color: #60A5FA
+    grid_size: 0.05
+    opacity: 0.3
+  }
+
+  // Progress indicators
+  @child progress_bars {
+    position: [0, -0.3, 0]
+
+    @effect {
+      type: "progress_stack"
+      bars: this.active_builds
+      color: #F97316
+      width: 0.4
+    }
+  }
+}
+
+@entity CodeOptimizerPersona {
+  // Code Analysis Agent - precise, efficient, technical
+  extends: AgentCore
+
+  @properties {
+    agent_name: "Optimizer"
+    agent_type: "code_optimizer"
+    agent_color: #10B981   // Tech green
+    personality: "analytical"
+    voice_style: "precise"
+  }
+
+  // Visual identity - circuit-like
+  @child avatar {
+    // CPU chip design
+    geometry box {
+      size: [0.15, 0.03, 0.15]
+    }
+    material {
+      type: "circuit_board"
+      color: #10B981
+      trace_color: #34D399
+      trace_glow: true
+    }
+
+    // Data pins
+    @for i in 0..8 {
+      @child pin_{i} {
+        position: [
+          cos(i * 45 * DEG2RAD) * 0.1,
+          0,
+          sin(i * 45 * DEG2RAD) * 0.1
+        ]
+        geometry cylinder {
+          radius: 0.008
+          height: 0.04
+        }
+        material { color: #34D399, metalness: 0.9 }
+      }
+    }
+  }
+
+  // Code flow visualization
+  @effect code_stream {
+    type: "data_flow"
+    color: #10B981
+    particle_shape: "bracket"
+    speed: 2.0
+    direction: "upward"
+  }
+
+  // Optimization metrics
+  @child metrics_display {
+    position: [0.25, 0, 0]
+
+    @effect {
+      type: "holographic_display"
+      width: 0.3
+      height: 0.2
+      content: {
+        title: "Optimization"
+        values: [
+          { label: "Lines", value: this.lines_optimized }
+          { label: "Savings", value: this.token_savings + "%" }
+          { label: "Quality", value: this.code_quality }
+        ]
+      }
+    }
+  }
+}
+
+// =============================================================================
+// AGENT MESH VISUALIZATION
+// =============================================================================
+
+@scene AgentMeshView {
+  // Multi-agent coordination visualization
+
+  @camera {
+    type: "orbit"
+    distance: 3
+    center: [0, 0, 0]
+    auto_rotate: true
+    auto_rotate_speed: 0.1
+  }
+
+  @lighting {
+    ambient: { color: #1a1a2e, intensity: 0.3 }
+    directional: { color: #ffffff, intensity: 0.8, position: [5, 10, 5] }
+  }
+
+  // Central orchestrator node
+  @entity orchestrator {
+    position: [0, 0, 0]
+
+    geometry sphere {
+      radius: 0.1
+    }
+    material {
+      type: "energy"
+      color: #FFD700
+      pulse: true
+    }
+
+    @effect {
+      type: "connection_hub"
+      color: #FFD700
+      connections: this.connected_agents
+    }
+  }
+
+  // Agent nodes in orbital arrangement
+  @for agent in active_agents {
+    @instance agent.persona_type {
+      position: [
+        cos(agent.orbital_angle) * agent.orbital_radius,
+        sin(agent.elevation) * 0.5,
+        sin(agent.orbital_angle) * agent.orbital_radius
+      ]
+
+      // Connection line to orchestrator
+      @effect connection {
+        type: "beam"
+        target: [0, 0, 0]
+        color: agent.agent_color
+        opacity: agent.connection_strength
+        pulse: agent.is_active
+      }
+
+      // Message indicator
+      @if agent.has_pending_messages {
+        @effect message_indicator {
+          type: "notification_bubble"
+          count: agent.message_count
+          color: #EF4444
+        }
+      }
+    }
+  }
+
+  // Knowledge flow particles
+  @effect knowledge_flow {
+    type: "particle_paths"
+    paths: this.knowledge_transfers
+    color: #8B5CF6
+    particle_size: 0.02
+    speed: 1.0
+  }
+
+  // Topic visualization
+  @for topic in active_topics {
+    @entity topic_node {
+      position: topic.position
+
+      geometry octahedron {
+        radius: 0.05
+      }
+      material {
+        color: topic.color
+        opacity: 0.7
+      }
+
+      @child label {
+        @text {
+          content: topic.name
+          size: 0.02
+          billboard: true
+        }
+      }
+    }
+  }
+}
+
+// =============================================================================
+// INTERACTION PATTERNS
+// =============================================================================
+
+@interactions {
+  @on agent.selected {
+    // Zoom to agent
+    camera.focus(agent.position, duration: 0.5)
+
+    // Show detailed info panel
+    @spawn info_panel {
+      template: "agent_detail_panel"
+      data: agent
+      position: agent.position + [0.4, 0, 0]
+    }
+
+    // Highlight connections
+    agent.connections.each(c => c.highlight(true))
+  }
+
+  @on agent.hovered {
+    // Quick preview tooltip
+    @spawn tooltip {
+      content: """
+        ${agent.agent_name}
+        Type: ${agent.agent_type}
+        Status: ${agent.status}
+        Phase: ${agent.current_phase}
+      """
+      position: agent.position + [0, 0.4, 0]
+    }
+  }
+
+  @on message.sent(from, to, content) {
+    // Visualize message as particle beam
+    @effect message_beam {
+      type: "pulse_beam"
+      start: from.position
+      end: to.position
+      color: from.agent_color
+      duration: 0.5
+    }
+  }
+
+  @on phase.changed(agent, new_phase) {
+    // Phase transition effect
+    @effect phase_transition {
+      type: "ring_burst"
+      position: agent.position
+      color: phase_colors[new_phase]
+      radius: 0.3
+      duration: 0.3
+    }
+  }
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+@export {
+  AgentCore
+  PhaseIndicator
+  BrittneyPersona
+  InfinityAssistantPersona
+  FuturistPersona
+  BuilderManagerPersona
+  CodeOptimizerPersona
+  AgentMeshView
+  interactions
+}

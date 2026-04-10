@@ -1,0 +1,108 @@
+/**
+ * Healthspan Personal Digital Twin — .hsplus Behavior
+ *
+ * WHY .hsplus: Biomarker processing is a reactive pipeline with
+ * module-encapsulated analysis, @state_machine for coaching sessions,
+ * and @on_event for device migration triggers.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "HealthspanTwin" {
+  environment { skybox: "serene_dawn"; ambient_light: 0.6; physics: false; bloom: true }
+
+  module BiomarkerAnalyzer {
+    state { readings: {}; trends: {}; alerts: []; total_processed: 0 }
+
+    action ingest(name, value, timestamp) {
+      if (!this.state.readings[name]) this.state.readings[name] = [];
+      this.state.readings[name].push({ value: value, at: timestamp || current_time() });
+      this.state.total_processed += 1;
+
+      // Trend detection (last 7 readings)
+      const history = this.state.readings[name].slice(-7);
+      if (history.length >= 3) {
+        const avg = history.reduce((s, r) => s + r.value, 0) / history.length;
+        const trend = history[history.length - 1].value > avg ? "improving" : "declining";
+        this.state.trends[name] = trend;
+        emit("feedback:update_metric", { name: "biometric_score", value: value });
+        if (trend === "declining") {
+          this.state.alerts.push({ marker: name, trend: trend, at: current_time() });
+          emit("bio:alert", { marker: name, trend: trend, latest: value });
+        }
+      }
+      emit("bio:ingested", { marker: name, value: value });
+    }
+
+    exports { ingest, state }
+  }
+
+  module InterventionSimulator {
+    state { simulations: []; total_run: 0 }
+
+    action simulate(intervention_name, predicted_impact, agent_id) {
+      this.state.total_run += 1;
+      const result = {
+        id: generate_id(), name: intervention_name,
+        impact: predicted_impact, confidence: 0.6 + Math.random() * 0.3,
+        simulated_at: current_time()
+      };
+      this.state.simulations.push(result);
+      emit("economy:spend", { agentId: agent_id, amount: 5, reason: "Simulate: " + intervention_name, target: "__compute__" });
+      emit("intervention:result", result);
+      return result;
+    }
+
+    exports { simulate, state }
+  }
+
+  template "LongevityCompanion" {
+    @llm_agent
+    @perception(range: 10)
+    @tenant { tenantId: "hipaa_healthspan_01"; role: "health_agent"; rbac: true }
+
+    @state_machine {
+      initial: "monitoring"
+      states: {
+        monitoring: {
+          on_alert: -> "coaching" action(begin_coaching)
+          on_session_request: -> "coaching"
+        }
+        coaching: {
+          on_coaching_complete: -> "monitoring" action(end_coaching)
+          on_intervention_needed: -> "simulating"
+        }
+        simulating: {
+          on_sim_complete: -> "coaching" action(present_results)
+        }
+      }
+      actions: {
+        begin_coaching: () => { state.coaching_sessions += 1; }
+        end_coaching: () => {
+          emit("economy:earn", { agentId: state.user_id, amount: 10, reason: "Coaching session completed" });
+        }
+        present_results: () => { state.interventions_presented += 1; }
+      }
+    }
+
+    state { companion_id: null; user_id: null; coaching_sessions: 0; interventions_presented: 0 }
+
+    @on_event("bio:alert"): (data) => {
+      if (this.current_state === "monitoring") emit("on_alert");
+    }
+
+    @on_event("intervention:result"): (data) => {
+      if (this.current_state === "simulating") emit("on_sim_complete");
+    }
+  }
+
+  object "Floor" { geometry: "plane"; position: [0, -0.5, 0]; scale: [20, 1, 20]; color: "#f0f5f0" }
+  object "Companion_A" using "LongevityCompanion" { position: [0, 1, 0]; geometry: "sphere"; color: "#00ddaa"; state { companion_id: "comp_001" } }
+
+  panel "HealthDashboard" {
+    position: "top-right"
+    text "Readings" { bind: "Biomarkers: " + BiomarkerAnalyzer.state.total_processed; style: "info" }
+    text "Sims" { bind: "Interventions: " + InterventionSimulator.state.total_run; style: "info" }
+    text "HIPAA" { content: "HIPAA: TenantTrait RBAC ✅"; color: "#2ecc71" }
+  }
+}

@@ -1,0 +1,1112 @@
+/**
+ * HoloScript Language Server
+ * 
+ * Provides IDE features for .holo and .hsplus files:
+ * - Real-time diagnostics (errors/warnings)
+ * - Auto-completion with context awareness
+ * - Hover documentation
+ * - Go to definition
+ * - Find references
+ * - Document symbols (outline)
+ * - Semantic tokens for syntax highlighting
+ * - Code actions and quick fixes
+ * - Signature help
+ * 
+ * @package @hololand/holoscript-lsp
+ * @version 2.0.0
+ */
+
+import {
+  createConnection,
+  TextDocuments,
+  Diagnostic,
+  DiagnosticSeverity,
+  ProposedFeatures,
+  InitializeParams,
+  InitializeResult,
+  TextDocumentSyncKind,
+  CompletionItem,
+  CompletionItemKind,
+  Hover,
+  MarkupKind,
+  Position,
+  Location,
+  DocumentSymbol,
+  SymbolKind,
+  Range,
+  TextDocumentPositionParams,
+  DefinitionParams,
+  ReferenceParams,
+  DocumentSymbolParams,
+  SemanticTokensParams,
+  SemanticTokens,
+  SemanticTokensBuilder,
+  SemanticTokensLegend,
+  CodeAction,
+  CodeActionKind,
+  CodeActionParams,
+  SignatureHelp,
+  SignatureHelpParams,
+  InsertTextFormat
+} from "vscode-languageserver/node.js"
+
+import { TextDocument } from "vscode-languageserver-textdocument"
+
+// =============================================================================
+// CONNECTION SETUP
+// =============================================================================
+
+const connection = createConnection(ProposedFeatures.all)
+const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
+
+// =============================================================================
+// DOCUMENT CACHE
+// =============================================================================
+
+struct CachedDocument {
+  ast: ASTNode[]
+  version: number
+  symbols: Map<string, SymbolInfo>
+  templates: Map<string, TemplateInfo>
+  modules: Map<string, ModuleInfo>
+  errors: ParseError[]
+}
+
+struct SymbolInfo {
+  name: string
+  kind: string
+  line: number
+  column: number
+  node: ASTNode
+}
+
+struct TemplateInfo {
+  name: string
+  properties: string[]
+  actions: string[]
+  line: number
+}
+
+struct ModuleInfo {
+  name: string
+  exports: string[]
+  state: string[]
+  methods: string[]
+  line: number
+}
+
+struct ASTNode {
+  type: string
+  name?: string
+  line?: number
+  column?: number
+  properties?: Record<string, any>
+  children?: ASTNode[]
+}
+
+struct ParseError {
+  message: string
+  line: number
+  column: number
+  severity: string
+}
+
+const documentCache = new Map<string, CachedDocument>()
+
+// =============================================================================
+// SEMANTIC TOKENS
+// =============================================================================
+
+const tokenTypes = [
+  "namespace",     // 0 - modules
+  "class",         // 1 - templates, structs
+  "enum",          // 2 - enums
+  "interface",     // 3 - traits
+  "struct",        // 4 - structs
+  "typeParameter", // 5
+  "type",          // 6
+  "parameter",     // 7
+  "variable",      // 8
+  "property",      // 9
+  "enumMember",    // 10
+  "event",         // 11
+  "function",      // 12 - actions, methods
+  "method",        // 13
+  "macro",         // 14 - decorators
+  "keyword",       // 15
+  "modifier",      // 16
+  "comment",       // 17
+  "string",        // 18
+  "number",        // 19
+  "regexp",        // 20
+  "operator"       // 21
+]
+
+const tokenModifiers = [
+  "declaration",
+  "definition",
+  "readonly",
+  "static",
+  "deprecated",
+  "async",
+  "modification",
+  "documentation"
+]
+
+const legend: SemanticTokensLegend = { tokenTypes, tokenModifiers }
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+connection.onInitialize((params: InitializeParams): InitializeResult => {
+  console.error("[HoloScript LSP] Initializing...")
+  
+  return {
+    capabilities: {
+      textDocumentSync: TextDocumentSyncKind.Incremental,
+      completionProvider: {
+        resolveProvider: true,
+        triggerCharacters: [".", ":", "{", "[", '"', "'", " ", "@", "/"]
+      }
+      hoverProvider: true,
+      definitionProvider: true,
+      referencesProvider: true,
+      documentSymbolProvider: true,
+      semanticTokensProvider: {
+        legend,
+        full: true,
+        range: true
+      }
+      codeActionProvider: {
+        codeActionKinds: [
+          CodeActionKind.QuickFix,
+          CodeActionKind.Refactor,
+          CodeActionKind.Source
+        ]
+      }
+      signatureHelpProvider: {
+        triggerCharacters: ["(", ","]
+      }
+      documentFormattingProvider: true,
+      documentRangeFormattingProvider: true
+    }
+  }
+})
+
+connection.onInitialized(() => {
+  console.error("[HoloScript LSP] Server initialized")
+})
+
+// =============================================================================
+// DOCUMENT VALIDATION
+// =============================================================================
+
+documents.onDidChangeContent(change => {
+  validateDocument(change.document)
+})
+
+module DocumentValidator {
+  @method async validate(document: TextDocument): Promise<void> {
+    const text = document.getText()
+    const uri = document.uri
+    const diagnostics: Diagnostic[] = []
+    
+    const isHsplus = uri.endsWith(".hsplus")
+    
+    // Parse document
+    const parseResult = this.parse(text, isHsplus)
+    
+    // Add parse errors
+    for (const error of parseResult.errors) {
+      diagnostics.push({
+        severity: error.severity === "warning" 
+          ? DiagnosticSeverity.Warning 
+          : DiagnosticSeverity.Error,
+        range: {
+          start: { line: error.line - 1, character: error.column - 1 }
+          end: { line: error.line - 1, character: error.column + 10 }
+        }
+        message: error.message,
+        source: "holoscript"
+      })
+    }
+    
+    // Run additional validation
+    diagnostics.push(...this.validateSemantics(text, parseResult.ast, isHsplus))
+    
+    // Cache parsed result
+    documentCache.set(uri, {
+      ast: parseResult.ast,
+      version: document.version,
+      symbols: parseResult.symbols,
+      templates: parseResult.templates,
+      modules: parseResult.modules,
+      errors: parseResult.errors
+    })
+    
+    // Send diagnostics
+    connection.sendDiagnostics({ uri, diagnostics })
+  }
+  
+  @method parse(text: string, isHsplus: boolean): {
+    ast: ASTNode[]
+    symbols: Map<string, SymbolInfo>
+    templates: Map<string, TemplateInfo>
+    modules: Map<string, ModuleInfo>
+    errors: ParseError[]
+  } {
+    const ast: ASTNode[] = []
+    const symbols = new Map<string, SymbolInfo>()
+    const templates = new Map<string, TemplateInfo>()
+    const modules = new Map<string, ModuleInfo>()
+    const errors: ParseError[] = []
+    
+    const lines = text.split("\n")
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const lineNum = i + 1
+      
+      // Check for brace balance (simple check)
+      // In production, use a proper parser
+      
+      // Parse templates
+      const templateMatch = line.match(/template\s+"([^"]+)"/)
+      if (templateMatch) {
+        const name = templateMatch[1]
+        templates.set(name, {
+          name,
+          properties: [],
+          actions: [],
+          line: lineNum
+        })
+        symbols.set(name, {
+          name,
+          kind: "template",
+          line: lineNum,
+          column: templateMatch.index! + 1,
+          node: { type: "template", name, line: lineNum }
+        })
+      }
+      
+      // Parse modules (HSPlus)
+      if (isHsplus) {
+        const moduleMatch = line.match(/module\s+(\w+)/)
+        if (moduleMatch) {
+          const name = moduleMatch[1]
+          modules.set(name, {
+            name,
+            exports: [],
+            state: [],
+            methods: [],
+            line: lineNum
+          })
+          symbols.set(name, {
+            name,
+            kind: "module",
+            line: lineNum,
+            column: moduleMatch.index! + 1,
+            node: { type: "module", name, line: lineNum }
+          })
+        }
+        
+        // Parse structs
+        const structMatch = line.match(/struct\s+(\w+)/)
+        if (structMatch) {
+          const name = structMatch[1]
+          symbols.set(name, {
+            name,
+            kind: "struct",
+            line: lineNum,
+            column: structMatch.index! + 1,
+            node: { type: "struct", name, line: lineNum }
+          })
+        }
+        
+        // Parse enums
+        const enumMatch = line.match(/enum\s+(\w+)/)
+        if (enumMatch) {
+          const name = enumMatch[1]
+          symbols.set(name, {
+            name,
+            kind: "enum",
+            line: lineNum,
+            column: enumMatch.index! + 1,
+            node: { type: "enum", name, line: lineNum }
+          })
+        }
+      }
+      
+      // Parse compositions
+      const compositionMatch = line.match(/composition\s+"([^"]+)"/)
+      if (compositionMatch) {
+        const name = compositionMatch[1]
+        symbols.set(name, {
+          name,
+          kind: "composition",
+          line: lineNum,
+          column: compositionMatch.index! + 1,
+          node: { type: "composition", name, line: lineNum }
+        })
+      }
+      
+      // Parse objects
+      const objectMatch = line.match(/object\s+"([^"]+)"/)
+      if (objectMatch) {
+        const name = objectMatch[1]
+        symbols.set(name, {
+          name,
+          kind: "object",
+          line: lineNum,
+          column: objectMatch.index! + 1,
+          node: { type: "object", name, line: lineNum }
+        })
+      }
+      
+      // Parse orbs
+      const orbMatch = line.match(/orb\s+(\w+)/)
+      if (orbMatch) {
+        const name = orbMatch[1]
+        symbols.set(name, {
+          name,
+          kind: "orb",
+          line: lineNum,
+          column: orbMatch.index! + 1,
+          node: { type: "orb", name, line: lineNum }
+        })
+      }
+    }
+    
+    // Check brace balance
+    const opens = (text.match(/{/g) || []).length
+    const closes = (text.match(/}/g) || []).length
+    if (opens !== closes) {
+      errors.push({
+        message: `Brace mismatch: ${opens} opening, ${closes} closing braces`,
+        line: 1,
+        column: 1,
+        severity: "error"
+      })
+    }
+    
+    return { ast, symbols, templates, modules, errors }
+  }
+  
+  @method validateSemantics(text: string, ast: ASTNode[], isHsplus: boolean): Diagnostic[] {
+    const diagnostics: Diagnostic[] = []
+    const lines = text.split("\n")
+    
+    // Check for undefined template references
+    const templatePattern = /using\s+"([^"]+)"/g
+    const definedTemplates = new Set<string>()
+    const usedTemplates: { name: string, line: number, col: number }[] = []
+    
+    // First pass: collect defined templates
+    for (let i = 0; i < lines.length; i++) {
+      const templateMatch = lines[i].match(/template\s+"([^"]+)"/)
+      if (templateMatch) {
+        definedTemplates.add(templateMatch[1])
+      }
+    }
+    
+    // Second pass: check used templates
+    for (let i = 0; i < lines.length; i++) {
+      let match: RegExpExecArray | null
+      const lineText = lines[i]
+      const regex = /using\s+"([^"]+)"/g
+      
+      while ((match = regex.exec(lineText)) !== null) {
+        const templateName = match[1]
+        if (!definedTemplates.has(templateName)) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: {
+              start: { line: i, character: match.index }
+              end: { line: i, character: match.index + match[0].length }
+            }
+            message: `Template "${templateName}" is not defined`,
+            source: "holoscript"
+          })
+        }
+      }
+    }
+    
+    // Check for empty blocks (warnings)
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].match(/{\s*}\s*$/)) {
+        diagnostics.push({
+          severity: DiagnosticSeverity.Information,
+          range: {
+            start: { line: i, character: 0 }
+            end: { line: i, character: lines[i].length }
+          }
+          message: "Empty block - consider adding content or removing it",
+          source: "holoscript"
+        })
+      }
+    }
+    
+    // HSPlus-specific checks
+    if (isHsplus) {
+      // Check @state decorator usage
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].match(/@state\s*{/) && !lines[i + 1]?.trim()) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Warning,
+            range: {
+              start: { line: i, character: 0 }
+              end: { line: i, character: lines[i].length }
+            }
+            message: "Empty @state block",
+            source: "holoscript"
+          })
+        }
+      }
+    }
+    
+    return diagnostics
+  }
+}
+
+async function "validateDocument" : Promise<void> {
+  await DocumentValidator.validate(document)
+}
+
+// =============================================================================
+// COMPLETION
+// =============================================================================
+
+module CompletionProvider {
+  @method provide(params: TextDocumentPositionParams): CompletionItem[] {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return []
+    
+    const text = document.getText()
+    const offset = document.offsetAt(params.position)
+    const linePrefix = text.substring(
+      text.lastIndexOf("\n", offset - 1) + 1,
+      offset
+    )
+    const isHsplus = params.textDocument.uri.endsWith(".hsplus")
+    
+    const items: CompletionItem[] = []
+    
+    // Context-aware completions
+    if (linePrefix.match(/^\s*$/)) {
+      // Start of line - top-level keywords
+      items.push(...this.getTopLevelCompletions(isHsplus))
+    } else if (linePrefix.match(/^\s+\w*$/)) {
+      // Inside a block - properties and nested elements
+      items.push(...this.getPropertyCompletions(isHsplus))
+    } else if (linePrefix.match(/@\w*$/)) {
+      // Decorator context
+      items.push(...this.getDecoratorCompletions())
+    } else if (linePrefix.match(/using\s+"$/)) {
+      // Template reference
+      items.push(...this.getTemplateCompletions(params.textDocument.uri))
+    } else if (linePrefix.match(/from\s+"$/)) {
+      // Import path
+      items.push(...this.getImportPathCompletions())
+    }
+    
+    // Always include symbols from current document
+    items.push(...this.getSymbolCompletions(params.textDocument.uri))
+    
+    return items
+  }
+  
+  @method getTopLevelCompletions(isHsplus: boolean): CompletionItem[] {
+    const items: CompletionItem[] = [
+      {
+        label: "composition",
+        kind: CompletionItemKind.Class,
+        insertText: 'composition "${1:Scene Name}" {\n\t$0\n}',
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Create a scene composition"
+      }
+      {
+        label: "template",
+        kind: CompletionItemKind.Class,
+        insertText: 'template "${1:Name}" {\n\tstate { $2 }\n\taction ${3:name}($4) { $5 }\n}',
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Define a reusable template"
+      }
+      {
+        label: "spatial_group",
+        kind: CompletionItemKind.Module,
+        insertText: 'spatial_group "${1:name}" {\n\t$0\n}',
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Create a spatial group"
+      }
+      {
+        label: "logic",
+        kind: CompletionItemKind.Event,
+        insertText: "logic {\n\t$0\n}",
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Define scene logic"
+      }
+      {
+        label: "orb",
+        kind: CompletionItemKind.Class,
+        insertText: "orb ${1:name} {\n\tposition: [${2:0}, ${3:0}, ${4:0}]\n\t$0\n}",
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Create a 3D object"
+      }
+      {
+        label: "world",
+        kind: CompletionItemKind.Module,
+        insertText: "world ${1:name} {\n\t$0\n}",
+        insertTextFormat: InsertTextFormat.Snippet,
+        documentation: "Create a world container"
+      }
+    ]
+    
+    if (isHsplus) {
+      items.push(
+        {
+          label: "module",
+          kind: CompletionItemKind.Module,
+          insertText: "module ${1:Name} {\n\t@state {\n\t\t$2\n\t}\n\t\n\t@method ${3:name}($4): ${5:void} {\n\t\t$0\n\t}\n}",
+          insertTextFormat: InsertTextFormat.Snippet,
+          documentation: "Define a module"
+        }
+        {
+          label: "struct",
+          kind: CompletionItemKind.Struct,
+          insertText: "struct ${1:Name} {\n\t${2:field}: ${3:type}\n}",
+          insertTextFormat: InsertTextFormat.Snippet,
+          documentation: "Define a struct"
+        }
+        {
+          label: "enum",
+          kind: CompletionItemKind.Enum,
+          insertText: "enum ${1:Name} {\n\t${2:VALUE_ONE},\n\t${3:VALUE_TWO}\n}",
+          insertTextFormat: InsertTextFormat.Snippet,
+          documentation: "Define an enum"
+        }
+        {
+          label: "import",
+          kind: CompletionItemKind.Keyword,
+          insertText: 'import { $1 } from "${2:module}"',
+          insertTextFormat: InsertTextFormat.Snippet,
+          documentation: "Import from module"
+        }
+        {
+          label: "export",
+          kind: CompletionItemKind.Keyword,
+          insertText: "export { $0 }",
+          insertTextFormat: InsertTextFormat.Snippet,
+          documentation: "Export from module"
+        }
+      )
+    }
+    
+    return items
+  }
+  
+  @method getPropertyCompletions(isHsplus: boolean): CompletionItem[] {
+    const items: CompletionItem[] = [
+      // Common properties
+      { label: "position", kind: CompletionItemKind.Property, insertText: "position: [${1:0}, ${2:0}, ${3:0}]", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "rotation", kind: CompletionItemKind.Property, insertText: "rotation: [${1:0}, ${2:0}, ${3:0}]", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "scale", kind: CompletionItemKind.Property, insertText: "scale: [${1:1}, ${2:1}, ${3:1}]", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "color", kind: CompletionItemKind.Property, insertText: 'color: "${1:#ffffff}"', insertTextFormat: InsertTextFormat.Snippet }
+      { label: "opacity", kind: CompletionItemKind.Property, insertText: "opacity: ${1:1.0}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "visible", kind: CompletionItemKind.Property, insertText: "visible: ${1:true}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "interactive", kind: CompletionItemKind.Property, insertText: "interactive: ${1:true}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "model", kind: CompletionItemKind.Property, insertText: 'model: "${1:path/to/model.glb}"', insertTextFormat: InsertTextFormat.Snippet }
+      { label: "traits", kind: CompletionItemKind.Property, insertText: 'traits: ["${1:talkable}", "${2:patrol}"]', insertTextFormat: InsertTextFormat.Snippet }
+      { label: "state", kind: CompletionItemKind.Property, insertText: "state { ${1:property}: ${2:value} }", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "using", kind: CompletionItemKind.Reference, insertText: 'using "${1:Template}"', insertTextFormat: InsertTextFormat.Snippet }
+      
+      // Events
+      { label: "on_click", kind: CompletionItemKind.Event, insertText: "on_click: {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "on_hover", kind: CompletionItemKind.Event, insertText: "on_hover: {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "on_enter", kind: CompletionItemKind.Event, insertText: "on_enter: {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "on_exit", kind: CompletionItemKind.Event, insertText: "on_exit: {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "on_interact", kind: CompletionItemKind.Event, insertText: "on_interact($1) {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      { label: "on_collision", kind: CompletionItemKind.Event, insertText: "on_collision($1) {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+      
+      // Object definitions
+      { label: "object", kind: CompletionItemKind.Class, insertText: 'object "${1:name}" using "${2:Template}" {\n\tposition: [${3:0}, ${4:0}, ${5:0}]\n}', insertTextFormat: InsertTextFormat.Snippet }
+      { label: "action", kind: CompletionItemKind.Function, insertText: "action ${1:name}($2) {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+    ]
+    
+    if (isHsplus) {
+      items.push(
+        // HSPlus features
+        { label: "networked", kind: CompletionItemKind.Property, insertText: "networked: ${1:true}", insertTextFormat: InsertTextFormat.Snippet }
+        { label: "physics", kind: CompletionItemKind.Property, insertText: 'physics: {\n\ttype: "${1|dynamic,static,kinematic|}"\n\tmass: ${2:1.0}\n}', insertTextFormat: InsertTextFormat.Snippet }
+        { label: "every", kind: CompletionItemKind.Keyword, insertText: "every(${1:1000}) {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet }
+        { label: "constraint", kind: CompletionItemKind.Class, insertText: "constraint ${1:name} {\n\ttype: ${2|hinge,slider,spring,ball,fixed|}\n\tbody_a: ${3}\n\tbody_b: ${4}\n}", insertTextFormat: InsertTextFormat.Snippet }
+        { label: "terrain", kind: CompletionItemKind.Class, insertText: "terrain ${1:name} {\n\tgenerator: ${2|perlin,simplex,voronoi|}\n\tsize: [${3:100}, ${4:100}]\n}", insertTextFormat: InsertTextFormat.Snippet }
+      )
+    }
+    
+    return items
+  }
+  
+  @method getDecoratorCompletions(): CompletionItem[] {
+    return [
+      { label: "@state", kind: CompletionItemKind.Keyword, insertText: "@state {\n\t${1:property}: ${2:type} = ${3:default}\n}", insertTextFormat: InsertTextFormat.Snippet, documentation: "Reactive state" }
+      { label: "@action", kind: CompletionItemKind.Keyword, insertText: "@action ${1:name}($2): ${3:void} {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet, documentation: "State-modifying action" }
+      { label: "@method", kind: CompletionItemKind.Keyword, insertText: "@method ${1:name}($2): ${3:void} {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet, documentation: "Instance method" }
+      { label: "@computed", kind: CompletionItemKind.Keyword, insertText: "@computed get ${1:name}(): ${2:type} {\n\treturn $0\n}", insertTextFormat: InsertTextFormat.Snippet, documentation: "Derived value" }
+      { label: "@async", kind: CompletionItemKind.Keyword, insertText: "@async ${1:name}($2): Promise<${3:void}> {\n\t$0\n}", insertTextFormat: InsertTextFormat.Snippet, documentation: "Async method" }
+    ]
+  }
+  
+  @method getTemplateCompletions(uri: string): CompletionItem[] {
+    const cached = documentCache.get(uri)
+    if (!cached) return []
+    
+    const items: CompletionItem[] = []
+    for (const [name, info] of cached.templates) {
+      items.push({
+        label: name,
+        kind: CompletionItemKind.Class,
+        detail: `Template (line ${info.line})`,
+        documentation: `Properties: ${info.properties.join(", ") || "none"}\nActions: ${info.actions.join(", ") || "none"}`
+      })
+    }
+    
+    return items
+  }
+  
+  @method getImportPathCompletions(): CompletionItem[] {
+    return [
+      { label: "@holoscript/core", kind: CompletionItemKind.Module }
+      { label: "@holoscript/network", kind: CompletionItemKind.Module }
+      { label: "@holoscript/std", kind: CompletionItemKind.Module }
+      { label: "@holoscript/fs", kind: CompletionItemKind.Module }
+      { label: "@holoscript/commerce", kind: CompletionItemKind.Module }
+      { label: "@holoscript/llm", kind: CompletionItemKind.Module }
+      { label: "./", kind: CompletionItemKind.Folder }
+    ]
+  }
+  
+  @method getSymbolCompletions(uri: string): CompletionItem[] {
+    const cached = documentCache.get(uri)
+    if (!cached) return []
+    
+    const items: CompletionItem[] = []
+    for (const [name, info] of cached.symbols) {
+      const kind = info.kind === "template" ? CompletionItemKind.Class
+        : info.kind === "module" ? CompletionItemKind.Module
+        : info.kind === "struct" ? CompletionItemKind.Struct
+        : info.kind === "enum" ? CompletionItemKind.Enum
+        : CompletionItemKind.Reference
+      
+      items.push({
+        label: name,
+        kind,
+        detail: `${info.kind} (line ${info.line})`
+      })
+    }
+    
+    return items
+  }
+}
+
+connection.onCompletion((params) => CompletionProvider.provide(params))
+
+// =============================================================================
+// HOVER
+// =============================================================================
+
+module HoverProvider {
+  @state {
+    documentation: Record<string, string> = {
+      // .holo keywords
+      orb: "**orb** - A 3D object in the scene.\n\n```holo\norb my_cube {\n  position: [0, 1, 0]\n  scale: [1, 1, 1]\n}\n```",
+      world: "**world** - A container for orbs and scene configuration.",
+      composition: "**composition** - A named scene containing templates, objects, and logic.\n\n```holo\ncomposition \"My Scene\" {\n  template \"Enemy\" { ... }\n  spatial_group \"Main\" { ... }\n  logic { ... }\n}\n```",
+      template: "**template** - A reusable object definition with state and actions.",
+      spatial_group: "**spatial_group** - A group of spatially-related objects.",
+      object: "**object** - An instance of a template with position.",
+      logic: "**logic** - Event handlers and scene behavior.",
+      traits: "**traits** - Array of NPC behaviors like 'talkable', 'patrol'.",
+      state: "**state** - Object state with reactive properties.",
+      action: "**action** - Method that modifies state.",
+      position: "**position** - 3D coordinates `[x, y, z]`\n\nDefault: `[0, 0, 0]`",
+      rotation: "**rotation** - Euler angles in degrees `[x, y, z]`\n\nDefault: `[0, 0, 0]`",
+      scale: "**scale** - Size multiplier `[x, y, z]`\n\nDefault: `[1, 1, 1]`",
+      on_click: "**on_click** - Handler for click/tap events",
+      on_interact: "**on_interact** - Handler for NPC/item interaction",
+      every: "**every(ms)** - Execute code periodically\n\n```hsplus\nevery(1000) {\n  // Runs every second\n}\n```",
+      
+      // HSPlus
+      module: "**module** - A named container for related code.\n\n```hsplus\nmodule MyModule {\n  @state { count: number = 0 }\n  @action increment() { this.state.count++ }\n}\n```",
+      struct: "**struct** - A data structure definition with typed fields.\n\n```hsplus\nstruct Point {\n  x: number\n  y: number\n  z: number\n}\n```",
+      enum: "**enum** - An enumeration of named constants.\n\n```hsplus\nenum Direction {\n  NORTH,\n  SOUTH,\n  EAST,\n  WEST\n}\n```",
+      "@state": "**@state** - Decorator for reactive state properties.\n\nChanges to state trigger re-renders.",
+      "@action": "**@action** - Decorator for state-modifying methods.\n\nActions are tracked and can trigger side effects.",
+      "@method": "**@method** - Decorator for instance methods.",
+      "@computed": "**@computed** - Decorator for derived/calculated values.\n\nAutomatically updates when dependencies change.",
+      networked: "**networked** *(HSPlus)* - Enable multiplayer sync across clients.",
+      physics: "**physics** *(HSPlus)* - Enable physics simulation.\n\nTypes: `dynamic`, `static`, `kinematic`",
+      constraint: "**constraint** *(HSPlus)* - Physics constraint between objects.\n\nTypes: `hinge`, `slider`, `spring`, `ball`, `fixed`",
+      terrain: "**terrain** *(HSPlus)* - Procedurally generated terrain.\n\nGenerators: `perlin`, `simplex`, `voronoi`"
+    }
+  }
+  
+  @method provide(params: TextDocumentPositionParams): Hover | null {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return null
+    
+    const text = document.getText()
+    const offset = document.offsetAt(params.position)
+    const wordRange = this.getWordRangeAtPosition(text, offset)
+    
+    if (!wordRange) return null
+    
+    const word = text.substring(wordRange.start, wordRange.end)
+    
+    // Check keyword documentation
+    if (this.state.documentation[word]) {
+      return {
+        contents: {
+          kind: MarkupKind.Markdown,
+          value: this.state.documentation[word]
+        }
+      }
+    }
+    
+    // Check symbols
+    const cached = documentCache.get(params.textDocument.uri)
+    if (cached && cached.symbols.has(word)) {
+      const symbol = cached.symbols.get(word)!
+      return {
+        contents: {
+          kind: MarkupKind.Markdown,
+          value: `**${word}** (${symbol.kind})\n\nDefined at line ${symbol.line}`
+        }
+      }
+    }
+    
+    return null
+  }
+  
+  @method getWordRangeAtPosition(text: string, offset: number): { start: number, end: number } | null {
+    const wordPattern = /[@a-zA-Z_][a-zA-Z0-9_]*/g
+    let match: RegExpExecArray | null
+    
+    while ((match = wordPattern.exec(text)) !== null) {
+      if (match.index <= offset && offset <= match.index + match[0].length) {
+        return { start: match.index, end: match.index + match[0].length }
+      }
+    }
+    
+    return null
+  }
+}
+
+connection.onHover((params) => HoverProvider.provide(params))
+
+// =============================================================================
+// DEFINITION
+// =============================================================================
+
+module DefinitionProvider {
+  @method provide(params: DefinitionParams): Location | null {
+    const cached = documentCache.get(params.textDocument.uri)
+    if (!cached) return null
+    
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return null
+    
+    const text = document.getText()
+    const offset = document.offsetAt(params.position)
+    const wordRange = HoverProvider.getWordRangeAtPosition(text, offset)
+    
+    if (!wordRange) return null
+    
+    const word = text.substring(wordRange.start, wordRange.end)
+    
+    if (cached.symbols.has(word)) {
+      const symbol = cached.symbols.get(word)!
+      return {
+        uri: params.textDocument.uri,
+        range: {
+          start: { line: symbol.line - 1, character: symbol.column - 1 }
+          end: { line: symbol.line - 1, character: symbol.column - 1 + word.length }
+        }
+      }
+    }
+    
+    return null
+  }
+}
+
+connection.onDefinition((params) => DefinitionProvider.provide(params))
+
+// =============================================================================
+// REFERENCES
+// =============================================================================
+
+module ReferencesProvider {
+  @method provide(params: ReferenceParams): Location[] {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return []
+    
+    const text = document.getText()
+    const offset = document.offsetAt(params.position)
+    const wordRange = HoverProvider.getWordRangeAtPosition(text, offset)
+    
+    if (!wordRange) return []
+    
+    const word = text.substring(wordRange.start, wordRange.end)
+    const locations: Location[] = []
+    
+    // Find all occurrences
+    const regex = new RegExp(`\\b${word}\\b`, "g")
+    let match: RegExpExecArray | null
+    
+    while ((match = regex.exec(text)) !== null) {
+      const startPos = document.positionAt(match.index)
+      const endPos = document.positionAt(match.index + word.length)
+      
+      locations.push({
+        uri: params.textDocument.uri,
+        range: { start: startPos, end: endPos }
+      })
+    }
+    
+    return locations
+  }
+}
+
+connection.onReferences((params) => ReferencesProvider.provide(params))
+
+// =============================================================================
+// DOCUMENT SYMBOLS
+// =============================================================================
+
+module DocumentSymbolProvider {
+  @method provide(params: DocumentSymbolParams): DocumentSymbol[] {
+    const cached = documentCache.get(params.textDocument.uri)
+    if (!cached) return []
+    
+    const symbols: DocumentSymbol[] = []
+    
+    for (const [name, info] of cached.symbols) {
+      const kind = info.kind === "template" ? SymbolKind.Class
+        : info.kind === "module" ? SymbolKind.Module
+        : info.kind === "struct" ? SymbolKind.Struct
+        : info.kind === "enum" ? SymbolKind.Enum
+        : info.kind === "composition" ? SymbolKind.Package
+        : info.kind === "object" ? SymbolKind.Object
+        : info.kind === "orb" ? SymbolKind.Object
+        : SymbolKind.Variable
+      
+      symbols.push({
+        name,
+        kind,
+        range: {
+          start: { line: info.line - 1, character: 0 }
+          end: { line: info.line - 1, character: 100 }
+        }
+        selectionRange: {
+          start: { line: info.line - 1, character: info.column - 1 }
+          end: { line: info.line - 1, character: info.column - 1 + name.length }
+        }
+      })
+    }
+    
+    return symbols
+  }
+}
+
+connection.onDocumentSymbol((params) => DocumentSymbolProvider.provide(params))
+
+// =============================================================================
+// SEMANTIC TOKENS
+// =============================================================================
+
+module SemanticTokensProvider {
+  @method provide(params: SemanticTokensParams): SemanticTokens {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return { data: [] }
+    
+    const builder = new SemanticTokensBuilder()
+    const text = document.getText()
+    const lines = text.split("\n")
+    const isHsplus = params.textDocument.uri.endsWith(".hsplus")
+    
+    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+      const line = lines[lineNum]
+      
+      // Keywords
+      const keywords = ["orb", "world", "composition", "template", "spatial_group", "object", "logic", "traits", "state", "action", "using", "import", "from", "export", "true", "false", "null"]
+      if (isHsplus) {
+        keywords.push("module", "struct", "enum", "const", "let", "var", "async", "await", "return", "if", "else", "for", "while", "new", "this")
+      }
+      
+      for (const keyword of keywords) {
+        const regex = new RegExp(`\\b${keyword}\\b`, "g")
+        let match: RegExpExecArray | null
+        while ((match = regex.exec(line)) !== null) {
+          builder.push(lineNum, match.index, keyword.length, tokenTypes.indexOf("keyword"), 0)
+        }
+      }
+      
+      // Decorators (HSPlus)
+      if (isHsplus) {
+        const decoratorRegex = /@(state|action|method|computed|async)/g
+        let decoratorMatch: RegExpExecArray | null
+        while ((decoratorMatch = decoratorRegex.exec(line)) !== null) {
+          builder.push(lineNum, decoratorMatch.index, decoratorMatch[0].length, tokenTypes.indexOf("macro"), 0)
+        }
+      }
+      
+      // Properties (word followed by colon)
+      const propRegex = /(\w+):/g
+      let propMatch: RegExpExecArray | null
+      while ((propMatch = propRegex.exec(line)) !== null) {
+        builder.push(lineNum, propMatch.index, propMatch[1].length, tokenTypes.indexOf("property"), 0)
+      }
+      
+      // Strings
+      const stringRegex = /"[^"]*"|'[^']*'/g
+      let stringMatch: RegExpExecArray | null
+      while ((stringMatch = stringRegex.exec(line)) !== null) {
+        builder.push(lineNum, stringMatch.index, stringMatch[0].length, tokenTypes.indexOf("string"), 0)
+      }
+      
+      // Numbers
+      const numRegex = /\b\d+(\.\d+)?\b/g
+      let numMatch: RegExpExecArray | null
+      while ((numMatch = numRegex.exec(line)) !== null) {
+        builder.push(lineNum, numMatch.index, numMatch[0].length, tokenTypes.indexOf("number"), 0)
+      }
+      
+      // Comments
+      const commentIndex = line.indexOf("//")
+      if (commentIndex !== -1) {
+        builder.push(lineNum, commentIndex, line.length - commentIndex, tokenTypes.indexOf("comment"), 0)
+      }
+    }
+    
+    return builder.build()
+  }
+}
+
+connection.onRequest("textDocument/semanticTokens/full", (params: SemanticTokensParams) => {
+  return SemanticTokensProvider.provide(params)
+})
+
+// =============================================================================
+// CODE ACTIONS
+// =============================================================================
+
+module CodeActionProvider {
+  @method provide(params: CodeActionParams): CodeAction[] {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return []
+    
+    const actions: CodeAction[] = []
+    
+    for (const diagnostic of params.context.diagnostics) {
+      if (diagnostic.code === "error/undefined-template") {
+        // Extract template name from message
+        const match = diagnostic.message.match(/Template "([^"]+)"/)
+        if (match) {
+          const templateName = match[1]
+          
+          actions.push({
+            title: `Create template "${templateName}"`,
+            kind: CodeActionKind.QuickFix,
+            diagnostics: [diagnostic],
+            edit: {
+              changes: {
+                [params.textDocument.uri]: [{
+                  range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
+                  newText: `template "${templateName}" {\n  state { }\n  action init() { }\n}\n\n`
+                }]
+              }
+            }
+          })
+        }
+      }
+    }
+    
+    return actions
+  }
+}
+
+connection.onCodeAction((params) => CodeActionProvider.provide(params))
+
+// =============================================================================
+// SIGNATURE HELP
+// =============================================================================
+
+module SignatureHelpProvider {
+  @state {
+    signatures: Record<string, { label: string, documentation: string, parameters: { label: string, documentation: string }[] }> = {
+      every: {
+        label: "every(milliseconds: number)",
+        documentation: "Execute code periodically",
+        parameters: [
+          { label: "milliseconds", documentation: "Interval in milliseconds" }
+        ]
+      }
+      action: {
+        label: "action name(params)",
+        documentation: "Define an action that modifies state",
+        parameters: [
+          { label: "name", documentation: "Action name" }
+          { label: "params", documentation: "Action parameters" }
+        ]
+      }
+      on_interact: {
+        label: "on_interact(target)",
+        documentation: "Handler for interaction events",
+        parameters: [
+          { label: "target", documentation: "The interacted object" }
+        ]
+      }
+    }
+  }
+  
+  @method provide(params: SignatureHelpParams): SignatureHelp | null {
+    const document = documents.get(params.textDocument.uri)
+    if (!document) return null
+    
+    const text = document.getText()
+    const offset = document.offsetAt(params.position)
+    const lineStart = text.lastIndexOf("\n", offset - 1) + 1
+    const lineText = text.substring(lineStart, offset)
+    
+    // Find function call
+    for (const [name, sig] of Object.entries(this.state.signatures)) {
+      if (lineText.includes(name + "(")) {
+        return {
+          signatures: [{
+            label: sig.label,
+            documentation: sig.documentation,
+            parameters: sig.parameters.map(p => ({
+              label: p.label,
+              documentation: p.documentation
+            }))
+          }],
+          activeSignature: 0,
+          activeParameter: (lineText.match(/,/g) || []).length
+        }
+      }
+    }
+    
+    return null
+  }
+}
+
+connection.onSignatureHelp((params) => SignatureHelpProvider.provide(params))
+
+// =============================================================================
+// START SERVER
+// =============================================================================
+
+documents.listen(connection)
+connection.listen()
+
+console.error("[HoloScript LSP] Server started")

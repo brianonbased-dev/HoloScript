@@ -1,0 +1,273 @@
+/**
+ * Template Gallery — Studio Page Composition
+ *
+ * Defines the UI surface for the /templates page. The template catalog
+ * is stored as composition state, and the header/layout renders natively
+ * via HoloSurfaceRenderer.
+ *
+ * Interactive elements (template selection, navigation) stay in React.
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /templates
+ */
+
+composition "TemplateGallery" {
+
+  state {
+    pageTitle: "Templates"
+    pageSubtitle: "Start from a pre-built scene and customize it with AI"
+    templateCount: 5
+    selectedTemplate: ""
+  }
+
+  computed {
+    countLabel: String($templateCount) + " scenes"
+  }
+
+  template "TemplateCard" {
+    type: "ui"
+    uiType: "panel"
+    width: 380
+    height: 110
+    padding: 16
+    backgroundColor: "#111827"
+    borderColor: "#1e293b"
+    cornerRadius: 12
+  }
+
+  object "TemplateShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1024
+    height: 800
+    backgroundColor: "#020617"
+    cornerRadius: 0
+
+    // ── Header ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 1024
+      height: 80
+      position: [0, 0]
+      backgroundColor: "#020617"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: $pageTitle
+        fontSize: 24
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 16]
+      }
+
+      object "Subtitle" {
+        type: "ui"
+        uiType: "text"
+        text: $pageSubtitle
+        fontSize: 14
+        color: "#94a3b8"
+        position: [16, 48]
+      }
+
+      object "CountBadge" {
+        type: "ui"
+        uiType: "text"
+        text: $countLabel
+        fontSize: 11
+        color: "#64748b"
+        position: [920, 32]
+      }
+    }
+
+    // ── Template Cards ──
+    object "ForestCard" using "TemplateCard" {
+      position: [16, 100]
+
+      object "ForestName" {
+        type: "ui"
+        uiType: "text"
+        text: "Enchanted Forest"
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "ForestDesc" {
+        type: "ui"
+        uiType: "text"
+        text: "A magical forest with glowing mushrooms, crystal, and a pond"
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 38]
+      }
+
+      object "ForestCategory" {
+        type: "ui"
+        uiType: "text"
+        text: "nature"
+        fontSize: 10
+        color: "#22c55e"
+        position: [16, 76]
+      }
+    }
+
+    object "SpaceCard" using "TemplateCard" {
+      position: [416, 100]
+
+      object "SpaceName" {
+        type: "ui"
+        uiType: "text"
+        text: "Space Station"
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "SpaceDesc" {
+        type: "ui"
+        uiType: "text"
+        text: "An orbital station with solar panels, docking port, and antenna"
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 38]
+      }
+
+      object "SpaceCategory" {
+        type: "ui"
+        uiType: "text"
+        text: "scifi"
+        fontSize: 10
+        color: "#8b5cf6"
+        position: [16, 76]
+      }
+    }
+
+    object "GalleryCard" using "TemplateCard" {
+      position: [16, 230]
+
+      object "GalleryName" {
+        type: "ui"
+        uiType: "text"
+        text: "Art Gallery"
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "GalleryDesc" {
+        type: "ui"
+        uiType: "text"
+        text: "A marble gallery with sculptures on pedestals and spotlights"
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 38]
+      }
+
+      object "GalleryCategory" {
+        type: "ui"
+        uiType: "text"
+        text: "art"
+        fontSize: 10
+        color: "#f59e0b"
+        position: [16, 76]
+      }
+    }
+
+    object "ZenCard" using "TemplateCard" {
+      position: [416, 230]
+
+      object "ZenName" {
+        type: "ui"
+        uiType: "text"
+        text: "Zen Garden"
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "ZenDesc" {
+        type: "ui"
+        uiType: "text"
+        text: "A peaceful Japanese garden with rocks, bamboo, and a water basin"
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 38]
+      }
+
+      object "ZenCategory" {
+        type: "ui"
+        uiType: "text"
+        text: "zen"
+        fontSize: 10
+        color: "#06b6d4"
+        position: [16, 76]
+      }
+    }
+
+    object "NeonCard" using "TemplateCard" {
+      position: [16, 360]
+
+      object "NeonName" {
+        type: "ui"
+        uiType: "text"
+        text: "Neon City"
+        fontSize: 16
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "NeonDesc" {
+        type: "ui"
+        uiType: "text"
+        text: "A cyberpunk street with neon signs, holograms, and rain puddles"
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 38]
+      }
+
+      object "NeonCategory" {
+        type: "ui"
+        uiType: "text"
+        text: "urban"
+        fontSize: 10
+        color: "#ec4899"
+        position: [16, 76]
+      }
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "initial page title is Templates"
+    assert: { $pageTitle == "Templates" }
+  }
+
+  @test {
+    name: "initial template count is 5"
+    assert: { $templateCount == 5 }
+  }
+
+  @test {
+    name: "count label pluralizes correctly"
+    assert: { $countLabel == "5 scenes" }
+  }
+
+  @test {
+    name: "selected template starts empty"
+    assert: { $selectedTemplate == "" }
+  }
+
+  @test {
+    name: "count label updates on templateCount change"
+    setup: { $templateCount = 1 }
+    assert: { $countLabel == "1 scenes" }
+  }
+}

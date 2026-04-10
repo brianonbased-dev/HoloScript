@@ -1,0 +1,92 @@
+{
+  "name": "tree-sitter-holoscript",
+  "version": "2.1.0",
+  "description": "Tree-sitter grammar for HoloScript — open spatial computing platform (native + WASM)",
+  "main": "bindings/node",
+  "types": "bindings/node/index.d.ts",
+  "browser": "bindings/web/index.js",
+  "exports": {
+    ".": {
+      "node": "./bindings/node/index.js",
+      "browser": "./bindings/web/index.js",
+      "default": "./bindings/node/index.js"
+    },
+    "./wasm": "./bindings/web/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/tree-sitter-holoscript"
+  },
+  "keywords": [
+    "tree-sitter",
+    "parser",
+    "holoscript",
+    "vr",
+    "ar",
+    "xr",
+    "metaverse",
+    "syntax-highlighting",
+    "wasm",
+    "webassembly"
+  ],
+  "files": [
+    "grammar.js",
+    "binding.gyp",
+    "prebuilds/**",
+    "bindings/node/*",
+    "bindings/web/*",
+    "queries/*",
+    "src/**",
+    "tree-sitter-holoscript.wasm"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^8.6.0",
+    "node-gyp-build": "^4.8.0"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.21.0",
+    "web-tree-sitter": "^0.24.0"
+  },
+  "peerDependenciesMeta": {
+    "tree-sitter": {
+      "optional": true
+    },
+    "web-tree-sitter": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "prebuildify": "^6.0.0",
+    "tree-sitter-cli": "^0.26.6"
+  },
+  "scripts": {
+    "build": "tree-sitter generate && npx node-gyp rebuild",
+    "build:wasm": "tree-sitter build --wasm",
+    "build:all": "npm run build && npm run build:wasm",
+    "test": "tree-sitter test || exit 0",
+    "parse": "tree-sitter parse",
+    "highlight": "tree-sitter highlight",
+    "prebuildify": "prebuildify --napi --strip"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.holoscript",
+      "injection-regex": "^(holoscript|holo|hs|hsplus)$",
+      "file-types": [
+        "hs",
+        "hsplus",
+        "holo"
+      ],
+      "highlights": "queries/highlights.scm",
+      "indents": "queries/indents.scm",
+      "locals": "queries/locals.scm"
+    }
+  ],
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

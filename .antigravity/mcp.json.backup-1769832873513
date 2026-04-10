@@ -1,0 +1,103 @@
+{
+  "name": "HoloScript MCP Servers",
+  "description": "HoloScript language tooling with AI assistance",
+  "version": "1.0.0",
+  
+  "servers": {
+    "holoscript": {
+      "name": "HoloScript Language",
+      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo",
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "packages/mcp-server/src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      }
+    },
+    
+    "hololand": {
+      "name": "Hololand Platform",
+      "description": "VR worlds, Brittney AI, browser debugging (optional)",
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "../Hololand/packages/brittney/mcp-server/src/index.ts"],
+      "cwd": "${workspaceFolder}/../Hololand",
+      "env": {
+        "HOLOLAND_API_URL": "http://localhost:3000",
+        "BRITTNEY_SERVICE_URL": "http://localhost:11435",
+        "BRITTNEY_ADMIN_KEY": "mcp-localhost-trusted"
+      },
+      "capabilities": {
+        "tools": true,
+        "resources": false,
+        "prompts": false
+      }
+    }
+  },
+  
+  "toolGroups": {
+    "parsing": {
+      "name": "Parsing Tools",
+      "description": "Parse HoloScript into AST",
+      "tools": [
+        "parse_hs",
+        "parse_holo"
+      ]
+    },
+    "validation": {
+      "name": "Validation",
+      "description": "Syntax and semantic validation",
+      "tools": [
+        "validate_holoscript",
+        "analyze_code"
+      ]
+    },
+    "generation": {
+      "name": "Code Generation",
+      "description": "Generate HoloScript from descriptions",
+      "tools": [
+        "generate_object",
+        "generate_scene",
+        "get_examples"
+      ]
+    },
+    "traits": {
+      "name": "VR Traits",
+      "description": "49 VR trait documentation",
+      "tools": [
+        "list_traits",
+        "explain_trait",
+        "suggest_traits"
+      ]
+    },
+    "documentation": {
+      "name": "Documentation",
+      "description": "Syntax reference and help",
+      "tools": [
+        "get_syntax_reference",
+        "explain_code"
+      ]
+    }
+  },
+  
+  "quickStart": {
+    "parseCode": {
+      "tool": "parse_hs",
+      "description": "Parse .hs or .hsplus code",
+      "example": { "code": "orb player { position: [0, 1, 0] }" }
+    },
+    "validateCode": {
+      "tool": "validate_holoscript",
+      "description": "Check for syntax errors",
+      "example": { "code": "orb test { @grabbable }" }
+    },
+    "generateFromDescription": {
+      "tool": "generate_object",
+      "description": "Create HoloScript from natural language",
+      "example": { "description": "a glowing sword that can be grabbed" }
+    }
+  }
+}

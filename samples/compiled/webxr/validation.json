@@ -1,0 +1,46 @@
+{
+  "source": "simple-cube.holo",
+  "target": "webxr",
+  "compiler_version": "3.4.0",
+  "compiled_at": "2026-02-16T18:00:00Z",
+  "validation": {
+    "syntax_valid": true,
+    "objects_count": 1,
+    "traits_count": 3,
+    "file_size_bytes": 5432,
+    "checksum": "sha256:1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z"
+  },
+  "expected_behavior": {
+    "renders": true,
+    "interactive": true,
+    "vr_enabled": true,
+    "physics_enabled": false,
+    "traits_implemented": {
+      "@color(red)": "MeshStandardMaterial.color = 0xff0000",
+      "@position(0, 1, 0)": "mesh.position.set(0, 1, 0)",
+      "@grabbable": "XR controller select events + attach/detach"
+    }
+  },
+  "quality_checks": {
+    "html5_valid": true,
+    "webxr_compatible": true,
+    "three_js_version": "0.157.0",
+    "dependencies_loaded": ["three", "VRButton"],
+    "controller_support": true,
+    "grab_mechanics": "implemented"
+  },
+  "browser_compatibility": {
+    "chrome": ">=90",
+    "firefox": ">=98",
+    "edge": ">=90",
+    "safari": "WebXR not supported",
+    "oculus_browser": ">=18",
+    "meta_quest_browser": ">=20"
+  },
+  "testing": {
+    "unit_tests": "N/A (integration test)",
+    "integration_test": "Manual VR headset required",
+    "automated_validation": "HTML syntax + Three.js API usage",
+    "render_test": "Visual comparison available"
+  }
+}

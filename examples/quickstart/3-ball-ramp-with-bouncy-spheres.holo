@@ -1,0 +1,56 @@
+// 3-ball-ramp-with-bouncy-spheres.holo
+// A tilted gray ramp with red, blue, and green bouncy balls
+
+composition "Ball Ramp with Bouncy Spheres" {
+  object "GroundPlane" {
+    @collidable
+    
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [5, 1, 5]
+    color: "#2d3436"
+  }
+
+  object "GrayRamp" {
+    @collidable
+    
+    geometry: "cube"
+    position: [-1, 0.3, -2]
+    rotation: [0, 0, 15]
+    scale: [2, 0.1, 0.8]
+    color: "#636e72"
+  }
+
+  object "RedBall" {
+    @grabbable
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [-0.5, 1, -2]
+    scale: 0.15
+    color: "#e74c3c"
+  }
+  
+  object "BlueBall" {
+    @grabbable
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [0, 1.2, -2]
+    scale: 0.15
+    color: "#3498db"
+  }
+  
+  object "GreenBall" {
+    @grabbable
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [0.5, 1.4, -2]
+    scale: 0.15
+    color: "#2ecc71"
+  }
+}

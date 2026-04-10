@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- HoloScript Plus Icon (.hsplus) - Upgraded Version -->
+  <defs>
+    <!-- Enhanced holographic gradient with more vibrant colors -->
+    <linearGradient id="hsplusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ffff;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#ff6b9d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffd700;stop-opacity:1" />
+    </linearGradient>
+    <!-- Gold accent for "Plus" -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ffaa00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff8c00;stop-opacity:1" />
+    </linearGradient>
+    <!-- Enhanced glow effect -->
+    <filter id="glowPlus" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="0.8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Stronger glow for plus badge -->
+    <filter id="badgeGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background: Rounded rectangle (file shape) -->
+  <rect x="4" y="2" width="24" height="28" rx="3" ry="3"
+        fill="#0f0f1a" stroke="url(#hsplusGradient)" stroke-width="2"/>
+
+  <!-- Top-right corner fold -->
+  <path d="M22 2 L28 8 L22 8 Z" fill="#1a1a2e"/>
+  <path d="M22 2 L28 8" stroke="url(#hsplusGradient)" stroke-width="1.5" fill="none"/>
+
+  <!-- Central hologram symbol: Enhanced 'H' with more detail -->
+  <g filter="url(#glowPlus)">
+    <!-- Left vertical bar with rounded caps -->
+    <rect x="9" y="10" width="3.5" height="13" rx="1" fill="url(#hsplusGradient)"/>
+    <!-- Right vertical bar with rounded caps -->
+    <rect x="19.5" y="10" width="3.5" height="13" rx="1" fill="url(#hsplusGradient)"/>
+    <!-- Horizontal connector (thicker) -->
+    <rect x="9" y="14.5" width="14" height="4" rx="1" fill="url(#hsplusGradient)"/>
+  </g>
+
+  <!-- Enhanced holographic particles (more numerous) -->
+  <circle cx="6.5" cy="7" r="1" fill="#00ffff" opacity="0.8"/>
+  <circle cx="26" cy="24" r="0.8" fill="#ff6b9d" opacity="0.8"/>
+  <circle cx="7" cy="27" r="0.7" fill="#a855f7" opacity="0.7"/>
+  <circle cx="25" cy="6" r="0.5" fill="#ffd700" opacity="0.9"/>
+  <circle cx="14" cy="5" r="0.4" fill="#00d4ff" opacity="0.6"/>
+  <circle cx="18" cy="28" r="0.5" fill="#ff6b9d" opacity="0.6"/>
+
+  <!-- Energy lines (connecting particles) -->
+  <line x1="6.5" y1="7" x2="14" y2="5" stroke="#00ffff" stroke-width="0.3" opacity="0.4"/>
+  <line x1="25" y1="6" x2="26" y2="24" stroke="#ffd700" stroke-width="0.3" opacity="0.3"/>
+
+  <!-- Plus (+) Badge - Premium/Upgraded indicator -->
+  <g filter="url(#badgeGlow)" transform="translate(22, 20)">
+    <!-- Badge circle background -->
+    <circle cx="4" cy="4" r="5.5" fill="#0a0a15" stroke="url(#goldGradient)" stroke-width="1.5"/>
+    <!-- Plus symbol -->
+    <rect x="2" y="1" width="4" height="6" rx="0.5" fill="url(#goldGradient)"/>
+    <rect x="1" y="2" width="6" height="4" rx="0.5" fill="url(#goldGradient)"/>
+  </g>
+</svg>

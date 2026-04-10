@@ -1,0 +1,295 @@
+/**
+ * Agentic Mitosis Example
+ * 
+ * Demonstrates HoloScript's agent spawning and delegation system:
+ * - @mitosis trait for dynamic sub-agent creation
+ * - sub_orb blocks for nested composition loading
+ * - Collaborative and autonomous spawning strategies
+ * 
+ * Use Cases:
+ * - Task delegation to specialized sub-agents
+ * - Dynamic swarm spawning
+ * - Hierarchical agent structures
+ * 
+ * @version 3.1.0
+ */
+
+composition "AgentMitosisDemo" {
+  // Configuration
+  config {
+    mitosis: {
+      max_children: 50
+      spawn_radius: 10
+      cleanup_on_parent_destroy: true
+    }
+  }
+
+  // ==========================================================================
+  // MASTER BUILDER AGENT - Spawns specialized worker sub-agents
+  // ==========================================================================
+
+  template "MasterBuilder" {
+    @mitosis(strategy: "collaborative")
+    @llm_agent
+    
+    geometry: "humanoid"
+    color: "#4a90d9"
+    
+    state {
+      active_children: []
+      tasks_delegated: 0
+      completed_subtasks: 0
+    }
+
+    // Spawn a specialized worker for a specific task
+    action spawnWorker(taskType, taskData) {
+      const workerId = generateId()
+      
+      // Dynamic sub-agent creation via mitosis
+      const worker = spawn({
+        template: taskType + "Worker",
+        id: workerId,
+        position: calculateSpawnPosition(this.state.active_children.length),
+        inherit: ["@networked"],
+        config: {
+          parent_id: this.id,
+          task: taskData
+        }
+      })
+      
+      this.state.active_children.push(workerId)
+      this.state.tasks_delegated += 1
+      
+      return worker
+    }
+
+    // Spawn multiple workers for parallel processing
+    action spawnSwarm(count, taskType) {
+      const workers = []
+      for (let i = 0; i < count; i++) {
+        workers.push(this.spawnWorker(taskType, { index: i }))
+      }
+      return workers
+    }
+
+    // Handle child completion reports
+    on mitosis_synced(childId, result) {
+      this.state.completed_subtasks += 1
+      
+      // Merge child state into parent
+      processChildResult(result)
+      
+      // Optional: despawn completed worker
+      if (result.status == "complete") {
+        despawn(childId)
+        this.state.active_children = this.state.active_children
+          .filter(id => id != childId)
+      }
+    }
+
+    on mitosis_failed(childId, error) {
+      log(`Child ${childId} failed: ${error}`)
+      retryOrEscalate(childId, error)
+    }
+  }
+
+  // ==========================================================================
+  // WORKER TEMPLATES - Specialized sub-agents
+  // ==========================================================================
+
+  template "BuilderWorker" {
+    @mitosis(strategy: "autonomous")
+    
+    geometry: "cube"
+    scale: [0.5, 0.5, 0.5]
+    color: "#90d94a"
+    
+    state {
+      parent_id: null
+      task: null
+      progress: 0
+      status: "idle"
+    }
+
+    on mount() {
+      this.state.status = "working"
+      this.executeTask()
+    }
+
+    action executeTask() {
+      const task = this.state.task
+      
+      // Simulate work
+      while (this.state.progress < 100) {
+        this.state.progress += 10
+        await sleep(100)
+      }
+      
+      this.state.status = "complete"
+      
+      // Report back to parent
+      notifyParent(this.state.parent_id, {
+        childId: this.id,
+        result: { built: task.target }
+      })
+    }
+  }
+
+  template "ScoutWorker" {
+    @mitosis(strategy: "autonomous")
+    @perception
+    
+    geometry: "sphere"
+    scale: [0.3, 0.3, 0.3]
+    color: "#d9904a"
+    
+    state {
+      parent_id: null
+      task: null
+      discoveries: []
+    }
+
+    action scout(area) {
+      const entities = scanArea(area)
+      this.state.discoveries = entities
+      
+      notifyParent(this.state.parent_id, {
+        childId: this.id,
+        result: { discoveries: entities }
+      })
+    }
+  }
+
+  // ==========================================================================
+  // SUB_ORB LOADING - Load external compositions as sub-agents
+  // ==========================================================================
+
+  template "CompositionLoader" {
+    @mitosis(strategy: "collaborative")
+    
+    state {
+      loaded_orbs: []
+    }
+
+    // Load an external composition as a sub-orb
+    action loadSubComposition(holoHubUrl) {
+      sub_orb "DynamicChild" {
+        source: holoHubUrl
+        position: calculatePosition()
+        
+        on_load: {
+          this.state.loaded_orbs.push(holoHubUrl)
+          emit("mitosis_spawned", { source: holoHubUrl })
+        }
+        
+        on_error: {
+          emit("mitosis_failed", { source: holoHubUrl, error: error })
+        }
+      }
+    }
+
+    // Load from HoloHub registry
+    action loadFromRegistry(packageName, version) {
+      const url = `holohub://${packageName}@${version}`
+      this.loadSubComposition(url)
+    }
+  }
+
+  // ==========================================================================
+  // SWARM COORDINATOR - Manages large numbers of sub-agents
+  // ==========================================================================
+
+  template "SwarmCoordinator" {
+    @mitosis(strategy: "swarm")
+    @behavior_tree
+    
+    state {
+      swarm_size: 0
+      active_agents: []
+      formation: "scatter"
+    }
+
+    action deploySwarm(count, formation) {
+      this.state.formation = formation
+      
+      for (let i = 0; i < count; i++) {
+        const position = calculateFormationPosition(formation, i, count)
+        
+        const drone = spawn({
+          template: "SwarmDrone",
+          position: position,
+          config: {
+            coordinator_id: this.id,
+            formation_index: i
+          }
+        })
+        
+        this.state.active_agents.push(drone.id)
+      }
+      
+      this.state.swarm_size = count
+    }
+
+    action reformSwarm(newFormation) {
+      this.state.formation = newFormation
+      
+      for (let i = 0; i < this.state.active_agents.length; i++) {
+        const agentId = this.state.active_agents[i]
+        const newPosition = calculateFormationPosition(
+          newFormation, i, this.state.swarm_size
+        )
+        
+        sendCommand(agentId, {
+          type: "move_to",
+          position: newPosition
+        })
+      }
+    }
+
+    action disperseSwarm() {
+      for (const agentId of this.state.active_agents) {
+        despawn(agentId)
+      }
+      this.state.active_agents = []
+      this.state.swarm_size = 0
+    }
+  }
+
+  template "SwarmDrone" {
+    @mitosis(strategy: "autonomous")
+    @physics
+    
+    geometry: "sphere"
+    scale: [0.2, 0.2, 0.2]
+    color: "#ffcc00"
+    
+    state {
+      coordinator_id: null
+      formation_index: 0
+      target_position: null
+    }
+
+    on command(cmd) {
+      if (cmd.type == "move_to") {
+        this.state.target_position = cmd.position
+        moveTo(cmd.position)
+      }
+    }
+  }
+
+  // ==========================================================================
+  // INSTANTIATE
+  // ==========================================================================
+
+  object "MasterBuilder" using "MasterBuilder" {
+    position: [0, 1, 0]
+  }
+
+  object "SwarmController" using "SwarmCoordinator" {
+    position: [10, 1, 10]
+  }
+
+  object "Loader" using "CompositionLoader" {
+    position: [-10, 1, 0]
+  }
+}

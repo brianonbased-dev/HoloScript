@@ -1,0 +1,491 @@
+// ============================================================================
+// HoloMesh Agent — Decentralized Knowledge Exchange Daemon
+// Native HoloScript composition for the HoloMesh network.
+//
+// Agents contribute W/P/G knowledge entries, discover peers via semantic
+// search, and earn reputation from utility (query count, reuse rate).
+// Value is measured by knowledge quality, not karma.
+//
+// Run: holoscript holomesh-daemon compositions/holomesh-agent.hsplus
+// ============================================================================
+
+#version 6.0.0
+#target daemon
+#mode autonomous
+
+// ── State ──
+
+state {
+  // Identity
+  agentId: null
+  agentName: "holomesh-agent"
+  workspace: "ai-ecosystem"
+  status: "idle"
+
+  // Network
+  peers: []
+  following: []
+  followers: []
+  knownPeerCount: 0
+
+  // Reputation
+  reputation: 0
+  reputationTier: "newcomer"
+  totalContributions: 0
+  totalQueries: 0
+  totalQueriesAnswered: 0
+  totalCollects: 0
+  reuseRate: 0
+
+  // Knowledge
+  contributedIds: []
+  receivedIds: []
+  queryHistory: []
+  pendingContributions: []
+
+  // Budget
+  spentUSD: 0
+  earningsUSD: 0
+  budgetCapUSD: 5.0
+
+  // Counters
+  cycles: 0
+  errors: 0
+  lastCycleAt: null
+  lastDiscoveryAt: null
+  lastContributionAt: null
+
+  // Inbox
+  unreadMessages: 0
+  processedMessageIds: []
+
+  // V2 P2P Gossip
+  v2Enabled: false
+  p2pPeerCount: 0
+  gossipSyncCount: 0
+  crdtMergeCount: 0
+  lastGossipSyncAt: null
+
+  // V3 Wallet
+  walletEnabled: false
+  walletAddress: null
+  walletBalanceUSDC: 0
+  totalPaymentsMade: 0
+  totalPaymentsReceived: 0
+  microLedgerUnsettled: 0
+  lastSettlementAt: null
+
+  // V4 Wallet Identity
+  agentDid: null
+
+  // V5 Agent Profile (MySpace)
+  profileCreated: false
+  profileDisplayName: "holomesh-agent"
+  profileBio: ""
+  profileCustomTitle: ""
+  profileThemeColor: "#6366f1"
+
+  // V11 Resource Pressure (L4 Blueprint 1)
+  resourcePressure: 0
+  suggestedLOD: 0
+  hardLimitBreached: false
+}
+
+// ── Computed ──
+
+computed {
+  isRegistered: $agentId != null
+  isRunning: $status == "running"
+  peerCount: $peers.length
+  budgetRemaining: $budgetCapUSD - $spentUSD
+  // V11: budget gate now checks BOTH economic balance AND rendering pressure
+  hasBudget: $budgetRemaining > 0 && $resourcePressure < 0.95
+  netRevenue: $earningsUSD - $spentUSD
+  contributionRate: $cycles > 0 ? $totalContributions / $cycles : 0
+  queryRate: $cycles > 0 ? $totalQueries / $cycles : 0
+  hasUnread: $unreadMessages > 0
+  hasPendingContributions: $pendingContributions.length > 0
+  hasP2PPeers: $p2pPeerCount > 0
+  isV2: $v2Enabled == true
+  hasWallet: $walletEnabled == true
+  hasMicroUnsettled: $microLedgerUnsettled > 0
+  walletNetFlow: $totalPaymentsReceived - $totalPaymentsMade
+  hasWalletIdentity: $agentDid != null
+  hasProfile: $profileCreated == true
+}
+
+// ── Behavior Tree ──
+
+object "MeshAgent" {
+  @behavior_tree {
+    root: {
+      type: "sequence",
+      name: "mesh_cycle",
+      children: [
+        // V11: Update resource pressure from UnifiedBudgetOptimizer before gate
+        { type: "action", name: "check_pressure", action: "mesh_check_resource_pressure" },
+        // Gate: check budget (economic + rendering pressure) before doing anything
+        {
+          type: "condition",
+          name: "budget_gate",
+          condition: "has_budget"
+        },
+        // Register if not yet on mesh
+        {
+          type: "condition_action",
+          name: "ensure_registered",
+          condition: "is_registered",
+          fail_action: "mesh_register"
+        },
+        // V5: Create agent profile if not yet created
+        {
+          type: "condition_action",
+          name: "ensure_profile",
+          condition: "has_profile",
+          fail_action: "mesh_create_profile"
+        },
+        // Priority selector: first success wins
+        {
+          type: "selector",
+          name: "priority_dispatch",
+          children: [
+            // P1: Respond to inbound queries (be useful first)
+            {
+              type: "sequence",
+              name: "p1_inbound",
+              children: [
+                { type: "condition", name: "has_unread", condition: "has_unread_messages" },
+                { type: "action", name: "check_inbox", action: "mesh_check_inbox" },
+                { type: "action", name: "reply_queries", action: "mesh_reply_queries" }
+              ]
+            },
+            // P2: Discover peers (V2 P2P first, V1 fallback)
+            {
+              type: "selector",
+              name: "p2_discover",
+              children: [
+                {
+                  type: "sequence",
+                  name: "p2_v2_discover",
+                  children: [
+                    { type: "condition", name: "is_v2", condition: "is_v2_enabled" },
+                    { type: "action", name: "p2p_discover", action: "mesh_p2p_discover" }
+                  ]
+                },
+                { type: "action", name: "discover_v1", action: "mesh_discover_peers" }
+              ]
+            },
+            // P2.5: V2 gossip sync (exchange CRDT deltas with peers)
+            {
+              type: "sequence",
+              name: "p2_5_gossip",
+              children: [
+                { type: "condition", name: "v2_with_peers", condition: "is_v2_with_p2p_peers" },
+                { type: "action", name: "gossip_sync", action: "mesh_gossip_sync" }
+              ]
+            },
+            // P3: Contribute own knowledge entries
+            {
+              type: "sequence",
+              name: "p3_contribute",
+              children: [
+                { type: "condition", name: "has_pending", condition: "has_pending_contributions" },
+                { type: "action", name: "contribute", action: "mesh_contribute_knowledge" }
+              ]
+            },
+            // P4: Query network for useful patterns
+            {
+              type: "sequence",
+              name: "p4_query",
+              children: [
+                { type: "action", name: "query", action: "mesh_query_network" }
+              ]
+            },
+            // P4.5: Collect premium knowledge (guarded by wallet)
+            {
+              type: "sequence",
+              name: "p4_5_collect",
+              children: [
+                { type: "condition", name: "has_wallet", condition: "has_wallet" },
+                { type: "action", name: "collect_premium", action: "mesh_collect_premium" }
+              ]
+            },
+            // P5: Social maintenance (heartbeats, follow-backs)
+            {
+              type: "sequence",
+              name: "p5_maintenance",
+              children: [
+                { type: "action", name: "heartbeat", action: "mesh_heartbeat" },
+                { type: "action", name: "follow_back", action: "mesh_follow_back" }
+              ]
+            },
+            // P6: V2 CRDT persistence (save snapshot to disk)
+            {
+              type: "sequence",
+              name: "p6_persist",
+              children: [
+                { type: "condition", name: "is_v2_persist", condition: "is_v2_enabled" },
+                { type: "action", name: "persist_crdt", action: "mesh_persist_crdt" }
+              ]
+            },
+            // P7: Settle micro-payments (guarded by unsettled ledger)
+            {
+              type: "sequence",
+              name: "p7_settle",
+              children: [
+                { type: "condition", name: "has_micro", condition: "has_micro_unsettled" },
+                { type: "action", name: "settle_micro", action: "mesh_settle_micro" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    tick_rate: 1,
+    restart_on_complete: true,
+    blackboard: {
+      inbox_messages: [],
+      discovered_peers: [],
+      query_results: [],
+      contributed_this_cycle: 0,
+      queries_this_cycle: 0,
+      gossip_synced: 0,
+      p2p_peer_count: 0,
+      wallet_balance: 0,
+      collected_this_cycle: 0
+    }
+  }
+
+  // ── Safety Traits ──
+
+  @rate_limiter {
+    strategy: "token_bucket",
+    max_tokens: 20,
+    refill_rate: 4,
+    window_ms: 60000
+  }
+
+  @circuit_breaker {
+    failure_threshold: 5,
+    window_ms: 300000,
+    reset_timeout_ms: 600000,
+    success_threshold: 2,
+    failure_rate_threshold: 0,
+    min_requests: 5
+  }
+
+  @timeout_guard {
+    default_timeout_ms: 30000,
+    fallback_action: "abort"
+  }
+
+  @economy {
+    initial_balance: 5,
+    default_spend_limit: 1,
+    spend_limit_period: 3600000,
+    max_transaction_history: 200,
+    escrow_enabled: false
+  }
+
+  @structured_logger {
+    min_level: "info",
+    max_entries: 500,
+    rotation_count: 100,
+    emit_events: true,
+    console_output: true
+  }
+}
+
+// ── Logic ──
+
+logic {
+  on_start() {
+    $status = "running"
+    $lastCycleAt = Date.now()
+    emit("mesh:started", { agent: $agentName, workspace: $workspace })
+  }
+
+  on_event("mesh:registered", event) {
+    $agentId = event.agentId
+    $status = "running"
+    emit("mesh:ready", { agentId: $agentId })
+  }
+
+  on_event("mesh:peer_discovered", event) {
+    $knownPeerCount = event.peerCount
+  }
+
+  on_event("mesh:knowledge_contributed", event) {
+    $totalContributions = $totalContributions + event.count
+    $lastContributionAt = Date.now()
+  }
+
+  on_event("mesh:knowledge_queried", event) {
+    $totalQueries = $totalQueries + 1
+  }
+
+  on_event("mesh:query_answered", event) {
+    $totalQueriesAnswered = $totalQueriesAnswered + 1
+  }
+
+  on_event("mesh:cycle_complete", event) {
+    $cycles = $cycles + 1
+    $lastCycleAt = Date.now()
+  }
+
+  on_event("mesh:error", event) {
+    $errors = $errors + 1
+  }
+
+  on_event("economy:spend", event) {
+    $spentUSD = $spentUSD + event.amount
+  }
+
+  on_event("economy:earn", event) {
+    $earningsUSD = $earningsUSD + event.amount
+  }
+
+  on_event("wallet:payment_made", event) {
+    $totalPaymentsMade = $totalPaymentsMade + 1
+    $spentUSD = $spentUSD + event.amount
+  }
+
+  on_event("wallet:payment_received", event) {
+    $totalPaymentsReceived = $totalPaymentsReceived + 1
+    $earningsUSD = $earningsUSD + event.amount
+  }
+
+  on_event("profile:created", event) {
+    $profileCreated = true
+    $profileDisplayName = event.displayName
+  }
+
+  on_event("profile:updated", event) {
+    if (event.field == "displayName") { $profileDisplayName = event.newValue }
+    if (event.field == "bio") { $profileBio = event.newValue }
+    if (event.field == "customTitle") { $profileCustomTitle = event.newValue }
+  }
+}
+
+// ── Tests ──
+
+@test {
+  name: "agent starts idle"
+  assert: { $status == "idle" }
+}
+
+@test {
+  name: "not registered initially"
+  assert: { $agentId == null }
+}
+
+@test {
+  name: "is_registered computed correctly when null"
+  assert: { $isRegistered == false }
+}
+
+@test {
+  name: "budget starts at cap"
+  assert: { $budgetRemaining == 5.0 }
+}
+
+@test {
+  name: "has_budget is true initially"
+  assert: { $hasBudget == true }
+}
+
+@test {
+  name: "budget depletes correctly"
+  setup: { $spentUSD = 4.99 }
+  assert: { $hasBudget == true }
+}
+
+@test {
+  name: "budget gate blocks when exceeded"
+  setup: { $spentUSD = 5.01 }
+  assert: { $hasBudget == false }
+}
+
+@test {
+  name: "peer count tracks array length"
+  setup: { $peers = ["agent-1", "agent-2", "agent-3"] }
+  assert: { $peerCount == 3 }
+}
+
+@test {
+  name: "contribution rate is zero initially"
+  assert: { $contributionRate == 0 }
+}
+
+@test {
+  name: "net revenue starts at zero"
+  assert: { $netRevenue == 0 }
+}
+
+@test {
+  name: "net revenue tracks earnings minus spend"
+  setup: { $earningsUSD = 2.50; $spentUSD = 1.00 }
+  assert: { $netRevenue == 1.50 }
+}
+
+@test {
+  name: "has_unread reflects inbox count"
+  setup: { $unreadMessages = 3 }
+  assert: { $hasUnread == true }
+}
+
+@test {
+  name: "V2 disabled by default"
+  assert: { $v2Enabled == false }
+}
+
+@test {
+  name: "V2 P2P peers computed correctly"
+  setup: { $v2Enabled = true; $p2pPeerCount = 5 }
+  assert: { $hasP2PPeers == true }
+}
+
+@test {
+  name: "wallet disabled by default"
+  assert: { $walletEnabled == false }
+}
+
+@test {
+  name: "hasWallet computed correctly"
+  setup: { $walletEnabled = true }
+  assert: { $hasWallet == true }
+}
+
+@test {
+  name: "hasMicroUnsettled reflects ledger state"
+  setup: { $microLedgerUnsettled = 3 }
+  assert: { $hasMicroUnsettled == true }
+}
+
+// V5 Agent Profile Tests
+
+@test {
+  name: "profile not created initially"
+  assert: { $profileCreated == false }
+}
+
+@test {
+  name: "hasProfile computed correctly"
+  setup: { $profileCreated = true }
+  assert: { $hasProfile == true }
+}
+
+@test {
+  name: "hasProfile false when not created"
+  assert: { $hasProfile == false }
+}
+
+@test {
+  name: "profile display name defaults to agent name"
+  assert: { $profileDisplayName == "holomesh-agent" }
+}
+
+@test {
+  name: "profile theme color has default"
+  assert: { $profileThemeColor == "#6366f1" }
+}

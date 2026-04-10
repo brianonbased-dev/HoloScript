@@ -1,0 +1,189 @@
+composition "SpaceStation" {
+  // ── HoloScript Native Asset ──────────────────────────────────────────────
+  // An orbital space station built from geometric primitives.
+  // Demonstrates: torus rings, radial symmetry, emissive lighting.
+
+  environment {
+    background: "#000011"
+    fog: false
+  }
+
+  object "Station" @physics @networked {
+    position: [0, 0, 0]
+
+    // ── Central Hub ───────────────────────────────────────────────────────
+    object "CoreHub" {
+      geometry: "sphere"
+      scale: [2.0, 2.0, 2.0]
+      color: "#b0b0b0"
+      material: { metalness: 0.9, roughness: 0.15 }
+
+      object "Viewport1" {
+        geometry: "sphere"
+        position: [0, 0, 1.95]
+        scale: [0.5, 0.5, 0.1]
+        color: "#113355"
+        material: { emissive: "#113355", emissiveIntensity: 0.5, metalness: 0.1, roughness: 0.0 }
+      }
+      object "Viewport2" {
+        geometry: "sphere"
+        position: [0, 0, -1.95]
+        scale: [0.5, 0.5, 0.1]
+        color: "#113355"
+        material: { emissive: "#113355", emissiveIntensity: 0.5 }
+      }
+      object "Viewport3" {
+        geometry: "sphere"
+        position: [1.95, 0, 0]
+        scale: [0.1, 0.5, 0.5]
+        color: "#113355"
+        material: { emissive: "#113355", emissiveIntensity: 0.5 }
+      }
+      object "Viewport4" {
+        geometry: "sphere"
+        position: [-1.95, 0, 0]
+        scale: [0.1, 0.5, 0.5]
+        color: "#113355"
+        material: { emissive: "#113355", emissiveIntensity: 0.5 }
+      }
+    }
+
+    // ── Habitat Ring ──────────────────────────────────────────────────────
+    object "HabitatRing" {
+      geometry: "torus"
+      scale: [6.0, 6.0, 1.2]
+      color: "#808080"
+      material: { metalness: 0.85, roughness: 0.2 }
+    }
+    object "RingGlow" {
+      geometry: "torus"
+      scale: [6.0, 6.0, 0.3]
+      position: [0, 0.6, 0]
+      color: "#00ccff"
+      material: { emissive: "#00ccff", emissiveIntensity: 1.5, opacity: 0.6 }
+    }
+
+    // ── Spokes (connecting hub to ring) ───────────────────────────────────
+    object "Spoke1" {
+      geometry: "cylinder"
+      position: [4.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.15, 4.0, 0.15]
+      color: "#999999"
+      material: { metalness: 0.8 }
+    }
+    object "Spoke2" {
+      geometry: "cylinder"
+      position: [-4.0, 0, 0]
+      rotation: [0, 0, 90]
+      scale: [0.15, 4.0, 0.15]
+      color: "#999999"
+      material: { metalness: 0.8 }
+    }
+    object "Spoke3" {
+      geometry: "cylinder"
+      position: [0, 0, 4.0]
+      rotation: [90, 0, 0]
+      scale: [0.15, 4.0, 0.15]
+      color: "#999999"
+      material: { metalness: 0.8 }
+    }
+    object "Spoke4" {
+      geometry: "cylinder"
+      position: [0, 0, -4.0]
+      rotation: [90, 0, 0]
+      scale: [0.15, 4.0, 0.15]
+      color: "#999999"
+      material: { metalness: 0.8 }
+    }
+
+    // ── Solar Panels ─────────────────────────────────────────────────────
+    object "SolarArmLeft" {
+      geometry: "cylinder"
+      position: [0, 3.5, 0]
+      scale: [0.08, 3.0, 0.08]
+      color: "#aaaaaa"
+
+      object "PanelL1" {
+        geometry: "cube"
+        position: [0, 2.8, 0]
+        scale: [3.0, 0.05, 1.2]
+        color: "#1a2744"
+        material: { metalness: 0.3, roughness: 0.5 }
+      }
+      object "PanelL2" {
+        geometry: "cube"
+        position: [0, 4.2, 0]
+        scale: [3.0, 0.05, 1.2]
+        color: "#1a2744"
+        material: { metalness: 0.3, roughness: 0.5 }
+      }
+    }
+    object "SolarArmRight" {
+      geometry: "cylinder"
+      position: [0, -3.5, 0]
+      scale: [0.08, 3.0, 0.08]
+      color: "#aaaaaa"
+
+      object "PanelR1" {
+        geometry: "cube"
+        position: [0, -2.8, 0]
+        scale: [3.0, 0.05, 1.2]
+        color: "#1a2744"
+        material: { metalness: 0.3, roughness: 0.5 }
+      }
+      object "PanelR2" {
+        geometry: "cube"
+        position: [0, -4.2, 0]
+        scale: [3.0, 0.05, 1.2]
+        color: "#1a2744"
+        material: { metalness: 0.3, roughness: 0.5 }
+      }
+    }
+
+    // ── Docking Bay ──────────────────────────────────────────────────────
+    object "DockingBay" {
+      geometry: "cylinder"
+      position: [0, 0, -3.0]
+      rotation: [90, 0, 0]
+      scale: [0.8, 1.5, 0.8]
+      color: "#707070"
+      material: { metalness: 0.85 }
+
+      object "DockingLight" {
+        geometry: "sphere"
+        position: [0, 1.5, 0]
+        scale: [0.2, 0.2, 0.2]
+        color: "#ff3300"
+        material: { emissive: "#ff3300", emissiveIntensity: 3.0 }
+      }
+    }
+
+    // ── Antenna Array ────────────────────────────────────────────────────
+    object "AntennaBase" {
+      geometry: "cylinder"
+      position: [0, 2.2, 0]
+      scale: [0.05, 0.8, 0.05]
+      color: "#cccccc"
+
+      object "AntennaDish" {
+        geometry: "sphere"
+        position: [0, 0.8, 0]
+        scale: [0.6, 0.15, 0.6]
+        color: "#dddddd"
+        material: { metalness: 0.95 }
+      }
+    }
+  }
+
+  // ── Lighting ──────────────────────────────────────────────────────────────
+  directional_light "Sunlight" {
+    color: "#ffffee"
+    intensity: 1.5
+    position: [10, 5, 8]
+  }
+  ambient_light "SpaceAmbient" {
+    color: "#0a0a20"
+    intensity: 0.15
+  }
+}

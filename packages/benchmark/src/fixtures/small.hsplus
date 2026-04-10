@@ -1,0 +1,28 @@
+@manifest {
+  title: "Benchmark Small"
+  version: "1.0.0"
+}
+
+orb "CubeA" {
+  color: "red"
+  scale: 1.0
+  position: [0, 0, -2]
+  @physics { mass: 1.0 }
+}
+
+orb "CubeB" {
+  color: "blue"
+  scale: 1.5
+  position: [2, 0, -2]
+  @grabbable
+}
+
+template "Base" {
+  opacity: 0.9
+}
+
+orb "CubeC" {
+  ...Base
+  color: "green"
+  position: [-2, 0, -2]
+}

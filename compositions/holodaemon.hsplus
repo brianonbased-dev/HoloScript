@@ -1,0 +1,857 @@
+/**
+ * HoloDaemon MVP — .hsplus Composition
+ *
+ * The first implementation of HoloScript scripting orchestrating both
+ * backend (daemon runner pipeline) and frontend (Studio dashboard).
+ * This composition bridges legacy TypeScript daemon infrastructure
+ * with native HoloScript AI orchestration.
+ *
+ * Architecture:
+ *   1. Dashboard surface — 2D operations view hydrated with live state
+ *   2. Behavior tree — orchestrates daemon cycles (intake → fix → verify → commit)
+ *   3. Agent pool — manages concurrent daemon workers with rate limiting
+ *   4. Telemetry feed — real-time metrics streamed to the UI
+ *
+ * This is the holodaemon MVP: proving that a .hsplus composition can
+ * define the daemon's behavior, its UI surface, and its orchestration
+ * logic in a single native HoloScript file. The legacy TypeScript
+ * runner continues to execute the actual daemon actions; this
+ * composition provides the declarative control plane.
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior + UI surface)
+ * @experiment HoloDaemon MVP — HoloScript-native daemon orchestration
+ * @see self-improve-daemon.hsplus (BT-level daemon actions)
+ * @see studio-operations-dashboard.hsplus (dashboard surface template)
+ */
+
+composition "HoloDaemon" {
+
+  // ========================================================================
+  // STATE — single source of truth for daemon + UI
+  // ========================================================================
+
+  state {
+    // ── Daemon Identity ──
+    daemonName: "HoloDaemon"
+    daemonVersion: "1.0.0"
+    daemonStatus: "idle"
+    daemonMode: "balanced"
+
+    // ── Job Queue ──
+    activeJobId: null
+    activeJobProgress: 0
+    activeJobStatus: "No active job"
+    totalJobsRun: 0
+    totalCommits: 0
+    totalPatchesProposed: 0
+
+    // ── Quality Metrics ──
+    qualityScore: 0
+    qualityDelta: 0
+    typeErrorCount: 0
+    testPassRate: 0
+
+    // ── Agent Pool ──
+    agents: [
+      { id: "planner", name: "Planner", state: "idle", role: "Analyzes project DNA and plans passes" },
+      { id: "fixer", name: "Fixer", state: "idle", role: "Generates and applies type/lint fixes" },
+      { id: "verifier", name: "Verifier", state: "idle", role: "Runs tsc + vitest + eslint validation" },
+      { id: "reviewer", name: "Reviewer", state: "idle", role: "Produces patch proposals for human review" }
+    ]
+
+    // ── Telemetry ──
+    recentEvents: []
+    costUSD: 0
+    tokensBurned: 0
+    cyclesCompleted: 0
+
+    // ── Configuration ──
+    projectPath: ""
+    maxCycles: 3
+    maxFilesChanged: 25
+    timeoutMs: 180000
+    protectedPaths: [".env*", "*.pem", "*.key", "credentials*", "secrets*"]
+
+    // ── UI Surface State ──
+    activeTab: "dashboard"
+    selectedPatchId: null
+    logFilter: "all"
+    surfaceFormat: "hsplus"
+
+    // ── Behavior Tree Status ──
+    btPhase: "idle"
+    btLastAction: "none"
+    btCandidateCount: 0
+    btCurrentCandidate: null
+
+    // ── Pass Configuration (mirrored from self-improve-daemon) ──
+    passes: ["absorb", "typefix", "lint", "coverage"]
+    currentPass: null
+    passProgress: {}
+  }
+
+  // ========================================================================
+  // COMPUTED — derived values for the UI
+  // ========================================================================
+
+  computed {
+    isRunning: $daemonStatus == "running"
+    hasActiveJob: $activeJobId != null
+    qualityPercent: Math.round($qualityScore * 100)
+    qualityDeltaSign: $qualityDelta >= 0 ? "+" : ""
+    qualityDeltaLabel: $qualityDeltaSign + String(Math.round($qualityDelta * 100)) + "%"
+    activeAgentCount: $agents.filter(a => a.state == "active").length
+    idleAgentCount: $agents.filter(a => a.state == "idle").length
+    costLabel: "$" + $costUSD.toFixed(2)
+    statusColor: $daemonStatus == "running" ? "#22c55e" : $daemonStatus == "error" ? "#ef4444" : "#f59e0b"
+    progressPercent: Math.round($activeJobProgress)
+  }
+
+  // ========================================================================
+  // TEMPLATES — reusable UI building blocks
+  // ========================================================================
+
+  template "MetricCard" {
+    type: "ui"
+    uiType: "panel"
+    width: 220
+    height: 100
+    padding: 12
+    backgroundColor: "#111827"
+    borderColor: "#334155"
+    cornerRadius: 10
+  }
+
+  template "AgentBadge" {
+    type: "ui"
+    uiType: "panel"
+    width: 180
+    height: 64
+    padding: 8
+    backgroundColor: "#0f172a"
+    borderColor: "#1e293b"
+    cornerRadius: 8
+  }
+
+  template "EventRow" {
+    type: "ui"
+    uiType: "panel"
+    width: 600
+    height: 32
+    padding: 4
+    backgroundColor: "transparent"
+    borderColor: "#1e293b"
+    cornerRadius: 4
+  }
+
+  // ========================================================================
+  // UI SURFACE — the holodaemon dashboard layout
+  // ========================================================================
+
+  object "DaemonShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1440
+    height: 900
+    backgroundColor: "#020617"
+    borderColor: "#1e293b"
+    cornerRadius: 0
+
+    // ── Header Bar ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 1440
+      height: 56
+      position: [0, 0]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: "HoloDaemon"
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [20, 16]
+      }
+
+      object "VersionBadge" {
+        type: "ui"
+        uiType: "text"
+        text: "v1.0.0 MVP"
+        fontSize: 11
+        color: "#64748b"
+        position: [140, 20]
+      }
+
+      object "StatusIndicator" {
+        type: "ui"
+        uiType: "panel"
+        width: 12
+        height: 12
+        position: [1340, 22]
+        backgroundColor: $statusColor
+        cornerRadius: 6
+      }
+
+      object "StatusLabel" {
+        type: "ui"
+        uiType: "text"
+        text: $daemonStatus
+        fontSize: 12
+        color: $statusColor
+        position: [1358, 18]
+      }
+    }
+
+    // ── Metric Cards Row ──
+    object "QualityCard" using "MetricCard" {
+      position: [20, 76]
+
+      object "QualityLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Quality Score"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "QualityValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($qualityPercent) + "%"
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 36]
+      }
+
+      object "QualityDelta" {
+        type: "ui"
+        uiType: "text"
+        text: $qualityDeltaLabel
+        fontSize: 12
+        color: $qualityDelta >= 0 ? "#22c55e" : "#ef4444"
+        position: [12, 72]
+      }
+    }
+
+    object "TypeErrorCard" using "MetricCard" {
+      position: [260, 76]
+
+      object "TELabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Type Errors"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "TEValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($typeErrorCount)
+        fontSize: 28
+        fontWeight: "bold"
+        color: $typeErrorCount > 0 ? "#f59e0b" : "#22c55e"
+        position: [12, 36]
+      }
+    }
+
+    object "JobsCard" using "MetricCard" {
+      position: [500, 76]
+
+      object "JobsLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Total Jobs Run"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "JobsValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($totalJobsRun)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 36]
+      }
+
+      object "CommitsCount" {
+        type: "ui"
+        uiType: "text"
+        text: String($totalCommits) + " commits"
+        fontSize: 12
+        color: "#22c55e"
+        position: [12, 72]
+      }
+    }
+
+    object "CostCard" using "MetricCard" {
+      position: [740, 76]
+
+      object "CostLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "API Cost"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "CostValue" {
+        type: "ui"
+        uiType: "text"
+        text: $costLabel
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 36]
+      }
+
+      object "TokenCount" {
+        type: "ui"
+        uiType: "text"
+        text: String($tokensBurned) + " tokens"
+        fontSize: 12
+        color: "#64748b"
+        position: [12, 72]
+      }
+    }
+
+    object "PatchesCard" using "MetricCard" {
+      position: [980, 76]
+
+      object "PatchLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Patches Proposed"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "PatchValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($totalPatchesProposed)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 36]
+      }
+    }
+
+    object "CyclesCard" using "MetricCard" {
+      position: [1200, 76]
+
+      object "CyclesLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Cycles"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 12]
+      }
+
+      object "CyclesValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($cyclesCompleted)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 36]
+      }
+    }
+
+    // ── Active Job Panel ──
+    object "ActiveJobPanel" {
+      type: "ui"
+      uiType: "panel"
+      width: 680
+      height: 280
+      position: [20, 196]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+      cornerRadius: 10
+
+      object "AJTitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Active Job"
+        fontSize: 14
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "AJStatus" {
+        type: "ui"
+        uiType: "text"
+        text: $activeJobStatus
+        fontSize: 12
+        color: "#94a3b8"
+        position: [16, 36]
+      }
+
+      object "AJProgressBar" {
+        type: "ui"
+        uiType: "panel"
+        width: 648
+        height: 8
+        position: [16, 60]
+        backgroundColor: "#1e293b"
+        cornerRadius: 4
+
+        object "AJProgressFill" {
+          type: "ui"
+          uiType: "panel"
+          width: $activeJobProgress * 6.48
+          height: 8
+          position: [0, 0]
+          backgroundColor: "#3b82f6"
+          cornerRadius: 4
+        }
+      }
+
+      object "AJProgressLabel" {
+        type: "ui"
+        uiType: "text"
+        text: String($progressPercent) + "%"
+        fontSize: 11
+        color: "#64748b"
+        position: [16, 74]
+      }
+
+      // ── BT Phase Indicator ──
+      object "BTPhaseLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "BT Phase: " + $btPhase
+        fontSize: 11
+        color: "#818cf8"
+        position: [16, 100]
+      }
+
+      object "BTActionLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Last Action: " + $btLastAction
+        fontSize: 11
+        color: "#64748b"
+        position: [16, 120]
+      }
+
+      object "BTCandidateLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Candidates: " + String($btCandidateCount)
+        fontSize: 11
+        color: "#64748b"
+        position: [16, 140]
+      }
+    }
+
+    // ── Agent Pool Panel ──
+    object "AgentPoolPanel" {
+      type: "ui"
+      uiType: "panel"
+      width: 700
+      height: 280
+      position: [720, 196]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+      cornerRadius: 10
+
+      object "APTitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Agent Pool"
+        fontSize: 14
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "APActiveCount" {
+        type: "ui"
+        uiType: "text"
+        text: String($activeAgentCount) + " active / " + String($idleAgentCount) + " idle"
+        fontSize: 11
+        color: "#94a3b8"
+        position: [16, 36]
+      }
+    }
+
+    // ── Pass Configuration Panel ──
+    object "PassConfigPanel" {
+      type: "ui"
+      uiType: "panel"
+      width: 680
+      height: 340
+      position: [20, 496]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+      cornerRadius: 10
+
+      object "PCTitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Daemon Passes"
+        fontSize: 14
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "PCDescription" {
+        type: "ui"
+        uiType: "text"
+        text: "Pipeline: absorb > typefix > lint > coverage"
+        fontSize: 11
+        color: "#94a3b8"
+        position: [16, 36]
+      }
+
+      object "PCCurrentPass" {
+        type: "ui"
+        uiType: "text"
+        text: "Current: " + ($currentPass ?? "none")
+        fontSize: 12
+        color: "#818cf8"
+        position: [16, 60]
+      }
+    }
+
+    // ── Event Feed Panel ──
+    object "EventFeedPanel" {
+      type: "ui"
+      uiType: "panel"
+      width: 700
+      height: 340
+      position: [720, 496]
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+      cornerRadius: 10
+
+      object "EFTitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Event Feed"
+        fontSize: 14
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 12]
+      }
+
+      object "EFSubtitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Real-time daemon activity"
+        fontSize: 11
+        color: "#94a3b8"
+        position: [16, 36]
+      }
+    }
+  }
+
+  // ========================================================================
+  // BEHAVIOR TREE — holodaemon orchestration
+  // ========================================================================
+  // This BT mirrors self-improve-daemon.hsplus but is specialized for the
+  // holodaemon MVP: it manages the daemon lifecycle from the Studio UI,
+  // dispatching work to the existing TypeScript runner backend.
+
+  object "DaemonOrchestrator" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "holodaemon_cycle",
+        children: [
+          // Phase 0: Initialize — load project path, validate config
+          {
+            type: "action",
+            name: "initialize",
+            action: "holodaemon_initialize"
+          },
+
+          // Phase 1: Absorb — scan codebase graph for fix candidates
+          {
+            type: "action",
+            name: "absorb_codebase",
+            action: "holodaemon_absorb"
+          },
+
+          // Phase 2: Select pass and execute daemon runner
+          {
+            type: "selector",
+            name: "pass_selector",
+            children: [
+              {
+                type: "sequence",
+                name: "typefix_pass",
+                children: [
+                  {
+                    type: "condition",
+                    name: "has_type_errors",
+                    condition: "type_errors_exist"
+                  },
+                  {
+                    type: "action",
+                    name: "run_typefix",
+                    action: "holodaemon_typefix"
+                  }
+                ]
+              },
+              {
+                type: "sequence",
+                name: "lint_pass",
+                children: [
+                  {
+                    type: "condition",
+                    name: "has_lint_errors",
+                    condition: "lint_errors_exist"
+                  },
+                  {
+                    type: "action",
+                    name: "run_lint",
+                    action: "holodaemon_lint"
+                  }
+                ]
+              },
+              {
+                type: "action",
+                name: "run_coverage",
+                action: "holodaemon_coverage"
+              }
+            ]
+          },
+
+          // Phase 3: Verify — run quality assessment
+          {
+            type: "action",
+            name: "verify_quality",
+            action: "holodaemon_verify"
+          },
+
+          // Phase 4: Report — update UI telemetry and propose patches
+          {
+            type: "action",
+            name: "report_results",
+            action: "holodaemon_report"
+          }
+        ]
+      },
+      tick_rate: 1,
+      restart_on_complete: false,
+      blackboard: {
+        initialized: false,
+        project_path: "",
+        type_errors_exist: false,
+        lint_errors_exist: false,
+        quality_before: 0,
+        quality_after: 0,
+        patches_generated: 0,
+        pass_complete: false
+      }
+    }
+
+    // Safety: rate limit API calls
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 10,
+      refill_rate: 2,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // Safety: timeout guard for stuck operations
+    @timeout_guard {
+      default_timeout_ms: 180000,
+      fallback_action: "abort"
+    }
+
+    // Safety: circuit breaker for cascading failures
+    @circuit_breaker {
+      failure_threshold: 3,
+      window_ms: 300000,
+      reset_timeout_ms: 60000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 3
+    }
+
+    // Telemetry: structured logging for daemon events
+    @structured_logger {
+      min_level: "info",
+      max_entries: 500,
+      rotation_count: 100,
+      emit_events: true,
+      console_output: false,
+      default_fields: {}
+    }
+
+    // Economy: track API spend
+    @economy {
+      initial_balance: 50,
+      default_spend_limit: 5,
+      spend_limit_period: 3600000,
+      max_transaction_history: 100,
+      escrow_enabled: false,
+      task_completion_reward: 0.10
+    }
+  }
+
+  // ========================================================================
+  // LOGIC — event handlers and state transitions
+  // ========================================================================
+
+  logic {
+    on_start() {
+      // Initialize daemon state from backend
+      emit("holodaemon:initialized", {
+        version: $daemonVersion,
+        mode: $daemonMode
+      })
+    }
+
+    on_event("daemon:job_created", event) {
+      $activeJobId = event.jobId
+      $activeJobStatus = "Job created, starting pipeline..."
+      $activeJobProgress = 0
+      $daemonStatus = "running"
+      $totalJobsRun = $totalJobsRun + 1
+    }
+
+    on_event("daemon:job_progress", event) {
+      $activeJobProgress = event.progress
+      $activeJobStatus = event.status
+      $btPhase = event.phase ?? $btPhase
+      $btLastAction = event.action ?? $btLastAction
+    }
+
+    on_event("daemon:job_completed", event) {
+      $daemonStatus = "idle"
+      $qualityScore = event.qualityAfter ?? $qualityScore
+      $qualityDelta = event.qualityDelta ?? 0
+      $totalPatchesProposed = $totalPatchesProposed + (event.patchCount ?? 0)
+      $totalCommits = $totalCommits + (event.commitCount ?? 0)
+      $activeJobStatus = "Complete: " + String(event.patchCount ?? 0) + " patches proposed"
+      $activeJobProgress = 100
+    }
+
+    on_event("daemon:job_failed", event) {
+      $daemonStatus = "error"
+      $activeJobStatus = "Failed: " + (event.error ?? "unknown error")
+      $activeJobProgress = 0
+    }
+
+    on_event("daemon:agent_state", event) {
+      // Update agent pool state
+      for (agent in $agents) {
+        if (agent.id == event.agentId) {
+          agent.state = event.state
+        }
+      }
+    }
+
+    on_event("daemon:telemetry", event) {
+      $costUSD = event.costUSD ?? $costUSD
+      $tokensBurned = event.tokensBurned ?? $tokensBurned
+      $cyclesCompleted = event.cycles ?? $cyclesCompleted
+      $typeErrorCount = event.typeErrors ?? $typeErrorCount
+      $testPassRate = event.testPassRate ?? $testPassRate
+    }
+  }
+
+  // ========================================================================
+  // TESTS — validate state defaults and computed derivations
+  // ========================================================================
+
+  @test {
+    name: "daemon name is HoloDaemon"
+    assert: { $daemonName == "HoloDaemon" }
+  }
+
+  @test {
+    name: "daemon starts idle"
+    assert: { $daemonStatus == "idle" }
+  }
+
+  @test {
+    name: "isRunning false when idle"
+    assert: { $isRunning == false }
+  }
+
+  @test {
+    name: "isRunning true when running"
+    setup: { $daemonStatus = "running" }
+    assert: { $isRunning == true }
+  }
+
+  @test {
+    name: "hasActiveJob false when null"
+    assert: { $hasActiveJob == false }
+  }
+
+  @test {
+    name: "qualityPercent rounds correctly"
+    setup: { $qualityScore = 0.856 }
+    assert: { $qualityPercent == 86 }
+  }
+
+  @test {
+    name: "qualityDeltaLabel positive format"
+    setup: { $qualityDelta = 0.05 }
+    assert: { $qualityDeltaLabel == "+5%" }
+  }
+
+  @test {
+    name: "qualityDeltaLabel negative format"
+    setup: { $qualityDelta = -0.12 }
+    assert: { $qualityDeltaLabel == "-12%" }
+  }
+
+  @test {
+    name: "costLabel formats to dollars"
+    setup: { $costUSD = 1.5 }
+    assert: { $costLabel == "$1.50" }
+  }
+
+  @test {
+    name: "statusColor green when running"
+    setup: { $daemonStatus = "running" }
+    assert: { $statusColor == "#22c55e" }
+  }
+
+  @test {
+    name: "statusColor red when error"
+    setup: { $daemonStatus = "error" }
+    assert: { $statusColor == "#ef4444" }
+  }
+
+  @test {
+    name: "statusColor amber when idle"
+    assert: { $statusColor == "#f59e0b" }
+  }
+
+  @test {
+    name: "progressPercent rounds progress"
+    setup: { $activeJobProgress = 67.8 }
+    assert: { $progressPercent == 68 }
+  }
+
+  @test {
+    name: "maxCycles defaults to 3"
+    assert: { $maxCycles == 3 }
+  }
+}

@@ -1,0 +1,219 @@
+// Android XR Example (Samsung XR, Meta Quest, etc.)
+// Compile: holoscript compile androidxr-app.holo --target androidxr
+// Output: Kotlin with Android XR SDK integration
+
+composition "Android XR Gallery" {
+  environment {
+    space_type: "full_space"  // home_space | full_space
+    passthrough: true
+    spatial_capabilities: [
+      "SPATIAL_AUDIO",
+      "HAND_TRACKING",
+      "PLANE_DETECTION",
+      "HIT_TESTING"
+    ]
+  }
+
+  // === Spatial Panels ===
+  spatial_group "Gallery" {
+    object "PhotoPanel1" {
+      @spatial_panel
+      @movable
+      position: [-1, 1.5, -2]
+      rotation: [0, 15, 0]
+      
+      panel: {
+        width: 800
+        height: 600
+        corner_radius: 24
+        elevation: 8
+      }
+
+      content: {
+        type: "compose"
+        composable: "PhotoViewerScreen"
+        props: {
+          imageUrl: "gallery/photo1.jpg"
+        }
+      }
+    }
+
+    object "PhotoPanel2" {
+      @spatial_panel
+      @movable
+      position: [0, 1.5, -2.5]
+      
+      panel: {
+        width: 800
+        height: 600
+      }
+
+      content: {
+        type: "compose"
+        composable: "PhotoViewerScreen"
+        props: {
+          imageUrl: "gallery/photo2.jpg"
+        }
+      }
+    }
+
+    object "PhotoPanel3" {
+      @spatial_panel
+      @movable
+      position: [1, 1.5, -2]
+      rotation: [0, -15, 0]
+      
+      panel: {
+        width: 800
+        height: 600
+      }
+
+      content: {
+        type: "compose"
+        composable: "PhotoViewerScreen"
+      }
+    }
+  }
+
+  // === 3D Objects ===
+  spatial_group "Sculptures" {
+    object "AbstractArt" {
+      @gltf_model
+      @orbitable
+      geometry: "model/abstract_sculpture.glb"
+      position: [0, 0.5, -1.5]
+      scale: [0.3, 0.3, 0.3]
+
+      state {
+        rotation_enabled: true
+      }
+
+      on_tap: {
+        this.state.rotation_enabled = !this.state.rotation_enabled
+      }
+
+      animation "spin" {
+        property: "rotation.y"
+        from: 0
+        to: 360
+        duration: 20000
+        loop: infinite
+        enabled_when: "this.state.rotation_enabled"
+      }
+    }
+
+    object "InfoPlaque" {
+      @spatial_panel
+      @anchored_to: "AbstractArt"
+      anchor_offset: [0, -0.3, 0.3]
+      
+      panel: {
+        width: 300
+        height: 150
+        transparent_background: true
+      }
+
+      content: {
+        type: "compose"
+        composable: "InfoCard"
+        props: {
+          title: "Flowing Forms"
+          artist: "Digital Artist"
+          year: 2024
+        }
+      }
+    }
+  }
+
+  // === Hand Interaction ===
+  object "LeftHand" {
+    @hand_mesh
+    hand: "left"
+    render_mesh: true
+    mesh_material: "hand_occlusion"
+  }
+
+  object "RightHand" {
+    @hand_mesh
+    hand: "right"
+    render_mesh: true
+    
+    gestures: {
+      pinch: {
+        enabled: true
+        action: "select"
+      }
+      palm_open: {
+        enabled: true
+        action: "show_menu"
+      }
+    }
+  }
+
+  // === Main Menu ===
+  object "MainMenu" {
+    @spatial_panel
+    @follows_head
+    visible: false
+    follow_distance: 1.5
+    
+    panel: {
+      width: 400
+      height: 500
+    }
+
+    content: {
+      type: "compose"
+      composable: "MainMenuScreen"
+    }
+
+    show_on_gesture: "palm_open"
+    hide_on_gesture: "fist"
+  }
+
+  // === Environment Anchors ===
+  anchor "GalleryAnchor" {
+    type: "plane"
+    plane_type: "floor"
+    persist: true
+  }
+
+  // === Spatial Audio ===
+  audio "AmbientMusic" {
+    @spatial_audio
+    source: "audio/gallery_ambient.mp3"
+    position: [0, 2, -2]
+    volume: 0.3
+    min_distance: 1
+    max_distance: 10
+    rolloff: "logarithmic"
+    loop: true
+  }
+
+  audio "SelectSound" {
+    source: "audio/select.mp3"
+    spatial: false
+    trigger_on: "object_selected"
+  }
+
+  // === Compose Activities ===
+  activity "GalleryActivity" {
+    layout: "spatial"
+    
+    lifecycle: {
+      on_resume: {
+        start_hand_tracking()
+        start_plane_detection()
+      }
+      on_pause: {
+        save_anchor_state()
+      }
+    }
+  }
+
+  // === Permissions ===
+  permissions: [
+    "android.permission.SCENE_UNDERSTANDING",
+    "android.permission.HAND_TRACKING"
+  ]
+}

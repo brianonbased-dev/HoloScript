@@ -1,0 +1,15 @@
+# Security Policy for HoloScript
+# This file complies with RFC 9116: https://www.rfc-editor.org/rfc/rfc9116.html
+
+Contact: https://github.com/brianonbased-dev/HoloScript/security/advisories/new
+Contact: mailto:security@holoscript.net
+Expires: 2027-02-26T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://holoscript.net/.well-known/security.txt
+
+# Security Reporting
+# Please report security vulnerabilities via GitHub Security Advisories or email.
+# We appreciate responsible disclosure and will respond promptly to all reports.
+
+# Acknowledgments
+# Thank you to all security researchers who help keep HoloScript secure.

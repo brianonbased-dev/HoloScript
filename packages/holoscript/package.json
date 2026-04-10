@@ -1,0 +1,53 @@
+{
+  "name": "@holoscript/sdk",
+  "version": "6.0.0",
+  "description": "@deprecated — Use @holoscript/core directly. This package is a thin re-export shim kept for backward compatibility. Will be removed in a future major release. (A.011.06d)",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.mjs",
+      "require": "./dist/schema/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests"
+  },
+  "keywords": [
+    "holoscript",
+    "smart-assets",
+    "sdk"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holoscript"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

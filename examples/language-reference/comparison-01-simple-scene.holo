@@ -1,0 +1,220 @@
+/**
+ * Cross-Format Comparison: Simple Scene (.holo format)
+ * Same functionality in three formats: .hs, .hsplus, .holo
+ * This is the ADVANCED (.holo entity pattern) version
+ */
+
+composition InteractiveVRRoom {
+
+  // === FLOOR ===
+  entity Floor {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0
+    }
+
+    advanced_pbr: {
+      base_color: [0.16, 0.16, 0.23],
+      metallic: 0.0,
+      roughness: 0.9
+    }
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    collider: {
+      type: "box",
+      is_trigger: false,
+      size: [20.0, 0.1, 20.0]
+    }
+  }
+
+  // === RED BALL ===
+  entity RedBall {
+    mesh: {
+      type: "sphere",
+      radius: 0.3
+    }
+
+    advanced_pbr: {
+      base_color: [1.0, 0.27, 0.27],
+      metallic: 0.2,
+      roughness: 0.6
+    }
+
+    transform: {
+      position: [-1.0, 1.0, -2.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    rigidbody: {
+      mass: 1.0,
+      gravity_enabled: true,
+      linear_drag: 0.05,
+      angular_drag: 0.05
+    }
+
+    collider: {
+      type: "sphere",
+      is_trigger: false,
+      material: {
+        friction: 0.5,
+        bounciness: 0.7
+      }
+    }
+
+    grabbable: {
+      enabled: true,
+      grab_type: "physics",
+      haptic_on_grab: true,
+      release_velocity_scale: 5.0
+    }
+
+    on_grab(event) {
+      console.log("Red ball grabbed");
+    }
+
+    on_release(event) {
+      console.log("Red ball released");
+    }
+  }
+
+  // === GREEN BALL ===
+  entity GreenBall {
+    mesh: {
+      type: "sphere",
+      radius: 0.3
+    }
+
+    advanced_pbr: {
+      base_color: [0.27, 1.0, 0.27],
+      metallic: 0.2,
+      roughness: 0.6
+    }
+
+    transform: {
+      position: [0.0, 1.0, -2.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    rigidbody: {
+      mass: 1.0,
+      gravity_enabled: true,
+      linear_drag: 0.05,
+      angular_drag: 0.05
+    }
+
+    collider: {
+      type: "sphere",
+      is_trigger: false,
+      material: {
+        friction: 0.5,
+        bounciness: 0.7
+      }
+    }
+
+    grabbable: {
+      enabled: true,
+      grab_type: "physics",
+      haptic_on_grab: true,
+      release_velocity_scale: 5.0
+    }
+
+    on_grab(event) {
+      console.log("Green ball grabbed");
+    }
+
+    on_release(event) {
+      console.log("Green ball released");
+    }
+  }
+
+  // === BLUE BALL ===
+  entity BlueBall {
+    mesh: {
+      type: "sphere",
+      radius: 0.3
+    }
+
+    advanced_pbr: {
+      base_color: [0.27, 0.27, 1.0],
+      metallic: 0.2,
+      roughness: 0.6
+    }
+
+    transform: {
+      position: [1.0, 1.0, -2.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    rigidbody: {
+      mass: 1.0,
+      gravity_enabled: true,
+      linear_drag: 0.05,
+      angular_drag: 0.05
+    }
+
+    collider: {
+      type: "sphere",
+      is_trigger: false,
+      material: {
+        friction: 0.5,
+        bounciness: 0.7
+      }
+    }
+
+    grabbable: {
+      enabled: true,
+      grab_type: "physics",
+      haptic_on_grab: true,
+      release_velocity_scale: 5.0
+    }
+
+    on_grab(event) {
+      console.log("Blue ball grabbed");
+    }
+
+    on_release(event) {
+      console.log("Blue ball released");
+    }
+  }
+
+  // === POINT LIGHT ===
+  entity Light {
+    light: {
+      type: "point",
+      color: [1.0, 1.0, 1.0],
+      intensity: 1.0,
+      range: 20.0,
+      cast_shadows: true
+    }
+
+    transform: {
+      position: [0.0, 3.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+  }
+}
+
+// === ADVANTAGES OF .holo ENTITY PATTERN ===
+// + Fine-grained trait control (advanced_pbr, rigidbody, etc.)
+// + Event handlers (on_grab, on_release)
+// + Advanced physics configuration
+// + PBR materials (metallic, roughness)
+// + Full control over all properties
+// + Explicit trait-based architecture
+// + Good for: Complex spatial computing, advanced VR/AR, precise control
+//
+// === DISADVANTAGES ===
+// - More verbose (no template reuse in entity pattern)
+// - Code duplication (3 similar ball entities)
+// - Better suited for unique objects rather than repeated instances
+// - Note: .holo can also use object+template pattern (see comparison-01-simple-scene-hybrid.holo)

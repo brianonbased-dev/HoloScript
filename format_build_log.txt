@@ -1,0 +1,80 @@
+﻿
+> @holoscript/framework@1.0.0 build C:\Users\josep\Documents\GitHub\HoloScript\packages\framework
+> tsup
+
+[34mCLI[39m Building entry: {"index":"src/index.ts","behavior":"src/behavior.ts","agents/index":"src/agents/index.ts","economy/index":"src/economy/index.ts","ai/index":"src/ai/index.ts"}
+[34mCLI[39m Using tsconfig: tsconfig.json
+[34mCLI[39m tsup v8.5.1
+[34mCLI[39m Using tsup config: C:\Users\josep\Documents\GitHub\HoloScript\packages\framework\tsup.config.ts
+[34mCLI[39m Target: es2022
+[34mCLI[39m Cleaning output folder
+[34mESM[39m Build start
+[32mESM[39m [1mdist\index.js         [22m[32m318.26 KB[39m
+[32mESM[39m [1mdist\agents\index.js  [22m[32m130.04 KB[39m
+[32mESM[39m [1mdist\ai\index.js      [22m[32m38.56 KB[39m
+[32mESM[39m [1mdist\economy\index.js [22m[32m109.52 KB[39m
+[32mESM[39m [1mdist\behavior.js      [22m[32m3.77 KB[39m
+[32mESM[39m ΓÜí∩╕Å Build success in 536ms
+[34mDTS[39m Build start
+node.exe : src/economy/x402-facili
+tator.ts(984,34): error TS2315: 
+Type 'TraitHandler' is not 
+generic.
+At C:\Users\josep\AppData\Roaming\
+npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node
+_modules/pnpm/bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (src/economy/x40..  
+  .is not generic.:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+src/economy/x402-facilitator.ts(10
+18,10): error TS2339: Property 
+'__creditState' does not exist on 
+type 'HSPlusNode'.
+src/economy/x402-facilitator.ts(10
+29,24): error TS2339: Property 
+'__creditState' does not exist on 
+type 'HSPlusNode'.
+src/economy/x402-facilitator.ts(10
+39,17): error TS2339: Property 
+'__creditState' does not exist on 
+type 'HSPlusNode'.
+src/economy/x402-facilitator.ts(10
+43,24): error TS2339: Property 
+'__creditState' does not exist on 
+type 'HSPlusNode'.
+src/economy/x402-facilitator.ts(10
+57,24): error TS2339: Property 
+'__creditState' does not exist on 
+type 'HSPlusNode'.
+
+[31mError: error occurred in dts 
+build
+    at Worker.<anonymous> (C:\User
+s\josep\Documents\GitHub\HoloScrip
+t\node_modules\.pnpm\tsup@8.5.1_po
+stcss@8.5.8_tsx@4.21.0_typescript@
+5.9.3\node_modules\tsup\dist\index
+.js:1545:26)
+    at Worker.emit 
+(node:events:519:28)
+    at MessagePort.<anonymous> 
+(node:internal/worker:270:53)
+    at 
+[nodejs.internal.kHybridDispatch] 
+(node:internal/event_target:827:20
+)
+    at MessagePort.<anonymous> (no
+de:internal/per_context/messagepor
+t:23:28)[39m
+[31mDTS[39m [31mBuild 
+error[39m
+C:\Users\josep\Documents\GitHub\HoloScript\packages\framework:
+ΓÇëERR_PNPM_RECURSIVE_RUN_FIRST_FAILΓÇë @holoscript/framework@1.0.0 build: `tsup`
+Exit status 1

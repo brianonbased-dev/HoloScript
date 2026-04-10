@@ -1,0 +1,118 @@
+// Watcher Agent — Monitors systems and alerts on anomalies
+// Pattern: Poll → Compare → Classify → Alert-or-Ignore
+
+@state {
+  targets: []
+  lastResults: {}
+  alerts: []
+  checkCount: 0
+}
+
+composition WatcherAgent {
+  @ai_npc
+  @llm_agent { model: "claude-haiku-4-5", max_tokens: 512 }
+
+  state {
+    pollInterval: 120
+    consecutiveFailures: {}
+    alertThreshold: 3
+  }
+
+  @external_api "health_check" {
+    method: "GET"
+    timeout: 5000
+    description: "Probe a service health endpoint"
+  }
+
+  @external_api "slack_webhook" {
+    endpoint: "${env.SLACK_WEBHOOK}"
+    method: "POST"
+    description: "Send alert to Slack"
+  }
+
+  @state_machine {
+    initial: "polling"
+
+    state "polling" {
+      on_entry {
+        this.checkCount += 1
+
+        @forEach target in targets {
+          this.result = tool_call("health_check", {
+            url: target.url
+          })
+
+          this.lastResults[target.name] = {
+            ok: result.ok,
+            status: result.statusCode,
+            latency: result.latencyMs,
+            timestamp: now()
+          }
+
+          @if !result.ok {
+            this.consecutiveFailures[target.name] =
+              (consecutiveFailures[target.name] || 0) + 1
+          } @else {
+            this.consecutiveFailures[target.name] = 0
+          }
+        }
+      }
+      transition "anomaly_detected" -> "classifying" {
+        guard: Object.values(consecutiveFailures).some(v => v >= alertThreshold)
+      }
+      transition "all_healthy" -> "sleeping" {
+        guard: Object.values(consecutiveFailures).every(v => v < alertThreshold)
+      }
+    }
+
+    state "classifying" {
+      on_entry {
+        // Find which services are failing
+        this.failingServices = Object.entries(consecutiveFailures)
+          .filter(([_, count]) => count >= alertThreshold)
+          .map(([name, count]) => ({ name, consecutiveFailures: count, lastResult: lastResults[name] }))
+
+        this.severity = failingServices.length >= 3 ? "critical"
+          : failingServices.some(s => s.consecutiveFailures >= 10) ? "critical"
+          : "warning"
+      }
+      transition "alert" -> "alerting"
+    }
+
+    state "alerting" {
+      on_entry {
+        @forEach service in failingServices {
+          this.alert = {
+            service: service.name,
+            severity: severity,
+            consecutiveFailures: service.consecutiveFailures,
+            lastStatus: service.lastResult.status,
+            lastLatency: service.lastResult.latency,
+            timestamp: now()
+          }
+          this.alerts.push(alert)
+
+          tool_call("slack_webhook", {
+            body: {
+              text: "${severity == 'critical' ? '🔴' : '⚠️'} ${service.name} — ${service.consecutiveFailures} consecutive failures (status: ${service.lastResult.status})"
+            }
+          })
+        }
+
+        emit("watcher_alert", {
+          severity: severity,
+          services: failingServices.length,
+          checkCount: checkCount
+        })
+      }
+      transition "alerted" -> "sleeping"
+    }
+
+    state "sleeping" {
+      on_entry {
+        wait(pollInterval * 1000)
+      }
+      transition "wake" -> "polling"
+    }
+  }
+}

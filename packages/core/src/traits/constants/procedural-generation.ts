@@ -1,0 +1,30 @@
+/**
+ * Procedural Generation Traits
+ */
+export const PROCEDURAL_GENERATION_TRAITS = [
+  'procedural_terrain',
+  'procedural_city',
+  'procedural_dungeon',
+  'procedural_biome',
+  'procedural_npc',
+  'procedural_loot',
+  'procedural_quest',
+  'procedural_music',
+  'procedural_texture',
+  'procedural_vegetation',
+  'procedural_weather',
+  'procedural_dialogue',
+  'noise_generator',
+  'wave_function_collapse',
+  'l_system',
+  'voronoi',
+  'fractal',
+  'cellular_automata',
+  'marching_cubes',
+  'heightmap',
+  'erosion',
+  'river_generator',
+  'road_generator',
+  'cave_generator',
+  'maze_generator',
+] as const;

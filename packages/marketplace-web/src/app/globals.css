@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --accent: #f0f9ff;
+  --accent-foreground: #0369a1;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --muted: #262626;
+    --muted-foreground: #a3a3a3;
+    --border: #262626;
+    --primary: #38bdf8;
+    --primary-foreground: #0c4a6e;
+    --accent: #082f49;
+    --accent-foreground: #7dd3fc;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --success: #16a34a;
+    --warning: #d97706;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+}
+
+/* Code blocks */
+pre,
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Category badge colors */
+.category-rendering {
+  background-color: #fff7ed;
+  color: #c2410c;
+}
+.category-physics {
+  background-color: #f0fdf4;
+  color: #15803d;
+}
+.category-networking {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+.category-audio {
+  background-color: #faf5ff;
+  color: #7e22ce;
+}
+.category-ui {
+  background-color: #fdf2f8;
+  color: #be185d;
+}
+.category-ai {
+  background-color: #f0fdfa;
+  color: #0d9488;
+}
+.category-blockchain {
+  background-color: #fffbeb;
+  color: #b45309;
+}
+.category-utility {
+  background-color: #f9fafb;
+  color: #4b5563;
+}
+
+@media (prefers-color-scheme: dark) {
+  .category-rendering {
+    background-color: #431407;
+    color: #fdba74;
+  }
+  .category-physics {
+    background-color: #052e16;
+    color: #86efac;
+  }
+  .category-networking {
+    background-color: #172554;
+    color: #93c5fd;
+  }
+  .category-audio {
+    background-color: #3b0764;
+    color: #d8b4fe;
+  }
+  .category-ui {
+    background-color: #500724;
+    color: #f9a8d4;
+  }
+  .category-ai {
+    background-color: #042f2e;
+    color: #5eead4;
+  }
+  .category-blockchain {
+    background-color: #451a03;
+    color: #fcd34d;
+  }
+  .category-utility {
+    background-color: #1f2937;
+    color: #d1d5db;
+  }
+}
+
+/* Trait card hover effect */
+.trait-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.trait-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Rating stars */
+.star-rating {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.star {
+  color: var(--muted-foreground);
+  transition: color 0.1s ease;
+}
+
+.star.filled {
+  color: #fbbf24;
+}
+
+.star-rating.interactive .star:hover,
+.star-rating.interactive .star:hover ~ .star {
+  color: #fbbf24;
+}
+
+/* Install button states */
+.install-button {
+  transition: all 0.2s ease;
+}
+
+.install-button.installing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.install-button.installed {
+  background-color: var(--success);
+}

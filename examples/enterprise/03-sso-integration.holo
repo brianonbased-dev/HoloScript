@@ -1,0 +1,305 @@
+/**
+ * SSO Integration — HoloScript v5.0 Enterprise Example
+ *
+ * Demonstrates single sign-on integration with SSOTrait.
+ * This example shows:
+ *  - SAML 2.0 integration (enterprise standard)
+ *  - OpenID Connect (OIDC) integration
+ *  - Multi-factor authentication (MFA) flow
+ *  - Session management with expiration
+ *  - Identity provider (IdP) configuration
+ *  - Just-in-time (JIT) user provisioning
+ *
+ * Use Case: Enterprise Identity Integration
+ *   - Integrate with Okta, Azure AD, Google Workspace
+ *   - Centralized user management
+ *   - Seamless authentication experience
+ *   - Enhanced security with MFA
+ *
+ * Run this example:
+ *   holoc examples/enterprise/03-sso-integration.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene EnterpriseSSO {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SAML 2.0 CONFIGURATION (Enterprise IdP)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SAMLProvider {
+    traits: [sso];
+
+    sso: {
+      protocol: "saml2",
+
+      // Identity Provider configuration
+      idp: {
+        entityId: "https://idp.acme.com/sso/saml",
+        ssoUrl: "https://idp.acme.com/sso/saml/login",
+        sloUrl: "https://idp.acme.com/sso/saml/logout",
+        x509Certificate: "-----BEGIN CERTIFICATE-----\nMIID...(certificate data)...\n-----END CERTIFICATE-----",
+        nameIDFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+      },
+
+      // Service Provider (our application)
+      sp: {
+        entityId: "https://holoscript.acme.com/saml/metadata",
+        assertionConsumerServiceUrl: "https://holoscript.acme.com/saml/acs",
+        singleLogoutServiceUrl: "https://holoscript.acme.com/saml/slo",
+      },
+
+      // SAML binding method
+      binding: "HTTP-POST",
+
+      // Session configuration
+      sessionTTL: 28800000,  // 8 hours
+      requireMFA: true,
+      jitProvisioningEnabled: true,
+
+      // Attribute mapping
+      attributeMapping: {
+        email: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+        firstName: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+        lastName: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+        role: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // OIDC CONFIGURATION (Modern Web/Mobile)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity OIDCProvider {
+    traits: [sso];
+
+    sso: {
+      protocol: "oidc",
+
+      // OpenID Connect configuration
+      idp: {
+        issuer: "https://accounts.google.com",
+        authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+        tokenEndpoint: "https://oauth2.googleapis.com/token",
+        userinfoEndpoint: "https://openidconnect.googleapis.com/v1/userinfo",
+        jwksUri: "https://www.googleapis.com/oauth2/v3/certs",
+      },
+
+      // OAuth 2.0 client credentials
+      clientId: "123456789-abcdefg.apps.googleusercontent.com",
+      clientSecret: "GOCSPX-...",
+
+      // Scopes
+      scopes: ["openid", "profile", "email"],
+
+      // Redirect URIs
+      redirectUri: "https://holoscript.startup.io/auth/callback",
+
+      sessionTTL: 3600000,  // 1 hour (shorter for OIDC)
+      requireMFA: false,
+      jitProvisioningEnabled: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Authentication Flow
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SAMLProvider, "sso_initiated") {
+    log("🔐 SSO authentication initiated");
+    log(`  Protocol: ${event.protocol}`);
+    log(`  User: ${event.userId}`);
+    log(`  Redirect URL: ${event.redirectUrl}`);
+  }
+
+  on(SAMLProvider, "saml_assertion_received") {
+    log("📨 SAML assertion received");
+    log(`  Name ID: ${event.nameId}`);
+    log(`  Session ID: ${event.sessionId}`);
+    log(`  Attributes:`);
+    for (const [key, value] of Object.entries(event.attributes)) {
+      log(`    ${key}: ${value}`);
+    }
+  }
+
+  on(SAMLProvider, "sso_authenticated") {
+    log("✅ SSO authentication successful");
+    log(`  User ID: ${event.userId}`);
+    log(`  Email: ${event.email}`);
+    log(`  Name: ${event.firstName} ${event.lastName}`);
+    log(`  Role: ${event.role}`);
+    log(`  Session expires: ${event.sessionExpiresAt}`);
+  }
+
+  on(SAMLProvider, "sso_failed") {
+    log("❌ SSO authentication failed");
+    log(`  Reason: ${event.reason}`);
+    log(`  Error code: ${event.errorCode}`);
+    log(`  Details: ${event.details}`);
+  }
+
+  on(OIDCProvider, "oidc_token_received") {
+    log("🎫 OIDC tokens received");
+    log(`  Access token: ${event.accessToken.substring(0, 20)}...`);
+    log(`  Refresh token: ${event.refreshToken ? "present" : "none"}`);
+    log(`  ID token: ${event.idToken.substring(0, 20)}...`);
+    log(`  Expires in: ${event.expiresIn}s`);
+  }
+
+  on(OIDCProvider, "oidc_userinfo_loaded") {
+    log("👤 User info loaded from OIDC");
+    log(`  Sub: ${event.sub}`);
+    log(`  Email: ${event.email}`);
+    log(`  Email verified: ${event.emailVerified}`);
+    log(`  Name: ${event.name}`);
+    log(`  Picture: ${event.picture}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — MFA Flow
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SAMLProvider, "mfa_required") {
+    log("🔒 MFA required");
+    log(`  User: ${event.userId}`);
+    log(`  MFA methods: ${event.availableMethods.join(", ")}`);
+  }
+
+  on(SAMLProvider, "mfa_code_sent") {
+    log("📱 MFA code sent");
+    log(`  Method: ${event.method}`);
+    log(`  Destination: ${event.destination}`);
+    log(`  Code expires in: ${event.expiresIn}s`);
+  }
+
+  on(SAMLProvider, "mfa_verified") {
+    log("✅ MFA verification successful");
+    log(`  User: ${event.userId}`);
+    log(`  Method: ${event.method}`);
+  }
+
+  on(SAMLProvider, "mfa_failed") {
+    log("❌ MFA verification failed");
+    log(`  User: ${event.userId}`);
+    log(`  Attempts remaining: ${event.attemptsRemaining}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Session Management
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SAMLProvider, "session_created") {
+    log("🎟️  Session created");
+    log(`  Session ID: ${event.sessionId}`);
+    log(`  User: ${event.userId}`);
+    log(`  Expires at: ${event.expiresAt}`);
+  }
+
+  on(SAMLProvider, "session_renewed") {
+    log("🔄 Session renewed");
+    log(`  Session ID: ${event.sessionId}`);
+    log(`  New expiration: ${event.newExpiresAt}`);
+  }
+
+  on(SAMLProvider, "session_expired") {
+    log("⏰ Session expired");
+    log(`  Session ID: ${event.sessionId}`);
+    log(`  User: ${event.userId}`);
+  }
+
+  on(SAMLProvider, "session_revoked") {
+    log("🚫 Session revoked");
+    log(`  Session ID: ${event.sessionId}`);
+    log(`  Reason: ${event.reason}`);
+    log(`  Revoked by: ${event.revokedBy}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — JIT Provisioning
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SAMLProvider, "user_provisioned") {
+    log("👤 User auto-provisioned (JIT)");
+    log(`  User ID: ${event.userId}`);
+    log(`  Email: ${event.email}`);
+    log(`  Source: ${event.source}`);
+    log(`  Default role assigned: ${event.defaultRole}`);
+  }
+
+  on(SAMLProvider, "user_updated") {
+    log("🔄 User profile updated from IdP");
+    log(`  User ID: ${event.userId}`);
+    log(`  Updated fields: ${event.updatedFields.join(", ")}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Initiate SAML SSO login
+  on(DemoControls, "click") {
+    if (event.target === "saml_login_button") {
+      emit(SAMLProvider, "initiate_sso", {
+        userId: "alice@acme.com",
+        relayState: "/dashboard",
+      });
+      log("🚀 Initiating SAML SSO login...");
+    }
+  }
+
+  // Demo 2: Initiate OIDC login
+  on(DemoControls, "click") {
+    if (event.target === "oidc_login_button") {
+      emit(OIDCProvider, "initiate_sso", {
+        userId: "bob@startup.io",
+        state: "xyz123",
+        nonce: "abc456",
+      });
+      log("🚀 Initiating OIDC login...");
+    }
+  }
+
+  // Demo 3: Verify MFA code
+  on(DemoControls, "click") {
+    if (event.target === "verify_mfa_button") {
+      emit(SAMLProvider, "verify_mfa", {
+        userId: "alice@acme.com",
+        code: "123456",
+        method: "totp",
+      });
+      log("🔐 Verifying MFA code...");
+    }
+  }
+
+  // Demo 4: Logout (Single Logout)
+  on(DemoControls, "click") {
+    if (event.target === "logout_button") {
+      emit(SAMLProvider, "initiate_slo", {
+        sessionId: "session_abc123",
+      });
+      log("👋 Initiating single logout...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SSODashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "SINGLE SIGN-ON INTEGRATION\n\n🔐 Supported Protocols:\n  • SAML 2.0 (Enterprise standard)\n  • OpenID Connect (Modern web/mobile)\n\n🏢 Enterprise IdP Support:\n  • Okta\n  • Azure Active Directory\n  • Google Workspace\n  • OneLogin\n  • Auth0\n\n🛡️  Security Features:\n  • Multi-factor authentication (TOTP, SMS)\n  • Session timeout (1-8 hours)\n  • Single logout (SLO)\n  • Token refresh\n  • JIT user provisioning\n\n📊 SAML Attributes:\n  • Email, name, role\n  • Department, groups\n  • Custom claims",
+      fontSize: 0.11,
+      color: "#7c3aed",
+    };
+  }
+}

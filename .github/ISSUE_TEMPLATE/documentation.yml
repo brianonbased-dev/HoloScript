@@ -1,0 +1,56 @@
+name: 📚 Documentation Issue
+description: Report an issue with HoloScript documentation
+title: '[Docs]: '
+labels: ['documentation', 'good first issue']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation!
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Documentation Issue
+      description: Describe what's wrong or missing in the documentation
+      placeholder: The documentation for @trait doesn't explain...
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Where is this documentation located? (URL, file path, or section name)
+      placeholder: 'https://holoscript.net/docs/traits or README.md section 3'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      options:
+        - Missing documentation
+        - Incorrect documentation
+        - Unclear/confusing documentation
+        - Outdated documentation
+        - Typo/grammar
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How would you improve this documentation?
+      placeholder: I suggest adding...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to help fix this?
+      options:
+        - label: I'm willing to submit a PR to fix this documentation

@@ -1,0 +1,30 @@
+# Snyk (https://snyk.io) policy file
+
+# Specifies Snyk's behavior for vulnerability monitoring and patching
+
+version: v1.25.0
+
+# Ignore specific vulnerabilities (with justification and expiry)
+ignore: {}
+
+# Patch specific vulnerabilities
+patch: {}
+
+# Language settings
+language-settings:
+  javascript:
+    ignoreDevDependencies: false
+
+# Exclude paths from scanning
+exclude:
+  global:
+    - '**/node_modules/**'
+    - '**/dist/**'
+    - '**/coverage/**'
+    - '**/test/**'
+    - '**/*.test.ts'
+    - '**/*.spec.ts'
+    - '**/examples/**'
+    - '**/datasets/**'
+    - '**/__tests__/**'
+    - '**/__mocks__/**'

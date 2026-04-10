@@ -1,0 +1,263 @@
+// ============================================================================
+// Spatial Audio Showcase -- Concert Hall
+// ============================================================================
+// Demonstrates HoloScript's advanced spatial audio traits inside a
+// concert hall environment. Features binaural rendering, ambisonics,
+// room acoustics simulation, and sound portals between spaces.
+//
+// Traits covered (7 traits, previously missing):
+//   @ambisonics         -- Ambisonics encoding/decoding (up to 3rd order)
+//   @hrtf               -- Head-related transfer function for binaural audio
+//   @reverb_zone        -- Acoustic room simulation with decay/reflections
+//   @audio_occlusion    -- Sound blocked/muffled by geometry
+//   @audio_portal       -- Sound transmission between connected spaces
+//   @audio_material     -- Surface acoustic absorption/reflection properties
+//   @head_tracked_audio -- Audio locked to head orientation for VR
+// ============================================================================
+
+composition "Spatial Audio Showcase" {
+
+  metadata {
+    title: "Concert Hall Spatial Audio"
+    description: "Binaural rendering, ambisonics, room acoustics, occlusion, and sound portals"
+    version: "1.0"
+    tags: ["audio", "spatial", "ambisonics", "hrtf", "reverb", "occlusion", "binaural"]
+  }
+
+  scene {
+    environment {
+      skybox: "interior_dark"
+      lighting: "theatrical"
+    }
+
+    // ----------------------------------------------------------
+    // LISTENER (AUDIENCE SEAT)
+    // ----------------------------------------------------------
+    // Primary audio listener with HRTF binaural rendering and
+    // head tracking for VR headset users.
+
+    audio_listener "AudienceSeat" {
+      @hrtf(profile: "kemar_diffuse", interpolation: "bilinear")
+      @head_tracked_audio(tracking_mode: "6dof", latency_compensation: true)
+      @head_tracked_audio(crossfade_ms: 8, prediction_ms: 16)
+      position: [0, 1.2, 8]
+      global_volume: 1.0
+      speed_of_sound: 343
+    }
+
+    // ----------------------------------------------------------
+    // MAIN HALL REVERB ZONE
+    // ----------------------------------------------------------
+    // Modeled after a 2,000-seat shoebox hall (Musikverein).
+    // RT60 of ~2.0s at mid frequencies.
+
+    reverb_zone "MainHallAcoustics" {
+      @reverb_zone(type: "convolution", ir_file: "impulses/musikverein_hall.wav")
+      @reverb_zone(rt60_low: 2.4, rt60_mid: 2.0, rt60_high: 1.4)
+      @reverb_zone(early_reflections: 12, late_diffusion: 0.85)
+      @reverb_zone(room_volume: 15000, air_absorption: 0.002)
+      position: [0, 6, 0]
+      min_distance: 2
+      max_distance: 35
+      decay_time: 2.0
+      diffusion: 85
+      density: 92
+    }
+
+    // ----------------------------------------------------------
+    // STAGE PERFORMERS -- AMBISONICS SOURCES
+    // ----------------------------------------------------------
+    // Each instrument encoded in Higher Order Ambisonics (HOA),
+    // decoded to binaural via the listener's @hrtf trait.
+
+    // Grand piano -- center stage
+    audio_source "GrandPiano" {
+      @ambisonics(order: 3, format: "acn_sn3d", channel_count: 16)
+      @ambisonics(near_field_compensation: true, distance: 6.0)
+      @hrtf(profile: "kemar_diffuse")
+      @audio_material(source_directivity: "cardioid", directivity_freq: 2000)
+      clip: "audio/steinway_concert_d.ogg"
+      volume: 0.85
+      spatial_blend: 1.0
+      position: [0, 1.0, -2]
+      min_distance: 1
+      max_distance: 40
+      loop: true
+    }
+
+    // First violin section -- stage left
+    audio_source "ViolinSection" {
+      @ambisonics(order: 2, format: "acn_sn3d", channel_count: 9)
+      @hrtf(profile: "kemar_diffuse")
+      clip: "audio/violin_ensemble_legato.ogg"
+      volume: 0.7
+      spatial_blend: 1.0
+      position: [-3, 1.0, -3]
+      min_distance: 1
+      max_distance: 35
+      spread: 45
+      loop: true
+    }
+
+    // Cello section -- stage right
+    audio_source "CelloSection" {
+      @ambisonics(order: 2, format: "acn_sn3d", channel_count: 9)
+      @hrtf(profile: "kemar_diffuse")
+      clip: "audio/cello_ensemble_sustain.ogg"
+      volume: 0.75
+      spatial_blend: 1.0
+      position: [3, 1.0, -3]
+      min_distance: 1
+      max_distance: 35
+      spread: 40
+      loop: true
+    }
+
+    // Timpani -- rear center stage
+    audio_source "Timpani" {
+      @ambisonics(order: 1, format: "acn_sn3d", channel_count: 4)
+      @hrtf(profile: "kemar_diffuse")
+      @audio_material(source_directivity: "omnidirectional")
+      clip: "audio/timpani_roll.ogg"
+      volume: 0.9
+      spatial_blend: 1.0
+      position: [0, 1.0, -6]
+      min_distance: 2
+      max_distance: 45
+      spread: 90
+      loop: false
+    }
+
+    // ----------------------------------------------------------
+    // ACOUSTIC SURFACES -- @audio_material
+    // ----------------------------------------------------------
+    // Defines how sound reflects, absorbs, and diffuses.
+
+    // Hardwood stage floor -- highly reflective
+    object "StageFloor" {
+      @audio_material(absorption_low: 0.05, absorption_mid: 0.08, absorption_high: 0.10)
+      @audio_material(scattering: 0.15, transmission_loss: 45)
+      @collidable
+      geometry: "cube"
+      position: [0, -0.05, -3]
+      scale: [12, 0.1, 8]
+      color: "#5c3a1e"
+      material: "hardwood"
+    }
+
+    // Rear wall -- Schroeder diffuser panels
+    object "RearWallDiffuser" {
+      @audio_material(absorption_low: 0.15, absorption_mid: 0.20, absorption_high: 0.30)
+      @audio_material(scattering: 0.85, diffusion_pattern: "schroeder")
+      @collidable
+      geometry: "cube"
+      position: [0, 4, 14]
+      scale: [14, 8, 0.3]
+      color: "#3a3a44"
+      material: "acoustic_panel"
+    }
+
+    // Side walls -- wood paneling with occlusion
+    object "WallLeft" {
+      @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+      @audio_material(scattering: 0.3)
+      @audio_occlusion(transmission_loss: 35, frequency_dependent: true)
+      @collidable
+      geometry: "cube"
+      position: [-7, 4, 5]
+      scale: [0.3, 8, 20]
+      color: "#5a4a3a"
+      material: "wood_panel"
+    }
+
+    object "WallRight" {
+      @audio_material(absorption_low: 0.10, absorption_mid: 0.12, absorption_high: 0.15)
+      @audio_material(scattering: 0.3)
+      @audio_occlusion(transmission_loss: 35, frequency_dependent: true)
+      @collidable
+      geometry: "cube"
+      position: [7, 4, 5]
+      scale: [0.3, 8, 20]
+      color: "#5a4a3a"
+      material: "wood_panel"
+    }
+
+    // ----------------------------------------------------------
+    // BACKSTAGE -- OCCLUDED SPACE WITH PORTAL
+    // ----------------------------------------------------------
+    // Separate acoustic space behind the stage. Sound leaks
+    // through the stage door via @audio_portal.
+
+    object "BackWall" {
+      @audio_occlusion(transmission_loss: 40, frequency_dependent: true)
+      @audio_occlusion(low_freq_bleed: 0.15, high_freq_bleed: 0.02)
+      @audio_material(absorption_low: 0.20, absorption_mid: 0.25, absorption_high: 0.35)
+      @collidable
+      geometry: "cube"
+      position: [0, 4, -8]
+      scale: [14, 8, 0.4]
+      color: "#4a4a54"
+      material: "concrete"
+    }
+
+    reverb_zone "BackstageAcoustics" {
+      @reverb_zone(type: "algorithmic", preset: "small_room")
+      @reverb_zone(rt60_low: 0.6, rt60_mid: 0.4, rt60_high: 0.25)
+      @reverb_zone(room_volume: 200)
+      position: [0, 2, -12]
+      min_distance: 1
+      max_distance: 8
+      decay_time: 0.4
+      diffusion: 60
+      density: 70
+    }
+
+    // Stage door -- @audio_portal connecting two spaces
+    object "StageDoor" {
+      @audio_portal(source_zone: "MainHallAcoustics", target_zone: "BackstageAcoustics")
+      @audio_portal(opening_factor: 0.6, frequency_filter: "low_pass")
+      @audio_portal(cutoff_hz: 800, falloff: "inverse_square")
+      @audio_occlusion(transmission_loss: 8)
+      geometry: "cube"
+      position: [-3, 1.2, -8]
+      scale: [1.0, 2.4, 0.4]
+      color: "#3a3025"
+      material: "wood"
+    }
+
+    // Backstage ambient -- muffled HVAC hum
+    ambience "BackstageHVAC" {
+      @audio_material(source_directivity: "omnidirectional")
+      clip: "audio/hvac_hum_quiet.ogg"
+      volume: 0.25
+      loop: true
+      play_on_awake: true
+      spatial_blend: 0.5
+      position: [0, 3, -12]
+    }
+
+    // ----------------------------------------------------------
+    // AUDIENCE AND CEILING
+    // ----------------------------------------------------------
+
+    object "AudienceFloor" {
+      @audio_material(absorption_low: 0.25, absorption_mid: 0.35, absorption_high: 0.40)
+      @audio_material(scattering: 0.5)
+      @collidable
+      geometry: "plane"
+      position: [0, 0, 8]
+      scale: [14, 1, 12]
+      color: "#2a1a10"
+      material: "carpet"
+    }
+
+    object "Ceiling" {
+      @audio_material(absorption_low: 0.02, absorption_mid: 0.03, absorption_high: 0.05)
+      @audio_material(scattering: 0.10)
+      geometry: "plane"
+      position: [0, 10, 5]
+      scale: [14, 1, 25]
+      color: "#e8e0d4"
+    }
+  }
+}

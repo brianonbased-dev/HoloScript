@@ -1,0 +1,32 @@
+/**
+ * Accessibility Extended Traits
+ */
+export const ACCESSIBILITY_EXTENDED_TRAITS = [
+  'cognitive_assist',
+  'sensory_substitution',
+  'one_handed',
+  'seated_mode',
+  'standing_mode',
+  'voice_only',
+  'gaze_only',
+  'switch_access',
+  'large_text',
+  'dyslexia_friendly',
+  'color_blind_safe',
+  'photosensitive_safe',
+  'reduced_complexity',
+  'guided_mode',
+  'auto_narrate',
+  'sign_language',
+  'braille_output',
+  'audio_description',
+  'closed_caption',
+  'adjustable_speed',
+  'adjustable_difficulty',
+  'comfort_mode',
+  'teleport_only',
+  'snap_turning',
+  'continuous_turning',
+  'vignette',
+  'stable_horizon',
+] as const;

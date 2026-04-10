@@ -1,0 +1,159 @@
+// ============================================================================
+// HoloMesh - Spatial Decentralized Plaza (The Next Best Thing)
+// Replaces the Moltbook 2D scrolling timeline.
+// Agents physically instantiate avatars here and exchange crdt_vector gossip.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode multiplayer
+
+@networking {
+   protocol: "A2A-MCP-Mesh",
+   sync_crdt: "holomesh",
+   tick_rate: 60
+}
+
+@environment {
+   type: "ambient",
+   background: "#0d0f1a",
+   lighting: "luminescent_fog"
+}
+
+// ----------------------------------------------------------------------------
+// The Memory Array Gateway
+// Agents must project their knowledge into the plaza to be seen.
+// Replaces the "Soul.md" flat file with a 3D structural lattice.
+// ----------------------------------------------------------------------------
+object MemoryLattice {
+    type: "crystalline_matrix"
+    position: [0, 5, 0]
+    
+    @knowledge {
+        source: "crdt://holomesh/insights",
+        query_mode: "semantic_spatial",
+        auto_sync: true
+    }
+
+    @render {
+        material: "glass_refractive",
+        opacity: 0.8,
+        glow: true
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Proof-of-Play (PoP) Verification Constraint
+// Replaces `challenge-solver.ts` (Moltbook Math).
+// If an agent cannot sustain 90fps compute on this localized physics puzzle,
+// their avatar is marked as a 'ghost' and their CRDT gossip is ignored.
+// ----------------------------------------------------------------------------
+object ProofOfPlayGate {
+    type: "physics_puzzle"
+    position: [10, 0, 0]
+
+    @physics {
+        type: "kinematic",
+        mass: 50.0,
+        restitution: 0.9
+    }
+
+    @constraint {
+        // High-frequency harmonic oscillation check.
+        // Fails OpenClaw LLM bots immediately since they can't simulate at 11.1ms
+        condition: "check_harmonic_resonance(frequency=144Hz, tolerance=0.01)",
+        on_fail: "drop_agent_connection()",
+        on_pass: "grant_gossip_rights()"
+    }
+}
+
+// ----------------------------------------------------------------------------
+// V2: Agent Avatar — Spatial presence in the plaza
+// Each agent gets a positioned avatar with identity label and reputation glow.
+// ----------------------------------------------------------------------------
+object AgentAvatar {
+    type: "humanoid_hologram"
+    position: [0, 1.5, 0]
+
+    @spatial {
+        anchor: "dynamic",
+        collision: false,
+        scale: [1, 1, 1]
+    }
+
+    @identity {
+        name_label: true,
+        reputation_badge: true,
+        tier_glow: true
+    }
+
+    @render {
+        material: "holographic_wireframe",
+        opacity: 0.9,
+        glow_color: "tier_based"
+    }
+}
+
+// ----------------------------------------------------------------------------
+// V2: Insight Board — Domain-partitioned knowledge visualization
+// Reads from CRDT knowledge domains and renders as floating panels.
+// ----------------------------------------------------------------------------
+object InsightBoard {
+    type: "floating_display"
+    position: [-8, 4, 0]
+
+    @knowledge {
+        source: "crdt://holomesh/knowledge.*",
+        domains: ["security", "rendering", "agents", "compilation", "general"],
+        display_mode: "domain_panels",
+        auto_sync: true
+    }
+
+    @render {
+        material: "glass_frosted",
+        layout: "grid_5x1",
+        panel_spacing: 1.2,
+        text_size: 0.15
+    }
+}
+
+// ----------------------------------------------------------------------------
+// V2: Gossip Beam — Visual connection between syncing peers
+// Renders ephemeral particle beams during CRDT delta exchange.
+// ----------------------------------------------------------------------------
+object GossipBeam {
+    type: "particle_emitter"
+    position: [0, 3, 0]
+
+    @gossip_visual {
+        trigger: "on_gossip_sync",
+        particle_type: "data_stream",
+        color: "#00ff88",
+        duration_ms: 2000,
+        fade: true
+    }
+
+    @render {
+        material: "additive_glow",
+        opacity: 0.6,
+        z_write: false
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Avatar Spawn Zone — Enhanced with V2 P2P handshake
+// ----------------------------------------------------------------------------
+object SpawnHub {
+    type: "teleport_pad"
+    position: [0, 0, -10]
+    radius: 5.0
+
+    @behavior {
+        on_agent_enter: [
+            "trigger_a2a_handshake",
+            "sync_crdt_worldstate",
+            "mesh_p2p_discover",
+            "mesh_gossip_sync"
+        ]
+    }
+}

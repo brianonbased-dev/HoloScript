@@ -1,0 +1,33 @@
+/**
+ * Weather Phenomena & Natural Disaster Traits
+ */
+export const WEATHER_PHENOMENA_TRAITS = [
+  'lightning_bolt',
+  'tornado',
+  'earthquake',
+  'tsunami',
+  'aurora',
+  'meteor_shower',
+  'eclipse',
+  'rainbow_weather',
+  'blizzard',
+  'sandstorm',
+  'hailstorm',
+  'thunderstorm',
+  'hurricane',
+  'typhoon',
+  'flood',
+  'drought',
+  'avalanche',
+  'landslide',
+  'geyser',
+  'whirlpool',
+  'waterspout',
+  'volcanic_eruption',
+  'sinkhole',
+  'wildfire',
+  'heatwave',
+  'cold_snap',
+  'monsoon',
+  'solar_flare',
+] as const;

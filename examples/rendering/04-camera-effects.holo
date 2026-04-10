@@ -1,0 +1,520 @@
+/**
+ * Camera Effects Example
+ *
+ * Demonstrates cinematic camera effects: motion blur, depth of field,
+ * chromatic aberration, lens flare, and film grain.
+ *
+ * Key Features:
+ * - Motion Blur: Per-object and camera motion vectors
+ * - Depth of Field: Bokeh shapes, physical camera model
+ * - Chromatic Aberration: Lens dispersion simulation
+ * - Lens Flare: Physically-based ghosts and halation
+ * - Film Grain: Perlin noise, temporal stability
+ *
+ * Performance (4K @ 60 FPS):
+ * - Motion Blur: ~2ms (tiled reconstruction, 8 samples)
+ * - DOF: ~3ms (scatter-as-you-gather, hex bokeh)
+ * - Chromatic Aberration: ~0.3ms (single pass)
+ * - Lens Flare: ~1ms (additive blend, 8 ghosts)
+ * - Film Grain: ~0.2ms (3D noise lookup)
+ *
+ * @version 5.1.0
+ * @category Rendering
+ * @research McGuire 2012 (motion blur), Jimenez 2014 (DOF), Hullin 2011 (CA)
+ */
+
+composition CameraEffectsShowcase {
+  // Fast-moving object for motion blur
+  entity SpinningSphere {
+    mesh: {
+      type: "sphere",
+      radius: 0.5,
+      segments: 64,
+    },
+
+    advanced_pbr: {
+      base_color: [0.8, 0.2, 0.2],
+      metallic: 0.8,
+      roughness: 0.2,
+    },
+
+    transform: {
+      position: [0.0, 1.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+    },
+
+    // Animate rotation for motion blur
+    animation: {
+      type: "rotation",
+      axis: [0.0, 1.0, 0.0],
+      speed: 360.0,  // degrees per second
+      loop: true,
+    },
+  }
+
+  // Ground plane
+  entity Ground {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.3, 0.3, 0.3],
+      metallic: 0.0,
+      roughness: 0.8,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [-90.0, 0.0, 0.0],
+    },
+  }
+
+  // Foreground object for DOF
+  entity ForegroundCube {
+    mesh: {
+      type: "box",
+      width: 0.5,
+      height: 0.5,
+      depth: 0.5,
+    },
+
+    advanced_pbr: {
+      base_color: [0.2, 0.6, 0.9],
+      metallic: 0.0,
+      roughness: 0.4,
+    },
+
+    transform: {
+      position: [-1.5, 0.5, 2.0],  // Close to camera
+    },
+  }
+
+  // Background object for DOF
+  entity BackgroundCube {
+    mesh: {
+      type: "box",
+      width: 0.5,
+      height: 0.5,
+      depth: 0.5,
+    },
+
+    advanced_pbr: {
+      base_color: [0.9, 0.6, 0.2],
+      metallic: 0.0,
+      roughness: 0.4,
+    },
+
+    transform: {
+      position: [1.5, 0.5, -2.0],  // Far from camera
+    },
+  }
+
+  // Bright light source for lens flare
+  entity SunLight {
+    light_source: {
+      type: "directional",
+      color: [1.0, 0.98, 0.9],
+      intensity: 5.0,
+      cast_shadows: true,
+    },
+
+    transform: {
+      rotation: [-30.0, 45.0, 0.0],
+    },
+  }
+
+  // Camera with all effects enabled
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 2.0, 5.0],
+      target: [0.0, 1.0, 0.0],
+
+      // Physical camera parameters for DOF
+      focal_length: 50.0,        // mm
+      aperture: 2.8,             // f-stop
+      focus_distance: 5.0,       // meters
+      sensor_size: [36.0, 24.0], // Full-frame sensor (mm)
+    },
+
+    // Motion Blur
+    motion_blur: {
+      enabled: true,
+      shutter_speed: 60.0,       // FPS (1/60 = 16.67ms shutter)
+      samples: 8,                // Temporal samples
+      max_velocity: 100.0,       // Max pixel velocity
+
+      // Advanced
+      tiled_reconstruction: true,
+      tile_size: 40,             // Pixels per tile
+      velocity_scale: 1.0,       // Motion exaggeration
+    },
+
+    // Depth of Field
+    depth_of_field: {
+      enabled: true,
+      focus_mode: "manual",      // "manual" or "autofocus"
+      focus_distance: 5.0,       // Focus plane distance
+      aperture: 2.8,             // f-stop (lower = more blur)
+
+      // Bokeh shape
+      bokeh: {
+        shape: "hexagonal",      // "circular", "hexagonal", "octagonal"
+        blade_count: 6,          // Aperture blades (hexagonal)
+        blade_rotation: 0.0,     // Rotation in radians
+        anisotropy: [1.0, 1.0],  // Anamorphic squeeze
+      },
+
+      // Quality
+      samples: 64,               // Bokeh samples (32, 64, 128)
+      max_coc: 32.0,             // Max circle of confusion (pixels)
+      near_transition: 1.0,      // Near blur transition (m)
+      far_transition: 2.0,       // Far blur transition (m)
+    },
+
+    // Chromatic Aberration
+    chromatic_aberration: {
+      enabled: true,
+      intensity: 0.5,            // Dispersion strength
+      samples: 3,                // RGB split samples (3 or 5)
+
+      // Radial falloff
+      falloff: "radial",         // "radial", "barrel", "uniform"
+      center: [0.5, 0.5],        // Aberration center (UV)
+      radial_strength: 1.0,      // Radial scaling
+    },
+
+    // Lens Flare
+    lens_flare: {
+      enabled: true,
+      intensity: 1.0,
+      threshold: 0.8,            // Brightness threshold
+
+      // Ghost parameters
+      ghosts: 8,                 // Number of lens ghosts
+      ghost_dispersal: 0.3,      // Ghost spacing
+      ghost_threshold: 1.0,      // Ghost brightness threshold
+
+      // Halo
+      halo_radius: 0.5,          // Halo size
+      halo_thickness: 0.1,       // Halo width
+      halo_intensity: 0.5,       // Halo brightness
+
+      // Chromatic aberration on flare
+      chromatic_distortion: 2.0,
+
+      // Dirt texture
+      dirt_texture: "./assets/lens_dirt.png",
+      dirt_intensity: 0.3,
+    },
+
+    // Film Grain
+    film_grain: {
+      enabled: true,
+      intensity: 0.15,           // Grain strength
+      size: 1.0,                 // Grain size
+      colored: false,            // Color or luminance grain
+
+      // Temporal stability
+      static_grain: false,       // Animate grain each frame
+      luma_contribution: 0.8,    // Grain vs luminance correlation
+    },
+  }
+
+  // Event handlers for effect monitoring
+
+  on Camera.motion_blur.rendered -> (event) {
+    console.log(`Motion Blur: ${event.time_ms.toFixed(2)}ms, max_velocity=${event.max_velocity_pixels.toFixed(1)}px`);
+
+    if (event.max_velocity_pixels > 200) {
+      console.warn(`⚠ High motion velocity: ${event.max_velocity_pixels.toFixed(1)}px`);
+    }
+  }
+
+  on Camera.depth_of_field.focused -> (event) {
+    console.log(`DOF: focus_distance=${event.focus_distance.toFixed(2)}m, max_coc=${event.max_coc.toFixed(1)}px`);
+  }
+
+  on Camera.depth_of_field.rendered -> (event) {
+    console.log(`DOF: ${event.time_ms.toFixed(2)}ms, samples=${event.samples}, bokeh=${event.bokeh_shape}`);
+  }
+
+  on Camera.lens_flare.computed -> (event) {
+    console.log(`Lens Flare: ghosts=${event.ghost_count}, screen_pos=[${event.screen_position}]`);
+  }
+
+  on frame_rendered -> (event) {
+    const cameraFXTime = Camera.motion_blur.time_ms +
+                         Camera.depth_of_field.time_ms +
+                         Camera.chromatic_aberration.time_ms +
+                         Camera.lens_flare.time_ms +
+                         Camera.film_grain.time_ms;
+
+    const budget = 16.67;  // 60 FPS
+    const percent = (cameraFXTime / budget) * 100;
+
+    if (percent > 50.0) {
+      console.warn(`⚠ Camera FX using ${percent.toFixed(1)}% of frame budget`);
+    }
+  }
+}
+
+// Camera effects controls
+ui CameraFXControls {
+  panel "Camera Effects" {
+    section "Motion Blur" {
+      checkbox "Enable Motion Blur" {
+        value: true,
+        onChange: (checked) => {
+          Camera.motion_blur.enabled = checked;
+        }
+      }
+
+      slider "Shutter Speed (FPS)" {
+        min: 24.0, max: 120.0, value: 60.0, step: 1.0,
+        onChange: (value) => {
+          Camera.motion_blur.shutter_speed = value;
+        }
+      }
+
+      slider "Samples" {
+        min: 4, max: 16, value: 8, step: 2,
+        onChange: (value) => {
+          Camera.motion_blur.samples = value;
+        }
+      }
+
+      slider "Velocity Scale" {
+        min: 0.0, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          Camera.motion_blur.velocity_scale = value;
+        }
+      }
+    }
+
+    section "Depth of Field" {
+      checkbox "Enable DOF" {
+        value: true,
+        onChange: (checked) => {
+          Camera.depth_of_field.enabled = checked;
+        }
+      }
+
+      slider "Focus Distance (m)" {
+        min: 0.5, max: 20.0, value: 5.0, step: 0.1,
+        onChange: (value) => {
+          Camera.depth_of_field.focus_distance = value;
+        }
+      }
+
+      slider "Aperture (f-stop)" {
+        min: 1.4, max: 22.0, value: 2.8, step: 0.1,
+        onChange: (value) => {
+          Camera.depth_of_field.aperture = value;
+        }
+      }
+
+      dropdown "Bokeh Shape" {
+        options: ["circular", "hexagonal", "octagonal"],
+        value: "hexagonal",
+        onChange: (value) => {
+          Camera.depth_of_field.bokeh.shape = value;
+        }
+      }
+
+      slider "Samples" {
+        min: 32, max: 128, value: 64, step: 16,
+        onChange: (value) => {
+          Camera.depth_of_field.samples = value;
+        }
+      }
+
+      button "Autofocus: Foreground" -> () {
+        Camera.depth_of_field.focus_distance = 2.0;
+      }
+
+      button "Autofocus: Center" -> () {
+        Camera.depth_of_field.focus_distance = 5.0;
+      }
+
+      button "Autofocus: Background" -> () {
+        Camera.depth_of_field.focus_distance = 8.0;
+      }
+    }
+
+    section "Chromatic Aberration" {
+      checkbox "Enable CA" {
+        value: true,
+        onChange: (checked) => {
+          Camera.chromatic_aberration.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 2.0, value: 0.5, step: 0.1,
+        onChange: (value) => {
+          Camera.chromatic_aberration.intensity = value;
+        }
+      }
+
+      dropdown "Falloff" {
+        options: ["radial", "barrel", "uniform"],
+        value: "radial",
+        onChange: (value) => {
+          Camera.chromatic_aberration.falloff = value;
+        }
+      }
+
+      slider "Radial Strength" {
+        min: 0.0, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          Camera.chromatic_aberration.radial_strength = value;
+        }
+      }
+    }
+
+    section "Lens Flare" {
+      checkbox "Enable Lens Flare" {
+        value: true,
+        onChange: (checked) => {
+          Camera.lens_flare.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          Camera.lens_flare.intensity = value;
+        }
+      }
+
+      slider "Ghosts" {
+        min: 0, max: 16, value: 8, step: 1,
+        onChange: (value) => {
+          Camera.lens_flare.ghosts = value;
+        }
+      }
+
+      slider "Ghost Dispersal" {
+        min: 0.1, max: 1.0, value: 0.3, step: 0.05,
+        onChange: (value) => {
+          Camera.lens_flare.ghost_dispersal = value;
+        }
+      }
+
+      slider "Halo Radius" {
+        min: 0.1, max: 1.0, value: 0.5, step: 0.05,
+        onChange: (value) => {
+          Camera.lens_flare.halo_radius = value;
+        }
+      }
+
+      slider "Dirt Intensity" {
+        min: 0.0, max: 1.0, value: 0.3, step: 0.05,
+        onChange: (value) => {
+          Camera.lens_flare.dirt_intensity = value;
+        }
+      }
+    }
+
+    section "Film Grain" {
+      checkbox "Enable Film Grain" {
+        value: true,
+        onChange: (checked) => {
+          Camera.film_grain.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 1.0, value: 0.15, step: 0.01,
+        onChange: (value) => {
+          Camera.film_grain.intensity = value;
+        }
+      }
+
+      slider "Size" {
+        min: 0.5, max: 3.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          Camera.film_grain.size = value;
+        }
+      }
+
+      checkbox "Colored Grain" {
+        value: false,
+        onChange: (checked) => {
+          Camera.film_grain.colored = checked;
+        }
+      }
+
+      checkbox "Static Grain" {
+        value: false,
+        onChange: (checked) => {
+          Camera.film_grain.static_grain = checked;
+        }
+      }
+    }
+
+    section "Performance" {
+      text "Motion Blur" {
+        value: () => `${Camera.motion_blur.time_ms.toFixed(2)} ms`
+      }
+
+      text "DOF" {
+        value: () => `${Camera.depth_of_field.time_ms.toFixed(2)} ms`
+      }
+
+      text "Chromatic Aberration" {
+        value: () => `${Camera.chromatic_aberration.time_ms.toFixed(2)} ms`
+      }
+
+      text "Lens Flare" {
+        value: () => `${Camera.lens_flare.time_ms.toFixed(2)} ms`
+      }
+
+      text "Film Grain" {
+        value: () => `${Camera.film_grain.time_ms.toFixed(2)} ms`
+      }
+
+      text "Total Camera FX" {
+        value: () => {
+          const total = Camera.motion_blur.time_ms +
+                       Camera.depth_of_field.time_ms +
+                       Camera.chromatic_aberration.time_ms +
+                       Camera.lens_flare.time_ms +
+                       Camera.film_grain.time_ms;
+          return `${total.toFixed(2)} ms`;
+        }
+      }
+    }
+
+    section "Presets" {
+      button "Cinematic" -> () {
+        Camera.motion_blur.shutter_speed = 48.0;
+        Camera.depth_of_field.aperture = 2.8;
+        Camera.depth_of_field.bokeh.shape = "hexagonal";
+        Camera.film_grain.intensity = 0.2;
+        Camera.lens_flare.intensity = 1.0;
+      }
+
+      button "Clean & Sharp" -> () {
+        Camera.motion_blur.enabled = false;
+        Camera.depth_of_field.aperture = 22.0;
+        Camera.chromatic_aberration.intensity = 0.0;
+        Camera.film_grain.intensity = 0.0;
+        Camera.lens_flare.intensity = 0.0;
+      }
+
+      button "Vintage Film" -> () {
+        Camera.motion_blur.shutter_speed = 24.0;
+        Camera.chromatic_aberration.intensity = 1.5;
+        Camera.film_grain.intensity = 0.4;
+        Camera.film_grain.colored = true;
+      }
+    }
+  }
+}

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Earthquake Demo - HoloScript</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #000;
+        color: #fff;
+        overflow: hidden;
+      }
+
+      #app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #stats {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      #stats h2 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+        color: #00ff88;
+      }
+
+      #stats .stat-row {
+        margin: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      #stats .label {
+        color: #888;
+      }
+
+      #stats .value {
+        color: #fff;
+        font-weight: bold;
+      }
+
+      #stats .value.good {
+        color: #00ff88;
+      }
+
+      #stats .value.warn {
+        color: #ffaa00;
+      }
+
+      #stats .value.bad {
+        color: #ff4444;
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      #controls h3 {
+        margin: 0 0 10px 0;
+        color: #00ff88;
+        font-size: 16px;
+      }
+
+      #controls .key {
+        display: inline-block;
+        background: #333;
+        padding: 3px 8px;
+        border-radius: 4px;
+        margin-right: 5px;
+        font-weight: bold;
+        color: #00ff88;
+      }
+
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 100;
+      }
+
+      #loading h1 {
+        font-size: 36px;
+        margin-bottom: 20px;
+        color: #00ff88;
+      }
+
+      #loading .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #00ff88;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Loading screen -->
+      <div id="loading">
+        <h1>🌋 Advanced Earthquake Demo</h1>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px">Initializing advanced rendering systems...</p>
+      </div>
+
+      <!-- Stats panel -->
+      <div id="stats" class="hidden">
+        <h2>📊 Performance</h2>
+        <div class="stat-row">
+          <span class="label">FPS:</span>
+          <span class="value good" id="fps">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Frame Time:</span>
+          <span class="value" id="frameTime">0ms</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Objects:</span>
+          <span class="value" id="objects">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Triangles:</span>
+          <span class="value" id="triangles">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Draw Calls:</span>
+          <span class="value" id="drawCalls">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Quality:</span>
+          <span class="value" id="quality">HIGH</span>
+        </div>
+      </div>
+
+      <!-- Controls panel -->
+      <div id="controls" class="hidden">
+        <h3>⌨️ Keyboard Controls</h3>
+        <div style="margin: 5px 0"><span class="key">R</span> Reset Simulation</div>
+        <div style="margin: 5px 0"><span class="key">B</span> Toggle Bounding Boxes</div>
+        <div style="margin: 5px 0"><span class="key">G</span> Toggle Grid</div>
+        <div style="margin: 5px 0"><span class="key">P</span> Toggle Post-Processing</div>
+        <div style="margin: 5px 0"><span class="key">Q</span> Cycle Quality</div>
+        <div style="margin: 5px 0"><span class="key">S</span> Export Stats</div>
+        <div style="margin: 5px 0"><span class="key">H</span> Show Console Help</div>
+      </div>
+    </div>
+
+    <script type="module">
+      // Import the demo (adjust path as needed for your build setup)
+      // In a real setup, you'd bundle this with Vite/Webpack
+      import { AdvancedEarthquakeDemo } from './advanced-earthquake-demo.ts';
+
+      // Hide loading screen after demo starts
+      async function init() {
+        try {
+          const demo = new AdvancedEarthquakeDemo();
+          await demo.start();
+
+          // Hide loading, show UI
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('stats').classList.remove('hidden');
+          document.getElementById('controls').classList.remove('hidden');
+
+          // Update stats every 100ms
+          setInterval(() => {
+            updateStats();
+          }, 100);
+
+          console.log('✅ Demo initialized successfully');
+        } catch (error) {
+          console.error('❌ Failed to initialize demo:', error);
+          document.getElementById('loading').innerHTML = `
+          <h1 style="color: #ff4444;">⚠️ Error</h1>
+          <p>${error.message}</p>
+        `;
+        }
+      }
+
+      function updateStats() {
+        if (window.demo && window.demo.inspector) {
+          const stats = window.demo.inspector.getStats();
+
+          // Update FPS (color based on performance)
+          const fpsEl = document.getElementById('fps');
+          fpsEl.textContent = stats.fps;
+          fpsEl.className =
+            'value ' + (stats.fps >= 55 ? 'good' : stats.fps >= 30 ? 'warn' : 'bad');
+
+          // Update other stats
+          document.getElementById('frameTime').textContent = stats.frameTime.toFixed(2) + 'ms';
+          document.getElementById('objects').textContent = stats.objectCount.toLocaleString();
+          document.getElementById('triangles').textContent = stats.triangleCount.toLocaleString();
+          document.getElementById('drawCalls').textContent = stats.drawCalls;
+          document.getElementById('quality').textContent = stats.quality.toUpperCase();
+        }
+      }
+
+      // Start when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    </script>
+  </body>
+</html>

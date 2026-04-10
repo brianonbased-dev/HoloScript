@@ -1,0 +1,58 @@
+{
+  "name": "@holoscript/r3f-renderer",
+  "version": "6.0.2",
+  "description": "Shared React Three Fiber renderer components for HoloScript",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/generate-types.mjs",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@react-three/drei": ">=10.0.0",
+    "@react-three/fiber": ">=9.0.0",
+    "react": ">=18.0.0",
+    "three": ">=0.159.0"
+  },
+  "devDependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@types/react": "^18.2.0",
+    "@types/three": "^0.170.0",
+    "react": "^18.2.0",
+    "three": "^0.182.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.0"
+  },
+  "author": "Brian Joseph",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "keywords": [
+    "holoscript",
+    "xr",
+    "webxr",
+    "vr",
+    "ar",
+    "spatial-computing"
+  ]
+}

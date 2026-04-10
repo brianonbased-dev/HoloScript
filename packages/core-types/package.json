@@ -1,0 +1,65 @@
+{
+  "name": "@holoscript/core-types",
+  "version": "6.0.2",
+  "description": "Pure type definitions for HoloScript \u00e2\u20ac\u201d lightweight mirror of @holoscript/core types with zero runtime dependencies. Canonical types live in packages/core/src/types/.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./composition": {
+      "types": "./dist/composition.d.ts",
+      "import": "./dist/composition.js"
+    },
+    "./ast": {
+      "types": "./dist/ast.d.ts",
+      "import": "./dist/ast.js"
+    },
+    "./animation": {
+      "types": "./dist/animation.d.ts",
+      "import": "./dist/animation.js"
+    },
+    "./physics": {
+      "types": "./dist/physics.d.ts",
+      "import": "./dist/physics.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js"
+    },
+    "./hologram": {
+      "types": "./dist/hologram.d.ts",
+      "import": "./dist/hologram.js"
+    },
+    "./utility": {
+      "types": "./dist/utility.d.ts",
+      "import": "./dist/utility.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "sync": "echo 'TODO: auto-sync from core/src/types/ \u00e2\u20ac\u201d see src/index.ts for the sync protocol'"
+  },
+  "keywords": [
+    "holoscript",
+    "types",
+    "vr",
+    "xr",
+    "spatial",
+    "composition"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

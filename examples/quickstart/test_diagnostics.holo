@@ -1,0 +1,12 @@
+object "MyTestOrb" {
+  shape: "sper"
+  color: "#ff0000"
+
+  on_grab: {
+    log("Grabbed!")
+  }
+
+  on_update: {
+    this.rotate.y += 0.01
+  }
+}

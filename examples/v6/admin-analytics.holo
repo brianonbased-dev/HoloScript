@@ -1,0 +1,36 @@
+composition "AdminAnalyticsPanel" {
+
+  @2d_canvas(title: "Admin Analytics V6", projection: "flat-semantic")
+  @procedural_field(turbulence: 0.1, color: "#111827", intensity: 0.5)
+
+  object "DataGrid" {
+    @semantic_entity(id: "analytics-grid", type: "dashboard-grid")
+    @semantic_layout(flow: "cluster", spacing: 24)
+    @agent_attention(swarm_size: 12, bounty_threshold: 50)
+
+    object "RevenueChart" {
+      @semantic_entity(type: "metric-card")
+      @live_metric(stream: "revenue-daily", format: "currency", adaptive_color: true)
+      @intent_driven(intents: ["drill-down-revenue"])
+      @particle_feedback(on: "hover", type: "burst")
+    }
+
+    object "UserGrowth" {
+      @semantic_entity(type: "metric-card")
+      @live_metric(stream: "user-growth", format: "percent", adaptive_color: true)
+      @intent_driven(intents: ["view-user-cohorts"])
+    }
+
+    object "AnomalyDetector" {
+      @semantic_entity(type: "alert-panel")
+      @dynamic_visual(color: "var(--color-danger)")
+      @intent_driven(intents: ["resolve-anomaly", "summon-agent"])
+      @particle_feedback(on: "alert", type: "swarm")
+    }
+  }
+
+  object "DataOrchestratorAgent" {
+    @intent_driven(intents: ["fetch-analytics", "predict-trends"])
+    @agent_attention(swarm_size: 3, bounty_threshold: 200)
+  }
+}

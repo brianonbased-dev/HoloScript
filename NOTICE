@@ -1,0 +1,88 @@
+HoloScript
+Copyright (c) 2025-2026 HoloScript Contributors
+
+This project is licensed under the MIT License. See LICENSE for details.
+
+================================================================================
+COMMERCIAL ECOSYSTEM
+================================================================================
+
+HoloScript is a fully open-source spatial computing language. The following
+commercial products and services are built on top of HoloScript and are
+separately licensed:
+
+  Hololand (https://github.com/brianonbased-dev/Hololand)
+  ---------------------------------------------------------------------------
+  The VR/AR platform and deployment infrastructure for HoloScript applications.
+  Provides cloud anchors, multiplayer relay, asset CDN, VPS localization,
+  digital twin sync, marketplace, and hosted deployment services.
+  Hololand platform services are proprietary and commercially licensed.
+
+  Infinity Assistant (https://infinityassistant.io)
+  ---------------------------------------------------------------------------
+  AI-powered building, code generation, and deployment assistant for HoloScript.
+  Provides LLM-driven spatial scene generation, natural language to .holo
+  compilation, agent orchestration, and accessibility AI services.
+  Infinity Assistant services are proprietary and commercially licensed.
+
+================================================================================
+OPEN-SOURCE COMMITMENT
+================================================================================
+
+The following components are and will remain MIT-licensed open source:
+
+  - HoloScript language specification (.holo and .hsplus formats)
+  - Parser and AST (HoloScriptPlusParser, HoloComposition types)
+  - All 139 trait definitions and handler implementations
+  - All 8 compiler targets (R3F, Unity, Godot, visionOS, WebGPU, Babylon,
+    Android XR, OpenXR)
+  - Core LSP service (embedded in @holoscript/core)
+  - VS Code extension
+  - CLI tools (holoscript, holoscript-format, holoscript-lint)
+  - Standard library (@holoscript/std)
+  - Runtime (@holoscript/runtime)
+  - Spatial audio, accessibility, gestures, haptics, IK, LOD, PCG,
+    portals, physics-joints, voice, test packages
+
+The following components use the Elastic License 2.0 (ELv2):
+
+  You may use, copy, and modify these packages. You may NOT provide them
+  as a managed/hosted service to third parties. See the Elastic License 2.0
+  for full terms.
+
+  - @holoscript/lsp — Standalone Language Server Protocol server.
+    (The core LSP engine embedded in @holoscript/core remains MIT.)
+  - @holoscript/mcp-server — Model Context Protocol server for AI agents.
+
+  The following ELv2 packages have been migrated to the Hololand platform repo:
+
+  - @holoscript/network → @hololand/network
+  - @holoscript/multiplayer → @hololand/multiplayer
+  - @holoscript/state-sync → @hololand/state-sync
+  - @holoscript/streaming → @hololand/streaming
+
+Traits that reference cloud services (e.g., @shared_anchor, @co_located,
+@remote_presence, @persistent_anchor with storage:'cloud', @vps, @marketplace)
+define open interfaces. The backend infrastructure that fulfills these
+interfaces is provided by Hololand's commercial services.
+
+Traits that reference AI capabilities (e.g., @llm_agent, @dialogue with LLM
+mode, @accessible auto-generation) define open interfaces. The AI inference
+that powers these capabilities is provided by Infinity Assistant's commercial
+services.
+
+================================================================================
+THIRD-PARTY NOTICES
+================================================================================
+
+This project uses the following open-source dependencies:
+
+  React / React Three Fiber - MIT License
+  Three.js - MIT License
+  TypeScript - Apache License 2.0
+  Zod - MIT License
+  eventemitter3 - MIT License
+  vscode-languageserver - MIT License
+
+For a complete list of dependencies and their licenses, see the package.json
+files in each package directory.

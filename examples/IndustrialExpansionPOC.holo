@@ -1,0 +1,117 @@
+/**
+ * Industrial Expansion POC
+ * 
+ * Demonstrates real-time industrial telemetry sync via @twin_sync 
+ * and autonomous response via a "Safety Warden" agent.
+ * 
+ * Phase 7 Verification Scene.
+ */
+
+composition "IndustrialPOC" {
+  
+  // ==========================================================================
+  // TEMPLATES
+  // ==========================================================================
+
+  /**
+   * Safety Warden Agent
+   * Automatically moves to anomalous machines.
+   */
+  template "SafetyWarden" {
+    @llm_agent
+    @perception(range: 20)
+    
+    geometry: "humanoid"
+    color: "#ff0000"
+    
+    state {
+      status: "patrolling"
+      current_target: null
+    }
+
+    on mount() {
+      print("Safety Warden active. Monitoring floor telemetry...")
+    }
+
+    // Response to global telemetry alerts emitted by the gateway
+    on twin_state_update(data) {
+      if (data.state.vibration > 0.4) {
+        print("ALERT: High vibration detected at " + data.physicalId)
+        this.investigate(data.physicalId)
+      }
+    }
+
+    action investigate(machineId) {
+      this.state.status = "investigating"
+      this.state.current_target = machineId
+      
+      const machinePos = get(machineId + ".position")
+      if (machinePos) {
+        move(this.id, machinePos)
+        pulsate(this.id, { color: "#ff0000", duration: 1000 })
+      }
+    }
+  }
+
+  /**
+   * Generic Industrial Machine with Digital Twin sync
+   */
+  template "Machine" {
+    @digital_twin(
+      physical_id: "machine_01",
+      sync_properties: [
+        { physical_key: "temperature", virtual_property: "heat", direction: "in" },
+        { physical_key: "vibration", virtual_property: "shake", direction: "in" }
+      ],
+      update_mode: "push"
+    )
+    
+    geometry: "cube"
+    scale: [2, 3, 2]
+    color: "#444444"
+    
+    state {
+      heat: 0
+      shake: 0
+    }
+
+    on mount() {
+      print("Machine twin synced to physical_id: " + this.properties.physical_id)
+    }
+
+    // Visual feedback for vibration
+    on on_twin_sync(data) {
+      if (data.state.vibration > 0.4) {
+        this.color = "#ff8800"
+        pulsate(this.id, { color: "#ff0000", duration: 500 })
+      } else {
+        this.color = "#444444"
+      }
+    }
+  }
+
+  // ==========================================================================
+  // INSTANTIATION
+  // ==========================================================================
+
+  // The floor
+  object "Floor" {
+    geometry: "plane"
+    scale: [20, 1, 20]
+    color: "#222222"
+    position: [0, -0.5, 0]
+  }
+
+  // Industrial Machine
+  object "Pump_A" using "Machine" {
+    position: [5, 1, 5]
+    properties: {
+      physical_id: "pump_v1_01"
+    }
+  }
+
+  // Safety Warden
+  object "Warden_01" using "SafetyWarden" {
+    position: [-5, 0, -5]
+  }
+}

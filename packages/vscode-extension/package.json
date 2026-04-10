@@ -1,0 +1,656 @@
+{
+  "name": "holoscript-vscode",
+  "displayName": "HoloScript Enhanced",
+  "description": "HoloScript v6 language support — syntax, traits, preview, debug, AI agent API",
+  "version": "4.0.0",
+  "publisher": "holoscript",
+  "icon": "icons/holoscript-logo.png",
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "keywords": [
+    "holoscript",
+    "vr",
+    "ar",
+    "spatial computing",
+    "3d",
+    "webxr"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "HoloScript",
+      "properties": {
+        "holoscript.mcp.holoscriptMcpEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable HoloScript MCP server (mcp.holoscript.net) for GitHub Copilot and AI agents."
+        },
+        "holoscript.formatOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable auto-formatting on save."
+        },
+        "holoscript.formatOnSaveTimeout": {
+          "type": "number",
+          "default": 1000,
+          "description": "Timeout for formatting on save in milliseconds."
+        },
+        "holoscript.ai.enableAutoSuggest": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI auto-suggestions while typing."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "holohub",
+          "title": "HoloHub",
+          "icon": "icons/holoscript.svg"
+        }
+      ]
+    },
+    "views": {
+      "holohub": [
+        {
+          "id": "holohub.assets",
+          "name": "Marketplace",
+          "icon": "media/icon.png"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "holoscript.traitCompositionTree",
+          "name": "Trait Composition",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
+          "icon": "$(symbol-interface)",
+          "contextualTitle": "HoloScript Traits"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "holoscript",
+        "aliases": [
+          "HoloScript",
+          "hosl"
+        ],
+        "extensions": [
+          ".holo"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/holoscript.svg",
+          "dark": "./icons/holoscript.svg"
+        }
+      },
+      {
+        "id": "holoscriptplus",
+        "aliases": [
+          "HoloScript+",
+          "hsplus"
+        ],
+        "extensions": [
+          ".hsplus",
+          ".hs"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/holoscript-plus.svg",
+          "dark": "./icons/holoscript-plus.svg"
+        }
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "holoscript-icons",
+        "label": "HoloScript Icons",
+        "path": "./icons/icon-theme.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "holoscript",
+        "scopeName": "source.holoscript",
+        "path": "./syntaxes/holoscript.tmLanguage.json"
+      },
+      {
+        "language": "holoscriptplus",
+        "scopeName": "source.holoscript",
+        "path": "./syntaxes/holoscript.tmLanguage.json"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "holoscript",
+        "scopes": {
+          "decorator": [
+            "entity.name.tag.trait.holoscript"
+          ],
+          "decorator.defaultLibrary": [
+            "entity.name.tag.trait.builtin.holoscript"
+          ],
+          "keyword": [
+            "keyword.control.holoscript"
+          ],
+          "keyword.defaultLibrary": [
+            "keyword.other.holoscript"
+          ],
+          "class": [
+            "entity.name.type.class.holoscript"
+          ],
+          "class.declaration": [
+            "entity.name.type.class.declaration.holoscript"
+          ],
+          "namespace": [
+            "entity.name.namespace.holoscript"
+          ],
+          "property": [
+            "variable.other.property.holoscript"
+          ],
+          "variable": [
+            "variable.other.holoscript"
+          ],
+          "function": [
+            "entity.name.function.holoscript"
+          ],
+          "function.defaultLibrary": [
+            "support.function.builtin.holoscript"
+          ],
+          "string": [
+            "string.quoted.double.holoscript"
+          ],
+          "number": [
+            "constant.numeric.holoscript"
+          ],
+          "operator": [
+            "keyword.operator.holoscript"
+          ],
+          "comment": [
+            "comment.line.holoscript"
+          ]
+        }
+      },
+      {
+        "language": "holoscriptplus",
+        "scopes": {
+          "decorator": [
+            "entity.name.tag.trait.holoscript"
+          ],
+          "decorator.defaultLibrary": [
+            "entity.name.tag.trait.builtin.holoscript"
+          ],
+          "keyword": [
+            "keyword.control.holoscript"
+          ],
+          "keyword.defaultLibrary": [
+            "keyword.other.holoscript"
+          ],
+          "class": [
+            "entity.name.type.class.holoscript"
+          ],
+          "class.declaration": [
+            "entity.name.type.class.declaration.holoscript"
+          ],
+          "namespace": [
+            "entity.name.namespace.holoscript"
+          ],
+          "property": [
+            "variable.other.property.holoscript"
+          ],
+          "variable": [
+            "variable.other.holoscript"
+          ],
+          "function": [
+            "entity.name.function.holoscript"
+          ],
+          "function.defaultLibrary": [
+            "support.function.builtin.holoscript"
+          ],
+          "string": [
+            "string.quoted.double.holoscript"
+          ],
+          "number": [
+            "constant.numeric.holoscript"
+          ],
+          "operator": [
+            "keyword.operator.holoscript"
+          ],
+          "comment": [
+            "comment.line.holoscript"
+          ]
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "holoscript",
+        "path": "./snippets/holoscript.json"
+      },
+      {
+        "language": "holoscriptplus",
+        "path": "./snippets/holoscript.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "holoscript.openPreview",
+        "title": "Open Preview",
+        "category": "HoloScript",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "holoscript.openPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "HoloScript",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "holoscript.openStudioPreview",
+        "title": "Open Studio Live Preview",
+        "category": "HoloScript",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "holoscript.agent.createFile",
+        "title": "Agent: Create HoloScript File",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.generateObject",
+        "title": "Agent: Generate Object from Description",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.analyzeScene",
+        "title": "Agent: Analyze Current Scene",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.insertCode",
+        "title": "Agent: Insert Code at Cursor",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.openPreview",
+        "title": "Agent: Open Preview",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.addTrait",
+        "title": "Agent: Add Trait to Object",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.listTraits",
+        "title": "Agent: List Available Traits",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.validate",
+        "title": "Agent: Validate Syntax",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.agent.status",
+        "title": "Agent: Get Extension Status",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.createFirstScene",
+        "title": "Create First Scene",
+        "category": "HoloScript",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "holoscript.openExamples",
+        "title": "Open Examples",
+        "category": "HoloScript",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "holoscript.showWalkthrough",
+        "title": "Show Getting Started",
+        "category": "HoloScript",
+        "icon": "$(book)"
+      },
+      {
+        "command": "holoscript.openDocumentation",
+        "title": "Open Documentation",
+        "category": "HoloScript",
+        "icon": "$(question)"
+      },
+      {
+        "command": "holoscript.openMarketplace",
+        "title": "Open Trait Marketplace",
+        "category": "HoloScript",
+        "icon": "$(package)"
+      },
+      {
+        "command": "holoscript.validate",
+        "title": "Validate Syntax",
+        "category": "HoloScript",
+        "icon": "$(check)"
+      },
+      {
+        "command": "holoscript.traitTree.refresh",
+        "title": "Refresh Trait Tree",
+        "category": "HoloScript",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "holoscript.traitTree.navigateToDefinition",
+        "title": "Go to Trait Definition",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.traitTree.revealInEditor",
+        "title": "Reveal in Editor",
+        "category": "HoloScript",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "holoscript.traitTree.copyTraitName",
+        "title": "Copy Trait Name",
+        "category": "HoloScript",
+        "icon": "$(clippy)"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "holoscript.smartAssetViewer",
+        "displayName": "Smart Asset Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.hsa"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "holoscript.openPreviewToSide",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "holoscript.openPreview",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
+          "group": "holoscript"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "holoscript.traitTree.refresh",
+          "when": "view == holoscript.traitCompositionTree",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "holoscript.traitTree.revealInEditor",
+          "when": "view == holoscript.traitCompositionTree && viewItem =~ /traitDefinition|traitProperty/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "holoscript.traitTree.copyTraitName",
+          "when": "view == holoscript.traitCompositionTree && viewItem =~ /traitDefinition|traitComposition/",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "holoscript.openPreview",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus"
+        },
+        {
+          "command": "holoscript.openPreviewToSide",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "holoscript.openPreviewToSide",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId == holoscript || editorLangId == holoscriptplus"
+      },
+      {
+        "command": "holoscript.openPreview",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorLangId == holoscript || editorLangId == holoscriptplus"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "holoscript-getting-started",
+        "title": "Getting Started with HoloScript",
+        "description": "Learn to build VR/AR experiences with HoloScript in 5 minutes",
+        "steps": [
+          {
+            "id": "welcome",
+            "title": "Welcome to HoloScript",
+            "description": "The first spatial programming language for VR/AR development.\n\n[Open Welcome Guide](command:markdown.showPreview?%5B%22walkthroughs/getting-started/01-welcome.md%22%5D)",
+            "media": {
+              "markdown": "walkthroughs/getting-started/01-welcome.md"
+            }
+          },
+          {
+            "id": "createFile",
+            "title": "Create Your First Scene",
+            "description": "Create a `.holo` file and write your first VR scene.\n\n[Create Your First Scene](command:holoscript.createFirstScene)",
+            "media": {
+              "markdown": "walkthroughs/getting-started/02-first-scene.md"
+            },
+            "completionEvents": [
+              "onFileCreated:*.holo"
+            ]
+          },
+          {
+            "id": "learnTraits",
+            "title": "Add VR Traits",
+            "description": "Use `@grabbable`, `@physics`, `@glowing` to add VR interactivity.",
+            "media": {
+              "markdown": "walkthroughs/getting-started/03-traits.md"
+            }
+          },
+          {
+            "id": "preview",
+            "title": "Preview Your Scene",
+            "description": "See your scene in 3D with live preview.\n\n[Open Preview](command:holoscript.openPreviewToSide)",
+            "media": {
+              "markdown": "walkthroughs/getting-started/04-preview.md"
+            },
+            "completionEvents": [
+              "onCommand:holoscript.openPreviewToSide",
+              "onCommand:holoscript.openPreview"
+            ]
+          },
+          {
+            "id": "aiIntegration",
+            "title": "AI Integration",
+            "description": "Use Claude, GPT, or Copilot to generate HoloScript code.",
+            "media": {
+              "markdown": "walkthroughs/getting-started/05-ai-integration.md"
+            }
+          },
+          {
+            "id": "nextSteps",
+            "title": "Next Steps",
+            "description": "Explore examples, documentation, and the community.",
+            "media": {
+              "markdown": "walkthroughs/getting-started/06-next-steps.md"
+            }
+          }
+        ]
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "holoscriptMcp",
+        "label": "HoloScript MCP Server"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "holoscript"
+      },
+      {
+        "language": "holoscriptplus"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "holoscript-debug",
+        "languages": [
+          "holoscript",
+          "holoscriptplus"
+        ],
+        "label": "HoloScript Debug",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to the .holo, .hsplus, or .hs file to debug.",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop on the first executable line after launch.",
+                "default": true
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable diagnostic logging from the debug adapter.",
+                "default": false
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory for the debugged program.",
+                "default": "${workspaceFolder}"
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables to set for the debugged program.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "default": {}
+              }
+            }
+          },
+          "attach": {
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "Port to attach to a running HoloScript process.",
+                "default": 9229
+              },
+              "host": {
+                "type": "string",
+                "description": "Host address of the running HoloScript process.",
+                "default": "localhost"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "holoscript-debug",
+            "request": "launch",
+            "name": "Debug HoloScript",
+            "program": "${file}",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "HoloScript: Debug File",
+            "description": "Debug the currently open HoloScript file.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "launch",
+              "name": "Debug ${1:HoloScript File}",
+              "program": "^\"\\${file}\"",
+              "stopOnEntry": true
+            }
+          },
+          {
+            "label": "HoloScript: Debug Composition",
+            "description": "Debug a specific HoloScript composition file.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "launch",
+              "name": "Debug ${1:Composition}",
+              "program": "^\"\\${workspaceFolder}/${2:main.holo}\"",
+              "stopOnEntry": false,
+              "cwd": "^\"\\${workspaceFolder}\""
+            }
+          },
+          {
+            "label": "HoloScript: Attach to Process",
+            "description": "Attach to an already running HoloScript process.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "attach",
+              "name": "Attach to HoloScript",
+              "port": 9229,
+              "host": "localhost"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "esbuild-base": "node esbuild.js",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "compile": "tsc -p ./",
+    "build": "npm run esbuild",
+    "watch": "npm run esbuild-watch",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.32.0",
+    "esbuild": "^0.27.3",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "@holoscript/formatter": "workspace:*",
+    "@holoscript/lsp": "workspace:*",
+    "@holoscript/sdk": "workspace:^",
+    "@types/adm-zip": "^0.5.7",
+    "adm-zip": "^0.5.16",
+    "vscode-languageclient": "^9.0.1"
+  }
+}

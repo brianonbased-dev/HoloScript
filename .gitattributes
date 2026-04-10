@@ -1,0 +1,33 @@
+# Normalize line endings to LF in repository
+# On checkout, Git will convert to native line endings (CRLF on Windows)
+# On commit, Git will convert to LF
+
+# Default behavior for all text files
+* text=auto eol=lf
+
+# Explicitly set text files to use LF
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.sh text eol=lf
+*.hs text eol=lf
+*.hsplus text eol=lf
+*.holo text eol=lf
+
+# Binary files - no conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

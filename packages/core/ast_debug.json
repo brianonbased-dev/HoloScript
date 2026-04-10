@@ -1,0 +1,129 @@
+{
+  "type": "Program",
+  "id": "root",
+  "properties": {},
+  "directives": [],
+  "children": [
+    {
+      "type": "logic",
+      "properties": {},
+      "directives": [],
+      "children": [],
+      "traits": {},
+      "body": {
+        "functions": [
+          {
+            "name": "loadModule",
+            "params": [],
+            "body": "const mod = import ( feature-a )"
+          }
+        ],
+        "eventHandlers": [],
+        "tickHandlers": []
+      },
+      "loc": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 7,
+          "column": 9
+        }
+      }
+    }
+  ],
+  "traits": {},
+  "loc": {
+    "start": {
+      "line": 2,
+      "column": 7
+    },
+    "end": {
+      "line": 8,
+      "column": 7
+    }
+  },
+  "body": [
+    {
+      "type": "logic",
+      "properties": {},
+      "directives": [],
+      "children": [],
+      "traits": {},
+      "body": {
+        "functions": [
+          {
+            "name": "loadModule",
+            "params": [],
+            "body": "const mod = import ( feature-a )"
+          }
+        ],
+        "eventHandlers": [],
+        "tickHandlers": []
+      },
+      "loc": {
+        "start": {
+          "line": 3,
+          "column": 9
+        },
+        "end": {
+          "line": 7,
+          "column": 9
+        }
+      }
+    }
+  ],
+  "version": "1.0",
+  "root": {
+    "type": "object",
+    "id": "MyObject",
+    "properties": {},
+    "directives": [],
+    "children": [
+      {
+        "type": "logic",
+        "properties": {},
+        "directives": [],
+        "children": [],
+        "traits": {},
+        "body": {
+          "functions": [
+            {
+              "name": "loadModule",
+              "params": [],
+              "body": "const mod = import ( feature-a )"
+            }
+          ],
+          "eventHandlers": [],
+          "tickHandlers": []
+        },
+        "loc": {
+          "start": {
+            "line": 3,
+            "column": 9
+          },
+          "end": {
+            "line": 7,
+            "column": 9
+          }
+        }
+      }
+    ],
+    "traits": {},
+    "loc": {
+      "start": {
+        "line": 2,
+        "column": 7
+      },
+      "end": {
+        "line": 8,
+        "column": 7
+      }
+    }
+  },
+  "imports": [],
+  "hasState": false,
+  "hasVRTraits": false,
+  "hasControlFlow": false
+}

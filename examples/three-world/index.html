@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoloScript Three.js World Example</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        background: #000;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #vr-button {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #00ffff;
+        color: #000;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        display: none;
+      }
+      #vr-button:hover {
+        background: #00cccc;
+      }
+      #vr-button.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button id="vr-button">Enter VR</button>
+
+    <script type="module">
+      import { createWorld } from '../../packages/three-adapter/dist/index.mjs';
+
+      async function init() {
+        const world = createWorld({
+          container: document.getElementById('app'),
+          xrEnabled: true,
+          backgroundColor: '#16213e',
+          shadows: true,
+        });
+
+        // Load the scene
+        await world.loadFile('./scene.hsplus');
+
+        // Start rendering
+        world.start();
+
+        // VR button
+        if (navigator.xr) {
+          const supported = await navigator.xr.isSessionSupported('immersive-vr');
+          if (supported) {
+            const vrButton = document.getElementById('vr-button');
+            vrButton.classList.add('visible');
+            vrButton.addEventListener('click', () => world.enterXR());
+          }
+        }
+
+        // Log state changes
+        world.onUpdate((delta) => {
+          // Frame callback if needed
+        });
+      }
+
+      init().catch(console.error);
+    </script>
+  </body>
+</html>

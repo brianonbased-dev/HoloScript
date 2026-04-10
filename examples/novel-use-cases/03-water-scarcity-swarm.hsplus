@@ -1,0 +1,326 @@
+/**
+ * Autonomous Water-Scarcity Digital Twin Swarm — .hsplus Behavior
+ *
+ * WHY .hsplus: Water management agents need a state machine for
+ * patrol → detect → analyze → mitigate → report cycles with guard
+ * conditions (e.g., can't mitigate if no credits). Sensor fusion
+ * module handles multi-source data aggregation reactively.
+ *
+ * Features:
+ * - SensorFusion module: aggregate IoT + satellite + drone data
+ * - MitigationPlanner module: intervention ranking and execution
+ * - @state_machine on WaterGuardian: patrol lifecycle
+ * - @on_event for economy bounties and feedback optimization
+ * - @norm_compliant for regulatory compliance
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "WaterScarcitySwarm" {
+  environment {
+    skybox: "desert_horizon"
+    ambient_light: 0.7
+    physics: true
+  }
+
+  // ========================================================================
+  // SENSOR FUSION MODULE
+  // ========================================================================
+
+  module SensorFusion {
+    state {
+      readings: {}
+      fused_state: {}
+      sources: ["iot_ground", "satellite", "drone"]
+      last_fusion: 0
+      anomalies_detected: 0
+    }
+
+    action ingest(source, sector, data) {
+      if (!this.state.readings[sector]) {
+        this.state.readings[sector] = {};
+      }
+      this.state.readings[sector][source] = {
+        data: data,
+        timestamp: current_time()
+      };
+      emit("sensor:ingested", { source: source, sector: sector });
+
+      // Auto-fuse if all sources present
+      const sources_present = Object.keys(this.state.readings[sector]).length;
+      if (sources_present >= 2) {
+        this.fuse(sector);
+      }
+    }
+
+    action fuse(sector) {
+      const readings = this.state.readings[sector];
+      if (!readings) return;
+
+      // Weighted average of sensor readings
+      let total_moisture = 0;
+      let total_flow = 0;
+      let weight_sum = 0;
+
+      for (const [source, reading] of Object.entries(readings)) {
+        const weight = source === "iot_ground" ? 0.5 : source === "satellite" ? 0.3 : 0.2;
+        total_moisture += (reading.data.moisture || 0) * weight;
+        total_flow += (reading.data.flow_rate || 0) * weight;
+        weight_sum += weight;
+      }
+
+      this.state.fused_state[sector] = {
+        moisture: total_moisture / weight_sum,
+        flow_rate: total_flow / weight_sum,
+        fused_at: current_time(),
+        sources: Object.keys(readings).length
+      };
+
+      this.state.last_fusion = current_time();
+
+      // Anomaly detection
+      if (total_moisture / weight_sum < 0.2) {
+        this.state.anomalies_detected += 1;
+        emit("sensor:anomaly", {
+          sector: sector,
+          type: "critical_low_moisture",
+          value: total_moisture / weight_sum
+        });
+      }
+
+      emit("sensor:fused", { sector: sector, state: this.state.fused_state[sector] });
+    }
+
+    exports {
+      ingest
+      fuse
+      state
+    }
+  }
+
+  // ========================================================================
+  // MITIGATION PLANNER MODULE
+  // ========================================================================
+
+  module MitigationPlanner {
+    state {
+      interventions: []
+      active_intervention: null
+      total_mitigated: 0
+    }
+
+    action plan_intervention(sector, anomaly_type, severity) {
+      const intervention = {
+        id: generate_id(),
+        sector: sector,
+        type: anomaly_type,
+        severity: severity,
+        strategy: severity > 0.7 ? "emergency_divert" : "scheduled_irrigate",
+        cost: severity > 0.7 ? 30 : 10,
+        status: "planned",
+        planned_at: current_time()
+      };
+      this.state.interventions.push(intervention);
+      emit("mitigation:planned", intervention);
+      return intervention;
+    }
+
+    action execute_intervention(intervention_id, agent_id) {
+      const intervention = this.state.interventions.find(i => i.id === intervention_id);
+      if (!intervention) return;
+
+      intervention.status = "executing";
+      intervention.executor = agent_id;
+      this.state.active_intervention = intervention_id;
+
+      emit("economy:spend", {
+        agentId: agent_id,
+        amount: intervention.cost,
+        reason: "Mitigation: " + intervention.strategy,
+        target: intervention.sector
+      });
+
+      emit("mitigation:executing", {
+        id: intervention_id,
+        strategy: intervention.strategy,
+        sector: intervention.sector
+      });
+    }
+
+    action complete_intervention(intervention_id) {
+      const intervention = this.state.interventions.find(i => i.id === intervention_id);
+      if (!intervention) return;
+
+      intervention.status = "completed";
+      this.state.total_mitigated += 1;
+      this.state.active_intervention = null;
+
+      emit("mitigation:completed", {
+        id: intervention_id,
+        sector: intervention.sector,
+        strategy: intervention.strategy
+      });
+    }
+
+    exports {
+      plan_intervention
+      execute_intervention
+      complete_intervention
+      state
+    }
+  }
+
+  // ========================================================================
+  // WATER GUARDIAN AGENT — Patrol State Machine
+  // ========================================================================
+
+  template "WaterGuardian" {
+    @llm_agent
+    @perception(range: 40)
+    @post_quantum_audit { algorithm: "ML-KEM-768"; log_all: true }
+    @norm_compliant {
+      norms: ["water_rights", "cross_jurisdiction", "safety_first"]
+      enforcement: "hard"
+      scope: "agent"
+      canPropose: true
+      canEnforce: true
+    }
+
+    @state_machine {
+      initial: "patrolling"
+
+      states: {
+        patrolling: {
+          on_anomaly_detected: -> "analyzing" action(begin_analysis)
+          on_bounty_available: -> "responding"
+        }
+
+        analyzing: {
+          on_analysis_complete: -> "mitigating" guard(state.credits >= 10)
+          on_analysis_complete: -> "patrolling"  // insufficient credits
+          on_false_alarm: -> "patrolling"
+        }
+
+        mitigating: {
+          on_mitigation_done: -> "reporting" action(on_mitigated)
+          on_mitigation_failed: -> "patrolling" action(on_mitigation_error)
+        }
+
+        reporting: {
+          on_report_filed: -> "patrolling" action(on_reported)
+        }
+
+        responding: {
+          on_bounty_claimed: -> "analyzing"
+          on_bounty_expired: -> "patrolling"
+        }
+      }
+
+      actions: {
+        begin_analysis: () => {
+          state.analyses_started += 1;
+          emit("guardian:analyzing", { agent_id: state.agent_id, sector: state.sector });
+        }
+
+        on_mitigated: () => {
+          state.mitigations_completed += 1;
+          MitigationPlanner.complete_intervention(state.current_intervention);
+        }
+
+        on_mitigation_error: () => {
+          emit("guardian:error", { agent_id: state.agent_id, phase: "mitigation" });
+        }
+
+        on_reported: () => {
+          state.reports_filed += 1;
+          emit("economy:earn", {
+            agentId: state.agent_id, amount: 15,
+            reason: "Mitigation report filed for sector " + state.sector
+          });
+        }
+      }
+    }
+
+    state {
+      agent_id: null
+      sector: null
+      credits: 100
+      analyses_started: 0
+      mitigations_completed: 0
+      reports_filed: 0
+      current_intervention: null
+    }
+
+    @on_event("sensor:anomaly"): (data) => {
+      if (this.current_state === "patrolling") {
+        state.sector = data.sector;
+        emit("on_anomaly_detected");
+      }
+    }
+
+    @on_event("feedback:optimization_signal"): (signal) => {
+      if (signal.suggestedAction === "increase_patrol_frequency") {
+        emit("guardian:patrol_frequency_increased", { agent_id: state.agent_id });
+      }
+    }
+
+    action analyze_sector(sector) {
+      const fused = SensorFusion.state.fused_state[sector];
+      if (!fused || fused.moisture > 0.3) {
+        emit("on_false_alarm");
+        return;
+      }
+
+      const severity = 1 - fused.moisture;
+      const intervention = MitigationPlanner.plan_intervention(sector, "low_moisture", severity);
+      state.current_intervention = intervention.id;
+      emit("on_analysis_complete");
+    }
+  }
+
+  // ========================================================================
+  // INSTANCES
+  // ========================================================================
+
+  object "TerrainGrid" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [50, 1, 50]
+    color: "#3d2b1f"
+  }
+
+  object "Guardian_North" using "WaterGuardian" {
+    position: [-10, 1, 10]
+    geometry: "capsule"
+    color: "#0088cc"
+    state { agent_id: "guardian_north"; sector: "north_basin" }
+  }
+
+  object "Guardian_South" using "WaterGuardian" {
+    position: [10, 1, -10]
+    geometry: "capsule"
+    color: "#00aaee"
+    state { agent_id: "guardian_south"; sector: "south_basin" }
+  }
+
+  // ========================================================================
+  // HUD
+  // ========================================================================
+
+  panel "WaterStatus" {
+    position: "top-right"
+    text "Fusions" {
+      bind: "Sensor fusions: " + Object.keys(SensorFusion.state.fused_state).length
+      style: "info"
+    }
+    text "Anomalies" {
+      bind: "Anomalies: " + SensorFusion.state.anomalies_detected
+      color: "#ff4444"
+    }
+    text "Mitigations" {
+      bind: "Mitigated: " + MitigationPlanner.state.total_mitigated
+      color: "#00ff88"
+    }
+  }
+}

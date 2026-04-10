@@ -1,0 +1,36 @@
+{
+  "name": "@holoscript/adapter-postgres",
+  "version": "0.2.0",
+  "description": "PostgreSQL Database Adapter for HoloScript Runtime",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "postgres",
+    "database",
+    "adapter"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "dependencies": {
+    "cuid": "^3.0.0",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.11.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:^"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

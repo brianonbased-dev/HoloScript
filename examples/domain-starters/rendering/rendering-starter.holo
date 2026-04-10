@@ -1,0 +1,320 @@
+// Rendering Domain Starter - HoloScript
+//
+// Minimal working template for advanced rendering showcase (PBR, shaders, post-processing).
+// Demonstrates: Material sphere gallery, custom shaders, volumetric effects,
+//               post-processing stack, and wireframe debug view.
+//
+// Compile targets:
+//   holoscript compile rendering-starter.holo --target r3f         (React Three Fiber)
+//   holoscript compile rendering-starter.holo --target unity       (Unity URP/HDRP)
+//   holoscript compile rendering-starter.holo --target godot       (Godot)
+//
+// Extend by:
+//   - Adding real HDRI environment maps
+//   - Writing custom GLSL / WGSL / HLSL shaders
+//   - Adding ray tracing (DXR / Vulkan RT) pipelines
+//   - Implementing screen-space reflections, SSS, and GTAO
+
+composition "Rendering Starter" {
+
+  metadata {
+    name: 'Rendering Domain Starter'
+    description: 'Minimal template for advanced rendering: PBR material gallery, custom shaders, volumetric fog, post-processing, and debug overlays.'
+    version: '1.0.0'
+    author: 'HoloScript Graphics Team'
+    category: 'rendering'
+    tags: ['rendering', 'pbr', 'shaders', 'post-processing', 'volumetric', 'materials']
+    platforms: ['r3f', 'unity', 'godot']
+    minPlayers: 1
+    maxPlayers: 1
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    backgroundColor: "#111111"
+    ambient: 0.2
+    shadows: true
+    hdri: "environments/studio_small_08_4k.hdr"
+    toneMapping: "aces"
+    exposure: 1.2
+    shadowMapSize: 4096
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state RenderState {
+    activeShader: "pbr"              // "pbr" | "toon" | "wireframe" | "normal-map" | "custom"
+    renderQuality: "high"            // "low" | "medium" | "high" | "ultra"
+    showWireframe: false
+    postProcessEnabled: true
+    bloomIntensity: 0.5
+    fogDensity: 0.02
+    selectedMaterial: null
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  template "MaterialSphere" {
+    @pbr_material
+    @interactable {
+      action: "tap"
+      highlight: true
+    }
+
+    geometry: "sphere"
+    radius: 0.3
+  }
+
+  template "ShaderPlane" {
+    @shader {
+      language: "glsl"
+      autoTime: true
+    }
+
+    geometry: "plane"
+    scale: [2, 2, 1]
+  }
+
+  // -- Gallery Floor -------------------------------------------------------------
+
+  object "GalleryFloor" {
+    geometry: "plane"
+    width: 16
+    height: 16
+    position: { x: 0, y: 0, z: 0 }
+    material: {
+      color: "#1a1a1a"
+      metalness: 0.8
+      roughness: 0.15
+    }
+  }
+
+  // -- PBR Material Sphere Gallery -----------------------------------------------
+
+  group "MaterialGallery" {
+    position: { x: 0, y: 1.2, z: -3 }
+
+    object "Sphere_Gold" using "MaterialSphere" {
+      position: { x: -3, y: 0, z: 0 }
+      material: {
+        color: "#ffd700"
+        metalness: 1.0
+        roughness: 0.15
+      }
+      properties: { label: "Gold" }
+    }
+
+    object "Sphere_Copper" using "MaterialSphere" {
+      position: { x: -2, y: 0, z: 0 }
+      material: {
+        color: "#b87333"
+        metalness: 0.95
+        roughness: 0.25
+      }
+      properties: { label: "Copper" }
+    }
+
+    object "Sphere_Chrome" using "MaterialSphere" {
+      position: { x: -1, y: 0, z: 0 }
+      material: {
+        color: "#cccccc"
+        metalness: 1.0
+        roughness: 0.02
+      }
+      properties: { label: "Chrome" }
+    }
+
+    object "Sphere_Rubber" using "MaterialSphere" {
+      position: { x: 0, y: 0, z: 0 }
+      material: {
+        color: "#222222"
+        metalness: 0.0
+        roughness: 0.95
+      }
+      properties: { label: "Rubber" }
+    }
+
+    object "Sphere_Glass" using "MaterialSphere" {
+      position: { x: 1, y: 0, z: 0 }
+      material: {
+        color: "#aaddff"
+        metalness: 0.0
+        roughness: 0.0
+        transmission: 0.95
+        ior: 1.5
+        transparent: true
+        opacity: 0.3
+      }
+      properties: { label: "Glass" }
+    }
+
+    object "Sphere_Emissive" using "MaterialSphere" {
+      position: { x: 2, y: 0, z: 0 }
+      material: {
+        color: "#000000"
+        emissive: "#ff4400"
+        emissiveIntensity: 3.0
+      }
+      properties: { label: "Emissive" }
+    }
+
+    object "Sphere_Iridescent" using "MaterialSphere" {
+      position: { x: 3, y: 0, z: 0 }
+      material: {
+        color: "#8888cc"
+        metalness: 0.8
+        roughness: 0.3
+        iridescence: 1.0
+        iridescenceIOR: 1.8
+      }
+      properties: { label: "Iridescent" }
+    }
+  }
+
+  // -- Roughness Gradient Row ----------------------------------------------------
+
+  group "RoughnessGradient" {
+    position: { x: 0, y: 1.2, z: -5 }
+
+    object "Rough_0" using "MaterialSphere" {
+      position: { x: -2.5, y: 0, z: 0 }
+      radius: 0.2
+      material: { color: "#cccccc", metalness: 1.0, roughness: 0.0 }
+    }
+
+    object "Rough_25" using "MaterialSphere" {
+      position: { x: -1.25, y: 0, z: 0 }
+      radius: 0.2
+      material: { color: "#cccccc", metalness: 1.0, roughness: 0.25 }
+    }
+
+    object "Rough_50" using "MaterialSphere" {
+      position: { x: 0, y: 0, z: 0 }
+      radius: 0.2
+      material: { color: "#cccccc", metalness: 1.0, roughness: 0.50 }
+    }
+
+    object "Rough_75" using "MaterialSphere" {
+      position: { x: 1.25, y: 0, z: 0 }
+      radius: 0.2
+      material: { color: "#cccccc", metalness: 1.0, roughness: 0.75 }
+    }
+
+    object "Rough_100" using "MaterialSphere" {
+      position: { x: 2.5, y: 0, z: 0 }
+      radius: 0.2
+      material: { color: "#cccccc", metalness: 1.0, roughness: 1.0 }
+    }
+  }
+
+  // -- Custom Shader Playground --------------------------------------------------
+
+  object "ShaderPlayground" using "ShaderPlane" {
+    position: { x: -5, y: 2, z: -2 }
+    rotation: { x: 0, y: 30, z: 0 }
+
+    @shader {
+      vertex: "shaders/default.vert"
+      fragment: "shaders/plasma.frag"
+      uniforms: {
+        uSpeed: 1.0
+        uComplexity: 4.0
+        uColorA: "#ff4400"
+        uColorB: "#0044ff"
+      }
+    }
+  }
+
+  // -- Volumetric Fog Volume -----------------------------------------------------
+
+  object "FogVolume" {
+    @volumetric {
+      density: 0.02
+      color: "#223344"
+      scattering: 0.5
+      absorption: 0.1
+    }
+
+    geometry: "box"
+    scale: [12, 4, 12]
+    position: { x: 0, y: 2, z: 0 }
+    material: {
+      transparent: true
+      opacity: 0.0
+    }
+  }
+
+  // -- Post-Processing Stack Panel -----------------------------------------------
+
+  object "PostProcessPanel" {
+    @billboard
+    @anchor
+    @interactable
+
+    geometry: "plane"
+    scale: [0.5, 0.6, 1]
+    position: { x: 5, y: 1.5, z: -2 }
+    material: {
+      color: "#0d1117"
+      transparent: true
+      opacity: 0.9
+    }
+
+    @post_process {
+      bloom: { intensity: 0.5, threshold: 0.8 }
+      vignette: { intensity: 0.3 }
+      chromaticAberration: { offset: 0.002 }
+      toneMappingExposure: 1.2
+    }
+
+    behavior {
+      on "toggle" {
+        action: "togglePostProcess"
+        bind: RenderState.postProcessEnabled
+      }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "ShaderHotReload" {
+    type: "shader-compiler"
+    watchDir: "shaders/"
+    hotReload: true
+    targets: ["glsl", "wgsl", "hlsl"]
+  }
+
+  system "MaterialLibrary" {
+    type: "material-database"
+    presets: 78
+    categories: ["metal", "organic", "glass", "fabric", "stone", "synthetic"]
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action selectMaterial(label) {
+    RenderState.selectedMaterial = label
+    emit("render:material_selected", { label: label })
+  }
+
+  action togglePostProcess() {
+    RenderState.postProcessEnabled = !RenderState.postProcessEnabled
+    emit("render:post_process", { enabled: RenderState.postProcessEnabled })
+  }
+
+  action setRenderQuality(quality) {
+    RenderState.renderQuality = quality
+    emit("render:quality", { level: quality })
+  }
+
+  action toggleWireframe() {
+    RenderState.showWireframe = !RenderState.showWireframe
+    emit("render:wireframe", { active: RenderState.showWireframe })
+  }
+
+  action setBloomIntensity(value) {
+    RenderState.bloomIntensity = clamp(value, 0.0, 2.0)
+    emit("render:bloom", { intensity: RenderState.bloomIntensity })
+  }
+}

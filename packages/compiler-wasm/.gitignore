@@ -1,0 +1,18 @@
+# Rust build
+target/
+
+# WASM build output (generated)
+pkg/
+pkg-node/
+pkg-bundler/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cargo lock (for libraries)
+# Cargo.lock

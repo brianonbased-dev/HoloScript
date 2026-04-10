@@ -1,0 +1,63 @@
+// Entertainment Benchmark Composition
+composition "Entertainment Benchmark" {
+  metadata {
+    name: 'Entertainment Cross-Compilation Benchmark'
+    category: 'entertainment'
+    platforms: ['unity', 'unreal', 'webxr', 'vrchat', 'babylonjs', 'r3f', 'visionos']
+  }
+
+  environment {
+    skybox: "concert_venue"
+    ambient_light: 0.3
+  }
+
+  template "StageLight" {
+    @glowing
+    @animated
+    @color_changing
+    geometry: "sphere"
+    state { intensity: 1.0, color: "#ffffff" }
+  }
+
+  spatial_group "ConcertStage" {
+    origin: [0, 0, -5]
+    object "Stage" {
+      @collidable
+      geometry: "cube"
+      position: [0, -0.5, 0]
+      scale: [8, 1, 6]
+      color: "#222222"
+    }
+    object "Light1" using "StageLight" {
+      position: [-2, 3, 0]
+      color: "#ff0000"
+      emissionIntensity: 3.0
+    }
+    object "Light2" using "StageLight" {
+      position: [2, 3, 0]
+      color: "#0000ff"
+      emissionIntensity: 3.0
+    }
+    object "Light3" using "StageLight" {
+      position: [0, 4, 0]
+      color: "#00ff00"
+      emissionIntensity: 3.0
+    }
+  }
+
+  object "AudioVisualizer" {
+    @reactive_audio
+    @animated
+    geometry: "plane"
+    position: [0, 2, -5]
+    scale: [4, 2, 1]
+    color: "#8800ff"
+  }
+
+  audio "BackgroundMusic" {
+    source: "audio/concert.mp3"
+    volume: 0.8
+    loop: true
+    spatial: true
+  }
+}

@@ -1,0 +1,15 @@
+// HoloScript Configuration Manifest
+// Defines world settings and entry files
+
+@config {
+  world: {
+    backgroundColor: "#16213e"
+    xrEnabled: true
+    shadows: "high"
+  }
+  files: [
+    "scene.hsplus"
+  ]
+  assets: "./assets"
+  autoStart: false
+}

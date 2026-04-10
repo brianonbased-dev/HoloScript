@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://holoscript.dev/schemas/mvc/task-state.json",
+  "title": "ActiveTaskState",
+  "description": "OR-Set + LWW-Register CRDT hybrid for active task tracking",
+  "type": "object",
+  "required": ["crdtType", "crdtId", "tasks", "taskTags", "statusRegisters", "vectorClock", "lastUpdated"],
+  "properties": {
+    "crdtType": {
+      "type": "string",
+      "const": "or-set+lww",
+      "description": "CRDT type identifier"
+    },
+    "crdtId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique CRDT instance ID"
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Active task entries",
+      "items": {
+        "$ref": "#/$defs/TaskEntry"
+      },
+      "maxItems": 50
+    },
+    "taskTags": {
+      "type": "object",
+      "description": "OR-Set add/remove tags",
+      "additionalProperties": {
+        "$ref": "#/$defs/TaskTags"
+      }
+    },
+    "statusRegisters": {
+      "type": "object",
+      "description": "LWW status registers",
+      "additionalProperties": {
+        "$ref": "#/$defs/TaskStatusUpdate"
+      }
+    },
+    "vectorClock": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "lastUpdated": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "TaskEntry": {
+      "type": "object",
+      "required": ["id", "title", "status", "priority", "createdAt", "updatedAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "priority": {
+          "$ref": "#/$defs/TaskPriority"
+        },
+        "createdAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updatedAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assignedTo": {
+          "type": "string",
+          "pattern": "^did:[a-z0-9]+:[a-zA-Z0-9._%-]+$"
+        },
+        "parentTaskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "estimatedDuration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actualDuration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blockingReason": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskStatus": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "blocked", "completed", "cancelled"]
+    },
+    "TaskPriority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "TaskTags": {
+      "type": "object",
+      "required": ["addTags", "removeTags"],
+      "properties": {
+        "addTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removeTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskStatusUpdate": {
+      "type": "object",
+      "required": ["taskId", "status", "timestamp", "actorDid", "operationId"],
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "timestamp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actorDid": {
+          "type": "string",
+          "pattern": "^did:[a-z0-9]+:[a-zA-Z0-9._%-]+$"
+        },
+        "operationId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

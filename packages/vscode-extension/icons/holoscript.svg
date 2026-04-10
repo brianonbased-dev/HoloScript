@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- HoloScript Base Icon (.holo) -->
+  <defs>
+    <!-- Holographic gradient -->
+    <linearGradient id="holoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#9b59b6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff6b9d;stop-opacity:1" />
+    </linearGradient>
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background: Rounded rectangle (file shape) -->
+  <rect x="4" y="2" width="24" height="28" rx="3" ry="3"
+        fill="#1a1a2e" stroke="url(#holoGradient)" stroke-width="1.5"/>
+
+  <!-- Top-right corner fold -->
+  <path d="M22 2 L28 8 L22 8 Z" fill="#2d2d44"/>
+  <path d="M22 2 L28 8" stroke="url(#holoGradient)" stroke-width="1" fill="none"/>
+
+  <!-- Central hologram symbol: Stylized 'H' made of hexagons -->
+  <g filter="url(#glow)">
+    <!-- Left vertical bar -->
+    <rect x="9" y="11" width="3" height="12" rx="0.5" fill="url(#holoGradient)"/>
+    <!-- Right vertical bar -->
+    <rect x="20" y="11" width="3" height="12" rx="0.5" fill="url(#holoGradient)"/>
+    <!-- Horizontal connector -->
+    <rect x="9" y="15.5" width="14" height="3" rx="0.5" fill="url(#holoGradient)"/>
+  </g>
+
+  <!-- Small holographic particles -->
+  <circle cx="7" cy="8" r="0.8" fill="#00d4ff" opacity="0.7"/>
+  <circle cx="25" cy="25" r="0.6" fill="#ff6b9d" opacity="0.7"/>
+  <circle cx="8" cy="26" r="0.5" fill="#9b59b6" opacity="0.6"/>
+</svg>

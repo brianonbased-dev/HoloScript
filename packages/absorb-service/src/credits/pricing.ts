@@ -1,0 +1,110 @@
+/**
+ * Absorb Service — Pricing configuration.
+ *
+ * 1 credit = 1 cent USD. Operations have a base cost in credits.
+ * LLM token usage is metered on top with a 30% markup.
+ */
+
+// ─── Operation Costs ─────────────────────────────────────────────────────────
+
+export const OPERATION_COSTS = {
+  absorb_shallow: { baseCostCents: 10, description: 'Shallow codebase scan' },
+  absorb_deep: { baseCostCents: 50, description: 'Deep codebase scan with full graph' },
+  daemon_quick: { baseCostCents: 50, description: 'Quick fix cycle (1 cycle)' },
+  daemon_balanced: { baseCostCents: 100, description: 'Balanced improvement (2 cycles)' },
+  daemon_deep: { baseCostCents: 250, description: 'Deep improvement (3 cycles)' },
+  pipeline_l0: { baseCostCents: 100, description: 'L0 Code Fixer pipeline' },
+  pipeline_l1: { baseCostCents: 75, description: 'L1 Strategy Optimizer' },
+  pipeline_l2: { baseCostCents: 150, description: 'L2 Meta-Strategist' },
+  skill_generate: { baseCostCents: 50, description: 'Generate HoloClaw skill' },
+  query_basic: { baseCostCents: 2, description: 'Semantic codebase search' },
+  query_with_llm: {
+    baseCostCents: 10,
+    description: 'AI-powered codebase query (+ metered LLM tokens)',
+  },
+  screenshot: { baseCostCents: 3, description: 'Render scene to PNG/JPEG/WebP' },
+  pdf_export: { baseCostCents: 5, description: 'Render scene to PDF' },
+  semantic_diff: { baseCostCents: 2, description: 'Compare two project versions' },
+  semantic_dedup: { baseCostCents: 1, description: 'Agent semantic deduplication evaluation' },
+  knowledge_query: { baseCostCents: 0, description: 'Knowledge search (free entries)' },
+  knowledge_query_premium: { baseCostCents: 5, description: 'Premium knowledge access (provenance-signed)' },
+  knowledge_publish: { baseCostCents: 0, description: 'Publish knowledge entry (free for authors)' },
+
+  // Studio AI operations
+  studio_autocomplete: { baseCostCents: 1, description: 'Code autocomplete (up to 256 tokens)' },
+  studio_generate: { baseCostCents: 5, description: 'Code generation (up to 4096 tokens)' },
+  studio_chat: { baseCostCents: 3, description: 'Brittney chat message (up to 2048 tokens)' },
+  studio_material: { baseCostCents: 2, description: 'Material/asset generation (up to 512 tokens)' },
+} as const;
+
+export type OperationType = keyof typeof OPERATION_COSTS;
+
+// ─── Credit Packages ─────────────────────────────────────────────────────────
+
+export const CREDIT_PACKAGES = [
+  { id: 'starter', label: 'Starter', credits: 500, priceCents: 500, popular: false },
+  { id: 'builder', label: 'Builder', credits: 2500, priceCents: 2000, popular: true },
+  { id: 'pro', label: 'Pro', credits: 10000, priceCents: 7500, popular: false },
+  { id: 'enterprise', label: 'Enterprise', credits: 50000, priceCents: 35000, popular: false },
+] as const;
+
+export type CreditPackageId = (typeof CREDIT_PACKAGES)[number]['id'];
+
+// ─── Tier Limits ─────────────────────────────────────────────────────────────
+
+export type Tier = 'free' | 'pro' | 'enterprise';
+
+export const TIER_LIMITS: Record<
+  Tier,
+  {
+    freeCredits: number;
+    maxProjectsActive: number;
+    maxAbsorbDepth: 'shallow' | 'deep';
+    pipelineEnabled: boolean;
+  }
+> = {
+  free: {
+    freeCredits: 100,
+    maxProjectsActive: 1,
+    maxAbsorbDepth: 'shallow',
+    pipelineEnabled: false,
+  },
+  pro: {
+    freeCredits: 0,
+    maxProjectsActive: 10,
+    maxAbsorbDepth: 'deep',
+    pipelineEnabled: true,
+  },
+  enterprise: {
+    freeCredits: 0,
+    maxProjectsActive: 100,
+    maxAbsorbDepth: 'deep',
+    pipelineEnabled: true,
+  },
+};
+
+// ─── LLM Markup ──────────────────────────────────────────────────────────────
+
+export const LLM_MARKUP = 1.15;
+
+export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number }> = {
+  openrouter: { input: 3.0, output: 15.0 }, // priced same as anthropic (typical routed model)
+  anthropic: { input: 3.0, output: 15.0 },
+  xai: { input: 2.0, output: 10.0 },
+  openai: { input: 2.5, output: 10.0 },
+  ollama: { input: 0, output: 0 },
+};
+
+/**
+ * Estimate LLM cost in cents for a given provider and token counts.
+ */
+export function estimateLLMCostCents(
+  provider: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const costs = LLM_COSTS_PER_MTOK[provider] ?? LLM_COSTS_PER_MTOK.ollama;
+  const inputCostCents = (inputTokens / 1_000_000) * costs.input * 100 * LLM_MARKUP;
+  const outputCostCents = (outputTokens / 1_000_000) * costs.output * 100 * LLM_MARKUP;
+  return Math.ceil(inputCostCents + outputCostCents);
+}

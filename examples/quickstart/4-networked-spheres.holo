@@ -1,0 +1,40 @@
+// 4-networked-spheres.holo
+// A multiplayer scene with synced spheres
+
+composition "Networked Spheres" {
+  object "SharedRedBall" {
+    @grabbable
+    @networked
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [0, 1, -2]
+    scale: 0.25
+    color: "#e74c3c"
+  }
+
+  object "SharedBlueBall" {
+    @grabbable
+    @networked
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [0.6, 1, -2]
+    scale: 0.25
+    color: "#3498db"
+  }
+
+  object "SharedGreenBall" {
+    @grabbable
+    @networked
+    @physics
+    @collidable
+    
+    geometry: "sphere"
+    position: [-0.6, 1, -2]
+    scale: 0.25
+    color: "#2ecc71"
+  }
+}

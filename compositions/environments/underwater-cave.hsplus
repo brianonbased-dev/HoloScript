@@ -1,0 +1,126 @@
+/**
+ * Underwater Cave — Environment Template
+ *
+ * No sky + volumetric fog + caustics + bioluminescent particles.
+ * Fork-ready template for underwater/aquatic scenes.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @see HL-RENDER-1: Environment Template Library
+ */
+
+composition "UnderwaterCave" {
+
+  state {
+    version: "1.0.0"
+    depth: 30
+    currentStrength: 0.5
+    bioluminescence: 0.8
+  }
+
+  environment "water" {
+    @ocean {
+      type: calm_lake
+      underwater_fog: {
+        color: "#041828"
+        density: 0.08
+      }
+      caustics: true
+    }
+
+    @volumetric_fog {
+      color: "#0a2030"
+      density: 0.05
+      height_falloff: 0.01
+      scattering: 0.3
+    }
+  }
+
+  environment "cave" {
+    @terrain {
+      size: [200, 200]
+      resolution: 128
+      max_height: -5
+
+      generation {
+        base: fbm_noise { octaves: 5, persistence: 0.6, lacunarity: 1.8 }
+      }
+
+      biomes {
+        rock: { height: [0.0, 0.7], material: "wet_cave_rock_pbr" }
+        coral: { height: [0.7, 1.0], material: "coral_pbr" }
+      }
+    }
+  }
+
+  environment "lighting" {
+    @global_illumination {
+      method: ambient_only
+      ambient_color: "#051520"
+      ambient_intensity: 0.2
+    }
+
+    @caustics {
+      color: "#40a0c0"
+      intensity: 0.6
+      scale: 3.0
+      speed: 0.5
+    }
+
+    object "BioGlow1" {
+      @emissive { color: "#00ffaa", intensity: 1.5 }
+      position: [3, -8, -2]
+    }
+
+    object "BioGlow2" {
+      @emissive { color: "#0088ff", intensity: 1.2 }
+      position: [-5, -12, 4]
+    }
+
+    object "BioGlow3" {
+      @emissive { color: "#aa00ff", intensity: 1.0 }
+      position: [0, -15, -6]
+    }
+  }
+
+  environment "vfx" {
+    @vfx_particle {
+      preset: custom
+      max_particles: 3000
+      emission_rate: 50
+      lifetime: 8.0
+      start_color: "#00ffcc"
+      end_color: "#0044ff"
+      start_size: 0.03
+      end_size: 0.08
+      start_opacity: 0.7
+      end_opacity: 0.0
+      velocity: [0.1, 0.3, 0.05]
+      velocity_spread: 0.8
+      gravity: [0, 0.05, 0]
+      blending: additive
+    }
+
+    @vfx_particle {
+      preset: dust
+      emission_rate: 30
+      lifetime: 12.0
+      start_color: "#204060"
+      start_opacity: 0.15
+      velocity: [$state.currentStrength, 0.02, 0.1]
+      gravity: [0, 0, 0]
+    }
+  }
+
+  environment "post" {
+    @post_processing {
+      steps: [
+        { effect: bloom, threshold: 0.5, intensity: 0.8, radius: 0.6 },
+        { effect: tone_mapping, method: aces_filmic, exposure: 0.7 },
+        { effect: color_grading, tint: "#0a3050", intensity: 0.3 },
+        { effect: fxaa },
+        { effect: vignette, offset: 0.7, darkness: 0.8 }
+      ]
+    }
+  }
+}

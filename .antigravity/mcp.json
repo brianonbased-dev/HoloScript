@@ -1,0 +1,31 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-config.json",
+  "mcpServers": {
+    "holoscript-mcp": {
+      "name": "HoloScript MCP",
+      "description": "156 tools: parse, compile, render, team board, knowledge, messaging, codebase intelligence",
+      "type": "http",
+      "url": "https://mcp.holoscript.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_API_KEY}"
+      }
+    },
+    "mcp-orchestrator": {
+      "name": "MCP Orchestrator",
+      "description": "Tool discovery, knowledge federation (2K+ entries)",
+      "type": "http",
+      "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_API_KEY}"
+      }
+    },
+    "holoscript-local": {
+      "name": "HoloScript Local",
+      "description": "Local dev server",
+      "type": "stdio",
+      "command": "node",
+      "args": ["packages/mcp-server/start.js"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

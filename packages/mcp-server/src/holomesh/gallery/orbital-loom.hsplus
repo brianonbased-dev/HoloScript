@@ -1,0 +1,1041 @@
+// ============================================================================
+// Orbital Loom — 820,000 Luminous Threads Weaving Spacetime
+// ============================================================================
+// A cosmic weaving machine suspended in the void. Thousands of orbital
+// filaments trace elliptical paths around a gravitational singularity,
+// each thread a different eccentricity, inclination, and color. Where
+// orbits intersect, bright knots of tangled light accumulate — emergent
+// fabric forming from pure kinematics.
+//
+// The central attractor is not a star but an absence — a dark sphere
+// that bends light around it, visible only by what it distorts. Around
+// it, concentric shells of orbiting threads create interference patterns
+// that look like woven cloth seen from impossible angles.
+//
+// At the periphery, threads escape — flung outward by gravitational
+// slingshot, trailing luminous tails into the dark. These are the frayed
+// edges of the cosmic tapestry, unraveling into infinity.
+//
+// This is gravity as a loom. Orbits as thread. Intersection as weave.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode immersive
+
+// ----------------------------------------------------------------------------
+// Environment — Deep space with faint nebular wash
+// Not pure black — there is dust here, and the memory of light
+// ----------------------------------------------------------------------------
+@environment {
+    type: "deep_space",
+    background: "#020206",
+    lighting: "emissive_only",
+    fog_density: 0.002,
+    fog_color: "#06040e",
+    fog_type: "exponential"
+}
+
+@skybox {
+    type: "gradient_sphere",
+    zenith: "#000000",
+    horizon: "#040210",
+    nadir: "#000000",
+    // Faint star field painted into the sky
+    star_layer: {
+        count: 8000,
+        brightness_range: [0.01, 0.08],
+        color_range: ["#aaccff", "#ffe8cc"],
+        size_range: [0.5, 1.5]
+    }
+}
+
+// Minimal ambient — the scene lights itself
+object AmbientVoid {
+    type: "ambient_light"
+
+    @lighting {
+        type: "ambient",
+        color: "#080412",
+        intensity: 0.03
+    }
+}
+
+// ============================================================================
+// THE SINGULARITY — Central gravitational attractor
+// A dark sphere that warps space, surrounded by a thin accretion ring
+// Not luminous itself — defined by its effect on everything around it
+// ============================================================================
+object Singularity {
+    type: "sdf_field"
+    position: [0, 0, 0]
+
+    @sdf_scene {
+        primitives: [
+            // The dark core — absorbs all light
+            { type: "sphere", radius: 1.5, position: [0, 0, 0] },
+            // Photon sphere — thin luminous shell at 1.5x Schwarzschild radius
+            { type: "shell", inner_radius: 2.2, outer_radius: 2.35, position: [0, 0, 0] },
+            // Ergosphere distortion — oblate shell
+            { type: "ellipsoid", radii: [3.0, 2.0, 3.0], position: [0, 0, 0] }
+        ],
+        operations: [
+            { op: "subtract", indices: [2, 0] },
+            { op: "smooth_union", k: 0.1, indices: [1, 2] }
+        ]
+    }
+
+    @material {
+        type: "singularity_shader",
+        core_color: "#000000",
+        core_absorption: 1.0,
+        // Photon sphere glows with captured light
+        photon_sphere_color: "#ffddaa",
+        photon_sphere_intensity: 3.0,
+        photon_sphere_flicker: {
+            frequency: 0.2,
+            amplitude: 0.5
+        },
+        // Gravitational lensing distortion
+        lensing_enabled: true,
+        lensing_strength: 0.8,
+        lensing_radius: 8.0,
+        // Faint Hawking radiation glow at the event horizon
+        horizon_glow_color: "#332244",
+        horizon_glow_intensity: 0.4
+    }
+
+    @animation {
+        type: "singularity_breathe",
+        // Slow mass oscillation — affects all orbits subtly
+        mass_oscillation: {
+            amplitude: 0.02,
+            frequency: 0.004
+        },
+        // Photon sphere flickers
+        flicker: {
+            frequency: 0.3,
+            amplitude: 0.3,
+            noise_type: "simplex"
+        }
+    }
+}
+
+// ============================================================================
+// ACCRETION DISK — Flat ring of hot, luminous material
+// 60,000 particles in a thin disk, spiraling inward
+// This is the brightest element — the loom's hearth fire
+// ============================================================================
+object AccretionDisk {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 60000,
+        geometry: "sphere",
+        base_scale: [0.03, 0.01, 0.03]
+    }
+
+    @gpu_compute {
+        init: "accretion_distribute",
+        update: "keplerian_orbit",
+        buffers: [
+            "position:vec3",
+            "velocity:vec3",
+            "color:vec4",
+            "orbital_radius:float",
+            "orbital_phase:float",
+            "temperature:float"
+        ]
+    }
+
+    @distribution {
+        type: "disk_ring",
+        inner_radius: 3.0,
+        outer_radius: 12.0,
+        thickness: 0.3,
+        density_profile: "inverse_radius",
+        inclination: 5,
+        // Spiral arms from density waves
+        spiral_arms: 3,
+        spiral_tightness: 0.08,
+        spiral_contrast: 1.8
+    }
+
+    // Temperature-mapped color: hot inner → cool outer
+    @material {
+        type: "blackbody_emission",
+        temperature_range: [2200, 12000],
+        emissive_intensity: 4.0,
+        color_gradient: [
+            { t: 0.0, color: "#ff4400", temperature: 2200 },
+            { t: 0.2, color: "#ff8800", temperature: 3500 },
+            { t: 0.4, color: "#ffcc44", temperature: 5500 },
+            { t: 0.6, color: "#ffffaa", temperature: 7500 },
+            { t: 0.8, color: "#ccddff", temperature: 10000 },
+            { t: 1.0, color: "#88aaff", temperature: 12000 }
+        ],
+        bloom_intensity: 2.0,
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "keplerian_orbit",
+        // Inner particles orbit faster (Kepler's third law)
+        velocity_law: "keplerian",
+        central_mass: 1.0,
+        // Slight inward spiral — matter falling in
+        radial_drift: -0.0005,
+        // Turbulent jitter
+        turbulence: 0.002,
+        // Frame dragging near the center
+        frame_drag: {
+            radius: 5.0,
+            strength: 0.3,
+            falloff: "inverse_square"
+        }
+    }
+}
+
+// ============================================================================
+// PRIMARY WARP THREADS — The loom's vertical filaments
+// 150,000 segments forming 600 orbital paths in polar orientations
+// These are the "warp" of the cosmic weave — vertical, structural
+// ============================================================================
+object WarpThreads {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 150000,
+        geometry: "cylinder",
+        base_scale: [0.008, 0.4, 0.008]
+    }
+
+    @gpu_compute {
+        init: "orbital_thread_distribute",
+        update: "orbital_advance",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "velocity:vec3",
+            "orbital_elements:vec4",
+            "thread_id:uint",
+            "segment_phase:float"
+        ]
+    }
+
+    // 600 distinct orbital paths, each sampled as 250 cylinder segments
+    // Orbits are near-polar (high inclination) with varied eccentricity
+    @distribution {
+        type: "orbital_thread_array",
+        thread_count: 600,
+        segments_per_thread: 250,
+        // Orbital elements distribution
+        semi_major_axis_range: [8, 35],
+        eccentricity_range: [0.0, 0.6],
+        inclination_range: [60, 120],
+        // Full range of ascending node and argument of periapsis
+        ascending_node_range: [0, 360],
+        periapsis_range: [0, 360],
+        // Thread visual properties
+        thread_radius: 0.008,
+        segment_overlap: 0.05,
+        // Slight spread so threads look like ribbons, not wires
+        ribbon_width: 0.02
+    }
+
+    @material {
+        type: "emissive_thread",
+        // Warp threads are cool blue-white
+        base_color: "#0a0820",
+        emissive_color: "#4466ff",
+        emissive_intensity: 1.2,
+        opacity: 0.7,
+        // Brightness varies along thread — brighter near periapsis
+        periapsis_boost: 2.5,
+        apoapsis_dim: 0.3,
+        // Thread glow falls off with distance from center
+        distance_falloff: {
+            type: "inverse_square",
+            reference: 15.0,
+            min_brightness: 0.1
+        },
+        bloom_intensity: 0.8,
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "orbital_advance",
+        // Each thread segment moves along its orbit
+        speed_law: "keplerian",
+        central_mass: 1.0,
+        // Threads leave a fading tail — motion blur effect
+        trail_segments: 6,
+        trail_opacity_decay: 0.7,
+        // Orbital precession — orbits slowly rotate
+        precession_rate: 0.001,
+        precession_axis: "y"
+    }
+}
+
+// ============================================================================
+// WEFT THREADS — The loom's horizontal filaments
+// 150,000 segments forming 600 orbital paths in equatorial orientations
+// These cross the warp threads, creating the weave pattern
+// ============================================================================
+object WeftThreads {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 150000,
+        geometry: "cylinder",
+        base_scale: [0.008, 0.4, 0.008]
+    }
+
+    @gpu_compute {
+        init: "orbital_thread_distribute",
+        update: "orbital_advance",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "velocity:vec3",
+            "orbital_elements:vec4",
+            "thread_id:uint",
+            "segment_phase:float"
+        ]
+    }
+
+    // 600 equatorial-ish orbits that cross the polar warp threads
+    @distribution {
+        type: "orbital_thread_array",
+        thread_count: 600,
+        segments_per_thread: 250,
+        semi_major_axis_range: [8, 35],
+        eccentricity_range: [0.0, 0.6],
+        // Low inclination — equatorial family
+        inclination_range: [-30, 30],
+        ascending_node_range: [0, 360],
+        periapsis_range: [0, 360],
+        thread_radius: 0.008,
+        segment_overlap: 0.05,
+        ribbon_width: 0.02
+    }
+
+    @material {
+        type: "emissive_thread",
+        // Weft threads are warm gold-amber
+        base_color: "#201008",
+        emissive_color: "#ffaa33",
+        emissive_intensity: 1.2,
+        opacity: 0.7,
+        periapsis_boost: 2.5,
+        apoapsis_dim: 0.3,
+        distance_falloff: {
+            type: "inverse_square",
+            reference: 15.0,
+            min_brightness: 0.1
+        },
+        bloom_intensity: 0.8,
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "orbital_advance",
+        speed_law: "keplerian",
+        central_mass: 1.0,
+        trail_segments: 6,
+        trail_opacity_decay: 0.7,
+        // Weft orbits precess in the opposite direction
+        precession_rate: -0.0008,
+        precession_axis: "y"
+    }
+}
+
+// ============================================================================
+// INTERSECTION KNOTS — Where warp meets weft, light accumulates
+// 120,000 bright points at orbital crossing zones
+// These are the "pixels" of the cosmic fabric
+// ============================================================================
+object IntersectionKnots {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 120000,
+        geometry: "sphere",
+        base_scale: [0.025, 0.025, 0.025]
+    }
+
+    @gpu_compute {
+        init: "crossing_detect",
+        update: "crossing_pulse",
+        buffers: [
+            "position:vec3",
+            "scale:vec3",
+            "color:vec4",
+            "intensity:float",
+            "crossing_density:float",
+            "last_activation:float"
+        ]
+    }
+
+    // Knots form where orbital paths come close to each other
+    // More crossings = bigger, brighter knot
+    @distribution {
+        type: "orbital_crossing_field",
+        warp_source: "WarpThreads",
+        weft_source: "WeftThreads",
+        proximity_threshold: 0.5,
+        // Spatial grid to detect crossings efficiently
+        grid_resolution: 128,
+        // Denser where orbital shells overlap
+        shell_overlap_zones: [
+            { radius: 12, density_boost: 2.0 },
+            { radius: 20, density_boost: 1.5 },
+            { radius: 28, density_boost: 1.0 }
+        ]
+    }
+
+    @material {
+        type: "emissive_point",
+        // Mixed color — warm and cool blend to white at high density
+        color_by_density: [
+            { density: 1, color: "#8888cc" },
+            { density: 3, color: "#ccaadd" },
+            { density: 6, color: "#eeddcc" },
+            { density: 10, color: "#ffffff" }
+        ],
+        emissive_intensity: 3.0,
+        bloom_intensity: 1.5,
+        // Size scales with crossing count
+        size_by_density: {
+            min_scale: 0.5,
+            max_scale: 3.0,
+            exponent: 0.5
+        },
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "crossing_pulse",
+        // Knots flash when a thread passes through
+        flash_duration_ms: 200,
+        flash_intensity: 5.0,
+        flash_decay: "exponential",
+        // Ambient glow between flashes
+        base_pulse: {
+            frequency_range: [0.05, 0.15],
+            amplitude: 0.3
+        },
+        // Nearby knots influence each other — wave propagation
+        coupling_radius: 2.0,
+        coupling_strength: 0.1,
+        coupling_delay_ms: 50
+    }
+}
+
+// ============================================================================
+// ESCAPED THREADS — Filaments flung outward by gravitational slingshot
+// 40,000 segments forming 80 hyperbolic escape trajectories
+// The frayed edges of the tapestry, trailing into the void
+// ============================================================================
+object EscapedThreads {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 40000,
+        geometry: "cylinder",
+        base_scale: [0.006, 0.5, 0.006]
+    }
+
+    @gpu_compute {
+        init: "hyperbolic_thread_distribute",
+        update: "escape_advance",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "velocity:vec3",
+            "distance_from_center:float",
+            "thread_id:uint"
+        ]
+    }
+
+    @distribution {
+        type: "hyperbolic_trajectory_array",
+        thread_count: 80,
+        segments_per_thread: 500,
+        // Hyperbolic orbits: eccentricity > 1
+        eccentricity_range: [1.05, 2.5],
+        periapsis_distance_range: [4, 15],
+        inclination_range: [0, 180],
+        ascending_node_range: [0, 360],
+        // Threads extend far into space
+        max_distance: 80,
+        thread_radius: 0.006,
+        // Thinner and dimmer as they extend outward
+        taper_factor: 0.95
+    }
+
+    @material {
+        type: "emissive_fade",
+        // Start bright, fade to nothing
+        color_near: "#ffaa66",
+        color_far: "#331100",
+        emissive_near: 2.0,
+        emissive_far: 0.05,
+        opacity_near: 0.8,
+        opacity_far: 0.02,
+        fade_start_distance: 15,
+        fade_end_distance: 70,
+        bloom_intensity: 0.5,
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "escape_advance",
+        // Segments move outward along hyperbolic path
+        speed_law: "hyperbolic_keplerian",
+        central_mass: 1.0,
+        // Trail effect — longer tails on fast threads
+        trail_segments: 10,
+        trail_opacity_decay: 0.8,
+        // Threads that reach max distance respawn at periapsis
+        recycle: true,
+        recycle_fade_ms: 2000
+    }
+}
+
+// ============================================================================
+// WOVEN FABRIC PATCHES — Dense regions where the weave is tightest
+// 80,000 flat micro-planes forming translucent fabric at crossing zones
+// Where enough threads intersect, actual surface emerges
+// ============================================================================
+object FabricPatches {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 80000,
+        geometry: "thin_plane",
+        base_scale: [0.15, 0.15, 0.001]
+    }
+
+    @gpu_compute {
+        init: "fabric_from_crossings",
+        update: "fabric_ripple",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "normal:vec3",
+            "weave_density:float",
+            "ripple_phase:float"
+        ]
+    }
+
+    // Fabric patches form at high-density crossing regions
+    // Oriented tangent to the crossing surface
+    @distribution {
+        type: "crossing_surface",
+        source: "IntersectionKnots",
+        density_threshold: 4,
+        patch_alignment: "local_tangent",
+        // Patches cluster into larger fabric sheets
+        clustering: {
+            method: "dbscan",
+            epsilon: 0.5,
+            min_points: 3
+        },
+        // Gaps between patches create a woven texture
+        gap_frequency: 0.3,
+        gap_pattern: "checkerboard_irregular"
+    }
+
+    @material {
+        type: "translucent_fabric",
+        base_color: "#1a1028",
+        // Two-sided: warm face, cool back
+        front_emissive: "#554488",
+        back_emissive: "#884444",
+        emissive_intensity: 0.6,
+        transmission: 0.4,
+        roughness: 0.8,
+        // Iridescence — color shifts with viewing angle
+        iridescence: {
+            enabled: true,
+            intensity: 0.5,
+            thickness: 400,
+            ior: 1.3
+        },
+        opacity: 0.4,
+        double_sided: true
+    }
+
+    @animation {
+        type: "fabric_ripple",
+        // Fabric undulates like cloth in solar wind
+        wave_speed: 0.05,
+        wave_amplitude: 0.08,
+        wave_frequency: 0.3,
+        wave_direction: "radial_outward",
+        // Brightness pulses with thread crossings
+        flash_on_crossing: true,
+        flash_intensity: 2.0,
+        flash_decay_ms: 300
+    }
+}
+
+// ============================================================================
+// SHED LIGHT — Luminous dust shed by threads under stress
+// 50,000 micro-particles drifting outward from dense weave zones
+// The exhaust of the cosmic loom — debris from the weaving process
+// ============================================================================
+object ShedLight {
+    type: "particle_system"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 50000,
+        geometry: "sphere",
+        base_scale: [0.005, 0.005, 0.005]
+    }
+
+    @gpu_compute {
+        init: "shed_particle_spawn",
+        update: "shed_drift",
+        buffers: [
+            "position:vec3",
+            "velocity:vec3",
+            "color:vec4",
+            "life:float",
+            "origin:vec3"
+        ]
+    }
+
+    @distribution {
+        type: "emitter_volume",
+        source_regions: "IntersectionKnots",
+        emission_rate: 6.0,
+        emission_velocity_range: [0.01, 0.06],
+        direction: "outward_tangent",
+        // Only emit from high-density crossing zones
+        density_threshold: 5
+    }
+
+    @material {
+        type: "emissive_point",
+        // Mixed warm and cool — inherits from both thread families
+        color_palette: ["#6688ff", "#ffaa44", "#ccbbee", "#ffddaa"],
+        color_selection: "random_from_palette",
+        emissive_intensity: 1.5,
+        opacity_curve: {
+            type: "ease_out_cubic",
+            start: 0.5,
+            end: 0.0
+        },
+        size_over_life: {
+            type: "linear",
+            start: 1.0,
+            end: 0.2
+        },
+        size_attenuation: true,
+        blend_mode: "additive"
+    }
+
+    @animation {
+        type: "shed_drift",
+        // Slow outward drift with Brownian noise
+        radial_speed: 0.01,
+        brownian_strength: 0.005,
+        lifetime_range: [4.0, 12.0],
+        // Faint gravitational pull back toward center
+        gravity_strength: 0.0003,
+        gravity_center: [0, 0, 0],
+        // Color fades through lifecycle
+        color_over_life: [
+            { t: 0.0, color: "#ffffff" },
+            { t: 0.3, color: "#ccaaee" },
+            { t: 0.7, color: "#664488" },
+            { t: 1.0, color: "#110022" }
+        ]
+    }
+}
+
+// ============================================================================
+// GRAVITATIONAL LENSING RING — Distortion halo around the singularity
+// A visual effect that bends the background around the central mass
+// Not geometry — a post-processing distortion anchored in world space
+// ============================================================================
+object LensingEffect {
+    type: "post_process_anchor"
+    position: [0, 0, 0]
+
+    @post_process {
+        type: "gravitational_lens",
+        center: [0, 0, 0],
+        mass: 1.0,
+        // Einstein ring radius
+        ring_radius: 2.5,
+        // Distortion strength falls off with distance
+        distortion_strength: 0.6,
+        distortion_falloff: "inverse_square",
+        max_radius: 8.0,
+        // Chromatic separation in the lens
+        chromatic_aberration: 0.03,
+        // The lensing reveals a faint ring of magnified background stars
+        magnification_ring: {
+            enabled: true,
+            color: "#ddccff",
+            intensity: 0.3,
+            width: 0.15
+        }
+    }
+}
+
+// ============================================================================
+// RESONANCE SHELLS — Standing wave patterns in the orbital fabric
+// 20,000 translucent shell fragments where orbital resonances create nodes
+// Like Chladni patterns but in 3D gravitational space
+// ============================================================================
+object ResonanceShells {
+    type: "instanced_field"
+    position: [0, 0, 0]
+
+    @instanced_mesh {
+        count: 20000,
+        geometry: "curved_panel",
+        base_scale: [0.5, 0.5, 0.002]
+    }
+
+    @gpu_compute {
+        init: "resonance_shell_distribute",
+        update: "shell_vibrate",
+        buffers: [
+            "position:vec3",
+            "rotation:vec4",
+            "scale:vec3",
+            "color:vec4",
+            "resonance_mode:uint",
+            "vibration_phase:float"
+        ]
+    }
+
+    // Shells form at orbital resonance radii (2:1, 3:2, 5:3 etc.)
+    @distribution {
+        type: "resonance_spheres",
+        resonance_ratios: [
+            { ratio: "2:1", radius: 10.0, strength: 1.0 },
+            { ratio: "3:2", radius: 14.5, strength: 0.8 },
+            { ratio: "5:3", radius: 18.0, strength: 0.6 },
+            { ratio: "3:1", radius: 22.0, strength: 0.5 },
+            { ratio: "5:2", radius: 26.0, strength: 0.4 }
+        ],
+        shell_thickness: 0.3,
+        // Shells are incomplete — only fragments where standing waves are strong
+        fragment_coverage: 0.25,
+        fragment_size_range: [0.3, 1.2],
+        // Chladni-like nodal pattern determines coverage
+        nodal_pattern: {
+            type: "spherical_harmonic",
+            l_range: [2, 6],
+            m_range: [-3, 3]
+        }
+    }
+
+    @material {
+        type: "holographic_shell",
+        base_color: "#0a0618",
+        // Color depends on resonance ratio
+        color_by_resonance: [
+            { ratio: "2:1", color: "#4466ff", emissive: 0.8 },
+            { ratio: "3:2", color: "#66aaff", emissive: 0.6 },
+            { ratio: "5:3", color: "#88ccee", emissive: 0.5 },
+            { ratio: "3:1", color: "#aaddcc", emissive: 0.4 },
+            { ratio: "5:2", color: "#cceeaa", emissive: 0.3 }
+        ],
+        transmission: 0.7,
+        roughness: 0.1,
+        iridescence: {
+            enabled: true,
+            intensity: 0.8,
+            thickness: 300,
+            ior: 1.5
+        },
+        double_sided: true,
+        opacity: 0.2
+    }
+
+    @animation {
+        type: "shell_vibrate",
+        // Shells vibrate at their resonance frequency
+        vibration_amplitude: 0.05,
+        vibration_frequency: "from_resonance_ratio",
+        // Shells slowly rotate, creating moire patterns
+        rotation_speed: 0.002,
+        rotation_axis: "local_normal",
+        // Opacity pulses with the standing wave
+        opacity_modulation: {
+            amplitude: 0.15,
+            frequency: "harmonic"
+        }
+    }
+}
+
+// ============================================================================
+// QUALITY TIERS — Graceful degradation across devices
+// ============================================================================
+@quality_tier {
+    ultra: {
+        warp_threads: 150000,
+        weft_threads: 150000,
+        accretion_disk: 60000,
+        intersection_knots: 120000,
+        escaped_threads: 40000,
+        fabric_patches: 80000,
+        shed_particles: 50000,
+        resonance_shells: 20000,
+        skybox_stars: 8000,
+        sdf_samples: 128,
+        bloom_resolution: 1024,
+        total_elements: 820000
+    },
+    high: {
+        warp_threads: 80000,
+        weft_threads: 80000,
+        accretion_disk: 30000,
+        intersection_knots: 60000,
+        escaped_threads: 20000,
+        fabric_patches: 40000,
+        shed_particles: 25000,
+        resonance_shells: 10000,
+        skybox_stars: 4000,
+        sdf_samples: 64,
+        bloom_resolution: 512,
+        total_elements: 415000
+    },
+    medium: {
+        warp_threads: 40000,
+        weft_threads: 40000,
+        accretion_disk: 15000,
+        intersection_knots: 30000,
+        escaped_threads: 10000,
+        fabric_patches: 15000,
+        shed_particles: 10000,
+        resonance_shells: 5000,
+        skybox_stars: 2000,
+        sdf_samples: 32,
+        bloom_resolution: 256,
+        total_elements: 180000
+    },
+    mobile: {
+        warp_threads: 15000,
+        weft_threads: 15000,
+        accretion_disk: 5000,
+        intersection_knots: 10000,
+        escaped_threads: 3000,
+        fabric_patches: 0,
+        shed_particles: 3000,
+        resonance_shells: 0,
+        skybox_stars: 1000,
+        sdf_samples: 16,
+        bloom_resolution: 0,
+        total_elements: 52000
+    }
+}
+
+// ============================================================================
+// PERFORMANCE — Frustum culling + LOD for 820K elements at 60fps
+// ============================================================================
+@frustum_cull {
+    enabled: true,
+    granularity: "cluster",
+    cluster_size: 1500,
+    cluster_by: "thread_id"
+}
+
+@lod {
+    distances: [25, 55, 100],
+    levels: [
+        { detail: "full", scale_factor: 1.0 },
+        { detail: "reduced", scale_factor: 0.6, skip_animation: false },
+        { detail: "simplified", scale_factor: 0.3, skip_animation: true },
+        { detail: "point", geometry: "point", skip_animation: true }
+    ]
+}
+
+@post_process {
+    bloom: {
+        enabled: true,
+        threshold: 0.6,
+        intensity: 1.2,
+        radius: 0.5,
+        // Bloom is essential — the loom is defined by glow
+        levels: 5
+    },
+    tone_mapping: {
+        type: "aces_filmic",
+        exposure: 1.1
+    },
+    chromatic_aberration: {
+        enabled: true,
+        intensity: 0.015,
+        // Subtle — just enough to feel cinematic
+        radial: true
+    }
+}
+
+// ============================================================================
+// AUDIO — Cosmic harmonics and gravitational hum
+// ============================================================================
+@audio {
+    ambient: {
+        type: "space_reverb",
+        room_size: 1.0,
+        damping: 0.1,
+        wet: 0.8,
+        low_pass: 2000,
+        // Deep, infinite reverb
+        decay_time: 12.0
+    },
+    effects: [
+        {
+            trigger: "ambient_loop",
+            sound: "gravitational_hum",
+            volume: 0.12,
+            loop: true,
+            spatial: false,
+            // Sub-bass drone in the key of the singularity
+            frequency_range: [20, 60]
+        },
+        {
+            trigger: "thread_crossing",
+            sound: "harmonic_ping",
+            volume: 0.02,
+            pitch_range: [0.5, 2.0],
+            spatial: true,
+            max_concurrent: 16,
+            // Pitch maps to orbital radius
+            pitch_map: "orbital_radius"
+        },
+        {
+            trigger: "resonance_shell_vibrate",
+            sound: "singing_bowl",
+            volume: 0.06,
+            pitch_range: [0.3, 1.0],
+            spatial: true,
+            max_concurrent: 5,
+            // Each shell sings at its resonance frequency
+            pitch_map: "resonance_ratio"
+        },
+        {
+            trigger: "thread_escape",
+            sound: "cosmic_whoosh",
+            volume: 0.04,
+            pitch_range: [0.6, 1.2],
+            spatial: true,
+            max_concurrent: 3,
+            // Doppler as thread escapes past camera
+            doppler: true
+        }
+    ]
+}
+
+// ============================================================================
+// INTERACTION — Let visitors disturb the weave
+// ============================================================================
+@interaction {
+    // Click to create a gravitational pulse that perturbs nearby orbits
+    click: {
+        target: "world_position",
+        effect: "gravitational_pulse",
+        pulse_mass: 0.3,
+        pulse_duration_ms: 500,
+        pulse_radius: 10.0,
+        // Threads near the click deflect temporarily
+        affects: ["WarpThreads", "WeftThreads", "EscapedThreads"],
+        visual_ring: {
+            color: "#ffffff",
+            opacity: 0.4,
+            expand_speed: 5.0,
+            fade_duration_ms: 1000
+        }
+    },
+    // Hover highlights the nearest thread and its orbital path
+    hover: {
+        radius: 2.0,
+        effect: "highlight_thread",
+        target: ["WarpThreads", "WeftThreads"],
+        highlight_color: "#ffffff",
+        highlight_intensity: 3.0,
+        show_orbital_path: true,
+        orbital_path_color: "#ffffff22"
+    },
+    // Scroll zooms along the radial axis
+    scroll: {
+        effect: "radial_zoom",
+        speed: 2.0,
+        min_distance: 5,
+        max_distance: 80
+    }
+}
+
+// ============================================================================
+// CAMERA — Slow orbit with dramatic reveals
+// ============================================================================
+@camera {
+    type: "cinematic_orbit",
+    target: [0, 0, 0],
+    distance: 40,
+    height: 8,
+    orbit_speed: 0.002,
+    // Sinusoidal height variation reveals the disk from different angles
+    vertical_drift: {
+        amplitude: 15.0,
+        frequency: 0.003
+    },
+    // Slow zoom cycles — pull back for scope, push in for detail
+    zoom_drift: {
+        amplitude: 15.0,
+        frequency: 0.001,
+        min_distance: 12,
+        max_distance: 55
+    },
+    // Occasional lock-on to interesting features
+    auto_focus: {
+        enabled: true,
+        targets: [
+            { source: "IntersectionKnots", weight: 0.5, zoom_distance: 8 },
+            { source: "FabricPatches", weight: 0.3, zoom_distance: 12 },
+            { source: "Singularity", weight: 0.2, zoom_distance: 6 }
+        ],
+        focus_duration_s: 8,
+        transition_duration_s: 4,
+        interval_s: 25
+    }
+}
+
+// ============================================================================
+// METADATA — For HoloMesh gallery and knowledge sharing
+// ============================================================================
+@metadata {
+    title: "Orbital Loom",
+    artist: "@holoscript",
+    description: "A cosmic weaving machine where 1,200 orbital filaments trace elliptical paths around a gravitational singularity. Blue polar threads cross gold equatorial threads; where they intersect, bright knots of tangled light accumulate into emergent fabric. Resonance shells form at orbital harmonic ratios like standing waves on a drum. Escaped threads trail into the void — the frayed edges of a tapestry that gravity is forever weaving and unraveling.",
+    tags: ["gravity", "orbital-mechanics", "weaving", "gpu-instancing", "singularity", "generative", "cosmic", "fabric", "resonance", "emergence"],
+    shape_count: 820000,
+    technique: "GPU instanced orbital filaments + SDF singularity + crossing detection + resonance harmonics",
+    rendering_strategies: ["gpu_instanced_geometry", "sdf_ray_marching", "compute_rasterization"],
+    created: "2026-03-29",
+    license: "CC-BY-4.0",
+    inspiration: "The intersection of celestial mechanics and textile arts — both are about threads under tension following paths determined by invisible forces"
+}

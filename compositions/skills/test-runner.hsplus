@@ -1,0 +1,55 @@
+// Focused Test Runner — run tests for a specific package or file
+// Accepts a target path via blackboard and reports pass/fail to channel.
+
+composition "test-runner" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.05)
+  @circuit_breaker
+  @timeout_guard
+
+  state target: string = "packages/core"
+  state passed: number = 0
+  state failed: number = 0
+  state duration: number = 0
+  state lastResult: string = "pending"
+
+  sequence "run-tests" {
+    action "shell_exec" {
+      command: "npx"
+      args: ["vitest", "run", "--reporter=verbose"]
+    }
+
+    action "channel_send" {
+      channel: "tests"
+    }
+  }
+
+  fallback "on-failure" {
+    action "channel_send" {
+      channel: "tests"
+      // Reports failure details
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "target defaults to packages/core"
+    assert: { $target == "packages/core" }
+  }
+
+  @test {
+    name: "passed starts at zero"
+    assert: { $passed == 0 }
+  }
+
+  @test {
+    name: "failed starts at zero"
+    assert: { $failed == 0 }
+  }
+
+  @test {
+    name: "lastResult starts as pending"
+    assert: { $lastResult == "pending" }
+  }
+}

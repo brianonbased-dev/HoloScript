@@ -1,0 +1,195 @@
+/**
+ * Workspace — Studio Hub Composition
+ *
+ * Defines the UI surface for the /workspace page. The header and stats bar
+ * render natively via HoloSurfaceRenderer. Content type grid and search
+ * stay in React (require icons + Link components).
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /workspace
+ */
+
+composition "Workspace" {
+
+  state {
+    pageTitle: "Creator Workspace"
+    pageSubtitle: "Build, experiment, and ship to the HoloScript marketplace"
+    totalContent: 0
+    totalPublished: 0
+    totalRevenue: 0
+    lastUpdated: "Just now"
+    contentTypeCount: 7
+    quickActionCount: 8
+  }
+
+  computed {
+    revenueLabel: "$" + ($totalRevenue / 100).toFixed(2)
+    contentLabel: String($totalContent) + " items"
+    publishedLabel: String($totalPublished) + " live"
+  }
+
+  template "StatCard" {
+    type: "ui"
+    uiType: "panel"
+    width: 200
+    height: 60
+    padding: 12
+    backgroundColor: "#111827"
+    borderColor: "#1e293b"
+    cornerRadius: 12
+  }
+
+  object "WorkspaceShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1024
+    height: 160
+    backgroundColor: "transparent"
+    cornerRadius: 0
+
+    // ── Header ──
+    object "Title" {
+      type: "ui"
+      uiType: "text"
+      text: $pageTitle
+      fontSize: 30
+      fontWeight: "bold"
+      color: "#e2e8f0"
+      position: [0, 0]
+    }
+
+    object "Subtitle" {
+      type: "ui"
+      uiType: "text"
+      text: $pageSubtitle
+      fontSize: 14
+      color: "#94a3b8"
+      position: [0, 40]
+    }
+
+    // ── Stats Bar ──
+    object "TotalStat" using "StatCard" {
+      position: [0, 80]
+
+      object "TotalLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Total Content"
+        fontSize: 11
+        color: "#64748b"
+        position: [12, 8]
+      }
+
+      object "TotalValue" {
+        type: "ui"
+        uiType: "text"
+        text: $contentLabel
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 28]
+      }
+    }
+
+    object "PublishedStat" using "StatCard" {
+      position: [216, 80]
+
+      object "PubLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Published"
+        fontSize: 11
+        color: "#64748b"
+        position: [12, 8]
+      }
+
+      object "PubValue" {
+        type: "ui"
+        uiType: "text"
+        text: $publishedLabel
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 28]
+      }
+    }
+
+    object "RevenueStat" using "StatCard" {
+      position: [432, 80]
+
+      object "RevLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Revenue"
+        fontSize: 11
+        color: "#64748b"
+        position: [12, 8]
+      }
+
+      object "RevValue" {
+        type: "ui"
+        uiType: "text"
+        text: $revenueLabel
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 28]
+      }
+    }
+
+    object "UpdatedStat" using "StatCard" {
+      position: [648, 80]
+
+      object "UpdLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Last Updated"
+        fontSize: 11
+        color: "#64748b"
+        position: [12, 8]
+      }
+
+      object "UpdValue" {
+        type: "ui"
+        uiType: "text"
+        text: $lastUpdated
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 28]
+      }
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "initial page title"
+    assert: { $pageTitle == "Creator Workspace" }
+  }
+
+  @test {
+    name: "initial total content is zero"
+    assert: { $totalContent == 0 }
+  }
+
+  @test {
+    name: "revenue label formats correctly"
+    assert: { $revenueLabel == "$0.00" }
+  }
+
+  @test {
+    name: "content label with zero items"
+    assert: { $contentLabel == "0 items" }
+  }
+
+  @test {
+    name: "published label with zero"
+    assert: { $publishedLabel == "0 live" }
+  }
+
+  @test {
+    name: "content type count is 7"
+    assert: { $contentTypeCount == 7 }
+  }
+}

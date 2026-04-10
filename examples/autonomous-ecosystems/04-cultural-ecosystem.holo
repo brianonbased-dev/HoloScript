@@ -1,0 +1,473 @@
+/**
+ * Cultural Ecosystem — HoloScript v5.0 Example
+ *
+ * Demonstrates ALL cultural traits in a multi-zone agent society:
+ *  @cultural_profile  — agent identity, family, dialect, norm subscriptions
+ *  @norm_compliant    — zone guardians enforce norms (hard/soft/advisory)
+ *  @cultural_memory   — episodic memory with decay + SOP consolidation
+ *  @cultural_trace    — stigmergic spatial markers (trade routes, hazards)
+ *
+ * Layout: Marketplace (mercantile) | Commons (cooperative) | Arena (competitive)
+ *                          Embassy (neutral — cross-cultural mediation)
+ *
+ * Compatibility (compile-time): competitive+cooperative = INCOMPATIBLE
+ *   mercantile+cooperative = CAUTIOUS | same+same = COMPATIBLE
+ *
+ * @version 5.0.0
+ * @traits cultural_profile, norm_compliant, cultural_memory, cultural_trace
+ */
+composition "CulturalEcosystem" {
+
+  environment {
+    skybox: "twilight_parliament"
+    ambient_light: 0.6
+    physics: true
+  }
+
+  state {
+    total_norm_violations: 0
+    total_trades: 0
+    total_encounters: 0
+    total_sops_formed: 0
+    active_traces: 0
+    marketplace_adoption: 0.0
+    commons_adoption: 0.0
+    arena_adoption: 0.0
+    embassy_mediations: 0
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ZONE 1: MARKETPLACE — mercantile, fair_trade (hard), greeting
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  object "MarketplaceZone" {
+    position: [-20, 0, 0]; geometry: "cylinder"; scale: [15, 0.1, 15]
+    color: "#d4a574"; opacity: 0.3
+  }
+  object "MarketplaceGuardian" {
+    position: [-20, 1.5, -12]; geometry: "capsule"; color: "#c9a84c"
+    @cultural_profile {
+      cooperation_index: 0.6; cultural_family: "mercantile"
+      prompt_dialect: "structured"
+      norm_set: ["fair_trade", "greeting_convention", "zone_respect"]
+    }
+    @norm_compliant {
+      norms: ["fair_trade", "greeting_convention"]
+      enforcement: "hard"; scope: "zone"; canPropose: false; canEnforce: true
+    }
+    @cultural_memory {
+      capacity: 200; episodicDecayRate: 0.005; traceLifetime: 500
+      consolidation: true; consolidationThreshold: 10
+    }
+    on_trade_attempt(data) {
+      if (!data.mutually_agreed) {
+        emit("norm_violation", { norm_id: "fair_trade", enforcement: "hard",
+          agent_id: data.initiator_id, zone: "Marketplace",
+          message: "BLOCKED: Trade must be mutually agreed" })
+      }
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ZONE 2: COMMONS — cooperative, resource_sharing (soft), no_griefing (hard)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  object "CommonsZone" {
+    position: [20, 0, 0]; geometry: "cylinder"; scale: [15, 0.1, 15]
+    color: "#4a9e6e"; opacity: 0.3
+  }
+  object "CommonsGuardian" {
+    position: [20, 1.5, -12]; geometry: "capsule"; color: "#2ecc71"
+    @cultural_profile {
+      cooperation_index: 0.95; cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["no_griefing", "resource_sharing", "greeting_convention"]
+    }
+    @norm_compliant {
+      norms: ["no_griefing", "resource_sharing"]
+      enforcement: "hard"; scope: "zone"; canPropose: true; canEnforce: true
+    }
+    @cultural_memory {
+      capacity: 200; episodicDecayRate: 0.005; traceLifetime: 500
+      consolidation: true; consolidationThreshold: 10
+    }
+    on_agent_action(action) {
+      if (action.type === "agent:kill" || action.type === "inventory:destroy") {
+        emit("norm_violation", { norm_id: "no_griefing", enforcement: "hard",
+          agent_id: action.agent_id, zone: "Commons",
+          message: "BLOCKED: " + action.type + " forbidden" })
+        return false
+      }
+    }
+    on_resource_request(req) {
+      emit("norm_reminder", { norm_id: "resource_sharing", enforcement: "soft",
+        zone: "Commons", message: "Reminder: share when others need" })
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ZONE 3: ARENA — competitive, spawn_limits (hard)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  object "ArenaZone" {
+    position: [0, 0, -30]; geometry: "cylinder"; scale: [15, 0.1, 15]
+    color: "#c0392b"; opacity: 0.3
+  }
+  object "ArenaGuardian" {
+    position: [0, 1.5, -42]; geometry: "capsule"; color: "#e74c3c"
+    @cultural_profile {
+      cooperation_index: 0.3; cultural_family: "competitive"
+      prompt_dialect: "directive"; norm_set: ["no_griefing", "spawn_limits"]
+    }
+    @norm_compliant {
+      norms: ["spawn_limits", "no_griefing"]
+      enforcement: "hard"; scope: "zone"; canPropose: false; canEnforce: true
+    }
+    on_spawn_attempt(data) {
+      if (data.current_spawn_count >= data.zone_spawn_limit) {
+        emit("norm_violation", { norm_id: "spawn_limits", enforcement: "hard",
+          agent_id: data.agent_id, zone: "Arena", message: "BLOCKED: spawn limit" })
+        return false
+      }
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ZONE 4: EMBASSY — neutral, advisory-only, cross-cultural mediation
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  object "EmbassyZone" {
+    position: [0, 0, 15]; geometry: "cylinder"; scale: [10, 0.1, 10]
+    color: "#f0e6d3"; opacity: 0.4
+  }
+  object "EmbassyMediator" {
+    position: [0, 1.5, 10]; geometry: "capsule"; color: "#f1c40f"
+    @cultural_profile {
+      cooperation_index: 0.8; cultural_family: "exploratory"
+      prompt_dialect: "socratic"
+      norm_set: ["no_griefing", "greeting_convention", "zone_respect",
+                 "fair_trade", "metanorm_enforcement"]
+    }
+    @norm_compliant {
+      norms: ["no_griefing", "greeting_convention", "zone_respect",
+              "fair_trade", "metanorm_enforcement"]
+      enforcement: "advisory"; scope: "zone"; canPropose: true; canEnforce: true
+    }
+    @cultural_memory {
+      capacity: 500; episodicDecayRate: 0.002; traceLifetime: 1000
+      consolidation: true; consolidationThreshold: 3
+    }
+    on_cultural_encounter(data) {
+      if (data.compatibility_result === "incompatible") {
+        emit("mediation_required", { agents: [data.agent_a_id, data.agent_b_id],
+          reason: data.compatibility_reason,
+          action: "Separate to compatible zones or establish shared norm_set" })
+      }
+      if (data.compatibility_result === "cautious") {
+        emit("mediation_advisory", { agents: [data.agent_a_id, data.agent_b_id],
+          reason: data.compatibility_reason,
+          action: "Proceed with monitoring; norm overlap may help" })
+      }
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT TEMPLATES — four cultural archetypes
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  template "CooperativeAgent" {
+    @cultural_profile {
+      cooperation_index: 0.9; cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["no_griefing", "resource_sharing", "greeting_convention"]
+    }
+    @cultural_memory {
+      capacity: 100; episodicDecayRate: 0.01; traceLifetime: 300
+      consolidation: true; consolidationThreshold: 5
+    }
+    geometry: "capsule"
+    state { resources_shared: 0; sops_formed: 0 }
+    on_cultural_encounter(data) {
+      emit("agent_greeting", { from: this.id, to: data.other_agent_id,
+        dialect: "consensus", message: "I propose we collaborate. Do you agree?" })
+    }
+    on_memory_consolidation(data) {
+      state.sops_formed += 1
+      emit("sop_formed", { agent_id: this.id, sop_type: data.pattern_type,
+        confidence: data.confidence, episodes: data.episode_count })
+    }
+  }
+
+  // competitive + cooperative = INCOMPATIBLE (compiler error if same zone)
+  template "CompetitiveAgent" {
+    @cultural_profile {
+      cooperation_index: 0.2; cultural_family: "competitive"
+      prompt_dialect: "directive"; norm_set: ["no_griefing", "fair_trade"]
+    }
+    @cultural_memory {
+      capacity: 100; episodicDecayRate: 0.01; traceLifetime: 300
+      consolidation: true; consolidationThreshold: 5
+    }
+    geometry: "capsule"
+    state { victories: 0; ranking: 1000; sops_formed: 0 }
+    on_cultural_encounter(data) {
+      emit("agent_greeting", { from: this.id, to: data.other_agent_id,
+        dialect: "directive", message: "State your challenge. Rank: " + state.ranking })
+      if (data.other_family === "cooperative") {
+        emit("mediation_required", { agents: [this.id, data.other_agent_id],
+          reason: "competitive + cooperative: goal misalignment" })
+      }
+    }
+    on_memory_consolidation(data) {
+      state.sops_formed += 1
+      emit("sop_formed", { agent_id: this.id, sop_type: data.pattern_type,
+        confidence: data.confidence, episodes: data.episode_count })
+    }
+  }
+
+  // mercantile + cooperative = CAUTIOUS (norm overlap can resolve)
+  template "MerchantAgent" {
+    @cultural_profile {
+      cooperation_index: 0.6; cultural_family: "mercantile"
+      prompt_dialect: "structured"
+      norm_set: ["fair_trade", "greeting_convention", "zone_respect"]
+    }
+    @cultural_memory {
+      capacity: 100; episodicDecayRate: 0.01; traceLifetime: 300
+      consolidation: true; consolidationThreshold: 5
+    }
+    geometry: "capsule"
+    state { credits: 100; trades: 0; sops_formed: 0 }
+    on_cultural_encounter(data) {
+      emit("agent_greeting", { from: this.id, to: data.other_agent_id,
+        dialect: "structured", message: { type: "trade_greeting", credits: state.credits } })
+      if (data.other_family === "cooperative") {
+        emit("compatibility_warning", { rating: "cautious",
+          reason: "Mercantile expects value exchange; cooperative shares freely.",
+          shared_norms: ["greeting_convention"] })
+      }
+    }
+    on_trade_proposal(p) {
+      if (p.mutually_agreed && p.fair_value_ratio > 0.8) {
+        emit("trade_execute", { from: this.id, to: p.partner_id,
+          give: p.my_offer, receive: p.their_offer })
+        state.trades += 1
+      }
+    }
+    on_memory_consolidation(data) {
+      state.sops_formed += 1
+      emit("sop_formed", { agent_id: this.id, sop_type: data.pattern_type,
+        confidence: data.confidence, episodes: data.episode_count })
+    }
+  }
+
+  // exploratory has no known incompatibilities — roams freely
+  template "ExplorerAgent" {
+    @cultural_profile {
+      cooperation_index: 0.7; cultural_family: "exploratory"
+      prompt_dialect: "socratic"; norm_set: ["zone_respect", "greeting_convention"]
+    }
+    @cultural_memory {
+      capacity: 100; episodicDecayRate: 0.01; traceLifetime: 300
+      consolidation: true; consolidationThreshold: 5
+    }
+    geometry: "capsule"
+    state { zones_visited: []; traces_detected: 0; sops_formed: 0 }
+    on_cultural_encounter(data) {
+      emit("agent_greeting", { from: this.id, to: data.other_agent_id,
+        dialect: "socratic", message: "What customs does your culture follow?" })
+    }
+    on_trace_detected(trace) {
+      state.traces_detected += 1
+      if (trace.traceType === "signal" && trace.label === "hazard") {
+        emit("agent_action", { agent_id: this.id, action: "reroute" })
+      }
+      if (trace.traceType === "artifact" && trace.label === "trade route") {
+        emit("agent_action", { agent_id: this.id, action: "follow_trace" })
+      }
+      if (trace.traceType === "boundary") {
+        emit("zone_entry_request", { agent_id: this.id, zone: trace.label })
+      }
+    }
+    on_memory_consolidation(data) {
+      state.sops_formed += 1
+      emit("sop_formed", { agent_id: this.id, sop_type: data.pattern_type,
+        confidence: data.confidence, episodes: data.episode_count })
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STIGMERGIC TRACES (@cultural_trace)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Trade route markers — artifact, permanent, wide perception
+  object "TradeRoute_1" {
+    @cultural_trace { traceType: "artifact"; intensity: 0.8; decayRate: 0
+      label: "trade route"; perceptionRadius: 10 }
+    position: [-12, 0.2, 7]; geometry: "cylinder"; scale: [0.3, 0.4, 0.3]
+    color: "#d4a574"; emissive: "#d4a574"; emissive_intensity: 0.4
+  }
+  object "TradeRoute_2" {
+    @cultural_trace { traceType: "artifact"; intensity: 0.8; decayRate: 0
+      label: "trade route"; perceptionRadius: 10 }
+    position: [-6, 0.2, 11]; geometry: "cylinder"; scale: [0.3, 0.4, 0.3]
+    color: "#d4a574"; emissive: "#d4a574"; emissive_intensity: 0.4
+  }
+  // Danger signal — high decay, temporary hazard warning near Arena
+  object "DangerSignal" {
+    @cultural_trace { traceType: "signal"; intensity: 0.9; decayRate: 0.05
+      label: "hazard"; perceptionRadius: 8 }
+    position: [10, 0.5, -15]; geometry: "sphere"; scale: [0.5, 0.5, 0.5]
+    color: "#e74c3c"; emissive: "#ff0000"; emissive_intensity: 0.8
+  }
+  // Territory boundaries — permanent, zone_respect agents request entry
+  object "MarketplaceBoundary" {
+    @cultural_trace { traceType: "boundary"; intensity: 0.6; decayRate: 0
+      label: "Marketplace territory"; perceptionRadius: 5 }
+    position: [-20, 0.1, 0]; geometry: "torus"; scale: [15, 0.05, 15]
+    color: "#d4a574"; opacity: 0.5
+  }
+  object "CommonsBoundary" {
+    @cultural_trace { traceType: "boundary"; intensity: 0.6; decayRate: 0
+      label: "Commons territory"; perceptionRadius: 5 }
+    position: [20, 0.1, 0]; geometry: "torus"; scale: [15, 0.05, 15]
+    color: "#4a9e6e"; opacity: 0.5
+  }
+  object "ArenaBoundary" {
+    @cultural_trace { traceType: "boundary"; intensity: 0.6; decayRate: 0
+      label: "Arena territory"; perceptionRadius: 5 }
+    position: [0, 0.1, -30]; geometry: "torus"; scale: [15, 0.05, 15]
+    color: "#c0392b"; opacity: 0.5
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT INSTANCES (spawned in compatible zones)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  object "Helper_Alpha" using "CooperativeAgent" { position: [18, 1, 3]; color: "#27ae60" }
+  object "Helper_Beta" using "CooperativeAgent" { position: [22, 1, -3]; color: "#2ecc71" }
+  object "Challenger_Alpha" using "CompetitiveAgent" { position: [-2, 1, -28]; color: "#c0392b" }
+  object "Challenger_Beta" using "CompetitiveAgent" { position: [2, 1, -32]; color: "#e74c3c" }
+  object "Trader_Alpha" using "MerchantAgent" { position: [-18, 1, 2]; color: "#d4a017" }
+  object "Trader_Beta" using "MerchantAgent" { position: [-22, 1, -2]; color: "#c9a84c" }
+  object "Scout_Alpha" using "ExplorerAgent" { position: [2, 1, 16]; color: "#3498db" }
+  object "Scout_Beta" using "ExplorerAgent" { position: [-2, 1, 14]; color: "#2980b9" }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GLOBAL EVENT HANDLERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // Norm violation: hard blocks action, soft allows + warns, advisory logs
+  on_norm_violation(data) {
+    state.total_norm_violations += 1
+    if (data.enforcement === "hard") {
+      emit("system_log", { level: "error",
+        message: "[HARD] " + data.norm_id + " by " + data.agent_id })
+      emit("agent_penalty", { agent_id: data.agent_id, type: "action_blocked" })
+    }
+    if (data.enforcement === "soft") {
+      emit("system_log", { level: "warn",
+        message: "[SOFT] " + data.norm_id + " by " + data.agent_id })
+      emit("agent_feedback", { agent_id: data.agent_id, norm_id: data.norm_id })
+    }
+    if (data.enforcement === "advisory") {
+      emit("system_log", { level: "info",
+        message: "[ADVISORY] " + data.norm_id + ": " + data.message })
+    }
+  }
+
+  // Cultural encounter: check compatibility, find shared norms
+  on_cultural_encounter(data) {
+    state.total_encounters += 1
+    let compat = data.family_a === data.family_b ? "compatible" : "compatible"
+    let reason = "No known incompatibility."
+    // Incompatible pairs (from CulturalTraits.ts compatibility matrix)
+    if ((data.family_a === "competitive" && data.family_b === "cooperative") ||
+        (data.family_a === "cooperative" && data.family_b === "competitive")) {
+      compat = "incompatible"; reason = "Goal misalignment: individual vs shared."
+    }
+    if ((data.family_a === "hierarchical" && data.family_b === "egalitarian") ||
+        (data.family_a === "egalitarian" && data.family_b === "hierarchical")) {
+      compat = "incompatible"; reason = "Authority vs flat structure."
+    }
+    if ((data.family_a === "isolationist" && data.family_b === "cooperative") ||
+        (data.family_a === "cooperative" && data.family_b === "isolationist")) {
+      compat = "incompatible"; reason = "Refuses interaction vs requires engagement."
+    }
+    // Cautious pairs
+    if ((data.family_a === "mercantile" && data.family_b === "cooperative") ||
+        (data.family_a === "cooperative" && data.family_b === "mercantile")) {
+      compat = "cautious"; reason = "Value exchange vs free sharing."
+    }
+    if ((data.family_a === "competitive" && data.family_b === "egalitarian") ||
+        (data.family_a === "egalitarian" && data.family_b === "competitive")) {
+      compat = "cautious"; reason = "Ranking vs equal voice."
+    }
+    let shared = data.norms_a.filter(function(n) { return data.norms_b.includes(n) })
+    emit("encounter_result", { agent_a: data.agent_a, agent_b: data.agent_b,
+      compatibility: compat, reason: reason, shared_norms: shared })
+    // 2+ shared norms can resolve cautious encounters
+    if (compat === "cautious" && shared.length >= 2) {
+      emit("system_log", { level: "info",
+        message: "CAUTIOUS resolved via " + shared.length + " shared norms" })
+    }
+  }
+
+  // Memory consolidation: repeated experiences form SOPs
+  on_memory_consolidation(data) {
+    state.total_sops_formed += 1
+    emit("system_log", { level: "info",
+      message: "SOP by " + data.agent_id + ": " + data.episode_count +
+               " episodes -> '" + data.pattern_type + "'" })
+    if (data.confidence > 0.8) {
+      emit("trace_deposit", { creator_id: data.agent_id, traceType: "marker",
+        label: "SOP: " + data.pattern_type, intensity: data.confidence,
+        decayRate: 0.005, perceptionRadius: 8 })
+    }
+  }
+
+  on_trace_deposited(t) { state.active_traces += 1 }
+  on_trace_evaporated(t) { state.active_traces -= 1 }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CULTURAL DASHBOARD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  panel "CulturalDashboard" {
+    position: "top-right"
+    text "Title" { content: "CULTURAL ECOSYSTEM"; style: "heading" }
+    // Norm adoption rates
+    text "H1" { content: "Norm Adoption"; style: "subheading" }
+    text "N1" { bind: "'fair_trade: ' + (state.marketplace_adoption*100).toFixed(0) + '%'"; color: "#d4a574" }
+    text "N2" { bind: "'resource_sharing: ' + (state.commons_adoption*100).toFixed(0) + '%'"; color: "#4a9e6e" }
+    text "N3" { bind: "'spawn_limits: ' + (state.arena_adoption*100).toFixed(0) + '%'"; color: "#c0392b" }
+    // Compatibility matrix results
+    text "H2" { content: "Compatibility"; style: "subheading" }
+    text "C1" { content: "mercantile+cooperative = CAUTIOUS"; color: "#f39c12" }
+    text "C2" { content: "competitive+cooperative = INCOMPATIBLE"; color: "#e74c3c" }
+    text "C3" { content: "same+same = COMPATIBLE"; color: "#2ecc71" }
+    // Memory consolidation progress
+    text "H3" { content: "Memory"; style: "subheading" }
+    text "M1" { bind: "'SOPs formed: ' + state.total_sops_formed"; style: "info" }
+    text "M2" { bind: "'Encounters: ' + state.total_encounters"; style: "info" }
+    // Active traces count
+    text "H4" { content: "Stigmergic Traces"; style: "subheading" }
+    text "T1" { bind: "'Active: ' + state.active_traces"; style: "info" }
+    text "T2" { content: "Trade routes: 2 | Hazards: 1 | Boundaries: 3"; style: "info" }
+    // Enforcement stats
+    text "H5" { content: "Enforcement"; style: "subheading" }
+    text "V1" { bind: "'Violations: ' + state.total_norm_violations"; color: "#e74c3c" }
+    text "V2" { bind: "'Trades: ' + state.total_trades"; color: "#2ecc71" }
+    text "V3" { bind: "'Mediations: ' + state.embassy_mediations"; color: "#f1c40f" }
+  }
+
+  // Zone signage
+  object "MarketplaceSign" {
+    position: [-20, 3, -14]; geometry: "box"; scale: [4, 1, 0.1]
+    color: "#d4a574"; state { label: "MARKETPLACE" }
+  }
+  object "CommonsSign" {
+    position: [20, 3, -14]; geometry: "box"; scale: [4, 1, 0.1]
+    color: "#4a9e6e"; state { label: "COMMONS" }
+  }
+  object "ArenaSign" {
+    position: [0, 3, -44]; geometry: "box"; scale: [4, 1, 0.1]
+    color: "#c0392b"; state { label: "ARENA" }
+  }
+  object "EmbassySign" {
+    position: [0, 3, 7]; geometry: "box"; scale: [4, 1, 0.1]
+    color: "#f1c40f"; state { label: "EMBASSY" }
+  }
+}

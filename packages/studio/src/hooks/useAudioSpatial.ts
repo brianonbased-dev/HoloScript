@@ -1,0 +1,169 @@
+'use client';
+/**
+ * useAudioSpatial — Hook for 3D spatial audio management
+ */
+import { useState, useCallback, useRef } from 'react';
+import { AudioEngine } from '@/lib/core-stubs';
+
+type Vector3 = { x: number; y: number; z: number };
+
+interface AudioSource {
+  id?: string;
+  soundId?: string;
+  position?: Vector3;
+  volume?: number;
+  loop?: boolean;
+  maxDistance?: number;
+  computedVolume: number;
+  config: {
+    id: string;
+    position: Vector3;
+  };
+}
+
+interface ListenerState {
+  position: Vector3;
+  forward: Vector3;
+  up: Vector3;
+}
+
+interface AudioEngineInstance {
+  play: (
+    soundId: string,
+    opts: { position: Vector3; volume: number; loop: boolean; maxDistance: number }
+  ) => string;
+  stop: (sourceId: string) => void;
+  setSourcePosition: (sourceId: string, pos: Vector3) => void;
+  setListenerPosition: (pos: Vector3) => void;
+  setMasterVolume: (vol: number) => void;
+  isMuted: () => boolean;
+  setMuted: (muted: boolean) => void;
+  stopAll: () => void;
+  update: (dt: number) => void;
+  getActiveSources: () => AudioSource[];
+  getListener: () => ListenerState;
+}
+
+export interface UseAudioSpatialReturn {
+  engine: AudioEngineInstance;
+  sources: AudioSource[];
+  listener: ListenerState;
+  masterVolume: number;
+  isMuted: boolean;
+  activeCount: number;
+  play: (
+    soundId: string,
+    pos: { x: number; y: number; z: number },
+    opts?: { volume?: number; loop?: boolean; maxDistance?: number }
+  ) => string;
+  stop: (sourceId: string) => void;
+  moveSource: (sourceId: string, pos: { x: number; y: number; z: number }) => void;
+  moveListener: (pos: { x: number; y: number; z: number }) => void;
+  setMasterVolume: (vol: number) => void;
+  toggleMute: () => void;
+  stopAll: () => void;
+  step: (dt?: number) => void;
+  playDemo: () => void;
+}
+
+export function useAudioSpatial(): UseAudioSpatialReturn {
+  const engineRef = useRef<AudioEngineInstance>(new AudioEngine() as unknown as AudioEngineInstance);
+  const [sources, setSources] = useState<AudioSource[]>([]);
+  const [listener, setListener] = useState<ListenerState>({
+    position: { x: 0, y: 0, z: 0 },
+    forward: { x: 0, y: 0, z: -1 },
+    up: { x: 0, y: 1, z: 0 },
+  });
+  const [masterVolume, setMasterVol] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+
+  const sync = useCallback(() => {
+    const e = engineRef.current;
+    setSources(e.getActiveSources());
+    setListener(e.getListener());
+  }, []);
+
+  const play = useCallback(
+    (
+      soundId: string,
+      pos: { x: number; y: number; z: number },
+      opts: { volume?: number; loop?: boolean; maxDistance?: number } = {}
+    ) => {
+      const id = engineRef.current.play(soundId, {
+        position: pos,
+        volume: opts.volume ?? 1,
+        loop: opts.loop ?? false,
+        maxDistance: opts.maxDistance ?? 50,
+      });
+      sync();
+      return id;
+    },
+    [sync]
+  );
+
+  const stop = useCallback(
+    (sourceId: string) => {
+      engineRef.current.stop(sourceId);
+      sync();
+    },
+    [sync]
+  );
+  const moveSource = useCallback(
+    (sourceId: string, pos: { x: number; y: number; z: number }) => {
+      engineRef.current.setSourcePosition(sourceId, pos);
+      sync();
+    },
+    [sync]
+  );
+  const moveListener = useCallback(
+    (pos: { x: number; y: number; z: number }) => {
+      engineRef.current.setListenerPosition(pos);
+      sync();
+    },
+    [sync]
+  );
+  const setMasterVolume = useCallback((vol: number) => {
+    engineRef.current.setMasterVolume(vol);
+    setMasterVol(vol);
+  }, []);
+  const toggleMute = useCallback(() => {
+    const m = !engineRef.current.isMuted();
+    engineRef.current.setMuted(m);
+    setIsMuted(m);
+  }, []);
+  const stopAll = useCallback(() => {
+    engineRef.current.stopAll();
+    sync();
+  }, [sync]);
+  const step = useCallback(
+    (dt = 1 / 60) => {
+      engineRef.current.update(dt);
+      sync();
+    },
+    [sync]
+  );
+
+  const playDemo = useCallback(() => {
+    play('ambient-forest', { x: -5, y: 0, z: -3 }, { volume: 0.6, loop: true, maxDistance: 30 });
+    play('footsteps', { x: 2, y: 0, z: 1 }, { volume: 0.8, maxDistance: 10 });
+    play('bird-chirp', { x: 0, y: 5, z: -8 }, { volume: 0.4, loop: true, maxDistance: 40 });
+  }, [play]);
+
+  return {
+    engine: engineRef.current,
+    sources,
+    listener,
+    masterVolume,
+    isMuted,
+    activeCount: sources.length,
+    play,
+    stop,
+    moveSource,
+    moveListener,
+    setMasterVolume,
+    toggleMute,
+    stopAll,
+    step,
+    playDemo,
+  };
+}

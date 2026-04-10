@@ -1,0 +1,120 @@
+{
+  "name": "@holoscript/absorb-service",
+  "version": "6.0.0",
+  "description": "Codebase intelligence, recursive self-improvement pipeline, and daemon system for HoloScript",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "import": "./dist/engine/index.js",
+      "require": "./dist/engine/index.cjs"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline/index.d.ts",
+      "import": "./dist/pipeline/index.js",
+      "require": "./dist/pipeline/index.cjs"
+    },
+    "./daemon": {
+      "types": "./dist/daemon/index.d.ts",
+      "import": "./dist/daemon/index.js",
+      "require": "./dist/daemon/index.cjs"
+    },
+    "./self-improvement": {
+      "types": "./dist/self-improvement/index.d.ts",
+      "import": "./dist/self-improvement/index.js",
+      "require": "./dist/self-improvement/index.cjs"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js",
+      "require": "./dist/mcp/index.cjs"
+    },
+    "./credits": {
+      "types": "./dist/credits/index.d.ts",
+      "import": "./dist/credits/index.js",
+      "require": "./dist/credits/index.cjs"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "require": "./dist/schema.cjs"
+    },
+    "./bridge": {
+      "types": "./dist/bridge.d.ts",
+      "import": "./dist/bridge.js",
+      "require": "./dist/bridge.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "codebase",
+    "intelligence",
+    "absorb",
+    "pipeline",
+    "self-improvement",
+    "daemon",
+    "graph-rag"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/absorb-service"
+  },
+  "dependencies": {
+    "@holoscript/config": "workspace:^",
+    "drizzle-orm": "^0.45.1",
+    "openai": "^6.32.0",
+    "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "tree-sitter": "0.22.4",
+    "tree-sitter-go": "^0.23.4",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-python": "^0.23.6",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "web-tree-sitter": "^0.24.0"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/core": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

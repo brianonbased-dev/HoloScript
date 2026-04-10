@@ -1,0 +1,181 @@
+/**
+ * Wildfire Response Coordination Swarm — .hsplus Behavior
+ *
+ * WHY .hsplus: Fire response is a reactive state machine with
+ * guard conditions (can't deploy without credits, can't contain
+ * without confirmed detection). Incident command module tracks
+ * active fires, resource allocation, and chain-of-command events.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "WildfireResponseSwarm" {
+  environment {
+    skybox: "smoke_haze"
+    ambient_light: 0.4
+    physics: true
+  }
+
+  module IncidentCommand {
+    state {
+      active_fires: []
+      resources_deployed: 0
+      containment_progress: {}
+      command_log: []
+    }
+
+    action report_fire(sector, intensity, area_hectares, reporter_id) {
+      const fire = {
+        id: generate_id(),
+        sector: sector, intensity: intensity,
+        area: area_hectares, reported_by: reporter_id,
+        status: "active", containment: 0,
+        reported_at: current_time()
+      };
+      this.state.active_fires.push(fire);
+      emit("incident:fire_reported", fire);
+      return fire.id;
+    }
+
+    action update_containment(fire_id, progress) {
+      const fire = this.state.active_fires.find(f => f.id === fire_id);
+      if (!fire) return;
+      fire.containment = progress;
+      this.state.containment_progress[fire_id] = progress;
+      emit("feedback:update_metric", { name: "containment_rate", value: progress });
+
+      if (progress >= 1.0) {
+        fire.status = "contained";
+        emit("incident:fire_contained", { fire_id: fire_id, sector: fire.sector });
+      }
+    }
+
+    action deploy_resource(resource_type, fire_id, agent_id) {
+      this.state.resources_deployed += 1;
+      this.state.command_log.push({
+        action: "deploy", resource: resource_type,
+        fire_id: fire_id, agent_id: agent_id,
+        timestamp: current_time()
+      });
+      emit("incident:resource_deployed", {
+        type: resource_type, fire_id: fire_id
+      });
+    }
+
+    exports { report_fire, update_containment, deploy_resource, state }
+  }
+
+  template "FireGuardian" {
+    @llm_agent
+    @perception(range: 50)
+    @post_quantum_audit { algorithm: "ML-KEM-768"; log_all: true }
+    @norm_compliant {
+      norms: ["chain_of_command", "safety_first", "cross_jurisdiction"]
+      enforcement: "hard"
+      scope: "agent"
+      canPropose: true
+      canEnforce: true
+    }
+
+    @state_machine {
+      initial: "patrolling"
+
+      states: {
+        patrolling: {
+          on_fire_detected: -> "confirming"
+          on_bounty_available: -> "responding"
+        }
+        confirming: {
+          on_confirmed: -> "reporting" action(log_confirmation)
+          on_false_alarm: -> "patrolling"
+        }
+        reporting: {
+          on_report_filed: -> "deploying" action(file_report)
+        }
+        deploying: {
+          on_resources_deployed: -> "containing" guard(state.credits >= 20)
+          on_insufficient_resources: -> "patrolling"
+        }
+        containing: {
+          on_contained: -> "patrolling" action(on_containment_success)
+          on_escalated: -> "patrolling" action(on_escalation)
+        }
+        responding: {
+          on_bounty_claimed: -> "confirming"
+          on_bounty_expired: -> "patrolling"
+        }
+      }
+
+      actions: {
+        log_confirmation: () => {
+          state.confirmations += 1;
+        }
+        file_report: () => {
+          const fire_id = IncidentCommand.report_fire(
+            state.sector, state.detected_intensity,
+            state.detected_area, state.agent_id
+          );
+          state.current_fire = fire_id;
+        }
+        on_containment_success: () => {
+          state.containments += 1;
+          emit("economy:earn", {
+            agentId: state.agent_id, amount: 50,
+            reason: "Fire contained in sector " + state.sector
+          });
+        }
+        on_escalation: () => {
+          emit("incident:escalation", {
+            agent_id: state.agent_id,
+            fire_id: state.current_fire,
+            reason: "Containment failed — requesting additional resources"
+          });
+        }
+      }
+    }
+
+    state {
+      agent_id: null
+      sector: null
+      credits: 100
+      confirmations: 0
+      containments: 0
+      current_fire: null
+      detected_intensity: 0
+      detected_area: 0
+    }
+
+    @on_event("incident:fire_reported"): (fire) => {
+      if (this.current_state === "patrolling" && fire.sector !== state.sector) {
+        // Nearby fire — assist if able
+        emit("on_fire_detected");
+      }
+    }
+
+    @on_event("feedback:optimization_signal"): (signal) => {
+      if (signal.suggestedAction === "increase_patrol_density") {
+        emit("guardian:patrol_density_increased", { agent_id: state.agent_id });
+      }
+    }
+
+    action detect_fire(intensity, area) {
+      state.detected_intensity = intensity;
+      state.detected_area = area;
+      if (intensity > 0.3) {
+        emit("on_fire_detected");
+      }
+    }
+  }
+
+  // Instances
+  object "TerrainGrid" { @collidable; geometry: "plane"; position: [0, 0, 0]; scale: [60, 1, 60]; color: "#3d2b1f" }
+  object "Guardian_Alpha" using "FireGuardian" { position: [-15, 1, 10]; geometry: "capsule"; color: "#ff3300"; state { agent_id: "fire_alpha"; sector: "north_ridge" } }
+  object "Guardian_Beta" using "FireGuardian" { position: [15, 1, -10]; geometry: "capsule"; color: "#ff6600"; state { agent_id: "fire_beta"; sector: "south_valley" } }
+
+  panel "FireStatus" {
+    position: "top-right"
+    text "Active" { bind: "Active fires: " + IncidentCommand.state.active_fires.filter(f => f.status === "active").length; color: "#ff4444" }
+    text "Deployed" { bind: "Resources deployed: " + IncidentCommand.state.resources_deployed; style: "info" }
+    text "Log" { bind: "Command log: " + IncidentCommand.state.command_log.length + " entries"; style: "info" }
+  }
+}

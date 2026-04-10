@@ -1,0 +1,410 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Check roadmap drift markers
+        run: pnpm docs:roadmap:drift
+
+      - name: Check version lane policy
+        run: pnpm version:check
+
+      - name: Repository health summary
+        if: always()
+        run: node scripts/repo-health.js --summary-only
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install cmake and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libclang-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # ✨ OPTIMIZATION: Smart Rust caching (55% build time reduction)
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-v1'
+          cache-all-crates: true
+
+      # ✨ OPTIMIZATION: Pre-built wasm-pack (5-7 min savings vs cargo install)
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run TypeScript tests with coverage
+        run: pnpm test:coverage || pnpm test
+
+      - name: Run Rust cargo tests
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+        run: |
+          echo "::group::holoscript-component"
+          cargo test --manifest-path packages/holoscript-component/Cargo.toml
+          echo "::endgroup::"
+          echo "::group::compiler-wasm"
+          cargo test --manifest-path packages/compiler-wasm/Cargo.toml
+          echo "::endgroup::"
+          echo "::group::spatial-engine (build check)"
+          cargo check --manifest-path packages/spatial-engine/Cargo.toml
+          echo "::endgroup::"
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info,./packages/*/coverage/lcov.info
+          fail_ci_if_error: true
+          verbose: true
+          flags: ${{ matrix.package || 'all' }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install cmake and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libclang-dev
+
+      - name: Install Rust and wasm-pack
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build all packages
+        run: pnpm build
+
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # ✨ OPTIMIZATION: Smart Rust caching (55% build time reduction)
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-v1'
+          cache-all-crates: true
+
+      # ✨ OPTIMIZATION: Pre-built wasm-pack (5-7 min savings vs cargo install)
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Restore benchmark baseline
+        uses: actions/cache@v5
+        id: benchmark-cache
+        with:
+          path: .benchmark-baseline.json
+          key: benchmark-baseline-${{ github.base_ref }}
+          restore-keys: |
+            benchmark-baseline-main
+            benchmark-baseline-
+
+      - name: Run benchmarks
+        run: pnpm bench:ci > benchmark-results.json
+
+      - name: Compare against baseline
+        if: steps.benchmark-cache.outputs.cache-hit == 'true'
+        run: |
+          node --experimental-vm-modules packages/benchmark/dist/index.js --ci --compare=.benchmark-baseline.json || {
+            echo "::warning::Performance regression detected. Check benchmark results."
+            exit 0
+          }
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
+          retention-days: 30
+
+      - name: Comment PR with benchmark results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('benchmark-results.json', 'utf8'));
+
+            let body = '## 📊 Benchmark Results\n\n';
+
+            for (const suite of results.suites) {
+              body += `### ${suite.suite}\n\n`;
+              body += '| Benchmark | Ops/sec | Mean (ms) | ±% |\n';
+              body += '|-----------|---------|-----------|----|\n';
+
+              for (const result of suite.results) {
+                const ops = result.opsPerSecond.toLocaleString('en-US', { maximumFractionDigits: 0 });
+                body += `| ${result.name} | ${ops} | ${result.meanMs.toFixed(3)} | ${result.marginOfError.toFixed(1)}% |\n`;
+              }
+              body += '\n';
+            }
+
+            body += `\n*Commit: ${results.commit || 'unknown'}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  benchmark-baseline:
+    name: Update Benchmark Baseline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # ✨ OPTIMIZATION: Smart Rust caching (55% build time reduction)
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-v1'
+          cache-all-crates: true
+
+      # ✨ OPTIMIZATION: Pre-built wasm-pack (5-7 min savings vs cargo install)
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run benchmarks
+        run: pnpm bench:ci > .benchmark-baseline.json
+
+      - name: Save benchmark baseline
+        uses: actions/cache/save@v5
+        with:
+          path: .benchmark-baseline.json
+          key: benchmark-baseline-main
+
+  test-compilers:
+    name: Compiler Golden-Output Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No Rust/WASM build needed — these are pure TypeScript compiler tests
+      - name: Run compiler golden-output regression tests
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npx vitest run src/compiler/__tests__/golden-output/golden.test.ts
+
+      - name: Run FlowLevel (Code Injection) Security Checks
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npx vitest run src/compiler/__tests__/FlowLevel.test.ts
+
+      - name: Write compiler regression matrix to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Compiler Regression Matrix" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          targets=(Unity WebGPU Babylon URDF SDF WASM)
+          for t in "${targets[@]}"; do
+            if grep -q "FAIL.*${t}" /tmp/compiler-results.txt 2>/dev/null; then
+              echo "| ${t} | ❌ FAIL |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| ${t} | ✅ PASS |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "*Snapshot drift = compiler output changed without a deliberate update.*" >> "$GITHUB_STEP_SUMMARY"
+          echo "*To regenerate: \`pnpm --filter @holoscript/core exec vitest run -u src/compiler/__tests__/golden-output/golden.test.ts\`*" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,37 @@
+{
+  "name": "@holoscript/wasm",
+  "version": "3.7.0",
+  "description": "HoloScript parser compiled to WebAssembly for high-performance browser execution",
+  "main": "pkg/holoscript_wasm.js",
+  "types": "pkg/holoscript_wasm.d.ts",
+  "files": [
+    "pkg"
+  ],
+  "scripts": {
+    "build": "echo 'WASM build requires wasm-pack (Rust toolchain) - skipping if not available' && wasm-pack build --target web --out-dir pkg || echo 'wasm-pack not installed, skipping WASM build'",
+    "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
+    "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",
+    "test": "cargo test || echo 'cargo not installed, skipping WASM tests'",
+    "clean": "rm -rf pkg pkg-node pkg-bundler target"
+  },
+  "keywords": [
+    "holoscript",
+    "wasm",
+    "webassembly",
+    "parser",
+    "vr",
+    "xr"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/compiler-wasm"
+  },
+  "sideEffects": false,
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

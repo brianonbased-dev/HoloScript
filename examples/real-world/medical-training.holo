@@ -1,0 +1,377 @@
+// AR Medical Training Simulator
+// Training for surgical procedures with hand tracking
+// Compile: holoscript compile medical-training.holo --target ios
+
+composition "Medical Training" {
+  environment {
+    plane_detection: true
+    light_estimation: true
+    hand_tracking: true
+    occlusion: {
+      enabled: true
+      mode: "people"
+    }
+  }
+
+  // ========== Training State ==========
+
+  state TrainingState {
+    currentModule: "anatomy"
+    currentStep: 0
+    totalSteps: 8
+    score: 0
+    mistakes: 0
+    completed: false
+    handedness: "right"
+  }
+
+  // ========== Anatomical Model ==========
+
+  spatial_group "AnatomyModel" {
+    object "HeartModel" {
+      @anchor
+      @hand_tracked
+      @scalable
+      @rotatable
+      geometry: "model/heart_anatomical.usdz"
+      position: [0, 0, -0.5]
+      scale: [0.15, 0.15, 0.15]
+      
+      state {
+        exploded: false
+        highlightedPart: null
+        layerVisible: {
+          skin: true
+          muscle: true
+          vessels: true
+          chambers: true
+        }
+      }
+
+      gesture "pinch" {
+        action: "select_part"
+      }
+
+      gesture "spread" {
+        action: "explode_view"
+      }
+    }
+
+    object "HeartLabel" {
+      @billboard
+      @anchor
+      geometry: "plane"
+      position: [0, 0.15, -0.5]
+      scale: [0.2, 0.05, 1]
+      visible: false
+      
+      ui: {
+        text: ""
+        background: "rgba(0,0,0,0.8)"
+        padding: 8
+      }
+    }
+  }
+
+  // ========== Surgical Tools ==========
+
+  spatial_group "SurgicalTools" {
+    template "SurgicalTool" {
+      @hand_tracked
+      @grabbable
+      @haptic
+      
+      state {
+        active: false
+        correctUsage: ""
+      }
+
+      onGrab: {
+        this.state.active = true
+        haptic.feedback("light")
+        highlightUsageArea(this)
+      }
+
+      onRelease: {
+        this.state.active = false
+        clearHighlights()
+      }
+    }
+
+    object "Scalpel" using "SurgicalTool" {
+      geometry: "model/tools/scalpel.usdz"
+      position: [0.2, 0, -0.3]
+      scale: [0.1, 0.1, 0.1]
+      correctUsage: "incision"
+    }
+
+    object "Forceps" using "SurgicalTool" {
+      geometry: "model/tools/forceps.usdz"
+      position: [0.25, 0, -0.3]
+      scale: [0.1, 0.1, 0.1]
+      correctUsage: "clamp"
+    }
+
+    object "Sutures" using "SurgicalTool" {
+      geometry: "model/tools/suture_kit.usdz"
+      position: [0.3, 0, -0.3]
+      scale: [0.08, 0.08, 0.08]
+      correctUsage: "close"
+    }
+
+    object "Retractor" using "SurgicalTool" {
+      geometry: "model/tools/retractor.usdz"
+      position: [0.35, 0, -0.3]
+      scale: [0.1, 0.1, 0.1]
+      correctUsage: "expose"
+    }
+  }
+
+  // ========== Training Modules ==========
+
+  module "AnatomyModule" {
+    title: "Cardiac Anatomy"
+    description: "Learn heart structure and blood flow"
+    
+    steps: [
+      {
+        instruction: "Identify the right atrium"
+        target: "right_atrium"
+        hint: "Located in the upper right of the heart"
+      },
+      {
+        instruction: "Identify the left ventricle"
+        target: "left_ventricle"
+        hint: "The largest chamber, pumps to the body"
+      },
+      {
+        instruction: "Trace the aorta"
+        target: "aorta"
+        hint: "The main artery leaving the heart"
+      },
+      {
+        instruction: "Find the pulmonary artery"
+        target: "pulmonary_artery"
+        hint: "Carries blood to the lungs"
+      }
+    ]
+  }
+
+  module "ProcedureModule" {
+    title: "Catheter Insertion"
+    description: "Practice cardiac catheterization procedure"
+    
+    steps: [
+      {
+        instruction: "Prepare the insertion site"
+        tool: "antiseptic"
+        target: "femoral_artery_marker"
+      },
+      {
+        instruction: "Make a small incision"
+        tool: "Scalpel"
+        target: "incision_point"
+        precision_required: 0.8
+      },
+      {
+        instruction: "Insert the guide wire"
+        tool: "guide_wire"
+        path: "femoral_to_heart"
+      },
+      {
+        instruction: "Thread the catheter"
+        tool: "catheter"
+        target: "coronary_artery"
+      }
+    ]
+  }
+
+  // ========== Feedback System ==========
+
+  object "FeedbackOverlay" {
+    @ui_element
+    @billboard
+    position: [0, 0.3, -0.4]
+    visible: false
+    
+    ui: {
+      width: 250
+      height: 100
+      background: "rgba(0,0,0,0.9)"
+      corner_radius: 12
+    }
+  }
+
+  action showFeedback(type, message) {
+    FeedbackOverlay.visible = true
+    FeedbackOverlay.ui.text = message
+    
+    switch (type) {
+      case "correct":
+        FeedbackOverlay.ui.background = "rgba(0,150,0,0.9)"
+        audio.play("correct.mp3")
+        haptic.feedback("success")
+        break
+      case "incorrect":
+        FeedbackOverlay.ui.background = "rgba(150,0,0,0.9)"
+        audio.play("incorrect.mp3")
+        haptic.feedback("error")
+        TrainingState.mistakes += 1
+        break
+      case "hint":
+        FeedbackOverlay.ui.background = "rgba(0,100,200,0.9)"
+        break
+    }
+    
+    delay(2000, () => {
+      FeedbackOverlay.visible = false
+    })
+  }
+
+  // ========== Progress Tracking ==========
+
+  ui_panel "ProgressPanel" {
+    @anchor
+    position: [-0.3, 0.2, -0.4]
+    rotation: [0, 30, 0]
+    
+    panel: {
+      width: 200
+      height: 300
+      background: "rgba(255,255,255,0.95)"
+      corner_radius: 16
+    }
+
+    text "ModuleTitle" {
+      content: TrainingState.currentModule
+      font_size: 18
+      color: "#333333"
+      position: [10, 10]
+    }
+
+    progress "StepProgress" {
+      value: TrainingState.currentStep
+      max: TrainingState.totalSteps
+      position: [10, 40]
+      size: [180, 8]
+      color: "#0066cc"
+    }
+
+    text "StepLabel" {
+      content: "Step ${TrainingState.currentStep + 1} of ${TrainingState.totalSteps}"
+      font_size: 14
+      color: "#666666"
+      position: [10, 55]
+    }
+
+    text "InstructionText" {
+      content: getCurrentInstruction()
+      font_size: 16
+      color: "#333333"
+      position: [10, 80]
+      wrap: true
+      max_width: 180
+    }
+
+    button "HintButton" {
+      text: "Show Hint"
+      position: [10, 250]
+      size: [80, 30]
+      onClick: showHint()
+    }
+
+    button "SkipButton" {
+      text: "Skip"
+      position: [100, 250]
+      size: [80, 30]
+      color: "#999999"
+      onClick: skipStep()
+    }
+  }
+
+  // ========== Gesture Recognition ==========
+
+  object "LeftHand" {
+    @hand_tracked
+    hand: "left"
+    skeleton: true
+    
+    gestures: {
+      point: { action: "select" }
+      pinch: { action: "grab" }
+      open_palm: { action: "menu" }
+    }
+  }
+
+  object "RightHand" {
+    @hand_tracked
+    hand: "right"
+    skeleton: true
+    
+    gestures: {
+      point: { action: "select" }
+      pinch: { action: "grab" }
+      thumbs_up: { action: "confirm" }
+    }
+  }
+
+  // ========== Precision Tracking ==========
+
+  action checkToolPrecision(tool, target) {
+    const distance = calculateDistance(tool.position, target.position)
+    const angle = calculateAngle(tool.rotation, target.expectedAngle)
+    
+    const distanceScore = Math.max(0, 1 - distance / 0.05)
+    const angleScore = Math.max(0, 1 - angle / 15)
+    
+    const precision = (distanceScore + angleScore) / 2
+    
+    if (precision >= target.precision_required) {
+      TrainingState.score += Math.round(precision * 100)
+      advanceStep()
+      showFeedback("correct", "Excellent precision!")
+    } else {
+      showFeedback("incorrect", "Try to be more precise")
+    }
+    
+    return precision
+  }
+
+  // ========== Completion ==========
+
+  action completeModule() {
+    TrainingState.completed = true
+    
+    const accuracy = TrainingState.score / (TrainingState.totalSteps * 100)
+    const grade = calculateGrade(accuracy, TrainingState.mistakes)
+    
+    showCompletionScreen({
+      grade: grade,
+      score: TrainingState.score,
+      mistakes: TrainingState.mistakes,
+      time: getElapsedTime()
+    })
+    
+    saveProgress()
+  }
+
+  // ========== Audio ==========
+
+  audio "Ambient" {
+    source: "audio/hospital_ambient.mp3"
+    volume: 0.1
+    loop: true
+    autoplay: true
+    spatial: false
+  }
+
+  audio "Heartbeat" {
+    source: "audio/heartbeat.mp3"
+    position: [0, 0, -0.5]
+    volume: 0.3
+    loop: true
+    spatial: true
+    min_distance: 0.1
+    max_distance: 0.5
+  }
+}

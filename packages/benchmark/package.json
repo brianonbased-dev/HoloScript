@@ -1,0 +1,48 @@
+{
+  "name": "@holoscript/benchmark",
+  "version": "3.1.0",
+  "description": "Performance benchmarking suite for HoloScript parser, type checker, formatter, and LSP",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "holoscript-benchmark": "./dist/cli.js"
+  },
+  "scripts": {
+    "bench": "node --experimental-vm-modules dist/index.js",
+    "bench:parser": "node --experimental-vm-modules dist/suites/parser.bench.js",
+    "bench:compiler": "node --experimental-vm-modules dist/suites/compiler.bench.js",
+    "bench:typechecker": "node --experimental-vm-modules dist/suites/typechecker.bench.js",
+    "bench:formatter": "node --experimental-vm-modules dist/suites/formatter.bench.js",
+    "bench:lsp": "node --experimental-vm-modules dist/suites/lsp.bench.js",
+    "bench:all": "node --experimental-vm-modules dist/index.js --all",
+    "bench:ci": "node --experimental-vm-modules dist/index.js --ci",
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "clean": "rm -rf dist",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "@holoscript/formatter": "workspace:*",
+    "@holoscript/lsp": "workspace:*",
+    "chalk": "^5.3.0",
+    "tinybench": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "keywords": [
+    "holoscript",
+    "benchmark",
+    "performance",
+    "profiling"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
+}

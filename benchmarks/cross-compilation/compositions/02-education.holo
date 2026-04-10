@@ -1,0 +1,57 @@
+// Education Benchmark Composition
+composition "Education Benchmark" {
+  metadata {
+    name: 'Education Cross-Compilation Benchmark'
+    category: 'education'
+    platforms: ['webxr', 'babylonjs', 'r3f', 'playcanvas', 'aframe', 'openxr', 'unity', 'unreal']
+  }
+
+  environment {
+    skybox: "classroom"
+    ambient_light: 0.7
+  }
+
+  template "LearningObject" {
+    @grabbable
+    @hoverable
+    @educational_content
+    geometry: "sphere"
+    state { discovered: false, score: 0 }
+  }
+
+  spatial_group "SolarSystem" {
+    origin: [0, 1.5, -3]
+    object "Sun" {
+      @glowing
+      geometry: "sphere"
+      scale: 0.5
+      color: "#ffcc00"
+      emissionIntensity: 2.0
+    }
+    object "Earth" using "LearningObject" {
+      position: [1.5, 0, 0]
+      scale: 0.2
+      color: "#0066cc"
+    }
+    object "Mars" using "LearningObject" {
+      position: [2.5, 0, 0]
+      scale: 0.15
+      color: "#cc4400"
+    }
+  }
+
+  object "Whiteboard" {
+    @interactive
+    @drawing_surface
+    geometry: "plane"
+    position: [0, 1.5, -2]
+    scale: [2, 1.2, 1]
+    color: "#ffffff"
+  }
+
+  state LessonState {
+    currentStep: 0
+    totalSteps: 5
+    studentScore: 0
+  }
+}

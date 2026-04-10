@@ -1,0 +1,4 @@
+@page {
+  route: "/templates"
+  redirect: "/start"
+}

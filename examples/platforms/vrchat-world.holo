@@ -1,0 +1,142 @@
+// VRChat World Example
+// Compile: holoscript compile vrchat-world.holo --target vrchat
+// Output: UdonSharp C# scripts for VRChat SDK3
+
+composition "VRChat Social Hub" {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.3
+    fog: {
+      enabled: true
+      color: "#1a1a2e"
+      density: 0.02
+    }
+  }
+
+  // === Main Spawn Area ===
+  spatial_group "SpawnArea" {
+    object "SpawnPlatform" {
+      geometry: "cylinder"
+      position: [0, 0, 0]
+      scale: [5, 0.2, 5]
+      color: "#2a2a4a"
+    }
+
+    object "WelcomeSign" {
+      @billboard
+      geometry: "plane"
+      position: [0, 3, -4]
+      scale: [4, 1, 1]
+      texture: "welcome-sign.png"
+    }
+  }
+
+  // === Interactive Objects ===
+  spatial_group "Pickups" {
+    object "GlowingOrb" {
+      @grabbable
+      @networked
+      @glowing
+      geometry: "sphere"
+      position: [2, 1.2, 0]
+      scale: [0.3, 0.3, 0.3]
+      color: "#00ffff"
+      emission: 2.0
+    }
+
+    object "MusicBox" {
+      @grabbable
+      @networked
+      @spatial_audio
+      geometry: "cube"
+      position: [-2, 1, 0]
+      scale: [0.4, 0.4, 0.4]
+      color: "#ff6600"
+      audio: {
+        source: "music-box.mp3"
+        loop: true
+        spatial: true
+        max_distance: 10
+      }
+    }
+
+    object "ThrowableBall" {
+      @grabbable
+      @throwable
+      @networked
+      @physics
+      geometry: "sphere"
+      position: [0, 1.5, 2]
+      scale: [0.2, 0.2, 0.2]
+      color: "#ff0066"
+      physics: {
+        mass: 0.5
+        restitution: 0.8
+      }
+    }
+  }
+
+  // === World Features ===
+  object "WorldMirror" {
+    @mirror
+    geometry: "plane"
+    position: [0, 2, -8]
+    scale: [6, 4, 1]
+    rotation: [0, 0, 0]
+  }
+
+  object "AvatarPedestal" {
+    @avatar_pedestal
+    geometry: "cylinder"
+    position: [6, 0, 0]
+    scale: [1, 0.5, 1]
+    color: "#4a4a6a"
+    avatar_id: "avtr_12345678-1234-1234-1234-123456789abc"
+  }
+
+  object "WorldPortal" {
+    @portal
+    @glowing
+    geometry: "torus"
+    position: [-6, 1.5, 0]
+    scale: [1.5, 1.5, 0.3]
+    color: "#9900ff"
+    emission: 1.5
+    destination: "wrld_87654321-4321-4321-4321-cba987654321"
+  }
+
+  // === Lighting ===
+  light "MainLight" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.8
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  light "AccentLight1" {
+    type: "point"
+    color: "#ff00ff"
+    intensity: 1.5
+    position: [4, 3, 4]
+    range: 8
+  }
+
+  light "AccentLight2" {
+    type: "point"
+    color: "#00ffff"
+    intensity: 1.5
+    position: [-4, 3, -4]
+    range: 8
+  }
+
+  // === Audio Zones ===
+  zone "AmbientZone" {
+    bounds: [-20, 0, -20, 20, 10, 20]
+    audio: {
+      source: "ambient-space.mp3"
+      volume: 0.3
+      loop: true
+    }
+  }
+}

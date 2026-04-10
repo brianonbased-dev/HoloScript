@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+    labels:
+      - 'dependencies'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    groups:
+      # All Storybook packages must move together to avoid version skew
+      storybook:
+        patterns:
+          - 'storybook'
+          - '@storybook/*'
+    ignore:
+      # next majors require deliberate migration — PR #79 handles 15 → 16
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      # storybook 7 → 10 is a breaking upgrade; defer until deliberate migration PR
+      # Remove these ignore rules once a storybook upgrade PR is opened and merged.
+      - dependency-name: 'storybook'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@storybook/*'
+        update-types: ['version-update:semver-major']
+
+  # Check for GitHub Actions updates
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'ci'

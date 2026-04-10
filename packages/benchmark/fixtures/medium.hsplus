@@ -1,0 +1,78 @@
+@manifest {
+  title: "Medium Scene - 50 Orbs"
+  version: "1.0.0"
+}
+
+template "Item" {
+  @collidable
+  @physics(mass: 1)
+  material: "plastic"
+}
+
+template "Interactive" {
+  @grabbable
+  @hoverable(highlight: true)
+}
+
+orb grid_container {
+  position: [0, 0, 0]
+  scale: [10, 1, 10]
+  
+  children: [
+    orb item_0 using "Item" { position: [0, 1, 0]; color: "red"; on_click: { console.log("0"); } },
+    orb item_1 using "Item" { position: [1, 1, 0]; color: "orange"; on_click: { console.log("1"); } },
+    orb item_2 using "Item" { position: [2, 1, 0]; color: "yellow"; on_click: { console.log("2"); } },
+    orb item_3 using "Item" { position: [3, 1, 0]; color: "green"; on_click: { console.log("3"); } },
+    orb item_4 using "Item" { position: [4, 1, 0]; color: "blue"; on_click: { console.log("4"); } },
+    orb item_5 using "Interactive" { position: [0, 1, 1]; color: "purple"; },
+    orb item_6 using "Interactive" { position: [1, 1, 1]; color: "indigo"; },
+    orb item_7 using "Interactive" { position: [2, 1, 1]; color: "violet"; },
+    orb item_8 using "Item" { position: [3, 1, 1]; color: "red"; on_click: { console.log("8"); } },
+    orb item_9 using "Item" { position: [4, 1, 1]; color: "orange"; on_click: { console.log("9"); } },
+    orb item_10 using "Item" { position: [0, 1, 2]; color: "yellow"; on_click: { console.log("10"); } },
+    orb item_11 using "Item" { position: [1, 1, 2]; color: "green"; on_click: { console.log("11"); } },
+    orb item_12 using "Item" { position: [2, 1, 2]; color: "blue"; on_click: { console.log("12"); } },
+    orb item_13 using "Interactive" { position: [3, 1, 2]; color: "purple"; },
+    orb item_14 using "Interactive" { position: [4, 1, 2]; color: "indigo"; },
+    orb item_15 using "Item" { position: [0, 1, 3]; color: "red"; on_click: { console.log("15"); } },
+    orb item_16 using "Item" { position: [1, 1, 3]; color: "orange"; on_click: { console.log("16"); } },
+    orb item_17 using "Item" { position: [2, 1, 3]; color: "yellow"; on_click: { console.log("17"); } },
+    orb item_18 using "Item" { position: [3, 1, 3]; color: "green"; on_click: { console.log("18"); } },
+    orb item_19 using "Item" { position: [4, 1, 3]; color: "blue"; on_click: { console.log("19"); } },
+    orb item_20 using "Interactive" { position: [0, 1, 4]; color: "purple"; },
+    orb item_21 using "Interactive" { position: [1, 1, 4]; color: "indigo"; },
+    orb item_22 using "Item" { position: [2, 1, 4]; color: "violet"; on_click: { console.log("22"); } },
+    orb item_23 using "Item" { position: [3, 1, 4]; color: "red"; on_click: { console.log("23"); } },
+    orb item_24 using "Item" { position: [4, 1, 4]; color: "orange"; on_click: { console.log("24"); } },
+    orb item_25 using "Item" { position: [0, 2, 0]; color: "yellow"; on_click: { console.log("25"); } },
+    orb item_26 using "Item" { position: [1, 2, 0]; color: "green"; on_click: { console.log("26"); } },
+    orb item_27 using "Item" { position: [2, 2, 0]; color: "blue"; on_click: { console.log("27"); } },
+    orb item_28 using "Interactive" { position: [3, 2, 0]; color: "purple"; },
+    orb item_29 using "Interactive" { position: [4, 2, 0]; color: "indigo"; },
+    orb item_30 using "Item" { position: [0, 2, 1]; color: "red"; on_click: { console.log("30"); } },
+    orb item_31 using "Item" { position: [1, 2, 1]; color: "orange"; on_click: { console.log("31"); } },
+    orb item_32 using "Item" { position: [2, 2, 1]; color: "yellow"; on_click: { console.log("32"); } },
+    orb item_33 using "Item" { position: [3, 2, 1]; color: "green"; on_click: { console.log("33"); } },
+    orb item_34 using "Item" { position: [4, 2, 1]; color: "blue"; on_click: { console.log("34"); } },
+    orb item_35 using "Interactive" { position: [0, 2, 2]; color: "purple"; },
+    orb item_36 using "Interactive" { position: [1, 2, 2]; color: "indigo"; },
+    orb item_37 using "Item" { position: [2, 2, 2]; color: "violet"; on_click: { console.log("37"); } },
+    orb item_38 using "Item" { position: [3, 2, 2]; color: "red"; on_click: { console.log("38"); } },
+    orb item_39 using "Item" { position: [4, 2, 2]; color: "orange"; on_click: { console.log("39"); } },
+    orb item_40 using "Item" { position: [0, 2, 3]; color: "yellow"; on_click: { console.log("40"); } },
+    orb item_41 using "Item" { position: [1, 2, 3]; color: "green"; on_click: { console.log("41"); } },
+    orb item_42 using "Item" { position: [2, 2, 3]; color: "blue"; on_click: { console.log("42"); } },
+    orb item_43 using "Interactive" { position: [3, 2, 3]; color: "purple"; },
+    orb item_44 using "Interactive" { position: [4, 2, 3]; color: "indigo"; },
+    orb item_45 using "Item" { position: [0, 2, 4]; color: "red"; on_click: { console.log("45"); } },
+    orb item_46 using "Item" { position: [1, 2, 4]; color: "orange"; on_click: { console.log("46"); } },
+    orb item_47 using "Item" { position: [2, 2, 4]; color: "yellow"; on_click: { console.log("47"); } },
+    orb item_48 using "Item" { position: [3, 2, 4]; color: "green"; on_click: { console.log("48"); } },
+    orb item_49 using "Item" { position: [4, 2, 4]; color: "blue"; on_click: { console.log("49"); } }
+  ]
+}
+
+environment {
+  background: "gradient"
+  lighting: "dynamic"
+}
