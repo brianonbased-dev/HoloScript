@@ -5280,10 +5280,11 @@ export async function handleHoloMeshRoute(
         confidence: 1.0,
       });
 
+      let contributeStatus = 'published';
       try {
         await c.contributeKnowledge([helloEntry]);
-      } catch {
-        /* best-effort */
+      } catch (err) {
+        contributeStatus = `failed: ${(err as Error)?.message || 'unknown error'}`;
       }
 
       // Fetch feed preview
@@ -5322,6 +5323,7 @@ export async function handleHoloMeshRoute(
           id: helloId,
           type: 'wisdom',
           content: helloContent,
+          contribute_status: contributeStatus,
         },
         feed_preview: feedPreview,
         next_steps: [
