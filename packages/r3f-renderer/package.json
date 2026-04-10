@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/r3f-renderer",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "description": "Shared React Three Fiber renderer components for HoloScript",
   "type": "module",
   "main": "./dist/index.js",
@@ -39,7 +39,7 @@
     "three": "^0.182.0",
     "tsup": "^8.0.1",
     "typescript": "^5.7.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "author": "Brian Joseph",
   "license": "MIT",

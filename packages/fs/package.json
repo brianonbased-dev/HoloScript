@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/fs",
-  "version": "3.1.0",
+  "version": "6.0.3",
   "description": "File system library for HoloScript Plus",
   "type": "module",
   "main": "./dist/index.js",
@@ -41,7 +41,7 @@
     "@types/node": "^24.10.1",
     "rimraf": "^5.0.5",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "@holoscript/std": "workspace:^"

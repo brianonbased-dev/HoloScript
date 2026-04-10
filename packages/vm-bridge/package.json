@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/vm-bridge",
-  "version": "6.0.0",
+  "version": "6.0.3",
   "description": "Bridge between HoloVM (spatial scenes) and uAAL VM (cognitive agent cycles). Enables agents that perceive, reason about, and mutate 3D scenes.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,7 +35,7 @@
     "@types/node": "^24.10.1",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "keywords": [
     "holoscript",

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/formatter",
-  "version": "3.1.0",
+  "version": "6.0.3",
   "description": "Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,7 +42,7 @@
     "@types/node": "^24.10.1",
     "rimraf": "^5.0.5",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "bugs": {

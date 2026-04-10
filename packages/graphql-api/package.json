@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/graphql-api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GraphQL API layer for HoloScript compiler with TypeGraphQL and Apollo Server",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -72,7 +72,7 @@
     "@types/node": "^22.10.0",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "bugs": {

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/visual",
-  "version": "3.7.0",
+  "version": "6.0.3",
   "description": "Node-based visual programming interface for HoloScript",
   "type": "module",
   "main": "dist/index.js",
@@ -33,7 +33,7 @@
     "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "react": "^19.2.0",

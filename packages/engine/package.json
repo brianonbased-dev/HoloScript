@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.0.2",
-  "description": "Engine runtime extracted from @holoscript/core \u2014 rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
+  "version": "6.0.3",
+  "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -151,141 +151,21 @@
       "import": "./dist/physics/index.js",
       "require": "./dist/physics/index.cjs"
     },
-    "./physics/ClothSim": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/ConstraintSolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/DeformableMesh": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/FluidSim": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/IslandDetector": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/JointSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/MLSMPMFluid": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PBDSolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsBody.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsTypes": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsTypes.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsWorldImpl": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RagdollController": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RagdollSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RaycastSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RaycastSystem.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RopeSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SoftBodyAdapter": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SoftBodySolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SpatialHash": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SpatialHash.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/TriggerZone": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/TriggerZone.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/VehicleSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
     "./runtime": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
       "require": "./dist/runtime/index.cjs"
     },
-      "./runtime/protocols/MQTTClient": {
-        "types": "./dist/runtime/index.d.ts",
-        "import": "./dist/runtime/index.js",
-        "require": "./dist/runtime/index.cjs"
-      },
-      "./runtime/protocols": {
-        "types": "./dist/runtime/index.d.ts",
-        "import": "./dist/runtime/index.js",
-        "require": "./dist/runtime/index.cjs"
-      },
+    "./runtime/protocols/MQTTClient": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
+    "./runtime/protocols": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "require": "./dist/runtime/index.cjs"
+    },
     "./runtime/BaseVoiceSynthesizer": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
@@ -357,11 +237,6 @@
       "require": "./dist/runtime/index.cjs"
     },
     "./runtime/profiles/HeadlessRuntime": {
-      "types": "./dist/runtime/index.d.ts",
-      "import": "./dist/runtime/index.js",
-      "require": "./dist/runtime/index.cjs"
-    },
-    "./runtime/protocols/MQTTClient": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
       "require": "./dist/runtime/index.cjs"
@@ -912,10 +787,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.18.3",
+    "@vitest/coverage-v8": "^4.1.4",
     "@webgpu/types": "^0.1.40",
-    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   }
 }

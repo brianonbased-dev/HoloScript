@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/marketplace-web",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "HoloScript Trait Marketplace Web UI",
   "private": true,
   "scripts": {
@@ -40,7 +40,7 @@
     "eslint-config-next": "^14.1.0",
     "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "keywords": [
     "holoscript",

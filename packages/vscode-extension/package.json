@@ -2,7 +2,7 @@
   "name": "holoscript-vscode",
   "displayName": "HoloScript Enhanced",
   "description": "HoloScript v6 language support — syntax, traits, preview, debug, AI agent API",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "publisher": "holoscript",
   "icon": "icons/holoscript-logo.png",
   "author": "Brian X Base Team",
@@ -643,7 +643,7 @@
     "@vscode/vsce": "^2.32.0",
     "esbuild": "^0.27.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "dependencies": {
     "@holoscript/formatter": "workspace:*",

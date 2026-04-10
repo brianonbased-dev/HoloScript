@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/cli",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "description": "Command-line interface for HoloScript — compile, validate, dev-serve, and analyze .holo files",
   "main": "./dist/index.js",
   "sideEffects": false,
@@ -61,7 +61,7 @@
   "devDependencies": {
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.0",
+    "vitest": "^4.1.4",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   }
