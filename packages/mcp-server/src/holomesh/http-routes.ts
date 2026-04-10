@@ -1111,7 +1111,17 @@ export async function handleHoloMeshRoute(
           ? new Set((await import('./social')).getFollowing(caller.id))
           : undefined;
 
-      const enriched = results.map((e) => {
+      // Filter out tombstones and apply scope (public/team)
+      const scope = q.get('scope') || 'public';
+      const filtered = results.filter((e) => {
+        if (e.tags?.includes('tombstone') || e.content === '[deleted]') return false;
+        const vis = (e.metadata as Record<string, unknown>)?.visibility || 'public';
+        if (scope === 'public') return vis === 'public';
+        if (scope === 'team') return vis === 'team' && caller.authenticated;
+        return true;
+      });
+
+      const enriched = filtered.map((e) => {
         const isPremium = (e.price || 0) > 0;
         const paid = isPremium && caller.authenticated && hasPaidAccess(caller.id, e.id);
         const authorAgent = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
@@ -1129,7 +1139,7 @@ export async function handleHoloMeshRoute(
 
       const ranked = rankFeed(enriched, sort, followingIds);
       const { items: entries, ...pageInfo } = paginate(ranked, limit, cursor);
-      json(res, 200, { success: true, ...pageInfo, entries, sort });
+      json(res, 200, { success: true, ...pageInfo, entries, sort, scope });
       return true;
     }
 
@@ -1404,10 +1414,40 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
-      const entryType = (body.type as string) || 'wisdom';
+      // --- Quality Gate ---
+      const VALID_TYPES = new Set(['wisdom', 'pattern', 'gotcha']);
+      const rawType = (body.type as string) || 'wisdom';
+      if (!VALID_TYPES.has(rawType)) {
+        json(res, 400, { error: `Invalid type: ${rawType}. Must be one of: wisdom, pattern, gotcha` });
+        return true;
+      }
+      if (content.length < 50) {
+        json(res, 400, { error: 'Content too short. Minimum 50 characters for a quality contribution.' });
+        return true;
+      }
+      if (content.length > 5000) {
+        json(res, 400, { error: 'Content too long. Maximum 5000 characters. Compress your insight.' });
+        return true;
+      }
+      // Reject raw session dumps (common pattern: "[Session", "[Memory:", "[Scout:")
+      const RAW_DUMP_PATTERNS = /^\[(Session|Memory|Scout|Hook|Log|Debug|Raw)\b/i;
+      if (RAW_DUMP_PATTERNS.test(content.trim())) {
+        json(res, 400, { error: 'Raw dumps are not accepted. Compress into a wisdom, pattern, or gotcha first.' });
+        return true;
+      }
+      // Dedup check via provenance hash
+      const candidateHash = crypto.createHash('sha256').update(content).digest('hex');
+      const dupeCheck = await c.queryKnowledge(content.slice(0, 100), { limit: 5 });
+      const isDuplicate = dupeCheck.some((e) => e.provenanceHash === candidateHash);
+      if (isDuplicate) {
+        json(res, 409, { error: 'Duplicate entry. This exact content already exists in the network.' });
+        return true;
+      }
+
+      const entryType = rawType;
       const entryId =
         (body.id as string) || `${entryType.charAt(0).toUpperCase()}.${caller.name}.${Date.now()}`;
-      const provenanceHash = crypto.createHash('sha256').update(content).digest('hex');
+      const provenanceHash = candidateHash;
 
       // Ensure orchestrator is registered for syncing
       if (!c.getAgentId()) {
@@ -1431,15 +1471,14 @@ export async function handleHoloMeshRoute(
         createdAt: new Date().toISOString(),
       };
 
-      // Persist price in metadata so it survives the orchestrator round-trip
-      // (orchestrator stores metadata as JSON, price is not a native column)
-      if (entry.price > 0) {
-        entry.metadata = {
-          ...entry.metadata,
-          price: entry.price,
-          domain: entry.domain,
-        };
-      }
+      // Persist price + visibility in metadata so they survive the orchestrator round-trip
+      const visibility = (body.visibility as string) === 'team' ? 'team' : 'public';
+      entry.metadata = {
+        ...entry.metadata,
+        visibility,
+        domain: entry.domain,
+        ...(entry.price > 0 ? { price: entry.price } : {}),
+      };
 
       const synced = await c.contributeKnowledge([entry]);
       json(res, 201, {
@@ -1448,6 +1487,8 @@ export async function handleHoloMeshRoute(
         provenanceHash,
         synced,
         type: entryType,
+        visibility,
+        contribute_status: synced ? 'published' : 'failed: sync error',
         author: caller.name,
       });
       return true;
@@ -2900,6 +2941,53 @@ export async function handleHoloMeshRoute(
       const tombstone: MeshKnowledgeEntry = {
         id: entryId,
         workspaceId: privateWsId,
+        type: 'wisdom',
+        content: '[deleted]',
+        provenanceHash: crypto.createHash('sha256').update('[deleted]').digest('hex'),
+        authorId: caller.id,
+        authorName: caller.name,
+        price: 0,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'general',
+        tags: ['deleted', 'tombstone'],
+        confidence: 0,
+        createdAt: new Date().toISOString(),
+      };
+
+      await c.contributeKnowledge([tombstone]);
+      json(res, 200, { success: true, deleted: entryId });
+      return true;
+    }
+
+    // DELETE /api/holomesh/knowledge/:id — Delete a public knowledge entry (author or admin only)
+    if (
+      pathname.match(/^\/api\/holomesh\/knowledge\/[^/]+$/) &&
+      !pathname.includes('/private/') &&
+      method === 'DELETE'
+    ) {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const entryId = extractParam(url, '/api/holomesh/knowledge/');
+      if (!entryId) {
+        json(res, 400, { error: 'Missing entry ID' });
+        return true;
+      }
+
+      // Verify ownership: query and check authorId
+      const existing = await c.queryKnowledge(entryId, { limit: 5 });
+      const entry = existing.find((e) => e.id === entryId);
+      const isAdmin = process.env.ADMIN_GITHUB_USERNAMES?.split(',').includes(caller.name);
+      if (entry && entry.authorId !== caller.id && !isAdmin) {
+        json(res, 403, { error: 'You can only delete your own entries' });
+        return true;
+      }
+
+      const publicWsId = process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem';
+      const tombstone: MeshKnowledgeEntry = {
+        id: entryId,
+        workspaceId: publicWsId,
         type: 'wisdom',
         content: '[deleted]',
         provenanceHash: crypto.createHash('sha256').update('[deleted]').digest('hex'),
