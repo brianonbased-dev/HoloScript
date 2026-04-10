@@ -1,30 +1,12 @@
-/**
- * Worker Pool — Parallel Job Execution with Worker Threads
- *
- * Manages a pool of worker threads for parallel tree-sitter parsing.
- * Distributes parse jobs across N workers (N = CPU cores - 2 by default).
- *
- * Features:
- *   - Automatic job queuing and distribution
- *   - Worker availability tracking
- *   - Promise-based API for easy async/await usage
- *   - Auto-cleanup on termination
- *
- * Usage:
- * ```ts
- * const pool = new WorkerPool('./parse-worker.js', 4);
- * const result = await pool.execute({ filePath, content, language });
- * await pool.terminate();
- * ```
- */
-
 import { Worker } from 'worker_threads';
 import * as os from 'os';
+import * as path from 'path';
+import { pathToFileURL } from 'url';
 
-interface QueuedJob {
+interface QueuedJob<T = unknown> {
   jobId: string;
   data: unknown;
-  resolve: (result: unknown) => void;
+  resolve: (result: T) => void;
   reject: (error: Error) => void;
 }
 
@@ -32,37 +14,50 @@ export class WorkerPool {
   private workers: Worker[] = [];
   private availableWorkers: Worker[] = [];
   private jobQueue: QueuedJob[] = [];
-  private pendingJobs = new Map<string, QueuedJob>();
+  private pendingJobs = new Map<string, QueuedJob & { startTime: number }>();
   private workerFile: string;
 
+  private stats = {
+    totalJobsProcessed: 0,
+    totalDurationMs: 0,
+    peakQueueLength: 0,
+    peakActiveWorkers: 0,
+    startTime: Date.now(),
+  };
+
   constructor(workerFile: string, poolSize?: number) {
-    this.workerFile = workerFile;
-    const size = poolSize ?? Math.max(2, os.cpus().length - 2); // Leave 2 cores free
+    this.workerFile = path.isAbsolute(workerFile) ? workerFile : path.resolve(workerFile);
+    const size = poolSize ?? Math.max(2, os.cpus().length - 2);
 
     for (let i = 0; i < size; i++) {
-      const worker = new Worker(this.workerFile);
+      const worker = new Worker(pathToFileURL(this.workerFile).href, { stderr: true });
+
+      worker.stderr?.on('data', (data) => {
+        console.error(`[WorkerPool] Worker stderr: ${data}`);
+      });
 
       worker.on('message', (result: { type?: string; jobId?: string; [key: string]: unknown }) => {
-        // Handle ready signal
         if (result.type === 'ready') {
           this.availableWorkers.push(worker);
           this.processQueue();
           return;
         }
 
-        // Handle job result
-        const job = this.pendingJobs.get(result.jobId);
-        if (job) {
-          this.pendingJobs.delete(result.jobId);
-          this.availableWorkers.push(worker);
-          job.resolve(result);
-          this.processQueue();
+        if (result.jobId) {
+          const job = this.pendingJobs.get(result.jobId);
+          if (job) {
+            this.stats.totalJobsProcessed++;
+            this.stats.totalDurationMs += Date.now() - job.startTime;
+            this.pendingJobs.delete(result.jobId);
+            this.availableWorkers.push(worker);
+            job.resolve(result as unknown);
+            this.processQueue();
+          }
         }
       });
 
       worker.on('error', (err) => {
         console.error('[WorkerPool] Worker error:', err);
-        // Find and reject all pending jobs for this worker
         for (const [jobId, job] of this.pendingJobs) {
           job.reject(err);
           this.pendingJobs.delete(jobId);
@@ -79,16 +74,12 @@ export class WorkerPool {
     }
   }
 
-  /**
-   * Execute a job on an available worker.
-   * Returns a Promise that resolves with the worker's result.
-   */
   execute<T>(data: unknown): Promise<T> {
     return new Promise((resolve, reject) => {
       const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const job: QueuedJob = {
+      const job: QueuedJob<T> = {
         jobId,
-        data: { jobId, ...data },
+        data: { jobId, ...(data as Record<string, unknown>) },
         resolve,
         reject,
       };
@@ -98,22 +89,25 @@ export class WorkerPool {
     });
   }
 
-  /**
-   * Process the job queue. Distributes queued jobs to available workers.
-   */
   private processQueue(): void {
+    if (this.jobQueue.length > this.stats.peakQueueLength) {
+      this.stats.peakQueueLength = this.jobQueue.length;
+    }
+
     while (this.jobQueue.length > 0 && this.availableWorkers.length > 0) {
       const job = this.jobQueue.shift()!;
       const worker = this.availableWorkers.shift()!;
 
-      this.pendingJobs.set(job.jobId, job);
+      this.pendingJobs.set(job.jobId, { ...job, startTime: Date.now() });
       worker.postMessage(job.data);
+
+      const active = this.workers.length - this.availableWorkers.length;
+      if (active > this.stats.peakActiveWorkers) {
+        this.stats.peakActiveWorkers = active;
+      }
     }
   }
 
-  /**
-   * Terminate all workers and clean up resources.
-   */
   async terminate(): Promise<void> {
     await Promise.all(this.workers.map((w) => w.terminate()));
     this.workers = [];
@@ -122,24 +116,40 @@ export class WorkerPool {
     this.pendingJobs.clear();
   }
 
-  /**
-   * Get the number of workers in the pool.
-   */
   getPoolSize(): number {
     return this.workers.length;
   }
 
-  /**
-   * Get the number of currently available workers.
-   */
   getAvailableCount(): number {
     return this.availableWorkers.length;
   }
 
-  /**
-   * Get the number of pending jobs (waiting + executing).
-   */
   getPendingCount(): number {
     return this.jobQueue.length + this.pendingJobs.size;
+  }
+
+  getTelemetry() {
+    const uptime = (Date.now() - this.stats.startTime) / 1000;
+    const avgDuration = this.stats.totalJobsProcessed > 0 
+      ? this.stats.totalDurationMs / this.stats.totalJobsProcessed 
+      : 0;
+    const throughput = this.stats.totalJobsProcessed > 0
+      ? this.stats.totalJobsProcessed / uptime
+      : 0;
+
+    return {
+      poolSize: this.workers.length,
+      availableWorkers: this.availableWorkers.length,
+      activeWorkers: this.workers.length - this.availableWorkers.length,
+      queueLength: this.jobQueue.length,
+      stats: {
+        totalJobs: this.stats.totalJobsProcessed,
+        avgDurationMs: Math.round(avgDuration * 100) / 100,
+        throughputJobsPerSec: Math.round(throughput * 100) / 100,
+        peakQueue: this.stats.peakQueueLength,
+        peakActiveWorkers: this.stats.peakActiveWorkers,
+      },
+      uptimeSec: Math.round(uptime),
+    };
   }
 }

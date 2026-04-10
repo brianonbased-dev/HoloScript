@@ -29,9 +29,9 @@ for (const obj of r.ast.objects.slice(0, 25)) {
 
 // Compile and show glTF nodes
 const pipeline = new GLTFPipeline({ format: 'gltf' });
-const result = pipeline.compile(r.ast, undefined as any);
+const result = pipeline.compile(r.ast, undefined as unknown as string);
 if (result.json) {
-  const gltf = result.json as any;
+  const gltf = result.json as Record<string, unknown[]>;
   lines.push(
     `\nGLTF: ${gltf.nodes?.length} nodes, ${gltf.meshes?.length} meshes, ${gltf.materials?.length} mats`
   );

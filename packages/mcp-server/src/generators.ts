@@ -524,7 +524,7 @@ export async function generateSceneForMCP(
     });
   }
 
-  return fallback as any;
+  return fallback as unknown as ReturnType<typeof generateScene> & AIGenerationMetadata;
 }
 
 /**

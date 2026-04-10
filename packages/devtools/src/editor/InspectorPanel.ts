@@ -123,7 +123,7 @@ export class InspectorPanel {
         fontSize: 0.05,
       },
       traits: new Map(),
-    } as any;
+    } as unknown as HSPlusNode;
 
     this.builder.spawn(labelNode, this.panelRoot);
   }
@@ -170,7 +170,7 @@ export class InspectorPanel {
         fontSize: 0.04,
       },
       traits: new Map(),
-    } as any;
+    } as unknown as HSPlusNode;
     this.builder.spawn(valText, this.panelRoot);
 
     // IncBtn

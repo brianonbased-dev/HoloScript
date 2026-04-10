@@ -39,7 +39,7 @@ interface ProceduralMeshProps {
 function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   // Ensure geometry data fields are typed correctly as per @holoscript/core definitions.
-  const pos = data.vertices || (data as any).positions || new Float32Array(0);
+  const pos = data.vertices || (data as unknown as { positions?: Float32Array }).positions || new Float32Array(0);
   const norm = data.normals || new Float32Array(0);
   const uv = data.uvs || new Float32Array(0);
 

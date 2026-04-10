@@ -109,8 +109,8 @@ async function getPaymentGateway(): Promise<PaymentGatewayInstance | null> {
     paymentGateway = new PaymentGateway({
       recipientAddress:
         process.env.HOLOMESH_PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000',
-      chain: (process.env.HOLOMESH_PAYMENT_CHAIN as any) || 'base-sepolia',
-    }) as any;
+      chain: (process.env.HOLOMESH_PAYMENT_CHAIN || 'base-sepolia') as 'base' | 'base-sepolia' | 'solana' | 'solana-devnet',
+    }) as unknown as PaymentGatewayInstance;
     return paymentGateway;
   } catch {
     return null; // PaymentGateway not available — use inline 402 fallback
@@ -1057,20 +1057,20 @@ async function requireAuthAsync(
 function resolveOAuth2Token(token: string): RegisteredAgent | null {
   try {
     const provider = getOAuth2Provider();
-    const store = (provider as any).store;
+    const store = (provider as unknown as { store?: { accessTokens?: Map<string, Record<string, unknown>> } }).store;
     // In-memory store: accessTokens is a Map<string, StoredAccessToken>
-    const accessTokens: Map<string, any> | undefined = store?.accessTokens;
+    const accessTokens: Map<string, Record<string, unknown>> | undefined = store?.accessTokens;
     if (!accessTokens) return null;
     const stored = accessTokens.get(token);
-    if (!stored || stored.expiresAt < Date.now()) return null;
+    if (!stored || (stored.expiresAt as number) < Date.now()) return null;
     return {
-      id: stored.agentId || stored.clientId || `oauth_${token.slice(0, 8)}`,
-      name: stored.agentId || stored.clientId || 'oauth-user',
+      id: (stored.agentId as string) || (stored.clientId as string) || `oauth_${token.slice(0, 8)}`,
+      name: (stored.agentId as string) || (stored.clientId as string) || 'oauth-user',
       apiKey: token,
       walletAddress: '',
-      registeredAt: stored.issuedAt || Date.now(),
+      registeredAt: (stored.issuedAt as number) || Date.now(),
       lastSeen: Date.now(),
-    } as RegisteredAgent;
+    } as unknown as RegisteredAgent;
   } catch {
     return null;
   }

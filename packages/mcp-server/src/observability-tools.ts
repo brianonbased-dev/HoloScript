@@ -172,7 +172,7 @@ async function handleExportTracesOtlp(args: Record<string, unknown>) {
     retryDelayMs: 500,
   };
 
-  const exporter = new (OTLPExporter as any)(exporterConfig);
+  const exporter = new (OTLPExporter as unknown as new (config: OTLPExporterConfig) => { exportBatch(spans: unknown[]): Promise<{ success: boolean; spanCount: number; retries: number; durationMs: number; error?: string }> })(exporterConfig);
   const result = await exporter.exportBatch(spans);
 
   return {

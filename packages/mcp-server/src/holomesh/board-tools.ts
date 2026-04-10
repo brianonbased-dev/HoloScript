@@ -546,8 +546,8 @@ async function handleSuggestList(args: Record<string, unknown>): Promise<Record<
 
   try {
     const team = getFrameworkTeam(teamId);
-    // @ts-expect-error simple proxy
-    return await team.suggestions(args.status as any);
+    // @ts-expect-error simple proxy — suggestions() accepts optional status filter
+    return await team.suggestions(args.status as string | undefined);
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

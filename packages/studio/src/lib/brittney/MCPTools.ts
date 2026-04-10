@@ -130,7 +130,7 @@ const knowledgeSync: StudioToolDefinition = {
               },
             },
             required: ['id', 'type', 'content'],
-          } as any,
+          } as Record<string, unknown>,
           description: 'Array of knowledge entries to sync',
         },
       },

@@ -30,7 +30,7 @@ const DEFAULT_CONFIG: TerrainConfig = {
 };
 
 export function useTerrain(): UseTerrainReturn {
-  const sysRef = useRef<any>(new TerrainSystem() as any);
+  const sysRef = useRef<TerrainSystem>(new TerrainSystem());
   const [terrainId, setTerrainId] = useState<string | null>(null);
   const [heights, setHeights] = useState<number[]>([]);
   const [layers, setLayers] = useState<TerrainLayer[]>([]);

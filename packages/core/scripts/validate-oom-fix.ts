@@ -40,7 +40,7 @@ const pipeline = createGLTFPipeline({ format: 'glb' });
 console.log('Compiling massive 50,000 machine mesh layout...');
 
 try {
-  const result = pipeline.compile(comp, 'test-token') as any;
+  const result = pipeline.compile(comp, 'test-token') as unknown as { stats: { fileSizeBytes: number } };
   console.log('Compiled GLB Size: ', Math.round(result.stats.fileSizeBytes / 1024 / 1024), 'MB');
   console.log('Memory after: ', Math.round(process.memoryUsage().heapUsed / 1024 / 1024), 'MB');
   console.log('OOM Validation: SUCCESS');

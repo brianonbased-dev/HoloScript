@@ -751,11 +751,11 @@ export async function handleGraphTool(
       if (!code) throw new Error('code is required');
 
       try {
-        const ast = (HoloScriptCompiler as any).parse(code);
+        const ast = (HoloScriptCompiler as unknown as { parse(code: string): Record<string, unknown> }).parse(code);
         const jsonld = SemanticSceneGraph.generateObject(ast, { includeMetadata: true });
         return {
           sceneGraph: jsonld,
-          summary: `Successfully generated W3C-compliant JSON-LD Semantic Scene Graph for ${ast.name}`,
+          summary: `Successfully generated W3C-compliant JSON-LD Semantic Scene Graph for ${ast.name as string}`,
         };
       } catch (err: unknown) {
         throw new Error(

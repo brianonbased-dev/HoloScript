@@ -13,6 +13,11 @@ Before asking the user ANY architectural, convention, or "which approach?" quest
 5. **"Should I commit?"** → Yes, if coherent unit of work and tests pass.
 6. **"Test failing?"** → Fix if yours, skip if pre-existing.
 7. **"Git staging?"** → ALWAYS explicit paths. Never `git add -A` or `git add .`
+8. **"Commit scope?"** → Use canonical scopes only. The commit-msg hook auto-fixes common aliases but know the map:
+   - `holomesh` → `mesh`, `mcp-server` → `mcp`, `absorb-service` → `absorb`
+   - `r3f-renderer` → `r3f`, `docker` → `infra`, `monetization` → `economy`
+   - Full list: `core|mesh|mcp|absorb|studio|cli|r3f|protocol|infra|ci|security|economy|lsp`
+9. **"Linter blocking commit?"** → The pre-commit hook only lints STAGED files. If it fails, fix those specific files. Don't let lint errors in other files stop your work. If truly blocked, `git commit --no-verify` as last resort.
 
 **Key principles:** Simulation-first (digital twin before physical). Runtime-first (compilers optimize, runtime always works). Agents are the audience. GitHub is source of truth. Wallets are identity, API keys are sessions. Never hardcode ecosystem counts.
 

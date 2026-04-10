@@ -317,7 +317,7 @@ export class SceneInspector {
         currentUUIDs.add(object.uuid);
 
         if (!this.normalHelpers.has(object.uuid)) {
-          const HelperClass = (THREE as any).VertexNormalsHelper as any;
+          const HelperClass = (THREE as unknown as Record<string, unknown>).VertexNormalsHelper as new (mesh: THREE.Mesh, size: number, color: number) => THREE.Object3D & { update(): void };
           const helper = new HelperClass(object, 1, 0xff0000);
           this.normalHelpers.set(object.uuid, helper);
           this.scene!.add(helper);
@@ -380,7 +380,7 @@ export class SceneInspector {
       } else if (object instanceof THREE.Points) {
         particleSystems++;
       } else if (object instanceof THREE.Light) {
-        if ((object as any).intensity > 0) {
+        if ((object as unknown as { intensity: number }).intensity > 0) {
           activeLights++;
         }
       } else if (object instanceof THREE.Camera) {
