@@ -651,7 +651,7 @@ export async function handleImportGltf(args: Record<string, unknown>): Promise<G
       }
       sourceName = rawSourceName || 'imported.gltf';
     } else {
-      throw new Error('No valid input provided.');
+      throw new Error('No valid input provided. Expected one of: gltf_url (URL string), gltf_base64 (base64 string), gltf_json (object), or file_path (local path).');
     }
 
     // Validate minimal glTF structure

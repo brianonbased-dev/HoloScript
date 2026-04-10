@@ -273,7 +273,7 @@ export class OAuth21Service {
     codeChallengeMethod: 'S256';
   }): string {
     const client = clients.get(params.clientId);
-    if (!client) throw new Error('Invalid client_id');
+    if (!client) throw new Error(`Invalid client_id: '${String(params.clientId).slice(0, 12)}...' is not registered. Register at POST /oauth/register.`);
 
     if (!client.redirectUris.includes(params.redirectUri)) {
       throw new Error('Invalid redirect_uri');
@@ -319,9 +319,9 @@ export class OAuth21Service {
     dpopThumbprint?: string;
   }): TokenResponse {
     const authCode = authCodes.get(params.code);
-    if (!authCode) throw new Error('Invalid authorization code');
-    if (authCode.used) throw new Error('Authorization code already used');
-    if (authCode.expiresAt < Date.now()) throw new Error('Authorization code expired');
+    if (!authCode) throw new Error('Authorization code not found — may have been used already or never issued. Request a new one via GET /oauth/authorize.');
+    if (authCode.used) throw new Error('Authorization code already used — each code is single-use. Request a new one.');
+    if (authCode.expiresAt < Date.now()) throw new Error('Authorization code expired. Codes are valid for 60s. Request a new one.');
     if (authCode.clientId !== params.clientId) throw new Error('Client mismatch');
     if (authCode.redirectUri !== params.redirectUri) throw new Error('Redirect URI mismatch');
 
@@ -356,7 +356,7 @@ export class OAuth21Service {
     dpopThumbprint?: string;
   }): TokenResponse {
     const client = clients.get(params.clientId);
-    if (!client) throw new Error('Invalid client_id');
+    if (!client) throw new Error(`Invalid client_id: '${String(params.clientId).slice(0, 12)}...' is not registered. Register at POST /oauth/register.`);
     if (client.clientType !== 'confidential') {
       throw new Error('Client credentials grant requires confidential client');
     }
@@ -387,7 +387,7 @@ export class OAuth21Service {
     dpopThumbprint?: string;
   }): TokenResponse {
     const stored = refreshTokens.get(params.refreshToken);
-    if (!stored) throw new Error('Invalid refresh token');
+    if (!stored) throw new Error('Refresh token not found — may have been revoked or expired. Re-authenticate via the full OAuth flow.');
     if (stored.used) {
       // Token replay detected -- revoke entire chain
       revokedChains.add(stored.chainId);

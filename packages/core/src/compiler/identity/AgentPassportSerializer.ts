@@ -724,9 +724,9 @@ export function deserializePassport(data: Buffer | Uint8Array): AgentPassport {
     }
   }
 
-  if (!did) throw new Error('Missing DID_IDENTITY section');
-  if (!stateSnapshot) throw new Error('Missing STATE_WAL section');
-  if (!memory) throw new Error('Missing COMPRESSED_MEMORY section');
+  if (!did) throw new Error('[AgentPassport] Missing DID_IDENTITY section. Expected "--- DID_IDENTITY ---" followed by "did:holoscript:<key>".');
+  if (!stateSnapshot) throw new Error('[AgentPassport] Missing STATE_WAL section. Expected "--- STATE_WAL ---" followed by base64 state data.');
+  if (!memory) throw new Error('[AgentPassport] Missing COMPRESSED_MEMORY section. Expected "--- COMPRESSED_MEMORY ---" followed by compressed data.');
 
   const passport: AgentPassport = {
     version,

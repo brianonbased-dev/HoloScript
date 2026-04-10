@@ -99,7 +99,7 @@ export async function handleSnapshotTool(name: string, args: any): Promise<any> 
   switch (name) {
     case 'create_temporal_snapshot': {
       const { worldState } = args;
-      if (!worldState) throw new Error("Missing 'worldState' payload");
+      if (!worldState) throw new Error("[snapshot] Missing 'worldState' in args. Expected: {worldState: {objects: [...], environment: {...}}}. Got keys: " + Object.keys(args || {}).join(', '));
 
       const snapshotId = `ts_${Date.now()}`;
 
