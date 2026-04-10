@@ -73,18 +73,18 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
       totalTimedOut: 0,
       guardCounter: 0,
     };
-    (node as any).__timeoutGuardState = state;
+    (node as unknown as Record<string, unknown>).__timeoutGuardState = state;
   },
 
   onDetach(node: HSPlusNode, _config: TimeoutGuardConfig, _context: TraitContext): void {
-    const state: TimeoutGuardState | undefined = (node as any).__timeoutGuardState;
+    const state: TimeoutGuardState | undefined = (node as unknown as Record<string, unknown>).__timeoutGuardState;
     if (state) {
       for (const [, op] of state.operations) {
         clearTimeout(op.timer);
       }
       state.operations.clear();
     }
-    delete (node as any).__timeoutGuardState;
+    delete (node as unknown as Record<string, unknown>).__timeoutGuardState;
   },
 
   onUpdate(
@@ -102,7 +102,7 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
     context: TraitContext,
     event: TraitEvent
   ): void {
-    const state: TimeoutGuardState | undefined = (node as any).__timeoutGuardState;
+    const state: TimeoutGuardState | undefined = (node as unknown as Record<string, unknown>).__timeoutGuardState;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

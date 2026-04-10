@@ -319,9 +319,9 @@ export class OAuth21Service {
     dpopThumbprint?: string;
   }): TokenResponse {
     const authCode = authCodes.get(params.code);
-    if (!authCode) throw new Error('Invalid authorization code');
-    if (authCode.used) throw new Error('Authorization code already used');
-    if (authCode.expiresAt < Date.now()) throw new Error('Authorization code expired');
+    if (!authCode) throw new Error('Authorization code not found — it may have already been exchanged, expired, or was never issued. Request a new code via GET /oauth/authorize.');
+    if (authCode.used) throw new Error('Authorization code already used — each code is single-use. Request a new code via GET /oauth/authorize.');
+    if (authCode.expiresAt < Date.now()) throw new Error(`Authorization code expired ${Math.round((Date.now() - authCode.expiresAt) / 1000)}s ago. Codes are valid for 60s. Request a new one.`);
     if (authCode.clientId !== params.clientId) throw new Error('Client mismatch');
     if (authCode.redirectUri !== params.redirectUri) throw new Error('Redirect URI mismatch');
 
@@ -387,7 +387,7 @@ export class OAuth21Service {
     dpopThumbprint?: string;
   }): TokenResponse {
     const stored = refreshTokens.get(params.refreshToken);
-    if (!stored) throw new Error('Invalid refresh token');
+    if (!stored) throw new Error('Refresh token not found — it may have been revoked, expired, or was never issued. Re-authenticate via the full OAuth flow.');
     if (stored.used) {
       // Token replay detected -- revoke entire chain
       revokedChains.add(stored.chainId);

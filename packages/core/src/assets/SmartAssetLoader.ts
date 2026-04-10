@@ -583,7 +583,7 @@ export class SmartAssetLoader {
   async loadGroup<T = unknown>(groupId: string): Promise<LoadResult<T>[]> {
     const manifest = this.registry.getActiveManifest();
     if (!manifest) {
-      throw new Error('No active manifest');
+      throw new Error('[SmartAssetLoader] No active manifest loaded. Call loadManifest(path) before loading asset groups. The manifest maps asset IDs to file paths.');
     }
 
     const assets = manifest.getGroupAssets(groupId);
