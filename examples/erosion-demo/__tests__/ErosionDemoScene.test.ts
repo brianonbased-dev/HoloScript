@@ -6,9 +6,16 @@
  * Week 7: Water Erosion - Day 5
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ErosionDemoScene, type DemoSceneConfig } from '../ErosionDemoScene';
 import type { BrushConfig } from '../TerrainModifier';
+
+// Mock requestAnimationFrame/cancelAnimationFrame for Node.js environment
+global.requestAnimationFrame = vi.fn((cb) => {
+  setTimeout(cb, 16);
+  return 0;
+});
+global.cancelAnimationFrame = vi.fn();
 
 describe('ErosionDemoScene', () => {
   let scene: ErosionDemoScene;
@@ -46,8 +53,7 @@ describe('ErosionDemoScene', () => {
       customScene.stop();
     });
 
-    it.skip('should auto-start if configured (browser only)', () => {
-      // Skipped: Uses requestAnimationFrame which is not available in Node.js
+    it('should auto-start if configured', () => {
       const autoScene = new ErosionDemoScene({
         ...config,
         autoStart: true,
