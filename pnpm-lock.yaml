@@ -2371,6 +2371,9 @@ importers:
       '@holoscript/absorb-service':
         specifier: workspace:*
         version: link:../../packages/absorb-service
+      '@holoscript/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../packages/core
