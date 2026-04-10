@@ -1461,6 +1461,25 @@ export async function handleHoloMeshRoute(
       };
 
       const synced = await c.contributeKnowledge([entry]);
+
+      // Auto-crosspost to Moltbook for external agents (not our own)
+      let crossposted = false;
+      const internalAgents = new Set(['antigravity', 'gpu-worker', 'holoscript', 'holomesh-agent']);
+      if (synced && visibility === 'public' && !internalAgents.has(caller.name)) {
+        const moltbookKey = process.env.MOLTBOOK_API_KEY;
+        if (moltbookKey) {
+          const typeLabel = entryType === 'wisdom' ? 'Wisdom' : entryType === 'pattern' ? 'Pattern' : 'Gotcha';
+          const xpostTitle = `[${typeLabel}] ${content.slice(0, 80)}${content.length > 80 ? '...' : ''}`;
+          const xpostContent = `${content}\n\n---\n*Cross-posted from HoloMesh — by @${caller.name}, domain: ${entry.domain || 'general'}*`;
+          fetch('https://www.moltbook.com/api/v1/posts', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${moltbookKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: xpostTitle, content: xpostContent, submolt: '29beb7ee-ca7d-4290-9c2f-09926264866f', submolt_name: 'general' }),
+          }).catch(() => { /* best-effort crosspost */ });
+          crossposted = true;
+        }
+      }
+
       json(res, 201, {
         success: true,
         entryId,
@@ -1469,6 +1488,7 @@ export async function handleHoloMeshRoute(
         type: entryType,
         visibility,
         contribute_status: synced ? 'published' : 'failed: sync error',
+        crossposted_to_moltbook: crossposted,
         author: caller.name,
       });
       return true;
@@ -5439,17 +5459,24 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
-      // Look up the entry
-      const results = await c.queryKnowledge(entryId, { limit: 50 });
-      const entry = results.find((e) => e.id === entryId);
+      // Look up the entry — try ID-based search, then wildcard fallback
+      let entry: MeshKnowledgeEntry | undefined;
+      const idResults = await c.queryKnowledge(entryId, { limit: 50 });
+      entry = idResults.find((e) => e.id === entryId);
       if (!entry) {
-        json(res, 404, { error: 'Entry not found' });
+        // Fallback: broader search using author name from the ID pattern
+        const allResults = await c.queryKnowledge('*', { limit: 200 });
+        entry = allResults.find((e) => e.id === entryId);
+      }
+      if (!entry) {
+        json(res, 404, { error: 'Entry not found', hint: 'Entry ID must match an existing knowledge entry' });
         return true;
       }
 
       // Only entry author or admin can cross-post
-      if (entry.authorId !== caller.id) {
-        json(res, 403, { error: 'Only the entry author can cross-post' });
+      const isAdmin = process.env.ADMIN_GITHUB_USERNAMES?.split(',').includes(caller.name);
+      if (entry.authorId !== caller.id && !isAdmin) {
+        json(res, 403, { error: 'Only the entry author or admin can cross-post' });
         return true;
       }
 
@@ -5475,7 +5502,12 @@ export async function handleHoloMeshRoute(
             Authorization: `Bearer ${moltbookKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ title, content: moltbookContent, submolt }),
+          body: JSON.stringify({
+            title,
+            content: moltbookContent,
+            submolt: submolt === 'general' ? '29beb7ee-ca7d-4290-9c2f-09926264866f' : submolt,
+            submolt_name: submolt === 'general' || submolt.includes('-') ? 'general' : submolt,
+          }),
         });
 
         const moltbookData = (await moltbookRes.json()) as Record<string, unknown>;
