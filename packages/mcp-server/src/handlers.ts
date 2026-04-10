@@ -227,7 +227,7 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     case 'edit_holo': {
       const result = await handleEditHoloTool(name, args);
       if (result !== null) return result;
-      throw new Error('edit_holo handler returned null');
+      throw new Error(`[edit_holo] Handler returned null for tool '${name}' with args: ${JSON.stringify(args).slice(0, 200)}. The edit_holo handler could not process this input — check that the .holo source is valid and the edit operation is supported.`);
     }
 
     // Browser control tools

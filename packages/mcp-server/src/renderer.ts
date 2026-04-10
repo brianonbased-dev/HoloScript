@@ -310,7 +310,9 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
   const thumbnailUrl = `${PLAYGROUND_URL}/api/scene/${scene.id}/thumbnail`;
 
   // Trigger async thumbnail generation (non-blocking)
-  generateThumbnail(scene.id).catch(() => {});
+  generateThumbnail(scene.id).catch((e) =>
+    console.warn(`[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`)
+  );
 
   return {
     success: true,
@@ -377,7 +379,9 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
   const cardMeta = generateCardMeta(title, description, embedUrl, scene.id);
 
   // Trigger async thumbnail generation
-  generateThumbnail(scene.id).catch(() => {});
+  generateThumbnail(scene.id).catch((e) =>
+    console.warn(`[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`)
+  );
 
   return {
     playgroundUrl,

@@ -126,10 +126,10 @@ if (process.env.DATABASE_URL) {
     `
       )
       .then(() => console.info('[credits] Tables ready'))
-      .catch((e: Error) => console.error('[credits] Migration failed:', e.message));
+      .catch((e: Error) => console.error(`[credits] Migration failed: ${e.message}. Credit tracking will not persist. Check DATABASE_URL and ensure PostgreSQL is reachable.`));
   } catch (err) {
-    console.error('[auth] Failed to initialize PostgreSQL pool:', err);
-    console.warn('[auth] Falling back to in-memory token store');
+    console.error(`[auth] Failed to initialize PostgreSQL pool: ${(err as Error)?.message ?? err}. Verify DATABASE_URL is set and the database is running. Falling back to in-memory token store — tokens will not survive restarts.`);
+    console.warn('[auth] Using in-memory token store (DATABASE_URL connection failed)');
   }
 } else {
   console.warn('[auth] Using in-memory token store (no DATABASE_URL)');
@@ -539,7 +539,8 @@ async function handleToolForA2A(name: string, args: Record<string, unknown>): Pr
   });
 
   if (isError) {
-    throw new Error(typeof result === 'string' ? result : JSON.stringify(result));
+    const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
+    throw new Error(`[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`);
   }
   return result;
 }
