@@ -3220,10 +3220,7 @@ export {
 // ModalitySelector already exported explicitly above (~line 2605)
 
 // ============================================================================
-// SNN Sparsity Monitoring (Self-Improvement)
-// ============================================================================
-export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from './training/SparsityMonitor';
-export type * from './training/SparsityMonitorTypes';
+export { SparsityMonitor, createSparsityMonitor, type LayerActivityInput } from '@holoscript/framework';
 
 
 // Events

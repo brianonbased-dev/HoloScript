@@ -10,7 +10,7 @@ import { logger } from './logger';
 import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNode } from './types';
 import { ReactiveState } from './ReactiveState';
-import { MemoryConsolidator, EpisodicMemory, SemanticFact } from './learning/MemoryConsolidator';
+import { MemoryConsolidator, EpisodicMemory, SemanticFact } from '@holoscript/framework';
 
 /**
  * Runtime shape of a directive found in OrbNode.directives at runtime.

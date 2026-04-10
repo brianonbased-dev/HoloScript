@@ -15,12 +15,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SpatialTrainingDataGenerator } from '../../training/SpatialTrainingDataGenerator';
+import { SpatialTrainingDataGenerator } from '@holoscript/framework';
 import type {
   SpatialTrainingJSONLEntry,
   SpatialRelationshipType,
   SpatialDifficulty,
-} from '../../training/SpatialTrainingDataTypes';
+} from '@holoscript/framework';
 
 // =============================================================================
 // HELPERS
