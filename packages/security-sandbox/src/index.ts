@@ -227,10 +227,6 @@ export class HoloScriptSandbox {
           warn: (...args: unknown[]) => console.warn('[SANDBOX]', ...args),
         },
       },
-      require: {
-        external: this.options.allowedModules.length > 0,
-        builtin: this.options.allowedModules,
-      },
     });
 
     // Step 3: Execute in VM
