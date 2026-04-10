@@ -3,7 +3,7 @@ import { createMockNode, createMockContext, attachTrait, sendEvent } from './tra
 
 // Mock AIAdapter
 const mockChat = vi.fn().mockResolvedValue('Hello, how can I help?');
-vi.mock('../../ai/AIAdapter', () => ({
+vi.mock('@holoscript/framework/ai', () => ({
   getDefaultAIAdapter: vi.fn(() => ({
     chat: mockChat,
   })),

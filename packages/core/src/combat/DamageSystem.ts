@@ -41,6 +41,7 @@ export interface DoTTickResult {
   target: string;
   name: string;
   baseDamage: number;
+  finalDamage: number;
   timestamp: number;
 }
 
@@ -185,6 +186,7 @@ export class DamageSystem {
           target: dot.target,
           name: dot.name,
           baseDamage: tickDamage,
+          finalDamage: tickDamage * this.config.globalMultiplier,
           timestamp: Date.now(),
         });
       }

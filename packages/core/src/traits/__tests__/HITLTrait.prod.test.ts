@@ -4,17 +4,17 @@ import { makeTestContext } from './helpers.js';
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@holoscript/engine/utils/HITLAuditLogger', () => ({
+vi.mock('../../utils/HITLAuditLogger', () => ({
   HITLAuditLogger: { log: vi.fn().mockResolvedValue(undefined) },
 }));
 
-vi.mock('@holoscript/engine/utils/ConstitutionalValidator', () => ({
+vi.mock('../../utils/ConstitutionalValidator', () => ({
   ConstitutionalValidator: {
     validate: vi.fn().mockReturnValue({ allowed: true, escalationLevel: 'none', violations: [] }),
   },
 }));
 
-vi.mock('@holoscript/engine/logger', () => ({
+vi.mock('../../logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }));
 

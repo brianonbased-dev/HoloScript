@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockNode, createMockContext, attachTrait } from './traitTestHelpers';
 
 // Mock ChoreographyEngine
-vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => ({
+vi.mock('../../choreography/ChoreographyEngine', () => ({
   ChoreographyEngine: class MockChoreographyEngine {
     constructor() {}
     setActionHandler = vi.fn();
@@ -17,7 +17,7 @@ vi.mock('@holoscript/engine/choreography/ChoreographyEngine', () => ({
 }));
 
 // Mock ChoreographyPlanner + PlanBuilder
-vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => ({
+vi.mock('../../choreography/ChoreographyPlanner', () => ({
   ChoreographyPlanner: class MockChoreographyPlanner {
     createPlan = vi.fn((opts: any) => ({
       id: 'plan-1',
