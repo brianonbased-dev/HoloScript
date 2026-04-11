@@ -65,6 +65,12 @@ export {
   createVirtualProductionHandler,
 } from './traits/VirtualProductionTrait';
 
+export {
+  type TextToUniverseConfig,
+  type TextToUniverseState,
+  createTextToUniverseHandler,
+} from './traits/TextToUniverseTrait';
+
 // ============================================================================
 // Domain traits (tagged union)
 // ============================================================================
@@ -74,6 +80,7 @@ import type { ColorGradeConfig } from './traits/ColorGradeTrait';
 import type { DMXLightingConfig } from './traits/DMXLightingTrait';
 import type { DirectorAIConfig } from './traits/DirectorAITrait';
 import type { VirtualProductionConfig } from './traits/VirtualProductionTrait';
+import type { TextToUniverseConfig } from './traits/TextToUniverseTrait';
 
 export interface ShotListTrait extends ShotListConfig {
   trait: 'shot_list';
@@ -95,12 +102,17 @@ export interface VirtualProductionTrait extends VirtualProductionConfig {
   trait: 'virtual_production';
 }
 
+export interface TextToUniversePluginTrait extends TextToUniverseConfig {
+  trait: 'text_to_universe';
+}
+
 export type FilmVFXTrait =
   | ShotListTrait
   | ColorGradeTrait
   | DMXLightingTrait
   | DirectorAITrait
-  | VirtualProductionTrait;
+  | VirtualProductionTrait
+  | TextToUniversePluginTrait;
 
 // ============================================================================
 // Compile
@@ -179,6 +191,12 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
         lines.push(`    syncMode: "${t.syncMode}"`);
         lines.push(`    frameRate: ${t.frameRate}`);
         lines.push(`    tracking: "${t.tracking.system}"`);
+        lines.push('  }');
+        break;
+      case 'text_to_universe':
+        lines.push(`  object "TTU_${t.llmProvider}" @text_to_universe {`);
+        lines.push(`    provider: "${t.llmProvider}"`);
+        lines.push(`    narrative: "${t.narrativeConsistency}"`);
         lines.push('  }');
         break;
     }
@@ -269,6 +287,7 @@ import { createColorGradeHandler } from './traits/ColorGradeTrait';
 import { createDMXLightingHandler } from './traits/DMXLightingTrait';
 import { createDirectorAIHandler } from './traits/DirectorAITrait';
 import { createVirtualProductionHandler } from './traits/VirtualProductionTrait';
+import { createTextToUniverseHandler } from './traits/TextToUniverseTrait';
 
 /** All trait handlers provided by this plugin */
 export const traitHandlers = [
@@ -277,7 +296,14 @@ export const traitHandlers = [
   createDMXLightingHandler(),
   createDirectorAIHandler(),
   createVirtualProductionHandler(),
+  createTextToUniverseHandler(),
 ] as const;
+
+// ============================================================================
+// Version & PluginMeta
+// ============================================================================
+
+export const VERSION = '1.0.0';
 
 /** Plugin metadata for PluginLifecycleManager registration */
 export const pluginMeta = {
@@ -285,15 +311,9 @@ export const pluginMeta = {
   name: 'Film/VFX',
   version: VERSION,
   description: 'Shot lists, color grading, DMX lighting, director AI, and virtual production for HoloScript',
-  traits: ['shot_list', 'color_grade', 'dmx_lighting', 'director_ai', 'virtual_production'],
+  traits: ['shot_list', 'color_grade', 'dmx_lighting', 'director_ai', 'virtual_production', 'text_to_universe'],
   compileFormats: ['holo', 'edl', 'otio', 'json'],
 } as const;
-
-// ============================================================================
-// Version
-// ============================================================================
-
-export const VERSION = '1.0.0';
 
 export default {
   VERSION,
