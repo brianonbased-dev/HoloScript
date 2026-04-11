@@ -1,5 +1,5 @@
 /**
- * Multi-Domain Simulation Traits (Thermal, Structural, Hydraulic)
+ * Multi-Domain Simulation Traits (Thermal, Structural, Hydraulic, Saturation)
  */
 export const SIMULATION_DOMAIN_TRAITS = [
   'thermal_simulation',
@@ -25,4 +25,17 @@ export const SIMULATION_DOMAIN_TRAITS = [
   'colormap_turbo',
   'colormap_inferno',
   'colormap_coolwarm',
+  'saturation_thermal',
+  'saturation_moisture',
+  'saturation_pressure',
+  'saturation_electrical',
+  'saturation_chemical',
+  'saturation_structural',
+  'phase_transition',
+  'threshold_warning',
+  'threshold_critical',
+  'threshold_recovery',
 ] as const;
+
+export type SimulationDomainTraitName =
+  (typeof SIMULATION_DOMAIN_TRAITS)[number];

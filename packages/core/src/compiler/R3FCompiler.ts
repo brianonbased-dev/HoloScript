@@ -11,12 +11,14 @@ import {
   compilePostProcessingBlock,
   compileAudioSourceBlock,
   compileWeatherBlock,
+  compileSimulationBlock,
   materialToR3F,
   physicsToR3F,
   particlesToR3F,
   postProcessingToR3F,
   audioSourceToR3F,
   weatherToR3F,
+  simulationToR3F,
 } from './DomainBlockCompilerMixin';
 import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
@@ -2263,6 +2265,18 @@ export class R3FCompiler {
                 __raw: weatherToR3F(weather),
                 __domain: 'weather',
                 __name: weather.name || 'Weather',
+              },
+              children: [],
+            } as R3FNode;
+          },
+          simulation: (block) => {
+            const sim = compileSimulationBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: simulationToR3F(sim),
+                __domain: 'simulation',
+                __name: sim.name || 'Simulation',
               },
               children: [],
             } as R3FNode;

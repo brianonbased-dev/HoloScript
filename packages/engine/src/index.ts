@@ -35,6 +35,9 @@ export * as Animation from './animation';
 // Physics subsystem (A.011.01b)
 export * as Physics from './physics';
 
+// Simulation — PDE-based engineering solvers (thermal, structural, hydraulic)
+export * as Simulation from './simulation';
+
 // Runtime subsystem (A.011.01e)
 export * as Runtime from './runtime';
 

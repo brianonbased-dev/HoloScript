@@ -275,6 +275,8 @@ type TokenType =
   | 'WEB3_GOVERNANCE'
   // Extensible custom block
   | 'CUSTOM_BLOCK'
+  // Simulation domain (v6.1 — PDE solvers)
+  | 'SIMULATION'
   // Perception & simulation layer (v4.2 — March 2026)
   | 'MATERIAL'
   | 'PBR_MATERIAL'
@@ -593,6 +595,7 @@ const KEYWORDS: Record<string, TokenType> = {
   atmosphere: 'ATMOSPHERE',
   sky: 'WEATHER',
   climate: 'WEATHER',
+  simulation: 'SIMULATION',
   procedural: 'PROCEDURAL',
   generate: 'PROCEDURAL',
   scatter: 'SCATTER',
@@ -5359,6 +5362,8 @@ export class HoloCompositionParser {
     'WEB3_WALLET',
     'WEB3_MARKETPLACE',
     'WEB3_GOVERNANCE',
+    // Simulation domain (PDE solvers)
+    'SIMULATION',
     // Perception & simulation layer
     'MATERIAL',
     'PBR_MATERIAL',
@@ -5487,6 +5492,8 @@ export class HoloCompositionParser {
     WEB3_WALLET: 'web3',
     WEB3_MARKETPLACE: 'web3',
     WEB3_GOVERNANCE: 'web3',
+    // Simulation domain (PDE solvers)
+    SIMULATION: 'simulation',
     // Perception & simulation layer
     MATERIAL: 'material',
     PBR_MATERIAL: 'material',

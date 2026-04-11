@@ -112,6 +112,7 @@ import { CONCURRENCY_TRAITS } from './concurrency';
 import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
+import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
 
 // Phone Sleeve VR (smartphone-as-headset)
 import { PHONE_SLEEVE_VR_TRAITS } from './mobile/phone-sleeve-vr';
@@ -268,6 +269,9 @@ export const VR_TRAITS = [
 
   // Scientific Computing & Molecular Dynamics (22 traits - Phase 1)
   ...SCIENTIFIC_COMPUTING_TRAITS,
+
+  // Simulation Domains — Thermal, Structural, Hydraulic, Saturation (38 traits)
+  ...SIMULATION_DOMAIN_TRAITS,
 
   // V43 AI/XR Traits (23 traits - Tier 1-3)
   ...V43_AI_XR_TRAITS,
@@ -557,6 +561,12 @@ export {
   SCIENTIFIC_COMPUTING_TRAITS,
   type ScientificComputingTraitName,
 } from './scientific-computing';
+
+// Simulation Domains — Thermal, Structural, Hydraulic, Saturation
+export {
+  SIMULATION_DOMAIN_TRAITS,
+  type SimulationDomainTraitName,
+} from './simulation-domains';
 
 // V43 AI/XR Traits (Tier 1-3)
 export { V43_AI_XR_TRAITS } from './v43-ai-xr';

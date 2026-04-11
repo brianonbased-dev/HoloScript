@@ -64,6 +64,8 @@ export type {
 } from './components/GIRenderer';
 
 // Simulation Visualization Components (Phase R2)
+export { SimulationProvider } from './components/SimulationProvider';
+export type { SimulationProviderProps, SimulationContextValue } from './components/SimulationProvider';
 export { ScalarFieldOverlay } from './components/ScalarFieldOverlay';
 export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarFieldOverlay';
 
@@ -115,6 +117,7 @@ export { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from './utils
 export type { LODDetail } from './utils/materialUtils';
 
 // Hooks
+export { useSimulationField } from './hooks/useSimulationField';
 export { useHoloTextures, hasTextures } from './hooks/useHoloTextures';
 export { useProceduralTexture } from './hooks/useProceduralTexture';
 export { useLODBridge, resetLODBridge } from './hooks/useLODBridge';

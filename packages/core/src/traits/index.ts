@@ -179,6 +179,7 @@ export * from './SharedWorldTrait';
 export * from './SharePlayTrait';
 export * from './SkeletonTrait';
 export * from './SkillRegistryTrait';
+export * from './SimulationSolverFactory';
 export * from './SlidableTrait';
 export * from './SocialTraits';
 export * from './SoftBodyTrait';

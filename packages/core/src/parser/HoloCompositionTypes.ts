@@ -1197,6 +1197,8 @@ export type HoloDomainType =
   | 'metric' // metric, trace, log, health_check
   | 'container' // container, deployment, scaling, secret
   | 'resilience' // circuit_breaker, retry, timeout, fallback, bulkhead
+  // Simulation domains (v6.1 — PDE solvers)
+  | 'simulation' // simulation block: thermal, structural, hydraulic
   | 'custom'; // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {

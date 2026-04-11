@@ -153,6 +153,22 @@ import { portableHandler } from './PortableTrait';
 import { clothHandler } from './ClothTrait';
 import { fluidHandler } from './FluidTrait';
 import { softBodyHandler } from './SoftBodyTrait';
+import {
+  thermalSimulationHandler,
+  structuralFEMHandler,
+  hydraulicPipeHandler,
+  saturationThermalHandler,
+  saturationMoistureHandler,
+  saturationPressureHandler,
+  saturationElectricalHandler,
+  saturationChemicalHandler,
+  saturationStructuralHandler,
+  phaseTransitionHandler,
+  thresholdWarningHandler,
+  thresholdCriticalHandler,
+  thresholdRecoveryHandler,
+  scalarFieldOverlayHandler,
+} from './SimulationTraitHandlers';
 import { ropeHandler } from './RopeTrait';
 import { chainHandler } from './ChainTrait';
 import { roadmapNodeHandler } from './RoadmapTrait';
@@ -1544,6 +1560,23 @@ export class VRTraitRegistry {
     this.register(windHandler as TraitHandler);
     this.register(buoyancyHandler as TraitHandler);
     this.register(destructionHandler as TraitHandler);
+
+    // Phase 14: Simulation Domains (Thermal, Structural, Hydraulic, Saturation)
+    this.register(thermalSimulationHandler as TraitHandler);
+    this.register(structuralFEMHandler as TraitHandler);
+    this.register(hydraulicPipeHandler as TraitHandler);
+    this.register(saturationThermalHandler as TraitHandler);
+    this.register(saturationMoistureHandler as TraitHandler);
+    this.register(saturationPressureHandler as TraitHandler);
+    this.register(saturationElectricalHandler as TraitHandler);
+    this.register(saturationChemicalHandler as TraitHandler);
+    this.register(saturationStructuralHandler as TraitHandler);
+    this.register(phaseTransitionHandler as TraitHandler);
+    this.register(thresholdWarningHandler as TraitHandler);
+    this.register(thresholdCriticalHandler as TraitHandler);
+    this.register(thresholdRecoveryHandler as TraitHandler);
+    this.register(scalarFieldOverlayHandler as TraitHandler);
+
     this.register(userMonitorHandler as TraitHandler);
     this.register(emotionalVoiceHandler as TraitHandler);
     this.register(flowFieldHandler as TraitHandler);

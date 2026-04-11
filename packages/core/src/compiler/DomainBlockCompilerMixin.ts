@@ -4570,6 +4570,80 @@ export function inputToUSDA(input: CompiledInput): string {
 }
 
 // =============================================================================
+// Simulation Domain (Thermal, Structural, Hydraulic)
+// =============================================================================
+
+export interface CompiledSimulation {
+  keyword: string;
+  name: string;
+  simulationType: 'thermal' | 'structural' | 'hydraulic' | 'unknown';
+  traits: string[];
+  config: Record<string, unknown>;
+  overlays: Array<{
+    source: string;
+    colormap: string;
+    range: [number, number];
+    opacity: number;
+    visible: boolean;
+    label: string;
+  }>;
+}
+
+export function compileSimulationBlock(block: HoloDomainBlock): CompiledSimulation {
+  const traits = block.traits || [];
+
+  // Determine simulation type from attached traits
+  let simulationType: CompiledSimulation['simulationType'] = 'unknown';
+  if (traits.includes('thermal_simulation')) simulationType = 'thermal';
+  else if (traits.includes('structural_fem')) simulationType = 'structural';
+  else if (traits.includes('hydraulic_pipe')) simulationType = 'hydraulic';
+
+  // Extract overlay configs from children
+  const overlays: CompiledSimulation['overlays'] = [];
+  for (const child of block.children || []) {
+    const c = child as unknown as HoloDomainBlock;
+    if (c.traits?.includes('scalar_field_overlay') || c.keyword === 'scalar_field_overlay') {
+      const p = c.properties || {};
+      overlays.push({
+        source: (p.source as string) ?? '',
+        colormap: (p.colormap as string) ?? 'turbo',
+        range: (p.range as [number, number]) ?? [0, 1],
+        opacity: (p.opacity as number) ?? 0.7,
+        visible: (p.visible as boolean) ?? true,
+        label: (p.label as string) ?? '',
+      });
+    }
+  }
+
+  return {
+    keyword: block.keyword,
+    name: block.name,
+    simulationType,
+    traits,
+    config: block.properties || {},
+    overlays,
+  };
+}
+
+export function simulationToR3F(sim: CompiledSimulation): string {
+  const configJSON = JSON.stringify(sim.config)
+    .replace(/"/g, "'")
+    .replace(/'/g, '"');
+
+  const overlayJSX = sim.overlays
+    .map(
+      (o) =>
+        `<ScalarFieldOverlay colormap="${o.colormap}" range={[${o.range.join(', ')}]} opacity={${o.opacity}} visible={${o.visible}} label="${o.label}" />`
+    )
+    .join('\n        ');
+
+  return `{/* Simulation: ${sim.name} (${sim.simulationType}) */}
+      <SimulationProvider type="${sim.simulationType}" config={${configJSON}}>
+        ${overlayJSX}
+      </SimulationProvider>`;
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 
