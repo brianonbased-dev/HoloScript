@@ -707,9 +707,10 @@ async function ensureCachedGraph(): Promise<{
  * The module path is constructed dynamically to prevent TS from
  * resolving it at type-check time (the dist/ may not exist yet).
  */
+import * as EngineMod from '../engine/index';
+
 async function loadCodebaseModule(): Promise<any> {
-  const mod = await import('../engine/index.js');
-  return mod.CodebaseScanner ? mod : (mod.default || mod);
+  return EngineMod.CodebaseScanner ? EngineMod : (EngineMod as any).default || EngineMod;
 }
 
 export async function handleCodebaseTool(
