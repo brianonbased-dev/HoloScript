@@ -9,14 +9,20 @@ npx tsup --no-dts
 cd ../agent-protocol
 npx tsup --no-dts
 
-cd ../core
-# Docker config inlines all workspace deps (engine, framework, mesh, platform, plugins)
-# Uses .cjs to prevent tsup from ESM-bundling the config file
-npx tsup --config ../../scripts/docker/tsup.core.docker.cjs
-node scripts/generate-types.mjs
-
+# Build engine + framework BEFORE core (core inlines them in Docker)
 cd ../..
 ./scripts/docker/build-engine-no-dts.sh
 
 cd packages/framework
 npx tsup --no-dts
+
+cd ../platform
+npx tsup --no-dts
+
+cd ../mesh
+npx tsup --no-dts
+
+# Core last — Docker config inlines all workspace deps
+cd ../core
+npx tsup --config ../../scripts/docker/tsup.core.docker.cjs
+node scripts/generate-types.mjs
