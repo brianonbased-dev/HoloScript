@@ -1,0 +1,1 @@
+MEGA-COMMIT (373 files, -16K net). Message says 'major repository architecture cleanup.' Full repo restructure: 227 core files, demo moves, script archival, doc archival, IntelliJ relocation. Breaks git log --follow for moved files. Should have been 5+ commits. See DEVELOPMENT_CHRONICLE.md.
