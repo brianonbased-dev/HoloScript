@@ -11,12 +11,13 @@ export type {
   KnowledgeDomain,
   DomainConsolidationConfig,
   HotBufferEntry,
-  ExcitabilityMetadata,
   ConsolidationResult,
   ReconsolidationEvent,
 } from '@holoscript/framework';
 
 export {
+  TeamTask,
+  BountyManager,
   KNOWLEDGE_DOMAINS,
   DOMAIN_CONSOLIDATION,
   DOMAIN_HALF_LIVES,
@@ -425,3 +426,145 @@ export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   suggestedLOD: 0,
   hardLimitBreached: false,
 };
+// --- Team & Board ---
+
+export type TeamRole = 'owner' | 'lead' | 'member' | 'guest';
+
+export interface TeamMember {
+  agentId: string;
+  agentName: string;
+  role: TeamRole;
+  joinedAt: string;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  description: string;
+  type: 'bounty' | 'social' | 'research' | 'dev';
+  visibility: 'public' | 'private' | 'internal';
+  ownerId: string;
+  ownerName: string;
+  members: TeamMember[];
+  maxSlots: number;
+  inviteCode?: string;
+  waitlist: string[];
+  createdAt: string;
+  
+  // Board data
+  taskBoard?: TeamTask[];
+  doneLog?: TeamTask[];
+  
+  // Bounty data (V7 Expansion)
+  bounties?: BountyManager;
+  submissions?: StoredBountySubmission[];
+  miniGames?: StoredBountyMiniGame[];
+
+  mode?: string;
+  roomConfig?: {
+    objective?: string;
+    treasuryFeeBps?: number;
+  };
+  treasuryWallet?: string;
+  treasuryBalance?: number;
+}
+
+export interface TeamPresenceEntry {
+  agentId: string;
+  agentName: string;
+  ideType: string;
+  status: 'active' | 'idle' | 'busy' | 'offline';
+  lastHeartbeat: string;
+}
+
+export interface TeamMessage {
+  id: string;
+  teamId: string;
+  fromAgentId: string;
+  fromAgentName: string;
+  content: string;
+  messageType: 'text' | 'meeting' | 'knowledge' | 'handoff';
+  createdAt: string;
+}
+
+export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
+  owner: ['board:write', 'board:read', 'members:manage', 'config:write', 'messages:write', 'messages:read'],
+  lead: ['board:write', 'board:read', 'members:invite', 'messages:write', 'messages:read'],
+  member: ['board:read', 'board:claim', 'messages:write', 'messages:read'],
+  guest: ['board:read', 'messages:read'],
+};
+
+export const PRESENCE_TTL_MS = 120 * 1000; // 2 minutes
+
+// --- Agent Identity & Registry ---
+
+export interface RegisteredAgent {
+  id: string;
+  apiKey: string;
+  walletAddress?: string;
+  name: string;
+  traits: string[];
+  reputation: number;
+  profile?: Record<string, unknown>; // Replaced any
+  createdAt: string;
+}
+
+// --- Social Metadata ---
+
+export interface StoredComment {
+  id: string;
+  entryId: string;
+  parentId?: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  voteCount: number;
+  createdAt: string;
+}
+
+export interface KnowledgeTransaction {
+  id: string;
+  buyerWallet: string;
+  buyerName: string;
+  sellerWallet: string;
+  sellerName: string;
+  entryId: string;
+  entryDomain: string;
+  priceCents: number;
+  timestamp: string;
+}
+
+// --- Bounty Details ---
+
+export interface StoredBountySubmission {
+  id: string;
+  bountyId: string;
+  teamId?: string;
+  agentId?: string; // Legacy
+  agentName?: string; // Legacy
+  submitterId: string;
+  submitterName: string;
+  proof?: string; 
+  status: 'pending' | 'submitted' | 'accepted' | 'rejected' | 'paid';
+  submittedAt: string;
+  reviewedAt?: string;
+  resolvedAt?: string;
+  rewardPaid?: boolean;
+  solution?: string;
+  payoutResult?: Record<string, unknown>; // Replaced any
+}
+
+export interface StoredBountyMiniGame {
+  id: string;
+  teamId: string;
+  roomId?: string; // New: Dedicated SSE room for the mini-game
+  bountyId?: string; // Legacy
+  bountyIds?: string[]; // Multiple bounties
+  title?: string;
+  description?: string;
+  createdBy?: string;
+  status?: string;
+  type?: 'terminal_puzzle' | 'gauntlet' | 'sim_stress';
+  state?: unknown;
+  createdAt: string;
+}

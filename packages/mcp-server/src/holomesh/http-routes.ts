@@ -33,6 +33,7 @@ export async function handleHoloMeshRoute(
   // 1. Real-time SSE Room (V7)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/live$/)) {
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/live', '');
+    console.log(`[holomesh] SSE connection attempt for team ${teamId} from ${req.headers['user-agent'] || 'unknown'}`);
     const searchParams = new URL(url, 'http://localhost').searchParams;
     handleTeamRoomConnection(req, res, teamId, searchParams);
     return true;
