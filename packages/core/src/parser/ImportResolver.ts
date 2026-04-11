@@ -438,7 +438,8 @@ export class ImportResolver {
       const fs = await import('fs/promises');
       const path = await import('path');
       // @ts-ignore - optional dependency
-      const { LoroDoc } = await import('@loro/loro');
+      const pkgName = '@loro/loro';
+      const { LoroDoc } = await import(/* @vite-ignore */ pkgName);
 
       // The HoloMesh Agent uses .holomesh/worldstate.crdt
       const crdtPath = path.resolve(process.cwd(), '.holomesh/worldstate.crdt');
