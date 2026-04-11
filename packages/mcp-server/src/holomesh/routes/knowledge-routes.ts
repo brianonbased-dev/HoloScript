@@ -371,6 +371,50 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
+  // POST /api/holomesh/brittney/compile-gate — block/allow compile by risk threshold
+  if (pathname === '/api/holomesh/brittney/compile-gate' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const source = (body.source as string | undefined)?.trim();
+    const target = (body.target as string | undefined)?.trim() || 'generic';
+    const maxRisk = Math.max(0, Math.min(100, parseInt(String(body.maxRisk ?? 60), 10)));
+    if (!source) {
+      json(res, 400, { error: 'Missing source' });
+      return true;
+    }
+
+    const query = `${target} ${source.slice(0, 500)}`;
+    const kb = await c.queryKnowledge(query, { limit: 40 });
+    const gotchas = kb.filter((e) => e.type === 'gotcha');
+    const gotchaSignals = ['error', 'fail', 'unsafe', 'invalid', 'deprecated', 'mismatch', 'unsupported'];
+    const signalHits = gotchas.reduce((sum, g) => {
+      const text = g.content.toLowerCase();
+      return sum + gotchaSignals.filter((s) => text.includes(s)).length;
+    }, 0);
+    const risk = Math.min(100, gotchas.length * 10 + signalHits * 3);
+    const allowed = risk <= maxRisk;
+
+    json(res, 200, {
+      success: true,
+      gate: {
+        allowed,
+        target,
+        risk,
+        maxRisk,
+        decision: allowed ? 'allow' : 'block',
+      },
+      rationale: {
+        gotchas: gotchas.slice(0, 5).map((g) => ({ id: g.id, domain: g.domain, snippet: g.content.slice(0, 180) })),
+        knowledgeUsed: kb.length,
+      },
+      checkedBy: caller.name,
+      checkedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
   // POST /api/holomesh/edge/plan — generate edge-safe execution plan for native .hs runtime
   if (pathname === '/api/holomesh/edge/plan' && method === 'POST') {
     const caller = requireAuth(req, res);
@@ -397,6 +441,49 @@ export async function handleKnowledgeRoutes(
       plan,
       reviewedBy: caller.name,
       generatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/edge/package — emit edge deployment package metadata for .hs
+  if (pathname === '/api/holomesh/edge/package' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const source = (body.source as string | undefined)?.trim();
+    const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
+    const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
+    const flashKb = Math.max(32, parseInt(String(body.flashKb ?? 1024), 10));
+    if (!source) {
+      json(res, 400, { error: 'Missing source' });
+      return true;
+    }
+
+    const plan = buildEdgeExecutionPlan(source, device, memoryKb, flashKb);
+    const artifact = {
+      packageId: `edgepkg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      target: { device, profile: plan.profile, memoryKb, flashKb },
+      manifest: {
+        entry: 'main.hs',
+        runtime: 'holoscript-edge-runtime-v1',
+        optimizations: plan.optimizations,
+        warnings: plan.warnings,
+      },
+      checksum: crypto.createHash('sha256').update(plan.transformedSource).digest('hex'),
+      transformedSource: plan.transformedSource,
+      estimated: plan.estimated,
+      generatedAt: new Date().toISOString(),
+      generatedBy: caller.name,
+    };
+
+    json(res, 200, {
+      success: true,
+      artifact,
+      next: {
+        flash: 'Use device flasher to deploy transformedSource as main.hs',
+        verify: 'Run hardware smoke tests and compare runtime telemetry against estimated RAM/flash',
+      },
     });
     return true;
   }
