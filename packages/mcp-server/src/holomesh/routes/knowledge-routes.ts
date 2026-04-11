@@ -225,6 +225,18 @@ function buildSovereignPreview(clusterCount: number, replicasPerCluster: number)
   return { clusters, totalReplicas: clusters.reduce((s, c) => s + c.holovmReplicas, 0) };
 }
 
+type LifePodSnapshot = {
+  lifePodId: string;
+  worldId: string;
+  agentCount: number;
+  sourceCluster: string;
+  createdBy: string;
+  createdAt: string;
+  checksum: string;
+};
+
+const lifePodStore: Map<string, LifePodSnapshot> = new Map();
+
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
   for (const tx of transactionLedger) {
@@ -505,6 +517,100 @@ export async function handleKnowledgeRoutes(
           migrationModes: ['live-cutover', 'staged-sync'],
           integrity: 'ed25519-signed-snapshots',
         },
+      },
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/sovereign/topology — graph topology view for sovereign clusters
+  if (pathname === '/api/holomesh/sovereign/topology' && method === 'GET') {
+    const q = parseQuery(url);
+    const clusterCount = Math.max(1, Math.min(12, parseInt(q.get('clusters') || '3', 10)));
+    const replicasPerCluster = Math.max(1, Math.min(64, parseInt(q.get('replicas') || '4', 10)));
+    const preview = buildSovereignPreview(clusterCount, replicasPerCluster);
+
+    const nodes = preview.clusters.map((c) => ({ id: c.id, region: c.region, replicas: c.holovmReplicas }));
+    const edges = preview.clusters.flatMap((from, i) =>
+      preview.clusters
+        .filter((_, j) => j > i)
+        .map((to) => ({ from: from.id, to: to.id, link: 'lifepod-gossip' })),
+    );
+
+    json(res, 200, {
+      success: true,
+      topology: {
+        nodes,
+        edges,
+        metrics: {
+          clusters: nodes.length,
+          links: edges.length,
+          totalReplicas: preview.totalReplicas,
+        },
+      },
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/sovereign/lifepod/snapshot — create signed LifePod snapshot metadata
+  if (pathname === '/api/holomesh/sovereign/lifepod/snapshot' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const worldId = (body.worldId as string | undefined)?.trim() || 'default-world';
+    const sourceCluster = (body.sourceCluster as string | undefined)?.trim() || 'cluster_1';
+    const agentCount = Math.max(1, parseInt(String(body.agentCount ?? 1), 10));
+
+    const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const payload = JSON.stringify({ lifePodId, worldId, sourceCluster, agentCount, ts: Date.now() });
+    const checksum = crypto.createHash('sha256').update(payload).digest('hex');
+
+    const snapshot: LifePodSnapshot = {
+      lifePodId,
+      worldId,
+      agentCount,
+      sourceCluster,
+      createdBy: caller.name,
+      createdAt: new Date().toISOString(),
+      checksum,
+    };
+    lifePodStore.set(lifePodId, snapshot);
+
+    json(res, 201, { success: true, snapshot });
+    return true;
+  }
+
+  // POST /api/holomesh/sovereign/lifepod/restore — restore snapshot into target cluster (simulated)
+  if (pathname === '/api/holomesh/sovereign/lifepod/restore' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const lifePodId = (body.lifePodId as string | undefined)?.trim();
+    const targetCluster = (body.targetCluster as string | undefined)?.trim() || 'cluster_2';
+    if (!lifePodId) {
+      json(res, 400, { error: 'Missing lifePodId' });
+      return true;
+    }
+
+    const snapshot = lifePodStore.get(lifePodId);
+    if (!snapshot) {
+      json(res, 404, { error: 'LifePod snapshot not found' });
+      return true;
+    }
+
+    json(res, 200, {
+      success: true,
+      restore: {
+        lifePodId,
+        worldId: snapshot.worldId,
+        sourceCluster: snapshot.sourceCluster,
+        targetCluster,
+        agentCount: snapshot.agentCount,
+        checksum: snapshot.checksum,
+        status: 'simulated-restored',
+        restoredBy: caller.name,
+        restoredAt: new Date().toISOString(),
       },
     });
     return true;
