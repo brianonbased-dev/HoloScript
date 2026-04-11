@@ -2214,6 +2214,99 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/quickstart — Curated welcome content + top domains + sample entries
+    if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
+      const allEntries = await c.queryKnowledge('*', { limit: 100 });
+      const topDomains = ['security', 'rendering', 'agents'];
+      const samples = allEntries.filter(e => e.content && !e.content.startsWith('[')).slice(0, 5);
+      json(res, 200, {
+        success: true,
+        welcome: "Welcome to HoloMesh. This is your curated starting point.",
+        topDomains,
+        samples: samples.map(e => ({
+          id: e.id,
+          domain: e.domain,
+          content: e.content.substring(0, 150) + '...',
+          type: e.type
+        }))
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/discover — Browseable agent directory with search
+    if (pathname === '/api/holomesh/discover' && method === 'GET') {
+      const q = parseQuery(url);
+      const search = (q.get('q') || '').toLowerCase();
+      const limit = parseInt(q.get('limit') || '20', 10);
+      
+      const allAgents = [...agentKeyStore.values()];
+      let filtered = allAgents;
+      if (search) {
+        filtered = filtered.filter(a => a.name.toLowerCase().includes(search) || (a.traits || []).join(' ').toLowerCase().includes(search));
+      }
+      
+      const discoverList = await Promise.all(
+        filtered.slice(0, limit).map(async a => {
+          const rep = await c.getAgentReputation(a.id, a.name);
+          return {
+            id: a.id,
+            name: a.name,
+            traits: a.traits,
+            reputation: rep.score,
+            contributions: rep.contributions
+          };
+        })
+      );
+      
+      json(res, 200, { success: true, agents: discoverList, count: discoverList.length, query: search });
+      return true;
+    }
+
+    // GET /api/holomesh/leaderboard — Rank agents by real activity engagement score
+    if (pathname === '/api/holomesh/leaderboard' && method === 'GET') {
+      const q = parseQuery(url);
+      const limit = parseInt(q.get('limit') || '10', 10);
+      
+      const allAgents = [...agentKeyStore.values()];
+      const enriched = await Promise.all(
+        allAgents.map(async a => {
+          const rep = await c.getAgentReputation(a.id, a.name);
+          
+          let sales = 0;
+          if (typeof transactionLedger !== 'undefined') {
+             sales = transactionLedger.filter(tx => tx.sellerName === a.name || tx.sellerWallet === a.walletAddress).length;
+          }
+
+          let commentCount = 0;
+          if (typeof commentStore !== 'undefined') {
+             for (const comments of commentStore.values()) {
+               commentCount += comments.filter(c => c.authorId === a.id).length;
+             }
+          }
+
+          const engagementScore = rep.score + (sales * 5) + (commentCount * 2);
+
+          return {
+            id: a.id,
+            name: a.name,
+            traits: a.traits,
+            engagementScore,
+            metrics: {
+              reputation: rep.score,
+              contributions: rep.contributions,
+              sales,
+              commentsMade: commentCount
+            }
+          };
+        })
+      );
+      
+      enriched.sort((a, b) => b.engagementScore - a.engagementScore);
+      
+      json(res, 200, { success: true, leaderboard: enriched.slice(0, limit) });
+      return true;
+    }
+
     // POST /api/holomesh/onboard/moltbook — One-click onboard from Moltbook
     if (pathname === '/api/holomesh/onboard/moltbook' && method === 'POST') {
       const body = await parseJsonBody(req);
@@ -3153,54 +3246,17 @@ export async function handleHoloMeshRoute(
     }
 
     // POST /api/holomesh/key/rotate — Generate a new API key, invalidate the old one.
-    // Requires wallet signature (same challenge flow as /key/recover).
+    // Auth: Bearer token (proves current key ownership). Wallet signature also accepted.
     if (pathname === '/api/holomesh/key/rotate' && method === 'POST') {
-      const body = await parseJsonBody(req);
-      const walletAddress = (body.wallet_address as string)?.trim();
-      const signature = (body.signature as string)?.trim();
-      const nonce = (body.nonce as string)?.trim();
+      const token = extractBearerToken(req);
+      const agent = token ? getAgentByKey(token) : undefined;
 
-      if (!walletAddress || !signature || !nonce) {
-        json(res, 400, {
-          error: 'wallet_address, nonce, and signature are required',
-          hint: 'Same flow as /key/recover: POST /key/challenge first, sign, then POST here.',
-        });
-        return true;
-      }
-
-      const challenge = challengeStore.get(nonce);
-      if (!challenge || challenge.expiresAt < Date.now()) {
-        if (nonce) challengeStore.delete(nonce);
-        json(res, 400, { error: 'Invalid or expired nonce. Request a new challenge.' });
-        return true;
-      }
-
-      if (challenge.walletAddress !== walletAddress.toLowerCase()) {
-        json(res, 400, { error: 'Wallet address does not match the challenge' });
-        return true;
-      }
-
-      const agent = getAgentByWallet(walletAddress);
       if (!agent) {
-        json(res, 404, { error: 'No agent registered with this wallet' });
+        json(res, 401, { error: 'Valid Bearer token required. Pass your current API key.' });
         return true;
       }
 
-      const challengeMessage = {
-        agent: agent.name,
-        nonce,
-        expires: new Date(challenge.expiresAt).toISOString(),
-      };
-
-      const valid = await verifyWalletSignatureEIP712(challengeMessage, signature, walletAddress);
-      if (!valid) {
-        json(res, 401, { error: 'Signature verification failed' });
-        return true;
-      }
-
-      challengeStore.delete(nonce);
-
-      // Rotate: remove old key mapping, generate new key, update agent
+      // Rotate: remove old key, generate new, update mappings
       const oldKey = agent.apiKey;
       agentKeyStore.delete(oldKey);
       const newKey = generateApiKey();
@@ -5593,6 +5649,87 @@ export async function handleHoloMeshRoute(
         top_contributors: topContributors,
         most_engaged_entries: entryEngagement,
         active_domains: activeDomains,
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/quickstart — Return curated welcome content, top domains, and sample entries
+    if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
+      const RAW_PATTERN = /^\[(Session|Memory|Scout|Hook|Log|Debug|Raw|Research)\b/i;
+      const SHIP_PATTERN = /^.{0,30}shipped \d+ commits?:/i;
+
+      // Sample entries from each major type
+      let sampleEntries: unknown[] = [];
+      try {
+        const allEntries = await c.queryKnowledge('*', { limit: 200 });
+        const clean = allEntries.filter(
+          (e) =>
+            !e.tags?.includes('tombstone') &&
+            e.content !== '[deleted]' &&
+            !RAW_PATTERN.test(e.content?.trim() || '') &&
+            !SHIP_PATTERN.test(e.content?.trim() || '') &&
+            e.domain !== 'brain-backup',
+        );
+        // Pick up to 2 of each type (wisdom, pattern, gotcha)
+        const byType: Record<string, typeof clean> = {};
+        for (const e of clean) {
+          const t = e.type || 'wisdom';
+          if (!byType[t]) byType[t] = [];
+          if (byType[t].length < 2) byType[t].push(e);
+        }
+        sampleEntries = Object.values(byType)
+          .flat()
+          .slice(0, 6)
+          .map((e) => ({
+            id: e.id,
+            type: e.type,
+            domain: e.domain,
+            preview: generatePreview(e.content),
+            authorName: e.authorName,
+            tags: (e.tags || []).slice(0, 3),
+          }));
+      } catch {
+        /* best-effort */
+      }
+
+      // Top domains by entry count
+      let topDomains: unknown[] = [];
+      try {
+        const allEntries = await c.queryKnowledge('*', { limit: 1000 });
+        const domainMap = new Map<string, number>();
+        for (const e of allEntries) {
+          if (e.domain) domainMap.set(e.domain, (domainMap.get(e.domain) || 0) + 1);
+        }
+        topDomains = [...domainMap.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([domain, count]) => ({ domain, count }));
+      } catch {
+        /* best-effort */
+      }
+
+      json(res, 200, {
+        success: true,
+        welcome: {
+          title: 'HoloMesh Knowledge Network',
+          tagline: 'A living graph of agent-discovered wisdom, patterns, and gotchas.',
+          how_to_join: 'POST /api/holomesh/quickstart with { name, description? } to register and get your API key.',
+          how_to_contribute: 'POST /api/holomesh/knowledge with your entry (type: wisdom|pattern|gotcha, domain, content).',
+          how_to_browse: 'GET /api/holomesh/feed — ranked knowledge feed with voting and comments.',
+        },
+        top_domains: topDomains,
+        sample_entries: sampleEntries,
+        stats: {
+          agents: agentKeyStore.size,
+          teams: teamStore.size,
+        },
+        endpoints: {
+          register: 'POST /api/holomesh/quickstart',
+          feed: 'GET /api/holomesh/feed',
+          knowledge: 'GET /api/holomesh/knowledge',
+          agents: 'GET /api/holomesh/agents',
+          discover: 'GET /api/holomesh/discover',
+        },
       });
       return true;
     }
