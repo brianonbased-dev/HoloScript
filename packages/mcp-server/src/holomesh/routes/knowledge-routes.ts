@@ -1,5 +1,6 @@
 import type http from 'http';
 import * as crypto from 'crypto';
+import { CreatorRevenueAggregator } from '@holoscript/framework';
 import { 
   commentStore, 
   voteStore, 
@@ -17,6 +18,18 @@ import {
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import type { MeshKnowledgeEntry, StoredComment, KnowledgeTransaction } from '../types';
+
+const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
+
+function buildRevenueAggregator(): CreatorRevenueAggregator {
+  const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
+  for (const tx of transactionLedger) {
+    // priceCents currently stores USD cents; convert to USDC base units for aggregator semantics.
+    const grossBaseUnits = Math.round(tx.priceCents * 10_000);
+    agg.recordRevenue(tx.sellerWallet || tx.sellerName, tx.entryDomain || 'general', grossBaseUnits, tx.buyerWallet || tx.buyerName, tx.id);
+  }
+  return agg;
+}
 
 /**
  * Handle all knowledge, search, and social routes for HoloMesh.
@@ -87,6 +100,7 @@ export async function handleKnowledgeRoutes(
   // GET /api/holomesh/entry/:id
   if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+$/) && method === 'GET') {
     const entryId = extractParam(url, '/api/holomesh/entry/');
+    const caller = resolveRequestingAgent(req, res);
     const results = await c.queryKnowledge(entryId, { limit: 1 });
     const entry = results.find(e => e.id === entryId);
     
@@ -96,7 +110,92 @@ export async function handleKnowledgeRoutes(
     }
 
     const comments = commentStore.get(entryId) || [];
-    json(res, 200, { success: true, entry, comments, commentCount: comments.length });
+    const isPremium = (entry.price || 0) > 0;
+    const paid = isPremium && caller.authenticated && paidAccessStore.has(`${caller.id}:${entryId}`);
+    const visibleEntry = {
+      ...entry,
+      content: isPremium && !paid ? `${entry.content.slice(0, 120)}... [premium — purchase required]` : entry.content,
+      premium: isPremium,
+      paid,
+    };
+    json(res, 200, { success: true, entry: visibleEntry, comments, commentCount: comments.length });
+    return true;
+  }
+
+  // POST /api/holomesh/entry/:id/buy — purchase premium knowledge and credit creator royalty
+  if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+\/buy$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const entryId = extractParam(url, '/api/holomesh/entry/').replace('/buy', '');
+    const results = await c.queryKnowledge(entryId, { limit: 1 });
+    const entry = results.find((e) => e.id === entryId);
+    if (!entry) {
+      json(res, 404, { error: 'Entry not found' });
+      return true;
+    }
+    if ((entry.price || 0) <= 0) {
+      json(res, 400, { error: 'Entry is not premium' });
+      return true;
+    }
+    if (entry.authorId === caller.id) {
+      json(res, 400, { error: 'Cannot buy your own entry' });
+      return true;
+    }
+
+    paidAccessStore.add(`${caller.id}:${entryId}`);
+
+    const seller = [...agentKeyStore.values()].find((a) => a.id === entry.authorId);
+    const tx: KnowledgeTransaction = {
+      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      buyerWallet: caller.walletAddress || '',
+      buyerName: caller.name,
+      sellerWallet: seller?.walletAddress || '',
+      sellerName: entry.authorName,
+      entryId,
+      entryDomain: entry.domain || 'general',
+      priceCents: Math.round((entry.price || 0) * 100),
+      timestamp: new Date().toISOString(),
+    };
+    transactionLedger.push(tx);
+    persistSocialStore();
+
+    const creatorShare = Math.round(tx.priceCents * CREATOR_ROYALTY_RATE);
+    const platformFee = tx.priceCents - creatorShare;
+
+    json(res, 200, {
+      success: true,
+      purchased: true,
+      entryId,
+      royalty: {
+        creatorCents: creatorShare,
+        platformFeeCents: platformFee,
+        creatorRate: CREATOR_ROYALTY_RATE,
+      },
+      transaction: tx,
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/revenue/creator/:id — creator earnings summary
+  if (pathname.match(/^\/api\/holomesh\/revenue\/creator\/[^/]+$/) && method === 'GET') {
+    const creatorId = extractParam(url, '/api/holomesh/revenue/creator/');
+    const q = parseQuery(url);
+    const period = (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
+    const agg = buildRevenueAggregator();
+    const earnings = agg.getCreatorEarnings(creatorId, period);
+    json(res, 200, { success: true, creatorId, period, earnings });
+    return true;
+  }
+
+  // GET /api/holomesh/revenue/top-creators — leaderboard of creator royalties
+  if (pathname === '/api/holomesh/revenue/top-creators' && method === 'GET') {
+    const q = parseQuery(url);
+    const period = (q.get('period') as 'daily' | 'weekly' | 'monthly' | 'all-time' | null) || 'all-time';
+    const limit = parseInt(q.get('limit') || '10', 10);
+    const agg = buildRevenueAggregator();
+    const top = agg.getTopCreators(period, limit);
+    json(res, 200, { success: true, period, creators: top, count: top.length });
     return true;
   }
 
