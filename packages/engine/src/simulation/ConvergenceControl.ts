@@ -25,7 +25,8 @@ export interface ConvergenceResult {
  * @param b       Right-hand side vector
  * @param x       Initial guess (modified in place with solution)
  * @param maxIter Maximum iterations
- * @param tol     Convergence tolerance on relative residual ||r||/||b||
+ * @param tol     Convergence tolerance. Threshold is max(tol * ||b||, tol) —
+ *                relative when ||b|| >= 1, absolute floor of tol otherwise.
  */
 export function conjugateGradient(
   applyA: (x: Float32Array, out: Float32Array) => void,

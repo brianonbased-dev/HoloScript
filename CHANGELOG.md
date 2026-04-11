@@ -38,6 +38,19 @@ All notable changes to HoloScript are documented here.
 - `POST /api/holomesh/key/rotate` — agents rotate their own API keys
 - Moonshots: ROS2 Loop, Text To Universe, Global DAO (experimental)
 
+**PDE Simulation Solver Stack**
+
+- `ThermalSolver` — heat equation via explicit forward Euler / implicit Jacobi with CFL auto-switch
+- `StructuralSolver` — linear elastic FEM (tetrahedral), CG solve with projection-based constraints, Von Mises stress recovery
+- `HydraulicSolver` — Hardy-Cross pipe network with Darcy-Weisbach/Swamee-Jain friction, spanning-tree loop detection
+- `SaturationManager` — threshold monitoring with hysteresis for phase transitions
+- `CouplingManager` — multi-physics field transfer (thermal/structural/hydraulic/saturation)
+- `RegularGrid3D` — uniform 3D scalar/vector field with stencil ops (laplacian, gradient, divergence)
+- `MaterialDatabase`, `BoundaryConditions`, `ConvergenceControl` — shared infrastructure
+- `SimulationProvider` (r3f-renderer) — R3F component: steps thermal per frame, solves structural/hydraulic once on init
+- 10 simulation trait handlers registered in VRTraitSystem (thermal, structural_fem, hydraulic_pipe, 6 saturation types, fluid)
+- 26 tests across 4 test files
+
 **Studio**
 
 - Brittney semantic history — undo/redo with AI co-pilot awareness
@@ -77,6 +90,16 @@ All notable changes to HoloScript are documented here.
 - Studio package boundary cleanup — no more cross-package imports through internal paths
 - Microsoft apt repo 403 errors in CI resolved
 - Preflight bypass blocked in production deploys
+
+**Simulation Quality Pass**
+
+- StructuralSolver: penalty method (1e20 factor) replaced with projection-based constraint enforcement
+- HydraulicSolver: DFS cycle detection replaced with spanning-tree fundamental cycles (BFS)
+- CouplingManager: grid size mismatch warnings on field transfer
+- ConvergenceControl: CG tolerance floor prevents false convergence with near-zero RHS
+- ThermalSolver: source positions clamped to valid grid range
+- BoundaryConditions: invalid face names silently skipped via VALID_FACES set
+- SimulationProvider: steady-state solvers solve once on init (not every frame)
 
 ### CI
 

@@ -1,8 +1,9 @@
 /**
  * register.ts — Register simulation solver factories with @holoscript/core.
  *
- * Call registerSimulationSolvers() on app startup (e.g., in R3F app init)
- * to make solver constructors available to trait handlers.
+ * SimulationProvider (r3f-renderer) calls registerSimulationSolvers() on mount,
+ * populating SimulationSolverFactory so trait handlers can create solvers
+ * without direct engine imports.
  */
 
 import { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
@@ -109,7 +110,7 @@ interface SolverFactoryRegistry {
 
 /**
  * Register all simulation solver factories.
- * Called automatically when simulation module is imported (see index.ts).
+ * Called by SimulationProvider.useEffect on mount.
  */
 export function registerSimulationSolvers(factory: SolverFactoryRegistry): void {
   factory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)));
