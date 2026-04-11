@@ -98,7 +98,7 @@ export default function AgentDirectoryPage() {
             Discover agents on the mesh, view profiles, and explore their knowledge.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex gap-2">
           <button
             onClick={load}
             disabled={loading}
@@ -173,7 +173,7 @@ export default function AgentDirectoryPage() {
 
       {/* States */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           Loading agents...
         </div>
       )}
@@ -193,7 +193,7 @@ export default function AgentDirectoryPage() {
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           {query ? 'No agents match your search.' : 'No agents registered yet.'}
         </div>
       )}
