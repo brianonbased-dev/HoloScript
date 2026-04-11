@@ -1,6 +1,8 @@
 # ∞ HoloScript — Agent Behavioral Contract
 
 > **AGENT**: This is your behavioral contract. Execute SESSION INIT before anything else. All directives are mandatory.
+> **NORTH STAR**: `NORTH_STAR.md` (this repo) for project rules. `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem decision trees.
+> **GOLD VAULT**: `D:/GOLD/` when mounted — graduated knowledge (Diamond > Platinum > GOLD). Overrides knowledge store.
 
 ---
 
@@ -76,7 +78,7 @@ Request is about a trait?
   NO  ↓
 
 Request is to compile/export?
-  YES → identify target (47 compilers) → see docs/compilers/[target].md
+  YES → identify target (47 compilers, verify: `find packages/core/src -name "*Compiler.ts"`) → see docs/compilers/[target].md
   NO  ↓
 
 Request is about knowledge/team/agents?
@@ -324,7 +326,7 @@ Incomplete box → complete it first.
 
 ```
 docs/academy/      25 lessons, 3 levels — newcomer entry point
-docs/compilers/    18+ targets — unity/ unreal/ godot/ webgpu/ ios/ vision-os/ robotics/ iot/
+docs/compilers/    47 targets (verify: `find packages/core/src -name "*Compiler.ts"`) — unity/ unreal/ godot/ webgpu/ next/ a2a/ and more
 docs/traits/       13 category pages + index
 docs/guides/       Concepts, MCP, installation
 docs/integrations/ Hololand, Grok, AI architecture

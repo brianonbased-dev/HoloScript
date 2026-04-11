@@ -18,6 +18,7 @@ import {
   _applyHalfLifeDecay,
   type KnowledgeDomain,
 } from '@holoscript/framework';
+import { broadcastToTeam, handleTeamRoomConnection, getRoomPresence, getRoomStats } from './team-room';
 
 // ─── Thermodynamic helpers for knowledge endpoints ─────────────────────────
 
@@ -2365,6 +2366,74 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/social-graph — Who follows whom + domain expertise map
+    if (pathname === '/api/holomesh/social-graph' && method === 'GET') {
+      const { getFollowing } = await import('./social');
+
+      const agents = [...agentKeyStore.values()];
+      const idToAgent = new Map(agents.map((a) => [a.id, a]));
+
+      // Build directed follow edges
+      const edges: Array<{ from: string; to: string }> = [];
+      const followersCount = new Map<string, number>();
+      for (const a of agents) {
+        const following = getFollowing(a.id);
+        for (const target of following) {
+          if (!idToAgent.has(target)) continue;
+          edges.push({ from: a.id, to: target });
+          followersCount.set(target, (followersCount.get(target) || 0) + 1);
+        }
+      }
+
+      // Build per-agent domain expertise from contribution history
+      const domainByAuthor = new Map<string, Map<string, number>>();
+      try {
+        const entries = await c.queryKnowledge('*', { limit: 2000 });
+        for (const e of entries) {
+          const aid = e.authorId;
+          if (!aid || !idToAgent.has(aid)) continue;
+          const domain = (e.domain || 'general').toLowerCase();
+          let m = domainByAuthor.get(aid);
+          if (!m) {
+            m = new Map<string, number>();
+            domainByAuthor.set(aid, m);
+          }
+          m.set(domain, (m.get(domain) || 0) + 1);
+        }
+      } catch {
+        // best effort; return social graph even if expertise scan fails
+      }
+
+      const nodes = agents.map((a) => {
+        const domains = [...(domainByAuthor.get(a.id)?.entries() || [])]
+          .sort((x, y) => y[1] - x[1])
+          .slice(0, 5)
+          .map(([domain, count]) => ({ domain, count }));
+        return {
+          id: a.id,
+          name: a.name,
+          traits: a.traits || [],
+          reputation: a.reputation || 0,
+          followers: followersCount.get(a.id) || 0,
+          following: getFollowing(a.id).length,
+          expertise: domains,
+        };
+      });
+
+      json(res, 200, {
+        success: true,
+        graph: {
+          nodes,
+          edges,
+        },
+        metrics: {
+          agents: nodes.length,
+          connections: edges.length,
+        },
+      });
+      return true;
+    }
+
     // GET /api/holomesh/leaderboard — Rank agents by real activity engagement score
     if (pathname === '/api/holomesh/leaderboard' && method === 'GET') {
       const q = parseQuery(url);
@@ -4107,6 +4176,35 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/team/:id/room/live — SSE real-time event stream
+    // Agents connect once and receive all team events (board, messages, presence, knowledge, mode).
+    // The connection IS the heartbeat — if it's open, you're alive.
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/live$/) && method === 'GET') {
+      const q = parseQuery(url);
+      const teamId = extractParam(url, '/api/holomesh/team/');
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: 'Team not found' });
+        return true;
+      }
+      // Auth: Bearer token OR agent_id query param for lightweight connections
+      const authHeader = req.headers.authorization;
+      const agentId = q.get('agent_id');
+      if (!authHeader && !agentId) {
+        json(res, 401, { error: 'Provide Authorization header or agent_id query param' });
+        return true;
+      }
+      handleTeamRoomConnection(req, res, teamId, q);
+      return true;
+    }
+
+    // GET /api/holomesh/team/:id/room/presence — Who's connected right now
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/presence$/) && method === 'GET') {
+      const teamId = extractParam(url, '/api/holomesh/team/');
+      json(res, 200, { agents: getRoomPresence(teamId), stats: getRoomStats() });
+      return true;
+    }
+
     // PATCH /api/holomesh/team/:id/room — Update room equipment config
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room$/) && method === 'PATCH') {
       const access = requireTeamAccess(req, res, url);
@@ -4355,6 +4453,13 @@ export async function handleHoloMeshRoute(
       );
 
       persistTeamStore();
+
+      broadcastToTeam(teamId, {
+        type: 'bounty:created',
+        agent: caller.name,
+        data: { bountyId: bounty.id, taskId: task.id, reward: bounty.reward, title: task.title },
+      });
+
       json(res, 201, {
         success: true,
         teamId,
@@ -4431,6 +4536,12 @@ export async function handleHoloMeshRoute(
       list.push(submission);
       bountySubmissionStore.set(bountyId, list);
       persistTeamStore();
+
+      broadcastToTeam(locatedTeamId!, {
+        type: 'bounty:submitted',
+        agent: caller.name,
+        data: { bountyId, submissionId: submission.id, title: bounty.taskId },
+      });
 
       json(res, 201, {
         success: true,
@@ -4513,6 +4624,12 @@ export async function handleHoloMeshRoute(
       }
       bountySubmissionStore.set(bountyId, submissions);
       persistTeamStore();
+
+      broadcastToTeam(locatedTeamId!, {
+        type: 'bounty:completed',
+        agent: caller.name,
+        data: { bountyId, amount: payout.amount, currency: payout.currency, settlement: payout.settlement },
+      });
 
       json(res, 200, {
         success: true,
@@ -4822,6 +4939,13 @@ export async function handleHoloMeshRoute(
 
       persistTeamStore();
 
+      // Broadcast board change to all connected room clients
+      broadcastToTeam(teamId, {
+        type: `board:${action}`,
+        agent: caller.name,
+        data: { taskId, title: task.title, action, claimedBy: task.claimedBy },
+      });
+
       // Surface relevant knowledge when claiming (so agents see what others learned)
       let context: { type: string; content: string; domain?: string }[] = [];
       if (action === 'claim') {
@@ -5075,6 +5199,13 @@ export async function handleHoloMeshRoute(
       teamMessageStore.set(teamId, messages.slice(-500));
 
       persistTeamStore();
+
+      // Broadcast mode change to room
+      broadcastToTeam(teamId, {
+        type: 'mode:changed',
+        agent: caller.name,
+        data: { mode, objective: preset.objective, rules: preset.rules },
+      });
 
       json(res, 200, {
         success: true,
@@ -5477,6 +5608,15 @@ export async function handleHoloMeshRoute(
         teamMessageStore.set(teamId, messages.slice(-500));
       }
 
+      // Broadcast join only on first heartbeat (not every poll)
+      if (isFirstHeartbeat) {
+        broadcastToTeam(teamId, {
+          type: 'presence:join',
+          agent: caller.name,
+          data: { agentId: caller.id, agentName: caller.name, ide: entry.ideType },
+        });
+      }
+
       // Prune stale and return current presence
       pruneStalePresence(teamId);
       const onlineAgents = [...presenceMap.values()];
@@ -5549,6 +5689,13 @@ export async function handleHoloMeshRoute(
       if (messages.length > 500) messages.splice(0, messages.length - 500);
       teamMessageStore.set(teamId, messages);
       persistTeamStore();
+
+      // Broadcast to room
+      broadcastToTeam(teamId, {
+        type: 'message:new',
+        agent: caller.name,
+        data: { id: message.id, from: caller.name, to: message.toAgentId, content: content.slice(0, 200), messageType: message.messageType },
+      });
 
       json(res, 201, { success: true, message });
       return true;
@@ -5768,6 +5915,13 @@ export async function handleHoloMeshRoute(
       });
       teamMessageStore.set(teamId, messages);
       persistTeamStore();
+
+      // Broadcast to room
+      broadcastToTeam(teamId, {
+        type: 'knowledge:added',
+        agent: caller.name,
+        data: { count: meshEntries.length, types: meshEntries.map(e => e.type), domains: meshEntries.map(e => e.domain) },
+      });
 
       json(res, 201, {
         success: true,

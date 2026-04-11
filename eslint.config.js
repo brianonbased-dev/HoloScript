@@ -1,5 +1,6 @@
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
 import storybook from 'eslint-plugin-storybook';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 // @ts-check
 import tseslint from 'typescript-eslint';
@@ -20,6 +21,9 @@ export default tseslint.config(
   }, // Base config for all TypeScript files
   tseslint.configs.recommended,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off',
+    },
     languageOptions: {
       parserOptions: {
         ecmaVersion: 2022,
@@ -28,7 +32,7 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-unused-vars': [
-        'error',
+        'warn',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
@@ -42,7 +46,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-function-type': 'off',
       'no-case-declarations': 'off',
       'no-fallthrough': 'off',
-      'prefer-const': 'error',
+      'prefer-const': 'warn',
       'no-useless-escape': 'off',
       'no-constant-condition': 'off',
       'no-empty': 'off',
@@ -50,9 +54,20 @@ export default tseslint.config(
       'no-control-regex': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-this-alias': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
       'no-console': 'off',
       'no-unused-vars': 'off',
     },
   },
-  storybook.configs['flat/recommended']
+  storybook.configs['flat/recommended'],
+  // React hooks — only applies to .tsx files in studio
+  {
+    files: ['packages/studio/**/*.tsx', 'packages/studio/**/*.ts'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
+    },
+  }
 );

@@ -1,0 +1,188 @@
+# AGENTS.md
+
+> Cross-tool agent configuration. Read by: Claude Code, Codex, Copilot, Cursor, Windsurf, Amp, Devin, Continue.
+> Tool-specific files (CLAUDE.md, .cursorrules, copilot-instructions.md) layer on top for advanced features.
+
+## What This Project Does
+
+HoloScript turns descriptions into working interfaces. Describe a dashboard, a robot arm, or a VR room — it runs on your screen, in a headset, or on a hologram. Write `.hs`, `.hsplus`, or `.holo` — the runtime handles the rest. If a compiler exists for your target platform, it optimizes automatically. If not, runtime interpretation keeps it working.
+
+MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tools/list`.
+
+## File Formats
+
+| Extension | Purpose | When to use |
+|-----------|---------|-------------|
+| `.hs` | Data pipelines, simple scenes, configuration | Structured data that compiles to any target |
+| `.hsplus` | Behaviors, agents, economics, IoT, physics | When you need traits like `@grabbable @physics @spatial_audio` |
+| `.holo` | Full compositions, cross-platform scenes | AI-generated scenes, multi-object layouts, dashboards |
+| `.ts`/`.tsx` | Tooling, infrastructure, tests | TypeScript for the platform itself (not user content) |
+
+## Build and Test
+
+```bash
+pnpm install                              # Install dependencies
+pnpm build                                # Build (core first, then rest — order matters)
+pnpm --filter @holoscript/core build      # Build specific package
+pnpm test                                 # Run all tests (vitest)
+pnpm --filter @holoscript/core test       # Test specific package
+pnpm lint                                 # ESLint
+pnpm format                               # Prettier
+pnpm bench                                # Benchmarks
+```
+
+Build order matters: `@holoscript/core` must build before any downstream package.
+
+## Package Structure
+
+```text
+packages/
+  core/               # Parser, AST, traits, compilers (ALL live here)
+  mcp-server/         # MCP tools (Streamable HTTP transport)
+  cli/                # CLI: holoscript / hs binary
+  runtime/            # Direct interpretation (no compiler needed)
+  studio/             # Next.js creation environment
+  engine/             # Rendering, physics, animation, ECS
+  framework/          # Agent orchestration, board, economy
+  r3f-renderer/       # React Three Fiber components
+  lsp/                # Language Server Protocol
+  connectors/         # GitHub, Railway, Docker connectors
+  plugins/            # 36 domain plugins (banking, neuroscience, film, etc.)
+  snn-webgpu/         # GPU spiking neural networks
+  ...                 # More — run `ls packages/` for full list
+
+services/
+  export-api/         # Export/rendering API
+  holoscript-net/     # Production web service
+  llm-service/        # LLM proxy service
+```
+
+## Code Conventions
+
+- **TypeScript strict mode**: `strict: true`, target ES2020, ESNext modules, bundler resolution
+- **No `any`**: Use `unknown`. This is enforced.
+- **Test framework**: vitest (never Jest)
+- **Build tool**: tsup
+- **Package manager**: pnpm with workspaces
+- **Node version**: >= 18.0.0
+- **JSX**: Files containing JSX MUST use `.tsx` extension
+- **Types**: `dist/index.d.ts` is hand-crafted by `scripts/generate-types.mjs` (not tsc). New exports require updating BOTH `src/index.ts` AND the `mainDTS` template in `generate-types.mjs`.
+
+## Compilers
+
+All compilers live in `@holoscript/core`. Count via `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"`.
+
+Each compiler extends `CompilerBase` and requires RBAC authorization:
+
+```typescript
+// Required mock for ALL compiler tests
+vi.mock('../../security/rbac', () => ({
+  checkPermission: vi.fn().mockResolvedValue(true),
+}));
+
+const result = await compiler.compile(source, 'test-token');
+```
+
+## Traits
+
+All traits live in `@holoscript/core/src/traits/`. Count via `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`.
+
+Categories span spatial (physics, interaction, visual, audio) and non-spatial (economics, IoT, security, AI, state management, accessibility). Adding a new trait:
+
+1. Define constant in `packages/core/src/traits/constants/`
+2. Add visual preset in `packages/core/src/traits/visual/presets/`
+3. Register in the category index
+4. Add R3F handler if it has rendering (`R3FCompiler.ts`)
+5. Add tests
+
+## MCP Server
+
+**Production**: `https://mcp.holoscript.net`
+**Local**: `npx tsx packages/mcp-server/src/index.ts`
+**Tool discovery**: `POST /mcp` → `tools/list` (tool count changes with deploys — never hardcode)
+**Health**: `GET /health` → `tools` field for current count
+
+Tool categories: parsing, traits, generation, codebase intelligence, compilation, IDE, browser control, networking, self-improvement. Discover specific tools via MCP protocol, not from docs.
+
+### Codebase Intelligence
+
+Cache at `~/.holoscript/graph-cache.json` (24h TTL). Always check freshness first:
+
+1. `holo_graph_status` — is cache fresh?
+2. `holo_absorb_repo` — scan (fast from cache, ~3-10s fresh)
+3. `holo_query_codebase` — architectural Q&A
+4. `holo_impact_analysis` — blast radius for changes
+
+Never call `holo_absorb_repo` with `force: true` unless `holo_graph_status` reports stale.
+
+## Testing
+
+### Vitest Mock Rules
+
+- Use `vi.hoisted()` for mock variables
+- Use `function(){}` (not arrow functions) for mock constructors
+- GPU tests use Dawn WebGPU with mock fallback (see `core/src/physics/__tests__/gpu-setup.ts`)
+
+### Pre-Commit
+
+- Run `pnpm test` before committing
+- Run `pnpm lint` for style issues
+- All tests must pass
+
+## Git Rules
+
+- **NEVER** use `git add -A` or `git add .` — stage files explicitly: `git add path/to/file.ts`
+- Commit message format: conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`)
+- Large batches (10+ files): split into sectioned commits by topic
+- Docs must use lowercase filenames
+
+## Security
+
+### StdlibPolicy
+
+All I/O from traits/compositions is gated by `StdlibPolicy`:
+- `allowFileRead`, `allowFileWrite`, `allowFileDelete`
+- `allowProcessExec`, `allowNetFetch`
+- `allowMediaDecode`, `allowDepthInference`, `allowGpuCompute`
+
+Traits MUST NOT perform direct filesystem access. All I/O goes through stdlib BehaviorTree actions with `into:` convention for blackboard key prefix.
+
+### Execution Sandbox
+
+- `vm.createContext` (not vm2)
+- Ed25519 cryptographic signatures
+- Per-tool RBAC authorization on MCP server
+
+## Boundaries
+
+- **ALWAYS**: Validate HoloScript files after editing
+- **ALWAYS**: Run impact analysis on `packages/core` changes
+- **ALWAYS**: Check VR frame budget (11.1ms) for render path code
+- **ASK FIRST**: Modify `generate-types.mjs` or `dist/index.d.ts`
+- **ASK FIRST**: Changes touching 10+ files across packages
+- **NEVER**: Put ML classifiers in VR render loop
+- **NEVER**: Delete tests to bypass failures
+- **NEVER**: Commit secrets or API keys
+
+## Ecosystem Skills (Read Before Working)
+
+Skills are concentrated knowledge files — the best single-file summary of each subsystem. **Read the relevant skill file before working in any domain.** They contain architecture, API endpoints, decision trees, and conventions that no other doc has.
+
+| Domain | Skill File | What It Knows |
+|--------|-----------|---------------|
+| HoloScript platform | `.claude/skills/holoscript/SKILL.md` | Compiler architecture, trait system, all formats, MCP tools, roadmap |
+| Building / shipping code | `.claude/skills/holoscript-dev/SKILL.md` | Build workflow, test patterns, package deps, CI, how to ship |
+| Codebase intelligence | `.claude/skills/holoscript-absorb/SKILL.md` | Graph scanning, semantic search, GraphRAG, impact analysis |
+| HoloMesh agent network | `.claude/skills/holomesh/SKILL.md` | Agent registration, gossip, CRDT sync, trust, reputation tiers |
+| Knowledge oracle | `.claude/skills/holomesh-oracle/SKILL.md` | Oracle research findings, thermodynamic trust, neuroscience model |
+| Team coordination | `.claude/skills/room/SKILL.md` | Board API, task lifecycle, knowledge, messaging, modes |
+| Codebase scanning | `.claude/skills/scan/SKILL.md` | TODO/FIXME, git health, code quality, coverage, knowledge gaps |
+| Neuroscience / SNN | `.claude/skills/neuroscience/SKILL.md` | SNN-WebGPU, cognitive architecture, memory consolidation |
+| Documentation audit | `.claude/skills/documenter/SKILL.md` | Voice rules, staleness, version consistency, agent-first writing |
+| Deep research | `.claude/skills/ai-workspace/SKILL.md` | uAA2++ 8-phase protocol, web search, knowledge compression |
+| Honest critique | `.claude/skills/negative-nancy/SKILL.md` | What "good" looks like, what's broken, no silver linings |
+| VR/AR environments | `.claude/skills/hololand/SKILL.md` | Spatial computing, world management, VR experience design |
+
+**For Claude Code agents**: Invoke skills with the Skill tool (e.g., `/holoscript`, `/scan`, `/room`). Skills fork context — they handle the full workflow and return condensed results, saving your main context window.
+
+**For all other agents** (Copilot, Cursor, Gemini, Codex, Windsurf, Devin): Read the skill file directly — `cat .claude/skills/<name>/SKILL.md`. It's the fastest way to understand any domain before making changes.

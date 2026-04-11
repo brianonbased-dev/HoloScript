@@ -3,7 +3,7 @@
   "mcpServers": {
     "holoscript-mcp": {
       "name": "HoloScript MCP",
-      "description": "158 tools (verify via /health): parse, compile, render, team board, knowledge, messaging, codebase intelligence, IDE, economy, observability, self-improve",
+      "description": "MCP tools (count via /health → tools field): parse, compile, render, team board, knowledge, messaging, codebase intelligence, IDE, economy, observability, self-improve, A2A agents, domain plugins",
       "type": "http",
       "url": "https://mcp.holoscript.net/mcp",
       "headers": {
@@ -12,7 +12,7 @@
     },
     "mcp-orchestrator": {
       "name": "MCP Orchestrator",
-      "description": "Tool discovery, knowledge federation (2K+ entries)",
+      "description": "Tool discovery, knowledge federation (entry count via /health → knowledge_entries)",
       "type": "http",
       "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
       "headers": {

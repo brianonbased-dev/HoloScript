@@ -83,9 +83,9 @@ graph TB
 | Layer | Package                        | Version | Description                                              |
 | ----- | ------------------------------ | ------- | -------------------------------------------------------- |
 | L0    | `@holoscript/core-types`       | 5.4.0   | Pure type definitions, zero runtime deps                 |
-| L0    | `@holoscript/core`             | 6.0.2   | Parser, AST, 24 compilers, trait system                  |
-| L1    | `@holoscript/engine`           | 6.0.0   | Rendering, physics, animation, ECS (extracted from core) |
-| L1    | `@holoscript/framework`        | 6.0.0   | Agent orchestration, BT, economy (extracted from core)   |
+| L0    | `@holoscript/core`             | 6.0.2   | Parser, AST, 47 compilers (verify: `find *Compiler.ts`), trait system |
+| L1    | `@holoscript/engine`           | 6.0.2   | Rendering, physics, animation, ECS (extracted from core) |
+| L1    | `@holoscript/framework`        | 6.0.2   | Agent orchestration, BT, economy (extracted from core)   |
 | L1    | `@holoscript/auth`             | 6.0.0   | JWT auth library (extracted from core)                   |
 | L1    | `@holoscript/agent-protocol`   | 6.0.0   | uAA2++ agent lifecycle (extracted from core)             |
 | L2    | `@holoscript/linter`           | 3.1.0   | Static analysis for .holo/.hsplus                        |

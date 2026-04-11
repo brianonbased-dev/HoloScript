@@ -1,6 +1,6 @@
 # HoloScript MCP Compiler Tools
 
-Comprehensive Model Context Protocol (MCP) integration for HoloScript compilation to 18+ export targets.
+Model Context Protocol (MCP) integration for HoloScript compilation. Target count via `find packages/core/src -name "*Compiler.ts"` — currently 47.
 
 ## Overview
 
@@ -8,7 +8,7 @@ The HoloScript MCP Compiler Tools enable AI agents (Claude, GPT-4, Grok, etc.) t
 
 ### Key Features
 
-- **18+ Export Targets**: Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, VRChat, and more
+- **47 Export Targets**: Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, VRChat, Next.js, A2A, and more (verify via `find packages/core/src -name "*Compiler.ts"`)
 - **Circuit Breaker Protection**: Automatic fault isolation per target with graceful degradation
 - **Job Status Tracking**: Monitor long-running compilations with unique job IDs
 - **Streaming Progress**: Real-time progress updates for large compilations (WebSocket upgrade support)

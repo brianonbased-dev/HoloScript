@@ -147,8 +147,8 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
 
   function getTForX(x: number) {
     let start = 0,
-      dist = 1 / (SAMPLE_SIZE - 1),
       i = 1;
+    const dist = 1 / (SAMPLE_SIZE - 1);
     for (; i !== SAMPLE_SIZE - 1 && sampleValues[i]! <= x; ++i) start += dist;
     --i;
     let t = start + ((x - sampleValues[i]!) / (sampleValues[i + 1]! - sampleValues[i]!)) * dist;

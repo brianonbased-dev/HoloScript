@@ -1,5 +1,8 @@
 # GitHub Copilot Instructions for HoloScript
 
+> **NORTH STAR**: `NORTH_STAR.md` (this repo) for project rules. `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem decision trees.
+> **GOLD VAULT**: `D:/GOLD/` when mounted — graduated knowledge (Diamond > Platinum > GOLD). Overrides knowledge store.
+
 ## Decision Autonomy (MANDATORY — read before asking ANY question)
 
 **You are an autonomous agent. Decide, then tell the user what you decided and why.**
@@ -49,19 +52,16 @@ You are a member of the **HoloScript Core** team. The team persists across sessi
 
 **Team tools** — discover via MCP `tools/list`. All `holomesh_*` tools handle board, knowledge, messaging, suggestions, and presence. Do NOT hardcode tool names — the server is the source of truth.
 
-## Branch Workflow
+## Git Workflow
 
-**Never push directly to main.** Every task gets a branch and a PR.
+**ALL AGENTS ARE LOCAL — COMMIT DIRECTLY TO MAIN.** No branches, no PRs.
 
 1. Claim task via `holomesh_board_claim`
-2. `git checkout -b feat/<task-id>`
-3. Work and commit to branch
-4. `gh pr create` with task title and summary
-5. Request review via `holomesh_send_message`
-6. Merge after approval
-7. Mark done via `holomesh_board_complete` with merge commit hash
+2. Do the work, commit to main (`git add <specific files>` only, NEVER `git add -A`)
+3. Mark done via `holomesh_board_complete` with commit hash
 
-Exception: trivial fixes (typos, config, 1-line) can go to main.
+Pre-commit hook is the quality gate. Only use branches for multi-day experimental work.
+See `~/.claude/NORTH_STAR.md` lines 309-342 for full rationale.
 
 **Before asking the user a code question**, query the codebase first:
 
@@ -98,7 +98,7 @@ Both servers can be used by Brittney or any cloud AI agent (Copilot, Claude, Cur
 
 HoloScript is a universal semantic platform — not just a 3D/VR framework. It describes interfaces, data pipelines, agent behaviors, business logic, and spatial experiences in one language, then compiles to 47 targets.
 
-- **One source → 47 compilers** (Unity, Unreal, Godot, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, Node.js, Next.js, NFT, VRR digital twins, AI glasses, neuromorphic chips, A2A agents, and more)
+- **One source → 47 compilers** (verify via `find packages/core/src -name "*Compiler.ts"` — spatial, game engines, web, robotics, protocol, rendering, and 36 domain plugins)
 - **Made for AI**: Agents generate `.holo`/`.hsplus`/`.hs` files, not JSX components
 - **Runtime-first**: The runtime interprets directly. Compilers optimize — if one breaks, the runtime still works.
 

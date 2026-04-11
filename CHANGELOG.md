@@ -4,6 +4,87 @@ All notable changes to HoloScript are documented here.
 
 ---
 
+## [6.1.0] — 2026-04-10 (Domain Plugin Explosion, A2A Protocol & Accessibility)
+
+18 new domain plugins landed — HoloScript now covers industry verticals from banking to neuroscience to film production. A2A protocol got canonical task schemas and idempotent transport. Studio passed its first real accessibility audit. 256 commits since 6.0.2.
+
+### Added
+
+**18 Domain Plugins** — each with traits, schemas, and compilation targets
+
+- Banking/Finance (5 traits), Manufacturing/QC (4), Geolocation/GIS (5), Retail/E-commerce, Education/LMS, Neuroscience, Film/VFX, Urban Planning (3), Fashion (3), Civil Engineering (3), HR/Workforce (4), Fitness/Wellness (4), Legal/Document (3), Travel/Hospitality (3), Restaurant/Food Service (4), Hardware Invention (3), Wine/Food/Beverage (3), Insurance (4)
+- Total domain plugin count: 36 packages under `packages/plugins/`
+
+**Plugin Meta-Systems** — cross-cutting capabilities across all plugins
+
+- Trait Audit interoperability badge system — verify trait compatibility across domains
+- Economic Primitives expansion — shared financial building blocks for any vertical
+- Culture keyword extension — locale-aware compilation for internationalized scenes
+- Wisdom/Gotcha meta-traits — compilers emit warnings from the knowledge store
+- Film3D Volumetrics Pack (4 traits) — volumetric capture and playback
+
+**A2A Protocol** — agent-to-agent communication primitives
+
+- HSNAP canonical task schema with Zod validation — agents agree on task shape
+- Delegation trace and replay hooks — track who asked whom to do what
+- Idempotent transport adapter — safe retries without duplicate execution
+
+**Compilers**
+
+- NextJSAPICompiler — compile `.hs` HTTP definitions to Next.js API routes
+
+**HoloMesh**
+
+- `POST /api/holomesh/key/rotate` — agents rotate their own API keys
+- Moonshots: ROS2 Loop, Text To Universe, Global DAO (experimental)
+
+**Studio**
+
+- Brittney semantic history — undo/redo with AI co-pilot awareness
+- WebRTC preview support
+- Absorb Legacy Importer — bring old codebases into the graph
+
+### Changed
+
+**Accessibility** — Studio's first real a11y pass
+
+- Keyboard navigation and ARIA roles on kanban board
+- 50+ aria-labels added to interactive elements across Studio
+- Inline styles converted to Tailwind classes (batch 2)
+
+**Infrastructure**
+
+- Connectors consolidated into `@holoscript/connectors` (single package, was scattered)
+- PyPI/npm version alignment — Python and Node packages version in lockstep
+- Release pipeline guard — blocks publish without preflight checks
+- Version policy lanes normalized across all packages
+- Dockerfile pnpm versions and base images standardized
+
+**Agent Team**
+
+- Universal agent team integration — any IDE agent joins via `team-connect.mjs`
+- Gemini instruction files added for Antigravity IDE
+- Branch workflow documented in copilot instructions
+
+### Fixed
+
+- 59 previously skipped tests resolved across 10 files
+- 9 TypeScript build errors in absorb-service unblocked deploy
+- HoloMesh key rotation simplified to Bearer auth (was wallet signature — overkill for key rotation)
+- Contextual error messages replace silent failures in MCP, OAuth, core, and absorb
+- CRDT deserialization errors now explain what went wrong and how to recover
+- `console.log` replaced with `console.debug` in dev tools and traits (cleaner production output)
+- Studio package boundary cleanup — no more cross-package imports through internal paths
+- Microsoft apt repo 403 errors in CI resolved
+- Preflight bypass blocked in production deploys
+
+### CI
+
+- Actions bumped: github-script@8, deploy-pages@5, download-artifact@8, configure-pages@6, codecov@6
+- @remotion/cli bumped from 4.0.424 to 4.0.447
+
+---
+
 ## [6.0.2] — 2026-04-06 (Studio Restructure, Brittney AI & Platform Hardening)
 
 7 packages bumped to 6.0.2. Studio restructured from 43 routes to 18 with progressive disclosure funnel. Brittney AI wired to Claude via Anthropic SDK. Type safety sweep, new compilers, security hardening, 1,100+ new tests, and 87 board tasks completed.

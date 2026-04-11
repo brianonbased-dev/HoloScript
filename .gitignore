@@ -245,7 +245,6 @@ packages/video-tutorials/public/captures/*.mp4
 
 # GitNexus (external tool artifacts — not source code)
 .gitnexus
-AGENTS.md
 .claude/skills/gitnexus/
 
 # Benchmark scripts (temporary, not part of the project)
@@ -377,3 +376,53 @@ packages/engine/ts-error*.txt
 packages/studio/log-utf8.txt
 packages/studio/next-build*.txt
 packages/studio/npx-log.txt
+
+# Agent debug dumps (one-off scripts, board snapshots, scan outputs)
+# These accumulate from agent sessions and should never be committed
+board_*.json
+team_board_*.json
+payload-round-*.json
+*-utf8.json
+deep_scan*.json
+deep_scan*.py
+deep_scan*_report.txt
+fetch_*.py
+mark_*_tasks.ts
+fix_*.js
+fixer*.js
+render_scan*.py
+migrate_*.py
+changeset-error*.txt
+diff_files.txt
+version_failures.txt
+temp_meetings*.txt
+mcp-out.txt
+oracle_resp.json
+msgs.json
+data[0-9].json
+*-outdated.json
+*-audit.json
+v60-res*.json
+core-int.json
+gen-stubs*.js
+extract-all-failures.js
+generate-stubs.js
+add_ts_expect_error.js
+git_log.js
+git_status.js
+test-telemetry.ts
+packages-graph.json
+orchestrator_scout_payload.json
+pip-outdated.json
+
+# Debug dumps in package dirs
+packages/*/debug*.txt
+packages/*/out*.txt
+packages/*/out*.json
+packages/*/out.tap
+packages/*/fails.txt
+packages/*/complete_run.txt
+packages/*/*.bak
+packages/*/vitest-report*.json
+packages/*/typescript-errors.txt
+packages/*/test-out*.txt
