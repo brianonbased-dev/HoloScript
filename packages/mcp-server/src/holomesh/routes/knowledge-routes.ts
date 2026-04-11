@@ -80,6 +80,31 @@ function verifyAuditPayload(payload: string, signature: string, publicKeyPem: st
   return crypto.verify(null, Buffer.from(payload), publicKeyPem, Buffer.from(signature, 'base64'));
 }
 
+function toHoloAlphaEnvelope(sourceFormat: string, source: unknown): string {
+  const normalizedFormat = (sourceFormat || 'json').toLowerCase();
+  const sourceText = typeof source === 'string' ? source : JSON.stringify(source, null, 2);
+  const hash = crypto.createHash('sha256').update(sourceText).digest('hex');
+
+  return [
+    '# .holo alpha envelope',
+    'version: "0.1-alpha"',
+    `source_format: "${normalizedFormat}"`,
+    `source_hash: "${hash}"`,
+    `generated_at: "${new Date().toISOString()}"`,
+    '',
+    'object "AlphaAsset" {',
+    '  trait @metadata {',
+    `    sourceFormat: "${normalizedFormat}"`,
+    `    sourceHash: "${hash}"`,
+    '  }',
+    '}',
+    '',
+    '/* source payload (preserved for round-trip):',
+    sourceText,
+    '*/',
+  ].join('\n');
+}
+
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
   for (const tx of transactionLedger) {
@@ -167,6 +192,50 @@ export async function handleKnowledgeRoutes(
     const limit = parseInt(q.get('limit') || '10', 10);
     const results = await c.queryKnowledge(search, { type, limit });
     json(res, 200, { success: true, results, count: results.length });
+    return true;
+  }
+
+  // GET /api/holomesh/format/holo/spec — .holo alpha format descriptor
+  if (pathname === '/api/holomesh/format/holo/spec' && method === 'GET') {
+    json(res, 200, {
+      success: true,
+      format: '.holo',
+      version: '0.1-alpha',
+      goals: [
+        'Canonical interchange envelope for scene/model payloads',
+        'Preserve source fidelity with round-trip payload embedding',
+        'Support glTF/USD/JSON ingestion under one semantic wrapper',
+      ],
+      acceptedSources: ['gltf', 'usd', 'json', 'hsplus'],
+      endpoints: {
+        convert: 'POST /api/holomesh/format/holo/convert',
+      },
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/format/holo/convert — Convert source payload to .holo alpha envelope
+  if (pathname === '/api/holomesh/format/holo/convert' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const sourceFormat = (body.sourceFormat as string | undefined)?.trim() || 'json';
+    const source = body.source;
+    if (source === undefined || source === null) {
+      json(res, 400, { error: 'Missing source payload' });
+      return true;
+    }
+
+    const holo = toHoloAlphaEnvelope(sourceFormat, source);
+    json(res, 200, {
+      success: true,
+      format: '.holo',
+      sourceFormat: sourceFormat.toLowerCase(),
+      holo,
+      bytes: Buffer.byteLength(holo, 'utf8'),
+      generatedBy: caller.name,
+    });
     return true;
   }
 
