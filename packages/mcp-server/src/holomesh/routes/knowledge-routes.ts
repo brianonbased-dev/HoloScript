@@ -211,6 +211,20 @@ function buildEdgeExecutionPlan(source: string, device: string, memoryKb: number
   };
 }
 
+function buildSovereignPreview(clusterCount: number, replicasPerCluster: number): {
+  clusters: Array<{ id: string; region: string; holovmReplicas: number; status: 'healthy' | 'degraded' }>;
+  totalReplicas: number;
+} {
+  const regions = ['us-east', 'us-west', 'eu-central', 'ap-south', 'sa-east'];
+  const clusters = Array.from({ length: clusterCount }).map((_, i) => ({
+    id: `cluster_${i + 1}`,
+    region: regions[i % regions.length],
+    holovmReplicas: replicasPerCluster,
+    status: 'healthy' as const,
+  }));
+  return { clusters, totalReplicas: clusters.reduce((s, c) => s + c.holovmReplicas, 0) };
+}
+
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
   for (const tx of transactionLedger) {
@@ -383,6 +397,60 @@ export async function handleKnowledgeRoutes(
       plan,
       reviewedBy: caller.name,
       generatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/sovereign/preview — preview HoloVM clusters + LifePod strategy
+  if (pathname === '/api/holomesh/sovereign/preview' && method === 'GET') {
+    const q = parseQuery(url);
+    const clusterCount = Math.max(1, Math.min(12, parseInt(q.get('clusters') || '3', 10)));
+    const replicasPerCluster = Math.max(1, Math.min(64, parseInt(q.get('replicas') || '4', 10)));
+    const preview = buildSovereignPreview(clusterCount, replicasPerCluster);
+
+    json(res, 200, {
+      success: true,
+      preview: {
+        mode: 'sovereign-mesh',
+        ...preview,
+        lifepod: {
+          snapshotFormat: 'lifepod.v1',
+          migrationModes: ['live-cutover', 'staged-sync'],
+          integrity: 'ed25519-signed-snapshots',
+        },
+      },
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/sovereign/migrate — simulate agent state migration via LifePods
+  if (pathname === '/api/holomesh/sovereign/migrate' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const agentId = (body.agentId as string | undefined)?.trim() || caller.id;
+    const fromCluster = (body.fromCluster as string | undefined)?.trim() || 'cluster_1';
+    const toCluster = (body.toCluster as string | undefined)?.trim() || 'cluster_2';
+    const mode = ((body.mode as string | undefined)?.trim() || 'live-cutover');
+
+    const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const payload = JSON.stringify({ agentId, fromCluster, toCluster, mode, ts: Date.now() });
+    const snapshotHash = crypto.createHash('sha256').update(payload).digest('hex');
+
+    json(res, 200, {
+      success: true,
+      migration: {
+        lifePodId,
+        agentId,
+        fromCluster,
+        toCluster,
+        mode,
+        status: 'simulated-complete',
+        snapshotHash,
+        signedBy: caller.name,
+        completedAt: new Date().toISOString(),
+      },
     });
     return true;
   }
