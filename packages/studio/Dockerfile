@@ -80,7 +80,7 @@ RUN test -f packages/studio/src/lib/empty-module.js || \
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
-RUN --mount=type=cache,target=/app/packages/studio/.next/cache cd packages/studio && pnpm next build
+RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache,target=/app/packages/studio/.next/cache cd packages/studio && pnpm next build
 
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner

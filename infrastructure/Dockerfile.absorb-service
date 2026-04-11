@@ -30,6 +30,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy source code
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
+COPY packages/config/ packages/config/
 COPY packages/core/ packages/core/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
@@ -39,6 +40,7 @@ COPY services/absorb-service/ services/absorb-service/
 
 # Build in dependency order (skip DTS for runtime)
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
+RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd services/absorb-service && npx tsc
@@ -66,6 +68,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy built artifacts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
+COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
