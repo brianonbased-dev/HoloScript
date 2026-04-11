@@ -1,0 +1,1 @@
+MEGA-COMMIT (414 files, +16K lines). Message says 'format codebase with Prettier and update documentation.' Formatting commit mixed with doc updates. Taints git blame for 414 files. Should have been: formatting-only commit, then doc updates separately. See DEVELOPMENT_CHRONICLE.md.
