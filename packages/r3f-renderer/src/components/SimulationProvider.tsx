@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   ThermalSolver,
@@ -7,7 +7,9 @@ import {
   StructuralConfig,
   HydraulicSolver,
   HydraulicConfig,
+  registerSimulationSolvers,
 } from '@holoscript/engine/simulation';
+import { SimulationSolverFactory } from '@holoscript/core/traits';
 
 type SimulationType = 'thermal' | 'structural' | 'hydraulic';
 type AnySolver = ThermalSolver | StructuralSolver | HydraulicSolver;
@@ -35,8 +37,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
   const [scalarField, setScalarField] = useState<Float32Array | null>(null);
 
   useEffect(() => {
+    // Ensure trait handlers can instantiate solvers via the factory
+    registerSimulationSolvers(SimulationSolverFactory);
+
     let solver: AnySolver | null = null;
-    
+
     // Initialize corresponding solver
     if (type === 'thermal') {
       solver = new ThermalSolver(config as ThermalConfig);
@@ -47,6 +52,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
     }
 
     solverRef.current = solver;
+
+    // Steady-state solvers: solve once on init (not every frame)
+    if (solver && type === 'structural') {
+      (solver as StructuralSolver).solve();
+      setScalarField((solver as StructuralSolver).getVonMisesStress());
+    } else if (solver && type === 'hydraulic') {
+      (solver as HydraulicSolver).solve();
+      setScalarField((solver as HydraulicSolver).getPressureField());
+    }
 
     return () => {
       if (solver && typeof solver.dispose === 'function') {
@@ -60,30 +74,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
     const solver = solverRef.current;
     if (!solver) return;
 
-    // Step or solve the physics solver
+    // Only time-dependent solvers step every frame
     if (type === 'thermal') {
       (solver as ThermalSolver).step(delta);
-    } else if (type === 'structural') {
-      (solver as StructuralSolver).solve();
-    } else if (type === 'hydraulic') {
-      (solver as HydraulicSolver).solve();
+      setScalarField((solver as ThermalSolver).getTemperatureField());
     }
-
-    // Extract the primary scalar field output
-    let currentField: Float32Array | null = null;
-    if (type === 'thermal') {
-      currentField = (solver as ThermalSolver).getTemperatureField();
-    } else if (type === 'structural') {
-      currentField = (solver as StructuralSolver).getVonMisesStress();
-    } else if (type === 'hydraulic') {
-      currentField = (solver as HydraulicSolver).getPressureField();
-    }
-
-    // Optionally trigger a re-render. Since Float32Array might be updated in-place,
-    // we may pass the reference, but React state compares by reference. 
-    // Usually R3F components use references inside useFrame to avoid React updates,
-    // but the spec required: "useState() -> scalarField Float32Array"
-    setScalarField(currentField);
+    // Structural/hydraulic are steady-state — solved once in useEffect.
+    // Re-solve only when config changes (triggers new useEffect).
   });
 
   return (

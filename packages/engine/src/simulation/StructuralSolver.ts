@@ -161,9 +161,10 @@ export class StructuralSolver {
         }
       }
 
-      // Enforce constraints: set constrained DOFs to identity
+      // Enforce constraints via projection: constrained DOFs act as identity rows.
+      // Combined with rhs[dof]=0, CG drives constrained displacements to zero.
       for (const dof of this.constrainedDofs) {
-        out[dof] = x[dof] * 1e20; // penalty method
+        out[dof] = x[dof];
       }
     };
 

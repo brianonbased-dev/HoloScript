@@ -209,10 +209,10 @@ export class ThermalSolver {
       if (src.active === false) continue;
 
       const [px, py, pz] = src.position;
-      // Convert world position to grid indices
-      const gi = Math.round(px / dx);
-      const gj = Math.round(py / dy);
-      const gk = Math.round(pz / dz);
+      // Convert world position to grid indices (clamped to valid range)
+      const gi = Math.max(0, Math.min(this.temperature.nx - 1, Math.round(px / dx)));
+      const gj = Math.max(0, Math.min(this.temperature.ny - 1, Math.round(py / dy)));
+      const gk = Math.max(0, Math.min(this.temperature.nz - 1, Math.round(pz / dz)));
 
       if (src.type === 'point' || !src.radius) {
         // Point source: all heat in one cell → W/m³

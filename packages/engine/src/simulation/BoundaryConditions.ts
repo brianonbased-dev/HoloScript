@@ -27,6 +27,8 @@ export interface BoundaryCondition {
  * - Convection: -k∂T/∂n = h(T - T_ambient)
  * - Robin: αT + β∂T/∂n = value
  */
+const VALID_FACES: ReadonlySet<string> = new Set(['x-', 'x+', 'y-', 'y+', 'z-', 'z+']);
+
 export function applyBoundaryConditions(
   grid: RegularGrid3D,
   bcs: BoundaryCondition[],
@@ -35,6 +37,7 @@ export function applyBoundaryConditions(
 ): void {
   for (const bc of bcs) {
     for (const face of bc.faces) {
+      if (!VALID_FACES.has(face)) continue;
       applyToFace(grid, face, bc, dt, component);
     }
   }

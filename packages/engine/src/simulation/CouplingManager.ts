@@ -144,6 +144,11 @@ export class CouplingManager {
       if (targetGrid instanceof RegularGrid3D) {
         const d = sourceField.data;
         const td = targetGrid.data;
+        if (d.length !== td.length) {
+          console.warn(
+            `CouplingManager: grid size mismatch in coupling ${coupling.source.solver}.${coupling.source.field} → ${coupling.target.solver}.${coupling.target.field} (${d.length} vs ${td.length})`
+          );
+        }
         const len = Math.min(d.length, td.length);
         for (let i = 0; i < len; i++) {
           td[i] = coupling.transform(d[i]);
@@ -152,6 +157,11 @@ export class CouplingManager {
     } else if (sourceField instanceof Float32Array) {
       const targetArray = this.getField(targetEntry, coupling.target.field);
       if (targetArray instanceof Float32Array) {
+        if (sourceField.length !== targetArray.length) {
+          console.warn(
+            `CouplingManager: array size mismatch in coupling ${coupling.source.solver}.${coupling.source.field} → ${coupling.target.solver}.${coupling.target.field} (${sourceField.length} vs ${targetArray.length})`
+          );
+        }
         const len = Math.min(sourceField.length, targetArray.length);
         for (let i = 0; i < len; i++) {
           targetArray[i] = coupling.transform(sourceField[i]);

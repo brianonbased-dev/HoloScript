@@ -4,6 +4,10 @@
  * Layer 0: Shared infrastructure (grid, materials, BCs, convergence)
  * Layer 1: Domain solvers (thermal, structural, hydraulic, saturation)
  * Layer 4: Multi-physics coupling
+ *
+ * Solver factories are registered with SimulationSolverFactory
+ * by SimulationProvider (r3f-renderer) on mount, so trait handlers
+ * can instantiate solvers without importing engine directly.
  */
 
 // Layer 0 — Infrastructure

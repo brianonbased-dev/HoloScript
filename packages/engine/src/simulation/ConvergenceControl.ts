@@ -48,7 +48,7 @@ export function conjugateGradient(
 
   let rDotR = dot(r, r);
   const bNorm = Math.sqrt(dot(b, b));
-  const threshold = tol * (bNorm > 0 ? bNorm : 1);
+  const threshold = Math.max(tol * bNorm, tol);
 
   let maxChange = 0;
   let iter = 0;

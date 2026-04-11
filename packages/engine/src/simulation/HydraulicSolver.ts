@@ -287,11 +287,16 @@ export class HydraulicSolver {
   }
 
   /**
-   * Find independent loops using cycle detection on the pipe graph.
+   * Find independent loops using spanning tree fundamental cycles.
+   *
+   * Uses BFS to build a spanning tree, then each non-tree edge defines
+   * exactly one fundamental cycle. This guarantees independent loops
+   * (no duplicates or overlaps) which Hardy-Cross requires.
    */
   private findLoops(): number[][] {
     const loops: number[][] = [];
     const n = this.nodes.length;
+    if (n === 0) return loops;
 
     // Build adjacency list: node → [(neighborNode, pipeIndex)]
     const adj: [number, number][][] = Array.from({ length: n }, () => []);
@@ -300,45 +305,81 @@ export class HydraulicSolver {
       adj[pipe.toNode].push([pipe.fromNode, pipe.index]);
     }
 
-    // DFS-based cycle detection
+    // BFS spanning tree
+    const treeParent = new Map<number, { node: number; pipe: number }>();
     const visited = new Set<number>();
-    const parent = new Map<number, { node: number; pipe: number }>();
-    const inStack = new Set<number>();
+    const treeEdges = new Set<number>(); // pipe indices in spanning tree
 
-    const dfs = (node: number): void => {
-      visited.add(node);
-      inStack.add(node);
+    const bfs = (start: number): void => {
+      const queue: number[] = [start];
+      visited.add(start);
 
-      for (const [neighbor, pipeIdx] of adj[node]) {
-        const parentEntry = parent.get(node);
-        // Skip the edge we came from
-        if (parentEntry && parentEntry.node === neighbor && parentEntry.pipe === pipeIdx) continue;
-
-        if (inStack.has(neighbor)) {
-          // Found a cycle — trace back to extract loop pipes
-          const loop: number[] = [pipeIdx];
-          let current = node;
-          while (current !== neighbor) {
-            const p = parent.get(current);
-            if (!p) break;
-            loop.push(p.pipe);
-            current = p.node;
+      while (queue.length > 0) {
+        const node = queue.shift()!;
+        for (const [neighbor, pipeIdx] of adj[node]) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            treeParent.set(neighbor, { node, pipe: pipeIdx });
+            treeEdges.add(pipeIdx);
+            queue.push(neighbor);
           }
-          if (loop.length > 1) loops.push(loop);
-        } else if (!visited.has(neighbor)) {
-          parent.set(neighbor, { node, pipe: pipeIdx });
-          dfs(neighbor);
         }
       }
-
-      inStack.delete(node);
     };
 
+    // BFS from all components
     for (let i = 0; i < n; i++) {
-      if (!visited.has(i)) dfs(i);
+      if (!visited.has(i)) bfs(i);
+    }
+
+    // Each non-tree edge creates one fundamental cycle
+    for (const pipe of this.pipes) {
+      if (treeEdges.has(pipe.index)) continue;
+
+      // Trace paths from both endpoints to their LCA via spanning tree
+      const pathA = this.traceToRoot(pipe.fromNode, treeParent);
+      const pathB = this.traceToRoot(pipe.toNode, treeParent);
+
+      // Find LCA (lowest common ancestor)
+      const setA = new Set(pathA.map((p) => p.node));
+      let lcaIdx = 0;
+      for (let i = 0; i < pathB.length; i++) {
+        if (setA.has(pathB[i].node)) {
+          lcaIdx = i;
+          break;
+        }
+      }
+      const lcaNode = pathB[lcaIdx].node;
+
+      // Collect pipe indices along the cycle
+      const loopPipes: number[] = [pipe.index];
+      for (const entry of pathA) {
+        if (entry.node === lcaNode) break;
+        if (entry.pipe >= 0) loopPipes.push(entry.pipe);
+      }
+      for (let i = 0; i < lcaIdx; i++) {
+        if (pathB[i].pipe >= 0) loopPipes.push(pathB[i].pipe);
+      }
+
+      if (loopPipes.length > 1) loops.push(loopPipes);
     }
 
     return loops;
+  }
+
+  /** Trace a node to root of spanning tree, returning (node, pipe) pairs */
+  private traceToRoot(
+    start: number,
+    treeParent: Map<number, { node: number; pipe: number }>
+  ): { node: number; pipe: number }[] {
+    const path: { node: number; pipe: number }[] = [{ node: start, pipe: -1 }];
+    let current = start;
+    while (treeParent.has(current)) {
+      const parent = treeParent.get(current)!;
+      path.push({ node: parent.node, pipe: parent.pipe });
+      current = parent.node;
+    }
+    return path;
   }
 
   private updateOutputArrays(): void {

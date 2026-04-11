@@ -103,13 +103,13 @@ function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
 
 // ── Registration ─────────────────────────────────────────────────────────────
 
-export interface SolverFactoryRegistry {
+interface SolverFactoryRegistry {
   register(type: string, factory: (config: Record<string, unknown>) => unknown): void;
 }
 
 /**
  * Register all simulation solver factories.
- * Call once on app startup with the SimulationSolverFactory from @holoscript/core.
+ * Called automatically when simulation module is imported (see index.ts).
  */
 export function registerSimulationSolvers(factory: SolverFactoryRegistry): void {
   factory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)));
