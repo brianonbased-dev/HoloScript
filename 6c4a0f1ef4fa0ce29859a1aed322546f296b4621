@@ -1,0 +1,1 @@
+MISLEADING COMMIT (240 files, +54K lines). Message says 'Increase HeadlessRuntime test timeout to fix flaky test.' ACTUALLY CONTAINS: IntelliJ plugin (26 files), partner SDK (20 files), visual package (17 files), academy docs (16 files), CLI expansion (17 files), core (64 files). The most misleading commit message in the repo. See DEVELOPMENT_CHRONICLE.md.
