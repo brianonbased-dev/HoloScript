@@ -15,7 +15,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTemporalStore } from '@/lib/historyStore';
+import { useTemporalStore, useHistoryStore } from '@/lib/historyStore';
+import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 
 export function useUndoRedo() {
   const undo = useTemporalStore((s) => s.undo);
@@ -43,4 +44,20 @@ export function useUndoRedo() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
+
+  // Backward sync bridge: when historyStore changes (via undo/redo), reflect onto standard stores
+  useEffect(() => {
+    return useHistoryStore.subscribe((state) => {
+      const currentNodes = useSceneGraphStore.getState().nodes;
+      if (state.nodes !== currentNodes) {
+        useSceneGraphStore.setState({ nodes: state.nodes });
+      }
+      
+      const currentCode = useSceneStore.getState().code;
+      if (state.code && state.code !== currentCode) {
+        // Prevent code change from bumping sceneStore timestamp endlessly if identical
+        useSceneStore.getState().setCode(state.code);
+      }
+    });
+  }, []);
 }

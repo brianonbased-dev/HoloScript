@@ -7,6 +7,9 @@ import { useTemporalStore } from '@/lib/historyStore';
 
 vi.mock('@/lib/historyStore', () => ({
   useTemporalStore: vi.fn(),
+  useHistoryStore: {
+    subscribe: vi.fn(() => vi.fn()),
+  },
 }));
 
 describe('useUndoRedo', () => {

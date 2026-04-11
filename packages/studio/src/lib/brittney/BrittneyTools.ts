@@ -6,6 +6,7 @@
  */
 
 import type { TraitConfig, SceneNode } from '@/lib/stores';
+import { setNextHistoryLabel } from '@/lib/historyStore';
 
 // ─── Tool Schemas (OpenAI function-calling format) ────────────────────────────
 
@@ -429,6 +430,8 @@ export function executeTool(
             success: false,
             message: `Object "${objName}" not found in scene`,
           };
+          
+        setNextHistoryLabel(`Add @${traitName} to "${node.name}"`);
         store.addTrait(node.id, { name: traitName, properties });
         // Patch source code
         store.setCode(codeAddTrait(store.getCode(), node.name, traitName, properties));
@@ -441,6 +444,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Remove @${traitName} from "${node.name}"`);
         store.removeTrait(node.id, traitName);
         store.setCode(codeRemoveTrait(store.getCode(), node.name, traitName));
         return {
@@ -458,6 +463,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Update ${traitName}.${key} on "${node.name}"`);
         store.setTraitProperty(node.id, traitName, key, value);
         store.setCode(codeSetTraitProperty(store.getCode(), node.name, traitName, key, value));
         return {
@@ -472,6 +479,8 @@ export function executeTool(
         const name = args.name as string;
         const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
+        
+        setNextHistoryLabel(`Create "${name}"`);
         store.addNode({
           id,
           name,
@@ -492,6 +501,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Compose [${traitNames.map(t => `@${t}`).join(', ')}] on "${node.name}"`);
         let patchedCode = store.getCode();
         for (const name of traitNames) {
           store.addTrait(node.id, { name, properties: {} });
@@ -520,6 +531,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Delete "${node.name}"`);
         store.removeNode(node.id);
         store.setCode(codeDeleteObject(store.getCode(), node.name));
         return { tool: toolName, success: true, message: `Deleted "${node.name}" from the scene` };
@@ -531,6 +544,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Move "${node.name}"`);
         store.updateNode(node.id, { position });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'position', position));
         return {
@@ -546,6 +561,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Rotate "${node.name}"`);
         store.updateNode(node.id, { rotation });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'rotation', rotation));
         return {
@@ -561,6 +578,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
+        setNextHistoryLabel(`Scale "${node.name}"`);
         store.updateNode(node.id, { scale });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'scale', scale));
         return {
@@ -576,7 +595,9 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
         const previousName = node.name;
+        setNextHistoryLabel(`Rename "${previousName}" to "${newName}"`);
         store.setCode(codeRenameObject(store.getCode(), previousName, newName));
         store.updateNode(node.id, { name: newName });
         return {
@@ -592,7 +613,9 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+          
         const cloneId = `obj-${Date.now()}`;
+        setNextHistoryLabel(`Duplicate "${node.name}"`);
         const clonedNode: SceneNode = {
           ...node,
           id: cloneId,

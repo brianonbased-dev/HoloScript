@@ -27,6 +27,7 @@ import type { TraitConfig, SceneNode } from '@/lib/stores';
 
 export interface HistorySceneState {
   nodes: SceneNode[];
+  code: string;
 
   // Mutation actions — each call produces one history entry
   addNode: (node: SceneNode) => void;
@@ -40,6 +41,8 @@ export interface HistorySceneState {
   addTrait: (nodeId: string, trait: TraitConfig) => void;
   removeTrait: (nodeId: string, traitName: string) => void;
   setTraitProperty: (nodeId: string, traitName: string, key: string, value: unknown) => void;
+  setCode: (code: string) => void;
+  syncState: (nodes: SceneNode[], code: string) => void;
 }
 
 // ─── Label each mutation for the history UI ───────────────────────────────────
@@ -61,6 +64,7 @@ export const useHistoryStore = create<HistorySceneState>()(
     temporal(
       (set) => ({
         nodes: [],
+        code: '',
 
         addNode: (node) => {
           setNextHistoryLabel(`Add "${node.name}"`);
@@ -132,10 +136,18 @@ export const useHistoryStore = create<HistorySceneState>()(
             ),
           }));
         },
+
+        setCode: (code) => {
+          set({ code });
+        },
+
+        syncState: (nodes, code) => {
+          set({ nodes, code });
+        },
       }),
       {
-        // Only track `nodes` in temporal history (skip action functions)
-        partialize: (state) => ({ nodes: state.nodes }),
+        // Track both nodes and code for full semantic undo support
+        partialize: (state) => ({ nodes: state.nodes, code: state.code }),
         // Attach a human-readable label to each entry via equality function trick
         equality: (_a, _b) => false, // always record
         limit: 100, // keep up to 100 history entries
@@ -147,7 +159,7 @@ export const useHistoryStore = create<HistorySceneState>()(
 
 // ─── Typed temporal accessor ──────────────────────────────────────────────────
 
-type TemporalStore = TemporalState<Pick<HistorySceneState, 'nodes'>>;
+type TemporalStore = TemporalState<Pick<HistorySceneState, 'nodes' | 'code'>>;
 
 export const useTemporalStore = <T>(
   selector: (state: TemporalStore) => T,

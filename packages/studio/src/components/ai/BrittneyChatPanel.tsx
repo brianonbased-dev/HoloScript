@@ -16,6 +16,7 @@ import {
 import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
+import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
 import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
 import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
@@ -243,6 +244,15 @@ export function BrittneyChatPanel() {
         } else if (event.type === 'done') {
           break;
         }
+      }
+      
+      // ─── Semantic Undo Commit ────────────────────────────────────────────────
+      if (toolResults.some((r) => r.success)) {
+        setNextHistoryLabel(`AI Action: ${text.length > 25 ? text.substring(0, 25) + '…' : text}`);
+        useHistoryStore.getState().syncState(
+          useSceneGraphStore.getState().nodes,
+          useSceneStore.getState().code ?? ''
+        );
       }
     } catch (err) {
       accumulatedText = `Connection error — is Ollama running? (${String(err)})`;
