@@ -194,7 +194,7 @@ export default function LeaderboardPage() {
 
       {/* States */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           Loading leaderboard…
         </div>
       )}
@@ -212,7 +212,7 @@ export default function LeaderboardPage() {
         </div>
       )}
       {!loading && !error && entries.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           No leaderboard data yet.
         </div>
       )}

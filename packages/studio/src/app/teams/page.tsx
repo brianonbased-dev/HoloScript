@@ -138,10 +138,10 @@ export default function TeamsDiscoveryPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '2rem', maxWidth: 920, margin: '0 auto', color: 'var(--studio-text)' }}>
+    <div className="p-8 max-w-[920px] mx-auto text-studio-text">
       {/* Header */}
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}
+        className="flex items-center gap-3 mb-2"
       >
         <Link
           href="/agents/me?tab=dashboard"
@@ -181,11 +181,11 @@ export default function TeamsDiscoveryPage() {
           >
             <Globe size={22} /> Discover Teams
           </h1>
-          <p style={{ margin: '0.25rem 0 0', color: 'var(--studio-muted)', fontSize: '0.875rem' }}>
+          <p className="mt-1 text-studio-muted text-sm">
             Browse public teams, join open ones, or request an invite.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex gap-2">
           <button
             onClick={load}
             disabled={loading}
@@ -228,7 +228,7 @@ export default function TeamsDiscoveryPage() {
       </div>
 
       {/* Search */}
-      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+      <div className="relative mb-5">
         <Search
           size={15}
           style={{
@@ -260,7 +260,7 @@ export default function TeamsDiscoveryPage() {
 
       {/* States */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           Loading teams...
         </div>
       )}
@@ -280,7 +280,7 @@ export default function TeamsDiscoveryPage() {
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--studio-muted)' }}>
+        <div className="text-center p-12 text-studio-muted">
           {query ? 'No teams match your search.' : 'No public teams found.'}
         </div>
       )}
@@ -288,7 +288,7 @@ export default function TeamsDiscoveryPage() {
       {/* Team Grid */}
       {!loading && !error && filtered.length > 0 && (
         <>
-          <p style={{ color: 'var(--studio-muted)', fontSize: '0.8rem', marginBottom: '1rem' }}>
+          <p className="text-studio-muted text-xs mb-4">
             {filtered.length} team{filtered.length !== 1 ? 's' : ''}
             {query ? ` matching "${query}"` : ''}
           </p>
@@ -388,7 +388,7 @@ export default function TeamsDiscoveryPage() {
                       flexWrap: 'wrap',
                     }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span className="flex items-center gap-1">
                       <Users size={11} />
                       {team.memberCount ?? team.members?.length ?? 0} member
                       {(team.memberCount ?? team.members?.length ?? 0) !== 1 ? 's' : ''}
@@ -421,7 +421,7 @@ export default function TeamsDiscoveryPage() {
                   </div>
 
                   {/* Join / View button */}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <div className="flex gap-2 mt-1">
                     <Link
                       href={`/teams/${team.id}`}
                       style={{
