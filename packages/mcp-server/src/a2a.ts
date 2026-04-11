@@ -215,6 +215,8 @@ export interface SendTaskRequest {
   id?: string;
   sessionId?: string;
   contextId?: string;
+  /** Optional idempotency key for duplicate suppression across retries */
+  idempotencyKey?: string;
   message: TaskMessage;
   /** Optional: specify which skill (MCP tool) to invoke */
   skillId?: string;
@@ -657,6 +659,7 @@ export function buildAgentCard(
 // =============================================================================
 
 const taskStore = new Map<string, A2ATask>();
+const idempotencyStore = new Map<string, string>();
 const MAX_TASKS = 10000;
 const TASK_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -668,6 +671,9 @@ function evictExpiredTasks(): void {
   for (const [id, task] of taskStore) {
     if (now - new Date(task.createdAt).getTime() > TASK_TTL_MS) {
       taskStore.delete(id);
+      for (const [key, taskId] of idempotencyStore.entries()) {
+        if (taskId === id) idempotencyStore.delete(key);
+      }
     }
   }
 }
@@ -677,6 +683,23 @@ function evictExpiredTasks(): void {
  */
 export function createTask(request: SendTaskRequest): A2ATask {
   evictExpiredTasks();
+
+  // Idempotent create by explicit id
+  if (request.id) {
+    const existing = taskStore.get(request.id);
+    if (existing) return existing;
+  }
+
+  // Idempotent create by idempotency key
+  const key = request.idempotencyKey?.trim();
+  if (key) {
+    const existingId = idempotencyStore.get(key);
+    if (existingId) {
+      const existingTask = taskStore.get(existingId);
+      if (existingTask) return existingTask;
+      idempotencyStore.delete(key);
+    }
+  }
 
   // Enforce max tasks
   if (taskStore.size >= MAX_TASKS) {
@@ -708,6 +731,9 @@ export function createTask(request: SendTaskRequest): A2ATask {
   };
 
   taskStore.set(task.id, task);
+  if (key) {
+    idempotencyStore.set(key, task.id);
+  }
   return task;
 }
 
@@ -995,6 +1021,7 @@ export async function handleJsonRpcRequest(
         id: params.id as string | undefined,
         sessionId: params.sessionId as string | undefined,
         contextId: (params.contextId || message.contextId) as string | undefined,
+        idempotencyKey: (params.idempotencyKey as string | undefined) ?? undefined,
         message,
         skillId: params.skillId as string | undefined,
         arguments: params.arguments as Record<string, unknown> | undefined,
@@ -1004,6 +1031,34 @@ export async function handleJsonRpcRequest(
           ...(params.arguments ? { arguments: params.arguments } : {}),
         },
       };
+
+      // Idempotent short-circuit by explicit task id
+      if (taskRequest.id) {
+        const existingById = getTask(taskRequest.id);
+        if (existingById) {
+          return {
+            jsonrpc: '2.0',
+            id,
+            result: taskToResponse(existingById),
+          };
+        }
+      }
+
+      // Idempotent short-circuit by idempotency key
+      const idemKey = taskRequest.idempotencyKey?.trim();
+      if (idemKey) {
+        const existingTaskId = idempotencyStore.get(idemKey);
+        if (existingTaskId) {
+          const existingTask = getTask(existingTaskId);
+          if (existingTask) {
+            return {
+              jsonrpc: '2.0',
+              id,
+              result: taskToResponse(existingTask),
+            };
+          }
+        }
+      }
 
       const task = createTask(taskRequest);
       const executed = await executeTask(task, toolHandler);
