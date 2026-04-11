@@ -179,6 +179,38 @@ function inferWorldPatches(observations: string[], goal?: string): SelfImproving
   return patches;
 }
 
+function buildEdgeExecutionPlan(source: string, device: string, memoryKb: number, flashKb: number): {
+  profile: string;
+  warnings: string[];
+  optimizations: string[];
+  estimated: { ramKb: number; flashKb: number };
+  transformedSource: string;
+} {
+  const warnings: string[] = [];
+  const optimizations: string[] = [];
+  const lowered = source
+    .replace(/@particles\b/g, '@particles_off')
+    .replace(/@raymarch\b/g, '@raymarch_lite')
+    .replace(/@volumetric\b/g, '@volumetric_off');
+
+  const ramEstimate = Math.max(32, Math.min(4096, Math.round(source.length / 24)));
+  const flashEstimate = Math.max(64, Math.min(8192, Math.round(source.length / 10)));
+
+  if (ramEstimate > memoryKb) warnings.push(`Estimated RAM ${ramEstimate}KB exceeds device memory ${memoryKb}KB`);
+  if (flashEstimate > flashKb) warnings.push(`Estimated flash ${flashEstimate}KB exceeds device flash ${flashKb}KB`);
+  if (/@physics|@network|@ai/.test(source)) optimizations.push('Enable feature flags to lazy-load heavy runtime traits');
+  if (source.length > 5000) optimizations.push('Split script into multiple lightweight modules');
+  if (!optimizations.length) optimizations.push('Use fixed-point math and compact trait structs for deterministic edge runtime');
+
+  return {
+    profile: `${device.toLowerCase()}-edge-v1`,
+    warnings,
+    optimizations,
+    estimated: { ramKb: ramEstimate, flashKb: flashEstimate },
+    transformedSource: lowered,
+  };
+}
+
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
   for (const tx of transactionLedger) {
@@ -321,6 +353,36 @@ export async function handleKnowledgeRoutes(
       knowledgeUsed: kb.length,
       reviewedBy: caller.name,
       reviewedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/edge/plan — generate edge-safe execution plan for native .hs runtime
+  if (pathname === '/api/holomesh/edge/plan' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const source = (body.source as string | undefined)?.trim();
+    const device = ((body.device as string | undefined)?.trim() || 'microcontroller');
+    const memoryKb = Math.max(16, parseInt(String(body.memoryKb ?? 256), 10));
+    const flashKb = Math.max(32, parseInt(String(body.flashKb ?? 1024), 10));
+    if (!source) {
+      json(res, 400, { error: 'Missing source' });
+      return true;
+    }
+
+    const plan = buildEdgeExecutionPlan(source, device, memoryKb, flashKb);
+    json(res, 200, {
+      success: true,
+      target: {
+        device,
+        memoryKb,
+        flashKb,
+      },
+      plan,
+      reviewedBy: caller.name,
+      generatedAt: new Date().toISOString(),
     });
     return true;
   }
