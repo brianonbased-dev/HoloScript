@@ -10,13 +10,16 @@ import {
   paidAccessStore,
   agentKeyStore,
   persistSocialStore,
+  persistTeamStore,
   HOLOMESH_DATA_DIR,
+  teamStore,
 } from '../state';
 import { 
   json, 
   parseQuery, 
   parseJsonBody, 
-  extractParam 
+  extractParam,
+  getTeamMember,
 } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
@@ -164,6 +167,139 @@ export async function handleKnowledgeRoutes(
     const limit = parseInt(q.get('limit') || '10', 10);
     const results = await c.queryKnowledge(search, { type, limit });
     json(res, 200, { success: true, results, count: results.length });
+    return true;
+  }
+
+  // GET /api/holomesh/marketplace/listings — public marketplace feed
+  if (pathname === '/api/holomesh/marketplace/listings' && method === 'GET') {
+    const q = parseQuery(url);
+    const teamId = q.get('teamId') || undefined;
+    const listings = teamId
+      ? (() => {
+          const team = teamStore.get(teamId);
+          return team?.knowledgeMarketplace?.activeListings?.() || [];
+        })()
+      : [...teamStore.values()].flatMap((team) => team.knowledgeMarketplace?.activeListings?.() || []);
+
+    json(res, 200, { success: true, listings, count: listings.length, teamId });
+    return true;
+  }
+
+  // POST /api/holomesh/marketplace/list — create listing for an entry/trait artifact
+  if (pathname === '/api/holomesh/marketplace/list' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const teamId = (body.teamId as string | undefined)?.trim();
+    const entryId = (body.entryId as string | undefined)?.trim();
+    const price = Number(body.price);
+    const currency = ((body.currency as 'USDC' | 'credits' | undefined) || 'USDC');
+
+    if (!teamId || !entryId || !Number.isFinite(price) || price <= 0) {
+      json(res, 400, { error: 'Missing or invalid teamId, entryId, or price' });
+      return true;
+    }
+
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+    if (!team.knowledgeMarketplace) {
+      const { KnowledgeMarketplace } = await import('@holoscript/framework');
+      team.knowledgeMarketplace = new KnowledgeMarketplace();
+    }
+
+    const results = await c.queryKnowledge(entryId, { limit: 1 });
+    const entry = results.find((e) => e.id === entryId);
+    if (!entry) {
+      json(res, 404, { error: 'Entry not found' });
+      return true;
+    }
+    if (entry.authorId !== caller.id) {
+      json(res, 403, { error: 'Only the author can list this entry' });
+      return true;
+    }
+
+    const listing = team.knowledgeMarketplace.sellKnowledge(
+      {
+        id: entry.id,
+        type: entry.type,
+        content: entry.content,
+        confidence: entry.confidence || 0.9,
+        domain: entry.domain || 'general',
+        tags: entry.tags || [],
+        queryCount: entry.queryCount || 0,
+        reuseCount: entry.reuseCount || 0,
+        createdAt: entry.createdAt,
+        authorAgent: entry.authorId,
+      },
+      price,
+      caller.name,
+      currency,
+    );
+
+    persistTeamStore();
+    json(res, 201, { success: true, listing });
+    return true;
+  }
+
+  // POST /api/holomesh/marketplace/buy — buy a marketplace listing with USDC/credits settlement
+  if (pathname === '/api/holomesh/marketplace/buy' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const teamId = (body.teamId as string | undefined)?.trim();
+    const listingId = (body.listingId as string | undefined)?.trim();
+    if (!teamId || !listingId) {
+      json(res, 400, { error: 'Missing teamId or listingId' });
+      return true;
+    }
+
+    const team = teamStore.get(teamId);
+    if (!team || !team.knowledgeMarketplace) {
+      json(res, 404, { error: 'Marketplace not found for team' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+
+    const listing = team.knowledgeMarketplace.getListing(listingId);
+    if (!listing) {
+      json(res, 404, { error: 'Listing not found' });
+      return true;
+    }
+
+    const result = team.knowledgeMarketplace.buyKnowledge(listingId, caller.name);
+    if (!result.success) {
+      json(res, 400, { error: result.error || 'Purchase failed' });
+      return true;
+    }
+
+    paidAccessStore.add(`${caller.id}:${listing.entryId}`);
+    transactionLedger.push({
+      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      buyerWallet: caller.walletAddress || '',
+      buyerName: caller.name,
+      sellerWallet: '',
+      sellerName: listing.seller,
+      entryId: listing.entryId,
+      entryDomain: listing.preview.domain,
+      priceCents: Math.round(listing.price * 100),
+      timestamp: new Date().toISOString(),
+    });
+
+    persistTeamStore();
+    persistSocialStore();
+    json(res, 200, { success: true, purchase: result, listing });
     return true;
   }
 

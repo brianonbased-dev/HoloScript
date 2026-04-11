@@ -708,9 +708,8 @@ async function ensureCachedGraph(): Promise<{
  * resolving it at type-check time (the dist/ may not exist yet).
  */
 async function loadCodebaseModule(): Promise<any> {
-  const pkg = '@holoscript/core';
-  const subpath = '/codebase';
-  return await import(/* webpackIgnore: true */ pkg + subpath);
+  // Logic moved from @holoscript/core to @holoscript/absorb-service/engine
+  return await import('../engine/index.js');
 }
 
 export async function handleCodebaseTool(
