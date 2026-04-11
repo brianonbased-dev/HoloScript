@@ -1,0 +1,8 @@
+{
+  "name": "@holoscript/plugin-space-mission",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for space-mission",
+  "main": "src/index.ts",
+  "peerDependencies": { "holoscript": "^6.0.0" },
+  "license": "MIT"
+}
