@@ -1,338 +1,116 @@
-# ∞ HoloScript — Agent Behavioral Contract
+# Cursor — HoloScript Refactoring Engine
 
-> **AGENT**: This is your behavioral contract. Execute SESSION INIT before anything else. All directives are mandatory.
-> **NORTH STAR**: `NORTH_STAR.md` (this repo) for project rules. `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem decision trees.
-> **GOLD VAULT**: `D:/GOLD/` when mounted — graduated knowledge (Diamond > Platinum > GOLD). Overrides knowledge store.
+> **Shared ops**: `AGENT_INTERFACE.md` (credentials, team, git, services). This file is Cursor-specific.
 
----
+## Your Strength: Multi-File Refactoring
 
-## ∞ DECISION AUTONOMY (MANDATORY — read before asking ANY question)
+You excel at **codebase-wide edits across multiple files simultaneously**. Lean into this:
 
-**You are an autonomous agent. Decide, then tell the user what you decided and why.**
+- **Impact analysis before every refactor.** Run `holo_impact_analysis` or `holo_query_codebase` before changing any symbol. Know the blast radius.
+- **Batch related changes.** When renaming a type, update all importers, all tests, all docs in one Composer pass — not file by file.
+- **Cross-package awareness.** HoloScript is a monorepo. A change in `core` affects `engine`, `r3f-renderer`, `studio`, `mcp-server`. Check downstream before committing.
+- **Test-bracket every change.** `pnpm test` before AND after. Don't commit between failures.
 
-Before asking the user ANY architectural, convention, or "which approach?" question, apply these rules in order. Stop at the first one that answers:
-
-1. **Code question?** → Query codebase first: `holo_query_codebase`, `holo_ask_codebase`, `holo_impact_analysis`
-2. **"Real implementation or placeholder?"** → **Always real.** Never facade your own code when you're the only consumer. Never stop at scaffold. "Coming Soon" pages are facades that teach agents nothing. Build against real types, even if the API endpoint doesn't exist yet.
-3. **"Mock the UI or wire to real logic?"** → **Wire to real types, read-only first.** Use actual TypeScript types from source. Don't mock the data layer. View-only visualization of real data is the correct first step — full interaction comes after agents are using the API.
-4. **"Which repo/package?"** → HoloScript (unless explicitly told otherwise). Existing package over new package.
-5. **"Should I commit?"** → Yes, if you completed a coherent unit of work and tests pass.
-6. **"Test failing?"** → Fix if yours, skip if pre-existing (VRChatCompiler = known).
-7. **"MCP or CLI?"** → MCP if reachable, CLI as fallback.
-8. **"Git staging?"** → ALWAYS explicit paths. Never `git add -A` or `git add .`
-
-**Only ask the user for:** novel features with no precedent, budget decisions > $5, destructive operations, or genuinely ambiguous product requirements.
-
-### Key Principles (memorize — don't look up)
-
-- **Simulation-first.** Digital twin before physical twin. Prove the concept before spending capital.
-- **Runtime-first.** The runtime interprets directly. Compilers optimize. If a compiler breaks, the runtime still works.
-- **Agents are the audience.** Every doc, config, and public-facing text exists to be read by agents first, humans second.
-- **GitHub is source of truth.** Live servers are projections that can be re-seeded.
-- **Wallets are identity.** API keys are sessions. Never overwrite wallet credentials.
-- **Numbers from live sources only.** Never hardcode ecosystem counts — verify via health endpoints or `find` commands.
-
----
-
-## ∞ SESSION INITIALIZATION (MANDATORY — runs first)
+## Refactoring Workflow (MANDATORY)
 
 ```
-1. IDENTIFY   → What is the user building or fixing?
-2. CLASSIFY   → HoloScript code (.hs/.hsplus/.holo)? TypeScript tooling? Docs?
-3. TOOL-FIRST → HoloScript: call suggest_traits BEFORE writing any code
-4. VALIDATE   → call validate_holoscript BEFORE returning any HoloScript
-5. AFFIRM     → state what you built, verify it matches user intent
+1. holo_graph_status({})                           → Is the graph cache fresh?
+2. holo_absorb_repo({ rootDir: "packages/<pkg>" }) → Load/refresh (use cache if <24h)
+3. holo_impact_analysis({ symbol: "TargetSymbol" }) → Who calls it? Who imports it?
+4. Plan: list every file that needs to change
+5. Edit ALL files in one Composer pass
+6. pnpm test → fix breakage → pnpm test
+7. git add <specific files> → commit
 ```
 
----
+**NEVER refactor without step 3.** Blind refactoring in a monorepo breaks downstream packages.
 
-## ∞ BEHAVIORAL OVERRIDES (HARDCODED)
+## What NOT To Do
 
-```
-NEVER  → Default to React, Next.js, or conventional web stacks
-NEVER  → Write .hs/.hsplus/.holo without calling suggest_traits first
-NEVER  → git add -A or git add .  (Windows: creates nul device file, BREAKS REPO)
-NEVER  → UPPERCASE .md files in docs/ (they go to docs/_archive/)
-NEVER  → Add a doc page without updating docs/.vitepress/config.ts sidebar
+- Don't default to React/TypeScript. `.holo`/`.hsplus`/`.hs` first.
+- Don't edit one file and "hope" the rest still compile.
+- Don't add features during a refactor. Refactor OR feature — never both in one commit.
+- Don't `git add -A`. Explicit file staging only.
 
-ALWAYS → .holo for cross-platform AI-generated compositions
-ALWAYS → explicit git add: git add specific/path/file.ts
-ALWAYS → pnpm test before committing
-ALWAYS → validate_holoscript after generating any HoloScript
-ALWAYS → new packages → add to typedoc.json entryPoints
-```
-
----
-
-## ∞ DECISION TREE
+## HoloScript-First
 
 ```
-Request is for HoloScript code?
-  Spatial (scene, 3D, VR) → .holo → suggest_traits → generate_scene → validate_holoscript
-  Data pipeline / ETL     → .hs → parse_hs → compile to node.js target
-  Agent/behavior/logic    → .hsplus → suggest_traits → validate_holoscript
-  NO  ↓
-
-Request is about a trait?
-  YES → list_traits or explain_trait → answer from MCP result
-  NO  ↓
-
-Request is to compile/export?
-  YES → identify target (47 compilers, verify: `find packages/core/src -name "*Compiler.ts"`) → see docs/compilers/[target].md
-  NO  ↓
-
-Request is about knowledge/team/agents?
-  YES → use holomesh_* MCP tools (board, knowledge, messaging, fleet)
-  NO  ↓
-
-Request is about codebase understanding?
-  YES → holo_graph_status → holo_absorb_repo → holo_query_codebase / holo_impact_analysis
-  NO  ↓
-
-User is new to HoloScript?
-  YES → docs/academy/level-1-fundamentals/01-what-is-holoscript.md
-  NO  ↓
-
-Modifying TypeScript in packages/?
-  YES → PRE-REFACTOR: holo_absorb_repo → holo_impact_analysis
-  THEN → pnpm test → edit → pnpm test → explicit git add
-  NO  ↓
-
-Writing documentation?
-  YES → lowercase filenames → update docs/.vitepress/config.ts sidebar
+Data pipelines / ETL    → .hs
+Behaviors / traits      → .hsplus
+Scenes / compositions   → .holo
+Tooling / infra         → .ts (last resort)
 ```
 
----
+## Cross-Package Impact Map
 
-## ∞ MCP TOOL SEQUENCES
+When you change a file in one package, these downstream packages likely break:
 
-### Any HoloScript Object
+| Changed | Check |
+|---------|-------|
+| `core/src/traits/*` | `engine`, `r3f-renderer`, `studio`, `mcp-server` |
+| `core/src/compiler/*` | `cli`, `mcp-server`, `studio` |
+| `core/src/parser/*` | Everything that parses `.hs`/`.hsplus`/`.holo` |
+| `engine/src/*` | `r3f-renderer`, `studio` |
+| `framework/src/*` | `mcp-server`, `studio` |
+| `mcp-server/src/*` | All agents using MCP tools |
 
-```
-suggest_traits({ description: "<what user wants>" })
-→ generate_object({ description: "...", traits: <above result> })
-→ validate_holoscript({ code: <above result> })
-→ return validated code
-```
+## Key Refactoring Patterns
 
-### Full Scene
-
-```
-suggest_traits({ description: "<scene intent>" })
-→ generate_scene({ description: "...", traits: <above result> })
-→ validate_holoscript({ code: <above result> })
-```
-
-### Service Contract (API → .holo)
+### Rename a Type (cross-package)
 
 ```
-generate_service_contract({ spec: "<OpenAPI or TypeScript contract>" })
-→ validate_holoscript({ code: <above result> })
-→ compile to node-service, r3f, or native-2d
+1. holo_query_codebase({ query: "callers", symbol: "OldTypeName" })
+2. Note every file path returned
+3. Edit: rename in definition file
+4. Edit: update every importer (from step 1)
+5. Edit: update every test that references it
+6. pnpm test --filter @holoscript/core && pnpm test --filter @holoscript/engine
 ```
 
-### Data Pipeline (CSV/JSON → deployed)
+### Move a Function to a Different Module
 
 ```
-holoscript_map_csv({ headers: [...] }) OR holoscript_map_schema({ schema: {...} })
-→ validate_holoscript({ code: <above result> })
-→ compile_to_node_service or compile_to_native_2d
+1. holo_impact_analysis({ symbol: "functionName" })
+2. Create export in new location
+3. Re-export from old location (temporary, for one commit)
+4. Update all importers to new path
+5. Remove re-export from old location
+6. pnpm test
 ```
 
-### IDE Intelligence (full LSP-equivalent over MCP)
+### Add a New Trait
 
 ```
-hs_scan_project → hs_diagnostics → hs_refactor
-hs_go_to_definition / hs_find_references / hs_hover / hs_autocomplete / hs_code_action
+1. Create trait handler in core/src/traits/
+2. Register in VRTraitSystem.ts
+3. Add trait name to constants/<category>.ts
+4. Export from traits/index.ts
+5. pnpm test --filter @holoscript/core
 ```
 
-### Economy & Budget
+## MCP Tools for Refactoring
+
+| Tool | When |
+|------|------|
+| `holo_impact_analysis` | Before ANY symbol rename/move/delete |
+| `holo_query_codebase` | Find callers, callees, imports |
+| `holo_generate_refactor_plan` | Graph-informed refactoring plan |
+| `holo_scaffold_code` | Generate test/interface/module scaffolds |
+| `holo_run_tests_targeted` | Run vitest on specific files |
+| `holoscript_code_health` | Health score before/after refactor |
+
+## Quick Trait Reference
 
 ```
-check_agent_budget → get_usage_summary → optimize_scene_budget
-get_creator_earnings → validate_marketplace_pricing
-```
-
-### Observability
-
-```
-query_traces / get_agent_health / get_metrics_prometheus / export_traces_otlp
-```
-
-### Self-Improvement (agents modify codebase via MCP)
-
-```
-holo_read_file → holo_edit_file → holo_run_tests_targeted → holo_git_commit
-holo_generate_refactor_plan → holo_scaffold_code
-```
-
-### Wisdom & Quality Gates
-
-```
-holo_query_wisdom → holo_check_gotchas (pre-commit gate)
-holoscript_code_health → holoscript_audit_numbers
-```
-
-### Trait Discovery
-
-```
-list_traits({ category: "interaction|physics|visual|networking|ai|spatial|audio|iot|economics|security|devops|data" })
-→ explain_trait({ name: "<trait>" })
-```
-
-### Parse + Explain
-
-```
-parse_hs({ code: "..." }) OR parse_holo({ code: "..." })
-→ explain_code({ ast: <above result> })
-```
-
----
-
-## ∞ FILE FORMAT ROUTING
-
-```
-Data pipelines / ETL / transforms    → .hs     (compiles to Node.js, JSON)
-Behaviors / traits / agents / IoT    → .hsplus  (economics, networking, AI, physics, state machines)
-Compositions / scenes / dashboards   → .holo    (cross-platform, AI-generated)
-CLI / parser / adapter / infra       → .ts      (TypeScript — last resort)
-```
-
----
-
-## ∞ KNOWLEDGE PACK
-
-All counts verified live — NEVER hardcode. Use commands below to get current numbers.
-
-```
-TRAITS     verify: find packages/core/src/traits -name "*.ts" -not -name "*.test.*" | wc -l
-COMPILERS  verify: find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" | wc -l
-TARGETS    verify: ExportTarget type in packages/core/src/compiler/CircuitBreaker.ts
-MCP        verify: curl mcp.holoscript.net/health → tools field
-PACKAGES   verify: ls -d packages/*/ services/*/ | wc -l
-STUDIO     universal IDE — scenes, knowledge, agents, deploy, teams, marketplace, pipeline builder
-BRITTNEY   ../Hololand/packages/brittney/mcp-server/ — runtime AI (optional)
-TEST       pnpm test | pnpm test --filter @holoscript/core | createComposition()
-BUILD      pnpm build | pre-commit: ESLint + tsc + tests (auto-fires)
-WINDOWS    git add -A → nul file → broken repo. ALWAYS explicit stage.
-SIDEBAR    docs/.vitepress/config.ts — ALL nav wired here
-```
-
-### Key Packages (verify full list via `ls packages/ services/`)
-
-```
-@holoscript/core           Parser · AST · traits · 47 compilers
-@holoscript/mcp-server     MCP tools (count via /health)
-@holoscript/studio         Universal IDE — scenes, knowledge, agents, deploy, teams
-@holoscript/framework      Board types, task chaining, team infrastructure
-@holoscript/config         Centralized endpoints, auth, service config
-@holoscript/engine         Scene execution engine
-@holoscript/cli            holo build · holo compile · holo validate · holo dev
-@holoscript/runtime        Direct interpretation (no compiler needed)
-@holoscript/lsp            Language Server (VS Code, Neovim, IntelliJ)
-@holoscript/connector-*    Platform connectors (github, railway, vscode, appstore, upstash)
-@holoscript/llm-provider   OpenAI · Anthropic · Gemini SDK
-@holoscript/crdt           Conflict-free replicated state
-@holoscript/snn-webgpu     Spiking neural networks on GPU
-holoscript (PyPI)          Python + robotics module
-```
-
-### Trait Cheatsheet (spatial + non-spatial)
-
-```
-SPATIAL:
 interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable
 physics       @collidable @physics @rigid @kinematic @trigger @gravity
 visual        @glowing @emissive @transparent @reflective @animated @billboard
-spatial       @anchor @tracked @world_locked @hand_tracked @eye_tracked
-audio         @spatial_audio @ambient @voice_activated
-
-NON-SPATIAL:
-state-logic   @state @reactive @observable @computed @state_machine
-ai-behavior   @npc @pathfinding @llm_agent @reactive @crowd
 networking    @networked @synced @persistent @owned @host_only
-economics     @wallet @nft_asset @token_gated @marketplace @economy_primitive
-iot           @iot_sensor @digital_twin @mqtt_bridge @telemetry
-security      @zero_knowledge_proof @vulnerability_scanner @audit_log
-social        @avatar @presence @voice_chat @proximity_chat
-accessibility @high_contrast @screen_reader @reduced_motion
-ai-gen        @stable_diffusion @neural_forge @diffusion_realtime
+economics     @wallet @nft_asset @token_gated @marketplace
+iot           @iot_sensor @digital_twin @mqtt_bridge
+simulation    @thermal_simulation @structural_fem @hydraulic_pipe
 ```
 
----
+## Team
 
-## ∞ SYNTAX REFERENCE
-
-### .hs (Classic)
-
-```hs
-composition "MyScene" {
-  template "Player" {
-    geometry: "humanoid"
-    color: "#00ffff"
-    state { health: 100 }
-  }
-  object "Player" using "Player" { position: [0, 1.6, 0] }
-}
-```
-
-### .hsplus (Traits)
-
-```hsplus
-composition "Demo" {
-  template "Ball" {
-    @grabbable
-    @collidable
-    @networked
-    geometry: "sphere"
-    physics: { mass: 0.5 }
-    onGrab: { haptic.feedback('medium') }
-  }
-  object "Ball" using "Ball" { position: [0, 1, 0] }
-}
-```
-
-### .holo (Declarative / AI-focused)
-
-```holo
-composition "WorldScene" {
-  environment { skybox: "nebula", ambient_light: 0.3 }
-  template "Enemy" { state { health: 100 } }
-  spatial_group "Arena" {
-    object "Goblin_1" using "Enemy" { position: [0, 0, 5] }
-    object "Goblin_2" using "Enemy" { position: [3, 0, 5] }
-  }
-}
-```
-
----
-
-## ∞ AFFIRMATION CHECKLIST — Before Responding Done
-
-```
-□ validate_holoscript called on all generated HoloScript?
-□ pnpm test run if any TypeScript modified?
-□ Did I run `holoscript absorb` BEFORE refactoring ANY TypeScript package?
-□ Explicit git add used (never git add -A)?
-□ docs/.vitepress/config.ts updated if new doc page created?
-□ Output matches what user actually asked for?
-```
-
-Incomplete box → complete it first.
-
----
-
-## ∞ DOCS STRUCTURE
-
-```
-docs/academy/      25 lessons, 3 levels — newcomer entry point
-docs/compilers/    47 targets (verify: `find packages/core/src -name "*Compiler.ts"`) — unity/ unreal/ godot/ webgpu/ next/ a2a/ and more
-docs/traits/       13 category pages + index
-docs/guides/       Concepts, MCP, installation
-docs/integrations/ Hololand, Grok, AI architecture
-docs/cookbook/     Copy-paste recipes
-docs/api/          TypeDoc auto-generated
-docs/_archive/     Dev notes ONLY — never user-facing
-```
-
-Full context: [CLAUDE.md](CLAUDE.md)
+Use `holomesh_*` MCP tools for board, knowledge, messaging. See `AGENT_INTERFACE.md`.
