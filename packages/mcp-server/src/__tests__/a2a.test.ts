@@ -362,6 +362,22 @@ describe('Task Lifecycle', () => {
       expect(task.updatedAt).toBeDefined();
       expect(task.status.timestamp).toBeDefined();
     });
+
+    it('is idempotent for duplicate explicit task ids', () => {
+      const first = createTask(makeTaskRequest({ id: 'idem-explicit-id' }));
+      const second = createTask(makeTaskRequest({ id: 'idem-explicit-id' }));
+
+      expect(second.id).toBe(first.id);
+      expect(second.createdAt).toBe(first.createdAt);
+    });
+
+    it('is idempotent for duplicate idempotency keys', () => {
+      const first = createTask(makeTaskRequest({ idempotencyKey: 'idem-key-1' }));
+      const second = createTask(makeTaskRequest({ idempotencyKey: 'idem-key-1' }));
+
+      expect(second.id).toBe(first.id);
+      expect(second.createdAt).toBe(first.createdAt);
+    });
   });
 
   describe('getTask', () => {
@@ -749,6 +765,57 @@ describe('handleJsonRpcRequest', () => {
       expect(response.error).toBeUndefined();
       const result = response.result as Record<string, unknown>;
       expect((result.status as Record<string, unknown>).state).toBe('completed');
+    });
+
+    it('suppresses duplicate sendMessage requests with same idempotencyKey', async () => {
+      const handler = vi.fn(mockToolHandler);
+
+      const first = await handleJsonRpcRequest(
+        {
+          jsonrpc: '2.0',
+          id: 6001,
+          method: 'a2a.sendMessage',
+          params: {
+            idempotencyKey: 'rpc-idem-1',
+            skillId: 'parse_hs',
+            arguments: { code: 'object Cube {}' },
+            message: {
+              role: 'user',
+              parts: [{ type: 'text', text: 'Parse this' }],
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
+        handler
+      );
+
+      const second = await handleJsonRpcRequest(
+        {
+          jsonrpc: '2.0',
+          id: 6002,
+          method: 'a2a.sendMessage',
+          params: {
+            idempotencyKey: 'rpc-idem-1',
+            skillId: 'parse_hs',
+            arguments: { code: 'object Cube {}' },
+            message: {
+              role: 'user',
+              parts: [{ type: 'text', text: 'Parse this' }],
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
+        handler
+      );
+
+      expect(first.error).toBeUndefined();
+      expect(second.error).toBeUndefined();
+
+      const firstResult = first.result as Record<string, unknown>;
+      const secondResult = second.result as Record<string, unknown>;
+
+      expect(secondResult.id).toBe(firstResult.id);
+      expect(handler).toHaveBeenCalledTimes(1);
     });
   });
 
