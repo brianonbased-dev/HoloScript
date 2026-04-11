@@ -1,7 +1,7 @@
 /**
  * Team Room — SSE-based real-time event bus for team operations.
  *
- * Agents connect once via GET /api/holomesh/team/:id/room and receive
+ * Agents connect once via GET /api/holomesh/team/:id/room/live and receive
  * all team events (board changes, messages, presence, knowledge, mode)
  * as they happen. No polling needed.
  *
@@ -37,11 +37,11 @@ interface RoomClient {
 
 // ─── Global State ─────────────────────────────────────────────────────────────
 
-// teamId → Set<RoomClient>
-const teamRooms = new Map<string, Set<RoomClient>>();
+// teamId/roomId → Set<RoomClient>
+const rooms = new Map<string, Set<RoomClient>>();
 
-// teamId → last N events (for reconnect replay)
-const teamHistory = new Map<string, RoomEvent[]>();
+// teamId/roomId → last N events (for reconnect replay)
+const roomHistory = new Map<string, RoomEvent[]>();
 
 const MAX_HISTORY = 50;
 const HEARTBEAT_INTERVAL = 25_000; // 25s SSE keepalive
@@ -49,24 +49,24 @@ const HEARTBEAT_INTERVAL = 25_000; // 25s SSE keepalive
 // ─── Core Functions ───────────────────────────────────────────────────────────
 
 /**
- * Broadcast an event to all connected clients in a team room.
- * Called from mutation endpoints (board, messages, presence, knowledge, etc).
+ * Broadcast an event to all connected clients in a room.
+ * Called from mutation endpoints (board, messages, games, etc).
  */
-export function broadcastToTeam(teamId: string, event: Omit<RoomEvent, 'ts' | 'team'>): void {
+export function broadcastToRoom(roomId: string, event: Omit<RoomEvent, 'ts' | 'team'>): void {
   const fullEvent: RoomEvent = {
     ...event,
-    team: teamId,
+    team: roomId, // Using 'team' field for the room identifier (backward compat)
     ts: Date.now(),
   };
 
   // Store in history for reconnect replay
-  const hist = teamHistory.get(teamId) ?? [];
+  const hist = roomHistory.get(roomId) ?? [];
   hist.push(fullEvent);
   if (hist.length > MAX_HISTORY) hist.splice(0, hist.length - MAX_HISTORY);
-  teamHistory.set(teamId, hist);
+  roomHistory.set(roomId, hist);
 
   // Broadcast to all connected clients
-  const clients = teamRooms.get(teamId);
+  const clients = rooms.get(roomId);
   if (!clients || clients.size === 0) return;
 
   const sseData = `data: ${JSON.stringify(fullEvent)}\n\n`;
@@ -80,11 +80,15 @@ export function broadcastToTeam(teamId: string, event: Omit<RoomEvent, 'ts' | 't
 }
 
 /**
- * Get list of agents currently connected to a team room.
- * Replaces presence polling — if they're connected, they're alive.
+ * Alias for backward compatibility with team-only broadcasts.
  */
-export function getRoomPresence(teamId: string): { agentId: string; agentName: string; ide?: string; joinedAt: number }[] {
-  const clients = teamRooms.get(teamId);
+export const broadcastToTeam = broadcastToRoom;
+
+/**
+ * Get list of agents currently connected to a room.
+ */
+export function getRoomPresence(roomId: string): { agentId: string; agentName: string; ide?: string; joinedAt: number }[] {
+  const clients = rooms.get(roomId);
   if (!clients) return [];
   return Array.from(clients).map(c => ({
     agentId: c.agentId,
@@ -95,12 +99,12 @@ export function getRoomPresence(teamId: string): { agentId: string; agentName: s
 }
 
 /**
- * Get count of connected clients per team (for health/monitoring).
+ * Get count of connected clients per room (for health/monitoring).
  */
 export function getRoomStats(): Record<string, number> {
   const stats: Record<string, number> = {};
-  for (const [teamId, clients] of teamRooms) {
-    stats[teamId] = clients.size;
+  for (const [roomId, clients] of rooms) {
+    stats[roomId] = clients.size;
   }
   return stats;
 }
@@ -108,7 +112,7 @@ export function getRoomStats(): Record<string, number> {
 // ─── SSE Handler ──────────────────────────────────────────────────────────────
 
 /**
- * Handle GET /api/holomesh/team/:id/room — Open SSE stream.
+ * Handle GET /api/holomesh/team/:id/room/live — Open SSE stream.
  *
  * Query params:
  *   agent_id    — agent's registered ID
@@ -146,11 +150,11 @@ export function handleTeamRoomConnection(
   };
 
   // Add to room
-  if (!teamRooms.has(teamId)) teamRooms.set(teamId, new Set());
-  teamRooms.get(teamId)!.add(client);
+  if (!rooms.has(teamId)) rooms.set(teamId, new Set());
+  rooms.get(teamId)!.add(client);
 
   // Replay history for reconnecting clients
-  const hist = teamHistory.get(teamId) ?? [];
+  const hist = roomHistory.get(teamId) ?? [];
   const replay = since > 0 ? hist.filter(e => e.ts > since) : hist;
   for (const event of replay) {
     try {
@@ -161,7 +165,7 @@ export function handleTeamRoomConnection(
   }
 
   // Announce join to all clients in the room
-  broadcastToTeam(teamId, {
+  broadcastToRoom(teamId, {
     type: 'presence:join',
     agent: agentName,
     data: { agentId, agentName, ide },
@@ -179,18 +183,18 @@ export function handleTeamRoomConnection(
   // Cleanup on disconnect
   const cleanup = () => {
     clearInterval(heartbeat);
-    teamRooms.get(teamId)?.delete(client);
+    rooms.get(teamId)?.delete(client);
 
     // Announce leave
-    broadcastToTeam(teamId, {
+    broadcastToRoom(teamId, {
       type: 'presence:leave',
       agent: agentName,
       data: { agentId, agentName, ide },
     });
 
     // Clean up empty rooms
-    if (teamRooms.get(teamId)?.size === 0) {
-      teamRooms.delete(teamId);
+    if (rooms.get(teamId)?.size === 0) {
+      rooms.delete(teamId);
     }
   };
 

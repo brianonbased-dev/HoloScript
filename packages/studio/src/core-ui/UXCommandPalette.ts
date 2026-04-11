@@ -1,3 +1,4 @@
+/** A single action entry in the command palette. */
 export interface CommandOption {
   id: string;
   label: string;
@@ -7,6 +8,10 @@ export interface CommandOption {
   action: () => void | Promise<void>;
 }
 
+/**
+ * Studio command palette (Ctrl+K / Cmd+K).
+ * Renders a searchable overlay of registered commands with keyboard navigation.
+ */
 export class UXCommandPalette {
   private active: boolean = false;
   private query: string = '';

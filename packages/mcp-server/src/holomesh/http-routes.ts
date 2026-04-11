@@ -48,7 +48,7 @@ export async function handleHoloMeshRoute(
   if (pathname === '/api/holomesh/health' && method === 'GET') {
     json(res, 200, { 
       status: 'operational', 
-      version: '6.0.2',
+      version: '6.1.0',
       orchestrator: getClient().getAgentId() ? 'connected' : 'disconnected'
     });
     return true;

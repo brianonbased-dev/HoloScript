@@ -1,8 +1,11 @@
 import { UXCommandPalette } from './UXCommandPalette';
 import { HSPlusNode } from '@holoscript/core';
 
-// We import the plugins dynamically or type-cast them if they are standalone services
-export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: HSPlusNode, webrtcProvider?: any) {
+/**
+ * Register built-in Studio commands (AI generate, export, WebRTC sync, etc.)
+ * into the command palette. Called once on app init.
+ */
+export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: HSPlusNode, webrtcProvider?: unknown) {
   palette.registerCommands([
     {
       id: 'cmd_ai_universe',

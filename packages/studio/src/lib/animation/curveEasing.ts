@@ -2,7 +2,8 @@
  * curveEasing.ts
  *
  * Pure easing functions for keyframe animation.
- * All functions take t ∈ [0, 1] and return a value ∈ [0, 1].
+ * All functions take t ∈ [0, 1]. Most return [0, 1], but overshoot
+ * easings (back, elastic) may exceed this range.
  *
  * Used by the keyframe timeline and AnimationClip exporter.
  */
@@ -191,7 +192,7 @@ export function applyEasing(
   a: number,
   b: number,
   t: number,
-  easingName: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
+  easingName: EasingName
 ): number {
   let et: number;
   switch (easingName) {
@@ -203,6 +204,15 @@ export function applyEasing(
       break;
     case 'ease-in-out':
       et = easeInOutCubic(t);
+      break;
+    case 'bounce':
+      et = easeOutBounce(t);
+      break;
+    case 'elastic':
+      et = easeOutElastic(t);
+      break;
+    case 'back':
+      et = easeInOutBack(t);
       break;
     default:
       et = t; // linear

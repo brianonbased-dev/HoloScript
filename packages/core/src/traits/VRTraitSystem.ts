@@ -1,18 +1,13 @@
 /**
- * VR Trait System
+ * VR Trait System — Runtime trait handler registry.
  *
- * Implements VR interaction traits for HoloScript+ objects:
- * - @grabbable - Hand grab interactions
- * - @throwable - Physics-based throwing
- * - @pointable - Laser pointer interactions
- * - @hoverable - Hover state and highlights
- * - @scalable - Two-handed scaling
- * - @rotatable - Rotation interactions
- * - @stackable - Stacking behavior
- * - @snappable - Snap-to-point behavior
- * - @breakable - Destruction on impact
+ * Registers and dispatches handlers for all HoloScript+ traits:
+ * VR interaction (grabbable, throwable, etc.), simulation (thermal,
+ * structural, hydraulic, saturation), networking, economy, physics,
+ * accessibility, and domain-specific traits from plugins.
  *
- * @version 1.0.0
+ * Handler count grows with each plugin — discover registered traits
+ * via VRTraitRegistry.getRegisteredTraits() at runtime.
  */
 
 import type {

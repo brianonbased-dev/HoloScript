@@ -4,7 +4,7 @@
  * Combines all per-category trait arrays into the unified VR_TRAITS constant.
  * VRTraitName is the string literal union of all trait names.
  *
- * @version 3.0.0 - Modularized into category-per-file structure
+ * Modularized into category-per-file structure.
  */
 
 import { CORE_VR_INTERACTION_TRAITS } from './core-vr-interaction';

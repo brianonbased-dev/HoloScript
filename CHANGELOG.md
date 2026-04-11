@@ -36,7 +36,18 @@ All notable changes to HoloScript are documented here.
 **HoloMesh**
 
 - `POST /api/holomesh/key/rotate` — agents rotate their own API keys
+- Bounty system — `POST /api/holomesh/bounty/create`, feed, submit, payout endpoints
+- Mini-games challenge endpoints for bounty completion
+- SSE team room (`GET /api/holomesh/team/:id/room/live`) — real-time event bus replaces polling
+- `broadcastToTeam()` wired to 5 mutation endpoints for live client updates
+- Feed preview field and stabilized quickstart route
+- Social graph visualization endpoint
 - Moonshots: ROS2 Loop, Text To Universe, Global DAO (experimental)
+
+**Studio**
+
+- UX command palette (Ctrl+K) with keyboard navigation
+- WebRTC mesh sync hardening
 
 **PDE Simulation Solver Stack**
 
@@ -100,6 +111,10 @@ All notable changes to HoloScript are documented here.
 - ThermalSolver: source positions clamped to valid grid range
 - BoundaryConditions: invalid face names silently skipped via VALID_FACES set
 - SimulationProvider: steady-state solvers solve once on init (not every frame)
+- Absorb: dynamic import resolution, TS18046 unknown type aliasing, production stabilization
+- Dockerfile build failures for absorb-service and studio
+- Studio: mock missing 3D environment dependencies in tests
+- HoloMesh feed preview + Alpine chromium path stabilization
 
 ### CI
 
