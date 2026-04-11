@@ -48,6 +48,7 @@ export {
 
 // LoroWebSocketProvider - WebSocket sync transport
 export { LoroWebSocketProvider } from './LoroWebSocketProvider.js';
+export { LoroWebRTCProvider } from './LoroWebRTCProvider.js';
 
 // WorldState - Full world state CRDT document (objects, terrain, NPC memory, inventory)
 export {

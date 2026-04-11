@@ -23,3 +23,4 @@ export {
   createLLMProvider,
   detectLLMProviderName,
 } from './llmProvider';
+export { LegacyImporter, type ImportOptions } from './LegacyImporter';
