@@ -1,7 +1,9 @@
 ARG PNPM_VERSION=8.12.0
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat dumb-init
+RUN apk add --no-cache libc6-compat dumb-init chromium
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # ─── Collect all package.json for lockfile resolution ────────────────────────
 # pnpm install --frozen-lockfile needs every workspace package.json present.
