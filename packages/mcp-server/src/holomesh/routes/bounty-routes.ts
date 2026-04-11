@@ -37,6 +37,101 @@ export async function handleBountyRoutes(
   method: string,
   url: string
 ): Promise<boolean> {
+  const ADOPT_TARGET_LIBRARY: Record<string, { title: string; description: string; tags: string[]; defaultReward: number }> = {
+    blender: {
+      title: 'Blender target adoption',
+      description: 'Build/maintain Blender pipeline compatibility and export validation for HoloScript scenes.',
+      tags: ['blender', 'interop', 'export'],
+      defaultReward: 300,
+    },
+    horizon: {
+      title: 'Meta Horizon target adoption',
+      description: 'Prototype target support for Horizon-compatible world packaging and interaction constraints.',
+      tags: ['horizon', 'vr', 'target-adoption'],
+      defaultReward: 400,
+    },
+    roblox: {
+      title: 'Roblox target adoption',
+      description: 'Create conversion and runtime compatibility path for Roblox ecosystem exports.',
+      tags: ['roblox', 'interop', 'target-adoption'],
+      defaultReward: 350,
+    },
+  };
+
+  // GET /api/holomesh/bounties/adopt-targets — list available adoption templates
+  if (pathname === '/api/holomesh/bounties/adopt-targets' && method === 'GET') {
+    const templates = Object.entries(ADOPT_TARGET_LIBRARY).map(([key, t]) => ({ target: key, ...t }));
+    json(res, 200, { success: true, templates, count: templates.length });
+    return true;
+  }
+
+  // POST /api/holomesh/bounties/adopt-targets — seed target-specific bounties to a team board
+  if (pathname === '/api/holomesh/bounties/adopt-targets' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const teamId = (body.teamId as string | undefined)?.trim();
+    const targets = Array.isArray(body.targets)
+      ? (body.targets as string[]).map((t) => String(t).toLowerCase())
+      : ['blender', 'horizon', 'roblox'];
+    const currency = (body.currency as BountyCurrency | undefined) || 'credits';
+
+    if (!teamId) {
+      json(res, 400, { error: 'Missing teamId' });
+      return true;
+    }
+
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+    if (!team.taskBoard) team.taskBoard = [];
+    if (!team.bounties) team.bounties = new BountyManager();
+
+    const created: Array<{ target: string; task: TeamTask; bounty: Bounty }> = [];
+
+    for (const target of targets) {
+      const tpl = ADOPT_TARGET_LIBRARY[target];
+      if (!tpl) continue;
+
+      const taskTitle = `[Adopt-a-Target] ${tpl.title}`;
+      const taskId = (generateTaskId as any)(taskTitle, 'manual');
+      const task: TeamTask = {
+        id: taskId,
+        title: taskTitle,
+        description: `${tpl.description}\n\nTags: ${tpl.tags.join(', ')}`,
+        status: 'open',
+        source: 'manual',
+        priority: 3 as any,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Avoid duplicate seeded tasks per target title
+      const duplicate = team.taskBoard.find((t) => t.title === task.title && t.status !== 'done');
+      if (duplicate) continue;
+
+      team.taskBoard.push(task);
+      const bounty = team.bounties.createBounty(
+        task.id,
+        { amount: Number(body.defaultReward ?? tpl.defaultReward), currency },
+        caller.name,
+        body.deadline ? Number(body.deadline) : undefined,
+      );
+
+      created.push({ target, task, bounty });
+    }
+
+    persistTeamStore();
+    json(res, 201, { success: true, teamId, created, count: created.length });
+    return true;
+  }
+
   // GET /api/holomesh/bounties — Aggregated bounty feed (optionally by team or status)
   if (pathname === '/api/holomesh/bounties' && method === 'GET') {
     const q = parseQuery(url);
@@ -96,17 +191,17 @@ export async function handleBountyRoutes(
         json(res, 400, { error: 'Missing taskId or problem' });
         return true;
       }
-      taskId = generateTaskId(problem, 'manual');
+      taskId = (generateTaskId as any)(problem, 'manual');
       createdTask = {
         id: taskId,
         title: problem,
         description: (body.description as string | undefined) || '',
         status: 'open',
         source: 'manual',
-        priority: ((body.priority as TeamTask['priority']) || 'P3'),
+        priority: ((body.priority as TeamTask['priority']) || 3 as any),
         createdAt: new Date().toISOString(),
       };
-      team.taskBoard.push(createdTask);
+      team.taskBoard.push(createdTask!);
     }
 
     const task = team.taskBoard.find((t) => t.id === taskId);
@@ -230,7 +325,6 @@ export async function handleBountyRoutes(
       solution,
       proof,
       status: 'submitted',
-      createdAt: new Date().toISOString(),
     };
     
     const list = bountySubmissionStore.get(bountyId) || [];
@@ -470,9 +564,9 @@ export async function handleBountyRoutes(
       createdAt: new Date().toISOString(),
     };
     if (existingIdx >= 0) {
-      proposal.votes[existingIdx] = vote;
+      proposal.votes[existingIdx] = vote as any;
     } else {
-      proposal.votes.push(vote);
+      proposal.votes.push(vote as any);
     }
 
     bountyGovernanceStore.set(bountyId, proposal);
