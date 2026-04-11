@@ -1,0 +1,8 @@
+{
+  "name": "@holoscript/plugin-education-lms",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for education-lms",
+  "main": "src/index.ts",
+  "peerDependencies": { "holoscript": "^6.0.0" },
+  "license": "MIT"
+}
