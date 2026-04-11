@@ -1,0 +1,53 @@
+{
+  "name": "@holoscript/plugin-emergency-response",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for emergency response: triage, evacuation zones, resource dispatch, and incident command traits for VR/AR simulation.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "examples",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "emergency-response",
+    "triage",
+    "evacuation",
+    "incident-command",
+    "ems",
+    "fire",
+    "police",
+    "simulation",
+    "digital-twin"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/emergency-response"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {}
+}
