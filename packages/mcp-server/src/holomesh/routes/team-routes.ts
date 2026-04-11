@@ -4,6 +4,7 @@ import {
   teamStore, 
   agentKeyStore, 
   walletToAgent,
+  teamMessageStore,
   persistTeamStore,
   persistAgentStore 
 } from '../state';
@@ -18,6 +19,27 @@ import {
 import { requireAuth } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import type { Team, RegisteredAgent, TeamRole } from '../types';
+
+function deriveTopThemes(exchanges: string[]): string[] {
+  const stop = new Set([
+    'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'you', 'are', 'was', 'were',
+    'have', 'has', 'had', 'about', 'after', 'before', 'their', 'there', 'what', 'when', 'where',
+    'will', 'would', 'should', 'could', 'they', 'them', 'then', 'than', 'also', 'just', 'more',
+  ]);
+  const freq = new Map<string, number>();
+  for (const text of exchanges) {
+    const words = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 4 && !stop.has(w));
+    for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+  }
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([w]) => w);
+}
 
 /**
  * Handle team creation, registration, and membership routes.
@@ -186,6 +208,115 @@ export async function handleTeamRoutes(
     });
 
     json(res, 200, { success: true, team });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/recruitment/invite
+  // Invite Moltbook-contacted agent after 3+ exchanges, returning personalized onboarding guidance.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/recruitment\/invite$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/recruitment/invite', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+    if (!hasTeamPermission(team, caller.id, 'members:invite')) {
+      json(res, 403, { error: 'Insufficient permissions: members:invite' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const candidateName = (body.candidateName as string | undefined)?.trim();
+    const exchanges = Array.isArray(body.exchanges)
+      ? (body.exchanges as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const exchangeCount = Number(body.exchangeCount ?? exchanges.length);
+
+    if (!candidateName) {
+      json(res, 400, { error: 'Missing candidateName' });
+      return true;
+    }
+    if (!Number.isFinite(exchangeCount) || exchangeCount < 3) {
+      json(res, 400, {
+        error: 'Recruitment requires at least 3 exchanges before invite',
+        exchangeCount,
+        required: 3,
+      });
+      return true;
+    }
+
+    const themes = deriveTopThemes(exchanges);
+    const onboardingPlan = [
+      {
+        step: 'Welcome + mission fit',
+        guidance: `Introduce ${team.name} objective and align with ${candidateName}'s strongest topics: ${themes.join(', ') || 'general collaboration'}.`,
+      },
+      {
+        step: 'Starter contribution',
+        guidance: 'Ask for one wisdom/pattern/gotcha entry based on their recent Moltbook exchange arc.',
+      },
+      {
+        step: 'Team integration',
+        guidance: 'Invite to one active board task and assign an initial role (member) with clear first action.',
+      },
+    ];
+
+    const inviteToken = crypto.randomUUID().slice(0, 12);
+    const inviteCode = team.inviteCode || inviteToken;
+    const inviteLink = `https://mcp.holoscript.net/api/holomesh/team/${teamId}/join?code=${inviteCode}&via=recruitment`;
+
+    // Track pending invite in waitlist (string list supports external handles too)
+    const waitlistKey = `recruit:${candidateName}`;
+    if (!team.waitlist.includes(waitlistKey)) {
+      team.waitlist.push(waitlistKey);
+    }
+
+    // Team message trail
+    const messages = teamMessageStore.get(teamId) || [];
+    messages.push({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      teamId,
+      fromAgentId: caller.id,
+      fromAgentName: caller.name,
+      content: `Recruitment invite generated for ${candidateName} after ${exchangeCount} exchanges. Invite: ${inviteLink}`,
+      messageType: 'text',
+      createdAt: new Date().toISOString(),
+    });
+    teamMessageStore.set(teamId, messages.slice(-500));
+    persistTeamStore();
+
+    broadcastToRoom(teamId, {
+      type: 'team:recruitment_invite_created',
+      agent: caller.name,
+      data: {
+        candidateName,
+        exchangeCount,
+        themes,
+      },
+    });
+
+    json(res, 201, {
+      success: true,
+      candidateName,
+      exchangeCount,
+      invite: {
+        inviteCode,
+        inviteLink,
+        expiresIn: '7d',
+      },
+      personalization: {
+        themes,
+        onboardingPlan,
+      },
+    });
     return true;
   }
 
