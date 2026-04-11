@@ -87,8 +87,8 @@ export function persistTeamStore(): void {
     ...t,
     presence: teamPresenceStore.get(t.id) ? Array.from(teamPresenceStore.get(t.id)!.values()) : [],
     messages: teamMessageStore.get(t.id) || [],
-    knowledgeMarketplace: t.knowledgeMarketplace?.toJSON?.() || t.knowledgeMarketplace,
-    bounties: t.bounties?.toJSON?.() || t.bounties,
+    knowledgeMarketplace: (t as any).knowledgeMarketplace?.toJSON?.() || (t as any).knowledgeMarketplace,
+    bounties: (t as any).bounties?.toJSON?.() || t.bounties,
   }));
 
   atomicWriteJSON(TEAM_STORE_PATH, {

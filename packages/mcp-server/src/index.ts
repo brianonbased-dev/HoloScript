@@ -132,8 +132,8 @@ async function handleOracleConsult(
   }
   return { content: [{ type: 'text', text: results.join('\n\n') }] };
 }
-import { _selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
-import { _gltfImportTools, handleGltfTool } from './gltf-import-tools';
+import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
+import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
@@ -309,7 +309,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 
 async function main() {
-  requireConfig(REQUIRED_VARS.MCP_SERVER, 'mcp-server');
+  requireConfig((REQUIRED_VARS.MCP_SERVER as unknown as string[]), 'mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('HoloScript MCP Server running on stdio');

@@ -246,7 +246,7 @@ export async function handleCompileToTarget(
       error: errorMessage,
       metadata: {
         compilationTimeMs: Date.now() - startTime,
-        circuitBreakerState: CircuitState.OPEN ?? 'open',
+        circuitBreakerState: 'open' as any,
         usedFallback: false,
       },
     };
@@ -402,16 +402,16 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'dtdl',
     'vrr',
     'multi-layer',
-  ] as ExportTarget[];
+  ] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
-    'Game Engines': ['unity', 'unreal', 'godot'] as ExportTarget[],
-    'VR Platforms': ['vrchat', 'openxr'] as ExportTarget[],
-    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as ExportTarget[],
-    'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as ExportTarget[],
-    'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as ExportTarget[],
-    '3D Formats': ['usd', 'usdz'] as ExportTarget[],
-    Advanced: ['vrr', 'multi-layer'] as ExportTarget[],
+    'Game Engines': ['unity', 'unreal', 'godot'] as unknown as ExportTarget[],
+    'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
+    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as unknown as ExportTarget[],
+    'Web Platforms': ['babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas'] as unknown as ExportTarget[],
+    'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
+    '3D Formats': ['usd', 'usdz'] as unknown as ExportTarget[],
+    Advanced: ['vrr', 'multi-layer'] as unknown as ExportTarget[],
   };
 
   return { targets, categories };
@@ -438,7 +438,7 @@ export async function handleGetCircuitBreakerStatus(
     failureRate: metrics.failureRate,
     lastError: metrics.lastError,
     timeInDegradedMode: metrics.timeInDegradedMode,
-    canRetry: metrics.state !== (CircuitState.OPEN ?? 'open'),
+    canRetry: metrics.state !== ('open'),
   };
 }
 

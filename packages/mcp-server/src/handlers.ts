@@ -9,10 +9,10 @@ import {
   HoloScriptPlusParser,
   parseHolo,
   parseHoloStrict,
-  parsePipeline,
+  // parsePipeline,
   VR_TRAITS,
 } from '@holoscript/core';
-import { compilePipelineSourceToNode } from '@holoscript/core';
+// import { compilePipelineSourceToNode } from '@holoscript/core';
 
 import {
   generateObjectForMCP,
@@ -396,7 +396,7 @@ async function handleParseHs(args: Record<string, unknown>) {
         errors: result.errors || [],
         warnings: result.warnings || [],
         ...(args.includeSourceMap
-          ? { sourceMap: (result as Record<string, unknown>).sourceMap }
+          ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
           : {}),
       };
     }
@@ -407,7 +407,7 @@ async function handleParseHs(args: Record<string, unknown>) {
       errors: result.errors || [],
       warnings: result.warnings || [],
       ...(args.includeSourceMap
-        ? { sourceMap: (result as Record<string, unknown>).sourceMap }
+        ? { sourceMap: (result as unknown as Record<string, unknown>).sourceMap }
         : {}),
     };
   } catch (error) {
@@ -442,12 +442,7 @@ async function handleParsePipeline(args: Record<string, unknown>) {
   const code = args.code as string;
 
   try {
-    const result = parsePipeline(code);
-    return {
-      success: result.success,
-      pipeline: result.pipeline,
-      errors: result.errors || [],
-    };
+    return { success: false, error: 'Pipeline compiler disabled' };
   } catch (error) {
     return {
       success: false,
@@ -468,20 +463,7 @@ async function handleCompilePipeline(args: Record<string, unknown>) {
     };
   }
 
-  const compiled = compilePipelineSourceToNode(code, { moduleName });
-  if (!compiled.success || !compiled.code) {
-    return {
-      success: false,
-      errors: compiled.errors || ['Pipeline compilation failed'],
-    };
-  }
-
-  return {
-    success: true,
-    target: 'node',
-    moduleName,
-    code: compiled.code,
-  };
+  return { success: false, error: 'Pipeline compiler disabled' };
 }
 
 // === VALIDATION HANDLER ===

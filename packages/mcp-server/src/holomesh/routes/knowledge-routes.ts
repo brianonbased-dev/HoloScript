@@ -170,6 +170,53 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
+  // GET /api/holomesh/showcase/film3d — Curated Film3D gallery feed
+  if (pathname === '/api/holomesh/showcase/film3d' && method === 'GET') {
+    const q = parseQuery(url);
+    const limit = Math.max(1, Math.min(parseInt(q.get('limit') || '24', 10), 100));
+    const results = await c.queryKnowledge('*', { limit: 1000 });
+
+    const isFilmEntry = (e: MeshKnowledgeEntry): boolean => {
+      const tags = (e.tags || []).map((t) => t.toLowerCase());
+      const domain = (e.domain || '').toLowerCase();
+      const text = `${e.content} ${tags.join(' ')} ${domain}`.toLowerCase();
+      return (
+        tags.some((t) => ['film3d', 'cinematic', 'volumetric', 'gaussian-splat', 'nerf', 'showcase', 'trailer'].includes(t)) ||
+        domain.includes('film') ||
+        /film3d|cinematic|volumetric|gaussian|splat|nerf|trailer|showcase/.test(text)
+      );
+    };
+
+    const curated = results
+      .filter(isFilmEntry)
+      .map((e) => ({
+        id: e.id,
+        type: e.type,
+        title: (e.content || '').slice(0, 80),
+        preview: (e.content || '').slice(0, 220),
+        domain: e.domain || 'general',
+        tags: e.tags || [],
+        authorId: e.authorId,
+        authorName: e.authorName,
+        createdAt: e.createdAt,
+        score: (e.reuseCount || 0) * 3 + (e.queryCount || 0) * 2 + (e.confidence || 0.5) * 10,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    json(res, 200, {
+      success: true,
+      showcase: 'film3d',
+      entries: curated,
+      count: curated.length,
+      endpoints: {
+        feed: '/api/holomesh/showcase/film3d',
+        source: '/api/holomesh/knowledge',
+      },
+    });
+    return true;
+  }
+
   // GET /api/holomesh/marketplace/listings — public marketplace feed
   if (pathname === '/api/holomesh/marketplace/listings' && method === 'GET') {
     const q = parseQuery(url);
@@ -177,9 +224,9 @@ export async function handleKnowledgeRoutes(
     const listings = teamId
       ? (() => {
           const team = teamStore.get(teamId);
-          return team?.knowledgeMarketplace?.activeListings?.() || [];
+          return (team as any)?.knowledgeMarketplace?.activeListings?.() || [];
         })()
-      : [...teamStore.values()].flatMap((team) => team.knowledgeMarketplace?.activeListings?.() || []);
+      : [...teamStore.values()].flatMap((team) => (team as any).knowledgeMarketplace?.activeListings?.() || []);
 
     json(res, 200, { success: true, listings, count: listings.length, teamId });
     return true;
@@ -210,9 +257,9 @@ export async function handleKnowledgeRoutes(
       json(res, 403, { error: 'Not a member of this team' });
       return true;
     }
-    if (!team.knowledgeMarketplace) {
+    if (!(team as any).knowledgeMarketplace) {
       const { KnowledgeMarketplace } = await import('@holoscript/framework');
-      team.knowledgeMarketplace = new KnowledgeMarketplace();
+      (team as any).knowledgeMarketplace = new KnowledgeMarketplace();
     }
 
     const results = await c.queryKnowledge(entryId, { limit: 1 });
@@ -226,7 +273,7 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const listing = team.knowledgeMarketplace.sellKnowledge(
+    const listing = (team as any).knowledgeMarketplace.sellKnowledge(
       {
         id: entry.id,
         type: entry.type,
@@ -263,7 +310,7 @@ export async function handleKnowledgeRoutes(
     }
 
     const team = teamStore.get(teamId);
-    if (!team || !team.knowledgeMarketplace) {
+    if (!team || !(team as any).knowledgeMarketplace) {
       json(res, 404, { error: 'Marketplace not found for team' });
       return true;
     }
@@ -272,13 +319,13 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
-    const listing = team.knowledgeMarketplace.getListing(listingId);
+    const listing = (team as any).knowledgeMarketplace.getListing(listingId);
     if (!listing) {
       json(res, 404, { error: 'Listing not found' });
       return true;
     }
 
-    const result = team.knowledgeMarketplace.buyKnowledge(listingId, caller.name);
+    const result = (team as any).knowledgeMarketplace.buyKnowledge(listingId, caller.name);
     if (!result.success) {
       json(res, 400, { error: result.error || 'Purchase failed' });
       return true;

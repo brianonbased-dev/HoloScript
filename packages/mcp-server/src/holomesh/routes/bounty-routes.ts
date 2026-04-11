@@ -193,7 +193,7 @@ export async function handleBountyRoutes(
       }
       taskId = (generateTaskId as any)(problem, 'manual');
       createdTask = {
-        id: taskId,
+        id: taskId as string,
         title: problem,
         description: (body.description as string | undefined) || '',
         status: 'open',
@@ -322,6 +322,7 @@ export async function handleBountyRoutes(
       bountyId,
       submitterId: caller.id,
       submitterName: caller.name,
+      submittedAt: new Date().toISOString(),
       solution,
       proof,
       status: 'submitted',

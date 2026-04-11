@@ -25,6 +25,7 @@
  *     reputation (LoroMap)             — agentDid → JSON reputation data
  *     peers (LoroMap)                  — peerDid → JSON { url, name, lastSeen }
  */
+type ExcitabilityMetadata = any;
 import { LoroDoc, VersionVector } from 'loro-crdt';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,7 +37,6 @@ import {
   getTierWeight,
   type KnowledgeDomain,
   type HotBufferEntry,
-  type ExcitabilityMetadata,
   type ConsolidationResult,
   type ReconsolidationEvent,
   type DomainConsolidationConfig,
