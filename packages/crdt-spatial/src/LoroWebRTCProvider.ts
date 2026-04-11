@@ -1,38 +1,190 @@
 import { LoroDoc } from 'loro-crdt';
 
+export interface WebRTCProviderConfig {
+  signalingServerUrl: string;
+  iceServers?: RTCIceServer[];
+  syncIntervalMs?: number;
+}
+
 export class LoroWebRTCProvider {
   private doc: LoroDoc;
   private room: string;
-  private peerConnections: Map<string, { readyState: string; send: (data: Uint8Array) => void; close: () => void }>;
-  
-  constructor(doc: LoroDoc, room: string) {
+  private config: WebRTCProviderConfig;
+  private peerConnections: Map<string, RTCPeerConnection>;
+  private dataChannels: Map<string, RTCDataChannel>;
+  private signalingWs: WebSocket | null = null;
+  private reconnectInterval: any;
+
+  constructor(doc: LoroDoc, room: string, config?: Partial<WebRTCProviderConfig>) {
     this.doc = doc;
     this.room = room;
+    this.config = {
+      signalingServerUrl: config?.signalingServerUrl || 'wss://signaling.holoscript.net',
+      iceServers: config?.iceServers || [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ],
+      syncIntervalMs: config?.syncIntervalMs || 50,
+    };
     this.peerConnections = new Map();
-    console.log(`[LoroWebRTC] Initialized multiplayer semantic canvas for room: ${room}`);
+    this.dataChannels = new Map();
+
+    console.log(`[LoroWebRTC] Initialized hardened multiplayer semantic canvas for room: ${room}`);
+
+    // Subscribe to Loro local changes to broadcast
+    this.doc.subscribe((event: any) => {
+      if (event.local) {
+        const update = this.doc.exportFrom(); // Send full state or deltas if tracked
+        this.sync(update);
+      }
+    });
+
+    setInterval(() => this.healthCheck(), 10000);
   }
 
   public connect() {
-    // Stub: signaling server connection to exchange WebRTC SDP answers
-    console.log(`[LoroWebRTC] Connecting to signaling server for mesh networking...`);
+    console.log(`[LoroWebRTC] Connecting to signaling server: ${this.config.signalingServerUrl}...`);
+    this.signalingWs = new WebSocket(this.config.signalingServerUrl);
+
+    this.signalingWs.onopen = () => {
+      console.log(`[LoroWebRTC] Signaling server connected. Joining room ${this.room}...`);
+      this.sendMessage({ type: 'join', room: this.room });
+      if (this.reconnectInterval) clearInterval(this.reconnectInterval);
+    };
+
+    this.signalingWs.onmessage = async (e) => {
+      const msg = JSON.parse(e.data);
+      switch(msg.type) {
+        case 'peer-joined':
+          await this.createPeerConnection(msg.peerId, true);
+          break;
+        case 'offer':
+          await this.handleOffer(msg.peerId, msg.sdp);
+          break;
+        case 'answer':
+          await this.handleAnswer(msg.peerId, msg.sdp);
+          break;
+        case 'ice-candidate':
+          await this.handleIceCandidate(msg.peerId, msg.candidate);
+          break;
+        case 'peer-left':
+          this.removePeer(msg.peerId);
+          break;
+      }
+    };
+
+    this.signalingWs.onclose = () => {
+      console.warn(`[LoroWebRTC] Signaling connection lost, attempting reconnect in 5s...`);
+      this.reconnectInterval = setTimeout(() => this.connect(), 5000);
+    };
+  }
+
+  private async createPeerConnection(peerId: string, isInitiator: boolean) {
+    const pc = new RTCPeerConnection({ iceServers: this.config.iceServers });
+    this.peerConnections.set(peerId, pc);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        this.sendMessage({ type: 'ice-candidate', peerId, room: this.room, candidate: event.candidate });
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        this.removePeer(peerId);
+      }
+    };
+
+    if (isInitiator) {
+      const dc = pc.createDataChannel('loro-sync', { ordered: false, maxRetransmits: 0 }); // Hardened for spatial sync
+      this.setupDataChannel(peerId, dc);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      this.sendMessage({ type: 'offer', peerId, room: this.room, sdp: pc.localDescription });
+    } else {
+      pc.ondatachannel = (event) => this.setupDataChannel(peerId, event.channel);
+    }
+  }
+
+  private setupDataChannel(peerId: string, dc: RTCDataChannel) {
+    dc.binaryType = 'arraybuffer';
+    dc.onopen = () => {
+      console.log(`[LoroWebRTC] Data channel to ${peerId} open.`);
+      this.dataChannels.set(peerId, dc);
+      const state = this.doc.exportFrom(); // Full sync on connect
+      if(state.length > 0) dc.send(state); 
+    };
+    dc.onmessage = (event) => {
+      const updateBytes = new Uint8Array(event.data);
+      this.handleIncomingSync(updateBytes);
+    };
+    dc.onclose = () => this.dataChannels.delete(peerId);
+  }
+
+  private async handleOffer(peerId: string, sdp: RTCSessionDescriptionInit) {
+    await this.createPeerConnection(peerId, false);
+    const pc = this.peerConnections.get(peerId)!;
+    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    this.sendMessage({ type: 'answer', peerId, room: this.room, sdp: pc.localDescription });
+  }
+
+  private async handleAnswer(peerId: string, sdp: RTCSessionDescriptionInit) {
+    const pc = this.peerConnections.get(peerId);
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  }
+
+  private async handleIceCandidate(peerId: string, candidate: RTCIceCandidateInit) {
+    const pc = this.peerConnections.get(peerId);
+    if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+  }
+
+  private sendMessage(msg: any) {
+    if (this.signalingWs?.readyState === WebSocket.OPEN) {
+      this.signalingWs.send(JSON.stringify(msg));
+    }
   }
 
   public sync(updateBytes: Uint8Array) {
-    // Dispatch CRDT updates across WebRTC datachannels
-    for (const [_peerId, pc] of this.peerConnections) {
-      if (pc.readyState === 'open') {
-        pc.send(updateBytes);
+    for (const [peerId, dc] of this.dataChannels) {
+      if (dc.readyState === 'open') {
+        try {
+          dc.send(updateBytes);
+        } catch (err) {
+          console.warn(`[LoroWebRTC] Failed to send to ${peerId}`, err);
+        }
       }
     }
   }
 
   public handleIncomingSync(updateBytes: Uint8Array) {
-    // Applying received updates from peers directly to the shared trait graph Loro doc
-    this.doc.import(updateBytes);
+    try {
+      this.doc.import(updateBytes);
+    } catch (err) {
+      console.error(`[LoroWebRTC] Update rejection/conflict parsing: `, err);
+    }
+  }
+
+  private removePeer(peerId: string) {
+    this.dataChannels.get(peerId)?.close();
+    this.dataChannels.delete(peerId);
+    this.peerConnections.get(peerId)?.close();
+    this.peerConnections.delete(peerId);
+  }
+
+  private healthCheck() {
+    // Keep-alive or periodic full state hash checks
+    if(this.signalingWs && this.signalingWs.readyState === WebSocket.CLOSED) {
+      this.connect();
+    }
   }
 
   public disconnect() {
-    this.peerConnections.forEach(pc => pc.close());
-    this.peerConnections.clear();
+    this.signalingWs?.close();
+    if (this.reconnectInterval) clearInterval(this.reconnectInterval);
+    for (const peer of Array.from(this.peerConnections.keys())) {
+      this.removePeer(peer);
+    }
   }
 }

@@ -69,6 +69,7 @@ interface AgentTemplate {
   rating: number;
   ratingCount: number;
   official: boolean;
+  priceCents?: number;
 }
 
 interface AgentMarketplaceTabProps {
@@ -100,6 +101,7 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
   } | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const client = getMarketplaceClient();
 
@@ -163,10 +165,18 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
   const handleInstall = useCallback(
     async (agent: AgentTemplate) => {
       setInstallingId(agent.id);
+      setSuccessMessage(null);
+      setError(null);
       try {
         const result = await client.installAgent(agent.id);
         if (result.success && result.program) {
           setInstalledIds((prev) => new Set(prev).add(agent.id));
+          
+          if (result.revenueSplit) {
+            setSuccessMessage(`x402 Settlement Complete: Paid ${result.revenueSplit.total} USDC via ${result.revenueSplit.x402?.network}`);
+            setTimeout(() => setSuccessMessage(null), 5000);
+          }
+
           onAgentInstalled?.({
             templateId: result.templateId!,
             templateName: result.templateName!,
@@ -318,6 +328,18 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
           </div>
         )}
 
+        {successMessage && (
+          <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center justify-between transition-all">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              {successMessage}
+            </span>
+            <button onClick={() => setSuccessMessage(null)} className="opacity-70 hover:opacity-100">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         {loading && (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="h-6 w-6 animate-spin text-studio-accent" />
@@ -341,6 +363,8 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
               const TierIcon = tierBadge.icon;
               const isInstalled = installedIds.has(agent.id);
               const isInstalling = installingId === agent.id;
+              const hasPrice = agent.priceCents && agent.priceCents > 0;
+              const formattedPrice = hasPrice ? `USDC ${(agent.priceCents! / 100).toFixed(2)}` : 'Install';
 
               return (
                 <div
@@ -430,12 +454,12 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
                       ) : isInstalling ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          Installing...
+                          Purchasing...
                         </>
                       ) : (
                         <>
-                          <Download className="h-3 w-3" />
-                          Install
+                          {hasPrice ? <Lock className="h-3 w-3" /> : <Download className="h-3 w-3" />}
+                          {formattedPrice}
                         </>
                       )}
                     </button>

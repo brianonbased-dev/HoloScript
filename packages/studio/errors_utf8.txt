@@ -1,0 +1,47 @@
+﻿node.exe : npm warn Unknown project 
+config "shamefully-hoist". This will 
+stop working in the next major version 
+of npm.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\josep\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifi 
+   ed: (npm warn Unknow...version of np  
+  m.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeComm 
+   andError
+ 
+npm warn Unknown project config 
+"strict-peer-dependencies". This will 
+stop working in the next major version 
+of npm.
+src/app/absorb/page.tsx(795,62): error TS2339: Property 'name' does not exist on type 'MoltbookAgent'.
+src/app/absorb/page.tsx(803,101): error TS2339: Property 'name' does not exist on type 'MoltbookAgent'.
+src/app/absorb/page.tsx(814,61): error TS2339: Property 'name' does not exist on type 'MoltbookAgent'.
+src/app/agents/new/page.tsx(4,40): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/app/agents/new/page.tsx(5,29): error TS2307: Cannot find module '@hookform/resolvers/zod' or its corresponding type declarations.
+src/app/agents/new/page.tsx(81,5): error TS2578: Unused '@ts-expect-error' directive.
+src/app/agents/new/page.tsx(241,27): error TS7006: Parameter 'field' implicitly has an 'any' type.
+src/app/agents/new/page.tsx(241,34): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/app/agents/new/page.tsx(312,26): error TS7006: Parameter 'field' implicitly has an 'any' type.
+src/app/agents/new/page.tsx(312,33): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/app/agents/new/page.tsx(343,16): error TS7006: Parameter 'ep' implicitly has an 'any' type.
+src/app/agents/new/page.tsx(343,20): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/app/api/connectors/connect/route.ts(216,37): error TS7016: Could not find a declaration file for module '@holoscript/connector-appstore'. 'C:/Users/josep/Documents/GitHub/HoloScript/packages/connector-appstore/dist/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/holoscript__connector-appstore` if it exists or add a new declaration (.d.ts) file containing `declare module '@holoscript/connector-appstore';`
+src/app/api/connectors/disconnect/route.ts(85,37): error TS7016: Could not find a declaration file for module '@holoscript/connector-appstore'. 'C:/Users/josep/Documents/GitHub/HoloScript/packages/connector-appstore/dist/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/holoscript__connector-appstore` if it exists or add a new declaration (.d.ts) file containing `declare module '@holoscript/connector-appstore';`
+src/app/plugins/new/page.tsx(4,25): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/app/plugins/new/page.tsx(5,29): error TS2307: Cannot find module '@hookform/resolvers/zod' or its corresponding type declarations.
+src/app/plugins/new/page.tsx(29,5): error TS2578: Unused '@ts-expect-error' directive.
+src/app/templates/new/page.tsx(4,25): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/app/templates/new/page.tsx(5,29): error TS2307: Cannot find module '@hookform/resolvers/zod' or its corresponding type declarations.
+src/app/training-data/new/page.tsx(4,25): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/app/training-data/new/page.tsx(5,29): error TS2307: Cannot find module '@hookform/resolvers/zod' or its corresponding type declarations.
+src/app/training-data/new/page.tsx(28,5): error TS2578: Unused '@ts-expect-error' directive.
+src/app/traits/new/page.tsx(4,25): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/app/traits/new/page.tsx(5,29): error TS2307: Cannot find module '@hookform/resolvers/zod' or its corresponding type declarations.
+src/app/traits/new/page.tsx(27,5): error TS2578: Unused '@ts-expect-error' directive.
+src/lib/plugins/pluginManager.ts(353,20): error TS2339: Property '_enablePlugin' does not exist on type 'PluginManagerState'.

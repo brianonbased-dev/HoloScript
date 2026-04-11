@@ -523,6 +523,7 @@ export class MarketplaceClient {
       rating: number;
       ratingCount: number;
       official: boolean;
+      priceCents?: number;
     }>;
     total: number;
   }> {
@@ -546,6 +547,7 @@ export class MarketplaceClient {
       tier: string;
       installs: number;
       rating: number;
+      priceCents?: number;
     }>
   > {
     const data = await this.mcpmeGet<{ templates: any[] }>('/marketplace/featured');
@@ -573,6 +575,8 @@ export class MarketplaceClient {
     programType?: 'intent' | 'bytecode';
     config?: { cognitiveHz: number; capabilities: string[] };
     error?: string;
+    revenueSplit?: any;
+    priceCents?: number;
   }> {
     return this.mcpmePost(`/marketplace/${id}/install`, {});
   }
