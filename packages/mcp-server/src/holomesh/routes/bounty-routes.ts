@@ -3,7 +3,9 @@ import {
   teamStore, 
   bountySubmissionStore, 
   bountyMiniGameStore, 
-  persistTeamStore 
+  bountyGovernanceStore,
+  persistTeamStore,
+  persistSocialStore,
 } from '../state';
 import { 
   json, 
@@ -23,7 +25,7 @@ import {
   type CompletionProof,
   type TeamTask
 } from '@holoscript/framework';
-import type { Team, StoredBountySubmission, StoredBountyMiniGame } from '../types';
+import type { Team, StoredBountySubmission, StoredBountyMiniGame, StoredBountyGovernanceProposal } from '../types';
 
 /**
  * Handle all bounty-related routes for HoloMesh.
@@ -129,7 +131,7 @@ export async function handleBountyRoutes(
 
     persistTeamStore();
 
-    broadcastToTeam(teamId, {
+    broadcastToRoom(teamId, {
       type: 'bounty:created',
       agent: caller.name,
       data: { bountyId: bounty.id, taskId: task.id, reward: bounty.reward, title: task.title },
@@ -236,7 +238,7 @@ export async function handleBountyRoutes(
     bountySubmissionStore.set(bountyId, list);
     persistTeamStore();
 
-    broadcastToTeam(team.id, {
+    broadcastToRoom(team.id, {
       type: 'bounty:submitted',
       agent: caller.name,
       data: { bountyId, submissionId: submission.id, title: bounty.taskId },
@@ -269,6 +271,18 @@ export async function handleBountyRoutes(
     if (!team || !team.bounties || !bounty) {
       json(res, 404, { error: 'Bounty not found' });
       return true;
+    }
+
+    // For USDC bounties, require governance approval before payout.
+    if (bounty.reward?.currency === 'USDC') {
+      const proposal = bountyGovernanceStore.get(bountyId);
+      if (!proposal || (proposal.status !== 'approved' && proposal.status !== 'executed')) {
+        json(res, 409, {
+          error: 'USDC payout requires approved governance proposal',
+          hint: 'POST /api/holomesh/bounties/:id/governance/propose then vote/resolve first',
+        });
+        return true;
+      }
     }
 
     const canApprove = bounty.createdBy === caller.name || hasTeamPermission(team, caller.id, 'tasks:write');
@@ -316,13 +330,209 @@ export async function handleBountyRoutes(
     
     persistTeamStore();
 
-    broadcastToTeam(team.id, {
+    broadcastToRoom(team.id, {
       type: 'bounty:completed',
       agent: caller.name,
       data: { bountyId, amount: payout.amount, currency: payout.currency, settlement: payout.settlement },
     });
 
     json(res, 200, { success: true, payout, submissionId: selected.id });
+    return true;
+  }
+
+  // POST /api/holomesh/bounties/:id/governance/propose — Create token-holder governance proposal
+  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/propose$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/propose', '');
+    const body = await parseJsonBody(req);
+
+    let team: Team | undefined;
+    let bounty: Bounty | undefined;
+    for (const t of teamStore.values()) {
+      const found = t.bounties?.getBounty(bountyId);
+      if (found) {
+        team = t;
+        bounty = found;
+        break;
+      }
+    }
+
+    if (!team || !bounty) {
+      json(res, 404, { error: 'Bounty not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this bounty team' });
+      return true;
+    }
+
+    const existing = bountyGovernanceStore.get(bountyId);
+    if (existing && existing.status === 'open') {
+      json(res, 409, { error: 'An open governance proposal already exists for this bounty' });
+      return true;
+    }
+
+    const quorumWeight = Number(body.quorumWeight ?? 100);
+    const approvalThreshold = Number(body.approvalThreshold ?? 0.6);
+    const proposal: StoredBountyGovernanceProposal = {
+      id: `gov_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      bountyId,
+      teamId: team.id,
+      title: (body.title as string | undefined)?.trim() || `Governance for bounty ${bountyId}`,
+      description: (body.description as string | undefined)?.trim(),
+      createdBy: caller.name,
+      status: 'open',
+      quorumWeight: Number.isFinite(quorumWeight) && quorumWeight > 0 ? quorumWeight : 100,
+      approvalThreshold:
+        Number.isFinite(approvalThreshold) && approvalThreshold > 0 && approvalThreshold <= 1
+          ? approvalThreshold
+          : 0.6,
+      votes: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    bountyGovernanceStore.set(bountyId, proposal);
+    persistSocialStore();
+    json(res, 201, { success: true, proposal, bounty });
+    return true;
+  }
+
+  // GET /api/holomesh/bounties/:id/governance — Get governance proposal + tallies
+  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance$/) && method === 'GET') {
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance', '');
+    const proposal = bountyGovernanceStore.get(bountyId);
+    if (!proposal) {
+      json(res, 404, { error: 'No governance proposal found for this bounty' });
+      return true;
+    }
+
+    const approveWeight = proposal.votes
+      .filter((v) => v.value === 'approve')
+      .reduce((sum, v) => sum + v.weight, 0);
+    const rejectWeight = proposal.votes
+      .filter((v) => v.value === 'reject')
+      .reduce((sum, v) => sum + v.weight, 0);
+    const totalWeight = approveWeight + rejectWeight;
+
+    json(res, 200, {
+      success: true,
+      proposal,
+      tally: {
+        approveWeight,
+        rejectWeight,
+        totalWeight,
+        quorumReached: totalWeight >= proposal.quorumWeight,
+        approvalRatio: totalWeight > 0 ? approveWeight / totalWeight : 0,
+      },
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/bounties/:id/governance/vote — Cast token-weighted vote
+  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/vote$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/vote', '');
+    const proposal = bountyGovernanceStore.get(bountyId);
+    if (!proposal) {
+      json(res, 404, { error: 'No governance proposal found for this bounty' });
+      return true;
+    }
+    if (proposal.status !== 'open') {
+      json(res, 409, { error: `Proposal is already ${proposal.status}` });
+      return true;
+    }
+
+    const team = teamStore.get(proposal.teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found for proposal' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this bounty team' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const value = body.value === 'reject' ? 'reject' : 'approve';
+    const weightRaw = Number(body.tokenWeight ?? body.tokenBalance ?? 1);
+    const weight = Number.isFinite(weightRaw) && weightRaw > 0 ? weightRaw : 1;
+
+    const existingIdx = proposal.votes.findIndex((v) => v.agentId === caller.id);
+    const vote = {
+      agentId: caller.id,
+      agentName: caller.name,
+      weight,
+      value,
+      createdAt: new Date().toISOString(),
+    };
+    if (existingIdx >= 0) {
+      proposal.votes[existingIdx] = vote;
+    } else {
+      proposal.votes.push(vote);
+    }
+
+    bountyGovernanceStore.set(bountyId, proposal);
+    persistSocialStore();
+    json(res, 200, { success: true, proposal });
+    return true;
+  }
+
+  // POST /api/holomesh/bounties/:id/governance/resolve — Finalize governance decision
+  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/resolve$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/resolve', '');
+    const proposal = bountyGovernanceStore.get(bountyId);
+    if (!proposal) {
+      json(res, 404, { error: 'No governance proposal found for this bounty' });
+      return true;
+    }
+
+    const team = teamStore.get(proposal.teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found for proposal' });
+      return true;
+    }
+    const canResolve = proposal.createdBy === caller.name || hasTeamPermission(team, caller.id, 'tasks:write');
+    if (!canResolve) {
+      json(res, 403, { error: 'Only proposer or team task managers can resolve governance' });
+      return true;
+    }
+
+    const approveWeight = proposal.votes
+      .filter((v) => v.value === 'approve')
+      .reduce((sum, v) => sum + v.weight, 0);
+    const rejectWeight = proposal.votes
+      .filter((v) => v.value === 'reject')
+      .reduce((sum, v) => sum + v.weight, 0);
+    const totalWeight = approveWeight + rejectWeight;
+
+    if (totalWeight < proposal.quorumWeight) {
+      json(res, 400, {
+        error: 'Quorum not reached',
+        quorumWeight: proposal.quorumWeight,
+        totalWeight,
+      });
+      return true;
+    }
+
+    const approvalRatio = totalWeight > 0 ? approveWeight / totalWeight : 0;
+    proposal.status = approvalRatio >= proposal.approvalThreshold ? 'approved' : 'rejected';
+    proposal.resolvedAt = new Date().toISOString();
+    bountyGovernanceStore.set(bountyId, proposal);
+    persistSocialStore();
+
+    json(res, 200, {
+      success: true,
+      decision: proposal.status,
+      proposal,
+      tally: { approveWeight, rejectWeight, totalWeight, approvalRatio },
+    });
     return true;
   }
 

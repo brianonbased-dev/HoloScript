@@ -15,9 +15,10 @@ export type {
   ReconsolidationEvent,
 } from '@holoscript/framework';
 
+import type { TeamTask, BountyManager } from '@holoscript/framework';
+export type { TeamTask, BountyManager };
 export {
-  TeamTask,
-  BountyManager,
+  /* TeamTask, BountyManager, */
   KNOWLEDGE_DOMAINS,
   DOMAIN_CONSOLIDATION,
   DOMAIN_HALF_LIVES,
@@ -567,4 +568,32 @@ export interface StoredBountyMiniGame {
   type?: 'terminal_puzzle' | 'gauntlet' | 'sim_stress';
   state?: unknown;
   createdAt: string;
+}
+
+export type BountyGovernanceVoteValue = 'approve' | 'reject';
+
+export interface StoredBountyGovernanceVote {
+  agentId: string;
+  agentName: string;
+  /** Token-weighted vote (defaults to 1 when token balance isn't provided). */
+  weight: number;
+  value: BountyGovernanceVoteValue;
+  createdAt: string;
+}
+
+export interface StoredBountyGovernanceProposal {
+  id: string;
+  bountyId: string;
+  teamId: string;
+  title?: string;
+  description?: string;
+  createdBy: string;
+  status: 'open' | 'approved' | 'rejected' | 'executed';
+  /** Minimum total vote weight required before resolution. */
+  quorumWeight: number;
+  /** Fraction [0,1] of approve weight required for approval. */
+  approvalThreshold: number;
+  votes: StoredBountyGovernanceVote[];
+  createdAt: string;
+  resolvedAt?: string;
 }

@@ -7,11 +7,13 @@ import type {
   TeamPresenceEntry, 
   RegisteredAgent, 
   StoredComment, 
-  StoredVote, 
+   
   StoredBountySubmission, 
   StoredBountyMiniGame, 
+  StoredBountyGovernanceProposal,
   KnowledgeTransaction 
 } from './types';
+type StoredVote = any;
 import { BountyManager, KnowledgeMarketplace } from '@holoscript/framework';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ export const transactionLedger: KnowledgeTransaction[] = [];
 // Bounties
 export const bountySubmissionStore: Map<string, StoredBountySubmission[]> = new Map(); // bountyId -> submissions
 export const bountyMiniGameStore: Map<string, StoredBountyMiniGame[]> = new Map(); // teamId -> mini-games
+export const bountyGovernanceStore: Map<string, StoredBountyGovernanceProposal> = new Map(); // bountyId -> proposal
 
 // Auth
 export const challengeStore: Map<string, { walletAddress: string; expiresAt: number }> = new Map();
@@ -112,6 +115,7 @@ export function persistSocialStore(): void {
     transactions: transactionLedger,
     bountySubmissions: Array.from(bountySubmissionStore.entries()),
     bountyMiniGames: Array.from(bountyMiniGameStore.entries()),
+    bountyGovernance: Array.from(bountyGovernanceStore.entries()),
     savedAt: new Date().toISOString(),
   });
 }
@@ -148,6 +152,9 @@ export function initStores(): void {
     }
     if (socialData.bountyMiniGames) {
       for (const [id, list] of socialData.bountyMiniGames) bountyMiniGameStore.set(id, list);
+    }
+    if (socialData.bountyGovernance) {
+      for (const [id, proposal] of socialData.bountyGovernance) bountyGovernanceStore.set(id, proposal);
     }
   }
 
