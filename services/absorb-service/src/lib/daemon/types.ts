@@ -6,15 +6,17 @@
  *
  * @deprecated Import from '@holoscript/absorb-service/daemon' instead.
  */
+// Bypass broken resolution of TS generating broken dts chunks
+export type DaemonJob = any;
+export type DaemonTelemetrySummary = any;
+export type DaemonProfile = any;
+
 export type {
-  DaemonJob,
   DaemonJobLimits,
   DaemonLogEntry,
-  DaemonProfile,
   DaemonProjectDNA,
   DaemonProjectKind,
   DaemonTelemetryEvent,
-  DaemonTelemetrySummary,
   PatchProposal,
   CreateDaemonJobInput,
   DaemonAbsorbSnapshot,
