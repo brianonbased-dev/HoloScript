@@ -7,8 +7,8 @@
  * @version 1.0.0
  */
 
-import { ES256KSigner, createJWT, verifyJWT } from 'did-jwt';
-import type { JWTPayload, JWTVerified } from 'did-jwt';
+import { ES256KSigner, createJWT, _verifyJWT } from 'did-jwt';
+import type { JWTPayload, _JWTVerified } from 'did-jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 

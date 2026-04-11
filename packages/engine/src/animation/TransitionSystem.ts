@@ -5,8 +5,8 @@
  * Provides fade, scale, slide, and combined transitions.
  */
 
-import { AnimationEngine, AnimationClip, Easing, Keyframe, EasingFn } from './AnimationEngine';
-import { SpringAnimator, SpringPresets, SpringConfig } from './SpringAnimator';
+import { AnimationEngine, _AnimationClip, Easing, _Keyframe, EasingFn } from './AnimationEngine';
+import { _SpringAnimator, _SpringPresets, _SpringConfig } from './SpringAnimator';
 
 // =============================================================================
 // TRANSITION TYPES

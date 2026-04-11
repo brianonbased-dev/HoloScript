@@ -83,8 +83,8 @@ export class KeyboardSystem {
     const data = node.properties.data;
     const text = data.text || '';
     const cursorIndex = data.cursorIndex ?? text.length;
-    const selectionStart = data.selectionStart ?? cursorIndex;
-    const selectionEnd = data.selectionEnd ?? cursorIndex;
+    const _selectionStart = data.selectionStart ?? cursorIndex;
+    const _selectionEnd = data.selectionEnd ?? cursorIndex;
     const placeholder = data.placeholder || '';
 
     // 1. Update text display

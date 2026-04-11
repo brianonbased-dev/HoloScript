@@ -269,7 +269,7 @@ export class ComputePipeline {
     uniforms: UniformData,
     onProgress?: (step: number, total: number) => void
   ): Promise<void> {
-    const startTime = performance.now();
+    const _startTime = performance.now();
 
     for (let i = 0; i < steps; i++) {
       await this.step(uniforms);

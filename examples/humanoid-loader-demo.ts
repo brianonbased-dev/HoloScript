@@ -293,7 +293,7 @@ class AvatarDemo {
   playAnimation(
     avatarId: string,
     animationName: string,
-    options?: {
+    _options?: {
       loop?: boolean;
       crossFade?: number;
     }

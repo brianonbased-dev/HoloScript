@@ -296,8 +296,8 @@ export function formatDuration(ms: number): string {
   if (ms < 3600000) {
     return `${(ms / 60000).toFixed(1)}m`;
   }
-  const hours = Math.floor(ms / 3600000);
-  const mins = Math.floor((ms % 3600000) / 60000);
+  const _hours = Math.floor(ms / 3600000);
+  const _mins = Math.floor((ms % 3600000) / 60000);
   return `${(ms / 3600000).toFixed(1)}h`;
 }
 

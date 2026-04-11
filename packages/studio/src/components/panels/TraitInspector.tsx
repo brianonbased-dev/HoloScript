@@ -36,7 +36,7 @@ const CATEGORY_ICONS: Record<NormCategory, string> = {
   identity: '🏷️',
 };
 
-export function TraitInspector({ initialTrait, showCulture = true }: TraitInspectorProps) {
+export function TraitInspector({ _initialTrait, showCulture = true }: TraitInspectorProps) {
   const {
     traits,
     cultureTraits,

@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Layers, Plus, Trash2, ArrowUpDown, Eye, Settings, BarChart3 } from 'lucide-react';
+import { Layers, Plus, Trash2, _ArrowUpDown, Eye, _Settings, BarChart3 } from 'lucide-react';
 
 export interface LODLevel {
   id: number;
@@ -153,7 +153,7 @@ export function LODEditor({ onChange }: { onChange?: (c: LODConfig) => void }) {
       </div>
 
       {/* LOD Levels */}
-      {config.levels.map((level, i) => (
+      {config.levels.map((level, _i) => (
         <div
           key={level.id}
           className={`border-b border-studio-border px-3 py-2 ${!level.enabled ? 'opacity-40' : ''}`}

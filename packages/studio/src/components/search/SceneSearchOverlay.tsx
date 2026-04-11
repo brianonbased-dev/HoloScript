@@ -84,7 +84,7 @@ export function SceneSearchOverlay({ open, onClose, onJump }: SceneSearchOverlay
           {results.length === 0 && (
             <p className="py-8 text-center text-[11px] text-studio-muted">No objects found.</p>
           )}
-          {results.map((r, i) => (
+          {results.map((r, _i) => (
             <button
               key={`${r.name}-${r.line}`}
               onClick={() => {

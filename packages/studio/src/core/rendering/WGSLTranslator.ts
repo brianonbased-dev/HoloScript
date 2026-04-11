@@ -10,7 +10,7 @@
  */
 
 import type { GNode, GEdge } from '../../lib/nodeGraphStore';
-import { NODE_TEMPLATES } from '../../lib/shaderGraph';
+import { _NODE_TEMPLATES } from '../../lib/shaderGraph';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -512,7 +512,7 @@ export class WGSLTranslator {
   private inferMathOutputType(
     nodeId: string,
     nodeType: string,
-    upstreamVars?: Map<string, string>
+    _upstreamVars?: Map<string, string>
   ): string {
     // For mathNode with scalar-output operations, always return f32
     if (nodeType === 'mathNode' || nodeType === 'math') {

@@ -1,0 +1,62 @@
+{
+  "name": "@holoscript/agent-setup",
+  "version": "1.0.0",
+  "description": "Set up multi-agent infrastructure for any repo — works with Claude, Copilot, Cursor, Windsurf, Gemini, Codex, Devin, and every AGENTS.md-aware tool",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "agent-setup": "./dist/index.js",
+    "holoscript-agents": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "agents",
+    "ai",
+    "llm",
+    "claude",
+    "copilot",
+    "cursor",
+    "windsurf",
+    "gemini",
+    "codex",
+    "devin",
+    "agents-md",
+    "multi-agent",
+    "agent-infrastructure",
+    "mcp",
+    "ai-coding",
+    "developer-tools"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/agent-setup"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

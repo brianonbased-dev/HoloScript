@@ -38,7 +38,7 @@ class MCPClient {
             this.pending.delete(msg.id);
             resolve(msg);
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore non-JSON output
         }
       }
@@ -103,7 +103,7 @@ async function main() {
 
     // Check if it's an error. The API might wrap the URL in file:// accidentally based on BROWSER_CONTROL.md.
     let sessionId = null;
-    let launchStr = launchResult.result.content[0].text;
+    const launchStr = launchResult.result.content[0].text;
     console.log('Launch reply:', launchStr);
 
     if (launchStr.includes('success')) {

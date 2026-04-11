@@ -5,7 +5,7 @@
  * for distributed agent state synchronization.
  */
 
-import { LWWRegister, ORSet, DIDSigner, createTestSigner } from '@holoscript/crdt';
+import { LWWRegister, _ORSet, _DIDSigner, createTestSigner } from '@holoscript/crdt';
 
 import type {
   DecisionHistory,

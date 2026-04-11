@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { PluginPanelContainer } from './PluginPanelContainer';
 import { Puzzle, X, Shield, Activity, ChevronDown, Plus } from 'lucide-react';
-type SandboxState =
+type _SandboxState =
   | 'creating'
   | 'loading'
   | 'initializing'

@@ -23,7 +23,7 @@ import { Smile, Mic } from 'lucide-react';
 function ExpressionCard({
   preset,
   isActive,
-  intensity,
+  _intensity,
   onSelect,
 }: {
   preset: ExpressionPreset;

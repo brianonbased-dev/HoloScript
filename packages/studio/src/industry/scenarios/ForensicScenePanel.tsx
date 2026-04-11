@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Search, MapPin, Camera, FileText, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { _Search, _MapPin, _Camera, _FileText, _AlertTriangle, _CheckCircle, Shield } from 'lucide-react';
 
 export type MarkerType =
   | 'blood'

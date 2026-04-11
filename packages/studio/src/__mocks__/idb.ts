@@ -113,7 +113,7 @@ class MemDatabase {
     return this.stores.get(name)!;
   }
 
-  transaction(storeNames: string | string[], _mode?: string) {
+  transaction(_storeNames: string | string[], _mode?: string) {
     const self = this;
     return {
       done: Promise.resolve(),

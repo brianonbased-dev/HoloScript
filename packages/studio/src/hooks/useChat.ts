@@ -62,7 +62,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
       setMessages(existingMessages.slice(-maxMessages));
 
       // Observe new messages
-      const unobserve = client.observeChat((event: Y.YArrayEvent<ChatMessage>) => {
+      const unobserve = client.observeChat((_event: Y.YArrayEvent<ChatMessage>) => {
         const allMessages = chatArray.toArray();
         setMessages(allMessages.slice(-maxMessages));
       });
@@ -70,7 +70,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
       return () => {
         unobserve();
       };
-    } catch (err) {
+    } catch (_err) {
       // Client not initialized - ignore
     }
   }, [enabled, maxMessages]);

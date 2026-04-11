@@ -204,7 +204,7 @@ export class AvalancheDemoScene {
   /**
    * Handle mouse down
    */
-  private handleMouseDown(event: MouseEvent): void {
+  private handleMouseDown(_event: MouseEvent): void {
     if (this.uiState.cameraMode === 'free') {
       // Start camera rotation
     }
@@ -213,7 +213,7 @@ export class AvalancheDemoScene {
   /**
    * Handle mouse move
    */
-  private handleMouseMove(event: MouseEvent): void {
+  private handleMouseMove(_event: MouseEvent): void {
     if (this.uiState.cameraMode === 'free') {
       // Update camera rotation
     }
@@ -453,7 +453,7 @@ export class AvalancheDemoScene {
   /**
    * Render UI overlay (placeholder)
    */
-  private renderUIOverlay(data: any): void {
+  private renderUIOverlay(_data: any): void {
     // In a real implementation, this would render UI to canvas or DOM
   }
 

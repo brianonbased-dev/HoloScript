@@ -10,7 +10,7 @@
 
 import { logger } from '../../utils/logger';
 // import { getHoloScriptExecutor } from '@/services/master-portal/training/HoloScriptExecutor';
-import type { Vector3 } from '@holoscript/core';
+import type { _Vector3 } from '@holoscript/core';
 
 export interface NeuralLinkConfig {
   model: string;
@@ -42,7 +42,7 @@ export const neuralLinkTrait = {
     context.emit('neural_link_ready', { nodeId: node.id, model: config.model });
   },
 
-  onUpdate(node: any, config: NeuralLinkConfig, context: any, delta: number) {
+  onUpdate(_node: any, _config: NeuralLinkConfig, _context: any, _delta: number) {
     // Optional: could handle background model heartbeats or lo-fi "thinking" animations
   },
 

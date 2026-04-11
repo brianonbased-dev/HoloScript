@@ -15,7 +15,7 @@
  * @version 3.2.0
  */
 
-import { WalletConnection } from '../src/web3/WalletConnection';
+import { _WalletConnection } from '../src/web3/WalletConnection';
 import { GasEstimator } from '../src/web3/GasEstimator';
 import { createPublicClient, http, type Address } from 'viem';
 import { baseGoerli } from 'viem/chains';

@@ -114,7 +114,7 @@ function computeStyles(
   panel: CustomPanel,
   isCollapsed: boolean,
   isVisible: boolean,
-  layout: ResponsiveLayoutState
+  _layout: ResponsiveLayoutState
 ): CSSProperties {
   const base: CSSProperties = {
     position: 'absolute',

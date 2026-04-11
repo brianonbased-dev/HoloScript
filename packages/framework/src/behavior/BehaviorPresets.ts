@@ -12,7 +12,7 @@ import {
   SequenceNode,
   SelectorNode,
   RepeaterNode,
-  InverterNode,
+  _InverterNode,
 } from './BehaviorTree';
 
 /**

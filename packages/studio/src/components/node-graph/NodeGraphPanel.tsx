@@ -4,12 +4,12 @@
  * NodeGraphPanel — visual node graph editor with drag-canvas, node cards, and SVG edges.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Network, X, Search, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { useState, useRef, _useCallback, useEffect } from 'react';
+import { Network, X, Search, Plus, _Trash2, RotateCcw } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
 import { logger } from '@/lib/logger';
 
-const CATEGORY_COLOR: Record<string, string> = {
+const _CATEGORY_COLOR: Record<string, string> = {
   input: '#4488ff',
   utility: '#888899',
   transform: '#44bb88',

@@ -4,9 +4,9 @@
  */
 
 import {
-  HoloCompositionParser,
+  _HoloCompositionParser,
   parseHolo,
-  parseHoloStrict,
+  _parseHoloStrict,
 } from '../packages/core/src/parser/HoloCompositionParser.js';
 
 let passed = 0;

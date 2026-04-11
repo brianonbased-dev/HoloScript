@@ -4,7 +4,7 @@
  * Implements Position-Based Dynamics (PBD) for real-time mesh deformation.
  * Handles distance, volume, and collision constraints.
  */
-import { Vector3, Vector3Tuple } from '@holoscript/core';
+import { _Vector3, _Vector3Tuple } from '@holoscript/core';
 
 export interface Particle {
   position: [number, number, number];

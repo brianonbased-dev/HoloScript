@@ -225,7 +225,7 @@ export class BuildingGenerator {
 
     // Exterior walls
     const wallThick = style.wallThickness;
-    const baseY = floorIndex * h;
+    const _baseY = floorIndex * h;
 
     // North wall
     walls.push({

@@ -53,7 +53,7 @@ async function example2_RoomParticipants() {
 
   const alice = createTestSigner('alice');
   const bob = createTestSigner('bob');
-  const charlie = createTestSigner('charlie');
+  const _charlie = createTestSigner('charlie');
 
   // Alice creates a set of room participants
   const aliceRoomView = new ORSet<string>('vr-room-lobby', alice);

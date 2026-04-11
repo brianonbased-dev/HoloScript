@@ -383,7 +383,7 @@ export class AttachConnection {
   }
 
   private rejectAllPending(reason: Error): void {
-    for (const [id, pending] of this.pendingRequests) {
+    for (const [_id, pending] of this.pendingRequests) {
       clearTimeout(pending.timeout);
       pending.reject(reason);
     }

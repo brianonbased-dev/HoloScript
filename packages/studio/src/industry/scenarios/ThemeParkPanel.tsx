@@ -12,7 +12,7 @@ import {
   isSafeGForce,
   totalRideDuration,
   peakGForce,
-  peakSpeed,
+  _peakSpeed,
   estimatedWaitMinutes,
   dailyThroughput,
   canRide,

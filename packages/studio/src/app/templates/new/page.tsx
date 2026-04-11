@@ -26,7 +26,7 @@ export default function NewTemplatePage() {
   const {
     register,
     handleSubmit,
-    setValue,
+    _setValue,
     watch,
     formState: { errors },
   } = useForm<TemplateManifestForm>({
@@ -42,7 +42,7 @@ export default function NewTemplatePage() {
     },
   });
 
-  const currentTags = watch('tags') || [];
+  const _currentTags = watch('tags') || [];
 
   const onSubmit = async (data: TemplateManifestForm) => {
     setIsSubmitting(true);

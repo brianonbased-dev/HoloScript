@@ -21,7 +21,7 @@ function request(method, path, body = null, token = null) {
       res.on('end', () => {
         try {
           resolve({ status: res.statusCode, data: data ? JSON.parse(data) : null });
-        } catch (e) {
+        } catch (_e) {
           resolve({ status: res.statusCode, data });
         }
       });

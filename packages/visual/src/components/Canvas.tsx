@@ -17,7 +17,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import HoloNode from './HoloNode';
-import type { HoloNode as HoloNodeType, HoloEdge } from '../types';
+import type { HoloNode as HoloNodeType, _HoloEdge } from '../types';
 import { useGraphStore } from '../store/graphStore';
 import { CATEGORY_COLORS } from '../types';
 

@@ -189,7 +189,7 @@ export class AvalancheRuntimeExecutor {
   /**
    * Add terrain to renderer
    */
-  private addTerrainToRenderer(terrainData: any): void {
+  private addTerrainToRenderer(_terrainData: any): void {
     if (!this.renderer) return;
 
     // Create a simplified terrain mesh for rendering

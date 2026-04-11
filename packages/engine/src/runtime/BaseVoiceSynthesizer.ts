@@ -96,16 +96,16 @@ export class BaseVoiceSynthesizer implements VoiceSynthesizer {
     ];
   }
 
-  private async callElevenLabs(request: VoiceRequest): Promise<ArrayBuffer> {
+  private async callElevenLabs(_request: VoiceRequest): Promise<ArrayBuffer> {
     // In a real implementation, this would use fetch() with the API key
     return new ArrayBuffer(1024); // Return dummy buffer
   }
 
-  private async callAzure(request: VoiceRequest): Promise<ArrayBuffer> {
+  private async callAzure(_request: VoiceRequest): Promise<ArrayBuffer> {
     return new ArrayBuffer(1024);
   }
 
-  private async generateLocal(request: VoiceRequest): Promise<ArrayBuffer> {
+  private async generateLocal(_request: VoiceRequest): Promise<ArrayBuffer> {
     return new ArrayBuffer(1024);
   }
 }

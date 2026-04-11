@@ -35,7 +35,7 @@ export function EnvironmentPanel({ onClose }: EnvironmentPanelProps) {
   const [activeCategory, setActiveCategory] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const { hasEnvironment, rawBlock, applyPreset, removeEnvironment } = useEnvironment();
+  const { hasEnvironment, _rawBlock, applyPreset, removeEnvironment } = useEnvironment();
 
   useEffect(() => {
     fetch(`/api/environment-presets${activeCategory ? `?category=${activeCategory}` : ''}`)

@@ -212,7 +212,7 @@ export class WaterFlowSolver {
   /**
    * Apply water flow to update cell heights
    */
-  private applyFlow(dt: number): void {
+  private applyFlow(_dt: number): void {
     // Create temporary array to accumulate changes
     const deltaHeight = new Float32Array(this.water.length);
 
@@ -277,7 +277,7 @@ export class WaterFlowSolver {
           continue;
         }
 
-        const terrainHeight = this.terrain.getHeightAtGrid(x, z);
+        const _terrainHeight = this.terrain.getHeightAtGrid(x, z);
 
         // Calculate gradient of water surface
         let gradX = 0;

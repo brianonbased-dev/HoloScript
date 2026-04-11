@@ -5,8 +5,8 @@
 
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
 import { GraphQLError } from 'graphql';
-import { createComplexityLimitRule, getGraphQLRateLimiter } from 'graphql-rate-limit';
-import type { GraphQLResolveInfo } from 'graphql';
+import { _createComplexityLimitRule, _getGraphQLRateLimiter } from 'graphql-rate-limit';
+import type { _GraphQLResolveInfo } from 'graphql';
 
 export interface RateLimitPluginOptions {
   /**

@@ -57,7 +57,7 @@ interface ComputedDef {
 // ---------------------------------------------------------------------------
 
 /** Find all nodes of a given type in the AST (shallow — composition children only) */
-function findNodesByType(nodes: HSPlusNode[], type: string): HSPlusNode[] {
+function _findNodesByType(nodes: HSPlusNode[], type: string): HSPlusNode[] {
   return nodes.filter((n) => {
     const nodeType = n.properties?.type ?? n.type;
     return nodeType === type || n.type === type;

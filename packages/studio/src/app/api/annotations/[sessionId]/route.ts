@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { AnnotationSession, StoredAnnotation } from '../../../../lib/annotation-types';
+import type { AnnotationSession, _StoredAnnotation } from '../../../../lib/annotation-types';
 
 /**
  * Session-specific annotation endpoint

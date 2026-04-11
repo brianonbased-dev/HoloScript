@@ -193,7 +193,7 @@ export function runAudit(): AuditResult {
 // MCP HANDLER
 // =============================================================================
 
-export async function handleAuditNumbers(args: Record<string, unknown>): Promise<unknown> {
+export async function handleAuditNumbers(_args: Record<string, unknown>): Promise<unknown> {
   const result = runAudit();
 
   // Build summary

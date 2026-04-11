@@ -16,7 +16,7 @@ import { parseHolo, BUILTIN_CONSTRAINTS } from '@holoscript/core';
 import type {
   HoloComposition,
   HoloObjectDecl,
-  HoloDomainBlock,
+  _HoloDomainBlock,
   HoloDomainType,
 } from '@holoscript/core';
 import type { TraitConstraint } from '@holoscript/core';

@@ -2423,6 +2423,38 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     GET  /api/audit/export             - Export audit log (admin)`);
 });
 
+// ─── Thermodynamic consolidation timer ─────────────────────────────────────
+// Runs the biological sleep cycle every 6 hours (matching security domain's
+// sleepFrequencyMs). Creates a transient HoloMeshWorldState, loads from disk,
+// runs consolidation, and persists. This is the "brain sleeping" — replaying,
+// merging, downscaling, and pruning knowledge entries across all 5 domains.
+const CONSOLIDATION_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+function runConsolidationCycle(): void {
+  try {
+    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const agentId = process.env.AGENT_DID || `did:holo:server:${process.env.PORT || 3001}`;
+    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+
+    const results = worldState.sleepCycle(false); // Only consolidate overdue domains
+    const totalPromoted = results.reduce((s, r) => s + r.promoted, 0);
+    const totalEvicted = results.reduce((s, r) => s + r.evicted, 0);
+    const totalMerged = results.reduce((s, r) => s + r.merged, 0);
+    const totalDropped = results.reduce((s, r) => s + r.dropped, 0);
+
+    if (results.length > 0) {
+      console.info(`[consolidation] Sleep cycle: ${results.length} domains consolidated — promoted:${totalPromoted} merged:${totalMerged} evicted:${totalEvicted} dropped:${totalDropped}`);
+    }
+  } catch (err) {
+    console.warn('[consolidation] Sleep cycle failed:', err instanceof Error ? err.message : err);
+  }
+}
+
+// Run first consolidation 30s after startup, then every 6 hours
+setTimeout(runConsolidationCycle, 30_000);
+const consolidationTimer = setInterval(runConsolidationCycle, CONSOLIDATION_INTERVAL_MS);
+consolidationTimer.unref(); // Don't prevent shutdown
+
 // Graceful shutdown
 function shutdown(signal: string) {
   console.info(`${signal} received, closing server...`);

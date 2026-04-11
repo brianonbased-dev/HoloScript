@@ -30,10 +30,10 @@ import {
   parsePDB,
   checkLipinski,
   drugLikenessScore,
-  molecularFormula,
-  totalCharge,
-  moleculeCenter,
-  solventAccessibleSurface,
+  _molecularFormula,
+  _totalCharge,
+  _moleculeCenter,
+  _solventAccessibleSurface,
   pharmacophoreFeatures,
   type Molecule,
   type ProteinResidue,
@@ -44,7 +44,7 @@ import {
 type ViewMode = 'overview' | 'lipinski' | 'pharma' | 'residues';
 
 export function MolecularViewerPanel() {
-  const [pdbText, setPdbText] = useState('');
+  const [_pdbText, setPdbText] = useState('');
   const [residues, setResidues] = useState<ProteinResidue[]>([]);
   const [molecule, setMolecule] = useState<Molecule | null>(null);
   const [lipinski, setLipinski] = useState<LipinskiResult | null>(null);
@@ -66,7 +66,7 @@ export function MolecularViewerPanel() {
     reader.readAsText(file);
   }, []);
 
-  const handleAnalyzeMolecule = useCallback(() => {
+  const _handleAnalyzeMolecule = useCallback(() => {
     if (!molecule) return;
     setLipinski(checkLipinski(molecule));
     setPharma(pharmacophoreFeatures(molecule));

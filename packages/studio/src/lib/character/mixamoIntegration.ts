@@ -264,7 +264,7 @@ export function isMixamoAvailable(): boolean {
 /**
  * Get placeholder GLB for Mixamo character (for preview)
  */
-export function getMixamoPlaceholderUrl(characterId: string): string {
+export function getMixamoPlaceholderUrl(_characterId: string): string {
   // Return a generic humanoid model for preview
   return 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf';
 }

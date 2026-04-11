@@ -11,7 +11,7 @@ import { marketplaceApi } from '@/lib/api';
 import { Sparkles, TrendingUp, Clock, Layers } from 'lucide-react';
 
 export default function MarketplacePage() {
-  const { query, results, isSearching, error, filters, setQuery, performSearch } =
+  const { query, results, isSearching, error, _filters, setQuery, performSearch } =
     useMarketplaceSearch();
   const { setPage } = useSearchStore();
 
@@ -34,7 +34,7 @@ export default function MarketplacePage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const handleSearch = (newQuery: string) => {
+  const _handleSearch = (newQuery: string) => {
     setQuery(newQuery);
     performSearch(newQuery);
   };

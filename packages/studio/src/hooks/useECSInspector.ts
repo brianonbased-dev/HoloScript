@@ -120,7 +120,7 @@ export function useECSInspector(): UseECSInspectorReturn {
   const syncEntities = useCallback(() => {
     const w = worldRef.current;
     // Query all entities (any component)
-    const allMask = CT_Transform | CT_Velocity | CT_Collider | CT_Renderable | CT_Agent;
+    const _allMask = CT_Transform | CT_Velocity | CT_Collider | CT_Renderable | CT_Agent;
     const ids = new Set<number>();
     for (const [mask] of COMPONENT_NAMES) {
       for (const id of w.query(mask)) ids.add(id);

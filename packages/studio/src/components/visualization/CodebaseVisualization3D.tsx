@@ -179,7 +179,7 @@ function UniverseGraph({
             setHoveredNode(node);
             document.body.style.cursor = 'pointer';
           }}
-          onPointerOut={(e) => {
+          onPointerOut={(_e) => {
             setHoveredNode(null);
             document.body.style.cursor = 'auto';
           }}

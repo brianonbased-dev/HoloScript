@@ -5,7 +5,7 @@
  * Wired to spatialEngineBridge for collision preview and terrain generation.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, _useMemo } from 'react';
 import { Atom, X, Search, Copy, Plus, Mountain, Crosshair } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { useSpatialEngine } from '@/hooks/useSpatialEngine';
@@ -49,7 +49,7 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
   const {
     ready: engineReady,
     isWasm,
-    testSphereCollision,
+    _testSphereCollision,
     generateTerrainSnippet,
   } = useSpatialEngine();
 

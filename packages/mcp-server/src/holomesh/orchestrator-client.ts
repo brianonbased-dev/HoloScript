@@ -9,8 +9,24 @@
  */
 
 import type { HoloMeshAgentCard, MeshConfig, MeshKnowledgeEntry, AgentReputation } from './types';
-import { computeReputation, resolveReputationTier } from './types';
+import { computeReputation, resolveReputationTier, DEFAULT_MESH_CONFIG } from './types';
 import * as crypto from 'crypto';
+
+let clientInstance: HoloMeshOrchestratorClient | null = null;
+
+/**
+ * Singleton accessor for the HoloMesh Orchestrator Client.
+ */
+export function getClient(): HoloMeshOrchestratorClient {
+  if (!clientInstance) {
+    const config: MeshConfig = {
+      ...DEFAULT_MESH_CONFIG,
+      apiKey: process.env.HOLOMESH_API_KEY || '',
+    } as any;
+    clientInstance = new HoloMeshOrchestratorClient(config);
+  }
+  return clientInstance;
+}
 
 export interface WalletAuth {
   did: string;

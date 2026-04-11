@@ -10,7 +10,7 @@ import { MarketplacePanel } from './MarketplacePanel';
 import { NFTAsset } from '../web3/Web3Provider';
 import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
-import { Vector3, Quaternion } from '../types/HoloScriptPlus';
+import { Vector3, _Quaternion } from '../types/HoloScriptPlus';
 
 /**
  * EditorUI

@@ -164,7 +164,7 @@ export function createCachePlugin(
 
   return {
     async requestDidStart(): Promise<GraphQLRequestListener<BaseContext>> {
-      let cacheHit = false;
+      const _cacheHit = false;
       let operationName: string | undefined;
 
       return {

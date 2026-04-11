@@ -9,12 +9,12 @@ import { useState } from 'react';
 import {
   Download,
   X,
-  FileCode,
-  Package,
+  _FileCode,
+  _Package,
   Loader2,
   CheckCircle,
   AlertCircle,
-  ChevronDown,
+  _ChevronDown,
 } from 'lucide-react';
 import { useSceneExport, type ExportFormat } from '@/hooks/useSceneExport';
 import { useSceneStore } from '@/lib/stores';

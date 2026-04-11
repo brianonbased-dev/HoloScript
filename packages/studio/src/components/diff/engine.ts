@@ -3,7 +3,7 @@ import type { HoloComposition, ObjectDiff, DiffStatus, TextDiffLine } from './ty
 export function diffCompositions(a: HoloComposition, b: HoloComposition): ObjectDiff[] {
   const diffs: ObjectDiff[] = [];
   const namesA = new Set(a.objects.map((o) => o.name));
-  const namesB = new Set(b.objects.map((o) => o.name));
+  const _namesB = new Set(b.objects.map((o) => o.name));
 
   // Objects in both
   for (const objA of a.objects) {
@@ -91,7 +91,7 @@ export function diffCompositions(a: HoloComposition, b: HoloComposition): Object
 }
 
 export function diffLines(linesA: string[], linesB: string[]): TextDiffLine[] {
-  const result: TextDiffLine[] = [];
+  const _result: TextDiffLine[] = [];
 
   // Simple LCS-based diff
   const m = linesA.length;

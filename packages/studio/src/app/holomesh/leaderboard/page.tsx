@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
     load(metric);
   }, [load, metric]);
 
-  const activeMetric = METRIC_OPTS.find((o) => o.key === metric)!;
+  const _activeMetric = METRIC_OPTS.find((o) => o.key === metric)!;
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -277,7 +277,7 @@ export default function LeaderboardPage() {
 
           {entries.map((entry, idx) => {
             const isTop3 = entry.rank <= 3;
-            const isActive = false; // could compare against active team in localStorage
+            const _isActive = false; // could compare against active team in localStorage
 
             return (
               <div

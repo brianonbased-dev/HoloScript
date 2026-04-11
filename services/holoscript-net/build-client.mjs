@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild';
 import fs from 'fs';
-import path from 'path';
+import _path from 'path';
 
 async function build() {
   console.log('Building spatial client with esbuild...');

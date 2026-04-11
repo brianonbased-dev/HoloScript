@@ -42,7 +42,7 @@
  */
 
 import { ParticleType } from './PhysicsTypes';
-import type { UnifiedParticleBuffer, ParticleRange } from './UnifiedParticleBuffer';
+import type { UnifiedParticleBuffer, _ParticleRange } from './UnifiedParticleBuffer';
 
 // =============================================================================
 // Constants
@@ -56,7 +56,7 @@ const DELTA_PARTICLE_SIZE = 14; // u16 index + 3 floats
 
 /** Flags byte bit masks */
 const FLAG_DELTA = 0x01;
-const FLAG_QUANTIZED = 0x02; // Reserved for future half-float support
+const _FLAG_QUANTIZED = 0x02; // Reserved for future half-float support
 
 // =============================================================================
 // Types

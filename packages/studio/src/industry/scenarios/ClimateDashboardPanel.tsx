@@ -12,7 +12,7 @@ import {
   co2EquivalentPPM,
   seaLevelRiseFromIce,
   totalIceMassLoss,
-  yearsToMeltCompletely,
+  _yearsToMeltCompletely,
   carbonBudgetYears,
   scenarioWarming,
   GHG_DATA,

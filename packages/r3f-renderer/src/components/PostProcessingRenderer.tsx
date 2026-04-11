@@ -11,7 +11,7 @@
  * @see G.RENDER.005: Post-processing order matters
  */
 
-import { useRef, useMemo, useEffect } from 'react';
+import { _useRef, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -69,7 +69,7 @@ const TIER_SKIP: Record<QualityTier, PostProcessEffect[]> = {
 
 // ── Shaders ──────────────────────────────────────────────────────────────────
 
-const FULLSCREEN_VERT = /* glsl */ `
+const _FULLSCREEN_VERT = /* glsl */ `
 varying vec2 vUv;
 void main() {
   vUv = uv;
@@ -77,7 +77,7 @@ void main() {
 }
 `;
 
-const BLOOM_FRAG = /* glsl */ `
+const _BLOOM_FRAG = /* glsl */ `
 uniform sampler2D tDiffuse;
 uniform float uThreshold;
 uniform float uIntensity;
@@ -104,7 +104,7 @@ void main() {
 }
 `;
 
-const TONE_MAP_FRAG = /* glsl */ `
+const _TONE_MAP_FRAG = /* glsl */ `
 uniform sampler2D tDiffuse;
 uniform float uExposure;
 varying vec2 vUv;
@@ -123,7 +123,7 @@ void main() {
 }
 `;
 
-const FXAA_FRAG = /* glsl */ `
+const _FXAA_FRAG = /* glsl */ `
 uniform sampler2D tDiffuse;
 uniform vec2 uResolution;
 varying vec2 vUv;
@@ -166,7 +166,7 @@ void main() {
 }
 `;
 
-const VIGNETTE_FRAG = /* glsl */ `
+const _VIGNETTE_FRAG = /* glsl */ `
 uniform sampler2D tDiffuse;
 uniform float uOffset;
 uniform float uDarkness;

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, _useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function HolodaemonPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const [isRunning, setIsRunning] = useState(true);
-  const [metrics, setMetrics] = useState({
+  const [metrics, _setMetrics] = useState({
     memoryUsage: 45,
     activeJobs: 12,
     completedJobs: 1340,

@@ -79,7 +79,7 @@ export function useCombat(): UseCombatReturn {
   }, []);
 
   const attack = useCallback(
-    (attackerId: string, targetId: string) => {
+    (attackerId: string, _targetId: string) => {
       const atkEntity = entities.find((e) => e.id === attackerId);
       if (atkEntity?.hitboxId) {
         mgrRef.current.setHitBoxActive(atkEntity.hitboxId, true);
@@ -100,7 +100,7 @@ export function useCombat(): UseCombatReturn {
     [entities, sync]
   );
 
-  const registerCombo = useCallback((name: string) => {
+  const registerCombo = useCallback((_name: string) => {
     const id = `combo-${Date.now()}`;
     const chain = mgrRef.current.registerCombo(id, [
       { name: 'Jab', input: 'A', damage: 5, window: 0.5 },

@@ -284,7 +284,7 @@ export class LODPerformanceMetrics {
   /**
    * Start profiling a code section
    */
-  startProfile(name: string): number {
+  startProfile(_name: string): number {
     if (!this.enabled) return 0;
     return performance.now();
   }

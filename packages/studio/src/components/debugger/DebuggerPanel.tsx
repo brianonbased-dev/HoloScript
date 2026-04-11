@@ -15,7 +15,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
-import { useDebugger, type DebugFrame, type DebugVar } from '@/hooks/useDebugger';
+import { useDebugger, type _DebugFrame, type DebugVar } from '@/hooks/useDebugger';
 import { useSceneStore } from '@/lib/stores';
 
 interface DebuggerPanelProps {

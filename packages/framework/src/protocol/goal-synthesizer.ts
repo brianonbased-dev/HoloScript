@@ -9,7 +9,7 @@
  * Absorbed from @holoscript/agent-protocol per FW-0.2.
  */
 
-import type { KnowledgeInsight, ModelConfig } from '../types';
+import type { _KnowledgeInsight, ModelConfig } from '../types';
 import type { KnowledgeStore, StoredEntry } from '../knowledge/knowledge-store';
 import { callLLM } from '../llm/llm-adapter';
 import type { LLMMessage } from '../llm/llm-adapter';

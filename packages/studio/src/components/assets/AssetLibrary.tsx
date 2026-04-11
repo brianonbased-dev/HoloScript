@@ -211,8 +211,8 @@ interface AssetLibraryProps {
 
 export function AssetLibrary({ onOpenSplatWizard }: AssetLibraryProps) {
   const { assets, addAsset, removeAsset } = useAssetStore();
-  const addNode = useSceneGraphStore((s) => s.addNode);
-  const addTrait = useSceneGraphStore((s) => s.addTrait);
+  const _addNode = useSceneGraphStore((s) => s.addNode);
+  const _addTrait = useSceneGraphStore((s) => s.addTrait);
 
   const [activeCategory, setActiveCategory] = useState<AssetCategory | 'all'>('all');
   const [query, setQuery] = useState('');

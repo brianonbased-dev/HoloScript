@@ -46,7 +46,7 @@ export class AvatarController {
   /**
    * Calibrate avatar scale based on user height
    */
-  calibrate(userHeight: number): void {
+  calibrate(_userHeight: number): void {
     // scale bones based on user height vs default avatar height
     // simplifed for now
     this.calibrated = true;

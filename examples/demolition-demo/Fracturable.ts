@@ -7,7 +7,7 @@
  * Week 8: Explosive Demolition - Day 1
  */
 
-import type { Vector3, FragmentGeometry } from './Fragment';
+import type { Vector3, _FragmentGeometry } from './Fragment';
 import type { FractureType } from './FracturePattern';
 
 export interface FracturableGeometry {

@@ -13,13 +13,13 @@
  *   - Timer Queue: scheduled delayed actions
  */
 
-import { HoloOpCode, ComponentType, GeometryType, getOpcodeName, isControlFlow } from './opcodes';
+import { HoloOpCode, ComponentType, GeometryType, _getOpcodeName, _isControlFlow } from './opcodes';
 import type {
   HoloBytecode,
   HoloInstruction,
   HoloOperand,
-  HoloFunction,
-  HoloEntityDef,
+  _HoloFunction,
+  _HoloEntityDef,
 } from './bytecode';
 
 // =============================================================================
@@ -422,7 +422,7 @@ export class HoloVM {
 
       try {
         this.executeInstruction(instr, frame);
-      } catch (err) {
+      } catch (_err) {
         this.status = VMStatus.Error;
         break;
       }
@@ -554,7 +554,7 @@ export class HoloVM {
       }
       case HoloOpCode.SET_VISIBLE: {
         const entityId = operands[0] as number;
-        const visible = operands[1] !== 0;
+        const _visible = operands[1] !== 0;
         const entity = this.world.getEntity(entityId);
         if (entity) entity.dirty = true;
         break;

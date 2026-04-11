@@ -5,7 +5,7 @@
  * Tracks nodes (instances) and edges (connections) in memory.
  */
 
-import { useState, useCallback, useId } from 'react';
+import { useState, useCallback, _useId } from 'react';
 
 export type PortType = 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string';
 

@@ -142,7 +142,7 @@ function findObjectBlock(
     const line = lines[i];
     if (holoPattern.test(line) || hsplusPattern.test(line)) {
       // Found the declaration line — now find the matching closing brace
-      const indent = line.match(/^(\s*)/)?.[1] ?? '';
+      const _indent = line.match(/^(\s*)/)?.[1] ?? '';
       let braceDepth = 0;
       let foundOpen = false;
 

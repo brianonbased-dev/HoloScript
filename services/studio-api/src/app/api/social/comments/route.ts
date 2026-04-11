@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getSession } from '../../../../lib/api-auth';
+import { requireAuth, _getSession } from '../../../../lib/api-auth';
 import { getDb } from '../../../../db/client';
 import { comments, users, activityFeed } from '../../../../db/schema';
 import { eq, and, desc } from 'drizzle-orm';

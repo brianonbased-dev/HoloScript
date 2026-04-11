@@ -4,8 +4,8 @@
  * FilmStudioPanel — Film storyboard with shot types, camera angles, and scene timeline.
  */
 
-import { useState, useCallback } from 'react';
-import { Film, Camera, Clock, Plus, Trash2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { useState, _useCallback } from 'react';
+import { Film, _Camera, _Clock, _Plus, _Trash2, ChevronLeft, ChevronRight, _Eye } from 'lucide-react';
 
 export type ShotType =
   | 'wide'
@@ -120,7 +120,7 @@ const DEMO_SCENE: Scene = {
 };
 
 export function FilmStudioPanel() {
-  const [scene, setScene] = useState<Scene>(DEMO_SCENE);
+  const [scene, _setScene] = useState<Scene>(DEMO_SCENE);
   const [selectedShot, setSelectedShot] = useState<number>(0);
 
   const shot = scene.shots[selectedShot];

@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Clock, Lock, Unlock, Plus, Trash2, Calendar, Archive, Gift, Eye } from 'lucide-react';
+import { Clock, Lock, Unlock, Plus, _Trash2, Calendar, Archive, Gift, Eye } from 'lucide-react';
 
 export type CapsuleStatus = 'open' | 'sealed' | 'scheduled' | 'revealed';
 

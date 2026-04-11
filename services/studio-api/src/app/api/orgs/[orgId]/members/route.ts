@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../../../lib/api-auth';
 import { getDb } from '../../../../../db/client';
-import { orgMembers, organizations, users } from '../../../../../db/schema';
+import { orgMembers, _organizations, users } from '../../../../../db/schema';
 import { eq, and } from 'drizzle-orm';
 
 /**

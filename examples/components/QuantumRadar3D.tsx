@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, _useThree } from '@react-three/fiber';
 import {
-  Points,
-  PointMaterial,
+  _Points,
+  _PointMaterial,
   Float,
   Text,
   Line,
@@ -25,7 +25,7 @@ function AgentNode({
   id,
   position,
   isCouncil,
-  status,
+  _status,
 }: {
   id: string;
   position: [number, number, number];
@@ -84,7 +84,7 @@ function Pulse({
   end: [number, number, number];
   intensity: number;
 }) {
-  const lineRef = useRef<THREE.Line>(null!);
+  const _lineRef = useRef<THREE.Line>(null!);
   const [prog, setProg] = useState(0);
 
   useFrame((_state, delta) => {
@@ -173,7 +173,7 @@ function Scene() {
             setPulses(newPulses);
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // Silent fail for polling
       }
     };

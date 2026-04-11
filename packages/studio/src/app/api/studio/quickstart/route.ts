@@ -32,7 +32,7 @@ const HELLO_WORLD_SCENE = `scene HelloWorld {
   }
 }`;
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   // Try to compile the hello world scene via MCP
   let compilation = null;
   try {

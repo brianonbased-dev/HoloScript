@@ -40,8 +40,8 @@ export function ShaderEditorToolbar() {
   const canUndo = useShaderGraph((state) => state.canUndo());
   const canRedo = useShaderGraph((state) => state.canRedo());
 
-  const { loadAutoSave, clearAutoSave } = useAutoSave();
-  const { compiled, lastCompileTime, exportGLSL, exportWGSL, exportHLSL } = useShaderCompilation();
+  const { loadAutoSave, _clearAutoSave } = useAutoSave();
+  const { _compiled, _lastCompileTime, exportGLSL, exportWGSL, exportHLSL } = useShaderCompilation();
 
   // Save graph to file
   const handleSave = () => {

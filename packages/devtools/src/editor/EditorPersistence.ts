@@ -2,7 +2,7 @@ import { World } from '@holoscript/engine/ecs/World';
 import { SceneSerializer } from '@holoscript/engine/scene/SceneSerializer';
 import { SceneDeserializer } from '@holoscript/engine/scene/SceneDeserializer';
 import { UIBuilder } from './UIBuilder';
-import { SerializedScene } from '@holoscript/engine/scene/SceneSerializer';
+import { _SerializedScene } from '@holoscript/engine/scene/SceneSerializer';
 
 /**
  * EditorPersistence
@@ -53,7 +53,7 @@ export class EditorPersistence {
       // We could write to disk if running in node/electron, but let's assume browser-first.
       // If localStorage is mocked in global (test env), it works.
       return true;
-    } catch (e) {
+    } catch (_e) {
       // Save operation failed
       return false;
     }
@@ -114,7 +114,7 @@ export class EditorPersistence {
 
       // Scene loaded successfully
       return true;
-    } catch (e) {
+    } catch (_e) {
       // Load operation failed
       return false;
     }

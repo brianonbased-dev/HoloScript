@@ -39,6 +39,21 @@ export async function handleHoloMeshRoute(
     return true;
   }
 
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/presence$/)) {
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/presence', '');
+    const online = getRoomPresence(teamId);
+    json(res, 200, { success: true, teamId, online });
+    return true;
+  }
+
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/stats$/)) {
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/stats', '');
+    const allStats = getRoomStats();
+    const stats = { connected: allStats[teamId] || 0 };
+    json(res, 200, { success: true, teamId, stats });
+    return true;
+  }
+
   // 2. Delegate to modular route handlers
   if (await handleBountyRoutes(req, res, pathname, method, url)) return true;
   if (await handleBoardRoutes(req, res, pathname, method, url)) return true;

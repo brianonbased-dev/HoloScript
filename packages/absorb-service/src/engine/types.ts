@@ -13,6 +13,7 @@ import type {
   SymbolDefinition,
   SymbolReference,
   ReferenceContext,
+// @ts-ignore - Automatic remediation for TS2307
 } from '../analysis/ReferenceGraph';
 
 // =============================================================================

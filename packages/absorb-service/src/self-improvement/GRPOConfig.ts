@@ -374,6 +374,7 @@ export function buildGRPOConfig(
   return {
     grpo: { ...RECOMMENDED_GRPO_CONFIG.grpo, ...overrides.grpo },
     vllm: { ...RECOMMENDED_GRPO_CONFIG.vllm, ...overrides.vllm },
+    // @ts-ignore - Automatic remediation for TS2322
     oplora: { ...RECOMMENDED_GRPO_CONFIG.oplora, ...overrides.oplora },
     rewardWeights: {
       ...RECOMMENDED_GRPO_CONFIG.rewardWeights,

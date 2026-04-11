@@ -159,7 +159,7 @@ export class ColorGrading {
   // Full Pipeline
   // ---------------------------------------------------------------------------
 
-  apply(pixels: Float32Array, width: number, height: number): Float32Array {
+  apply(pixels: Float32Array, _width: number, _height: number): Float32Array {
     if (!this.config.enabled) return pixels;
     const output = new Float32Array(pixels.length);
 

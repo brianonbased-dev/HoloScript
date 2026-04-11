@@ -25,7 +25,7 @@ import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   AlertTriangle,
-  BarChart2,
+  _BarChart2,
   Move,
   RotateCw,
   RotateCcw,
@@ -40,7 +40,7 @@ import {
   Film,
   LayoutTemplate,
   Share2,
-  Users,
+  _Users,
   Lightbulb,
   Package,
   GitBranch,
@@ -80,7 +80,7 @@ import {
   PaintBucket,
   Shield,
 } from 'lucide-react';
-import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
+import type { GizmoMode, ArtMode, _StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
@@ -541,7 +541,7 @@ const GIZMO_BUTTONS: Array<{ mode: GizmoMode; icon: typeof Move; label: string; 
 ];
 
 function ViewportToolbar({
-  profilerOpen,
+  _profilerOpen,
   onToggleProfiler,
 }: {
   profilerOpen: boolean;
@@ -735,7 +735,7 @@ export default function CreatePage() {
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addAsset = useAssetStore((s) => s.addAsset);
   const artMode = useEditorStore((s) => s.artMode);
-  const studioMode = useEditorStore((s) => s.studioMode);
+  const _studioMode = useEditorStore((s) => s.studioMode);
 
   // Panel widths (px) — driven by PanelSplitter drag
   const [leftPanelW, setLeftPanelW] = useState(256);
@@ -746,7 +746,7 @@ export default function CreatePage() {
   const paletteOpen = usePanelVisibilityStore((s) => s.paletteOpen);
   const setPaletteOpen = usePanelVisibilityStore((s) => s.setPaletteOpen);
   const chatOpen = usePanelVisibilityStore((s) => s.chatOpen);
-  const setChatOpen = usePanelVisibilityStore((s) => s.setChatOpen);
+  const _setChatOpen = usePanelVisibilityStore((s) => s.setChatOpen);
   const toggleChatOpen = usePanelVisibilityStore((s) => s.toggleChatOpen);
   const historyOpen = usePanelVisibilityStore((s) => s.historyOpen);
   const setHistoryOpen = usePanelVisibilityStore((s) => s.setHistoryOpen);
@@ -759,15 +759,15 @@ export default function CreatePage() {
   const toggleShaderEditorOpen = usePanelVisibilityStore((s) => s.toggleShaderEditorOpen);
   const timelineOpen = usePanelVisibilityStore((s) => s.timelineOpen);
   const setTimelineOpen = usePanelVisibilityStore((s) => s.setTimelineOpen);
-  const toggleTimelineOpen = usePanelVisibilityStore((s) => s.toggleTimelineOpen);
+  const _toggleTimelineOpen = usePanelVisibilityStore((s) => s.toggleTimelineOpen);
   const templatePickerOpen = usePanelVisibilityStore((s) => s.templatePickerOpen);
   const setTemplatePickerOpen = usePanelVisibilityStore((s) => s.setTemplatePickerOpen);
   const aiMaterialOpen = usePanelVisibilityStore((s) => s.aiMaterialOpen);
   const setAiMaterialOpen = usePanelVisibilityStore((s) => s.setAiMaterialOpen);
-  const toggleAiMaterialOpen = usePanelVisibilityStore((s) => s.toggleAiMaterialOpen);
+  const _toggleAiMaterialOpen = usePanelVisibilityStore((s) => s.toggleAiMaterialOpen);
   const shareOpen = usePanelVisibilityStore((s) => s.shareOpen);
   const setShareOpen = usePanelVisibilityStore((s) => s.setShareOpen);
-  const toggleShareOpen = usePanelVisibilityStore((s) => s.toggleShareOpen);
+  const _toggleShareOpen = usePanelVisibilityStore((s) => s.toggleShareOpen);
   const critiqueOpen = usePanelVisibilityStore((s) => s.critiqueOpen);
   const setCritiqueOpen = usePanelVisibilityStore((s) => s.setCritiqueOpen);
   const toggleCritiqueOpen = usePanelVisibilityStore((s) => s.toggleCritiqueOpen);
@@ -779,7 +779,7 @@ export default function CreatePage() {
   const toggleVersionsOpen = usePanelVisibilityStore((s) => s.toggleVersionsOpen);
   const replOpen = usePanelVisibilityStore((s) => s.replOpen);
   const setReplOpen = usePanelVisibilityStore((s) => s.setReplOpen);
-  const toggleReplOpen = usePanelVisibilityStore((s) => s.toggleReplOpen);
+  const _toggleReplOpen = usePanelVisibilityStore((s) => s.toggleReplOpen);
   const registryOpen = usePanelVisibilityStore((s) => s.registryOpen);
   const setRegistryOpen = usePanelVisibilityStore((s) => s.setRegistryOpen);
   const toggleRegistryOpen = usePanelVisibilityStore((s) => s.toggleRegistryOpen);
@@ -788,40 +788,40 @@ export default function CreatePage() {
   const toggleRemoteOpen = usePanelVisibilityStore((s) => s.toggleRemoteOpen);
   const exportOpen = usePanelVisibilityStore((s) => s.exportOpen);
   const setExportOpen = usePanelVisibilityStore((s) => s.setExportOpen);
-  const toggleExportOpen = usePanelVisibilityStore((s) => s.toggleExportOpen);
+  const _toggleExportOpen = usePanelVisibilityStore((s) => s.toggleExportOpen);
   const generatorOpen = usePanelVisibilityStore((s) => s.generatorOpen);
   const setGeneratorOpen = usePanelVisibilityStore((s) => s.setGeneratorOpen);
   const toggleGeneratorOpen = usePanelVisibilityStore((s) => s.toggleGeneratorOpen);
   const multiplayerOpen = usePanelVisibilityStore((s) => s.multiplayerOpen);
   const setMultiplayerOpen = usePanelVisibilityStore((s) => s.setMultiplayerOpen);
-  const toggleMultiplayerOpen = usePanelVisibilityStore((s) => s.toggleMultiplayerOpen);
+  const _toggleMultiplayerOpen = usePanelVisibilityStore((s) => s.toggleMultiplayerOpen);
   const debuggerOpen = usePanelVisibilityStore((s) => s.debuggerOpen);
   const setDebuggerOpen = usePanelVisibilityStore((s) => s.setDebuggerOpen);
   const toggleDebuggerOpen = usePanelVisibilityStore((s) => s.toggleDebuggerOpen);
   const snapshotsOpen = usePanelVisibilityStore((s) => s.snapshotsOpen);
   const setSnapshotsOpen = usePanelVisibilityStore((s) => s.setSnapshotsOpen);
-  const toggleSnapshotsOpen = usePanelVisibilityStore((s) => s.toggleSnapshotsOpen);
+  const _toggleSnapshotsOpen = usePanelVisibilityStore((s) => s.toggleSnapshotsOpen);
   const assetLibOpen = usePanelVisibilityStore((s) => s.assetLibOpen);
   const setAssetLibOpen = usePanelVisibilityStore((s) => s.setAssetLibOpen);
-  const toggleAssetLibOpen = usePanelVisibilityStore((s) => s.toggleAssetLibOpen);
+  const _toggleAssetLibOpen = usePanelVisibilityStore((s) => s.toggleAssetLibOpen);
   const templateGalleryOpen = usePanelVisibilityStore((s) => s.templateGalleryOpen);
   const setTemplateGalleryOpen = usePanelVisibilityStore((s) => s.setTemplateGalleryOpen);
-  const toggleTemplateGalleryOpen = usePanelVisibilityStore((s) => s.toggleTemplateGalleryOpen);
+  const _toggleTemplateGalleryOpen = usePanelVisibilityStore((s) => s.toggleTemplateGalleryOpen);
   const minimapOpen = usePanelVisibilityStore((s) => s.minimapOpen);
   const setMinimapOpen = usePanelVisibilityStore((s) => s.setMinimapOpen);
   const toggleMinimapOpen = usePanelVisibilityStore((s) => s.toggleMinimapOpen);
   const audioOpen = usePanelVisibilityStore((s) => s.audioOpen);
   const setAudioOpen = usePanelVisibilityStore((s) => s.setAudioOpen);
-  const toggleAudioOpen = usePanelVisibilityStore((s) => s.toggleAudioOpen);
+  const _toggleAudioOpen = usePanelVisibilityStore((s) => s.toggleAudioOpen);
   const exportV2Open = usePanelVisibilityStore((s) => s.exportV2Open);
   const setExportV2Open = usePanelVisibilityStore((s) => s.setExportV2Open);
-  const toggleExportV2Open = usePanelVisibilityStore((s) => s.toggleExportV2Open);
+  const _toggleExportV2Open = usePanelVisibilityStore((s) => s.toggleExportV2Open);
   const nodeGraphOpen = usePanelVisibilityStore((s) => s.nodeGraphOpen);
   const setNodeGraphOpen = usePanelVisibilityStore((s) => s.setNodeGraphOpen);
-  const toggleNodeGraphOpen = usePanelVisibilityStore((s) => s.toggleNodeGraphOpen);
+  const _toggleNodeGraphOpen = usePanelVisibilityStore((s) => s.toggleNodeGraphOpen);
   const keyframesOpen = usePanelVisibilityStore((s) => s.keyframesOpen);
   const setKeyframesOpen = usePanelVisibilityStore((s) => s.setKeyframesOpen);
-  const toggleKeyframesOpen = usePanelVisibilityStore((s) => s.toggleKeyframesOpen);
+  const _toggleKeyframesOpen = usePanelVisibilityStore((s) => s.toggleKeyframesOpen);
   const sceneSearchOpen = usePanelVisibilityStore((s) => s.sceneSearchOpen);
   const setSceneSearchOpen = usePanelVisibilityStore((s) => s.setSceneSearchOpen);
   const toggleSceneSearchOpen = usePanelVisibilityStore((s) => s.toggleSceneSearchOpen);
@@ -832,13 +832,13 @@ export default function CreatePage() {
   const setLodOpen = usePanelVisibilityStore((s) => s.setLodOpen);
   const toggleLodOpen = usePanelVisibilityStore((s) => s.toggleLodOpen);
   const consoleOpen = usePanelVisibilityStore((s) => s.consoleOpen);
-  const setConsoleOpen = usePanelVisibilityStore((s) => s.setConsoleOpen);
+  const _setConsoleOpen = usePanelVisibilityStore((s) => s.setConsoleOpen);
   const toggleConsoleOpen = usePanelVisibilityStore((s) => s.toggleConsoleOpen);
   const undoHistoryOpen = usePanelVisibilityStore((s) => s.undoHistoryOpen);
   const setUndoHistoryOpen = usePanelVisibilityStore((s) => s.setUndoHistoryOpen);
   const toggleUndoHistoryOpen = usePanelVisibilityStore((s) => s.toggleUndoHistoryOpen);
   const outlinerOpen = usePanelVisibilityStore((s) => s.outlinerOpen);
-  const setOutlinerOpen = usePanelVisibilityStore((s) => s.setOutlinerOpen);
+  const _setOutlinerOpen = usePanelVisibilityStore((s) => s.setOutlinerOpen);
   const toggleOutlinerOpen = usePanelVisibilityStore((s) => s.toggleOutlinerOpen);
   const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
   const setMaterialOpen = usePanelVisibilityStore((s) => s.setMaterialOpen);
@@ -880,7 +880,7 @@ export default function CreatePage() {
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>(
     'scene'
   );
-  const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({
+  const [spatialBlameTooltip, _setSpatialBlameTooltip] = useState({
     visible: false,
     x: 0,
     y: 0,
@@ -889,7 +889,7 @@ export default function CreatePage() {
 
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
-  const setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
+  const _setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
   const showConformancePanel = useEditorStore((s) => s.showConformancePanel);
   const setShowConformancePanel = useEditorStore((s) => s.setShowConformancePanel);
 
@@ -926,12 +926,12 @@ export default function CreatePage() {
     []
   );
   const {
-    bridge: studioBridge,
-    apply: bridgeApply,
-    undo: bridgeUndo,
-    redo: bridgeRedo,
-    canUndo: bridgeCanUndo,
-    canRedo: bridgeCanRedo,
+    bridge: _studioBridge,
+    apply: _bridgeApply,
+    undo: _bridgeUndo,
+    redo: _bridgeRedo,
+    canUndo: _bridgeCanUndo,
+    canRedo: _bridgeCanRedo,
   } = useStudioBridge(emptyAST);
 
   // ── URL scene restore (?scene= or ?src= parameters) ────────────────────────

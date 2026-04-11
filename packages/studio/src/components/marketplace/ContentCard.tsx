@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { Heart, Download, Eye, Star, CheckCircle, ExternalLink } from 'lucide-react';
-import type { MarketplaceItem, ContentType } from '@/lib/marketplace/types';
+import type { MarketplaceItem, _ContentType } from '@/lib/marketplace/types';
 import { CONTENT_TYPE_METADATA } from '@/lib/marketplace/types';
 import * as LucideIcons from 'lucide-react';
 

@@ -22,7 +22,7 @@
 import type { TraitHandler } from '@holoscript/core';
 import { WalletConnection } from '../web3/WalletConnection';
 import { GasEstimator } from '../web3/GasEstimator';
-import { parseEther, formatEther, type Address, type Hex } from 'viem';
+import { _parseEther, _formatEther, type Address, type Hex } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
 
 // =============================================================================
@@ -712,7 +712,7 @@ async function checkMintStatus(
         error: mint.error,
       });
     }
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
     // Transaction not yet confirmed or error fetching receipt
 
     // Check for timeout (5 minutes max)

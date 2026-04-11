@@ -7,15 +7,15 @@
 import { useState, useCallback } from 'react';
 import {
   Scale,
-  Plus,
-  Trash2,
-  FileText,
+  _Plus,
+  _Trash2,
+  _FileText,
   Clock,
   AlertTriangle,
   CheckCircle,
-  Eye,
-  Tag,
-  ChevronDown,
+  _Eye,
+  _Tag,
+  _ChevronDown,
 } from 'lucide-react';
 
 export type EvidenceType = 'document' | 'photo' | 'video' | 'audio' | 'physical' | 'testimony';
@@ -97,7 +97,7 @@ export function CourtroomPanel() {
   const [selected, setSelected] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<EvidenceStatus | 'all'>('all');
   const [filterType, setFilterType] = useState<EvidenceType | 'all'>('all');
-  const [section, setSection] = useState<'evidence' | 'timeline'>('evidence');
+  const [_section, _setSection] = useState<'evidence' | 'timeline'>('evidence');
 
   const updateStatus = useCallback((id: string, status: EvidenceStatus) => {
     setEvidence((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));

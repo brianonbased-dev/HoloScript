@@ -13,7 +13,7 @@
 import { URDFCompiler } from '../../packages/core/src/compiler/URDFCompiler';
 import { SDFCompiler } from '../../packages/core/src/compiler/SDFCompiler';
 import {
-  USDPhysicsCompiler,
+  _USDPhysicsCompiler,
   compileForIsaacSim,
 } from '../../packages/core/src/compiler/USDPhysicsCompiler';
 import type {

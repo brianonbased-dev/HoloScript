@@ -141,7 +141,7 @@ function extractThumbnailFromGLTF(gltf: { textures?: Array<{ source: number }>; 
 
     // DEFERRED(VRM-001): GLB binary chunk thumbnail extraction requires ArrayBuffer parsing
     return undefined;
-  } catch (error) {
+  } catch (_error) {
     return undefined;
   }
 }
@@ -206,7 +206,7 @@ export async function convertVRMtoGLB(vrmFile: File): Promise<Blob> {
  * NOTE: Requires VRoid Hub API access (not publicly documented)
  * This is a placeholder for future implementation
  */
-export async function searchVRoidHub(query: string): Promise<any[]> {
+export async function searchVRoidHub(_query: string): Promise<any[]> {
   logger.warn('[VRMImport] VRoid Hub search not yet implemented');
 
   // Mock results for development
@@ -225,7 +225,7 @@ export async function searchVRoidHub(query: string): Promise<any[]> {
  * Download avatar from VRoid Hub
  * NOTE: Requires user authentication with VRoid Hub
  */
-export async function downloadFromVRoidHub(avatarId: string): Promise<VRMAvatar> {
+export async function downloadFromVRoidHub(_avatarId: string): Promise<VRMAvatar> {
   throw new Error('VRoid Hub download not yet implemented. Please upload VRM files directly.');
 }
 

@@ -107,7 +107,7 @@ export class ORSet<T> {
   }
   add(value: T): string {
     const tag = this.generateTag();
-    const key = JSON.stringify(value);
+    const _key = JSON.stringify(value);
     this.elements.set(tag, { value, tag });
     return tag;
   }

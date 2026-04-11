@@ -9,7 +9,7 @@
 import Ajv, { type ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import { mvcSchemas, type MVCSchemaType } from '../schemas';
-import type { MVCObject } from '../types';
+import type { _MVCObject } from '../types';
 
 /**
  * Validation result

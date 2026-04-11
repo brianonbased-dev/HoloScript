@@ -8,8 +8,8 @@
  * @see W.151: Quilt format is the interchange standard for holographic images
  */
 
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef, useState, useEffect, _useMemo, useCallback } from 'react';
+import { useFrame, _useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export interface QuiltViewerProps {

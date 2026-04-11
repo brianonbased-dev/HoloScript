@@ -11,7 +11,7 @@ export function LightingPanel() {
   const { emit } = useStudioBus();
 
   // Wrap mutations to broadcast changes to viewport
-  const emitState = useCallback(() => {
+  const _emitState = useCallback(() => {
     // Slight delay to let React state settle
     setTimeout(() => emit('lighting:changed', { lights, ambient }), 0);
   }, [emit, lights, ambient]);

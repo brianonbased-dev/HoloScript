@@ -16,7 +16,7 @@ function cleanHoloScript() {
 
   const raw = fs.readFileSync(inputFile, 'utf8');
   const lines = raw.split('\n').filter((l) => l.trim());
-  let validCount = 0;
+  let _validCount = 0;
   let processedEntries: string[] = [];
 
   const parser = new HoloScriptPlusParser();
@@ -127,11 +127,11 @@ function cleanHoloScript() {
         if (json.completion) json.completion = code;
         if (json.output) json.output = code;
         processedEntries.push(JSON.stringify(json));
-        validCount++;
+        _validCount++;
       } else {
         // console.log(`Discarding Entry ${i+1}: Still invalid after cleaning.`);
       }
-    } catch (e) {
+    } catch (_e) {
       console.error(`Error processing entry ${i + 1}`);
     }
   }

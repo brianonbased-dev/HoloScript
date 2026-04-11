@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft, Box } from 'lucide-react';
+import { X, Upload, Image, _FileText, _Eye, CheckCircle, ArrowRight, ArrowLeft, Box } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';

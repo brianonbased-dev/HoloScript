@@ -53,7 +53,7 @@ export class PythonAstropyBridge {
           // Attempt to parse JSON line output from python script
           const parsed = JSON.parse(output.trim());
           resolve(parsed as AstropyResult);
-        } catch (e) {
+        } catch (_e) {
           reject(new Error(`Failed to parse bridge output: ${output}`));
         }
       });

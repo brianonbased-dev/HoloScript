@@ -198,7 +198,7 @@ export function mergePlugins(plugins: HoloScriptPlugin[]): HoloScriptPlugin {
     return plugins[0];
   }
 
-  const [first, ...rest] = plugins;
+  const [first, ..._rest] = plugins;
   const merged: HoloScriptPlugin = {
     metadata: {
       ...first.metadata,

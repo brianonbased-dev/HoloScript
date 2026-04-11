@@ -4,7 +4,7 @@
  * Analyzes HoloScript core bundle size and generates visualization
  */
 
-import { execSync } from 'child_process';
+import { _execSync } from 'child_process';
 import { existsSync, statSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { formatBytes } from '@holoscript/std';

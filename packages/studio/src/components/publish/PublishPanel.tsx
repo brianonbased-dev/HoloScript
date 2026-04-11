@@ -87,7 +87,7 @@ export function PublishPanel({ onClose }: PublishPanelProps) {
   const [author, setAuthor] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const [price, setPrice] = useState('0');
+  const [price, _setPrice] = useState('0');
 
   const [stage, setStage] = useState<Stage>('form');
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);

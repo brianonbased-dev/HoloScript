@@ -56,7 +56,7 @@ export interface HSNAPCompileResult {
 /**
  * @deprecated HSNAP compilation has been moved to separate package.
  */
-export function compileHSNAPToUAAL(source: string, options: HSNAPCompileOptions = {}): any {
+export function compileHSNAPToUAAL(source: string, _options: HSNAPCompileOptions = {}): any {
   throw new Error(
     '[DEPRECATED] HSNAP bytecode compilation moved to separate package. ' +
       'Import from @holoscript/hsnap-compiler instead of @holoscript/agent-protocol'
@@ -68,7 +68,7 @@ export function compileHSNAPToUAAL(source: string, options: HSNAPCompileOptions 
  */
 export function compileHSNAPToUAALDetailed(
   source: string,
-  options: HSNAPCompileOptions = {}
+  _options: HSNAPCompileOptions = {}
 ): HSNAPCompileResult {
   throw new Error(
     '[DEPRECATED] HSNAP bytecode compilation moved to separate package. ' +
@@ -79,7 +79,7 @@ export function compileHSNAPToUAALDetailed(
 /**
  * @deprecated Use separate package for HSNAP conversions
  */
-export function canonicalTaskToHSNAPSource(envelope: any, compositionName?: string): string {
+export function canonicalTaskToHSNAPSource(_envelope: any, _compositionName?: string): string {
   throw new Error(
     '[DEPRECATED] HSNAP conversion moved to separate package. ' +
       'Import from @holoscript/hsnap-compiler instead of @holoscript/agent-protocol'
@@ -89,7 +89,7 @@ export function canonicalTaskToHSNAPSource(envelope: any, compositionName?: stri
 /**
  * @deprecated Use separate package for HSNAP conversions
  */
-export function a2aSendMessageToCanonicalTaskEnvelope(request: any): any {
+export function a2aSendMessageToCanonicalTaskEnvelope(_request: any): any {
   throw new Error(
     '[DEPRECATED] HSNAP conversion moved to separate package. ' +
       'Import from @holoscript/hsnap-compiler instead of @holoscript/agent-protocol'
@@ -99,7 +99,7 @@ export function a2aSendMessageToCanonicalTaskEnvelope(request: any): any {
 /**
  * @deprecated Use separate package for HSNAP conversions
  */
-export function hsnapSourceToCanonicalTaskEnvelope(source: string): any {
+export function hsnapSourceToCanonicalTaskEnvelope(_source: string): any {
   throw new Error(
     '[DEPRECATED] HSNAP conversion moved to separate package. ' +
       'Import from @holoscript/hsnap-compiler instead of @holoscript/agent-protocol'

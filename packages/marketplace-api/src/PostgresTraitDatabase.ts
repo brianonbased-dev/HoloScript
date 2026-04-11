@@ -443,7 +443,7 @@ export class PostgresTraitDatabase implements ITraitDatabase {
     }
   }
 
-  async getFacets(query: SearchQuery): Promise<SearchFacets> {
+  async getFacets(_query: SearchQuery): Promise<SearchFacets> {
     const client = await this.getClient();
     try {
       const [catRes, platRes, licRes, authRes] = await Promise.all([

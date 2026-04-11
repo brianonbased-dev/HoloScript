@@ -378,7 +378,7 @@ export class ErosionRuntimeExecutor {
 
     // Update terrain mesh
     if (this.rendererTerrainId) {
-      const terrainMesh = this.scene.getTerrainMesh();
+      const _terrainMesh = this.scene.getTerrainMesh();
       // TODO: Update mesh geometry in renderer
       // this.renderer.updateMeshGeometry(this.rendererTerrainId, terrainMesh);
     }
@@ -430,7 +430,7 @@ export class ErosionRuntimeExecutor {
    */
   private generateWaterParticles(
     heightmap: Float32Array,
-    velocityField: Float32Array
+    _velocityField: Float32Array
   ): { positions: Float32Array; colors: Float32Array; count: number } | null {
     if (!this.scene) return null;
 

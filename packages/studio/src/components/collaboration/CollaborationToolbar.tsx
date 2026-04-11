@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { Users, MessageCircle, UserCircle, Settings, Play, StopCircle } from 'lucide-react';
+import { _Users, MessageCircle, UserCircle, Settings, Play, StopCircle } from 'lucide-react';
 import { useYjsCollaboration } from '@/hooks/useYjsCollaboration';
 import { PresenceIndicator } from './PresenceIndicator';
 import { ChatPanel } from './ChatPanel';

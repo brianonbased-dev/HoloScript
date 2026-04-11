@@ -17,7 +17,7 @@ import {
   type BuildingConfig,
   type BuildingStructure,
 } from './ProceduralBuilding.js';
-import { FracturePhysics, type EarthquakeConfig, type DebrisParticle } from './FracturePhysics.js';
+import { FracturePhysics, type EarthquakeConfig, type _DebrisParticle } from './FracturePhysics.js';
 
 export interface EarthquakeSimulationConfig {
   /** Building configuration */
@@ -300,7 +300,7 @@ export class EarthquakeSimulation {
   /**
    * Update FPS tracking
    */
-  private updateFPS(dt: number): void {
+  private updateFPS(_dt: number): void {
     const now = performance.now();
 
     if (now - this.fpsUpdateTime >= 1000) {

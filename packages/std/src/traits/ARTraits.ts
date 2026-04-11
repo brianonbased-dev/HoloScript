@@ -39,7 +39,7 @@ export const ARTraits: TraitDefinition[] = [
           'The expected physical size of the image/marker in meters (for image/qr types)',
       },
     ],
-    validation: (node: any) => {
+    validation: (_node: any) => {
       return { valid: true }; // Allowed on any Node (Zones, Objects, UI)
     },
   },
@@ -94,7 +94,7 @@ export const ARTraits: TraitDefinition[] = [
         description: 'Which layer the user shifts into.',
       },
     ],
-    validation: (node: any) => {
+    validation: (_node: any) => {
       return { valid: true };
     },
   },

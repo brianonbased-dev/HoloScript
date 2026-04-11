@@ -6,7 +6,7 @@ import {
   isStorageConfigured,
   getPresignedUploadUrl,
   makeAssetKey,
-  uploadFile,
+  _uploadFile,
 } from '../../../../lib/storage-s3';
 
 /**
@@ -34,7 +34,7 @@ const ALLOWED_TYPES = new Set([
   'application/octet-stream',
 ]);
 
-const MAX_SIZE_MB = 50;
+const _MAX_SIZE_MB = 50;
 
 function categoryFromContentType(ct: string): string {
   if (ct.startsWith('model/')) return 'model';

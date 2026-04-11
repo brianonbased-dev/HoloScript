@@ -282,7 +282,7 @@ export class AvalanchePhysics {
   /**
    * Process entrainment (snowball effect)
    */
-  private updateEntrainment(dt: number): void {
+  private updateEntrainment(_dt: number): void {
     const { entrainmentRadius, entrainmentThreshold } = this.config;
 
     // Get sliding particles (potential entrainers)

@@ -16,10 +16,10 @@
 
 import type {
   MessageId,
-  SandboxMessageBase,
-  PluginToHostMessage,
-  HostToPluginMessage,
-  SandboxPermission,
+  _SandboxMessageBase,
+  _PluginToHostMessage,
+  _HostToPluginMessage,
+  _SandboxPermission,
 } from './types.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────

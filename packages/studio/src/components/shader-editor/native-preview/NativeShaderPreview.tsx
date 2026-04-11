@@ -111,8 +111,8 @@ export function NativeShaderPreview({
   // Mouse tracking for shader uniforms
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    const _x = (e.clientX - rect.left) / rect.width;
+    const _y = (e.clientY - rect.top) / rect.height;
     // Mouse position is read by the hook via ref
     // We could also pass it to the frame call, but the hook handles it
   }, []);

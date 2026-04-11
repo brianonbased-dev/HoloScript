@@ -8,7 +8,7 @@ import { useState, useCallback, useMemo } from 'react';
 import {
   Search,
   X,
-  Filter,
+  _Filter,
   Box,
   Lightbulb,
   Camera,

@@ -64,7 +64,7 @@ export class BloomEffect {
   // Processing Steps
   // ---------------------------------------------------------------------------
 
-  extractBright(pixels: Float32Array, width: number, height: number): Float32Array {
+  extractBright(pixels: Float32Array, _width: number, _height: number): Float32Array {
     const output = new Float32Array(pixels.length);
     const threshold = this.config.threshold;
     const knee = this.config.softKnee;

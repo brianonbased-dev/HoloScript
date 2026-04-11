@@ -21,8 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { SpatialTrainingDataGenerator } from '../SpatialTrainingDataGenerator';
 import type {
   SpatialTrainingExample,
-  SpatialTrainingJSONLEntry,
-  SpatialRelationshipType,
+  _SpatialTrainingJSONLEntry,
+  _SpatialRelationshipType,
   SpatialDifficulty,
 } from '../SpatialTrainingDataTypes';
 
@@ -124,7 +124,7 @@ function deduplicateExamples(
   const unique: SpatialTrainingExample[] = [];
   let nearDupes = 0;
 
-  for (const [cat, catExamples] of categories) {
+  for (const [_cat, catExamples] of categories) {
     const catUnique: SpatialTrainingExample[] = [];
     const ngramCache: Array<Set<string>> = [];
 

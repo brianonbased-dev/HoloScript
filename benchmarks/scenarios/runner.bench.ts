@@ -53,7 +53,7 @@ for (const { name, source } of sources) {
     const result = parser.parse(source);
     const ast = result.ast as HoloComposition;
     // Walk AST to count nodes (measures allocator pressure)
-    let nodeCount = 0;
+    let _nodeCount = 0;
     const walk = (node: unknown) => {
       if (!node || typeof node !== 'object') return;
       nodeCount++;

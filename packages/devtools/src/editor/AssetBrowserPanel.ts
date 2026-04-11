@@ -2,7 +2,7 @@ import { World, Entity } from '@holoscript/engine/ecs/World';
 import { AssetManager } from './AssetManager';
 import { UIBuilder } from './UIBuilder';
 import { AssetMetadata, AssetType } from '../assets/AssetMetadata';
-import { createPanel, createButton, createText } from '../ui/UIComponents';
+import { createPanel, _createButton, _createText } from '../ui/UIComponents';
 
 export class AssetBrowserPanel {
   private world: World;
@@ -27,7 +27,7 @@ export class AssetBrowserPanel {
 
   private createPanel() {
     // Main Panel Background
-    const bg = createPanel({ width: 0.8, height: 0.6, color: '#222222' });
+    const _bg = createPanel({ width: 0.8, height: 0.6, color: '#222222' });
     // Position at hardcoded offset for now
     this.panelRoot = this.uiBuilder.spawn({
       type: 'Panel',

@@ -13,9 +13,9 @@
  */
 
 import lifShaderSource from './shaders/lif-neuron-poc.wgsl';
-import propagationShaderSource from './shaders/spike-propagation.wgsl';
+import _propagationShaderSource from './shaders/spike-propagation.wgsl';
 import type { LIFParams, PocConfig } from './types.js';
-import { DEFAULT_LIF_PARAMS, DEFAULT_POC_CONFIG } from './types.js';
+import { _DEFAULT_LIF_PARAMS, DEFAULT_POC_CONFIG } from './types.js';
 
 /** Byte size of the LIF params uniform struct (8 x 4 bytes) */
 const LIF_PARAMS_SIZE = 32;
@@ -44,7 +44,7 @@ function packLIFParams(params: LIFParams, neuronCount: number): ArrayBuffer {
 /**
  * Pack propagation parameters into an ArrayBuffer.
  */
-function packPropagationParams(
+function _packPropagationParams(
   preCount: number,
   postCount: number,
   fixedScale: number

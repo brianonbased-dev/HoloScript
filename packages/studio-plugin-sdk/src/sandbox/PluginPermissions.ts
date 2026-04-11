@@ -14,7 +14,7 @@
  * @module @holoscript/studio-plugin-sdk/sandbox
  */
 
-import type { SandboxPermission, PluginSandboxManifest, NetworkPolicy } from './types.js';
+import type { SandboxPermission, PluginSandboxManifest, _NetworkPolicy } from './types.js';
 
 // ── Permission Categories ──────────────────────────────────────────────────
 

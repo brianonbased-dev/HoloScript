@@ -36,7 +36,7 @@ export interface ForceField {
 // FORCE COMPUTATIONS
 // =============================================================================
 
-function vec3Length(v: IVector3): number {
+function _vec3Length(v: IVector3): number {
   return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 

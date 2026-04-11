@@ -73,7 +73,7 @@ function HandController({ handedness }: HandControllerProps) {
 
   // Select start — find nearest node to ray
   useEffect(() => {
-    const canvas = gl.domElement;
+    const _canvas = gl.domElement;
     const handleSelectStart = (e: Event) => {
       const xrEvent = e as XRInputSourceEvent;
       if (xrEvent.inputSource.handedness !== handedness) return;

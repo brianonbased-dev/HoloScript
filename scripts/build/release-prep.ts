@@ -5,8 +5,8 @@
  * Validates all packages are ready for 3.0 release.
  */
 
-import { execSync } from 'child_process';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { _execSync } from 'child_process';
+import { existsSync, readFileSync, _readdirSync } from 'fs';
 import { join } from 'path';
 
 interface PackageJson {
@@ -26,7 +26,7 @@ interface CheckResult {
   }[];
 }
 
-const RELEASE_VERSION = '3.0.0';
+const _RELEASE_VERSION = '3.0.0';
 const PACKAGES_DIR = join(process.cwd(), 'packages');
 
 const REQUIRED_PACKAGES = [

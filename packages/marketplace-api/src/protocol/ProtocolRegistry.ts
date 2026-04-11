@@ -32,7 +32,7 @@ import {
   type CollectOptions,
   type CollectResult,
   type RevenueDistribution,
-  type RevenueFlow,
+  type _RevenueFlow,
   type ImportChainNode,
   type RevenueCalculatorOptions,
 } from '@holoscript/core';
@@ -426,7 +426,7 @@ export class ProtocolRegistry {
    */
   private async createOnChainToken(
     record: ProtocolRecord,
-    options: PublishOptions
+    _options: PublishOptions
   ): Promise<{ tokenId: string; txHash: string }> {
     if (!this.collectionAddress) {
       throw new ProtocolRegistryError(

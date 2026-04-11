@@ -437,7 +437,7 @@ export class NormEngine {
     return state;
   }
 
-  private witnessesIn(zoneId?: string): string[] {
+  private witnessesIn(_zoneId?: string): string[] {
     // In a full implementation, this would check spatial proximity.
     // For now, return all agents as potential witnesses.
     return [...this.agents.keys()].slice(0, 5);

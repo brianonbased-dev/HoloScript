@@ -132,8 +132,8 @@ async function handleOracleConsult(
   }
   return { content: [{ type: 'text', text: results.join('\n\n') }] };
 }
-import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
-import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
+import { _selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
+import { _gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';

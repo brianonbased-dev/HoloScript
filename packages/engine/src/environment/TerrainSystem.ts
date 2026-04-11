@@ -304,7 +304,7 @@ export class TerrainSystem {
       for (let cx = 0; cx < res - 1; cx += chunkSize) {
         const vertices: TerrainVertex[] = [];
         const indices: number[] = [];
-        const vertexIndex = 0;
+        const _vertexIndex = 0;
 
         const endX = Math.min(cx + chunkSize, res - 1);
         const endZ = Math.min(cz + chunkSize, res - 1);

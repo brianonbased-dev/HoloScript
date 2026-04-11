@@ -28,7 +28,7 @@ import { logger } from '@/lib/logger';
 // In production, these should be in environment variables
 const GITHUB_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || '';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     if (!GITHUB_CLIENT_ID) {
       return NextResponse.json(

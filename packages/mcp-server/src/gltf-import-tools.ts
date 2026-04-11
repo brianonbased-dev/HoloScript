@@ -23,7 +23,7 @@ import {
   type GLTFPipelineOptions,
   type GLTFExportResult,
   type GLTFExportStats,
-  type HoloComposition,
+  type _HoloComposition,
 } from '@holoscript/core';
 
 import * as fs from 'fs';
@@ -213,7 +213,7 @@ function formatVec3(v: [number, number, number]): string {
   return `[${fmt(v[0])}, ${fmt(v[1])}, ${fmt(v[2])}]`;
 }
 
-function sanitizeName(name: string): string {
+function _sanitizeName(name: string): string {
   let clean = name.replace(/[^a-zA-Z0-9_]/g, '_');
   if (/^\d/.test(clean)) clean = '_' + clean;
   clean = clean.replace(/_+/g, '_').replace(/_+$/, '');

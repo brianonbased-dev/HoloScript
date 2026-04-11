@@ -33,7 +33,7 @@ import {
   splitTrainTest,
   computePropertyAccuracy,
   computeMSE,
-  encodeTraitDense,
+  _encodeTraitDense,
 } from './trait-knowledge-base.js';
 import { SNNRetrievalModel } from './snn-retrieval-model.js';
 import { BackpropRetrievalModel } from './backprop-retrieval-model.js';
@@ -136,8 +136,8 @@ function runTrial(
   testFacts: TraitFact[],
   epochs: number,
   trialIndex: number,
-  totalTraits: number,
-  inputDim: number
+  _totalTraits: number,
+  _inputDim: number
 ): TrialResult {
   // Train
   const training = model.train(trainFacts, epochs);

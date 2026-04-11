@@ -3,7 +3,7 @@
  * BehaviorTreePanel — Visual BT editor and debugger
  */
 import React, { useState } from 'react';
-import { useBehaviorTree, type BTTraceEntry } from '../../hooks/useBehaviorTree';
+import { useBehaviorTree, type _BTTraceEntry } from '../../hooks/useBehaviorTree';
 
 const STATUS_COLORS: Record<string, string> = {
   success: 'text-emerald-400',

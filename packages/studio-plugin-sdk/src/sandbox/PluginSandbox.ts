@@ -28,7 +28,7 @@ import type {
   HostResponseMessage,
   HostEventMessage,
   HostShutdownMessage,
-  SandboxMessageBase,
+  _SandboxMessageBase,
   MessageId,
   SandboxPermission,
   ContentSecurityPolicyDirectives,
@@ -569,7 +569,7 @@ export class PluginSandbox {
   /**
    * Handles the plugin:ready message by sending host:init.
    */
-  private handlePluginReady(message: PluginToHostMessage): void {
+  private handlePluginReady(_message: PluginToHostMessage): void {
     this.setState('ready');
     this.audit('plugin-ready', `Plugin ${this.options.pluginId} signaled ready`, 'info');
 
@@ -733,7 +733,7 @@ export class PluginSandbox {
     }
 
     // Reject all pending responses
-    for (const [id, entry] of this.pendingResponses) {
+    for (const [_id, entry] of this.pendingResponses) {
       clearTimeout(entry.timeout);
       entry.reject(new Error(`Plugin ${this.options.pluginId} terminated`));
     }

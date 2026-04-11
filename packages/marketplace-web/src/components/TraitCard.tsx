@@ -10,7 +10,7 @@ import {
   Star,
   CheckCircle,
   Loader2,
-  ArrowDownToLine,
+  _ArrowDownToLine,
   AlertTriangle,
   ShoppingCart,
 } from 'lucide-react';

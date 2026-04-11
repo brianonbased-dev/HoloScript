@@ -767,7 +767,7 @@ function harvestCycleData(
 
   // Use the harvester's captureIteration by first setting up internal state
   // via a synthetic quality report and convergence status
-  const qualityReport =
+  const _qualityReport =
     qualityScore > 0
       ? {
           score: qualityScore,
@@ -787,7 +787,7 @@ function harvestCycleData(
         }
       : null;
 
-  const convergenceStatus = {
+  const _convergenceStatus = {
     converged: convergenceConverged,
     reason: convergenceConverged ? ('plateau' as const) : null,
     iterations: cycleNumber,

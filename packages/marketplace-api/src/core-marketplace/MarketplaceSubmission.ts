@@ -18,7 +18,7 @@ import {
   type SafetyPassResult,
   type EffectASTNode,
   type SafetyReport,
-  type SafetyVerdict,
+  type _SafetyVerdict,
   type PlatformTarget,
 } from '@holoscript/core';
 

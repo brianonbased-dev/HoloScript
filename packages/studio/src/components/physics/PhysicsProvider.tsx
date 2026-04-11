@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, _useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useSceneGraphStore } from '@/lib/stores';
 import type { SceneNode } from '@/lib/stores';

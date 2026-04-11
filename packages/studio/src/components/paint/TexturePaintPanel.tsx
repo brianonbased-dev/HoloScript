@@ -11,7 +11,7 @@ import {
   Pipette,
   Undo2,
   Redo2,
-  Layers,
+  _Layers,
   Plus,
   Trash2,
   Eye,

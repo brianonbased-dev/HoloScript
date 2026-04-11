@@ -5,7 +5,7 @@
  * Enables complex choreographed animation sequences.
  */
 
-import { AnimationEngine, AnimationClip, Easing } from './AnimationEngine';
+import { AnimationEngine, AnimationClip, _Easing } from './AnimationEngine';
 
 // =============================================================================
 // TYPES
@@ -100,7 +100,7 @@ export class Timeline {
     // Still in delay?
     if (this.elapsed < 0) return;
 
-    const t = this.totalDuration > 0 ? this.elapsed / this.totalDuration : 1;
+    const _t = this.totalDuration > 0 ? this.elapsed / this.totalDuration : 1;
 
     if (this.config.mode === 'sequential') {
       this.updateSequential(this.elapsed);

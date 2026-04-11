@@ -216,7 +216,7 @@ export function MaterialEditor({ onConfigChange }: MaterialEditorProps) {
   const TextureSlot = ({
     label,
     value,
-    onChange,
+    _onChange,
   }: {
     label: string;
     value: string;

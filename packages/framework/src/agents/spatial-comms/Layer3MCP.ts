@@ -519,7 +519,7 @@ export class Layer3MCPServer extends EventEmitter {
     });
 
     // Get world status handler
-    this.registerHandler('get_world_status', async (params, context) => {
+    this.registerHandler('get_world_status', async (params, _context) => {
       const worldId = params.world_id as string;
       const status = this.worlds.get(worldId);
 
@@ -550,7 +550,7 @@ export class Layer3MCPServer extends EventEmitter {
     });
 
     // Get agent registry handler
-    this.registerHandler('get_agent_registry', async (params, context) => {
+    this.registerHandler('get_agent_registry', async (params, _context) => {
       const filter = params.filter as Record<string, unknown> | undefined;
 
       // Get all agents from worlds
@@ -579,7 +579,7 @@ export class Layer3MCPServer extends EventEmitter {
     });
 
     // Get performance metrics handler
-    this.registerHandler('get_performance_metrics', async (params, context) => {
+    this.registerHandler('get_performance_metrics', async (params, _context) => {
       const worldId = params.world_id as string | undefined;
       const agentId = params.agent_id as string | undefined;
 

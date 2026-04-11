@@ -66,7 +66,7 @@ function shouldUseMockMode(): boolean {
 /**
  * Mock generation (simulates 30 second wait)
  */
-async function mockGeneration(request: GenerationRequest): Promise<GenerationStatus> {
+async function _mockGeneration(_request: GenerationRequest): Promise<GenerationStatus> {
   const id = `mock-${Date.now()}`;
 
   // Simulate processing time

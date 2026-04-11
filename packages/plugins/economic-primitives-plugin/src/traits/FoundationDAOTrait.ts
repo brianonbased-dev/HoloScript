@@ -37,7 +37,7 @@ export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> 
       n.__daoState = { treasuryBalanceX402: 5000000, activeProposals: [], membersCount: 150 };
       ctx.emit?.('dao:initialized');
     },
-    onDetach(n: HSPlusNode, _c: FoundationDAOConfig, ctx: TraitContext) {
+    onDetach(n: HSPlusNode, _c: FoundationDAOConfig, _ctx: TraitContext) {
       delete n.__daoState;
     },
     onUpdate() {},

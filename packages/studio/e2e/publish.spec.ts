@@ -29,7 +29,7 @@ test.describe('Publish Flow', () => {
     await publishBtn.click();
 
     // Close with X button
-    const closeBtn = page
+    const _closeBtn = page
       .locator('[title="Close"], button[tabindex]:near(:text("Publish Scene"))')
       .first();
     await page.keyboard.press('Escape');
@@ -55,7 +55,7 @@ test.describe('Performance Profiler', () => {
     await page.keyboard.press('p');
 
     // Profiler overlay or stats panel should appear
-    const profiler = page.locator('text=Performance, text=FPS, [data-testid="profiler"]').first();
+    const _profiler = page.locator('text=Performance, text=FPS, [data-testid="profiler"]').first();
     // Don't hard-assert text — just check page didn't crash
     await expect(page.locator('canvas').first()).toBeVisible();
   });

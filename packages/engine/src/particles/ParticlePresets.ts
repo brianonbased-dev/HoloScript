@@ -6,8 +6,8 @@
 
 import type { EmitterConfig, Color4 } from './ParticleSystem';
 
-const WHITE: Color4 = { r: 1, g: 1, b: 1, a: 1 };
-const TRANSPARENT: Color4 = { r: 1, g: 1, b: 1, a: 0 };
+const _WHITE: Color4 = { r: 1, g: 1, b: 1, a: 1 };
+const _TRANSPARENT: Color4 = { r: 1, g: 1, b: 1, a: 0 };
 
 export const ParticlePresets: Record<string, EmitterConfig> = {
   /** Ambient floating dust motes */

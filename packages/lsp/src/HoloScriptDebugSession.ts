@@ -19,15 +19,15 @@ import {
   TerminatedEvent,
   OutputEvent,
   ContinuedEvent,
-  BreakpointEvent,
+  _BreakpointEvent,
   LoadedSourceEvent,
   Thread,
   StackFrame,
   Scope,
   Source,
   Variable,
-  Breakpoint,
-  CompletionItem,
+  _Breakpoint,
+  _CompletionItem,
   Handles,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -41,10 +41,10 @@ import {
   type AttachConfig,
   type AttachBreakpointDescriptor,
   type AttachWatchDescriptor,
-  type RemoteExecutionState,
+  type _RemoteExecutionState,
   type HotReloadEvent,
-  type TraitVariableInfo,
-  type PerformanceFrame,
+  type _TraitVariableInfo,
+  type _PerformanceFrame,
 } from './dap/DAPHotReloadAdapter';
 
 // ── Launch/Attach Configuration ──────────────────────────────────────────────

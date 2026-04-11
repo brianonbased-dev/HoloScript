@@ -157,7 +157,7 @@ async function step4() {
       depth: 'shallow',
     });
     output('Absorb Result', JSON.stringify(result, null, 2), 15);
-  } catch (e) {
+  } catch (_e) {
     console.log(`\x1b[33m⚠ Absorb requires auth — in live demo, use Studio UI at absorb page\x1b[0m`);
     console.log(`  The Absorb service is live at absorb.holoscript.net`);
     console.log(`  28 MCP tools available for codebase intelligence\n`);
@@ -208,7 +208,7 @@ async function step5() {
     } else {
       output('Raw Result', JSON.stringify(result, null, 2), 20);
     }
-  } catch (e) {
+  } catch (_e) {
     console.log(`\x1b[33m⚠ MCP tool call failed — holoscript_map_csv may need direct REST call\x1b[0m`);
     console.log(`  The schema mapper is registered and tested locally (11/11 fields, 88% confidence)`);
   }

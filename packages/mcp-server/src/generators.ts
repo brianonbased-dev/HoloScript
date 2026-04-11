@@ -984,7 +984,7 @@ export function suggest2DTraits(
  */
 export async function generateSemanticUIForMCP(
   description: string,
-  options: any = {}
+  _options: any = {}
 ): Promise<any> {
   const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. Return only code.`;
   const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');

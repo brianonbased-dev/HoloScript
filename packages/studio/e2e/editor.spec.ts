@@ -31,7 +31,7 @@ test.describe('HoloScript Editor', () => {
   test('error panel shows for invalid code', async ({ page }) => {
     // This test checks that the error overlay appears after compile failure
     // We look for any error indicator in the viewport area
-    const errorArea = page.locator('[data-testid="compile-errors"], .border-studio-error').first();
+    const _errorArea = page.locator('[data-testid="compile-errors"], .border-studio-error').first();
     // Only assert if it appears — don't fail if no error on valid code
     await page.waitForTimeout(2000);
     // Just check it doesn't crash the page

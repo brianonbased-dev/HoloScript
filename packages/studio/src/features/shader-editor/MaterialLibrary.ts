@@ -297,7 +297,7 @@ export class MaterialLibrary {
     const graph = new ShaderGraph('PBR Standard');
 
     // Input nodes
-    const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
+    const _uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const baseColorNode = graph.createNode('constant_color', { x: 0, y: 100 });
     const metallicNode = graph.createNode('constant_float', { x: 0, y: 200 });
     const roughnessNode = graph.createNode('constant_float', { x: 0, y: 300 });
@@ -742,7 +742,7 @@ export class MaterialLibrary {
   private createLava(): MaterialPreset {
     const graph = new ShaderGraph('Lava');
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
-    const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
+    const _timeNode = graph.createNode('input_time', { x: 0, y: 100 });
     const noiseNode = graph.createNode('utility_gradient_noise', { x: 200, y: 0 });
     const emissionNode = graph.createNode('constant_vec3', { x: 400, y: 0 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 300 });
@@ -806,7 +806,7 @@ export class MaterialLibrary {
     const graph = new ShaderGraph('Neon Light');
     const colorNode = graph.createNode('constant_vec3', { x: 0, y: 0 });
     const intensityNode = graph.createNode('constant_float', { x: 0, y: 100 });
-    const mulNode = graph.createNode('math_multiply', { x: 200, y: 50 });
+    const _mulNode = graph.createNode('math_multiply', { x: 200, y: 50 });
     const outputNode = graph.createNode('output_surface', { x: 400, y: 50 });
 
     graph.setNodeProperty(colorNode!.id, 'x', 1.0);
@@ -866,7 +866,7 @@ export class MaterialLibrary {
     const noiseNode = graph.createNode('utility_gradient_noise', { x: 200, y: 0 });
     const colorANode = graph.createNode('constant_vec3', { x: 400, y: 0 });
     const colorBNode = graph.createNode('constant_vec3', { x: 400, y: 100 });
-    const lerpNode = graph.createNode('math_lerp', { x: 600, y: 50 });
+    const _lerpNode = graph.createNode('math_lerp', { x: 600, y: 50 });
     const roughnessNode = graph.createNode('constant_float', { x: 0, y: 200 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 300 });
     const outputNode = graph.createNode('output_surface', { x: 800, y: 150 });
@@ -993,7 +993,7 @@ export class MaterialLibrary {
   private createPortal(): MaterialPreset {
     const graph = new ShaderGraph('Portal');
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
-    const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
+    const _timeNode = graph.createNode('input_time', { x: 0, y: 100 });
     const noiseNode = graph.createNode('utility_gradient_noise', { x: 200, y: 0 });
     const colorANode = graph.createNode('constant_vec3', { x: 400, y: 0 });
     const colorBNode = graph.createNode('constant_vec3', { x: 400, y: 100 });

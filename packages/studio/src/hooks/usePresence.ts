@@ -29,7 +29,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
       try {
         const client = getCollaborationClient();
         client.updateCursor(x, y, nodeId);
-      } catch (err) {
+      } catch (_err) {
         // Client not initialized - ignore
       }
     },
@@ -43,7 +43,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
       try {
         const client = getCollaborationClient();
         client.updateSelection(nodeIds);
-      } catch (err) {
+      } catch (_err) {
         // Client not initialized - ignore
       }
     },
@@ -57,7 +57,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
       try {
         const client = getCollaborationClient();
         client.updatePresence({ status });
-      } catch (err) {
+      } catch (_err) {
         // Client not initialized - ignore
       }
     },
@@ -85,7 +85,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
         const client = getCollaborationClient();
         const connectedUsers = client.getConnectedUsers();
         setUsers(connectedUsers);
-      } catch (err) {
+      } catch (_err) {
         // Client not initialized - ignore
       }
     }, 1000); // Update every second

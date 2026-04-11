@@ -62,7 +62,7 @@ export function GaussianSplatViewer({
   onError,
 }: GaussianSplatViewerProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { camera } = useThree();
+  const { _camera } = useThree();
   const [splatData, setSplatData] = useState<SplatData | null>(null);
   const [loading, setLoading] = useState(true);
   const gpuSort = useGpuSplatSort({ maxSplats });

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { _z } from 'zod';
 
 export interface CreatorRoyalty {
   address: string;
@@ -48,7 +48,7 @@ export class ZoraMintingService {
       }
 
       // 2. Format the ERC-1155 Metadata standard
-      const metadata = {
+      const _metadata = {
         name: payload.name,
         description: payload.description,
         image: payload.mediaUrl,

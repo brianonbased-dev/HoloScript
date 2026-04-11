@@ -8,7 +8,7 @@
  */
 
 import type { WebGPUContext } from '../../gpu/WebGPUContext.js';
-import { EarthquakeSimulation, type EarthquakeSimulationConfig } from './EarthquakeSimulation.js';
+import { EarthquakeSimulation, type _EarthquakeSimulationConfig } from './EarthquakeSimulation.js';
 import { CameraController, type CameraMode } from './CameraEffects.js';
 import type { EarthquakeConfig } from './FracturePhysics.js';
 

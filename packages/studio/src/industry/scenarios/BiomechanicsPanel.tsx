@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Activity, Dumbbell, Target, BarChart3, Eye, Play } from 'lucide-react';
+import { Activity, Dumbbell, _Target, _BarChart3, _Eye, _Play } from 'lucide-react';
 
 export interface JointData {
   name: string;

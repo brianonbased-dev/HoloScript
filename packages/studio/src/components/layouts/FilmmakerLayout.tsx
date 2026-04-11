@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { _useRef, useState } from 'react';
 import {
-  Video,
+  _Video,
   Camera,
   Sun,
   Layers,
@@ -11,9 +11,9 @@ import {
   SkipBack,
   SkipForward,
   Scissors,
-  SlidersHorizontal,
-  Aperture,
-  Focus,
+  _SlidersHorizontal,
+  _Aperture,
+  _Focus,
   Film,
   Clapperboard,
   ChevronRight,

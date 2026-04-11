@@ -113,7 +113,7 @@ export class IKSolver {
 
     // Law of cosines for mid-bone angle
     const cosAngle = (a * a + b * b - clampedDist * clampedDist) / (2 * a * b);
-    const midAngle = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+    const _midAngle = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
 
     // Root angle toward target
     const rootAngle = Math.atan2(dy, Math.sqrt(dx * dx + dz * dz));

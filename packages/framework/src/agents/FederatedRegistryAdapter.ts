@@ -170,7 +170,7 @@ export class FederatedRegistryAdapter {
     let updated = 0;
     const failed: string[] = [];
 
-    const results = await Promise.allSettled(
+    const _results = await Promise.allSettled(
       this.config.seedUrls.map(async (url) => {
         const wasKnown = this.isKnownUrl(url);
         const manifest = await this.fetchAndRegister(url);

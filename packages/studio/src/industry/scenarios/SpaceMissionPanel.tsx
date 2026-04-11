@@ -201,7 +201,7 @@ export function SpaceMissionPanel() {
     () => orbitalVelocity(originData.radiusKm + 200, originData.muKm3s2),
     [origin]
   );
-  const orbPeriodMin = useMemo(
+  const _orbPeriodMin = useMemo(
     () => orbitalPeriod(originData.radiusKm + 200, originData.muKm3s2) / 60,
     [origin]
   );

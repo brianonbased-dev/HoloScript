@@ -6,10 +6,7 @@ import { ContentTypeFilter } from '../ContentTypeFilter';
 
 describe('ContentTypeFilter', () => {
   it('renders without crashing', () => {
-    // If the component has heavy requirements (e.g. providers, store state), 
-    // we use a simple shallow or context-wrapped render.
-    // For now, this is a structural smoke test that asserts it binds properly.
-    const { container } = render(<ContentTypeFilter />);
+    const { container } = render(<ContentTypeFilter selectedTypes={[]} onChange={() => {}} />);
     expect(container).toBeTruthy();
   });
 });

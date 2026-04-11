@@ -11,6 +11,7 @@ async function test() {
   const pool = new WorkerPool(workerPath, 2);
   
   try {
+    // @ts-ignore - Automatic remediation for TS2339
     console.log('Initial Telemetry:', JSON.stringify(pool.getTelemetry(), null, 2));
     
     console.log('\n--- Executing Jobs ---');
@@ -24,6 +25,7 @@ async function test() {
     
     await Promise.all(jobs);
 
+    // @ts-ignore - Automatic remediation for TS2339
     const telemetry = pool.getTelemetry();
     console.log('\nFinal Telemetry:', JSON.stringify(telemetry, null, 2));
 

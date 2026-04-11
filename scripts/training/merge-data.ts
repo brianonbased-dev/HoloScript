@@ -29,7 +29,7 @@ function merge() {
       if (result.success) {
         validSynthetic.push(line);
       }
-    } catch (e) {
+    } catch (_e) {
       // Skip broken JSON
     }
   }

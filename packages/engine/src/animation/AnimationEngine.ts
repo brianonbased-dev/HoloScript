@@ -90,7 +90,7 @@ interface Vec3Like {
   z?: number;
 }
 
-function lerpVec3(a: Vec3Like, b: Vec3Like, t: number): Vec3Like {
+function _lerpVec3(a: Vec3Like, b: Vec3Like, t: number): Vec3Like {
   return {
     x: lerp(a.x ?? 0, b.x ?? 0, t),
     y: lerp(a.y ?? 0, b.y ?? 0, t),

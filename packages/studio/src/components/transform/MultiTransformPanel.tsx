@@ -55,9 +55,9 @@ export function MultiTransformPanel({ onClose }: MultiTransformPanelProps) {
   const removeNode = useSceneGraphStore((s) => s.removeNode);
   const {
     selectedIds,
-    selectedNodes,
+    _selectedNodes,
     centroid,
-    select,
+    _select,
     selectAll,
     clearSelection,
     toggleSelect,

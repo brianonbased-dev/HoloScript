@@ -83,7 +83,7 @@ const TRAIT_INLINE_RE = /(?:^|\s)@([a-zA-Z_][a-zA-Z0-9_]*)/;
 /**
  * Property syntax: `key: value` (with optional leading whitespace).
  */
-const PROPERTY_RE = /^\s+[\w]+:\s+.+/;
+const _PROPERTY_RE = /^\s+[\w]+:\s+.+/;
 
 // ─── Validator ──────────────────────────────────────────────────────────────
 

@@ -26,7 +26,7 @@ import type {
   PluginLogMessage,
   PluginErrorMessage,
   NetworkPolicy,
-  SandboxAuditEntry,
+  _SandboxAuditEntry,
 } from './types.js';
 import type { PluginSandbox } from './PluginSandbox.js';
 
@@ -444,7 +444,7 @@ export class PluginBridge {
   // ── Clipboard Handling ──────────────────────────────────────────────────
 
   private async handleClipboard(message: PluginClipboardMessage): Promise<void> {
-    const { operation, data, mimeType } = message.payload;
+    const { operation, data, _mimeType } = message.payload;
     const pluginId = this.sandbox.getPluginId();
 
     // Check rate limit
@@ -613,7 +613,7 @@ export class PluginBridge {
     const readMethods = ['get', 'list', 'query', 'find', 'search', 'count'];
     const writeMethods = ['set', 'create', 'update', 'delete', 'remove', 'add', 'insert', 'modify'];
 
-    const isRead = readMethods.some((m) => method.toLowerCase().startsWith(m));
+    const _isRead = readMethods.some((m) => method.toLowerCase().startsWith(m));
     const isWrite = writeMethods.some((m) => method.toLowerCase().startsWith(m));
 
     switch (namespace) {

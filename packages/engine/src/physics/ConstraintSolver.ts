@@ -14,7 +14,7 @@
 
 import {
   IVector3,
-  IQuaternion,
+  _IQuaternion,
   Constraint,
   IFixedConstraint,
   IHingeConstraint,
@@ -66,7 +66,7 @@ function v3Scale(v: IVector3, s: number): IVector3 {
 function v3Dot(a: IVector3, b: IVector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-function v3Cross(a: IVector3, b: IVector3): IVector3 {
+function _v3Cross(a: IVector3, b: IVector3): IVector3 {
   return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
 }
 function v3Length(v: IVector3): number {

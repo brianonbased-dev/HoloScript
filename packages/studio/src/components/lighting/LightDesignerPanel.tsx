@@ -5,29 +5,29 @@
  * color mixing, beat-sync controls, and cue sheet programming.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, _useCallback } from 'react';
 import {
   createFixture,
-  setFixtureColor,
-  setFixtureIntensity,
+  _setFixtureColor,
+  _setFixtureIntensity,
   mixColors,
   colorToHex,
-  hexToColor,
+  _hexToColor,
   bpmToBeatIntervalMs,
   createChasePattern,
-  dmxAddressValid,
+  _dmxAddressValid,
   detectDmxCollision,
-  midiToIntensity,
-  parseSMPTE,
+  _midiToIntensity,
+  _parseSMPTE,
   isLaserEyeSafe,
-  exportGrandMA,
+  _exportGrandMA,
   type LightFixture,
   type FixtureType,
-  type LightCue,
+  type _LightCue,
   type CueSheet,
-  type FixtureGroup,
-  type RGBColor,
-  FIXTURE_CHANNEL_COUNTS,
+  type _FixtureGroup,
+  type _RGBColor,
+  _FIXTURE_CHANNEL_COUNTS,
 } from '@/lib/dmxEngine';
 
 // ─── Styles ──────────────────────────────────────────────────────
@@ -196,7 +196,7 @@ const FIXTURE_ICONS: Record<FixtureType, string> = {
 };
 
 export function LightDesignerPanel() {
-  const [fixtures, setFixtures] = useState<LightFixture[]>(() => [
+  const [fixtures, _setFixtures] = useState<LightFixture[]>(() => [
     {
       ...createFixture('par-L1', 'PAR Left 1', 'par', 1),
       color: { r: 255, g: 0, b: 128 },

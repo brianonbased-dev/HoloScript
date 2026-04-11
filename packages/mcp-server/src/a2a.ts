@@ -255,11 +255,11 @@ export interface JsonRpcResponse {
 }
 
 // Standard JSON-RPC error codes
-const JSONRPC_PARSE_ERROR = -32700;
+const _JSONRPC_PARSE_ERROR = -32700;
 const JSONRPC_INVALID_REQUEST = -32600;
 const JSONRPC_METHOD_NOT_FOUND = -32601;
 const JSONRPC_INVALID_PARAMS = -32602;
-const JSONRPC_INTERNAL_ERROR = -32603;
+const _JSONRPC_INTERNAL_ERROR = -32603;
 // A2A-specific error codes (application layer: -32000 to -32099)
 const A2A_TASK_NOT_FOUND = -32001;
 const A2A_TASK_NOT_CANCELABLE = -32002;

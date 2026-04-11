@@ -2,10 +2,10 @@ import React from 'react';
 
 // Auto-generated Native 2D HoloScript Component
 export function implicitComponent() {
-  const navigate = (path: string) => {
+  const _navigate = (path: string) => {
     window.location.href = path;
   };
-  const submitNewsletter = (e: React.FormEvent) => {
+  const _submitNewsletter = (e: React.FormEvent) => {
     e.preventDefault();
     alert('Subscribed!');
   };

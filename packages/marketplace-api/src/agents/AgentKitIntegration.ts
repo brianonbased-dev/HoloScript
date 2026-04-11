@@ -104,8 +104,8 @@ export class AgentKitIntegration {
   }
 
   async mint_nft(
-    agent_id: string,
-    metadata: { name: string; description: string; uri: string; royalty_percentage: number }
+    _agent_id: string,
+    _metadata: { name: string; description: string; uri: string; royalty_percentage: number }
   ): Promise<{ token_id: string; contract_address: string }> {
     return {
       token_id: '1',
@@ -114,8 +114,8 @@ export class AgentKitIntegration {
   }
 
   async pay_x402(
-    agent_id: string,
-    params: { endpoint: string; price: number; asset: string }
+    _agent_id: string,
+    _params: { endpoint: string; price: number; asset: string }
   ): Promise<{ transaction_hash: string; content: any }> {
     return {
       transaction_hash: `0xTxPay_${Date.now()}`,

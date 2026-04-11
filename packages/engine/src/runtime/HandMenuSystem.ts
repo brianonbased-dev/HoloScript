@@ -1,7 +1,7 @@
 import {
   HSPlusRuntime,
   VRHand,
-  Vector3,
+  _Vector3,
   type HSPlusNode,
   createUIButton,
   createUIPanel,
@@ -45,7 +45,7 @@ export class HandMenuSystem {
   }
 
   // Check if palm normal points to headset
-  private checkPalmFacingUser(hand: VRHand): boolean {
+  private checkPalmFacingUser(_hand: VRHand): boolean {
     // Simplified heuristic — needs real vector math with hand orientation quaternion.
     // Placeholder: returns false until calibrated.
     return false;

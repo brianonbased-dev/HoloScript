@@ -250,7 +250,7 @@ export class ProceduralBuilding {
     beamWidth: number
   ): StructuralElement[] {
     const beams: StructuralElement[] = [];
-    const { floors, floorHeight } = config;
+    const { floors, _floorHeight } = config;
 
     // Generate beams for each floor
     for (let floor = 1; floor <= floors; floor++) {

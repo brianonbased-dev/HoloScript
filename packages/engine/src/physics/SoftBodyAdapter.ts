@@ -53,7 +53,7 @@ export class SoftBodyAdapter {
     // 2. Create Constraints (Structural)
     // Connect adjacent vertices (Naive/Simple box topology assumption for demo)
     // A real implementation would parse the index buffer (faces).
-    const width = Math.sqrt(particles.length); // Assume grid for demo
+    const _width = Math.sqrt(particles.length); // Assume grid for demo
 
     for (let i = 0; i < particles.length - 1; i++) {
       // Linear constraint

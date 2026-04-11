@@ -28,7 +28,7 @@ import type {
   PluginInstallResult,
   PluginInstallState,
   SignatureVerificationResult,
-  PluginSignature,
+  _PluginSignature,
 } from './PluginPackageSpec.js';
 import { PluginSignatureService } from './PluginSignatureService.js';
 
@@ -627,8 +627,8 @@ export class PluginInstallPipeline {
    * Verifies the digital signature of a plugin package.
    */
   private async verifySignature(
-    bundle: string,
-    manifest: PluginPackageManifest
+    _bundle: string,
+    _manifest: PluginPackageManifest
   ): Promise<SignatureVerificationResult | undefined> {
     // In a real implementation, the signature would be embedded in the package
     // or fetched from the marketplace API alongside the package metadata.

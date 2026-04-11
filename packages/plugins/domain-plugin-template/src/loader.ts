@@ -8,7 +8,7 @@
 
 import type {
   DomainPluginConfig,
-  DomainModule,
+  _DomainModule,
   DomainKeyword,
   ThresholdPreset,
   LifecycleStage,

@@ -12,8 +12,8 @@
 
 import type { StoredEntry } from './knowledge-store';
 import { KnowledgeStore } from './knowledge-store';
-import type { KnowledgeDomain, ExcitabilityMetadata } from './brain';
-import { DOMAIN_HALF_LIVES, computeExcitability, applyHalfLifeDecay } from './brain';
+import type { _KnowledgeDomain, _ExcitabilityMetadata } from './brain';
+import { _DOMAIN_HALF_LIVES, computeExcitability, _applyHalfLifeDecay } from './brain';
 
 // ── Tier Definitions ──
 

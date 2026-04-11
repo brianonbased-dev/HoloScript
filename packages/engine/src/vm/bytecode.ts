@@ -13,7 +13,7 @@
  *   - Event Table: event→handler mappings
  */
 
-import { HoloOpCode, ValueType } from './opcodes';
+import { HoloOpCode, _ValueType } from './opcodes';
 
 // =============================================================================
 // MAGIC & VERSION

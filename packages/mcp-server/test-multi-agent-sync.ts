@@ -1,5 +1,5 @@
 import { StateSynchronizer } from '../core/src/networking/StateSynchronizer';
-import { DeltaCompressor } from '../core/src/networking/DeltaCompressor';
+import { _DeltaCompressor } from '../core/src/networking/DeltaCompressor';
 import { handleNetworkingTool } from './src/networking-tools';
 
 async function runMultiAgentE2E() {
@@ -14,7 +14,7 @@ async function runMultiAgentE2E() {
   });
 
   // Mock Agent C subscribing from far away (Spatial LOD Culling active)
-  let receivedDeltasC: any[] = [];
+  const receivedDeltasC: any[] = [];
   synchronizer.subscribeGlobal(
     (deltas) => {
       receivedDeltasC.push(...deltas);

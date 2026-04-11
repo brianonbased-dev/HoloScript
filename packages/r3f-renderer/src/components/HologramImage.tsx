@@ -10,7 +10,7 @@
  */
 
 import { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame, _useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export interface HologramImageProps {
@@ -57,8 +57,8 @@ export function HologramImage({
   onProgress,
 }: HologramImageProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [loadState, setLoadState] = useState<LoadingState>('idle');
-  const [depthTexture, setDepthTexture] = useState<THREE.DataTexture | null>(null);
+  const [_loadState, setLoadState] = useState<LoadingState>('idle');
+  const [depthTexture, _setDepthTexture] = useState<THREE.DataTexture | null>(null);
   const [imageTexture, setImageTexture] = useState<THREE.Texture | null>(null);
   const [aspect, setAspect] = useState(1);
 

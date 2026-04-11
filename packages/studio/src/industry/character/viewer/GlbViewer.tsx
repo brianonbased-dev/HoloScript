@@ -12,7 +12,7 @@
  *  6. Play back clips via AnimationMixer
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, _useCallback } from 'react';
 import { useLoader, useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -37,7 +37,7 @@ export function GlbViewer({ url }: GlbViewerProps) {
   const selectedBoneIndex = useCharacterStore((s) => s.selectedBoneIndex);
   const showSkeleton = useCharacterStore((s) => s.showSkeleton);
   const isRecording = useCharacterStore((s) => s.isRecording);
-  const setIsRecording = useCharacterStore((s) => s.setIsRecording);
+  const _setIsRecording = useCharacterStore((s) => s.setIsRecording);
   const addRecordedClip = useCharacterStore((s) => s.addRecordedClip);
   const activeBuiltinAnimation = useCharacterStore((s) => s.activeBuiltinAnimation);
   const activeClipId = useCharacterStore((s) => s.activeClipId);

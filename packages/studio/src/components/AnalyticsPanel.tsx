@@ -54,7 +54,7 @@ export function AnalyticsPanel({ stats, loading }: AnalyticsPanelProps) {
     const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
     const totalViews = stats.totalViews;
     const viewsPerWeek = weeks.map(
-      (_, i) => Math.floor(totalViews / 4) + Math.random() * 500 - 250
+      (_, _i) => Math.floor(totalViews / 4) + Math.random() * 500 - 250
     );
 
     return {

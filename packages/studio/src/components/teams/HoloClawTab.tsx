@@ -562,7 +562,7 @@ export function HoloClawTab() {
 
       const allSkills = skillsData.skills || [];
       const running = runningData.running || [];
-      const runningNames = new Set(running.map((r) => r.name));
+      const _runningNames = new Set(running.map((r) => r.name));
 
       const merged: SkillWithStatus[] = allSkills.map((s) => {
         const runEntry = running.find((r) => r.name === s.name);

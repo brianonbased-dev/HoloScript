@@ -9,7 +9,7 @@
  * @module delegation
  */
 
-import type { TaskDef, SlotRole } from './types';
+import type { TaskDef, _SlotRole } from './types';
 
 // =============================================================================
 // TYPES

@@ -10,9 +10,9 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Unlock,
-  Trash2,
-  Copy,
+  _Unlock,
+  _Trash2,
+  _Copy,
   Search,
   ChevronRight,
   ChevronDown,
@@ -176,7 +176,7 @@ export function SceneOutliner({ onSelect }: { onSelect?: (id: string) => void })
     },
     [updateNode]
   );
-  const toggleLock = useCallback(
+  const _toggleLock = useCallback(
     (id: string) => {
       setTree((prev) => updateNode(prev, id, (n) => ({ ...n, locked: !n.locked })));
     },

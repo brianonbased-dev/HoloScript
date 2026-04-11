@@ -70,7 +70,7 @@ export class OllamaService {
     }
   }
 
-  async generate(prompt: string, context?: string): Promise<string> {
+  async generate(prompt: string, _context?: string): Promise<string> {
     try {
       const response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',

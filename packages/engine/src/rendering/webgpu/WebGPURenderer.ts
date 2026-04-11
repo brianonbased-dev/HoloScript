@@ -1000,7 +1000,7 @@ export class WebGPURenderer {
     if (!this.context || !this.xrSession || !this.xrBinding || !this.xrProjectionLayer) return;
 
     const { device } = this.context;
-    const session = frame.session;
+    const _session = frame.session;
     const pose = frame.getViewerPose(
       this.xrBinding.nativeProjectionLayerSpace ||
         (this.xrSession.renderState.baseLayer as unknown as { space: XRReferenceSpace })!.space

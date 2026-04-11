@@ -29,8 +29,8 @@
  * Agents are stateless profiles — the coordinator drives their behavior.
  */
 
-import type { TeamAgentProfile, SlotRole } from './team-agents';
-import { TEAM_AGENT_PROFILES, getAllProfiles } from './team-agents';
+import type { _TeamAgentProfile, SlotRole } from './team-agents';
+import { TEAM_AGENT_PROFILES, _getAllProfiles } from './team-agents';
 import { Team as FrameworkTeam } from '@holoscript/framework';
 import type { CycleResult as FrameworkCycleResult } from '@holoscript/framework';
 

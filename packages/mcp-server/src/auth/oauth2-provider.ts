@@ -32,12 +32,12 @@
  *   migrationMode is 'permissive' (default).
  */
 
-import { createHash, randomUUID, timingSafeEqual } from 'crypto';
-import type { IncomingMessage, ServerResponse } from 'http';
+import { _createHash, _randomUUID, timingSafeEqual } from 'crypto';
+import type { _IncomingMessage, _ServerResponse } from 'http';
 import {
   TokenStore,
   InMemoryTokenStore,
-  DEFAULT_TTL,
+  _DEFAULT_TTL,
   type TokenStoreTTL,
   type TokenStoreBackend,
   type StoredAccessToken,

@@ -162,7 +162,7 @@ describe('HoloScriptPreview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock requestAnimationFrame
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((_cb) => {
       // Don't actually call the callback to avoid infinite loop
       return 1;
     });

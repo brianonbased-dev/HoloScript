@@ -8,9 +8,9 @@ import { useState, useCallback } from 'react';
 import {
   Key,
   Lock,
-  Unlock,
-  Plus,
-  Trash2,
+  _Unlock,
+  _Plus,
+  _Trash2,
   Clock,
   AlertCircle,
   CheckCircle,
@@ -182,7 +182,7 @@ export function EscapeRoomPanel() {
           Puzzle Flow
         </div>
         <div className="flex flex-wrap gap-1 items-center">
-          {room.puzzles.map((p, i) => {
+          {room.puzzles.map((p, _i) => {
             const Icon = STATUS_ICONS[p.status];
             return (
               <div key={p.id} className="flex items-center gap-1">

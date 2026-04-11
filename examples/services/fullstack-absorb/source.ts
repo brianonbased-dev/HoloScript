@@ -78,7 +78,7 @@ app.post('/orders', async (req, res) => {
 
 // ── Queue Worker ────────────────────────────────────────────────────────────
 
-const worker = new Worker('order-notifications', async (job) => {
+const _worker = new Worker('order-notifications', async (job) => {
   console.log(`Sending notification for order ${job.data.orderId}`);
 });
 

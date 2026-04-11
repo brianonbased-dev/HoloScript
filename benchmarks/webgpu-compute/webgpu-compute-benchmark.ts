@@ -74,7 +74,7 @@ interface ValidationResults {
   warnings: string[];
 }
 
-interface ComputeShaderInfo {
+interface _ComputeShaderInfo {
   name: string;
   entryPoint: string;
   workgroupSize: string;
@@ -361,7 +361,7 @@ function validateWebGPUOutput(output: string, source: string): ValidationResults
 
 function validateWGSLSyntax(output: string, errors: string[]): boolean {
   // Basic WGSL syntax checks
-  const wgslPatterns = {
+  const _wgslPatterns = {
     invalidCharacters: /[^\w\s@(){}[\]<>:;,.\-+*/=!&|^%]/g,
     validStageAttributes: /@(vertex|fragment|compute)/g,
     validGroupBinding: /@group\(\d+\)\s+@binding\(\d+\)/g,

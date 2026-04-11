@@ -7,7 +7,7 @@
  * Run this after starting websocket-multiplayer-server.ts
  */
 
-import { NetworkedTrait, createNetworkedTrait } from '@holoscript/core/traits';
+import { _NetworkedTrait, createNetworkedTrait } from '@holoscript/core/traits';
 
 async function testMultiplayer() {
   console.log('🧪 Starting Multiplayer Integration Test\n');
@@ -58,7 +58,7 @@ async function testMultiplayer() {
         console.log('   ✗ Connection failed');
         testsFailed++;
       }
-    } catch (error) {
+    } catch (_error) {
       console.log(`   ℹ️  WebSocket server not available, using local sync (fallback working)`);
       // This is acceptable - fallback to local sync shows resilience
       testsPassed++;
@@ -155,7 +155,7 @@ async function testMultiplayer() {
     try {
       // Try invalid connection (will use fallback)
       await fallbackTrait.connect('websocket', 'ws://invalid-server-that-does-not-exist:9999');
-    } catch (error) {
+    } catch (_error) {
       // Expected to fail to the fallback
     }
 

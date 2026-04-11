@@ -87,7 +87,7 @@ export class MockWeb3Connector implements Web3Connector {
     };
   }
 
-  async verifyNFTOwnership(params: { chain: string; contractAddress: string; tokenId: string }) {
+  async verifyNFTOwnership(_params: { chain: string; contractAddress: string; tokenId: string }) {
     return {
       ownerAddress: '0x' + '0'.repeat(40),
       standard: 'ERC721',

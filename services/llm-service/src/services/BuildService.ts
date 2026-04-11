@@ -4,7 +4,7 @@
 
 import { StorageService, StoredBuild } from './StorageService';
 import { OllamaService } from './OllamaService';
-import { v4 as uuid } from 'uuid';
+import { v4 as _uuid } from 'uuid';
 import { logger } from '../utils/logger';
 
 export interface GenerateOptions {

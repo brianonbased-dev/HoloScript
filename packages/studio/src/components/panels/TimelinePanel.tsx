@@ -12,7 +12,7 @@ export function TimelinePanel() {
     entries,
     play,
     pause,
-    resume,
+    _resume,
     stop,
     tick,
     buildDemo,

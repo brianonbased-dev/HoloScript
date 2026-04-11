@@ -128,7 +128,7 @@ export class DebateOrchestrator {
   private async executeRound(
     topic: string,
     roundNum: number,
-    previousRounds: DebateRound[]
+    _previousRounds: DebateRound[]
   ): Promise<DebateRound> {
     // 1. Propose (or re-propose with updated confidence)
     const positions = await Promise.all(this.participants.map((p) => p.propose(topic)));

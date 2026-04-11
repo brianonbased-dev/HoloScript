@@ -412,7 +412,7 @@ function generateFromOpenAPI(spec: OpenAPISpec): ServiceContractResult {
 
         const opName =
           operation.operationId || `${method}_${pathStr.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        const summary = operation.summary || `${httpMethodToUpper(method)} ${pathStr}`;
+        const _summary = operation.summary || `${httpMethodToUpper(method)} ${pathStr}`;
 
         lines.push(`  endpoint "${opName}" @endpoint @handler {`);
         lines.push(`    method: "${httpMethodToUpper(method)}"`);

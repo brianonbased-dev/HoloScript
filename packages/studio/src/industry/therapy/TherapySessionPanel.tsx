@@ -9,22 +9,22 @@
 import React, { useState, useMemo } from 'react';
 import {
   createBinauralBeat,
-  getBrainwaveBand,
-  isFrequencySolfeggio,
+  _getBrainwaveBand,
+  _isFrequencySolfeggio,
   validateVolumeSafety,
   validateSessionSafety,
   calculateExposureIntensity,
   getSessionDurationFormatted,
   redactPatientPII,
-  exportSessionHIPAA,
+  _exportSessionHIPAA,
   createEMDRPattern,
   emdrPanValues,
-  hrvIntensityMultiplier,
+  _hrvIntensityMultiplier,
   calculateAutoDucking,
   BRAINWAVE_BANDS,
   SOLFEGGIO_FREQUENCIES,
   type BrainwaveState,
-  type BinauralBeatConfig,
+  type _BinauralBeatConfig,
   type TherapySession,
   type AudioLayer,
   type ExposureTherapyConfig,
@@ -171,11 +171,11 @@ const BRAINWAVE_EMOJIS: Record<BrainwaveState, string> = {
 
 export function TherapySessionPanel() {
   const [targetState, setTargetState] = useState<BrainwaveState>('alpha');
-  const [baseFreq, setBaseFreq] = useState(200);
+  const [baseFreq, _setBaseFreq] = useState(200);
   const [selectedSolfeggio, setSelectedSolfeggio] = useState(528);
-  const [volume, setVolume] = useState(55);
-  const [sessionDuration, setSessionDuration] = useState(30);
-  const [exposureElapsed, setExposureElapsed] = useState(8);
+  const [volume, _setVolume] = useState(55);
+  const [sessionDuration, _setSessionDuration] = useState(30);
+  const [exposureElapsed, _setExposureElapsed] = useState(8);
 
   const selectedBand = useMemo(
     () => BRAINWAVE_BANDS.find((b) => b.name === targetState)!,

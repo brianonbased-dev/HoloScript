@@ -15,7 +15,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { HoloScriptPlusParser } from '@holoscript/core';
+import { _HoloScriptPlusParser } from '@holoscript/core';
 
 // =============================================================================
 // TOOL DEFINITIONS

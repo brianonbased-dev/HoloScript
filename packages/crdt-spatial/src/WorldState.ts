@@ -16,7 +16,7 @@
  * @module crdt-spatial
  */
 
-import { Loro, LoroMap, LoroList, LoroText, VersionVector } from 'loro-crdt';
+import { Loro, _LoroMap, _LoroList, _LoroText, VersionVector } from 'loro-crdt';
 
 // =============================================================================
 // Types

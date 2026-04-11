@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
   });
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
   const userId = auth.user.id;
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
  * using React Three Fiber via CDN imports (esm.sh).
  */
 function generateDeployableHTML(title: string, holoCode: string): string {
-  const escapedCode = holoCode
+  const _escapedCode = holoCode
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

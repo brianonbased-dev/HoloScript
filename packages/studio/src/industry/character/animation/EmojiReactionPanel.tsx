@@ -94,7 +94,7 @@ export function EmojiReactionPanel({
           Quick Spawn
         </p>
         <div className="grid grid-cols-4 gap-2">
-          {EMOJI_PRESETS.map(({ emoji, label, color }) => (
+          {EMOJI_PRESETS.map(({ emoji, label, _color }) => (
             <button
               key={emoji}
               onClick={() => onSpawnEmoji(emoji)}

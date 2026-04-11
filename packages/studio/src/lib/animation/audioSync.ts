@@ -258,7 +258,7 @@ export class AudioSyncManager {
   /**
    * Calculate BPM from detected beats
    */
-  private calculateBPM(beats: Beat[], duration: number): number {
+  private calculateBPM(beats: Beat[], _duration: number): number {
     if (beats.length < 2) return 0;
 
     // Calculate average interval between beats

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
-import { Camera, Video, MonitorPlay, Square, Play, Square as StopSquare } from 'lucide-react';
+import { Camera, _Video, MonitorPlay, Square, _Play, Square as StopSquare } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 /**

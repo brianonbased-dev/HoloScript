@@ -88,8 +88,8 @@ export class HeightmapTerrain {
    */
   private initializeWithFunction(heightFunc: (x: number, z: number) => number): void {
     const { width, depth, resolution } = this.config;
-    const cellSizeX = width / (resolution - 1);
-    const cellSizeZ = depth / (resolution - 1);
+    const _cellSizeX = width / (resolution - 1);
+    const _cellSizeZ = depth / (resolution - 1);
 
     for (let z = 0; z < resolution; z++) {
       for (let x = 0; x < resolution; x++) {
@@ -279,7 +279,7 @@ export class HeightmapTerrain {
         }
 
         // Calculate slope
-        const h = this.getHeightAtGrid(x, z);
+        const _h = this.getHeightAtGrid(x, z);
         const hx0 = this.getHeightAtGrid(Math.max(0, x - 1), z);
         const hx1 = this.getHeightAtGrid(Math.min(resolution - 1, x + 1), z);
         const hz0 = this.getHeightAtGrid(x, Math.max(0, z - 1));

@@ -2,7 +2,7 @@
 
 import type { TraitSummary } from '@/types';
 import { TraitCard } from './TraitCard';
-import { Loader2, Package } from 'lucide-react';
+import { _Loader2, Package } from 'lucide-react';
 
 interface TraitGridProps {
   traits: TraitSummary[];

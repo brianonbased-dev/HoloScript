@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Float, RoundedBox, Html, Sphere, Ring, Edges } from '@react-three/drei';
+import { Text, Float, RoundedBox, Html, Sphere, Ring, _Edges } from '@react-three/drei';
 import * as THREE from 'three';
 
 import { AgentRoomRenderer } from './AgentRoomRenderer';
@@ -24,8 +24,8 @@ export interface HoloMeshWorldState {
 }
 
 export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldState }) {
-  const feedParserRef = useRef<any>(null);
-  const [entities, setEntities] = useState<SpatialEntity[]>([]);
+  const _feedParserRef = useRef<any>(null);
+  const [entities, _setEntities] = useState<SpatialEntity[]>([]);
   const [temporalState, setTemporalState] = useState(100); // 100% is present time
 
   // GAPS (Geometric And Physics Scaling) Budget Profiler
@@ -39,7 +39,7 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
   // Dummy the initial fetch to avoid FeedParser dependency which imports node:crypto
   useEffect(() => {
     try {
-      const source = worldState.getFeedSource();
+      const _source = worldState.getFeedSource();
       // Placeholder: in a real implementation we would rely on props for entities
       // instead of parsing the CRDT string inside the renderer.
     } catch (_e) {

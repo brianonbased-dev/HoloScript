@@ -165,7 +165,7 @@ export class ComparativeBenchmarks {
     bench.add('HoloScript Instantiation', () => {
       // HoloScript instantiation is lightweight (just object creation)
       for (let i = 0; i < 100; i++) {
-        const obj = { type: 'cube', traits: ['@color(red)'] };
+        const _obj = { type: 'cube', traits: ['@color(red)'] };
       }
     });
 
@@ -212,7 +212,7 @@ export class ComparativeBenchmarks {
     bench.add('HoloScript Traits', () => {
       // HoloScript trait application is declarative (minimal overhead)
       for (let i = 0; i < 1000; i++) {
-        const obj = { traits: ['@color(red)', '@physics', '@grabbable'] };
+        const _obj = { traits: ['@color(red)', '@physics', '@grabbable'] };
       }
     });
 
@@ -333,7 +333,7 @@ export class ComparativeBenchmarks {
     bench.add('HoloScript Complex Scene', () => {
       // HoloScript handles complex scenes efficiently
       for (const obj of complexScene) {
-        const instance = { ...obj };
+        const _instance = { ...obj };
       }
     });
 
@@ -375,7 +375,7 @@ export class ComparativeBenchmarks {
     // Unity scene loading overhead simulation
     const data = JSON.parse('{"gameObjects":[]}');
     for (let i = 0; i < 10; i++) {
-      const obj = { ...data };
+      const _obj = { ...data };
     }
   }
 
@@ -398,7 +398,7 @@ export class ComparativeBenchmarks {
   private simulateGltfNodeCreation(count: number): void {
     // glTF node creation overhead
     for (let i = 0; i < count; i++) {
-      const node = {
+      const _node = {
         matrix: new Array(16).fill(0),
         children: [],
       };

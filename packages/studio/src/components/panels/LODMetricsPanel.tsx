@@ -31,7 +31,7 @@ export function LODMetricsPanel() {
   const [isRecording, setIsRecording] = useState(true);
   const [regressionCount, setRegressionCount] = useState(0);
   const [recoveryCount, setRecoveryCount] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const _intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Receive metric ticks from usePerformanceRegression via bus, with simulation fallback
   useEffect(() => {

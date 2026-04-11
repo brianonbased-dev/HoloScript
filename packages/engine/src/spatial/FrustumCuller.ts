@@ -87,9 +87,9 @@ export class FrustumCuller {
     ];
 
     // Simplified side planes (using fov angle offset)
-    const rightX = fy * 0 - fz * 0 || 1,
-      rightY = 0,
-      rightZ = 0; // Simplified right vector
+    const _rightX = fy * 0 - fz * 0 || 1,
+      _rightY = 0,
+      _rightZ = 0; // Simplified right vector
     this.planes.push(
       { a: fx + tanHalf, b: fy, c: fz, d: -(eyeX * (fx + tanHalf) + eyeY * fy + eyeZ * fz) },
       { a: fx - tanHalf, b: fy, c: fz, d: -(eyeX * (fx - tanHalf) + eyeY * fy + eyeZ * fz) }

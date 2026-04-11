@@ -14,9 +14,9 @@
  */
 
 import type {
-  HoloVM,
+  _HoloVM,
   ECSWorld,
-  Entity,
+  _Entity,
   TransformComponent,
   GeometryComponent,
   MaterialComponent,
@@ -352,7 +352,7 @@ export class SpatialCognitiveAgent {
 
     // 3. Mutate (apply queued actions)
     const actions = this.pendingActions.splice(0, this.config.maxActionsPerTick);
-    const spawned = this.mutate(actions);
+    const _spawned = this.mutate(actions);
 
     return {
       perceived: true,

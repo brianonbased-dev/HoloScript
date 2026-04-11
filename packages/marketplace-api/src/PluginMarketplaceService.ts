@@ -35,7 +35,7 @@ import type {
   IPluginMarketplaceAPI,
   SignatureVerificationResult,
 } from './PluginPackageSpec.js';
-import type { Author, RateLimitTier } from './types.js';
+import type { _Author, RateLimitTier } from './types.js';
 import { RATE_LIMITS } from './types.js';
 import { PluginSignatureService } from './PluginSignatureService.js';
 import { VerificationService, RateLimiter, SpamDetector } from './VerificationService.js';
@@ -1009,8 +1009,8 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
   // ── Signature Verification ──────────────────────────────────────────────
 
   async verifyPluginSignature(
-    pluginId: string,
-    version: string
+    _pluginId: string,
+    _version: string
   ): Promise<SignatureVerificationResult> {
     // In production, would fetch the stored signature for this version
     return {

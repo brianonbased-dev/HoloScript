@@ -587,7 +587,7 @@ export class KnowledgeStore {
    * Evict: Permanently remove an entry from both hot and cold stores.
    * Called during cleanup or when an entry is marked as stale/wrong.
    */
-  evict(id: string, archivePath?: string): boolean {
+  evict(id: string, _archivePath?: string): boolean {
     const existed = this.entries.delete(id);
     if (existed) {
       this.persistIfEnabled();

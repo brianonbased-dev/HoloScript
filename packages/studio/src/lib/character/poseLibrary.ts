@@ -12,7 +12,7 @@
  * - Custom pose creation
  */
 
-import type { Quaternion, Vector3 } from 'three';
+import type { _Quaternion, _Vector3 } from 'three';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

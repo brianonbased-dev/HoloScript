@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Shirt, Palette, Clock, Plus, Trash2, Star, Eye, Sparkles } from 'lucide-react';
+import { Shirt, _Palette, _Clock, _Plus, _Trash2, Star, _Eye, _Sparkles } from 'lucide-react';
 
 export type FabricType =
   | 'silk'
@@ -142,7 +142,7 @@ export function FashionRunwayPanel() {
   }, []);
 
   const sel = outfits.find((o) => o.id === selected);
-  const SEASONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
+  const _SEASONS: Season[] = ['spring', 'summer', 'fall', 'winter'];
   const SEASON_EMOJI = { spring: '🌸', summer: '☀️', fall: '🍂', winter: '❄️' };
 
   return (

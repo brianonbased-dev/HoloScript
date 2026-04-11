@@ -498,7 +498,7 @@ export function WebXRViewer({
   onXRSessionStart,
   onXRSessionEnd,
   autoEnterXR = false,
-  referenceSpace = 'local-floor',
+  _referenceSpace = 'local-floor',
 }: WebXRViewerProps) {
   const { r3fTree, errors } = useScenePipeline(code);
   const xrCaps = useXRCapabilities();

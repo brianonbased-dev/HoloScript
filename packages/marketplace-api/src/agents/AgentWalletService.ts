@@ -32,7 +32,7 @@ export class AgentWalletService {
   async initialize(): Promise<string> {
     try {
       // 1. Provision the CDP Wallet Node
-      const config = {
+      const _config = {
         apiKeyName: process.env.CDP_API_KEY_NAME || 'cdp_test',
         apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY || 'cdp_test_key',
         cdpWalletData: process.env.CDP_WALLET_DATA || 'empty',
@@ -47,7 +47,7 @@ export class AgentWalletService {
         getAddress: () =>
           '0x' +
           Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-        signMessage: async (msg: string) => '0xabcsignature123',
+        signMessage: async (_msg: string) => '0xabcsignature123',
         // @ts-ignore
         getName: () => 'CdpWalletProvider',
         getNetwork: () => ({ networkId: this.networkId }),

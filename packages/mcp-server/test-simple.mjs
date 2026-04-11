@@ -22,7 +22,7 @@ server.stdout.on('data', (data) => {
         pending.delete(msg.id);
         resolve(msg);
       }
-    } catch (e) {}
+    } catch (_e) {}
   });
 });
 

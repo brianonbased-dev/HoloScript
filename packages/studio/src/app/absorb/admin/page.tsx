@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Html, Float, Sparkles, MeshDistortMaterial } from '@react-three/drei';
+import { Html, _Float, Sparkles, MeshDistortMaterial } from '@react-three/drei';
 
 /**
  * HoloScript V6 2D UI Revolution
@@ -46,7 +46,7 @@ export default function AdminPage() {
     stopMoltbookAgent,
     fetchMoltbookAgents,
   } = useAbsorbServiceStore();
-  const [bountyPools, setBountyPools] = useState<Record<string, number>>({});
+  const [_bountyPools, _setBountyPools] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchEcosystemHealth();

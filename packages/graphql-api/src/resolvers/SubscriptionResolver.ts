@@ -8,7 +8,7 @@ import {
   ParseResult,
 } from '../types/GraphQLTypes.js';
 import {
-  pubsub,
+  _pubsub,
   SubscriptionTopic,
   publishValidationResults,
   type CompilationProgressEvent,

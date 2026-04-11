@@ -102,7 +102,7 @@ export class ViemWeb3Connector implements Web3Connector {
     // Real browser wallet connection is handled client-side; this validates the chain.
     const chain = getChainById(params.chainId);
     const client = createPublicClient({ chain, transport: http() });
-    const blockNumber = await client.getBlockNumber();
+    const _blockNumber = await client.getBlockNumber();
 
     return {
       address: '0x' + '0'.repeat(40), // placeholder — real address comes from wallet provider

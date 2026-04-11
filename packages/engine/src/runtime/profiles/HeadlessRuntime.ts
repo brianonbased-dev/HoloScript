@@ -16,7 +16,7 @@
  *
  * @version 1.0.0
  */
-import type { HSPlusAST, HSPlusNode, StateDeclaration } from '@holoscript/core';
+import type { HSPlusAST, HSPlusNode, _StateDeclaration } from '@holoscript/core';
 import type { HoloScriptValue } from '@holoscript/core';
 import type { HSPlusDirective } from '@holoscript/core';
 import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';

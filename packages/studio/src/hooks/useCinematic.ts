@@ -40,7 +40,7 @@ export function useCinematic(): UseCinematicReturn {
 
   const createDemoScene = useCallback(() => {
     dirRef.current = new CinematicDirector();
-    const scene = dirRef.current.createScene('intro', 'Intro Cutscene', 5);
+    const _scene = dirRef.current.createScene('intro', 'Intro Cutscene', 5);
     dirRef.current.addActorMark('intro', {
       actorId: 'hero',
       position: { x: 0, y: 0, z: 0 },

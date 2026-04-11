@@ -14,10 +14,10 @@
  *  - Responsive layout that scales to container
  */
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, _useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   RotateCcw,
-  Maximize2,
+  _Maximize2,
   ZoomIn,
   ZoomOut,
   Layers,
@@ -25,8 +25,8 @@ import {
   EyeOff,
   Play,
   Pause,
-  ChevronDown,
-  Info,
+  _ChevronDown,
+  _Info,
 } from 'lucide-react';
 
 // =============================================================================
@@ -339,8 +339,8 @@ export function DragonPreview({ creature = SAMPLE_DRAGON, initialLOD = 2 }: Drag
   const [rotateSpeed, setRotateSpeed] = useState(0.5);
   const [zoom, setZoom] = useState(1.0);
   const [showWireframe, setShowWireframe] = useState(true);
-  const [showTraits, setShowTraits] = useState(true);
-  const [showStats, setShowStats] = useState(true);
+  const [showTraits, _setShowTraits] = useState(true);
+  const [showStats, _setShowStats] = useState(true);
 
   const lod = LOD_LEVELS[lodIndex];
 

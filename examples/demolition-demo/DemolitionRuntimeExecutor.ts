@@ -487,7 +487,7 @@ export class DemolitionRuntimeExecutor {
       this.syncStructuralElementsToRenderer();
     } else {
       // Remove all structural elements from renderer
-      for (const [elementId, rendererId] of this.rendererStructuralMap) {
+      for (const [_elementId, rendererId] of this.rendererStructuralMap) {
         this.renderer?.removeObject(rendererId);
       }
       this.rendererStructuralMap.clear();
@@ -632,7 +632,7 @@ export class DemolitionRuntimeExecutor {
     if (!structural) return;
 
     const props = structural.properties;
-    const floors = props.floors ?? 3;
+    const _floors = props.floors ?? 3;
     const columnsPerFloor = props.columnsPerFloor ?? 4;
     const columnSpacing = props.columnSpacing ?? 5.0;
 
@@ -640,10 +640,10 @@ export class DemolitionRuntimeExecutor {
 
     // Build similar to setupBuildingCollapse()
     // Foundation
-    const foundations: string[] = [];
+    const _foundations: string[] = [];
     for (let i = 0; i < columnsPerFloor; i++) {
-      const x = position.x + (i - columnsPerFloor / 2) * columnSpacing;
-      const foundation = scene.getStructuralElements().find(() => true); // Placeholder
+      const _x = position.x + (i - columnsPerFloor / 2) * columnSpacing;
+      const _foundation = scene.getStructuralElements().find(() => true); // Placeholder
       // Would call scene.structural.addElement() but scene doesn't expose structural
       // This is a limitation - need to expose structural system
     }
@@ -688,7 +688,7 @@ export class DemolitionRuntimeExecutor {
       const materialProps =
         MATERIALS[materialType.toUpperCase() as keyof typeof MATERIALS] || MATERIALS.CONCRETE;
 
-      const object = new Fracturable({
+      const _object = new Fracturable({
         id: `${entity.name}_${i}`,
         geometry: {
           min: { x: -halfSize[0], y: -halfSize[1], z: -halfSize[2] },
@@ -716,7 +716,7 @@ export class DemolitionRuntimeExecutor {
   /**
    * Setup behaviors from composition
    */
-  private setupBehaviors(composition: HoloComposition, scene: DemolitionDemoScene): void {
+  private setupBehaviors(composition: HoloComposition, _scene: DemolitionDemoScene): void {
     const behaviors = composition.entities.filter((e) => e.type === 'behavior');
 
     for (const behavior of behaviors) {
@@ -733,7 +733,7 @@ export class DemolitionRuntimeExecutor {
   /**
    * Setup timelines from composition
    */
-  private setupTimelines(composition: HoloComposition, scene: DemolitionDemoScene): void {
+  private setupTimelines(composition: HoloComposition, _scene: DemolitionDemoScene): void {
     const timelines = composition.entities.filter((e) => e.type === 'timeline');
 
     for (const timeline of timelines) {

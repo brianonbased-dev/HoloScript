@@ -83,7 +83,7 @@ for (const basename of classFiles) {
 
   // Check if there's an existing class we can wrap
   const classMatch = content.match(/export\s+class\s+(\w+)/);
-  const className = classMatch?.[1];
+  const _className = classMatch?.[1];
 
   // Generate handler block
   const handler = `

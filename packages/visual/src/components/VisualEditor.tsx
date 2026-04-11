@@ -78,7 +78,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
   initialGraph,
   objectName = 'myObject',
   onChange,
-  onCodeGenerated,
+  _onCodeGenerated,
   sidebarWidth = 260,
   codePreviewWidth = 300,
   showToolbar = true,
@@ -178,7 +178,7 @@ const VisualEditor: React.FC<VisualEditorProps> = ({
         const text = await file.text();
         const graph = JSON.parse(text) as VisualGraph;
         loadGraph(graph);
-      } catch (err) {
+      } catch (_err) {
         alert('Failed to import graph: Invalid file format');
       }
     };

@@ -390,7 +390,7 @@ function selectRuntime(runtimeId: string): void {
 async function runCode(): Promise<void> {
   if (!state.editor) return;
 
-  const code = state.editor.getValue();
+  const _code = state.editor.getValue();
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement;
   const overlay = document.getElementById('canvas-overlay')!;
 
@@ -608,7 +608,7 @@ function loadFromURL(): void {
       const code = decodeURIComponent(atob(encodedCode));
       state.editor.setValue(code);
       logConsole('info', 'Loaded code from share URL');
-    } catch (error) {
+    } catch (_error) {
       logConsole('error', 'Failed to load code from URL');
     }
   }

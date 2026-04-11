@@ -89,7 +89,7 @@ export class EarthquakeRuntimeExecutor {
     // For runtime integration, we'll create a mock or adapt the interface
     try {
       this.simulation = await createEarthquakeSimulation(this.simulationConfig);
-    } catch (error) {
+    } catch (_error) {
       if (this.config.debug) {
         console.warn(
           '[EarthquakeRuntimeExecutor] Could not create WebGPU simulation, using fallback'

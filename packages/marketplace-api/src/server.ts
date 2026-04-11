@@ -94,7 +94,7 @@ export function createApp(
 
   // Request logging
   app.use((req, res, next) => {
-    const start = Date.now();
+    const _start = Date.now();
     res.on('finish', () => {
       // Request timing available via monitoring middleware
     });

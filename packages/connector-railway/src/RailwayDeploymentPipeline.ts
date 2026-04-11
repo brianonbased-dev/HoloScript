@@ -4,16 +4,16 @@ import { RailwayConnector } from './RailwayConnector.js';
 export class RailwayDeploymentPipeline implements DeploymentPipeline {
   constructor(private connector: RailwayConnector) {}
 
-  async compile(projectPath: string): Promise<string> {
+  async compile(_projectPath: string): Promise<string> {
     // Mock compilation - in a real scenario, this would trigger a build process
     return `artifact-${Date.now()}.zip`;
   }
 
-  async selectTarget(tier: 'low' | 'med' | 'high' | 'ultra'): Promise<void> {
+  async selectTarget(_tier: 'low' | 'med' | 'high' | 'ultra'): Promise<void> {
     // Logic to set environment variables or service settings based on tier
   }
 
-  async deploy(artifact: string): Promise<string> {
+  async deploy(_artifact: string): Promise<string> {
     const result = (await this.connector.executeTool('railway_deploy', {
       serviceId: process.env.RAILWAY_SERVICE_ID || 'default-service',
       environmentId: process.env.RAILWAY_ENVIRONMENT_ID || 'production',

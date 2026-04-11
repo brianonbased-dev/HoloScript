@@ -12,14 +12,14 @@ import {
   Cloud,
   Plus,
   RefreshCw,
-  Trash2,
-  ExternalLink,
-  Activity,
-  DollarSign,
+  _Trash2,
+  _ExternalLink,
+  _Activity,
+  _DollarSign,
   AlertCircle,
 } from 'lucide-react';
-import { useDeployments, useDeploy, useDeployment, useCloudHealth } from '@/lib/cloud/hooks';
-import type { Deployment, CloudProvider } from '@/lib/cloud/types';
+import { useDeployments, _useDeploy, _useDeployment, useCloudHealth } from '@/lib/cloud/hooks';
+import type { Deployment, _CloudProvider } from '@/lib/cloud/types';
 import { DeploymentCard } from './DeploymentCard';
 import { DeployWorkflowModal } from './DeployWorkflowModal';
 import { DeploymentDetailsModal } from './DeploymentDetailsModal';

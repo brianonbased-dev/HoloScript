@@ -53,7 +53,7 @@ export function DeployWorkflowModal({ onClose, onSuccess }: DeployWorkflowModalP
       setTimeout(() => {
         onSuccess();
       }, 2000);
-    } catch (err) {
+    } catch (_err) {
       // Error handled by hook
     }
   };

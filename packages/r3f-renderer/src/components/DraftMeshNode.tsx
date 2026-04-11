@@ -202,7 +202,7 @@ export function DraftMeshNode({
   draftColor = '#88aaff',
   wireframe = false,
   opacity = 1.0,
-  onPromote,
+  _onPromote,
   onSelect,
 }: DraftMeshNodeProps) {
   // Group nodes by shape type for instanced batching

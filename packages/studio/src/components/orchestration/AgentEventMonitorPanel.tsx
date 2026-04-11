@@ -32,7 +32,7 @@ interface AgentEventMonitorPanelProps {
 export function AgentEventMonitorPanel({ onClose }: AgentEventMonitorPanelProps) {
   const events = useOrchestrationStore((s) => s.events);
   const eventFilter = useOrchestrationStore((s) => s.eventFilter);
-  const setEventFilter = useOrchestrationStore((s) => s.setEventFilter);
+  const _setEventFilter = useOrchestrationStore((s) => s.setEventFilter);
   const clearEvents = useOrchestrationStore((s) => s.clearEvents);
 
   const [paused, setPaused] = useState(false);

@@ -28,7 +28,7 @@ interface ImportRepoWizardProps {
 
 export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
   const {
-    step, prevStep, direction, TOTAL_STEPS,
+    step, _prevStep, direction, TOTAL_STEPS,
     repos, reposLoading, reposError, search, setSearch,
     selectedRepo, setSelectedRepo, manualUrl, setManualUrl,
     useManual, setUseManual, branch, setBranch,

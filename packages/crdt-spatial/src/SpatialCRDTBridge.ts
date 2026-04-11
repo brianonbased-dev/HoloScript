@@ -558,7 +558,7 @@ export class SpatialCRDTBridge {
     const nodeMap = this.getNodeMap(nodeId);
     if (!nodeMap) return;
 
-    const SCALE = 1_000_000;
+    const _SCALE = 1_000_000;
 
     const yawCounter = nodeMap.get('delta_yaw') as LoroCounter | null;
     const pitchCounter = nodeMap.get('delta_pitch') as LoroCounter | null;

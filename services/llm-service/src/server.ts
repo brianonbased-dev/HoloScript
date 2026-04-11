@@ -22,7 +22,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService';
-import { InferenceRouter, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
+import { InferenceRouter, type ChatRequest, type _StreamEvent } from './services/InferenceRouter';
 import { RateLimiter } from './services/RateLimiter';
 import { UsageTracker } from './services/UsageTracker';
 import { BuildService } from './services/BuildService';
@@ -279,7 +279,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
       providers,
       rateLimiter: rateLimiter.getStats(),
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(503).json({ status: 'error', error: 'Service unavailable' });
   }
 });
@@ -288,7 +288,7 @@ app.get('/api/models', async (req: Request, res: Response) => {
   try {
     const models = await ollama.listModels();
     res.json({ models });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to list models' });
   }
 });

@@ -102,7 +102,7 @@ class TerrainAgent {
     console.log(`[TerrainAgent] Task ${task.task_id} completed in ${duration}ms`);
   }
 
-  private async generateTerrainChunk(index: number): Promise<void> {
+  private async generateTerrainChunk(_index: number): Promise<void> {
     // Simulate work (adjust based on quality level)
     const stats = this.client.getFrameBudgetStats();
     const workAmount = {
@@ -171,7 +171,7 @@ class AssetAgent {
     console.log(`[AssetAgent] Task ${task.task_id} completed`);
   }
 
-  private async placeAsset(index: number): Promise<void> {
+  private async placeAsset(_index: number): Promise<void> {
     const stats = this.client.getFrameBudgetStats();
     const workAmount = {
       high: 8,

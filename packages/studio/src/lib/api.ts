@@ -1,5 +1,5 @@
 import type { GenerateRequest, GenerateResponse } from '@/types';
-import { logger } from '@/lib/logger';
+import { _logger } from '@/lib/logger';
 
 export async function generateScene(req: GenerateRequest): Promise<GenerateResponse> {
   const res = await fetch('/api/generate', {

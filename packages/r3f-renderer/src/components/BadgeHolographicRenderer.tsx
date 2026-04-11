@@ -170,7 +170,7 @@ export function BadgeHolographicRenderer({
 function HolographicBadge({
   badge,
   position,
-  index,
+  _index,
 }: {
   badge: BadgeData;
   position: [number, number, number];
@@ -257,7 +257,7 @@ function HolographicBadge({
 function ShieldBadge({
   badge,
   position,
-  index,
+  _index,
 }: {
   badge: BadgeData;
   position: [number, number, number];
@@ -300,7 +300,7 @@ function ShieldBadge({
 function RibbonBadge({
   badge,
   position,
-  index,
+  _index,
 }: {
   badge: BadgeData;
   position: [number, number, number];
@@ -357,7 +357,7 @@ function RibbonBadge({
 function IconBadge({
   badge,
   position,
-  index,
+  _index,
 }: {
   badge: BadgeData;
   position: [number, number, number];

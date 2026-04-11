@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react';
-import { X, Sparkles, Upload, Library, Search, Cpu, User, Zap, Settings, Key } from 'lucide-react';
+import { X, Sparkles, Upload, Library, Search, Cpu, User, _Zap, Settings, Key } from 'lucide-react';
 import APIKeysPanel, { hasAPIKey } from '@/components/settings/APIKeysPanel';
 import { logger } from '@/lib/logger';
 
@@ -830,7 +830,7 @@ function AIGenerationTab({
 /**
  * Mixamo Tab - Auto-rigging + character library
  */
-function MixamoTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
+function MixamoTab({ _onCharacterCreated, _isLoading, _setIsLoading }: TabProps) {
   const [characters, setCharacters] = useState<any[]>([]);
   const [typeFilter, setTypeFilter] = useState<'all' | 'human' | 'creature' | 'robot'>('all');
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
@@ -852,7 +852,7 @@ function MixamoTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
     setShowInstructions(true);
   };
 
-  const handleManualUpload = () => {
+  const _handleManualUpload = () => {
     // User will manually download from Mixamo and upload via Upload tab
     alert(
       'After downloading from Mixamo:\n\n1. Switch to the "Upload File" tab\n2. Upload your downloaded .glb file'
@@ -1707,7 +1707,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
 /**
  * Upload Tab - File drag & drop
  */
-function UploadTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
+function UploadTab({ onCharacterCreated, _isLoading, _setIsLoading }: TabProps) {
   const [dragging, setDragging] = useState(false);
 
   const handleFile = (file: File) => {

@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Terminal, Trash2, Filter, ChevronDown, Copy, Download } from 'lucide-react';
+import { Terminal, Trash2, Filter, _ChevronDown, Copy, _Download } from 'lucide-react';
 
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
@@ -35,7 +35,7 @@ export function ScriptConsole() {
     new Set(['log', 'info', 'warn', 'error', 'debug'])
   );
   const [input, setInput] = useState('');
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, _setCollapsed] = useState(true);
   const [showFilter, setShowFilter] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 

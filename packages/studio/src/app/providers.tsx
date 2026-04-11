@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
-import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
+import { _useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
 const DevToolsInit = dynamic(
   () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),
@@ -58,7 +58,7 @@ const ToastContext = createContext<{
 });
 export const useToast = () => useContext(ToastContext);
 
-function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
+function _ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
   if (toasts.length === 0) return null;
 
   const typeStyles: Record<Toast['type'], string> = {

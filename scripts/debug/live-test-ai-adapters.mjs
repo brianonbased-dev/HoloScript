@@ -10,7 +10,7 @@ import {
   registerAIAdapter,
   getAIAdapter,
   getDefaultAIAdapter,
-  setDefaultAIAdapter,
+  _setDefaultAIAdapter,
   listAIAdapters,
   unregisterAIAdapter,
 } from '../packages/core/dist/index.js';

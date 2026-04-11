@@ -13,8 +13,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { NFTMarketplaceCompiler } from '@holoscript/core/compiler/NFTMarketplaceCompiler';
 import {
-  GasOptimizationAnalyzer,
-  ANALYZER_PRESETS,
+  _GasOptimizationAnalyzer,
+  _ANALYZER_PRESETS,
 } from '@holoscript/core/compiler/GasOptimizationAnalyzer';
 import type { NFTMarketplaceAST } from '@holoscript/core/parser/NFTMarketplaceTypes';
 
@@ -175,7 +175,7 @@ export async function nftCompileCommand(
  * Parse marketplace definition from HoloScript code
  * (Simplified parser - real implementation would use full parser)
  */
-export function parseMarketplaceDefinition(code: string): NFTMarketplaceAST {
+export function parseMarketplaceDefinition(_code: string): NFTMarketplaceAST {
   // This is a simplified example
   // Real implementation would parse the .holo syntax properly
 

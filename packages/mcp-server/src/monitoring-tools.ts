@@ -15,7 +15,7 @@ export const monitoringTools: Tool[] = [
 
 export async function handleMonitoringTool(
   name: string,
-  args: Record<string, any>
+  _args: Record<string, any>
 ): Promise<any | null> {
   if (name === 'get_telemetry_metrics') {
     return {

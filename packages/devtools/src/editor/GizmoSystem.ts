@@ -25,7 +25,7 @@ export class GizmoSystem {
     // Reactive effect to rebuild gizmos when selection changes
     effect(() => {
       // Track selection size/contents to trigger re-render
-      const count = this.selectionManager.selected.size;
+      const _count = this.selectionManager.selected.size;
       // Also need to depend on content, but Set iteration is tracked by reactive()
       // We just iterate to establish dependency.
       for (const _ of this.selectionManager.selected) {
@@ -118,7 +118,7 @@ export class GizmoSystem {
    * - Syncs axes to gizmo root
    * - Handles input (raycast)
    */
-  update(delta: number) {
+  update(_delta: number) {
     const primary = this.selectionManager.primary;
     if (primary === undefined) return;
 

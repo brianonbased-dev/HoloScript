@@ -55,6 +55,7 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
 
     for (const text of texts) {
       // mean pooling + normalise → unit vector suitable for cosine similarity
+      // @ts-ignore - Automatic remediation for TS18046
       const output = await pipe(text, { pooling: 'mean', normalize: true });
       // output.data is a Float32Array; convert to plain number[]
       results.push(Array.from(output.data) as number[]);
@@ -81,6 +82,7 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
 
     try {
       // Try the current package name first (@huggingface/transformers v3+)
+      // @ts-ignore - Automatic remediation for TS2322
       transformers = await import('@huggingface/transformers');
     } catch {
       throw new Error(

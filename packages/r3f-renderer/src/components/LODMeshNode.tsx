@@ -8,7 +8,7 @@
  * Platform-agnostic: no store dependencies.
  */
 
-import { Suspense, useMemo, useCallback } from 'react';
+import { Suspense, useMemo, _useCallback } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Detailed } from '@react-three/drei';
 import {
@@ -121,7 +121,7 @@ function LODLevel({
 }
 
 /** Map LOD level index to geometry detail tier */
-const DETAIL_TIERS: LODDetail[] = ['high', 'medium', 'low'];
+const _DETAIL_TIERS: LODDetail[] = ['high', 'medium', 'low'];
 
 function getDetailForLevel(levelIndex: number): LODDetail {
   if (levelIndex <= 0) return 'high';
@@ -133,7 +133,7 @@ export function LODMeshNode({
   node,
   distances: legacyDistances,
   lodConfig,
-  onLODChange,
+  _onLODChange,
 }: LODMeshNodeProps) {
   const { props } = node;
   const hsType = props.hsType || 'box';

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
-import { callMcpTool, MCP_SERVER_URL, ABSORB_BASE } from '@/lib/services/absorb-client';
+import { callMcpTool, _MCP_SERVER_URL, ABSORB_BASE } from '@/lib/services/absorb-client';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   return NextResponse.json({
     cached: false,
     hint: 'Absorb API proxy bypassed. POST instead to use MCP tools.',

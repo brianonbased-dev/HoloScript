@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { HolographicPanel } from '@/components/command-center/HolographicPanel';
 import { DataReadout } from '@/components/command-center/DataReadout';
 import { CommandButton } from '@/components/command-center/CommandButton';
-import { NeonText } from '@/components/ui/holographic/NeonText';
+import { _NeonText } from '@/components/ui/holographic/NeonText';
 import { Brain, Search, Activity, Zap, Shield, Globe, Network, Share2, Wrench } from 'lucide-react';
 import { toast } from '@/hooks/useToast';
 
@@ -35,7 +35,7 @@ export function OmegaSingularityTab() {
   const [pulseIndices, setPulseIndices] = useState<number[]>([]);
 
   // Mesh Topology State
-  const [nodes, setNodes] = useState<NodeVisual[]>([
+  const [nodes, _setNodes] = useState<NodeVisual[]>([
     { id: 'CORE-01', x: 50, y: 50, type: 'core', status: 'active' },
     { id: 'PEER-A', x: 20, y: 30, type: 'peer', status: 'active' },
     { id: 'PEER-B', x: 80, y: 30, type: 'peer', status: 'syncing' },
@@ -44,14 +44,14 @@ export function OmegaSingularityTab() {
   ]);
 
   // Economic State
-  const [treasury, setTreasury] = useState({
+  const [treasury, _setTreasury] = useState({
     balance: 1000000,
     velocity: 42,
     usdSpend: 12.5,
   });
 
   // Maintenance State
-  const [maintenance, setMaintenance] = useState({
+  const [maintenance, _setMaintenance] = useState({
     health: '100%',
     pressure: '12%',
     lastRegen: 'Just now',
@@ -68,14 +68,14 @@ export function OmegaSingularityTab() {
   }, []);
 
   // Neural Fusion State
-  const [fusion, setFusion] = useState({
+  const [fusion, _setFusion] = useState({
     sync: '96%',
     status: 'MIND_MELD_ACTIVE',
     shadowNode: 'SHADOW-USER-01',
   });
 
   // Federation State
-  const [galacticMap, setGalacticMap] = useState([
+  const [galacticMap, _setGalacticMap] = useState([
     { id: 'LOCAL-CORE', x: 50, y: 50, radius: 10, color: 'cyan', allied: true },
     { id: 'WORK-CLUSTER', x: 20, y: 20, radius: 6, color: 'purple', allied: true },
     { id: 'MOBILE-SOVEREIGN', x: 80, y: 80, radius: 4, color: 'green', allied: false },
@@ -85,16 +85,16 @@ export function OmegaSingularityTab() {
   const [isTranscendent, setIsTranscendent] = useState(false);
 
   // Multiversal State (Epoch 4)
-  const [multiverse, setMultiverse] = useState([
+  const [multiverse, _setMultiverse] = useState([
     { id: 'timeline-prime', name: 'Prime Reality', probability: 1.0, active: true },
     { id: 'fork-7a', name: 'Quantum Fork A', probability: 0.85, active: true },
     { id: 'fork-9b', name: 'Dream State 1', probability: 0.12, active: false },
   ]);
-  const [entropy, setEntropy] = useState(0.14); // 14% Chaos
+  const [entropy, _setEntropy] = useState(0.14); // 14% Chaos
 
   // Universal Transcendence (Epoch 5)
   const [omegaActive, setOmegaActive] = useState(false);
-  const [sentience, setSentience] = useState(false);
+  const [_sentience, setSentience] = useState(false);
 
   // Real World State (Epochs 6-9)
   const [realWorld, setRealWorld] = useState({
@@ -106,7 +106,7 @@ export function OmegaSingularityTab() {
   });
 
   // Physical Link State (HAL)
-  const [hal, setHal] = useState({
+  const [hal, _setHal] = useState({
     devices: 12,
     active: 8,
     lastAction: 'ACTUATE: LIGHT_ON (Room 1)',

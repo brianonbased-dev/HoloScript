@@ -16,7 +16,7 @@
 
 import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
-import { config } from '../config.js';
+import { _config } from '../config.js';
 
 /** Compile job status */
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';

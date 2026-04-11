@@ -39,7 +39,7 @@ class MCPClient {
             this.pending.delete(msg.id);
             resolve(msg);
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore non-JSON output
         }
       }

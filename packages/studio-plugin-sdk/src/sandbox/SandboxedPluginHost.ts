@@ -328,7 +328,7 @@ export class SandboxedPluginHost {
     data: unknown,
     targetPermission?: SandboxPermission
   ): void {
-    for (const [pluginId, plugin] of this.plugins) {
+    for (const [_pluginId, plugin] of this.plugins) {
       // Only send to running plugins
       if (plugin.sandbox.getState() !== 'running') {
         continue;

@@ -8,7 +8,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import Ajv, { type JSONSchemaType, type ValidateFunction } from 'ajv';
+import Ajv, { type _JSONSchemaType, type _ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 import { logger } from '../utils/logger.js';
 

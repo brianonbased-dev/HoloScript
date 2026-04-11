@@ -10,7 +10,7 @@ import * as path from 'path';
 
 async function main() {
   const args = process.argv.slice(2);
-  const target = args.find((arg) => arg.startsWith('--target='))?.split('=')[1] || 'all';
+  const _target = args.find((arg) => arg.startsWith('--target='))?.split('=')[1] || 'all';
 
   console.log('HoloScript Comparative Benchmarks CLI\n');
 

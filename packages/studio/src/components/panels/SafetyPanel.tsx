@@ -11,9 +11,9 @@
  * - Capability requirements
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, _useMemo } from 'react';
 import { useSafetyPass } from '../../hooks/useSafetyPass';
-import type { SafetyReport, SafetyVerdict } from '@holoscript/core';
+import type { _SafetyReport, _SafetyVerdict } from '@holoscript/core';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════

@@ -12,7 +12,7 @@ const parser = new HoloScriptPlusParser();
 // Test 1: Empty string
 console.log('Test 1: Empty string...');
 try {
-  const r1 = parser.parse('');
+  const _r1 = parser.parse('');
   console.log('  ✅ Passed');
 } catch (e) {
   console.log(`  ❌ Failed: ${e.message}`);
@@ -21,7 +21,7 @@ try {
 // Test 2: Simple orb
 console.log('Test 2: Simple orb...');
 try {
-  const r2 = parser.parse('orb#test { color: "red" }');
+  const _r2 = parser.parse('orb#test { color: "red" }');
   console.log('  ✅ Passed');
 } catch (e) {
   console.log(`  ❌ Failed: ${e.message}`);
@@ -40,7 +40,7 @@ try {
 console.log('Test 4: Scene with trait...');
 try {
   const start = Date.now();
-  const r4 = parser.parse(`
+  const _r4 = parser.parse(`
 scene {
   orb#ball @grabbable {
     color: "#ff0000"
@@ -57,7 +57,7 @@ scene {
 console.log('Test 5: Block comment...');
 try {
   const start = Date.now();
-  const r5 = parser.parse(`
+  const _r5 = parser.parse(`
 /**
  * This is a comment
  */
@@ -72,7 +72,7 @@ scene { }
 console.log('Test 6: Complex @state...');
 try {
   const start = Date.now();
-  const r6 = parser.parse(`
+  const _r6 = parser.parse(`
 @state {
   isRecording: false
   recordingDuration: 0
@@ -99,7 +99,7 @@ try {
   }
   code += '}';
 
-  const r7 = parser.parse(code);
+  const _r7 = parser.parse(code);
   console.log(`  ✅ Passed in ${Date.now() - start}ms`);
 } catch (e) {
   console.log(`  ❌ Failed: ${e.message}`);

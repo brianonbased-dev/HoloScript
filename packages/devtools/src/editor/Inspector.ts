@@ -1,6 +1,6 @@
 import { World, Entity, ComponentType } from '@holoscript/engine/ecs/World';
 import { SelectionManager } from './SelectionManager';
-import { effect, computed } from '../state/ReactiveState';
+import { _effect, _computed } from '../state/ReactiveState';
 
 /**
  * Inspector

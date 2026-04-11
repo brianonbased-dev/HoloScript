@@ -200,7 +200,7 @@ try {
   const raw = fs.readFileSync(inputFile, 'utf8');
   const entries = raw.split('\n').filter((l) => l.trim());
   const processed = entries
-    .map((l, i) => {
+    .map((l, _i) => {
       try {
         const j = JSON.parse(l);
         let code = '';
@@ -224,7 +224,7 @@ try {
           j.completion = cleanCode;
         }
         return JSON.stringify(j);
-      } catch (e) {
+      } catch (_e) {
         return l;
       }
     })

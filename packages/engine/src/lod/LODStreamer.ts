@@ -53,7 +53,7 @@ export class LODStreamer {
   // Update
   // ---------------------------------------------------------------------------
 
-  update(cameraX: number, cameraY: number, cameraZ: number): void {
+  update(_cameraX: number, _cameraY: number, _cameraZ: number): void {
     this.loadQueue = [];
     this.unloadQueue = [];
 

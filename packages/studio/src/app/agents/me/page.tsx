@@ -25,7 +25,7 @@ import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
-import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, _RefreshCw } from 'lucide-react';
 import type {
   KnowledgeEntry,
   KnowledgeEntryType,

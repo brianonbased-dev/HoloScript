@@ -54,7 +54,7 @@ export function CulturePanel() {
     events,
     tickCount,
     joinAgent,
-    leaveAgent,
+    _leaveAgent,
     tick,
     tickN,
     buildDemo,

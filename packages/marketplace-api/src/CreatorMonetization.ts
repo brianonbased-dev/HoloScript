@@ -12,7 +12,7 @@
  */
 
 import type { Address, Hex } from 'viem';
-import { parseEther, formatEther, encodeFunctionData } from 'viem';
+import { _parseEther, formatEther, _encodeFunctionData } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
 
 /**
@@ -63,7 +63,7 @@ const DEFAULT_REVENUE_SHARING = {
 /**
  * Chain ID mapping
  */
-const CHAIN_IDS: Record<Network, number> = {
+const _CHAIN_IDS: Record<Network, number> = {
   base: 8453,
   'base-testnet': 84531,
   ethereum: 1,
@@ -73,7 +73,7 @@ const CHAIN_IDS: Record<Network, number> = {
 /**
  * Zora mint fee per token (0.000777 ETH)
  */
-const ZORA_MINT_FEE = '0.000777';
+const _ZORA_MINT_FEE = '0.000777';
 
 // =============================================================================
 // MAIN CLASS
@@ -331,7 +331,7 @@ export class CreatorMonetization {
    * );
    * ```
    */
-  async createCollection(name: string, symbol: string, description?: string): Promise<Collection> {
+  async createCollection(_name: string, _symbol: string, _description?: string): Promise<Collection> {
     this.ensureInitialized();
 
     // Auto-deployment via Zora SDK is planned — use Zora UI in the meantime.
@@ -386,7 +386,7 @@ export class CreatorMonetization {
    * console.log(result.uri); // ipfs://Qm...
    * ```
    */
-  async uploadToIPFS(files: File[]): Promise<IPFSUploadResult> {
+  async uploadToIPFS(_files: File[]): Promise<IPFSUploadResult> {
     // Placeholder for Agent 6 implementation
     throw new IPFSUploadError(
       'IPFS upload not yet implemented. Will be completed by Agent 6.',
@@ -760,7 +760,7 @@ export class CreatorMonetization {
         gasUsed: receipt.gasUsed.toString(),
         timestamp: Date.now(),
       };
-    } catch (error) {
+    } catch (_error) {
       // Transaction not yet confirmed
       return {
         txHash,

@@ -15,15 +15,15 @@ import ReactFlow, {
   addEdge,
   BackgroundVariant,
   type Connection,
-  type Edge,
-  type Node,
+  type _Edge,
+  type _Node,
   type NodeTypes,
   useNodesState,
   useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import {
-  Play,
+  _Play,
   Save,
   Workflow,
   X,

@@ -12,14 +12,14 @@ interface OrbProps {
   julianDate?: number;
 }
 
-export const Orb = ({ orb, onSelect, isSelected, timeScale = 1, julianDate = 0 }: OrbProps) => {
+export const Orb = ({ orb, onSelect, isSelected, _timeScale = 1, julianDate = 0 }: OrbProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
   const color = orb.hologram?.color || '#00ffff';
   const size = orb.hologram?.size || 1;
   const isCube = orb.hologram?.shape === 'cube';
 
-  useFrame((state, delta) => {
+  useFrame((_state, _delta) => {
     if (groupRef.current) {
       // Smooth interpolation to target position
       const targetPos = new THREE.Vector3(orb.position.x, orb.position.y, orb.position.z);

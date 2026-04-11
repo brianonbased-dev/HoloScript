@@ -289,7 +289,7 @@ This overhead provides:
 For most spatial computing applications, this overhead is negligible compared to network latency (10-100ms) and rendering (11ms @ 90Hz).`;
 }
 
-function generateRecommendations(results: any): string {
+function generateRecommendations(_results: any): string {
   return `### For MVC Schema Production Use
 
 Based on benchmark results, we recommend:

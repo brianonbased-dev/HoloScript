@@ -6,7 +6,7 @@
  */
 
 import { writeFile } from 'fs/promises';
-import { readdirSync, readFileSync } from 'fs';
+import { readdirSync, _readFileSync } from 'fs';
 import path from 'path';
 
 interface TrainingExample {
@@ -65,7 +65,7 @@ function random<T>(arr: T[]): T {
 // EXAMPLE GENERATION
 // ============================================================================
 
-function generateTraitExample(traitName: string, difficulty: string): TrainingExample {
+function generateTraitExample(traitName: string, _difficulty: string): TrainingExample {
   const geometry = random(GEOMETRIES);
   const material = random(MATERIALS);
   const color = random(COLORS);
@@ -143,7 +143,7 @@ console.log('[PHASE 2] Generating module system examples...');
 
 for (let i = 0; i < 5000; i++) {
   const trait1 = random(traitNames);
-  const trait2 = random(traitNames);
+  const _trait2 = random(traitNames);
 
   allExamples.push({
     instruction: `Create a HoloScript file that imports @${trait1} from a module`,

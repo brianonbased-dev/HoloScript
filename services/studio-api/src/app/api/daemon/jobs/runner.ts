@@ -57,7 +57,7 @@ interface AbsorbFileResult {
   sizeBytes: number;
 }
 
-interface AbsorbScanResult {
+interface _AbsorbScanResult {
   rootDir: string;
   files: AbsorbFileResult[];
   stats: {
@@ -229,7 +229,7 @@ async function runAbsorbPhase(
     }
 
     return { ...empty, durationMs: Date.now() - absorbStart };
-  } catch (err) {
+  } catch (_err) {
     // Core not available or scan failed — continue without graph
     return { ...empty, durationMs: Date.now() - absorbStart };
   }

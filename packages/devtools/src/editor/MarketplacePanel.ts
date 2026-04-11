@@ -1,7 +1,7 @@
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { UIBuilder } from './UIBuilder';
 import { Web3Provider, NFTAsset } from '../web3/Web3Provider';
-import { createPanel, createButton, createText } from '../ui/UIComponents';
+import { _createPanel, _createButton, _createText } from '../ui/UIComponents';
 
 export class MarketplacePanel {
   public world: World;

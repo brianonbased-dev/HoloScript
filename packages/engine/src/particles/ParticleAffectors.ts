@@ -11,7 +11,7 @@ import type { Particle } from './ParticleSystem';
  * Gravity: Constant downward acceleration.
  */
 export function gravity(strength: number = -9.81): (p: Particle, delta: number) => void {
-  return (p, delta) => {
+  return (p, _delta) => {
     p.ay = strength;
   };
 }

@@ -9,7 +9,7 @@
  */
 
 import { IPhysicsWorld, IRigidBodyConfig, IVector3, IQuaternion } from './PhysicsTypes';
-import { VRHand, Vector3 } from '@holoscript/core';
+import { VRHand, _Vector3 } from '@holoscript/core';
 
 export class VRPhysicsBridge {
   private world: IPhysicsWorld;

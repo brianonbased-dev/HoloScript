@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { TraitPackage } from '@/types';
-import { Code, Copy, Check, ChevronDown, ChevronUp, FileCode, Play } from 'lucide-react';
+import { Code, Copy, Check, ChevronDown, ChevronUp, FileCode, _Play } from 'lucide-react';
 
 interface ExamplesTabProps {
   trait: TraitPackage;
@@ -162,7 +162,7 @@ interface HighlightedCodeProps {
   language: string;
 }
 
-function HighlightedCode({ code, language }: HighlightedCodeProps) {
+function HighlightedCode({ code, _language }: HighlightedCodeProps) {
   // Simple syntax highlighting - in production, you'd use a proper highlighter
   const highlightLine = (line: string) => {
     // HoloScript keywords

@@ -1,4 +1,4 @@
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { _Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

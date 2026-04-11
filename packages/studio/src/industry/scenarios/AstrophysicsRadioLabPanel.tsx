@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, _useMemo } from 'react';
 import {
   RadioSpectrumEvent,
   mapRadioToVolumetric,
@@ -42,7 +42,7 @@ const s = {
 };
 
 export function AstrophysicsRadioLabPanel() {
-  const [events, setEvents] = useState<RadioSpectrumEvent[]>([
+  const [events, _setEvents] = useState<RadioSpectrumEvent[]>([
     { eventId: 'ev-alpha', rightAscension: 24.5, declination: 12.3, frequencyMHz: 1420.4, fluxDensityJy: 1.2 }, // Neutral Rest
     { eventId: 'ev-beta', rightAscension: 45.1, declination: -30.0, frequencyMHz: 1418.0, fluxDensityJy: 2.8 }, // Redshifted
     { eventId: 'ev-gamma', rightAscension: 110.4, declination: 45.2, frequencyMHz: 1423.5, fluxDensityJy: 4.5 }, // Blueshifted

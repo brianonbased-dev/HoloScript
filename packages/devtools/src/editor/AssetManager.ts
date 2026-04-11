@@ -81,7 +81,7 @@ export class AssetManager {
    * Get all available assets (Registry + Session)
    */
   getAllAssets(): any[] {
-    const registryAssets: any[] = [];
+    const _registryAssets: any[] = [];
     // registry.search('') returns all unique?
 
     // This is inefficient but functional for MVP

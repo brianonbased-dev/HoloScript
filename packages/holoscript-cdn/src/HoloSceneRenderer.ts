@@ -92,7 +92,7 @@ export class HoloSceneRenderer {
     this.container.appendChild(pre);
   }
 
-  private addVRButton(options: RenderOptions): void {
+  private addVRButton(_options: RenderOptions): void {
     const btn = document.createElement('button');
     btn.textContent = 'Enter VR';
     btn.style.cssText = `
@@ -134,7 +134,7 @@ export class HoloSceneRenderer {
     this.container.appendChild(btn);
   }
 
-  private addARButton(options: RenderOptions): void {
+  private addARButton(_options: RenderOptions): void {
     const btn = document.createElement('button');
     btn.textContent = 'Enter AR';
     btn.style.cssText = `

@@ -13,7 +13,7 @@ export interface TextToUniverseState {
   spawnedNodes: string[];
 }
 
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
+import type { TraitHandler, _HSPlusNode, _TraitContext, _TraitEvent } from './types';
 
 export function createTextToUniverseHandler(): TraitHandler<TextToUniverseConfig> {
   return {

@@ -94,7 +94,7 @@ function StateMachineDiagram({ currentState }: { currentState: TaskState }) {
         const isCurrent = state === currentState;
         const isPast = i < currentIdx;
         // For failed/completed, only highlight up to current
-        const isReachable = i <= currentIdx;
+        const _isReachable = i <= currentIdx;
 
         return (
           <React.Fragment key={state}>

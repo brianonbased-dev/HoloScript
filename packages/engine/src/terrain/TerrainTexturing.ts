@@ -83,7 +83,7 @@ export class TerrainTexturing {
     z: number,
     radius: number,
     strength: number,
-    heightMap?: Float32Array
+    _heightMap?: Float32Array
   ): void {
     if (!this.splatmap || channel >= this.splatmap.channels.length) return;
 

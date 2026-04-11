@@ -7,7 +7,7 @@ import {
   DeployStage,
   DeployStageStatus,
   DeployPipelineState,
-  DeployStageState,
+  _DeployStageState,
   LogLevel,
   LogEntry,
 } from './types';
@@ -116,7 +116,7 @@ export function useBuildStatus() {
       );
 
       // Simulate progressive build
-      let tick = 0;
+      const _tick = 0;
       intervalRef.current = setInterval(() => {
         tick += 1;
         setTargets((prev) => {

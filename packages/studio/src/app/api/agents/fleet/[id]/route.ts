@@ -142,7 +142,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
     const data: unknown = await res.json();
     return NextResponse.json(data);
-  } catch (err) {
+  } catch (_err) {
     // Fallback: return optimistic update if upstream is unreachable
     return NextResponse.json({
       agent: {

@@ -23,8 +23,8 @@ import {
   Filter,
   ChevronDown,
   ChevronRight,
-  Check,
-  X as XIcon,
+  _Check,
+  X as _XIcon,
   BarChart3,
   Grid3X3,
   ArrowUpDown,
@@ -334,7 +334,7 @@ export function TraitSupportMatrixDashboard({
             {filteredTraits.map((trait) => {
               const isExpanded = expandedRows.has(trait.name);
               const pCount = platformCount(trait.platforms);
-              const cScore = coverageScore(trait.coverage);
+              const _cScore = coverageScore(trait.coverage);
               const hasWarning = trait.requires.length > 0 || trait.conflicts.length > 0;
 
               return (

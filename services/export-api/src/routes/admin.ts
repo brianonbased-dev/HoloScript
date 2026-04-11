@@ -14,7 +14,7 @@ import { authorize } from '../middleware/authorize.js';
 import { validateBody } from '../middleware/validateBody.js';
 import { generateApiKey } from '../middleware/authenticate.js';
 import { auditService } from '../services/auditService.js';
-import { logger } from '../utils/logger.js';
+import { _logger } from '../utils/logger.js';
 import { logSecurityEvent } from '../utils/logger.js';
 
 export const adminRouter = Router();

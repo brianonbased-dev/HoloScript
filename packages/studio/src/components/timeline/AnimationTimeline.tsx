@@ -15,7 +15,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, Trash2, _ChevronDown } from 'lucide-react';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ export interface AnimationTrack {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_DURATION = 3000; // ms
-const PX_PER_MS = 0.08; // pixels per ms at scale 1
+const _PX_PER_MS = 0.08; // pixels per ms at scale 1
 const TRACK_HEIGHT = 40;
 
 const PROPERTY_PRESETS = [
@@ -95,7 +95,7 @@ function TrackRow({
   onSelectKf,
   onAddKeyframe,
   onDeleteTrack,
-  onUpdateValue,
+  _onUpdateValue,
 }: TrackRowProps) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -187,7 +187,7 @@ interface AnimationTimelineProps {
   onClose: () => void;
 }
 
-export function AnimationTimeline({ onClose }: AnimationTimelineProps) {
+export function AnimationTimeline({ _onClose }: AnimationTimelineProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const nodes = useSceneGraphStore((s) => s.nodes);
   const selectedNode = nodes.find((n) => n.id === selectedId);

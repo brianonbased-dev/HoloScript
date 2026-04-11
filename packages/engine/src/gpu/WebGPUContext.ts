@@ -255,7 +255,7 @@ export class WebGPUContext {
   /**
    * Handle device lost event
    */
-  private handleDeviceLost(info: GPUDeviceLostInfo): void {
+  private handleDeviceLost(_info: GPUDeviceLostInfo): void {
     console.error('WebGPU device lost, attempting to recreate...');
 
     // Attempt to reinitialize

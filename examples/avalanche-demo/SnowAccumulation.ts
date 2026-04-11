@@ -492,7 +492,7 @@ export class SnowAccumulation {
     this.triggerZones = [];
     this.nextParticleId = 0;
 
-    const res = this.terrain.config.resolution;
+    const _res = this.terrain.config.resolution;
     this.snowLayer.depthMap.fill(0);
     this.snowLayer.massMap.fill(0);
     this.snowLayer.particleCountMap.fill(0);

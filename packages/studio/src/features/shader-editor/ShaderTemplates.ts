@@ -140,11 +140,11 @@ export class ShaderTemplateLibrary {
     graph.setNodeProperty(intensityNode!.id, 'value', 2.0);
 
     // Multiply fresnel * color * intensity
-    const mul1 = graph.createNode('math_multiply', { x: 600, y: 100 });
-    const mul2 = graph.createNode('math_multiply', { x: 800, y: 150 });
+    const _mul1 = graph.createNode('math_multiply', { x: 600, y: 100 });
+    const _mul2 = graph.createNode('math_multiply', { x: 800, y: 150 });
 
     // Output
-    const outputNode = graph.createNode('output_surface', { x: 1000, y: 150 });
+    const _outputNode = graph.createNode('output_surface', { x: 1000, y: 150 });
 
     // Connect
     if (normalNode && fresnelNode) graph.connect(normalNode.id, 'normal', fresnelNode.id, 'normal');
@@ -182,7 +182,7 @@ export class ShaderTemplateLibrary {
     graph.setNodeProperty(scaleNode!.id, 'value', 2.0);
 
     // Output
-    const outputNode = graph.createNode('output_surface', { x: 800, y: 100 });
+    const _outputNode = graph.createNode('output_surface', { x: 800, y: 100 });
 
     if (uvNode && normalTexNode) graph.connect(uvNode.id, 'uv', normalTexNode.id, 'uv');
 
@@ -211,7 +211,7 @@ export class ShaderTemplateLibrary {
 
     const pomNode = graph.createNode('parallax_occlusion', { x: 400, y: 100 });
 
-    const outputNode = graph.createNode('output_surface', { x: 700, y: 100 });
+    const _outputNode = graph.createNode('output_surface', { x: 700, y: 100 });
 
     if (uvNode && pomNode) graph.connect(uvNode.id, 'uv', pomNode.id, 'uv');
     if (viewDirNode && pomNode) graph.connect(viewDirNode.id, 'direction', pomNode.id, 'viewDir');
@@ -234,15 +234,15 @@ export class ShaderTemplateLibrary {
   private createTriplanarProjection(): ShaderTemplate {
     const graph = new ShaderGraph('Triplanar Projection');
 
-    const posNode = graph.createNode('input_position', { x: 0, y: 0 });
-    const normalNode = graph.createNode('input_normal', { x: 0, y: 100 });
+    const _posNode = graph.createNode('input_position', { x: 0, y: 0 });
+    const _normalNode = graph.createNode('input_normal', { x: 0, y: 100 });
 
     // Scale
     const scaleNode = graph.createNode('constant_float', { x: 0, y: 200 });
     graph.setNodeProperty(scaleNode!.id, 'value', 1.0);
 
     // Would implement full triplanar projection with blending
-    const outputNode = graph.createNode('output_surface', { x: 800, y: 100 });
+    const _outputNode = graph.createNode('output_surface', { x: 800, y: 100 });
 
     return {
       id: 'triplanar_projection',
@@ -277,7 +277,7 @@ export class ShaderTemplateLibrary {
     const sinNode = graph.createNode('trig_sin', { x: 700, y: 150 });
 
     // Output
-    const outputNode = graph.createNode('output_vertex_offset', { x: 1100, y: 200 });
+    const _outputNode = graph.createNode('output_vertex_offset', { x: 1100, y: 200 });
 
     // Connect
     if (timeNode && mulNode) graph.connect(timeNode.id, 'time', mulNode.id, 'a');
@@ -353,8 +353,8 @@ export class ShaderTemplateLibrary {
     const edgeThreshNode = graph.createNode('constant_float', { x: 400, y: 200 });
     graph.setNodeProperty(edgeThreshNode!.id, 'value', 0.1);
 
-    const subtractNode = graph.createNode('math_subtract', { x: 600, y: 150 });
-    const edgeStepNode = graph.createNode('math_step', { x: 800, y: 150 });
+    const _subtractNode = graph.createNode('math_subtract', { x: 600, y: 150 });
+    const _edgeStepNode = graph.createNode('math_step', { x: 800, y: 150 });
 
     // Edge color (glow)
     const edgeColorNode = graph.createNode('constant_vec3', { x: 600, y: 300 });
@@ -462,7 +462,7 @@ export class ShaderTemplateLibrary {
     graph.setNodeProperty(scaleNode!.id, 'x', 3.0);
     graph.setNodeProperty(scaleNode!.id, 'y', 3.0);
 
-    const mulNode = graph.createNode('vector_make_vec2', { x: 200, y: 50 });
+    const _mulNode = graph.createNode('vector_make_vec2', { x: 200, y: 50 });
 
     // Multi-octave noise
     const noise1Node = graph.createNode('utility_gradient_noise', { x: 400, y: 0 });
@@ -470,8 +470,8 @@ export class ShaderTemplateLibrary {
     const noise3Node = graph.createNode('utility_gradient_noise', { x: 400, y: 200 });
 
     // Combine noise layers
-    const addNode = graph.createNode('math_add', { x: 600, y: 50 });
-    const add2Node = graph.createNode('math_add', { x: 800, y: 100 });
+    const _addNode = graph.createNode('math_add', { x: 600, y: 50 });
+    const _add2Node = graph.createNode('math_add', { x: 800, y: 100 });
 
     // Color A (light marble)
     const colorANode = graph.createNode('constant_vec3', { x: 800, y: 250 });
@@ -485,7 +485,7 @@ export class ShaderTemplateLibrary {
     graph.setNodeProperty(colorBNode!.id, 'y', 0.4);
     graph.setNodeProperty(colorBNode!.id, 'z', 0.45);
 
-    const outputNode = graph.createNode('output_surface', { x: 1100, y: 200 });
+    const _outputNode = graph.createNode('output_surface', { x: 1100, y: 200 });
 
     if (uvNode && noise1Node) graph.connect(uvNode.id, 'uv', noise1Node.id, 'uv');
     if (uvNode && noise2Node) graph.connect(uvNode.id, 'uv', noise2Node.id, 'uv');
@@ -561,7 +561,7 @@ export class ShaderTemplateLibrary {
     graph.setNodeProperty(stepSizeNode!.id, 'value', 0.02);
 
     const ssrNode = graph.createNode('screen_space_reflection', { x: 400, y: 250 });
-    const outputNode = graph.createNode('output_surface', { x: 700, y: 250 });
+    const _outputNode = graph.createNode('output_surface', { x: 700, y: 250 });
 
     if (uvNode && ssrNode) graph.connect(uvNode.id, 'uv', ssrNode.id, 'uv');
     if (normalNode && ssrNode) graph.connect(normalNode.id, 'normal', ssrNode.id, 'normal');

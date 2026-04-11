@@ -5,7 +5,7 @@
  * Implements async mesh loading, priority queues, prefetching, and resource budgets.
  */
 
-import type { LODLevel, LODConfig } from './LODTypes';
+import type { _LODLevel, LODConfig } from './LODTypes';
 import type { LODManager } from './LODManager';
 import type { MeshData } from './LODGenerator';
 
@@ -319,7 +319,7 @@ export class LODStreamingManager {
   /**
    * Update streaming system (call each frame)
    */
-  async update(deltaTime: number = 0.016): Promise<void> {
+  async update(_deltaTime: number = 0.016): Promise<void> {
     const now = Date.now();
     this.lastUpdateTime = now;
 
@@ -533,7 +533,7 @@ export class LODStreamingManager {
 
     // Predict position 1 second ahead
     const predictionTime = 1.0;
-    const predictedCameraPos: [number, number, number] = [
+    const _predictedCameraPos: [number, number, number] = [
       this.cameraPosition[0] + this.cameraVelocity[0] * predictionTime,
       this.cameraPosition[1] + this.cameraVelocity[1] * predictionTime,
       this.cameraPosition[2] + this.cameraVelocity[2] * predictionTime,

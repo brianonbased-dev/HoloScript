@@ -9,7 +9,7 @@
 
 import type { TerrainData } from './TerrainGenerator';
 import type { SnowParticle } from './SnowAccumulation';
-import type { AvalanchePhysics, AvalancheConfig, AvalancheStats } from './AvalanchePhysics';
+import type { AvalanchePhysics, _AvalancheConfig, AvalancheStats } from './AvalanchePhysics';
 
 export interface SimulationConfig {
   /** Use GPU acceleration for particle physics */
@@ -173,7 +173,7 @@ export class AvalancheSimulation {
   /**
    * Read particle data back from GPU
    */
-  private async readParticlesFromGPU(particles: SnowParticle[]): Promise<void> {
+  private async readParticlesFromGPU(_particles: SnowParticle[]): Promise<void> {
     if (!this.config.useGPU) return;
 
     // In a real implementation, this would read from WebGPU buffers

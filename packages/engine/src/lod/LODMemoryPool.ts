@@ -248,7 +248,7 @@ export class LODMemoryPool {
     this.stats.defragmentationCount++;
     this.updateStatistics();
 
-    const duration = performance.now() - startTime;
+    const _duration = performance.now() - startTime;
   }
 
   /**

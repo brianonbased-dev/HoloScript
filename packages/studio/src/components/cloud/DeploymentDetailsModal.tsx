@@ -36,7 +36,7 @@ export function DeploymentDetailsModal({
     try {
       await redeploy(deployment.id);
       onUpdate();
-    } catch (err) {
+    } catch (_err) {
       // Error handled by hook
     }
   };
@@ -49,7 +49,7 @@ export function DeploymentDetailsModal({
     try {
       await deleteDeployment(deployment.id);
       onUpdate();
-    } catch (err) {
+    } catch (_err) {
       // Error handled by hook
     }
   };

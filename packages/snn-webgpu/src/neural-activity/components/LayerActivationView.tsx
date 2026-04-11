@@ -107,7 +107,7 @@ export const LayerActivationView: React.FC<LayerActivationViewProps> = ({
   const fallbackCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const pipelineRef = useRef<GPURenderPipeline | null>(null);
   const uniformBufferRef = useRef<GPUBuffer | null>(null);
-  const activationBufferRef = useRef<GPUBuffer | null>(null);
+  const _activationBufferRef = useRef<GPUBuffer | null>(null);
   const bindGroupLayoutRef = useRef<GPUBindGroupLayout | null>(null);
 
   const [rotationX, setRotationX] = useState(-0.5);

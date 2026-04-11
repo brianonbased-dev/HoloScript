@@ -12,7 +12,7 @@ const parser = new HoloScriptPlusParser();
 console.log('Test 1: Arrow function handler...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 camera#main {
   @on_record_start => {
     state.isRecording = true
@@ -28,7 +28,7 @@ camera#main {
 console.log('Test 2: Nested objects in arrays...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 panel#survey {
   @survey(
     questions: [
@@ -49,7 +49,7 @@ panel#survey {
 console.log('Test 3: Time literals (30s)...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 @trail(fade_time: 2s)
 orb#test { }
 `);
@@ -62,7 +62,7 @@ orb#test { }
 console.log('Test 4: Expression interpolation...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 screen#video {
   @video(src: "\${state.selectedClip}")
 }
@@ -76,7 +76,7 @@ screen#video {
 console.log('Test 5: Larger nested structure...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 scene {
   group#zone {
     position: [0, 0, 0]
@@ -101,7 +101,7 @@ scene {
 console.log('Test 6: Complex trait with multiple properties...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 camera#mainCamera {
   position: [0, 2, -3]
   @camera(
@@ -127,7 +127,7 @@ camera#mainCamera {
 console.log('Test 7: Full @state section from researcher file...');
 try {
   const start = Date.now();
-  const r = parser.parse(`
+  const _r = parser.parse(`
 @state {
   isRecording: false
   recordingDuration: 0

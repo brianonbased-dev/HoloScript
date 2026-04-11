@@ -21,7 +21,7 @@ interface FeedEntry {
   source: 'holomesh' | 'workspace';
 }
 
-export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedProps) {
+export function ProfileFeed({ agentId, _themeColor, workspaceUrl }: ProfileFeedProps) {
   const [entries, setEntries] = useState<FeedEntry[]>([]);
 
   useEffect(() => {

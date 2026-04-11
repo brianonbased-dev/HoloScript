@@ -128,7 +128,7 @@ export async function handleAbsorbRoute(
   // POST /api/absorb/moltbook — create agent
   if (pathname === '/api/absorb/moltbook' && method === 'POST') {
     const body = JSON.parse(await readBody(req));
-    const { agent_name, moltbook_api_key, project_id } = body;
+    const { agent_name, moltbook_api_key, _project_id } = body;
     if (!agent_name || !moltbook_api_key) {
       send(res, 400, { error: 'agent_name and moltbook_api_key required' });
       return true;

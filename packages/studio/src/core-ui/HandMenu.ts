@@ -1,6 +1,6 @@
-import type { VRHand, Vector3, HSPlusNode } from '@holoscript/core';
+import type { VRHand, _Vector3, HSPlusNode } from '@holoscript/core';
 // HSPlusRuntime not yet re-exported from @holoscript/core dist — local shim
-type HSPlusRuntime = { vrContext?: unknown; [key: string]: unknown };
+type _HSPlusRuntime = { vrContext?: unknown; [key: string]: unknown };
 import { createUIButton } from './UIButton';
 import { createUIPanel } from './UIPanel';
 
@@ -43,7 +43,7 @@ export class HandMenuSystem {
   }
 
   // Check if palm normal points to headset
-  private checkPalmFacingUser(hand: VRHand): boolean {
+  private checkPalmFacingUser(_hand: VRHand): boolean {
     // Simplified heuristic — needs real vector math with hand orientation quaternion.
     // Placeholder: returns false until calibrated.
     return false;

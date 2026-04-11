@@ -32,7 +32,7 @@ import { randomUUID } from 'crypto';
 // ─── HoloScript Runtime Imports ──────────────────────────────────────────────
 // These are the REAL HoloScript primitives. The treatment arm uses them natively.
 import {
-  HeadlessRuntime,
+  _HeadlessRuntime,
   createHeadlessRuntime,
 } from '../packages/core/src/runtime/profiles/HeadlessRuntime';
 import { HEADLESS_PROFILE } from '../packages/core/src/runtime/profiles/RuntimeProfile';

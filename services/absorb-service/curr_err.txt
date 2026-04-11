@@ -1,0 +1,219 @@
+src/daemon/jobs/runner.ts(123,30): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/daemon/jobs/runner.ts(197,20): error TS2352: Conversion of type '{ default: unknown; }' to type '{ CodebaseScanner: new () => { scan(opts: { rootDir: string; depth?: string | undefined; }): Promise<AbsorbScanResult>; }; CodebaseGraph: { new (): { buildFromScanResult(r: AbsorbScanResult): void; serialize(): string; communities?: Record<...> | undefined; }; deserialize(json: string): unknown; }; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ default: unknown; }' is missing the following properties from type '{ CodebaseScanner: new () => { scan(opts: { rootDir: string; depth?: string | undefined; }): Promise<AbsorbScanResult>; }; CodebaseGraph: { new (): { buildFromScanResult(r: AbsorbScanResult): void; serialize(): string; communities?: Record<...> | undefined; }; deserialize(json: string): unknown; }; }': CodebaseScanner, CodebaseGraph
+src/daemon/jobs/runner.ts(570,79): error TS2339: Property 'category' does not exist on type 'unknown'.
+src/daemon/jobs/runner.ts(659,38): error TS2538: Type 'unknown' cannot be used as an index type.
+src/daemon/jobs/runner.ts(664,38): error TS2339: Property 'level' does not exist on type 'unknown'.
+src/daemon/jobs/runner.ts(675,31): error TS18046: 'dna' is of type 'unknown'.
+src/daemon/jobs/runner.ts(675,55): error TS18046: 'dna' is of type 'unknown'.
+src/daemon/jobs/store.ts(11,8): error TS2724: '"./runner.js"' has no exported member named '_AbsorbGraphData'. Did you mean 'AbsorbGraphData'?
+src/daemon/jobs/store.ts(21,3): error TS2724: '"../../lib/daemon/types.js"' has no exported member named '_DaemonProjectDNA'. Did you mean 'DaemonProjectDNA'?
+src/daemon/jobs/store.ts(57,81): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(59,27): error TS2339: Property 'projectPath' does not exist on type '{}'.
+src/daemon/jobs/store.ts(64,11): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(65,11): error TS2339: Property 'projectDna' does not exist on type '{}'.
+src/daemon/jobs/store.ts(68,33): error TS2339: Property 'status' does not exist on type '{}'.
+src/daemon/jobs/store.ts(71,56): error TS2339: Property 'progress' does not exist on type '{}'.
+src/daemon/jobs/store.ts(74,36): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(74,64): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(77,11): error TS2339: Property 'limits' does not exist on type '{}'.
+src/daemon/jobs/store.ts(121,90): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(126,87): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(138,16): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(139,14): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(140,17): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(141,55): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(141,74): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(147,18): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(148,13): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(149,13): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(153,67): error TS18046: 'created' is of type 'unknown'.
+src/daemon/jobs/store.ts(153,95): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(162,57): error TS18046: 'b' is of type 'unknown'.
+src/daemon/jobs/store.ts(162,83): error TS18046: 'a' is of type 'unknown'.
+src/daemon/jobs/store.ts(170,33): error TS2339: Property 'patches' does not exist on type '{}'.
+src/daemon/jobs/store.ts(174,33): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(186,40): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(187,37): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(188,60): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(189,53): error TS18046: 'e' is of type 'unknown'.
+src/daemon/jobs/store.ts(190,43): error TS2571: Object is of type 'unknown'.
+src/daemon/jobs/store.ts(190,79): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(191,46): error TS2571: Object is of type 'unknown'.
+src/daemon/jobs/store.ts(191,82): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(192,30): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/daemon/jobs/store.ts(193,40): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(93,9): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(94,12): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(94,27): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(94,51): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(94,68): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(95,11): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(95,34): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(96,13): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(96,44): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(96,96): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(97,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(98,11): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(98,32): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(99,14): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(100,22): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(101,20): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(101,41): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(106,18): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(116,12): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(118,14): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(118,29): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(118,53): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(118,66): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(119,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(126,21): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(126,42): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(131,16): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(132,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(132,36): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(133,20): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(144,30): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(144,47): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(148,19): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(150,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(150,54): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(166,6): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(166,69): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(166,101): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(170,42): error TS2339: Property 'projectId' does not exist on type '{}'.
+src/lib/daemon/compositionSurfaces.ts(176,20): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/compositionSurfaces.ts(237,40): error TS2339: Property 'projectId' does not exist on type '{}'.
+src/lib/daemon/compositionSurfaces.ts(267,24): error TS18046: 'HoloScriptPlusParser' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(253,25): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/lib/daemon/manifestParser.ts(283,41): error TS2339: Property 'keyDependencies' does not exist on type '{}'.
+src/lib/daemon/manifestParser.ts(287,25): error TS2538: Type 'unknown' cannot be used as an index type.
+src/lib/daemon/manifestParser.ts(300,37): error TS18046: 'baseDna' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(302,24): error TS18046: 'v' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(303,29): error TS18046: 'b' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(303,33): error TS18046: 'a' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(305,78): error TS18046: 'baseDna' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(306,45): error TS18046: 'baseDna' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(308,21): error TS18046: 'baseDna' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(310,26): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(310,41): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(310,68): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(310,101): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(311,9): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(312,31): error TS18046: 'm' is of type 'unknown'.
+src/lib/daemon/manifestParser.ts(320,40): error TS18046: 'baseDna' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(13,40): error TS2339: Property 'status' does not exist on type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(33,24): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(37,23): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(37,57): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(44,29): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(45,34): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(45,49): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(46,34): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(51,29): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(56,30): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(58,20): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(59,21): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(107,43): error TS18046: 'j' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(133,21): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(134,25): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(135,22): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(136,24): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(137,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(138,28): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(139,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(175,28): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(176,27): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(178,31): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(179,33): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(180,21): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(181,22): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(203,19): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(204,23): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(205,20): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(206,22): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(207,24): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(208,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(222,26): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(224,25): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(227,24): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(228,26): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(229,14): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(230,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(246,17): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(247,21): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(248,18): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(249,20): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(250,22): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(10,48): error TS2339: Property 'kind' does not exist on type 'unknown'.
+src/lib/daemon/profilePlanner.ts(38,22): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(47,26): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(64,11): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(65,17): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(70,17): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(73,46): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(74,22): error TS18046: 'input' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(98,79): error TS18046: 'projectDna' is of type 'unknown'.
+src/lib/daemon/profilePlanner.ts(99,19): error TS18046: 'projectDna' is of type 'unknown'.
+src/middleware/auth.ts(101,21): error TS2339: Property 'tier' does not exist on type '{}'.
+src/routes/absorb.ts(69,25): error TS18046: 'CodebaseScanner' is of type 'unknown'.
+src/routes/absorb.ts(75,23): error TS18046: 'CodebaseGraph' is of type 'unknown'.
+src/routes/absorb.ts(103,33): error TS18046: 'requireCredits' is of type 'unknown'.
+src/routes/absorb.ts(104,11): error TS18046: 'isCreditError' is of type 'unknown'.
+src/routes/absorb.ts(166,31): error TS18046: 'requireCredits' is of type 'unknown'.
+src/routes/absorb.ts(168,9): error TS18046: 'isCreditError' is of type 'unknown'.
+src/routes/absorb.ts(174,23): error TS18046: 'EmbeddingIndex' is of type 'unknown'.
+src/routes/absorb.ts(228,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/absorb.ts(229,17): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/absorb.ts(230,21): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/absorb.ts(254,15): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PgTable<TableConfig>'.
+src/routes/absorb.ts(293,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/absorb.ts(294,17): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/absorb.ts(322,15): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PgTable<TableConfig>'.
+src/routes/absorb.ts(323,17): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(68,15): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/admin.ts(69,19): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(116,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/admin.ts(117,17): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(164,35): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/admin.ts(167,21): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(168,25): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(171,25): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/admin.ts(235,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/credits.ts(31,30): error TS2339: Property 'balanceCents' does not exist on type '{}'.
+src/routes/credits.ts(32,22): error TS2339: Property 'tier' does not exist on type '{}'.
+src/routes/credits.ts(34,31): error TS2339: Property 'lifetimeSpentCents' does not exist on type '{}'.
+src/routes/credits.ts(35,35): error TS2339: Property 'lifetimePurchasedCents' does not exist on type '{}'.
+src/routes/holodaemon.ts(63,18): error TS2339: Property 'status' does not exist on type '{}'.
+src/routes/holodaemon.ts(68,41): error TS2339: Property 'metrics' does not exist on type '{}'.
+src/routes/holodaemon.ts(69,41): error TS2339: Property 'metrics' does not exist on type '{}'.
+src/routes/holodaemon.ts(76,36): error TS2339: Property 'id' does not exist on type '{}'.
+src/routes/holodaemon.ts(82,36): error TS2339: Property 'metrics' does not exist on type '{}'.
+src/routes/holodaemon.ts(86,25): error TS2339: Property 'id' does not exist on type '{}'.
+src/routes/holodaemon.ts(87,29): error TS2339: Property 'status' does not exist on type '{}'.
+src/routes/holodaemon.ts(88,31): error TS2339: Property 'progress' does not exist on type '{}'.
+src/routes/holodaemon.ts(89,30): error TS2339: Property 'profile' does not exist on type '{}'.
+src/routes/holodaemon.ts(90,30): error TS2339: Property 'summary' does not exist on type '{}'.
+src/routes/holodaemon.ts(90,51): error TS2339: Property 'statusMessage' does not exist on type '{}'.
+src/routes/holodaemon.ts(91,30): error TS2339: Property 'metrics' does not exist on type '{}'.
+src/routes/holodaemon.ts(92,33): error TS2339: Property 'patches' does not exist on type '{}'.
+src/routes/holodaemon.ts(102,14): error TS18046: 'telemetry' is of type 'unknown'.
+src/routes/holodaemon.ts(104,18): error TS18046: 'telemetry' is of type 'unknown'.
+src/routes/holodaemon.ts(105,15): error TS18046: 'telemetry' is of type 'unknown'.
+src/routes/holodaemon.ts(106,16): error TS18046: 'telemetry' is of type 'unknown'.
+src/routes/holodaemon.ts(107,16): error TS18046: 'telemetry' is of type 'unknown'.
+src/routes/holodaemon.ts(122,31): error TS18046: 'requireCredits' is of type 'unknown'.
+src/routes/holodaemon.ts(123,9): error TS18046: 'isCreditError' is of type 'unknown'.
+src/routes/holodaemon.ts(130,100): error TS2339: Property 'id' does not exist on type '{}'.
+src/routes/holodaemon.ts(151,16): error TS18046: 'job' is of type 'unknown'.
+src/routes/holodaemon.ts(165,13): error TS2339: Property 'status' does not exist on type '{}'.
+src/routes/holodaemon.ts(166,13): error TS2339: Property 'statusMessage' does not exist on type '{}'.
+src/routes/holodaemon.ts(167,13): error TS2339: Property 'progress' does not exist on type '{}'.
+src/routes/holodaemon.ts(171,29): error TS2339: Property 'id' does not exist on type '{}'.
+src/routes/moltbook.ts(151,21): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/moltbook.ts(152,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SQL<unknown> | PgTable<TableConfig> | Subquery<string, Record<string, unknown>> | PgViewBase<string, boolean, ColumnsSelection>'.
+src/routes/moltbook.ts(153,21): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/moltbook.ts(153,60): error TS18046: 'absorbProjects' is of type 'unknown'.
+src/routes/moltbook.ts(276,31): error TS18046: 'requireCredits' is of type 'unknown'.
+src/routes/moltbook.ts(278,9): error TS18046: 'isCreditError' is of type 'unknown'.
+src/routes/moltbook.ts(284,23): error TS18046: 'EmbeddingIndex' is of type 'unknown'.

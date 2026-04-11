@@ -13,3 +13,9 @@ export { generateDaemonConfig } from './daemon-config';
 export type { DaemonConfig } from './daemon-config';
 export { generateTeamRoomConfig } from './team-room-config';
 export type { TeamRoomConfig } from './team-room-config';
+
+// ─── Universal & tool-specific agent instruction generators ────────────────
+export { generateAgentsMd } from './agents-md';
+export { generateCursorRules } from './cursorrules';
+export { generateCopilotInstructions } from './copilot-instructions';
+export { generateGeminiMd } from './gemini-md';

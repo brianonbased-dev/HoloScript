@@ -12,9 +12,9 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { _useEffect, useRef, useState, _useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useEditorStore } from '@/lib/stores';
+import { _useEditorStore } from '@/lib/stores';
 
 // ── Manual FPS Counter (no extra dependency needed) ───────────────────────────
 

@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 import { SafetyReport, SafetyVerdict } from '@holoscript/core';
-import { runSafetyPass, EffectASTNode } from '@holoscript/core';
+import { _runSafetyPass, _EffectASTNode } from '@holoscript/core';
 import { ResourceCategory, PLATFORM_BUDGETS } from '@holoscript/core';
 import { PlatformTarget, PLATFORM_CAPABILITIES } from '@holoscript/core';
 import { InstallManifest } from '@holoscript/core';

@@ -395,7 +395,7 @@ export class DemolitionDemoScene {
     }
 
     // Damage structural elements in radius
-    const damaged = this.structural.damageInRadius(
+    const _damaged = this.structural.damageInRadius(
       config.position,
       config.radius,
       config.force / 1000

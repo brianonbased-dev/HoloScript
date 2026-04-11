@@ -183,7 +183,7 @@ type GaussianColorSpace = 'srgb_rec709_display' | 'lin_rec709_display';
  * Convert sRGB to linear RGB.
  * Standard sRGB transfer function inverse.
  */
-function srgbToLinear(srgb: number): number {
+function _srgbToLinear(srgb: number): number {
   return srgb <= 0.04045 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
 }
 

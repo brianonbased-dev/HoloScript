@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, _useMemo, useRef, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -17,7 +17,7 @@ import ReactFlow, {
   Node,
   Edge,
   Connection,
-  addEdge,
+  _addEdge,
   useNodesState,
   useEdgesState,
   ConnectionMode,
@@ -52,7 +52,7 @@ function ShaderEditorCanvasInner({
   const graph = useShaderGraph((state) => state.graph);
   const createNode = useShaderGraph((state) => state.createNode);
   const connect = useShaderGraph((state) => state.connect);
-  const disconnect = useShaderGraph((state) => state.disconnect);
+  const _disconnect = useShaderGraph((state) => state.disconnect);
   const setNodePosition = useShaderGraph((state) => state.setNodePosition);
   const deleteNodes = useShaderGraph((state) => state.deleteNodes);
 

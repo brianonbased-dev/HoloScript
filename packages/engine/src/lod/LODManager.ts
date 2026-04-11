@@ -927,7 +927,7 @@ export class LODManager {
   /**
    * Process transition queue (max transitions per frame to prevent stuttering)
    */
-  private processTransitionQueue(deltaTime: number): void {
+  private processTransitionQueue(_deltaTime: number): void {
     // Sort by priority (highest first)
     this.transitionQueue.sort((a, b) => b.priority - a.priority);
 

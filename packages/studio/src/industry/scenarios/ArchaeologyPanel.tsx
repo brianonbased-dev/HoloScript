@@ -4,8 +4,8 @@
  * ArchaeologyPanel — Excavation grid, artifact catalog, stratigraphy layers.
  */
 
-import { useState, useCallback } from 'react';
-import { Compass, Layers, MapPin, Camera, Filter, Plus, Eye } from 'lucide-react';
+import { useState, _useCallback } from 'react';
+import { Compass, _Layers, MapPin, Camera, _Filter, _Plus, _Eye } from 'lucide-react';
 
 export type ArtifactCondition = 'intact' | 'fragmented' | 'damaged' | 'trace';
 export type StratLayer = { id: number; name: string; depth: number; color: string; period: string };
@@ -108,13 +108,13 @@ const CONDITION_COLORS: Record<ArtifactCondition, string> = {
 };
 
 export function ArchaeologyPanel() {
-  const [artifacts, setArtifacts] = useState<Artifact[]>(DEMO_ARTIFACTS);
+  const [artifacts, _setArtifacts] = useState<Artifact[]>(DEMO_ARTIFACTS);
   const [selected, setSelected] = useState<string | null>(null);
   const [view, setView] = useState<'catalog' | 'strat' | 'grid'>('catalog');
   const [layerFilter, setLayerFilter] = useState<string>('all');
 
   const filtered = artifacts.filter((a) => layerFilter === 'all' || a.layer === layerFilter);
-  const sel = artifacts.find((a) => a.id === selected);
+  const _sel = artifacts.find((a) => a.id === selected);
 
   return (
     <div className="flex flex-col overflow-auto">

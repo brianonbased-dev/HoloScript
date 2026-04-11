@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 // ZOD SCHEMA DEFINITION (Mirrors core AgentManifest interfaces)
 // ============================================================================
 
-const Vector3Schema = z.object({
+const _Vector3Schema = z.object({
   x: z.number(),
   y: z.number(),
   z: z.number(),

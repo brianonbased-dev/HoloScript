@@ -7,9 +7,9 @@ import {
   RenderingTrait,
   MATERIAL_PRESETS,
   LIGHTING_PRESETS,
-  type PBRMaterial,
-  type LightSource,
-  type RenderingOptimization,
+  type _PBRMaterial,
+  type _LightSource,
+  type _RenderingOptimization,
 } from '@holoscript/core';
 
 /**

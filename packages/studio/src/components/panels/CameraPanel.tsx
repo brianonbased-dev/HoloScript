@@ -13,11 +13,11 @@ const MODE_ICONS: Record<string, string> = {
 };
 
 export function CameraPanel() {
-  const { state, mode, modes, setMode, setTarget, move, rotateOrbit, zoom, setFOV, step, reset } =
+  const { state, mode, modes, setMode, setTarget, move, rotateOrbit, zoom, _setFOV, step, reset } =
     useCamera();
   const { emit } = useStudioBus();
 
-  const emitCamera = useCallback(() => {
+  const _emitCamera = useCallback(() => {
     setTimeout(
       () =>
         emit('camera:moved', { position: state.position, mode, fov: state.fov, zoom: state.zoom }),

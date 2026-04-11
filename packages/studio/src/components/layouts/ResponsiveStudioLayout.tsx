@@ -15,7 +15,7 @@
  *  - 44px minimum touch targets (WCAG 2.5.5)
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, _useMemo } from 'react';
 import {
   PanelLeft,
   PanelRight,

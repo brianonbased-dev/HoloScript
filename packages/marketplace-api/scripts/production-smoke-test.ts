@@ -15,8 +15,8 @@
 
 import { WalletConnection } from '../src/web3/WalletConnection';
 import { GasEstimator } from '../src/web3/GasEstimator';
-import { createPublicClient, http, type Address } from 'viem';
-import { base } from 'viem/chains';
+import { _createPublicClient, _http, type Address } from 'viem';
+import { _base } from 'viem/chains';
 
 // Configuration
 const PRODUCTION_COLLECTION_ID = process.env.PRODUCTION_COLLECTION_ID as Address;

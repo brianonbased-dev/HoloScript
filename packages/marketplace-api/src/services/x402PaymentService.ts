@@ -17,7 +17,7 @@ const ERC20_TRANSFER_EVENT = parseAbiItem(
 );
 
 /** USDC has 6 decimals */
-const USDC_DECIMALS = 6;
+const _USDC_DECIMALS = 6;
 
 // ─── Rate Limiter (in-memory sliding window) ─────────────────────────────────
 

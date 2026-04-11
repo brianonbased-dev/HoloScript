@@ -13,7 +13,7 @@ import {
   RTree,
   GeospatialAnchorStorage,
   type GeospatialAnchor,
-  type QueryResult,
+  type _QueryResult,
 } from '@holoscript/spatial-index';
 
 // =============================================================================
@@ -137,7 +137,7 @@ async function performanceExample() {
 
   // Generate 10,000 random anchors across SF Bay Area
   const anchors: GeospatialAnchor[] = [];
-  const baseLatconst = 37.7749;
+  const _baseLatconst = 37.7749;
   const baseLon = -122.4194;
 
   console.log('Generating 10,000 random anchors...');

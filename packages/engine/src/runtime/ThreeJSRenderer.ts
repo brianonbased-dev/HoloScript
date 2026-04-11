@@ -391,7 +391,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   /**
    * Update scene
    */
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     // Update stats
     const now = performance.now();
     this.stats.frameTime = now - this.stats.lastFrameTime;
@@ -1139,7 +1139,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   public optimizeGeometries(): void {
     if (typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = ThreeJSRenderer.getThreeLib()!;
+    const _THREE = ThreeJSRenderer.getThreeLib()!;
     let optimizedCount = 0;
 
     for (const mesh of this.meshes.values()) {
@@ -1150,7 +1150,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         try {
           geometry.computeVertexNormals();
           optimizedCount++;
-        } catch (error) {
+        } catch (_error) {
           // Silently ignore optimization errors
         }
       }
@@ -1168,10 +1168,10 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   public updateLOD(): void {
     if (!this.activeCamera || typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = ThreeJSRenderer.getThreeLib()!;
+    const _THREE = ThreeJSRenderer.getThreeLib()!;
     const cameraPos = this.activeCamera.position;
 
-    for (const [id, mesh] of this.meshes.entries()) {
+    for (const [_id, mesh] of this.meshes.entries()) {
       const distance = cameraPos.distanceTo(mesh.position);
 
       // Simple LOD: hide objects beyond certain distance
@@ -1198,7 +1198,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   public enableAutoOptimization(enable: boolean): void {
     if (enable) {
       // Run optimizations every 60 frames (1 second at 60 FPS)
-      const optimizationInterval = setInterval(() => {
+      const _optimizationInterval = setInterval(() => {
         this.performanceOptimizationFrame++;
 
         if (this.performanceOptimizationFrame % 60 === 0) {

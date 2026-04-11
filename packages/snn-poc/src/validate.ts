@@ -64,7 +64,7 @@ export async function runValidation(config?: Partial<PocConfig>): Promise<Valida
     console.log('  Skipping GPU validation (CPU-only mode).');
 
     // Return a "CPU-only" result
-    const cpuTotalSpikes = Array.from(cpuSpikes).filter((s) => s === 1).length;
+    const _cpuTotalSpikes = Array.from(cpuSpikes).filter((s) => s === 1).length;
     return {
       passed: true, // CPU reference validates itself
       neuronCount,

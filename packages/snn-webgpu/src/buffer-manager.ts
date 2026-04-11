@@ -90,7 +90,7 @@ export class BufferManager {
   createStorageBuffer(
     sizeOrData: number | Float32Array,
     label?: string,
-    readOnly: boolean = false
+    _readOnly: boolean = false
   ): GPUBufferHandle {
     const isData = sizeOrData instanceof Float32Array;
     const size = isData ? sizeOrData.byteLength : sizeOrData;

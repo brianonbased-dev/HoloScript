@@ -54,7 +54,7 @@ function broadcastToRoom(roomId: string, message: ClientMessage, excludeClient?:
 
   const payload = JSON.stringify(msg);
 
-  room.clients.forEach((ws, clientId) => {
+  room.clients.forEach((ws, _clientId) => {
     if (ws.readyState === WebSocket.OPEN && ws !== excludeClient) {
       ws.send(payload);
     }

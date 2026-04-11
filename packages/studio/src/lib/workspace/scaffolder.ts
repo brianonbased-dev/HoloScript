@@ -15,6 +15,10 @@ import {
   generateHooks,
   generateDaemonConfig,
   generateTeamRoomConfig,
+  generateAgentsMd,
+  generateCursorRules,
+  generateCopilotInstructions,
+  generateGeminiMd,
 } from './templates';
 import type { SkillDefinition } from './templates/skills';
 import type { HookDefinition } from './templates/hooks';
@@ -74,6 +78,16 @@ export interface ScaffoldResult {
   daemonConfig: DaemonConfig;
   /** HoloMesh team room configuration */
   teamRoomConfig: TeamRoomConfig;
+
+  // ─── Universal & tool-specific agent instructions ──────────────────────
+  /** AGENTS.md — universal standard read by Codex, Copilot, Cursor, Windsurf, Amp, Devin */
+  agentsMd: string;
+  /** .cursorrules — Cursor IDE specific instructions */
+  cursorRules: string;
+  /** .github/copilot-instructions.md — GitHub Copilot instructions */
+  copilotInstructions: string;
+  /** GEMINI.md — Gemini CLI / Code Assist instructions */
+  geminiMd: string;
 }
 
 // ─── Validation ─────────────────────────────────────────────────────────────
@@ -183,6 +197,12 @@ export function scaffoldProjectWorkspace(dna: ProjectDNA): ScaffoldResult {
   const daemonConfig = generateDaemonConfig(normalized);
   const teamRoomConfig = generateTeamRoomConfig(normalized);
 
+  // Universal + tool-specific agent instructions
+  const agentsMd = generateAgentsMd(normalized);
+  const cursorRules = generateCursorRules(normalized);
+  const copilotInstructions = generateCopilotInstructions(normalized);
+  const geminiMd = generateGeminiMd(normalized);
+
   return {
     claudeMd,
     northStar,
@@ -191,5 +211,9 @@ export function scaffoldProjectWorkspace(dna: ProjectDNA): ScaffoldResult {
     hooks,
     daemonConfig,
     teamRoomConfig,
+    agentsMd,
+    cursorRules,
+    copilotInstructions,
+    geminiMd,
   };
 }

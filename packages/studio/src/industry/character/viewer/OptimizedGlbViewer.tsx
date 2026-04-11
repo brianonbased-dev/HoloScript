@@ -10,7 +10,7 @@
  * - Loading progress UI
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, _useCallback, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TransformControls, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -43,7 +43,7 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
   const selectedBoneIndex = useCharacterStore((s) => s.selectedBoneIndex);
   const showSkeleton = useCharacterStore((s) => s.showSkeleton);
   const isRecording = useCharacterStore((s) => s.isRecording);
-  const setIsRecording = useCharacterStore((s) => s.setIsRecording);
+  const _setIsRecording = useCharacterStore((s) => s.setIsRecording);
   const addRecordedClip = useCharacterStore((s) => s.addRecordedClip);
   const activeBuiltinAnimation = useCharacterStore((s) => s.activeBuiltinAnimation);
   const activeClipId = useCharacterStore((s) => s.activeClipId);

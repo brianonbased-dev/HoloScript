@@ -70,7 +70,7 @@ test('Update multiple values', () => {
 
 test('Watch specific key changes', () => {
   const state = createState({ x: 5, y: 3 });
-  let called = false;
+  let _called = false;
   state.watch('x', (newVal, oldVal) => {
     if (newVal === 10 && oldVal === 5) called = true;
   });
@@ -107,8 +107,8 @@ test('Register custom handler', () => {
     name: 'custom-test',
     description: 'Test trait',
     defaultConfig: { foo: 'bar' },
-    onAttach: (node, config, context) => {},
-    onDetach: (node, config, context) => {},
+    onAttach: (_node, _config, _context) => {},
+    onDetach: (_node, _config, _context) => {},
   });
   // Note: custom traits may need to match VRTraitName type
   // Just verify register didn't throw

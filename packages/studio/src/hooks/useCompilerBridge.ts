@@ -176,7 +176,7 @@ export function useCompilerBridge(): UseCompilerBridgeReturn {
 
   // ── Wrapped API methods ─────────────────────────────────────────
 
-  const bridge = bridgeRef.current;
+  const _bridge = bridgeRef.current;
 
   const parse = useCallback(async (source: string) => {
     const b = bridgeRef.current ?? getCompilerBridge();

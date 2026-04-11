@@ -10,9 +10,9 @@ import {
   ArrowDown,
   AlertTriangle,
   CheckCircle,
-  Ruler,
-  Plus,
-  BarChart3,
+  _Ruler,
+  _Plus,
+  _BarChart3,
 } from 'lucide-react';
 
 export type BeamMaterial = 'steel' | 'concrete' | 'wood' | 'cable' | 'composite';

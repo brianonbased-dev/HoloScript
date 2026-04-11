@@ -47,7 +47,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const studioMode = useEditorStore((s) => s.studioMode);
   const isExpert = studioMode === 'expert';
   
-  const showBenchmark = useEditorStore((s) => s.showBenchmark);
+  const _showBenchmark = useEditorStore((s) => s.showBenchmark);
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
   const setShowBenchmark = useEditorStore((s) => s.setShowBenchmark);
   const togglePerfOverlay = useEditorStore((s) => s.togglePerfOverlay);
@@ -83,7 +83,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const setEventMonitorOpen = usePanelVisibilityStore((s) => s.setEventMonitorOpen);
   const toolCallGraphOpen = usePanelVisibilityStore((s) => s.toolCallGraphOpen);
   const setToolCallGraphOpen = usePanelVisibilityStore((s) => s.setToolCallGraphOpen);
-  const marketplaceOpen = usePanelVisibilityStore((s) => s.marketplaceOpen);
+  const _marketplaceOpen = usePanelVisibilityStore((s) => s.marketplaceOpen);
   const setMarketplaceOpen = usePanelVisibilityStore((s) => s.setMarketplaceOpen);
   const pluginManagerOpen = usePanelVisibilityStore((s) => s.pluginManagerOpen);
   const setPluginManagerOpen = usePanelVisibilityStore((s) => s.setPluginManagerOpen);

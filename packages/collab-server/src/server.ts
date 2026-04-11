@@ -129,7 +129,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   const room = getOrCreateRoom(roomId);
   room.add(ws);
 
-  const userLabel = (ws as unknown as Record<string, string>)._userName ?? 'anonymous';
+  const _userLabel = (ws as unknown as Record<string, string>)._userName ?? 'anonymous';
 
   ws.on('message', (data) => {
     let msg: Record<string, unknown>;

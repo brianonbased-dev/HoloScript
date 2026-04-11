@@ -186,7 +186,7 @@ export class TerrainModifier {
    * Create valley terrain
    */
   public createValley(depth: number, width: number): void {
-    this.generate((x, z) => {
+    this.generate((x, _z) => {
       const distX = Math.abs(x);
       const t = Math.min(1, distX / (width / 2));
       return depth * t * t; // Parabolic valley
@@ -197,7 +197,7 @@ export class TerrainModifier {
    * Create ridge terrain
    */
   public createRidge(height: number, width: number): void {
-    this.generate((x, z) => {
+    this.generate((x, _z) => {
       const distX = Math.abs(x);
       const t = Math.max(0, 1 - distX / (width / 2));
       return height * t;

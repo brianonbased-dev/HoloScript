@@ -26,7 +26,7 @@ async function runTelemetryE2E() {
     process.exit(1);
   }
 
-  const { counters, histograms, gauges } = mcpResponse.metrics;
+  const { counters, histograms, _gauges } = mcpResponse.metrics;
 
   // Assertions
   console.log('\n➜ 3. Validating Exporter Aggregations');

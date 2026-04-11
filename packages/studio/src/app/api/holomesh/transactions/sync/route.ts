@@ -28,7 +28,7 @@ interface McpTransaction {
  * Fetches all transactions from the HoloMesh MCP server and upserts them
  * into the local PostgreSQL ledger table.
  */
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const db = getDb();
   if (!db) {
     return NextResponse.json(

@@ -98,7 +98,7 @@ export async function* streamLocal(
     },
   });
 
-  let inCodeBlock = false;
+  let _inCodeBlock = false;
   let buffer = '';
   let codeStarted = false;
 
@@ -108,7 +108,7 @@ export async function* streamLocal(
 
     // Detect code block start
     if (!codeStarted && buffer.includes('```')) {
-      inCodeBlock = true;
+      _inCodeBlock = true;
       const afterTicks = buffer.split('```')[1];
       // Skip language identifier line
       if (afterTicks?.includes('\n')) {

@@ -4,7 +4,7 @@
  * Tests CLI functionality
  */
 
-import { execSync, spawnSync } from 'child_process';
+import { _execSync, spawnSync } from 'child_process';
 import { join } from 'path';
 
 const CLI_PATH = join(process.cwd(), 'packages/cli/dist/cli.js');

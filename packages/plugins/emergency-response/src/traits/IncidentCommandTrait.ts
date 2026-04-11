@@ -167,7 +167,7 @@ export const incidentCommandHandler: TraitHandler<IncidentCommandConfig> = {
     ctx.emit?.('incident_command:detached', { nodeId: id });
   },
 
-  onUpdate(node: HSPlusNode, _config: IncidentCommandConfig, _ctx: TraitContext, _delta: number): void {
+  onUpdate(_node: HSPlusNode, _config: IncidentCommandConfig, _ctx: TraitContext, _delta: number): void {
     // ICS is event-driven; no per-frame updates needed.
     // Could be extended for periodic situation reports.
   },

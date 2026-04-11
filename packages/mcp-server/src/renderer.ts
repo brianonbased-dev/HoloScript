@@ -332,7 +332,7 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     code,
     title = 'HoloScript Scene',
     description = 'Interactive 3D scene built with HoloScript',
-    platform = 'x',
+    _platform = 'x',
   } = options;
 
   // Try to use the remote render service (skip when serving locally to avoid recursion)
@@ -423,7 +423,7 @@ function quickValidate(code: string): { valid: boolean; errors: string[] } {
   };
 }
 
-function generatePlaygroundUrl(code: string, title: string, platform: string): string {
+function _generatePlaygroundUrl(code: string, title: string, platform: string): string {
   // Compress code for URL
   const compressed = compressCode(code);
 
@@ -438,7 +438,7 @@ function generatePlaygroundUrl(code: string, title: string, platform: string): s
   }
 }
 
-function generateEmbedUrl(code: string): string {
+function _generateEmbedUrl(code: string): string {
   const compressed = compressCode(code);
   return `${PLAYGROUND_URL}/embed?code=${compressed}`;
 }

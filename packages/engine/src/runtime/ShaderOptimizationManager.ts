@@ -573,7 +573,7 @@ export class ShaderOptimizationManager {
   /**
    * Update shader uniforms (call each frame)
    */
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     const time = performance.now() / 1000;
 
     // Update time-based uniforms

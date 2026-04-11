@@ -1695,11 +1695,11 @@ export class PaymentGateway {
 
     // Check if the original was a micro-payment by looking in the ledger
     const ledger = this.facilitator.getLedger();
-    const allEntries = ledger.getEntriesForPayer(''); // We need to search all entries
+    const _allEntries = ledger.getEntriesForPayer(''); // We need to search all entries
 
     // Try to find the original ledger entry by checking if transaction matches
-    let originalEntry: LedgerEntry | undefined;
-    const ledgerStats = ledger.getStats();
+    let _originalEntry: LedgerEntry | undefined;
+    const _ledgerStats = ledger.getStats();
 
     // For micro-payments, the transaction ID starts with "micro_"
     // For on-chain, we check the settlement results
@@ -1708,7 +1708,7 @@ export class PaymentGateway {
 
       if (settlement.mode === 'in_memory' && settlement.transaction) {
         // It was a micro-payment -- record a reverse entry
-        const refundAmount =
+        const _refundAmount =
           (partialAmount ?? settlement.transaction)
             ? '0' // We'll try to find the amount from the ledger
             : '0';

@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
+import { _KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
 import { CommentThread } from '@/components/holomesh/CommentThread';
 import { VoteButton } from '@/components/holomesh/VoteButton';
 import type { KnowledgeEntry, Comment } from '@/components/holomesh/types';

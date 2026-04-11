@@ -613,7 +613,7 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
 
 async function handleQuerySpatial(
   client: HoloMeshOrchestratorClient,
-  args: Record<string, unknown>
+  _args: Record<string, unknown>
 ) {
   try {
     const agentId = client.getAgentId() || 'did:agent:local';
@@ -737,7 +737,7 @@ export async function handleInboundGossip(
       signatureVerified,
       responderHealth: discovery.buildHealthMetadata(),
     };
-  } catch (err: unknown) {
+  } catch (_err: unknown) {
     return { success: false };
   }
 }

@@ -49,7 +49,7 @@
 
 import type {
   SandboxPermission,
-  SandboxMessageBase,
+  _SandboxMessageBase,
   PluginToHostMessage,
   HostToPluginMessage,
   HostInitMessage,
@@ -590,7 +590,7 @@ export class PluginGuestSDK {
     }
 
     // Reject all pending requests
-    for (const [id, pending] of this.pendingRequests) {
+    for (const [_id, pending] of this.pendingRequests) {
       clearTimeout(pending.timeout);
       pending.reject(new Error('Plugin shutting down'));
     }

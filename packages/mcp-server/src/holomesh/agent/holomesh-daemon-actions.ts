@@ -12,11 +12,11 @@
 
 import { HoloMeshOrchestratorClient } from '../orchestrator-client';
 import type { WalletAuth } from '../orchestrator-client';
-import type { MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
+import type { _MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
 import { deriveAgentDid, createAuthChallenge, signAuthChallenge } from '../wallet-auth';
 import {
   computeReputation,
-  resolveReputationTier,
+  _resolveReputationTier,
   resolveReputationTierWithHysteresis,
   INITIAL_MESH_STATE,
 } from '../types';
@@ -107,7 +107,7 @@ export function createHoloMeshDaemonActions(
   let searchTopicIndex = 0;
   const searchTopics = config.searchTopics || DEFAULT_SEARCH_TOPICS;
   const maxContributions = config.maxContributionsPerCycle || 5;
-  const maxQueries = config.maxQueriesPerCycle || 3;
+  const _maxQueries = config.maxQueriesPerCycle || 3;
 
   // V2 instances (null when v2Enabled is false — backwards compatible)
   let worldState: HoloMeshWorldState | null = null;
@@ -668,7 +668,7 @@ export function createHoloMeshDaemonActions(
       // Lazy-import to avoid hard dependency — UnifiedBudgetOptimizer is in @holoscript/core
       const {
         UnifiedBudgetOptimizer,
-        DEFAULT_LOD_SCALING,
+        _DEFAULT_LOD_SCALING,
         DEFAULT_COST_FLOOR,
       } = require('../../../../core/src/economy/UnifiedBudgetOptimizer');
 
@@ -680,7 +680,7 @@ export function createHoloMeshDaemonActions(
       });
 
       // Collect resource usage from contributed compositions this cycle
-      const contributed = blackboard.contributed_this_cycle || 0;
+      const _contributed = blackboard.contributed_this_cycle || 0;
       interface QueryResult {
         id?: string;
         traits?: string[];
@@ -801,7 +801,7 @@ export function createHoloMeshDaemonActions(
   const WORKSPACE_KEY =
     config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.MCP_API_KEY || '';
   const MOLTBOOK_KEY = config.moltbookApiKey || process.env.MOLTBOOK_API_KEY || '';
-  const MOLTBOOK_AGENT =
+  const _MOLTBOOK_AGENT =
     config.moltbookAgentName || process.env.HOLOMESH_AGENT_NAME || 'holoscript';
 
   const mesh_sync_workspace: ActionHandler = async (_params, blackboard) => {

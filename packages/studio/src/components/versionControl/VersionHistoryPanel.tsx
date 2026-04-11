@@ -13,7 +13,7 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-const TIME_FMT = new Intl.DateTimeFormat('en', {
+const _TIME_FMT = new Intl.DateTimeFormat('en', {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',

@@ -1,6 +1,6 @@
 import fs from 'fs';
-import readline from 'readline';
-import { HoloScriptPlusParser } from '../packages/core/src/parser/HoloScriptPlusParser';
+import _readline from 'readline';
+import { _HoloScriptPlusParser } from '../packages/core/src/parser/HoloScriptPlusParser';
 
 async function filterValidEntries(inputFile: string, outputFile: string) {
   console.log(`Filtering ${inputFile} -> ${outputFile}`);
@@ -31,7 +31,7 @@ async function filterValidEntries(inputFile: string, outputFile: string) {
       try {
         const json = JSON.parse(line);
         code = json.completion || json.content || json.prompt || '';
-      } catch (e) {
+      } catch (_e) {
         continue;
       }
     }

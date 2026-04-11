@@ -30,7 +30,7 @@ const CATEGORIES: { value: ContentCategory | 'all'; label: string; icon: string 
 ];
 
 export function MarketplacePanel({ worldId = 'default', category }: MarketplacePanelProps) {
-  const { results, installed, stats, search, install, uninstall, selected, select } =
+  const { results, installed, stats, search, install, uninstall, _selected, select } =
     useMarketplace(worldId);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ContentCategory | 'all'>(category || 'all');

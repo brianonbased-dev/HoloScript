@@ -234,7 +234,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     });
 
     this.on('physics_add_constraint', (payload: any) => {
-      const { type, nodeId, axis, min, max, spring } = payload as {
+      const { _type, nodeId, axis, min, max, _spring } = payload as {
         type: string;
         nodeId: string;
         axis?: IVector3;
@@ -275,7 +275,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       ast.root.directives?.some(
         (d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked'
       );
-    const syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
+    const _syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
 
     this.state = createState({} as Record<string, unknown>);
     this.traitRegistry = vrTraitRegistry;

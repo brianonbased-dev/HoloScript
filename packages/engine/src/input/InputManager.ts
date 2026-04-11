@@ -274,7 +274,7 @@ export class InputManager {
     const now = Date.now();
 
     // Update key hold durations and clear justPressed/justReleased
-    for (const [key, state] of this.keys) {
+    for (const [_key, state] of this.keys) {
       if (state.pressed) state.heldDuration += dt;
       state.justPressed = false;
       state.justReleased = false;

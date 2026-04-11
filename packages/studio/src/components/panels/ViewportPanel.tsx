@@ -6,7 +6,7 @@
  * Responds to useStudioBus events from other panels (Terrain, Lighting, Camera).
  */
 import React, { useRef, useMemo, Suspense } from 'react';
-import { Canvas, useFrame, type ThreeElements, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, type _ThreeElements, type ThreeEvent } from '@react-three/fiber';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
@@ -14,7 +14,7 @@ import {
   GizmoHelper,
   GizmoViewport,
   Environment,
-  Stats,
+  _Stats,
 } from '@react-three/drei';
 import {
   useViewport,
@@ -167,7 +167,7 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
           </div>
         );
       }
-    } catch (err) {
+    } catch (_err) {
       setSpatialBlameTooltip(
         true,
         e.clientX,
@@ -278,7 +278,7 @@ function SceneLight({ light }: { light: ViewportLight }) {
 // ─── Main Viewport Panel ───────────────────────────────────────────────────────
 
 export function ViewportPanel() {
-  const { state, selectEntity, setMode, toggleGrid, toggleAxes, addEntity, buildDemo, clear } =
+  const { state, _selectEntity, setMode, toggleGrid, toggleAxes, addEntity, buildDemo, clear } =
     useViewport();
   const { diffModeHash } = useEditorStore();
 

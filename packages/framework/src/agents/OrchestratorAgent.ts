@@ -306,7 +306,7 @@ export class OrchestratorAgent extends BaseAgent {
   // PHASE 6: EVOLVE — Optimize routing preferences
   // ===========================================================================
 
-  async evolve(adaptations: unknown): Promise<PhaseResult> {
+  async evolve(_adaptations: unknown): Promise<PhaseResult> {
     const startTime = Date.now();
 
     // Update routing preferences based on patterns

@@ -19,7 +19,7 @@ import type {
   ProposalResult,
   ReputationTier,
   Suggestion,
-  SuggestionVoteEntry,
+  _SuggestionVoteEntry,
   SuggestionCreateResult,
   SuggestionVoteResult,
   SuggestionListResult,
@@ -31,7 +31,7 @@ import type {
   HeartbeatResult,
   AgentPresence,
   AgentPresenceStatus,
-  PresenceConfig,
+  _PresenceConfig,
   SlotRole,
 } from './types';
 import { KnowledgeStore } from './knowledge/knowledge-store';
@@ -42,7 +42,7 @@ import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
 import { GoalSynthesizer } from './protocol/goal-synthesizer';
-import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
+import type { GoalContext, _SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';
@@ -62,7 +62,7 @@ import type {
 // Each mode defines which SlotRoles can actively claim tasks.
 // Agents whose claimFilter.roles don't overlap with the active set are deprioritized.
 
-const MODE_CLAIM_ROLES: Record<TeamMode, SlotRole[]> = {
+const _MODE_CLAIM_ROLES: Record<TeamMode, SlotRole[]> = {
   audit: ['researcher', 'reviewer', 'tester'],
   build: ['coder', 'tester'],
   research: ['researcher'],

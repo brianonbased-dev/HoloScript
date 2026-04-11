@@ -5,7 +5,7 @@
  * This can run in Grok's Python environment or as a TypeScript module.
  */
 
-import { HoloScriptPlusParser, HoloCompositionParser, parseHolo } from '@holoscript/core';
+import { _HoloScriptPlusParser, _HoloCompositionParser, parseHolo } from '@holoscript/core';
 import { extractTraits, capitalize } from '@holoscript/std';
 
 // Types

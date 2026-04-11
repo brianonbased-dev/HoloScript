@@ -17,7 +17,7 @@
 
 import { CulturalMemory, EpisodicMemory, StigmergicTrace, SemanticSOP } from '@holoscript/core';
 import { NormEngine, NormViolation, NormProposal } from '@holoscript/core';
-import { CulturalNorm, NormEnforcement, BUILTIN_NORMS } from '@holoscript/core';
+import { CulturalNorm, _NormEnforcement, _BUILTIN_NORMS } from '@holoscript/core';
 import { VREffect } from '@holoscript/core';
 
 // =============================================================================

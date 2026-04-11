@@ -22,12 +22,12 @@ import {
   Play,
   Check,
   AlertCircle,
-  ChevronRight,
+  _ChevronRight,
   Search,
   Settings,
 } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
-import { MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
+import { _MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
 import type { MCPServerConfig, ServerStatus, MCPTool } from '@/lib/orchestrationStore';
 import { logger } from '@/lib/logger';
 
@@ -426,7 +426,7 @@ export function MCPServerConfigPanel({ onClose }: MCPServerConfigPanelProps) {
   const addMCPServer = useOrchestrationStore((s) => s.addMCPServer);
   const updateMCPServer = useOrchestrationStore((s) => s.updateMCPServer);
 
-  const [apiKey, setApiKey] = useSessionStorage('mcp-api-key', '');
+  const [apiKey, _setApiKey] = useSessionStorage('mcp-api-key', '');
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
   const [showAddServer, setShowAddServer] = useState(false);
 
@@ -434,7 +434,7 @@ export function MCPServerConfigPanel({ onClose }: MCPServerConfigPanelProps) {
     return selectedServerName ? (mcpServers.get(selectedServerName) ?? null) : null;
   }, [selectedServerName, mcpServers]);
 
-  const selectedStatus = useMemo(() => {
+  const _selectedStatus = useMemo(() => {
     return selectedServerName ? (serverStatuses.get(selectedServerName) ?? null) : null;
   }, [selectedServerName, serverStatuses]);
 

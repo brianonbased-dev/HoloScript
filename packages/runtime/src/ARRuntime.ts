@@ -103,14 +103,14 @@ export class ARRuntime {
   /**
    * Sets up a callback for when an @ar_beacon is detected (image target or QR)
    */
-  onBeaconDetected(beaconId: string, callback: (pose: XRPose) => void): void {
+  onBeaconDetected(_beaconId: string, _callback: (pose: XRPose) => void): void {
     // In actual implementation, binds to XRImageTrackingResult
   }
 
   /**
    * Transitions from AR to VR or VRR mode based on @layer_shift
    */
-  async triggerLayerShift(targetLayer: 'vr' | 'vrr'): Promise<void> {
+  async triggerLayerShift(_targetLayer: 'vr' | 'vrr'): Promise<void> {
     await this.stopSession();
     // Hand off state to VRRRuntime or VRRuntime
   }

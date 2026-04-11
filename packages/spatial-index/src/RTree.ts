@@ -24,14 +24,14 @@ import type {
 import {
   bboxArea,
   bboxIntersectionArea,
-  bboxMargin,
+  _bboxMargin,
   bboxContainsPoint,
   bboxIntersects,
   bboxEnlargement,
   createBBoxFromAnchor,
   extendBBox,
   mergeBBox,
-  createContainingBBox,
+  _createContainingBBox,
   haversineDistance,
   minDistanceToBBox,
   createRadiusBBox,
@@ -203,7 +203,7 @@ export class RTree {
   getStats(): RTreeStats {
     let totalNodes = 0;
     let totalAnchors = 0;
-    let totalArea = 0;
+    const _totalArea = 0;
     let totalOverlap = 0;
 
     const traverse = (node: RTreeNode) => {
@@ -339,7 +339,7 @@ export class RTree {
     const items = node.leaf ? node.items! : node.children!;
 
     // Choose split axis and index
-    const [m, M] = this.chooseSplitAxis(items, node.leaf);
+    const [m, _M] = this.chooseSplitAxis(items, node.leaf);
 
     // Split the node
     const left = node.leaf ? items.slice(0, m) : items.slice(0, m);

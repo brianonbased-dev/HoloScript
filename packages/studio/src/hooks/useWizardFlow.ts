@@ -16,7 +16,7 @@ import {
   toolCallToTransition,
   canAdvance,
   type WizardState,
-  type WizardAction,
+  type _WizardAction,
   type WizardStage,
   type AbsorbProgress,
   type ConsentGates,

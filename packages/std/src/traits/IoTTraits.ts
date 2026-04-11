@@ -40,7 +40,7 @@ export const IoTTraits: TraitDefinition[] = [
         description: 'The target refresh rate in Hertz.',
       },
     ],
-    validation: (node: any) => {
+    validation: (_node: any) => {
       return { valid: true };
     },
   },
@@ -93,7 +93,7 @@ export const IoTTraits: TraitDefinition[] = [
         description: 'What the digital twin should do when physical telemetry fails.',
       },
     ],
-    validation: (node: any) => {
+    validation: (_node: any) => {
       return { valid: true };
     },
   },

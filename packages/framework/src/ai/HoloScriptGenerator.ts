@@ -12,8 +12,8 @@
 
 import type { AIAdapter } from './AIAdapter';
 class HoloScriptPlusParser {
-  constructor(opts?: { strict?: boolean }) {}
-  parse(code: string): any {
+  constructor(_opts?: { strict?: boolean }) {}
+  parse(_code: string): any {
     return { success: true, errors: [], ast: {} };
   }
 }

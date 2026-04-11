@@ -42,7 +42,7 @@ async function runMergeTest(
 
   // Verify convergence
   const finalSize = mergedAdapter.size();
-  const expectedSize = actorCount * editsPerActor; // All unique elements
+  const _expectedSize = actorCount * editsPerActor; // All unique elements
 
   const result: MergeResult = {
     name: `${adapters[0].name} - ${actorCount} actors × ${editsPerActor} edits`,

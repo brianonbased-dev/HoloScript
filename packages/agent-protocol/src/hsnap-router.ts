@@ -1,4 +1,4 @@
-import { compileHSNAPToUAAL, type HSNAPCompileOptions } from './hsnap-bytecode';
+import { _compileHSNAPToUAAL, type HSNAPCompileOptions } from './hsnap-bytecode';
 
 export type HSNAPLifecycleType =
   | 'task.send'

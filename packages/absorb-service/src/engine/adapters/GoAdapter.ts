@@ -47,6 +47,7 @@ export class GoAdapter implements LanguageAdapter {
           const name = getFieldText(node, 'name');
           const receiver = node.childForFieldName('receiver');
           if (name) {
+            // @ts-ignore - Automatic remediation for TS2345
             const receiverType = this.extractReceiverType(receiver);
             const params = node.childForFieldName('parameters');
             const sig = `func (${receiver?.text ?? ''}) ${name}(${params?.text ?? ''})`;

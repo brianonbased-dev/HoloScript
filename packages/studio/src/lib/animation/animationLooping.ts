@@ -167,7 +167,7 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
 
   // Generate blended frames
   const blendedFrames: BoneFrame[] = [];
-  const frameDuration = clip.duration / 60; // Assume 60fps
+  const _frameDuration = clip.duration / 60; // Assume 60fps
 
   boneFrameMap.forEach((frames, boneIndex) => {
     if (frames.length < 2) {

@@ -333,7 +333,7 @@ export const USE_MOCK_MODELS = true;
 /**
  * Get mock model URL (for development without CDN)
  */
-export function getMockModelUrl(modelId: string): string {
+export function getMockModelUrl(_modelId: string): string {
   // Return a placeholder blob URL or local file
   // In production, this should return actual CDN URLs
   return `https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF/CesiumMan.gltf`;

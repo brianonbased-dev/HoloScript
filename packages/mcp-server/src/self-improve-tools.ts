@@ -608,7 +608,7 @@ async function handleListTypeErrors(args: Record<string, unknown>): Promise<unkn
 
     // Collect errors up to maxErrors
     const errors: Array<{ file: string; line: number; code: string; message: string }> = [];
-    for (const [file, lines] of sortedFiles) {
+    for (const [_file, lines] of sortedFiles) {
       for (const errLine of lines) {
         if (errors.length >= maxErrors) break;
         const match = errLine.match(/^([^(]+)\((\d+),\d+\): error (TS\d+): (.+)/);
@@ -1254,7 +1254,7 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
   // ── Coverage ─────────────────────────────────────────────────────────
   if (!skipTests) {
     try {
-      const { stdout: covOut } = await execAsync(
+      const { stdout: _covOut } = await execAsync(
         'npx vitest run --coverage --coverage.reporter=json-summary --coverage.reportsDirectory=.holoscript/coverage 2>&1',
         { cwd: rootDir, timeout: 300_000, maxBuffer: 50 * 1024 * 1024 }
       );

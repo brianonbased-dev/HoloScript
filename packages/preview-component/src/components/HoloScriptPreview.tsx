@@ -198,7 +198,7 @@ export const HoloScriptPreview: React.FC<HoloScriptPreviewProps> = ({
         if (!cancelled) {
           setThreeLoaded(true);
         }
-      } catch (err) {
+      } catch (_err) {
         if (!cancelled) {
           const msg = 'Three.js could not be loaded. Pass it via the threeModule prop.';
           setError(msg);

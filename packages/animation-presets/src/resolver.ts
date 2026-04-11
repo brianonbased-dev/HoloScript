@@ -53,7 +53,7 @@ function num(value: number): string {
 /**
  * Indents each line of a multiline string by the given number of spaces.
  */
-function indent(text: string, spaces: number): string {
+function _indent(text: string, spaces: number): string {
   const pad = ' '.repeat(spaces);
   return text
     .split('\n')

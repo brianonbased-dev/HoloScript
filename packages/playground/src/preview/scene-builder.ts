@@ -25,7 +25,7 @@ export interface SceneOrb {
 }
 
 /** Parse a color string to { r, g, b } 0-1 range */
-function parseColor(color: unknown): { r: number; g: number; b: number } {
+function _parseColor(color: unknown): { r: number; g: number; b: number } {
   if (typeof color !== 'string') return { r: 1, g: 1, b: 1 };
 
   const named: Record<string, [number, number, number]> = {

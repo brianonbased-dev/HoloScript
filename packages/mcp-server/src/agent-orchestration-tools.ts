@@ -16,7 +16,7 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
-  AgentRegistry,
+  _AgentRegistry,
   getDefaultRegistry,
   FederatedRegistryAdapter,
   TaskDelegationService,

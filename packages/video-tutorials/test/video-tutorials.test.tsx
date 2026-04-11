@@ -32,7 +32,7 @@ vi.mock('remotion', () => ({
     ),
   Composition: ({
     id,
-    component,
+    _component,
     durationInFrames,
     fps,
     width,

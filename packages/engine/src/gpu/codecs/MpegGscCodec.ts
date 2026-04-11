@@ -26,7 +26,7 @@
 import {
   AbstractGaussianCodec,
   CodecNotSupportedError,
-  CodecDecodeError,
+  _CodecDecodeError,
 } from './IGaussianCodec.js';
 import type {
   GaussianSplatData,
@@ -52,7 +52,7 @@ const MPEG_GSC_MAGIC = 0x4d475343; // "MGSC" in ASCII, little-endian
 /**
  * Provisional MPEG GSC file header size.
  */
-const MPEG_GSC_HEADER_SIZE = 32;
+const _MPEG_GSC_HEADER_SIZE = 32;
 
 // =============================================================================
 // MPEG GSC Codec Stub

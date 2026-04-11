@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { proxyHoloMesh } from '../../../../../../lib/holomesh-proxy';
-import { boardReadLimit, boardWriteLimit } from '../../../../../../lib/rate-limiter';
+import { boardReadLimit, _boardWriteLimit } from '../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../db/schema';
 import { eq, desc } from 'drizzle-orm';

@@ -5,8 +5,8 @@
  */
 
 import { useState } from 'react';
-import { Users, X, MessageCircle, Send, Wifi, WifiOff, Circle } from 'lucide-react';
-import { useMultiplayerRoom, type Peer, type ChatMessage } from '@/hooks/useMultiplayerRoom';
+import { Users, X, _MessageCircle, Send, Wifi, WifiOff, Circle } from 'lucide-react';
+import { useMultiplayerRoom, type Peer, type _ChatMessage } from '@/hooks/useMultiplayerRoom';
 
 interface MultiplayerPanelProps {
   onClose: () => void;

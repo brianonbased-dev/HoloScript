@@ -22,12 +22,12 @@
 import {
   distance,
   isPointInBox,
-  isPointInSphere,
-  boxesOverlap,
-  getBoxCenter,
+  _isPointInSphere,
+  _boxesOverlap,
+  _getBoxCenter,
   normalize,
   subtract,
-  dot,
+  _dot,
 } from './SpatialTypes';
 
 import type { Vector3, BoundingBox, BoundingSphere } from './SpatialTypes';

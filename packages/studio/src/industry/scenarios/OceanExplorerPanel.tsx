@@ -147,7 +147,7 @@ export function OceanExplorerPanel() {
   const density = useMemo(() => waterDensity(15 - depth * 0.002, 35), [depth]);
   const tide = useMemo(() => simpleTide(tideHours, 2), [tideHours]);
   const phase = useMemo(() => tidePhase(tideHours), [tideHours]);
-  const zoneSpecies = useMemo(() => speciesInZone(SPECIES, zone), [zone]);
+  const _zoneSpecies = useMemo(() => speciesInZone(SPECIES, zone), [zone]);
   const survivingSpecies = useMemo(
     () => SPECIES.filter((sp) => canSurviveAtDepth(sp, depth)),
     [depth]

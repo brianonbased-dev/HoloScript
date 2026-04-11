@@ -132,7 +132,7 @@ export default ${safeName}Component;
     const traits = this.extractTraits(obj);
 
     // We analyze V6 traits to build the React tree
-    const isEntity = !!traits['semantic_entity'];
+    const _isEntity = !!traits['semantic_entity'];
     const type = traits['semantic_entity']?.type || 'generic';
 
     // Process layout and children

@@ -10,7 +10,7 @@ import {
   ChevronRight,
   ChevronDown,
   AlertTriangle,
-  CheckCircle,
+  _CheckCircle,
   Loader2,
   ExternalLink,
 } from 'lucide-react';

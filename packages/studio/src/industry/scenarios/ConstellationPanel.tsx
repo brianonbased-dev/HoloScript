@@ -28,7 +28,7 @@ interface DemoConstellation {
   culturalSignificance: number;
 }
 
-type Constellation = DemoConstellation | ConstellationDef;
+type _Constellation = DemoConstellation | ConstellationDef;
 
 export function constellationsByMonth(constellations: DemoConstellation[], month: number) {
   // Simple logic: visible if bestMonth is within +/- 2 months

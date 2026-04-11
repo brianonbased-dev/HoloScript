@@ -3149,8 +3149,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const GREEN = '\x1b[32m';
         const YELLOW = '\x1b[33m';
         const MAGENTA = '\x1b[35m';
-        const WHITE = '\x1b[37m';
-        const BG_BLUE = '\x1b[44m';
+        const _WHITE = '\x1b[37m';
+        const _BG_BLUE = '\x1b[44m';
 
         const hrLine = (char = '─', len = 60) => DIM + char.repeat(len) + RESET;
         const sectionHeader = (title: string) =>

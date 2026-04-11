@@ -11,7 +11,7 @@ import { eq, desc } from 'drizzle-orm';
  * POST /api/orgs          → Create a new organization
  */
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
   const userId = auth.user.id;

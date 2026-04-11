@@ -354,7 +354,7 @@ export class PostProcessingManager {
   /**
    * Add TAA (Temporal Anti-Aliasing)
    */
-  private addTAA(scene: THREE.Scene, camera: THREE.Camera, width: number, height: number): void {
+  private addTAA(scene: THREE.Scene, camera: THREE.Camera, _width: number, _height: number): void {
     const taaPass = new TAARenderPass(scene, camera);
     taaPass.sampleLevel = this.config.taa!.sampleLevel || 2;
 

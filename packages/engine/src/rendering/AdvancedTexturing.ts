@@ -307,7 +307,7 @@ function overlayBlend(base: number, detail: number, intensity: number): number {
  */
 export function blendDetailNormal(base: Vec3, detail: Vec3): Vec3 {
   const t = { x: base.x + base.z * detail.x, y: base.y + base.z * detail.y, z: base.z };
-  const u = { x: -detail.x, y: -detail.y, z: 1 };
+  const _u = { x: -detail.x, y: -detail.y, z: 1 };
   const len = Math.sqrt(t.x * t.x + t.y * t.y + t.z * t.z) || 1;
   return { x: t.x / len, y: t.y / len, z: t.z / len };
 }

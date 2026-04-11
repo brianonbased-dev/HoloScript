@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, _NextResponse } from 'next/server';
 import { getDb } from '../../../../../../db/client';
 import { holomeshReferrals, holomeshTransactions } from '../../../../../../db/schema';
 import * as crypto from 'crypto';

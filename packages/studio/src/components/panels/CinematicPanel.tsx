@@ -18,7 +18,7 @@ export function CinematicPanel() {
     activeScene,
     isPlaying,
     elapsed,
-    firedCues,
+    _firedCues,
     createDemoScene,
     play,
     pause,

@@ -68,8 +68,8 @@ const s = {
 export function AccessibilityPanel() {
   const [fg, setFg] = useState('#333333');
   const [bg, setBg] = useState('#ffffff');
-  const [rampSlope, setRampSlope] = useState(1 / 12);
-  const [doorWidth, setDoorWidth] = useState(90);
+  const [rampSlope, _setRampSlope] = useState(1 / 12);
+  const [doorWidth, _setDoorWidth] = useState(90);
 
   const contrast = useMemo(() => contrastRatio(fg, bg), [fg, bg]);
   const wcagA = useMemo(() => meetsWCAG(contrast, 'A'), [contrast]);

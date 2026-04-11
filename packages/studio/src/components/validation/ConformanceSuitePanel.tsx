@@ -133,12 +133,12 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
     let badTextFound = false;
     let physicsFail = false;
     let unknownTraitFound = false;
-    let unknownGeometryFound = false;
-    let invalidPropertyFound = false;
+    const unknownGeometryFound = false;
+    const invalidPropertyFound = false;
     let traitConflictFound = false;
     let traitDependencyFail = false;
     let invalidMaterialValue = false;
-    let missingTexture = false;
+    const missingTexture = false;
     let duplicateNames = false;
 
     const seenNames = new Set<string>();

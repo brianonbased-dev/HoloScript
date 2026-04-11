@@ -1,4 +1,4 @@
-import { HoloLexer } from '@holoscript/core/src/parser/lexer'; // Check where Lexer is
+import { _HoloLexer } from '@holoscript/core/src/parser/lexer'; // Check where Lexer is
 import { parseHolo } from '@holoscript/core';
 const source = `composition "SocialScene" {
   environment {

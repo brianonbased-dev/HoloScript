@@ -237,7 +237,7 @@ export function build(code: string, config: Partial<BuildConfig> = {}): BuildRes
 function compileToWeb(
   sg: ReturnType<typeof parseSceneGraph>,
   title: string,
-  cfg: BuildConfig
+  _cfg: BuildConfig
 ): string {
   const objects = sg.objects
     .map((obj) => {
@@ -391,7 +391,7 @@ function compileToPWA(
 
 function compileToURDF(sg: ReturnType<typeof parseSceneGraph>, title: string): string {
   const links = sg.objects
-    .map((obj, i) => {
+    .map((obj, _i) => {
       const mesh = obj.traits.find((t) => t.name === 'mesh');
       const geo = (mesh?.props.geometry as string) || 'box';
       const geoXml =
@@ -434,7 +434,7 @@ function compileToGLTF(sg: ReturnType<typeof parseSceneGraph>, title: string): s
   }));
 
   const meshes = sg.objects.map((obj) => {
-    const meshTrait = obj.traits.find((t) => t.name === 'mesh');
+    const _meshTrait = obj.traits.find((t) => t.name === 'mesh');
     return { name: obj.name, primitives: [{ attributes: {}, material: 0 }] };
   });
 

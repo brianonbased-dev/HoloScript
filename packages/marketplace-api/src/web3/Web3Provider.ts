@@ -79,7 +79,7 @@ export class Web3Provider {
   /**
    * Mint a new NFT on Base (Mock)
    */
-  async mint(metadata: any): Promise<{ transactionHash: string; tokenId: string }> {
+  async mint(_metadata: any): Promise<{ transactionHash: string; tokenId: string }> {
     if (!this.isConnected) throw new Error('Wallet not connected');
 
     await new Promise((resolve) => setTimeout(resolve, 1000));

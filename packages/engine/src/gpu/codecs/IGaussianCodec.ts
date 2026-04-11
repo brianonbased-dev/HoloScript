@@ -27,7 +27,7 @@ import type {
   GaussianEncodeOptions,
   GaussianDecodeOptions,
   GaussianStreamDecodeOptions,
-  GaussianStreamChunk,
+  _GaussianStreamChunk,
   CodecResult,
   CodecMetadata,
 } from './types.js';

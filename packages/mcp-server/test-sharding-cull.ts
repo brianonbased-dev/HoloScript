@@ -1,6 +1,6 @@
 import { StateSynchronizer } from '../core/src/networking/StateSynchronizer';
 import { StateDelta } from '../core/src/networking/DeltaCompressor';
-import { SpatialSharder } from '../core/src/networking/SpatialSharder';
+import { _SpatialSharder } from '../core/src/networking/SpatialSharder';
 
 async function runShardingTest() {
   console.log('=== Phase 9: Scene Graph Spatial Sharding Test ===\n');

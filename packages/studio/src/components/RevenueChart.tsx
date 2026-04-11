@@ -39,7 +39,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
   const filteredData = useMemo(() => {
     if (!data) return [];
 
-    const now = new Date();
+    const _now = new Date();
     const ranges: Record<TimeRange, number> = {
       '7D': 7,
       '30D': 30,

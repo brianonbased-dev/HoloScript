@@ -16,7 +16,7 @@ import {
   PackageMetadata,
   ContentCategory,
   SemanticVersion,
-  Publisher,
+  _Publisher,
 } from './MarketplaceSubmission';
 import { SafetyReport, SafetyVerdict } from '../compiler/safety/SafetyReport';
 import { PlatformTarget } from '../compiler/platform/PlatformConditional';

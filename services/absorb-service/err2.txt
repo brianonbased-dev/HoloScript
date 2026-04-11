@@ -1,0 +1,77 @@
+src/daemon/jobs/store.ts(11,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(22,3): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(57,81): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(62,3): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(66,11): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(67,11): error TS2339: Property 'projectDna' does not exist on type '{}'.
+src/daemon/jobs/store.ts(68,7): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(70,9): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(72,33): error TS2339: Property 'status' does not exist on type '{}'.
+src/daemon/jobs/store.ts(74,11): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(76,56): error TS2339: Property 'progress' does not exist on type '{}'.
+src/daemon/jobs/store.ts(78,11): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(80,36): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(80,64): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(82,7): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(84,11): error TS2339: Property 'limits' does not exist on type '{}'.
+src/daemon/jobs/store.ts(86,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(129,90): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(131,5): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(135,87): error TS2339: Property 'profile' does not exist on type '{}'.
+src/daemon/jobs/store.ts(137,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(148,16): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(149,14): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(154,5): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(156,5): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(161,18): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(162,13): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(165,3): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(167,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(170,67): error TS18046: 'created' is of type 'unknown'.
+src/daemon/jobs/store.ts(170,95): error TS18046: 'input' is of type 'unknown'.
+src/daemon/jobs/store.ts(172,3): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(180,57): error TS18046: 'b' is of type 'unknown'.
+src/daemon/jobs/store.ts(180,83): error TS18046: 'a' is of type 'unknown'.
+src/daemon/jobs/store.ts(182,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(189,33): error TS2339: Property 'patches' does not exist on type '{}'.
+src/daemon/jobs/store.ts(191,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(194,33): error TS2339: Property 'logs' does not exist on type '{}'.
+src/daemon/jobs/store.ts(196,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(207,40): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(208,37): error TS18046: 'j' is of type 'unknown'.
+src/daemon/jobs/store.ts(221,1): error TS2578: Unused '@ts-expect-error' directive.
+src/daemon/jobs/store.ts(223,3): error TS2578: Unused '@ts-expect-error' directive.
+src/lib/daemon/operationsSurfaceHolo.ts(58,29): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(64,30): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(67,20): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(69,21): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(145,21): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(147,25): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(149,22): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(151,24): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(153,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(155,28): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(157,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(194,28): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(196,27): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(199,31): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(201,33): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(203,21): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(205,22): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(228,19): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(230,23): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(232,20): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(234,22): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(236,24): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(238,26): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(253,26): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(256,25): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(260,24): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(262,26): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(264,14): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(266,15): error TS18046: 'job' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(283,17): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(285,21): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(287,18): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(289,20): error TS18046: 'telemetry' is of type 'unknown'.
+src/lib/daemon/operationsSurfaceHolo.ts(291,22): error TS18046: 'telemetry' is of type 'unknown'.

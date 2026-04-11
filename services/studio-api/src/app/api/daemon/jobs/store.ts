@@ -8,7 +8,7 @@
 
 import {
   runDaemonJob,
-  type AbsorbGraphData,
+  type _AbsorbGraphData,
 } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import type {
@@ -18,7 +18,7 @@ import type {
   DaemonJobLimits,
   DaemonLogEntry,
   DaemonProfile,
-  DaemonProjectDNA,
+  _DaemonProjectDNA,
   DaemonTelemetryEvent,
   DaemonTelemetrySummary,
   PatchProposal,

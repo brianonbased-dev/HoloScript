@@ -371,7 +371,7 @@ export class TransitionScheduler {
   /**
    * Record actual GPU cost for a transition (for budget tuning)
    */
-  recordCost(entityId: string, actualCostMs: number): void {
+  recordCost(entityId: string, _actualCostMs: number): void {
     // Update cost estimates based on actual measurements
     // This could be used for adaptive budget management
     if (this.activatedThisFrame.has(entityId)) {

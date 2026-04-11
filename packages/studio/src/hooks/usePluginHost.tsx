@@ -208,7 +208,7 @@ export function PluginHostProvider({
         return { status: res.status, headers, body: await res.text() };
       },
 
-      onRegister: async (pluginId, kind, descriptor) => {
+      onRegister: async (pluginId, kind, _descriptor) => {
         // Plugin registration events (panels, toolbar buttons, etc.)
         logger.info(`[PluginHost] Registration from ${pluginId}: ${kind}`);
         // Future: integrate with Studio's panel/toolbar registration system

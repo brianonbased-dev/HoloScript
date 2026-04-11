@@ -30,7 +30,7 @@
  *   - Emphasis: <emphasis level="strong"> word </emphasis>
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, _readdirSync } from 'fs';
 import path from 'path';
 
 // ─── Configuration ────────────────────────────────────────────────────────────

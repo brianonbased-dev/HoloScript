@@ -67,7 +67,7 @@ export function useYjsCollaboration({
       try {
         const existingClient = getCollaborationClient();
         existingClient.disconnect();
-      } catch (err) {
+      } catch (_err) {
         // Ignore if uninitialized
       }
 

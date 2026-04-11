@@ -71,8 +71,8 @@ async function runFixer() {
   console.log(`Fixer complete. Modified ${fixedCount} files.`);
 }
 
-function fixContent(code: string, filePath: string): string {
-  let original = code;
+function fixContent(code: string, _filePath: string): string {
+  let _original = code;
 
   // 1. Remove Top-Level Module Wrappers
   if (code.trim().startsWith('module.exports = {')) {

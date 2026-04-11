@@ -7,7 +7,7 @@
  * @module ai
  */
 
-import { AIAdapter, GenerateOptions, GenerateResult } from './AIAdapter';
+import { AIAdapter, GenerateOptions, _GenerateResult } from './AIAdapter';
 import { HoloScriptGenerator, GeneratedCode } from './HoloScriptGenerator';
 
 // =============================================================================

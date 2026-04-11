@@ -119,7 +119,7 @@ export class StatusEffectSystem {
     return count;
   }
 
-  cleanse(entityId: string, count = Infinity): number {
+  cleanse(entityId: string, _count = Infinity): number {
     return this.removeAllOfType(entityId, 'debuff');
   }
 

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import path from 'path';
+import _path from 'path';
 import { HoloScriptPlusParser } from '../packages/core/src/parser/HoloScriptPlusParser';
 
 async function validate() {

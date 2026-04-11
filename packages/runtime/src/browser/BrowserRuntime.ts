@@ -1506,8 +1506,8 @@ class BrowserRuntime implements HoloScriptRuntime {
         if (obj.color) {
           const targetColor = new THREE.Color(obj.color);
 
-          let coloredCount = 0;
-          let skippedCount = 0;
+          const _coloredCount = 0;
+          const _skippedCount = 0;
 
           model.traverse((child: THREE.Object3D) => {
             const mesh = child as THREE.Mesh;
@@ -2400,7 +2400,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     if (obj === 'audio') {
       if (method === 'play') {
         // Load and play audio
-        const audioPath = args[0] as string;
+        const _audioPath = args[0] as string;
 
         return undefined;
       }
@@ -2408,7 +2408,7 @@ class BrowserRuntime implements HoloScriptRuntime {
 
     if (obj === 'scene') {
       if (method === 'transition') {
-        const config = args[0] as Record<string, unknown>;
+        const _config = args[0] as Record<string, unknown>;
 
         return undefined;
       }

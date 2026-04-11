@@ -254,7 +254,7 @@ class AuditLogger {
 
     // Output to stdout as JSONL
     if (this.config.stdoutJsonl) {
-      const line = JSON.stringify({
+      const _line = JSON.stringify({
         ...entry,
         _audit: true,
         _version: '1.0.0',

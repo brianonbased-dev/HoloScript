@@ -37,14 +37,14 @@ import {
   TierComparisonTable,
   PricingTab,
   ToolsTab,
-  timeSince,
+  _timeSince,
   formatTime,
 } from './components';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AbsorbTab = 'dashboard' | 'projects' | 'agents' | 'daemon-ops' | 'credits' | 'tools';
-type QualityTierOption = 'low' | 'medium' | 'high' | 'ultra';
+type _QualityTierOption = 'low' | 'medium' | 'high' | 'ultra';
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
@@ -939,7 +939,7 @@ function MoltbookAgentsTab() {
 function HoloDaemonSubPanel() {
   const composition = useHoloComposition('/api/daemon/surface?kind=dashboard');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [jobs, setJobs] = useState<DaemonJob[]>([]);
+  const [_jobs, setJobs] = useState<DaemonJob[]>([]);
   const [telemetry, setTelemetry] = useState<DaemonTelemetrySummary | null>(null);
   const [daemonMode, setDaemonMode] = useState<DaemonProfile>('balanced');
   const { createJob, listJobs, getTelemetry, creating, error } = useDaemonJobs();
@@ -1158,8 +1158,8 @@ function AuthenticatedDashboard() {
     extractKnowledge,
     publishKnowledge,
     purchaseCredits,
-    setActiveProject,
-    activeProjectId,
+    _setActiveProject,
+    _activeProjectId,
     setQualityTier,
     setError,
   } = useAbsorbService();

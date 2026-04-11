@@ -8,11 +8,11 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  complement,
+  _complement,
   complementStrand,
   transcribe,
   reverseComplement,
-  translateCodon,
+  _translateCodon,
   translateMRNA,
   gcContent,
   sequenceLength,
@@ -20,7 +20,7 @@ import {
   detectMutations,
   crisprOnTargetScore,
   type CRISPRTarget,
-  type Nucleotide,
+  type _Nucleotide,
 } from '@/lib/dnaSequencing';
 
 // ─── Styles ──────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ export function DNASequencerPanel() {
   const validDna = dna.replace(/[^ATGC]/gi, '').toUpperCase();
   const comp = useMemo(() => complementStrand(validDna), [validDna]);
   const mrna = useMemo(() => transcribe(validDna), [validDna]);
-  const revComp = useMemo(() => reverseComplement(validDna), [validDna]);
+  const _revComp = useMemo(() => reverseComplement(validDna), [validDna]);
   const protein = useMemo(() => translateMRNA(mrna), [mrna]);
   const gc = useMemo(() => gcContent(validDna), [validDna]);
   const motifPositions = useMemo(

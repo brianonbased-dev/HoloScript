@@ -12,7 +12,7 @@ import {
   cellarValue,
   cellarTotalBottles,
   winesAtPeak,
-  winesPastPrime,
+  _winesPastPrime,
   agingPotential,
   servingTemperatureC,
   decantTimeMinutes,

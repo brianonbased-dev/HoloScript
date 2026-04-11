@@ -3,7 +3,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, _waitFor } from '@testing-library/react';
 import { DeploymentPipelineUI } from './DeploymentPipelineUI';
 
 describe('DeploymentPipelineUI', () => {
@@ -278,7 +278,7 @@ describe('DeploymentPipelineUI', () => {
   it('disables rollback button during deployment', async () => {
     render(<DeploymentPipelineUI />);
 
-    const rollbackButton = screen.getByRole('button', { name: /rollback/i });
+    const _rollbackButton = screen.getByRole('button', { name: /rollback/i });
     const deployButton = screen.getByRole('button', { name: /deploy/i });
 
     // Start deployment

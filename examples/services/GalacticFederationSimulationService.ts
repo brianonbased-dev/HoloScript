@@ -1,9 +1,9 @@
 import { getGalacticProtocolService } from './GalacticProtocolService';
 import {
   getGovernanceOrchestrator,
-  GovernanceProposal,
+  _GovernanceProposal,
 } from '../singularity/GovernanceOrchestrator';
-import { logger } from '@/utils/logger';
+import { _logger } from '@/utils/logger';
 
 export interface SimulationEntity {
   id: string;

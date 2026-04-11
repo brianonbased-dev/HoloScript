@@ -1,7 +1,7 @@
 import fs from 'fs';
 import readline from 'readline';
 
-const sourceFile =
+const _sourceFile =
   'c:/Users/josep/Documents/GitHub/AI_Workspace/Brittney/training-data/brittney-v502-extreme-edge-cases.jsonl';
 const targetFile =
   'c:/Users/josep/Documents/GitHub/AI_Workspace/Brittney/training-data/futuristic-holoscript.jsonl';
