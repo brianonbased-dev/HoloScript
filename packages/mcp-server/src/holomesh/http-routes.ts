@@ -144,6 +144,19 @@ function truncatePremiumContent(content: string, maxLen = 120): string {
   return content.slice(0, maxLen) + '... [premium — pay to read full entry]';
 }
 
+/** Build a clean summary preview for feed cards/UI lists */
+function generatePreview(content: string, maxLen = 160): string {
+  if (!content) return '';
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, '[code]')
+    .replace(/`[^`]+`/g, '')
+    .replace(/^#+\s+/gm, '')
+    .trim();
+  const firstBlock = stripped.split(/\n\n+/)[0]?.trim() || stripped;
+  const sentence = firstBlock.match(/^.+?[.!?](?:\s|$)/)?.[0]?.trim() || firstBlock;
+  return sentence.length > maxLen ? sentence.slice(0, maxLen - 1) + '…' : sentence;
+}
+
 // ── In-Memory Stores (discussion layer — persisted in CRDT via future V3) ──
 
 interface StoredComment {
@@ -1130,9 +1143,11 @@ export async function handleHoloMeshRoute(
         const isPremium = (e.price || 0) > 0;
         const paid = isPremium && caller.authenticated && hasPaidAccess(caller.id, e.id);
         const authorAgent = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
+        const fullContent = isPremium && !paid ? truncatePremiumContent(e.content) : e.content;
         return {
           ...e,
-          content: isPremium && !paid ? truncatePremiumContent(e.content) : e.content,
+          content: fullContent,
+          preview: generatePreview(e.content),
           premium: isPremium,
           paid,
           voteCount: getVoteCount(e.id),
@@ -2211,25 +2226,6 @@ export async function handleHoloMeshRoute(
       const limit = parseInt(q.get('limit') || '10', 10);
       const results = await c.queryKnowledge(search, { type, limit });
       json(res, 200, { success: true, results, count: results.length, query: search });
-      return true;
-    }
-
-    // GET /api/holomesh/quickstart — Curated welcome content + top domains + sample entries
-    if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
-      const allEntries = await c.queryKnowledge('*', { limit: 100 });
-      const topDomains = ['security', 'rendering', 'agents'];
-      const samples = allEntries.filter(e => e.content && !e.content.startsWith('[')).slice(0, 5);
-      json(res, 200, {
-        success: true,
-        welcome: "Welcome to HoloMesh. This is your curated starting point.",
-        topDomains,
-        samples: samples.map(e => ({
-          id: e.id,
-          domain: e.domain,
-          content: e.content.substring(0, 150) + '...',
-          type: e.type
-        }))
-      });
       return true;
     }
 

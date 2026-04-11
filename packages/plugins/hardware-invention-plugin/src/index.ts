@@ -2,6 +2,9 @@ export { createPCBLayoutHandler } from './traits/PCBLayoutTrait';
 export { createComponentLibraryHandler } from './traits/ComponentLibraryTrait';
 export { createFirmwareFlashHandler } from './traits/FirmwareFlashTrait';
 export type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './traits/types';
+export type { PCBLayoutConfig, Pad, Trace, PCBLayer } from './traits/PCBLayoutTrait';
+export type { ComponentLibraryConfig, Component, ComponentCategory } from './traits/ComponentLibraryTrait';
+export type { FirmwareFlashConfig, FlashProtocol } from './traits/FirmwareFlashTrait';
 
 import type { TraitHandler } from './traits/types';
 import { createPCBLayoutHandler } from './traits/PCBLayoutTrait';
@@ -30,14 +33,11 @@ export const TRAIT_KEYWORDS: Record<string, string> = {
 };
 
 export const VERSION = '1.0.0';
-export { createPCBLayoutHandler, type PCBLayoutConfig, type Pad, type Trace, type PCBLayer } from './traits/PCBLayoutTrait';
-export { createComponentLibraryHandler, type ComponentLibraryConfig, type Component, type ComponentCategory } from './traits/ComponentLibraryTrait';
-export { createFirmwareFlashHandler, type FirmwareFlashConfig, type FlashProtocol } from './traits/FirmwareFlashTrait';
-export * from './traits/types';
 
-import { createPCBLayoutHandler } from './traits/PCBLayoutTrait';
-import { createComponentLibraryHandler } from './traits/ComponentLibraryTrait';
-import { createFirmwareFlashHandler } from './traits/FirmwareFlashTrait';
+export const pluginMeta = {
+  name: '@holoscript/plugin-hardware-invention',
+  version: VERSION,
+  traits: ['pcb_layout', 'component_library', 'firmware_flash'],
+};
 
-export const pluginMeta = { name: '@holoscript/plugin-hardware-invention', version: '1.0.0', traits: ['pcb_layout', 'component_library', 'firmware_flash'] };
-export const traitHandlers = [createPCBLayoutHandler(), createComponentLibraryHandler(), createFirmwareFlashHandler()];
+export const traitHandlers = PLUGIN_TRAITS;
