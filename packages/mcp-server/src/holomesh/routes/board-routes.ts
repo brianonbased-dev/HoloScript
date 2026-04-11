@@ -30,6 +30,7 @@ import {
   dismissSuggestion,
   normalizeTitle,
   generateTaskId,
+  addTasksToBoard,
   type TeamTask,
   type SlotRole,
   type SuggestionCategory
@@ -62,6 +63,90 @@ export async function handleBoardRoutes(
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
     });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/board — Add tasks
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'POST') {
+    const access = requireTeamAccess(req, res, url, 'tasks:write');
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    const body = await parseJsonBody(req);
+    const tasksBody = body.tasks || body;
+    if (!tasksBody || !Array.isArray(tasksBody) || tasksBody.length === 0) {
+      json(res, 400, { error: 'Expected an array of tasks' });
+      return true;
+    }
+
+    if (!team.taskBoard) team.taskBoard = [];
+    
+    // Add tasks
+    const added = addTasksToBoard(team.taskBoard, tasksBody, caller.name, 'holomesh');
+    persistTeamStore();
+
+    for (const task of added) {
+      broadcastToTeam(teamId, {
+        type: 'board:added' as any,
+        agent: caller.name,
+        data: { taskId: task.id, title: task.title, agent: caller.name },
+      });
+    }
+
+    // Framework expects the added tasks back in the response
+    json(res, 201, { success: true, added: added.length, tasks: added });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/board/scout — Scout tasks
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/scout$/) && method === 'POST') {
+    const access = requireTeamAccess(req, res, url, 'tasks:write');
+    if (!access) return true;
+    const { caller, teamId } = access;
+    const team = teamStore.get(teamId)!;
+
+    const body = await parseJsonBody(req);
+    const todoContent = body.todo_content as string;
+
+    if (!team.taskBoard) team.taskBoard = [];
+
+    let addedTasks: any[] = [];
+    if (todoContent && todoContent.length > 0) {
+      // Mock scout from todos based on expected format
+      const tasksBody = todoContent.split('\n')
+        .filter(l => l.includes('TODO:') || l.includes('FIXME:'))
+        .map((l, i) => ({
+          title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
+          description: `Generated from source grep: \n\n${l}`,
+          source: 'scout:todo-scan',
+          priority: l.includes('FIXME:') ? 2 : 1
+        }));
+      if (tasksBody.length > 0) {
+        addedTasks = addTasksToBoard(team.taskBoard, tasksBody.slice(0, body.max_tasks || 50), 'Scout', 'holomesh-scout');
+      }
+    } else if (team.taskBoard.length === 0) {
+      // Empty board auto-hint task
+      addedTasks = addTasksToBoard(team.taskBoard, [{
+        title: 'Run /room scout to find actionable work in this repository',
+        description: 'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
+        source: 'scout:auto-hint',
+        priority: 1
+      }], 'Scout', 'holomesh-scout');
+    }
+
+    if (addedTasks.length > 0) {
+      persistTeamStore();
+      for (const task of addedTasks) {
+        broadcastToTeam(teamId, {
+          type: 'board:added' as any,
+          agent: 'Scout',
+          data: { taskId: task.id, title: task.title, agent: 'Scout' },
+        });
+      }
+    }
+
+    json(res, 201, { success: true, tasks_added: addedTasks.length, tasks: addedTasks });
     return true;
   }
 
