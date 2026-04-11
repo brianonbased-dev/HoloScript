@@ -1,11 +1,75 @@
 /**
  * StructuralSolver — Linear elastic FEM with tetrahedral elements.
  *
- * Static analysis: assembles global stiffness matrix K, solves Ku = f
- * via Conjugate Gradient, recovers Von Mises stress and safety factors.
+ * ## Mathematical Formulation
  *
- * Designed to back the @structural_fem trait and
- * the bridge-load-test.hsplus digital twin composition.
+ * **Governing equation** (static linear elasticity):
+ *
+ *   ∇·σ + b = 0  (equilibrium)
+ *   σ = C:ε       (Hooke's law)
+ *   ε = ½(∇u + ∇uᵀ)  (small strain)
+ *
+ * where:
+ *   σ = Cauchy stress tensor [Pa]
+ *   ε = infinitesimal strain tensor [-]
+ *   u = displacement field [m]
+ *   b = body force density [N/m³]
+ *   C = 4th-order elasticity tensor (isotropic: parameterized by E, ν)
+ *
+ * **Weak form** (principle of virtual work):
+ *   ∫_Ω ε(δu):C:ε(u) dΩ = ∫_Ω δu·b dΩ + ∫_Γ δu·t dΓ
+ *
+ * ## Element Formulation
+ *
+ * **Element type**: 4-node linear tetrahedron (TET4, constant strain).
+ * **Shape functions**: N_i = a_i + b_i·x + c_i·y + d_i·z (linear).
+ * **Strain-displacement matrix B**: Constant within each element (3 per node, 12 DOFs per tet).
+ * **Element stiffness**: Kₑ = V · Bᵀ · D · B (single-point integration, exact for constant strain).
+ *
+ * **Material matrix D** (3D isotropic, Voigt notation):
+ *   D = E/((1+ν)(1-2ν)) * [1-ν, ν, ν, 0, 0, 0; ν, 1-ν, ν, 0, 0, 0; ...]
+ *
+ * ## Assembly & Solution
+ *
+ * **Assembly**: Matrix-free approach. Element stiffness matrices are stored
+ * and the global matrix-vector product K*x is computed by summing element
+ * contributions (avoids assembling sparse K explicitly).
+ *
+ * **Solver**: Preconditioned Conjugate Gradient (PCG).
+ * - Preconditioner: Jacobi (diagonal of K)
+ * - Convergence: relative residual tolerance with absolute floor
+ *
+ * **Constraints**: 'fixed' and 'pinned' both constrain all 3 translational DOFs.
+ * Note: Linear tetrahedra have no rotational DOFs, so pinned = fixed.
+ *
+ * ## Stress Recovery
+ *
+ * **Von Mises stress** (element-wise):
+ *   σ_VM = √(½[(σ₁-σ₂)² + (σ₂-σ₃)² + (σ₃-σ₁)²])
+ *
+ * **Safety factor**: F_s = σ_yield / σ_VM (per element)
+ *
+ * ## Convergence Characteristics
+ *
+ * - Linear tets: O(h) for displacements, O(1) for stresses (constant strain)
+ * - Mesh locking possible for near-incompressible materials (ν → 0.5)
+ *
+ * ## Known Limitations
+ *
+ * - Linear elasticity only (no plasticity, no geometric nonlinearity)
+ * - No contact mechanics
+ * - No dynamics (static equilibrium only)
+ * - No beam/shell elements (solid tets only)
+ * - Constant-strain elements underperform quadratic tets for bending
+ *
+ * ## References
+ *
+ * - Bathe, K.J., "Finite Element Procedures", Prentice Hall, 1996
+ * - Hughes, T.J.R., "The Finite Element Method", Dover, 2000
+ * - Zienkiewicz & Taylor, "The Finite Element Method", Vol. 1, 7th ed.
+ *
+ * @see ConvergenceControl — CG solver with Jacobi preconditioning
+ * @see MaterialDatabase — E, ν, σ_yield lookup
  */
 
 import { conjugateGradient, type ConvergenceResult } from './ConvergenceControl';
@@ -13,6 +77,11 @@ import { getMaterial, type StructuralMaterial } from './MaterialDatabase';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+/**
+ * For linear tetrahedral elements (which lack rotational degrees of freedom),
+ * a 'pinned' constraint is mathematically identical to a 'fixed' constraint.
+ * Both prevent all translational motion at the specified nodes.
+ */
 export type ConstraintType = 'fixed' | 'pinned';
 
 export interface StructuralConstraint {

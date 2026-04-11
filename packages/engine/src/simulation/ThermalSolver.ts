@@ -1,12 +1,70 @@
 /**
  * ThermalSolver — Heat equation solver via finite differences.
  *
- * Solves ∂T/∂t = α∇²T + Q/(ρcₚ) on a RegularGrid3D.
- * Explicit forward Euler with CFL stability check.
- * Falls back to implicit Jacobi if timestep exceeds stability limit.
+ * ## Mathematical Formulation
  *
- * Designed to back the @thermal_simulation trait and
- * the hvac-building.hsplus digital twin composition.
+ * **Governing equation** (heat equation with volumetric source):
+ *
+ *   ∂T/∂t = α∇²T + Q/(ρcₚ)
+ *
+ * where:
+ *   T     = temperature field [K or °C]
+ *   α     = thermal diffusivity = k/(ρcₚ) [m²/s]
+ *   k     = thermal conductivity [W/(m·K)]
+ *   ρ     = density [kg/m³]
+ *   cₚ    = specific heat capacity [J/(kg·K)]
+ *   Q     = volumetric heat source [W/m³]
+ *
+ * ## Discretization
+ *
+ * **Spatial**: 2nd-order central differences on a uniform 3D grid.
+ *   ∇²T ≈ (T_{i+1}-2T_i+T_{i-1})/dx² + (T_{j+1}-2T_j+T_{j-1})/dy² + (T_{k+1}-2T_k+T_{k-1})/dz²
+ *
+ * **Temporal** (explicit mode): Forward Euler.
+ *   T^{n+1}_ijk = T^n_ijk + dt * [α∇²T^n_ijk + Q_ijk/(ρcₚ)]
+ *
+ * **Temporal** (implicit mode): Jacobi iteration for the Helmholtz equation.
+ *   Activated when dt > dt_stable. Solves the implicit system each timestep.
+ *
+ * ## CFL Stability
+ *
+ * The explicit scheme is conditionally stable. The CFL limit for 3D diffusion is:
+ *   dt_stable = 1 / (2α(1/dx² + 1/dy² + 1/dz²))
+ *
+ * A safety factor of 0.9 is applied: dt_eff = 0.9 * dt_stable.
+ * If the user-specified timestep exceeds this, the solver automatically
+ * switches to implicit Jacobi iteration (unconditionally stable).
+ *
+ * ## Boundary Conditions
+ *
+ * Applied via BoundaryConditions.ts each timestep before integration:
+ * - **Dirichlet**: T_boundary = constant
+ * - **Neumann**: ∂T/∂n = flux (ghost-cell method)
+ * - **Convection**: -k∂T/∂n = h(T - T_amb) → Biot number formulation
+ * - **Robin**: αT + β∂T/∂n = value
+ *
+ * ## Convergence Characteristics
+ *
+ * - Spatial: O(dx²) for smooth solutions
+ * - Temporal (explicit): O(dt)
+ * - Temporal (implicit Jacobi): O(dt) per step, iterations to convergence
+ *
+ * ## Known Limitations
+ *
+ * - Uniform grid only (no adaptive mesh refinement)
+ * - Constant material properties per run (no T-dependent k within a run;
+ *   use MaterialProperties.ts for pre-run T-dependent lookup)
+ * - No radiation boundary condition
+ * - No phase change modeling
+ *
+ * ## References
+ *
+ * - Incropera et al., "Fundamentals of Heat and Mass Transfer", 7th ed., Ch. 5
+ * - Patankar, "Numerical Heat Transfer and Fluid Flow", CRC Press, 1980
+ *
+ * @see BoundaryConditions — BC application
+ * @see ConvergenceControl — Jacobi iteration for implicit mode
+ * @see MaterialDatabase — Material property lookup
  */
 
 import { RegularGrid3D } from './RegularGrid3D';

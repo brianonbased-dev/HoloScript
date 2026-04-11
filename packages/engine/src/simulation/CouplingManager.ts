@@ -1,16 +1,56 @@
 /**
- * CouplingManager — Multi-physics solver chaining.
+ * CouplingManager — Multi-physics solver orchestration.
  *
- * Orchestrates multiple domain solvers (thermal, structural, hydraulic)
- * with field-to-field coupling and saturation monitoring.
+ * ## Mathematical Formulation
  *
- * Coupling chains:
- *   Thermal → Structural   (thermal strain → stress)
- *   Thermal → Saturation   (phase change at melting point)
- *   Hydraulic → Thermal    (flow rate → convective HTC)
- *   Hydraulic → Saturation (overpressure detection)
- *   Structural → Saturation (yield point warning)
- *   Thermal → Hydraulic    (temperature → viscosity)
+ * **Approach**: Sequential (staggered) operator splitting.
+ *
+ * Each timestep, the coupled system is solved by advancing each
+ * domain solver in sequence, with field transfers between them:
+ *
+ *   1. Solve thermal → extract temperature field T
+ *   2. Transfer T → structural (thermal strain: ε_th = α_L·ΔT)
+ *   3. Transfer T → hydraulic (viscosity: μ(T))
+ *   4. Solve structural → extract stress field σ
+ *   5. Solve hydraulic → extract pressure/flow fields
+ *   6. Transfer flow → thermal (convective HTC update)
+ *   7. Monitor saturation thresholds
+ *
+ * ## Coupling Chains
+ *
+ *   Thermal → Structural:  thermal strain ε_th = α_L·(T - T_ref)
+ *   Thermal → Saturation:  phase change detection at T_melt
+ *   Thermal → Hydraulic:   viscosity μ(T) via Sutherland or table lookup
+ *   Hydraulic → Thermal:   convective HTC h from flow velocity
+ *   Hydraulic → Saturation: overpressure detection
+ *   Structural → Saturation: yield point warning (σ_VM > σ_yield)
+ *
+ * ## Field Transfer
+ *
+ * Fields are transferred between solvers via transform functions
+ * registered per coupling chain. The transform maps the source
+ * solver's output field to the target solver's input parameter.
+ *
+ * ## Limitations
+ *
+ * - **Sequential, not iterative**: Each coupling is one-directional per
+ *   timestep. No Gauss-Seidel iteration between solvers within a step.
+ *   This means strong two-way coupling (e.g., fluid-structure interaction
+ *   with large deformations) is not accurately captured.
+ * - **No sub-cycling**: All solvers advance with the same timestep.
+ * - **First-order splitting error**: The sequential approach introduces
+ *   O(dt) splitting error even if individual solvers are higher-order.
+ *
+ * ## References
+ *
+ * - Felippa, C.A. et al., "Partitioned analysis of coupled mechanical
+ *   systems", Computer Methods in Applied Mechanics and Engineering,
+ *   190(24-25), 3247-3270, 2001
+ *
+ * @see ThermalSolver — heat equation solver
+ * @see StructuralSolver — linear elastic FEM
+ * @see HydraulicSolver — pipe network solver
+ * @see SaturationManager — threshold monitoring
  */
 
 import { RegularGrid3D } from './RegularGrid3D';

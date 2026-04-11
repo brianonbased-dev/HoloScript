@@ -145,3 +145,23 @@ export {
   runConvergenceStudy,
   type ConvergenceStudyResult,
 } from './verification/ConvergenceAnalysis';
+
+// Verification — V&V report generation
+export {
+  createVerificationReport,
+  renderReportMarkdown,
+  renderReportLatex,
+  type BenchmarkResult,
+  type VerificationReport,
+} from './verification/ReportGenerator';
+
+// Provenance — Simulation run tracking and reproducibility
+export {
+  createSimulationRun,
+  compareRuns,
+  ProvenanceTracker,
+  type SimulationRun,
+  type SimulationRunConfig,
+  type SimulationRunResult,
+  type RunComparison,
+} from './provenance/index';

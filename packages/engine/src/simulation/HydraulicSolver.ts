@@ -1,11 +1,81 @@
 /**
  * HydraulicSolver — Pipe network solver using Hardy-Cross method.
  *
- * Iteratively corrects loop flow rates until head losses balance.
- * Uses Darcy-Weisbach friction with Swamee-Jain approximation for f.
+ * ## Mathematical Formulation
  *
- * Designed to back the @hydraulic_pipe trait and
- * the water-network.hsplus digital twin composition.
+ * **Governing equations** (steady-state incompressible pipe flow):
+ *
+ *   Continuity: Σ Q_in = Σ Q_out  (at each node)
+ *   Energy: Σ h_f = 0  (around each closed loop)
+ *
+ * where:
+ *   Q = volumetric flow rate [m³/s]
+ *   h_f = friction head loss [m]
+ *
+ * **Darcy-Weisbach head loss**:
+ *   h_f = f · (L/D) · (V²/2g) = f · (L/D) · (8Q²)/(π²gD⁴)
+ *
+ * where:
+ *   f = Darcy friction factor [-]
+ *   L = pipe length [m]
+ *   D = pipe diameter [m]
+ *   V = flow velocity [m/s]
+ *   g = 9.81 m/s²
+ *
+ * **Friction factor** (Swamee-Jain approximation, turbulent Re > 2300):
+ *   f = 0.25 / [log₁₀(ε/(3.7D) + 5.74/Re^0.9)]²
+ *
+ * **Laminar flow** (Re < 2300):
+ *   f = 64/Re
+ *
+ * ## Hardy-Cross Iteration
+ *
+ * 1. Detect independent loops via spanning tree (BFS).
+ * 2. Initialize flow rates satisfying continuity at each node.
+ * 3. For each iteration:
+ *    a. Compute h_f for each pipe in each loop.
+ *    b. Compute correction: ΔQ = -Σh_f / Σ(2|h_f|/|Q|)
+ *    c. Apply ΔQ to all pipes in the loop.
+ * 4. Converge when max|ΔQ| < tolerance.
+ * 5. Back-calculate node pressures via BFS from known-head nodes.
+ *
+ * **Tree-topology networks** (zero loops): Direct Bernoulli solve.
+ * When the spanning tree has no independent loops, Hardy-Cross cannot
+ * iterate. Flow rates are computed directly from continuity, and
+ * pressures from Bernoulli along the tree branches.
+ *
+ * ## Valve Modeling
+ *
+ * Valves modify the effective pipe diameter:
+ *   D_eff = D × opening_fraction
+ * A fully closed valve (opening=0) sets D_eff to near-zero,
+ * producing very high head loss.
+ *
+ * ## Convergence Characteristics
+ *
+ * - Hardy-Cross converges linearly (first-order) for well-conditioned networks.
+ * - Convergence degrades for networks with very different pipe diameters.
+ * - Typical convergence: 10-50 iterations for engineering accuracy.
+ *
+ * ## Known Limitations
+ *
+ * - Steady-state only (no water hammer / transient analysis)
+ * - Incompressible flow only (no gas networks)
+ * - No pump curves (fixed-head nodes only)
+ * - No minor losses (fittings, bends, valves modeled only as diameter changes)
+ * - Single fluid (uniform viscosity)
+ *
+ * ## References
+ *
+ * - Cross, H., "Analysis of Flow in Networks of Conduits or Conductors",
+ *   Univ. of Illinois Bulletin No. 286, 1936
+ * - Chadwick, Morfett & Borthwick, "Hydraulics in Civil and Environmental
+ *   Engineering", 5th ed., CRC Press, 2013
+ * - Swamee, P.K. & Jain, A.K., "Explicit equations for pipe-flow problems",
+ *   J. Hydraulic Division, ASCE, 102(5), 657-664, 1976
+ *
+ * @see ConvergenceControl — convergence result type
+ * @see MaterialDatabase — pipe roughness lookup
  */
 
 import { type ConvergenceResult } from './ConvergenceControl';
@@ -279,19 +349,83 @@ export class HydraulicSolver {
     }
   }
 
-  /**
-   * Initial flow guess by distributing demand.
-   */
   private initialFlowGuess(): void {
-    // Simple heuristic: uniform flow from reservoir towards demand nodes
-    const totalDemand = this.nodes.reduce(
-      (sum, n) => sum + (n.config.demand ?? 0),
-      0
-    );
-    const avgFlow = totalDemand / Math.max(this.pipes.length, 1);
-
+    const n = this.nodes.length;
+    // We already have a spanning tree via findLoops!
+    // Wait, let's just build a fresh spanning tree to satisfy continuity.
+    const adj: [number, number, number][][] = Array.from({ length: n }, () => []);
+    
     for (const pipe of this.pipes) {
-      pipe.flowRate = avgFlow > 0 ? avgFlow : 0.001;
+      adj[pipe.fromNode].push([pipe.toNode, pipe.index, 1]); // 1 = flows out
+      adj[pipe.toNode].push([pipe.fromNode, pipe.index, -1]); // -1 = flows in
+      pipe.flowRate = 0; // initialize all to 0
+    }
+
+    const treeEdges = new Set<number>();
+    const visited = new Set<number>();
+    
+    // BFS to find a spanning tree component by component
+    for (let i = 0; i < n; i++) {
+        if (!visited.has(i)) {
+            const queue = [i];
+            visited.add(i);
+            while(queue.length > 0) {
+                const u = queue.shift()!;
+                for (const [v, pipeIdx] of adj[u]) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        treeEdges.add(pipeIdx);
+                        queue.push(v);
+                    }
+                }
+            }
+        }
+    }
+
+    // Now compute degree internally ONLY counting tree edges
+    const degree = new Int32Array(n);
+    for (const pipe of this.pipes) {
+        if (treeEdges.has(pipe.index)) {
+            degree[pipe.fromNode]++;
+            degree[pipe.toNode]++;
+        }
+    }
+
+    const demands = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        demands[i] = this.nodes[i].config.demand ?? 0;
+    }
+
+    // Process from leaves
+    const q: number[] = [];
+    for (let i = 0; i < n; i++) {
+        // Reservoirs are typically root. We push degree 1 junctions to peel them.
+        if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
+            q.push(i);
+        }
+    }
+
+    while (q.length > 0) {
+        const u = q.shift()!;
+        degree[u]--;
+
+        for (const [v, pipeIdx, dir] of adj[u]) {
+            if (treeEdges.has(pipeIdx) && degree[v] > 0) {
+                const reqFlow = demands[u];
+                // if dir=1, u -> v. Node u has demand reqFlow, so flow must enter u.
+                // Flow entering u via pipe is -pipeFlow. So -pipeFlow = reqFlow => pipeFlow = -reqFlow.
+                const pipeFlow = dir === 1 ? -reqFlow : reqFlow;
+                this.pipes[pipeIdx].flowRate = pipeFlow;
+                
+                demands[v] += reqFlow; // passed demand up the tree
+                degree[v]--;
+                
+                if (degree[v] === 1 && this.nodes[v].config.type !== 'reservoir') {
+                    q.push(v);
+                }
+                break;
+            }
+        }
     }
   }
 
@@ -445,6 +579,7 @@ export class HydraulicSolver {
     }
     return path;
   }
+
 
   private updateOutputArrays(): void {
     for (const node of this.nodes) {
