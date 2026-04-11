@@ -16,7 +16,7 @@ export function resolveRequestingAgent(
     return { authenticated: false, id: 'anonymous', name: 'anonymous' };
   }
 
-  const token = auth.slice(7);
+  const token = auth.slice(7).trim();
   
   // 1. API Key check
   const agent = agentKeyStore.get(token);
@@ -31,7 +31,14 @@ export function resolveRequestingAgent(
   }
 
   // 2. System / MCP Key check (Fallback for local dev / MCP integrations like Copilot)
-  if (token === process.env.MCP_API_KEY || token === process.env.HOLOMESH_API_KEY) {
+  const systemKeys = [
+    process.env.MCP_API_KEY, 
+    process.env.HOLOMESH_API_KEY, 
+    process.env.COPILOT_HOLOMESH_KEY,
+    process.env.GEMINI_HOLOMESH_KEY
+  ].filter(k => k && k.trim() !== '');
+
+  if (systemKeys.includes(token)) {
     return {
       authenticated: true,
       id: 'system',
