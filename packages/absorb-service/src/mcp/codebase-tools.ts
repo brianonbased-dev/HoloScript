@@ -708,8 +708,8 @@ async function ensureCachedGraph(): Promise<{
  * resolving it at type-check time (the dist/ may not exist yet).
  */
 async function loadCodebaseModule(): Promise<any> {
-  // Logic moved from @holoscript/core to @holoscript/absorb-service/engine
-  return await import('../engine/index.js');
+  const mod = await import('../engine/index.js');
+  return mod.CodebaseScanner ? mod : (mod.default || mod);
 }
 
 export async function handleCodebaseTool(
