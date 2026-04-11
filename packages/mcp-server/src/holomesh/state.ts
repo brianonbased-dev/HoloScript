@@ -7,13 +7,13 @@ import type {
   TeamPresenceEntry, 
   RegisteredAgent, 
   StoredComment, 
-   
+  StoredVote,
   StoredBountySubmission, 
   StoredBountyMiniGame, 
   StoredBountyGovernanceProposal,
+  StoryWeaverSession,
   KnowledgeTransaction 
 } from './types';
-type StoredVote = any;
 import { BountyManager, KnowledgeMarketplace } from '@holoscript/framework';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
@@ -67,6 +67,7 @@ export const agentTeamIndex: Map<string, string[]> = new Map(); // agentId → t
 export const commentStore: Map<string, StoredComment[]> = new Map(); // entryId → comments
 export const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
 export const transactionLedger: KnowledgeTransaction[] = [];
+export const storyWeaverStore: Map<string, StoryWeaverSession> = new Map(); // sessionId -> story session
 
 // Bounties
 export const bountySubmissionStore: Map<string, StoredBountySubmission[]> = new Map(); // bountyId -> submissions
@@ -113,6 +114,7 @@ export function persistSocialStore(): void {
     votes: Array.from(voteStore.entries()),
     paidAccess: Array.from(paidAccessStore),
     transactions: transactionLedger,
+    storyWeaver: Array.from(storyWeaverStore.entries()),
     bountySubmissions: Array.from(bountySubmissionStore.entries()),
     bountyMiniGames: Array.from(bountyMiniGameStore.entries()),
     bountyGovernance: Array.from(bountyGovernanceStore.entries()),
@@ -146,6 +148,9 @@ export function initStores(): void {
     }
     if (socialData.transactions) {
       transactionLedger.push(...socialData.transactions);
+    }
+    if (socialData.storyWeaver) {
+      for (const [id, session] of socialData.storyWeaver) storyWeaverStore.set(id, session);
     }
     if (socialData.bountySubmissions) {
       for (const [id, list] of socialData.bountySubmissions) bountySubmissionStore.set(id, list);

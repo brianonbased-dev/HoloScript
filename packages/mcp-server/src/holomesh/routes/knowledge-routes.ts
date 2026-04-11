@@ -13,6 +13,7 @@ import {
   persistTeamStore,
   HOLOMESH_DATA_DIR,
   teamStore,
+  storyWeaverStore,
 } from '../state';
 import { 
   json, 
@@ -23,7 +24,14 @@ import {
 } from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
-import type { MeshKnowledgeEntry, StoredComment, KnowledgeTransaction } from '../types';
+import type {
+  MeshKnowledgeEntry,
+  StoredComment,
+  KnowledgeTransaction,
+  StoryWeaverSession,
+  StoryWeaverBranch,
+  StoryWeaverBeat,
+} from '../types';
 
 const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
 
@@ -103,6 +111,23 @@ function toHoloAlphaEnvelope(sourceFormat: string, source: unknown): string {
     sourceText,
     '*/',
   ].join('\n');
+}
+
+function deriveStoryBeats(chapterText: string): StoryWeaverBeat[] {
+  const now = new Date().toISOString();
+  const slice = (start: number, len: number): string => chapterText.slice(start, Math.min(chapterText.length, start + len)).trim();
+  const fallback = chapterText.trim().slice(0, 160) || 'Narrative beat pending.';
+  const setupText = slice(0, 140) || fallback;
+  const conflictText = slice(Math.floor(chapterText.length * 0.25), 140) || fallback;
+  const twistText = slice(Math.floor(chapterText.length * 0.55), 140) || fallback;
+  const resolutionText = slice(Math.floor(chapterText.length * 0.8), 140) || fallback;
+
+  return [
+    { id: `beat_${Date.now()}_setup`, kind: 'setup', text: setupText, createdAt: now },
+    { id: `beat_${Date.now()}_conflict`, kind: 'conflict', text: conflictText, createdAt: now },
+    { id: `beat_${Date.now()}_twist`, kind: 'twist', text: twistText, createdAt: now },
+    { id: `beat_${Date.now()}_resolution`, kind: 'resolution', text: resolutionText, createdAt: now },
+  ];
 }
 
 function buildRevenueAggregator(): CreatorRevenueAggregator {
@@ -192,6 +217,167 @@ export async function handleKnowledgeRoutes(
     const limit = parseInt(q.get('limit') || '10', 10);
     const results = await c.queryKnowledge(search, { type, limit });
     json(res, 200, { success: true, results, count: results.length });
+    return true;
+  }
+
+  // POST /api/holomesh/storyweaver/session — Create a branching story session
+  if (pathname === '/api/holomesh/storyweaver/session' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const title = (body.title as string | undefined)?.trim();
+    const opening = (body.opening as string | undefined)?.trim();
+    if (!title || !opening) {
+      json(res, 400, { error: 'Missing title or opening chapter text' });
+      return true;
+    }
+
+    const rootBranch: StoryWeaverBranch = {
+      id: `branch_${Date.now()}_root`,
+      label: 'Root Path',
+      chapterText: opening,
+      premium: false,
+      beats: deriveStoryBeats(opening),
+      createdAt: new Date().toISOString(),
+      unlockedBy: [],
+    };
+
+    const session: StoryWeaverSession = {
+      id: `story_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      genre: (body.genre as string | undefined)?.trim(),
+      synopsis: (body.synopsis as string | undefined)?.trim(),
+      ownerId: caller.id,
+      ownerName: caller.name,
+      branches: [rootBranch],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    storyWeaverStore.set(session.id, session);
+    persistSocialStore();
+    json(res, 201, { success: true, session });
+    return true;
+  }
+
+  // GET /api/holomesh/storyweaver/session/:id — Retrieve story session with branches
+  if (pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+$/) && method === 'GET') {
+    const sessionId = extractParam(url, '/api/holomesh/storyweaver/session/');
+    const session = storyWeaverStore.get(sessionId);
+    if (!session) {
+      json(res, 404, { error: 'Story session not found' });
+      return true;
+    }
+    json(res, 200, { success: true, session });
+    return true;
+  }
+
+  // POST /api/holomesh/storyweaver/session/:id/branch — Add branch chapter and generated plot beats
+  if (pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const sessionId = extractParam(url, '/api/holomesh/storyweaver/session/').replace('/branch', '');
+    const session = storyWeaverStore.get(sessionId);
+    if (!session) {
+      json(res, 404, { error: 'Story session not found' });
+      return true;
+    }
+    if (session.ownerId !== caller.id) {
+      json(res, 403, { error: 'Only story owner can add canonical branches' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const chapterText = (body.chapterText as string | undefined)?.trim();
+    const label = (body.label as string | undefined)?.trim() || 'Branch';
+    const parentChapterId = (body.parentChapterId as string | undefined)?.trim();
+    if (!chapterText) {
+      json(res, 400, { error: 'Missing chapterText' });
+      return true;
+    }
+
+    const premium = Boolean(body.premium);
+    const priceCents = premium ? Math.max(1, parseInt(String(body.priceCents ?? 99), 10)) : undefined;
+
+    const branch: StoryWeaverBranch = {
+      id: `branch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      parentChapterId,
+      label,
+      chapterText,
+      premium,
+      priceCents,
+      beats: deriveStoryBeats(chapterText),
+      createdAt: new Date().toISOString(),
+      unlockedBy: [],
+    };
+
+    session.branches.push(branch);
+    session.updatedAt = new Date().toISOString();
+    storyWeaverStore.set(session.id, session);
+    persistSocialStore();
+    json(res, 201, { success: true, branch, sessionId: session.id });
+    return true;
+  }
+
+  // POST /api/holomesh/storyweaver/session/:id/branch/:branchId/unlock — x402-style micropayment unlock
+  if (pathname.match(/^\/api\/holomesh\/storyweaver\/session\/[^/]+\/branch\/[^/]+\/unlock$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const segments = pathname.split('/');
+    const sessionId = segments[5];
+    const branchId = segments[7];
+
+    const session = storyWeaverStore.get(sessionId);
+    if (!session) {
+      json(res, 404, { error: 'Story session not found' });
+      return true;
+    }
+    const branch = session.branches.find((b) => b.id === branchId);
+    if (!branch) {
+      json(res, 404, { error: 'Branch not found' });
+      return true;
+    }
+    if (!branch.premium) {
+      json(res, 200, { success: true, unlocked: true, branch });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const paid = Boolean(body.paid === true || body.x402Proof || body.paymentReference);
+    if (!paid) {
+      json(res, 402, {
+        error: 'Payment required',
+        x402: {
+          requiredCents: branch.priceCents || 99,
+          currency: 'USDC',
+          description: `Unlock premium StoryWeaver branch ${branch.label}`,
+        },
+      });
+      return true;
+    }
+
+    if (!branch.unlockedBy) branch.unlockedBy = [];
+    if (!branch.unlockedBy.includes(caller.id)) branch.unlockedBy.push(caller.id);
+    session.updatedAt = new Date().toISOString();
+    storyWeaverStore.set(session.id, session);
+
+    transactionLedger.push({
+      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      buyerWallet: caller.walletAddress || '',
+      buyerName: caller.name,
+      sellerWallet: '',
+      sellerName: session.ownerName,
+      entryId: `${session.id}:${branch.id}`,
+      entryDomain: 'storyweaver',
+      priceCents: branch.priceCents || 99,
+      timestamp: new Date().toISOString(),
+    });
+
+    persistSocialStore();
+    json(res, 200, { success: true, unlocked: true, branchId: branch.id, sessionId: session.id });
     return true;
   }
 

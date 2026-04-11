@@ -523,6 +523,12 @@ export interface StoredComment {
   createdAt: string;
 }
 
+export interface StoredVote {
+  targetId: string;
+  userId: string;
+  value: 1 | -1;
+}
+
 export interface KnowledgeTransaction {
   id: string;
   buyerWallet: string;
@@ -596,4 +602,37 @@ export interface StoredBountyGovernanceProposal {
   votes: StoredBountyGovernanceVote[];
   createdAt: string;
   resolvedAt?: string;
+}
+
+// --- StoryWeaver Details ---
+
+export interface StoryWeaverBeat {
+  id: string;
+  kind: 'setup' | 'conflict' | 'twist' | 'resolution';
+  text: string;
+  createdAt: string;
+}
+
+export interface StoryWeaverBranch {
+  id: string;
+  parentChapterId?: string;
+  label: string;
+  chapterText: string;
+  premium: boolean;
+  priceCents?: number;
+  unlockedBy?: string[];
+  beats: StoryWeaverBeat[];
+  createdAt: string;
+}
+
+export interface StoryWeaverSession {
+  id: string;
+  title: string;
+  genre?: string;
+  ownerId: string;
+  ownerName: string;
+  synopsis?: string;
+  branches: StoryWeaverBranch[];
+  createdAt: string;
+  updatedAt: string;
 }
