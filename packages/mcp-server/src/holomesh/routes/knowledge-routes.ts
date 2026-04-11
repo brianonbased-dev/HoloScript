@@ -427,6 +427,63 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
+  // POST /api/holomesh/brittney/cultural-context — synthesize Wisdom/Gotcha context for compile-time guidance
+  if (pathname === '/api/holomesh/brittney/cultural-context' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const domain = (body.domain as string | undefined)?.trim() || 'general';
+    const target = (body.target as string | undefined)?.trim() || 'generic';
+    const prompt = (body.prompt as string | undefined)?.trim() || `${target} ${domain}`;
+
+    const kb = await c.queryKnowledge(prompt, { limit: 60 });
+    const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 8);
+    const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 8);
+    const patterns = kb.filter((e) => e.type === 'pattern').slice(0, 8);
+
+    const themeScores = new Map<string, number>();
+    const collectThemes = (txt: string): void => {
+      const words = txt
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length >= 5 && !['there', 'their', 'about', 'which', 'using', 'could', 'would'].includes(w));
+      for (const w of words) themeScores.set(w, (themeScores.get(w) || 0) + 1);
+    };
+    for (const e of [...wisdom, ...gotchas, ...patterns]) collectThemes(e.content);
+
+    const themes = [...themeScores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([theme, score]) => ({ theme, score }));
+
+    const guardrails = [
+      ...gotchas.slice(0, 5).map((g) => `Avoid: ${g.content.slice(0, 120)}`),
+      ...wisdom.slice(0, 5).map((w) => `Prefer: ${w.content.slice(0, 120)}`),
+    ].slice(0, 8);
+
+    json(res, 200, {
+      success: true,
+      agent: 'brittney-2.0',
+      domain,
+      target,
+      context: {
+        themes,
+        guardrails,
+        signal: {
+          wisdom: wisdom.length,
+          gotchas: gotchas.length,
+          patterns: patterns.length,
+          total: kb.length,
+        },
+      },
+      generatedBy: caller.name,
+      generatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
   // POST /api/holomesh/edge/plan — generate edge-safe execution plan for native .hs runtime
   if (pathname === '/api/holomesh/edge/plan' && method === 'POST') {
     const caller = requireAuth(req, res);
