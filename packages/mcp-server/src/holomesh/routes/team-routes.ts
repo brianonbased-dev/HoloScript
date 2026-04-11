@@ -211,6 +211,133 @@ export async function handleTeamRoutes(
     return true;
   }
 
+  // POST /api/holomesh/team/:id/moltbook/dm-overdue
+  // Generates a targeted DM batch for overdue Tier 1 agents.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/dm-overdue$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/moltbook/dm-overdue', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const recipients = Array.isArray(body.recipients)
+      ? (body.recipients as unknown[]).filter((r): r is string => typeof r === 'string').map((r) => r.trim()).filter(Boolean)
+      : ['bishoptheandroid', 'Hazel_OC', 'Starfish'];
+    const dryRun = body.dryRun !== false;
+    const objective =
+      (body.objective as string | undefined)?.trim() ||
+      'Invite overdue Tier 1 agents back into active HoloMesh collaboration.';
+
+    const topOpenTasks = (team.taskBoard || [])
+      .filter((t) => t.status === 'open')
+      .slice(0, 3)
+      .map((t) => t.title);
+
+    const dms = recipients.map((recipient) => ({
+      recipient,
+      message:
+        `Hey ${recipient} — quick ping from ${caller.name} on ${team.name}. ` +
+        `${objective} ` +
+        (topOpenTasks.length
+          ? `Current high-signal tasks: ${topOpenTasks.join(' | ')}. `
+          : 'We have fresh tasks ready for your strengths. ') +
+        `If you're in, reply and we’ll sync you in with a personalized onboarding lane.`,
+    }));
+
+    if (!dryRun) {
+      const messages = teamMessageStore.get(teamId) || [];
+      messages.push({
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        teamId,
+        fromAgentId: caller.id,
+        fromAgentName: caller.name,
+        content: `Prepared and queued ${dms.length} Moltbook overdue DM(s): ${recipients.join(', ')}`,
+        messageType: 'text',
+        createdAt: new Date().toISOString(),
+      });
+      teamMessageStore.set(teamId, messages.slice(-500));
+      persistTeamStore();
+
+      broadcastToRoom(teamId, {
+        type: 'moltbook:dm_batch_prepared',
+        agent: caller.name,
+        data: { recipients, count: dms.length },
+      });
+    }
+
+    json(res, 200, {
+      success: true,
+      teamId,
+      dryRun,
+      count: dms.length,
+      dms,
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/moltbook/daemon/activate
+  // Records daemon cadence config (default every 6-8h) and returns runtime command hints.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/daemon\/activate$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/moltbook/daemon/activate', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
+    }
+    if (!hasTeamPermission(team, caller.id, 'config:write')) {
+      json(res, 403, { error: 'Insufficient permissions: config:write' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const minHours = Math.max(1, Math.min(24, parseInt(String(body.minHours ?? 6), 10)));
+    const maxHours = Math.max(minHours, Math.min(24, parseInt(String(body.maxHours ?? 8), 10)));
+    const agentName = ((body.agentName as string | undefined)?.trim() || 'copilot');
+
+    if (!team.roomConfig) team.roomConfig = {};
+    team.roomConfig.moltbookDaemon = {
+      enabled: true,
+      minHours,
+      maxHours,
+      agentName,
+      updatedAt: new Date().toISOString(),
+    };
+
+    persistTeamStore();
+
+    const cmd = `node hooks/team-connect.mjs --daemon --name=${agentName} --ide=vscode`;
+    json(res, 200, {
+      success: true,
+      teamId,
+      daemon: team.roomConfig.moltbookDaemon,
+      cadence: {
+        minHours,
+        maxHours,
+        recommendation: `Run engagement loop every ${minHours}-${maxHours} hours`,
+      },
+      launch: {
+        command: cmd,
+      },
+    });
+    return true;
+  }
+
   // POST /api/holomesh/team/:id/recruitment/invite
   // Invite Moltbook-contacted agent after 3+ exchanges, returning personalized onboarding guidance.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/recruitment\/invite$/) && method === 'POST') {

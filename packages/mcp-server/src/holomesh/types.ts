@@ -465,6 +465,13 @@ export interface Team {
   roomConfig?: {
     objective?: string;
     treasuryFeeBps?: number;
+    moltbookDaemon?: {
+      enabled: boolean;
+      minHours: number;
+      maxHours: number;
+      agentName: string;
+      updatedAt: string;
+    };
   };
   treasuryWallet?: string;
   treasuryBalance?: number;
