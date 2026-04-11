@@ -60,6 +60,7 @@ import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
+import { initStores } from './holomesh/state';
 import type { GossipDeltaRequest } from './holomesh/types';
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 
@@ -2363,8 +2364,10 @@ const httpServer = http.createServer(async (req, res) => {
 // ── Start Server ─────────────────────────────────────────────────────────────
 
 // Initialize WebRTC Signaling Server for Neural Streaming out-of-band payloads
-// Initialize WebRTC Signaling Server for Neural Streaming out-of-band payloads
 new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
+
+// Load team, social, and agent state
+initStores();
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
