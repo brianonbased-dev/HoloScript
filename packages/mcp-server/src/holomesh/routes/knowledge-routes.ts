@@ -269,6 +269,62 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
+  // POST /api/holomesh/brittney/review — Wisdom/Gotcha-aware compile guidance
+  if (pathname === '/api/holomesh/brittney/review' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const source = (body.source as string | undefined)?.trim();
+    const target = (body.target as string | undefined)?.trim() || 'generic';
+    if (!source) {
+      json(res, 400, { error: 'Missing source' });
+      return true;
+    }
+
+    const query = `${target} ${source.slice(0, 500)}`;
+    const kb = await c.queryKnowledge(query, { limit: 30 });
+
+    const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 5);
+    const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 5);
+    const patterns = kb.filter((e) => e.type === 'pattern').slice(0, 5);
+
+    const gotchaSignals = ['error', 'fail', 'unsafe', 'invalid', 'deprecated', 'mismatch', 'unsupported'];
+    const gotchaDensity = gotchas.reduce((sum, g) => {
+      const text = g.content.toLowerCase();
+      const hits = gotchaSignals.filter((s) => text.includes(s)).length;
+      return sum + hits;
+    }, 0);
+    const baseRisk = Math.min(100, gotchas.length * 12 + gotchaDensity * 4);
+
+    const recommendations = [
+      ...wisdom.map((w) => ({ type: 'wisdom' as const, id: w.id, tip: w.content.slice(0, 220), domain: w.domain })),
+      ...patterns.map((p) => ({ type: 'pattern' as const, id: p.id, tip: p.content.slice(0, 220), domain: p.domain })),
+      ...gotchas.map((g) => ({ type: 'gotcha' as const, id: g.id, tip: g.content.slice(0, 220), domain: g.domain })),
+    ].slice(0, 10);
+
+    json(res, 200, {
+      success: true,
+      agent: 'brittney-2.0',
+      target,
+      risk: {
+        score: baseRisk,
+        level: baseRisk >= 70 ? 'high' : baseRisk >= 35 ? 'medium' : 'low',
+        basis: {
+          gotchas: gotchas.length,
+          gotchaDensity,
+          wisdom: wisdom.length,
+          patterns: patterns.length,
+        },
+      },
+      recommendations,
+      knowledgeUsed: kb.length,
+      reviewedBy: caller.name,
+      reviewedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
   // POST /api/holomesh/storyweaver/session — Create a branching story session
   if (pathname === '/api/holomesh/storyweaver/session' && method === 'POST') {
     const caller = requireAuth(req, res);
