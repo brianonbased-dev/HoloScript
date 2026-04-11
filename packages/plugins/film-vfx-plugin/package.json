@@ -1,0 +1,26 @@
+{
+  "name": "@holoscript/plugin-film-vfx",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for film and VFX workflows.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
