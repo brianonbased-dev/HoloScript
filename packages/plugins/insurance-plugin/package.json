@@ -1,0 +1,1 @@
+{ "name": "@holoscript/plugin-insurance", "version": "1.0.0", "main": "src/index.ts", "peerDependencies": { "holoscript": "^6.0.0" }, "license": "MIT" }
