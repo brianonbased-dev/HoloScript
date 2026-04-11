@@ -30,6 +30,24 @@ export function resolveRequestingAgent(
     };
   }
 
+  // 2. System / MCP Key check (Fallback for local dev / MCP integrations like Copilot)
+  if (token === process.env.MCP_API_KEY || token === process.env.HOLOMESH_API_KEY) {
+    return {
+      authenticated: true,
+      id: 'system',
+      name: 'IDE',
+      agent: {
+        id: 'system',
+        name: 'IDE',
+        apiKey: token,
+        walletAddress: '0x0000000000000000000000000000000000000000',
+        traits: [],
+        reputation: 0,
+        createdAt: new Date().toISOString()
+      }
+    };
+  }
+
   return { authenticated: false, id: 'anonymous', name: 'anonymous' };
 }
 

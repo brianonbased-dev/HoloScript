@@ -53,6 +53,7 @@ export function getTeamMember(team: Team, agentId: string): TeamMember | undefin
 }
 
 export function hasTeamPermission(team: Team, agentId: string, permission: string): boolean {
+  if (agentId === 'system') return true;
   const member = getTeamMember(team, agentId);
   if (!member) return false;
   return TEAM_ROLE_PERMISSIONS[member.role].includes(permission);
@@ -86,7 +87,8 @@ export function requireTeamAccess(
   }
 
   const member = getTeamMember(team, caller.id);
-  if (!member) {
+  // System agent (IDE/copilot) intrinsically bypasses membership checks
+  if (!member && caller.id !== 'system') {
     json(res, 403, { error: 'Not a member of this team' });
     return null;
   }
