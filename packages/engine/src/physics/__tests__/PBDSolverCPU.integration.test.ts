@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PBDSolverCPU, extractEdges } from '@holoscript/core';
+import { PBDSolverCPU, extractEdges } from '..';
 import type { ISoftBodyConfig, ISoftBodyState, IVector3 } from '@holoscript/core';
 
 // ── Test Mesh: Quad (2 triangles, 4 vertices) ────────────────────────────

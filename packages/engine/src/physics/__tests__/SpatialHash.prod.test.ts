@@ -5,7 +5,7 @@
  * getNearbyPairs, multi-cell entries, stats, clear.
  */
 import { describe, it, expect } from 'vitest';
-import { SpatialHash, type SpatialEntry } from '@holoscript/core';
+import { SpatialHash, type SpatialEntry } from '..';
 
 function entry(id: string, x: number, y: number, z = 0, radius = 0): SpatialEntry {
   return { id, x, y, z, radius };

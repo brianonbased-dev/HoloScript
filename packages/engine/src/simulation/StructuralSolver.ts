@@ -107,12 +107,9 @@ export class StructuralSolver {
     this.constrainedDofs = new Set<number>();
     for (const c of config.constraints) {
       for (const n of c.nodes) {
-        if (c.type === 'fixed') {
-          this.constrainedDofs.add(n * 3);
-          this.constrainedDofs.add(n * 3 + 1);
-          this.constrainedDofs.add(n * 3 + 2);
-        } else if (c.type === 'pinned') {
-          // Pinned: only translational DOFs constrained
+        if (c.type === 'fixed' || c.type === 'pinned') {
+          // Note: Linear tetrahedral elements only have translational DOFs (3 per node, no rotational DOFs).
+          // Therefore, 'pinned' and 'fixed' constraints are mathematically identical in this solver.
           this.constrainedDofs.add(n * 3);
           this.constrainedDofs.add(n * 3 + 1);
           this.constrainedDofs.add(n * 3 + 2);
@@ -168,10 +165,26 @@ export class StructuralSolver {
       }
     };
 
-    // Modify RHS for constrained DOFs
+    // Compute diagonal of K for Jacobi preconditioning
+    const diagK = new Float32Array(this.dofCount);
+    const tets = this.config.tetrahedra;
+    for (let e = 0; e < this.elementCount; e++) {
+      const ke = this.elementStiffness[e];
+      const nodes = [tets[e * 4], tets[e * 4 + 1], tets[e * 4 + 2], tets[e * 4 + 3]];
+      for (let a = 0; a < 4; a++) {
+        for (let ai = 0; ai < 3; ai++) {
+          const globalI = nodes[a] * 3 + ai;
+          const localI = a * 3 + ai;
+          diagK[globalI] += ke[localI * 12 + localI];
+        }
+      }
+    }
+
+    // Modify RHS and Preconditioner for constrained DOFs
     const rhs = new Float32Array(this.forces);
     for (const dof of this.constrainedDofs) {
       rhs[dof] = 0;
+      diagK[dof] = 1.0; // identity for constrained rows
     }
 
     this.displacements.fill(0);
@@ -181,7 +194,9 @@ export class StructuralSolver {
       rhs,
       this.displacements,
       this.config.maxIterations ?? 1000,
-      this.config.tolerance ?? 1e-8
+      this.config.tolerance ?? 1e-8,
+      diagK,
+      1e-12
     );
 
     // Zero out constrained DOFs

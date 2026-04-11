@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PhysicsWorldImpl, createPhysicsWorld } from '@holoscript/core';
+import { PhysicsWorldImpl, createPhysicsWorld } from '..';
 
 /** Helper to create a body config with the required transform property */
 function bodyConfig(overrides: Record<string, any> = {}) {

@@ -5,7 +5,7 @@
  * getRagdoll, getTotalMass, bone chain and constraint generation.
  */
 import { describe, it, expect } from 'vitest';
-import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '@holoscript/core';
+import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '..';
 
 describe('RagdollSystem — Production', () => {
   const origin = { x: 0, y: 5, z: 0 };

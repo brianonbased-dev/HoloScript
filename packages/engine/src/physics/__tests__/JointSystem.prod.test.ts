@@ -5,7 +5,7 @@
  * motors, setEnabled, breakForce, queries (getJoint, getState, getBrokenJoints, getJointsForBody).
  */
 import { describe, it, expect } from 'vitest';
-import { JointSystem } from '@holoscript/core';
+import { JointSystem } from '..';
 
 describe('JointSystem — Production', () => {
   // ─── Creation / Removal ───────────────────────────────────────────

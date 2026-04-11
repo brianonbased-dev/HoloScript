@@ -6,19 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PhysicsWorldImpl, createPhysicsWorld } from '@holoscript/core';
-import {
-  IVector3,
-  IPhysicsWorld,
-  IRigidBodyConfig,
-  sphereShape,
-  boxShape,
-  capsuleShape,
-  dynamicBody,
-  staticBody,
-  identityQuaternion,
-  zeroVector,
-} from '@holoscript/core';
+import { PhysicsWorldImpl, createPhysicsWorld } from '..';
+import { IVector3, IPhysicsWorld, IRigidBodyConfig, sphereShape, boxShape, capsuleShape, dynamicBody, staticBody, identityQuaternion, zeroVector } from '..';
 
 // Helper: create a dynamic sphere body config
 function dynamicSphere(id: string, radius: number, position: IVector3, mass = 1): IRigidBodyConfig {

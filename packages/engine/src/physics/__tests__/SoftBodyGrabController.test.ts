@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SoftBodyGrabController } from '@holoscript/core';
+import { SoftBodyGrabController } from '..';
 
 // Mock PBDSolverCPU
 function mockSolver(vertexCount = 9) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpatialHash } from '@holoscript/core';
+import { SpatialHash } from '..';
 
 describe('SpatialHash', () => {
   let hash: SpatialHash;

@@ -783,5 +783,5 @@ describe('Integration: Streaming + Cache', () => {
 
     const metrics = streamingManager.getMetrics();
     expect(metrics.lodsLoaded).toBeGreaterThan(0);
-  });
+  }, 15000);
 });

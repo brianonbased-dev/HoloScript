@@ -12,20 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  PIDController,
-  ScalarArithmetic,
-  Vector3Arithmetic,
-  VelocityRingBuffer,
-  defaultPIDConfig,
-  createScalarPIDController,
-  createVector3PIDController,
-  createPIDControllerTrait,
-  type PIDControllerConfig,
-  type PIDGains,
-  type PIDControllerTraitConfig,
-  type PIDArithmetic,
-} from '@holoscript/core';
+import { PIDController, ScalarArithmetic, Vector3Arithmetic, VelocityRingBuffer, defaultPIDConfig, createScalarPIDController, createVector3PIDController, createPIDControllerTrait, type PIDControllerConfig, type PIDGains, type PIDControllerTraitConfig, type PIDArithmetic } from '..';
 import type { IVector3 } from '@holoscript/core';
 
 // =============================================================================

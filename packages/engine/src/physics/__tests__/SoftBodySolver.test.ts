@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodySolver, Particle, DistanceConstraint } from '@holoscript/core';
+import { SoftBodySolver, Particle, DistanceConstraint } from '..';
 
 function mkParticle(x: number, y: number, z: number, invMass = 1): Particle {
   return {

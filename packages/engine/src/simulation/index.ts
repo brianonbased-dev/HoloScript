@@ -43,3 +43,105 @@ export { SaturationManager, type SaturationConfig, type SaturationEvent } from '
 
 // Layer 4 — Multi-Physics Coupling
 export { CouplingManager, type FieldCoupling } from './CouplingManager';
+
+// Units — Dimensional analysis and type-safe physical quantities
+export {
+  // Registry
+  UnitRegistry,
+  DimensionalMismatchError,
+  registry,
+  type UnitDefinition,
+} from './units/UnitRegistry';
+export {
+  // Branded types
+  type Temperature,
+  type Pressure,
+  type Force,
+  type Length,
+  type Area,
+  type Volume,
+  type Time,
+  type Mass,
+  type Density,
+  type Velocity,
+  type ThermalConductivity,
+  type SpecificHeat,
+  type ThermalDiffusivity,
+  type HeatTransferCoefficient,
+  type Power,
+  type Energy,
+  type YoungsModulus,
+  type YieldStrength,
+  type Stress,
+  type Strain,
+  type PoissonRatio,
+  type FlowRate,
+  // Constructors
+  temperature,
+  pressure,
+  force,
+  length,
+  area,
+  volume,
+  time,
+  mass,
+  density,
+  velocity,
+  thermalConductivity,
+  specificHeat,
+  thermalDiffusivity as thermalDiffusivityQuantity,
+  power,
+  energy,
+  youngsModulus,
+  yieldStrength,
+  stress,
+  strain,
+  poissonRatio,
+  flowRate,
+  // Conversions
+  celsiusToKelvin,
+  kelvinToCelsius,
+  fahrenheitToKelvin,
+  kelvinToFahrenheit,
+} from './units/PhysicalQuantity';
+
+// Material Properties — Temperature-dependent lookup
+export {
+  getMaterialAtTemperature,
+  getThermalConductivity,
+  getSpecificHeat,
+  getDensity,
+  getDynamicViscosity,
+  hasTemperatureDependentData,
+  getTemperatureRange,
+  listTemperatureDependentMaterials,
+} from './MaterialProperties';
+
+// Export — VTK, CSV, JSON data export for post-processing
+export {
+  exportStructuredPoints,
+  exportUnstructuredGrid,
+  exportPolyData,
+  exportConvergenceHistory,
+  exportScalarFieldCSV,
+  exportTable,
+  exportMaterialTable,
+  createMetadata,
+  validateMetadata,
+  serializeMetadata,
+  deserializeMetadata,
+  type SimulationMetadata,
+} from './export/index';
+
+// Verification — Convergence analysis utilities
+export {
+  errorL2,
+  errorLinf,
+  relativeErrorL2,
+  computeObservedOrder,
+  convergenceOrderTwoLevel,
+  richardsonExtrapolation,
+  gridConvergenceIndex,
+  runConvergenceStudy,
+  type ConvergenceStudyResult,
+} from './verification/ConvergenceAnalysis';

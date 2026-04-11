@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RopeSystem } from '@holoscript/core';
+import { RopeSystem } from '..';
 
 describe('RopeSystem', () => {
   let sys: RopeSystem;

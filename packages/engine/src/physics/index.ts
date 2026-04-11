@@ -207,3 +207,19 @@ export {
 // Soft-body adapter and solver
 export * from './SoftBodyAdapter';
 export * from './SoftBodySolver';
+
+export * from './VRPhysicsBridge';
+export * from './ClothSim';
+export * from './ConstraintSolver';
+export * from './DeformableMesh';
+export * from './FluidSim';
+export * from './JointSystem';
+export * from './RagdollController';
+export * from './RagdollSystem';
+export * from './RaycastSystem';
+export * from './RopeSystem';
+export * from './TriggerZone';
+export * from './VehicleSystem';
+export * from './SpatialHash';
+
+

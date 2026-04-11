@@ -52,7 +52,12 @@ export class RegularGrid3D {
 
   /**
    * Discrete Laplacian ∇²f at (i,j,k) using 2nd-order central differences.
-   * Returns 0 at boundaries (Neumann-like default).
+   * 
+   * BOUNDARY CONTRACT: This solver uses a flat array without ghost cells.
+   * At boundaries (e.g. i=0 or i=nx-1), the partial derivative in that 
+   * direction is skipped. This results in a partial Laplacian which implicitly
+   * enforces a homogeneous Neumann boundary condition (∂T/∂n = 0 / zero flux)
+   * if no explicit boundary condition overwrites it after integration.
    */
   laplacian(i: number, j: number, k: number, component = 0): number {
     const c = this.get(i, j, k, component);

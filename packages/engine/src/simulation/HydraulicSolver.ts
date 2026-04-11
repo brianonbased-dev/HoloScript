@@ -152,6 +152,15 @@ export class HydraulicSolver {
    * Solve the pipe network for steady-state pressures and flow rates.
    */
   solve(): ConvergenceResult {
+    // Direct Bernoulli (tree solve) if no loops
+    if (this.loops.length === 0) {
+      this.solveTreeFlows();
+      this.computeNodePressures();
+      this.updateOutputArrays();
+      this.solveResult = { converged: true, iterations: 1, residual: 0, maxChange: 0 };
+      return this.solveResult;
+    }
+
     const maxIter = this.config.maxIterations;
     const tol = this.config.convergence;
     let maxCorrection = 0;
@@ -283,6 +292,61 @@ export class HydraulicSolver {
 
     for (const pipe of this.pipes) {
       pipe.flowRate = avgFlow > 0 ? avgFlow : 0.001;
+    }
+  }
+
+  /**
+   * Exact flow calculation for tree-topology networks (no loops).
+   * Propagates demand from leaf nodes up to reservoirs.
+   */
+  private solveTreeFlows(): void {
+    const n = this.nodes.length;
+    const adj: [number, number][][] = Array.from({ length: n }, () => []);
+    const degree = new Int32Array(n);
+    
+    for (const pipe of this.pipes) {
+      adj[pipe.fromNode].push([pipe.toNode, pipe.index]);
+      adj[pipe.toNode].push([pipe.fromNode, pipe.index]);
+      degree[pipe.fromNode]++;
+      degree[pipe.toNode]++;
+    }
+
+    const demands = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+        demands[i] = this.nodes[i].config.demand ?? 0;
+    }
+
+    const queue: number[] = [];
+    for (let i = 0; i < n; i++) {
+        if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
+            queue.push(i);
+        }
+    }
+
+    while (queue.length > 0) {
+        const curr = queue.shift()!;
+        degree[curr]--;
+
+        for (const [neighbor, pipeIdx] of adj[curr]) {
+            if (degree[neighbor] > 0) {
+                const pipe = this.pipes[pipeIdx];
+                const requiredFlow = demands[curr];
+                
+                if (pipe.toNode === curr) {
+                    pipe.flowRate = requiredFlow;
+                } else {
+                    pipe.flowRate = -requiredFlow;
+                }
+
+                demands[neighbor] += requiredFlow;
+                degree[neighbor]--;
+
+                if (degree[neighbor] === 1 && this.nodes[neighbor].config.type !== 'reservoir') {
+                    queue.push(neighbor);
+                }
+                break;
+            }
+        }
     }
   }
 

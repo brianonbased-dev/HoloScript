@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodyAdapter } from '@holoscript/core';
+import { SoftBodyAdapter } from '..';
 
 function mockNode(vertexCount = 4) {
   const vertices: number[] = [];

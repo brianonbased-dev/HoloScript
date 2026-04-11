@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SoftBodyGrabController, GrabConfig } from '@holoscript/core';
+import { SoftBodyGrabController, GrabConfig } from '..';
 import type { IVector3 } from '@holoscript/core';
 
 // =============================================================================

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JointSystem } from '@holoscript/core';
+import { JointSystem } from '..';
 
 describe('JointSystem', () => {
   let sys: JointSystem;

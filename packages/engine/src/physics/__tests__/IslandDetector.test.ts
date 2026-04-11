@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IslandDetector } from '@holoscript/core';
+import { IslandDetector } from '..';
 
 describe('IslandDetector', () => {
   let det: IslandDetector;

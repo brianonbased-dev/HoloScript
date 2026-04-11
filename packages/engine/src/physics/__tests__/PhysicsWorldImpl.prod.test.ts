@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PhysicsWorldImpl } from '@holoscript/core';
+import { PhysicsWorldImpl } from '..';
 import type { IRigidBodyConfig } from '@holoscript/core';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

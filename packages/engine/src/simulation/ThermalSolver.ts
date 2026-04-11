@@ -105,8 +105,7 @@ export class ThermalSolver {
     const dx = this.temperature.dx;
     const dy = this.temperature.dy;
     const dz = this.temperature.dz;
-    const dxMin = Math.min(dx, dy, dz);
-    const dtStable = (dxMin * dxMin) / (6 * this.alpha);
+    const dtStable = 0.9 * (1 / (2 * this.alpha * (1 / (dx * dx) + 1 / (dy * dy) + 1 / (dz * dz))));
 
     if (config.timeStep > dtStable) {
       this.useImplicit = true;
@@ -120,7 +119,12 @@ export class ThermalSolver {
     const t0 = performance.now();
     const effectiveDt = dt > 0 ? dt : this.config.timeStep;
 
-    // Apply boundary conditions
+    // Set boundary conditions, ensuring convection BCs receive actual thermal conductivity for Biot number
+    for (const bc of this.config.boundaryConditions) {
+      if (bc.type === 'convection') {
+        bc.k = this.material.conductivity;
+      }
+    }
     applyBoundaryConditions(
       this.temperature,
       this.config.boundaryConditions,

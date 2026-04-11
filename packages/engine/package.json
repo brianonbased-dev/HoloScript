@@ -151,126 +151,6 @@
       "import": "./dist/physics/index.js",
       "require": "./dist/physics/index.cjs"
     },
-    "./physics/ClothSim": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/ConstraintSolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/DeformableMesh": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/FluidSim": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/IslandDetector": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/JointSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/MLSMPMFluid": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PBDSolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsBody.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsTypes": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsTypes.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/PhysicsWorldImpl": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RagdollController": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RagdollSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RaycastSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RaycastSystem.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/RopeSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SoftBodyAdapter": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SoftBodySolver": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SpatialHash": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/SpatialHash.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/TriggerZone": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/TriggerZone.js": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
-    "./physics/VehicleSystem": {
-      "types": "./dist/physics/index.d.ts",
-      "import": "./dist/physics/index.js",
-      "require": "./dist/physics/index.cjs"
-    },
     "./runtime": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
@@ -357,11 +237,6 @@
       "require": "./dist/runtime/index.cjs"
     },
     "./runtime/profiles/HeadlessRuntime": {
-      "types": "./dist/runtime/index.d.ts",
-      "import": "./dist/runtime/index.js",
-      "require": "./dist/runtime/index.cjs"
-    },
-    "./runtime/protocols/MQTTClient": {
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js",
       "require": "./dist/runtime/index.cjs"

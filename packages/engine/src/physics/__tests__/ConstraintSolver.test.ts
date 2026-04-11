@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ConstraintSolver } from '@holoscript/core';
+import { ConstraintSolver } from '..';
 import type {
   Constraint,
   IRigidBodyState,

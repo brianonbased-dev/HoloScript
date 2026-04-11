@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '@holoscript/core';
+import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '..';
 
 describe('RagdollSystem', () => {
   let sys: RagdollSystem;

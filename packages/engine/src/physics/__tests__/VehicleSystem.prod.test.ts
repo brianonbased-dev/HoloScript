@@ -5,7 +5,7 @@
  * getVehicle, removeVehicle, getForwardVector, presets (createDefaultCar, createTruck).
  */
 import { describe, it, expect } from 'vitest';
-import { VehicleSystem, createDefaultCar, createTruck } from '@holoscript/core';
+import { VehicleSystem, createDefaultCar, createTruck } from '..';
 
 describe('VehicleSystem — Production', () => {
   // ─── Presets ──────────────────────────────────────────────────────

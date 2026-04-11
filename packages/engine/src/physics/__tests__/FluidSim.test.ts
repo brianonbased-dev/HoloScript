@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FluidSim } from '@holoscript/core';
+import { FluidSim } from '..';
 
 describe('FluidSim', () => {
   let sim: FluidSim;

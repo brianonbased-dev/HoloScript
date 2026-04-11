@@ -22,10 +22,12 @@ function makeStep(overrides: Partial<ChoreographyStep> = {}): ChoreographyStep {
     agentId: 'agent-1',
     action: 'do_something',
     inputs: {},
+    outputs: {},
     dependencies: [],
     status: 'pending',
     timeout: 5000,
-    retries: 0,
+    retry: { maxRetries: 0 },
+
     ...overrides,
   };
 }
@@ -141,7 +143,7 @@ describe('ChoreographyEngine', () => {
     it('marks plan as failed when action throws', async () => {
       // ActionHandler must throw to fail a step (return value = outputs, not success flag)
       engine.setActionHandler(vi.fn().mockRejectedValue(new Error('action failed')));
-      const plan = engine.createPlan('goal', [AGENT_1], [makeStep({ retries: 0 })]);
+      const plan = engine.createPlan('goal', [AGENT_1], [makeStep({ retry: { maxRetries: 0 } })]);
       const result = await engine.execute(plan);
       expect(result.success).toBe(false);
       expect(result.stepsFailed).toBe(1);

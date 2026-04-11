@@ -1,19 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  PhysicsActivationState,
-  ActivationTriggerType,
-  WindZoneType,
-  PhysicsActivationController,
-  VelocitySmoother,
-  WindZoneManager,
-  evaluateIntensityCurve,
-  computeSelfWind,
-  DEFAULT_INTENSITY_CURVE,
-  DEFAULT_ACTIVATION_CONFIG,
-  DEFAULT_LOCOMOTION_CONFIG,
-  type PhysicsActivationConfig,
-  type WindZone,
-} from '@holoscript/core';
+import { PhysicsActivationState, ActivationTriggerType, WindZoneType, PhysicsActivationController, VelocitySmoother, WindZoneManager, evaluateIntensityCurve, computeSelfWind, DEFAULT_INTENSITY_CURVE, DEFAULT_ACTIVATION_CONFIG, DEFAULT_LOCOMOTION_CONFIG, type PhysicsActivationConfig, type WindZone } from '..';
 import type { WeatherBlackboardState } from '@holoscript/core';
 
 // =============================================================================

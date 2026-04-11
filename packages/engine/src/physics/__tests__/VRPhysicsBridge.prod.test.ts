@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { VRPhysicsBridge } from '@holoscript/core';
+import { VRPhysicsBridge } from '..';
 import type { IPhysicsWorld, IVector3, IQuaternion } from '@holoscript/core';
 import type { VRHand } from '@holoscript/core';
 

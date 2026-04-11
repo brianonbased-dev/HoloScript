@@ -14,6 +14,7 @@ export interface ConvergenceResult {
   iterations: number;
   residual: number;
   maxChange: number;
+  residualHistory?: number[];
 }
 
 // ── Conjugate Gradient ────────────────────────────────────────────────────────
@@ -25,46 +26,62 @@ export interface ConvergenceResult {
  * @param b       Right-hand side vector
  * @param x       Initial guess (modified in place with solution)
  * @param maxIter Maximum iterations
- * @param tol     Convergence tolerance. Threshold is max(tol * ||b||, tol) —
- *                relative when ||b|| >= 1, absolute floor of tol otherwise.
+ * @param tol     Convergence tolerance. Threshold is max(tol * ||b||, tol * ||x_0||, abstol)
+ * @param diagA   Optional diagonal of A for Jacobi preconditioning
+ * @param abstol  Absolute tolerance flooring
  */
 export function conjugateGradient(
   applyA: (x: Float32Array, out: Float32Array) => void,
   b: Float32Array,
   x: Float32Array,
   maxIter: number,
-  tol: number
+  tol: number,
+  diagA?: Float32Array,
+  abstol?: number
 ): ConvergenceResult {
+  const actualAbstol = abstol ?? tol;
   const n = b.length;
   const r = new Float32Array(n);
+  const z = new Float32Array(n);
   const p = new Float32Array(n);
   const Ap = new Float32Array(n);
+  const residualHistory: number[] = [];
 
   // r = b - A*x
   applyA(x, Ap);
   for (let i = 0; i < n; i++) r[i] = b[i] - Ap[i];
 
-  // p = r
-  p.set(r);
+  // z = M^-1 r  (Jacobi preconditioner)
+  if (diagA) {
+    for (let i = 0; i < n; i++) z[i] = Math.abs(diagA[i]) > 1e-20 ? r[i] / diagA[i] : r[i];
+  } else {
+    z.set(r);
+  }
 
-  let rDotR = dot(r, r);
+  // p = z
+  p.set(z);
+
+  let rDotZ = dot(r, z);
   const bNorm = Math.sqrt(dot(b, b));
-  const threshold = Math.max(tol * bNorm, tol);
+  const xNorm = Math.sqrt(dot(x, x));
+  const threshold = Math.max(tol * bNorm, tol * xNorm, actualAbstol);
 
   let maxChange = 0;
   let iter = 0;
 
   for (iter = 0; iter < maxIter; iter++) {
-    const rNorm = Math.sqrt(rDotR);
+    const rNorm = Math.sqrt(dot(r, r));
+    residualHistory.push(rNorm);
+
     if (rNorm < threshold) {
-      return { converged: true, iterations: iter, residual: rNorm, maxChange };
+      return { converged: true, iterations: iter, residual: rNorm, maxChange, residualHistory };
     }
 
     applyA(p, Ap);
     const pAp = dot(p, Ap);
     if (Math.abs(pAp) < 1e-30) break; // degenerate
 
-    const alpha = rDotR / pAp;
+    const alpha = rDotZ / pAp;
 
     maxChange = 0;
     for (let i = 0; i < n; i++) {
@@ -74,20 +91,31 @@ export function conjugateGradient(
       if (Math.abs(dx) > maxChange) maxChange = Math.abs(dx);
     }
 
-    const rDotRNew = dot(r, r);
-    const beta = rDotRNew / rDotR;
-    rDotR = rDotRNew;
+    // z = M^-1 r
+    if (diagA) {
+      for (let i = 0; i < n; i++) z[i] = Math.abs(diagA[i]) > 1e-20 ? r[i] / diagA[i] : r[i];
+    } else {
+      z.set(r);
+    }
+
+    const rDotZNew = dot(r, z);
+    const beta = rDotZNew / rDotZ;
+    rDotZ = rDotZNew;
 
     for (let i = 0; i < n; i++) {
-      p[i] = r[i] + beta * p[i];
+      p[i] = z[i] + beta * p[i];
     }
   }
+
+  const finalRNorm = Math.sqrt(dot(r, r));
+  residualHistory.push(finalRNorm);
 
   return {
     converged: false,
     iterations: iter,
-    residual: Math.sqrt(rDotR),
+    residual: finalRNorm,
     maxChange,
+    residualHistory
   };
 }
 

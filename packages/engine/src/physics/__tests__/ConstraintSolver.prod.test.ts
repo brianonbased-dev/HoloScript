@@ -5,7 +5,7 @@
  * warm starting, broken constraints, clear.
  */
 import { describe, it, expect } from 'vitest';
-import { ConstraintSolver } from '@holoscript/core';
+import { ConstraintSolver } from '..';
 import type {
   IDistanceConstraint,
   ISpringConstraint,

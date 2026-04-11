@@ -6,7 +6,7 @@
  * ray-AABB, ray-sphere, ray-plane, layer masks, max distance.
  */
 import { describe, it, expect } from 'vitest';
-import { RaycastSystem, type Ray } from '@holoscript/core';
+import { RaycastSystem, type Ray } from '..';
 
 const RAY_Z: Ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
 

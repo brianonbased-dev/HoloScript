@@ -17,6 +17,8 @@ export interface BoundaryCondition {
   coefficient?: number;
   /** Ambient temperature for convection BC */
   ambient?: number;
+  /** Thermal conductivity for computing Biot number in convection BCs (defaults to 1.0) */
+  k?: number;
 }
 
 /**
@@ -111,7 +113,8 @@ function applyAtCell(
       const Tamb = bc.ambient ?? bc.value;
       const [ni, nj, nk] = interiorNeighbor(i, j, k, face, grid);
       const dn = normalSpacing(face, grid);
-      const Bi = (h * dn) / 1.0; // Biot number (k=1 normalized, actual k applied by solver)
+      const k_cond = bc.k ?? 1.0;
+      const Bi = (h * dn) / k_cond; // Biot number using actual thermal conductivity
       const Tinterior = grid.get(ni, nj, nk, c);
       grid.set(i, j, k, (Tinterior + Bi * Tamb) / (1 + Bi), c);
       break;
