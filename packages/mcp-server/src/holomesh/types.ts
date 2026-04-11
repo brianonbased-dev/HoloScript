@@ -636,3 +636,22 @@ export interface StoryWeaverSession {
   createdAt: string;
   updatedAt: string;
 }
+
+// --- Self-Improving Worlds ---
+
+export interface SelfImprovingWorldPatch {
+  id: string;
+  traitPath: string;
+  action: 'add' | 'update' | 'remove';
+  reason: string;
+  proposedValue?: Record<string, unknown>;
+  confidence: number;
+}
+
+export interface SelfImprovingWorldSession {
+  worldId: string;
+  revision: number;
+  lastGoal?: string;
+  patches: SelfImprovingWorldPatch[];
+  updatedAt: string;
+}

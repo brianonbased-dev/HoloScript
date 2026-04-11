@@ -12,6 +12,7 @@ import type {
   StoredBountyMiniGame, 
   StoredBountyGovernanceProposal,
   StoryWeaverSession,
+  SelfImprovingWorldSession,
   KnowledgeTransaction 
 } from './types';
 import { BountyManager, KnowledgeMarketplace } from '@holoscript/framework';
@@ -68,6 +69,7 @@ export const commentStore: Map<string, StoredComment[]> = new Map(); // entryId 
 export const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
 export const transactionLedger: KnowledgeTransaction[] = [];
 export const storyWeaverStore: Map<string, StoryWeaverSession> = new Map(); // sessionId -> story session
+export const selfImprovingWorldStore: Map<string, SelfImprovingWorldSession> = new Map(); // worldId -> world evolution session
 
 // Bounties
 export const bountySubmissionStore: Map<string, StoredBountySubmission[]> = new Map(); // bountyId -> submissions
@@ -115,6 +117,7 @@ export function persistSocialStore(): void {
     paidAccess: Array.from(paidAccessStore),
     transactions: transactionLedger,
     storyWeaver: Array.from(storyWeaverStore.entries()),
+    selfImprovingWorlds: Array.from(selfImprovingWorldStore.entries()),
     bountySubmissions: Array.from(bountySubmissionStore.entries()),
     bountyMiniGames: Array.from(bountyMiniGameStore.entries()),
     bountyGovernance: Array.from(bountyGovernanceStore.entries()),
@@ -151,6 +154,9 @@ export function initStores(): void {
     }
     if (socialData.storyWeaver) {
       for (const [id, session] of socialData.storyWeaver) storyWeaverStore.set(id, session);
+    }
+    if (socialData.selfImprovingWorlds) {
+      for (const [id, session] of socialData.selfImprovingWorlds) selfImprovingWorldStore.set(id, session);
     }
     if (socialData.bountySubmissions) {
       for (const [id, list] of socialData.bountySubmissions) bountySubmissionStore.set(id, list);

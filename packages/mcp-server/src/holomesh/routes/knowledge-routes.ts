@@ -14,6 +14,7 @@ import {
   HOLOMESH_DATA_DIR,
   teamStore,
   storyWeaverStore,
+  selfImprovingWorldStore,
 } from '../state';
 import { 
   json, 
@@ -31,6 +32,8 @@ import type {
   StoryWeaverSession,
   StoryWeaverBranch,
   StoryWeaverBeat,
+  SelfImprovingWorldSession,
+  SelfImprovingWorldPatch,
 } from '../types';
 
 const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
@@ -128,6 +131,52 @@ function deriveStoryBeats(chapterText: string): StoryWeaverBeat[] {
     { id: `beat_${Date.now()}_twist`, kind: 'twist', text: twistText, createdAt: now },
     { id: `beat_${Date.now()}_resolution`, kind: 'resolution', text: resolutionText, createdAt: now },
   ];
+}
+
+function inferWorldPatches(observations: string[], goal?: string): SelfImprovingWorldPatch[] {
+  const text = observations.join(' ').toLowerCase();
+  const patches: SelfImprovingWorldPatch[] = [];
+  const mk = (
+    traitPath: string,
+    action: SelfImprovingWorldPatch['action'],
+    reason: string,
+    proposedValue: Record<string, unknown>,
+    confidence: number,
+  ): SelfImprovingWorldPatch => ({
+    id: `patch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    traitPath,
+    action,
+    reason,
+    proposedValue,
+    confidence,
+  });
+
+  if (/lag|slow|fps|stutter|frame/.test(text)) {
+    patches.push(
+      mk('rendering.lod', 'update', 'Observed performance degradation', { distanceBias: 1.25, maxDetailTier: 2 }, 0.82),
+    );
+  }
+  if (/collision|clip|physics|fall through/.test(text)) {
+    patches.push(
+      mk('physics.collision', 'update', 'Physics/collision instability detected', { broadphase: 'sweep-and-prune', substeps: 4 }, 0.79),
+    );
+  }
+  if (/agent|npc|path|nav/.test(text)) {
+    patches.push(
+      mk('ai.navigation', 'update', 'Navigation issues reported', { repathIntervalMs: 800, avoidanceRadius: 1.2 }, 0.76),
+    );
+  }
+  if (/lighting|dark|overexposed|bloom/.test(text)) {
+    patches.push(
+      mk('rendering.postfx', 'update', 'Lighting quality imbalance', { bloom: 0.35, tonemap: 'aces' }, 0.72),
+    );
+  }
+  if (patches.length === 0) {
+    patches.push(
+      mk('world.meta', 'update', goal ? `Goal-driven optimization for: ${goal}` : 'General world stabilization', { tune: 'balanced' }, 0.61),
+    );
+  }
+  return patches;
 }
 
 function buildRevenueAggregator(): CreatorRevenueAggregator {
@@ -778,6 +827,88 @@ export async function handleKnowledgeRoutes(
     persistSocialStore();
 
     json(res, 201, { success: true, comment });
+    return true;
+  }
+
+  // POST /api/holomesh/worlds/:id/self-improve/plan — derive trait-graph patches from observations
+  if (pathname.match(/^\/api\/holomesh\/worlds\/[^/]+\/self-improve\/plan$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/plan', '');
+    const body = await parseJsonBody(req);
+    const observations = Array.isArray(body.observations)
+      ? (body.observations as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (observations.length === 0) {
+      json(res, 400, { error: 'Missing observations[]' });
+      return true;
+    }
+
+    const goal = (body.goal as string | undefined)?.trim();
+    const existing = selfImprovingWorldStore.get(worldId);
+    const patches = inferWorldPatches(observations, goal);
+    const session: SelfImprovingWorldSession = {
+      worldId,
+      revision: existing ? existing.revision : 1,
+      lastGoal: goal,
+      patches,
+      updatedAt: new Date().toISOString(),
+    };
+
+    selfImprovingWorldStore.set(worldId, session);
+    persistSocialStore();
+    json(res, 200, { success: true, session, generatedPatches: patches.length });
+    return true;
+  }
+
+  // POST /api/holomesh/worlds/:id/self-improve/redeploy — apply selected patches and bump revision
+  if (pathname.match(/^\/api\/holomesh\/worlds\/[^/]+\/self-improve\/redeploy$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/redeploy', '');
+    const body = await parseJsonBody(req);
+    const session = selfImprovingWorldStore.get(worldId);
+    if (!session) {
+      json(res, 404, { error: 'No self-improvement plan found for world' });
+      return true;
+    }
+
+    const patchIds = Array.isArray(body.patchIds)
+      ? (body.patchIds as unknown[]).filter((x): x is string => typeof x === 'string')
+      : session.patches.map((p) => p.id);
+    const applied = session.patches.filter((p) => patchIds.includes(p.id));
+
+    const next: SelfImprovingWorldSession = {
+      ...session,
+      revision: session.revision + 1,
+      patches: session.patches,
+      updatedAt: new Date().toISOString(),
+    };
+    selfImprovingWorldStore.set(worldId, next);
+    persistSocialStore();
+
+    json(res, 200, {
+      success: true,
+      worldId,
+      redeployedBy: caller.name,
+      revision: next.revision,
+      appliedPatches: applied,
+      count: applied.length,
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/worlds/:id/self-improve — inspect latest self-improvement session
+  if (pathname.match(/^\/api\/holomesh\/worlds\/[^/]+\/self-improve$/) && method === 'GET') {
+    const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve', '');
+    const session = selfImprovingWorldStore.get(worldId);
+    if (!session) {
+      json(res, 404, { error: 'No self-improvement session found' });
+      return true;
+    }
+    json(res, 200, { success: true, session });
     return true;
   }
 
