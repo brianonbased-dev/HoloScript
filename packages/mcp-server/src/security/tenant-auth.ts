@@ -41,6 +41,8 @@ const mockTenantStore = new Map<string, TenantContext>([
   ],
 ]);
 
+let pgPool: any = null;
+
 /**
  * Validates a dynamic API key against the configured backend store.
  */
@@ -52,12 +54,14 @@ export async function validateTenantKey(
   // 1. Try PostgreSQL if configured
   if (process.env.DATABASE_URL) {
     try {
-      const { Pool } = require('pg');
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
-      });
-      const res = await pool.query(
+      if (!pgPool) {
+        const { Pool } = require('pg');
+        pgPool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+        });
+      }
+      const res = await pgPool.query(
         'SELECT tenant_id, tier, limits FROM api_keys WHERE key = $1 AND revoked = false',
         [apiKey]
       );
