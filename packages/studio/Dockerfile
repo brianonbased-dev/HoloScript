@@ -1,6 +1,7 @@
+ARG PNPM_VERSION=8.12.0
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat dumb-init
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # ─── Collect all package.json for lockfile resolution ────────────────────────
 # pnpm install --frozen-lockfile needs every workspace package.json present.

@@ -2,8 +2,9 @@
 # Headless Unity/WebGPU/glTF compilation background worker and SOC2 compliant async processing.
 # Based on absorb-service Dockerfile configuration
 
+ARG PNPM_VERSION=8.12.0
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # Collect all package.json for lockfile resolution
 FROM base AS manifests
@@ -38,7 +39,7 @@ RUN cd services/export-api && npx tsup
 # --- Production stage ---
 FROM node:20-alpine
 
-RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 WORKDIR /app
 
