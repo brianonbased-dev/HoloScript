@@ -1,5 +1,7 @@
 import type http from 'http';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { CreatorRevenueAggregator } from '@holoscript/framework';
 import { 
   commentStore, 
@@ -7,7 +9,8 @@ import {
   transactionLedger, 
   paidAccessStore,
   agentKeyStore,
-  persistSocialStore 
+  persistSocialStore,
+  HOLOMESH_DATA_DIR,
 } from '../state';
 import { 
   json, 
@@ -20,6 +23,59 @@ import { getClient } from '../orchestrator-client';
 import type { MeshKnowledgeEntry, StoredComment, KnowledgeTransaction } from '../types';
 
 const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
+
+const AUDIT_KEY_ID = 'holomesh-ed25519-v1';
+
+function getAuditKeyPaths(): { privateKeyPath: string; publicKeyPath: string } {
+  return {
+    privateKeyPath: path.join(HOLOMESH_DATA_DIR, 'audit-ed25519-private.pem'),
+    publicKeyPath: path.join(HOLOMESH_DATA_DIR, 'audit-ed25519-public.pem'),
+  };
+}
+
+function getOrCreateAuditKeyPair(): { privateKeyPem: string; publicKeyPem: string } {
+  const envPriv = process.env.HOLOMESH_AUDIT_PRIVATE_KEY_PEM;
+  const envPub = process.env.HOLOMESH_AUDIT_PUBLIC_KEY_PEM;
+  if (envPriv && envPub) {
+    return { privateKeyPem: envPriv, publicKeyPem: envPub };
+  }
+
+  const { privateKeyPath, publicKeyPath } = getAuditKeyPaths();
+  if (fs.existsSync(privateKeyPath) && fs.existsSync(publicKeyPath)) {
+    return {
+      privateKeyPem: fs.readFileSync(privateKeyPath, 'utf-8'),
+      publicKeyPem: fs.readFileSync(publicKeyPath, 'utf-8'),
+    };
+  }
+
+  if (!fs.existsSync(HOLOMESH_DATA_DIR)) fs.mkdirSync(HOLOMESH_DATA_DIR, { recursive: true });
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519');
+  const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+  const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+  fs.writeFileSync(privateKeyPath, privateKeyPem, 'utf-8');
+  fs.writeFileSync(publicKeyPath, publicKeyPem, 'utf-8');
+  return { privateKeyPem, publicKeyPem };
+}
+
+function buildAuditPayload(entry: Pick<MeshKnowledgeEntry, 'id' | 'authorId' | 'createdAt' | 'provenanceHash'>): string {
+  return JSON.stringify({
+    id: entry.id,
+    authorId: entry.authorId,
+    createdAt: entry.createdAt,
+    provenanceHash: entry.provenanceHash,
+  });
+}
+
+function signAuditPayload(payload: string): { signature: string; publicKeyPem: string; payloadHash: string } {
+  const { privateKeyPem, publicKeyPem } = getOrCreateAuditKeyPair();
+  const signature = crypto.sign(null, Buffer.from(payload), privateKeyPem).toString('base64');
+  const payloadHash = crypto.createHash('sha256').update(payload).digest('hex');
+  return { signature, publicKeyPem, payloadHash };
+}
+
+function verifyAuditPayload(payload: string, signature: string, publicKeyPem: string): boolean {
+  return crypto.verify(null, Buffer.from(payload), publicKeyPem, Buffer.from(signature, 'base64'));
+}
 
 function buildRevenueAggregator(): CreatorRevenueAggregator {
   const agg = new CreatorRevenueAggregator({ platformFeeRate: 1 - CREATOR_ROYALTY_RATE });
@@ -76,8 +132,22 @@ export async function handleKnowledgeRoutes(
       createdAt: new Date().toISOString(),
     };
 
+    const auditPayload = buildAuditPayload(entry);
+    const audit = signAuditPayload(auditPayload);
+    entry.metadata = {
+      ...(entry.metadata || {}),
+      audit: {
+        keyId: AUDIT_KEY_ID,
+        algorithm: 'ed25519',
+        signedAt: new Date().toISOString(),
+        payloadHash: audit.payloadHash,
+        signature: audit.signature,
+        publicKeyPem: audit.publicKeyPem,
+      },
+    };
+
     const synced = await c.contributeKnowledge([entry]);
-    json(res, 201, { success: true, entryId, synced });
+    json(res, 201, { success: true, entryId, synced, audit: entry.metadata.audit });
     return true;
   }
 
@@ -119,6 +189,48 @@ export async function handleKnowledgeRoutes(
       paid,
     };
     json(res, 200, { success: true, entry: visibleEntry, comments, commentCount: comments.length });
+    return true;
+  }
+
+  // GET /api/holomesh/entry/:id/audit — verify Ed25519 publish signature
+  if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+\/audit$/) && method === 'GET') {
+    const entryId = extractParam(url, '/api/holomesh/entry/').replace('/audit', '');
+    const results = await c.queryKnowledge(entryId, { limit: 1 });
+    const entry = results.find((e) => e.id === entryId);
+    if (!entry) {
+      json(res, 404, { error: 'Entry not found' });
+      return true;
+    }
+
+    const audit = (entry.metadata as Record<string, unknown> | undefined)?.audit as
+      | {
+          keyId?: string;
+          algorithm?: string;
+          signedAt?: string;
+          payloadHash?: string;
+          signature?: string;
+          publicKeyPem?: string;
+        }
+      | undefined;
+
+    if (!audit?.signature || !audit.publicKeyPem) {
+      json(res, 404, { error: 'No audit signature found for entry' });
+      return true;
+    }
+
+    const payload = buildAuditPayload(entry);
+    const payloadHash = crypto.createHash('sha256').update(payload).digest('hex');
+    const valid = verifyAuditPayload(payload, audit.signature, audit.publicKeyPem);
+
+    json(res, 200, {
+      success: true,
+      entryId,
+      audit: {
+        ...audit,
+        payloadHash,
+        valid,
+      },
+    });
     return true;
   }
 
