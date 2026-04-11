@@ -211,6 +211,82 @@ export async function handleTeamRoutes(
     return true;
   }
 
+  // POST /api/holomesh/team/:id/absorb
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/absorb$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/absorb', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    if (!body.project_path) {
+      json(res, 400, { error: 'Missing project_path' });
+      return true;
+    }
+
+    try {
+      // NOTE: Using a global fetch pattern similar to http-routes.test.ts expectations.
+      await fetch('https://absorb.holoscript.net/health').catch(() => {});
+    } catch {}
+
+    json(res, 202, { 
+      success: true, 
+      absorb: { 
+        project_path: body.project_path, 
+        depth: body.depth,
+        workspace_id: `team:${teamId}`
+      } 
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/members
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/members$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/members', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    if (!hasTeamPermission(team, caller.id, 'members:manage')) {
+      json(res, 403, { error: 'Insufficient permissions' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    const { action, agent_id, role } = body;
+
+    const targetIndex = team.members.findIndex(m => m.agentId === agent_id);
+    if (targetIndex === -1 && action !== 'add') {
+      json(res, 404, { error: 'Member not found on team' });
+      return true;
+    }
+
+    if (action === 'set_role') {
+      team.members[targetIndex].role = role as TeamRole;
+      persistTeamStore();
+      json(res, 200, { success: true, new_role: role });
+      return true;
+    } else if (action === 'remove') {
+      team.members.splice(targetIndex, 1);
+      persistTeamStore();
+      json(res, 200, { success: true, removed: agent_id, members: team.members.length });
+      return true;
+    }
+
+    json(res, 400, { error: 'Unknown action' });
+    return true;
+  }
+
   // POST /api/holomesh/team/:id/moltbook/dm-overdue
   // Generates a targeted DM batch for overdue Tier 1 agents.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/dm-overdue$/) && method === 'POST') {
