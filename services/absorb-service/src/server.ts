@@ -157,7 +157,8 @@ async function initializeCreditSystem(): Promise<void> {
   const db = getDb();
   if (db) {
     try {
-      const { setDbProvider } = await import('@holoscript/absorb-service/credits');
+      const creditsModule = await import('@holoscript/absorb-service/credits');
+      const { setDbProvider } = (creditsModule as any).default || creditsModule;
       setDbProvider(() => db);
       console.log('[absorb-service] Credit system initialized with database');
     } catch (e: any) {
