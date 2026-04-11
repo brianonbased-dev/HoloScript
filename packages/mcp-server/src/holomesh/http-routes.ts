@@ -230,9 +230,23 @@ interface StoredBountySubmission {
   };
 }
 
+interface StoredBountyMiniGame {
+  id: string;
+  teamId: string;
+  title: string;
+  description?: string;
+  bountyIds: string[];
+  createdBy: string;
+  status: 'open' | 'resolved';
+  winnerBountyId?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 const commentStore: Map<string, StoredComment[]> = new Map(); // entryId → comments
 const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
 const bountySubmissionStore: Map<string, StoredBountySubmission[]> = new Map(); // bountyId -> submissions
+const bountyMiniGameStore: Map<string, StoredBountyMiniGame[]> = new Map(); // teamId -> mini-games
 
 function getComments(entryId: string): StoredComment[] {
   return commentStore.get(entryId) || [];
@@ -1225,31 +1239,6 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
-    // GET /api/holomesh/bounties — List all open bounties in the mesh
-    if (pathname === '/api/holomesh/bounties' && method === 'GET') {
-      const q = parseQuery(url);
-      const statusParam = (q.get('status') || 'open') as BountyStatus;
-
-      const allBounties: any[] = [];
-      for (const team of teamStore.values()) {
-        if (team.bounties) {
-          const list = team.bounties.list(statusParam).map((b) => ({
-            ...b,
-            teamId: team.id,
-            teamName: team.name,
-          }));
-          allBounties.push(...list);
-        }
-      }
-
-      json(res, 200, {
-        success: true,
-        bounties: allBounties,
-        count: allBounties.length,
-        status: statusParam,
-      });
-      return true;
-    }
 
     // GET /api/holomesh/agent/:id — Agent profile
     if (
@@ -4531,6 +4520,124 @@ export async function handleHoloMeshRoute(
         submissionId: selected.id,
         payout,
       });
+      return true;
+    }
+
+    // GET /api/holomesh/bounties/minigames — List bounty mini-games (optionally by team)
+    if (pathname === '/api/holomesh/bounties/minigames' && method === 'GET') {
+      const q = parseQuery(url);
+      const teamId = q.get('teamId') || undefined;
+      const status = (q.get('status') as 'open' | 'resolved' | null) || null;
+
+      const games = teamId
+        ? (bountyMiniGameStore.get(teamId) || [])
+        : [...bountyMiniGameStore.values()].flat();
+
+      const filtered = status ? games.filter((g) => g.status === status) : games;
+      json(res, 200, { success: true, games: filtered, count: filtered.length });
+      return true;
+    }
+
+    // POST /api/holomesh/bounties/minigames — Create lightweight challenge between bounties
+    if (pathname === '/api/holomesh/bounties/minigames' && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const body = await parseJsonBody(req);
+      const teamId = (body.teamId as string | undefined)?.trim();
+      const bountyIds = Array.isArray(body.bountyIds) ? (body.bountyIds as string[]) : [];
+      if (!teamId || bountyIds.length < 2) {
+        json(res, 400, { error: 'Missing teamId or bountyIds (need at least 2)' });
+        return true;
+      }
+
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: 'Team not found' });
+        return true;
+      }
+      if (!getTeamMember(team, caller.id)) {
+        json(res, 403, { error: 'Not a member of this team' });
+        return true;
+      }
+      if (!team.bounties) team.bounties = new BountyManager();
+
+      // Ensure all referenced bounties exist
+      for (const bountyId of bountyIds) {
+        if (!team.bounties.getBounty(bountyId)) {
+          json(res, 404, { error: `Bounty not found: ${bountyId}` });
+          return true;
+        }
+      }
+
+      const game: StoredBountyMiniGame = {
+        id: `mg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        teamId,
+        title: (body.title as string | undefined)?.trim() || 'Bounty Mini-Game',
+        description: (body.description as string | undefined)?.trim(),
+        bountyIds,
+        createdBy: caller.name,
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      };
+
+      const list = bountyMiniGameStore.get(teamId) || [];
+      list.push(game);
+      bountyMiniGameStore.set(teamId, list);
+      persistTeamStore();
+
+      json(res, 201, { success: true, game });
+      return true;
+    }
+
+    // POST /api/holomesh/bounties/minigames/:id/resolve — Resolve challenge and set winning bounty
+    if (pathname.match(/^\/api\/holomesh\/bounties\/minigames\/[^/]+\/resolve$/) && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const gameId = extractParam(url, '/api/holomesh/bounties/minigames/').replace('/resolve', '');
+      const body = await parseJsonBody(req);
+      const winnerBountyId = (body.winnerBountyId as string | undefined)?.trim();
+      if (!winnerBountyId) {
+        json(res, 400, { error: 'Missing winnerBountyId' });
+        return true;
+      }
+
+      let game: StoredBountyMiniGame | undefined;
+      let gameTeam: Team | undefined;
+      for (const [tid, games] of bountyMiniGameStore.entries()) {
+        const found = games.find((g) => g.id === gameId);
+        if (found) {
+          game = found;
+          gameTeam = teamStore.get(tid);
+          break;
+        }
+      }
+
+      if (!game || !gameTeam) {
+        json(res, 404, { error: 'Mini-game not found' });
+        return true;
+      }
+
+      if (!getTeamMember(gameTeam, caller.id)) {
+        json(res, 403, { error: 'Not a member of this team' });
+        return true;
+      }
+      if (!hasTeamPermission(gameTeam, caller.id, 'tasks:write')) {
+        json(res, 403, { error: 'Only task managers can resolve mini-games' });
+        return true;
+      }
+      if (!game.bountyIds.includes(winnerBountyId)) {
+        json(res, 400, { error: 'winnerBountyId must be one of the mini-game bountyIds' });
+        return true;
+      }
+
+      game.status = 'resolved';
+      game.winnerBountyId = winnerBountyId;
+      game.resolvedAt = new Date().toISOString();
+      persistTeamStore();
+
+      json(res, 200, { success: true, game });
       return true;
     }
 
