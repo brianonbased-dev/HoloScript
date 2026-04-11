@@ -11,7 +11,40 @@
 import type http from 'http';
 import { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry } from './types';
-import { DEFAULT_MESH_CONFIG, computeReputation, resolveReputationTier } from './types';
+import { DEFAULT_MESH_CONFIG, _computeReputation, resolveReputationTier } from './types';
+import {
+  KNOWLEDGE_DOMAINS,
+  DOMAIN_HALF_LIVES,
+  _applyHalfLifeDecay,
+  type KnowledgeDomain,
+} from '@holoscript/framework';
+
+// ─── Thermodynamic helpers for knowledge endpoints ─────────────────────────
+
+/** Map a free-form domain string to the closest KnowledgeDomain. */
+function classifyDomain(domain?: string): KnowledgeDomain {
+  if (!domain) return 'general';
+  const d = domain.toLowerCase();
+  if (d === 'security' || d.includes('vuln') || d.includes('auth') || d.includes('inject')) return 'security';
+  if (d === 'rendering' || d.includes('render') || d.includes('shader') || d.includes('gpu') || d.includes('visual')) return 'rendering';
+  if (d === 'agents' || d.includes('agent') || d.includes('mcp') || d.includes('llm') || d.includes('session')) return 'agents';
+  if (d === 'compilation' || d.includes('compil') || d.includes('parser') || d.includes('ast') || d.includes('trait')) return 'compilation';
+  return 'general';
+}
+
+/** Apply half-life decay to a knowledge entry based on its domain and age. */
+function decayEntry(entry: MeshKnowledgeEntry): MeshKnowledgeEntry & { _decayedScore: number; _decayFactor: number; _domain: KnowledgeDomain } {
+  const domain = classifyDomain(entry.domain);
+  const createdMs = new Date(entry.createdAt).getTime();
+  const ageMs = Math.max(0, Date.now() - createdMs);
+
+  // Base score: queryCount weighted heavily + reuseCount + confidence
+  const baseScore = (entry.queryCount || 0) * 2 + (entry.reuseCount || 0) * 3 + (entry.confidence || 0.5) * 10;
+  const decayFactor = Math.pow(0.5, ageMs / (DOMAIN_HALF_LIVES[domain] || DOMAIN_HALF_LIVES.general));
+  const decayedScore = Math.round(baseScore * decayFactor * 100) / 100;
+
+  return { ...entry, _decayedScore: decayedScore, _decayFactor: Math.round(decayFactor * 1000) / 1000, _domain: domain };
+}
 import * as crypto from 'crypto';
 import { getOAuth2Provider } from '../auth/index';
 import * as fs from 'fs';
@@ -19,13 +52,13 @@ import * as path from 'path';
 
 // Board types + logic absorbed into @holoscript/framework
 import {
-  type TeamTask as FwTeamTask,
-  type TeamSuggestion as FwTeamSuggestion,
-  type SuggestionCategory as FwSuggestionCategory,
+  type TeamTask as _FwTeamTask,
+  type TeamSuggestion as _FwTeamSuggestion,
+  type SuggestionCategory as _FwSuggestionCategory,
   ROOM_PRESETS as FW_ROOM_PRESETS,
   normalizeTitle,
   generateTaskId,
-  inferFixPriority,
+  _inferFixPriority,
   parseDeriveContent,
   auditDoneLog,
   claimTask,
@@ -40,7 +73,10 @@ import {
   dismissSuggestion,
   KnowledgeMarketplace,
   BountyManager,
+  type Bounty,
   type BountyCurrency,
+  type BountyStatus,
+  type CompletionProof,
 } from '@holoscript/framework';
 
 // ── x402 Premium Entry Payment Gate ──
@@ -176,8 +212,27 @@ interface StoredVote {
   value: 1 | -1;
 }
 
+interface StoredBountySubmission {
+  id: string;
+  teamId: string;
+  bountyId: string;
+  submitterId: string;
+  submitterName: string;
+  solution: string;
+  proof?: string;
+  status: 'submitted' | 'accepted' | 'rejected' | 'paid';
+  createdAt: string;
+  resolvedAt?: string;
+  payoutResult?: {
+    amount: number;
+    currency: BountyCurrency;
+    settlement: 'ledger' | 'on_chain';
+  };
+}
+
 const commentStore: Map<string, StoredComment[]> = new Map(); // entryId → comments
 const voteStore: Map<string, StoredVote[]> = new Map(); // targetId → votes
+const bountySubmissionStore: Map<string, StoredBountySubmission[]> = new Map(); // bountyId -> submissions
 
 function getComments(entryId: string): StoredComment[] {
   return commentStore.get(entryId) || [];
@@ -250,7 +305,7 @@ function getPrivateWorkspaceId(agent: RegisteredAgent): string {
 }
 
 /** Knowledge domain categories modeled after AI_Workspace/uAA2++_Protocol structure */
-const PRIVATE_KNOWLEDGE_DOMAINS = [
+const _PRIVATE_KNOWLEDGE_DOMAINS = [
   'general',
   'security',
   'rendering',
@@ -340,12 +395,12 @@ interface RoomConfig {
 // Board types — canonical source is @holoscript/framework
 // TaskStatus, SlotRole, TeamTask, DoneLogEntry, SuggestionCategory,
 // SuggestionVote, TeamSuggestion all imported at top of file.
-type TaskStatus = import('@holoscript/framework').TaskStatus;
+type _TaskStatus = import('@holoscript/framework').TaskStatus;
 type SlotRole = import('@holoscript/framework').SlotRole;
 type TeamTask = import('@holoscript/framework').TeamTask;
 type DoneLogEntry = import('@holoscript/framework').DoneLogEntry;
 type SuggestionCategory = import('@holoscript/framework').SuggestionCategory;
-type SuggestionVote = import('@holoscript/framework').SuggestionVote;
+type _SuggestionVote = import('@holoscript/framework').SuggestionVote;
 type TeamSuggestion = import('@holoscript/framework').TeamSuggestion;
 
 // Room presets — canonical source is @holoscript/framework
@@ -638,7 +693,7 @@ async function verifyWalletSignatureEIP712(
       signature: signature as `0x${string}`,
       address: expectedAddress as `0x${string}`,
     });
-  } catch (err) {
+  } catch (_err) {
     // Fallback: agent proves ownership by providing private key as "signature"
     // We re-derive the address and check it matches
     try {
@@ -1030,7 +1085,7 @@ function requireAuth(req: http.IncomingMessage, res: http.ServerResponse): Regis
 }
 
 /** Async version of requireAuth for routes that can await. */
-async function requireAuthAsync(
+async function _requireAuthAsync(
   req: http.IncomingMessage,
   res: http.ServerResponse
 ): Promise<RegisteredAgent | null> {
@@ -1108,7 +1163,7 @@ export async function handleHoloMeshRoute(
     // GET /api/holomesh/feed — Knowledge feed with ranking + following mode + cursor pagination
     // ?sort=ranked|chronological|top|following  ?cursor=<token>  ?limit=20
     if (pathname === '/api/holomesh/feed' && method === 'GET') {
-      const { rankFeed, getFollowing, paginate, ...socialMod } = await import('./social');
+      const { rankFeed, _getFollowing, paginate, ..._socialMod } = await import('./social');
       const q = parseQuery(url);
       const search = q.get('q') || '*';
       const type = q.get('type') || undefined;
@@ -1167,6 +1222,32 @@ export async function handleHoloMeshRoute(
     if (pathname === '/api/holomesh/agents' && method === 'GET') {
       const peers = await c.discoverPeers();
       json(res, 200, { success: true, agents: peers, count: peers.length });
+      return true;
+    }
+
+    // GET /api/holomesh/bounties — List all open bounties in the mesh
+    if (pathname === '/api/holomesh/bounties' && method === 'GET') {
+      const q = parseQuery(url);
+      const statusParam = (q.get('status') || 'open') as BountyStatus;
+
+      const allBounties: any[] = [];
+      for (const team of teamStore.values()) {
+        if (team.bounties) {
+          const list = team.bounties.list(statusParam).map((b) => ({
+            ...b,
+            teamId: team.id,
+            teamName: team.name,
+          }));
+          allBounties.push(...list);
+        }
+      }
+
+      json(res, 200, {
+        success: true,
+        bounties: allBounties,
+        count: allBounties.length,
+        status: statusParam,
+      });
       return true;
     }
 
@@ -2022,7 +2103,7 @@ export async function handleHoloMeshRoute(
       const commentId = extractParam(url, '/api/holomesh/comment/');
       // Find and remove the comment if owned by caller
       let deleted = false;
-      for (const [entryId, comments] of commentStore) {
+      for (const [_entryId, comments] of commentStore) {
         const idx = comments.findIndex((cm) => cm.id === commentId && cm.authorId === caller.id);
         if (idx >= 0) {
           comments.splice(idx, 1);
@@ -2155,11 +2236,48 @@ export async function handleHoloMeshRoute(
       }
 
       const DOMAIN_DESCRIPTIONS: Record<string, string> = {
-        security: 'Jailbreak defense, alignment, safety patterns',
-        rendering: 'R3F, shaders, 3D pipelines, visual output',
-        agents: 'Autonomous systems, daemons, behavior trees',
-        compilation: 'Parsers, AST, compiler backends, code generation',
-        general: 'Cross-domain wisdom, philosophy, meta-patterns',
+        // Core thermodynamic domains (half-lives in brain.ts)
+        security: 'Jailbreak defense, alignment, injection prevention, safety patterns. Half-life: 2d.',
+        rendering: 'R3F, shaders, GPU pipelines, Gaussian splatting, visual output. Half-life: 14d.',
+        agents: 'Autonomous systems, MCP tools, daemons, behavior trees, context engineering. Half-life: 7d.',
+        compilation: 'Parsers, AST transforms, compiler backends, code generation, WASM. Half-life: 21d.',
+        general: 'Cross-domain wisdom, philosophy, meta-patterns, ecosystem strategy. Half-life: 7d.',
+        // Research & analysis
+        research: 'Deep research outputs — uAA2++ protocol, competitive analysis, academic refs.',
+        'oracle-collision': 'Oracle cycle findings — structural isomorphisms between subsystems.',
+        'oracle-layer3': 'Oracle L3 — cross-cycle collisions where research findings interact.',
+        'oracle-layer4': 'Oracle L4 — implementation blueprints from research synthesis.',
+        // Infrastructure & architecture
+        architecture: 'System design decisions, package structure, dependency management.',
+        codebase: 'Codebase patterns, file organization, import conventions.',
+        'dev-patterns': 'Reusable dev patterns — vitest mocking, RBAC, parser conventions.',
+        'code-quality': 'Code health metrics, refactoring strategies, technical debt.',
+        'recursive-pipeline': 'L0/L1/L2 recursive improvement agents, budget caps, orchestration.',
+        'migration-pipeline': 'Database migrations, schema management, data transforms.',
+        'absorb-pipeline': 'Codebase intelligence extraction, GraphRAG, knowledge graphs.',
+        absorb: 'Absorb service — scanning, querying, graph maintenance.',
+        // Product & platform
+        'holoscript-v6': 'HoloScript v6 language features, syntax, trait system, .holo format.',
+        holomesh: 'HoloMesh network — gossip protocol, CRDT sync, agent coordination.',
+        studio: 'Studio web app — Next.js routes, Brittney AI, workspace scaffolding.',
+        product: 'Product strategy, pricing, adoption funnel, user experience.',
+        protocol: 'Publishing protocol, provenance, registry, x402 revenue splitting.',
+        uaal: 'Universal Autonomous Agent Layer — cognitive VM, neural IR, agent-first OS.',
+        // Agent operations
+        daemon: 'Self-improvement daemon — provider rotation, focus areas, auto-fix.',
+        'agent-optimization': 'Agent perf tuning — context compression, tool selection, stall prevention.',
+        session: 'Session-level observations — temporary insights from active work.',
+        'team-health': 'Team coordination — board throughput, handoff quality, knowledge freshness.',
+        // Knowledge & trust
+        'knowledge-architecture': 'Knowledge store design — W/P/G taxonomy, compression, promotion.',
+        'trust-modeling': 'Reputation, thermodynamic trust, Sybil defense, hysteresis thresholds.',
+        // External engagement
+        moltbook: 'Moltbook platform — voice strategy, community dynamics, engagement.',
+        'moltbook-security': 'Moltbook-specific security — API quirks, rate limits, auth patterns.',
+        discourse: 'Cross-platform discussion patterns, argument structures, idea propagation.',
+        development: 'Active dev insights — build issues, test failures, deployment.',
+        // Tombstone
+        deleted: 'Archived or retracted entries.',
       };
 
       const domains = [...domainMap.entries()].map(([name, data]) => ({
@@ -4137,7 +4255,7 @@ export async function handleHoloMeshRoute(
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'POST') {
       const access = requireTeamAccess(req, res, url);
       if (!access) return true;
-      const { caller, teamId } = access;
+      const { _caller, teamId } = access;
       const team = teamStore.get(teamId)!;
       if (!team.taskBoard) team.taskBoard = [];
 
@@ -4152,6 +4270,269 @@ export async function handleHoloMeshRoute(
     }
 
     // ── Bounty Management API (FW-0.6) ──
+
+    // GET /api/holomesh/bounties — Public list of open bounties across teams
+    if (pathname === '/api/holomesh/bounties' && method === 'GET') {
+      const q = parseQuery(url);
+      const status = (q.get('status') || 'open') as 'open' | 'claimed' | 'completed' | 'expired' | 'disputed';
+      const limit = parseInt(q.get('limit') || '100', 10);
+
+      const bounties = [...teamStore.entries()]
+        .flatMap(([teamId, team]) => {
+          if (!team.bounties) team.bounties = new BountyManager();
+          return team.bounties.list(status).map((b) => ({
+            ...b,
+            teamId,
+            teamObjective: team.objective,
+          }));
+        })
+        .slice(0, Math.max(1, Math.min(limit, 500)));
+
+      json(res, 200, {
+        success: true,
+        bounties,
+        count: bounties.length,
+        status,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/bounties — Create a bounty (taskId OR problem text)
+    if (pathname === '/api/holomesh/bounties' && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const body = await parseJsonBody(req);
+      const teamId = (body.teamId as string | undefined)?.trim();
+      if (!teamId) {
+        json(res, 400, { error: 'Missing teamId' });
+        return true;
+      }
+
+      const team = teamStore.get(teamId);
+      if (!team) {
+        json(res, 404, { error: 'Team not found' });
+        return true;
+      }
+      if (!getTeamMember(team, caller.id)) {
+        json(res, 403, { error: 'Not a member of this team' });
+        return true;
+      }
+
+      if (!team.taskBoard) team.taskBoard = [];
+      if (!team.bounties) team.bounties = new BountyManager();
+
+      let taskId = (body.taskId as string | undefined)?.trim();
+      let createdTask: TeamTask | undefined;
+
+      // Allow creating bounty directly from a problem statement
+      if (!taskId) {
+        const problem = (body.problem as string | undefined)?.trim();
+        if (!problem) {
+          json(res, 400, { error: 'Missing taskId or problem' });
+          return true;
+        }
+        taskId = generateTaskId(problem, 'manual');
+        createdTask = {
+          id: taskId,
+          title: problem,
+          description: (body.description as string | undefined) || '',
+          status: 'open',
+          source: 'manual',
+          priority: ((body.priority as TeamTask['priority']) || 'P3'),
+          createdAt: new Date().toISOString(),
+        };
+        team.taskBoard.push(createdTask);
+      }
+
+      const task = team.taskBoard.find((t) => t.id === taskId);
+      if (!task) {
+        json(res, 404, { error: 'Task not found for bounty creation' });
+        return true;
+      }
+
+      const amount = Number(body.amount);
+      const currency = body.currency as BountyCurrency;
+      if (!Number.isFinite(amount) || amount <= 0 || !currency) {
+        json(res, 400, { error: 'Missing or invalid amount/currency' });
+        return true;
+      }
+
+      const bounty = team.bounties.createBounty(
+        task.id,
+        { amount, currency },
+        caller.name,
+        body.deadline ? Number(body.deadline) : undefined,
+      );
+
+      persistTeamStore();
+      json(res, 201, {
+        success: true,
+        teamId,
+        task,
+        createdTask,
+        bounty,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/bounties/:id/submit — Submit solution/proof for a bounty
+    if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/submit$/) && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/submit', '');
+      const body = await parseJsonBody(req);
+      const solution = (body.solution as string)?.trim();
+      const proof = (body.proof as string | undefined)?.trim();
+      if (!solution) {
+        json(res, 400, { error: 'Missing solution' });
+        return true;
+      }
+
+      // Locate bounty across teams
+      let locatedTeamId: string | null = null;
+      let locatedTeam: Team | null = null;
+      let bounty: Bounty | undefined;
+      for (const [tid, t] of teamStore.entries()) {
+        if (!t.bounties) t.bounties = new BountyManager();
+        const found = t.bounties.getBounty(bountyId);
+        if (found) {
+          locatedTeamId = tid;
+          locatedTeam = t;
+          bounty = found;
+          break;
+        }
+      }
+
+      if (!locatedTeamId || !locatedTeam || !bounty) {
+        json(res, 404, { error: 'Bounty not found' });
+        return true;
+      }
+
+      if (!getTeamMember(locatedTeam, caller.id)) {
+        json(res, 403, { error: 'You must be a member of the bounty team to submit' });
+        return true;
+      }
+
+      // If bounty is still open, claim for submitter first
+      if (bounty.status === 'open') {
+        const claim = locatedTeam.bounties!.claimBounty(bountyId, caller.id);
+        if (!claim.success) {
+          json(res, 400, { error: claim.error || 'Unable to claim bounty' });
+          return true;
+        }
+      } else if (bounty.claimedBy && bounty.claimedBy !== caller.id) {
+        json(res, 409, { error: `Bounty already claimed by ${bounty.claimedBy}` });
+        return true;
+      }
+
+      const submission: StoredBountySubmission = {
+        id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        teamId: locatedTeamId,
+        bountyId,
+        submitterId: caller.id,
+        submitterName: caller.name,
+        solution,
+        proof,
+        status: 'submitted',
+        createdAt: new Date().toISOString(),
+      };
+      const list = bountySubmissionStore.get(bountyId) || [];
+      list.push(submission);
+      bountySubmissionStore.set(bountyId, list);
+      persistTeamStore();
+
+      json(res, 201, {
+        success: true,
+        submission,
+        message: 'Submission received. Bounty owner can now approve payout.',
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/bounties/:id/payout — Complete bounty and settle payout
+    if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/payout$/) && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/payout', '');
+      const body = await parseJsonBody(req);
+      const submissionId = (body.submissionId as string | undefined)?.trim();
+
+      // Locate bounty + team
+      let locatedTeamId: string | null = null;
+      let locatedTeam: Team | null = null;
+      let bounty: Bounty | undefined;
+      for (const [tid, t] of teamStore.entries()) {
+        if (!t.bounties) t.bounties = new BountyManager();
+        const found = t.bounties.getBounty(bountyId);
+        if (found) {
+          locatedTeamId = tid;
+          locatedTeam = t;
+          bounty = found;
+          break;
+        }
+      }
+
+      if (!locatedTeamId || !locatedTeam || !bounty) {
+        json(res, 404, { error: 'Bounty not found' });
+        return true;
+      }
+
+      // Only creator or team task writers can approve payout
+      const canApprove = bounty.createdBy === caller.name || hasTeamPermission(locatedTeam, caller.id, 'tasks:write');
+      if (!canApprove) {
+        json(res, 403, { error: 'Only bounty creator or task managers can approve payout' });
+        return true;
+      }
+
+      const submissions = bountySubmissionStore.get(bountyId) || [];
+      const selected = submissionId
+        ? submissions.find((s) => s.id === submissionId)
+        : submissions.find((s) => s.status === 'submitted');
+
+      if (!selected) {
+        json(res, 404, { error: 'No matching submission found for payout' });
+        return true;
+      }
+
+      const proof: CompletionProof = {
+        summary: selected.solution.slice(0, 500),
+        evidence: selected.proof ? [selected.proof] : undefined,
+        commitHash: (body.commitHash as string | undefined) || undefined,
+      };
+
+      const payout = locatedTeam.bounties!.completeBounty(bountyId, proof);
+      if (!payout.success) {
+        json(res, 400, { error: payout.error || 'Payout failed' });
+        return true;
+      }
+
+      selected.status = 'paid';
+      selected.resolvedAt = new Date().toISOString();
+      selected.payoutResult = {
+        amount: payout.amount,
+        currency: payout.currency,
+        settlement: payout.settlement,
+      };
+      for (const s of submissions) {
+        if (s.id !== selected.id && s.status === 'submitted') {
+          s.status = 'rejected';
+          s.resolvedAt = new Date().toISOString();
+        }
+      }
+      bountySubmissionStore.set(bountyId, submissions);
+      persistTeamStore();
+
+      json(res, 200, {
+        success: true,
+        bountyId,
+        submissionId: selected.id,
+        payout,
+      });
+      return true;
+    }
 
     // GET /api/holomesh/team/:id/bounties — List all bounties
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/bounties$/) && method === 'GET') {
@@ -4351,7 +4732,7 @@ export async function handleHoloMeshRoute(
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/derive$/) && method === 'POST') {
       const access = requireTeamAccess(req, res, url);
       if (!access) return true;
-      const { caller, teamId } = access;
+      const { _caller, teamId } = access;
       const team = teamStore.get(teamId)!;
       if (!team.taskBoard) team.taskBoard = [];
 
@@ -5100,6 +5481,9 @@ export async function handleHoloMeshRoute(
     }
 
     // GET /api/holomesh/team/:id/knowledge — Team's shared knowledge feed
+    // ?decayed=true applies thermodynamic half-life decay and ranks by excitability
+    // ?domain=security|rendering|agents|compilation|general filters by classified domain
+    // ?min_score=N filters out entries below decayed score threshold
     if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/knowledge$/) && method === 'GET') {
       const access = requireTeamAccess(req, res, url, 'knowledge:read');
       if (!access) return true;
@@ -5109,15 +5493,65 @@ export async function handleHoloMeshRoute(
       const search = q.get('q') || '*';
       const type = q.get('type') || undefined;
       const limit = parseInt(q.get('limit') || '50', 10);
+      const applyDecay = q.get('decayed') === 'true';
+      const domainFilter = q.get('domain') || undefined;
+      const minScore = parseFloat(q.get('min_score') || '0');
 
       const teamWsId = getTeamWorkspaceId(teamId);
       const results = await c.queryKnowledge(search, {
         type,
-        limit,
+        limit: applyDecay ? Math.min(limit * 3, 500) : limit, // fetch more pre-filter when decaying
         workspaceId: teamWsId,
       });
 
       const entries = results.filter((e) => !e.id.endsWith(':init'));
+
+      if (applyDecay) {
+        // Apply thermodynamic decay, classify domains, rank by excitability
+        let decayed = entries.map(decayEntry);
+
+        // Filter by domain if requested
+        if (domainFilter) {
+          const targetDomain = classifyDomain(domainFilter);
+          decayed = decayed.filter((e) => e._domain === targetDomain);
+        }
+
+        // Filter by minimum score
+        if (minScore > 0) {
+          decayed = decayed.filter((e) => e._decayedScore >= minScore);
+        }
+
+        // Sort by decayed score (highest excitability first)
+        decayed.sort((a, b) => b._decayedScore - a._decayedScore);
+
+        // Trim to requested limit
+        decayed = decayed.slice(0, limit);
+
+        // Query-on-read: increment queryCount for returned entries (fire-and-forget)
+        // This keeps frequently-accessed knowledge alive against decay.
+        // Every read is a vote for survival — entries nobody reads decay and die.
+        if (decayed.length > 0) {
+          const updated: MeshKnowledgeEntry[] = decayed.map((e) => ({
+            ...e,
+            queryCount: (e.queryCount || 0) + 1,
+          }));
+          c.contributeKnowledge(updated).catch(() => {/* best-effort */});
+        }
+
+        json(res, 200, {
+          success: true,
+          team: { id: teamId, name: team.name },
+          workspace_id: teamWsId,
+          thermodynamic: true,
+          domains: KNOWLEDGE_DOMAINS,
+          half_lives: Object.fromEntries(
+            KNOWLEDGE_DOMAINS.map((d) => [d, `${DOMAIN_HALF_LIVES[d] / (24 * 60 * 60 * 1000)}d`])
+          ),
+          entries: decayed,
+          count: decayed.length,
+        });
+        return true;
+      }
 
       json(res, 200, {
         success: true,
@@ -5156,6 +5590,10 @@ export async function handleHoloMeshRoute(
           (e.id as string) ||
           `${entryType.charAt(0).toUpperCase()}.${team.name}.${caller.name}.${Date.now()}.${i}`;
 
+        // Auto-classify domain from content + provided domain hint
+        const rawDomain = (e.domain as string) || '';
+        const classifiedDomain = classifyDomain(rawDomain || content.slice(0, 200));
+
         return {
           id: entryId,
           workspaceId: teamWsId,
@@ -5167,8 +5605,8 @@ export async function handleHoloMeshRoute(
           price: (e.price as number) || 0,
           queryCount: 0,
           reuseCount: 0,
-          domain: (e.domain as string) || 'general',
-          tags: [...((e.tags as string[]) || []), 'team', team.name],
+          domain: classifiedDomain,
+          tags: [...((e.tags as string[]) || []), 'team', team.name, `domain:${classifiedDomain}`],
           confidence: (e.confidence as number) || 0.9,
           createdAt: (e.createdAt as string) || new Date().toISOString(),
         };
