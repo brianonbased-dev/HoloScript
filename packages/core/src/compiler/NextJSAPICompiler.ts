@@ -354,3 +354,51 @@ export function compileAllToNextJSAPI(
 ): NextJSAPICompileResult[] {
   return compositions.map(({ composition }) => compileToNextJSAPI(composition, options));
 }
+
+// =============================================================================
+// CLASS-BASED API (extends CompilerBase pattern)
+// =============================================================================
+
+import { CompilerBase } from './CompilerBase';
+
+export interface NextJSAPICompilerOptions {
+  /** Include middleware comments in output */
+  includeMiddleware?: boolean;
+  /** Include auth guard comments */
+  includeAuth?: boolean;
+  /** Include request validation stubs */
+  includeValidation?: boolean;
+  /** Include response type interfaces */
+  includeResponseTypes?: boolean;
+}
+
+/**
+ * Class-based NextJS API compiler extending CompilerBase.
+ * Wraps the functional compileToNextJSAPI/compileAllToNextJSAPI.
+ */
+export class NextJSAPICompiler extends CompilerBase {
+  private options: NextJSAPICompilerOptions;
+
+  constructor(options: NextJSAPICompilerOptions = {}) {
+    super();
+    this.options = options;
+  }
+
+  get name(): string {
+    return 'nextjs-api';
+  }
+
+  compile(composition: unknown, agentToken?: string): { code: string; files: Array<{ path: string; content: string }> } {
+    const comp = composition as import('../types/HoloScriptPlus').HSPlusAST;
+    const result = compileAllToNextJSAPI(comp);
+    return {
+      code: result.map(r => r.code).join('\n\n'),
+      files: result.map(r => ({ path: r.routePath, content: r.code })),
+    };
+  }
+
+  compileSingle(composition: unknown, agentToken?: string): { routePath: string; code: string } {
+    const comp = composition as Parameters<typeof compileToNextJSAPI>[0];
+    return compileToNextJSAPI(comp);
+  }
+}

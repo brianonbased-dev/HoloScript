@@ -1,0 +1,39 @@
+{
+  "name": "@holoscript/plugin-forensics",
+  "version": "1.0.0",
+  "description": "HoloScript domain plugin for forensics workflows: evidence chain, scene reconstruction, and chain-of-custody traits.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "forensics",
+    "evidence",
+    "chain-of-custody",
+    "scene-reconstruction"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "@holoscript/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
