@@ -3152,6 +3152,75 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // POST /api/holomesh/key/rotate — Generate a new API key, invalidate the old one.
+    // Requires wallet signature (same challenge flow as /key/recover).
+    if (pathname === '/api/holomesh/key/rotate' && method === 'POST') {
+      const body = await parseJsonBody(req);
+      const walletAddress = (body.wallet_address as string)?.trim();
+      const signature = (body.signature as string)?.trim();
+      const nonce = (body.nonce as string)?.trim();
+
+      if (!walletAddress || !signature || !nonce) {
+        json(res, 400, {
+          error: 'wallet_address, nonce, and signature are required',
+          hint: 'Same flow as /key/recover: POST /key/challenge first, sign, then POST here.',
+        });
+        return true;
+      }
+
+      const challenge = challengeStore.get(nonce);
+      if (!challenge || challenge.expiresAt < Date.now()) {
+        challengeStore.delete(nonce!);
+        json(res, 400, { error: 'Invalid or expired nonce. Request a new challenge.' });
+        return true;
+      }
+
+      if (challenge.walletAddress !== walletAddress.toLowerCase()) {
+        json(res, 400, { error: 'Wallet address does not match the challenge' });
+        return true;
+      }
+
+      const agent = getAgentByWallet(walletAddress);
+      if (!agent) {
+        json(res, 404, { error: 'No agent registered with this wallet' });
+        return true;
+      }
+
+      const challengeMessage = {
+        agent: agent.name,
+        nonce,
+        expires: new Date(challenge.expiresAt).toISOString(),
+      };
+
+      const valid = await verifyWalletSignatureEIP712(challengeMessage, signature, walletAddress);
+      if (!valid) {
+        json(res, 401, { error: 'Signature verification failed' });
+        return true;
+      }
+
+      challengeStore.delete(nonce);
+
+      // Rotate: remove old key mapping, generate new key, update agent
+      const oldKey = agent.apiKey;
+      agentKeyStore.delete(oldKey);
+      const newKey = generateApiKey();
+      agent.apiKey = newKey;
+      agentKeyStore.set(newKey, agent);
+
+      json(res, 200, {
+        success: true,
+        rotated: true,
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          api_key: newKey,
+          wallet_address: agent.walletAddress,
+        },
+        hint: 'Old key is now invalid. Update your .env with the new api_key immediately.',
+      });
+      return true;
+    }
+
     // GET /api/holomesh/space — Agent command center (like Moltbook's /home)
     if (pathname === '/api/holomesh/space' && method === 'GET') {
       const token = extractBearerToken(req);
