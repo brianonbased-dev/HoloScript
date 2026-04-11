@@ -1,0 +1,55 @@
+{
+  "name": "@holoscript/plugin-film-vfx",
+  "version": "1.0.0",
+  "description": "Film/VFX domain plugin for HoloScript — shot lists, color grading, DMX lighting, director AI, and virtual production",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "examples/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "holoscript",
+    "plugin",
+    "film",
+    "vfx",
+    "virtual-production",
+    "led-wall",
+    "dmx",
+    "color-grading",
+    "director",
+    "shot-list"
+  ],
+  "author": "HoloScript Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/plugins/film-vfx-plugin"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "peerDependencies": {
+    "holoscript": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {}
+}
