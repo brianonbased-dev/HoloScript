@@ -88,13 +88,19 @@ import {
  * a 'pinned' constraint is mathematically identical to a 'fixed' constraint.
  * Both prevent all translational motion at the specified nodes.
  */
-export type ConstraintType = 'fixed' | 'pinned';
+export type ConstraintType = 'fixed' | 'pinned' | 'roller';
 
 export interface StructuralConstraint {
   id: string;
   type: ConstraintType;
   /** Node indices that are constrained */
   nodes: number[];
+  /**
+   * For 'roller' type: which translational DOF axes to constrain.
+   * 0 = U_x,  1 = U_y,  2 = U_z.
+   * Omit (or pass all three) to behave like 'fixed'.
+   */
+  dofs?: (0 | 1 | 2)[];
 }
 
 export type LoadType = 'gravity' | 'point' | 'distributed';
@@ -150,6 +156,7 @@ export class StructuralSolver {
   private displacements: Float32Array;
   private forces: Float32Array;
   private vonMisesStress: Float32Array; // per-element
+  private cauchyStress: Float32Array; // per-element, 6 components: [sxx,syy,szz,txy,tyz,txz]
   private safetyFactors: Float32Array; // per-element
   private constrainedDofs: Set<number>;
 
@@ -175,6 +182,7 @@ export class StructuralSolver {
     this.displacements = new Float32Array(this.dofCount);
     this.forces = new Float32Array(this.dofCount);
     this.vonMisesStress = new Float32Array(this.elementCount);
+    this.cauchyStress = new Float32Array(this.elementCount * 6);
     this.safetyFactors = new Float32Array(this.elementCount);
     this.elementStiffness = [];
 
@@ -188,6 +196,12 @@ export class StructuralSolver {
           this.constrainedDofs.add(n * 3);
           this.constrainedDofs.add(n * 3 + 1);
           this.constrainedDofs.add(n * 3 + 2);
+        } else if (c.type === 'roller') {
+          // Per-DOF roller: constrain only the specified translational axes.
+          const axes = c.dofs ?? [0, 1, 2];
+          for (const d of axes) {
+            this.constrainedDofs.add(n * 3 + d);
+          }
         }
       }
     }
@@ -566,6 +580,12 @@ export class StructuralSolver {
       );
 
       this.vonMisesStress[e] = vm;
+      this.cauchyStress[e * 6 + 0] = sxx;
+      this.cauchyStress[e * 6 + 1] = syy;
+      this.cauchyStress[e * 6 + 2] = szz;
+      this.cauchyStress[e * 6 + 3] = txy;
+      this.cauchyStress[e * 6 + 4] = tyz;
+      this.cauchyStress[e * 6 + 5] = txz;
       this.safetyFactors[e] = Sy > 0 ? Sy / Math.max(vm, 1e-20) : Infinity;
     }
   }
@@ -574,6 +594,11 @@ export class StructuralSolver {
 
   getVonMisesStress(): Float32Array {
     return this.vonMisesStress;
+  }
+
+  /** Per-element Cauchy stress tensor: [sxx, syy, szz, txy, tyz, txz] × elementCount */
+  getCauchyStress(): Float32Array {
+    return this.cauchyStress;
   }
 
   getSafetyFactor(): Float32Array {

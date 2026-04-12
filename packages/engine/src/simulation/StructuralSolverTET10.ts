@@ -69,13 +69,19 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type ConstraintType = 'fixed' | 'pinned';
+export type ConstraintType = 'fixed' | 'pinned' | 'roller';
 
 export interface TET10Constraint {
   id: string;
   type: ConstraintType;
   /** Node indices that are constrained */
   nodes: number[];
+  /**
+   * For 'roller' type: which translational DOF axes to constrain.
+   * 0 = U_x,  1 = U_y,  2 = U_z.
+   * Omit (or pass all three) to behave like 'fixed'.
+   */
+  dofs?: (0 | 1 | 2)[];
 }
 
 export type LoadType = 'gravity' | 'point' | 'distributed';
@@ -355,6 +361,7 @@ export class StructuralSolverTET10 {
   private displacements: Float64Array;
   private externalForces: Float64Array;
   private vonMisesStress: Float64Array; // per-element (averaged over Gauss points)
+  private cauchyStress: Float64Array; // per-element, 6 components: [sxx,syy,szz,txy,tyz,txz]
   private safetyFactors: Float64Array;
   private constrainedDofs: Set<number>;
 
@@ -463,6 +470,7 @@ export class StructuralSolverTET10 {
     this.displacements = new Float64Array(this.dofCount);
     this.externalForces = new Float64Array(this.dofCount);
     this.vonMisesStress = new Float64Array(this.elementCount);
+    this.cauchyStress = new Float64Array(this.elementCount * 6);
     this.safetyFactors = new Float64Array(this.elementCount);
 
     // Build constitutive matrix D
@@ -478,9 +486,17 @@ export class StructuralSolverTET10 {
     this.constrainedDofs = new Set<number>();
     for (const c of config.constraints) {
       for (const n of c.nodes) {
-        this.constrainedDofs.add(n * 3);
-        this.constrainedDofs.add(n * 3 + 1);
-        this.constrainedDofs.add(n * 3 + 2);
+        if (c.type === 'roller') {
+          const axes = c.dofs ?? [0, 1, 2];
+          for (const d of axes) {
+            this.constrainedDofs.add(n * 3 + d);
+          }
+        } else {
+          // 'fixed' | 'pinned': constrain all 3 translational DOFs
+          this.constrainedDofs.add(n * 3);
+          this.constrainedDofs.add(n * 3 + 1);
+          this.constrainedDofs.add(n * 3 + 2);
+        }
       }
     }
 
@@ -1523,6 +1539,8 @@ export class StructuralSolverTET10 {
     const D = this.D;
     const Sy = this.material.yield_strength;
 
+    this.cauchyStress.fill(0);
+
     for (let e = 0; e < this.elementCount; e++) {
       const base = e * 10;
 
@@ -1611,10 +1629,21 @@ export class StructuralSolverTET10 {
 
         vmSum += vm;
         gpCount++;
+
+        // Accumulate Cauchy components for averaging
+        this.cauchyStress[e * 6 + 0] += sxx;
+        this.cauchyStress[e * 6 + 1] += syy;
+        this.cauchyStress[e * 6 + 2] += szz;
+        this.cauchyStress[e * 6 + 3] += txy;
+        this.cauchyStress[e * 6 + 4] += tyz;
+        this.cauchyStress[e * 6 + 5] += txz;
       }
 
       const avgVM = gpCount > 0 ? vmSum / gpCount : 0;
       this.vonMisesStress[e] = avgVM;
+      if (gpCount > 0) {
+        for (let c = 0; c < 6; c++) this.cauchyStress[e * 6 + c] /= gpCount;
+      }
       this.safetyFactors[e] = Sy > 0 ? Sy / Math.max(avgVM, 1e-30) : Infinity;
     }
   }
@@ -1623,6 +1652,11 @@ export class StructuralSolverTET10 {
 
   getVonMisesStress(): Float64Array {
     return this.vonMisesStress;
+  }
+
+  /** Per-element Cauchy stress tensor averaged over Gauss points: [sxx,syy,szz,txy,tyz,txz] × elementCount */
+  getCauchyStress(): Float64Array {
+    return this.cauchyStress;
   }
 
   getSafetyFactor(): Float64Array {

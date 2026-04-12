@@ -118,13 +118,25 @@ function computeOuterPressureLoads(mesh: ReturnType<typeof generateEllipticMembr
   return loads;
 }
 
+/**
+ * Extract a scalar stress proxy near a target point by averaging over elements
+ * whose centroids lie within a search radius of the target.
+ */
 function extractStressNearPoint(
-  vertices: Float32Array | Float64Array, tetrahedra: Uint32Array,
-  vonMises: Float32Array, nodesPerTet: number,
-  targetX: number, targetY: number, searchRadius: number,
+  vertices: Float32Array | Float64Array,
+  tetrahedra: Uint32Array,
+  scalarStress: Float32Array | Float64Array,
+  nodesPerTet: number,
+  targetX: number,
+  targetY: number,
+  searchRadius: number,
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
-  let bestDist = Infinity, bestStress = 0, sumStress = 0, count = 0;
+  let bestDist = Infinity;
+  let bestStress = 0;
+  let sumStress = 0;
+  let count = 0;
+
   for (let e = 0; e < elemCount; e++) {
     let cx = 0, cy = 0;
     for (let n = 0; n < 4; n++) {
@@ -133,9 +145,17 @@ function extractStressNearPoint(
       cy += vertices[ni * 3 + 1] / 4;
     }
     const dist = Math.sqrt((cx - targetX) ** 2 + (cy - targetY) ** 2);
-    if (dist < searchRadius) { sumStress += vonMises[e]; count++; }
-    if (dist < bestDist) { bestDist = dist; bestStress = vonMises[e]; }
+
+    if (dist < searchRadius) {
+      sumStress += scalarStress[e];
+      count++;
+    }
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestStress = scalarStress[e];
+    }
   }
+
   return count > 0 ? sumStress / count : bestStress;
 }
 
@@ -398,7 +418,6 @@ describe('Paper Benchmark: Solver Wall-Clock Scaling', () => {
 // ═══════════════════════════════════════════════════════════════════════
 
 describe('Paper Benchmark: Convergence Data for Publication', () => {
-
   it('NAFEMS LE1 — TET4 + TET10 convergence with LaTeX tables', () => {
     const meshConfigs = [
       { nr: 2, nt: 4, h: 0.500 },
