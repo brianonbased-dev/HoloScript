@@ -4,6 +4,50 @@ All notable changes to HoloScript are documented here.
 
 ---
 
+## [Unreleased] — 2026-04-12
+
+Post-6.1.0 work focused on CAEL reliability, SNN cognition integration, and MCP provenance envelope hardening.
+
+### Added
+
+- **CAEL/Sandbox Contracted Execution**
+  - `@holoscript/security-sandbox` gained contracted simulation execution path with CAEL trace metadata emission.
+  - Added focused tests for contracted execution behavior and syntax-failure handling.
+
+- **MCP Provenance Answer Envelope**
+  - Added `absorb_provenance_answer` dispatch path and tool wiring for answer + provenance envelope responses.
+  - Added dedicated test coverage for deterministic envelope output and invalid input guards.
+
+- **SNN/CAEL Integration Coverage**
+  - Added explicit initialized cognition coverage for async `CAELAgentLoop.tick()` path using `SNNCognitionEngine.initialize()`.
+  - Test assertions now validate backend metadata as `webgpu` or CPU fallback (`cpu-reference`).
+
+### Changed
+
+- **Default Cognition Path (Phase 2)**
+  - Switched Phase 2 embodied loop/examples to `SNNCognitionEngine` as the default CAEL cognition engine.
+  - `CAELAgentLoop` async cognition flow alignment completed (`await think`, `await tick` in affected tests/wiring).
+
+- **SNN Backend Metadata**
+  - `SNNCognitionEngine` now reports active backend in snapshot `extra.lifBackend` (`webgpu` when initialized successfully, otherwise `cpu-reference`).
+
+### Deprecated / Removed
+
+- **Legacy Inline SNN Cognition Path**
+  - Removed active export/wiring for legacy `SNNCognition` and `SNNCognitionConfig` from simulation index paths.
+  - Updated CAEL cognition documentation comments to point to `SNNCognitionEngine` as the supported/default implementation.
+
+### Commits in this window
+
+- `6df32b4a` feat(engine): default CAEL cognition to SNNCognitionEngine
+- `2b8038d6` fix(engine): align CAEL loop with async cognition
+- `a1525e4a` feat(mcp): absorb provenance answer envelope
+- `0b905104` feat(sandbox): add contracted execution with CAEL trace
+- `74f24a3d` feat(engine): CRDTCAELBridge -- spatial/world-state merges as CAEL provenance events (Paper #3)
+- `5c0f988f` feat(engine): add SNNCognitionEngine — snn-webgpu LIF backed CAEL cognition (Paper #2)
+- `a78c05b3` docs(papers): add IEEE TVCG submission — Trust by Construction
+
+
 ## [6.1.0] — 2026-04-10 (Domain Plugin Explosion, A2A Protocol & Accessibility)
 
 18 new domain plugins landed — HoloScript now covers industry verticals from banking to neuroscience to film production. A2A protocol got canonical task schemas and idempotent transport. Studio passed its first real accessibility audit. 256 commits since 6.0.2.
