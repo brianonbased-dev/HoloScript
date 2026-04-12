@@ -716,120 +716,18 @@ importers:
       '@holoscript/agent-protocol':
         specifier: workspace:*
         version: link:../agent-protocol
-      '@holoscript/alphafold-plugin':
-        specifier: workspace:*
-        version: link:../plugins/alphafold-plugin
       '@holoscript/core-types':
         specifier: workspace:*
         version: link:../core-types
-      '@holoscript/domain-plugin-template':
-        specifier: workspace:*
-        version: link:../plugins/domain-plugin-template
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../engine
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
-      '@holoscript/medical-plugin':
-        specifier: workspace:*
-        version: link:../plugins/medical-plugin
-      '@holoscript/narupa-plugin':
-        specifier: workspace:*
-        version: link:../plugins/scientific-plugin
-      '@holoscript/plugin-banking-finance':
-        specifier: workspace:*
-        version: link:../plugins/banking-finance-plugin
-      '@holoscript/plugin-civil-engineering':
-        specifier: workspace:*
-        version: link:../plugins/civil-engineering-plugin
-      '@holoscript/plugin-culture-keyword':
-        specifier: workspace:*
-        version: link:../plugins/culture-keyword-plugin
-      '@holoscript/plugin-economic-primitives':
-        specifier: workspace:*
-        version: link:../plugins/economic-primitives-plugin
-      '@holoscript/plugin-education-lms':
-        specifier: workspace:*
-        version: link:../plugins/education-lms-plugin
-      '@holoscript/plugin-emergency-response':
-        specifier: workspace:*
-        version: link:../plugins/emergency-response
-      '@holoscript/plugin-fashion':
-        specifier: workspace:*
-        version: link:../plugins/fashion-plugin
-      '@holoscript/plugin-film-vfx':
-        specifier: workspace:*
-        version: link:../plugins/film-vfx-plugin
-      '@holoscript/plugin-film3d-volumetrics':
-        specifier: workspace:*
-        version: link:../plugins/film3d-volumetrics-plugin
-      '@holoscript/plugin-fitness-wellness':
-        specifier: workspace:*
-        version: link:../plugins/fitness-wellness-plugin
-      '@holoscript/plugin-forensics':
-        specifier: workspace:*
-        version: link:../plugins/forensics-plugin
-      '@holoscript/plugin-geolocation-gis':
-        specifier: workspace:*
-        version: link:../plugins/geolocation-gis-plugin
-      '@holoscript/plugin-hardware-invention':
-        specifier: workspace:*
-        version: link:../plugins/hardware-invention-plugin
-      '@holoscript/plugin-hr-workforce':
-        specifier: workspace:*
-        version: link:../plugins/hr-workforce-plugin
-      '@holoscript/plugin-insurance':
-        specifier: workspace:*
-        version: link:../plugins/insurance-plugin
-      '@holoscript/plugin-legal-document':
-        specifier: workspace:*
-        version: link:../plugins/legal-document-plugin
-      '@holoscript/plugin-manufacturing-qc':
-        specifier: workspace:*
-        version: link:../plugins/manufacturing-qc-plugin
-      '@holoscript/plugin-neuroscience':
-        specifier: workspace:*
-        version: link:../plugins/neuroscience-plugin
-      '@holoscript/plugin-restaurant':
-        specifier: workspace:*
-        version: link:../plugins/restaurant-plugin
-      '@holoscript/plugin-retail-ecommerce':
-        specifier: workspace:*
-        version: link:../plugins/retail-ecommerce-plugin
-      '@holoscript/plugin-therapy':
-        specifier: workspace:*
-        version: link:../plugins/therapy-plugin
-      '@holoscript/plugin-threat-intelligence':
-        specifier: workspace:*
-        version: link:../plugins/threat-intelligence-plugin
-      '@holoscript/plugin-trait-audit':
-        specifier: workspace:*
-        version: link:../plugins/trait-audit-plugin
-      '@holoscript/plugin-travel-hospitality':
-        specifier: workspace:*
-        version: link:../plugins/travel-hospitality-plugin
-      '@holoscript/plugin-urban-planning':
-        specifier: workspace:*
-        version: link:../plugins/urban-planning-plugin
-      '@holoscript/plugin-wine-food-beverage':
-        specifier: workspace:*
-        version: link:../plugins/wine-food-beverage-plugin
-      '@holoscript/plugin-wisdom-gotcha':
-        specifier: workspace:*
-        version: link:../plugins/wisdom-gotcha-plugin
-      '@holoscript/radio-astronomy-plugin':
-        specifier: workspace:*
-        version: link:../plugins/radio-astronomy-plugin
-      '@holoscript/robotics-plugin':
-        specifier: workspace:*
-        version: link:../plugins/robotics-plugin
       '@pixiv/three-vrm':
         specifier: ^2.0.0
         version: 2.1.3(@types/three@0.170.0)(three@0.182.0)
-      holoscript-web-preview:
-        specifier: workspace:*
-        version: link:../plugins/web-preview
       ioredis:
         specifier: ^5.3.0
         version: 5.10.0
