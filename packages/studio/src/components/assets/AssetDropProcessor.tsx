@@ -307,7 +307,7 @@ export function AssetFileInput({ onProcess }: { onProcess: (file: File) => void 
       <input
         ref={inputRef}
         type="file"
-        accept=".glb,.gltf,.png,.jpg,.jpeg,.webp,.hdr,.mp3,.wav,.ogg"
+        accept=".glb,.gltf,.png,.jpg,.jpeg,.webp,.hdr,.mp3,.wav,.ogg,.fits,.stl,.obj,.csv,.vtk,.h5,.hdf5"
         className="hidden"
         onChange={handleChange}
         id="asset-file-input"

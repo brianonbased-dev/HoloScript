@@ -14,6 +14,11 @@ export { RADIO_ASTRONOMY_TRAITS, type RadioAstronomyTraitName };
 // Export Bridges
 export { PythonAstropyBridge, type AstropyResult };
 
+// Export FITS parsing and visualization
+export { parseFITS, buildFITS, type FITSFile, type WCSInfo } from './fits/FITSParser';
+export { fitsToGrid3D, extractChannel, fitsDataRange } from './fits/FITSToGrid';
+export { SpectralCubeViewer, FITSViewerPanel, type SpectralCubeViewerProps, type FITSViewerPanelProps } from './components/SpectralCubeViewer';
+
 /**
  * Metadata exposing domain capabilities to the Studio / Schema Mapper.
  */
