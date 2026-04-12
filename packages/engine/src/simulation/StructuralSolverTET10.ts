@@ -363,6 +363,21 @@ export class StructuralSolverTET10 {
   private vonMisesStress: Float64Array; // per-element (averaged over Gauss points)
   private cauchyStress: Float64Array; // per-element, 6 components: [sxx,syy,szz,txy,tyz,txz]
   private safetyFactors: Float64Array;
+
+  /**
+   * Per-Gauss-point stress data for SPR recovery.
+   * Layout: elementCount × 4 Gauss points × 6 stress components = elementCount × 24.
+   * Access: gaussPointStress[(e * 4 + gp) * 6 + component]
+   * Preserved during recoverStress() instead of being discarded after averaging.
+   */
+  private gaussPointStress: Float64Array;
+  /**
+   * Physical (x,y,z) coordinates of each Gauss point.
+   * Layout: elementCount × 4 × 3 = elementCount × 12.
+   * Access: gaussPointCoords[(e * 4 + gp) * 3 + axis]
+   * Needed by SPR to build the polynomial fitting problem.
+   */
+  private gaussPointCoords: Float64Array;
   private constrainedDofs: Set<number>;
 
   // Explicit CSR global stiffness matrix
@@ -472,6 +487,8 @@ export class StructuralSolverTET10 {
     this.vonMisesStress = new Float64Array(this.elementCount);
     this.cauchyStress = new Float64Array(this.elementCount * 6);
     this.safetyFactors = new Float64Array(this.elementCount);
+    this.gaussPointStress = new Float64Array(this.elementCount * 24); // 4 GP × 6 components
+    this.gaussPointCoords = new Float64Array(this.elementCount * 12); // 4 GP × 3 coords
 
     // Build constitutive matrix D
     const { youngs_modulus: E, poisson_ratio: nu } = this.material;
@@ -1532,6 +1549,7 @@ export class StructuralSolverTET10 {
   /**
    * Recover Von Mises stress per element, averaged over Gauss points.
    * Stresses at Gauss points are superconvergent for TET10.
+   * Also stores per-Gauss-point stress and coordinates for SPR recovery.
    */
   private recoverStress(): void {
     const tets = this.config.tetrahedra;
@@ -1540,6 +1558,8 @@ export class StructuralSolverTET10 {
     const Sy = this.material.yield_strength;
 
     this.cauchyStress.fill(0);
+    this.gaussPointStress.fill(0);
+    this.gaussPointCoords.fill(0);
 
     for (let e = 0; e < this.elementCount; e++) {
       const base = e * 10;
@@ -1618,6 +1638,31 @@ export class StructuralSolverTET10 {
           }
         }
 
+        // Store per-Gauss-point stress for SPR recovery
+        const gpIdx = e * 4 + gp;
+        for (let c = 0; c < 6; c++) {
+          this.gaussPointStress[gpIdx * 6 + c] = stress[c];
+        }
+
+        // Store physical coordinates of this Gauss point via TET10 shape functions.
+        // N_i for 10-node tet: corner nodes = Li(2Li-1), midside = 4*Li*Lj
+        const L1 = 1 - xi - eta - zeta, L2 = xi, L3 = eta, L4 = zeta;
+        const Nvals = [
+          L1 * (2 * L1 - 1), L2 * (2 * L2 - 1), L3 * (2 * L3 - 1), L4 * (2 * L4 - 1),
+          4 * L1 * L2, 4 * L2 * L3, 4 * L1 * L3,
+          4 * L1 * L4, 4 * L2 * L4, 4 * L3 * L4,
+        ];
+        let gpx = 0, gpy = 0, gpz = 0;
+        for (let a = 0; a < 10; a++) {
+          const n = tets[base + a];
+          gpx += Nvals[a] * verts[n * 3];
+          gpy += Nvals[a] * verts[n * 3 + 1];
+          gpz += Nvals[a] * verts[n * 3 + 2];
+        }
+        this.gaussPointCoords[gpIdx * 3] = gpx;
+        this.gaussPointCoords[gpIdx * 3 + 1] = gpy;
+        this.gaussPointCoords[gpIdx * 3 + 2] = gpz;
+
         // Von Mises
         const sxx = stress[0], syy = stress[1], szz = stress[2];
         const txy = stress[3], tyz = stress[4], txz = stress[5];
@@ -1657,6 +1702,25 @@ export class StructuralSolverTET10 {
   /** Per-element Cauchy stress tensor averaged over Gauss points: [sxx,syy,szz,txy,tyz,txz] × elementCount */
   getCauchyStress(): Float64Array {
     return this.cauchyStress;
+  }
+
+  /**
+   * Per-Gauss-point stress data for SPR recovery.
+   * Layout: (elementCount × 4) × 6 components.
+   * Access: result[(e * 4 + gp) * 6 + component]
+   * Components: 0=sxx, 1=syy, 2=szz, 3=txy, 4=tyz, 5=txz
+   */
+  getGaussPointStress(): Float64Array {
+    return this.gaussPointStress;
+  }
+
+  /**
+   * Physical coordinates of each Gauss point.
+   * Layout: (elementCount × 4) × 3.
+   * Access: result[(e * 4 + gp) * 3 + axis]
+   */
+  getGaussPointCoords(): Float64Array {
+    return this.gaussPointCoords;
   }
 
   getSafetyFactor(): Float64Array {
