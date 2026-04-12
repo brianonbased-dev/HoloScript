@@ -50,8 +50,16 @@ export { LIFSimulator } from './lif-simulator.js';
 // Spike encoding/decoding
 export { SpikeEncoder, SpikeDecoder } from './spike-codec.js';
 
+// Tropical / ReLU bridge
+export { TropicalActivationTrait } from './traits/TropicalActivationTrait.js';
+export type { TropicalActivationConfig } from './traits/TropicalActivationTrait.js';
+
 // Full network orchestration
 export { SNNNetwork } from './snn-network.js';
+
+// Tropical graph algebra
+export { TropicalShortestPaths } from './graph/TropicalShortestPaths.js';
+export type { TropicalCSRGraph } from './graph/TropicalShortestPaths.js';
 
 // PoC utilities (preserved from @holoscript/snn-poc RFC-0042)
 export { CPUReferenceSimulator, generateSynapticInput, generateWeightMatrix } from './poc/index.js';

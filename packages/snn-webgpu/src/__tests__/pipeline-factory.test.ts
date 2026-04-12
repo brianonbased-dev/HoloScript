@@ -27,7 +27,14 @@ describe('PipelineFactory', () => {
 
   describe('getShaderModule', () => {
     it('should create shader modules for all categories', () => {
-      const categories: ShaderCategory[] = ['lif', 'synaptic', 'encode', 'decode'];
+      const categories: ShaderCategory[] = [
+        'lif',
+        'synaptic',
+        'encode',
+        'decode',
+        'tropical',
+        'tropicalGraph',
+      ];
 
       for (const category of categories) {
         const module = factory.getShaderModule(category);
@@ -89,10 +96,17 @@ describe('PipelineFactory', () => {
       expect(eps).toContain('decode_temporal');
       expect(eps).toContain('decode_population');
       expect(eps).toContain('decode_first_spike');
+
+      // Tropical bridge
+      expect(eps).toContain('tropical_activate');
+
+      // Tropical graph algebra
+      expect(eps).toContain('tropical_min_plus_gemm');
+      expect(eps).toContain('tropical_spmv');
     });
 
-    it('should have 12 entry points total', () => {
-      expect(factory.getAvailableEntryPoints()).toHaveLength(12);
+    it('should have 15 entry points total', () => {
+      expect(factory.getAvailableEntryPoints()).toHaveLength(15);
     });
   });
 

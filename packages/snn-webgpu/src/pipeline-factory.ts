@@ -13,6 +13,8 @@ import LIF_SHADER from './shaders/lif-neuron.wgsl?raw';
 import SYNAPTIC_SHADER from './shaders/synaptic-weights.wgsl?raw';
 import SPIKE_ENCODE_SHADER from './shaders/spike-encode.wgsl?raw';
 import SPIKE_DECODE_SHADER from './shaders/spike-decode.wgsl?raw';
+import TROPICAL_ACTIVATION_SHADER from './shaders/tropical-activation.wgsl?raw';
+import TROPICAL_GRAPH_SHADER from './shaders/tropical-graph.wgsl?raw';
 
 /** All available compute shader entry points. */
 export type ShaderEntryPoint =
@@ -31,10 +33,21 @@ export type ShaderEntryPoint =
   | 'decode_rate'
   | 'decode_temporal'
   | 'decode_population'
-  | 'decode_first_spike';
+  | 'decode_first_spike'
+  // Tropical bridge
+  | 'tropical_activate'
+  // Tropical graph algebra
+  | 'tropical_min_plus_gemm'
+  | 'tropical_spmv';
 
 /** Shader source category. */
-export type ShaderCategory = 'lif' | 'synaptic' | 'encode' | 'decode';
+export type ShaderCategory =
+  | 'lif'
+  | 'synaptic'
+  | 'encode'
+  | 'decode'
+  | 'tropical'
+  | 'tropicalGraph';
 
 /** Mapping from category to WGSL source code. */
 const SHADER_SOURCES: Record<ShaderCategory, string> = {
@@ -42,6 +55,8 @@ const SHADER_SOURCES: Record<ShaderCategory, string> = {
   synaptic: SYNAPTIC_SHADER,
   encode: SPIKE_ENCODE_SHADER,
   decode: SPIKE_DECODE_SHADER,
+  tropical: TROPICAL_ACTIVATION_SHADER,
+  tropicalGraph: TROPICAL_GRAPH_SHADER,
 };
 
 /** Entry point to category mapping. */
@@ -58,6 +73,9 @@ const ENTRY_POINT_CATEGORY: Record<ShaderEntryPoint, ShaderCategory> = {
   decode_temporal: 'decode',
   decode_population: 'decode',
   decode_first_spike: 'decode',
+  tropical_activate: 'tropical',
+  tropical_min_plus_gemm: 'tropicalGraph',
+  tropical_spmv: 'tropicalGraph',
 };
 
 /** Cached pipeline entry. */
