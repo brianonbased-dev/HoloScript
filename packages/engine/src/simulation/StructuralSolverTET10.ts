@@ -570,13 +570,13 @@ export class StructuralSolverTET10 {
         Ji[7] = (J[1] * J[6] - J[0] * J[7]) * invDetJ;
         Ji[8] = (J[0] * J[4] - J[1] * J[3]) * invDetJ;
 
-        // Physical gradients dN/dx = J^{-1} · dN/dξ (10×3)
+        // Physical gradients dN/dx = dN/dξ · J^{-1} (10×3)
         const dNphys = new Float64Array(30);
         for (let a = 0; a < 10; a++) {
           for (let i = 0; i < 3; i++) {
             let sum = 0;
             for (let j = 0; j < 3; j++) {
-              sum += Ji[i * 3 + j] * dNnat[a * 3 + j];
+              sum += dNnat[a * 3 + j] * Ji[j * 3 + i];
             }
             dNphys[a * 3 + i] = sum;
           }
@@ -1098,7 +1098,7 @@ export class StructuralSolverTET10 {
         for (let a = 0; a < 10; a++) {
           for (let i = 0; i < 3; i++) {
             let sum = 0;
-            for (let j = 0; j < 3; j++) sum += Ji[i * 3 + j] * dNnat[a * 3 + j];
+            for (let j = 0; j < 3; j++) sum += dNnat[a * 3 + j] * Ji[j * 3 + i];
             dNdX[a * 3 + i] = sum;
           }
         }
@@ -1570,7 +1570,7 @@ export class StructuralSolverTET10 {
           for (let i = 0; i < 3; i++) {
             let sum = 0;
             for (let j = 0; j < 3; j++) {
-              sum += Ji[i * 3 + j] * dNnat[a * 3 + j];
+              sum += dNnat[a * 3 + j] * Ji[j * 3 + i];
             }
             dNphys[a * 3 + i] = sum;
           }

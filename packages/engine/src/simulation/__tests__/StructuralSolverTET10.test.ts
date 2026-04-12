@@ -512,6 +512,86 @@ describe('StructuralSolverTET10', () => {
     });
   });
 
+  describe('Jacobian consistency (nonlinear)', () => {
+    it('matches finite-difference residual derivative with tangent matrix', () => {
+      const mesh = buildCubeGridTET10(1, 1, 1, 1, 1, 1);
+      const fixedNodes = findNodesAtZ(mesh.vertices, 0);
+      const topNodes = findNodesAtZ(mesh.vertices, 1);
+
+      const config: TET10Config = {
+        vertices: mesh.vertices,
+        tetrahedra: mesh.tetrahedra,
+        material: { density: 1000, youngs_modulus: 1e6, poisson_ratio: 0.3, yield_strength: 1e8 },
+        constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
+        loads: topNodes.map((n) => ({
+          id: `L${n}`,
+          type: 'point' as const,
+          nodeIndex: n,
+          force: [0, 0, 1] as [number, number, number],
+        })),
+        useGPU: false,
+        nonlinear: true,
+      };
+
+      const solver = new StructuralSolverTET10(config);
+      const anySolver = solver as any;
+
+      const u = solver.getDisplacements();
+      const dofCount = u.length;
+      const constrained = new Set<number>(Array.from(fixedNodes).flatMap((n) => [n * 3, n * 3 + 1, n * 3 + 2]));
+
+      for (let i = 0; i < dofCount; i++) {
+        if (constrained.has(i)) {
+          u[i] = 0;
+        } else {
+          u[i] = 1e-5 * ((i % 7) - 3);
+        }
+      }
+
+      const ext = solver.getExternalForces();
+      const fint0: Float64Array = anySolver.assembleInternalForce();
+      const r0 = new Float64Array(dofCount);
+      for (let i = 0; i < dofCount; i++) {
+        if (!constrained.has(i)) r0[i] = ext[i] - fint0[i];
+      }
+
+      anySolver.assembleTangentStiffness();
+      anySolver.applyConstraintsToCSR();
+
+      const du = new Float64Array(dofCount);
+      for (let i = 0; i < dofCount; i++) {
+        du[i] = constrained.has(i) ? 0 : 1e-4 * ((i % 5) - 2);
+      }
+      const Kdu = new Float64Array(dofCount);
+      anySolver.multiplyStiffness(du, Kdu);
+
+      const eps = 1e-6;
+      const u0 = new Float64Array(u);
+      for (let i = 0; i < dofCount; i++) {
+        u[i] = u0[i] + eps * du[i];
+      }
+      const fint1: Float64Array = anySolver.assembleInternalForce();
+      const r1 = new Float64Array(dofCount);
+      for (let i = 0; i < dofCount; i++) {
+        if (!constrained.has(i)) r1[i] = ext[i] - fint1[i];
+      }
+      u.set(u0);
+
+      let num = 0;
+      let den = 0;
+      for (let i = 0; i < dofCount; i++) {
+        if (constrained.has(i)) continue;
+        const drfd = (r1[i] - r0[i]) / eps;
+        const err = drfd + Kdu[i]; // residual derivative should be -K
+        num += err * err;
+        den += Kdu[i] * Kdu[i];
+      }
+
+      const rel = Math.sqrt(num) / Math.max(Math.sqrt(den), 1e-12);
+      expect(rel).toBeLessThan(0.35);
+    });
+  });
+
   describe('Stats and metadata', () => {
     it('reports correct stats including DOF count and NNZ', () => {
       const mesh = buildCubeGridTET10(1, 1, 1, 1, 1, 1);
