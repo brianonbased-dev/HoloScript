@@ -68,7 +68,7 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/board — Add tasks
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'tasks:write');
+    const access = requireTeamAccess(req, res, url, 'board:write');
     if (!access) return true;
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;

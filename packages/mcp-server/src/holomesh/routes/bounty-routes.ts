@@ -380,7 +380,7 @@ export async function handleBountyRoutes(
       }
     }
 
-    const canApprove = bounty.createdBy === caller.name || hasTeamPermission(team, caller.id, 'tasks:write');
+    const canApprove = bounty.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
     if (!canApprove) {
       json(res, 403, { error: 'Only bounty creator or team admins can approve payout' });
       return true;
@@ -593,7 +593,7 @@ export async function handleBountyRoutes(
       json(res, 404, { error: 'Team not found for proposal' });
       return true;
     }
-    const canResolve = proposal.createdBy === caller.name || hasTeamPermission(team, caller.id, 'tasks:write');
+    const canResolve = proposal.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
     if (!canResolve) {
       json(res, 403, { error: 'Only proposer or team task managers can resolve governance' });
       return true;
