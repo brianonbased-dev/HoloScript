@@ -73,6 +73,21 @@ export {
   type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
 } from './SimulationContract';
 
+// CAEL (Contracted Agent-Environment Loop) — hash-chain artifact standard
+export {
+  type CAELTrace,
+  type CAELTraceEntry,
+  type CAELTraceEvent,
+  encodeCAELValue,
+  decodeCAELValue,
+  hashCAELEntry,
+  toCAELJSONL,
+  parseCAELJSONL,
+  verifyCAELHashChain,
+} from './CAELTrace';
+export { CAELRecorder } from './CAELRecorder';
+export { CAELReplayer } from './CAELReplayer';
+
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
 export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';
