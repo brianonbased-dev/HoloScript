@@ -81,12 +81,16 @@ export async function handleBoardRoutes(
     }
 
     if (!team.taskBoard) team.taskBoard = [];
-    
-    // Add tasks
-    const added = addTasksToBoard(team.taskBoard, tasksBody, caller.name, 'holomesh');
+    if (!team.doneLog) team.doneLog = [];
+
+    // Add tasks (framework signature: board, doneLog, tasks)
+    // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
+    // but only .title is used for dedup, which both have
+    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody);
+    team.taskBoard = result.updatedBoard;
     persistTeamStore();
 
-    for (const task of added) {
+    for (const task of result.added) {
       broadcastToTeam(teamId, {
         type: 'board:added' as any,
         agent: caller.name,
@@ -95,7 +99,7 @@ export async function handleBoardRoutes(
     }
 
     // Framework expects the added tasks back in the response
-    json(res, 201, { success: true, added: added.length, tasks: added });
+    json(res, 201, { success: true, added: result.added.length, tasks: result.added });
     return true;
   }
 
@@ -123,13 +127,13 @@ export async function handleBoardRoutes(
           priority: l.includes('FIXME:') ? 2 : 1
         }));
       if (tasksBody.length > 0) {
-        const result = addTasksToBoard(team.taskBoard, team.doneLog || [], tasksBody.slice(0, body.max_tasks || 50));
+        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, tasksBody.slice(0, body.max_tasks || 50));
         addedTasks = result.added;
         team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
       // Empty board auto-hint task
-      const result = addTasksToBoard(team.taskBoard, team.doneLog || [], [{
+      const result = addTasksToBoard(team.taskBoard, (team.doneLog || []) as any, [{
         title: 'Run /room scout to find actionable work in this repository',
         description: 'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
         source: 'scout:auto-hint',
