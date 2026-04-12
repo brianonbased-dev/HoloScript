@@ -32,10 +32,18 @@ These follow their own semver:
 The publish-pypi workflow validates that the tag major matches the npm root major.
 If they diverge, the workflow fails with a clear error message.
 
-## Current state
+## Current state (verified from repository)
 
-- npm `@holoscript/core`: `6.0.3` (platform lane)
-- PyPI `holoscript`: `5.3.1` (will jump to 6.x on next release)
-- PyPI `holoscript-mesh`: `0.1.0` (independent)
+- npm root `holoscript`: `6.0.2` (from `/package.json`)
+- npm `@holoscript/core`: `6.0.2` (from `packages/core/package.json`)
+- npm `@holoscript/engine`: `6.0.2` (from `packages/engine/package.json`)
+- npm `@holoscript/mcp-server`: `6.0.2` (from `packages/mcp-server/package.json`)
 
-The jump from PyPI 5.3.1 to 6.x is intentional — aligning with the npm platform major.
+For PyPI package state, verify directly at release time (do not hardcode here):
+
+```bash
+pip index versions holoscript
+pip index versions holoscript-mesh
+```
+
+If npm platform lane is moved to 6.1.x, PyPI `holoscript` should follow that major on the next tagged publish.
