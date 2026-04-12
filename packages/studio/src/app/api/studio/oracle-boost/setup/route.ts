@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -105,5 +107,17 @@ export async function POST(request: NextRequest) {
     next_steps: hasErrors
       ? ['Check write permissions for ~/.claude/', 'Re-run setup after fixing permissions']
       : ['POST /api/studio/oracle-boost/status', 'Oracle Boost is ready'],
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

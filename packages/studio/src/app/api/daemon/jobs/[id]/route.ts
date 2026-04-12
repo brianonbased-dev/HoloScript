@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextResponse } from 'next/server';
 import { getDaemonJob, getJobPatches, getJobLogs, recordPatchAction } from '../store';
 
@@ -78,5 +80,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     jobId: id,
     action: mappedAction,
     patchCount: patchIds.length,
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

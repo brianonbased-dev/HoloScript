@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * /api/admin/[...path] — Admin Dashboard Proxy
  *
@@ -72,4 +74,16 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     );
   }
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // ─── /api/agent — Agent-optimized JSON endpoints ────────────────────────────
@@ -108,5 +110,17 @@ export async function GET() {
     },
     example:
       '{ "action": "compile", "code": "object Cube { position: [0,1,0] }", "target": "three" }',
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

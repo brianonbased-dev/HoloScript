@@ -153,6 +153,13 @@ export function handleTeamRoomConnection(
   if (!rooms.has(teamId)) rooms.set(teamId, new Set());
   rooms.get(teamId)!.add(client);
 
+  // Send SSE reconnect instruction (robust offline fallback)
+  try {
+    res.write('retry: 5000\n\n');
+  } catch {
+    // Client already gone
+  }
+
   // Replay history for reconnecting clients
   const hist = roomHistory.get(teamId) ?? [];
   const replay = since > 0 ? hist.filter(e => e.ts > since) : hist;

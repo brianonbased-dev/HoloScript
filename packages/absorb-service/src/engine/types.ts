@@ -174,9 +174,10 @@ export interface LanguageAdapter {
 // =============================================================================
 
 export interface ScanOptions {
-  /** Root directory to scan */
-  rootDir: string;
-  /** Include glob patterns (default: all supported extensions) */
+  /** Root directory to scan (deprecated in favor of rootDirs) */
+  rootDir?: string;
+  /** Root directories to scan */
+  rootDirs?: string[];
   include?: string[];
   /** Exclude glob patterns (default: node_modules, .git, dist, build, etc.) */
   exclude?: string[];
@@ -232,6 +233,7 @@ export interface ScanError {
 
 export interface ScanResult {
   rootDir: string;
+  rootDirs: string[];
   files: ScannedFile[];
   stats: ScanStats;
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 
@@ -110,4 +112,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ endpoint: '/api/pipeline/playground', actions: ['parse', 'compile'] });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

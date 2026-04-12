@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest } from 'next/server';
 
 /**
@@ -234,4 +236,16 @@ export async function GET(request: NextRequest) {
     );
   const types = [...new Set(store.map((p) => p.type))];
   return Response.json({ presets: results, total: results.length, types });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

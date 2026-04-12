@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * GET /api/connectors/activity — Real-time activity stream (SSE)
  *
@@ -86,6 +88,18 @@ export async function GET(req: NextRequest) {
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no', // Disable buffering for nginx
+    },
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
     },
   });
 }

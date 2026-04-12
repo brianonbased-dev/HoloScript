@@ -19,7 +19,7 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
 
   private readonly modelName: string;
   // Lazily initialised so the (possibly slow) model load only happens on first use.
-  private pipelinePromise: Promise<unknown> | null = null;
+  private pipelinePromise: Promise<any> | null = null;
 
   /**
    * @param modelName - HuggingFace model identifier to use for feature
@@ -68,17 +68,15 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
   // Private
   // ---------------------------------------------------------------------------
 
-  private loadPipeline(): Promise<unknown> {
+  private loadPipeline(): Promise<any> {
     if (!this.pipelinePromise) {
       this.pipelinePromise = this.initPipeline();
     }
     return this.pipelinePromise;
   }
 
-  private async initPipeline(): Promise<unknown> {
-    let transformers: {
-      pipeline: (task: string, model: string, opts: Record<string, unknown>) => Promise<unknown>;
-    };
+  private async initPipeline(): Promise<any> {
+    let transformers: any;
 
     try {
       // Try the current package name first (@huggingface/transformers v3+)

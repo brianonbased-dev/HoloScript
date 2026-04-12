@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * POST /api/workspace/import — Clone a GitHub repo and create a workspace.
  *
@@ -169,4 +171,16 @@ export async function GET() {
   } catch {
     return NextResponse.json({ workspaces: [] });
   }
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * GET /api/absorb/knowledge/earnings
  *
@@ -80,5 +82,17 @@ export async function GET(req: NextRequest) {
     total_revenue_cents: 0,
     total_revenue_usd: '$0.00',
     note: 'Earnings data unavailable -- showing defaults',
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

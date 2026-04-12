@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { proxyHoloMesh } from '../../../../lib/holomesh-proxy';
 import { getDb } from '../../../../db/client';
@@ -29,4 +31,16 @@ export async function GET(req: NextRequest) {
   }
 
   return proxyHoloMesh('/api/holomesh/transactions', req);
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { users, projects, marketplaceListings, creatorProfiles } from '@/db/schema';
@@ -158,4 +160,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     logger.error('[Users API] Failed to update user profile:', error);
     return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
   }
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

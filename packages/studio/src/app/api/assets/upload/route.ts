@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/api-auth';
 import { getDb } from '../../../../db/client';
@@ -108,5 +110,17 @@ export async function POST(req: NextRequest) {
     assetId,
     method: 'presigned',
     expiresIn: 3600,
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

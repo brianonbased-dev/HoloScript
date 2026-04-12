@@ -32,6 +32,17 @@ export async function handleHoloMeshRoute(
   const method = req.method || 'GET';
   const pathname = new URL(url, 'http://localhost').pathname;
 
+  // 0. Global CORS Preflight
+  if (method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    });
+    res.end();
+    return true;
+  }
+
   // 1. Real-time SSE Room (V7)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/live$/)) {
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/live', '');

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../db/client';
 import { holomeshReferrals } from '../../../../db/schema';
@@ -115,4 +117,16 @@ export async function GET(req: NextRequest) {
     console.error('[referrals] GET error:', err);
     return NextResponse.json({ error: 'Failed to fetch referrals' }, { status: 500 });
   }
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

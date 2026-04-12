@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * POST /api/brittney — Brittney AI chat endpoint.
  *
@@ -14,6 +16,7 @@ import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { rateLimit } from '@/lib/rate-limiter';
+import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
 
 const MAX_REQUESTS_PER_MIN = 20;
 
@@ -35,7 +38,12 @@ function convertToolsToClaudeFormat(): Anthropic.Tool[] {
     description: t.function.description,
     input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
   }));
-  return [...sceneTtools, ...apiTools, ...mcpTools];
+  const simTools = SIMULATION_TOOLS.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: t.function.parameters as Anthropic.Tool['input_schema'],
+  }));
+  return [...sceneTtools, ...apiTools, ...mcpTools, ...simTools];
 }
 
 /**
@@ -281,4 +289,16 @@ function sseHeaders(): HeadersInit {
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
   };
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

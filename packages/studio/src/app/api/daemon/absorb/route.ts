@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 import { callMcpTool, _MCP_SERVER_URL, ABSORB_BASE } from '@/lib/services/absorb-client';
@@ -48,4 +50,16 @@ export async function POST(req: NextRequest) {
     { error: 'Failed to run absorb_run_absorb. Ensure the orchestrator is running.' },
     { status: 502 }
   );
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

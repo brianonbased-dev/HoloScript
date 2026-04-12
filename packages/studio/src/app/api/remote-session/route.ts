@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 
@@ -67,4 +69,16 @@ export async function POST(request: NextRequest) {
   };
   // In production: upsert to Redis pub/sub
   return Response.json({ ok: true, device });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest } from 'next/server';
 
 /**
@@ -122,4 +124,16 @@ export async function GET(request: NextRequest) {
     ? presets.filter((p) => p.name.toLowerCase().includes(q) || p.useCase.toLowerCase().includes(q))
     : presets;
   return Response.json({ presets: results, total: results.length });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

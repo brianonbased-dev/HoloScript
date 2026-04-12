@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, _NextResponse } from 'next/server';
 import { getDb } from '../../../../../../db/client';
 import { holomeshReferrals, holomeshTransactions } from '../../../../../../db/schema';
@@ -134,5 +136,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return new Response(upstream.body, {
     status: upstream.status,
     headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

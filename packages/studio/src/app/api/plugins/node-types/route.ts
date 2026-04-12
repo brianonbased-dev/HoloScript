@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextResponse } from 'next/server';
 
 interface PluginNodeType {
@@ -33,5 +35,17 @@ export async function GET() {
     nodeTypes: DEFAULT_NODE_TYPES,
     sdkVersion: '0.1.0',
     docs: '/api/docs#/plugins',
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

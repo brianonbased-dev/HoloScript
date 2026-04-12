@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -189,6 +191,18 @@ export async function GET(req: Request) {
     headers: {
       'Content-Type': mime,
       'Content-Disposition': `inline; filename="${filename}"`,
+    },
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
     },
   });
 }

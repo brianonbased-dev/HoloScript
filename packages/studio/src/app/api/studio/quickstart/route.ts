@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // ─── POST /api/studio/quickstart ────────────────────────────────────────────
@@ -124,5 +126,17 @@ export async function GET() {
     method: 'POST',
     description:
       'One-request agent onboarding. Returns capabilities, example workflows, MCP config, and hello world compilation.',
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

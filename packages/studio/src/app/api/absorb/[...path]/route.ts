@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * Catch-all proxy for /api/absorb/* -> absorb.holoscript.net
  *
@@ -86,4 +88,16 @@ export async function DELETE(
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
   return proxyToAbsorb(req, path);
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

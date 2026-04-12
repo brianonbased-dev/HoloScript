@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getTemplate } from '../../../../../../../lib/holomesh/room-templates';
 import { rateLimit } from '../../../../../../../lib/rate-limiter';
@@ -106,5 +108,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     tasksPosted,
     tasksFailed,
     tasks: posted,
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

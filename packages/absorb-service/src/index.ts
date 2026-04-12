@@ -26,3 +26,6 @@ export * from './engine/index';
 
 // Bridge (no collisions)
 export * from './bridge';
+
+export * from './self-improvement/SelfImprovementPipeline';
+export * from './self-improvement/GRPORewardOrchestrator';

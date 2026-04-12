@@ -113,7 +113,10 @@ export class CodebaseScanner {
    */
   async scan(options: ScanOptions): Promise<ScanResult> {
     const startTime = Date.now();
-    const rootDir = path.resolve(options.rootDir);
+    const rootDirsRaw = options.rootDirs ?? (options.rootDir ? [options.rootDir] : []);
+    if (rootDirsRaw.length === 0) throw new Error('No rootDir or rootDirs provided to scan');
+    const rootDirs = rootDirsRaw.map(r => path.resolve(r));
+    const rootDir = rootDirs[0]; // Primary root for relative path normalization
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
@@ -121,7 +124,13 @@ export class CodebaseScanner {
     const onProgress = options.onProgress;
 
     // 1. Collect files
-    const filePaths = this.collectFiles(rootDir, exclude, maxFiles, options.languages);
+    const filePathsSet = new Set<string>();
+    for (const rDir of rootDirs) {
+      if (filePathsSet.size >= maxFiles) break;
+      const paths = this.collectFiles(rDir, exclude, maxFiles - filePathsSet.size, options.languages);
+      for (const p of paths) filePathsSet.add(p);
+    }
+    const filePaths = Array.from(filePathsSet);
 
     // 2. Preload grammars for detected languages
     const detectedLanguages = new Set<SupportedLanguage>();
@@ -348,7 +357,7 @@ export class CodebaseScanner {
       errors,
     };
 
-    return { rootDir, files, stats };
+    return { rootDir, rootDirs, files, stats };
   }
 
   /**
@@ -426,7 +435,7 @@ export class CodebaseScanner {
       errors,
     };
 
-    return { rootDir: resolvedRootDir, files, stats };
+    return { rootDir: resolvedRootDir, rootDirs: [resolvedRootDir], files, stats };
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────

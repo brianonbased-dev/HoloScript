@@ -428,7 +428,12 @@ export const codebaseTools: Tool[] = [
       properties: {
         rootDir: {
           type: 'string',
-          description: 'Absolute path to the root directory to scan',
+          description: 'Absolute path to the root directory to scan (deprecated in favor of rootDirs)',
+        },
+        rootDirs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of absolute paths to root directories to scan (for multi-repository context)',
         },
         outputFormat: {
           type: 'string',
@@ -763,7 +768,7 @@ async function runFullScan(
     EmbeddingIndex: any;
     createEmbeddingProvider: any;
   },
-  rootDir: string,
+  rootDirsRaw: string[] | undefined,
   languages: string[] | undefined,
   maxFiles: number | undefined,
   includeBuildArtifacts: boolean,
@@ -778,6 +783,10 @@ async function runFullScan(
   const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } =
     mod;
 
+  const rootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : [];
+  if (rootDirs.length === 0) throw new Error('No rootDir or rootDirs provided');
+  const primaryRootDir = rootDirs[0]; 
+
   const startTime = Date.now();
 
   if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
@@ -787,13 +796,14 @@ async function runFullScan(
   if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
 
   const scanResult = await scanner.scan({
-    rootDir,
+    rootDir: primaryRootDir, // for backward compat mapping
+    rootDirs,
     languages,
     maxFiles,
     includeBuildArtifacts,
     onProgress: (processed: number, total: number, file: string) => {
       if (jobId) {
-        const scanPercent = 10 + (processed / total) * 50; // 10-60%
+        const scanPercent = 10 + (processed / Math.max(total, 1)) * 50; // 10-60%
         trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
       }
     },
@@ -805,7 +815,7 @@ async function runFullScan(
   graph.buildFromScanResult(scanResult);
 
   // Compute git commit hash and file hashes for v2 cache
-  const detector = new GitChangeDetector(rootDir);
+  const detector = new GitChangeDetector(primaryRootDir);
   let gitCommitHash: string | undefined;
   let fileHashes: Record<string, string> | undefined;
 
@@ -821,14 +831,14 @@ async function runFullScan(
 
   // Cache for subsequent queries
   cachedGraph = graph;
-  cachedRootDir = rootDir;
+  cachedRootDir = primaryRootDir;
   cacheProvenance = 'fresh-scan';
   cacheTimestamp = Date.now();
 
   // Persist graph to disk
   const graphStats = graph.getStats();
   const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
-  saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, detectedProvider);
+  saveGraphCache(graph, primaryRootDir, graphStats, gitCommitHash, fileHashes, detectedProvider);
 
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
 
@@ -1178,6 +1188,11 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const { CodebaseGraph, GitChangeDetector } = mod;
 
   const rootDir = args.rootDir as string;
+  const rootDirsRaw = args.rootDirs as string[] | undefined;
+  const effectiveRootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : (rootDir ? [rootDir] : []);
+  const primaryRootDir = effectiveRootDirs[0];
+  if (!primaryRootDir) return { error: "rootDir or rootDirs required" };
+
   const outputFormat = (args.outputFormat as string) ?? 'holo';
   const layout = (args.layout as string) ?? 'force';
   const languages = args.languages as string[] | undefined;
@@ -1190,7 +1205,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const embeddingModel = args.embeddingModel as string | undefined;
 
   // Create job for progress tracking
-  const jobId = createAbsorbJob(rootDir);
+  const jobId = createAbsorbJob(primaryRootDir);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 1: force=true → FULL SCAN
@@ -1198,7 +1213,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   if (force) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1220,7 +1235,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   if (!envelope) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1238,7 +1253,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   if (envelope.version === 1) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1253,10 +1268,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return { ...(result as Record<string, unknown>), jobId };
   }
 
-  if (envelope.rootDir !== rootDir) {
+  if (envelope.rootDir !== primaryRootDir) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1274,11 +1289,11 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 3: Git change detection
   // ═══════════════════════════════════════════════════════════════════════════
-  const detector = new GitChangeDetector(rootDir);
+  const detector = new GitChangeDetector(primaryRootDir);
   if (!detector.isGitRepo()) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1297,7 +1312,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   if (changes.storedCommitMissing) {
     const result = await runFullScan(
       mod,
-      rootDir,
+      effectiveRootDirs,
       languages,
       maxFiles,
       includeBuildArtifacts,
@@ -1370,7 +1385,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   const result = await runIncrementalPatch(
     mod,
-    rootDir,
+    primaryRootDir,
     envelope,
     changes,
     includeBuildArtifacts,

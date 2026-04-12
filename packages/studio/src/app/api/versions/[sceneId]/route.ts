@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { and, desc, eq } from 'drizzle-orm';
@@ -112,4 +114,16 @@ export async function DELETE(
   versionsByScene.set(sceneId, filtered);
 
   return NextResponse.json({ ok: true, remaining: filtered.length });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }

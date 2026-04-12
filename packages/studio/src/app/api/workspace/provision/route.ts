@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * POST /api/workspace/provision — Auto-provision a user's full HoloScript workspace.
  *
@@ -80,5 +82,17 @@ export async function POST(request: Request) {
       daemonStarted: result.user?.daemonStarted,
     },
     steps: result.steps,
+  });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
   });
 }

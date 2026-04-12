@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 /**
  * POST /api/github/pr — Create a pull request via the GitHub API.
  *
@@ -122,4 +124,16 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json({ prs, total: prs.length });
+}
+
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-mcp-api-key',
+    },
+  });
 }
