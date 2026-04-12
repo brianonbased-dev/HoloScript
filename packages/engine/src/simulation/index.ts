@@ -66,6 +66,13 @@ export {
   type VTKStructuredResult, type VTKUnstructuredResult,
 } from './import/index';
 
+// Simulation Contract — Enforced guarantees for scientific reliability
+export {
+  ContractedSimulation, DeterministicStepper,
+  hashGeometry, validateUnits,
+  type SimulationProvenance, type InteractionEvent, type ContractViolation, type ContractConfig,
+} from './SimulationContract';
+
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
 export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';
