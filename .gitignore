@@ -426,3 +426,19 @@ packages/*/*.bak
 packages/*/vitest-report*.json
 packages/*/typescript-errors.txt
 packages/*/test-out*.txt
+
+# Agent session debug artifacts (root-level temp files)
+# These accumulate from agent sessions and should never be committed.
+/*.txt
+/*.json
+!package.json
+!tsconfig.json
+!board.json
+!board_ide.json
+/*.mjs
+!stryker.config.mjs
+/fix_*.ts
+/force_*.ts
+/test_*.ts
+/patch_*.mjs
+/read_*.mjs
