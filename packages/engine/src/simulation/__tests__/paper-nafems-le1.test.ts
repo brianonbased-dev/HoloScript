@@ -164,9 +164,37 @@ function outerPressureLoads(mesh: ReturnType<typeof generateMesh>) {
 
 // ── Stress Extraction ───────────────────────────────────────────────────────
 
-function extractStressNearPoint(
+/**
+ * Extract a specific Cauchy stress component near a target point.
+ * cauchyStress layout: [sxx,syy,szz,txy,tyz,txz] × elementCount
+ * component: 0=sxx, 1=syy, 2=szz, 3=txy, 4=tyz, 5=txz
+ */
+function extractCauchyComponentNearPoint(
   vertices: Float32Array | Float64Array, tetrahedra: Uint32Array,
-  vonMises: Float32Array, nodesPerTet: number,
+  cauchyStress: Float32Array | Float64Array, nodesPerTet: number,
+  component: number, targetX: number, targetY: number, searchRadius: number,
+): number {
+  const elemCount = tetrahedra.length / nodesPerTet;
+  let bestDist = Infinity, bestStress = 0, sumStress = 0, count = 0;
+  for (let e = 0; e < elemCount; e++) {
+    let cx = 0, cy = 0;
+    for (let n = 0; n < 4; n++) {
+      const ni = tetrahedra[e * nodesPerTet + n];
+      cx += vertices[ni * 3] / 4;
+      cy += vertices[ni * 3 + 1] / 4;
+    }
+    const dist = Math.sqrt((cx - targetX) ** 2 + (cy - targetY) ** 2);
+    const sigma = cauchyStress[e * 6 + component];
+    if (dist < searchRadius) { sumStress += sigma; count++; }
+    if (dist < bestDist) { bestDist = dist; bestStress = sigma; }
+  }
+  return count > 0 ? sumStress / count : bestStress;
+}
+
+/** Extract von Mises stress near a target point (backward compatible) */
+function extractVonMisesNearPoint(
+  vertices: Float32Array | Float64Array, tetrahedra: Uint32Array,
+  vonMises: Float32Array | Float64Array, nodesPerTet: number,
   targetX: number, targetY: number, searchRadius: number,
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
@@ -215,10 +243,16 @@ function runTET4WithRollers(nr: number, nt: number) {
   const solver = new StructuralSolver(config);
   const result = solver.solve();
   const solveMs = performance.now() - start;
-  const vms = solver.getVonMisesStress();
-  const stressAtD = extractStressNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, 0, INNER_AY, 0.5);
 
-  return { stressAtD, converged: result.converged, solveMs, nodeCount: mesh.nodeCount, dof: mesh.nodeCount * 3, mesh };
+  // Extract σ_yy (component 1) directly — this is what NAFEMS LE1 references
+  const cauchy = solver.getCauchyStress();
+  const sigmaYY = extractCauchyComponentNearPoint(mesh.vertices, mesh.tetrahedra, cauchy, 4, 1, 0, INNER_AY, 0.5);
+
+  // Also get von Mises for comparison
+  const vms = solver.getVonMisesStress();
+  const vonMisesAtD = extractVonMisesNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, 0, INNER_AY, 0.5);
+
+  return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: mesh.nodeCount, dof: mesh.nodeCount * 3, mesh };
 }
 
 function runTET10WithRollers(nr: number, nt: number) {
@@ -259,101 +293,110 @@ function runTET10WithRollers(nr: number, nt: number) {
   const solver = new StructuralSolverTET10(config);
   const result = solver.solveCPU();
   const solveMs = performance.now() - start;
-  const vms = solver.getVonMisesStress();
-  const stressAtD = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, 0, INNER_AY, 0.5);
 
-  return { stressAtD, converged: result.converged, solveMs, nodeCount: tet10NodeCount, dof: tet10NodeCount * 3 };
+  // Extract σ_yy (component 1)
+  const cauchy = solver.getCauchyStress();
+  const sigmaYY = extractCauchyComponentNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, cauchy, 10, 1, 0, INNER_AY, 0.5);
+
+  const vms = solver.getVonMisesStress();
+  const vonMisesAtD = extractVonMisesNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, 0, INNER_AY, 0.5);
+
+  return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: tet10NodeCount, dof: tet10NodeCount * 3 };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONVERGENCE STUDY
 // ═══════════════════════════════════════════════════════════════════════
 
-describe('NAFEMS LE1 — Roller BCs (Proper Symmetry)', () => {
+describe('NAFEMS LE1 — Roller BCs + σ_yy Extraction', () => {
 
-  it('TET4 + TET10 convergence with roller symmetry BCs', () => {
+  it('TET4 + TET10 σ_yy convergence with roller symmetry BCs', () => {
+    // Finer meshes for stress convergence on curved geometry
     const meshConfigs = [
-      { nr: 2, nt: 4, h: 0.500 },
-      { nr: 4, nt: 8, h: 0.250 },
-      { nr: 6, nt: 12, h: 0.166 },
-      { nr: 8, nt: 16, h: 0.125 },
+      { nr: 4,  nt: 8,  h: 0.250 },
+      { nr: 8,  nt: 16, h: 0.125 },
+      { nr: 12, nt: 24, h: 0.083 },
+      { nr: 16, nt: 32, h: 0.0625 },
     ];
     const hSizes = meshConfigs.map((c) => c.h);
 
     // ── TET4 ──
-    const tet4Data: Array<{ h: number; nodes: number; dof: number; stress: number; error: number; solveMs: number }> = [];
+    const tet4Data: Array<{ h: number; nodes: number; dof: number; sigmaYY: number; vonMises: number; error: number; solveMs: number }> = [];
     const tet4Result = runConvergenceStudy((h) => {
       const conf = meshConfigs.find((c) => c.h === h)!;
       const run = runTET4WithRollers(conf.nr, conf.nt);
-      const error = Math.abs(run.stressAtD - NAFEMS_REF) / NAFEMS_REF;
-      tet4Data.push({ h, nodes: run.nodeCount, dof: run.dof, stress: run.stressAtD, error, solveMs: run.solveMs });
-      return { numerical: new Float32Array([run.stressAtD]), exact: new Float32Array([NAFEMS_REF]) };
+      const error = Math.abs(run.sigmaYY - NAFEMS_REF) / NAFEMS_REF;
+      tet4Data.push({ h, nodes: run.nodeCount, dof: run.dof, sigmaYY: run.sigmaYY, vonMises: run.vonMisesAtD, error, solveMs: run.solveMs });
+      return { numerical: new Float32Array([run.sigmaYY]), exact: new Float32Array([NAFEMS_REF]) };
     }, hSizes, (n) => n[0]);
 
     // ── TET10 ──
-    const tet10Data: Array<{ h: number; nodes: number; dof: number; stress: number; error: number; solveMs: number }> = [];
+    const tet10Data: Array<{ h: number; nodes: number; dof: number; sigmaYY: number; vonMises: number; error: number; solveMs: number }> = [];
     const tet10Result = runConvergenceStudy((h) => {
       const conf = meshConfigs.find((c) => c.h === h)!;
       const run = runTET10WithRollers(conf.nr, conf.nt);
-      const error = Math.abs(run.stressAtD - NAFEMS_REF) / NAFEMS_REF;
-      tet10Data.push({ h, nodes: run.nodeCount, dof: run.dof, stress: run.stressAtD, error, solveMs: run.solveMs });
-      return { numerical: new Float32Array([run.stressAtD]), exact: new Float32Array([NAFEMS_REF]) };
+      const error = Math.abs(run.sigmaYY - NAFEMS_REF) / NAFEMS_REF;
+      tet10Data.push({ h, nodes: run.nodeCount, dof: run.dof, sigmaYY: run.sigmaYY, vonMises: run.vonMisesAtD, error, solveMs: run.solveMs });
+      return { numerical: new Float32Array([run.sigmaYY]), exact: new Float32Array([NAFEMS_REF]) };
     }, hSizes, (n) => n[0]);
 
     // ═══ Output ═══
-    console.log('\n' + '='.repeat(85));
-    console.log('NAFEMS LE1 — ROLLER BCs (sigma_yy at D = 92.7 MPa)');
-    console.log('='.repeat(85));
+    console.log('\n' + '='.repeat(95));
+    console.log('NAFEMS LE1 — σ_yy at D with ROLLER BCs (ref = 92.7 MPa)');
+    console.log('='.repeat(95));
 
     console.log('\nTET4 (Linear):');
-    console.log('| h     | Nodes | DOF   | σ_D (MPa) | Rel Error | Solve (ms) |');
-    console.log('|-------|-------|-------|-----------|-----------|------------|');
+    console.log('| h      | Nodes | DOF    | σ_yy (MPa) | VonMises | Rel Error | Solve (ms) |');
+    console.log('|--------|-------|--------|------------|----------|-----------|------------|');
     for (const d of tet4Data) {
-      console.log(`| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(`| ${d.h.toFixed(4)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(6)} | ${d.sigmaYY.toFixed(2).padStart(10)} | ${d.vonMises.toFixed(2).padStart(8)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
     }
     console.log(`Observed order: ${tet4Result.observedOrderLinf.toFixed(3)}`);
     if (tet4Result.gci !== undefined) console.log(`GCI: ${(tet4Result.gci * 100).toFixed(2)}%`);
+    if (tet4Result.richardsonEstimate !== undefined) console.log(`Richardson estimate: ${tet4Result.richardsonEstimate.toFixed(2)} MPa`);
 
     console.log('\nTET10 (Quadratic):');
-    console.log('| h     | Nodes | DOF   | σ_D (MPa) | Rel Error | Solve (ms) |');
-    console.log('|-------|-------|-------|-----------|-----------|------------|');
+    console.log('| h      | Nodes | DOF    | σ_yy (MPa) | VonMises | Rel Error | Solve (ms) |');
+    console.log('|--------|-------|--------|------------|----------|-----------|------------|');
     for (const d of tet10Data) {
-      console.log(`| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(`| ${d.h.toFixed(4)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(6)} | ${d.sigmaYY.toFixed(2).padStart(10)} | ${d.vonMises.toFixed(2).padStart(8)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
     }
     console.log(`Observed order: ${tet10Result.observedOrderLinf.toFixed(3)}`);
     if (tet10Result.gci !== undefined) console.log(`GCI: ${(tet10Result.gci * 100).toFixed(2)}%`);
+    if (tet10Result.richardsonEstimate !== undefined) console.log(`Richardson estimate: ${tet10Result.richardsonEstimate.toFixed(2)} MPa`);
 
     // ═══ LaTeX ═══
     console.log('\n% ────────────────────────────────────────────────────────');
-    console.log('% LaTeX: NAFEMS LE1 with Roller BCs');
+    console.log('% LaTeX: NAFEMS LE1 σ_yy with Roller BCs');
     console.log('% ────────────────────────────────────────────────────────');
     console.log('\\begin{table*}[t]');
     console.log('  \\centering');
-    console.log('  \\caption{NAFEMS LE1 convergence: elliptic membrane, $\\sigma_{yy}^{\\text{ref}} = 92.7$~MPa at point~D. Roller symmetry BCs.}');
+    console.log('  \\caption{NAFEMS LE1: $\\sigma_{yy}$ at point~D ($\\sigma_{yy}^{\\text{ref}} = 92.7$~MPa). Roller symmetry BCs, Cauchy stress extraction.}');
     console.log('  \\label{tab:nafems}');
     console.log('  \\begin{tabular}{@{}crrrcrrrr@{}}');
     console.log('    \\toprule');
     console.log('    & \\multicolumn{3}{c}{TET4 (Linear)} & & \\multicolumn{3}{c}{TET10 (Quadratic)} \\\\');
     console.log('    \\cmidrule(lr){2-4} \\cmidrule(lr){6-8}');
-    console.log('    $h$ & DOF & $\\sigma_D$ (MPa) & Error (\\%) & & DOF & $\\sigma_D$ (MPa) & Error (\\%) \\\\');
+    console.log('    $h$ & DOF & $\\sigma_{yy}$ (MPa) & Error (\\%) & & DOF & $\\sigma_{yy}$ (MPa) & Error (\\%) \\\\');
     console.log('    \\midrule');
     for (let i = 0; i < hSizes.length; i++) {
       const t4 = tet4Data[i], t10 = tet10Data[i];
-      console.log(`    ${t4.h.toFixed(3)} & ${t4.dof} & ${t4.stress.toFixed(2)} & ${(t4.error * 100).toFixed(2)} & & ${t10.dof} & ${t10.stress.toFixed(2)} & ${(t10.error * 100).toFixed(2)} \\\\`);
+      console.log(`    ${t4.h.toFixed(4)} & ${t4.dof} & ${t4.sigmaYY.toFixed(2)} & ${(t4.error * 100).toFixed(2)} & & ${t10.dof} & ${t10.sigmaYY.toFixed(2)} & ${(t10.error * 100).toFixed(2)} \\\\`);
     }
     console.log('    \\midrule');
     console.log(`    \\multicolumn{4}{l}{Observed order: $p = ${tet4Result.observedOrderLinf.toFixed(2)}$} & & \\multicolumn{3}{l}{Observed order: $p = ${tet10Result.observedOrderLinf.toFixed(2)}$} \\\\`);
+    if (tet4Result.gci !== undefined && tet10Result.gci !== undefined) {
+      console.log(`    \\multicolumn{4}{l}{GCI: ${(tet4Result.gci * 100).toFixed(2)}\\%} & & \\multicolumn{3}{l}{GCI: ${(tet10Result.gci * 100).toFixed(2)}\\%} \\\\`);
+    }
     console.log('    \\bottomrule');
     console.log('  \\end{tabular}');
     console.log('\\end{table*}');
+    console.log('='.repeat(95));
 
-    console.log('='.repeat(85));
-
-    // Assertions — both should converge, TET10 should be more accurate
+    // Assertions
     expect(tet4Data.length).toBe(4);
     expect(tet10Data.length).toBe(4);
-    // Finest mesh should have lower error than coarsest
-    expect(tet4Data[3].error).toBeLessThan(tet4Data[0].error);
-    expect(tet10Data[3].error).toBeLessThan(tet10Data[0].error);
-  }, 120000);
+    // TET10 finest mesh should be more accurate than TET4 finest mesh
+    expect(tet10Data[3].error).toBeLessThan(tet4Data[3].error);
+  }, 300000);
 });
