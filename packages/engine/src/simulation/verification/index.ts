@@ -18,6 +18,9 @@ export {
   createVerificationReport,
   renderReportMarkdown,
   renderReportLatex,
+  type SolverType,
+  type ConvergencePlotPoint,
+  type ConvergencePlotData,
   type BenchmarkResult,
   type VerificationReport,
 } from './ReportGenerator';

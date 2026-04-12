@@ -1,0 +1,1609 @@
+// =============================================================================
+// V&V Results Visualization Space
+// =============================================================================
+// Immersive VR environment for Verification & Validation professionals to
+// walk through convergence plots in 3D, compare mesh refinement levels
+// visually, and see uncertainty distributions as volumetric clouds around
+// simulation results.
+//
+// Three major zones:
+//   1. Convergence Gallery   - 3D convergence plots as walkable landscapes
+//   2. Mesh Refinement Arena - Side-by-side mesh levels with exploded views
+//   3. Uncertainty Cloud Lab - Volumetric probability clouds around results
+//
+// Designed for Quest 3 at 90Hz. Frame budget: 11.1ms.
+// Data binding: connects to SimSci solver outputs via @data_binding traits.
+// =============================================================================
+
+composition "V&V Results Visualization Space" {
+    @author("HoloScript_Core")
+    @version("1.0.0")
+    @networked
+    @tags(["vv", "verification", "validation", "convergence", "mesh-refinement", "uncertainty", "simulation", "engineering"])
+
+    environment {
+        skyColor: "#050510"
+        horizonColor: "#0c0c22"
+        groundColor: "#030308"
+        grid: true
+        gridColor: "#0a1525"
+        ambientLight: 0.35
+        fog: { type: "exponential", color: "#050510", density: 0.004 }
+    }
+
+    // =========================================================================
+    // SECTION 0: GROUND PLANE, SPAWN, & NAVIGATION HUB
+    // =========================================================================
+
+    object "VV_Floor" {
+        geometry: "plane"
+        scale: [500, 1, 500]
+        material: "obsidian_reflective"
+        @physics(type: "static")
+    }
+
+    object "Spawn_Point" @glowing {
+        position: [0, 0.05, 12]
+        geometry: "cylinder"
+        scale: [2.5, 0.05, 2.5]
+        color: "#00ff99"
+        emissive: "#00ff99"
+        emissiveIntensity: 0.5
+    }
+
+    // --- Main Title ---
+    object "VV_Title" {
+        @hologram
+        position: [0, 14, -35]
+        geometry: "text"
+        properties: {
+            text: "V&V RESULTS VISUALIZATION SPACE"
+            fontSize: 68
+            color: "#00ddff"
+            fontWeight: "bold"
+        }
+    }
+
+    object "VV_Subtitle" {
+        @hologram
+        position: [0, 12.2, -35]
+        geometry: "text"
+        properties: {
+            text: "Convergence | Mesh Refinement | Uncertainty Quantification"
+            fontSize: 24
+            color: "#4488aa"
+        }
+    }
+
+    // --- Navigation Hub (central pedestal with zone teleporters) ---
+    object "Nav_Hub_Pedestal" @collidable {
+        position: [0, 0.5, 5]
+        geometry: "cylinder"
+        scale: [4, 1, 4]
+        color: "#1a1a2e"
+        material: "metal"
+    }
+
+    object "Nav_Hub_Label" {
+        @hologram
+        position: [0, 2.2, 5]
+        geometry: "text"
+        properties: {
+            text: "NAVIGATION HUB"
+            fontSize: 20
+            color: "#00ccff"
+        }
+    }
+
+    // Teleporter: Convergence Gallery (left)
+    object "Teleport_Convergence" @pointable @collidable @glowing {
+        position: [-2, 1.2, 4]
+        geometry: "cylinder"
+        scale: [0.6, 0.4, 0.6]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.6
+        @tooltip("Teleport to Convergence Gallery")
+        onInteraction: {
+            emit "teleport:player" { target: [-60, 0.1, -30] }
+        }
+    }
+
+    object "Teleport_Convergence_Label" {
+        @hologram
+        position: [-2, 2, 4]
+        geometry: "text"
+        properties: {
+            text: "CONVERGENCE"
+            fontSize: 14
+            color: "#00ff88"
+        }
+    }
+
+    // Teleporter: Mesh Refinement Arena (center)
+    object "Teleport_Mesh" @pointable @collidable @glowing {
+        position: [0, 1.2, 3]
+        geometry: "cylinder"
+        scale: [0.6, 0.4, 0.6]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.6
+        @tooltip("Teleport to Mesh Refinement Arena")
+        onInteraction: {
+            emit "teleport:player" { target: [0, 0.1, -80] }
+        }
+    }
+
+    object "Teleport_Mesh_Label" {
+        @hologram
+        position: [0, 2, 3]
+        geometry: "text"
+        properties: {
+            text: "MESH REFINEMENT"
+            fontSize: 14
+            color: "#ffaa00"
+        }
+    }
+
+    // Teleporter: Uncertainty Cloud Lab (right)
+    object "Teleport_Uncertainty" @pointable @collidable @glowing {
+        position: [2, 1.2, 4]
+        geometry: "cylinder"
+        scale: [0.6, 0.4, 0.6]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.6
+        @tooltip("Teleport to Uncertainty Cloud Lab")
+        onInteraction: {
+            emit "teleport:player" { target: [60, 0.1, -30] }
+        }
+    }
+
+    object "Teleport_Uncertainty_Label" {
+        @hologram
+        position: [2, 2, 4]
+        geometry: "text"
+        properties: {
+            text: "UNCERTAINTY"
+            fontSize: 14
+            color: "#cc44ff"
+        }
+    }
+
+    // =========================================================================
+    // ZONE 1: CONVERGENCE GALLERY (left wing, -60x, -30z)
+    // =========================================================================
+    // Walkable 3D convergence plots. Each plot is a spatial landscape where
+    // the X-axis = iteration/refinement, Y-axis = error magnitude,
+    // Z-axis = variable being tracked. Users walk along the iteration axis
+    // and see error surfaces descending toward convergence.
+
+    // --- Zone 1 Boundary Arch ---
+    object "Conv_Arch_Left" @collidable {
+        position: [-66, 5, -20]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#00ff88"
+        material: "metal"
+    }
+
+    object "Conv_Arch_Right" @collidable {
+        position: [-54, 5, -20]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#00ff88"
+        material: "metal"
+    }
+
+    object "Conv_Arch_Top" @glowing {
+        position: [-60, 10.5, -20]
+        geometry: "box"
+        scale: [13, 1, 1]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.4
+    }
+
+    object "Conv_Zone_Title" {
+        @hologram
+        position: [-60, 12, -20]
+        geometry: "text"
+        properties: {
+            text: "CONVERGENCE GALLERY"
+            fontSize: 36
+            color: "#00ff88"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Conv_Zone_Desc" {
+        @hologram
+        position: [-60, 10.8, -19.5]
+        geometry: "text"
+        properties: {
+            text: "Walk through error decay | Touch data points for details"
+            fontSize: 16
+            color: "#66cc99"
+        }
+    }
+
+    // --- Convergence Plot 1: Displacement Norm (h-refinement) ---
+    object "Conv_Plot1_Base" @collidable {
+        position: [-68, 0.1, -35]
+        geometry: "box"
+        scale: [16, 0.2, 12]
+        color: "#0a0a1a"
+        material: "glass_dark"
+    }
+
+    object "Conv_Plot1_Title" {
+        @hologram
+        position: [-68, 8, -35]
+        geometry: "text"
+        properties: {
+            text: "Displacement Norm vs h-Refinement"
+            fontSize: 18
+            color: "#00ffaa"
+        }
+    }
+
+    // X-axis label (iteration)
+    object "Conv_Plot1_XAxis" {
+        @hologram
+        position: [-68, -0.3, -29]
+        geometry: "text"
+        properties: {
+            text: "Mesh Size h (coarse --> fine)"
+            fontSize: 12
+            color: "#668899"
+        }
+    }
+
+    // Y-axis label (error)
+    object "Conv_Plot1_YAxis" {
+        @hologram
+        position: [-76.5, 4, -35]
+        geometry: "text"
+        properties: {
+            text: "Relative Error %"
+            fontSize: 12
+            color: "#668899"
+        }
+    }
+
+    // Y-axis graduated scale bars
+    object "Conv_Plot1_YBar_10" @glowing {
+        position: [-76, 1, -35]
+        geometry: "box"
+        scale: [0.05, 0.05, 12]
+        color: "#334455"
+        emissive: "#334455"
+        emissiveIntensity: 0.3
+    }
+
+    object "Conv_Plot1_YBar_5" @glowing {
+        position: [-76, 3.5, -35]
+        geometry: "box"
+        scale: [0.05, 0.05, 12]
+        color: "#334455"
+        emissive: "#334455"
+        emissiveIntensity: 0.3
+    }
+
+    object "Conv_Plot1_YBar_1" @glowing {
+        position: [-76, 6, -35]
+        geometry: "box"
+        scale: [0.05, 0.05, 12]
+        color: "#334455"
+        emissive: "#334455"
+        emissiveIntensity: 0.3
+    }
+
+    // Convergence data points (walkable pillars descending in height)
+    // h=1.0 (coarse) -> error ~15%
+    orb "Conv_P1_h1" @glowing @pointable @animated {
+        position: [-74, 7.5, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#ff4444"
+        emissive: "#ff4444"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("h=1.0 | Error: 15.2% | DOF: 48\nStatus: NOT CONVERGED")
+        @data_binding(source: "convergence.displacement.h1", field: "position.y")
+    }
+
+    // h=0.5 -> error ~8%
+    orb "Conv_P1_h05" @glowing @pointable @animated {
+        position: [-71, 4.0, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.7
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("h=0.5 | Error: 8.1% | DOF: 192\nStatus: CONVERGING")
+        @data_binding(source: "convergence.displacement.h05", field: "position.y")
+    }
+
+    // h=0.25 -> error ~3.2%
+    orb "Conv_P1_h025" @glowing @pointable @animated {
+        position: [-68, 1.6, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#ffcc00"
+        emissive: "#ffcc00"
+        emissiveIntensity: 0.7
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("h=0.25 | Error: 3.2% | DOF: 768\nStatus: CONVERGING")
+        @data_binding(source: "convergence.displacement.h025", field: "position.y")
+    }
+
+    // h=0.125 -> error ~0.9%
+    orb "Conv_P1_h0125" @glowing @pointable @animated {
+        position: [-65, 0.45, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#44ff44"
+        emissive: "#44ff44"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("h=0.125 | Error: 0.9% | DOF: 3072\nStatus: CONVERGED (<1%)")
+        @data_binding(source: "convergence.displacement.h0125", field: "position.y")
+    }
+
+    // h=0.0625 -> error ~0.22%
+    orb "Conv_P1_h00625" @glowing @pointable @animated {
+        position: [-62, 0.15, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.9
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("h=0.0625 | Error: 0.22% | DOF: 12288\nStatus: CONVERGED (excellent)")
+        @data_binding(source: "convergence.displacement.h00625", field: "position.y")
+    }
+
+    // Convergence connecting beam (traces the decay curve)
+    object "Conv_P1_Beam_1" @glowing {
+        position: [-72.5, 5.75, -35]
+        geometry: "box"
+        scale: [3.5, 0.08, 0.08]
+        color: "#ff6644"
+        emissive: "#ff6644"
+        emissiveIntensity: 0.5
+        rotation: [0, 0, -45]
+    }
+
+    object "Conv_P1_Beam_2" @glowing {
+        position: [-69.5, 2.8, -35]
+        geometry: "box"
+        scale: [3.5, 0.08, 0.08]
+        color: "#ffaa22"
+        emissive: "#ffaa22"
+        emissiveIntensity: 0.5
+        rotation: [0, 0, -35]
+    }
+
+    object "Conv_P1_Beam_3" @glowing {
+        position: [-66.5, 1.0, -35]
+        geometry: "box"
+        scale: [3.5, 0.08, 0.08]
+        color: "#88ff44"
+        emissive: "#88ff44"
+        emissiveIntensity: 0.5
+        rotation: [0, 0, -18]
+    }
+
+    object "Conv_P1_Beam_4" @glowing {
+        position: [-63.5, 0.3, -35]
+        geometry: "box"
+        scale: [3.5, 0.08, 0.08]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.5
+        rotation: [0, 0, -5]
+    }
+
+    // Convergence rate annotation
+    object "Conv_P1_Rate" {
+        @hologram
+        position: [-68, 8.5, -38]
+        geometry: "text"
+        properties: {
+            text: "Rate: O(h^2.03) | Expected: O(h^2) for TET4"
+            fontSize: 14
+            color: "#00ddaa"
+        }
+    }
+
+    // --- Convergence Plot 2: Stress Convergence (p-refinement) ---
+    object "Conv_Plot2_Base" @collidable {
+        position: [-52, 0.1, -35]
+        geometry: "box"
+        scale: [16, 0.2, 12]
+        color: "#0a0a1a"
+        material: "glass_dark"
+    }
+
+    object "Conv_Plot2_Title" {
+        @hologram
+        position: [-52, 8, -35]
+        geometry: "text"
+        properties: {
+            text: "Von Mises Stress vs p-Order"
+            fontSize: 18
+            color: "#44aaff"
+        }
+    }
+
+    // p=1 (TET4) -> error ~12%
+    orb "Conv_P2_p1" @glowing @pointable @animated {
+        position: [-58, 6.0, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#ff5555"
+        emissive: "#ff5555"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("p=1 (TET4) | Stress Error: 12.4%\nLocking artifacts visible")
+    }
+
+    // p=2 (TET10) -> error ~2.1%
+    orb "Conv_P2_p2" @glowing @pointable @animated {
+        position: [-55, 1.0, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#44ff44"
+        emissive: "#44ff44"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("p=2 (TET10) | Stress Error: 2.1%\nMidedge nodes eliminate locking")
+    }
+
+    // p=3 -> error ~0.3%
+    orb "Conv_P2_p3" @glowing @pointable @animated {
+        position: [-52, 0.2, -35]
+        geometry: "sphere"
+        scale: [0.5, 0.5, 0.5]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.9
+        animate: "pulse"
+        animSpeed: 0.3
+        @tooltip("p=3 | Stress Error: 0.31%\nDiminishing returns beyond p=2")
+    }
+
+    object "Conv_P2_Rate" {
+        @hologram
+        position: [-52, 8.5, -38]
+        geometry: "text"
+        properties: {
+            text: "Rate: exponential | TET4->TET10 = 6x error reduction"
+            fontSize: 14
+            color: "#4488ff"
+        }
+    }
+
+    // --- Convergence Control Console ---
+    object "Conv_Control_Console" {
+        @interaction
+        @pointable
+        @collidable
+        position: [-60, 1, -25]
+        geometry: "box"
+        scale: [3, 1, 1.5]
+        color: "#1a1a2e"
+        material: "metal"
+
+        object "Conv_Console_Screen" {
+            @hologram
+            position: [0, 0.8, -0.1]
+            geometry: "box"
+            scale: [2.8, 0.6, 0.05]
+            color: "#001122"
+            emissive: "#003344"
+            emissiveIntensity: 0.3
+
+            object "Conv_Console_Label" {
+                geometry: "text"
+                position: [0, 0, 0.05]
+                properties: {
+                    text: "CONVERGENCE CONTROLS"
+                    fontSize: 16
+                    color: "#00ff88"
+                }
+            }
+        }
+
+        onInteraction: {
+            emit "convergence:cycle_dataset" { datasets: ["structural", "thermal", "cfd"] }
+        }
+    }
+
+    // Solver selector buttons
+    object "Conv_Btn_Structural" @pointable @glowing {
+        position: [-64, 1.2, -25]
+        geometry: "box"
+        scale: [1.5, 0.6, 0.6]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.4
+        @tooltip("Show structural solver convergence")
+        onInteraction: {
+            emit "convergence:select_solver" { solver: "structural" }
+        }
+    }
+
+    object "Conv_Btn_Thermal" @pointable @glowing {
+        position: [-64, 1.2, -26.5]
+        geometry: "box"
+        scale: [1.5, 0.6, 0.6]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.4
+        @tooltip("Show thermal solver convergence")
+        onInteraction: {
+            emit "convergence:select_solver" { solver: "thermal" }
+        }
+    }
+
+    object "Conv_Btn_CFD" @pointable @glowing {
+        position: [-64, 1.2, -28]
+        geometry: "box"
+        scale: [1.5, 0.6, 0.6]
+        color: "#4488ff"
+        emissive: "#4488ff"
+        emissiveIntensity: 0.4
+        @tooltip("Show CFD solver convergence")
+        onInteraction: {
+            emit "convergence:select_solver" { solver: "cfd" }
+        }
+    }
+
+    // =========================================================================
+    // ZONE 2: MESH REFINEMENT ARENA (center, 0x, -80z)
+    // =========================================================================
+    // Side-by-side mesh visualizations at different refinement levels.
+    // Users walk between meshes to compare element density, quality, and
+    // how results change with refinement. Exploded view mode separates
+    // elements for interior inspection.
+
+    // --- Zone 2 Boundary Arch ---
+    object "Mesh_Arch_Left" @collidable {
+        position: [-12, 5, -70]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#ffaa00"
+        material: "metal"
+    }
+
+    object "Mesh_Arch_Right" @collidable {
+        position: [12, 5, -70]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#ffaa00"
+        material: "metal"
+    }
+
+    object "Mesh_Arch_Top" @glowing {
+        position: [0, 10.5, -70]
+        geometry: "box"
+        scale: [25, 1, 1]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.4
+    }
+
+    object "Mesh_Zone_Title" {
+        @hologram
+        position: [0, 12, -70]
+        geometry: "text"
+        properties: {
+            text: "MESH REFINEMENT ARENA"
+            fontSize: 36
+            color: "#ffaa00"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_Zone_Desc" {
+        @hologram
+        position: [0, 10.8, -69.5]
+        geometry: "text"
+        properties: {
+            text: "Compare refinement levels | Explode view | Inspect element quality"
+            fontSize: 16
+            color: "#cc9944"
+        }
+    }
+
+    // --- Mesh Level 1: Coarse (48 elements, ~2m scale model) ---
+    object "Mesh_L1_Pedestal" @collidable {
+        position: [-16, 0.5, -85]
+        geometry: "cylinder"
+        scale: [5, 1, 5]
+        color: "#1a1a2e"
+        material: "concrete"
+    }
+
+    object "Mesh_L1_Label" {
+        @hologram
+        position: [-16, 6.5, -85]
+        geometry: "text"
+        properties: {
+            text: "LEVEL 1: COARSE"
+            fontSize: 20
+            color: "#ff6644"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_L1_Stats" {
+        @hologram
+        position: [-16, 5.8, -85]
+        geometry: "text"
+        properties: {
+            text: "48 TET4 | DOF: 144 | h=1.0"
+            fontSize: 14
+            color: "#aa6644"
+        }
+    }
+
+    // Coarse mesh wireframe representation (large visible elements)
+    object "Mesh_L1_Body" @pointable @glowing {
+        position: [-16, 3.5, -85]
+        geometry: "box"
+        scale: [3, 3, 3]
+        color: "#ff4444"
+        material: "wireframe"
+        emissive: "#ff4444"
+        emissiveIntensity: 0.2
+        @tooltip("Coarse mesh: 48 TET4 elements\nVisible artifacts at stress concentrations\nMax element aspect ratio: 4.2")
+        @data_binding(source: "mesh.level1.element_count", field: "tooltip")
+    }
+
+    // Element quality indicator
+    orb "Mesh_L1_Quality" @glowing @animated {
+        position: [-16, 6, -82]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#ff4444"
+        emissive: "#ff4444"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.5
+        @tooltip("Mesh Quality: 0.42 (POOR)\nMin Jacobian: 0.18\n3 inverted elements")
+    }
+
+    // --- Mesh Level 2: Medium (384 elements) ---
+    object "Mesh_L2_Pedestal" @collidable {
+        position: [-5, 0.5, -85]
+        geometry: "cylinder"
+        scale: [5, 1, 5]
+        color: "#1a1a2e"
+        material: "concrete"
+    }
+
+    object "Mesh_L2_Label" {
+        @hologram
+        position: [-5, 6.5, -85]
+        geometry: "text"
+        properties: {
+            text: "LEVEL 2: MEDIUM"
+            fontSize: 20
+            color: "#ffaa00"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_L2_Stats" {
+        @hologram
+        position: [-5, 5.8, -85]
+        geometry: "text"
+        properties: {
+            text: "384 TET4 | DOF: 576 | h=0.5"
+            fontSize: 14
+            color: "#aa8844"
+        }
+    }
+
+    object "Mesh_L2_Body" @pointable @glowing {
+        position: [-5, 3.5, -85]
+        geometry: "box"
+        scale: [3, 3, 3]
+        color: "#ffaa00"
+        material: "wireframe"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.2
+        @tooltip("Medium mesh: 384 TET4 elements\nReasonable stress capture\nMax element aspect ratio: 2.8")
+    }
+
+    orb "Mesh_L2_Quality" @glowing @animated {
+        position: [-5, 6, -82]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.7
+        animate: "pulse"
+        animSpeed: 0.5
+        @tooltip("Mesh Quality: 0.71 (FAIR)\nMin Jacobian: 0.45\n0 inverted elements")
+    }
+
+    // --- Mesh Level 3: Fine (3072 elements) ---
+    object "Mesh_L3_Pedestal" @collidable {
+        position: [6, 0.5, -85]
+        geometry: "cylinder"
+        scale: [5, 1, 5]
+        color: "#1a1a2e"
+        material: "concrete"
+    }
+
+    object "Mesh_L3_Label" {
+        @hologram
+        position: [6, 6.5, -85]
+        geometry: "text"
+        properties: {
+            text: "LEVEL 3: FINE"
+            fontSize: 20
+            color: "#44ff44"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_L3_Stats" {
+        @hologram
+        position: [6, 5.8, -85]
+        geometry: "text"
+        properties: {
+            text: "3072 TET4 | DOF: 4608 | h=0.125"
+            fontSize: 14
+            color: "#44aa44"
+        }
+    }
+
+    object "Mesh_L3_Body" @pointable @glowing {
+        position: [6, 3.5, -85]
+        geometry: "box"
+        scale: [3, 3, 3]
+        color: "#44ff44"
+        material: "wireframe"
+        emissive: "#44ff44"
+        emissiveIntensity: 0.2
+        @tooltip("Fine mesh: 3072 TET4 elements\nAccurate stress resolution\nMax element aspect ratio: 1.9")
+    }
+
+    orb "Mesh_L3_Quality" @glowing @animated {
+        position: [6, 6, -82]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#44ff44"
+        emissive: "#44ff44"
+        emissiveIntensity: 0.8
+        animate: "pulse"
+        animSpeed: 0.5
+        @tooltip("Mesh Quality: 0.89 (GOOD)\nMin Jacobian: 0.72\n0 inverted elements")
+    }
+
+    // --- Mesh Level 4: TET10 (high order) ---
+    object "Mesh_L4_Pedestal" @collidable {
+        position: [17, 0.5, -85]
+        geometry: "cylinder"
+        scale: [5, 1, 5]
+        color: "#1a1a2e"
+        material: "concrete"
+    }
+
+    object "Mesh_L4_Label" {
+        @hologram
+        position: [17, 6.5, -85]
+        geometry: "text"
+        properties: {
+            text: "LEVEL 4: TET10 (p=2)"
+            fontSize: 20
+            color: "#00ffaa"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_L4_Stats" {
+        @hologram
+        position: [17, 5.8, -85]
+        geometry: "text"
+        properties: {
+            text: "384 TET10 | DOF: 2880 | h=0.5, p=2"
+            fontSize: 14
+            color: "#44aa88"
+        }
+    }
+
+    object "Mesh_L4_Body" @pointable @glowing {
+        position: [17, 3.5, -85]
+        geometry: "box"
+        scale: [3, 3, 3]
+        color: "#00ffaa"
+        material: "wireframe"
+        emissive: "#00ffaa"
+        emissiveIntensity: 0.3
+        @tooltip("TET10 mesh: 384 elements, 10 nodes each\nMidedge nodes capture curved geometry\nSuperior stress accuracy at same h as Level 2")
+    }
+
+    orb "Mesh_L4_Quality" @glowing @animated {
+        position: [17, 6, -82]
+        geometry: "sphere"
+        scale: [0.4, 0.4, 0.4]
+        color: "#00ffaa"
+        emissive: "#00ffaa"
+        emissiveIntensity: 0.9
+        animate: "pulse"
+        animSpeed: 0.5
+        @tooltip("Mesh Quality: 0.93 (EXCELLENT)\nMin Jacobian: 0.81\nCurved edges: 960 midedge nodes")
+    }
+
+    // --- Mesh Comparison Console ---
+    object "Mesh_Control_Console" {
+        @interaction
+        @pointable
+        @collidable
+        position: [0, 1, -76]
+        geometry: "box"
+        scale: [4, 1, 1.5]
+        color: "#1a1a2e"
+        material: "metal"
+
+        object "Mesh_Console_Screen" {
+            @hologram
+            position: [0, 0.8, -0.1]
+            geometry: "box"
+            scale: [3.6, 0.6, 0.05]
+            color: "#001122"
+            emissive: "#003344"
+            emissiveIntensity: 0.3
+
+            object "Mesh_Console_Label" {
+                geometry: "text"
+                position: [0, 0, 0.05]
+                properties: {
+                    text: "MESH CONTROLS | EXPLODE | SLICE | COMPARE"
+                    fontSize: 14
+                    color: "#ffaa00"
+                }
+            }
+        }
+    }
+
+    // Explode View Toggle
+    object "Mesh_Btn_Explode" @pointable @glowing {
+        position: [-3, 1.2, -76]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#ff6644"
+        emissive: "#ff6644"
+        emissiveIntensity: 0.4
+        @tooltip("Toggle exploded view - separates elements for interior inspection")
+        onInteraction: {
+            emit "mesh:explode_toggle" { factor: 1.5 }
+        }
+    }
+
+    // Slice Plane Toggle
+    object "Mesh_Btn_Slice" @pointable @glowing {
+        position: [0, 1.2, -76]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#4488ff"
+        emissive: "#4488ff"
+        emissiveIntensity: 0.4
+        @tooltip("Toggle cross-section slice plane - drag to move cut position")
+        onInteraction: {
+            emit "mesh:slice_toggle" { plane: "xz", position: 0.5 }
+        }
+    }
+
+    // Stress Overlay Toggle
+    object "Mesh_Btn_Stress" @pointable @glowing {
+        position: [3, 1.2, -76]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#ff44ff"
+        emissive: "#ff44ff"
+        emissiveIntensity: 0.4
+        @tooltip("Toggle von Mises stress color overlay on all meshes")
+        onInteraction: {
+            emit "mesh:stress_overlay_toggle" { colormap: "jet" }
+        }
+    }
+
+    // --- Richardson Extrapolation Reference Panel ---
+    object "Mesh_Richardson_Panel" @collidable {
+        position: [0, 4, -92]
+        geometry: "box"
+        scale: [20, 6, 0.2]
+        color: "#0a0a1e"
+        material: "glass_dark"
+    }
+
+    object "Mesh_Richardson_Title" {
+        @hologram
+        position: [0, 6.5, -91.5]
+        geometry: "text"
+        properties: {
+            text: "RICHARDSON EXTRAPOLATION"
+            fontSize: 22
+            color: "#ffcc00"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Mesh_Richardson_Formula" {
+        @hologram
+        position: [0, 5.5, -91.5]
+        geometry: "text"
+        properties: {
+            text: "f_exact ~ f_h + C*h^p  |  GCI_fine = Fs * |e| / (r^p - 1)"
+            fontSize: 16
+            color: "#88aacc"
+        }
+    }
+
+    object "Mesh_Richardson_Values" {
+        @hologram
+        position: [0, 4.2, -91.5]
+        geometry: "text"
+        properties: {
+            text: "Extrapolated: 142.7 MPa | GCI_fine: 1.2% | Safety Factor: 1.25"
+            fontSize: 16
+            color: "#00ff88"
+        }
+    }
+
+    object "Mesh_Richardson_Status" {
+        @hologram
+        position: [0, 3.2, -91.5]
+        geometry: "text"
+        properties: {
+            text: "Asymptotic range: YES (ratio = 1.01) | Mesh-independent solution achieved"
+            fontSize: 14
+            color: "#44ddaa"
+        }
+    }
+
+    // =========================================================================
+    // ZONE 3: UNCERTAINTY CLOUD LAB (right wing, +60x, -30z)
+    // =========================================================================
+    // Volumetric probability clouds around simulation results. Each cloud
+    // represents the uncertainty envelope: denser = more probable, transparent
+    // = tail probability. Users walk INTO the cloud to inspect local
+    // confidence intervals.
+
+    // --- Zone 3 Boundary Arch ---
+    object "Unc_Arch_Left" @collidable {
+        position: [54, 5, -20]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#cc44ff"
+        material: "metal"
+    }
+
+    object "Unc_Arch_Right" @collidable {
+        position: [66, 5, -20]
+        geometry: "box"
+        scale: [1, 10, 1]
+        color: "#cc44ff"
+        material: "metal"
+    }
+
+    object "Unc_Arch_Top" @glowing {
+        position: [60, 10.5, -20]
+        geometry: "box"
+        scale: [13, 1, 1]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.4
+    }
+
+    object "Unc_Zone_Title" {
+        @hologram
+        position: [60, 12, -20]
+        geometry: "text"
+        properties: {
+            text: "UNCERTAINTY CLOUD LAB"
+            fontSize: 36
+            color: "#cc44ff"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Unc_Zone_Desc" {
+        @hologram
+        position: [60, 10.8, -19.5]
+        geometry: "text"
+        properties: {
+            text: "Walk into probability clouds | See confidence intervals in 3D"
+            fontSize: 16
+            color: "#aa66cc"
+        }
+    }
+
+    // --- Uncertainty Cloud 1: Structural Displacement Field ---
+    object "Unc_Cloud1_Pedestal" @collidable {
+        position: [55, 0.3, -35]
+        geometry: "cylinder"
+        scale: [6, 0.6, 6]
+        color: "#1a1a2e"
+        material: "metal"
+    }
+
+    object "Unc_Cloud1_Title" {
+        @hologram
+        position: [55, 10, -35]
+        geometry: "text"
+        properties: {
+            text: "DISPLACEMENT UNCERTAINTY"
+            fontSize: 20
+            color: "#44aaff"
+            fontWeight: "bold"
+        }
+    }
+
+    // Core result (mean value) - solid bright sphere
+    orb "Unc_Cloud1_Mean" @glowing @pointable {
+        position: [55, 5, -35]
+        geometry: "sphere"
+        scale: [1.2, 1.2, 1.2]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.9
+        @tooltip("Mean displacement: 2.34mm\nThis is the deterministic solution")
+        @data_binding(source: "uncertainty.displacement.mean", field: "scale")
+    }
+
+    // 1-sigma cloud (68% confidence) - semi-transparent
+    orb "Unc_Cloud1_1sigma" @glowing @animated {
+        position: [55, 5, -35]
+        geometry: "sphere"
+        scale: [2.2, 2.2, 2.2]
+        color: "#4488ff"
+        emissive: "#4488ff"
+        emissiveIntensity: 0.15
+        opacity: 0.25
+        animate: "breathe"
+        animSpeed: 0.15
+        @tooltip("1-sigma envelope (68% CI)\nRange: 2.12mm - 2.56mm\n+/- 0.22mm from mean")
+        @data_binding(source: "uncertainty.displacement.sigma1", field: "scale")
+    }
+
+    // 2-sigma cloud (95% confidence) - more transparent
+    orb "Unc_Cloud1_2sigma" @glowing @animated {
+        position: [55, 5, -35]
+        geometry: "sphere"
+        scale: [3.5, 3.5, 3.5]
+        color: "#6644cc"
+        emissive: "#6644cc"
+        emissiveIntensity: 0.08
+        opacity: 0.12
+        animate: "breathe"
+        animSpeed: 0.1
+        @tooltip("2-sigma envelope (95% CI)\nRange: 1.90mm - 2.78mm\n+/- 0.44mm from mean")
+        @data_binding(source: "uncertainty.displacement.sigma2", field: "scale")
+    }
+
+    // 3-sigma cloud (99.7% confidence) - barely visible
+    orb "Unc_Cloud1_3sigma" @glowing @animated {
+        position: [55, 5, -35]
+        geometry: "sphere"
+        scale: [5.0, 5.0, 5.0]
+        color: "#8822aa"
+        emissive: "#8822aa"
+        emissiveIntensity: 0.04
+        opacity: 0.06
+        animate: "breathe"
+        animSpeed: 0.08
+        @tooltip("3-sigma envelope (99.7% CI)\nRange: 1.68mm - 3.00mm\nExtreme tail: material property scatter")
+        @data_binding(source: "uncertainty.displacement.sigma3", field: "scale")
+    }
+
+    // Sigma legend
+    object "Unc_Cloud1_Legend_1s" {
+        @hologram
+        position: [55, 1.5, -30]
+        geometry: "text"
+        properties: {
+            text: "Bright core = mean | Inner cloud = 68% | Mid = 95% | Outer = 99.7%"
+            fontSize: 12
+            color: "#8888aa"
+        }
+    }
+
+    // --- Uncertainty Cloud 2: Thermal Field ---
+    object "Unc_Cloud2_Pedestal" @collidable {
+        position: [65, 0.3, -35]
+        geometry: "cylinder"
+        scale: [6, 0.6, 6]
+        color: "#1a1a2e"
+        material: "metal"
+    }
+
+    object "Unc_Cloud2_Title" {
+        @hologram
+        position: [65, 10, -35]
+        geometry: "text"
+        properties: {
+            text: "THERMAL UNCERTAINTY"
+            fontSize: 20
+            color: "#ff8844"
+            fontWeight: "bold"
+        }
+    }
+
+    // Mean thermal result
+    orb "Unc_Cloud2_Mean" @glowing @pointable {
+        position: [65, 5, -35]
+        geometry: "sphere"
+        scale: [1.0, 1.0, 1.0]
+        color: "#ff6622"
+        emissive: "#ff6622"
+        emissiveIntensity: 0.9
+        @tooltip("Mean temperature: 347.2K\nHot spot at geometric concentration")
+    }
+
+    // 1-sigma thermal cloud
+    orb "Unc_Cloud2_1sigma" @glowing @animated {
+        position: [65, 5, -35]
+        geometry: "sphere"
+        scale: [2.0, 1.8, 2.0]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.15
+        opacity: 0.22
+        animate: "breathe"
+        animSpeed: 0.12
+        @tooltip("1-sigma thermal (68% CI)\nRange: 339K - 355K\nConvection coefficient uncertainty")
+    }
+
+    // 2-sigma thermal cloud (asymmetric - hotter tail is wider)
+    orb "Unc_Cloud2_2sigma" @glowing @animated {
+        position: [65, 5.3, -35]
+        geometry: "sphere"
+        scale: [3.2, 3.8, 3.2]
+        color: "#cc4422"
+        emissive: "#cc4422"
+        emissiveIntensity: 0.08
+        opacity: 0.10
+        animate: "breathe"
+        animSpeed: 0.09
+        @tooltip("2-sigma thermal (95% CI)\nRange: 331K - 368K\nAsymmetric: hot tail extends further\nSource: convection + material conductivity")
+    }
+
+    // --- Uncertainty Cloud 3: Combined Multi-Physics ---
+    object "Unc_Cloud3_Pedestal" @collidable {
+        position: [60, 0.3, -50]
+        geometry: "cylinder"
+        scale: [8, 0.6, 8]
+        color: "#1a1a2e"
+        material: "metal"
+    }
+
+    object "Unc_Cloud3_Title" {
+        @hologram
+        position: [60, 12, -50]
+        geometry: "text"
+        properties: {
+            text: "COUPLED THERMO-STRUCTURAL UNCERTAINTY"
+            fontSize: 20
+            color: "#ff44ff"
+            fontWeight: "bold"
+        }
+    }
+
+    object "Unc_Cloud3_Subtitle" {
+        @hologram
+        position: [60, 11, -50]
+        geometry: "text"
+        properties: {
+            text: "Propagated uncertainty through coupled solver chain"
+            fontSize: 14
+            color: "#aa66aa"
+        }
+    }
+
+    // Core coupled result
+    orb "Unc_Cloud3_Mean" @glowing @pointable {
+        position: [60, 6, -50]
+        geometry: "sphere"
+        scale: [1.5, 1.5, 1.5]
+        color: "#ff44ff"
+        emissive: "#ff44ff"
+        emissiveIntensity: 0.9
+        @tooltip("Coupled result: thermal stress = 89.4 MPa\nDisplacement = 0.47mm (thermal expansion)\nIteration count: 12 (converged)")
+    }
+
+    // Coupled 1-sigma (larger than individual due to propagation)
+    orb "Unc_Cloud3_1sigma" @glowing @animated {
+        position: [60, 6, -50]
+        geometry: "sphere"
+        scale: [3.0, 2.8, 3.0]
+        color: "#cc44cc"
+        emissive: "#cc44cc"
+        emissiveIntensity: 0.12
+        opacity: 0.20
+        animate: "breathe"
+        animSpeed: 0.12
+        @tooltip("Coupled 1-sigma (68% CI)\nStress: 78-101 MPa | Disp: 0.39-0.55mm\nUncertainty AMPLIFIED by coupling")
+    }
+
+    // Coupled 2-sigma (much larger - coupling amplifies uncertainty)
+    orb "Unc_Cloud3_2sigma" @glowing @animated {
+        position: [60, 6, -50]
+        geometry: "sphere"
+        scale: [5.0, 4.5, 5.0]
+        color: "#8822aa"
+        emissive: "#8822aa"
+        emissiveIntensity: 0.06
+        opacity: 0.08
+        animate: "breathe"
+        animSpeed: 0.08
+        @tooltip("Coupled 2-sigma (95% CI)\nStress: 67-118 MPa | Disp: 0.31-0.63mm\nCoupling propagation factor: 1.8x\nDominant source: thermal BC uncertainty")
+    }
+
+    // --- Uncertainty Sources Panel ---
+    object "Unc_Sources_Panel" @collidable {
+        position: [60, 4, -60]
+        geometry: "box"
+        scale: [18, 5, 0.2]
+        color: "#0a0a1e"
+        material: "glass_dark"
+    }
+
+    object "Unc_Sources_Title" {
+        @hologram
+        position: [60, 6, -59.5]
+        geometry: "text"
+        properties: {
+            text: "UNCERTAINTY SOURCES (Sensitivity Analysis)"
+            fontSize: 20
+            color: "#cc44ff"
+            fontWeight: "bold"
+        }
+    }
+
+    // Sensitivity bars (horizontal bars showing contribution)
+    object "Unc_Bar_Material" @glowing {
+        position: [55, 5, -59.5]
+        geometry: "box"
+        scale: [6, 0.4, 0.1]
+        color: "#ff4444"
+        emissive: "#ff4444"
+        emissiveIntensity: 0.5
+    }
+
+    object "Unc_Bar_Material_Label" {
+        @hologram
+        position: [49, 5, -59.3]
+        geometry: "text"
+        properties: {
+            text: "Material Props (42%)"
+            fontSize: 12
+            color: "#ff6666"
+        }
+    }
+
+    object "Unc_Bar_BC" @glowing {
+        position: [54, 4.2, -59.5]
+        geometry: "box"
+        scale: [4.5, 0.4, 0.1]
+        color: "#ff8844"
+        emissive: "#ff8844"
+        emissiveIntensity: 0.5
+    }
+
+    object "Unc_Bar_BC_Label" {
+        @hologram
+        position: [49, 4.2, -59.3]
+        geometry: "text"
+        properties: {
+            text: "Boundary Cond (31%)"
+            fontSize: 12
+            color: "#ffaa66"
+        }
+    }
+
+    object "Unc_Bar_Mesh" @glowing {
+        position: [53, 3.4, -59.5]
+        geometry: "box"
+        scale: [3, 0.4, 0.1]
+        color: "#ffcc00"
+        emissive: "#ffcc00"
+        emissiveIntensity: 0.5
+    }
+
+    object "Unc_Bar_Mesh_Label" {
+        @hologram
+        position: [49, 3.4, -59.3]
+        geometry: "text"
+        properties: {
+            text: "Mesh Discretiz (18%)"
+            fontSize: 12
+            color: "#ffdd44"
+        }
+    }
+
+    object "Unc_Bar_Solver" @glowing {
+        position: [52.3, 2.6, -59.5]
+        geometry: "box"
+        scale: [1.5, 0.4, 0.1]
+        color: "#44ff44"
+        emissive: "#44ff44"
+        emissiveIntensity: 0.5
+    }
+
+    object "Unc_Bar_Solver_Label" {
+        @hologram
+        position: [49, 2.6, -59.3]
+        geometry: "text"
+        properties: {
+            text: "Solver Toler (9%)"
+            fontSize: 12
+            color: "#66ff66"
+        }
+    }
+
+    // --- Uncertainty Control Console ---
+    object "Unc_Control_Console" {
+        @interaction
+        @pointable
+        @collidable
+        position: [60, 1, -25]
+        geometry: "box"
+        scale: [3, 1, 1.5]
+        color: "#1a1a2e"
+        material: "metal"
+
+        object "Unc_Console_Screen" {
+            @hologram
+            position: [0, 0.8, -0.1]
+            geometry: "box"
+            scale: [2.8, 0.6, 0.05]
+            color: "#001122"
+            emissive: "#220033"
+            emissiveIntensity: 0.3
+
+            object "Unc_Console_Label" {
+                geometry: "text"
+                position: [0, 0, 0.05]
+                properties: {
+                    text: "UNCERTAINTY CONTROLS"
+                    fontSize: 16
+                    color: "#cc44ff"
+                }
+            }
+        }
+    }
+
+    // Monte Carlo toggle
+    object "Unc_Btn_MonteCarlo" @pointable @glowing {
+        position: [56, 1.2, -25]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.4
+        @tooltip("Toggle Monte Carlo sample scatter (1000 dots inside clouds)")
+        onInteraction: {
+            emit "uncertainty:monte_carlo_toggle" { samples: 1000 }
+        }
+    }
+
+    // Sigma level selector
+    object "Unc_Btn_Sigma" @pointable @glowing {
+        position: [59, 1.2, -25]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#8844ff"
+        emissive: "#8844ff"
+        emissiveIntensity: 0.4
+        @tooltip("Cycle sigma levels: 1s / 2s / 3s visibility")
+        onInteraction: {
+            emit "uncertainty:cycle_sigma" { levels: [1, 2, 3] }
+        }
+    }
+
+    // PDF projection toggle
+    object "Unc_Btn_PDF" @pointable @glowing {
+        position: [62, 1.2, -25]
+        geometry: "box"
+        scale: [1.8, 0.6, 0.6]
+        color: "#4488ff"
+        emissive: "#4488ff"
+        emissiveIntensity: 0.4
+        @tooltip("Project probability density function onto floor plane")
+        onInteraction: {
+            emit "uncertainty:pdf_projection_toggle" { plane: "xz" }
+        }
+    }
+
+    // =========================================================================
+    // SECTION 4: GLOBAL STATUS BAR (floating above spawn)
+    // =========================================================================
+
+    object "Status_Bar_BG" @collidable {
+        position: [0, 16, -35]
+        geometry: "box"
+        scale: [50, 2, 0.2]
+        color: "#060610"
+        material: "glass_dark"
+    }
+
+    // Overall V&V status
+    object "Status_Overall" {
+        @hologram
+        position: [-18, 16, -34.5]
+        geometry: "text"
+        properties: {
+            text: "V&V STATUS: PASSED"
+            fontSize: 22
+            color: "#00ff88"
+            fontWeight: "bold"
+        }
+    }
+
+    // Convergence status
+    object "Status_Convergence" {
+        @hologram
+        position: [-5, 16, -34.5]
+        geometry: "text"
+        properties: {
+            text: "Convergence: ACHIEVED (h & p)"
+            fontSize: 16
+            color: "#00ddaa"
+        }
+        @data_binding(source: "vv.convergence_status", field: "properties.text")
+    }
+
+    // Mesh independence status
+    object "Status_MeshIndep" {
+        @hologram
+        position: [8, 16, -34.5]
+        geometry: "text"
+        properties: {
+            text: "Mesh Independence: GCI < 2%"
+            fontSize: 16
+            color: "#00ddaa"
+        }
+        @data_binding(source: "vv.mesh_independence_status", field: "properties.text")
+    }
+
+    // Uncertainty budget
+    object "Status_UQ" {
+        @hologram
+        position: [20, 16, -34.5]
+        geometry: "text"
+        properties: {
+            text: "UQ Budget: 95% CI within spec"
+            fontSize: 16
+            color: "#00ddaa"
+        }
+        @data_binding(source: "vv.uq_status", field: "properties.text")
+    }
+
+    // =========================================================================
+    // SECTION 5: WALKWAY CONNECTORS (glowing floor paths between zones)
+    // =========================================================================
+
+    // Path: Hub -> Convergence Gallery
+    object "Path_Hub_Conv_1" @glowing {
+        position: [-15, 0.02, -5]
+        geometry: "box"
+        scale: [1, 0.02, 20]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.15
+    }
+
+    object "Path_Hub_Conv_2" @glowing {
+        position: [-35, 0.02, -15]
+        geometry: "box"
+        scale: [20, 0.02, 1]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.15
+    }
+
+    // Path: Hub -> Mesh Arena
+    object "Path_Hub_Mesh" @glowing {
+        position: [0, 0.02, -40]
+        geometry: "box"
+        scale: [1, 0.02, 40]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.15
+    }
+
+    // Path: Hub -> Uncertainty Lab
+    object "Path_Hub_Unc_1" @glowing {
+        position: [15, 0.02, -5]
+        geometry: "box"
+        scale: [1, 0.02, 20]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.15
+    }
+
+    object "Path_Hub_Unc_2" @glowing {
+        position: [35, 0.02, -15]
+        geometry: "box"
+        scale: [20, 0.02, 1]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.15
+    }
+
+    // =========================================================================
+    // SECTION 6: AMBIENT ENVIRONMENT
+    // =========================================================================
+
+    // Floating data particles (ambient decoration)
+    orb "Ambient_Particle_1" @glowing @animated {
+        position: [-20, 8, -15]
+        geometry: "sphere"
+        scale: [0.1, 0.1, 0.1]
+        color: "#00ff88"
+        emissive: "#00ff88"
+        emissiveIntensity: 0.6
+        animate: "float"
+        animSpeed: 0.2
+    }
+
+    orb "Ambient_Particle_2" @glowing @animated {
+        position: [25, 10, -25]
+        geometry: "sphere"
+        scale: [0.08, 0.08, 0.08]
+        color: "#cc44ff"
+        emissive: "#cc44ff"
+        emissiveIntensity: 0.5
+        animate: "float"
+        animSpeed: 0.15
+    }
+
+    orb "Ambient_Particle_3" @glowing @animated {
+        position: [5, 12, -50]
+        geometry: "sphere"
+        scale: [0.12, 0.12, 0.12]
+        color: "#ffaa00"
+        emissive: "#ffaa00"
+        emissiveIntensity: 0.5
+        animate: "float"
+        animSpeed: 0.25
+    }
+
+    orb "Ambient_Particle_4" @glowing @animated {
+        position: [-30, 6, -40]
+        geometry: "sphere"
+        scale: [0.06, 0.06, 0.06]
+        color: "#4488ff"
+        emissive: "#4488ff"
+        emissiveIntensity: 0.4
+        animate: "float"
+        animSpeed: 0.18
+    }
+
+    orb "Ambient_Particle_5" @glowing @animated {
+        position: [40, 9, -10]
+        geometry: "sphere"
+        scale: [0.09, 0.09, 0.09]
+        color: "#00ddff"
+        emissive: "#00ddff"
+        emissiveIntensity: 0.5
+        animate: "float"
+        animSpeed: 0.22
+    }
+}

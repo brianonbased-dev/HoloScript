@@ -10,11 +10,53 @@ import type { ConvergenceStudyResult } from './ConvergenceAnalysis';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+/** All solver types that can produce benchmark results */
+export type SolverType =
+  | 'thermal'
+  | 'structural'
+  | 'hydraulic'
+  | 'acoustic'
+  | 'fdtd'
+  | 'cfd'
+  | 'molecular-dynamics';
+
+/** A single data point in a convergence plot (log-log scale) */
+export interface ConvergencePlotPoint {
+  /** Characteristic mesh size h */
+  meshSize: number;
+  /** log10(h) for direct plotting */
+  logMeshSize: number;
+  /** L2 error at this mesh size */
+  errorL2: number;
+  /** log10(L2 error) for direct plotting */
+  logErrorL2: number;
+  /** L-infinity error at this mesh size */
+  errorLinf: number;
+  /** log10(L-infinity error) for direct plotting */
+  logErrorLinf: number;
+}
+
+/** Convergence plot data suitable for rendering charts */
+export interface ConvergencePlotData {
+  /** Benchmark name this plot belongs to */
+  benchmarkName: string;
+  /** Solver type */
+  solver: SolverType;
+  /** Data points ordered by decreasing mesh size (coarse → fine) */
+  points: ConvergencePlotPoint[];
+  /** Observed L2 convergence order (slope of log-log fit) */
+  observedOrderL2: number;
+  /** Observed L-inf convergence order */
+  observedOrderLinf: number;
+  /** Theoretical order for reference line (if known) */
+  theoreticalOrder?: number;
+}
+
 export interface BenchmarkResult {
   /** Benchmark name (e.g., "1D Steady-State Conduction") */
   name: string;
   /** Solver tested */
-  solver: 'thermal' | 'structural' | 'hydraulic';
+  solver: SolverType;
   /** Description of the analytical solution */
   analyticalSolution: string;
   /** Whether the benchmark passed */
@@ -45,10 +87,36 @@ export interface VerificationReport {
     total: number;
     passed: number;
     failed: number;
+    bySolver: Record<SolverType, { total: number; passed: number; failed: number }>;
   };
+  /** Convergence plot data for benchmarks that have convergence studies */
+  convergencePlots: ConvergencePlotData[];
 }
 
 // ── Generator ────────────────────────────────────────────────────────────────
+
+/**
+ * Build convergence plot data from a benchmark with convergence results.
+ */
+function buildConvergencePlot(b: BenchmarkResult): ConvergencePlotData | undefined {
+  if (!b.convergence) return undefined;
+  const c = b.convergence;
+  const points: ConvergencePlotPoint[] = c.meshSizes.map((h, i) => ({
+    meshSize: h,
+    logMeshSize: Math.log10(h),
+    errorL2: c.errorsL2[i],
+    logErrorL2: Math.log10(c.errorsL2[i]),
+    errorLinf: c.errorsLinf[i],
+    logErrorLinf: Math.log10(c.errorsLinf[i]),
+  }));
+  return {
+    benchmarkName: b.name,
+    solver: b.solver,
+    points,
+    observedOrderL2: c.observedOrderL2,
+    observedOrderLinf: c.observedOrderLinf,
+  };
+}
 
 /**
  * Generate a verification report from benchmark results.
@@ -58,6 +126,25 @@ export function createVerificationReport(
   softwareVersion: string
 ): VerificationReport {
   const passed = benchmarks.filter(b => b.passed).length;
+
+  // Per-solver breakdown
+  const bySolver = {} as Record<SolverType, { total: number; passed: number; failed: number }>;
+  for (const b of benchmarks) {
+    if (!bySolver[b.solver]) {
+      bySolver[b.solver] = { total: 0, passed: 0, failed: 0 };
+    }
+    bySolver[b.solver].total++;
+    if (b.passed) bySolver[b.solver].passed++;
+    else bySolver[b.solver].failed++;
+  }
+
+  // Convergence plots for benchmarks that have convergence data
+  const convergencePlots: ConvergencePlotData[] = [];
+  for (const b of benchmarks) {
+    const plot = buildConvergencePlot(b);
+    if (plot) convergencePlots.push(plot);
+  }
+
   return {
     softwareVersion,
     timestamp: new Date().toISOString(),
@@ -67,7 +154,9 @@ export function createVerificationReport(
       total: benchmarks.length,
       passed,
       failed: benchmarks.length - passed,
+      bySolver,
     },
+    convergencePlots,
   };
 }
 
@@ -93,6 +182,19 @@ export function renderReportMarkdown(report: VerificationReport): string {
   lines.push(`| Passed | ${report.summary.passed} |`);
   lines.push(`| Failed | ${report.summary.failed} |`);
   lines.push('');
+
+  // Per-solver breakdown
+  const solverEntries = Object.entries(report.summary.bySolver) as [SolverType, { total: number; passed: number; failed: number }][];
+  if (solverEntries.length > 0) {
+    lines.push('### Results by Solver');
+    lines.push('');
+    lines.push('| Solver | Total | Passed | Failed |');
+    lines.push('|--------|-------|--------|--------|');
+    for (const [solver, stats] of solverEntries) {
+      lines.push(`| ${solver} | ${stats.total} | ${stats.passed} | ${stats.failed} |`);
+    }
+    lines.push('');
+  }
 
   // Benchmark details
   lines.push('## Benchmark Results');
@@ -132,6 +234,28 @@ export function renderReportMarkdown(report: VerificationReport): string {
       }
       if (c.gci !== undefined) {
         lines.push(`**Grid Convergence Index**: ${(c.gci * 100).toFixed(2)}%`);
+      }
+      lines.push('');
+    }
+  }
+
+  // Convergence plot data (machine-readable for charting)
+  if (report.convergencePlots.length > 0) {
+    lines.push('## Convergence Plot Data');
+    lines.push('');
+    for (const plot of report.convergencePlots) {
+      lines.push(`### ${plot.benchmarkName} (${plot.solver})`);
+      lines.push('');
+      lines.push('| log10(h) | log10(L2 Error) | log10(L-inf Error) |');
+      lines.push('|----------|-----------------|---------------------|');
+      for (const pt of plot.points) {
+        lines.push(`| ${pt.logMeshSize.toFixed(4)} | ${pt.logErrorL2.toFixed(4)} | ${pt.logErrorLinf.toFixed(4)} |`);
+      }
+      lines.push('');
+      lines.push(`**Observed order (L2)**: ${plot.observedOrderL2.toFixed(2)}`);
+      lines.push(`**Observed order (L-inf)**: ${plot.observedOrderLinf.toFixed(2)}`);
+      if (plot.theoreticalOrder !== undefined) {
+        lines.push(`**Theoretical order**: ${plot.theoreticalOrder}`);
       }
       lines.push('');
     }
