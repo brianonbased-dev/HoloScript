@@ -698,7 +698,6 @@ export class StructuralSolverTET10 {
           this.displacements[i] += dU;
           if (Math.abs(dU) > maxChange) maxChange = Math.abs(dU);
         }
-        console.log(`    max dU: ${maxChange.toExponential(4)}`);
         
         totalIter++;
       }
@@ -904,7 +903,6 @@ export class StructuralSolverTET10 {
         S[6] = Sv[5]; S[7] = Sv[4]; S[8] = Sv[2];
 
         // Add K_G: for each pair (a,b), K_G[3a+i, 3b+i] += Σ_kl dNa/dXk * S_kl * dNb/dXl
-/*
         for (let a = 0; a < 10; a++) {
           const na = nodes[a];
           const rowMap = this.dofToCSR.get(na * 3);
@@ -935,7 +933,6 @@ export class StructuralSolverTET10 {
             }
           }
         }
-*/
       }
     }
   }

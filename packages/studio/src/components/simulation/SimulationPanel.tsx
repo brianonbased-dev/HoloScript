@@ -59,8 +59,8 @@ const DEFAULT_CONFIG: SimConfig = {
   loadForceY: -10000,
   loadForceZ: 0,
   colormap: 'turbo',
-  displacementScale: 100,
-  wireframe: false,
+  displacementScale: 1.0,
+  wireframe: true,
   useGpuBuffers: true,
 };
 
