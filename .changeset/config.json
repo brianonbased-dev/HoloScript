@@ -7,7 +7,6 @@
       "@holoscript/core",
       "@holoscript/cli",
       "@holoscript/agent-protocol",
-      "@holoscript/agent-sdk",
       "@holoscript/holo-vm",
       "@holoscript/snn-webgpu",
       "@holoscript/uaal",
@@ -27,7 +26,6 @@
       "@holoscript/runtime",
       "@holoscript/sdk",
       "@holoscript/std",
-      "@holoscript/test",
       "@holoscript/visual",
       "@holoscript/wasm"
     ]
@@ -36,7 +34,6 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@holoscript/studio-desktop",
     "@holoscript/video-tutorials",
     "@holoscript/preview-component"
   ]

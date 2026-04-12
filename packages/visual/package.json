@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/visual",
-  "version": "3.7.0",
+  "version": "6.0.3",
   "description": "Node-based visual programming interface for HoloScript",
   "type": "module",
   "main": "dist/index.js",

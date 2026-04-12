@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/playground",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive web-based playground for trying HoloScript in the browser",
   "type": "module",
   "scripts": {

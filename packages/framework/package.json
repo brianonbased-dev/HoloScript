@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/framework",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "description": "The framework where agents remember, learn, and earn. Knowledge-compounding team orchestration.",
   "type": "module",
   "main": "dist/index.cjs",
