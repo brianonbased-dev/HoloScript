@@ -17,6 +17,7 @@
         "@holoscript/auth",
         "@holoscript/config",
         "@holoscript/core-types",
+        "@holoscript/connectors",
         "@holoscript/engine",
         "@holoscript/framework",
         "@holoscript/holo-vm",
@@ -32,20 +33,28 @@
       ]
     },
     {
+      "name": "tooling-v6",
+      "description": "Tooling and developer-facing support packages on major 6",
+      "enforce": "major",
+      "targetMajor": 6,
+      "packages": [
+        "@holoscript/benchmark",
+        "@holoscript/linter",
+        "@holoscript/lsp",
+        "@holoscript/partner-sdk",
+        "@holoscript/visual"
+      ]
+    },
+    {
       "name": "tooling-v3",
       "description": "Tooling and developer-facing support packages on major 3",
       "enforce": "major",
       "targetMajor": 3,
       "packages": [
-        "@holoscript/benchmark",
         "@holoscript/formatter",
         "@holoscript/fs",
-        "@holoscript/linter",
-        "@holoscript/lsp",
-        "@holoscript/partner-sdk",
         "@holoscript/registry",
         "@holoscript/std",
-        "@holoscript/visual",
         "@holoscript/wasm"
       ]
     },
@@ -57,6 +66,7 @@
       "packages": [
         "@holoscript/ai-validator",
         "@holoscript/animation-presets",
+        "@holoscript/agent-setup",
         "@holoscript/cdn",
         "@holoscript/collab-server",
         "@holoscript/comparative-benchmarks",
