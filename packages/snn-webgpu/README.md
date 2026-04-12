@@ -124,6 +124,43 @@ const latencyDecoder = new SpikeDecoder(DecodingMode.LATENCY);
 - **SpikeEncoder/Decoder**: Spike train conversion to/from continuous values
 - **SNNNetwork**: Multi-layer orchestration with synaptic connections
 
+## Tropical Algebra Bridge (ReLU + Shortest Paths)
+
+The package includes tropical primitives that bridge SNN rate coding, ReLU-style activation,
+and graph shortest paths.
+
+```ts
+import {
+  TropicalActivationTrait,
+  TropicalShortestPaths,
+  type TropicalCSRGraph,
+} from '@holoscript/snn-webgpu';
+
+// ReLU bridge: gain * max(0, rate - threshold)
+const tropicalAct = new TropicalActivationTrait();
+const activations = tropicalAct.forward(new Float32Array([0.2, 0.9, 1.6]), {
+  variant: 'max-plus',
+  gain: 1,
+  threshold: 0.5,
+});
+
+// GPU + CPU-auto shortest paths
+const tropicalPaths = new TropicalShortestPaths(gpuContext, {
+  denseCpuThreshold: 128,
+  sparseCpuThreshold: 256,
+});
+
+const apsp = await tropicalPaths.computeAPSP(adjacencyMatrix, nodeCount);
+
+const csr: TropicalCSRGraph = { rowPtr, colIdx, values };
+const sssp = await tropicalPaths.computeSSSP(csr, 0);
+```
+
+Runtime policy:
+
+- Small matrices/graphs use CPU fallback paths automatically.
+- Larger problems use WebGPU tropical kernels with automatic CPU fallback on GPU errors.
+
 ## Performance
 
 - **10K neurons @ 60Hz**: ~5.2ms per timestep on RTX 3080

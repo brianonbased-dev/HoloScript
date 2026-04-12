@@ -50,4 +50,37 @@ describe('TropicalShortestPaths', () => {
     expect(result[2]).toBeCloseTo(4);
     expect(result[3]).toBeCloseTo(6);
   });
+
+  it('computes APSP via CPU fallback for small dense matrices', async () => {
+    const adjacency = new Float32Array([
+      0, 3, 10, INF,
+      INF, 0, 1, 7,
+      INF, INF, 0, 2,
+      INF, INF, INF, 0,
+    ]);
+
+    const cpuPreferred = new TropicalShortestPaths(ctx, { preferGPU: false });
+    const result = await cpuPreferred.computeAPSP(adjacency, 4);
+
+    expect(result[0]).toBeCloseTo(0);
+    expect(result[1]).toBeCloseTo(3);
+    expect(result[2]).toBeCloseTo(4);
+    expect(result[3]).toBeCloseTo(6);
+
+    cpuPreferred.destroy();
+  });
+
+  it('exposes deterministic CPU SSSP helper', () => {
+    const graph: TropicalCSRGraph = {
+      rowPtr: new Uint32Array([0, 2, 4, 5, 5]),
+      colIdx: new Uint32Array([1, 2, 2, 3, 3]),
+      values: new Float32Array([3, 10, 1, 7, 2]),
+    };
+
+    const result = TropicalShortestPaths.computeSSSPCPU(graph, 0);
+    expect(result[0]).toBeCloseTo(0);
+    expect(result[1]).toBeCloseTo(3);
+    expect(result[2]).toBeCloseTo(4);
+    expect(result[3]).toBeCloseTo(6);
+  });
 });

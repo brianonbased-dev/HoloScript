@@ -8,6 +8,15 @@ export interface TropicalCSRGraph {
   values: Float32Array;
 }
 
+export interface TropicalShortestPathsOptions {
+  /** Prefer GPU kernels when practical. Default: true */
+  preferGPU?: boolean;
+  /** Use CPU path below this APSP matrix size. Default: 128 */
+  denseCpuThreshold?: number;
+  /** Use CPU path below this sparse row count. Default: 256 */
+  sparseCpuThreshold?: number;
+}
+
 const INF = 1e30;
 const GEMM_WORKGROUP = 16;
 const SPMV_WORKGROUP = 256;
@@ -76,10 +85,102 @@ function transposeCSR(graph: TropicalCSRGraph): TropicalCSRGraph {
 export class TropicalShortestPaths {
   private readonly ctx: GPUContext;
   private readonly pipelineFactory: PipelineFactory;
+  private readonly preferGPU: boolean;
+  private readonly denseCpuThreshold: number;
+  private readonly sparseCpuThreshold: number;
 
-  constructor(ctx: GPUContext) {
+  constructor(ctx: GPUContext, options: TropicalShortestPathsOptions = {}) {
     this.ctx = ctx;
     this.pipelineFactory = new PipelineFactory(ctx);
+    this.preferGPU = options.preferGPU ?? true;
+    this.denseCpuThreshold = options.denseCpuThreshold ?? 128;
+    this.sparseCpuThreshold = options.sparseCpuThreshold ?? 256;
+  }
+
+  static minPlusGemmCPU(
+    matA: Float32Array,
+    matB: Float32Array,
+    m: number,
+    n: number,
+    k: number
+  ): Float32Array {
+    if (matA.length !== m * k) {
+      throw new Error(`matA length (${matA.length}) must equal m*k (${m * k})`);
+    }
+    if (matB.length !== k * n) {
+      throw new Error(`matB length (${matB.length}) must equal k*n (${k * n})`);
+    }
+
+    const out = new Float32Array(m * n).fill(INF);
+    for (let row = 0; row < m; row++) {
+      for (let col = 0; col < n; col++) {
+        let best = INF;
+        for (let kk = 0; kk < k; kk++) {
+          const a = matA[row * k + kk];
+          const b = matB[kk * n + col];
+          if (a < INF && b < INF) {
+            const candidate = a + b;
+            if (candidate < best) best = candidate;
+          }
+        }
+        out[row * n + col] = best;
+      }
+    }
+    return out;
+  }
+
+  static computeAPSPCPU(adjacencyMatrix: Float32Array, n: number): Float32Array {
+    if (adjacencyMatrix.length !== n * n) {
+      throw new Error(`adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`);
+    }
+
+    const dist = new Float32Array(adjacencyMatrix);
+    for (let k = 0; k < n; k++) {
+      for (let i = 0; i < n; i++) {
+        const ik = dist[i * n + k];
+        if (ik >= INF) continue;
+        for (let j = 0; j < n; j++) {
+          const kj = dist[k * n + j];
+          if (kj >= INF) continue;
+          const candidate = ik + kj;
+          const idx = i * n + j;
+          if (candidate < dist[idx]) dist[idx] = candidate;
+        }
+      }
+    }
+    return dist;
+  }
+
+  static computeSSSPCPU(graph: TropicalCSRGraph, source: number): Float32Array {
+    const rows = graph.rowPtr.length - 1;
+    if (source < 0 || source >= rows) {
+      throw new Error(`source index (${source}) must be in [0, ${rows - 1}]`);
+    }
+
+    const dist = new Float32Array(rows).fill(INF);
+    dist[source] = 0;
+
+    for (let iter = 0; iter < rows - 1; iter++) {
+      let changed = false;
+      for (let u = 0; u < rows; u++) {
+        const du = dist[u];
+        if (du >= INF) continue;
+        const start = graph.rowPtr[u];
+        const finish = graph.rowPtr[u + 1];
+        for (let edge = start; edge < finish; edge++) {
+          const v = graph.colIdx[edge];
+          const w = graph.values[edge];
+          const candidate = du + w;
+          if (candidate < dist[v]) {
+            dist[v] = candidate;
+            changed = true;
+          }
+        }
+      }
+      if (!changed) break;
+    }
+
+    return dist;
   }
 
   async tropicalGemm(
@@ -131,14 +232,22 @@ export class TropicalShortestPaths {
       throw new Error(`adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`);
     }
 
-    let current = new Float32Array(adjacencyMatrix);
-    const iterations = Math.ceil(Math.log2(Math.max(1, n)));
-
-    for (let i = 0; i < iterations; i++) {
-      current = await this.tropicalGemm(current, current, n, n, n);
+    if (!this.preferGPU || n < this.denseCpuThreshold) {
+      return TropicalShortestPaths.computeAPSPCPU(adjacencyMatrix, n);
     }
 
-    return current;
+    try {
+      let current = new Float32Array(adjacencyMatrix);
+      const iterations = Math.ceil(Math.log2(Math.max(1, n)));
+
+      for (let i = 0; i < iterations; i++) {
+        current = await this.tropicalGemm(current, current, n, n, n);
+      }
+
+      return current;
+    } catch {
+      return TropicalShortestPaths.computeAPSPCPU(adjacencyMatrix, n);
+    }
   }
 
   async tropicalSpmv(graph: TropicalCSRGraph, dist: Float32Array): Promise<Float32Array> {
@@ -197,20 +306,27 @@ export class TropicalShortestPaths {
       throw new Error(`source index (${source}) must be in [0, ${rows - 1}]`);
     }
 
+    if (!this.preferGPU || rows < this.sparseCpuThreshold) {
+      return TropicalShortestPaths.computeSSSPCPU(graph, source);
+    }
+
     const incomingGraph = transposeCSR(graph);
 
     let current = new Float32Array(rows).fill(INF);
     current[source] = 0;
 
-    for (let i = 0; i < rows - 1; i++) {
-      const next = await this.tropicalSpmv(incomingGraph, current);
-      if (arraysEqual(current, next)) {
-        return next;
+    try {
+      for (let i = 0; i < rows - 1; i++) {
+        const next = await this.tropicalSpmv(incomingGraph, current);
+        if (arraysEqual(current, next)) {
+          return next;
+        }
+        current = next;
       }
-      current = next;
+      return current;
+    } catch {
+      return TropicalShortestPaths.computeSSSPCPU(graph, source);
     }
-
-    return current;
   }
 
   destroy(): void {
