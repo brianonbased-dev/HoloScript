@@ -316,7 +316,19 @@ export class StructuralSolverTET10 {
 
   private solveResult: ConvergenceResult | null = null;
   private solveTimeMs = 0;
-  private usedGPU: boolean = false;
+
+  /** Helper for 3x3 matrix inversion */
+  private invert3x3(m: Float64Array): Float64Array {
+    const det = m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+    if (Math.abs(det) < 1e-25) return new Float64Array(9);
+    const invDet = 1 / det;
+    return new Float64Array([
+      (m[4] * m[8] - m[5] * m[7]) * invDet, (m[2] * m[7] - m[1] * m[8]) * invDet, (m[1] * m[5] - m[2] * m[4]) * invDet,
+      (m[5] * m[6] - m[3] * m[8]) * invDet, (m[0] * m[8] - m[2] * m[6]) * invDet, (m[2] * m[3] - m[0] * m[5]) * invDet,
+      (m[3] * m[7] - m[4] * m[6]) * invDet, (m[1] * m[6] - m[0] * m[7]) * invDet, (m[0] * m[4] - m[1] * m[3]) * invDet,
+    ]);
+  }
+
   private gpuDisplacementBuffer: GPUBuffer | null = null;
   private gpuSolver: SparseLinearSolver | null = null;
 
@@ -706,20 +718,218 @@ export class StructuralSolverTET10 {
    */
   private assembleInternalForce(): Float64Array {
     const f_int = new Float64Array(this.dofCount);
-    // TODO: Implement Green-Lagrange strain and Piola-Kirchhoff stress integration
-    // For now, this is a placeholder that returns linear elastic response
-    console.warn('Linear f_int fallback — geometric nonlinearity implementation in progress');
-    return f_int; 
+    const tets = this.config.tetrahedra;
+    const verts = this.config.vertices;
+    const { youngs_modulus: E, poisson_ratio: nu } = this.material;
+
+    const lambda = (E * nu) / ((1 + nu) * (1 - 2 * nu));
+    const mu = E / (2 * (1 + nu));
+    const D = new Float64Array(36);
+    D[0] = D[7] = D[14] = lambda + 2 * mu;
+    D[1] = D[2] = D[6] = D[8] = D[12] = D[13] = lambda;
+    D[21] = D[28] = D[35] = mu;
+
+    for (let e = 0; e < this.elementCount; e++) {
+      const base = e * 10;
+      const nodes = Array.from({ length: 10 }, (_, i) => tets[base + i]);
+
+      for (let gp = 0; gp < 4; gp++) {
+        const [xi, eta, zeta] = GAUSS_POINTS[gp];
+        const dNnat = shapeFunctionGradients(xi, eta, zeta);
+
+        const J = new Float64Array(9);
+        for (let a = 0; a < 10; a++) {
+          const n = nodes[a];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              J[i * 3 + j] += dNnat[a * 3 + j] * verts[n * 3 + i];
+            }
+          }
+        }
+
+        const detJ = J[0] * (J[4] * J[8] - J[5] * J[7]) - J[1] * (J[3] * J[8] - J[5] * J[6]) + J[2] * (J[3] * J[7] - J[4] * J[6]);
+        const weight = GAUSS_W * Math.abs(detJ) / 6;
+        const invJ = this.invert3x3(J);
+
+        const dNdX = new Float64Array(30);
+        for (let a = 0; a < 10; a++) {
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              dNdX[a * 3 + i] += dNnat[a * 3 + j] * invJ[j * 3 + i];
+            }
+          }
+        }
+
+        const F = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+        for (let a = 0; a < 10; a++) {
+          const n = nodes[a];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              F[i * 3 + j] += this.displacements[n * 3 + i] * dNdX[a * 3 + j];
+            }
+          }
+        }
+
+        const E_gl = new Float64Array(9);
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            let sum = 0;
+            for (let k = 0; k < 3; k++) sum += F[k * 3 + i] * F[k * 3 + j];
+            E_gl[i * 3 + j] = 0.5 * (sum - (i === j ? 1 : 0));
+          }
+        }
+
+        const strainVoigt = new Float64Array([E_gl[0], E_gl[4], E_gl[8], 2 * E_gl[1], 2 * E_gl[5], 2 * E_gl[2]]);
+        const stressVoigt = new Float64Array(6);
+        for (let i = 0; i < 6; i++) {
+          for (let j = 0; j < 6; j++) stressVoigt[i] += D[i * 6 + j] * strainVoigt[j];
+        }
+
+        const S = new Float64Array([
+          stressVoigt[0], stressVoigt[3], stressVoigt[5],
+          stressVoigt[3], stressVoigt[1], stressVoigt[4],
+          stressVoigt[5], stressVoigt[4], stressVoigt[2],
+        ]);
+
+        const FS = new Float64Array(9);
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            for (let k = 0; k < 3; k++) FS[i * 3 + j] += F[i * 3 + k] * S[k * 3 + j];
+          }
+        }
+
+        for (let a = 0; a < 10; a++) {
+          const n = nodes[a];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              f_int[n * 3 + i] += weight * FS[i * 3 + j] * dNdX[a * 3 + j];
+            }
+          }
+        }
+      }
+    }
+    return f_int;
   }
 
   /**
    * Assemble tangent stiffness matrix K_T = K_material + K_geometric.
+   *
+   * K_material: standard BᵀDB (same as linear, but B evaluated at deformed config)
+   * K_geometric: accounts for stress stiffening/softening under large deformation
+   *   K_G[ab] = δᵢⱼ Σ_gp (w · |J| · Σ_kl dNa/dXk · S_kl · dNb/dXl)
    */
   private assembleTangentStiffness(): void {
-    // Re-assemble tangent stiffness K_T
-    // In a full implementation, we'd add geometric stiffness here
-    if (!this.csrVal) {
-      this.assembleGlobalStiffness();
+    // Re-assemble material stiffness at current deformed configuration
+    this.assembleGlobalStiffness();
+
+    // Add geometric stiffness contribution K_G from current stress state
+    if (!this.nonlinear) return;
+
+    const tets = this.config.tetrahedra;
+    const verts = this.config.vertices;
+    const { youngs_modulus: E, poisson_ratio: nu } = this.material;
+    const lambda = (E * nu) / ((1 + nu) * (1 - 2 * nu));
+    const mu = E / (2 * (1 + nu));
+
+    for (let e = 0; e < this.elementCount; e++) {
+      const base = e * 10;
+      const nodes = Array.from({ length: 10 }, (_, i) => tets[base + i]);
+
+      for (let gp = 0; gp < 4; gp++) {
+        const [xi, eta, zeta] = GAUSS_POINTS[gp];
+        const dNnat = shapeFunctionGradients(xi, eta, zeta);
+
+        // Jacobian
+        const J = new Float64Array(9);
+        for (let a = 0; a < 10; a++) {
+          const n = nodes[a];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              J[i * 3 + j] += dNnat[a * 3 + j] * verts[n * 3 + i];
+            }
+          }
+        }
+
+        const detJ = J[0] * (J[4] * J[8] - J[5] * J[7]) - J[1] * (J[3] * J[8] - J[5] * J[6]) + J[2] * (J[3] * J[7] - J[4] * J[6]);
+        if (Math.abs(detJ) < 1e-30) continue;
+
+        const Ji = this.invert3x3(J);
+        const weight = GAUSS_W * Math.abs(detJ) / 6;
+
+        // Physical gradients dN/dX
+        const dNdX = new Float64Array(30);
+        for (let a = 0; a < 10; a++) {
+          for (let i = 0; i < 3; i++) {
+            let sum = 0;
+            for (let j = 0; j < 3; j++) sum += Ji[i * 3 + j] * dNnat[a * 3 + j];
+            dNdX[a * 3 + i] = sum;
+          }
+        }
+
+        // Compute 2nd Piola-Kirchhoff stress S from current displacements
+        const F = new Float64Array(9);
+        F[0] = 1; F[4] = 1; F[8] = 1; // identity
+        for (let a = 0; a < 10; a++) {
+          const n = nodes[a];
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              F[i * 3 + j] += this.displacements[n * 3 + i] * dNdX[a * 3 + j];
+            }
+          }
+        }
+
+        // Green-Lagrange strain: E = 0.5(FᵀF - I)
+        const Egl = new Float64Array(6); // Voigt
+        Egl[0] = 0.5 * (F[0] * F[0] + F[3] * F[3] + F[6] * F[6] - 1);
+        Egl[1] = 0.5 * (F[1] * F[1] + F[4] * F[4] + F[7] * F[7] - 1);
+        Egl[2] = 0.5 * (F[2] * F[2] + F[5] * F[5] + F[8] * F[8] - 1);
+        Egl[3] = F[0] * F[1] + F[3] * F[4] + F[6] * F[7];
+        Egl[4] = F[1] * F[2] + F[4] * F[5] + F[7] * F[8];
+        Egl[5] = F[0] * F[2] + F[3] * F[5] + F[6] * F[8];
+
+        // S = D * E (St. Venant-Kirchhoff)
+        const D = this.D;
+        const S = new Float64Array(9);
+        const Sv = new Float64Array(6);
+        for (let i = 0; i < 6; i++) {
+          for (let j = 0; j < 6; j++) Sv[i] += D[i * 6 + j] * Egl[j];
+        }
+        S[0] = Sv[0]; S[1] = Sv[3]; S[2] = Sv[5];
+        S[3] = Sv[3]; S[4] = Sv[1]; S[5] = Sv[4];
+        S[6] = Sv[5]; S[7] = Sv[4]; S[8] = Sv[2];
+
+        // Add K_G: for each pair (a,b), K_G[3a+i, 3b+i] += Σ_kl dNa/dXk * S_kl * dNb/dXl
+        for (let a = 0; a < 10; a++) {
+          const na = nodes[a];
+          const rowMap = this.dofToCSR.get(na * 3);
+          if (!rowMap) continue;
+
+          for (let b = 0; b < 10; b++) {
+            const nb = nodes[b];
+
+            // Scalar geometric stiffness: Σ_kl dNa/dXk * S_kl * dNb/dXl
+            let kgScalar = 0;
+            for (let k = 0; k < 3; k++) {
+              for (let l = 0; l < 3; l++) {
+                kgScalar += dNdX[a * 3 + k] * S[k * 3 + l] * dNdX[b * 3 + l];
+              }
+            }
+            kgScalar *= weight;
+
+            // Add to diagonal blocks (K_G only contributes to diagonal i==j)
+            for (let d = 0; d < 3; d++) {
+              const globalI = na * 3 + d;
+              const globalJ = nb * 3 + d;
+              const rm = this.dofToCSR.get(globalI);
+              if (!rm) continue;
+              const idx = rm.get(globalJ);
+              if (idx !== undefined) {
+                this.csrVal[idx] += kgScalar;
+              }
+            }
+          }
+        }
+      }
     }
   }
 
