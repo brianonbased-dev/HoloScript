@@ -31,7 +31,7 @@ import {
 
 // ── Mesh Generation (reused from NAFEMS-LE1.test.ts) ───────────────────────
 
-const INNER_AX = 1.0, INNER_AY = 2.0;
+const INNER_AX = 2.0, INNER_AY = 1.0; // NAFEMS spec: wide inner, short outer
 const OUTER_BX = 3.25, OUTER_BY = 2.75;
 const THICKNESS = 0.1;
 const E_MODULUS = 210_000;
@@ -439,7 +439,7 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
       solver.solve();
       const solveMs = performance.now() - start;
       const vms = solver.getVonMisesStress();
-      const stress = extractStressNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, 0, INNER_AY, 0.5);
+      const stress = extractStressNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, INNER_AX, 0, 0.5);
       const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
       tet4Data.push({ h, nodes: mesh.nodeCount, dof: mesh.nodeCount * 3, stress, error, solveMs });
       return { numerical: new Float32Array([stress]), exact: new Float32Array([NAFEMS_SIGMA_YY_D]) };
@@ -457,7 +457,7 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
       solver.solveCPU();
       const solveMs = performance.now() - start;
       const vms = solver.getVonMisesStress();
-      const stress = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, 0, INNER_AY, 0.5);
+      const stress = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, INNER_AX, 0, 0.5);
       const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
       tet10Data.push({ h, nodes: nodeCount, dof: nodeCount * 3, stress, error, solveMs });
       return { numerical: new Float32Array([stress]), exact: new Float32Array([NAFEMS_SIGMA_YY_D]) };
@@ -546,8 +546,8 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     const tet10Vms = tet10Solver.getVonMisesStress();
 
     const mesh4 = generateEllipticMembraneMesh(6, 12);
-    const stress4 = extractStressNearPoint(mesh4.vertices, mesh4.tetrahedra, tet4Vms, 4, 0, INNER_AY, 0.5);
-    const stress10 = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, tet10Vms, 10, 0, INNER_AY, 0.5);
+    const stress4 = extractStressNearPoint(mesh4.vertices, mesh4.tetrahedra, tet4Vms, 4, INNER_AX, 0, 0.5);
+    const stress10 = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, tet10Vms, 10, INNER_AX, 0, 0.5);
 
     const benchmarks: BenchmarkResult[] = [
       {

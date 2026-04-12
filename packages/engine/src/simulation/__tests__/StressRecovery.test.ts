@@ -175,7 +175,7 @@ describe('SPR Stress Recovery', () => {
 
   it('NAFEMS LE1: SPR σ_yy at point D (ref = 92.7 MPa)', () => {
     // Build NAFEMS LE1 quarter-model with roller BCs
-    const INNER_AX = 1.0, INNER_AY = 2.0;
+    const INNER_AX = 2.0, INNER_AY = 1.0; // NAFEMS spec: wide inner, short outer
     const OUTER_BX = 3.25, OUTER_BY = 2.75;
     const THICK = 0.1;
     const E_MOD = 210_000, NU_MAT = 0.3;
@@ -245,7 +245,7 @@ describe('SPR Stress Recovery', () => {
       constraints: [
         { id: 'rx', type: 'roller', nodes: x0Nodes, dofs: [0] },
         { id: 'ry', type: 'roller', nodes: y0Nodes, dofs: [1] },
-        { id: 'rz', type: 'roller', nodes: [...new Set(zNodes)], dofs: [2] },
+        { id: 'rz', type: 'roller', nodes: [zNodes[0]], dofs: [2] }, // 1 node for plane stress
       ],
       loads,
       maxIterations: 5000,
@@ -262,11 +262,11 @@ describe('SPR Stress Recovery', () => {
       solver.getGaussPointStress(), solver.getGaussPointCoords(), nc,
     );
 
-    // Find the node closest to point D (x=0, y=2, z≈THICK/2)
+    // Find the node closest to point D (x=INNER_AX=2, y=0) on the inner ellipse
     let bestNode = -1, bestDist = Infinity;
     for (let n = 0; n < nc; n++) {
-      const dx = tet10.vertices[n * 3];
-      const dy = tet10.vertices[n * 3 + 1] - INNER_AY;
+      const dx = tet10.vertices[n * 3] - INNER_AX;
+      const dy = tet10.vertices[n * 3 + 1];
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < bestDist) { bestDist = dist; bestNode = n; }
     }
@@ -283,7 +283,7 @@ describe('SPR Stress Recovery', () => {
         cx += tet10.vertices[ni * 3] / 4;
         cy += tet10.vertices[ni * 3 + 1] / 4;
       }
-      const d = Math.sqrt(cx * cx + (cy - INNER_AY) ** 2);
+      const d = Math.sqrt((cx - INNER_AX) ** 2 + cy * cy);
       if (d < bestElemDist) { bestElemDist = d; nearestElem = e; }
     }
     const elemSigmaYY = elemCauchy[nearestElem * 6 + 1];

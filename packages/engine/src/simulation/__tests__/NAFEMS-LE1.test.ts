@@ -58,9 +58,9 @@ import { runConvergenceStudy } from '../verification/ConvergenceAnalysis';
 
 // ── NAFEMS LE1 Constants ─────────────────────────────────────────────────────
 
-/** Inner ellipse semi-axes */
-const INNER_AX = 1.0;
-const INNER_AY = 2.0;
+/** Inner ellipse semi-axes (NAFEMS spec: a_x=2.0 wide, a_y=1.0 short) */
+const INNER_AX = 2.0;
+const INNER_AY = 1.0;
 
 /** Outer ellipse semi-axes */
 const OUTER_BX = 3.25;
@@ -290,7 +290,7 @@ function runTET4Benchmark(nr: number, nt: number) {
   // Extract stress at point D (x=0, y=2)
   const stressAtD = extractStressNearPoint(
     mesh.vertices, mesh.tetrahedra, vms, 4,
-    0, INNER_AY, 0.5,
+    INNER_AX, 0, 0.5,
   );
 
   // Also get max and average stress for diagnostics
@@ -350,7 +350,7 @@ function runTET10Benchmark(nr: number, nt: number) {
 
   const stressAtD = extractStressNearPoint(
     tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10,
-    0, INNER_AY, 0.5,
+    INNER_AX, 0, 0.5,
   );
 
   let maxVms = 0, sumVms = 0;

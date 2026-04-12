@@ -25,7 +25,7 @@ import { runConvergenceStudy } from '../verification/ConvergenceAnalysis';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-const INNER_AX = 1.0, INNER_AY = 2.0;
+const INNER_AX = 2.0, INNER_AY = 1.0; // NAFEMS spec: wide inner, short outer
 const OUTER_BX = 3.25, OUTER_BY = 2.75;
 const THICKNESS = 0.1;
 const E_MODULUS = 210_000; // MPa
@@ -223,10 +223,13 @@ function runTET4WithRollers(nr: number, nt: number) {
   // x=0 plane (theta=pi/2): fix U_x only
   // y=0 plane (theta=0):    fix U_y only
   // z faces:                 fix U_z only (plane stress)
+  // Plane stress: constrain z at ONE node only (prevent rigid body z-translation).
+  // Constraining all z-face nodes creates plane strain (ε_zz=0), not plane stress (σ_zz=0).
+  const oneZNode = [mesh.idx(0, 0, 0)];
   const constraints: StructuralConfig['constraints'] = [
     { id: 'sym_x0', type: 'roller', nodes: nodesOnX0(mesh), dofs: [0] },
     { id: 'sym_y0', type: 'roller', nodes: nodesOnY0(mesh), dofs: [1] },
-    { id: 'sym_z',  type: 'roller', nodes: nodesOnZFaces(mesh), dofs: [2] },
+    { id: 'sym_z',  type: 'roller', nodes: oneZNode, dofs: [2] },
   ];
 
   const config: StructuralConfig = {
@@ -246,11 +249,11 @@ function runTET4WithRollers(nr: number, nt: number) {
 
   // Extract σ_yy (component 1) directly — this is what NAFEMS LE1 references
   const cauchy = solver.getCauchyStress();
-  const sigmaYY = extractCauchyComponentNearPoint(mesh.vertices, mesh.tetrahedra, cauchy, 4, 1, 0, INNER_AY, 0.5);
+  const sigmaYY = extractCauchyComponentNearPoint(mesh.vertices, mesh.tetrahedra, cauchy, 4, 1, INNER_AX, 0, 0.5);
 
   // Also get von Mises for comparison
   const vms = solver.getVonMisesStress();
-  const vonMisesAtD = extractVonMisesNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, 0, INNER_AY, 0.5);
+  const vonMisesAtD = extractVonMisesNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, INNER_AX, 0, 0.5);
 
   return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: mesh.nodeCount, dof: mesh.nodeCount * 3, mesh };
 }
@@ -269,10 +272,12 @@ function runTET10WithRollers(nr: number, nt: number) {
   const zTopNodes = tet10NodesAtZ(tet10Mesh.vertices, THICKNESS, tol);
   const zAllNodes = [...new Set([...z0Nodes, ...zTopNodes])];
 
+  // Plane stress: constrain z at ONE node only
+  const oneZNodeIdx = z0Nodes[0];
   const constraints: TET10Config['constraints'] = [
     { id: 'sym_x0', type: 'roller', nodes: x0Nodes, dofs: [0] },
     { id: 'sym_y0', type: 'roller', nodes: y0Nodes, dofs: [1] },
-    { id: 'sym_z',  type: 'roller', nodes: zAllNodes, dofs: [2] },
+    { id: 'sym_z',  type: 'roller', nodes: [oneZNodeIdx], dofs: [2] },
   ];
 
   // Use point loads (corner-node distributed) for TET10 since outer boundary
@@ -296,10 +301,10 @@ function runTET10WithRollers(nr: number, nt: number) {
 
   // Extract σ_yy (component 1)
   const cauchy = solver.getCauchyStress();
-  const sigmaYY = extractCauchyComponentNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, cauchy, 10, 1, 0, INNER_AY, 0.5);
+  const sigmaYY = extractCauchyComponentNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, cauchy, 10, 1, INNER_AX, 0, 0.5);
 
   const vms = solver.getVonMisesStress();
-  const vonMisesAtD = extractVonMisesNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, 0, INNER_AY, 0.5);
+  const vonMisesAtD = extractVonMisesNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, INNER_AX, 0, 0.5);
 
   return { sigmaYY, vonMisesAtD, converged: result.converged, solveMs, nodeCount: tet10NodeCount, dof: tet10NodeCount * 3 };
 }
