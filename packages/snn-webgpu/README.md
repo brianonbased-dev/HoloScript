@@ -156,6 +156,21 @@ const csr: TropicalCSRGraph = { rowPtr, colIdx, values };
 const sssp = await tropicalPaths.computeSSSP(csr, 0);
 ```
 
+Graph utility helpers are also available:
+
+```ts
+import {
+  TROPICAL_INF,
+  normalizeAdjacency,
+  denseToCSR,
+  csrToDense,
+} from '@holoscript/snn-webgpu';
+
+const normalized = normalizeAdjacency(rawAdjacency, n);
+const csr = denseToCSR(normalized, n);
+const denseAgain = csrToDense(csr);
+```
+
 Runtime policy:
 
 - Small matrices/graphs use CPU fallback paths automatically.

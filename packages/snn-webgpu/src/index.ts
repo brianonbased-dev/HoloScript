@@ -60,6 +60,12 @@ export { SNNNetwork } from './snn-network.js';
 // Tropical graph algebra
 export { TropicalShortestPaths } from './graph/TropicalShortestPaths.js';
 export type { TropicalCSRGraph } from './graph/TropicalShortestPaths.js';
+export {
+  TROPICAL_INF,
+  normalizeAdjacency,
+  denseToCSR,
+  csrToDense,
+} from './graph/TropicalGraphUtils.js';
 
 // PoC utilities (preserved from @holoscript/snn-poc RFC-0042)
 export { CPUReferenceSimulator, generateSynapticInput, generateWeightMatrix } from './poc/index.js';
