@@ -148,11 +148,59 @@ Total tool count via `curl mcp.holoscript.net/health` (changes with each deploy)
 | `hs_ai_review`        | Code review for performance, traits, structure |
 | `hs_ai_scaffold`      | Generate production-ready project scaffolding  |
 
+### Tool Discovery + Batch Execution (NEW)
+
+| Tool | Purpose |
+| ---- | ------- |
+| `get_tool_manifest` | Return machine-readable tool manifest with categories, tags, and input/output schemas |
+| `suggest_tools_for_goal` | Recommend best tools for a natural-language goal + suggested bundles |
+| `batch_tool_call` | Execute multiple tool calls in one request with per-call success/error results |
+
+#### Discover tools for a goal
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "suggest_tools_for_goal",
+    "arguments": {
+      "goal": "parse, validate, and compile this scene to r3f",
+      "maxSuggestions": 8
+    }
+  }
+}
+```
+
+#### Parse + validate + compile in one call
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "batch_tool_call",
+    "arguments": {
+      "stopOnError": true,
+      "calls": [
+        { "name": "parse_hs", "args": { "code": "object Cube { geometry: \"cube\" }" } },
+        { "name": "validate_holoscript", "args": { "code": "object Cube { geometry: \"cube\" }" } },
+        { "name": "compile_holoscript", "args": { "code": "composition \"Demo\" { object \"Cube\" { geometry: \"cube\" } }", "target": "r3f" } }
+      ]
+    }
+  }
+}
+```
+
+The `batch_tool_call` response includes `results[]` (per call) and a `summary` with totals, failures, and whether execution stopped early.
+
 ## Usage Examples
 
 ### With Claude Code
 
-```
+```text
 "Create a VR scene with a grabbable ball and physics"
 # Claude uses generate_scene + suggest_traits automatically
 
