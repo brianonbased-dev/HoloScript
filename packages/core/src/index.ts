@@ -250,6 +250,10 @@ export type {
 // HoloScript R3F Compiler (NEW)
 export { R3FCompiler, type R3FNode, ENVIRONMENT_PRESETS } from './compiler/R3FCompiler';
 
+// Provenance / semiring algebra
+export * from './compiler/traits/Semiring';
+export * from './compiler/traits/ProvenanceSemiring';
+
 // HoloScript Optimization Pass (NEW - Auto-optimization)
 export {
   OptimizationPass,

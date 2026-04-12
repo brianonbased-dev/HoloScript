@@ -18,8 +18,68 @@ import {
   type TraitApplication,
   type DeadElement,
 } from '../traits/ProvenanceSemiring';
+import {
+  MinPlusSemiring,
+  MaxPlusSemiring,
+  SumProductSemiring,
+  strategyToSemiring,
+} from '../traits/Semiring';
 
 describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
+  describe('Semiring<T> algebra exposure', () => {
+    it('min-plus satisfies idempotent addition', () => {
+      expect(MinPlusSemiring.add(3, 3)).toBe(3);
+    });
+
+    it('max-plus satisfies idempotent addition', () => {
+      expect(MaxPlusSemiring.add(7, 7)).toBe(7);
+    });
+
+    it('tropical semirings satisfy additive and multiplicative identities', () => {
+      expect(MinPlusSemiring.add(5, MinPlusSemiring.zero)).toBe(5);
+      expect(MinPlusSemiring.mul(5, MinPlusSemiring.one)).toBe(5);
+      expect(MaxPlusSemiring.add(5, MaxPlusSemiring.zero)).toBe(5);
+      expect(MaxPlusSemiring.mul(5, MaxPlusSemiring.one)).toBe(5);
+    });
+
+    it('min-plus satisfies distributivity', () => {
+      const left = MinPlusSemiring.mul(2, MinPlusSemiring.add(4, 7));
+      const right = MinPlusSemiring.add(MinPlusSemiring.mul(2, 4), MinPlusSemiring.mul(2, 7));
+      expect(left).toBe(right);
+    });
+
+    it('max-plus satisfies distributivity', () => {
+      const left = MaxPlusSemiring.mul(2, MaxPlusSemiring.add(4, 7));
+      const right = MaxPlusSemiring.add(MaxPlusSemiring.mul(2, 4), MaxPlusSemiring.mul(2, 7));
+      expect(left).toBe(right);
+    });
+
+    it('tropical semiring operations are commutative for numbers', () => {
+      expect(MinPlusSemiring.add(4, 9)).toBe(MinPlusSemiring.add(9, 4));
+      expect(MinPlusSemiring.mul(4, 9)).toBe(MinPlusSemiring.mul(9, 4));
+      expect(MaxPlusSemiring.add(4, 9)).toBe(MaxPlusSemiring.add(9, 4));
+      expect(MaxPlusSemiring.mul(4, 9)).toBe(MaxPlusSemiring.mul(9, 4));
+    });
+
+    it('min-plus has Infinity as multiplicative annihilator', () => {
+      expect(MinPlusSemiring.mul(6, MinPlusSemiring.zero)).toBe(MinPlusSemiring.zero);
+      expect(MinPlusSemiring.mul(MinPlusSemiring.zero, 6)).toBe(MinPlusSemiring.zero);
+    });
+
+    it('max-plus has -Infinity as multiplicative annihilator', () => {
+      expect(MaxPlusSemiring.mul(6, MaxPlusSemiring.zero)).toBe(MaxPlusSemiring.zero);
+      expect(MaxPlusSemiring.mul(MaxPlusSemiring.zero, 6)).toBe(MaxPlusSemiring.zero);
+    });
+
+    it('strategyToSemiring exposes tropical and numeric semirings incrementally', () => {
+      expect(strategyToSemiring('tropical-min-plus')).toBe(MinPlusSemiring);
+      expect(strategyToSemiring('tropical-max-plus')).toBe(MaxPlusSemiring);
+      expect(strategyToSemiring('sum')).toBe(SumProductSemiring);
+      expect(strategyToSemiring('domain-override')).toBeNull();
+      expect(strategyToSemiring('strict-error')).toBeNull();
+    });
+  });
+
   // =========================================================================
   // C1: Authority modulation (not bypass)
   // =========================================================================
@@ -286,6 +346,30 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
         { name: 'b', config: { damage: 5 } },
       ]);
       expect(result.config.damage).toBe(15);
+    });
+
+    it('tropical-min-plus strategy uses classical addition as tropical multiplication', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'pathCost', strategy: 'tropical-min-plus' },
+      ]);
+      const result = semiring.add([
+        { name: 'edgeA', config: { pathCost: 3 } },
+        { name: 'edgeB', config: { pathCost: 4 } },
+      ]);
+      expect(result.config.pathCost).toBe(7);
+      expect(result.provenance.pathCost.source).toBe('edgeA⊗edgeB');
+    });
+
+    it('tropical-max-plus strategy also composes numerically via addition', () => {
+      const semiring = new ProvenanceSemiring([
+        { property: 'score', strategy: 'tropical-max-plus' },
+      ]);
+      const result = semiring.add([
+        { name: 'a', config: { score: 10 }, context: { authorityLevel: AuthorityTier.GUEST } },
+        { name: 'b', config: { score: 5 }, context: { authorityLevel: AuthorityTier.FOUNDER } },
+      ]);
+      expect(result.config.score).toBe(15);
+      expect(result.provenance.score.context?.authorityLevel).toBe(AuthorityTier.FOUNDER);
     });
 
     it('strict-error throws on conflict', () => {

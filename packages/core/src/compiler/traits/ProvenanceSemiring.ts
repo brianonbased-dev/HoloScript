@@ -21,6 +21,8 @@
  * @version 2.0.0
  */
 
+import { strategyToSemiring } from './Semiring';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -159,6 +161,8 @@ export interface ConflictResolutionRule {
     | 'min'
     | 'sum'
     | 'multiply'
+    | 'tropical-min-plus'
+    | 'tropical-max-plus'
     | 'strict-error'
     | 'domain-override'
     | 'authority-weighted';
@@ -308,6 +312,21 @@ export class ProvenanceSemiring {
     // Authority weights for modulating numeric strategies
     const weightA = authorityWeight(a.context?.authorityLevel ?? 0, a.context?.reputationScore);
     const weightB = authorityWeight(b.context?.authorityLevel ?? 0, b.context?.reputationScore);
+
+    if (
+      rule &&
+      (rule.strategy === 'tropical-min-plus' || rule.strategy === 'tropical-max-plus')
+    ) {
+      const semiring = strategyToSemiring(rule.strategy);
+      if (!semiring) {
+        throw new Error(`No semiring adapter available for strategy '${rule.strategy}'`);
+      }
+      return {
+        value: semiring.mul(a.value as number, b.value as number),
+        source: `${a.source}⊗${b.source}`,
+        context: weightA >= weightB ? a.context : b.context,
+      };
+    }
 
     switch (rule.strategy) {
       case 'max':
