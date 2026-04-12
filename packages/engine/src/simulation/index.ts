@@ -66,6 +66,10 @@ export {
   type VTKStructuredResult, type VTKUnstructuredResult,
 } from './import/index';
 
+// Simulation Recording & Playback — Animate time-evolving simulations
+export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
+export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';
+
 // Simulation Serialization — Shareable simulation configs
 export {
   serializeSimulation, deserializeSimulation,
