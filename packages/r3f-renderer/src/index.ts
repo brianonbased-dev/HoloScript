@@ -74,6 +74,8 @@ export type { SimResultsMeshProps } from './components/SimResultsMesh';
 // Spatial Toolkits — Domain-specific measurement/annotation/coordinate configs
 export { getSpatialToolkit, inferToolkit, listToolkits, getAllToolkits } from './components/spatial-tools/SpatialToolkit';
 export type { SpatialToolkitConfig } from './components/spatial-tools/SpatialToolkit';
+export { DOMAIN_TAXONOMY, matchDomains, getDomainsByCategory, getCategories, coverageSummary, TOTAL_DOMAINS } from './components/spatial-tools/DomainTaxonomy';
+export type { DomainEntry, CoverageLevel } from './components/spatial-tools/DomainTaxonomy';
 
 // Spatial Measurement, Annotation, and Coordinate Tools
 export { SpatialMeasurement, SpatialAnnotations, CoordinateOverlay } from './components/SpatialMeasurement';
