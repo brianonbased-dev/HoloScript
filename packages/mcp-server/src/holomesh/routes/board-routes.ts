@@ -101,7 +101,7 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/board/scout — Scout tasks
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/scout$/) && method === 'POST') {
-    const access = requireTeamAccess(req, res, url, 'tasks:write');
+    const access = requireTeamAccess(req, res, url, 'board:write');
     if (!access) return true;
     const { caller, teamId } = access;
     const team = teamStore.get(teamId)!;
@@ -123,16 +123,20 @@ export async function handleBoardRoutes(
           priority: l.includes('FIXME:') ? 2 : 1
         }));
       if (tasksBody.length > 0) {
-        addedTasks = addTasksToBoard(team.taskBoard, tasksBody.slice(0, body.max_tasks || 50), 'Scout', 'holomesh-scout');
+        const result = addTasksToBoard(team.taskBoard, team.doneLog || [], tasksBody.slice(0, body.max_tasks || 50));
+        addedTasks = result.added;
+        team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
       // Empty board auto-hint task
-      addedTasks = addTasksToBoard(team.taskBoard, [{
+      const result = addTasksToBoard(team.taskBoard, team.doneLog || [], [{
         title: 'Run /room scout to find actionable work in this repository',
         description: 'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
         source: 'scout:auto-hint',
         priority: 1
-      }], 'Scout', 'holomesh-scout');
+      }]);
+      addedTasks = result.added;
+      team.taskBoard = result.updatedBoard;
     }
 
     if (addedTasks.length > 0) {
@@ -262,7 +266,7 @@ export async function handleBoardRoutes(
     pruneStalePresence(teamId);
     const online = Array.from(presenceMap.values());
 
-    json(res, 200, { success: true, online, presence: entry });
+    json(res, 200, { success: true, online, presence: entry, online_count: online.length });
     return true;
   }
 

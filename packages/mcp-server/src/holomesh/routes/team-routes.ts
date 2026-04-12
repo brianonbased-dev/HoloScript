@@ -5,6 +5,7 @@ import {
   agentKeyStore, 
   walletToAgent,
   teamMessageStore,
+  teamPresenceStore,
   persistTeamStore,
   persistAgentStore 
 } from '../state';
@@ -16,9 +17,73 @@ import {
   hasTeamPermission,
   requireTeamAccess
 } from '../utils';
-import { requireAuth } from '../auth-utils';
+import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
-import type { Team, RegisteredAgent, TeamRole } from '../types';
+import { getClient } from '../orchestrator-client';
+import type { Team, RegisteredAgent, TeamRole, MeshKnowledgeEntry } from '../types';
+
+const QUICKSTART_DOMAIN_DESCRIPTIONS: Record<string, string> = {
+  agents: 'Agent design, orchestration, and collaborative autonomy patterns.',
+  security: 'Authentication, threat modeling, and safe-by-default operational practices.',
+  rendering: 'Spatial rendering, scene composition, and visual performance techniques.',
+  compiler: 'Semantic compilation, trait pipelines, and target generation strategies.',
+  economics: 'x402 monetization, bounties, and creator revenue architecture.',
+  general: 'Cross-domain patterns and high-signal onboarding knowledge.',
+};
+
+function createWalletMaterial(): { privateKey: string; address: string } {
+  const privateKey = `0x${crypto.randomBytes(32).toString('hex')}`;
+  const address = `0x${crypto.randomBytes(20).toString('hex')}`;
+  return { privateKey, address };
+}
+
+function normalizeEntry(entry: MeshKnowledgeEntry): Record<string, unknown> {
+  return {
+    id: entry.id,
+    type: entry.type,
+    domain: entry.domain || 'general',
+    content: entry.content,
+    authorName: entry.authorName,
+    createdAt: entry.createdAt,
+  };
+}
+
+async function fetchQuickstartPreview(): Promise<MeshKnowledgeEntry[]> {
+  const client = getClient();
+  const searches = ['holomesh', 'agent', 'knowledge'];
+  const merged: MeshKnowledgeEntry[] = [];
+
+  for (const query of searches) {
+    const results = await client.queryKnowledge(query, { limit: 10 });
+    for (const result of results) {
+      if (!merged.some((e) => e.id === result.id)) {
+        merged.push(result);
+      }
+      if (merged.length >= 15) return merged;
+    }
+  }
+
+  return merged;
+}
+
+function rankTopDomains(entries: MeshKnowledgeEntry[]): Array<Record<string, unknown>> {
+  const counts = new Map<string, number>();
+  for (const e of entries) {
+    const domain = (e.domain || 'general').toLowerCase();
+    counts.set(domain, (counts.get(domain) || 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([domain, count]) => ({
+      domain,
+      entries: count,
+      description:
+        QUICKSTART_DOMAIN_DESCRIPTIONS[domain] ||
+        `Knowledge entries in the ${domain} domain.`,
+    }));
+}
 
 function deriveTopThemes(exchanges: string[]): string[] {
   const stop = new Set([
@@ -51,79 +116,268 @@ export async function handleTeamRoutes(
   method: string,
   url: string
 ): Promise<boolean> {
-  // POST /api/holomesh/register — Legacy registration
-  if (pathname === '/api/holomesh/register' && method === 'POST') {
+  // GET /api/holomesh/quickstart — Curated onboarding snapshot
+  if (pathname === '/api/holomesh/quickstart' && method === 'GET') {
+    const preview = await fetchQuickstartPreview();
+    const topDomains = rankTopDomains(preview);
+    const sampleEntries = preview.slice(0, 5).map(normalizeEntry);
+
+    json(res, 200, {
+      success: true,
+      welcome: {
+        title: 'Welcome to HoloMesh',
+        summary:
+          'Start here: explore active domains, read high-signal entries, then register your agent and contribute your first wisdom/pattern/gotcha.',
+      },
+      top_domains: topDomains,
+      sample_entries: sampleEntries,
+      quick_actions: [
+        'POST /api/holomesh/quickstart to bootstrap an agent identity',
+        'GET /api/holomesh/leaderboard to see active contributors',
+        'GET /api/holomesh/domains to inspect domain activity',
+      ],
+      generatedAt: new Date().toISOString(),
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/quickstart — register and bootstrap first contribution
+  if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
     const body = await parseJsonBody(req);
-    const name = (body.name as string)?.trim();
-    if (!name) {
-      json(res, 400, { error: 'Missing name' });
+    const name = (body.name as string | undefined)?.trim() || '';
+    const description = (body.description as string | undefined)?.trim() || '';
+
+    if (name.length < 2 || name.length > 64) {
+      json(res, 400, { error: 'name must be 2-64 chars' });
       return true;
     }
 
+    const duplicate = Array.from(agentKeyStore.values()).some(
+      (a) => a.name.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicate) {
+      json(res, 409, { error: 'Agent name already exists' });
+      return true;
+    }
+
+    const wallet = createWalletMaterial();
     const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
     const agent: RegisteredAgent = {
       id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       apiKey,
-      walletAddress: (body.walletAddress as string) || '',
+      walletAddress: wallet.address,
       name,
-      traits: Array.isArray(body.traits) ? body.traits : [],
+      traits: ['@quickstart', '@newcomer'],
       reputation: 0,
       profile: {
-        bio: '',
-        themeColor: '#6366f1',
-        themeAccent: '#4f46e5',
-        statusText: 'New to HoloMesh',
-        customTitle: 'Agent',
-        backgroundGradient: ['#4f46e5', '#6366f1'],
-        particles: 'none',
-        backgroundMusicUrl: '',
-        backgroundMusicVolume: 0.5,
-        moodBoardScene: '',
-        moodBoardCompiled: '',
+        bio: description || 'New agent onboarded via quickstart',
       },
       createdAt: new Date().toISOString(),
     };
 
     agentKeyStore.set(apiKey, agent);
-    if (agent.walletAddress) {
-      walletToAgent.set(agent.walletAddress.toLowerCase(), agent);
-    }
+    walletToAgent.set(wallet.address.toLowerCase(), agent);
     persistAgentStore();
 
-    json(res, 201, { success: true, agent });
+    const firstEntry: MeshKnowledgeEntry = {
+      id: `W.quickstart.${Date.now()}`,
+      workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+      type: 'wisdom',
+      content: description
+        ? `Hello from ${name}. Focus area: ${description}`
+        : `Hello from ${name}. Sharing first quickstart wisdom entry.`,
+      provenanceHash: crypto
+        .createHash('sha256')
+        .update(`${name}:${description}:${Date.now()}`)
+        .digest('hex'),
+      authorId: agent.id,
+      authorName: agent.name,
+      price: 0,
+      queryCount: 0,
+      reuseCount: 0,
+      domain: 'general',
+      tags: ['quickstart', 'onboarding'],
+      confidence: 0.7,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      await getClient().contributeKnowledge([firstEntry]);
+    } catch {
+      // Onboarding should still succeed if orchestrator is temporarily unavailable.
+    }
+
+    const feedPreview = (await fetchQuickstartPreview()).slice(0, 5).map(normalizeEntry);
+
+    json(res, 201, {
+      success: true,
+      agent: {
+        id: agent.id,
+        name: agent.name,
+        api_key: agent.apiKey,
+        wallet_address: agent.walletAddress,
+        traits: agent.traits,
+        created_at: agent.createdAt,
+      },
+      wallet: {
+        private_key: wallet.privateKey,
+        address: wallet.address,
+      },
+      your_first_entry: normalizeEntry(firstEntry),
+      feed_preview: feedPreview,
+      next_steps: [
+        'Use your api_key as Bearer token for authenticated HoloMesh endpoints',
+        'Contribute one pattern and one gotcha to build initial reputation',
+        'Join a team board and claim a task to start collaborating',
+      ],
+      mcp_config: {
+        server: 'https://mcp.holoscript.net',
+        auth_header: `Authorization: Bearer ${agent.apiKey}`,
+      },
+    });
     return true;
   }
 
-  // GET /api/holomesh/teams — List public teams
-  if (pathname === '/api/holomesh/teams' && method === 'GET') {
-    const teams = Array.from(teamStore.values())
-      .filter(t => t.visibility !== 'private')
-      .map(t => ({
-        id: t.id,
-        name: t.name,
-        description: t.description,
-        type: t.type,
-        members: t.members.length,
-        maxSlots: t.maxSlots,
-        owner: t.ownerName
-      }));
-    json(res, 200, { success: true, teams, count: teams.length });
-    return true;
-  }
 
-  // POST /api/holomesh/teams — Create team
-  if (pathname === '/api/holomesh/teams' && method === 'POST') {
-    const caller = requireAuth(req, res);
-    if (!caller) return true;
-
-    const body = await parseJsonBody(req);
-    const name = (body.name as string)?.trim();
-    if (!name) {
-      json(res, 400, { error: 'Missing team name' });
+    // POST /api/holomesh/register — Legacy registration
+    if (pathname === '/api/holomesh/register' && method === 'POST') {
+      const body = await parseJsonBody(req);
+      const name = (body.name as string)?.trim() || '';
+      if (!name) {
+        json(res, 400, { error: 'Missing name' });
+        return true;
+      }
+      if (name.length < 2 || name.length > 64) {
+        json(res, 400, { error: 'name must be 2-64 chars' });
+        return true;
+      }
+      const duplicate = Array.from(agentKeyStore.values()).some(
+        (a) => a.name.toLowerCase() === name.toLowerCase()
+      );
+      if (duplicate) {
+        json(res, 409, { error: 'Agent name already registered' });
+        return true;
+      }
+      const providedWallet = (body.wallet_address as string | undefined)?.trim() || '';
+      if (providedWallet) {
+        const walletKey = providedWallet.toLowerCase();
+        if (walletToAgent.has(walletKey)) {
+          json(res, 409, { error: 'This wallet is already registered' });
+          return true;
+        }
+      }
+      const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
+      const wallet = providedWallet ? null : createWalletMaterial();
+      const walletAddress = providedWallet || wallet!.address;
+      const agent: RegisteredAgent = {
+        id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        apiKey,
+        walletAddress,
+        name,
+        traits: Array.isArray(body.traits) ? body.traits : [],
+        reputation: 0,
+        profile: {
+          bio: '',
+          themeColor: '#6366f1',
+          themeAccent: '#4f46e5',
+          statusText: 'New to HoloMesh',
+          customTitle: 'Agent',
+          backgroundGradient: ['#4f46e5', '#6366f1'],
+          particles: 'none',
+          backgroundMusicUrl: '',
+          backgroundMusicVolume: 0.5,
+          moodBoardScene: '',
+          moodBoardCompiled: '',
+        },
+        createdAt: new Date().toISOString(),
+      };
+      agentKeyStore.set(apiKey, agent);
+      walletToAgent.set(walletAddress.toLowerCase(), agent);
+      persistAgentStore();
+      // Provision private knowledge workspace
+      try {
+        await getClient().contributeKnowledge([{
+          id: `private:${walletAddress}:init`,
+          workspaceId: `private:${walletAddress}`,
+          type: 'wisdom',
+          content: 'Private workspace initialized.',
+          authorId: agent.id,
+          authorName: agent.name,
+          domain: 'general',
+          tags: ['private', 'init'],
+          price: 0,
+          queryCount: 0,
+          reuseCount: 0,
+          provenanceHash: '',
+          createdAt: new Date().toISOString(),
+        } as import('../types').MeshKnowledgeEntry]);
+      } catch {}
+      json(res, 201, {
+        success: true,
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          api_key: agent.apiKey,
+          wallet_address: agent.walletAddress,
+          traits: agent.traits,
+          created_at: agent.createdAt,
+        },
+        wallet: wallet
+          ? {
+              private_key: wallet.privateKey,
+              address: wallet.address,
+              important: 'Save your private_key securely — it cannot be recovered.',
+            }
+          : { note: 'Using existing wallet. No private_key generated.', address: providedWallet },
+        private_workspace: {
+          id: `private:${walletAddress}`,
+          query: 'GET /api/holomesh/knowledge/private',
+        },
+      });
       return true;
     }
 
+  // GET /api/holomesh/teams — List agent's teams (auth required)
+  if (pathname === '/api/holomesh/teams' && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teams = Array.from(teamStore.values())
+      .filter((t) => t.members.some((m) => m.agentId === caller.id))
+      .map((t) => {
+        const membership = t.members.find((m) => m.agentId === caller.id)!;
+        return {
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          type: t.type,
+          memberCount: t.members.length,
+          role: membership.role,
+          createdAt: t.createdAt,
+        };
+      });
+    json(res, 200, { success: true, teams });
+    return true;
+  }
+
+  // POST /api/holomesh/team — Create a team (enterprise path)
+  if (pathname === '/api/holomesh/team' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const body = await parseJsonBody(req);
+    const name = (body.name as string | undefined)?.trim();
+    if (!name || name.length < 2) {
+      json(res, 400, { error: 'Team name must be at least 2 characters' });
+      return true;
+    }
+    const duplicate = Array.from(teamStore.values()).some(
+      (t) => t.name.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicate) {
+      json(res, 409, { error: 'A team with this name already exists' });
+      return true;
+    }
     const teamId = `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const inviteCode = crypto.randomBytes(8).toString('hex');
     const team: Team = {
       id: teamId,
       name,
@@ -132,19 +386,25 @@ export async function handleTeamRoutes(
       visibility: (body.visibility as Team['visibility']) || 'public',
       ownerId: caller.id,
       ownerName: caller.name,
-      inviteCode: crypto.randomUUID().slice(0, 8),
-      maxSlots: Math.min(parseInt(String(body.maxSlots)) || 5, 20),
+      inviteCode,
+      maxSlots: 20,
       members: [{ agentId: caller.id, agentName: caller.name, role: 'owner', joinedAt: new Date().toISOString() }],
       waitlist: [],
       createdAt: new Date().toISOString(),
       taskBoard: [],
       doneLog: [],
     };
-
     teamStore.set(teamId, team);
     persistTeamStore();
-
-    json(res, 201, { success: true, team });
+    json(res, 201, {
+      success: true,
+      team: {
+        id: teamId,
+        name,
+        invite_code: inviteCode,
+        workspace_id: `team:${teamId}`,
+      },
+    });
     return true;
   }
 
@@ -156,17 +416,31 @@ export async function handleTeamRoutes(
       json(res, 404, { error: 'Team not found' });
       return true;
     }
-    
-    // Check privacy
-    if (team.visibility === 'private') {
-      const caller = requireAuth(req, res);
-      if (!caller || !getTeamMember(team, caller.id)) {
-        json(res, 403, { error: 'Private team. Membership required.' });
-        return true;
-      }
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const membership = team.members.find((m) => m.agentId === caller.id);
+    if (!membership) {
+      json(res, 403, { error: 'Not a member of this team' });
+      return true;
     }
-
-    json(res, 200, { success: true, team });
+    const isOwnerOrAdmin = ['owner', 'admin'].includes(membership.role);
+    json(res, 200, {
+      success: true,
+      team: {
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        your_role: membership.role,
+        members: team.members,
+        ...(isOwnerOrAdmin ? { invite_code: team.inviteCode } : {}),
+      },
+      quick_links: {
+        join: `POST /api/holomesh/team/${teamId}/join`,
+        presence: `POST /api/holomesh/team/${teamId}/presence`,
+        message: `POST /api/holomesh/team/${teamId}/message`,
+        knowledge: `POST /api/holomesh/team/${teamId}/knowledge`,
+      },
+    });
     return true;
   }
 
@@ -183,7 +457,13 @@ export async function handleTeamRoutes(
     }
 
     if (getTeamMember(team, caller.id)) {
-      json(res, 400, { error: 'Already a member' });
+      json(res, 409, { error: 'Already a member of this team' });
+      return true;
+    }
+
+    const body = await parseJsonBody(req);
+    if (body.invite_code !== undefined && body.invite_code !== team.inviteCode) {
+      json(res, 403, { error: 'Invalid invite code' });
       return true;
     }
 
@@ -207,7 +487,7 @@ export async function handleTeamRoutes(
       data: { agentId: caller.id, agentName: caller.name, totalMembers: team.members.length }
     });
 
-    json(res, 200, { success: true, team });
+    json(res, 200, { success: true, role: 'member', members: team.members.length });
     return true;
   }
 
@@ -287,6 +567,212 @@ export async function handleTeamRoutes(
     return true;
   }
 
+  // POST /api/holomesh/team/:id/presence
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/presence', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const body = await parseJsonBody(req);
+    const entry = {
+      agentId: caller.id,
+      agentName: caller.name,
+      ideType: (body.ideType as string) || 'unknown',
+      status: (body.status as string) || 'active',
+      lastHeartbeat: new Date().toISOString(),
+    } as import('../types').TeamPresenceEntry;
+    if (!teamPresenceStore.has(teamId)) teamPresenceStore.set(teamId, new Map());
+    teamPresenceStore.get(teamId)!.set(caller.id, entry);
+    const onlineCount = teamPresenceStore.get(teamId)!.size;
+    json(res, 200, { success: true, presence: entry, online_count: onlineCount });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/presence
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/presence$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/presence', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const presenceMap = teamPresenceStore.get(teamId);
+    const online = presenceMap ? Array.from(presenceMap.values()) : [];
+    json(res, 200, { success: true, online_count: online.length, online });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/message
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/message$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/message', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const body = await parseJsonBody(req);
+    if (!body.content) { json(res, 400, { error: 'content is required' }); return true; }
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      teamId,
+      fromAgentId: caller.id,
+      fromAgentName: caller.name,
+      content: body.content as string,
+      messageType: (body.messageType as string) || 'text',
+      createdAt: new Date().toISOString(),
+    };
+    const messages = teamMessageStore.get(teamId) || [];
+    messages.push(message as import('../types').TeamMessage);
+    teamMessageStore.set(teamId, messages.slice(-500));
+    persistTeamStore();
+    broadcastToRoom(teamId, { type: 'team:message', agent: caller.name, data: message });
+    json(res, 201, { success: true, message });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/messages
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/messages$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/messages', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const searchParams = new URL(url, 'http://localhost').searchParams;
+    const limit = parseInt(searchParams.get('limit') || '50', 10) || 50;
+    const messages = (teamMessageStore.get(teamId) || []).slice(-limit);
+    json(res, 200, { success: true, messages, count: messages.length });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/knowledge
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/knowledge$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/knowledge', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    const membership = getTeamMember(team, caller.id);
+    if (!membership) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!hasTeamPermission(team, caller.id, 'messages:write')) {
+      json(res, 403, { error: 'Insufficient permissions' }); return true;
+    }
+    const body = await parseJsonBody(req);
+    const entries = Array.isArray(body.entries) ? (body.entries as MeshKnowledgeEntry[]) : [];
+    if (entries.length === 0) { json(res, 400, { error: 'entries required' }); return true; }
+    const workspaceId = `team:${teamId}`;
+    const prepared = entries.map((e: MeshKnowledgeEntry) => ({
+      ...e,
+      id: e.id || `W.team.${Date.now()}.${Math.random().toString(36).slice(2, 5)}`,
+      workspaceId,
+      authorId: e.authorId || caller.id,
+      authorName: e.authorName || caller.name,
+      tags: [...(Array.isArray(e.tags) ? e.tags : [])],
+      price: e.price ?? 0,
+      queryCount: e.queryCount ?? 0,
+      reuseCount: e.reuseCount ?? 0,
+      createdAt: e.createdAt || new Date().toISOString(),
+    }));
+    const synced = await getClient().contributeKnowledge(prepared);
+    json(res, 201, { success: true, synced, entries: prepared, workspace_id: workspaceId });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/knowledge
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/knowledge$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/knowledge', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const workspaceId = `team:${teamId}`;
+    let entries: MeshKnowledgeEntry[] = [];
+    try {
+      entries = await getClient().queryKnowledge('', { workspaceId, limit: 200 });
+    } catch {}
+    json(res, 200, { success: true, workspace_id: workspaceId, entries, count: entries.length });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/mode
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mode$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/mode', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!hasTeamPermission(team, caller.id, 'config:write')) {
+      json(res, 403, { error: 'Insufficient permissions' }); return true;
+    }
+    const body = await parseJsonBody(req);
+    const mode = (body.mode as string) || 'build';
+    if (!team.roomConfig) team.roomConfig = {};
+    team.mode = mode;
+    persistTeamStore();
+    json(res, 200, {
+      success: true,
+      mode,
+      hint: `Switch to ${mode} mode. Use POST /team/${teamId}/board/scout with todo_content to harvest TODOs. Supported: /board/scout?todo_content=...`,
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/team/:id/board/scout
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/scout$/) && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/board/scout', '');
+    const team = teamStore.get(teamId);
+    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    const body = await parseJsonBody(req);
+    const todoContent = body.todo_content as string | undefined;
+    const tasks: Array<{ id: string; title: string; description: string; source: string; status: string; createdAt: string }> = [];
+
+    if (todoContent) {
+      // Parse "file:line: // TODO: text" or "file:line: // FIXME: text"
+      const lines = todoContent.split('\n').filter(Boolean);
+      for (const line of lines) {
+        const match = line.match(/^(.+):(\d+):\s*\/\/\s*(TODO|FIXME):?\s*(.+)$/i);
+        if (match) {
+          const [, file, lineNum, kind, desc] = match;
+          const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          tasks.push({
+            id: taskId,
+            title: `${kind}: ${desc.trim()} (${file}:${lineNum})`,
+            description: line.trim(),
+            source: 'scout:todo-scan',
+            status: 'open',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    // If empty board and no todos, add a hint task
+    if (tasks.length === 0 && (team.taskBoard || []).length === 0) {
+      const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      tasks.push({
+        id: taskId,
+        title: 'Run /room scout to scan TODO markers',
+        description: 'Use POST /team/:id/board/scout with todo_content to harvest TODO/FIXME annotations into the task board.',
+        source: 'scout:hint',
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    if (!team.taskBoard) team.taskBoard = [];
+    team.taskBoard.push(...tasks);
+    persistTeamStore();
+
+    json(res, 201, { success: true, tasks_added: tasks.length, tasks });
+    return true;
+  }
   // POST /api/holomesh/team/:id/moltbook/dm-overdue
   // Generates a targeted DM batch for overdue Tier 1 agents.
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/dm-overdue$/) && method === 'POST') {

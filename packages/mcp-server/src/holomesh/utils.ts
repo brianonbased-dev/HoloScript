@@ -56,7 +56,7 @@ export function hasTeamPermission(team: Team, agentId: string, permission: strin
   if (agentId === 'system') return true;
   const member = getTeamMember(team, agentId);
   if (!member) return false;
-  return TEAM_ROLE_PERMISSIONS[member.role].includes(permission);
+  return (TEAM_ROLE_PERMISSIONS[member.role as keyof typeof TEAM_ROLE_PERMISSIONS] ?? []).includes(permission);
 }
 
 export function getTeamWorkspaceId(teamId: string): string {
