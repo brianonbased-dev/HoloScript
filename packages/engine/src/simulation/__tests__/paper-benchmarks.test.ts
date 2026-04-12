@@ -175,18 +175,23 @@ function makeTET10Config(nr: number, nt: number): { config: TET10Config; mesh: R
   return { config, mesh, tet10Mesh };
 }
 
-/** Time a function over N iterations, return median ms */
-function benchmark(fn: () => void, iterations: number): { medianMs: number; allMs: number[] } {
+/** Time a function over N iterations, return statistics */
+function benchmark(fn: () => void, iterations: number): { medianMs: number; meanMs: number; stdMs: number; ci95Ms: number; allMs: number[] } {
   const times: number[] = [];
-  // Warmup
-  fn();
+  // Warmup (3 runs)
+  fn(); fn(); fn();
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
     fn();
     times.push(performance.now() - start);
   }
   times.sort((a, b) => a - b);
-  return { medianMs: times[Math.floor(times.length / 2)], allMs: times };
+  const medianMs = times[Math.floor(times.length / 2)];
+  const meanMs = times.reduce((a, b) => a + b, 0) / times.length;
+  const variance = times.reduce((s, t) => s + (t - meanMs) ** 2, 0) / (times.length - 1);
+  const stdMs = Math.sqrt(variance);
+  const ci95Ms = 1.96 * stdMs / Math.sqrt(times.length);
+  return { medianMs, meanMs, stdMs, ci95Ms, allMs: times };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -202,11 +207,13 @@ describe('Paper Benchmark: Contract Overhead', () => {
       { nr: 8, nt: 16, label: 'Large' },
     ];
 
-    console.log('\n' + '='.repeat(75));
-    console.log('CONTRACT OVERHEAD: TET4 Solver (with vs without ContractedSimulation)');
-    console.log('='.repeat(75));
-    console.log('| Mesh     | Nodes | DOF   | Bare (ms) | Contracted (ms) | Overhead |');
-    console.log('|----------|-------|-------|-----------|-----------------|----------|');
+    const N_ITER = 10; // 10 iterations with 3 warmup for statistical rigor
+
+    console.log('\n' + '='.repeat(90));
+    console.log(`CONTRACT OVERHEAD: TET4 Solver (${N_ITER} iterations, 3 warmup, 95% CI)`);
+    console.log('='.repeat(90));
+    console.log('| Mesh     | Nodes | DOF   | Bare (ms)     | Contracted (ms) | Overhead   |');
+    console.log('|----------|-------|-------|---------------|-----------------|------------|');
 
     const rows: string[] = [];
 
@@ -214,13 +221,13 @@ describe('Paper Benchmark: Contract Overhead', () => {
       const { config, mesh } = makeTET4Config(mc.nr, mc.nt);
       const dof = mesh.nodeCount * 3;
 
-      // Bare solver timing (3 iterations, take median)
+      // Bare solver timing
       const bareTiming = benchmark(() => {
         const solver = new StructuralSolver(config);
         solver.solve();
-      }, 3);
+      }, N_ITER);
 
-      // Contracted solver timing (3 iterations, take median)
+      // Contracted solver timing
       const contractedTiming = benchmark(() => {
         const solver = new StructuralSolver(config);
         const contracted = new ContractedSimulation(solver, config as Record<string, unknown>, {
@@ -230,14 +237,14 @@ describe('Paper Benchmark: Contract Overhead', () => {
         });
         contracted.solve();
         contracted.getProvenance();
-      }, 3);
+      }, N_ITER);
 
-      const overhead = ((contractedTiming.medianMs - bareTiming.medianMs) / bareTiming.medianMs * 100);
+      const overhead = ((contractedTiming.meanMs - bareTiming.meanMs) / bareTiming.meanMs * 100);
       const overheadStr = overhead >= 0 ? `+${overhead.toFixed(1)}%` : `${overhead.toFixed(1)}%`;
 
-      console.log(`| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.medianMs.toFixed(2).padStart(9)} | ${contractedTiming.medianMs.toFixed(2).padStart(15)} | ${overheadStr.padStart(8)} |`);
+      console.log(`| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.meanMs.toFixed(2)}±${bareTiming.ci95Ms.toFixed(2)} | ${contractedTiming.meanMs.toFixed(2)}±${contractedTiming.ci95Ms.toFixed(2)} | ${overheadStr.padStart(8)} |`);
 
-      rows.push(`${mc.label} & ${mesh.nodeCount} & ${dof} & ${bareTiming.medianMs.toFixed(2)} & ${contractedTiming.medianMs.toFixed(2)} & ${overheadStr} \\\\`);
+      rows.push(`${mc.label} & ${mesh.nodeCount} & ${dof} & $${bareTiming.meanMs.toFixed(2)} \\pm ${bareTiming.ci95Ms.toFixed(2)}$ & $${contractedTiming.meanMs.toFixed(2)} \\pm ${contractedTiming.ci95Ms.toFixed(2)}$ & ${overheadStr} \\\\`);
     }
 
     console.log('='.repeat(75));

@@ -164,6 +164,19 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   // Convert to TET10
   const tet10Mesh = tet4ToTet10(new Float64Array(mesh.vertices), mesh.tetrahedra);
   const tet10NodeCount = tet10Mesh.vertices.length / 3;
+  const tet10Verts = tet10Mesh.vertices;
+
+  // Fix ALL nodes at z=0 (both corner AND midside nodes).
+  // tet4ToTet10 creates midside nodes at edge midpoints — those on z=0 edges
+  // will also be at z=0 and MUST be constrained. Missing these was the root
+  // cause of the 21% error: unconstrained midside DOFs at the fixed boundary.
+  const fixedNodesAll: number[] = [];
+  const zTol = L * 0.001;
+  for (let n = 0; n < tet10NodeCount; n++) {
+    if (Math.abs(tet10Verts[n * 3 + 2]) < zTol) {
+      fixedNodesAll.push(n);
+    }
+  }
 
   // Find element faces on the z=L boundary for distributed pressure loading.
   // A tet face is on z=L if all 3 corner nodes of that face have z ≈ L.
@@ -173,7 +186,6 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   const tet4Tets = mesh.tetrahedra;
   const tet4Verts = mesh.vertices;
   const elemCount = tet4Tets.length / 4;
-  const zTol = L * 0.01;
 
   for (let e = 0; e < elemCount; e++) {
     for (let f = 0; f < 4; f++) {
@@ -194,7 +206,7 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   // using the new quadratic face traction integration (TRI6 shape functions)
   const pressure = TOTAL_FORCE / AREA;
 
-  // Also collect loaded-face corner nodes for displacement averaging
+  // Collect loaded-face corner nodes for displacement averaging
   const loadedNodes: number[] = [];
   for (let i = 0; i <= mesh.nx; i++) {
     for (let j = 0; j <= mesh.ny; j++) {
@@ -206,7 +218,7 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
     vertices: tet10Mesh.vertices,
     tetrahedra: tet10Mesh.tetrahedra,
     material: { density: 1000, youngs_modulus: E, poisson_ratio: NU, yield_strength: 1e8 },
-    constraints: [{ id: 'fix_z0', type: 'fixed', nodes: fixedNodes }],
+    constraints: [{ id: 'fix_z0', type: 'fixed', nodes: fixedNodesAll }],
     loads: [{
       id: 'pressure_zL',
       type: 'distributed' as const,
@@ -369,14 +381,15 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     // Both should have produced data for all mesh sizes
     expect(tet4Data.length).toBe(meshConfigs.length);
     expect(tet10Data.length).toBe(meshConfigs.length);
-    // Convergence order should be a finite number
+    // TET4 convergence order should be finite and positive
     expect(Number.isFinite(tet4Result.observedOrderL2)).toBe(true);
-    expect(Number.isFinite(tet10Result.observedOrderL2)).toBe(true);
-    // The finest mesh should have lower error than the coarsest for at least one solver
-    // (Note: convergence may be non-monotonic for very coarse meshes due to load distribution)
-    const tet4Improving = tet4Data[tet4Data.length - 1].relError < tet4Data[0].relError;
-    const tet10Improving = tet10Data[tet10Data.length - 1].relError < tet10Data[0].relError;
-    expect(tet4Improving || tet10Improving).toBe(true);
+    expect(tet4Result.observedOrderL2).toBeGreaterThan(0.5);
+    // TET10 should give near-exact results (error ≈ 0 at all mesh sizes).
+    // When error is zero, convergence order is NaN (log(0) undefined) — that's correct.
+    // Verify the finest mesh has negligible error instead.
+    expect(tet10Data[tet10Data.length - 1].relError).toBeLessThan(0.001); // < 0.1%
+    // TET4 should converge (error decreasing overall)
+    expect(tet4Data[tet4Data.length - 1].relError).toBeLessThan(tet4Data[0].relError);
   }, 120000);
 
   it('stress convergence (σ = F/A = 1000 Pa)', () => {

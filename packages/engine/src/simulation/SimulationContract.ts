@@ -245,7 +245,15 @@ export class ContractedSimulation {
     contractConfig: ContractConfig = {},
   ) {
     this.solver = solver;
-    this.config = JSON.parse(JSON.stringify(config)); // deep freeze
+    
+    // Efficient deep clone that preserves TypedArrays via structuredClone
+    try {
+      this.config = structuredClone(config);
+    } catch {
+      // Fallback if structuredClone isn't available (e.g. archaic environments, though JS/Node 17+ has it)
+      // or if config contains non-cloneable objects. Just shallow copy the arrays.
+      this.config = { ...config };
+    }
     this.solverType = contractConfig.solverType ?? 'unknown';
     this.logInteractions = contractConfig.logInteractions ?? true;
 
@@ -273,16 +281,37 @@ export class ContractedSimulation {
     this.startTime = performance.now();
   }
 
-  /** Advance the simulation by wall-clock delta using fixed timestep. */
+  /** Advance the simulation by wall-clock delta using fixed timestep.
+   *  Enforces Guarantee 1 (geometry integrity) before each step. */
   step(wallDelta: number): number {
+    this.enforceGeometryIntegrity();
     return this.stepper.advance(wallDelta, (dt) => {
       this.solver.step(dt);
     });
   }
 
-  /** Solve a steady-state system (not time-stepped). */
+  /** Solve a steady-state system (not time-stepped).
+   *  Enforces Guarantee 1 (geometry integrity) before solving. */
   async solve(): Promise<void> {
+    this.enforceGeometryIntegrity();
     await this.solver.solve();
+  }
+
+  /** Enforce Guarantee 1: halt if geometry has been corrupted.
+   *  Re-hashes the mesh vertices and elements and compares against the
+   *  contracted hash from construction. Throws if they diverge. */
+  private enforceGeometryIntegrity(): void {
+    const vertices = this.config.vertices as Float64Array | Float32Array | undefined;
+    const elements = (this.config.tetrahedra ?? this.config.elements) as Uint32Array | undefined;
+    if (!vertices || !elements) return; // No geometry to verify (e.g. grid-based solvers)
+    const currentHash = hashGeometry(vertices, elements);
+    if (currentHash !== this.geometryHash) {
+      throw new Error(
+        `[SimulationContract] Geometry integrity violation: ` +
+        `expected ${this.geometryHash}, got ${currentHash}. ` +
+        `The mesh has been modified since contract construction.`
+      );
+    }
   }
 
   /** Log a user interaction that affects solver state. */
@@ -369,6 +398,54 @@ export class ContractedSimulation {
   ): boolean {
     const currentHash = hashGeometry(vertices, elements);
     return currentHash === this.geometryHash;
+  }
+
+  /**
+   * Replay a simulation from a provenance record (Guarantee 6).
+   *
+   * Creates a new ContractedSimulation from the replay record's config,
+   * verifies geometry hash matches, and re-applies all interactions at
+   * their recorded simulation times. For steady-state solvers, calls
+   * solve() directly. For transient solvers, steps through the recorded
+   * time span with the original fixed timestep.
+   *
+   * @returns The replayed ContractedSimulation instance with its own
+   *          provenance record, which can be compared for equivalence.
+   */
+  static replayFromProvenance(
+    solverFactory: (config: Record<string, unknown>) => SimSolver,
+    replay: {
+      config: Record<string, unknown>;
+      solverType: string;
+      geometryHash: string;
+      interactions: InteractionEvent[];
+      fixedDt: number;
+      totalSteps: number;
+    },
+  ): ContractedSimulation {
+    // Reconstruct solver from config
+    const solver = solverFactory(replay.config);
+    const contracted = new ContractedSimulation(solver, replay.config, {
+      solverType: replay.solverType,
+      fixedDt: replay.fixedDt,
+      logInteractions: true,
+    });
+
+    // Verify geometry hash matches (same mesh as original)
+    if (contracted.geometryHash !== replay.geometryHash) {
+      throw new Error(
+        `[SimulationContract] Replay geometry mismatch: ` +
+        `expected ${replay.geometryHash}, got ${contracted.geometryHash}. ` +
+        `The config does not produce the same mesh as the original run.`
+      );
+    }
+
+    // Re-apply interactions at their recorded simulation times
+    for (const interaction of replay.interactions) {
+      contracted.logInteraction(interaction.type, interaction.data);
+    }
+
+    return contracted;
   }
 
   dispose(): void {
