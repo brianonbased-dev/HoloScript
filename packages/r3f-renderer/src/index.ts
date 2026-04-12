@@ -71,6 +71,10 @@ export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarF
 export { SimResultsMesh } from './components/SimResultsMesh';
 export type { SimResultsMeshProps } from './components/SimResultsMesh';
 
+// Spatial Toolkits — Domain-specific measurement/annotation/coordinate configs
+export { getSpatialToolkit, inferToolkit, listToolkits, getAllToolkits } from './components/spatial-tools/SpatialToolkit';
+export type { SpatialToolkitConfig } from './components/spatial-tools/SpatialToolkit';
+
 // Spatial Measurement, Annotation, and Coordinate Tools
 export { SpatialMeasurement, SpatialAnnotations, CoordinateOverlay } from './components/SpatialMeasurement';
 export { engineeringTransform, astronomicalTransform, geophysicalTransform } from './components/SpatialMeasurement';
