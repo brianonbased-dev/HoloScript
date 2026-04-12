@@ -76,6 +76,8 @@ export { getSpatialToolkit, inferToolkit, listToolkits, getAllToolkits } from '.
 export type { SpatialToolkitConfig } from './components/spatial-tools/SpatialToolkit';
 export { DOMAIN_TAXONOMY, matchDomains, getDomainsByCategory, getCategories, coverageSummary, TOTAL_DOMAINS } from './components/spatial-tools/DomainTaxonomy';
 export type { DomainEntry, CoverageLevel } from './components/spatial-tools/DomainTaxonomy';
+export { handleGap, logGapRequest } from './components/spatial-tools/GapHandler';
+export type { GapResponse } from './components/spatial-tools/GapHandler';
 
 // Spatial Measurement, Annotation, and Coordinate Tools
 export { SpatialMeasurement, SpatialAnnotations, CoordinateOverlay } from './components/SpatialMeasurement';
