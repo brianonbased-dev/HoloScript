@@ -88,6 +88,19 @@ export {
 export { CAELRecorder } from './CAELRecorder';
 export { CAELReplayer } from './CAELReplayer';
 export {
+  forkTrace,
+  forkAndChoose,
+  dream,
+  mulberry32,
+  type CAELSolverFactory,
+  type ForkAlternative,
+  type ForkBranchResult,
+  type ForkAndChooseResult,
+  type DreamConfig,
+  type DreamEpisodeResult,
+  type DreamResult,
+} from './CAELForkDream';
+export {
   CAELAgentLoop,
   FieldSensorBridge,
   SNNCognition,
