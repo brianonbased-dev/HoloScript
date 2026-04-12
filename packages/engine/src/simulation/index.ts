@@ -103,7 +103,6 @@ export {
 export {
   CAELAgentLoop,
   FieldSensorBridge,
-  SNNCognition,
   SimpleActionSelector,
   StructuralActionMapper,
   type SensorReading,
@@ -118,7 +117,6 @@ export {
   type CAELAgentConfig,
   type FieldSensorPoint,
   type FieldSensorBridgeConfig,
-  type SNNCognitionConfig,
   type SimpleActionSelectorConfig,
   type StructuralActionMapperConfig,
 } from './CAELAgent';

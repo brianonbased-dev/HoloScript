@@ -5,9 +5,9 @@ import {
   CAELAgentLoop,
   FieldSensorBridge,
   SimpleActionSelector,
-  SNNCognition,
   StructuralActionMapper,
 } from '../CAELAgent';
+import { SNNCognitionEngine } from '../SNNCognitionEngine';
 import { parseCAELJSONL, verifyCAELHashChain } from '../CAELTrace';
 
 function mockStructuralLikeSolver(): SimSolver & {
@@ -60,7 +60,8 @@ describe('CAEL Phase 2 embodied loop', () => {
       points: [{ x: 0.0 }, { x: 0.5 }, { x: 1.0 }],
     });
 
-    const cognition = new SNNCognition({ neuronCount: 8, threshold: 0.2, leak: 0.9 });
+    const cognition = new SNNCognitionEngine({ neuronCount: 8, inputScalemV: 20 });
+    await cognition.initialize();
     const selector = new SimpleActionSelector({ defaultActionType: 'hold' });
     const mapper = new StructuralActionMapper({
       vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),

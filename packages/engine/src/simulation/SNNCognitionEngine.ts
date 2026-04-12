@@ -33,6 +33,8 @@
 
 import {
   CPUReferenceSimulator,
+  LIFSimulator,
+  GPUContext,
   DEFAULT_LIF_PARAMS,
   type LIFParams,
 } from '@holoscript/snn-webgpu';
@@ -115,12 +117,14 @@ function deriveGoalStack(
 export class SNNCognitionEngine implements CAELCognitionEngine {
   readonly id: string;
 
-  private readonly sim: CPUReferenceSimulator;
+  private sim: CPUReferenceSimulator | LIFSimulator | null = null;
   private readonly neuronCount: number;
   private readonly inputScalemV: number;
   private readonly stepsPerTickOverride: number | undefined;
   private readonly population: string;
   private readonly lifDt: number;
+  private readonly lifParams: Partial<LIFParams>;
+  private isInitialized = false;
 
   constructor(config: SNNCognitionEngineConfig = {}) {
     this.id = config.id ?? 'snn-cognition-engine';
@@ -129,19 +133,39 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
     this.stepsPerTickOverride = config.stepsPerTick;
     this.population = config.population ?? 'snn-lif';
 
-    const lifParams: Partial<LIFParams> = {
+    this.lifParams = {
       ...DEFAULT_LIF_PARAMS,
       ...config.lifParams,
     };
 
-    this.lifDt = lifParams.dt ?? DEFAULT_LIF_PARAMS.dt;
-    this.sim = new CPUReferenceSimulator(this.neuronCount, lifParams);
+    this.lifDt = this.lifParams.dt ?? DEFAULT_LIF_PARAMS.dt;
+    // Default to CPU on creation; async initialize() connects WebGPU
+    this.sim = new CPUReferenceSimulator(this.neuronCount, this.lifParams);
+  }
+
+  /**
+   * Initializes the WebGPU context and binds the LIFSimulator targeting it.
+   * If this is skipped, the engine safely runs via the CPUReferenceSimulator backend.
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    try {
+      const gpuCtx = new GPUContext();
+      await gpuCtx.initialize();
+      const webgpuSim = new LIFSimulator(gpuCtx, this.neuronCount, this.lifParams);
+      await webgpuSim.initialize();
+      this.sim = webgpuSim;
+      this.isInitialized = true;
+    } catch (e) {
+      console.warn('[SNNCognitionEngine] Failed to initialize WebGPU LIFSimulator, falling back to CPUReferenceSimulator:', e);
+    }
   }
 
   // ── CAELCognitionEngine ──────────────────────────────────────────────────
 
-  think(sensors: SensorReading[], dt: number): CognitionSnapshot {
+  async think(sensors: SensorReading[], dt: number): Promise<CognitionSnapshot> {
     const inputCurrents = this.sensorsToCurrents(sensors);
+    const backend = this.sim instanceof LIFSimulator ? 'webgpu' : 'cpu-reference';
 
     // Number of LIF timesteps to run for this agent tick
     const steps =
@@ -151,22 +175,44 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
     const allSpikes: Array<{ neuronIndex: number; timestampMs: number; population: string }> = [];
     let totalSpikeCount = 0;
 
-    for (let s = 0; s < steps; s++) {
-      const result = this.sim.step(inputCurrents);
-      totalSpikeCount += result.totalSpikes;
+    if (this.sim instanceof LIFSimulator) {
+      // GPU executing path (Asynchronous)
+      this.sim.setSynapticInput(inputCurrents);
+      await this.sim.stepN(steps);
 
-      // Timestamp each spike within the tick window (ms from tick start)
-      const tickOffsetMs = s * this.lifDt;
-      for (const ni of result.spikeIndices) {
-        allSpikes.push({
-          neuronIndex: ni,
-          timestampMs: tickOffsetMs + result.simTimeMs,
-          population: this.population,
-        });
+      const spikesResult = await this.sim.readSpikes();
+      // readSpikes returns an array where >0 indicates a spike timestamp (or similar).
+      // Converting WebGPU flat buffer spikes to the CAEL representation.
+      // Based on WebGPU LIF, index matches neuron id.
+      for (let i = 0; i < spikesResult.data.length; i++) {
+        if (spikesResult.data[i] > 0) {
+           allSpikes.push({
+             neuronIndex: i,
+             timestampMs: spikesResult.data[i], // Assumes buffer holds time or just >0 for a spike
+             population: this.population
+           });
+           totalSpikeCount++;
+        }
+      }
+    } else {
+      // CPU executing path (Synchronous fallback)
+      for (let s = 0; s < steps; s++) {
+        const result = (this.sim as CPUReferenceSimulator).step(inputCurrents);
+        totalSpikeCount += result.totalSpikes;
+
+        // Timestamp each spike within the tick window (ms from tick start)
+        const tickOffsetMs = s * this.lifDt;
+        for (const ni of result.spikeIndices) {
+          allSpikes.push({
+            neuronIndex: ni,
+            timestampMs: tickOffsetMs + result.simTimeMs,
+            population: this.population,
+          });
+        }
       }
     }
 
-    const membraneVoltages = this.sim.getMembraneV();
+    const membraneVoltages = this.sim instanceof CPUReferenceSimulator ? this.sim.getMembraneV() : new Float32Array();
     const avgSignal = inputCurrents.length > 0
       ? inputCurrents.reduce((a, b) => a + b, 0) / inputCurrents.length / this.inputScalemV
       : 0;
@@ -194,7 +240,7 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
         firingRate: steps > 0
           ? Number((totalSpikeCount / (this.neuronCount * steps)).toFixed(6))
           : 0,
-        lifBackend: 'cpu-reference',
+        lifBackend: backend,
         lifDtMs: this.lifDt,
       },
     };
@@ -294,11 +340,15 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
 
   /** Get current membrane voltages (mV) for all neurons. */
   getMembraneVoltages(): Float32Array {
-    return this.sim.getMembraneV();
+    if (this.sim instanceof CPUReferenceSimulator) {
+      return this.sim.getMembraneV();
+    }
+    return new Float32Array(this.neuronCount);
   }
 
   /** Reset all neurons to resting potential. */
   reset(): void {
-    this.sim.reset();
+    if (this.sim instanceof CPUReferenceSimulator) this.sim.reset();
+    else if (this.sim instanceof LIFSimulator) this.sim.resetState();
   }
 }

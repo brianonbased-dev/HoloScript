@@ -86,7 +86,7 @@ export interface CognitionSnapshot {
  * Processes sensor input and produces a cognition snapshot + action selection.
  *
  * Implementations define HOW the agent thinks:
- * - SNNCognition: runs SNN step with sensor input as currents, reads spike output
+ * - SNNCognitionEngine: snn-webgpu backed LIF cognition (default path)
  * - GOAPCognition: evaluates goal preconditions, selects next action from plan
  * - HybridCognition: SNN perception → GOAP planning (the intended architecture)
  */
@@ -393,116 +393,6 @@ export class FieldSensorBridge implements CAELSensorBridge {
       out[i] = arr[idx];
     }
     return out;
-  }
-}
-
-export interface SNNCognitionConfig {
-  id?: string;
-  neuronCount: number;
-  threshold?: number;
-  leak?: number;
-  resetVoltage?: number;
-}
-
-/**
- * SNN cognition adapter. Wraps a lightweight LIF update suitable for CAEL traces.
- * This class is snn-webgpu compatible at the interface boundary: sensors are
- * translated to input currents and outputs are represented as spike events.
- */
-export class SNNCognition implements CAELCognitionEngine {
-  readonly id: string;
-  private readonly neuronCount: number;
-  private readonly threshold: number;
-  private readonly leak: number;
-  private readonly resetVoltage: number;
-  private membrane: Float32Array;
-
-  constructor(config: SNNCognitionConfig) {
-    this.id = config.id ?? 'snn-cognition';
-    this.neuronCount = config.neuronCount;
-    this.threshold = config.threshold ?? 1.0;
-    this.leak = config.leak ?? 0.95;
-    this.resetVoltage = config.resetVoltage ?? 0;
-    this.membrane = new Float32Array(this.neuronCount);
-  }
-
-  async think(sensors: SensorReading[], dt: number): Promise<CognitionSnapshot> {
-    const input = this.aggregateInputCurrents(sensors);
-    const spikes: Array<{ neuronIndex: number; timestampMs: number; population?: string }> = [];
-
-    for (let i = 0; i < this.neuronCount; i++) {
-      const current = input[i % input.length] * dt;
-      this.membrane[i] = this.membrane[i] * this.leak + current;
-      if (this.membrane[i] >= this.threshold) {
-        spikes.push({ neuronIndex: i, timestampMs: dt * 1000, population: 'snn' });
-        this.membrane[i] = this.resetVoltage;
-      }
-    }
-
-    const avgSignal = input.length > 0
-      ? input.reduce((a, b) => a + b, 0) / input.length
-      : 0;
-
-    const goalStack: CognitionSnapshot['goalStack'] = [
-      {
-        id: avgSignal > 0.5 ? 'stabilize_structure' : 'monitor_structure',
-        priority: avgSignal > 0.5 ? 1 : 0.5,
-        status: 'active',
-      },
-    ];
-
-    const activePlan = {
-      id: 'structural-response-plan',
-      steps: ['add_load', 'observe_stress', 'adjust_load'],
-      currentStep: Math.min(2, Math.floor(avgSignal * 3)),
-    };
-
-    const actionUtilities: Record<string, number> = {
-      add_load: Number((avgSignal + spikes.length * 0.01).toFixed(6)),
-      hold: Number((0.5 - Math.min(avgSignal, 0.5)).toFixed(6)),
-      reduce_load: Number((Math.max(0, avgSignal - 0.2)).toFixed(6)),
-    };
-
-    return {
-      spikes,
-      spikeCount: spikes.length,
-      goalStack,
-      activePlan,
-      membraneVoltages: new Float32Array(this.membrane),
-      extra: {
-        avgSignal,
-        actionUtilities,
-      },
-    };
-  }
-
-  encode(snapshot: CognitionSnapshot): Record<string, unknown> {
-    return {
-      id: this.id,
-      spikeCount: snapshot.spikeCount,
-      spikes: snapshot.spikes.map((s) => ({
-        neuronIndex: s.neuronIndex,
-        timestampMs: Number(s.timestampMs.toFixed(6)),
-        population: s.population,
-      })),
-      goalStack: snapshot.goalStack.map((g) => ({ ...g, priority: Number(g.priority.toFixed(6)) })),
-      activePlan: snapshot.activePlan,
-      membraneVoltages: snapshot.membraneVoltages
-        ? Array.from(snapshot.membraneVoltages, (v) => Number(v.toFixed(6)))
-        : undefined,
-      extra: snapshot.extra,
-    };
-  }
-
-  private aggregateInputCurrents(sensors: SensorReading[]): Float32Array {
-    const merged: number[] = [];
-    for (const reading of sensors) {
-      for (let i = 0; i < reading.values.length; i++) {
-        merged.push(reading.values[i]);
-      }
-    }
-    if (merged.length === 0) return new Float32Array([0]);
-    return new Float32Array(merged);
   }
 }
 

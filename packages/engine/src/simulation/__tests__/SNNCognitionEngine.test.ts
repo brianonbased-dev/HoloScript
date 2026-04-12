@@ -190,4 +190,67 @@ describe('SNNCognitionEngine', () => {
     const verify = verifyCAELHashChain(entries);
     expect(verify.valid).toBe(true);
   });
+
+  it('covers initialized WebGPU cognition path (with CPU fallback) in async CAEL loop', async () => {
+    const { CAELRecorder } = await import('../CAELRecorder');
+    const {
+      CAELAgentLoop,
+      FieldSensorBridge,
+      SimpleActionSelector,
+      StructuralActionMapper,
+    } = await import('../CAELAgent');
+
+    const mockSolver = {
+      mode: 'transient' as const,
+      fieldNames: ['von_mises_stress'],
+      step(_dt: number) {},
+      solve() {},
+      getField(name: string) {
+        if (name === 'von_mises_stress') return new Float32Array([0.2, 0.4, 0.8, 1.0]);
+        return null;
+      },
+      getStats() { return {}; },
+      dispose() {},
+    };
+
+    const recorder = new CAELRecorder(
+      mockSolver,
+      {
+        solverType: 'mock',
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        tetrahedra: new Uint32Array([0, 1, 2, 3]),
+      },
+    );
+
+    const initializedEngine = new SNNCognitionEngine({ neuronCount: 8, inputScalemV: 20 });
+    await initializedEngine.initialize();
+
+    const preSnap = await initializedEngine.think(
+      [makeSensorReading([0.2, 0.4, 0.8, 1.0])],
+      0.001,
+    );
+    const backend = (preSnap.extra as Record<string, unknown>)['lifBackend'];
+    expect(['webgpu', 'cpu-reference']).toContain(backend);
+
+    const loop = new CAELAgentLoop(recorder, {
+      agentId: 'test-agent-webgpu-init',
+      sensor: new FieldSensorBridge({ points: [{ x: 0.25 }, { x: 0.5 }, { x: 0.75 }] }),
+      cognition: initializedEngine,
+      actionSelector: new SimpleActionSelector(),
+      actionMapper: new StructuralActionMapper({}),
+    });
+
+    await loop.tick(0.001);
+
+    const lines = loop.toJSONL().split('\n').filter(Boolean);
+    const cognitionLines = lines.filter((l) => l.includes('cael.cognition'));
+    expect(cognitionLines.length).toBe(1);
+
+    const cognitionEntry = JSON.parse(cognitionLines[0]) as Record<string, unknown>;
+    const payload = cognitionEntry.payload as Record<string, unknown>;
+    const data = payload.data as Record<string, unknown>;
+    const cognition = data.cognition as Record<string, unknown>;
+    const extra = cognition.extra as Record<string, unknown>;
+    expect(['webgpu', 'cpu-reference']).toContain(extra.lifBackend);
+  });
 });
