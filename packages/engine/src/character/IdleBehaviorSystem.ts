@@ -113,15 +113,17 @@ export class IdleBehaviorSystem {
       return this.computeFrame();
     }
 
+    const prevElapsedSec = this.elapsedSec;
     this.elapsedSec += deltaSec;
-
-    if (this.elapsedSec >= this.nextBlinkSec) {
-      this.blinkT = this.config.blinkDurationSec;
-      this.scheduleNextBlink();
-    }
 
     if (this.blinkT > 0) {
       this.blinkT = Math.max(0, this.blinkT - deltaSec);
+    }
+
+    if (prevElapsedSec < this.nextBlinkSec && this.elapsedSec >= this.nextBlinkSec) {
+      const overshoot = this.elapsedSec - this.nextBlinkSec;
+      this.blinkT = Math.max(0, this.config.blinkDurationSec - overshoot);
+      this.scheduleNextBlink();
     }
 
     if (this.elapsedSec >= this.nextSaccadeSec) {
