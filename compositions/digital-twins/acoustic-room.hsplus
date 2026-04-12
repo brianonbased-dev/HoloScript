@@ -1,0 +1,63 @@
+/**
+ * Acoustic Room — Sound Propagation Simulation
+ *
+ * Wave equation with absorbing walls and point source.
+ * Animate pressure wave propagation in real-time.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain acoustics
+ */
+
+composition "AcousticRoom" {
+
+  state {
+    version: "1.0.0"
+    sourceFrequency: 440         // A4 note [Hz]
+    sourceAmplitude: 1.0
+    speedOfSound: 343            // air at 20C
+    wallType: "absorbing"        // hard_wall | soft_wall | absorbing
+    colormap: "coolwarm"
+    recording: true
+  }
+
+  simulation "acoustic" {
+    @acoustic_simulation {
+      grid_resolution: [80, 80, 3]
+      domain_size: [5.0, 5.0, 0.1875]
+      speed_of_sound: $state.speedOfSound
+
+      boundary_conditions {
+        wall "all_walls" {
+          faces: [x-, x+, y-, y+]
+          type: $state.wallType
+        }
+        soft_wall "floor_ceil" {
+          faces: [z-, z+]
+        }
+      }
+
+      sources {
+        sinusoidal "speaker" {
+          position: [40, 40, 1]
+          amplitude: $state.sourceAmplitude
+          frequency: $state.sourceFrequency
+        }
+      }
+    }
+
+    @scalar_field_overlay {
+      source: $acoustic.pressure
+      colormap: $state.colormap
+      range: [-1, 1]
+      opacity: 0.8
+      label: "Pressure (Pa)"
+    }
+
+    @record_playback {
+      enabled: $state.recording
+      capture_interval: 0.0001
+      max_memory_mb: 128
+    }
+  }
+}

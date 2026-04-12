@@ -1,0 +1,85 @@
+/**
+ * Material Sweep Experiment — Parameter Study
+ *
+ * Sweeps Young's modulus across 5 materials, comparing deflection
+ * and safety factors. Results exported as CSV + auto-report.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain experiment-orchestration
+ */
+
+composition "MaterialSweep" {
+
+  state {
+    version: "1.0.0"
+    sweepStatus: "idle"           // idle | running | complete
+    bestMaterial: null
+    resultsSummary: null
+  }
+
+  // Base simulation (template for the sweep)
+  simulation "base" {
+    @structural_fem {
+      mesh: { primitive: box, size: [0.1, 0.1, 1.0], divisions: [2, 2, 8] }
+      element_type: tet10
+
+      material {
+        youngs_modulus: 200e9     // swept parameter
+        poisson_ratio: 0.3
+        yield_strength: 250e6
+        density: 7850
+      }
+
+      constraints {
+        fixed "base" { face: z- }
+      }
+
+      loads {
+        point "tip_load" {
+          face: z+
+          force: [0, -1000, 0]
+        }
+      }
+    }
+  }
+
+  // Experiment: sweep material stiffness
+  experiment "stiffness_sweep" {
+    @parameter_sweep {
+      base_config: $base
+      solver_type: structural-tet10
+      sampling: grid
+
+      parameters {
+        range "material.youngs_modulus" {
+          values: [69e9, 110e9, 200e9, 400e9, 1000e9]
+          labels: ["Aluminum", "Copper", "Steel", "Tungsten", "Diamond"]
+        }
+      }
+
+      objective: maxVonMises
+      export: csv
+
+      on_complete {
+        $state.sweepStatus = "complete"
+        $state.bestMaterial = $stiffness_sweep.best_run.label
+        $state.resultsSummary = $stiffness_sweep.summary
+      }
+    }
+
+    @auto_report {
+      title: "Material Stiffness Study"
+      solver: structural-tet10
+      include: [executive_summary, metrics, findings, recommendations]
+    }
+  }
+
+  hud "status" {
+    @text_overlay {
+      content: "Sweep: {$state.sweepStatus} | Best: {$state.bestMaterial ?? 'pending'}"
+      position: top_right
+      font_size: 11
+    }
+  }
+}

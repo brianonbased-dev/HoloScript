@@ -10,6 +10,11 @@ import { ThermalSolver, type ThermalConfig, type ThermalSource } from './Thermal
 import { StructuralSolver, type StructuralConfig } from './StructuralSolver';
 import { StructuralSolverTET10, tet4ToTet10, type TET10Config, type TET10Constraint, type TET10Load } from './StructuralSolverTET10';
 import { HydraulicSolver, type HydraulicConfig } from './HydraulicSolver';
+import { AcousticSolver, type AcousticConfig } from './AcousticSolver';
+import { FDTDSolver, type FDTDConfig } from './FDTDSolver';
+import { NavierStokesSolver, type NavierStokesConfig } from './NavierStokesSolver';
+import { MultiphaseNSSolver, type MultiphaseConfig } from './MultiphaseNSSolver';
+import { MolecularDynamicsSolver, type MDConfig } from './MolecularDynamicsSolver';
 import { registerWasmMesher } from './AutoMesher';
 import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 import type { BoundaryCondition, BCFace } from './BoundaryConditions';
@@ -145,6 +150,11 @@ export function registerSimulationSolvers(factory: SolverFactoryRegistry): void 
   factory.register('structural', (raw) => new StructuralSolver(parseStructuralConfig(raw)));
   factory.register('structural-tet10', (raw) => new StructuralSolverTET10(parseTET10Config(raw)));
   factory.register('hydraulic', (raw) => new HydraulicSolver(parseHydraulicConfig(raw)));
+  factory.register('acoustic', (raw) => new AcousticSolver(raw as unknown as AcousticConfig));
+  factory.register('fdtd', (raw) => new FDTDSolver(raw as unknown as FDTDConfig));
+  factory.register('navier-stokes', (raw) => new NavierStokesSolver(raw as unknown as NavierStokesConfig));
+  factory.register('multiphase', (raw) => new MultiphaseNSSolver(raw as unknown as MultiphaseConfig));
+  factory.register('molecular-dynamics', (raw) => new MolecularDynamicsSolver(raw as unknown as MDConfig));
 
   // Register WASM meshers
   const tetgen = new TetGenWasmMesher();

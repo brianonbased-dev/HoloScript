@@ -1,0 +1,59 @@
+/**
+ * Molecular Dynamics — Lennard-Jones Fluid
+ *
+ * Classical MD simulation of argon-like particles.
+ * Visualize phase transitions by adjusting temperature.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain molecular-dynamics
+ */
+
+composition "MolecularDynamicsLJ" {
+
+  state {
+    version: "1.0.0"
+    particleCount: 256
+    temperature: 1.0              // reduced units (T* = kT/epsilon)
+    boxSize: 8.0                  // reduced units (sigma)
+    thermostatCoupling: 0.5       // Berendsen tau
+    colormap: "inferno"
+    recording: true
+  }
+
+  simulation "md" {
+    @molecular_dynamics {
+      particle_count: $state.particleCount
+      box_size: [$state.boxSize, $state.boxSize, $state.boxSize]
+      epsilon: 1.0
+      sigma: 1.0
+      cutoff: 2.5
+      temperature: $state.temperature
+      thermostat_tau: $state.thermostatCoupling
+      initial_config: fcc
+    }
+
+    @point_cloud_overlay {
+      source: $md.positions
+      color_by: $md.kinetic_energy
+      colormap: $state.colormap
+      point_size: 0.3
+      label: "Particles (colored by KE)"
+    }
+
+    @record_playback {
+      enabled: $state.recording
+      capture_interval: 0.01
+      max_memory_mb: 128
+    }
+  }
+
+  // Live stats
+  hud "stats" {
+    @text_overlay {
+      content: "T = {$md.temperature:.2f} | E = {$md.totalEnergy:.4f} | P = {$md.pressure:.3f}"
+      position: top_left
+      font_size: 12
+    }
+  }
+}

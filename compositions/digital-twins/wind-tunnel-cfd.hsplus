@@ -1,0 +1,64 @@
+/**
+ * Wind Tunnel CFD — Lid-Driven Cavity Flow
+ *
+ * Incompressible Navier-Stokes with real-time velocity visualization.
+ * Animate the flow development from rest to steady state.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain fluid-dynamics
+ */
+
+composition "WindTunnelCFD" {
+
+  state {
+    version: "1.0.0"
+    lidVelocity: 1.0              // m/s
+    viscosity: 0.01               // m²/s (Re = L*U/nu)
+    colormap: "turbo"
+    showVelocity: true
+    showPressure: false
+    recording: true
+  }
+
+  simulation "flow" {
+    @navier_stokes {
+      grid_resolution: [40, 40, 3]
+      domain_size: [1.0, 1.0, 0.075]
+      viscosity: $state.viscosity
+      density: 1.0
+
+      boundary_conditions {
+        lid "top_wall" {
+          face: y+
+          velocity: [$state.lidVelocity, 0, 0]
+        }
+        no_slip "bottom" { face: y- }
+        no_slip "left"   { face: x- }
+        no_slip "right"  { face: x+ }
+      }
+    }
+
+    @scalar_field_overlay {
+      source: $flow.velocity_magnitude
+      colormap: $state.colormap
+      opacity: 0.8
+      visible: $state.showVelocity
+      label: "Velocity (m/s)"
+    }
+
+    @scalar_field_overlay {
+      source: $flow.pressure
+      colormap: "coolwarm"
+      opacity: 0.6
+      visible: $state.showPressure
+      label: "Pressure (Pa)"
+    }
+
+    @record_playback {
+      enabled: $state.recording
+      capture_interval: 0.01
+      max_memory_mb: 256
+    }
+  }
+}

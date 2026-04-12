@@ -1,0 +1,64 @@
+/**
+ * Seismic Survey — Layered Earth Wave Propagation
+ *
+ * Ricker wavelet through heterogeneous velocity model.
+ * Visualize refraction at layer boundaries.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain geophysics
+ */
+
+composition "SeismicSurvey" {
+
+  state {
+    version: "1.0.0"
+    sourceDepth: 0.1              // km from surface
+    dominantFrequency: 25         // Hz
+    colormap: "turbo"
+    recording: true
+  }
+
+  simulation "seismic" {
+    @acoustic_simulation {
+      grid_resolution: [200, 3, 100]
+      domain_size: [4.0, 0.06, 2.0]
+
+      velocity_field {
+        type: layered
+        layers: [
+          { depth: 0.0, velocity: 1500 },     // water
+          { depth: 0.5, velocity: 2500 },     // sediment
+          { depth: 1.0, velocity: 4000 },     // sandstone
+          { depth: 1.5, velocity: 5500 }      // basement rock
+        ]
+      }
+
+      boundary_conditions {
+        absorbing "all" { faces: [x-, x+, z-, z+] }
+        soft_wall "sides" { faces: [y-, y+] }
+      }
+
+      sources {
+        ricker_wavelet "shot_1" {
+          position: [100, 1, 5]
+          amplitude: 1000
+          frequency: $state.dominantFrequency
+        }
+      }
+    }
+
+    @scalar_field_overlay {
+      source: $seismic.pressure
+      colormap: $state.colormap
+      opacity: 0.9
+      label: "Seismic Pressure"
+    }
+
+    @record_playback {
+      enabled: $state.recording
+      capture_interval: 0.0005
+      max_memory_mb: 512
+    }
+  }
+}

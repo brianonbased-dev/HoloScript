@@ -1,0 +1,77 @@
+/**
+ * Radio Telescope Array — FDTD Electromagnetic Simulation
+ *
+ * Simulates antenna beam patterns and interference from a radio array.
+ * Imports observed FITS data for comparison with simulated fields.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @domain radio-astronomy
+ */
+
+composition "RadioTelescopeArray" {
+
+  state {
+    version: "1.0.0"
+    frequency: 1.42e9           // 21cm hydrogen line [Hz]
+    arrayDiameter: 100          // meters
+    antennaCount: 8
+    showEField: true
+    showBeamPattern: false
+    colormap: "viridis"
+    observedFITS: null          // drag-drop a .fits file to compare
+  }
+
+  simulation "em" {
+    @fdtd_simulation {
+      cell_count: [100, 100, 50]
+      cell_size: [1.0, 1.0, 1.0]    // 1m cells
+      permittivity: 1.0
+      permeability: 1.0
+      pml_thickness: 10
+
+      sources {
+        sinusoidal "antenna_1" {
+          position: [50, 50, 25]
+          polarization: z
+          amplitude: 1.0
+          frequency: $state.frequency
+        }
+        sinusoidal "antenna_2" {
+          position: [30, 50, 25]
+          polarization: z
+          amplitude: 1.0
+          frequency: $state.frequency
+        }
+      }
+    }
+
+    @scalar_field_overlay {
+      source: $em.E_magnitude
+      colormap: $state.colormap
+      opacity: 0.7
+      visible: $state.showEField
+      label: "E-field magnitude (V/m)"
+    }
+  }
+
+  // Import observed data for comparison
+  data "observed" {
+    @fits_import {
+      source: $state.observedFITS
+      channel: 0
+    }
+
+    @scalar_field_overlay {
+      source: $observed
+      colormap: "inferno"
+      opacity: 0.5
+      visible: $state.observedFITS != null
+      label: "Observed (FITS)"
+    }
+  }
+
+  environment "sky" {
+    @atmosphere { model: bruneton_precomputed, turbidity: 1.5 }
+  }
+}
