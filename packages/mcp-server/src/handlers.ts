@@ -301,6 +301,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleCodeHealthTool(name, args);
   }
 
+  // Simulation tools with CAEL trace metadata
+  if (name === 'solve_structural' || name === 'solve_thermal' || name === 'verify_cael_trace') {
+    const { handleSimulationTool } = await import('./simulation-tools');
+    return handleSimulationTool(name, args);
+  }
+
   // TypeScript absorb tool
   if (name === 'absorb_typescript') {
     const { handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
