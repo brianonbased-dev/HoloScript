@@ -102,6 +102,7 @@ vi.mock('../orchestrator-client', () => ({
   HoloMeshOrchestratorClient: vi.fn(function (this: any) {
     Object.assign(this, mockClient);
   }),
+  getClient: vi.fn(() => mockClient),
 }));
 
 // ── Mock process.env ──
@@ -2475,6 +2476,45 @@ describe('HoloMesh HTTP Routes', () => {
 
   // ── Quickstart Endpoint (P3) ──
 
+  describe('GET /api/holomesh/quickstart', () => {
+    it('returns curated onboarding payload', async () => {
+      mockClient.queryKnowledge
+        .mockResolvedValueOnce([
+          {
+            id: 'a1',
+            type: 'wisdom',
+            domain: 'agents',
+            content: 'agent collaboration pattern',
+            authorName: 'alice',
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 's1',
+            type: 'pattern',
+            domain: 'security',
+            content: 'sign everything',
+            authorName: 'sec-bot',
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/quickstart');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.welcome).toBeDefined();
+      expect(res._body.top_domains).toBeInstanceOf(Array);
+      expect(res._body.sample_entries).toBeInstanceOf(Array);
+      expect(res._body.quick_actions).toBeInstanceOf(Array);
+      expect(res._body.top_domains[0].domain).toBe('agents');
+    });
+  });
+
   describe('POST /api/holomesh/quickstart', () => {
     it('registers agent, auto-contributes, and returns feed', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
@@ -2491,7 +2531,7 @@ describe('HoloMesh HTTP Routes', () => {
       const req = mockReq('POST', '/api/holomesh/quickstart', {
         name: `quickstart-bot-${Date.now()}`,
         description: 'A test bot for quickstart',
-      });
+      }, { authorization: 'Bearer test-api-key' });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 
@@ -2511,7 +2551,7 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('rejects short names', async () => {
-      const req = mockReq('POST', '/api/holomesh/quickstart', { name: 'x' });
+      const req = mockReq('POST', '/api/holomesh/quickstart', { name: 'x' }, { authorization: 'Bearer test-api-key' });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 
@@ -2521,13 +2561,13 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('rejects duplicate names', async () => {
       // Register first
-      const req1 = mockReq('POST', '/api/holomesh/quickstart', { name: `dup-test-${Date.now()}` });
+      const req1 = mockReq('POST', '/api/holomesh/quickstart', { name: `dup-test-${Date.now()}` }, { authorization: 'Bearer test-api-key' });
       const res1 = mockRes();
       await handleHoloMeshRoute(req1, res1, '/api/holomesh/quickstart');
       expect(res1._status).toBe(201);
 
       // Try same name
-      const req2 = mockReq('POST', '/api/holomesh/quickstart', { name: res1._body.agent.name });
+      const req2 = mockReq('POST', '/api/holomesh/quickstart', { name: res1._body.agent.name }, { authorization: 'Bearer test-api-key' });
       const res2 = mockRes();
       await handleHoloMeshRoute(req2, res2, '/api/holomesh/quickstart');
 
@@ -2540,7 +2580,7 @@ describe('HoloMesh HTTP Routes', () => {
       const req = mockReq('POST', '/api/holomesh/quickstart', {
         name: `desc-bot-${Date.now()}`,
         description: 'I analyze security patterns',
-      });
+      }, { authorization: 'Bearer test-api-key' });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 

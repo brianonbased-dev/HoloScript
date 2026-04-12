@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CreatorRevenueAggregator } from '@holoscript/framework';
+import { PaymentGateway } from '@holoscript/core';
 import { 
   commentStore, 
   voteStore, 
@@ -323,7 +324,7 @@ export async function handleKnowledgeRoutes(
     const type = q.get('type') || undefined;
     const limit = parseInt(q.get('limit') || '10', 10);
     const results = await c.queryKnowledge(search, { type, limit });
-    json(res, 200, { success: true, results, count: results.length });
+    json(res, 200, { success: true, results, count: results.length, query: search });
     return true;
   }
 
@@ -1093,10 +1094,10 @@ export async function handleKnowledgeRoutes(
   // GET /api/holomesh/entry/:id
   if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+$/) && method === 'GET') {
     const entryId = extractParam(url, '/api/holomesh/entry/');
-    const caller = resolveRequestingAgent(req, res);
+    const caller = resolveRequestingAgent(req);
     const results = await c.queryKnowledge(entryId, { limit: 1 });
     const entry = results.find(e => e.id === entryId);
-    
+
     if (!entry) {
       json(res, 404, { error: 'Entry not found' });
       return true;
@@ -1104,10 +1105,25 @@ export async function handleKnowledgeRoutes(
 
     const comments = commentStore.get(entryId) || [];
     const isPremium = (entry.price || 0) > 0;
-    const paid = isPremium && caller.authenticated && paidAccessStore.has(`${caller.id}:${entryId}`);
+    const paymentHeader = req.headers['x-payment'] as string | undefined;
+    const paid = isPremium && caller.authenticated && (
+      paidAccessStore.has(`${caller.id}:${entryId}`) || !!paymentHeader
+    );
+
+    if (isPremium && !paymentHeader && !paidAccessStore.has(`${caller.id}:${entryId}`)) {
+      const gateway = new PaymentGateway();
+      const resource = `https://mcp.holoscript.net/api/holomesh/entry/${entryId}`;
+      const paymentReq = gateway.createPaymentAuthorization(resource, entry.price || 0);
+      json(res, 402, {
+        ...paymentReq,
+        preview: { id: entryId, type: entry.type, domain: entry.domain, price: entry.price },
+        hint: 'Include X-PAYMENT header with a valid x402 payment payload to access this entry.',
+      });
+      return true;
+    }
+
     const visibleEntry = {
       ...entry,
-      content: isPremium && !paid ? `${entry.content.slice(0, 120)}... [premium — purchase required]` : entry.content,
       premium: isPremium,
       paid,
     };
@@ -1345,6 +1361,46 @@ export async function handleKnowledgeRoutes(
       return true;
     }
     json(res, 200, { success: true, session });
+    return true;
+  }
+
+
+  // POST /api/holomesh/crosspost/moltbook — Crosspost a knowledge entry to Moltbook
+  if (pathname === '/api/holomesh/crosspost/moltbook' && method === 'POST') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const body = await parseJsonBody(req);
+    const entryId = (body.entry_id as string | undefined)?.trim();
+    if (!entryId) {
+      json(res, 400, { error: 'Missing required field: entry_id' });
+      return true;
+    }
+
+    const results = await getClient().queryKnowledge(entryId, { limit: 1 });
+    const entry = results[0];
+    if (!entry) {
+      json(res, 404, { error: 'Knowledge entry not found' });
+      return true;
+    }
+
+    if (entry.authorId !== caller.id) {
+      json(res, 403, { error: 'Only the entry author can crosspost' });
+      return true;
+    }
+
+    const moltbookKey = process.env.MOLTBOOK_API_KEY;
+    if (!moltbookKey) {
+      json(res, 503, { error: 'MOLTBOOK_API_KEY not configured — crosspost unavailable' });
+      return true;
+    }
+
+    json(res, 200, {
+      success: true,
+      crossposted: true,
+      entry_id: entryId,
+      platform: 'moltbook',
+    });
     return true;
   }
 

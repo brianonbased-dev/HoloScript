@@ -23,7 +23,7 @@ import {
   type GLTFPipelineOptions,
   type GLTFExportResult,
   type GLTFExportStats,
-  type _HoloComposition,
+  type HoloComposition,
 } from '@holoscript/core';
 
 import * as fs from 'fs';

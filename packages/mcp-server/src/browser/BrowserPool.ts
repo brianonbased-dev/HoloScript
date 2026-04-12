@@ -3,7 +3,7 @@
  * Manages lifecycle of browser sessions for AI agent control
  */
 
-import { chromium, type _Browser, type _Page, type _BrowserContext } from 'playwright';
+import { chromium, type Browser, type Page, type BrowserContext } from 'playwright';
 import { existsSync } from 'node:fs';
 import type { BrowserSession, BrowserSessionConfig, BrowserPoolStats } from './types.js';
 

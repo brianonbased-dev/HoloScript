@@ -13,7 +13,7 @@ import {
   runAgentCycle,
   compoundKnowledge,
   getRoomAgents,
-  _getRoomCycleHistory,
+  getRoomCycleHistory,
 } from './agent/team-coordinator';
 import { getAllProfiles, TEAM_AGENT_PROFILES } from './agent/team-agents';
 

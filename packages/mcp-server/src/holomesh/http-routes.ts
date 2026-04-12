@@ -16,6 +16,8 @@ import { handleBountyRoutes } from './routes/bounty-routes';
 import { handleBoardRoutes } from './routes/board-routes';
 import { handleTeamRoutes } from './routes/team-routes';
 import { handleKnowledgeRoutes } from './routes/knowledge-routes';
+import { handleAdminRoutes } from './routes/admin-routes';
+import { handleCoreRoutes } from './routes/core-routes';
 
 /**
  * Main entry point for HoloMesh HTTP routing.
@@ -55,6 +57,8 @@ export async function handleHoloMeshRoute(
   }
 
   // 2. Delegate to modular route handlers
+  if (await handleCoreRoutes(req, res, pathname, method, url)) return true;
+  if (await handleAdminRoutes(req, res, pathname, method, url)) return true;
   if (await handleBountyRoutes(req, res, pathname, method, url)) return true;
   if (await handleBoardRoutes(req, res, pathname, method, url)) return true;
   if (await handleTeamRoutes(req, res, pathname, method, url)) return true;

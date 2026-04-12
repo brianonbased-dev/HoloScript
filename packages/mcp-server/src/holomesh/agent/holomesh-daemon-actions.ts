@@ -12,11 +12,11 @@
 
 import { HoloMeshOrchestratorClient } from '../orchestrator-client';
 import type { WalletAuth } from '../orchestrator-client';
-import type { _MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
+import type { MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
 import { deriveAgentDid, createAuthChallenge, signAuthChallenge } from '../wallet-auth';
 import {
   computeReputation,
-  _resolveReputationTier,
+  resolveReputationTier,
   resolveReputationTierWithHysteresis,
   INITIAL_MESH_STATE,
 } from '../types';

@@ -8,7 +8,7 @@
  */
 
 import type { MeshKnowledgeEntry } from './types';
-import { getFollowing, getFollowers, _isFollowing } from './social';
+import { getFollowing, getFollowers, isFollowing } from './social';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

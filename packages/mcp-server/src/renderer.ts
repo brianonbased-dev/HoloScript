@@ -332,7 +332,7 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     code,
     title = 'HoloScript Scene',
     description = 'Interactive 3D scene built with HoloScript',
-    _platform = 'x',
+    platform = 'x',
   } = options;
 
   // Try to use the remote render service (skip when serving locally to avoid recursion)

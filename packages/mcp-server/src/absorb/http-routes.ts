@@ -11,7 +11,11 @@ import type http from 'http';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const ABSORB_URL = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_KEY = process.env.ABSORB_API_KEY || process.env.MCP_API_KEY || '';
+const ABSORB_KEY =
+  process.env.ABSORB_API_KEY ||
+  process.env.HOLOSCRIPT_API_KEY ||
+  process.env.MCP_API_KEY ||
+  '';
 
 // ── Multi-tenant Moltbook Agent State (in-memory, per-deploy) ──
 

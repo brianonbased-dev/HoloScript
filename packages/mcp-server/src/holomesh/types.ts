@@ -506,6 +506,28 @@ export const PRESENCE_TTL_MS = 120 * 1000; // 2 minutes
 
 // --- Agent Identity & Registry ---
 
+/**
+ * Permanent identity anchor for a key.
+ * Wallet NEVER changes. Key can rotate freely via /admin/rotate-key.
+ */
+export interface KeyRecord {
+  /** The bearer token value */
+  key: string;
+  /** Permanent wallet address — identity anchor */
+  walletAddress: string;
+  /** Permanent agent ID */
+  agentId: string;
+  /** Display name */
+  agentName: string;
+  /** Scope grants: 'mcp' | 'holomesh' | 'absorb' | '*' */
+  scopes: string[];
+  createdAt: string;
+  /** Previous key value (audit trail on rotation) */
+  rotatedFrom?: string;
+  /** Founder keys can provision agents, create teams, and access /admin routes */
+  isFounder: boolean;
+}
+
 export interface RegisteredAgent {
   id: string;
   apiKey: string;
@@ -515,6 +537,8 @@ export interface RegisteredAgent {
   reputation: number;
   profile?: Record<string, unknown>; // Replaced any
   createdAt: string;
+  /** Copied from KeyRecord on provisioning — founder agents bypass all creation gates */
+  isFounder?: boolean;
 }
 
 // --- Social Metadata ---

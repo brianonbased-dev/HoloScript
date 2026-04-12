@@ -69,7 +69,7 @@ export type {
   KnowledgeDomain,
   DomainConsolidationConfig,
   HotBufferEntry,
-  ExcitabilityMetadata,
+  
   ConsolidationResult,
   ReconsolidationEvent,
 } from './types';

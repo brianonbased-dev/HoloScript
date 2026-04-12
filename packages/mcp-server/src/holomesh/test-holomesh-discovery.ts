@@ -1,5 +1,5 @@
 import { HoloMeshDiscovery } from './discovery.js';
-import { _HoloMeshWorldState } from './crdt-sync.js';
+import { HoloMeshWorldState } from './crdt-sync.js';
 import * as http from 'http';
 
 // Create a fast, local HTTP server to act as a HoloMesh neighbor

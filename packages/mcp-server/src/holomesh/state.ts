@@ -13,7 +13,8 @@ import type {
   StoredBountyGovernanceProposal,
   StoryWeaverSession,
   SelfImprovingWorldSession,
-  KnowledgeTransaction 
+  KnowledgeTransaction,
+  KeyRecord,
 } from './types';
 import { BountyManager, KnowledgeMarketplace } from '@holoscript/framework';
 
@@ -79,11 +80,15 @@ export const bountyGovernanceStore: Map<string, StoredBountyGovernanceProposal> 
 // Auth
 export const challengeStore: Map<string, { walletAddress: string; expiresAt: number }> = new Map();
 
+// Key Registry — unified identity anchor
+export const keyRegistry: Map<string, KeyRecord> = new Map(); // token → KeyRecord
+
 // ── Persistence Logic ─────────────────────────────────────────────────────────
 
 const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
 const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
 const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
+const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
 
 export function persistTeamStore(): void {
   const teams = Array.from(teamStore.values()).map((t) => ({
@@ -109,6 +114,24 @@ export function persistAgentStore(): void {
   });
 }
 
+/**
+ * keys.json is append-only — read existing records, merge new ones, write.
+ * Old keys are preserved for audit trail. Rotated keys are never truly deleted
+ * from the file (only from the in-memory map).
+ */
+export function persistKeyRegistry(): void {
+  const existing = readJSON(KEY_REGISTRY_PATH);
+  const existingRecords: KeyRecord[] = existing?.keys || [];
+  const merged = new Map<string, KeyRecord>();
+  for (const r of existingRecords) merged.set(r.key, r);
+  for (const r of keyRegistry.values()) merged.set(r.key, r);
+  atomicWriteJSON(KEY_REGISTRY_PATH, {
+    version: 1,
+    keys: Array.from(merged.values()),
+    savedAt: new Date().toISOString(),
+  });
+}
+
 export function persistSocialStore(): void {
   atomicWriteJSON(SOCIAL_STORE_PATH, {
     version: 1,
@@ -127,13 +150,63 @@ export function persistSocialStore(): void {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
+/**
+ * Seed the key registry from env vars on first boot (no keys.json yet).
+ * All env key names are treated as founder keys and mapped to a single
+ * permanent founder wallet + agent ID. Persists immediately so keys.json
+ * exists for subsequent restarts.
+ */
+function _seedFounderKeysFromEnv(): void {
+  const candidates = [
+    process.env.HOLOSCRIPT_API_KEY,
+    process.env.MCP_API_KEY,
+    process.env.HOLOMESH_API_KEY,
+    process.env.COPILOT_HOLOMESH_KEY,
+    process.env.GEMINI_HOLOMESH_KEY,
+  ].filter((k): k is string => Boolean(k && k.trim()));
+
+  if (candidates.length === 0) return;
+
+  const FOUNDER_WALLET =
+    process.env.HOLOSCRIPT_FOUNDER_WALLET ||
+    '0x0000000000000000000000000000000000000001';
+
+  for (const key of candidates) {
+    const record: KeyRecord = {
+      key,
+      walletAddress: FOUNDER_WALLET,
+      agentId: 'agent_founder',
+      agentName: 'Founder',
+      scopes: ['*'],
+      createdAt: new Date().toISOString(),
+      isFounder: true,
+    };
+    keyRegistry.set(key, record);
+  }
+
+  console.info(`[KeyRegistry] First boot: seeded ${candidates.length} founder key(s) from env vars`);
+  persistKeyRegistry();
+}
+
 export function initStores(): void {
+  // Load Key Registry (must come first — auth depends on it)
+  const keyData = readJSON(KEY_REGISTRY_PATH);
+  if (keyData?.keys && Array.isArray(keyData.keys) && keyData.keys.length > 0) {
+    for (const r of keyData.keys as KeyRecord[]) {
+      keyRegistry.set(r.key, r);
+    }
+    console.info(`[KeyRegistry] Loaded ${keyRegistry.size} key record(s)`);
+  } else {
+    // First boot: auto-seed from env vars so the server can start immediately
+    _seedFounderKeysFromEnv();
+  }
+
   // Load Agents
   const agentData = readJSON(AGENT_STORE_PATH);
   if (agentData?.agents) {
     for (const a of agentData.agents) {
       agentKeyStore.set(a.apiKey, a);
-      walletToAgent.set(a.walletAddress.toLowerCase(), a);
+      walletToAgent.set((a.walletAddress || '').toLowerCase(), a);
     }
   }
 

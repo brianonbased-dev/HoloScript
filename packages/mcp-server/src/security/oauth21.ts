@@ -15,7 +15,7 @@
  * migration period (OAUTH_MIGRATION_MODE=permissive).
  */
 
-import { randomUUID, createHash, _createHmac, timingSafeEqual } from 'crypto';
+import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
 import { expandScopes, OAUTH2_SCOPES } from '../auth/oauth2-provider';
 
 // ── Configuration ────────────────────────────────────────────────────────────
