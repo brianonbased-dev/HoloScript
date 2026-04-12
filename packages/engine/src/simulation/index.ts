@@ -127,6 +127,11 @@ export {
   type SNNCognitionEngineConfig,
 } from './SNNCognitionEngine';
 
+export {
+  CRDTCAELBridge,
+  type CRDTCAELBridgeConfig,
+} from './CRDTCAELBridge';
+
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
 export { SimulationPlayback, type PlaybackConfig, type PlaybackState } from './SimulationPlayback';

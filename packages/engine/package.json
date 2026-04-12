@@ -780,6 +780,7 @@
   "dependencies": {
     "@holoscript/core": "workspace:*",
     "@holoscript/framework": "workspace:*",
+    "@holoscript/crdt-spatial": "workspace:*",
     "@holoscript/snn-webgpu": "workspace:*",
     "three": ">=0.160.0"
   },
