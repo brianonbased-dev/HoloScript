@@ -152,6 +152,53 @@ export const SIMULATION_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'measure_in_3d',
+      description: 'Measure distance between two points on the simulation results, probing scalar values at each location. The measurement lives in 3D space — not a screenshot.',
+      parameters: {
+        type: 'object',
+        properties: {
+          point_a: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
+          point_b: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
+          field: { type: 'string', description: 'Which field to probe at each point (e.g., "von_mises_stress", "temperature")' },
+        },
+        required: ['point_a', 'point_b'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'add_annotation',
+      description: 'Pin a text note to a specific 3D location on the simulation results. Creates a visible marker with label in the scene.',
+      parameters: {
+        type: 'object',
+        properties: {
+          position: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
+          text: { type: 'string', description: 'Note text (e.g., "Peak stress here — reinforce this corner")' },
+          color: { type: 'string', description: 'Hex color for the pin (default: #ffaa00)' },
+        },
+        required: ['position', 'text'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'set_coordinate_system',
+      description: 'Set the coordinate display system. Engineering shows mm, astronomy shows RA/Dec/Freq, geophysics shows depth/offset.',
+      parameters: {
+        type: 'object',
+        properties: {
+          system: { type: 'string', enum: ['engineering', 'astronomical', 'geophysical', 'scene'], description: 'Coordinate system' },
+          wcs: { type: 'object', description: 'WCS metadata for astronomical coordinates (crpix, crval, cdelt from FITS header)' },
+        },
+        required: ['system'],
+      },
+    },
+  },
 ];
 
 // ── System Prompt Extension ──────────────────────────────────────────────────
@@ -182,10 +229,17 @@ You can set up and run physics simulations directly. When a scientist describes 
 3. Provide a recommendation ("Consider reducing the load or increasing the cross-section")
 4. Offer to generate a full report or run a parameter sweep
 
+**Spatial verification tools (what makes HoloScript unique):**
+- measure_in_3d: Measure distance + probe values at two 3D points on the simulation
+- add_annotation: Pin notes to specific 3D locations (e.g., "reinforce this corner")
+- set_coordinate_system: Switch between engineering (mm), astronomical (RA/Dec), geophysical (depth)
+
 **You exceed expectations by:**
 - Running the simulation before being asked (when the intent is clear)
 - Generating a report automatically after every structural analysis
 - Suggesting parameter sweeps when the design is marginal (safety factor 1-2)
 - Animating transient results automatically so they can see the physics evolve
 - Comparing multiple materials without being asked ("Here's how aluminum, steel, and titanium compare")
+- Adding measurements and annotations proactively: "I measured 2.3mm deflection at the tip. I've pinned a note at the stress concentration near the fillet."
+- Setting the coordinate system automatically: .fits files → astronomical, structural → engineering (mm), seismic → geophysical (depth)
 `;

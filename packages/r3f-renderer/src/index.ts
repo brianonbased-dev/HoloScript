@@ -71,6 +71,11 @@ export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarF
 export { SimResultsMesh } from './components/SimResultsMesh';
 export type { SimResultsMeshProps } from './components/SimResultsMesh';
 
+// Spatial Measurement, Annotation, and Coordinate Tools
+export { SpatialMeasurement, SpatialAnnotations, CoordinateOverlay } from './components/SpatialMeasurement';
+export { engineeringTransform, astronomicalTransform, geophysicalTransform } from './components/SpatialMeasurement';
+export type { MeasurementPoint, Measurement, SpatialMeasurementProps, SpatialAnnotation, SpatialAnnotationsProps, CoordinateOverlayProps } from './components/SpatialMeasurement';
+
 // V&V Visualization Space (Phase R5 — Walkable Verification & Validation)
 export { VnVSpace } from './components/VnVSpace';
 export type { VnVSpaceProps, BenchmarkStatusItem } from './components/VnVSpace';
