@@ -2,39 +2,46 @@
 // A multiplayer scene with synced spheres
 
 composition "Networked Spheres" {
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
+  }
+
   object "SharedRedBall" {
     @grabbable
     @networked
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [0, 1, -2]
     scale: 0.25
-    color: "#e74c3c"
+    material: { baseColor: "#e74c3c", roughness: 0.4, metallic: 0.2 }
   }
-
   object "SharedBlueBall" {
     @grabbable
     @networked
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [0.6, 1, -2]
     scale: 0.25
-    color: "#3498db"
+    material: { baseColor: "#3498db", roughness: 0.4, metallic: 0.2 }
   }
-
   object "SharedGreenBall" {
     @grabbable
     @networked
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [-0.6, 1, -2]
     scale: 0.25
-    color: "#2ecc71"
+    material: { baseColor: "#2ecc71", roughness: 0.4, metallic: 0.2 }
   }
+  post_processing { bloom { intensity: 0.2, threshold: 0.9 }, tone_mapping { mode: "aces" } }
 }

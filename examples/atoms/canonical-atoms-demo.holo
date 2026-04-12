@@ -3,6 +3,13 @@ composition "CanonicalAtomsDemo" {
   environment {
     skybox: "dusk"
     ambient_light: 0.35
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
   }
 
   // Global resilience + sync substrate

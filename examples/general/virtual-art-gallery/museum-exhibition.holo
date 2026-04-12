@@ -16,6 +16,26 @@ composition "Virtual Museum Exhibition" {
     maxPlayers: 50
   }
 
+  // ── Environment ──────────────────────────────────────────────────────────
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.4
+  }
+
+  light "GalleryMain" {
+    type: "directional"
+    color: "#fff8f0"
+    intensity: 0.7
+    rotation: [-50, 20, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.85 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // ── Architecture ──────────────────────────────────────────────────────────
 
   object "GalleryFloor" {

@@ -14,30 +14,43 @@ export class TetGenWasmMesher implements WasmMesher {
   readonly id = 'tetgen';
   readonly name = 'TetGen (High-Fidelity)';
 
-  private wasmUrl: string;
+  private wasmUrls: string[];
 
-  constructor(wasmUrl: string = '/wasm/tetgen.wasm') {
-    this.wasmUrl = wasmUrl;
+  constructor(wasmUrl: string | string[] = ['/wasm/tetgen.wasm', '/assets/tetgen.wasm']) {
+    this.wasmUrls = Array.isArray(wasmUrl) ? wasmUrl : [wasmUrl];
   }
 
   async init(): Promise<void> {
     if (cachedWasm) return;
 
-    try {
-      // In a real environment, this would fetch and instantiate the WASM
-      // For now, we simulate the loading logic as per the architecture plan.
-      const response = await fetch(this.wasmUrl);
-      if (!response.ok) throw new Error(`Failed to load tetgen.wasm from ${this.wasmUrl}`);
-      
-      // We expect the WASM to expose a 'mesh' function or similar
-      // cachedWasm = await WebAssembly.instantiateStreaming(response, imports);
-      
-      console.log('TetGen WASM mesher initialized');
-      cachedWasm = { initialized: true }; // Placeholder
-    } catch (err) {
-      console.error('TetGen initialization failed:', err);
-      throw err;
+    let lastError: unknown = null;
+
+    for (const url of this.wasmUrls) {
+      try {
+        // In a real environment, this would fetch and instantiate the WASM.
+        // For now, we validate that the binary is reachable at runtime.
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} loading tetgen.wasm from ${url}`);
+        }
+
+        // We expect the WASM to expose a 'mesh' function or similar
+        // cachedWasm = await WebAssembly.instantiateStreaming(response, imports);
+
+        console.log(`TetGen WASM mesher initialized from ${url}`);
+        cachedWasm = { initialized: true, url }; // Placeholder
+        return;
+      } catch (err) {
+        lastError = err;
+      }
     }
+
+    const attempted = this.wasmUrls.join(', ');
+    const reason = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new Error(
+      `TetGen initialization failed. Could not load tetgen.wasm from any configured path (${attempted}). ` +
+      `Place the binary in Studio public/wasm or public/assets. Last error: ${reason}`,
+    );
   }
 
   async tetrahedralize(surface: SurfaceMesh, options: any = {}): Promise<TetMesh> {

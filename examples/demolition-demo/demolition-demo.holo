@@ -14,6 +14,26 @@ composition ExplosiveDemolition {
   }
 
   scene {
+    // Environment
+    environment {
+      skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
+      ambient_light: 0.5
+      shadows: true
+    }
+
+    light "SunLight" {
+      type: "directional"
+      color: "#fff5e0"
+      intensity: 1.0
+      position: [10, 15, 8]
+      cast_shadows: true
+    }
+
+    post_processing {
+      bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+      tone_mapping: { type: "aces", exposure: 1.1 }
+    }
+
     // Physics configuration
     physics {
       gravity: [0, -9.8, 0]

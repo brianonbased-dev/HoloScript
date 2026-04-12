@@ -1,0 +1,31 @@
+// Environment Preset: Industrial
+// Use: robotics, IoT, factory, lab, industrial-iot
+// Copy the blocks below into your composition.
+
+// --- Environment ---
+environment {
+  skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
+  ambient_light: 0.5
+  shadows: true
+}
+
+// --- Lighting ---
+light "OverheadBank" { type: "directional", position: [0, 10, 0], intensity: 1.1, color: "#f0f0ff", castShadow: true }
+light "WallBounce" { type: "directional", position: [5, 3, -3], intensity: 0.3, color: "#e0e0e0" }
+
+// --- Ground ---
+object "Ground" {
+  @collidable
+  geometry: "plane"
+  position: [0, 0, 0]
+  scale: [30, 1, 30]
+  material: { baseColor: "#808080", roughness: 0.92, metallic: 0.02 }
+}
+
+// --- Post-Processing ---
+post_processing {
+  ambient_occlusion { intensity: 0.7, radius: 0.4 }
+  bloom { intensity: 0.1, threshold: 1.2 }
+  tone_mapping { mode: "aces", exposure: 0.95 }
+  color_grading { temperature: 5500, saturation: 0.9 }
+}

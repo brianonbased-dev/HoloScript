@@ -47,6 +47,12 @@ composition "Accessible Museum" {
     fog: false
   }
 
+  post_processing {
+    bloom { intensity: 0.1, threshold: 0.95 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.2, radius: 0.4 }
+  }
+
   // =========================================================================
   // GLOBAL ACCESSIBILITY CONFIGURATION
   // =========================================================================

@@ -25,11 +25,34 @@ composition "DisasterRoboticsSwarm" {
   }
 
   environment {
-    skybox: "collapsed_building"
-    ambient_light: 0.3
+    skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
+    ambient_light: 0.35
+    shadows: true
     physics: true
     physics_engine: "ode"
     gravity: [0, -9.81, 0]
+    fog: { enabled: true, density: 0.015, color: "#888888" }
+  }
+
+  light "DustySun" {
+    type: "directional"
+    color: "#ffe8cc"
+    intensity: 0.7
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  light "RescueBeacon" {
+    type: "point"
+    color: "#ff2200"
+    intensity: 0.8
+    position: [0, 3, 0]
+    range: 20
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.25, threshold: 0.7 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
   }
 
   state {

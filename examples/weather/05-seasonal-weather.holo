@@ -17,6 +17,21 @@
  */
 
 composition SeasonalWeatherShowcase {
+  environment {
+    skybox: "overcast"
+    ambient_light: 0.2
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 0.85
+    fog: { type: "exponential", density: 0.006, color: "#8a8a90" }
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.35, radius: 0.5 }
+  }
+
   // Environment
   entity Ground {
     mesh: { type: "plane", width: 300.0, height: 300.0 },

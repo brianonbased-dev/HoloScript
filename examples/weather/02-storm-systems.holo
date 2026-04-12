@@ -16,6 +16,21 @@
  */
 
 composition StormSystemsShowcase {
+  environment {
+    skybox: "storm"
+    ambient_light: 0.1
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 0.7
+    fog: { type: "exponential", density: 0.012, color: "#3a4050" }
+  }
+
+  post_processing {
+    bloom { intensity: 0.5, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.4, radius: 0.6 }
+  }
+
   // Environment
   entity Terrain {
     mesh: {

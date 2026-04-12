@@ -57,6 +57,7 @@
     }
   },
   "scripts": {
+    "start": "node --max-old-space-size=8192 dist/index.js",
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",

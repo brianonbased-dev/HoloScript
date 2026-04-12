@@ -32,9 +32,21 @@ composition "Education Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#f0f4f8"
+    skybox: {
+      type: "gradient"
+      topColor: "#e8dcc8"
+      bottomColor: "#f5f0e8"
+    }
     ambient: 0.7
     shadows: true
+    directionalLight: {
+      intensity: 0.9
+      color: "#fff5e6"
+      castShadow: true
+    }
+    post_processing: {
+      bloom: { intensity: 0.15, threshold: 0.9 }
+    }
   }
 
   // -- Application State ---------------------------------------------------------
@@ -119,8 +131,9 @@ composition "Education Starter" {
     height: 10
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#e8e0d8"
-      roughness: 0.9
+      baseColor: "#e8e0d8"
+      roughness: 0.8
+      metallic: 0.02
     }
   }
 

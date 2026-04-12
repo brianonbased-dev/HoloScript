@@ -17,6 +17,19 @@
  */
 
 composition ContentGenerationShowcase {
+  environment {
+    skybox: "deep_space"
+    ambient_light: 0.2
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+  }
+
   // 1. Procedural NPC Generator
   entity NPCGenerator {
     procedural_npc: {

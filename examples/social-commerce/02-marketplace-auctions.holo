@@ -15,6 +15,34 @@
  */
 
 composition MarketplaceAuctionsScene {
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+    ambient_light: 0.2
+    shadows: true
+  }
+
+  light "NeonOverhead" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.7
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  light "AuctionSpotlight" {
+    type: "point"
+    color: "#ffdd44"
+    intensity: 1.0
+    position: [0, 4, 0]
+    range: 8
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
+  }
+
   /**
    * Auctionable Rare Artifact
    *

@@ -32,13 +32,26 @@ composition "Music Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#0a0a1a"
-    ambient: 0.3
+    skybox: {
+      type: "gradient"
+      topColor: "#000000"
+      bottomColor: "#0a0a1a"
+    }
+    ambient: 0.2
     shadows: true
     fog: {
       enabled: true
       color: "#0a0a2e"
       density: 0.02
+    }
+    spotLight: [
+      { intensity: 1.5, color: "#ff2266", position: { x: -3, y: 5, z: -2 }, angle: 35, castShadow: true },
+      { intensity: 1.2, color: "#2244ff", position: { x: 3, y: 5, z: -2 }, angle: 35, castShadow: true },
+      { intensity: 0.8, color: "#aa22ff", position: { x: 0, y: 5, z: 2 }, angle: 45, castShadow: true }
+    ]
+    post_processing: {
+      bloom: { intensity: 0.8, threshold: 0.5 }
+      volumetric_fog: { density: 0.015, color: "#0a0a2e" }
     }
   }
 
@@ -113,9 +126,11 @@ composition "Music Starter" {
     height: 15
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#111122"
-      metalness: 0.6
-      roughness: 0.4
+      baseColor: "#111122"
+      metallic: 0.6
+      roughness: 0.35
+      emissive: "#0a0a18"
+      emissiveIntensity: 0.05
     }
   }
 

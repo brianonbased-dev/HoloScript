@@ -1,0 +1,33 @@
+// Environment Preset: Concert Stage
+// Use: music, performance, audio visualization, live events
+// Copy the blocks below into your composition.
+
+// --- Environment ---
+environment {
+  skybox: { type: "gradient", top: "#000000", bottom: "#0a0a0a" }
+  ambient_light: 0.08
+  shadows: true
+}
+
+// --- Lighting ---
+light "SpotRed" { type: "spot", position: [-4, 6, -2], target: [0, 0, 0], intensity: 2000, color: "#ff2255", angle: 25 }
+light "SpotBlue" { type: "spot", position: [4, 6, -2], target: [0, 0, 0], intensity: 2000, color: "#2255ff", angle: 25 }
+light "SpotWhite" { type: "spot", position: [0, 8, 2], target: [0, 1, -2], intensity: 3000, color: "#ffffff", angle: 15 }
+
+// --- Ground ---
+object "Stage" {
+  @collidable
+  geometry: "plane"
+  position: [0, 0, 0]
+  scale: [12, 1, 8]
+  material: { baseColor: "#1a1a1a", roughness: 0.2, metallic: 0.85 }
+}
+
+// --- Post-Processing ---
+post_processing {
+  bloom { intensity: 0.8, threshold: 0.5 }
+  volumetric_fog { density: 0.02, scattering: 0.6, color: "#101020" }
+  tone_mapping { mode: "aces", exposure: 1.1 }
+  color_grading { saturation: 1.3, contrast: 1.15 }
+  vignette { intensity: 0.5, smoothness: 0.4 }
+}

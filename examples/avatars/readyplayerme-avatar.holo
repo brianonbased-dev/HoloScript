@@ -4,9 +4,30 @@
 
 composition "ReadyPlayerMeAvatar" {
   environment {
-    backgroundColor: "#1a1a2e"
-    ambient: 0.4
+    skybox: "gradient"
+    ambient_light: 0.4
     shadows: true
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "RimLight" {
+    type: "point"
+    color: "#aaccff"
+    intensity: 0.4
+    position: [-4, 3, -2]
+    range: 10
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   // ─── Ready Player Me Avatar with Full VRM Support ────────────────────────────

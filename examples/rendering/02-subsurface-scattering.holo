@@ -25,6 +25,20 @@
  */
 
 composition SubsurfaceScatteringShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.15
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.1
+  }
+
+  post_processing {
+    bloom { intensity: 0.15, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.25, radius: 0.4 }
+  }
+
   // Burley SSS - Human skin (fast real-time approximation)
   entity SkinHead {
     mesh: {

@@ -5,8 +5,17 @@ composition "Interactive Tutorial" {
   environment {
     skybox: "gradient"
     background_color: "#1e3a5f"
+    background_gradient: ["#1e3a5f", "#e8eef5"]
     ambient_light: 0.5
     shadows: true
+  }
+
+  // Clean directional light for studio feel
+  object "MainLight" {
+    type: "directional_light"
+    direction: [-0.4, -0.7, -0.5]
+    color: "#ffffff"
+    intensity: 0.7
   }
 
   // ===================
@@ -60,12 +69,13 @@ composition "Interactive Tutorial" {
   // Step 1: Basic cube - learn about objects
   object "Step1Cube" {
     @pointable
-    
+
     position: [-3, 1, 0]
     scale: [0.8, 0.8, 0.8]
     geometry: "cube"
-    color: "#ff6b6b"
-    material: "plastic"
+    material: { baseColor: "#ff6b6b", roughness: 0.4, metallic: 0.2 }
+    emissive: "#330a0a"
+    emissiveIntensity: 0.25
     
     on_point() {
       flash_color("#ffffff", 200ms)
@@ -76,12 +86,13 @@ composition "Interactive Tutorial" {
   // Step 2: Grabbable orb - learn about interaction
   object "Step2Orb" {
     @grabbable
-    
+
     position: [0, 1, 0]
     scale: [0.6, 0.6, 0.6]
     geometry: "sphere"
-    color: "#4ecdc4"
-    material: "shiny"
+    material: { baseColor: "#4ecdc4", roughness: 0.3, metallic: 0.35 }
+    emissive: "#0a2a28"
+    emissiveIntensity: 0.3
     
     on_grab() {
       pulse_scale(1.2, 100ms)
@@ -92,11 +103,13 @@ composition "Interactive Tutorial" {
   // Step 3: Animated orb - learn about animations
   object "Step3Animated" {
     @animated
-    
+
     position: [3, 1, 0]
     scale: [0.7, 0.7, 0.7]
     geometry: "sphere"
-    color: "#ffe66d"
+    material: { baseColor: "#ffe66d", roughness: 0.35, metallic: 0.25 }
+    emissive: "#332a0a"
+    emissiveIntensity: 0.3
     animate: "float"
     animSpeed: 1
   }
@@ -104,11 +117,11 @@ composition "Interactive Tutorial" {
   // Floor grid
   object "Floor" {
     @collidable
-    
+
     position: [0, 0, 0]
     scale: [10, 0.1, 10]
     geometry: "cube"
-    color: "#2d3436"
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
   }
 
   // Progress indicators
@@ -128,5 +141,10 @@ composition "Interactive Tutorial" {
   object "Progress3" using "ProgressDot" {
     position: [3, 0.2, 2]
     color: "#444444"
+  }
+
+  post_processing {
+    bloom: { intensity: 0.35, threshold: 0.6, radius: 0.4 }
+    tone_mapping: "aces"
   }
 }

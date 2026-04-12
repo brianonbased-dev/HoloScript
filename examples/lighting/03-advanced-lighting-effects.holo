@@ -24,6 +24,20 @@
  */
 
 composition AdvancedLightingShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.15
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.2
+  }
+
+  post_processing {
+    bloom { intensity: 0.35, threshold: 0.75 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.4, radius: 0.5 }
+  }
+
   // 1. Caustics - Refraction patterns through glass
   entity GlassSphere {
     mesh: {

@@ -25,6 +25,12 @@ composition "HoloScript Codebase Health Dashboard" {
         fog: { type: "exponential", color: "#030308", density: 0.008 }
     }
 
+    post_processing {
+        bloom { intensity: 0.45, threshold: 0.65 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.35, radius: 0.5 }
+    }
+
     // =========================================================================
     // SECTION 0: GROUND PLANE & SPATIAL ANCHORS
     // =========================================================================

@@ -32,11 +32,23 @@ composition "Input Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#0d1117"
+    skybox: {
+      type: "gradient"
+      topColor: "#1a1a2e"
+      bottomColor: "#2a2a3e"
+    }
     ambient: 0.5
     shadows: true
     hand_tracking: true
     eye_tracking: true
+    directionalLight: {
+      intensity: 0.8
+      color: "#f0f0ff"
+      castShadow: true
+    }
+    post_processing: {
+      bloom: { intensity: 0.2, threshold: 0.8 }
+    }
   }
 
   // -- Application State ---------------------------------------------------------
@@ -102,8 +114,8 @@ composition "Input Starter" {
     height: 8
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#1a1a2e"
-      metalness: 0.3
+      baseColor: "#1a1a2e"
+      metallic: 0.3
       roughness: 0.7
     }
   }

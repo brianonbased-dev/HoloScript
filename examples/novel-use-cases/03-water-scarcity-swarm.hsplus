@@ -18,9 +18,23 @@
  */
 composition "WaterScarcitySwarm" {
   environment {
-    skybox: "desert_horizon"
-    ambient_light: 0.7
+    skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
+    ambient_light: 0.5
+    shadows: true
     physics: true
+  }
+
+  light "DesertSun" {
+    type: "directional"
+    color: "#ffe8b0"
+    intensity: 1.2
+    position: [8, 15, 3]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+    tone_mapping: { type: "aces", exposure: 1.2 }
   }
 
   // ========================================================================

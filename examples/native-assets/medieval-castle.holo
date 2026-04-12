@@ -3,6 +3,19 @@ composition "MedievalCastle" {
   // A medieval castle with towers, walls, gate, and flag poles.
   // Demonstrates: architectural composition, repeated patterns, detail layering.
 
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.3
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.15, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.35, radius: 0.5 }
+  }
+
   object "Castle" @physics @collidable {
     position: [0, 0, 0]
 

@@ -3,6 +3,19 @@ composition "StreetLamp" {
   // A classic Victorian street lamp with warm light glow.
   // Demonstrates: functional objects, emissive lighting, fine detail.
 
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.2
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.4, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   object "Lamp" @physics {
     position: [0, 0, 0]
 

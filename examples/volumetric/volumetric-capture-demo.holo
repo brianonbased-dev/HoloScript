@@ -27,6 +27,14 @@ composition "Volumetric Capture Gallery" {
     lighting: "gallery"
     ambient_light: 0.3
     shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+    volumetric_fog { density: 0.005, color: "#0a0a15" }
   }
 
   // ----------------------------------------------------------

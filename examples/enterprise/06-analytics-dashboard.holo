@@ -23,6 +23,45 @@
  */
 
 scene PlatformAnalytics {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#4488ff"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentBlue" {
+    type: "point"
+    color: "#3b82f6"
+    intensity: 0.8
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ANALYTICS CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -259,6 +298,14 @@ scene PlatformAnalytics {
     position: [0, 2.5, -4];
     scale: [6, 3, 1];
     traits: [text_display];
+
+    material: {
+      color: "#050510",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#050a1a",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "PLATFORM ANALYTICS\n\n📊 Metric Categories:\n  • User Engagement (sessions, duration, DAU/MAU)\n  • Platform Health (errors, latency, uptime)\n  • Resource Usage (storage, compute, API calls)\n  • Feature Adoption (usage rates, trends)\n\n🔍 Anomaly Detection:\n  • Isolation Forest algorithm\n  • 85% sensitivity\n  • Real-time alerting\n  • Auto-resolution tracking\n\n📈 Dashboard Features:\n  • Custom dashboards\n  • Real-time metrics (1s)\n  • Aggregated metrics (1h)\n  • Percentiles (P50, P95, P99)\n  • Trend analysis\n  • Report generation\n\n⏱️  Data Retention:\n  • Real-time: 1 hour\n  • Standard: 30 days\n  • Aggregated: 365 days",

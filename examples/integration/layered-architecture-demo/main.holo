@@ -2,6 +2,24 @@
 // File type: .holo (Composition Layer)
 
 composition "Layered Architecture Demo" {
+  environment {
+    skybox: "studio"
+    ambient_light: 0.5
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.8 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // Ground
   object "Ground" {
     @collidable

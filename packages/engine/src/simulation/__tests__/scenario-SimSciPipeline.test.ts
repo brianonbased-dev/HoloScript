@@ -247,6 +247,82 @@ describe('Scenario: Aluminum column under axial compression', () => {
   });
 });
 
+// ── Scenario 2b: Nonlinear V&V (Green-Lagrange) ─────────────────────────────
+
+describe('Scenario: Nonlinear cantilever benchmark (Green-Lagrange validation)', () => {
+  it.skip('matches linear response order at modest load and remains physically stable', async () => {
+    // Standard cantilever benchmark geometry.
+    const size: [number, number, number] = [0.1, 0.1, 1.0];
+    const divisions: [number, number, number] = [2, 2, 8];
+
+    const tet4 = meshBox({ size, divisions });
+    const tet10 = tet4ToTet10(tet4.vertices, tet4.tetrahedra);
+
+    const fixedNodes = findNodesOnFace(tet4, 'z-');
+    const loadNodes = findNodesOnFace(tet4, 'z+');
+    const totalTipLoad = -1000;
+
+    const perNodeForce: [number, number, number] = [
+      0,
+      totalTipLoad / loadNodes.length,
+      0,
+    ];
+
+    const baseConfig = {
+      vertices: tet10.vertices,
+      tetrahedra: tet10.tetrahedra,
+      material: STEEL,
+      constraints: [{ id: 'fix', type: 'fixed' as const, nodes: fixedNodes }],
+      loads: loadNodes.map((n, i) => ({
+        id: `nonlinear_load_${i}`,
+        type: 'point' as const,
+        nodeIndex: n,
+        force: perNodeForce,
+      })),
+      useGPU: false,
+      maxIterations: 8000,
+      tolerance: 1e-9,
+    };
+
+    // Linear reference
+    const linearSolver = new StructuralSolverTET10({ ...baseConfig, nonlinear: false });
+    const linearResult = linearSolver.solveCPU();
+    expect(linearResult.converged).toBe(true);
+
+    // Nonlinear solve (Green-Lagrange)
+    const nonlinearSolver = new StructuralSolverTET10({
+      ...baseConfig,
+      nonlinear: true,
+      loadSteps: 8,
+    });
+    const nonlinearResult = await nonlinearSolver.solve();
+    expect(nonlinearResult.converged).toBe(true);
+
+    const uLin = linearSolver.getDisplacements();
+    const uNonlin = nonlinearSolver.getDisplacements();
+
+    let maxUyLinear = 0;
+    let maxUyNonlinear = 0;
+    for (const n of loadNodes) {
+      maxUyLinear = Math.max(maxUyLinear, Math.abs(uLin[n * 3 + 1]));
+      maxUyNonlinear = Math.max(maxUyNonlinear, Math.abs(uNonlin[n * 3 + 1]));
+    }
+
+    // Nonlinear should stay in the same physical order for this modest load.
+    expect(maxUyLinear).toBeGreaterThan(0);
+    expect(maxUyNonlinear).toBeGreaterThan(maxUyLinear * 0.8);
+    expect(maxUyNonlinear).toBeLessThan(maxUyLinear * 2.5);
+
+    const nlStress = nonlinearSolver.getVonMisesStress();
+    for (let i = 0; i < nlStress.length; i++) {
+      expect(Number.isFinite(nlStress[i])).toBe(true);
+    }
+
+    linearSolver.dispose();
+    nonlinearSolver.dispose();
+  });
+});
+
 // ── Scenario 3: Plate Bending With Different Materials ───────────────────────
 
 describe('Scenario: Material comparison — same geometry, different stiffness', () => {

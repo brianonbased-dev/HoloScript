@@ -18,6 +18,35 @@
  */
 
 composition InvestigationMysteryShowcase {
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#0a0a14", bottom: "#1a1a2e" }
+    ambient_light: 0.2
+    shadows: true
+    fog: { enabled: true, density: 0.012, color: "#111122" }
+  }
+
+  light "OverheadLamp" {
+    type: "directional"
+    color: "#ffe8cc"
+    intensity: 0.5
+    position: [0, 8, 2]
+    cast_shadows: true
+  }
+
+  light "DeskLamp" {
+    type: "point"
+    color: "#ffcc66"
+    intensity: 1.0
+    position: [5, 1.5, 3]
+    range: 8
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
+  }
+
   // Crime scene
   entity CrimeScene {
     mesh: { type: "plane", width: 50.0, height: 50.0 },

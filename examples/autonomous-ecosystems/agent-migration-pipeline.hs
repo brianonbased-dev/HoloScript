@@ -19,9 +19,23 @@
  */
 
 environment {
-  skybox: "void"
-  ambient_light: 0.4
+  skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+  ambient_light: 0.2
+  shadows: true
   fog: { color: "#0a0a1a", density: 0.01 }
+}
+
+light "OverheadNeon" {
+  type: "directional"
+  color: "#aabbff"
+  intensity: 0.6
+  position: { x: 0, y: 10, z: 5 }
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }
+  tone_mapping: { type: "aces", exposure: 0.85 }
 }
 
 // ============================================================================

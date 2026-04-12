@@ -9,6 +9,24 @@
 
 composition EntityTraitReference {
 
+  environment {
+    skybox: "studio"
+    ambient_light: 0.6
+  }
+
+  light "SunLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.8 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // === BASIC ENTITY ===
   // Entities are spatial objects with trait-based configuration
   entity BasicCube {

@@ -3,7 +3,11 @@
  * Sequential: profile → configure zones → run session → adapt → milestone check.
  * @version 5.0.0; @format .hs (process)
  */
-environment { skybox: "soft_aurora"; ambient_light: 0.4 }
+environment { skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }; ambient_light: 0.3; shadows: true; fog: { color: "#2a1040", density: 0.006 } }
+
+light "AuroraGlow" { type: "directional"; color: "#bbddff"; intensity: 0.5; position: { x: 3, y: 8, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }; tone_mapping: { type: "aces", exposure: 0.9 } }
 
 object "profiler" {
   geometry: "cube"; color: "#aaccff"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

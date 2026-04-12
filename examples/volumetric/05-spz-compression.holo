@@ -30,6 +30,19 @@
  */
 
 composition SPZCompressionExample {
+  environment {
+    skybox: "dark_studio"
+    ambient_light: 0.25
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+  }
+
   // Uncompressed PLY reference (full 32-bit precision)
   entity UncompressedScene {
     gaussian_splat: {

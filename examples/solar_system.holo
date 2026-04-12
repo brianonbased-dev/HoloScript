@@ -2,19 +2,39 @@
 // Accurate Keplerian orbital elements for inner planets and Earth's Moon
 
 composition "Solar System" {
+  environment {
+    skybox: "gradient"
+    background_color: "#000005"
+    background_gradient: ["#000005", "#05000a"]
+    ambient_light: 0.08
+    shadows: true
+  }
+
+  // Directional fill light (simulates distant starlight)
+  object "StarLight" {
+    type: "directional_light"
+    direction: [0.3, -0.5, -0.8]
+    color: "#e8e0ff"
+    intensity: 0.15
+  }
+
   // Central star (Sun)
   object "Sun" {
     geometry: "sphere"
     position: [0, 0, 0]
     scale: 5
-    color: "#FDB813"
+    material: { baseColor: "#FDB813", roughness: 0.3, metallic: 0.0 }
+    emissive: "#FDB813"
+    emissiveIntensity: 1.0
     glow: true
   }
   
   // Mercury
   object "Mercury" {
     geometry: "sphere"
-    color: "#8C7853"
+    material: { baseColor: "#8C7853", roughness: 0.85, metallic: 0.1 }
+    emissive: "#2a2010"
+    emissiveIntensity: 0.15
     scale: 0.4
     
     semiMajorAxis: 0.387098
@@ -32,7 +52,9 @@ composition "Solar System" {
   // Venus
   object "Venus" {
     geometry: "sphere"
-    color: "#FFC649"
+    material: { baseColor: "#FFC649", roughness: 0.7, metallic: 0.05 }
+    emissive: "#4a3510"
+    emissiveIntensity: 0.15
     scale: 0.9
     
     semiMajorAxis: 0.723332
@@ -50,7 +72,9 @@ composition "Solar System" {
   // Earth
   object "Earth" {
     geometry: "sphere"
-    color: "#0088FF"
+    material: { baseColor: "#0088FF", roughness: 0.6, metallic: 0.05 }
+    emissive: "#001a44"
+    emissiveIntensity: 0.2
     scale: 1.0
     
     semiMajorAxis: 1.000000
@@ -68,7 +92,9 @@ composition "Solar System" {
   // Mars
   object "Mars" {
     geometry: "sphere"
-    color: "#CD5C5C"
+    material: { baseColor: "#CD5C5C", roughness: 0.8, metallic: 0.08 }
+    emissive: "#3a1515"
+    emissiveIntensity: 0.15
     scale: 0.5
     
     semiMajorAxis: 1.523662
@@ -86,7 +112,9 @@ composition "Solar System" {
   // Moon orbiting Earth
   object "Moon" {
     geometry: "sphere"
-    color: "#AAAAAA"
+    material: { baseColor: "#AAAAAA", roughness: 0.9, metallic: 0.05 }
+    emissive: "#222222"
+    emissiveIntensity: 0.1
     scale: 0.27
     
     parent: "Earth"
@@ -100,5 +128,10 @@ composition "Solar System" {
     rotationPeriod: 27.321
 
     @orbital()
+  }
+
+  post_processing {
+    bloom: { intensity: 0.8, threshold: 0.3, radius: 0.6 }
+    tone_mapping: "aces"
   }
 }

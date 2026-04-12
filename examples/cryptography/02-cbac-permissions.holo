@@ -23,6 +23,33 @@
  */
 
 scene CapabilityBasedSecurity {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.12
+    fog: { enabled: true, color: "#080818", density: 0.02 }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ffaa44"
+    intensity: 0.5
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  light "AccentGold" {
+    type: "point"
+    color: "#fbbf24"
+    intensity: 0.7
+    position: [-3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.65 }
+    tone_mapping: { enabled: true, type: "aces", exposure: 1.1 }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // CAPABILITY TOKEN ISSUER CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -326,6 +353,14 @@ scene CapabilityBasedSecurity {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#0a0805",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#1a0f00",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "CAPABILITY-BASED ACCESS CONTROL\n\n🎫 Token Format:\n  • JWT - Standard claims (iss, sub, aud, exp)\n  • UCAN - User Controlled Authorization Network\n  • Hybrid - Both JWT + UCAN for compatibility\n\n🔐 Signatures:\n  • ML-DSA-65 - Post-quantum signatures\n  • PoP binding - JWK SHA-256 thumbprint\n  • Quantum-resistant capability tokens\n\n📜 Capabilities:\n  • Fine-grained permissions (action + resource)\n  • Effect: allow | deny\n  • Wildcard resources: scenes/*\n  • Time-bounded expiration\n\n👥 Delegation:\n  • Attenuation required (subset only)\n  • Max depth: 3 levels\n  • Shorter expiration than parent\n  • Cryptographically verifiable chain\n\n🛡️  Zero-Trust Model:\n  • No central authority for checks\n  • Tokens are self-contained proofs\n  • Revocation via distributed list\n  • Offline-first verification\n\n🚀 Use Cases:\n  • Decentralized agent permissions\n  • Cross-scene capability delegation\n  • Temporary access grants\n  • Least-privilege enforcement",

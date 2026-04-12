@@ -2,55 +2,49 @@
 // A tilted gray ramp with red, blue, and green bouncy balls
 
 composition "Ball Ramp with Bouncy Spheres" {
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
   object "GroundPlane" {
     @collidable
-    
     geometry: "plane"
     position: [0, 0, 0]
     scale: [5, 1, 5]
-    color: "#2d3436"
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
   }
-
   object "GrayRamp" {
     @collidable
-    
     geometry: "cube"
     position: [-1, 0.3, -2]
     rotation: [0, 0, 15]
     scale: [2, 0.1, 0.8]
-    color: "#636e72"
+    material: { baseColor: "#636e72", roughness: 0.6, metallic: 0.7 }
   }
-
   object "RedBall" {
     @grabbable
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [-0.5, 1, -2]
     scale: 0.15
-    color: "#e74c3c"
+    material: { baseColor: "#e74c3c", roughness: 0.45, metallic: 0.15 }
   }
-  
   object "BlueBall" {
     @grabbable
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [0, 1.2, -2]
     scale: 0.15
-    color: "#3498db"
+    material: { baseColor: "#3498db", roughness: 0.45, metallic: 0.15 }
   }
-  
   object "GreenBall" {
     @grabbable
     @physics
     @collidable
-    
     geometry: "sphere"
     position: [0.5, 1.4, -2]
     scale: 0.15
-    color: "#2ecc71"
+    material: { baseColor: "#2ecc71", roughness: 0.45, metallic: 0.15 }
   }
+  post_processing { bloom { intensity: 0.2, threshold: 0.9 }, tone_mapping { mode: "aces" } }
 }

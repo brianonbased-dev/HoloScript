@@ -6,7 +6,20 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "desert_horizon"; ambient_light: 0.7; fog: { color: "#8b7d6b", density: 0.003 } }
+environment { skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }; ambient_light: 0.5; shadows: true; fog: { color: "#8b7d6b", density: 0.003 } }
+
+light "DesertSun" {
+  type: "directional"
+  color: "#ffe8b0"
+  intensity: 1.2
+  position: { x: 8, y: 15, z: 3 }
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+  tone_mapping: { type: "aces", exposure: 1.2 }
+}
 
 object "sensor_scanner" {
   geometry: "sphere"; color: "#00bcd4"; position: { x: -8, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

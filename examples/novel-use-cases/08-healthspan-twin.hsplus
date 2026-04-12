@@ -9,7 +9,20 @@
  * @format .hsplus (behavior)
  */
 composition "HealthspanTwin" {
-  environment { skybox: "serene_dawn"; ambient_light: 0.6; physics: false; bloom: true }
+  environment { skybox: "gradient"; ambient_light: 0.4; shadows: true; physics: false }
+
+  light "CleanLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 10, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
+  }
 
   module BiomarkerAnalyzer {
     state { readings: {}; trends: {}; alerts: []; total_processed: 0 }

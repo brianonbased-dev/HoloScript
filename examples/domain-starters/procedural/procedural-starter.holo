@@ -32,19 +32,28 @@ composition "Procedural Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#87ceeb"
-    ambient: 0.5
+    skybox: {
+      type: "gradient"
+      topColor: "#0a0a1a"
+      bottomColor: "#1a1a3a"
+    }
+    ambient: 0.35
     shadows: true
     fog: {
       enabled: true
-      color: "#b8d0e8"
-      near: 50
-      far: 200
+      color: "#1a1a30"
+      near: 30
+      far: 150
     }
     directionalLight: {
-      intensity: 1.0
+      intensity: 0.9
+      color: "#c8b8e8"
       direction: { x: -0.5, y: -1.0, z: -0.3 }
       castShadow: true
+    }
+    post_processing: {
+      bloom: { intensity: 0.35, threshold: 0.7 }
+      dof: { focusDistance: 20, aperture: 0.02, maxBlur: 0.005 }
     }
   }
 
@@ -154,9 +163,11 @@ composition "Procedural Starter" {
     scale: [60, 1, 60]
     position: { x: 0, y: 4.5, z: 0 }
     material: {
-      color: "#2266aa"
-      metalness: 0.1
+      baseColor: "#2266aa"
+      metallic: 0.1
       roughness: 0.05
+      emissive: "#112244"
+      emissiveIntensity: 0.15
       transparent: true
       opacity: 0.7
     }
@@ -216,9 +227,11 @@ composition "Procedural Starter" {
     scale: [100, 1, 100]
     position: { x: 0, y: 25, z: 0 }
     material: {
-      color: "#ffffff"
+      baseColor: "#c8c0d8"
+      emissive: "#3a3050"
+      emissiveIntensity: 0.15
       transparent: true
-      opacity: 0.4
+      opacity: 0.35
     }
   }
 

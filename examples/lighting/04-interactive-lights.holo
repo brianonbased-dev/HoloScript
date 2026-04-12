@@ -22,6 +22,20 @@
  */
 
 composition InteractiveLightsShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.1
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   // Environment
   entity Floor {
     mesh: { type: "plane", width: 20.0, height: 20.0 },

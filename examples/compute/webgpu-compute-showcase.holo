@@ -24,6 +24,20 @@ composition "WebGPU Compute Showcase" {
     environment {
       skybox: "deep_space"
       lighting: "night"
+      ambient_light: 0.15
+    }
+
+    light "MainLight" {
+      type: "directional"
+      color: "#4466cc"
+      intensity: 0.4
+      rotation: [-45, 30, 0]
+      cast_shadows: true
+    }
+
+    post_processing {
+      bloom: { enabled: true, intensity: 0.5, threshold: 0.6 }
+      tone_mapping: { enabled: true, type: "aces", exposure: 1.2 }
     }
 
     // ----------------------------------------------------------

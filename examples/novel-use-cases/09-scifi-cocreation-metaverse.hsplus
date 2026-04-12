@@ -9,7 +9,20 @@
  * @format .hsplus (behavior)
  */
 composition "SciFiCoCreation" {
-  environment { skybox: "nebula_city"; ambient_light: 0.5; physics: true; bloom: true }
+  environment { skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }; ambient_light: 0.25; shadows: true; physics: true }
+
+  light "NebulaSun" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.6
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
+  }
 
   module LoreGraph {
     state { entries: {}; total: 0; coherence: 1.0 }

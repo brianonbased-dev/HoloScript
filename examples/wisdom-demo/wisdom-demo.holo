@@ -9,8 +9,23 @@ composition "Wisdom & Gotcha Demo" {
   // ─────────────────────────────────────────────────────────────────────────
 
   environment {
-    gravity: 9.81
+    skybox: "gradient"
     ambient_light: 0.4
+    shadows: true
+    gravity: 9.81
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   // ── 1. DECLARATIVE / IMPERATIVE SEPARATION WISDOM ────────────────────────
@@ -37,7 +52,7 @@ composition "Wisdom & Gotcha Demo" {
 
     position: [0, 1, 0]
     geometry: "cube"
-    color: "#gold"
+    material: { baseColor: "#ffd700", roughness: 0.3, metallic: 0.9 }
 
     @wisdom {
       description: "Escrow + credit + DAO prevents double-spend and griefing in shared treasuries"

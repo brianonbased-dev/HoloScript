@@ -18,6 +18,35 @@
  */
 
 composition CommerceServicesScene {
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.25
+    shadows: true
+    fog: { enabled: true, density: 0.008, color: "#2a1040" }
+  }
+
+  light "SunLight" {
+    type: "directional"
+    color: "#ffd4a0"
+    intensity: 0.8
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  light "MarketLantern" {
+    type: "point"
+    color: "#ffcc66"
+    intensity: 1.0
+    position: [0, 3, 0]
+    range: 20
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.7 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
+  }
+
   /**
    * Traveling Trader - Barter System
    *

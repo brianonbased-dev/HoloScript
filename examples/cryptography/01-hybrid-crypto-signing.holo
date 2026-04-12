@@ -22,6 +22,33 @@
  */
 
 scene QuantumSafeCrypto {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.12
+    fog: { enabled: true, color: "#080818", density: 0.02 }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#8855ff"
+    intensity: 0.5
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  light "AccentViolet" {
+    type: "point"
+    color: "#a78bfa"
+    intensity: 0.7
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.65 }
+    tone_mapping: { enabled: true, type: "aces", exposure: 1.1 }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // HYBRID CRYPTO PROVIDER CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -312,6 +339,14 @@ scene QuantumSafeCrypto {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#08050f",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#0f0520",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "POST-QUANTUM CRYPTOGRAPHY\n\n🔐 Algorithms:\n  • Ed25519 - Classical (ECDSA on Curve25519)\n  • ML-DSA-65 - Post-quantum (NIST FIPS 204)\n  • Hybrid - Composite signatures (BOTH)\n  • ML-KEM-768 - Key encapsulation (NIST FIPS 203)\n\n🛡️  Composite Verification:\n  • Strategy: Accept if EITHER signature valid\n  • Defense-in-depth: Survive quantum attack\n  • Backward compatible: Classical-only works\n  • Future-proof: PQ-only mode available\n\n📊 Signature Sizes:\n  • Ed25519: 64 bytes\n  • ML-DSA-65: 3,309 bytes (51x larger)\n  • Hybrid: 3,373 bytes total\n\n🔑 Key Sizes:\n  • Ed25519 public: 32 bytes\n  • ML-DSA-65 public: 1,952 bytes\n  • ML-KEM-768 public: 1,184 bytes\n\n⚡ Performance:\n  • Ed25519: ~60,000 sig/sec\n  • ML-DSA-65: ~5,000 sig/sec (12x slower)\n  • Verification: ~2x slower for hybrid\n\n🚀 Migration Path:\n  Ed25519 → Hybrid → ML-DSA-65 only",

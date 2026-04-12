@@ -21,6 +21,45 @@
  */
 
 scene MultiTenantPlatform {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#4488ff"
+    intensity: 0.6
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  light "AccentCyan" {
+    type: "point"
+    color: "#00ffff"
+    intensity: 0.8
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TENANT 1: ACME CORPORATION (Enterprise Tier)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -300,6 +339,14 @@ scene MultiTenantPlatform {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#050510",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#001122",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "MULTI-TENANT PLATFORM\n\n🏢 Tenant Isolation:\n  • Physical/Logical/Hybrid isolation levels\n  • Namespace prefixing (acme_, startup_)\n  • Tenant-scoped trait registries\n  • Per-tenant CORS origins\n\n🔐 Resource Sharing:\n  • Explicit cross-tenant grants\n  • Access levels: read, clone, reference\n  • Expiration timestamps\n  • Grant revocation\n\n📊 Tiers:\n  • Free (5 users, logical isolation)\n  • Starter (10 users)\n  • Professional (100 users)\n  • Enterprise (500+ users, physical isolation)\n  • Unlimited (custom)\n\n🔄 Lifecycle:\n  • Provisioning → Active → Suspended\n  • Archive (90-day retention)\n  • Permanent deletion",

@@ -14,8 +14,36 @@
 
 environment {
   skybox: "night"
-  ambient_light: 0.3
-  fog: { color: "#1a1a2e", density: 0.02 }
+  ambient_light: 0.15
+  fog: { color: "#0a0a1e", density: 0.025 }
+}
+
+light "MoonLight" {
+  type: "directional"
+  color: "#8899cc"
+  intensity: 0.4
+  rotation: [-50, 20, 0]
+  cast_shadows: true
+}
+
+light "TorchGlow" {
+  type: "point"
+  color: "#ff8833"
+  intensity: 0.6
+  position: { x: 0, y: 3, z: -15 }
+  range: 10
+}
+
+post_processing {
+  bloom: {
+    enabled: true
+    intensity: 0.5
+    threshold: 0.6
+  }
+  tone_mapping: {
+    enabled: true
+    type: "aces"
+  }
 }
 
 // ============================================================================
@@ -63,6 +91,10 @@ object "alarm_bell" {
   color: "#ff0000"
   position: { x: 0, y: 5, z: 0 }
   scale: { x: 0.5, y: 0.5, z: 0.5 }
+  roughness: 0.2
+  metallic: 0.8
+  emissive: "#ff0000"
+  emissive_intensity: 0.6
 
   state {
     active: false
@@ -90,6 +122,8 @@ object "guard_captain" {
   color: "#4a6fa5"
   position: { x: 0, y: 1, z: -15 }
   scale: { x: 0.8, y: 1.8, z: 0.8 }
+  roughness: 0.3
+  metallic: 0.7
 
   // Agent state — what the guard knows and tracks
   state {

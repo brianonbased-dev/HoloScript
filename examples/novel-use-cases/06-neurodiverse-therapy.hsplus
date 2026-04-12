@@ -11,10 +11,23 @@
  */
 composition "NeurodiverseTherapy" {
   environment {
-    skybox: "gentle_clouds"
-    ambient_light: 0.4
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.3
+    shadows: true
     physics: false
-    bloom: true
+  }
+
+  light "GentleGlow" {
+    type: "directional"
+    color: "#eeddff"
+    intensity: 0.5
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.35, threshold: 0.65 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
   }
 
   module SensoryProfileManager {

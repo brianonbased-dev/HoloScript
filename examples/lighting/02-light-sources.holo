@@ -25,6 +25,20 @@
  */
 
 composition LightSourcesShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.1
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.5
+  }
+
+  post_processing {
+    bloom { intensity: 0.4, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   // Environment
   entity Floor {
     mesh: { type: "plane", width: 30.0, height: 30.0 },

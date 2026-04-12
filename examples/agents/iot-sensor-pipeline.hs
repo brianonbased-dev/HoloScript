@@ -16,8 +16,37 @@
  */
 
 environment {
-  skybox: "overcast"
-  ambient_light: 0.7
+  skybox: "night_sky"
+  ambient_light: 0.2
+  fog: { color: "#0a0a1a", density: 0.012 }
+}
+
+light "MainLight" {
+  type: "directional"
+  color: "#4488ff"
+  intensity: 0.5
+  rotation: [-45, 30, 0]
+  cast_shadows: true
+}
+
+light "AlertGlow" {
+  type: "point"
+  color: "#ff4444"
+  intensity: 0.4
+  position: { x: 0, y: 4, z: -6 }
+  range: 10
+}
+
+post_processing {
+  bloom: {
+    enabled: true
+    intensity: 0.45
+    threshold: 0.65
+  }
+  tone_mapping: {
+    enabled: true
+    type: "aces"
+  }
 }
 
 // ============================================================================
@@ -241,9 +270,13 @@ object "alert_manager" {
 
 object "dashboard" {
   geometry: "cube"
-  color: "#2c3e50"
   position: { x: 0, y: 3, z: -6 }
   scale: { x: 4, y: 2, z: 0.1 }
+  color: "#0a0a1a"
+  roughness: 0.15
+  metallic: 0.2
+  emissive: "#001122"
+  emissive_intensity: 0.3
 
   state {
     health_score: 100

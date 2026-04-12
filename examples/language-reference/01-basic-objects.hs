@@ -2,6 +2,24 @@
 // Complete reference for basic object syntax and properties
 // For AI agents: Use this pattern for simple, non-interactive scenes
 
+environment {
+  skybox: "studio"
+  ambient_light: 0.6
+}
+
+light "SunLight" {
+  type: "directional"
+  color: "#ffffff"
+  intensity: 0.8
+  rotation: { x: -45, y: 30, z: 0 }
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.15, threshold: 0.85 }
+  tone_mapping: { enabled: true, type: "aces" }
+}
+
 // === BASIC OBJECT DECLARATION ===
 // Minimal object - just geometry
 object "SimpleBox" {

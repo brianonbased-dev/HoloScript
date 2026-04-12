@@ -3,6 +3,13 @@ composition "GovernanceAtomsDemo" {
   environment {
     skybox: "city-night"
     ambient_light: 0.3
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.35, threshold: 0.75 }
+    tone_mapping { mode: "aces" }
   }
 
   dao "CityCommonsDAO" {

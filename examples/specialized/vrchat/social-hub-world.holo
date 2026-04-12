@@ -19,6 +19,25 @@ composition "Social Hub World" {
 
   // ── Environment ───────────────────────────────────────────────────────────
 
+  environment {
+    skybox: "sunset"
+    ambient_light: 0.4
+    fog: { enabled: true, color: "#1a1a2e", density: 0.01 }
+  }
+
+  light "SunLight" {
+    type: "directional"
+    color: "#ffddaa"
+    intensity: 0.8
+    rotation: [-35, 40, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.7 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   object "HubFloor" {
     @collidable
     geometry: "plane"

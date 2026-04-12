@@ -39,6 +39,14 @@ composition "Rendering Starter" {
     toneMapping: "aces"
     exposure: 1.2
     shadowMapSize: 4096
+    post_processing: {
+      bloom: { intensity: 0.5, threshold: 0.7, radius: 0.4 }
+      ssao: { intensity: 0.5, radius: 0.3, bias: 0.02 }
+      dof: { focusDistance: 5, aperture: 0.015, maxBlur: 0.008 }
+      vignette: { intensity: 0.25, smoothness: 0.4 }
+      chromatic_aberration: { offset: 0.002 }
+      tone_mapping: { mode: "aces", exposure: 1.2 }
+    }
   }
 
   // -- Application State ---------------------------------------------------------
@@ -84,9 +92,11 @@ composition "Rendering Starter" {
     height: 16
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#1a1a1a"
-      metalness: 0.8
+      baseColor: "#1a1a1a"
+      metallic: 0.8
       roughness: 0.15
+      emissive: "#0a0a0a"
+      emissiveIntensity: 0.05
     }
   }
 

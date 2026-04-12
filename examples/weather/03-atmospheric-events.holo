@@ -15,6 +15,20 @@
  */
 
 composition AtmosphericEventsShowcase {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.05
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.8
+    fog: { type: "exponential", density: 0.003, color: "#0a0a1e" }
+  }
+
+  post_processing {
+    bloom { intensity: 0.6, threshold: 0.6 }
+    tone_mapping { mode: "aces" }
+  }
+
   // Environment
   entity Sky {
     mesh: { type: "sphere", radius: 500.0, segments: 64, inverted: true },

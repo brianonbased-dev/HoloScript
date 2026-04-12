@@ -22,8 +22,9 @@ object Ground {
   scale: [10, 1, 10]
   position: [0, -0.5, 0]
   material: {
-    color: "#2a2a4a"
-    roughness: 0.8
+    baseColor: "#2a2a4a"
+    roughness: 0.7
+    metallic: 0.15
   }
 }
 
@@ -32,8 +33,11 @@ object WelcomeCube {
   position: [0, 1, 0]
   scale: [1, 1, 1]
   material: {
-    color: "#00d4ff"
-    metalness: 0.3
+    baseColor: "#00d4ff"
+    roughness: 0.3
+    metalness: 0.4
+    emissive: "#006688"
+    emissiveIntensity: 0.3
   }
   animation: {
     property: "rotation.y"
@@ -50,7 +54,9 @@ object InfoPanel {
   position: [0, 3, -2]
   scale: [4, 2, 1]
   material: {
-    color: "#1a1a2e"
+    baseColor: "#1a1a2e"
+    roughness: 0.9
+    metallic: 0.05
     opacity: 0.9
   }
   text: {
@@ -75,6 +81,13 @@ object AmbientLight {
   type: ambient_light
   intensity: 0.4
   color: "#e0e0ff"
+}
+
+// --- Post-Processing ---
+
+post_processing {
+  bloom { intensity: 0.3, threshold: 0.9 }
+  tone_mapping { mode: "aces", exposure: 1.1 }
 }
 
 // --- Camera ---

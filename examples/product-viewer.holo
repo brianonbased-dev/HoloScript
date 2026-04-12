@@ -5,8 +5,31 @@ composition "Product Viewer" {
   environment {
     skybox: "studio"
     background_color: "#f5f5f5"
+    background_gradient: ["#f5f5f5", "#e0e0e0"]
     ambient_light: 0.7
     shadows: true
+  }
+
+  // 3-point studio lighting
+  object "KeyLight" {
+    type: "directional_light"
+    direction: [-0.5, -0.8, -0.3]
+    color: "#ffffff"
+    intensity: 0.9
+  }
+
+  object "FillLight" {
+    type: "directional_light"
+    direction: [0.6, -0.4, 0.5]
+    color: "#e8f0ff"
+    intensity: 0.4
+  }
+
+  object "RimLight" {
+    type: "directional_light"
+    direction: [0.0, -0.2, 0.9]
+    color: "#fff5e0"
+    intensity: 0.3
   }
 
   // ===================
@@ -34,15 +57,24 @@ composition "Product Viewer" {
   // OBJECTS
   // ===================
 
+  // Ground plane
+  object "Ground" {
+    @collidable
+
+    position: [0, 0, 0]
+    scale: [8, 0.05, 8]
+    geometry: "cube"
+    material: { baseColor: "#e8e8e8", roughness: 0.8, metallic: 0.05 }
+  }
+
   // Display pedestal
   object "Pedestal" {
     @collidable
-    
+
     position: [0, 0.5, 0]
     scale: [1, 1, 1]
     geometry: "cylinder"
-    color: "#ffffff"
-    material: "marble"
+    material: { baseColor: "#ffffff", roughness: 0.15, metallic: 0.02 }
   }
 
   // Product model (watch example)
@@ -53,8 +85,7 @@ composition "Product Viewer" {
     position: [0, 1.5, 0]
     scale: [0.5, 0.5, 0.5]
     geometry: "torus"
-    color: "#c0c0c0"
-    material: "metal"
+    material: { baseColor: "#c0c0c0", roughness: 0.25, metallic: 0.9 }
     animate: "spin"
     animSpeed: 0.3
     
@@ -90,7 +121,7 @@ composition "Product Viewer" {
     position: [0, 0.2, 1]
     scale: [0.5, 0.3, 0.02]
     geometry: "cube"
-    color: "#ffffff"
+    material: { baseColor: "#ffffff", roughness: 0.5, metallic: 0.0 }
   }
 
   // Spotlight effect
@@ -119,5 +150,11 @@ composition "Product Viewer" {
 
     text "Name" { bind: "Premium Watch"; style: "title" }
     text "Price" { bind: "$299.99"; style: "price" }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.3, threshold: 0.7, radius: 0.4 }
+    ssao: { intensity: 0.5, radius: 0.3 }
+    tone_mapping: "aces"
   }
 }

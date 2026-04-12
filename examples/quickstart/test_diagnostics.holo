@@ -1,12 +1,20 @@
-object "MyTestOrb" {
-  shape: "sper"
-  color: "#ff0000"
+// test_diagnostics.holo
+// Diagnostic test — intentional typo in shape for error testing
 
-  on_grab: {
-    log("Grabbed!")
-  }
+composition "Test Diagnostics" {
+  environment { skybox: "gradient", ambient_light: 0.3, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6" }
 
-  on_update: {
-    this.rotate.y += 0.01
+  object "MyTestOrb" {
+    shape: "sper"
+    color: "#ff0000"
+
+    on_grab: {
+      log("Grabbed!")
+    }
+
+    on_update: {
+      this.rotate.y += 0.01
+    }
   }
 }

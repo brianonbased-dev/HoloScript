@@ -15,7 +15,35 @@
  */
 
 composition StorageSystemsShowcase {
-  // Environment
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+    ambient_light: 0.2
+    shadows: true
+  }
+
+  light "ServerRoomLight" {
+    type: "directional"
+    color: "#ccddff"
+    intensity: 0.7
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  light "DataGlow" {
+    type: "point"
+    color: "#00aaff"
+    intensity: 0.6
+    position: [0, 2, 0]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.7 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
+  }
+
+  // Ground
   entity World {
     mesh: { type: "plane", width: 100.0, height: 100.0 },
     advanced_pbr: { base_color: [0.25, 0.3, 0.35], metallic: 0.0, roughness: 0.9 },

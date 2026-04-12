@@ -13,6 +13,12 @@ composition "VR Escape Room" {
     }
   }
 
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.4, radius: 0.5 }
+  }
+
   // ========== Game State ==========
 
   state GameState {

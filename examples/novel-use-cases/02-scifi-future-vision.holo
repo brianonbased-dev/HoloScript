@@ -31,11 +31,32 @@ composition "SciFiFutureVision" {
   }
 
   environment {
-    skybox: "orbital_sunrise"
-    ambient_light: 0.7
+    skybox: { type: "gradient", top: "#020010", bottom: "#0a0a30" }
+    ambient_light: 0.3
+    shadows: true
     physics: true
-    bloom: true
     volumetric_fog: { density: 0.02, color: "#1a0033" }
+  }
+
+  light "OrbitalSun" {
+    type: "directional"
+    color: "#ffeedd"
+    intensity: 0.8
+    position: [5, 12, 5]
+    cast_shadows: true
+  }
+
+  light "CityGlow" {
+    type: "point"
+    color: "#ffcc44"
+    intensity: 0.7
+    position: [0, 5, 0]
+    range: 20
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
   }
 
   state {

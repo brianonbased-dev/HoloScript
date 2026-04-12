@@ -8,9 +8,23 @@
  * @format .hs (process)
  */
 environment {
-  skybox: "quantum_lattice"
-  ambient_light: 0.4
+  skybox: { type: "gradient", top: "#020010", bottom: "#0a0a30" }
+  ambient_light: 0.2
+  shadows: true
   fog: { color: "#0a0a1e", density: 0.005 }
+}
+
+light "NebulaGlow" {
+  type: "directional"
+  color: "#8899ff"
+  intensity: 0.6
+  position: { x: 5, y: 10, z: 5 }
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+  tone_mapping: { type: "aces", exposure: 0.8 }
 }
 
 // ============================================================================

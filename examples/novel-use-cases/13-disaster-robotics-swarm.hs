@@ -3,7 +3,11 @@
  * Sequential: generate rubble → deploy searchers → detect victims → extract → validate.
  * @version 5.0.0; @format .hs (process)
  */
-environment { skybox: "collapsed_building"; ambient_light: 0.3; physics: true; gravity: { x: 0, y: -9.81, z: 0 } }
+environment { skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }; ambient_light: 0.35; shadows: true; physics: true; gravity: { x: 0, y: -9.81, z: 0 }; fog: { color: "#888888", density: 0.015 } }
+
+light "DustySun" { type: "directional"; color: "#ffe8cc"; intensity: 0.7; position: { x: 5, y: 10, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.25, threshold: 0.7 }; tone_mapping: { type: "aces", exposure: 0.9 } }
 
 object "rubble_generator" {
   geometry: "cube"; color: "#4a3728"; position: { x: -8, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

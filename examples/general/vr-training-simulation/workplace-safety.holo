@@ -19,6 +19,24 @@ composition "Workplace Safety Training" {
 
   // ── Environment ──────────────────────────────────────────────────────────────
 
+  environment {
+    skybox: "studio"
+    ambient_light: 0.6
+  }
+
+  light "OverheadLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-60, 10, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.85 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // Training room environment
   object "Floor" {
     @collidable

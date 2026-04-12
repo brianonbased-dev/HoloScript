@@ -19,6 +19,24 @@ composition "Quest Obstacle Course" {
 
   // ── Environment ───────────────────────────────────────────────────────────
 
+  environment {
+    skybox: "clear_sky"
+    ambient_light: 0.6
+  }
+
+  light "SunLight" {
+    type: "directional"
+    color: "#fff5e6"
+    intensity: 1.0
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.85 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   object "Ground" {
     @collidable
     geometry: "plane"

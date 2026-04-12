@@ -18,6 +18,20 @@
  */
 
 composition SpatialAudioSensoryShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.25
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   // Acoustic environment
   entity AcousticSpace {
     mesh: { type: "plane", width: 20.0, height: 20.0 },

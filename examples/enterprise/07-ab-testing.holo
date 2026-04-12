@@ -23,6 +23,45 @@
  */
 
 scene ExperimentationPlatform {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ffaa44"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentAmber" {
+    type: "point"
+    color: "#f59e0b"
+    intensity: 0.8
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // A/B TEST CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -312,6 +351,14 @@ scene ExperimentationPlatform {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#0a0805",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#1a0f00",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "A/B TESTING PLATFORM\n\n🧪 Experiment Types:\n  • A/B tests (2 variants)\n  • Multi-variate tests (3+ variants)\n  • Feature flags\n  • Gradual rollouts\n\n📊 Statistical Methods:\n  • Z-test (proportions)\n  • t-test (continuous metrics)\n  • 95% confidence level\n  • 5% minimum detectable effect\n  • Auto-winner selection (99% threshold)\n\n🎯 Conversion Metrics:\n  • Click-through rate (CTR)\n  • Conversion rate\n  • Engagement time\n  • Revenue per user\n  • Custom metrics\n\n⚙️  Features:\n  • Consistent user assignment (hash-based)\n  • Traffic allocation control\n  • Real-time metric tracking\n  • Confidence intervals\n  • Sample size calculation\n  • Gradual rollout schedules\n\n✅ Use Cases:\n  • UI/UX optimization\n  • Feature validation\n  • Performance testing\n  • Content experimentation",

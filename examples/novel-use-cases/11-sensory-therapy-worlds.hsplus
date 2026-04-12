@@ -5,7 +5,20 @@
  * @format .hsplus (behavior)
  */
 composition "SensoryTherapyWorlds" {
-  environment { skybox: "soft_aurora"; ambient_light: 0.4; physics: false; bloom: true }
+  environment { skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }; ambient_light: 0.3; shadows: true; physics: false; fog: { color: "#2a1040", density: 0.006 } }
+
+  light "AuroraGlow" {
+    type: "directional"
+    color: "#bbddff"
+    intensity: 0.5
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
+  }
 
   module SensoryEngine {
     state { zones: {}; global_intensity: 0.5; adjustments: 0 }

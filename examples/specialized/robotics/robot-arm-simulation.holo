@@ -16,6 +16,27 @@ composition "UR5 Robot Arm" {
     maxPlayers: 1
   }
 
+  // ── Environment ─────────────────────────────────────────────────
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.6
+    physics: true
+  }
+
+  light "CellLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-55, 20, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.1, threshold: 0.9 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // ── Work Cell Environment ─────────────────────────────────────────────────
 
   object "FactoryFloor" {

@@ -16,6 +16,26 @@ composition "Smart Factory" {
     maxPlayers: 10
   }
 
+  // ── Environment ─────────────────────────────────────────────────────────
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.5
+  }
+
+  light "FactoryOverhead" {
+    type: "directional"
+    color: "#fff5e6"
+    intensity: 0.8
+    rotation: [-60, 15, 0]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.85 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // ── Factory Floor ─────────────────────────────────────────────────────────
 
   object "FactoryFloor" {

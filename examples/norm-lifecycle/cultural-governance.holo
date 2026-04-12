@@ -23,9 +23,30 @@
 
 composition "CulturalGovernanceDemo" {
   environment {
-    theme: "governance_hall"
-    skybox: "twilight_parliament"
-    ambient_light: 0.7
+    skybox: "gradient"
+    ambient_light: 0.4
+    shadows: true
+  }
+
+  light "HallLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  light "PodiumSpot" {
+    type: "point"
+    color: "#ffeedd"
+    intensity: 0.6
+    position: [0, 4, 0]
+    range: 10
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   state {

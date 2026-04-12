@@ -32,13 +32,25 @@ composition "Web3 Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#050510"
-    ambient: 0.4
+    skybox: {
+      type: "gradient"
+      topColor: "#050510"
+      bottomColor: "#0a0a28"
+    }
+    ambient: 0.3
     shadows: true
     fog: {
       enabled: true
       color: "#0a0a20"
       density: 0.015
+    }
+    spotLight: [
+      { intensity: 0.6, color: "#4400aa", position: { x: -5, y: 4, z: -3 }, angle: 40 },
+      { intensity: 0.4, color: "#00aaff", position: { x: 5, y: 4, z: -3 }, angle: 40 }
+    ]
+    post_processing: {
+      bloom: { intensity: 0.5, threshold: 0.6 }
+      vignette: { intensity: 0.35, smoothness: 0.5 }
     }
   }
 
@@ -99,9 +111,11 @@ composition "Web3 Starter" {
     height: 20
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#0a0a15"
-      metalness: 0.8
+      baseColor: "#0a0a15"
+      metallic: 0.8
       roughness: 0.2
+      emissive: "#050510"
+      emissiveIntensity: 0.08
     }
   }
 
@@ -202,9 +216,11 @@ composition "Web3 Starter" {
     scale: [4, 3, 0.1]
     position: { x: 5, y: 1.5, z: 0 }
     material: {
-      color: "#220044"
-      emissive: "#4400aa"
-      emissiveIntensity: 0.3
+      baseColor: "#220044"
+      roughness: 0.15
+      metallic: 0.3
+      emissive: "#6600cc"
+      emissiveIntensity: 0.4
       transparent: true
       opacity: 0.6
     }
@@ -244,9 +260,11 @@ composition "Web3 Starter" {
     radius: 0.05
     position: { x: -3.3, y: 2.0, z: -4 }
     material: {
-      color: "#44ff44"
+      baseColor: "#44ff44"
+      roughness: 0.1
+      metallic: 0.1
       emissive: "#44ff44"
-      emissiveIntensity: 1.0
+      emissiveIntensity: 1.2
     }
   }
 

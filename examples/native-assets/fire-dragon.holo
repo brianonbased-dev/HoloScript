@@ -14,6 +14,14 @@ composition "Inferno Wyrm" {
     fog_density: 0.015
     ambient_color: "#0d0520"
     background: "#050210"
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.6, threshold: 0.65 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.35, radius: 0.5 }
   }
 
   // ═════════════════════════════════════════════════════════════════════

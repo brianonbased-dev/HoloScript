@@ -24,6 +24,45 @@
  */
 
 scene TeamCollaboration {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#ff8844"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentOrange" {
+    type: "point"
+    color: "#ff6b35"
+    intensity: 0.8
+    position: [-3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // RBAC CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -362,6 +401,14 @@ scene TeamCollaboration {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#0a0505",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#1a0800",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "ROLE-BASED ACCESS CONTROL\n\n👥 Roles (hierarchical):\n  👑 Owner - Full system access\n  🛡️  Admin - User & settings management\n  ✏️  Editor - Create & modify content\n  👁️  Viewer - Read-only access\n  👻 Spectator - Observe mode (no interaction)\n\n🔐 Permission Categories:\n  • scenes (create/read/update/delete/execute)\n  • traits (create/read/update/delete/execute)\n  • assets (create/read/update/delete)\n  • analytics (read)\n  • system (read/update)\n\n⚙️  Conditional Permissions:\n  • Time windows (business hours only)\n  • IP whitelists (office network)\n  • Resource ownership (delete own content)\n  • Geographic restrictions\n  • MFA requirements\n\n📊 Features:\n  • Role inheritance (admin > editor > viewer)\n  • Temporary role assignments (expiration)\n  • Permission caching (5min TTL)\n  • Audit logging (all checks recorded)",

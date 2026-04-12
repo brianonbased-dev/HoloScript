@@ -1,0 +1,31 @@
+// Environment Preset: Interior Warm
+// Use: VR rooms, social, meetings, living spaces, offices
+// Copy the blocks below into your composition.
+
+// --- Environment (enclosed — no skybox) ---
+environment {
+  ambient_light: 0.3
+  shadows: true
+}
+
+// --- Lighting ---
+light "CeilingLight" { type: "point", position: [0, 3, 0], intensity: 600, color: "#ffddbb" }
+light "WallSconce" { type: "point", position: [3, 2, -3], intensity: 200, color: "#ffeedd" }
+light "WindowLight" { type: "directional", position: [-4, 5, 2], intensity: 0.5, color: "#e8f0ff" }
+
+// --- Ground ---
+object "Floor" {
+  @collidable
+  geometry: "plane"
+  position: [0, 0, 0]
+  scale: [8, 1, 8]
+  material: { baseColor: "#8b6f47", roughness: 0.75, metallic: 0.1 }
+}
+
+// --- Post-Processing ---
+post_processing {
+  ambient_occlusion { intensity: 0.5, radius: 0.3 }
+  bloom { intensity: 0.2, threshold: 1.0 }
+  tone_mapping { mode: "aces", exposure: 1.0 }
+  color_grading { temperature: 4500, saturation: 1.0 }
+}

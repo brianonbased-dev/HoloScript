@@ -17,6 +17,21 @@
  */
 
 composition NaturalDisastersShowcase {
+  environment {
+    skybox: "overcast"
+    ambient_light: 0.2
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 0.8
+    fog: { type: "exponential", density: 0.005, color: "#6a6a70" }
+  }
+
+  post_processing {
+    bloom { intensity: 0.4, threshold: 0.75 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.4, radius: 0.6 }
+  }
+
   // Terrain
   entity Terrain {
     mesh: { type: "plane", width: 500.0, height: 500.0, subdivisions: 128 },

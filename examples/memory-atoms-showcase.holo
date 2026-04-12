@@ -9,6 +9,22 @@
 
 composition "MemoryAtomsShowcase" {
 
+  environment {
+    skybox: "gradient"
+    background_color: "#020208"
+    background_gradient: ["#020208", "#0a0520"]
+    ambient_light: 0.15
+    shadows: true
+  }
+
+  // Subtle directional light
+  object "SpaceLight" {
+    type: "directional_light"
+    direction: [0.2, -0.6, -0.7]
+    color: "#c0c8ff"
+    intensity: 0.35
+  }
+
   // ── 1. Semantic Knowledge Agent ──────────────────────────────────────────
   // A guide NPC that accumulates and recalls knowledge from interactions.
   // The @forget_policy ensures old, unused memories are pruned with audit trail.
@@ -78,7 +94,9 @@ composition "MemoryAtomsShowcase" {
     geometry: "sphere"
     position: [5, 2, 0]
     scale: [0.3, 0.3, 0.3]
-    material: { color: "#00ff88", emissive: "#003311" }
+    material: { baseColor: "#00ff88", roughness: 0.3, metallic: 0.2 }
+    emissive: "#00ff88"
+    emissiveIntensity: 0.5
 
     state {
       role: "environment_logger",
@@ -145,10 +163,17 @@ composition "MemoryAtomsShowcase" {
     geometry: "box"
     position: [3, 1, -4]
     scale: [0.5, 0.5, 0.5]
-    material: { color: "#ff4444" }
+    material: { baseColor: "#ff4444", roughness: 0.4, metallic: 0.15 }
+    emissive: "#ff4444"
+    emissiveIntensity: 0.35
 
     state {
       note: "This object will emit a crystal_threshold_warn on attach"
     }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.7, threshold: 0.3, radius: 0.5 }
+    tone_mapping: "aces"
   }
 }

@@ -4,8 +4,30 @@
 
 composition "AvatarCustomization" {
   environment {
-    backgroundColor: "#0f0f1a"
-    ambient: 0.5
+    skybox: "gradient"
+    ambient_light: 0.4
+    shadows: true
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "FillLight" {
+    type: "point"
+    color: "#ddeeff"
+    intensity: 0.5
+    position: [-3, 4, 3]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   // ─── Customizable Avatar Base ────────────────────────────────────────────────

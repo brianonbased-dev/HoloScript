@@ -3,9 +3,37 @@
 
 composition "VR Meeting Room" {
   environment {
-    skybox: "office"
-    ambient_light: 0.6
+    skybox: "none"
+    background_color: "#1a1512"
+    ambient_light: 0.35
     shadows: true
+  }
+
+  // Warm overhead point lights
+  object "CeilingLight1" {
+    type: "point_light"
+    position: [-1.5, 3.5, 0]
+    color: "#ffe4c4"
+    intensity: 0.7
+    distance: 8
+  }
+
+  object "CeilingLight2" {
+    type: "point_light"
+    position: [1.5, 3.5, 0]
+    color: "#ffe4c4"
+    intensity: 0.7
+    distance: 8
+  }
+
+  // Wood floor
+  object "Floor" {
+    @collidable
+
+    position: [0, 0, 0]
+    scale: [8, 0.08, 6]
+    geometry: "cube"
+    material: { baseColor: "#8B6914", roughness: 0.75, metallic: 0.03 }
   }
 
   // ===================
@@ -15,9 +43,9 @@ composition "VR Meeting Room" {
   template "Chair" {
     @collidable
     @sittable
-    
+
     geometry: "cube"
-    color: "#34495e"
+    material: { baseColor: "#34495e", roughness: 0.6, metallic: 0.15 }
   }
 
   template "LightOrb" {
@@ -36,12 +64,11 @@ composition "VR Meeting Room" {
   // Conference table
   object "Table" {
     @collidable
-    
+
     position: [0, 0.75, 0]
     scale: [3, 0.1, 1.5]
     geometry: "cube"
-    color: "#2c3e50"
-    material: "wood"
+    material: { baseColor: "#2c3e50", roughness: 0.7, metallic: 0.04 }
   }
 
   // Chairs around table
@@ -92,5 +119,10 @@ composition "VR Meeting Room" {
   object "Light2" using "LightOrb" {
     position: [2, 3, -1]
     scale: [0.2, 0.2, 0.2]
+  }
+
+  post_processing {
+    bloom: { intensity: 0.25, threshold: 0.65, radius: 0.3 }
+    tone_mapping: "aces"
   }
 }

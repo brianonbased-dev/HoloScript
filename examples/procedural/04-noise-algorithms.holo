@@ -19,6 +19,19 @@
  */
 
 composition NoiseAlgorithmsShowcase {
+  environment {
+    skybox: "deep_space"
+    ambient_light: 0.15
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.1
+  }
+
+  post_processing {
+    bloom { intensity: 0.35, threshold: 0.75 }
+    tone_mapping { mode: "aces" }
+  }
+
   // 1. Noise Generator
   entity NoiseField {
     noise_generator: {

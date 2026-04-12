@@ -3,7 +3,11 @@
  * Sequential: scan artifact → verify provenance → register → restoration bounty → publish.
  * @version 5.0.0; @format .hs (process)
  */
-environment { skybox: "warm_gallery"; ambient_light: 0.55; physics: true }
+environment { skybox: "gradient"; ambient_light: 0.4; shadows: true; physics: true }
+
+light "GallerySpot" { type: "directional"; color: "#fff5e0"; intensity: 0.8; position: { x: 3, y: 8, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }; tone_mapping: { type: "aces", exposure: 1.0 } }
 
 object "artifact_scanner" {
   geometry: "cube"; color: "#8b4513"; position: { x: -8, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

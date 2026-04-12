@@ -23,6 +23,33 @@
  */
 
 scene DistributedAuth {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.12
+    fog: { enabled: true, color: "#080818", density: 0.02 }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#44cc88"
+    intensity: 0.5
+    rotation: [-45, 30, 0]
+    cast_shadows: true
+  }
+
+  light "AccentTeal" {
+    type: "point"
+    color: "#34d399"
+    intensity: 0.7
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.65 }
+    tone_mapping: { enabled: true, type: "aces", exposure: 1.1 }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // AUTHENTICATION SERVICE CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -388,6 +415,14 @@ scene DistributedAuth {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#050a08",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#001a0d",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "DISTRIBUTED AGENT AUTHENTICATION\n\n🔐 Authentication Flow:\n  1. Agent initiates auth\n  2. Service issues PoP challenge (nonce)\n  3. Agent signs nonce with private key\n  4. Service verifies signature\n  5. Issues access + refresh tokens\n  6. Creates session\n\n🎫 Token Types:\n  • Access token - Short-lived (15 min)\n  • Refresh token - Long-lived (30 days)\n  • Scene token - Per-scene capabilities\n\n🌐 Multi-Scene SSO:\n  • Authenticate once, access all scenes\n  • Federated session management\n  • Per-scene capability tokens\n  • Seamless scene transitions\n\n🔄 Session Management:\n  • Sliding expiration (extend on activity)\n  • Max 5 concurrent sessions\n  • Session refresh without re-auth\n  • Global logout (all sessions)\n\n🛡️  Security Features:\n  • Hybrid signatures (Ed25519 + ML-DSA-65)\n  • PoP binding (prevent token theft)\n  • Token revocation lists\n  • Session invalidation\n  • Quantum-resistant tokens\n\n⚡ PoP Challenge:\n  • 32-byte random nonce\n  • 1-minute expiration\n  • Zero-knowledge proof",

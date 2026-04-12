@@ -23,10 +23,23 @@ composition "Medieval Tavern" {
   }
 
   environment {
-    skybox: "night_sky"
-    lighting: "warm_interior"
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
     ambient_light: 0.25
     shadows: true
+    fog: { enabled: true, density: 0.008, color: "#2a1040" }
+  }
+
+  light "TavernFire" {
+    type: "point"
+    color: "#ff9944"
+    intensity: 1.4
+    position: [0, 2, -3]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.35, threshold: 0.65 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
   }
 
   // ----------------------------------------------------------
@@ -39,8 +52,7 @@ composition "Medieval Tavern" {
     geometry: "plane"
     position: [0, 0, 0]
     scale: [12, 1, 10]
-    color: "#5d4037"
-    material: "wood"
+    material: { baseColor: "#5d4037", roughness: 0.8, metallic: 0.0 }
   }
 
   object "Fireplace" {
@@ -50,7 +62,7 @@ composition "Medieval Tavern" {
     geometry: "model/stone_fireplace.glb"
     position: [-5, 1.2, -4]
     scale: [1, 1, 1]
-    color: "#8b7355"
+    material: { baseColor: "#8b7355", roughness: 0.9, metallic: 0.02, emissive: "#ff6622", emissive_intensity: 0.6 }
     emissive: "#ff6600"
     emissiveIntensity: 0.6
   }

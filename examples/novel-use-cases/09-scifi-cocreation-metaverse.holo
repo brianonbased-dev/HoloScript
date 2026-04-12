@@ -26,10 +26,31 @@ composition "SciFiCoCreation" {
   }
 
   environment {
-    skybox: "nebula_city"
-    ambient_light: 0.5
+    skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+    ambient_light: 0.25
+    shadows: true
     physics: true
-    bloom: true
+  }
+
+  light "NebulaSun" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.6
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  light "CityNeon" {
+    type: "point"
+    color: "#ff44cc"
+    intensity: 0.8
+    position: [0, 3, 0]
+    range: 15
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
   }
 
   state {

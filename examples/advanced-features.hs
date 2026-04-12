@@ -7,6 +7,23 @@ environment {
   ambient_light: 0.4
 }
 
+// === LIGHTING ===
+
+object "scene_light" {
+  type: "directional_light"
+  color: "#e0d0ff"
+  intensity: 0.9
+  position: { x: 4, y: 8, z: 3 }
+  castShadow: true
+}
+
+object "accent_light" {
+  type: "point_light"
+  color: "#ff66aa"
+  intensity: 0.5
+  position: { x: -4, y: 3, z: -2 }
+}
+
 // === CREATIVE GEOMETRIES ===
 
 // Floating heart with pulse animation
@@ -14,6 +31,10 @@ object "loveHeart" {
   geometry: "heart"
   color: "rose"
   material: "shiny"
+  roughness: 0.2
+  metallic: 0.3
+  emissive: "#882244"
+  emissiveIntensity: 0.5
   glow: true
   position: { x: -4, y: 2, z: -3 }
   animate: "pulse"
@@ -25,6 +46,8 @@ object "glassCrystal" {
   geometry: "crystal"
   color: "ice"
   material: "glass"
+  roughness: 0.05
+  metallic: 0.1
   position: { x: -2, y: 1.5, z: -3 }
   animate: "spin"
   animSpeed: 0.5
@@ -54,6 +77,8 @@ object "chromeSculpture" {
   geometry: "torusknot"
   color: "white"
   material: "chrome"
+  roughness: 0.05
+  metallic: 1.0
   position: { x: 4, y: 1.5, z: -3 }
   animate: "spin"
   animSpeed: 0.2
@@ -66,6 +91,10 @@ object "floatDiamond" {
   geometry: "diamond"
   color: "plasma"
   material: "glass"
+  roughness: 0.05
+  metallic: 0.3
+  emissive: "#442266"
+  emissiveIntensity: 0.4
   glow: true
   position: { x: -3, y: 1.5, z: 0 }
   animate: "float"
@@ -112,6 +141,8 @@ object "toonBall" {
   geometry: "sphere"
   color: "orange"
   material: "toon"
+  roughness: 0.7
+  metallic: 0.0
   position: { x: -4, y: 1, z: 3 }
 }
 
@@ -120,6 +151,8 @@ object "velvetCube" {
   geometry: "cube"
   color: "purple"
   material: "velvet"
+  roughness: 0.9
+  metallic: 0.0
   position: { x: -2, y: 0.5, z: 3 }
 }
 
@@ -136,6 +169,8 @@ object "gradientCone" {
   geometry: "cone"
   color: "magenta"
   material: "gradient"
+  roughness: 0.5
+  metallic: 0.2
   position: { x: 2, y: 0.75, z: 3 }
 }
 
@@ -144,6 +179,8 @@ object "wireframeDodeca" {
   geometry: "dodecahedron"
   color: "lime"
   material: "wireframe"
+  emissive: "#224400"
+  emissiveIntensity: 0.3
   position: { x: 4, y: 1, z: 3 }
 }
 
@@ -154,6 +191,8 @@ object "waterDrop" {
   geometry: "droplet"
   color: "aqua"
   material: "glass"
+  roughness: 0.05
+  metallic: 0.1
   position: { x: -3, y: 1.5, z: 6 }
   animate: "bob"
 }
@@ -163,6 +202,8 @@ object "decorVase" {
   geometry: "vase"
   color: "terracotta"
   material: "matte"
+  roughness: 0.8
+  metallic: 0.05
   position: { x: -1, y: 0.5, z: 6 }
 }
 
@@ -171,6 +212,10 @@ object "snowflake" {
   geometry: "snowflake"
   color: "white"
   material: "shiny"
+  roughness: 0.1
+  metallic: 0.5
+  emissive: "#aabbcc"
+  emissiveIntensity: 0.3
   glow: true
   position: { x: 1, y: 2, z: 6 }
   animate: "spin"
@@ -195,6 +240,8 @@ object "spiralDeco" {
   geometry: "spiral"
   color: "gold"
   material: "metal"
+  roughness: 0.3
+  metallic: 0.9
   position: { x: 0, y: 0.5, z: -6 }
   scale: { x: 2, y: 2, z: 2 }
 }
@@ -214,6 +261,8 @@ object "arrowSign" {
   geometry: "arrow"
   color: "warning"
   material: "matte"
+  roughness: 0.7
+  metallic: 0.1
   position: { x: 3, y: 2, z: -6 }
   rotation: { x: 0, y: 0, z: 90 }
 }
@@ -223,6 +272,8 @@ object "decorBowl" {
   geometry: "bowl"
   color: "brass"
   material: "metal"
+  roughness: 0.35
+  metallic: 0.85
   position: { x: 5, y: 0.5, z: -6 }
 }
 
@@ -298,3 +349,19 @@ object "iceParticles" {
 //   position: { x: 0, y: 0, z: -8 }
 //   scale: { x: 1, y: 1, z: 1 }
 // }
+
+// === POST-PROCESSING ===
+// Bloom highlights emissive objects; ACES tone mapping for cinematic look.
+
+post_processing {
+  bloom: {
+    enabled: true,
+    intensity: 0.5,
+    threshold: 0.75,
+    radius: 0.5
+  }
+  tone_mapping: {
+    type: "aces",
+    exposure: 1.0
+  }
+}

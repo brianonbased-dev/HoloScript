@@ -31,6 +31,12 @@ composition "ConcertVenue" {
     exposure: 0.8
   }
 
+  post_processing {
+    bloom { intensity: 0.5, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+  }
+
   // -- State (spans all four domains) --------------------------------------------
 
   state ConcertState {

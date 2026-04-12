@@ -13,7 +13,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
+import { streamBrittney, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
@@ -93,6 +93,11 @@ export function BrittneyChatPanel() {
   const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+
+  const executorRef = useRef<SimulationToolExecutor | null>(null);
+  if (!executorRef.current) {
+    executorRef.current = new SimulationToolExecutor();
+  }
 
   /** Speak text aloud via Web Speech Synthesis */
   const speak = useCallback(
@@ -226,7 +231,19 @@ export function BrittneyChatPanel() {
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
-          const result = executeTool(tc.name, tc.arguments, storeActions);
+          let result: ToolResult;
+          
+          if (executorRef.current?.isSimulationTool(tc.name)) {
+            const simRes = await executorRef.current.execute(tc.name, tc.arguments as Record<string, unknown>);
+            result = {
+              tool: tc.name,
+              success: simRes.success,
+              message: simRes.message,
+            };
+          } else {
+            result = executeTool(tc.name, tc.arguments, storeActions);
+          }
+          
           StudioEvents.brittneyToolCalled(tc.name, result.success);
           toolResults.push(result);
           setChatMessages((m) =>

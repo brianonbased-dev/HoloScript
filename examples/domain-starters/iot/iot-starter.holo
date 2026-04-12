@@ -34,9 +34,28 @@ composition "IoT Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#0d1117"
-    ambient: 0.5
+    skybox: {
+      type: "gradient"
+      topColor: "#0a0e18"
+      bottomColor: "#1a2038"
+    }
+    ambient: 0.45
     shadows: true
+    directionalLight: {
+      intensity: 0.6
+      color: "#d0d8e8"
+      castShadow: true
+    }
+    spotLight: {
+      intensity: 0.8
+      color: "#e0e8f8"
+      position: { x: 0, y: 3, z: 0 }
+      angle: 60
+      castShadow: true
+    }
+    post_processing: {
+      bloom: { intensity: 0.3, threshold: 0.75 }
+    }
   }
 
   // -- Application State ---------------------------------------------------------
@@ -114,8 +133,9 @@ composition "IoT Starter" {
     height: 6
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#1a1a2e"
-      roughness: 0.9
+      baseColor: "#1a1a2e"
+      roughness: 0.85
+      metallic: 0.05
     }
   }
 
@@ -125,21 +145,21 @@ composition "IoT Starter" {
       geometry: "box"
       scale: [4, 0.3, 0.05]
       position: { x: -1, y: 0.15, z: -1.5 }
-      material: { color: "#334455" }
+      material: { baseColor: "#334455", roughness: 0.9, metallic: 0.0 }
     }
 
     object "Bedroom_Wall" {
       geometry: "box"
       scale: [3, 0.3, 0.05]
       position: { x: 2, y: 0.15, z: 0 }
-      material: { color: "#334455" }
+      material: { baseColor: "#334455", roughness: 0.9, metallic: 0.0 }
     }
 
     object "Kitchen_Wall" {
       geometry: "box"
       scale: [0.05, 0.3, 3]
       position: { x: 0, y: 0.15, z: 0 }
-      material: { color: "#334455" }
+      material: { baseColor: "#334455", roughness: 0.9, metallic: 0.0 }
     }
   }
 

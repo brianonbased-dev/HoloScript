@@ -6,7 +6,11 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "lab_sterile"; ambient_light: 0.6; fog: { color: "#f0f0ff", density: 0.002 } }
+environment { skybox: "gradient"; ambient_light: 0.4; shadows: true; fog: { color: "#f0f0ff", density: 0.002 } }
+
+light "CleanRoom" { type: "directional"; color: "#ffffff"; intensity: 1.0; position: { x: 0, y: 10, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.1, threshold: 0.85 }; tone_mapping: { type: "aces", exposure: 1.1 } }
 
 object "dilemma_generator" {
   geometry: "cube"; color: "#00bcd4"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

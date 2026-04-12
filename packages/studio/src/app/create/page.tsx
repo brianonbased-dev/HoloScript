@@ -1231,7 +1231,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />
+                <StudioErrorBoundary label="Scene Critique">
+                  <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1244,7 +1246,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
+                <StudioErrorBoundary label="Asset Pack Importer">
+                  <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1257,7 +1261,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
+                <StudioErrorBoundary label="Scene Versions">
+                  <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1270,7 +1276,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <REPLPanel onClose={() => setReplOpen(false)} />
+                <StudioErrorBoundary label="REPL">
+                  <REPLPanel onClose={() => setReplOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1283,7 +1291,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <RegistryPanel onClose={() => setRegistryOpen(false)} />
+                <StudioErrorBoundary label="Pack Registry">
+                  <RegistryPanel onClose={() => setRegistryOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1296,7 +1306,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <QRRemotePanel onClose={() => setRemoteOpen(false)} />
+                <StudioErrorBoundary label="Mobile Remote">
+                  <QRRemotePanel onClose={() => setRemoteOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}

@@ -31,11 +31,33 @@ composition "RobotTrainingMetaverse" {
   }
 
   environment {
-    skybox: "industrial_hangar"
+    skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
     ambient_light: 0.5
+    shadows: true
     physics: true
     physics_engine: "ode"
     gravity: [0, -9.81, 0]
+  }
+
+  light "HangarOverhead" {
+    type: "directional"
+    color: "#fff5e0"
+    intensity: 1.0
+    position: [5, 12, 5]
+    cast_shadows: true
+  }
+
+  light "WarningBeacon" {
+    type: "point"
+    color: "#ff8800"
+    intensity: 0.5
+    position: [0, 3, 0]
+    range: 15
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+    tone_mapping: { type: "aces", exposure: 1.1 }
   }
 
   state {

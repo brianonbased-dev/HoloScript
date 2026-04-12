@@ -16,6 +16,20 @@
  */
 
 composition VRControllersInputShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.3
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.25, radius: 0.4 }
+  }
+
   // VR play area
   entity PlaySpace {
     mesh: { type: "plane", width: 4.0, height: 4.0 },

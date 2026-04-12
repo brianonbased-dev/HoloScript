@@ -21,8 +21,29 @@
  */
 
 environment {
-  skybox: "studio"
-  ambient_light: 0.7
+  skybox: "night_sky"
+  ambient_light: 0.2
+  fog: { color: "#0a0a1a", density: 0.01 }
+}
+
+light "MainLight" {
+  type: "directional"
+  color: "#4488ff"
+  intensity: 0.6
+  rotation: [-45, 30, 0]
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: {
+    enabled: true
+    intensity: 0.4
+    threshold: 0.7
+  }
+  tone_mapping: {
+    enabled: true
+    type: "aces"
+  }
 }
 
 // ============================================================================
@@ -655,9 +676,13 @@ object "activation_agent" {
 
 object "provisioning_dashboard" {
   geometry: "cube"
-  color: "#263238"
   position: { x: 0, y: 4, z: -4 }
   scale: { x: 18, y: 2, z: 0.1 }
+  roughness: 0.15
+  metallic: 0.2
+  color: "#0a0a1a"
+  emissive: "#001122"
+  emissive_intensity: 0.3
 
   state {
     current_stage: "idle"

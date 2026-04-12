@@ -21,9 +21,23 @@
 
 composition "AgentPortalFederation" {
   environment {
-    skybox: "nebula"
-    ambient_light: 0.4
+    skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+    ambient_light: 0.2
+    shadows: true
     physics: false
+  }
+
+  light "PortalBeacon" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.6
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.45, threshold: 0.55 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
   }
 
   // ========================================================================

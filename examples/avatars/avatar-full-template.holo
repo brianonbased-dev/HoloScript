@@ -24,9 +24,23 @@ composition "Customizable VR Avatar" {
   }
 
   environment {
-    skybox: "studio_soft"
+    skybox: "gradient"
     lighting: "three_point"
     ambient_light: 0.4
+    shadows: true
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.9
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.15, threshold: 0.8 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   // ----------------------------------------------------------

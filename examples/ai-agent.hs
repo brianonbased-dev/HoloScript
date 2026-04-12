@@ -36,6 +36,8 @@ object "wall_north" {
   geometry: "cube"
   color: "#3a3a5a"
   material: "stone"
+  roughness: 0.85
+  metallic: 0.1
   position: { x: 0, y: 1.5, z: -7 }
   scale: { x: 14, y: 3, z: 0.3 }
 }
@@ -44,6 +46,8 @@ object "wall_south" {
   geometry: "cube"
   color: "#3a3a5a"
   material: "stone"
+  roughness: 0.85
+  metallic: 0.1
   position: { x: 0, y: 1.5, z: 7 }
   scale: { x: 14, y: 3, z: 0.3 }
 }
@@ -52,6 +56,8 @@ object "wall_east" {
   geometry: "cube"
   color: "#3a3a5a"
   material: "stone"
+  roughness: 0.85
+  metallic: 0.1
   position: { x: 7, y: 1.5, z: 0 }
   scale: { x: 0.3, y: 3, z: 14 }
 }
@@ -60,6 +66,8 @@ object "wall_west" {
   geometry: "cube"
   color: "#3a3a5a"
   material: "stone"
+  roughness: 0.85
+  metallic: 0.1
   position: { x: -7, y: 1.5, z: 0 }
   scale: { x: 0.3, y: 3, z: 14 }
 }
@@ -69,6 +77,8 @@ object "fountain_base" {
   geometry: "cylinder"
   color: "#556677"
   material: "stone"
+  roughness: 0.7
+  metallic: 0.2
   position: { x: 0, y: 0.3, z: 0 }
   scale: { x: 1.8, y: 0.6, z: 1.8 }
 }
@@ -77,6 +87,8 @@ object "fountain_pillar" {
   geometry: "cylinder"
   color: "#667788"
   material: "stone"
+  roughness: 0.7
+  metallic: 0.2
   position: { x: 0, y: 1.2, z: 0 }
   scale: { x: 0.3, y: 1.8, z: 0.3 }
 }
@@ -85,6 +97,8 @@ object "fountain_water" {
   type: "particles"
   count: 40
   color: "#44aaff"
+  emissive: "#224488"
+  emissiveIntensity: 0.3
   position: { x: 0, y: 2.2, z: 0 }
   spread: 0.6
 }
@@ -94,6 +108,8 @@ object "crate_stack_1" {
   geometry: "cube"
   color: "#8b6914"
   material: "matte"
+  roughness: 0.9
+  metallic: 0.0
   position: { x: 5, y: 0.5, z: -3 }
   scale: { x: 1, y: 1, z: 1 }
 }
@@ -102,6 +118,8 @@ object "crate_stack_2" {
   geometry: "cube"
   color: "#7a5c12"
   material: "matte"
+  roughness: 0.9
+  metallic: 0.0
   position: { x: 5.5, y: 0.5, z: -2 }
   scale: { x: 0.8, y: 0.8, z: 0.8 }
 }
@@ -110,6 +128,8 @@ object "crate_stack_3" {
   geometry: "cube"
   color: "#8b6914"
   material: "matte"
+  roughness: 0.9
+  metallic: 0.0
   position: { x: 5, y: 1.3, z: -3 }
   scale: { x: 0.7, y: 0.7, z: 0.7 }
 }
@@ -120,6 +140,7 @@ object "torch_nw" {
   color: "#ff8800"
   material: "neon"
   glow: true
+  emissive: "#884400"
   emissiveIntensity: 0.8
   position: { x: -6, y: 2.5, z: -6 }
   scale: { x: 0.2, y: 0.4, z: 0.2 }
@@ -130,6 +151,7 @@ object "torch_ne" {
   color: "#ff8800"
   material: "neon"
   glow: true
+  emissive: "#884400"
   emissiveIntensity: 0.8
   position: { x: 6, y: 2.5, z: -6 }
   scale: { x: 0.2, y: 0.4, z: 0.2 }
@@ -140,6 +162,7 @@ object "torch_se" {
   color: "#ff8800"
   material: "neon"
   glow: true
+  emissive: "#884400"
   emissiveIntensity: 0.8
   position: { x: 6, y: 2.5, z: 6 }
   scale: { x: 0.2, y: 0.4, z: 0.2 }
@@ -150,6 +173,7 @@ object "torch_sw" {
   color: "#ff8800"
   material: "neon"
   glow: true
+  emissive: "#884400"
   emissiveIntensity: 0.8
   position: { x: -6, y: 2.5, z: 6 }
   scale: { x: 0.2, y: 0.4, z: 0.2 }
@@ -430,6 +454,8 @@ object "dialogue_zone" {
 object "speech_bubble" {
   geometry: "cube"
   color: "#1a1a2ecc"
+  roughness: 0.5
+  metallic: 0.1
   position: { x: -4, y: 2.6, z: -3.5 }
   scale: { x: 1.8, y: 0.5, z: 0.05 }
   visible: false
@@ -544,4 +570,21 @@ object "scene_subtitle" {
   color: "#6688aa"
   position: { x: 0, y: 3.4, z: -6.5 }
   scale: { x: 0.12, y: 0.12, z: 0.12 }
+}
+
+// ============================================================================
+// 8. POST-PROCESSING — Screen-space effects for visual atmosphere
+// ============================================================================
+
+post_processing {
+  bloom: {
+    enabled: true,
+    intensity: 0.6,
+    threshold: 0.7,
+    radius: 0.4
+  }
+  tone_mapping: {
+    type: "aces",
+    exposure: 0.9
+  }
 }

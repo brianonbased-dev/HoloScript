@@ -12,6 +12,12 @@ composition "Hololand Command Center" {
         gridColor: "#003366"
     }
 
+    post_processing {
+        bloom { intensity: 0.4, threshold: 0.7 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.3, radius: 0.5 }
+    }
+
     // Main Command Hall
     object "Command_Floor" {
         geometry: "plane"

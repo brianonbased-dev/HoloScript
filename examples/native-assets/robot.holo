@@ -3,6 +3,19 @@ composition "HoloBot" {
   // A robot built entirely from geometric primitives — no external models.
   // Each "pixel" is a colored shape; density creates detail.
 
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.3
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   template "MetalJoint" {
     geometry: "sphere"
     material: { preset: "chrome", metalness: 0.9, roughness: 0.1 }

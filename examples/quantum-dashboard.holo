@@ -2,7 +2,14 @@
 // The Quantum Dashboard Flagship Example
 
 composition "QuantumDashboard" {
-  
+
+  environment {
+    skybox: "none"
+    background_color: "#050510"
+    background_gradient: ["#050510", "#0a0a1a"]
+    ambient_light: 0.15
+  }
+
   @2d_canvas(title: "Quantum AI Dashboard", projection: "flat-semantic")
 
   object "LiveMetricsBoard" {
@@ -60,6 +67,11 @@ composition "QuantumDashboard" {
       @text(variant: "h1", content: "V6 S E M A N T I C  U I")
       @tailwind("text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 to-purple-600 opacity-20 transform scale-150")
     }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.65, threshold: 0.3, radius: 0.5 }
+    tone_mapping: "aces"
   }
 
 }

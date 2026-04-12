@@ -19,6 +19,8 @@ object "floor" {
   geometry: "cube"
   color: "#5c4033"
   material: "wood"
+  roughness: 0.6
+  metallic: 0.1
   position: { x: 0, y: 0, z: 0 }
   scale: { x: 8, y: 0.1, z: 6 }
   @accessible { role: "ground", label: "Wooden floor" }
@@ -28,6 +30,8 @@ object "ceiling" {
   geometry: "cube"
   color: "#f5f0e8"
   material: "matte"
+  roughness: 0.95
+  metallic: 0.0
   position: { x: 0, y: 3, z: 0 }
   scale: { x: 8, y: 0.1, z: 6 }
 }
@@ -118,6 +122,8 @@ object "sofa_base" {
   geometry: "cube"
   color: "#4a6741"
   material: "velvet"
+  roughness: 0.85
+  metallic: 0.0
   position: { x: 0, y: 0.35, z: 2.2 }
   scale: { x: 2.8, y: 0.5, z: 1 }
   @accessible { role: "seat", label: "Three-seat sofa" }
@@ -127,6 +133,8 @@ object "sofa_backrest" {
   geometry: "cube"
   color: "#4a6741"
   material: "velvet"
+  roughness: 0.85
+  metallic: 0.0
   position: { x: 0, y: 0.75, z: 2.65 }
   scale: { x: 2.8, y: 0.6, z: 0.15 }
 }
@@ -154,6 +162,8 @@ object "coffee_table_top" {
   geometry: "cube"
   color: "#6b4226"
   material: "wood"
+  roughness: 0.4
+  metallic: 0.1
   position: { x: 0, y: 0.4, z: 1 }
   scale: { x: 1.4, y: 0.06, z: 0.7 }
   @accessible { role: "surface", label: "Coffee table" }
@@ -199,6 +209,8 @@ object "coffee_mug" {
   geometry: "cylinder"
   color: "#d4a574"
   material: "matte"
+  roughness: 0.8
+  metallic: 0.05
   position: { x: -0.3, y: 0.55, z: 1 }
   scale: { x: 0.08, y: 0.12, z: 0.08 }
   @hand_tracking { enabled: true }
@@ -223,6 +235,8 @@ object "decorative_ball" {
   geometry: "sphere"
   color: "#cc3333"
   material: "shiny"
+  roughness: 0.15
+  metallic: 0.7
   position: { x: 0.5, y: 0.52, z: 1.1 }
   scale: { x: 0.1, y: 0.1, z: 0.1 }
   @hand_tracking { enabled: true }
@@ -237,6 +251,8 @@ object "bookshelf_frame" {
   geometry: "cube"
   color: "#5a3a1a"
   material: "wood"
+  roughness: 0.5
+  metallic: 0.05
   position: { x: -3.5, y: 1.1, z: 0 }
   scale: { x: 0.8, y: 2.2, z: 0.35 }
   @accessible { role: "furniture", label: "Bookshelf with four shelves" }
@@ -281,6 +297,8 @@ object "tv_frame" {
   geometry: "cube"
   color: "#1a1a1a"
   material: "standard"
+  roughness: 0.3
+  metallic: 0.8
   position: { x: 2.5, y: 1.8, z: 2.9 }
   scale: { x: 1.6, y: 0.95, z: 0.06 }
   @accessible { role: "media", label: "Wall-mounted television" }
@@ -303,6 +321,8 @@ object "lamp_pole" {
   geometry: "cylinder"
   color: "#3a3a3a"
   material: "metal"
+  roughness: 0.3
+  metallic: 0.9
   position: { x: 3.3, y: 0.7, z: 2.5 }
   scale: { x: 0.04, y: 1.4, z: 0.04 }
 }
@@ -311,6 +331,10 @@ object "lamp_shade" {
   geometry: "cone"
   color: "#f5e6c8"
   material: "matte"
+  roughness: 0.8
+  metallic: 0.0
+  emissive: "#8a7450"
+  emissiveIntensity: 0.4
   opacity: 0.85
   position: { x: 3.3, y: 1.55, z: 2.5 }
   scale: { x: 0.3, y: 0.35, z: 0.3 }
@@ -321,6 +345,8 @@ object "lamp_base" {
   geometry: "cylinder"
   color: "#3a3a3a"
   material: "metal"
+  roughness: 0.3
+  metallic: 0.9
   position: { x: 3.3, y: 0.05, z: 2.5 }
   scale: { x: 0.2, y: 0.08, z: 0.2 }
 }
@@ -368,6 +394,8 @@ object "area_rug" {
   geometry: "cube"
   color: "#8b4f6e"
   material: "velvet"
+  roughness: 0.95
+  metallic: 0.0
   position: { x: 0, y: 0.06, z: 1.5 }
   scale: { x: 3, y: 0.02, z: 2.5 }
   @accessible { role: "decoration", label: "Area rug" }
@@ -410,6 +438,8 @@ object "speaker" {
   geometry: "cube"
   color: "#2a2a2a"
   material: "standard"
+  roughness: 0.4
+  metallic: 0.6
   position: { x: -3.5, y: 1.65, z: 0.05 }
   scale: { x: 0.2, y: 0.15, z: 0.12 }
   @spatial_audio {
@@ -432,6 +462,8 @@ object "throw_pillow" {
   geometry: "cube"
   color: "#c4a35a"
   material: "velvet"
+  roughness: 0.9
+  metallic: 0.0
   position: { x: -0.8, y: 0.7, z: 2.2 }
   scale: { x: 0.3, y: 0.3, z: 0.08 }
   rotation: { x: 0, y: 15, z: 5 }
@@ -448,6 +480,8 @@ object "picture_frame" {
   geometry: "cube"
   color: "#8b7355"
   material: "wood"
+  roughness: 0.4
+  metallic: 0.1
   position: { x: 3.9, y: 1.7, z: 0 }
   scale: { x: 0.04, y: 0.7, z: 0.9 }
 }
@@ -476,6 +510,8 @@ object "table_lamp_base" {
   geometry: "cylinder"
   color: "#c0c0c0"
   material: "metal"
+  roughness: 0.2
+  metallic: 0.9
   position: { x: -2, y: 0.62, z: 2.2 }
   scale: { x: 0.08, y: 0.05, z: 0.08 }
 }
@@ -484,7 +520,27 @@ object "table_lamp_shade" {
   geometry: "cone"
   color: "#f0e0c0"
   material: "matte"
+  roughness: 0.8
+  metallic: 0.0
+  emissive: "#887050"
+  emissiveIntensity: 0.4
   opacity: 0.8
   position: { x: -2, y: 0.82, z: 2.2 }
   scale: { x: 0.18, y: 0.2, z: 0.18 }
+}
+
+// === POST-PROCESSING ===
+// Subtle bloom and warm tone mapping for a cozy VR atmosphere.
+
+post_processing {
+  bloom: {
+    enabled: true,
+    intensity: 0.3,
+    threshold: 0.85,
+    radius: 0.6
+  }
+  tone_mapping: {
+    type: "aces",
+    exposure: 1.0
+  }
 }

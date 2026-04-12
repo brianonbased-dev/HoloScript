@@ -23,6 +23,45 @@
  */
 
 scene ResourceQuotas {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#44cc88"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentGreen" {
+    type: "point"
+    color: "#10b981"
+    intensity: 0.8
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ENTERPRISE TIER QUOTAS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -334,6 +373,14 @@ scene ResourceQuotas {
     position: [0, 2.5, -4];
     scale: [6, 3, 1];
     traits: [text_display];
+
+    material: {
+      color: "#050a08",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#001a0d",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "QUOTA ENFORCEMENT\n\n📊 Resource Types:\n  • Storage (MB/GB)\n  • Compute hours (GPU/CPU)\n  • API calls\n  • Concurrent users\n  • Scenes, agents, assets\n\n🛡️  Enforcement Modes:\n  • Hard - Block when exceeded\n  • Soft - Allow burst, bill overage\n  • Warn only - Alert but allow\n\n🔄 Reset Periods:\n  • None (real-time)\n  • Daily, Weekly, Monthly, Yearly\n  • Custom schedule\n\n⚙️  Features:\n  • Per-tenant quotas\n  • Per-user sub-quotas\n  • Usage warnings (80%, 90%)\n  • Automatic resets\n  • Billing integration",

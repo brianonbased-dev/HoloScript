@@ -1,0 +1,31 @@
+// Environment Preset: Studio Neutral
+// Use: product viewers, education, clean demos, input examples
+// Copy the blocks below into your composition.
+
+// --- Environment ---
+environment {
+  skybox: "gradient"
+  ambient_light: 0.4
+  shadows: true
+}
+
+// --- 3-Point Lighting ---
+light "KeyLight" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff8f0", castShadow: true }
+light "FillLight" { type: "directional", position: [-3, 5, -2], intensity: 0.4, color: "#e8f0ff" }
+light "RimLight" { type: "directional", position: [0, 3, 5], intensity: 0.3, color: "#ffffff" }
+
+// --- Ground ---
+object "Ground" {
+  @collidable
+  geometry: "plane"
+  position: [0, 0, 0]
+  scale: [20, 1, 20]
+  material: { baseColor: "#c8c8c8", roughness: 0.85, metallic: 0.05 }
+}
+
+// --- Post-Processing ---
+post_processing {
+  ambient_occlusion { intensity: 0.6, radius: 0.3 }
+  bloom { intensity: 0.15, threshold: 1.0 }
+  tone_mapping { mode: "aces", exposure: 1.0 }
+}

@@ -32,13 +32,22 @@ composition "Architecture Starter" {
   // -- Environment ---------------------------------------------------------------
 
   environment {
-    backgroundColor: "#c8d8e8"
+    skybox: {
+      type: "gradient"
+      topColor: "#87ceeb"
+      bottomColor: "#dce8f0"
+    }
     ambient: 0.6
     shadows: true
     directionalLight: {
       intensity: 1.2
+      color: "#fff8f0"
       castShadow: true
       shadowMapSize: 4096
+    }
+    post_processing: {
+      ssao: { intensity: 0.4, radius: 0.3 }
+      tone_mapping: { mode: "aces", exposure: 1.0 }
     }
   }
 
@@ -120,8 +129,9 @@ composition "Architecture Starter" {
     height: 40
     position: { x: 0, y: 0, z: 0 }
     material: {
-      color: "#8fa880"
-      roughness: 1.0
+      baseColor: "#8fa880"
+      roughness: 0.9
+      metallic: 0.0
     }
   }
 
@@ -270,7 +280,11 @@ composition "Architecture Starter" {
     scale: [0.3, 0.15, 1]
     position: { x: -8, y: 2.2, z: 0 }
     material: {
-      color: "#1a2233"
+      baseColor: "#1a2233"
+      roughness: 0.3
+      metallic: 0.1
+      emissive: "#223344"
+      emissiveIntensity: 0.2
       transparent: true
       opacity: 0.9
     }

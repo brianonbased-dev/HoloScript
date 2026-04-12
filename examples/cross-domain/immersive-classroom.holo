@@ -27,6 +27,13 @@ composition "ImmersiveClassroom" {
     backgroundColor: "#e8f0f8"
     ambient: 0.7
     shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.15, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.25, radius: 0.4 }
   }
 
   // -- State (spans all four domains) --------------------------------------------

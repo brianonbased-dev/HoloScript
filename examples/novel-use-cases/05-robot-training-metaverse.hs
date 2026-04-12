@@ -4,7 +4,11 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "training_arena"; ambient_light: 0.5; physics: true; gravity: { x: 0, y: -9.81, z: 0 } }
+environment { skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }; ambient_light: 0.5; shadows: true; physics: true; gravity: { x: 0, y: -9.81, z: 0 } }
+
+light "HangarOverhead" { type: "directional"; color: "#fff5e0"; intensity: 1.0; position: { x: 5, y: 12, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }; tone_mapping: { type: "aces", exposure: 1.1 } }
 
 object "scenario_loader" {
   geometry: "cube"; color: "#00bcd4"; position: { x: -8, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

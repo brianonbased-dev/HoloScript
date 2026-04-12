@@ -18,6 +18,16 @@
  */
 
 composition ARSpatialMappingShowcase {
+  environment {
+    skybox: "passthrough"
+    ar_mode: true
+    ambient_light: 0.5
+  }
+
+  post_processing {
+    tone_mapping { mode: "aces" }
+  }
+
   // Real world passthrough
   entity PassthroughCamera {
     passthrough: {

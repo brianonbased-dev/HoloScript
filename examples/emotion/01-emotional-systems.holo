@@ -18,7 +18,36 @@
  */
 
 composition EmotionalSystemsShowcase {
-  // Environment
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.25
+    shadows: true
+    fog: { enabled: true, density: 0.008, color: "#2a1040" }
+  }
+
+  light "SoftSun" {
+    type: "directional"
+    color: "#ffeedd"
+    intensity: 0.6
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "EmotionAura" {
+    type: "point"
+    color: "#cc66ff"
+    intensity: 0.7
+    position: [0, 2, 0]
+    range: 10
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.35, threshold: 0.65 }
+    tone_mapping: { type: "aces", exposure: 0.95 }
+  }
+
+  // Ground
   entity EmotionTestArea {
     mesh: { type: "plane", width: 50.0, height: 50.0 },
     advanced_pbr: { base_color: [0.35, 0.35, 0.4], metallic: 0.0, roughness: 0.9 },

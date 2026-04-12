@@ -1,57 +1,44 @@
 // 5-color-button-panel.holo
-// Four colored button cubes arranged in a grid
+// Four colored button cubes arranged in a grid on a dark panel
 
 composition "Color Button Panel" {
-  object "RedButton" {
-    @pointable
-    @clickable
-    @glowing
-    
-    geometry: "cube"
-    position: [-0.3, 1.3, -2]
-    scale: [0.2, 0.2, 0.05]
-    color: "#e74c3c"
-  }
-
-  object "BlueButton" {
-    @pointable
-    @clickable
-    @glowing
-    
-    geometry: "cube"
-    position: [0.3, 1.3, -2]
-    scale: [0.2, 0.2, 0.05]
-    color: "#3498db"
-  }
-
-  object "GreenButton" {
-    @pointable
-    @clickable
-    @glowing
-    
-    geometry: "cube"
-    position: [-0.3, 1.7, -2]
-    scale: [0.2, 0.2, 0.05]
-    color: "#2ecc71"
-  }
-
-  object "YellowButton" {
-    @pointable
-    @clickable
-    @glowing
-    
-    geometry: "cube"
-    position: [0.3, 1.7, -2]
-    scale: [0.2, 0.2, 0.05]
-    color: "#f1c40f"
-  }
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
 
   object "BackPanel" {
     @collidable
-    
     geometry: "cube"
     position: [0, 1.5, -2.1]
     scale: [1, 0.8, 0.05]
-    color: "#2c3e50"
+    material: { baseColor: "#2c3e50", roughness: 0.7, metallic: 0.6 }
   }
+  object "RedButton" {
+    @pointable @clickable @glowing
+    geometry: "cube"
+    position: [-0.3, 1.3, -2]
+    scale: [0.2, 0.2, 0.05]
+    material: { baseColor: "#e74c3c", emissive: "#a83228", emissiveIntensity: 0.5 }
+  }
+  object "BlueButton" {
+    @pointable @clickable @glowing
+    geometry: "cube"
+    position: [0.3, 1.3, -2]
+    scale: [0.2, 0.2, 0.05]
+    material: { baseColor: "#3498db", emissive: "#2471a3", emissiveIntensity: 0.5 }
+  }
+  object "GreenButton" {
+    @pointable @clickable @glowing
+    geometry: "cube"
+    position: [-0.3, 1.7, -2]
+    scale: [0.2, 0.2, 0.05]
+    material: { baseColor: "#2ecc71", emissive: "#1e8449", emissiveIntensity: 0.5 }
+  }
+  object "YellowButton" {
+    @pointable @clickable @glowing
+    geometry: "cube"
+    position: [0.3, 1.7, -2]
+    scale: [0.2, 0.2, 0.05]
+    material: { baseColor: "#f1c40f", emissive: "#b7950b", emissiveIntensity: 0.5 }
+  }
+  post_processing { bloom { intensity: 0.5, threshold: 0.7 }, tone_mapping { mode: "aces" } }
 }

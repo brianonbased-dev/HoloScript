@@ -8,7 +8,23 @@
  */
 
 composition "IndustrialPOC" {
-  
+
+  environment {
+    skybox: "overcast"
+    background_color: "#8a8a8a"
+    background_gradient: ["#8a8a8a", "#b0b0b0"]
+    ambient_light: 0.4
+    shadows: true
+  }
+
+  // Harsh overhead industrial lighting
+  object "OverheadLight" {
+    type: "directional_light"
+    direction: [0.1, -0.9, -0.2]
+    color: "#f0f0f0"
+    intensity: 0.85
+  }
+
   // ==========================================================================
   // TEMPLATES
   // ==========================================================================
@@ -22,7 +38,9 @@ composition "IndustrialPOC" {
     @perception(range: 20)
     
     geometry: "humanoid"
-    color: "#ff0000"
+    material: { baseColor: "#ff0000", roughness: 0.4, metallic: 0.3 }
+    emissive: "#550000"
+    emissiveIntensity: 0.3
     
     state {
       status: "patrolling"
@@ -68,7 +86,7 @@ composition "IndustrialPOC" {
     
     geometry: "cube"
     scale: [2, 3, 2]
-    color: "#444444"
+    material: { baseColor: "#444444", roughness: 0.35, metallic: 0.85 }
     
     state {
       heat: 0
@@ -94,11 +112,11 @@ composition "IndustrialPOC" {
   // INSTANTIATION
   // ==========================================================================
 
-  // The floor
+  // The floor (concrete)
   object "Floor" {
     geometry: "plane"
     scale: [20, 1, 20]
-    color: "#222222"
+    material: { baseColor: "#555555", roughness: 0.92, metallic: 0.01 }
     position: [0, -0.5, 0]
   }
 
@@ -113,5 +131,11 @@ composition "IndustrialPOC" {
   // Safety Warden
   object "Warden_01" using "SafetyWarden" {
     position: [-5, 0, -5]
+  }
+
+  post_processing {
+    bloom: { intensity: 0.2, threshold: 0.7, radius: 0.3 }
+    ssao: { intensity: 0.6, radius: 0.4 }
+    tone_mapping: "aces"
   }
 }

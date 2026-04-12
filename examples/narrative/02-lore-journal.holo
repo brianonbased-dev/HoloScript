@@ -14,7 +14,36 @@
  */
 
 composition LoreJournalShowcase {
-  // Environment
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.25
+    shadows: true
+    fog: { enabled: true, density: 0.008, color: "#2a1040" }
+  }
+
+  light "SunLight" {
+    type: "directional"
+    color: "#ffd4a0"
+    intensity: 0.7
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  light "AncientRuneGlow" {
+    type: "point"
+    color: "#44aaff"
+    intensity: 0.6
+    position: [0, 2, 0]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.7 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
+  }
+
+  // Ground
   entity World {
     mesh: { type: "plane", width: 100.0, height: 100.0 },
     advanced_pbr: { base_color: [0.3, 0.35, 0.25], metallic: 0.0, roughness: 0.9 },

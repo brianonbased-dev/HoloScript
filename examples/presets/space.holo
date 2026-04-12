@@ -1,0 +1,22 @@
+// Environment Preset: Space
+// Use: solar systems, quantum, sci-fi, astrophysics, particle demos
+// Copy the blocks below into your composition.
+
+// --- Environment ---
+environment {
+  skybox: { type: "gradient", top: "#000005", bottom: "#0a0a20" }
+  ambient_light: 0.1
+  shadows: false
+}
+
+// --- Lighting (minimal — objects self-illuminate via emissive) ---
+light "DistantStar" { type: "directional", position: [10, 5, 5], intensity: 0.4, color: "#aabbff" }
+
+// --- No ground plane (objects float in space) ---
+
+// --- Post-Processing ---
+post_processing {
+  bloom { intensity: 0.6, threshold: 0.5 }
+  tone_mapping { mode: "aces", exposure: 1.0 }
+  vignette { intensity: 0.3, smoothness: 0.6 }
+}

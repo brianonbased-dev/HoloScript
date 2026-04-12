@@ -31,6 +31,12 @@ composition "V&V Results Visualization Space" {
         fog: { type: "exponential", color: "#050510", density: 0.004 }
     }
 
+    post_processing {
+        bloom { intensity: 0.4, threshold: 0.7 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.3, radius: 0.5 }
+    }
+
     // =========================================================================
     // SECTION 0: GROUND PLANE, SPAWN, & NAVIGATION HUB
     // =========================================================================

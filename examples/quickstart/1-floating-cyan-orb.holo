@@ -2,13 +2,30 @@
 // A single glowing cyan sphere floating at eye level
 
 composition "Floating Cyan Orb" {
+  // -- Visual: soft gradient sky with ground reflection --
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
+  }
+
   object "CyanOrb" {
     @grabbable
     @glowing
-    
+
     geometry: "sphere"
     position: [0, 1.5, -2]
     scale: 0.3
-    color: "#00ffff"
+    material: { baseColor: "#00ffff", roughness: 0.25, metallic: 0.4, emissive: "#008888", emissiveIntensity: 0.6 }
+  }
+
+  post_processing {
+    bloom { intensity: 0.4, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
   }
 }

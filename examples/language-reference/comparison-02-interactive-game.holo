@@ -6,6 +6,16 @@
 
 composition TargetPracticeGameVR {
 
+  environment {
+    skybox: "studio"
+    ambient_light: 0.5
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.25, threshold: 0.75 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // === GAME CONTROLLER ENTITY ===
   entity GameController {
     // Game state trait

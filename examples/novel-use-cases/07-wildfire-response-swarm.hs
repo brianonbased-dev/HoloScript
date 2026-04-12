@@ -4,7 +4,11 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "smoke_haze"; ambient_light: 0.4; physics: true }
+environment { skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }; ambient_light: 0.35; shadows: true; physics: true; fog: { color: "#aa4400", density: 0.02 } }
+
+light "SmokySun" { type: "directional"; color: "#ff9944"; intensity: 0.8; position: { x: 8, y: 10, z: 3 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.3, threshold: 0.6 }; tone_mapping: { type: "aces", exposure: 0.85 } }
 
 object "fire_detector" {
   geometry: "sphere"; color: "#ff3300"; position: { x: -8, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

@@ -22,8 +22,29 @@
 
 environment {
   skybox: "void"
-  ambient_light: 0.3
-  fog: { color: "#000a14", density: 0.008 }
+  ambient_light: 0.15
+  fog: { color: "#000a14", density: 0.012 }
+}
+
+light "MainLight" {
+  type: "directional"
+  color: "#4488ff"
+  intensity: 0.4
+  rotation: [-45, 30, 0]
+  cast_shadows: true
+}
+
+light "CryptoGlow" {
+  type: "point"
+  color: "#00e5ff"
+  intensity: 0.6
+  position: { x: 0, y: 4, z: 0 }
+  range: 15
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.5, threshold: 0.6 }
+  tone_mapping: { enabled: true, type: "aces" }
 }
 
 // ============================================================================
@@ -593,9 +614,13 @@ object "audit_logger" {
 
 object "channel_status" {
   geometry: "cube"
-  color: "#263238"
   position: { x: 0, y: 5, z: -3 }
   scale: { x: 16, y: 1.5, z: 0.1 }
+  color: "#0a0a1a"
+  roughness: 0.15
+  metallic: 0.2
+  emissive: "#001122"
+  emissive_intensity: 0.3
 
   state {
     stage: "idle"

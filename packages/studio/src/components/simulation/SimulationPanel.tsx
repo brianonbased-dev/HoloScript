@@ -41,6 +41,7 @@ interface SimConfig {
   colormap: 'turbo' | 'viridis' | 'jet' | 'inferno' | 'coolwarm';
   displacementScale: number;
   wireframe: boolean;
+  useGpuBuffers: boolean;
 }
 
 const DEFAULT_CONFIG: SimConfig = {
@@ -60,6 +61,7 @@ const DEFAULT_CONFIG: SimConfig = {
   colormap: 'turbo',
   displacementScale: 100,
   wireframe: false,
+  useGpuBuffers: true,
 };
 
 const MATERIAL_PRESETS: Record<string, Partial<SimConfig>> = {
@@ -143,10 +145,10 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
         })),
         maxIterations: 5000,
         tolerance: 1e-10,
-        useGPU: false, // CPU for now — GPU requires browser WebGPU
+        useGPU: config.useGpuBuffers,
       });
 
-      const solveResult = solver.solveCPU();
+      const solveResult = await solver.solve();
       const stats = solver.getStats();
 
       setResult({
@@ -165,7 +167,7 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
   @material { E: ${config.youngsModulus}, nu: ${config.poissonRatio}, Sy: ${config.yieldStrength}, rho: ${config.density} }
   @constraint { face: "${config.fixedFace}", type: "fixed" }
   @load { face: "${config.loadFace}", force: [${config.loadForceX}, ${config.loadForceY}, ${config.loadForceZ}] }
-  @solve { type: "structural-tet10", colormap: "${config.colormap}" }
+  @solve { type: "structural-tet10", colormap: "${config.colormap}", use_gpu_buffers: ${config.useGpuBuffers} }
 }`);
 
       solver.dispose();
@@ -189,7 +191,12 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Zap className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold uppercase tracking-wider">Simulation</span>
-        <button onClick={onClose} className="ml-auto rounded p-0.5 hover:bg-studio-surface transition">
+        <button
+          onClick={onClose}
+          title="Close simulation panel"
+          aria-label="Close simulation panel"
+          className="ml-auto rounded p-0.5 hover:bg-studio-surface transition"
+        >
           <X className="h-4 w-4 text-studio-muted" />
         </button>
       </div>
@@ -235,6 +242,21 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
             <NumberInput label="Fy (N)" value={config.loadForceY} onChange={(v) => updateConfig({ loadForceY: v })} step={100} />
             <NumberInput label="Fz (N)" value={config.loadForceZ} onChange={(v) => updateConfig({ loadForceZ: v })} step={100} />
           </div>
+        </Section>
+
+        <Section icon={<Zap className="h-3.5 w-3.5" />} title="GPU">
+          <label className="flex items-center justify-between rounded border border-studio-border bg-[#0d0d14] px-2 py-1.5 text-[11px]">
+            <span className="text-studio-muted">USE_GPU_BUFFERS</span>
+            <input
+              type="checkbox"
+              checked={config.useGpuBuffers}
+              onChange={(e) => updateConfig({ useGpuBuffers: e.target.checked })}
+              className="h-3.5 w-3.5 accent-[var(--studio-accent)]"
+            />
+          </label>
+          <p className="text-[10px] text-studio-muted">
+            Uses GPU CG + storage-buffer displacement interop when WebGPU is available.
+          </p>
         </Section>
 
         {/* Results */}

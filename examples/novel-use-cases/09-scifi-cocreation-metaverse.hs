@@ -3,7 +3,11 @@
  * Sequential: propose lore → faction balance check → vote → merge into timeline.
  * @version 5.0.0; @format .hs (process)
  */
-environment { skybox: "nebula_city"; ambient_light: 0.5 }
+environment { skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }; ambient_light: 0.25; shadows: true }
+
+light "NebulaSun" { type: "directional"; color: "#aabbff"; intensity: 0.6; position: { x: 5, y: 10, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }; tone_mapping: { type: "aces", exposure: 0.85 } }
 
 object "lore_proposer" {
   geometry: "cube"; color: "#ffd700"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

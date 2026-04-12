@@ -10,9 +10,23 @@
  */
 composition "EthicalAISandbox" {
   environment {
-    skybox: "lab_sterile"
-    ambient_light: 0.6
+    skybox: "gradient"
+    ambient_light: 0.4
+    shadows: true
     physics: true
+  }
+
+  light "CleanRoom" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 1.0
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.1, threshold: 0.85 }
+    tone_mapping: { type: "aces", exposure: 1.1 }
   }
 
   module NormEngine {

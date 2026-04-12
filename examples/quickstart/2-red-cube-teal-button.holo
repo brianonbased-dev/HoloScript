@@ -2,25 +2,42 @@
 // A throwable red cube and a teal cylinder button
 
 composition "Red Cube and Teal Button" {
+  // -- Visual: soft gradient sky with ground reflection --
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
+  }
+
   object "RedCube" {
     @grabbable
     @throwable
     @physics
     @collidable
-    
+
     geometry: "cube"
     position: [0, 1, -2]
     scale: 0.3
-    color: "#ff6b6b"
+    material: { baseColor: "#ff6b6b", roughness: 0.45, metallic: 0.15 }
   }
 
   object "TealButton" {
     @pointable
     @clickable
-    
+
     geometry: "cylinder"
     position: [1.5, 1, -2]
     scale: [0.2, 0.05, 0.2]
-    color: "#4ecdc4"
+    material: { baseColor: "#4ecdc4", roughness: 0.3, metallic: 0.3, emissive: "#2a9d8f", emissiveIntensity: 0.3 }
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
   }
 }

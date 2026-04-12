@@ -22,6 +22,12 @@ composition "Physics Playground" {
     shadows: true
   }
 
+  post_processing {
+    bloom { intensity: 0.15, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.25, radius: 0.4 }
+  }
+
   // ----------------------------------------------------------
   // TEMPLATES
   // ----------------------------------------------------------

@@ -8,6 +8,27 @@
   shadows: true
 }
 
+light "MoonLight" {
+  type: "directional"
+  color: "#8899cc"
+  intensity: 0.4
+  rotation: [-40, 20, 0]
+  cast_shadows: true
+}
+
+light "MagicGlow" {
+  type: "point"
+  color: "#44ff88"
+  intensity: 0.5
+  position: [0, 4, -3]
+  range: 12
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }
+  tone_mapping: { enabled: true, type: "aces" }
+}
+
 // Ancient tree
 object "tree_trunk" @collidable {
   position: [0, 2, -3]

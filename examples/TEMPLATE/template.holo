@@ -9,8 +9,13 @@
 // - Traits: @trait (inside object block)
 // - Position/rotation/scale: Arrays [x, y, z]
 // - Colors: Quoted strings "#rrggbb"
+// - Materials: material: { baseColor: "#hex", roughness: 0.5, metallic: 0.5 }
 
 composition "[Your Example Name]" {
+
+  // -- Visual environment (customize for your example) --
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
 
   // Ground plane
   object "Ground" {
@@ -19,7 +24,7 @@ composition "[Your Example Name]" {
     geometry: "plane"
     position: [0, 0, 0]
     scale: [10, 1, 10]
-    color: "#228b22"
+    material: { baseColor: "#228b22", roughness: 0.85, metallic: 0.05 }
   }
 
   // Interactive cube
@@ -32,7 +37,7 @@ composition "[Your Example Name]" {
     geometry: "cube"
     position: [0, 1.5, -3]
     scale: 0.5
-    color: "#ff6347"
+    material: { baseColor: "#ff6347", roughness: 0.45, metallic: 0.15 }
   }
 
   // Glowing orb
@@ -44,7 +49,7 @@ composition "[Your Example Name]" {
     geometry: "sphere"
     position: [2, 1.5, -3]
     scale: 0.3
-    color: "#00ffff"
+    material: { baseColor: "#00ffff", roughness: 0.25, metallic: 0.4, emissive: "#008888", emissiveIntensity: 0.6 }
   }
 
   // Button
@@ -56,6 +61,11 @@ composition "[Your Example Name]" {
     position: [-2, 1, -3]
     rotation: [90, 0, 0]
     scale: [0.2, 0.05, 0.2]
-    color: "#4ecdc4"
+    material: { baseColor: "#4ecdc4", roughness: 0.3, metallic: 0.3, emissive: "#2a9d8f", emissiveIntensity: 0.3 }
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.8 }
+    tone_mapping { mode: "aces" }
   }
 }

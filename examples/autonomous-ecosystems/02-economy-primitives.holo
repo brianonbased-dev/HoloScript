@@ -22,6 +22,34 @@
  */
 
 scene ComputeEconomy {
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#050510", bottom: "#16213e" }
+    ambient_light: 0.2
+    shadows: true
+  }
+
+  light "OverheadNeon" {
+    type: "directional"
+    color: "#aabbff"
+    intensity: 0.6
+    position: [0, 10, 5]
+    cast_shadows: true
+  }
+
+  light "CreditGlow" {
+    type: "point"
+    color: "#ffcc00"
+    intensity: 0.8
+    position: [0, 2, 0]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.4, threshold: 0.6 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ECONOMY CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

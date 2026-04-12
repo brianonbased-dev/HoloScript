@@ -6,6 +6,16 @@
 
 composition InteractiveVRRoom {
 
+  environment {
+    skybox: "studio"
+    ambient_light: 0.5
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.8 }
+    tone_mapping: { enabled: true, type: "aces" }
+  }
+
   // === FLOOR ===
   entity Floor {
     mesh: {

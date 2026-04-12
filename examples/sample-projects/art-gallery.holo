@@ -21,6 +21,12 @@ composition "Interactive Art Gallery" {
     shadows: true
   }
 
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   // ----------------------------------------------------------
   // TEMPLATES
   // ----------------------------------------------------------

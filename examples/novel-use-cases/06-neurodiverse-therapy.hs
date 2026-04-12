@@ -4,7 +4,11 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "gentle_clouds"; ambient_light: 0.4; fog: { color: "#e0ddd5", density: 0.002 } }
+environment { skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }; ambient_light: 0.3; shadows: true; fog: { color: "#e0ddd5", density: 0.002 } }
+
+light "GentleGlow" { type: "directional"; color: "#eeddff"; intensity: 0.5; position: { x: 3, y: 8, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.35, threshold: 0.65 }; tone_mapping: { type: "aces", exposure: 0.9 } }
 
 object "assessor" {
   geometry: "cube"; color: "#00bcd4"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

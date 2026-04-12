@@ -3,7 +3,11 @@
  * Sequential: analyze district → propose → referendum → enact.
  * @version 5.0.0; @format .hs (process)
  */
-environment { skybox: "city_sunset"; ambient_light: 0.6; physics: true }
+environment { skybox: "gradient"; ambient_light: 0.4; shadows: true; physics: true }
+
+light "CitySun" { type: "directional"; color: "#ffeedd"; intensity: 0.9; position: { x: 8, y: 12, z: 5 }; cast_shadows: true }
+
+post_processing { bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }; tone_mapping: { type: "aces", exposure: 1.0 } }
 
 object "district_analyzer" {
   geometry: "cube"; color: "#3498db"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

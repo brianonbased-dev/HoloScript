@@ -3,6 +3,19 @@ composition "PineTree" {
   // A stylized pine tree using layered cones and cylinder trunk.
   // Demonstrates: organic shapes, layered geometry, LOD-friendly design.
 
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.35
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.15, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
+  }
+
   object "Tree" @physics {
     position: [0, 0, 0]
 

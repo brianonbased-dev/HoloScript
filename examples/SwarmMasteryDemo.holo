@@ -6,7 +6,33 @@
  */
 
 composition "SwarmMastery" {
-  
+
+  environment {
+    skybox: "gradient"
+    background_color: "#08080f"
+    background_gradient: ["#08080f", "#12101a"]
+    ambient_light: 0.2
+    shadows: true
+  }
+
+  // Tech-blue directional light
+  object "TechLight" {
+    type: "directional_light"
+    direction: [-0.3, -0.7, -0.5]
+    color: "#aaccff"
+    intensity: 0.5
+  }
+
+  // Ground grid
+  object "GridFloor" {
+    @collidable
+
+    position: [0, -0.05, 0]
+    scale: [15, 0.05, 15]
+    geometry: "cube"
+    material: { baseColor: "#0a0a14", roughness: 0.2, metallic: 0.7 }
+  }
+
   // ==========================================================================
   // TEMPLATES
   // ==========================================================================
@@ -14,9 +40,11 @@ composition "SwarmMastery" {
   template "Miner" {
     @mitosis(strategy: "autonomous")
     @llm_agent
-    
+
     geometry: "cube"
-    color: "#ff8800"
+    material: { baseColor: "#ff8800", roughness: 0.3, metallic: 0.5 }
+    emissive: "#553300"
+    emissiveIntensity: 0.4
     
     state {
       parent_id: null
@@ -45,9 +73,11 @@ composition "SwarmMastery" {
   template "Commander" {
     @mitosis(strategy: "collaborative")
     @llm_agent
-    
+
     geometry: "humanoid"
-    color: "#0088ff"
+    material: { baseColor: "#0088ff", roughness: 0.3, metallic: 0.45 }
+    emissive: "#002255"
+    emissiveIntensity: 0.5
     
     state {
       miners_deployed: 0
@@ -98,5 +128,10 @@ composition "SwarmMastery" {
     properties: {
       name: "Commander Prime"
     }
+  }
+
+  post_processing {
+    bloom: { intensity: 0.6, threshold: 0.35, radius: 0.5 }
+    tone_mapping: "aces"
   }
 }

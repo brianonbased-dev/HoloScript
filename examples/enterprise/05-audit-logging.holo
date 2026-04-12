@@ -23,6 +23,45 @@
  */
 
 scene ComplianceAuditLog {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#cc4444"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentRed" {
+    type: "point"
+    color: "#ef4444"
+    intensity: 0.8
+    position: [-3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.45
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // AUDIT LOG CONFIGURATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -327,6 +366,14 @@ scene ComplianceAuditLog {
     position: [0, 2.5, -4];
     scale: [6, 3.5, 1];
     traits: [text_display];
+
+    material: {
+      color: "#0a0505",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#1a0505",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "AUDIT LOGGING & COMPLIANCE\n\n📋 Event Categories:\n  • Authentication (login, logout, MFA)\n  • Authorization (permissions, roles)\n  • Data Access (read, write, delete)\n  • System Config (settings, admin)\n  • Security (threats, incidents)\n  • Compliance (GDPR, data export)\n\n🔒 Compliance Standards:\n  • GDPR (7-year retention)\n  • SOC 2 (tamper-proof)\n  • HIPAA (PHI access logs)\n  • ISO 27001\n\n🛡️  Security Features:\n  • SHA-256 cryptographic hashing\n  • Tamper detection\n  • Real-time alerts\n  • Searchable audit trails\n  • Multi-destination logging\n  • PII anonymization (optional)\n\n📊 Use Cases:\n  • Incident investigation\n  • Compliance audits\n  • User activity forensics\n  • Access control review",

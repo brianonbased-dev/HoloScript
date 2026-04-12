@@ -3,6 +3,19 @@ composition "Starfighter" {
   // A sleek starfighter with swept wings, twin engines, and cockpit.
   // Demonstrates: aerodynamic shapes, engine thrust glow, weapon hardpoints.
 
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.25
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.35, threshold: 0.75 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   object "Ship" @physics @animation {
     position: [0, 0, 0]
 

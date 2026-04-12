@@ -17,7 +17,36 @@
  */
 
 composition EmpathySentimentShowcase {
-  // Environment
+  // ─── Environment ──────────────────────────────────────────────────────────
+  environment {
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.25
+    shadows: true
+    fog: { enabled: true, density: 0.008, color: "#2a1040" }
+  }
+
+  light "WarmLight" {
+    type: "directional"
+    color: "#ffeedd"
+    intensity: 0.6
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "EmpathyGlow" {
+    type: "point"
+    color: "#6699ff"
+    intensity: 0.7
+    position: [0, 2, 0]
+    range: 10
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.7 }
+    tone_mapping: { type: "aces", exposure: 0.95 }
+  }
+
+  // Ground
   entity SocialInteractionArea {
     mesh: { type: "plane", width: 30.0, height: 30.0 },
     advanced_pbr: { base_color: [0.4, 0.38, 0.42], metallic: 0.0, roughness: 0.9 },

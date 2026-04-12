@@ -1,0 +1,32 @@
+// Environment Preset: Outdoor Daylight
+// Use: architecture, navigation, terrain, outdoor simulations
+// Copy the blocks below into your composition.
+
+// --- Environment ---
+environment {
+  skybox: "daylight"
+  ambient_light: 0.45
+  shadows: true
+  fog: { enabled: true, density: 0.003, color: "#c8d6e5" }
+}
+
+// --- Lighting ---
+light "Sun" { type: "directional", position: [8, 12, 4], intensity: 1.2, color: "#fff5e0", castShadow: true }
+light "SkyFill" { type: "directional", position: [-4, 8, -3], intensity: 0.3, color: "#88bbff" }
+
+// --- Ground ---
+object "Ground" {
+  @collidable
+  geometry: "plane"
+  position: [0, 0, 0]
+  scale: [50, 1, 50]
+  material: { baseColor: "#4a7c59", roughness: 0.9, metallic: 0.0 }
+}
+
+// --- Post-Processing ---
+post_processing {
+  ambient_occlusion { intensity: 0.5, radius: 0.4 }
+  bloom { intensity: 0.15, threshold: 1.2 }
+  tone_mapping { mode: "aces", exposure: 1.1 }
+  color_grading { temperature: 5800, saturation: 1.05 }
+}

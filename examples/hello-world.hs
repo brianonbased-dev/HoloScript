@@ -29,6 +29,8 @@ environment {
 object "ground" {
   geometry: "plane"
   color: "#3a5c3a"
+  roughness: 0.9
+  metallic: 0.0
   width: 20
   height: 20
   position: { x: 0, y: 0, z: 0 }
@@ -69,6 +71,8 @@ object "warm_lamp" {
 object "hello_cube" {
   geometry: "cube"
   color: "#00ccff"
+  roughness: 0.5
+  metallic: 0.1
   position: { x: -4, y: 0.5, z: -3 }
   castShadow: true
 }
@@ -77,6 +81,8 @@ object "hello_cube" {
 object "hello_sphere" {
   geometry: "sphere"
   color: "#ff6699"
+  roughness: 0.3
+  metallic: 0.2
   position: { x: -2, y: 1, z: -3 }
   castShadow: true
 }
@@ -85,6 +91,8 @@ object "hello_sphere" {
 object "hello_cylinder" {
   geometry: "cylinder"
   color: "#66ff99"
+  roughness: 0.7
+  metallic: 0.0
   position: { x: 0, y: 0.75, z: -3 }
   scale: { x: 0.6, y: 1.5, z: 0.6 }
   castShadow: true
@@ -94,6 +102,8 @@ object "hello_cylinder" {
 object "hello_torus" {
   geometry: "torus"
   color: "#ffaa33"
+  roughness: 0.4
+  metallic: 0.6
   position: { x: 2, y: 1, z: -3 }
   castShadow: true
 }
@@ -102,6 +112,8 @@ object "hello_torus" {
 object "hello_wall" {
   geometry: "plane"
   color: "#cc88ff"
+  roughness: 0.6
+  metallic: 0.0
   width: 1.5
   height: 1.5
   position: { x: 4, y: 1, z: -3 }
@@ -143,7 +155,9 @@ object "clay_cube" {
 object "glow_torus" {
   geometry: "torus"
   color: "#00ffaa"
-  emissive: true
+  roughness: 0.3
+  metallic: 0.4
+  emissive: "#007744"
   emissiveIntensity: 2.0
   glow: true
   position: { x: 1, y: 1, z: 0 }
@@ -186,6 +200,8 @@ object "heavy_ball" {
 object "bouncy_cube" {
   geometry: "cube"
   color: "#ff4488"
+  roughness: 0.4
+  metallic: 0.1
   position: { x: 1, y: 5, z: 3 }
   physics: true
   mass: 5
@@ -217,6 +233,8 @@ object "click_me" {
 object "hover_me" {
   geometry: "cube"
   color: "#44aaff"
+  roughness: 0.5
+  metallic: 0.2
   position: { x: 0, y: 0.5, z: 6 }
   onHover: "highlight"
   castShadow: true
@@ -226,6 +244,10 @@ object "hover_me" {
 object "interactive_ring" {
   geometry: "torus"
   color: "#ff8800"
+  roughness: 0.3
+  metallic: 0.5
+  emissive: "#663300"
+  emissiveIntensity: 0.6
   glow: true
   position: { x: 2, y: 1, z: 6 }
   onHover: "highlight"
@@ -256,7 +278,9 @@ object "spinning_crystal" {
 object "floating_orb" {
   geometry: "sphere"
   color: "#aa66ff"
-  emissive: true
+  roughness: 0.2
+  metallic: 0.3
+  emissive: "#553388"
   emissiveIntensity: 1.0
   glow: true
   position: { x: 3, y: 2, z: -6 }
@@ -269,7 +293,9 @@ object "floating_orb" {
 object "pulse_light" {
   geometry: "sphere"
   color: "#ff3333"
-  emissive: true
+  roughness: 0.1
+  metallic: 0.2
+  emissive: "#881111"
   emissiveIntensity: 2.5
   glow: true
   position: { x: -3, y: 2, z: -6 }
@@ -279,10 +305,31 @@ object "pulse_light" {
 }
 
 
+// ------------------------------------------------------------
+// 9. POST-PROCESSING
+//    Screen-space effects applied after rendering. Bloom makes
+//    emissive objects glow; tone mapping controls overall look.
+// ------------------------------------------------------------
+
+post_processing {
+  bloom: {
+    enabled: true,
+    intensity: 0.4,
+    threshold: 0.8,
+    radius: 0.5
+  }
+  tone_mapping: {
+    type: "aces",
+    exposure: 1.1
+  }
+}
+
+
 // ============================================================
 // That's it! You've seen environments, lights, shapes,
-// materials, physics, interaction, and animation — all in
-// one file. Edit any value above and re-run to experiment.
+// materials, physics, interaction, post-processing, and
+// animation — all in one file. Edit any value above and
+// re-run to experiment.
 //
 // Next steps:
 //   - examples/advanced-features.hs   (60+ geometries, particles)

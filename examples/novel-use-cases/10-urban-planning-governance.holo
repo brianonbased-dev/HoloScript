@@ -25,9 +25,23 @@ composition "UrbanPlanningGovernance" {
   }
 
   environment {
-    skybox: "city_sunset"
-    ambient_light: 0.6
+    skybox: "gradient"
+    ambient_light: 0.4
+    shadows: true
     physics: true
+  }
+
+  light "CitySun" {
+    type: "directional"
+    color: "#ffeedd"
+    intensity: 0.9
+    position: [8, 12, 5]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.2, threshold: 0.75 }
+    tone_mapping: { type: "aces", exposure: 1.0 }
   }
 
   state {

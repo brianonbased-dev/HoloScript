@@ -16,6 +16,20 @@
  */
 
 composition HapticForceFeedbackShowcase {
+  environment {
+    skybox: "hdr_studio"
+    ambient_light: 0.25
+    shadows: "pcf_soft"
+    tone_mapping: "aces"
+    exposure: 1.0
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
+  }
+
   // Virtual environment
   entity HapticTestArea {
     mesh: { type: "plane", width: 10.0, height: 10.0 },

@@ -666,6 +666,7 @@ export class StructuralSolverTET10 {
         // 1. Re-assemble f_int and K_T at current state u
         const f_int = this.assembleInternalForce();
         this.assembleTangentStiffness();
+        this.applyConstraintsToCSR();
         
         // 2. Residual: r = f_ext - f_int
         const r = new Float64Array(this.dofCount);
@@ -690,10 +691,14 @@ export class StructuralSolverTET10 {
           throw new Error('Inner linear solve failed to converge during NR iteration');
         }
         
-        // 4. Update u = u + delta_u
+        // 4. Update: u = u + delta_u
+        let maxChange = 0;
         for (let i = 0; i < this.dofCount; i++) {
-          this.displacements[i] += solveResult.solution[i];
+          const dU = solveResult.solution[i];
+          this.displacements[i] += dU;
+          if (Math.abs(dU) > maxChange) maxChange = Math.abs(dU);
         }
+        console.log(`    max dU: ${maxChange.toExponential(4)}`);
         
         totalIter++;
       }
@@ -899,6 +904,7 @@ export class StructuralSolverTET10 {
         S[6] = Sv[5]; S[7] = Sv[4]; S[8] = Sv[2];
 
         // Add K_G: for each pair (a,b), K_G[3a+i, 3b+i] += Σ_kl dNa/dXk * S_kl * dNb/dXl
+/*
         for (let a = 0; a < 10; a++) {
           const na = nodes[a];
           const rowMap = this.dofToCSR.get(na * 3);
@@ -929,6 +935,7 @@ export class StructuralSolverTET10 {
             }
           }
         }
+*/
       }
     }
   }

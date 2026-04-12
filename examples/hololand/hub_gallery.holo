@@ -11,6 +11,12 @@ composition "HoloHub Spatial Gallery" {
         grid: true
     }
 
+    post_processing {
+        bloom { intensity: 0.4, threshold: 0.7 }
+        tone_mapping { mode: "aces" }
+        ambient_occlusion { intensity: 0.3, radius: 0.5 }
+    }
+
     // Main Gallery Structure
     object "Gallery_Floor" {
         geometry: "plane"

@@ -26,6 +26,13 @@ composition "Advanced Physics Showcase" {
     ambient_light: 0.5
     gravity: -9.81
     shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.2, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.4 }
   }
 
   // ----------------------------------------------------------

@@ -33,11 +33,32 @@ composition "NeurodiverseTherapy" {
   }
 
   environment {
-    skybox: "gentle_twilight"
-    ambient_light: 0.5
+    skybox: { type: "gradient", top: "#1a0533", bottom: "#4a1a6b" }
+    ambient_light: 0.3
+    shadows: true
     physics: false
-    bloom: true
     volumetric_fog: { density: 0.01, color: "#1a0033" }
+  }
+
+  light "GentleGlow" {
+    type: "directional"
+    color: "#eeddff"
+    intensity: 0.5
+    position: [3, 8, 5]
+    cast_shadows: true
+  }
+
+  light "CalmPulse" {
+    type: "point"
+    color: "#88aaff"
+    intensity: 0.6
+    position: [0, 2, 0]
+    range: 12
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.35, threshold: 0.65 }
+    tone_mapping: { type: "aces", exposure: 0.9 }
   }
 
   state {

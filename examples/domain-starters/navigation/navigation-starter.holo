@@ -39,6 +39,15 @@ composition "Navigation Starter" {
       enabled: true
       provider: "arcore-geospatial"
     }
+    directionalLight: {
+      intensity: 1.2
+      color: "#fff8e8"
+      castShadow: true
+    }
+    post_processing: {
+      volumetric_fog: { density: 0.005, color: "#c8d0e0" }
+      tone_mapping: { mode: "aces", exposure: 1.1 }
+    }
   }
 
   // -- Application State ---------------------------------------------------------

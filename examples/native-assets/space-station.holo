@@ -6,6 +6,15 @@ composition "SpaceStation" {
   environment {
     background: "#000011"
     fog: false
+    ambient_light: 0.15
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  post_processing {
+    bloom { intensity: 0.4, threshold: 0.7 }
+    tone_mapping { mode: "aces" }
+    ambient_occlusion { intensity: 0.3, radius: 0.5 }
   }
 
   object "Station" @physics @networked {

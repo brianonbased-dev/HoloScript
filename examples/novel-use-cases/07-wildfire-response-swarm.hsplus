@@ -11,9 +11,24 @@
  */
 composition "WildfireResponseSwarm" {
   environment {
-    skybox: "smoke_haze"
-    ambient_light: 0.4
+    skybox: { type: "gradient", top: "#8e9eab", bottom: "#eef2f3" }
+    ambient_light: 0.35
+    shadows: true
     physics: true
+    fog: { enabled: true, density: 0.02, color: "#aa4400" }
+  }
+
+  light "SmokySun" {
+    type: "directional"
+    color: "#ff9944"
+    intensity: 0.8
+    position: [8, 10, 3]
+    cast_shadows: true
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.3, threshold: 0.6 }
+    tone_mapping: { type: "aces", exposure: 0.85 }
   }
 
   module IncidentCommand {

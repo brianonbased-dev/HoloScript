@@ -31,10 +31,32 @@ composition "QuantumMaterialsArena" {
   }
 
   environment {
-    skybox: "deep_space_nebula"
-    ambient_light: 0.4
+    skybox: { type: "gradient", top: "#020010", bottom: "#0a0a30" }
+    ambient_light: 0.2
+    shadows: true
     physics: true
     post_quantum_crypto: true   // ML-KEM-768 envelope on all relay traffic
+  }
+
+  light "NebulaGlow" {
+    type: "directional"
+    color: "#8899ff"
+    intensity: 0.6
+    position: [5, 10, 5]
+    cast_shadows: true
+  }
+
+  light "QuantumBeacon" {
+    type: "point"
+    color: "#00ffcc"
+    intensity: 0.8
+    position: [0, 3, 0]
+    range: 15
+  }
+
+  post_processing {
+    bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+    tone_mapping: { type: "aces", exposure: 0.8 }
   }
 
   state {

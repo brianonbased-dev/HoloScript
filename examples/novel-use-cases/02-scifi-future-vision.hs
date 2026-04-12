@@ -6,7 +6,20 @@
  * @version 5.0.0
  * @format .hs (process)
  */
-environment { skybox: "utopia_sunrise"; ambient_light: 0.6; fog: { color: "#1a1a3e", density: 0.003 } }
+environment { skybox: { type: "gradient", top: "#020010", bottom: "#0a0a30" }; ambient_light: 0.3; shadows: true; fog: { color: "#1a1a3e", density: 0.003 } }
+
+light "OrbitalSun" {
+  type: "directional"
+  color: "#ffeedd"
+  intensity: 0.8
+  position: { x: 5, y: 12, z: 5 }
+  cast_shadows: true
+}
+
+post_processing {
+  bloom: { enabled: true, intensity: 0.5, threshold: 0.5 }
+  tone_mapping: { type: "aces", exposure: 0.9 }
+}
 
 object "lore_intake" {
   geometry: "cube"; color: "#ffd700"; position: { x: -6, y: 2, z: 0 }; scale: { x: 0.5, y: 0.5, z: 0.5 }

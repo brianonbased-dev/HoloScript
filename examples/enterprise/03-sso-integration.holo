@@ -23,6 +23,45 @@
  */
 
 scene EnterpriseSSO {
+  environment {
+    skybox: "night_sky"
+    ambient_light: 0.15
+    fog: {
+      enabled: true
+      color: "#0a0a1a"
+      density: 0.015
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    color: "#8855ee"
+    intensity: 0.5
+    rotation: [-40, 25, 0]
+    cast_shadows: true
+  }
+
+  light "AccentPurple" {
+    type: "point"
+    color: "#7c3aed"
+    intensity: 0.8
+    position: [3, 4, -2]
+    range: 12
+  }
+
+  post_processing {
+    bloom: {
+      enabled: true
+      intensity: 0.4
+      threshold: 0.7
+    }
+    tone_mapping: {
+      enabled: true
+      type: "aces"
+      exposure: 1.1
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // SAML 2.0 CONFIGURATION (Enterprise IdP)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -295,6 +334,14 @@ scene EnterpriseSSO {
     position: [0, 2.5, -4];
     scale: [6, 3, 1];
     traits: [text_display];
+
+    material: {
+      color: "#08050f",
+      roughness: 0.15,
+      metallic: 0.2,
+      emissive: "#0f0520",
+      emissive_intensity: 0.3
+    };
 
     text_display: {
       content: "SINGLE SIGN-ON INTEGRATION\n\n🔐 Supported Protocols:\n  • SAML 2.0 (Enterprise standard)\n  • OpenID Connect (Modern web/mobile)\n\n🏢 Enterprise IdP Support:\n  • Okta\n  • Azure Active Directory\n  • Google Workspace\n  • OneLogin\n  • Auth0\n\n🛡️  Security Features:\n  • Multi-factor authentication (TOTP, SMS)\n  • Session timeout (1-8 hours)\n  • Single logout (SLO)\n  • Token refresh\n  • JIT user provisioning\n\n📊 SAML Attributes:\n  • Email, name, role\n  • Department, groups\n  • Custom claims",
