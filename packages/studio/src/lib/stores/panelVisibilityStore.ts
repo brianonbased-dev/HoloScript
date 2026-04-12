@@ -55,6 +55,7 @@ export type PanelKey =
   | 'outliner'
   | 'material'
   | 'physics'
+  | 'simulation'
   | 'snapshotDiff'
   | 'audioVisualizer'
   | 'multiTransform'
@@ -155,6 +156,7 @@ const PANEL_KEYS: PanelKey[] = [
   'outliner',
   'material',
   'physics',
+  'simulation',
   'snapshotDiff',
   'audioVisualizer',
   'multiTransform',

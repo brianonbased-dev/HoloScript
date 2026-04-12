@@ -63,11 +63,31 @@ export type {
   LightProbeConfig,
 } from './components/GIRenderer';
 
-// Simulation Visualization Components (Phase R2)
+// Simulation Visualization Components (Phase R2 + Phase R3)
 export { SimulationProvider } from './components/SimulationProvider';
 export type { SimulationProviderProps, SimulationContextValue } from './components/SimulationProvider';
 export { ScalarFieldOverlay } from './components/ScalarFieldOverlay';
 export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarFieldOverlay';
+export { SimResultsMesh } from './components/SimResultsMesh';
+export type { SimResultsMeshProps } from './components/SimResultsMesh';
+
+// V&V Visualization Space (Phase R5 — Walkable Verification & Validation)
+export { VnVSpace } from './components/VnVSpace';
+export type { VnVSpaceProps, BenchmarkStatusItem } from './components/VnVSpace';
+export { ConvergencePlot3D } from './components/ConvergencePlot3D';
+export type {
+  ConvergencePlot3DProps,
+  ConvergenceSeries,
+  ConvergenceDataPoint,
+} from './components/ConvergencePlot3D';
+export { MeshRefinementCompare } from './components/MeshRefinementCompare';
+export type {
+  MeshRefinementCompareProps,
+  MeshLevel,
+  CompareLayout,
+} from './components/MeshRefinementCompare';
+export { UncertaintyCloud } from './components/UncertaintyCloud';
+export type { UncertaintyCloudProps } from './components/UncertaintyCloud';
 
 // VFX & Audio Components (Phase R3)
 export { VFXParticleRenderer } from './components/VFXParticleRenderer';
@@ -118,6 +138,8 @@ export type { LODDetail } from './utils/materialUtils';
 
 // Hooks
 export { useSimulationField } from './hooks/useSimulationField';
+export { useVnVData, useElementToNodeUncertainty } from './hooks/useVnVData';
+export type { VnVVisualizationData, BenchmarkSummaryItem } from './hooks/useVnVData';
 export { useHoloTextures, hasTextures } from './hooks/useHoloTextures';
 export { useProceduralTexture } from './hooks/useProceduralTexture';
 export { useLODBridge, resetLODBridge } from './hooks/useLODBridge';

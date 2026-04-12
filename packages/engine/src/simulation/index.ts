@@ -38,11 +38,80 @@ export {
 // Layer 1 — Domain Solvers
 export { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
 export { StructuralSolver, type StructuralConfig, type StructuralConstraint, type StructuralLoad } from './StructuralSolver';
+export { StructuralSolverTET10, tet4ToTet10, type TET10Config, type TET10Constraint, type TET10Load, type TET10Stats } from './StructuralSolverTET10';
 export { HydraulicSolver, type HydraulicConfig, type HydraulicPipe, type HydraulicNode, type HydraulicValve } from './HydraulicSolver';
 export { SaturationManager, type SaturationConfig, type SaturationEvent } from './SaturationManager';
+export { AcousticSolver, buildLayeredVelocity, type AcousticConfig, type AcousticSource, type AcousticBC, type AcousticStats } from './AcousticSolver';
+export { FDTDSolver, type FDTDConfig, type EMSource, type FDTDStats } from './FDTDSolver';
+export { NavierStokesSolver, type NavierStokesConfig, type CFDBC, type NavierStokesStats } from './NavierStokesSolver';
+export { MultiphaseNSSolver, type MultiphaseConfig, type MultiphaseStats } from './MultiphaseNSSolver';
+export { MolecularDynamicsSolver, type MDConfig, type MDStats } from './MolecularDynamicsSolver';
+export { ReactionDiffusionSolver, type ReactionDiffusionConfig, type ReactionDiffusionStats, type Species, type Reaction } from './ReactionDiffusionSolver';
+
+// Meshing — Surface-to-volume tet mesh generation
+export {
+  meshBox, meshSurface, meshQuality,
+  findNodesOnFace, findNodesInSphere,
+  registerWasmMesher,
+  type TetMesh, type BoxMeshOptions, type SurfaceMesh, type SurfaceMeshOptions, type WasmMesher,
+} from './AutoMesher';
+export { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
+
+// Data Import — Universal file format parsers
+export {
+  parseSTL, buildSTL,
+  parseOBJ,
+  importScalarFieldCSV, importTableCSV,
+  importStructuredPoints, importUnstructuredGrid,
+  type VTKStructuredResult, type VTKUnstructuredResult,
+} from './import/index';
+
+// Simulation Serialization — Shareable simulation configs
+export {
+  serializeSimulation, deserializeSimulation,
+  simulationToBase64, base64ToSimulation, estimateURLSize,
+  type SerializedSimulation,
+} from './SimulationSerializer';
+
+// Intelligence — Result interpretation and natural language queries
+export {
+  interpretResults, querySimulation, generateAutoReport,
+  type SimulationInsight, type InsightSeverity, type InsightCategory,
+} from './intelligence/index';
 
 // Layer 4 — Multi-Physics Coupling
 export { CouplingManager, type FieldCoupling } from './CouplingManager';
+export { CouplingManagerV2, type FieldCouplingV2, type CouplingStatsV2 } from './CouplingManagerV2';
+
+// Generic Solver Interface
+export { type SimSolver, type SolverMode, type FieldData } from './SimSolver';
+export {
+  ThermalSolverAdapter, StructuralSolverAdapter,
+  TET10SolverAdapter, HydraulicSolverAdapter, AcousticSolverAdapter,
+  FDTDSolverAdapter, ReactionDiffusionSolverAdapter,
+} from './adapters/SolverAdapters';
+
+// Experiment Orchestration
+export {
+  ParameterSpace, applyOverrides,
+  ExperimentOrchestrator,
+  summarize, sensitivity, paretoFront, exportSweepCSV,
+  type ParameterRange, type ParameterSample,
+  type ExperimentConfig, type ExperimentResult, type ExperimentRunResult, type SolverHandle,
+  type SweepSummary, type SensitivityResult, type ParetoPoint,
+} from './experiment/index';
+
+// Uncertainty Quantification — Stochastic analysis via LHS ensembles
+export {
+  UncertaintyQuantification,
+  computeScalarDistribution,
+  computeFieldDistribution,
+  type UQConfig,
+  type UQResult,
+  type UQSolverHandle,
+  type ScalarDistribution,
+  type FieldDistribution,
+} from './UncertaintyQuantification';
 
 // Units — Dimensional analysis and type-safe physical quantities
 export {
@@ -73,6 +142,7 @@ export {
   type YoungsModulus,
   type YieldStrength,
   type Stress,
+  type Acceleration,
   type Strain,
   type PoissonRatio,
   type FlowRate,
@@ -95,6 +165,7 @@ export {
   youngsModulus,
   yieldStrength,
   stress,
+  acceleration,
   strain,
   poissonRatio,
   flowRate,
@@ -151,6 +222,9 @@ export {
   createVerificationReport,
   renderReportMarkdown,
   renderReportLatex,
+  type SolverType,
+  type ConvergencePlotPoint,
+  type ConvergencePlotData,
   type BenchmarkResult,
   type VerificationReport,
 } from './verification/ReportGenerator';

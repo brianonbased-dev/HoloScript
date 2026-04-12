@@ -13,6 +13,7 @@ import { MarketplacePanel } from './MarketplacePanel';
 import { PlatformPicker } from './PlatformPicker';
 import { TraitInspector } from './TraitInspector';
 import { PhysicsPreviewPanel } from './PhysicsPreviewPanel';
+import { SimulationPanel } from '../simulation/SimulationPanel';
 import { BehaviorPanel } from './BehaviorPanel';
 import { BehaviorTreePanel } from './BehaviorTreePanel';
 import { DialoguePanel } from './DialoguePanel';
@@ -107,6 +108,7 @@ const TAB_CATEGORIES: TabCategory[] = [
     headerIcon: '⚙',
     tabs: [
       { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview' },
+      { id: 'simulation', icon: '🔬', label: 'FEA', title: 'Finite element structural simulation' },
       { id: 'behavior', icon: '🏃', label: 'Behavior', title: 'Character animation behaviors' },
       { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
       { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
@@ -304,6 +306,7 @@ export function RightPanelSidebar({
             {activeTab === 'traits' && <TraitInspector showCulture />}
             {activeTab === 'behavior' && <BehaviorPanel />}
             {activeTab === 'physics' && <PhysicsPreviewPanel />}
+            {activeTab === 'simulation' && <SimulationPanel onClose={() => setActiveTab(null)} />}
             {activeTab === 'ai' && <BehaviorTreePanel />}
             {activeTab === 'dialogue' && <DialoguePanel />}
             {activeTab === 'ecs' && <ECSInspectorPanel />}

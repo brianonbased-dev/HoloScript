@@ -5,7 +5,7 @@ import { SimulationContext, SimulationContextValue } from '../components/Simulat
  * Access the active simulation solver and its scalar field output.
  * Must be called within a `<SimulationProvider>`.
  *
- * @returns solver instance, current scalar field (Float32Array), and simulation type
+ * @returns solver instance, current scalar field, displacements, simulation type, and solving state
  */
 export function useSimulationField(): SimulationContextValue {
   const context = useContext(SimulationContext);
