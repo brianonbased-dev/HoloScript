@@ -89,8 +89,15 @@ export interface TET10Load {
   acceleration?: [Acceleration, Acceleration, Acceleration];
   /** Node index for point loads */
   nodeIndex?: number;
-  /** Surface element indices for distributed loads */
+  /**
+   * Surface references for distributed loads.
+   * Backward compatible forms:
+   * - element index (assumes local face 0)
+   * - encoded face index: elementIndex * 4 + localFace
+   */
   surfaceElements?: number[];
+  /** Explicit face references (preferred) */
+  surfaceFaces?: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }>;
   /** Pressure in Pa for distributed loads */
   pressure?: Pressure;
 }
@@ -207,6 +214,53 @@ function shapeFunctionGradients(xi: number, eta: number, zeta: number): Float64A
 
   return dN;
 }
+
+// Quadratic 6-node triangle shape functions (r,s with L1=1-r-s, L2=r, L3=s)
+function tri6ShapeFunctions(r: number, s: number): Float64Array {
+  const L1 = 1 - r - s;
+  const L2 = r;
+  const L3 = s;
+  return new Float64Array([
+    L1 * (2 * L1 - 1), // corner 1
+    L2 * (2 * L2 - 1), // corner 2
+    L3 * (2 * L3 - 1), // corner 3
+    4 * L1 * L2,       // midside 12
+    4 * L2 * L3,       // midside 23
+    4 * L3 * L1,       // midside 31
+  ]);
+}
+
+function tri6ShapeDerivatives(r: number, s: number): { dNdr: Float64Array; dNds: Float64Array } {
+  const L1 = 1 - r - s;
+  const L2 = r;
+  const L3 = s;
+
+  const dNdr = new Float64Array([
+    -(4 * L1 - 1),
+    4 * L2 - 1,
+    0,
+    4 * (L1 - L2),
+    4 * L3,
+    -4 * L3,
+  ]);
+
+  const dNds = new Float64Array([
+    -(4 * L1 - 1),
+    0,
+    4 * L3 - 1,
+    -4 * L2,
+    4 * L2,
+    4 * (L1 - L3),
+  ]);
+
+  return { dNdr, dNds };
+}
+
+const TRI_GAUSS_3: Array<{ r: number; s: number; w: number }> = [
+  { r: 1 / 6, s: 1 / 6, w: 1 / 6 },
+  { r: 2 / 3, s: 1 / 6, w: 1 / 6 },
+  { r: 1 / 6, s: 2 / 3, w: 1 / 6 },
+];
 
 // ── CSR Builder ───────────────────────────────────────────────────────────────
 
@@ -331,6 +385,52 @@ export class StructuralSolverTET10 {
 
   private gpuDisplacementBuffer: GPUBuffer | null = null;
   private gpuSolver: SparseLinearSolver | null = null;
+
+  private static readonly LOCAL_FACE_NODE_MAP: ReadonlyArray<readonly [number, number, number, number, number, number]> = [
+    // Face opposite corner 3: (0,1,2) + mids (01,12,02)
+    [0, 1, 2, 4, 5, 6],
+    // Face opposite corner 2: (0,1,3) + mids (01,13,03)
+    [0, 1, 3, 4, 8, 7],
+    // Face opposite corner 1: (0,2,3) + mids (02,23,03)
+    [0, 2, 3, 6, 9, 7],
+    // Face opposite corner 0: (1,2,3) + mids (12,23,13)
+    [1, 2, 3, 5, 9, 8],
+  ];
+
+  private decodeSurfaceReferences(load: TET10Load): Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> {
+    const refs: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> = [];
+
+    if (load.surfaceFaces?.length) {
+      for (const face of load.surfaceFaces) {
+        if (face.elementIndex < 0 || face.elementIndex >= this.elementCount) continue;
+        refs.push({ elementIndex: face.elementIndex, localFace: face.localFace });
+      }
+      return refs;
+    }
+
+    if (!load.surfaceElements?.length) return refs;
+
+    for (const raw of load.surfaceElements) {
+      if (!Number.isFinite(raw) || raw < 0) continue;
+
+      const asInt = Math.floor(raw);
+
+      // Backward compatibility: if raw is valid element index, assume face 0
+      if (asInt < this.elementCount) {
+        refs.push({ elementIndex: asInt, localFace: 0 });
+        continue;
+      }
+
+      // Encoded face reference: elementIndex * 4 + localFace
+      const elementIndex = Math.floor(asInt / 4);
+      const localFace = (asInt % 4) as 0 | 1 | 2 | 3;
+      if (elementIndex >= 0 && elementIndex < this.elementCount) {
+        refs.push({ elementIndex, localFace });
+      }
+    }
+
+    return refs;
+  }
 
   private get stiffnessMatrix(): CSRMatrix {
     return {
@@ -607,22 +707,72 @@ export class StructuralSolverTET10 {
           break;
         }
         case 'distributed': {
-          if (load.surfaceElements && load.pressure) {
-            for (const faceIdx of load.surfaceElements) {
-              // Surface of a TET10 face is a 6-node quadratic triangle
-              // Simplified: use corner nodes of the element face for pressure
-              const n0 = tets[faceIdx * 10], n1 = tets[faceIdx * 10 + 1], n2 = tets[faceIdx * 10 + 2];
-              const ax = verts[n1 * 3] - verts[n0 * 3], ay = verts[n1 * 3 + 1] - verts[n0 * 3 + 1], az = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
-              const bx = verts[n2 * 3] - verts[n0 * 3], by = verts[n2 * 3 + 1] - verts[n0 * 3 + 1], bz = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
-              const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
-              const area = 0.5 * Math.sqrt(nx * nx + ny * ny + nz * nz);
-              if (area < 1e-20) continue;
-              const mag = Math.sqrt(nx * nx + ny * ny + nz * nz);
-              const scale = (load.pressure * area) / (3 * mag);
-              for (const n of [n0, n1, n2]) {
-                this.externalForces[n * 3] += scale * nx;
-                this.externalForces[n * 3 + 1] += scale * ny;
-                this.externalForces[n * 3 + 2] += scale * nz;
+          if (!load.pressure) break;
+
+          const faceRefs = this.decodeSurfaceReferences(load);
+          for (const { elementIndex, localFace } of faceRefs) {
+            const elemBase = elementIndex * 10;
+            const map = StructuralSolverTET10.LOCAL_FACE_NODE_MAP[localFace];
+
+            const faceNodes = new Uint32Array(6);
+            for (let i = 0; i < 6; i++) {
+              faceNodes[i] = tets[elemBase + map[i]];
+            }
+
+            // Use corner nodes to determine outward orientation for this face
+            const c0 = faceNodes[0], c1 = faceNodes[1], c2 = faceNodes[2];
+            const oppCornerLocal = localFace === 0 ? 3 : localFace === 1 ? 2 : localFace === 2 ? 1 : 0;
+            const opp = tets[elemBase + oppCornerLocal];
+
+            const x0 = verts[c0 * 3], y0 = verts[c0 * 3 + 1], z0 = verts[c0 * 3 + 2];
+            const x1 = verts[c1 * 3], y1 = verts[c1 * 3 + 1], z1 = verts[c1 * 3 + 2];
+            const x2 = verts[c2 * 3], y2 = verts[c2 * 3 + 1], z2 = verts[c2 * 3 + 2];
+            const xo = verts[opp * 3], yo = verts[opp * 3 + 1], zo = verts[opp * 3 + 2];
+
+            const ex1 = x1 - x0, ey1 = y1 - y0, ez1 = z1 - z0;
+            const ex2 = x2 - x0, ey2 = y2 - y0, ez2 = z2 - z0;
+            let nx0 = ey1 * ez2 - ez1 * ey2;
+            let ny0 = ez1 * ex2 - ex1 * ez2;
+            let nz0 = ex1 * ey2 - ey1 * ex2;
+
+            // If normal points toward opposite corner, flip to outward normal
+            const dotOpp = nx0 * (xo - x0) + ny0 * (yo - y0) + nz0 * (zo - z0);
+            const outwardSign = dotOpp > 0 ? -1 : 1;
+
+            for (const gp of TRI_GAUSS_3) {
+              const N = tri6ShapeFunctions(gp.r, gp.s);
+              const { dNdr, dNds } = tri6ShapeDerivatives(gp.r, gp.s);
+
+              let jrx = 0, jry = 0, jrz = 0;
+              let jsx = 0, jsy = 0, jsz = 0;
+              for (let a = 0; a < 6; a++) {
+                const n = faceNodes[a];
+                const x = verts[n * 3];
+                const y = verts[n * 3 + 1];
+                const z = verts[n * 3 + 2];
+                jrx += dNdr[a] * x;
+                jry += dNdr[a] * y;
+                jrz += dNdr[a] * z;
+                jsx += dNds[a] * x;
+                jsy += dNds[a] * y;
+                jsz += dNds[a] * z;
+              }
+
+              // Surface Jacobian vector (includes differential area scaling)
+              let nx = jry * jsz - jrz * jsy;
+              let ny = jrz * jsx - jrx * jsz;
+              let nz = jrx * jsy - jry * jsx;
+
+              nx *= outwardSign;
+              ny *= outwardSign;
+              nz *= outwardSign;
+
+              for (let a = 0; a < 6; a++) {
+                const node = faceNodes[a];
+                const coeff = load.pressure * gp.w * N[a];
+                this.externalForces[node * 3] += coeff * nx;
+                this.externalForces[node * 3 + 1] += coeff * ny;
+                this.externalForces[node * 3 + 2] += coeff * nz;
               }
             }
           }
@@ -652,59 +802,142 @@ export class StructuralSolverTET10 {
     
     // Start from zero displacements
     this.displacements.fill(0);
-    
+
+    const normResidual = (r: Float64Array): number => {
+      let n = 0;
+      for (let i = 0; i < this.dofCount; i++) {
+        if (this.constrainedDofs.has(i)) continue;
+        const v = r[i];
+        n += v * v;
+      }
+      return Math.sqrt(n);
+    };
+
+    const normFree = (v: Float64Array): number => {
+      let n = 0;
+      for (let i = 0; i < this.dofCount; i++) {
+        if (this.constrainedDofs.has(i)) continue;
+        const x = v[i];
+        n += x * x;
+      }
+      return Math.sqrt(n);
+    };
+
+    const computeResidual = (currentExtForce: Float64Array): { residual: Float64Array; norm: number } => {
+      const f_int = this.assembleInternalForce();
+      const residual = new Float64Array(this.dofCount);
+      for (let i = 0; i < this.dofCount; i++) {
+        if (this.constrainedDofs.has(i)) continue;
+        residual[i] = currentExtForce[i] - f_int[i];
+      }
+      return { residual, norm: normResidual(residual) };
+    };
+
     let totalIter = 0;
-    
-    for (let step = 1; step <= this.loadSteps; step++) {
-      const loadFactor = step / this.loadSteps;
-      console.log(`Load Step ${step}/${this.loadSteps} (Factor: ${loadFactor.toFixed(2)})`);
-      
-      const currentExtForce = totalExtForce.map(f => f * loadFactor);
+    let stepCounter = 0;
+    let currentLoadFactor = 0;
+    let increment = 1 / Math.max(1, this.loadSteps);
+    const minIncrement = Math.max((1 / Math.max(1, this.loadSteps)) / 2048, 1e-6);
+
+    while (currentLoadFactor < 1 - 1e-12) {
+      stepCounter++;
+      const trialLoadFactor = Math.min(1, currentLoadFactor + increment);
+      console.log(`Load Step ${stepCounter} (Factor: ${trialLoadFactor.toFixed(4)}, Δ=${increment.toFixed(4)})`);
+
+      const currentExtForce = new Float64Array(this.dofCount);
+      for (let i = 0; i < this.dofCount; i++) currentExtForce[i] = totalExtForce[i] * trialLoadFactor;
+
+      const uBeforeStep = new Float64Array(this.displacements);
       let converged = false;
-      
-      for (let nrIter = 0; nrIter < 20; nrIter++) { // Hard limit of 20 NR iters per step
-        // 1. Re-assemble f_int and K_T at current state u
-        const f_int = this.assembleInternalForce();
+      let previousResidualNorm = Number.POSITIVE_INFINITY;
+      const explosionFactor = 8.0;
+
+      for (let nrIter = 0; nrIter < 40; nrIter++) {
         this.assembleTangentStiffness();
+        this.regularizeTangentStiffness();
         this.applyConstraintsToCSR();
-        
-        // 2. Residual: r = f_ext - f_int
-        const r = new Float64Array(this.dofCount);
-        let residNorm = 0;
-        for (let i = 0; i < this.dofCount; i++) {
-          if (this.constrainedDofs.has(i)) continue;
-          r[i] = currentExtForce[i] - f_int[i];
-          residNorm += r[i] * r[i];
-        }
-        residNorm = Math.sqrt(residNorm);
-        
+
+        const { residual: r, norm: residNorm } = computeResidual(currentExtForce);
         console.log(`  NR Iter ${nrIter}: Residual Norm = ${residNorm.toExponential(4)}`);
-        
+
+        if (!Number.isFinite(residNorm)) {
+          break;
+        }
+
+        if (nrIter > 0 && Number.isFinite(previousResidualNorm) && residNorm > previousResidualNorm * explosionFactor) {
+          // Residual exploded; force adaptive substep retry.
+          break;
+        }
+
+        previousResidualNorm = residNorm;
+
         if (residNorm < this.tolerance) {
           converged = true;
           break;
         }
-        
-        // 3. Solve K_T * delta_u = r
+
         const solveResult = await this.solveLinearSystem(r);
         if (!solveResult.converged) {
-          throw new Error('Inner linear solve failed to converge during NR iteration');
+          break;
         }
-        
-        // 4. Update: u = u + delta_u
-        let maxChange = 0;
-        for (let i = 0; i < this.dofCount; i++) {
-          const dU = solveResult.solution[i];
-          this.displacements[i] += dU;
-          if (Math.abs(dU) > maxChange) maxChange = Math.abs(dU);
+
+        // Backtracking line search on residual norm
+        const uBase = new Float64Array(this.displacements);
+        const baseNorm = residNorm;
+        const baseUNorm = Math.max(normFree(uBase), 1e-12);
+        let accepted = false;
+        let alpha = 1.0;
+        let acceptedUpdateNorm = Number.POSITIVE_INFINITY;
+
+        for (let ls = 0; ls < 10; ls++) {
+          const scaledStep = new Float64Array(this.dofCount);
+          for (let i = 0; i < this.dofCount; i++) {
+            scaledStep[i] = alpha * solveResult.solution[i];
+            this.displacements[i] = uBase[i] + scaledStep[i];
+          }
+
+          const stepNorm = normFree(scaledStep);
+          acceptedUpdateNorm = stepNorm / baseUNorm;
+
+          const trial = computeResidual(currentExtForce);
+          if (Number.isFinite(trial.norm) && trial.norm < baseNorm) {
+            accepted = true;
+            break;
+          }
+
+          alpha *= 0.5;
         }
-        
+
+        if (!accepted) {
+          // Restore and force load-step reduction
+          this.displacements.set(uBase);
+          break;
+        }
+
+        // Secondary NR stopping criterion: relative displacement update norm
+        if (acceptedUpdateNorm < 1e-8) {
+          converged = true;
+          break;
+        }
+
         totalIter++;
       }
-      
-      if (!converged) {
-        throw new Error(`Nonlinear solve failed to converge at load step ${step}`);
+
+      if (converged) {
+        currentLoadFactor = trialLoadFactor;
+        if (increment < (1 / Math.max(1, this.loadSteps))) {
+          increment = Math.min(1 / Math.max(1, this.loadSteps), increment * 1.5);
+        }
+        continue;
       }
+
+      // Step failed: rollback and retry with smaller load increment
+      this.displacements.set(uBeforeStep);
+      increment *= 0.5;
+      if (increment < minIncrement) {
+        throw new Error(`Nonlinear solve failed to converge near load factor ${trialLoadFactor.toFixed(4)}`);
+      }
+      console.warn(`  Step failed. Retrying with smaller Δ=${increment.toFixed(6)}`);
     }
     
     this.solveTimeMs = performance.now() - startTime;
@@ -937,6 +1170,36 @@ export class StructuralSolverTET10 {
     }
   }
 
+  /**
+   * Add a light diagonal regularization to unconstrained DOFs in tangent matrix
+   * to reduce near-singular NR steps in early nonlinear iterations.
+   */
+  private regularizeTangentStiffness(): void {
+    let maxDiag = 0;
+
+    for (let row = 0; row < this.dofCount; row++) {
+      const rowMap = this.dofToCSR.get(row);
+      if (!rowMap) continue;
+      const diagIdx = rowMap.get(row);
+      if (diagIdx === undefined) continue;
+      const d = Math.abs(this.csrVal[diagIdx]);
+      if (Number.isFinite(d) && d > maxDiag) maxDiag = d;
+    }
+
+    if (maxDiag <= 0) return;
+
+    const epsilon = Math.max(1e-9 * maxDiag, 1e-6);
+
+    for (let row = 0; row < this.dofCount; row++) {
+      if (this.constrainedDofs.has(row)) continue;
+      const rowMap = this.dofToCSR.get(row);
+      if (!rowMap) continue;
+      const diagIdx = rowMap.get(row);
+      if (diagIdx === undefined) continue;
+      this.csrVal[diagIdx] += epsilon;
+    }
+  }
+
   /** Alias for backward compatibility with StructuralSolver interface */
   private assembleStiffness(): void {
     this.assembleGlobalStiffness();
@@ -1005,16 +1268,32 @@ export class StructuralSolverTET10 {
     
     let rsold = this.dot(r, r);
     const bNorm = Math.sqrt(this.dot(b, b));
+
+    if (!Number.isFinite(rsold)) {
+      return { converged: false, iterations: 0, solution: x };
+    }
     
     let iter = 0;
     for (iter = 0; iter < maxIter; iter++) {
       applyA(p, Ap);
-      const alpha = rsold / this.dot(p, Ap);
+      const denom = this.dot(p, Ap);
+      if (!Number.isFinite(denom) || Math.abs(denom) < 1e-30) {
+        return { converged: false, iterations: iter, solution: x };
+      }
+
+      const alpha = rsold / denom;
+      if (!Number.isFinite(alpha)) {
+        return { converged: false, iterations: iter, solution: x };
+      }
+
       for (let i = 0; i < n; i++) {
         x[i] += alpha * p[i];
         r[i] -= alpha * Ap[i];
       }
       const rsnew = this.dot(r, r);
+      if (!Number.isFinite(rsnew)) {
+        return { converged: false, iterations: iter, solution: x };
+      }
       if (Math.sqrt(rsnew) < Math.max(tol * bNorm, 1e-15)) break;
       for (let i = 0; i < n; i++) p[i] = r[i] + (rsnew / rsold) * p[i];
       rsold = rsnew;
@@ -1352,6 +1631,10 @@ export class StructuralSolverTET10 {
 
   getDisplacements(): Float64Array {
     return this.displacements;
+  }
+
+  getExternalForces(): Float64Array {
+    return this.externalForces;
   }
 
   getCSRMatrix(): CSRMatrix {

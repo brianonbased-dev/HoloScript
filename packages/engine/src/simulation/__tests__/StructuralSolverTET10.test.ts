@@ -178,6 +178,58 @@ describe('StructuralSolverTET10', () => {
     });
   });
 
+  describe('Quadratic face traction integration', () => {
+    it('distributes pressure traction to 6-node face with correct total force', () => {
+      // Single reference tetrahedron
+      const tet4Verts = new Float64Array([
+        0, 0, 0,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+      ]);
+      const tet4Tets = new Uint32Array([0, 1, 2, 3]);
+      const { vertices, tetrahedra } = tet4ToTet10(tet4Verts, tet4Tets);
+
+      // Apply pressure on local face 0 => corner nodes (0,1,2), area = 0.5
+      // Pressure=2 => total resultant magnitude should be p*A = 1.
+      const config: TET10Config = {
+        vertices,
+        tetrahedra,
+        material: { density: 1000, youngs_modulus: 1e6, poisson_ratio: 0.3, yield_strength: 1e8 },
+        constraints: [{ id: 'fix-all', type: 'fixed', nodes: Array.from({ length: vertices.length / 3 }, (_, i) => i) }],
+        loads: [
+          {
+            id: 'pressure-face0',
+            type: 'distributed',
+            pressure: 2,
+            surfaceFaces: [{ elementIndex: 0, localFace: 0 }],
+          },
+        ],
+        useGPU: false,
+      };
+
+      const solver = new StructuralSolverTET10(config);
+      const f = solver.getExternalForces();
+
+      let fx = 0, fy = 0, fz = 0;
+      for (let i = 0; i < f.length / 3; i++) {
+        fx += f[i * 3];
+        fy += f[i * 3 + 1];
+        fz += f[i * 3 + 2];
+      }
+
+      // Face 0 outward normal for this tetra points in -Z direction.
+      expect(fx).toBeCloseTo(0, 6);
+      expect(fy).toBeCloseTo(0, 6);
+      expect(fz).toBeCloseTo(-1, 6);
+
+      // Midside nodes on face 0 are local 4,5,6 in TET10 map and should carry non-zero traction.
+      const mids = [tetrahedra[4], tetrahedra[5], tetrahedra[6]];
+      const midsTotal = mids.reduce((acc, n) => acc + Math.abs(f[n * 3]) + Math.abs(f[n * 3 + 1]) + Math.abs(f[n * 3 + 2]), 0);
+      expect(midsTotal).toBeGreaterThan(0);
+    });
+  });
+
   describe('CSR Assembly', () => {
     it('produces a symmetric stiffness matrix', () => {
       const mesh = buildCubeGridTET10(1, 1, 1, 1, 1, 1);
