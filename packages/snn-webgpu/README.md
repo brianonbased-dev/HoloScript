@@ -161,13 +161,20 @@ Graph utility helpers are also available:
 ```ts
 import {
   TROPICAL_INF,
+  assertGraphShape,
   normalizeAdjacency,
   denseToCSR,
+  fromEdges,
   csrToDense,
 } from '@holoscript/snn-webgpu';
 
 const normalized = normalizeAdjacency(rawAdjacency, n);
 const csr = denseToCSR(normalized, n);
+const csrFromEdges = fromEdges(n, [
+  { from: 0, to: 1, weight: 3 },
+  { from: 1, to: 2, weight: 2 },
+]);
+assertGraphShape(csrFromEdges);
 const denseAgain = csrToDense(csr);
 ```
 

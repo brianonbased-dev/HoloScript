@@ -62,8 +62,11 @@ export { TropicalShortestPaths } from './graph/TropicalShortestPaths.js';
 export type { TropicalCSRGraph } from './graph/TropicalShortestPaths.js';
 export {
   TROPICAL_INF,
+  type WeightedEdge,
+  assertGraphShape,
   normalizeAdjacency,
   denseToCSR,
+  fromEdges,
   csrToDense,
 } from './graph/TropicalGraphUtils.js';
 

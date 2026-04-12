@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   TROPICAL_INF,
+  assertGraphShape,
   csrToDense,
   denseToCSR,
+  fromEdges,
   normalizeAdjacency,
 } from '../graph/TropicalGraphUtils.js';
 
@@ -37,5 +39,30 @@ describe('TropicalGraphUtils', () => {
     const restored = csrToDense(csr);
 
     expect(Array.from(restored)).toEqual(Array.from(dense));
+  });
+
+  it('builds CSR from weighted edge list', () => {
+    const csr = fromEdges(4, [
+      { from: 0, to: 1, weight: 3 },
+      { from: 0, to: 2, weight: 10 },
+      { from: 1, to: 2, weight: 1 },
+      { from: 2, to: 3, weight: 2 },
+      { from: 0, to: 1, weight: 2 }, // duplicate, smaller weight should win
+    ]);
+
+    expect(Array.from(csr.rowPtr)).toEqual([0, 2, 3, 4, 4]);
+    expect(Array.from(csr.colIdx)).toEqual([1, 2, 2, 3]);
+    expect(Array.from(csr.values)).toEqual([2, 10, 1, 2]);
+    expect(() => assertGraphShape(csr)).not.toThrow();
+  });
+
+  it('assertGraphShape rejects malformed CSR', () => {
+    expect(() =>
+      assertGraphShape({
+        rowPtr: new Uint32Array([0, 3, 2]),
+        colIdx: new Uint32Array([0, 1]),
+        values: new Float32Array([1, 2]),
+      })
+    ).toThrow(/non-decreasing/);
   });
 });
