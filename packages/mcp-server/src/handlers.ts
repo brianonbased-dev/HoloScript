@@ -41,6 +41,11 @@ import {
   BrowserExecuteSchema,
   BrowserScreenshotSchema,
 } from './browser/browser-tools';
+import {
+  buildToolManifest,
+  suggestToolsForGoal,
+  handleBatchToolCall,
+} from './tooling-discovery-tools';
 
 // Trait categories mapping — representative samples per category.
 // Full 1,800+ trait list is available via the 'all' category (sourced from @holoscript/core).
@@ -238,6 +243,46 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserExecute(BrowserExecuteSchema.parse(args));
     case 'browser_screenshot':
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
+    case 'get_tool_manifest': {
+      const includeInputSchema = args.includeInputSchema !== false;
+      const includeOutputSchema = args.includeOutputSchema !== false;
+      const includeExamples = args.includeExamples === true;
+      const { tools: allTools } = await import('./tools');
+      const manifest = buildToolManifest(allTools, {
+        includeInputSchema,
+        includeOutputSchema,
+        includeExamples,
+      });
+
+      const categories: Record<string, number> = {};
+      for (const item of manifest) categories[item.category] = (categories[item.category] || 0) + 1;
+
+      return {
+        count: manifest.length,
+        categories,
+        tools: manifest,
+      };
+    }
+    case 'suggest_tools_for_goal': {
+      const goal = String(args.goal || '').trim();
+      if (!goal) throw new Error('goal is required');
+
+      const maxSuggestions =
+        typeof args.maxSuggestions === 'number' && args.maxSuggestions > 0
+          ? Math.floor(args.maxSuggestions)
+          : 8;
+
+      const { tools: allTools } = await import('./tools');
+      const manifest = buildToolManifest(allTools, {
+        includeInputSchema: false,
+        includeOutputSchema: false,
+        includeExamples: false,
+      });
+
+      return suggestToolsForGoal(goal, manifest, maxSuggestions);
+    }
+    case 'batch_tool_call':
+      return handleBatchToolCall(args, (toolName, toolArgs) => handleTool(toolName, toolArgs));
   }
 
   // Absorb provenance wrapper tool
@@ -314,8 +359,8 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleSimulationTool(name, args);
   }
 
-  // TypeScript absorb tool
-  if (name === 'absorb_typescript') {
+  // TypeScript absorb tools
+  if (name === 'absorb_typescript' || name === 'absorb_suggest_holoscript_transform') {
     const { handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
     return handleAbsorbTypescriptTool(name, args);
   }
@@ -344,7 +389,13 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   }
 
   // Plugin management tools (v5.7)
-  if (name === 'install_plugin' || name === 'list_plugins' || name === 'manage_plugin') {
+  if (
+    name === 'install_plugin' ||
+    name === 'install_domain_plugin' ||
+    name === 'discover_plugins' ||
+    name === 'list_plugins' ||
+    name === 'manage_plugin'
+  ) {
     const { handlePluginManagementTool } = await import('./plugin-management-tools');
     return handlePluginManagementTool(name, args);
   }
@@ -892,7 +943,7 @@ function convertToHs(ast: any, _from: string): string {
     lines.push(`${obj.type || 'orb'} ${obj.name || 'obj'} {`);
     if (obj.position) {
       lines.push(
-        `  position: [${obj.position[0] || 0}, ${obj.position[1] || 0}, ${obj.position[2] || 0] }`
+        `  position: [${obj.position[0] || 0}, ${obj.position[1] || 0}, ${obj.position[2] || 0}]`
       );
     }
     if (obj.color) {

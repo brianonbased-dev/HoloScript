@@ -26,7 +26,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';
 
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -137,6 +137,7 @@ import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
+import { handleBatchToolCall } from './tooling-discovery-tools';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -153,25 +154,158 @@ const server = new Server(
   }
 );
 
+// Unified list of all tools
+const ALL_AVAILABLE_TOOLS: Tool[] = [
+  ...tools, // All core/graph/IDE/AI/codebase/graphRAG/selfImprove/plugins (from tools.ts)
+  ...compilerTools, // 8 compiler tools (Unity, Unreal, URDF, WebGPU, R3F, etc.)
+  ...networkingTools, // 2 networking RPC tools
+  ...snapshotTools, // 3 temporal snapshot tools
+  ...monitoringTools, // 1 telemetry tool
+  ...holotestTools, // 1 spatial testing tool (execute_holotest)
+  ...refactorCodegenTools, // 2 refactor/codegen tools (Phase 10)
+];
+
+ALL_AVAILABLE_TOOLS.push(
+  {
+    name: 'holoscript_discover_tools',
+    description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        intent: { type: 'string', description: 'What you are trying to do (e.g. "parse HoloScript code", "search codebase", "compile").' },
+        limit: { type: 'number', description: 'Max number of results to return (default 5).' }
+      },
+      required: ['intent']
+    }
+  },
+  {
+    name: 'holoscript_batch_execute',
+    description: 'Execute multiple MCP tools sequentially in a single turn. Useful for chaining actions without waiting for multiple conversational turns.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        requests: {
+          type: 'array',
+          description: 'A list of tool requests to execute in order.',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Name of the tool to execute' },
+              arguments: { type: 'object', description: 'Arguments for the tool' }
+            },
+            required: ['name', 'arguments']
+          }
+        }
+      },
+      required: ['requests']
+    }
+  }
+);
+
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [
-      ...tools, // All core/graph/IDE/AI/codebase/graphRAG/selfImprove/plugins (from tools.ts)
-      ...compilerTools, // 8 compiler tools (Unity, Unreal, URDF, WebGPU, R3F, etc.)
-      ...networkingTools, // 2 networking RPC tools
-      ...snapshotTools, // 3 temporal snapshot tools
-      ...monitoringTools, // 1 telemetry tool
-      ...holotestTools, // 1 spatial testing tool (execute_holotest)
-      ...refactorCodegenTools, // 2 refactor/codegen tools (Phase 10)
-    ],
+    tools: ALL_AVAILABLE_TOOLS.map(t => {
+      // Dynamic Appender: Ensure ALL tools explicitly state what they return per Gap 3 Requirements
+      if (!t.description.includes('Returns:') && !t.description.includes('Output:')) {
+        return {
+          ...t,
+          description: t.description + '\n\nReturns: JSON object with execution results. Specific schema omitted, see tool implementation.'
+        };
+      }
+      return t;
+    })
   };
 });
+
+// Single tool executor allowing internal recursive calls
+export async function executeSingleTool(name: string, args: Record<string, unknown>) {
+  try {
+    if (name === 'holoscript_discover_tools') {
+      const intent = String(args?.intent || '').toLowerCase();
+      const limit = Number(args?.limit || 5);
+
+      const words = intent.split(/\W+/).filter((w) => w.length > 2);
+      const scoredTools = ALL_AVAILABLE_TOOLS.map((t) => {
+        const textToSearch = `${t.name} ${t.description}`.toLowerCase();
+        let score = 0;
+        if (t.name.toLowerCase().includes(intent)) score += 10;
+        if (t.description.toLowerCase().includes(intent)) score += 5;
+        for (const word of words) {
+          if (textToSearch.includes(word)) score += 1;
+        }
+        return { tool: t, score };
+      })
+        .filter((t) => t.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(scoredTools.map((s) => s.tool), null, 2) }],
+      };
+    }
+
+    if (name === 'holoscript_batch_execute') {
+      const requests = ((args?.requests as unknown[]) || []) as Array<{
+        name?: string;
+        arguments?: Record<string, unknown>;
+      }>;
+      const results: unknown[] = [];
+      for (const req of requests) {
+        const res = await executeSingleTool(String(req.name || ''), req.arguments || {});
+        results.push({
+          name: req.name,
+          status: (res as { isError?: boolean }).isError ? 'error' : 'success',
+          result: (res as { content?: unknown }).content,
+        });
+      }
+      return {
+        content: [{ type: 'text', text: JSON.stringify(results, null, 2) }],
+      };
+    }
+
+    if (name === 'batch_tool_call') {
+      const batchResult = await handleBatchToolCall(args || {}, async (toolName, toolArgs) => {
+        const res = await executeSingleTool(toolName, toolArgs || {});
+
+        if ((res as { isError?: boolean }).isError) {
+          const errorText = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
+          throw new Error(errorText || `Tool ${toolName} failed`);
+        }
+
+        const text = (res as { content?: Array<{ text?: string }> }).content?.[0]?.text;
+        if (!text) return null;
+
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      });
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(batchResult, null, 2) }],
+      };
+    }
+
+    return await _handleSingleToolLogic(name, args);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+      isError: true,
+    };
+  }
+}
 
 // Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  return await executeSingleTool(name, args || {});
+});
 
+// Implementation of executeSingleTool logic previously bound above
+export async function _handleSingleToolLogic(name: string, args: Record<string, unknown>) {
   try {
     // Check plugins first (for proprietary tools like uaa2_)
     const pluginResult = await PluginManager.handleTool(name, args || {});
@@ -303,7 +437,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       isError: true,
     };
   }
-});
+}
 
 // Start server
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';

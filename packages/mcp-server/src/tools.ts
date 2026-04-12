@@ -33,6 +33,7 @@ import { protocolTools } from './protocol-tools';
 import { codeHealthTools } from './code-health-tools';
 import { simulationTools } from './simulation-tools';
 import { absorbProvenanceTools } from './absorb-provenance-tools';
+import { toolingDiscoveryTools } from './tooling-discovery-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -741,6 +742,7 @@ export const tools: Tool[] = [
   ...oracleTools,
   ...simulationTools,
   ...absorbProvenanceTools,
+  ...toolingDiscoveryTools,
   ...PluginManager.getTools(),
 ];
 
