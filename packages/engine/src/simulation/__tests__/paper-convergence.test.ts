@@ -161,29 +161,58 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
     }
   }
 
+  // Convert to TET10
+  const tet10Mesh = tet4ToTet10(new Float64Array(mesh.vertices), mesh.tetrahedra);
+  const tet10NodeCount = tet10Mesh.vertices.length / 3;
+
+  // Find element faces on the z=L boundary for distributed pressure loading.
+  // A tet face is on z=L if all 3 corner nodes of that face have z ≈ L.
+  // TET4 local face definitions: face 0=[0,1,2], face 1=[0,1,3], face 2=[0,2,3], face 3=[1,2,3]
+  const TET4_FACES = [[0,1,2],[0,1,3],[0,2,3],[1,2,3]];
+  const surfaceFaces: Array<{ elementIndex: number; localFace: 0|1|2|3 }> = [];
+  const tet4Tets = mesh.tetrahedra;
+  const tet4Verts = mesh.vertices;
+  const elemCount = tet4Tets.length / 4;
+  const zTol = L * 0.01;
+
+  for (let e = 0; e < elemCount; e++) {
+    for (let f = 0; f < 4; f++) {
+      const faceCorners = TET4_FACES[f];
+      let allOnZL = true;
+      for (const lc of faceCorners) {
+        const globalNode = tet4Tets[e * 4 + lc];
+        const z = tet4Verts[globalNode * 3 + 2];
+        if (Math.abs(z - L) > zTol) { allOnZL = false; break; }
+      }
+      if (allOnZL) {
+        surfaceFaces.push({ elementIndex: e, localFace: f as 0|1|2|3 });
+      }
+    }
+  }
+
+  // Pressure = F/A = 1000/1 = 1000 Pa applied as distributed traction
+  // using the new quadratic face traction integration (TRI6 shape functions)
+  const pressure = TOTAL_FORCE / AREA;
+
+  // Also collect loaded-face corner nodes for displacement averaging
   const loadedNodes: number[] = [];
   for (let i = 0; i <= mesh.nx; i++) {
     for (let j = 0; j <= mesh.ny; j++) {
       loadedNodes.push(mesh.idx(i, j, mesh.nz));
     }
   }
-  const nodeForce = TOTAL_FORCE / loadedNodes.length;
-
-  // Convert to TET10
-  const tet10Mesh = tet4ToTet10(new Float64Array(mesh.vertices), mesh.tetrahedra);
-  const tet10NodeCount = tet10Mesh.vertices.length / 3;
 
   const config: TET10Config = {
     vertices: tet10Mesh.vertices,
     tetrahedra: tet10Mesh.tetrahedra,
     material: { density: 1000, youngs_modulus: E, poisson_ratio: NU, yield_strength: 1e8 },
     constraints: [{ id: 'fix_z0', type: 'fixed', nodes: fixedNodes }],
-    loads: loadedNodes.map((n) => ({
-      id: `load_${n}`,
-      type: 'point' as const,
-      nodeIndex: n,
-      force: [0, 0, nodeForce] as [number, number, number],
-    })),
+    loads: [{
+      id: 'pressure_zL',
+      type: 'distributed' as const,
+      pressure,
+      surfaceFaces,
+    }],
     maxIterations: 5000,
     tolerance: 1e-12,
     useGPU: false,
@@ -207,10 +236,10 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   for (let i = 0; i < vms.length; i++) sumS += vms[i];
   const avgSigma = sumS / vms.length;
 
-  const elemCount = tet10Mesh.tetrahedra.length / 10;
+  const tet10ElemCount = tet10Mesh.tetrahedra.length / 10;
   const dof = tet10NodeCount * 3;
 
-  return { avgUz, avgSigma, converged: result.converged, solveMs, nodeCount: tet10NodeCount, elemCount, dof };
+  return { avgUz, avgSigma, converged: result.converged, solveMs, nodeCount: tet10NodeCount, elemCount: tet10ElemCount, dof };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
