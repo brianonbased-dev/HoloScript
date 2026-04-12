@@ -74,6 +74,12 @@
 
 import { conjugateGradient, type ConvergenceResult } from './ConvergenceControl';
 import { getMaterial, type StructuralMaterial } from './MaterialDatabase';
+import {
+  type Force,
+  type Pressure,
+  type Acceleration,
+  acceleration,
+} from './units/PhysicalQuantity';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,15 +103,15 @@ export interface StructuralLoad {
   id: string;
   type: LoadType;
   /** Force vector [fx, fy, fz] in N */
-  force?: [number, number, number];
+  force?: [Force, Force, Force];
   /** Acceleration [ax, ay, az] for gravity loads */
-  acceleration?: [number, number, number];
+  acceleration?: [Acceleration, Acceleration, Acceleration];
   /** Node index for point loads */
   nodeIndex?: number;
-  /** Surface element indices for distributed loads */
+  /** Tetrahedron face indices for distributed loads */
   surfaceElements?: number[];
   /** Pressure in Pa for distributed loads */
-  pressure?: number;
+  pressure?: Pressure;
 }
 
 export interface StructuralConfig {
@@ -403,7 +409,7 @@ export class StructuralSolver {
     for (const load of this.config.loads) {
       switch (load.type) {
         case 'gravity': {
-          const [ax, ay, az] = load.acceleration ?? [0, -9.81, 0];
+          const [ax, ay, az] = load.acceleration ?? [acceleration(0), acceleration(-9.81), acceleration(0)];
           // Distribute gravity force to all nodes
           // For simplicity: lumped mass (element volume / 4 per node)
           const tets = this.config.tetrahedra;

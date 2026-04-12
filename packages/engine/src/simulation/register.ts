@@ -8,7 +8,10 @@
 
 import { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
 import { StructuralSolver, type StructuralConfig } from './StructuralSolver';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config, type TET10Constraint, type TET10Load } from './StructuralSolverTET10';
 import { HydraulicSolver, type HydraulicConfig } from './HydraulicSolver';
+import { registerWasmMesher } from './AutoMesher';
+import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 import type { BoundaryCondition, BCFace } from './BoundaryConditions';
 
 // ── Config parsers ───────────────────────────────────────────────────────────
@@ -91,6 +94,31 @@ function parseStructuralConfig(raw: Record<string, unknown>): StructuralConfig {
   };
 }
 
+function parseTET10Config(raw: Record<string, unknown>): TET10Config {
+  const base = parseStructuralConfig(raw);
+  
+  // If mesh is TET4, auto-upgrade to TET10
+  let vertices: Float64Array | Float32Array = base.vertices;
+  let tetrahedra: Uint32Array = base.tetrahedra;
+
+  if (tetrahedra.length > 0 && tetrahedra.length % 4 === 0 && (raw.isTET10 === false || raw.nodesPerElement === 4)) {
+    const upgraded = tet4ToTet10(vertices, tetrahedra);
+    vertices = upgraded.vertices;
+    tetrahedra = upgraded.tetrahedra;
+  }
+
+  return {
+    material: base.material,
+    constraints: base.constraints as TET10Constraint[],
+    loads: base.loads as TET10Load[],
+    maxIterations: base.maxIterations,
+    tolerance: base.tolerance,
+    vertices,
+    tetrahedra,
+    useGPU: (raw.useGPU as boolean) ?? true,
+  };
+}
+
 function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
   return {
     pipes: (raw.pipes as HydraulicConfig['pipes']) ?? [],
@@ -115,5 +143,10 @@ interface SolverFactoryRegistry {
 export function registerSimulationSolvers(factory: SolverFactoryRegistry): void {
   factory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)));
   factory.register('structural', (raw) => new StructuralSolver(parseStructuralConfig(raw)));
+  factory.register('structural-tet10', (raw) => new StructuralSolverTET10(parseTET10Config(raw)));
   factory.register('hydraulic', (raw) => new HydraulicSolver(parseHydraulicConfig(raw)));
+
+  // Register WASM meshers
+  const tetgen = new TetGenWasmMesher();
+  registerWasmMesher(tetgen);
 }

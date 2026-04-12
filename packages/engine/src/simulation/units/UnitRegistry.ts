@@ -150,6 +150,7 @@ export class UnitRegistry {
     const DIM_TEMPERATURE: DimensionVector = [0, 0, 0, 1, 0, 0, 0];
     const DIM_PRESSURE: DimensionVector    = [1, -1, -2, 0, 0, 0, 0];
     const DIM_FORCE: DimensionVector       = [1, 1, -2, 0, 0, 0, 0];
+    const DIM_ACCELERATION: DimensionVector = [0, 1, -2, 0, 0, 0, 0];
 
     // Dimensionless
     this.register({ symbol: '1', name: 'Dimensionless', dimension: DIM_DIMENSIONLESS, scale: 1, offset: 0 });
@@ -206,6 +207,9 @@ export class UnitRegistry {
 
     // Velocity
     this.register({ symbol: 'm/s', name: 'Meters per second', dimension: DIM_VELOCITY, scale: 1, offset: 0 });
+
+    // Acceleration
+    this.register({ symbol: 'm/s2', name: 'Meters per second squared', dimension: DIM_ACCELERATION, scale: 1, offset: 0 });
 
     // Area
     this.register({ symbol: 'm2', name: 'Square meter', dimension: DIM_AREA, scale: 1, offset: 0 });

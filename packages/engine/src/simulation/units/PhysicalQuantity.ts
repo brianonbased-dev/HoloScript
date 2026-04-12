@@ -101,6 +101,9 @@ export type YieldStrength = Quantity<'YieldStrength_Pa'>;
 /** Stress in Pascals (Pa) */
 export type Stress = Quantity<'Stress_Pa'>;
 
+/** Acceleration in m/s² */
+export type Acceleration = Quantity<'Acceleration_m_s2'>;
+
 /** Strain (dimensionless) */
 export type Strain = Quantity<'Strain'>;
 
@@ -199,6 +202,10 @@ export function yieldStrength(value: number): YieldStrength {
 
 export function stress(value: number): Stress {
   return value as Stress;
+}
+
+export function acceleration(value: number): Acceleration {
+  return value as Acceleration;
 }
 
 export function strain(value: number): Strain {
