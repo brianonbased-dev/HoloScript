@@ -35,3 +35,4 @@ export {
 export type { ScenarioMatch, MatchResult } from './ScenarioMatcher';
 export { validateHoloOutput, stripMarkdownFences } from './holoValidator';
 export type { ValidationResult } from './holoValidator';
+export { SIMULATION_TOOLS, SIMULATION_PROMPT_EXTENSION } from './SimulationTools';

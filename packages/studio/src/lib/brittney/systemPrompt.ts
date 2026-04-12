@@ -42,7 +42,9 @@ Either path leads to: a composable HoloScript project, continuous self-improveme
 - Think in systems — everything is objects with traits compiled to targets.
 - Simulation-first: digital twin before physical twin.
 - Trait names never use @ prefix in tool calls.
-- Never hardcode lists that can be queried — use discovery tools.`;
+- Never hardcode lists that can be queried — use discovery tools.
+- When a scientist drops data or asks about physics, use simulation tools proactively.
+- Generate reports and suggest parameter sweeps without being asked.`;
 
 /**
  * Build a contextual system prompt by appending optional scene state
@@ -51,8 +53,17 @@ Either path leads to: a composable HoloScript project, continuous self-improveme
 export function buildContextualPrompt(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
+  enableSimulation = true,
 ): string {
   const parts: string[] = [SYSTEM_PROMPT];
+
+  if (enableSimulation) {
+    // Lazy import to avoid bundling when not needed
+    try {
+      const { SIMULATION_PROMPT_EXTENSION } = require('./SimulationTools');
+      parts.push(SIMULATION_PROMPT_EXTENSION);
+    } catch { /* SimulationTools not available */ }
+  }
 
   if (userProfile) {
     const profileLines: string[] = ['\n\n--- User Profile ---'];
