@@ -32,6 +32,7 @@ import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { PluginManager } from './PluginManager';
+import { handleAbsorbProvenanceTool } from './absorb-provenance-tools';
 import {
   browserLaunch,
   browserExecute,
@@ -237,6 +238,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserExecute(BrowserExecuteSchema.parse(args));
     case 'browser_screenshot':
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
+  }
+
+  // Absorb provenance wrapper tool
+  if (name === 'absorb_provenance_answer') {
+    const result = await handleAbsorbProvenanceTool(name, args);
+    if (result !== null) return result;
   }
 
   // Protocol tools (HoloScript-as-Protocol) — must come before general holo_ prefix
@@ -885,7 +892,7 @@ function convertToHs(ast: any, _from: string): string {
     lines.push(`${obj.type || 'orb'} ${obj.name || 'obj'} {`);
     if (obj.position) {
       lines.push(
-        `  position: { x: ${obj.position[0] || 0}, y: ${obj.position[1] || 0}, z: ${obj.position[2] || 0} }`
+        `  position: [${obj.position[0] || 0}, ${obj.position[1] || 0}, ${obj.position[2] || 0] }`
       );
     }
     if (obj.color) {
