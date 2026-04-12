@@ -34,7 +34,7 @@ function makeSensorReading(
 describe('SNNCognitionEngine', () => {
   let engine: SNNCognitionEngine;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     engine = new SNNCognitionEngine({
       neuronCount: 32,
       lifParams: { tau: 20, vThreshold: -55, vReset: -75, vRest: -65, dt: 1 },
@@ -42,26 +42,26 @@ describe('SNNCognitionEngine', () => {
     });
   });
 
-  it('has the expected id', () => {
+  it('has the expected id', async () => {
     const custom = new SNNCognitionEngine({ id: 'test-engine', neuronCount: 16 });
     expect(custom.id).toBe('test-engine');
     expect(engine.id).toBe('snn-cognition-engine');
   });
 
-  it('returns zero spikes for zero-current input', () => {
+  it('returns zero spikes for zero-current input', async () => {
     const sensors: SensorReading[] = [makeSensorReading([0, 0, 0, 0])];
-    const snap = engine.think(sensors, 0.001); // 1ms tick
+    const snap = await engine.think(sensors, 0.001); // 1ms tick
 
     // With 0 input current and starting at vRest, neurons should not reach threshold
     expect(snap.spikeCount).toBe(0);
     expect(snap.spikes).toHaveLength(0);
   });
 
-  it('returns spikes when strong input is injected', () => {
+  it('returns spikes when strong input is injected', async () => {
     // inputScalemV=20, full-signal input → 20mV current
     // vRest=-65, vThreshold=-55 → gap=10mV → strong 20mV drives firing
     const sensors: SensorReading[] = [makeSensorReading(Array(32).fill(1.0))];
-    const snap = engine.think(sensors, 0.016); // ~16ms tick (60Hz frame)
+    const snap = await engine.think(sensors, 0.016); // ~16ms tick (60Hz frame)
 
     expect(snap.spikeCount).toBeGreaterThan(0);
     expect(snap.spikes.length).toBeGreaterThan(0);
@@ -69,9 +69,9 @@ describe('SNNCognitionEngine', () => {
     expect(snap.spikes[0].population).toBe('snn-lif');
   });
 
-  it('produces biophysically valid membrane voltages (mV range)', () => {
+  it('produces biophysically valid membrane voltages (mV range)', async () => {
     const sensors: SensorReading[] = [makeSensorReading([0.5, 0.5])];
-    engine.think(sensors, 0.001);
+    await engine.think(sensors, 0.001);
     const voltages = engine.getMembraneVoltages();
 
     expect(voltages).toBeInstanceOf(Float32Array);
@@ -84,15 +84,15 @@ describe('SNNCognitionEngine', () => {
     }
   });
 
-  it('encode output is deterministic and includes required CAEL fields', () => {
+  it('encode output is deterministic and includes required CAEL fields', async () => {
     engine.reset();
     const sensors: SensorReading[] = [makeSensorReading([0.3, 0.6, 0.9])];
 
-    const snap = engine.think(sensors, 0.001);
+    const snap = await engine.think(sensors, 0.001);
     const enc1 = engine.encode(snap);
 
     engine.reset();
-    const snap2 = engine.think(sensors, 0.001);
+    const snap2 = await engine.think(sensors, 0.001);
     const enc2 = engine.encode(snap2);
 
     // Deterministic
@@ -107,17 +107,17 @@ describe('SNNCognitionEngine', () => {
     expect((enc1.extra as Record<string, unknown>)['lifBackend']).toBe('cpu-reference');
   });
 
-  it('goal stack reflects firing activity', () => {
+  it('goal stack reflects firing activity', async () => {
     // Zero input → idle goal
     const zeroSensors: SensorReading[] = [makeSensorReading([0, 0])];
     engine.reset();
-    const snapIdle = engine.think(zeroSensors, 0.001);
+    const snapIdle = await engine.think(zeroSensors, 0.001);
     expect(snapIdle.goalStack[0].id).toBe('idle');
 
     // High input → stabilize_structure (high firing rate)
     engine.reset();
     const highSensors: SensorReading[] = [makeSensorReading(Array(32).fill(1.0))];
-    const snapActive = engine.think(highSensors, 0.016);
+    const snapActive = await engine.think(highSensors, 0.016);
     // Should be 'stabilize_structure' or 'monitor_structure' depending on rate
     expect(['stabilize_structure', 'monitor_structure']).toContain(
       snapActive.goalStack[0].id,
@@ -164,9 +164,9 @@ describe('SNNCognitionEngine', () => {
     });
 
     // Run 3 ticks
-    loop.tick(0.001);
-    loop.tick(0.001);
-    loop.tick(0.001);
+    await loop.tick(0.001);
+    await loop.tick(0.001);
+    await loop.tick(0.001);
 
     const jsonl = loop.toJSONL();
     const lines = jsonl.split('\n').filter(Boolean);

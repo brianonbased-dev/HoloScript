@@ -44,7 +44,7 @@ function mockStructuralLikeSolver(): SimSolver & {
 }
 
 describe('CAEL Phase 2 embodied loop', () => {
-  it('produces a valid end-to-end CAEL trace with perception/cognition/action/world delta', () => {
+  it('produces a valid end-to-end CAEL trace with perception/cognition/action/world delta', async () => {
     const solver = mockStructuralLikeSolver();
     const recorder = new CAELRecorder(
       solver,
@@ -77,7 +77,7 @@ describe('CAEL Phase 2 embodied loop', () => {
       recordFullState: true,
     });
 
-    const decision = loop.tick(0.03);
+    const decision = await loop.tick(0.03);
     expect(decision.chosen.type.length).toBeGreaterThan(0);
 
     const prov = recorder.finalize();

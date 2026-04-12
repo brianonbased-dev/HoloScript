@@ -101,7 +101,7 @@ export interface CAELCognitionEngine {
    * @param dt Time since last tick (seconds)
    * @returns Cognition snapshot including spike train and goal stack
    */
-  think(sensors: SensorReading[], dt: number): CognitionSnapshot;
+  think(sensors: SensorReading[], dt: number): Promise<CognitionSnapshot> | CognitionSnapshot;
   /**
    * Encode cognition snapshot for hashing.
    * Spike times must be quantized to simulation timestep resolution
@@ -253,7 +253,7 @@ export class CAELAgentLoop {
    * @param dt Wall-clock delta for this tick (seconds)
    * @returns The action decision made this tick
    */
-  tick(dt: number): ActionDecision {
+  async tick(dt: number): Promise<ActionDecision> {
     const contracted = this.recorder.getContractedSimulation();
     const solver = this.recorder.getSolver();
     const prov = contracted.getProvenance();
@@ -268,7 +268,7 @@ export class CAELAgentLoop {
     });
 
     // 2. COGNITION: process sensors through SNN/GOAP
-    const cognition = this.config.cognition.think(readings, dt);
+    const cognition = await this.config.cognition.think(readings, dt);
     this.recorder.logInteraction('cael.cognition', {
       agentId: this.config.agentId,
       tick: this.tickCount,
@@ -426,7 +426,7 @@ export class SNNCognition implements CAELCognitionEngine {
     this.membrane = new Float32Array(this.neuronCount);
   }
 
-  think(sensors: SensorReading[], dt: number): CognitionSnapshot {
+  async think(sensors: SensorReading[], dt: number): Promise<CognitionSnapshot> {
     const input = this.aggregateInputCurrents(sensors);
     const spikes: Array<{ neuronIndex: number; timestampMs: number; population?: string }> = [];
 
