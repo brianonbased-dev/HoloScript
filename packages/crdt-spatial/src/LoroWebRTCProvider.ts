@@ -34,7 +34,7 @@ export class LoroWebRTCProvider {
     // Subscribe to Loro local changes to broadcast
     this.doc.subscribe((event: any) => {
       if (event.local) {
-        const update = this.doc.exportFrom(); // Send full state or deltas if tracked
+        const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
         this.sync(update);
       }
     });
@@ -111,8 +111,8 @@ export class LoroWebRTCProvider {
     dc.onopen = () => {
       console.log(`[LoroWebRTC] Data channel to ${peerId} open.`);
       this.dataChannels.set(peerId, dc);
-      const state = this.doc.exportFrom(); // Full sync on connect
-      if(state.length > 0) dc.send(state); 
+      const state = this.doc.export({ mode: "update" }); // Full sync on connect
+      if(state.length > 0) dc.send(state.buffer as ArrayBuffer);
     };
     dc.onmessage = (event) => {
       const updateBytes = new Uint8Array(event.data);
@@ -150,7 +150,7 @@ export class LoroWebRTCProvider {
     for (const [peerId, dc] of this.dataChannels) {
       if (dc.readyState === 'open') {
         try {
-          dc.send(updateBytes);
+          dc.send(updateBytes.buffer as ArrayBuffer);
         } catch (err) {
           console.warn(`[LoroWebRTC] Failed to send to ${peerId}`, err);
         }

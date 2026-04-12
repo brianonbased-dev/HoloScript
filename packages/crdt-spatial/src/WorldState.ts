@@ -16,7 +16,12 @@
  * @module crdt-spatial
  */
 
-import { Loro, _LoroMap, _LoroList, _LoroText, VersionVector } from 'loro-crdt';
+import { Loro, LoroMap, LoroList, LoroText, VersionVector } from 'loro-crdt';
+
+// Aliases for API compatibility (internal prefixed types removed in loro-crdt 1.x)
+type _LoroMap = LoroMap;
+type _LoroList = LoroList;
+type _LoroText = LoroText;
 
 // =============================================================================
 // Types
