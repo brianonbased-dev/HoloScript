@@ -122,6 +122,10 @@ export {
   type SimpleActionSelectorConfig,
   type StructuralActionMapperConfig,
 } from './CAELAgent';
+export {
+  SNNCognitionEngine,
+  type SNNCognitionEngineConfig,
+} from './SNNCognitionEngine';
 
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';
