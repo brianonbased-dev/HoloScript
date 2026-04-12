@@ -63,9 +63,8 @@ jobs:
       - name: Compare to baseline
         if: github.event_name == 'pull_request'
         run: |
-          # TODO: Implement baseline comparison logic
-          echo "📈 Baseline comparison not yet implemented"
-          echo "Will compare against main branch benchmarks"
+          echo "Baseline comparison not yet implemented — skipping regression check."
+          echo "When implemented: compare compile times (>20% slower = alert) and output sizes (>30% larger = alert)."
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
@@ -183,6 +182,4 @@ jobs:
 
       - name: Fail on regression
         run: |
-          # TODO: Fail workflow if regression detected
-          # exit 1
-          echo "Regression detection not yet implemented"
+          echo "Regression detection not yet implemented — passing."

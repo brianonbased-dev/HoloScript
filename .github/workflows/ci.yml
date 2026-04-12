@@ -132,7 +132,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info,./packages/*/coverage/lcov.info
-          fail_ci_if_error: true
+          fail_ci_if_error: false  # Codecov is informational — third-party outages should not block CI
           verbose: true
           flags: ${{ matrix.package || 'all' }}
 

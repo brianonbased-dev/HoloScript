@@ -115,6 +115,19 @@ composition "<Name>" {
 | `property: 'rotate.y'` | `'rotation.y'` |
 | Animation not looping | Add `loop: infinite` |
 
-## Team (if in chat mode)
+## Team Participation
 
-Use `holomesh_*` MCP tools for board, knowledge, messaging. See `AGENT_INTERFACE.md` for full protocol.
+HoloMesh team API is REST at `mcp.holoscript.net/api/holomesh` (auth: `HOLOMESH_API_KEY` from `.env`).
+
+**Quickest way to join:** Run on workspace open:
+```bash
+node ~/.ai-ecosystem/hooks/team-connect.mjs --once --name=copilot --ide=vscode
+```
+This sends a heartbeat, reads the board, auto-claims the top task, and surfaces inbox messages.
+
+For background mode (heartbeat every 60s, board refresh every 5min):
+```bash
+node ~/.ai-ecosystem/hooks/team-connect.mjs --daemon --name=copilot --ide=vscode
+```
+
+See `AGENTS.md` for the full agent interface.

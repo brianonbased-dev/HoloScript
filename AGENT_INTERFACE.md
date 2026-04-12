@@ -112,6 +112,7 @@ REST fallback: `POST https://absorb.holoscript.net/api/query` with Bearer `$ABSO
 - Never commit secrets. Use `.env`.
 - `vi.mock()` needs `vi.hoisted()`, `function(){}` for constructors.
 - CompilerBase RBAC: all tests need mock + `'test-token'`.
+- **Plan Completeness Gap Reporting**: Every technical plan MUST end with an honest "What Remains After This Plan" section that clearly lays out the real-world usability or feature gaps that are deliberately left unaddressed.
 
 ## Gotchas
 

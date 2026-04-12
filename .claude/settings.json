@@ -1,5 +1,11 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs sessionstart/room-connect.mjs",
+        "description": "Establish real-time team room connection and inject current mode/objective"
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

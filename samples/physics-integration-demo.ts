@@ -324,7 +324,7 @@ class PhysicsIntegrationDemo {
 
   private exportFrame(): void {
     // In a real implementation, this would export to JSON/glTF/USD
-    const frame = {
+    const _frame = {
       time: this.simulationTime,
       fragments: this.fractureSystem.getFragments().map((f) => ({
         id: f.id,

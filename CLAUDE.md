@@ -1,6 +1,9 @@
 # ∞ HoloScript — Agent Injection Manifest
 
 > **AGENT**: This file is your behavioral contract for this repo. Execute the SESSION INIT sequence before any other action. All directives below are mandatory.
+>
+> **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking the user any architectural question.
+> **GOLD VAULT**: When D: is mounted, `D:/GOLD/` contains graduated knowledge (Diamond > Platinum > GOLD). It overrides the knowledge store on conflict.
 
 ---
 
@@ -286,11 +289,12 @@ If any box is unchecked → complete that step before responding.
 - Every new doc page → add entry to `docs/.vitepress/config.ts` sidebar
 - New packages → add to `typedoc.json` entryPoints
 - All tests must pass before commit
+- **Plan Completeness Gap Reporting**: Every technical plan MUST end with an honest "What Remains After This Plan" section that clearly lays out the real-world usability or feature gaps that are deliberately left unaddressed, preventing agents from prematurely concluding that a major initiative is "finished".
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for full AI Agent Documentation Standards
 
 <!-- gitnexus:start -->
 
-# GitNexus MCP
+## GitNexus MCP
 
 This project is indexed by GitNexus as **HoloScript** (47456 symbols, 105083 relationships, 300 execution flows).
 

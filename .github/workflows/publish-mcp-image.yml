@@ -71,3 +71,6 @@ jobs:
         run: |
           npm install -g @railway/cli
           railway redeploy --service mcp-server -y
+          echo "Waiting 15s for Railway to start..."
+          sleep 15
+          curl -sf https://mcp.holoscript.net/health > /dev/null && echo "MCP server healthy after redeploy" || echo "WARNING: MCP health check failed — server may still be starting. Check https://mcp.holoscript.net/health manually."

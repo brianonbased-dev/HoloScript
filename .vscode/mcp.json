@@ -20,7 +20,7 @@
     "holoscript-local": {
       "command": "node",
       "args": ["${workspaceFolder}/packages/mcp-server/start.js"],
-      "description": "HoloScript MCP — local development"
+      "description": "HoloScript MCP — local dev (fastest, use for development). Falls back to holoscript-mcp (production) if local fails to start."
     }
   }
 }

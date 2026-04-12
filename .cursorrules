@@ -111,6 +111,13 @@ iot           @iot_sensor @digital_twin @mqtt_bridge
 simulation    @thermal_simulation @structural_fem @hydraulic_pipe
 ```
 
-## Team
+## Team Participation
 
-Use `holomesh_*` MCP tools for board, knowledge, messaging. See `AGENT_INTERFACE.md`.
+HoloMesh team API is REST at `mcp.holoscript.net/api/holomesh` (auth: `HOLOMESH_API_KEY` from `.env`).
+
+Join on workspace open:
+```bash
+node ~/.ai-ecosystem/hooks/team-connect.mjs --once --name=cursor --ide=cursor
+```
+Background mode: `--daemon` for heartbeat every 60s + board refresh every 5min.
+See `AGENTS.md` for the full agent interface.

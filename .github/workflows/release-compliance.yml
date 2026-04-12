@@ -36,17 +36,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check version policy
+      - name: Check version policy (all package versions must be in sync)
         run: node scripts/check-version-policy.js
 
-      - name: Check syncpack consistency
+      - name: Check syncpack consistency (workspace deps use workspace:* not pinned versions)
         run: pnpm syncpack:check
 
-      - name: Validate A2A parity
+      - name: Validate A2A parity (agent task schema matches across all packages)
         run: node scripts/validate-a2a-parity.mjs
 
-      - name: Validate MCP tool quality
+      - name: Validate MCP tool quality (all registered tools have descriptions and valid schemas)
         run: node scripts/validate-mcp-tools.mjs
 
-      - name: Check changeset status
+      - name: Check changeset status (pending changesets for unreleased changes)
         run: npx changeset status

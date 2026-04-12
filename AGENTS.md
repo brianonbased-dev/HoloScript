@@ -153,6 +153,42 @@ Traits MUST NOT perform direct filesystem access. All I/O goes through stdlib Be
 - Ed25519 cryptographic signatures
 - Per-tool RBAC authorization on MCP server
 
+## Simulation Stack (Scientific Computing)
+
+The engine includes PDE-based simulation solvers for thermal, structural, and hydraulic analysis. As of 2026-04-11, the solver math is verified but the product is not accessible to non-developer users.
+
+### What EXISTS (validated, tested, committed)
+
+| Layer | Status | Details |
+|-------|--------|---------|
+| **Solvers** | Working, benchmarked | Thermal (FDM, Euler+Jacobi), Structural (linear tet FEM, PCG), Hydraulic (Hardy-Cross, Darcy-Weisbach) |
+| **Coupling** | Working | 6 coupling chains via CouplingManager (sequential operator splitting) |
+| **Materials** | Cited, T-dependent | 15+ materials with Incropera/NIST/ASM citations, uncertainty bounds, piecewise-linear T-dependent lookup for 5 core materials |
+| **Units** | Enforced | 30+ branded physical quantity types, 40+ unit conversions, DimensionalMismatchError at runtime |
+| **V&V** | Partial | Analytical benchmarks for all 3 domains (steady-state, patch test, Darcy-Weisbach), convergence studies, Richardson extrapolation, GCI |
+| **Export** | Working | VTK (StructuredPoints, UnstructuredGrid, PolyData), CSV, JSON metadata |
+| **Provenance** | Working | Immutable SimulationRun records, determinism verification, run comparison |
+| **Documentation** | Complete | Full mathematical formulations with equations, discretization, limitations, literature refs |
+| **Reporting** | Working | V&V report generator (markdown + LaTeX) |
+
+Key paths: `packages/engine/src/simulation/` (solvers, units, export, provenance, verification)
+
+### What DOES NOT EXIST (gaps to "scientists use this")
+
+| Gap | What's missing | Why it matters | Effort |
+|-----|---------------|----------------|--------|
+| **Geometry import** | No CAD import (STEP/IGES), no shape drawing in Studio | Scientists need to define their problem geometry | Large |
+| **Mesh generation** | No automatic tet mesher — users must provide node/element arrays | Nobody hand-writes mesh data | Large (integrate TetGen or similar) |
+| **Studio UI** | No simulation tab in Studio — can't configure BCs, materials, loads visually | Non-developers can't use the solvers | Large |
+| **Post-processing in Studio** | No in-browser visualization of results (color maps, probes, plots) | Scientists shouldn't need ParaView for basic inspection | Medium |
+| **Solver scope** | Linear only (no plasticity, no turbulence, no dynamics, no contact) | Many real-world problems are nonlinear | Large per physics model |
+| **Mesh quality** | Uniform grids (thermal), no adaptive refinement, no mesh quality metrics | Complex geometries need adaptive meshes | Large |
+| **V&V depth** | 3 benchmarks per domain. Credible V&V needs 50+ (NAFEMS, ASME PTC, experimental) | Thin validation won't satisfy reviewers | Medium (ongoing) |
+| **HPC/parallel** | All solvers are single-threaded JS — millions of DOFs won't run | Real scientific problems are large | Large (WebGPU/WASM workers) |
+| **Code-to-code comparison** | No comparison against FEniCS, OpenFOAM, EPANET | Reviewers expect cross-validation | Medium |
+
+**Bottom line for agents**: The engine's simulation math is verified and the trust infrastructure (V&V, provenance, units, export) is solid. But there is no user-facing product yet — no geometry, no meshing, no UI. A TypeScript developer can use the solver APIs directly. A lab researcher cannot. Do NOT represent the simulation stack as "ready for scientists" in docs, pitches, or Moltbook posts without this caveat.
+
 ## Boundaries
 
 - **ALWAYS**: Validate HoloScript files after editing
