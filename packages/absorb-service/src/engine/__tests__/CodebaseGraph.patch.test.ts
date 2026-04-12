@@ -275,4 +275,126 @@ describe('CodebaseGraph - Incremental Patching', () => {
       expect(importsOf.length).toBe(0);
     });
   });
+
+  describe('traceCallChain strategies', () => {
+    it('uses tropical-min-plus weights to prefer lower cost path', () => {
+      const weightedGraph = new CodebaseGraph();
+
+      const aFile: ScannedFile = {
+        path: 'src/a.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'A',
+            type: 'function',
+            filePath: 'src/a.ts',
+            line: 1,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [
+          { filePath: 'src/a.ts', line: 2, callerId: 'A', calleeName: 'B' },
+          { filePath: 'src/a.ts', line: 3, callerId: 'A', calleeName: 'C' },
+        ],
+        loc: 10,
+        sizeBytes: 120,
+      };
+
+      const bFile: ScannedFile = {
+        path: 'src/b.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'B',
+            type: 'function',
+            filePath: 'src/b.ts',
+            line: 1,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [{ filePath: 'src/b.ts', line: 2, callerId: 'B', calleeName: 'D' }],
+        loc: 8,
+        sizeBytes: 80,
+      };
+
+      const cFile: ScannedFile = {
+        path: 'src/c.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'C',
+            type: 'function',
+            filePath: 'src/c.ts',
+            line: 1,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [{ filePath: 'src/c.ts', line: 2, callerId: 'C', calleeName: 'E' }],
+        loc: 8,
+        sizeBytes: 80,
+      };
+
+      const eFile: ScannedFile = {
+        path: 'src/e.ts',
+        language: 'typescript',
+        symbols: [
+          {
+            name: 'E',
+            type: 'function',
+            filePath: 'src/e.ts',
+            line: 1,
+            language: 'typescript',
+          },
+          {
+            name: 'D',
+            type: 'function',
+            filePath: 'src/e.ts',
+            line: 6,
+            language: 'typescript',
+          },
+        ],
+        imports: [],
+        calls: [{ filePath: 'src/e.ts', line: 3, callerId: 'E', calleeName: 'D' }],
+        loc: 12,
+        sizeBytes: 140,
+      };
+
+      weightedGraph.buildFromScanResult({
+        rootDir: '/weighted',
+        files: [aFile, bFile, cFile, eFile],
+        stats: {
+          totalFiles: 4,
+          totalSymbols: 5,
+          totalImports: 0,
+          totalCalls: 5,
+          totalLoc: 38,
+          durationMs: 0,
+          errors: [],
+          filesByLanguage: { typescript: 4 },
+          symbolsByType: { function: 5 },
+        },
+      });
+
+      const bfs = weightedGraph.traceCallChain('A', 'D', 10, { algorithm: 'bfs' });
+      expect(bfs).not.toBeNull();
+      expect(bfs!.path).toEqual(['A', 'B', 'D']);
+
+      const tropical = weightedGraph.traceCallChain('A', 'D', 10, {
+        algorithm: 'tropical-min-plus',
+        edgeWeight: (_edge, fromNode, toNode) => {
+          if ((fromNode === 'A' && toNode === 'B') || (fromNode === 'B' && toNode === 'D')) {
+            return 5;
+          }
+          return 1;
+        },
+      });
+
+      expect(tropical).not.toBeNull();
+      expect(tropical!.path).toEqual(['A', 'C', 'E', 'D']);
+      expect(tropical!.cost).toBe(3);
+    });
+  });
 });

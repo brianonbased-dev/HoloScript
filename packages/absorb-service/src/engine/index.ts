@@ -48,7 +48,7 @@ export { GoAdapter } from './adapters/GoAdapter';
 // Scanner + Graph
 export { CodebaseScanner } from './CodebaseScanner';
 export { CodebaseGraph } from './CodebaseGraph';
-export type { CodebaseGraphStats, SymbolQuery, CallChain } from './CodebaseGraph';
+export type { CodebaseGraphStats, SymbolQuery, CallChain, CallChainOptions } from './CodebaseGraph';
 export { CommunityDetector } from './CommunityDetector';
 
 // Worker Pool (Phase 9: Parallel scanning support)

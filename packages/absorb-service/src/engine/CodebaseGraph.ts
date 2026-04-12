@@ -44,6 +44,19 @@ export interface SymbolQuery {
 export interface CallChain {
   path: string[];
   depth: number;
+  /** Optional aggregate path cost for weighted/tropical tracing. */
+  cost?: number;
+}
+
+export interface CallChainOptions {
+  /**
+   * Path strategy:
+   * - bfs: unweighted shortest-hop path (default)
+   * - tropical-min-plus: weighted shortest path (min-plus semiring)
+   */
+  algorithm?: 'bfs' | 'tropical-min-plus';
+  /** Edge weight callback used by tropical-min-plus. Defaults to 1. */
+  edgeWeight?: (edge: CallEdge, fromNode: string, toNode: string) => number;
 }
 
 interface SerializedGraph {
@@ -382,7 +395,17 @@ export class CodebaseGraph {
    * Trace a call chain from a symbol to a target (BFS shortest path).
    * Returns the path of symbol names, or null if no path exists.
    */
-  traceCallChain(fromSymbol: string, toSymbol: string, maxDepth = 10): CallChain | null {
+  traceCallChain(
+    fromSymbol: string,
+    toSymbol: string,
+    maxDepth = 10,
+    options?: CallChainOptions
+  ): CallChain | null {
+    const algorithm = options?.algorithm ?? 'bfs';
+    if (algorithm === 'tropical-min-plus') {
+      return this.traceCallChainTropical(fromSymbol, toSymbol, maxDepth, options);
+    }
+
     const queue: Array<{ node: string; path: string[] }> = [
       { node: fromSymbol, path: [fromSymbol] },
     ];
@@ -410,6 +433,92 @@ export class CodebaseGraph {
     }
 
     return null;
+  }
+
+  private traceCallChainTropical(
+    fromSymbol: string,
+    toSymbol: string,
+    maxDepth = 10,
+    options?: CallChainOptions
+  ): CallChain | null {
+    const dist = new Map<string, number>([[fromSymbol, 0]]);
+    const hops = new Map<string, number>([[fromSymbol, 0]]);
+    const prev = new Map<string, string | null>([[fromSymbol, null]]);
+    const queue: Array<{ node: string; cost: number; hop: number }> = [
+      { node: fromSymbol, cost: 0, hop: 0 },
+    ];
+
+    const edgeWeight = options?.edgeWeight;
+
+    while (queue.length > 0) {
+      queue.sort((a, b) => a.cost - b.cost || a.hop - b.hop);
+      const current = queue.shift()!;
+
+      if (current.node === toSymbol) break;
+      if (current.hop >= maxDepth) continue;
+
+      const knownCost = dist.get(current.node);
+      const knownHop = hops.get(current.node);
+      if (
+        knownCost === undefined ||
+        knownHop === undefined ||
+        current.cost > knownCost ||
+        (current.cost === knownCost && current.hop > knownHop)
+      ) {
+        continue;
+      }
+
+      const callees = this.calleeIndex.get(current.node) ?? [];
+      for (const call of callees) {
+        const callee = call.calleeOwner
+          ? `${call.calleeOwner}.${call.calleeName}`
+          : call.calleeName;
+
+        const rawWeight = edgeWeight ? edgeWeight(call, current.node, callee) : 1;
+        const weight = Number.isFinite(rawWeight) && rawWeight >= 0 ? rawWeight : 1;
+
+        const nextHop = current.hop + 1;
+        if (nextHop > maxDepth) continue;
+
+        const nextCost = current.cost + weight;
+        const prevCost = dist.get(callee);
+        const prevHop = hops.get(callee) ?? Number.POSITIVE_INFINITY;
+
+        if (
+          prevCost === undefined ||
+          nextCost < prevCost ||
+          (nextCost === prevCost && nextHop < prevHop)
+        ) {
+          dist.set(callee, nextCost);
+          hops.set(callee, nextHop);
+          prev.set(callee, current.node);
+          queue.push({ node: callee, cost: nextCost, hop: nextHop });
+        }
+      }
+    }
+
+    const finalCost = dist.get(toSymbol);
+    if (finalCost === undefined) {
+      return null;
+    }
+
+    const path: string[] = [];
+    let cursor: string | null = toSymbol;
+    while (cursor) {
+      path.push(cursor);
+      cursor = prev.get(cursor) ?? null;
+    }
+    path.reverse();
+
+    if (path.length === 0 || path[0] !== fromSymbol) {
+      return null;
+    }
+
+    return {
+      path,
+      depth: Math.max(0, path.length - 1),
+      cost: finalCost,
+    };
   }
 
   // ── Incremental Patching ─────────────────────────────────────────────────

@@ -531,6 +531,16 @@ export const codebaseTools: Tool[] = [
           ],
           description: 'Structured query type',
         },
+        traceStrategy: {
+          type: 'string',
+          enum: ['bfs', 'tropical-min-plus'],
+          description:
+            'Trace algorithm for queryType="trace". bfs = shortest hop count (default), tropical-min-plus = weighted shortest path.',
+        },
+        maxDepth: {
+          type: 'number',
+          description: 'Maximum call-chain traversal depth for queryType="trace" (default: 10).',
+        },
       },
       required: ['query'],
     },
@@ -1417,6 +1427,8 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     : undefined;
 
   const queryType = args.queryType as string | undefined;
+  const traceStrategy = args.traceStrategy as 'bfs' | 'tropical-min-plus' | undefined;
+  const maxDepth = (args.maxDepth as number | undefined) ?? 10;
   const symbolName = args.symbolName as string | undefined;
   const symbolOwner = args.symbolOwner as string | undefined;
   const filePath = args.filePath as string | undefined;
@@ -1495,9 +1507,16 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     case 'trace': {
       const parts = query.match(/trace\s+(\S+)\s+(?:to\s+)?(\S+)/i);
       if (parts) {
-        const chain = cachedGraph.traceCallChain(parts[1], parts[2]);
+        const inferredStrategy = query.toLowerCase().includes('tropical')
+          ? 'tropical-min-plus'
+          : 'bfs';
+        const strategy = traceStrategy ?? inferredStrategy;
+        const chain = cachedGraph.traceCallChain(parts[1], parts[2], maxDepth, {
+          algorithm: strategy,
+        });
         return {
           query: `trace ${parts[1]} -> ${parts[2]}`,
+          strategy,
           result: chain,
           found: chain !== null,
           ...(cacheNote && { cacheNote }),

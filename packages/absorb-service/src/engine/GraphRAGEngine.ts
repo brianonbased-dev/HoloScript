@@ -14,7 +14,7 @@
  */
 
 import type { ExternalSymbolDefinition, CallEdge } from './types';
-import type { CodebaseGraph, CallChain } from './CodebaseGraph';
+import type { CodebaseGraph, CallChain, CallChainOptions } from './CodebaseGraph';
 import type { EmbeddingIndex, SearchResult } from './EmbeddingIndex';
 
 // =============================================================================
@@ -112,6 +112,11 @@ export interface LLMAnswer {
   citations: Array<{ name: string; file: string; line: number }>;
   /** Graph context used to generate the answer */
   context: EnrichedResult[];
+}
+
+export interface TraceWithContextOptions {
+  maxDepth?: number;
+  strategy?: 'bfs' | 'tropical-min-plus';
 }
 
 // =============================================================================
@@ -290,9 +295,14 @@ export class GraphRAGEngine {
   async traceWithContext(
     fromSymbol: string,
     toSymbol: string,
-    maxDepth = 10
+    maxDepth = 10,
+    options: TraceWithContextOptions = {}
   ): Promise<{ chain: CallChain | null; context: EnrichedResult[] }> {
-    const chain = this.graph.traceCallChain(fromSymbol, toSymbol, maxDepth);
+    const effectiveMaxDepth = options.maxDepth ?? maxDepth;
+    const traceOptions: CallChainOptions = {
+      algorithm: options.strategy ?? 'bfs',
+    };
+    const chain = this.graph.traceCallChain(fromSymbol, toSymbol, effectiveMaxDepth, traceOptions);
 
     if (!chain) {
       return { chain: null, context: [] };
