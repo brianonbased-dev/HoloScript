@@ -158,6 +158,72 @@ export const DOMAIN_TAXONOMY: DomainEntry[] = [
   { id: 'film-vfx', name: 'Film VFX', category: 'Creative', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['film', 'vfx', 'compositing', 'green screen', 'volumetric', 'motion capture'], description: 'Film VFX plugin, volumetric rendering, USD/USDZ export.' },
   { id: 'robotics', name: 'Robotics', category: 'Engineering', coverage: 'partial', solvers: ['structural-tet10'], toolkit: 'structural-engineering', keywords: ['robot', 'urdf', 'ros', 'actuator', 'kinematics', 'servo'], description: 'URDF export, ROS2 bridge. Structural for stress on robot frames.' },
   { id: 'smart-contracts', name: 'Smart Contracts / Web3', category: 'Technology', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['smart contract', 'solidity', 'blockchain', 'nft', 'token', 'web3', 'x402'], description: 'Smart contract plugin, x402 paywall, token-gated access.' },
+
+  // ═══════════════════════════════════════════════════════════════
+  // INDUSTRY VERTICALS (from 35 plugins + 36 scenarios)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Finance & Business
+  { id: 'banking-finance', name: 'Banking & Finance', category: 'Industry', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['banking', 'finance', 'trading', 'portfolio', 'risk', 'fintech', 'stock'], description: 'Banking-finance plugin + economic primitives.' },
+  { id: 'insurance', name: 'Insurance', category: 'Industry', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['insurance', 'actuarial', 'underwriting', 'claims', 'policy'], description: 'Insurance plugin with risk modeling.' },
+  { id: 'retail-ecommerce', name: 'Retail & E-Commerce', category: 'Industry', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['retail', 'ecommerce', 'shop', 'store', 'product', 'catalog', 'cart'], description: 'Retail-ecommerce plugin with inventory and storefront.' },
+  { id: 'real-estate', name: 'Real Estate', category: 'Industry', coverage: 'partial', solvers: ['thermal'], toolkit: 'structural-engineering', keywords: ['real estate', 'property', 'building', 'floor plan', 'staging'], description: 'Building thermal simulation + 3D tours.' },
+
+  // Healthcare & Life Sciences
+  { id: 'therapy', name: 'Therapy / Mental Health', category: 'Healthcare', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['therapy', 'mental health', 'counseling', 'mindfulness', 'meditation', 'ptsd'], description: 'Therapy plugin for VR-assisted therapeutic environments.' },
+  { id: 'surgical', name: 'Surgical Planning', category: 'Healthcare', coverage: 'partial', solvers: ['structural-tet10'], toolkit: 'structural-engineering', keywords: ['surgery', 'surgical', 'implant', 'procedure', 'anatomy', 'rehearsal'], description: 'SurgicalRehearsalPanel. FEM for implant stress analysis.' },
+  { id: 'fitness', name: 'Fitness & Wellness', category: 'Healthcare', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['fitness', 'workout', 'health', 'wellness', 'exercise', 'yoga', 'gym'], description: 'Fitness-wellness plugin with spatial exercise environments.' },
+
+  // Education
+  { id: 'education', name: 'Education / LMS', category: 'Education', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['education', 'learning', 'student', 'classroom', 'tutorial', 'lms', 'course'], description: 'Education-LMS plugin with interactive 3D learning environments.' },
+  { id: 'museum', name: 'Museum / Cultural Heritage', category: 'Education', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['museum', 'heritage', 'artifact', 'exhibit', 'culture', 'history', 'archaeology'], description: 'Archaeology plugin + culture-keyword plugin for heritage preservation.' },
+
+  // Legal & Government
+  { id: 'legal', name: 'Legal / Forensics', category: 'Legal', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['legal', 'law', 'courtroom', 'evidence', 'forensic', 'crime scene', 'deposition'], description: 'Legal-document plugin + forensics plugin + CourtroomPanel.' },
+  { id: 'emergency-response', name: 'Emergency Response', category: 'Government', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['emergency', 'disaster', 'fire', 'earthquake response', 'evacuation', 'first responder'], description: 'Emergency-response plugin + DisasterResponsePanel.' },
+  { id: 'threat-intelligence', name: 'Threat Intelligence / Security', category: 'Government', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['threat', 'intelligence', 'cybersecurity', 'security', 'vulnerability', 'attack surface'], description: 'Threat-intelligence plugin + ThreatIntelligencePanel.' },
+  { id: 'urban-planning', name: 'Urban Planning', category: 'Government', coverage: 'full', solvers: ['thermal', 'acoustic'], toolkit: 'general', keywords: ['urban', 'city', 'planning', 'zoning', 'traffic', 'infrastructure', 'smart city'], description: 'Urban-planning plugin. Thermal/acoustic for building performance.' },
+
+  // Food & Hospitality
+  { id: 'restaurant', name: 'Restaurant / Food Service', category: 'Hospitality', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['restaurant', 'food', 'kitchen', 'menu', 'dining', 'chef', 'recipe'], description: 'Restaurant plugin with spatial dining experiences.' },
+  { id: 'wine-beverage', name: 'Wine & Beverage', category: 'Hospitality', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['wine', 'beverage', 'sommelier', 'brewery', 'distillery', 'tasting'], description: 'Wine-food-beverage plugin + WineSommelierPanel.' },
+  { id: 'travel', name: 'Travel & Hospitality', category: 'Hospitality', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['travel', 'hotel', 'tourism', 'booking', 'vacation', 'resort'], description: 'Travel-hospitality plugin for virtual tours and booking.' },
+
+  // Creative Industries
+  { id: 'fashion', name: 'Fashion Design', category: 'Creative', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['fashion', 'clothing', 'runway', 'garment', 'textile', 'outfit', 'style'], description: 'Fashion plugin + FashionRunwayPanel for virtual fashion shows.' },
+  { id: 'music', name: 'Music Production', category: 'Creative', coverage: 'full', solvers: [], toolkit: 'acoustics', keywords: ['music', 'studio', 'recording', 'mixing', 'beat', 'instrument', 'daw'], description: 'MusicStudioPanel + spatial audio infrastructure.' },
+  { id: 'theme-park', name: 'Theme Park / Entertainment', category: 'Creative', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['theme park', 'ride', 'attraction', 'entertainment', 'amusement'], description: 'ThemeParkPanel for spatial experience design.' },
+
+  // HR & Workforce
+  { id: 'hr-workforce', name: 'HR & Workforce', category: 'Industry', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['hr', 'workforce', 'hiring', 'training', 'onboarding', 'employee'], description: 'HR-workforce plugin for training simulations and onboarding.' },
+
+  // Hardware & Manufacturing
+  { id: 'hardware-invention', name: 'Hardware / Invention', category: 'Engineering', coverage: 'full', solvers: ['structural-tet10'], toolkit: 'structural-engineering', keywords: ['hardware', 'invention', 'prototype', 'patent', 'mechanism', 'device'], description: 'Hardware-invention plugin + InventorPanel. FEM for stress testing.' },
+
+  // ═══════════════════════════════════════════════════════════════
+  // COMPILATION TARGETS (from 40 compilers)
+  // ═══════════════════════════════════════════════════════════════
+
+  { id: 'web-development', name: 'Web Development', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['web', 'nextjs', 'react', 'website', 'webapp', 'frontend', 'api'], description: 'NextJSCompiler, R3FCompiler, NextJSAPICompiler, NodeServiceCompiler.' },
+  { id: 'mobile-ios', name: 'iOS Development', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['ios', 'iphone', 'ipad', 'swift', 'apple', 'app store'], description: 'IOSCompiler + Native2DCompiler for iOS apps.' },
+  { id: 'mobile-android', name: 'Android Development', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['android', 'kotlin', 'google play', 'mobile'], description: 'AndroidCompiler + AndroidXRCompiler.' },
+  { id: 'unity', name: 'Unity Game Engine', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['unity', 'c#', 'unity3d', 'game engine'], description: 'UnityCompiler for Unity project export.' },
+  { id: 'unreal', name: 'Unreal Engine', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['unreal', 'ue5', 'blueprint', 'unreal engine'], description: 'UnrealCompiler for Unreal project export.' },
+  { id: 'godot', name: 'Godot Engine', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['godot', 'gdscript', 'open source game engine'], description: 'GodotCompiler for Godot project export.' },
+  { id: 'visionos', name: 'Apple Vision Pro', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['visionos', 'vision pro', 'apple xr', 'spatial computing'], description: 'VisionOSCompiler for Apple spatial computing.' },
+  { id: 'openxr', name: 'OpenXR / Quest', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['openxr', 'quest', 'meta', 'oculus', 'pcvr', 'steamvr'], description: 'OpenXRCompiler + OpenXRSpatialEntitiesCompiler.' },
+  { id: 'vrchat', name: 'VRChat', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['vrchat', 'social vr', 'avatar', 'world'], description: 'VRChatCompiler for VRChat world/avatar export.' },
+  { id: 'babylon', name: 'Babylon.js', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['babylon', 'babylonjs', 'webgl'], description: 'BabylonCompiler for Babylon.js export.' },
+  { id: 'playcanvas', name: 'PlayCanvas', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['playcanvas', 'webgame'], description: 'PlayCanvasCompiler for PlayCanvas export.' },
+  { id: 'urdf-robotics', name: 'URDF / ROS', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['urdf', 'ros', 'ros2', 'robot description'], description: 'URDFCompiler for robot description format.' },
+  { id: 'dtdl-iot', name: 'DTDL / IoT Digital Twins', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['dtdl', 'iot', 'digital twin', 'azure', 'twin definition'], description: 'DTDLCompiler for Azure Digital Twins.' },
+  { id: 'usd-pipeline', name: 'USD / Pixar Pipeline', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['usd', 'usda', 'usdz', 'pixar', 'omniverse'], description: 'USD export via USDPhysicsCompiler + USDZ exporter.' },
+  { id: 'wasm-deploy', name: 'WASM Deployment', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['wasm', 'webassembly', 'edge', 'serverless'], description: 'WASMCompiler for WebAssembly deployment.' },
+  { id: 'ai-agents', name: 'AI Agent Infrastructure', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['ai agent', 'llm', 'claude', 'gpt', 'gemini', 'a2a', 'mcp'], description: 'A2AAgentCardCompiler, Claude/GPT/Gemini targets, MCP tools.' },
+  { id: 'nft-marketplace', name: 'NFT Marketplace', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['nft', 'marketplace', 'mint', 'collection'], description: 'NFTMarketplaceCompiler for on-chain spatial assets.' },
+  { id: 'sdf-rendering', name: 'SDF / Ray Marching', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['sdf', 'signed distance', 'ray march', 'procedural', 'shader'], description: 'SDFCompiler + SDFRayMarchCompiler for procedural geometry.' },
+  { id: 'webgpu-compute', name: 'WebGPU Compute', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['webgpu', 'compute shader', 'gpu', 'parallel'], description: 'WebGPUCompiler + TSLCompiler for GPU compute.' },
+  { id: 'ai-glasses', name: 'AI Smart Glasses', category: 'Targets', coverage: 'full', solvers: [], toolkit: 'general', keywords: ['smart glasses', 'ar glasses', 'heads up', 'hud', 'wearable'], description: 'AIGlassesCompiler for smart glasses AR.' },
 ];
 
 // ── API ──────────────────────────────────────────────────────────────────────
@@ -191,5 +257,5 @@ export function coverageSummary(): Record<CoverageLevel, number> {
   return counts;
 }
 
-/** Total number of domains. */
-export const TOTAL_DOMAINS = DOMAIN_TAXONOMY.length;
+/** Total number of domains (auto-computed). */
+export const TOTAL_DOMAINS = DOMAIN_TAXONOMY.length; // Should be ~90
