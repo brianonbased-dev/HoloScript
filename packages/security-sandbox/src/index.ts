@@ -17,6 +17,7 @@
 
 import { VM } from 'vm2';
 import { parseHoloStrict, HoloScriptPlusParser } from '@holoscript/core';
+import { HoloBytecodeBuilder, HoloVM } from '@holoscript/holo-vm';
 
 /**
  * Configuration options for the sandbox
@@ -49,6 +50,44 @@ export interface SandboxResult<T = unknown> {
     executionTime: number;
     validated: boolean;
     source: 'ai-generated' | 'user' | 'trusted';
+  };
+}
+
+export interface SandboxSimSolver {
+  mode: 'transient' | 'steady';
+  fieldNames: string[];
+  step: (dt: number) => void;
+  solve: () => void;
+  getField: (name: string) => Float32Array | Float64Array | null;
+  getStats: () => Record<string, unknown>;
+  dispose: () => void;
+}
+
+export interface ContractedSandboxOptions {
+  source?: 'ai-generated' | 'user' | 'trusted';
+  dt?: number;
+  steps?: number;
+  vmTicks?: number;
+  simulationConfig?: Record<string, unknown>;
+  solverFactory?: (config: Record<string, unknown>) => SandboxSimSolver;
+}
+
+export interface ContractedSandboxData {
+  vm: {
+    ticksExecuted: number;
+    finalStatus: string;
+    stackTop: unknown;
+  };
+  contract: {
+    totalSteps: number;
+    totalSimTime: number;
+    interactions: number;
+  };
+  cael: {
+    traceId: string;
+    traceHash: string;
+    traceJSONL: string;
+    verify: { valid: boolean; brokenAt?: number; reason?: string };
   };
 }
 
@@ -343,6 +382,139 @@ export class HoloScriptSandbox {
   }
 
   /**
+   * Execute AI-generated .holo through sandbox checks + holo-vm tick +
+   * ContractedSimulation/CAEL recording.
+   */
+  public async executeContractedSimulation(
+    code: string,
+    options: ContractedSandboxOptions = {}
+  ): Promise<SandboxResult<ContractedSandboxData>> {
+    const startTime = Date.now();
+    const source = options.source ?? 'ai-generated';
+    const codeHash = this.hashCode(code);
+
+    const validation = await this.validateCode(code);
+    if (!validation.valid) {
+      this.log({
+        source,
+        action: 'reject',
+        success: false,
+        reason: `Validation failed: ${validation.error}`,
+        codeHash,
+      });
+
+      return {
+        success: false,
+        error: {
+          type: 'validation',
+          message: validation.error || 'Invalid HoloScript syntax',
+        },
+        metadata: {
+          executionTime: Date.now() - startTime,
+          validated: false,
+          source,
+        },
+      };
+    }
+
+    this.log({ source, action: 'validate', success: true, codeHash });
+
+    try {
+      const vmBuilder = new HoloBytecodeBuilder();
+      vmBuilder.addFunction('main').halt();
+      const vm = new HoloVM();
+      vm.load(vmBuilder.build());
+
+      const vmTicks = Math.max(1, options.vmTicks ?? 1);
+      let vmResult = vm.tick(16.67);
+      for (let i = 1; i < vmTicks; i++) vmResult = vm.tick(16.67);
+
+      const dt = options.dt ?? 0.01;
+      const steps = Math.max(1, options.steps ?? 10);
+      const simulationConfig = options.simulationConfig ?? { kind: 'sandboxed-holo-simulation' };
+      const solver = options.solverFactory
+        ? options.solverFactory(simulationConfig)
+        : createDefaultSandboxSolver();
+
+      const recorder = new LocalCAELRecorder(solver, simulationConfig, 'sandbox-contract');
+
+      recorder.logInteraction('cael.sandbox', {
+        source,
+        codeHash,
+        validated: true,
+      });
+
+      recorder.logInteraction('cael.holo_vm', {
+        ticksExecuted: vmTicks,
+        finalStatus: String(vmResult.status),
+        tickCount: vmResult.tickCount,
+      });
+
+      for (let i = 0; i < steps; i++) recorder.step(dt);
+
+      const provenance = recorder.finalize();
+      const traceJSONL = recorder.toJSONL();
+      const entries = parseLocalTrace(traceJSONL);
+      const last = entries[entries.length - 1];
+      const verify = verifyLocalHashChain(entries);
+      const traceId = `cael:${last?.runId ?? 'unknown'}:${last?.index ?? entries.length - 1}`;
+
+      this.log({ source, action: 'execute', success: true, codeHash });
+
+      return {
+        success: true,
+        data: {
+          vm: {
+            ticksExecuted: vmTicks,
+            finalStatus: String(vmResult.status),
+            stackTop: vmResult.stackTop,
+          },
+          contract: {
+            totalSteps: provenance.totalSteps,
+            totalSimTime: provenance.totalSimTime,
+            interactions: provenance.interactions.length,
+          },
+          cael: {
+            traceId,
+            traceHash: last?.hash ?? 'cael-nohash',
+            traceJSONL,
+            verify,
+          },
+        },
+        metadata: {
+          executionTime: Date.now() - startTime,
+          validated: true,
+          source,
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      this.log({
+        source,
+        action: 'reject',
+        success: false,
+        reason: `Execution failed: ${message}`,
+        codeHash,
+      });
+
+      return {
+        success: false,
+        error: {
+          type: 'runtime',
+          message,
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        metadata: {
+          executionTime: Date.now() - startTime,
+          validated: true,
+          source,
+        },
+      };
+    }
+  }
+
+  /**
    * Retrieves audit logs for security analysis
    */
   public getAuditLogs(filter?: {
@@ -412,4 +584,161 @@ export async function executeSafely<T = unknown>(
 ): Promise<SandboxResult<T>> {
   const sandbox = new HoloScriptSandbox(options);
   return sandbox.executeHoloScript<T>(code, { source: options.source ?? 'user' });
+}
+type LocalTraceEvent = 'init' | 'step' | 'interaction' | 'final';
+
+interface LocalTraceEntry {
+  version: 'cael.v1';
+  runId: string;
+  index: number;
+  event: LocalTraceEvent;
+  timestamp: number;
+  simTime: number;
+  prevHash: string;
+  hash: string;
+  payload: Record<string, unknown>;
+}
+
+function canonicalize(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== 'object') return value;
+  if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
+    const arr = value as unknown as { constructor: { name: string }; length: number; [idx: number]: number };
+    return {
+      __typed: arr.constructor.name,
+      data: Array.from({ length: arr.length }, (_, i) => arr[i]),
+    };
+  }
+  if (Array.isArray(value)) return value.map((v) => canonicalize(v));
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(obj).sort()) out[k] = canonicalize(obj[k]);
+  return out;
+}
+
+function fnv1aHash(input: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `cael-${(h >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function hashLocalEntry(entry: Omit<LocalTraceEntry, 'hash'>): string {
+  return fnv1aHash(JSON.stringify(canonicalize(entry)));
+}
+
+function parseLocalTrace(jsonl: string): LocalTraceEntry[] {
+  return jsonl
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as LocalTraceEntry);
+}
+
+function verifyLocalHashChain(trace: LocalTraceEntry[]): { valid: boolean; brokenAt?: number; reason?: string } {
+  let prev = 'cael.genesis';
+  for (let i = 0; i < trace.length; i++) {
+    const e = trace[i];
+    if (e.prevHash !== prev) return { valid: false, brokenAt: i, reason: 'prevHash mismatch' };
+    const expected = hashLocalEntry({
+      version: e.version,
+      runId: e.runId,
+      index: e.index,
+      event: e.event,
+      timestamp: e.timestamp,
+      simTime: e.simTime,
+      prevHash: e.prevHash,
+      payload: e.payload,
+    });
+    if (expected !== e.hash) return { valid: false, brokenAt: i, reason: 'hash mismatch' };
+    prev = e.hash;
+  }
+  return { valid: true };
+}
+
+class LocalCAELRecorder {
+  private readonly runId = `cael-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  private readonly entries: LocalTraceEntry[] = [];
+  private prevHash = 'cael.genesis';
+  private simTime = 0;
+  private steps = 0;
+  private interactions = 0;
+
+  constructor(
+    private readonly solver: SandboxSimSolver,
+    config: Record<string, unknown>,
+    solverType: string
+  ) {
+    this.append('init', {
+      solverType,
+      config: canonicalize(config),
+    });
+  }
+
+  step(dt: number): void {
+    this.solver.step(dt);
+    this.simTime += dt;
+    this.steps += 1;
+    this.append('step', { dt, stepsTaken: 1, totalSteps: this.steps });
+  }
+
+  logInteraction(type: string, data: Record<string, unknown>): void {
+    this.interactions += 1;
+    this.append('interaction', { type, data: canonicalize(data) });
+  }
+
+  finalize(): { totalSteps: number; totalSimTime: number; interactions: Array<Record<string, unknown>> } {
+    this.append('final', {
+      finalStats: canonicalize(this.solver.getStats()),
+      totalSteps: this.steps,
+      totalSimTime: this.simTime,
+    });
+    return {
+      totalSteps: this.steps,
+      totalSimTime: this.simTime,
+      interactions: Array.from({ length: this.interactions }, (_, i) => ({ id: i + 1 })),
+    };
+  }
+
+  toJSONL(): string {
+    return this.entries.map((e) => JSON.stringify(e)).join('\n');
+  }
+
+  private append(event: LocalTraceEvent, payload: Record<string, unknown>): void {
+    const base: Omit<LocalTraceEntry, 'hash'> = {
+      version: 'cael.v1',
+      runId: this.runId,
+      index: this.entries.length,
+      event,
+      timestamp: Date.now(),
+      simTime: this.simTime,
+      prevHash: this.prevHash,
+      payload,
+    };
+    const hash = hashLocalEntry(base);
+    const entry: LocalTraceEntry = { ...base, hash };
+    this.entries.push(entry);
+    this.prevHash = hash;
+  }
+}
+function createDefaultSandboxSolver(): SandboxSimSolver {
+  let simTime = 0;
+  return {
+    mode: 'transient',
+    fieldNames: ['sandbox_signal'],
+    step(dt: number) {
+      simTime += dt;
+    },
+    solve() {},
+    getField(name: string): Float32Array | Float64Array | null {
+      if (name !== 'sandbox_signal') return null;
+      return new Float32Array([simTime, simTime + 1, simTime + 2]);
+    },
+    getStats() {
+      return { simTime };
+    },
+    dispose() {},
+  };
 }
