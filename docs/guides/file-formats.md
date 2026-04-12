@@ -315,6 +315,45 @@ HoloScript is the **intermediate representation**, not the implementation langua
 
 ---
 
+## Parser API Reference
+
+The core parser APIs are built using Tree-Sitter and are available under `@holoscript/core`.
+
+- **HoloCompositionParser** (for `.holo`)
+  - `parse(source: string, options?: ParseOptions): ParseResult`
+  - Returns `ParseResult` holding the AST for compositions and an array of `errors`. If `options.tolerant` is true, parses partial trees gracefully.
+- **HoloScriptPlusParser** (for `.hsplus`)
+  - `parse(source: string): ParseResult`
+- **PipelineParser** (for `.hs`)
+  - `parse(source: string): ParseResult`
+
+For full typing, consult the JSDoc references in `packages/core/src/parser/` module.
+
+---
+
+## Parser Error Messages
+
+When `parser.parse()` returns an AST it may also include an `errors[]` array containing `SyntaxError` objects.
+
+| Error | Common Cause | Resolution |
+| ----- | ------------ | ---------- |
+| `SyntaxError: Unexpected '{'` | Missing keyword like `object` or property value assignments lacking quotes. | Check line for missing directives. |
+| `SyntaxError: 'environment' not valid in pipeline` | Using `.holo` elements inside `.hs` files. | File type mismatch; switch to `.holo`. |
+| `Error: Unknown trait '@behavior_tree'` | Missing imports or unregistered extension trait. | Import library providing trait via `@import`. |
+
+---
+
+## Import / Module Resolution
+
+`.holo` and `.hsplus` files support module resolution using standard import syntax for sharing traits and templates across standard libraries.
+
+- **Absolute Resolution**: `@import { Assistant } from "@holoscript/std"`
+  - Resolves against standard published packages or workspace internal dependencies.
+- **Relative Resolution**: `@import { CustomBehavior } from "./behaviors.hsplus"`
+  - Resolves locally relative to the directory path of the active source file.
+
+---
+
 ## AI Generation
 
 | Tool                 | Input            | Output Format    |

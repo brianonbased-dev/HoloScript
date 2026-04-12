@@ -77,7 +77,7 @@ const actions: AgentAction[] = [
   {
     type: 'spawn',
     name: 'MyCube',
-    position: { x: 1, y: 2, z: 3 },
+    position: [1, 2, 3],
     geometryType: 0, // GeometryType.Cube
   },
 
@@ -85,7 +85,7 @@ const actions: AgentAction[] = [
   {
     type: 'move',
     entityId: 42,
-    position: { x: 5, y: 0, z: 5 },
+    position: [5, 0, 5],
   },
 
   // Apply trait ID 100 to entity 42
@@ -121,12 +121,12 @@ console.log(`Spawned entities: ${spawnedIds}`);
 agent.queueAction({
   type: 'spawn',
   name: 'TargetMarker',
-  position: { x: 0, y: 1, z: 0 },
+  position: [0, 1, 0],
 });
 
 agent.queueActions([
-  { type: 'move', entityId: 1, position: { x: 10, y: 0, z: 10 } },
-  { type: 'move', entityId: 2, position: { x: -5, y: 0, z: 8 } },
+  { type: 'move', entityId: 1, position: [10, 0, 10] },
+  { type: 'move', entityId: 2, position: [-5, 0, 8] },
 ]);
 
 // Actions will be applied during the next tick()
