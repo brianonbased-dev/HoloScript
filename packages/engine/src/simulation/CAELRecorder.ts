@@ -41,6 +41,10 @@ export class CAELRecorder {
     return this.contracted;
   }
 
+  getSolver(): SimSolver {
+    return this.solver;
+  }
+
   step(wallDelta: number): number {
     const stepsTaken = this.contracted.step(wallDelta);
     const prov = this.contracted.getProvenance();

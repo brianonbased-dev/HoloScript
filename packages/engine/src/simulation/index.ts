@@ -87,6 +87,28 @@ export {
 } from './CAELTrace';
 export { CAELRecorder } from './CAELRecorder';
 export { CAELReplayer } from './CAELReplayer';
+export {
+  CAELAgentLoop,
+  FieldSensorBridge,
+  SNNCognition,
+  SimpleActionSelector,
+  StructuralActionMapper,
+  type SensorReading,
+  type CAELSensorBridge,
+  type CognitionSnapshot,
+  type CAELCognitionEngine,
+  type AgentAction,
+  type ActionDecision,
+  type CAELActionSelector,
+  type WorldDelta,
+  type CAELActionMapper,
+  type CAELAgentConfig,
+  type FieldSensorPoint,
+  type FieldSensorBridgeConfig,
+  type SNNCognitionConfig,
+  type SimpleActionSelectorConfig,
+  type StructuralActionMapperConfig,
+} from './CAELAgent';
 
 // Simulation Recording & Playback — Animate time-evolving simulations
 export { SimulationRecorder, type RecorderConfig, type FieldSnapshot } from './SimulationRecorder';

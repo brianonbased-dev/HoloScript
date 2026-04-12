@@ -17,6 +17,8 @@
 
 import type { CAELRecorder } from './CAELRecorder';
 import type { FieldData, SimSolver } from './SimSolver';
+import { RegularGrid3D } from './RegularGrid3D';
+import { hashGeometry } from './SimulationContract';
 
 // ── Perception (O_t) ────────────────────────────────────────────────────────
 
@@ -253,7 +255,7 @@ export class CAELAgentLoop {
    */
   tick(dt: number): ActionDecision {
     const contracted = this.recorder.getContractedSimulation();
-    const solver = (contracted as unknown as { solver: SimSolver }).solver;
+    const solver = this.recorder.getSolver();
     const prov = contracted.getProvenance();
     const simTime = prov.totalSimTime;
 
@@ -309,5 +311,375 @@ export class CAELAgentLoop {
   /** Export the complete CAEL trace as JSONL */
   toJSONL(): string {
     return this.recorder.toJSONL();
+  }
+}
+
+// ── Concrete Phase 2 Implementations ───────────────────────────────────────
+
+export interface FieldSensorPoint {
+  /** Normalized position in [0,1] for each axis. */
+  x: number;
+  y?: number;
+  z?: number;
+}
+
+export interface FieldSensorBridgeConfig {
+  id?: string;
+  fieldName?: string;
+  points: FieldSensorPoint[];
+}
+
+/**
+ * Samples a solver field (default: von_mises_stress) at fixed spatial points.
+ */
+export class FieldSensorBridge implements CAELSensorBridge {
+  readonly id: string;
+  readonly fieldNames: readonly string[];
+  private readonly points: FieldSensorPoint[];
+
+  constructor(config: FieldSensorBridgeConfig) {
+    this.id = config.id ?? 'field-sensor-bridge';
+    this.fieldNames = [config.fieldName ?? 'von_mises_stress'];
+    this.points = config.points;
+  }
+
+  sample(solver: SimSolver, simTime: number): SensorReading[] {
+    const readings: SensorReading[] = [];
+
+    for (const fieldName of this.fieldNames) {
+      const field = solver.getField(fieldName);
+      if (!field) continue;
+
+      const values = this.sampleField(field, this.points);
+      const positions = new Float64Array(
+        this.points.flatMap((p) => [p.x, p.y ?? 0, p.z ?? 0])
+      );
+
+      readings.push({ fieldName, simTime, values, positions });
+    }
+
+    return readings;
+  }
+
+  encode(readings: SensorReading[]): Record<string, unknown> {
+    return {
+      id: this.id,
+      readings: readings.map((r) => ({
+        fieldName: r.fieldName,
+        simTime: Number(r.simTime.toFixed(9)),
+        values: Array.from(r.values, (v) => Number(v.toFixed(6))),
+        positions: r.positions ? Array.from(r.positions, (v) => Number(v.toFixed(6))) : undefined,
+      })),
+    };
+  }
+
+  private sampleField(field: FieldData, points: FieldSensorPoint[]): Float32Array {
+    if (field instanceof RegularGrid3D) {
+      const out = new Float32Array(points.length);
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const ix = Math.max(0, Math.min(field.nx - 1, Math.round((p.x ?? 0) * (field.nx - 1))));
+        const iy = Math.max(0, Math.min(field.ny - 1, Math.round((p.y ?? 0) * (field.ny - 1))));
+        const iz = Math.max(0, Math.min(field.nz - 1, Math.round((p.z ?? 0) * (field.nz - 1))));
+        out[i] = field.get(ix, iy, iz, 0);
+      }
+      return out;
+    }
+
+    const arr = field instanceof Float64Array ? new Float32Array(field) : field;
+    const out = new Float32Array(points.length);
+    for (let i = 0; i < points.length; i++) {
+      const idx = Math.max(0, Math.min(arr.length - 1, Math.round(points[i].x * (arr.length - 1))));
+      out[i] = arr[idx];
+    }
+    return out;
+  }
+}
+
+export interface SNNCognitionConfig {
+  id?: string;
+  neuronCount: number;
+  threshold?: number;
+  leak?: number;
+  resetVoltage?: number;
+}
+
+/**
+ * SNN cognition adapter. Wraps a lightweight LIF update suitable for CAEL traces.
+ * This class is snn-webgpu compatible at the interface boundary: sensors are
+ * translated to input currents and outputs are represented as spike events.
+ */
+export class SNNCognition implements CAELCognitionEngine {
+  readonly id: string;
+  private readonly neuronCount: number;
+  private readonly threshold: number;
+  private readonly leak: number;
+  private readonly resetVoltage: number;
+  private membrane: Float32Array;
+
+  constructor(config: SNNCognitionConfig) {
+    this.id = config.id ?? 'snn-cognition';
+    this.neuronCount = config.neuronCount;
+    this.threshold = config.threshold ?? 1.0;
+    this.leak = config.leak ?? 0.95;
+    this.resetVoltage = config.resetVoltage ?? 0;
+    this.membrane = new Float32Array(this.neuronCount);
+  }
+
+  think(sensors: SensorReading[], dt: number): CognitionSnapshot {
+    const input = this.aggregateInputCurrents(sensors);
+    const spikes: Array<{ neuronIndex: number; timestampMs: number; population?: string }> = [];
+
+    for (let i = 0; i < this.neuronCount; i++) {
+      const current = input[i % input.length] * dt;
+      this.membrane[i] = this.membrane[i] * this.leak + current;
+      if (this.membrane[i] >= this.threshold) {
+        spikes.push({ neuronIndex: i, timestampMs: dt * 1000, population: 'snn' });
+        this.membrane[i] = this.resetVoltage;
+      }
+    }
+
+    const avgSignal = input.length > 0
+      ? input.reduce((a, b) => a + b, 0) / input.length
+      : 0;
+
+    const goalStack: CognitionSnapshot['goalStack'] = [
+      {
+        id: avgSignal > 0.5 ? 'stabilize_structure' : 'monitor_structure',
+        priority: avgSignal > 0.5 ? 1 : 0.5,
+        status: 'active',
+      },
+    ];
+
+    const activePlan = {
+      id: 'structural-response-plan',
+      steps: ['add_load', 'observe_stress', 'adjust_load'],
+      currentStep: Math.min(2, Math.floor(avgSignal * 3)),
+    };
+
+    const actionUtilities: Record<string, number> = {
+      add_load: Number((avgSignal + spikes.length * 0.01).toFixed(6)),
+      hold: Number((0.5 - Math.min(avgSignal, 0.5)).toFixed(6)),
+      reduce_load: Number((Math.max(0, avgSignal - 0.2)).toFixed(6)),
+    };
+
+    return {
+      spikes,
+      spikeCount: spikes.length,
+      goalStack,
+      activePlan,
+      membraneVoltages: new Float32Array(this.membrane),
+      extra: {
+        avgSignal,
+        actionUtilities,
+      },
+    };
+  }
+
+  encode(snapshot: CognitionSnapshot): Record<string, unknown> {
+    return {
+      id: this.id,
+      spikeCount: snapshot.spikeCount,
+      spikes: snapshot.spikes.map((s) => ({
+        neuronIndex: s.neuronIndex,
+        timestampMs: Number(s.timestampMs.toFixed(6)),
+        population: s.population,
+      })),
+      goalStack: snapshot.goalStack.map((g) => ({ ...g, priority: Number(g.priority.toFixed(6)) })),
+      activePlan: snapshot.activePlan,
+      membraneVoltages: snapshot.membraneVoltages
+        ? Array.from(snapshot.membraneVoltages, (v) => Number(v.toFixed(6)))
+        : undefined,
+      extra: snapshot.extra,
+    };
+  }
+
+  private aggregateInputCurrents(sensors: SensorReading[]): Float32Array {
+    const merged: number[] = [];
+    for (const reading of sensors) {
+      for (let i = 0; i < reading.values.length; i++) {
+        merged.push(reading.values[i]);
+      }
+    }
+    if (merged.length === 0) return new Float32Array([0]);
+    return new Float32Array(merged);
+  }
+}
+
+export interface SimpleActionSelectorConfig {
+  id?: string;
+  defaultActionType?: string;
+}
+
+/**
+ * GOAP utility selector — picks highest utility action and records alternatives.
+ */
+export class SimpleActionSelector implements CAELActionSelector {
+  readonly id: string;
+  private readonly defaultActionType: string;
+
+  constructor(config: SimpleActionSelectorConfig = {}) {
+    this.id = config.id ?? 'simple-action-selector';
+    this.defaultActionType = config.defaultActionType ?? 'hold';
+  }
+
+  select(cognition: CognitionSnapshot, simTime: number): ActionDecision {
+    const utilities = this.extractUtilities(cognition);
+
+    const actions = Object.entries(utilities).map(([type, utility]) => ({
+      type,
+      params: { simTime },
+      utility,
+    }));
+
+    if (actions.length === 0) {
+      return {
+        chosen: { type: this.defaultActionType, params: { simTime }, utility: 0 },
+        alternatives: [],
+        reason: 'no_utility_data',
+      };
+    }
+
+    actions.sort((a, b) => (b.utility ?? 0) - (a.utility ?? 0));
+    return {
+      chosen: actions[0],
+      alternatives: actions.slice(1),
+      reason: 'max_utility',
+    };
+  }
+
+  encode(decision: ActionDecision): Record<string, unknown> {
+    return {
+      id: this.id,
+      chosen: {
+        type: decision.chosen.type,
+        params: decision.chosen.params,
+        utility: decision.chosen.utility,
+      },
+      alternatives: decision.alternatives.map((a) => ({
+        type: a.type,
+        params: a.params,
+        utility: a.utility,
+      })),
+      reason: decision.reason,
+    };
+  }
+
+  private extractUtilities(cognition: CognitionSnapshot): Record<string, number> {
+    const fromExtra = cognition.extra?.actionUtilities;
+    if (fromExtra && typeof fromExtra === 'object') {
+      const out: Record<string, number> = {};
+      for (const [k, v] of Object.entries(fromExtra as Record<string, unknown>)) {
+        if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+      }
+      return out;
+    }
+
+    const fallback = cognition.activePlan?.steps ?? [this.defaultActionType];
+    const out: Record<string, number> = {};
+    for (let i = 0; i < fallback.length; i++) {
+      out[fallback[i]] = Number((1 - i * 0.1).toFixed(6));
+    }
+    return out;
+  }
+}
+
+export interface StructuralActionMapperConfig {
+  id?: string;
+  /** Geometry arrays used for before/after world-state integrity hashing. */
+  vertices?: Float32Array | Float64Array;
+  elements?: Uint32Array;
+  /** Preferred field to include in world-state hashing. */
+  integrityFieldName?: string;
+}
+
+/**
+ * Maps structural actions (e.g. add_load) to solver mutations.
+ */
+export class StructuralActionMapper implements CAELActionMapper {
+  readonly id: string;
+  private readonly vertices?: Float32Array | Float64Array;
+  private readonly elements?: Uint32Array;
+  private readonly integrityFieldName: string;
+
+  constructor(config: StructuralActionMapperConfig = {}) {
+    this.id = config.id ?? 'structural-action-mapper';
+    this.vertices = config.vertices;
+    this.elements = config.elements;
+    this.integrityFieldName = config.integrityFieldName ?? 'von_mises_stress';
+  }
+
+  apply(action: AgentAction, solver: SimSolver, _simTime: number): WorldDelta {
+    const hashBefore = this.hashWorldState(solver);
+
+    let details: Record<string, unknown> = { applied: false };
+    if (action.type === 'add_load' || action.type === 'modify_load') {
+      const mut = solver as unknown as {
+        updateLoad?: (id: string, force: [number, number, number]) => void;
+      };
+      const loadId = String(action.params.loadId ?? 'agent-load');
+      const fx = Number(action.params.fx ?? 0);
+      const fy = Number(action.params.fy ?? 0);
+      const fz = Number(action.params.fz ?? 0);
+      if (typeof mut.updateLoad === 'function') {
+        mut.updateLoad(loadId, [fx, fy, fz]);
+        details = { applied: true, loadId, force: [fx, fy, fz] };
+      } else {
+        details = { applied: false, reason: 'solver_has_no_updateLoad', loadId, force: [fx, fy, fz] };
+      }
+    } else {
+      details = { applied: false, reason: 'unsupported_action_type', actionType: action.type };
+    }
+
+    const hashAfter = this.hashWorldState(solver);
+
+    return {
+      type: 'custom',
+      description: `Applied action ${action.type}`,
+      details,
+      hashBefore,
+      hashAfter,
+    };
+  }
+
+  encode(delta: WorldDelta): Record<string, unknown> {
+    return {
+      id: this.id,
+      type: delta.type,
+      description: delta.description,
+      details: delta.details,
+      hashBefore: delta.hashBefore,
+      hashAfter: delta.hashAfter,
+    };
+  }
+
+  private hashWorldState(solver: SimSolver): string {
+    const geoHash = this.vertices && this.elements
+      ? hashGeometry(this.vertices, this.elements)
+      : 'geo-unavailable';
+
+    const field = solver.getField(this.integrityFieldName);
+    const fieldHash = this.hashFieldData(field);
+    return `${geoHash}|${fieldHash}`;
+  }
+
+  private hashFieldData(field: FieldData | null): string {
+    if (!field) return 'field-none';
+
+    const arr = field instanceof RegularGrid3D
+      ? field.data
+      : field instanceof Float64Array
+        ? new Float32Array(field)
+        : field;
+
+    let h = 2166136261;
+    for (let i = 0; i < arr.length; i++) {
+      const q = Math.round(arr[i] * 1e6);
+      h ^= (q & 0xff); h = Math.imul(h, 16777619);
+      h ^= ((q >> 8) & 0xff); h = Math.imul(h, 16777619);
+      h ^= ((q >> 16) & 0xff); h = Math.imul(h, 16777619);
+      h ^= ((q >> 24) & 0xff); h = Math.imul(h, 16777619);
+    }
+    return `field-${(h >>> 0).toString(16).padStart(8, '0')}`;
   }
 }
