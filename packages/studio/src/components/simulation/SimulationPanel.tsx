@@ -10,8 +10,10 @@
  * everything happens in-browser.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Zap, X, Play, RotateCcw, Box, Lock, ArrowDown, Loader2 } from 'lucide-react';
+import { useEditorStore } from '@/lib/stores';
+import { useHistoryStore } from '@/lib/historyStore';
 
 interface SimulationPanelProps {
   onClose: () => void;
@@ -42,6 +44,25 @@ interface SimConfig {
   displacementScale: number;
   wireframe: boolean;
   useGpuBuffers: boolean;
+  autoSolveOnPause: boolean;
+  autoSolveDelayMs: number;
+}
+
+export interface SimulationInputConfig {
+  sizeX: number;
+  sizeY: number;
+  sizeZ: number;
+  divisions: number;
+  youngsModulus: number;
+  poissonRatio: number;
+  yieldStrength: number;
+  density: number;
+  fixedFace: 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+';
+  loadFace: 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+';
+  loadForceX: number;
+  loadForceY: number;
+  loadForceZ: number;
+  useGpuBuffers: boolean;
 }
 
 const DEFAULT_CONFIG: SimConfig = {
@@ -62,6 +83,8 @@ const DEFAULT_CONFIG: SimConfig = {
   displacementScale: 1.0,
   wireframe: true,
   useGpuBuffers: true,
+  autoSolveOnPause: false,
+  autoSolveDelayMs: 800,
 };
 
 const MATERIAL_PRESETS: Record<string, Partial<SimConfig>> = {
@@ -84,16 +107,109 @@ interface SolveResult {
   iterations: number;
 }
 
+export function simulationInputHash(config: SimulationInputConfig): string {
+  const input = {
+    sizeX: config.sizeX,
+    sizeY: config.sizeY,
+    sizeZ: config.sizeZ,
+    divisions: config.divisions,
+    youngsModulus: config.youngsModulus,
+    poissonRatio: config.poissonRatio,
+    yieldStrength: config.yieldStrength,
+    density: config.density,
+    fixedFace: config.fixedFace,
+    loadFace: config.loadFace,
+    loadForceX: config.loadForceX,
+    loadForceY: config.loadForceY,
+    loadForceZ: config.loadForceZ,
+    useGpuBuffers: config.useGpuBuffers,
+  };
+  return JSON.stringify(input);
+}
+
+export function shouldAutoSolve(params: {
+  selectedNode: boolean;
+  autoSolveOnPause: boolean;
+  isDirty: boolean;
+  status: SolveStatus;
+}): boolean {
+  return (
+    params.selectedNode &&
+    params.autoSolveOnPause &&
+    params.isDirty &&
+    params.status !== 'meshing' &&
+    params.status !== 'solving'
+  );
+}
+
 export function SimulationPanel({ onClose }: SimulationPanelProps) {
-  const [config, setConfig] = useState<SimConfig>(DEFAULT_CONFIG);
-  const [status, setStatus] = useState<SolveStatus>('idle');
+  const selectedObjectId = useEditorStore((s) => s.selectedObjectId);
+  const nodes = useHistoryStore((s) => s.nodes);
+  const addTrait = useHistoryStore((s) => s.addTrait);
+  const setTraitProperty = useHistoryStore((s) => s.setTraitProperty);
+
+  const selectedNode = useMemo(() => nodes.find(n => n.id === selectedObjectId), [nodes, selectedObjectId]);
+  const simulationTrait = selectedNode?.traits.find(t => t.name === 'simulation');
+
+  const config = useMemo(() => {
+    if (!simulationTrait) return DEFAULT_CONFIG;
+    return { ...DEFAULT_CONFIG, ...(simulationTrait.properties as Record<string, unknown>) } as unknown as SimConfig;
+  }, [simulationTrait]);
+
+  const traitProps = (simulationTrait?.properties ?? {}) as Record<string, unknown>;
+  const explicitDirty = traitProps._solveDirty === true;
+  const storedResult = (traitProps._solveResult as SolveResult | undefined) ?? null;
+  const storedSolveInputHash = typeof traitProps._solveInputHash === 'string' ? traitProps._solveInputHash : null;
+  const lastSolvedAt = typeof traitProps._lastSolvedAt === 'number' ? traitProps._lastSolvedAt : null;
+  const currentInputHash = useMemo(() => simulationInputHash(config), [config]);
+  const hashMismatchDirty = !!storedSolveInputHash && storedSolveInputHash !== currentInputHash;
+  const resultWithoutHashDirty = !!storedResult && !storedSolveInputHash;
+  const isDirty = explicitDirty || hashMismatchDirty || resultWithoutHashDirty;
+  const [status, setStatus] = useState<SolveStatus>(isDirty ? 'idle' : 'done');
   const [result, setResult] = useState<SolveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [holoCode, setHoloCode] = useState<string | null>(null);
+  const autoSolveTimerRef = useRef<number | null>(null);
+  const solveRunRef = useRef(0);
+  const lastInputHashRef = useRef(currentInputHash);
+
+  // If a user navigates away or undoes past a solve, we reset state visually
+  useEffect(() => {
+    if (simulationTrait && (simulationTrait.properties as any)._solveVersion) {
+      // The visual state could be dirty, consider status sync
+    }
+  }, [simulationTrait]);
+
+  const invalidatePendingSolve = useCallback(() => {
+    if (autoSolveTimerRef.current !== null) {
+      window.clearTimeout(autoSolveTimerRef.current);
+      autoSolveTimerRef.current = null;
+    }
+    solveRunRef.current += 1;
+  }, []);
 
   const updateConfig = useCallback((patch: Partial<SimConfig>) => {
-    setConfig((prev) => ({ ...prev, ...patch }));
-  }, []);
+    invalidatePendingSolve();
+
+    if (!selectedNode) {
+      // Fallback for if nothing is selected.
+      return;
+    }
+
+    if (!simulationTrait) {
+      addTrait(selectedNode.id, {
+        name: 'simulation',
+        properties: { ...DEFAULT_CONFIG, ...patch, _solveDirty: true }
+      });
+      return;
+    }
+
+    Object.entries(patch).forEach(([key, value]) => {
+      setTraitProperty(selectedNode.id, 'simulation', key, value);
+    });
+    setTraitProperty(selectedNode.id, 'simulation', '_solveDirty', true);
+    setStatus('idle'); // configuration changed, solver is dirty
+  }, [selectedNode, simulationTrait, addTrait, setTraitProperty, invalidatePendingSolve]);
 
   const applyPreset = useCallback((name: string) => {
     const preset = MATERIAL_PRESETS[name];
@@ -101,6 +217,7 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
   }, [updateConfig]);
 
   const runSimulation = useCallback(async () => {
+    const runId = ++solveRunRef.current;
     setStatus('meshing');
     setError(null);
     setResult(null);
@@ -109,6 +226,8 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
       // Dynamic import to avoid bundling engine in Studio unless needed
       const { meshBox, findNodesOnFace } = await import('@holoscript/engine/simulation');
       const { StructuralSolverTET10, tet4ToTet10 } = await import('@holoscript/engine/simulation');
+
+      if (runId !== solveRunRef.current) return;
 
       const mesh = meshBox({
         size: [config.sizeX, config.sizeY, config.sizeZ],
@@ -149,6 +268,11 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
       });
 
       const solveResult = await solver.solve();
+      if (runId !== solveRunRef.current) {
+        solver.dispose();
+        return;
+      }
+
       const stats = solver.getStats();
 
       setResult({
@@ -170,13 +294,85 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
   @solve { type: "structural-tet10", colormap: "${config.colormap}", use_gpu_buffers: ${config.useGpuBuffers} }
 }`);
 
+      if (selectedNode) {
+        const finalResult: SolveResult = {
+          nodeCount: stats.nodeCount,
+          elementCount: stats.elementCount,
+          maxStress: stats.maxVonMises,
+          minSafety: stats.minSafetyFactor,
+          solveTimeMs: stats.solveTimeMs,
+          converged: solveResult.converged,
+          iterations: solveResult.iterations,
+        };
+        setTraitProperty(selectedNode.id, 'simulation', '_solveDirty', false);
+        setTraitProperty(selectedNode.id, 'simulation', '_solveVersion', Date.now());
+        setTraitProperty(selectedNode.id, 'simulation', '_lastSolvedAt', Date.now());
+        setTraitProperty(selectedNode.id, 'simulation', '_solveInputHash', simulationInputHash(config));
+        setTraitProperty(selectedNode.id, 'simulation', '_solveResult', finalResult);
+      }
+
       solver.dispose();
       setStatus('done');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const raw = err instanceof Error ? err.message : String(err);
+      const isNonlinearUnstable = /nonlinear solve failed to converge|failed to converge near load factor|inner linear solve failed/i.test(raw);
+      if (isNonlinearUnstable) {
+        setError(
+          'Nonlinear solve unstable for current setup. Try smaller loads, stronger constraints, finer mesh quality, or disable nonlinear mode for quick iteration.\n\n' +
+          `Details: ${raw}`,
+        );
+      } else {
+        setError(raw);
+      }
       setStatus('error');
     }
-  }, [config]);
+  }, [config, selectedNode, setTraitProperty]);
+
+  // Optional background solve after edit pause (undo/redo friendly)
+  useEffect(() => {
+    if (autoSolveTimerRef.current !== null) {
+      window.clearTimeout(autoSolveTimerRef.current);
+      autoSolveTimerRef.current = null;
+    }
+
+    if (!shouldAutoSolve({
+      selectedNode: !!selectedNode,
+      autoSolveOnPause: config.autoSolveOnPause,
+      isDirty,
+      status,
+    })) {
+      return;
+    }
+
+    autoSolveTimerRef.current = window.setTimeout(() => {
+      runSimulation();
+    }, Math.max(150, config.autoSolveDelayMs));
+
+    return () => {
+      if (autoSolveTimerRef.current !== null) {
+        window.clearTimeout(autoSolveTimerRef.current);
+        autoSolveTimerRef.current = null;
+      }
+    };
+  }, [config.autoSolveOnPause, config.autoSolveDelayMs, isDirty, status, runSimulation, selectedNode]);
+
+  useEffect(() => {
+    if (status === 'done' && isDirty) {
+      setStatus('idle');
+    }
+  }, [status, isDirty]);
+
+  // History scrubbing / undo while solving: invalidate stale in-flight solve
+  useEffect(() => {
+    const inputChanged = lastInputHashRef.current !== currentInputHash;
+    lastInputHashRef.current = currentInputHash;
+    if (!inputChanged) return;
+
+    if (status === 'meshing' || status === 'solving') {
+      solveRunRef.current += 1;
+      setStatus('idle');
+    }
+  }, [currentInputHash, status]);
 
   const reset = useCallback(() => {
     setStatus('idle');
@@ -259,16 +455,62 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
           </p>
         </Section>
 
+        <Section icon={<Play className="h-3.5 w-3.5" />} title="Solve Behavior">
+          <label className="flex items-center justify-between rounded border border-studio-border bg-[#0d0d14] px-2 py-1.5 text-[11px]">
+            <span className="text-studio-muted">Auto-solve on pause</span>
+            <input
+              type="checkbox"
+              checked={config.autoSolveOnPause}
+              onChange={(e) => updateConfig({ autoSolveOnPause: e.target.checked })}
+              className="h-3.5 w-3.5 accent-[var(--studio-accent)]"
+            />
+          </label>
+          <NumberInput
+            label="Auto-solve delay (ms)"
+            value={config.autoSolveDelayMs}
+            onChange={(v) => updateConfig({ autoSolveDelayMs: Math.round(v) })}
+            min={150}
+            max={5000}
+            step={50}
+          />
+          <p className="text-[10px] text-studio-muted">
+            Default is manual solve. Enable to re-solve in the background after undo/redo or edits settle.
+          </p>
+        </Section>
+
         {/* Results */}
-        {result && (
+        {(result || storedResult) && (
           <Section icon={<Zap className="h-3.5 w-3.5 text-green-400" />} title="Results">
-            <div className="space-y-1 text-[11px]">
-              <ResultRow label="Nodes" value={result.nodeCount.toLocaleString()} />
-              <ResultRow label="Elements" value={result.elementCount.toLocaleString()} />
-              <ResultRow label="Converged" value={result.converged ? `Yes (${result.iterations} iter)` : 'No'} ok={result.converged} />
-              <ResultRow label="Max Stress" value={`${(result.maxStress / 1e6).toFixed(1)} MPa`} />
-              <ResultRow label="Safety Factor" value={result.minSafety.toFixed(2)} ok={result.minSafety > 1} />
-              <ResultRow label="Solve Time" value={`${result.solveTimeMs.toFixed(0)} ms`} />
+            <div className={`space-y-1 text-[11px] relative transition-all duration-300 ${isDirty ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+              {isDirty && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                  <div className="bg-red-500/10 border border-red-500/30 text-red-500 font-bold px-2 py-1 rounded backdrop-blur-sm -rotate-6 shadow-xl uppercase tracking-wider text-[10px]">
+                    Stale / Dirty
+                  </div>
+                </div>
+              )}
+              {(() => {
+                const r = result || storedResult!;
+                return (
+                  <>
+                    <ResultRow label="Nodes" value={r.nodeCount.toLocaleString()} />
+                    <ResultRow label="Elements" value={r.elementCount.toLocaleString()} />
+                    <ResultRow label="Converged" value={r.converged ? `Yes (${r.iterations} iter)` : 'No'} ok={r.converged} />
+                    <ResultRow label="Max Stress" value={`${(r.maxStress / 1e6).toFixed(1)} MPa`} />
+                    <ResultRow label="Safety Factor" value={r.minSafety.toFixed(2)} ok={r.minSafety > 1} />
+                    <ResultRow label="Solve Time" value={`${r.solveTimeMs.toFixed(0)} ms`} />
+                    <ResultRow
+                      label="Last Solved"
+                      value={lastSolvedAt ? new Date(lastSolvedAt).toLocaleTimeString() : 'Never'}
+                    />
+                    <ResultRow
+                      label="Input Match"
+                      value={isDirty ? 'No' : 'Yes'}
+                      ok={!isDirty}
+                    />
+                  </>
+                );
+              })()}
             </div>
           </Section>
         )}
@@ -290,6 +532,11 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
 
       {/* Footer */}
       <div className="shrink-0 border-t border-studio-border p-3 space-y-2">
+        {isDirty && (
+          <div className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
+            Results are stale. {config.autoSolveOnPause ? `Auto-solving after ${config.autoSolveDelayMs} ms idle.` : 'Press Solve to refresh.'}
+          </div>
+        )}
         <button
           onClick={status === 'idle' || status === 'done' || status === 'error' ? runSimulation : reset}
           disabled={status === 'meshing' || status === 'solving'}
@@ -297,8 +544,9 @@ export function SimulationPanel({ onClose }: SimulationPanelProps) {
         >
           {status === 'meshing' && <><Loader2 className="h-4 w-4 animate-spin" /> Meshing...</>}
           {status === 'solving' && <><Loader2 className="h-4 w-4 animate-spin" /> Solving...</>}
-          {(status === 'idle' || status === 'error') && <><Play className="h-4 w-4" /> Run Simulation</>}
-          {status === 'done' && <><RotateCcw className="h-4 w-4" /> Re-run</>}
+          {(status === 'idle' || status === 'error') && !isDirty && <><Play className="h-4 w-4" /> Run Simulation</>}
+          {(status === 'idle' || status === 'error' || status === 'done') && isDirty && <><RotateCcw className="h-4 w-4" /> Re-solve Required</>}
+          {status === 'done' && !isDirty && <><RotateCcw className="h-4 w-4" /> Re-run Simulation</>}
         </button>
       </div>
     </div>
