@@ -5,34 +5,24 @@
 
 ARG PNPM_VERSION=8.12.0
 
-FROM node:20-alpine AS builder
-
+FROM node:20-alpine AS base
 ARG PNPM_VERSION
-
-# Install pnpm
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
+# Collect all package.json for full workspace lockfile resolution
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages services benchmarks -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
+FROM base AS builder
 WORKDIR /app
 
-# Copy workspace config
+# Copy workspace config + all package.json manifests
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
-
-# Copy the packages we need (full dependency chain)
-COPY packages/crdt/package.json packages/crdt/
-COPY packages/agent-protocol/package.json packages/agent-protocol/
-COPY packages/core/package.json packages/core/
-COPY packages/engine/package.json packages/engine/
-COPY packages/framework/package.json packages/framework/
-COPY packages/cli/package.json packages/cli/
-COPY packages/llm-provider/package.json packages/llm-provider/
-COPY packages/config/package.json packages/config/
-COPY packages/absorb-service/package.json packages/absorb-service/
-COPY packages/mcp-server/package.json packages/mcp-server/
-COPY packages/platform/package.json packages/platform/
-COPY packages/mesh/package.json packages/mesh/
-
 
 # Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -90,31 +80,11 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
-# Copy workspace config + all package manifests for correct pnpm workspace resolution
+# Copy workspace config + ALL package manifests for correct pnpm workspace resolution
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY --from=builder /app/packages/crdt/package.json packages/crdt/
-COPY --from=builder /app/packages/agent-protocol/package.json packages/agent-protocol/
-COPY --from=builder /app/packages/core/package.json packages/core/
-COPY --from=builder /app/packages/engine/package.json packages/engine/
-COPY --from=builder /app/packages/framework/package.json packages/framework/
-COPY --from=builder /app/packages/cli/package.json packages/cli/
-COPY --from=builder /app/packages/llm-provider/package.json packages/llm-provider/
-COPY --from=builder /app/packages/config/package.json packages/config/
-COPY --from=builder /app/packages/absorb-service/package.json packages/absorb-service/
-COPY --from=builder /app/packages/mcp-server/package.json packages/mcp-server/
-COPY --from=builder /app/packages/platform/package.json packages/platform/
-COPY --from=builder /app/packages/mesh/package.json packages/mesh/
+COPY --from=manifests /manifests/ ./
 
-# Copy ALL remaining package.json files for pnpm workspace resolution
-# (core imports packages like engine/platform/mesh that need workspace symlinks)
-RUN --mount=from=builder,source=/app,target=/builder \
-    find /builder/packages /builder/services /builder/benchmarks -name "package.json" -not -path "*/node_modules/*" 2>/dev/null | while read f; do \
-      rel="${f#/builder/}"; dir="$(dirname "$rel")"; \
-      mkdir -p "$dir" && cp "$f" "$rel" 2>/dev/null; \
-    done; true
-
-# Install all dependencies (some externalized packages like jsonwebtoken aren't
-# declared as prod deps but are required at runtime via core's CJS bundle)
+# Install all dependencies (full workspace resolution for correct symlinks)
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
