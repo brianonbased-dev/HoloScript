@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type { AgentManifest, AgentCapability } from '../agents/AgentManifest';
+import type { AgentManifest, AgentCapability } from '@holoscript/framework/agents';
 import {
   AgentHierarchy,
   DelegationRule,

@@ -16,7 +16,7 @@
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 import type {
   NegotiationSession,
   Proposal,
@@ -25,13 +25,13 @@ import type {
   ProposalInput,
   VoteInput,
   InitiateOptions,
-} from '../negotiation/NegotiationTypes';
+} from '@holoscript/framework/negotiation';
 import {
   NegotiationProtocol,
   getNegotiationProtocol,
   type AuditEntry,
-} from '../negotiation/NegotiationProtocol';
-import { getTrustWeight } from '../negotiation/VotingMechanisms';
+} from '@holoscript/framework/negotiation';
+import { getTrustWeight } from '@holoscript/framework/negotiation';
 
 // =============================================================================
 // TYPES

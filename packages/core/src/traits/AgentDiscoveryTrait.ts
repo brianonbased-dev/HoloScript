@@ -24,9 +24,9 @@ import type {
   AgentEndpoint,
   SpatialScope,
   TrustLevel,
-} from '../agents/AgentManifest';
-import type { CapabilityQuery } from '../agents/CapabilityMatcher';
-import { AgentRegistry, getDefaultRegistry, type RegistryConfig } from '../agents/AgentRegistry';
+} from '@holoscript/framework/agents';
+import type { CapabilityQuery } from '@holoscript/framework/agents';
+import { AgentRegistry, getDefaultRegistry, type RegistryConfig } from '@holoscript/framework/agents';
 
 // =============================================================================
 // TYPES

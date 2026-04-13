@@ -44,9 +44,9 @@ absorb_run_improve({ profile: "quick" })
 
 28 MCP tools total. Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
 
-### 2. Build — 12 sovereign compilers, 12 bridges
+### 2. Build — sovereign + bridge compiler fleet
 
-24 compilers. Two kinds.
+HoloScript ships a mixed sovereign and bridge compiler fleet (30+ targets; verify current counts via health endpoints and ExportTarget registry).
 
 **Sovereign compilers** define what the platform natively IS — agent identity, neural computation, mathematical physics, digital twins, trait composition, real-time state. They don't translate for hardware. They expand the platform's native reality.
 
@@ -211,22 +211,22 @@ Production 3D rendering components. Each is a standalone R3F component:
 
 ## What's Here
 
-| Metric          | Value                                                     | How to verify                           |
-| --------------- | --------------------------------------------------------- | --------------------------------------- |
-| MCP tools       | 177 (149 holoscript + 28 absorb)                          | `curl mcp.holoscript.net/api/health`    |
-| Compile targets | 24 compilers (12 sovereign + 12 bridge), 29 ExportTargets | 51/51 benchmark, 0.7ms avg              |
-| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                       | `packages/holo-vm` + `packages/uaal`    |
-| GPU systems     | 6 WebGPU compute pipelines                                | `packages/core/src/gpu/shaders/`        |
-| Renderers       | 32 React Three Fiber components                           | `packages/r3f-renderer/src/components/` |
-| Traits          | 658 trait handlers                                        | MCP: `list_traits` / `suggest_traits`   |
-| Packages        | 78 (72 + 6 services)                                      | pnpm workspaces                         |
-| Tests           | 57,356+ passing                                           | `pnpm test`                             |
-| Examples        | 324 files                                                 | [Browse catalog →](./examples/INDEX.md) |
-| Knowledge store | 676 entries across 10 domains                             | `curl .../health`                       |
+| Metric          | Value                                                                 | How to verify                                |
+| --------------- | --------------------------------------------------------------------- | -------------------------------------------- |
+| MCP tools       | Live count (changes with deploys)                                     | `curl mcp.holoscript.net/api/health`         |
+| Compile targets | 30+ target family (sovereign + bridge), ExportTarget registry-backed  | `curl mcp.holoscript.net/health` + code enum |
+| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                                   | `packages/holo-vm` + `packages/uaal`         |
+| GPU systems     | 6 WebGPU compute pipelines                                            | `packages/core/src/gpu/shaders/`             |
+| Renderers       | 32 React Three Fiber components                                       | `packages/r3f-renderer/src/components/`      |
+| Traits          | 658 trait handlers                                                    | MCP: `list_traits` / `suggest_traits`        |
+| Packages        | 78 (72 + 6 services)                                                  | pnpm workspaces                              |
+| Tests           | 57,356+ passing                                                       | `pnpm test`                                  |
+| Examples        | 324 files                                                             | [Browse catalog →](./examples/INDEX.md)      |
+| Knowledge store | 676 entries across 10 domains                                         | `curl .../health`                            |
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
-![version-badge](https://img.shields.io/badge/version-v6.0.1-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v6.0.2-green?style=for-the-badge)
 
 ---
 
@@ -606,7 +606,7 @@ Write **one** HoloScript file. Compile to:
 
 ---
 
-## 🏗️ 33 Compile Targets
+## 🏗️ 30+ Compile Targets
 
 | Platform         | Target                                                         | Support   |
 | ---------------- | -------------------------------------------------------------- | --------- |
@@ -804,7 +804,7 @@ curl -s https://mcp.holoscript.net/api/health
 
 ---
 
-v6.0.1 shipped 2026-03-30 with 134 commits. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history.
+v6.0.2 shipped 2026-04-06. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history and current release notes.
 
 ---
 

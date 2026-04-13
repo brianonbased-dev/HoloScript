@@ -5,7 +5,7 @@
  * Type definitions for agent hierarchies, delegation rules, and supervision.
  */
 
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 
 // =============================================================================
 // HIERARCHY STRUCTURES

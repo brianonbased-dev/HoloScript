@@ -8,7 +8,7 @@
  * @module network
  */
 
-import type { EngineSystem } from '../engine/SpatialEngine';
+import type { EngineSystem } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // TYPES

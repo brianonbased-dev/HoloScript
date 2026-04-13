@@ -9,7 +9,7 @@
  * @version 1.0.0
  */
 
-import type { TrainingMetadata } from '../training/trait-mappings';
+import type { TrainingMetadata } from '@holoscript/framework/training';
 
 /**
  * Trait category in the unified registry

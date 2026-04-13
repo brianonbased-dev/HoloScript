@@ -16,20 +16,20 @@
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 import type {
   ChoreographyPlan,
   ChoreographyResult,
   ChoreographyStatus,
   StepContext,
-} from '../choreography/ChoreographyTypes';
-import { ChoreographyEngine } from '../choreography/ChoreographyEngine';
+} from '@holoscript/engine/choreography';
+import { ChoreographyEngine } from '@holoscript/engine/choreography';
 import {
   ChoreographyPlanner,
   PlanBuilder,
   plan as createPlanBuilder,
-} from '../choreography/ChoreographyPlanner';
-import type { StepDefinition } from '../choreography/ChoreographyPlanner';
+} from '@holoscript/engine/choreography';
+import type { StepDefinition } from '@holoscript/engine/choreography';
 
 // =============================================================================
 // TYPES

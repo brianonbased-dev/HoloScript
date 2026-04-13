@@ -23,8 +23,8 @@ import type {
   SpatialConstraintViolationEvent,
   SpatialConstraintResolvedEvent,
   TrajectoryWaypoint,
-} from '../spatial/SpatialConstraintTypes';
-import type { Vector3 } from '../spatial/SpatialTypes';
+} from '@holoscript/engine/spatial';
+import type { Vector3 } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // SHARED HELPERS

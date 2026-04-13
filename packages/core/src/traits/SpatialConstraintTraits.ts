@@ -20,7 +20,7 @@ import type {
   SpatialConstraintViolationEvent,
   SpatialConstraintResolvedEvent,
   SpatialConstraintKind,
-} from '../spatial/SpatialConstraintTypes';
+} from '@holoscript/engine/spatial';
 
 // =============================================================================
 // SHARED STATE & HELPERS

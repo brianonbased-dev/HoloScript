@@ -20,7 +20,7 @@ Studio is organized as a progressive disclosure funnel — new users start simpl
 
 ## Route Architecture
 
-Studio has **43 page routes** organized as a progressive disclosure funnel (6 primary) with supporting routes and deep sub-routes. The primary journey:
+Studio has **30+ routes** organized as a progressive disclosure funnel (6 primary) with supporting and dynamic sub-routes. The primary journey:
 
 ```text
 /start → /vibe → /create → /teams → /holomesh → /agents

@@ -5,7 +5,7 @@
 ### Title (80 chars max)
 
 ```
-Show HN: HoloScript – Write once, compile to 18 VR/AR platforms
+Show HN: HoloScript – Write once, compile to 30+ targets across web, XR, and robotics
 ```
 
 ### Content
@@ -43,7 +43,7 @@ holoscript compile gallery.holo --target unity
 holoscript compile gallery.holo --target threejs
 ```
 
-**18 Compile Targets:**
+**30+ Compile Targets:**
 
 - Web: Three.js, Babylon.js, A-Frame, WebXR, WebGPU
 - Native: Unity, Unreal 5, Godot 4
@@ -63,7 +63,7 @@ holoscript compile gallery.holo --target threejs
 2. AI-friendly: Language designed for code generation
 3. Real compilers: Not transpiling to JS, generating native Unity C#, Unreal C++, Swift, Kotlin
 
-**Status:** v3.3 just released, MIT licensed
+**Status:** v6.0.2 released, MIT licensed
 
 GitHub: https://github.com/brianonbased-dev/HoloScript
 Docs: https://holoscript.net
@@ -79,14 +79,14 @@ Would love feedback from anyone building VR/AR experiences!
 ### Title
 ```
 
-HoloScript 3.0: A declarative language that compiles to 18 VR/AR platforms (Unity, Unreal, VRChat, visionOS, etc.) from a single source
+HoloScript v6.0.2: A declarative language that compiles to 30+ targets (Unity, Unreal, VRChat, visionOS, robotics, web, and more) from a single source
 
 ```
 
 ### Content
 ```
 
-I've released v3.3 of HoloScript, a programming language designed specifically for VR/AR development.
+I've released v6.0.2 of HoloScript, a semantic language for XR, web, agents, and robotics workflows.
 
 ## What is it?
 
@@ -118,7 +118,7 @@ VR development is fragmented. Every platform has its own SDK, language, and work
 
 HoloScript abstracts this away. Write once, compile everywhere.
 
-## 18 Compile Targets
+## 30+ Compile Targets
 
 | Category     | Targets                                      |
 | ------------ | -------------------------------------------- |
@@ -130,7 +130,7 @@ HoloScript abstracts this away. Write once, compile everywhere.
 
 ## Cool Features
 
-- **49 VR Traits**: `@grabbable`, `@throwable`, `@networked`, `@hand_tracked`, `@spatial_audio`
+- **3,300+ Traits**: `@grabbable`, `@throwable`, `@networked`, `@hand_tracked`, `@spatial_audio`, and domain-specific traits across 100+ categories
 - **AI-friendly**: Designed for LLMs to generate (MCP server included)
 - **Real compilation**: Generates Unity C#, Unreal C++, Swift—not just JavaScript wrapper
 
@@ -164,7 +164,7 @@ Released HoloScript 3.0 – Write VR games once, export to Unity, Unreal, VRChat
 ### Content
 ```
 
-Just shipped v3.3 of my side project. It's a programming language for VR/AR that compiles to multiple game engines.
+Just shipped v6.0.2 of my project. It's a semantic language that compiles to game engines, web stacks, XR platforms, and robotics targets.
 
 **Example:**
 
@@ -221,9 +221,9 @@ Happy to answer questions!
 
 ```
 
-🚀 Just released HoloScript 3.0!
+🚀 Just released HoloScript v6.0.2!
 
-A language that compiles to 18 VR/AR platforms from one source file.
+A language that compiles to 30+ targets from one source file.
 
 Write once → Unity, Unreal, VRChat, visionOS, Three.js, and more.
 
@@ -264,7 +264,7 @@ That's it. The compiler handles the Unity components, Unreal actors, or Three.js
 
 ```
 
-3/ 18 compile targets in v3.3:
+3/ 30+ compile targets in v6.0.2:
 
 ✅ Three.js, Babylon.js, A-Frame, WebXR
 ✅ Unity, Unreal 5, Godot 4
@@ -305,9 +305,9 @@ GitHub: https://github.com/brianonbased-dev/HoloScript
 
 ```
 
-# 🚀 HoloScript 3.0 Released!
+🚀 HoloScript v6.0.2 Released
 
-The biggest release yet with **18 compile targets**!
+The biggest release yet with **30+ compile targets**!
 
 ## What's New
 
@@ -328,7 +328,7 @@ holoscript compile scene.holo --target threejs
 
 📦 GitHub: https://github.com/brianonbased-dev/HoloScript
 📖 Docs: https://holoscript.net
-📝 Release Notes: https://github.com/brianonbased-dev/HoloScript/releases/tag/v3.3.0
+📝 Release Notes: <https://github.com/brianonbased-dev/HoloScript/blob/main/CHANGELOG.md>
 
 Let us know what you build! 🎮
 

@@ -15,9 +15,9 @@ import {
   SpatialEvent,
   SpatialAwarenessConfig,
   DEFAULT_SPATIAL_CONFIG,
-} from '../spatial/SpatialTypes';
-import { SpatialContextProvider } from '../spatial/SpatialContextProvider';
-import { QueryResult } from '../spatial/SpatialQuery';
+} from '@holoscript/engine/spatial';
+import { SpatialContextProvider } from '@holoscript/engine/spatial';
+import { QueryResult } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // TRAIT CONFIGURATION

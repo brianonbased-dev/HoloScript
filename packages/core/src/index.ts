@@ -1757,7 +1757,7 @@ export {
   useTogether,
   useFireworks,
   useNVIDIA,
-} from './ai';
+} from '@holoscript/framework/ai';
 
 // =============================================================================
 // Asset System (Hololand Integration)
@@ -1945,19 +1945,19 @@ export {
 // Agents Module (v3.1 Agentic Choreography)
 // =============================================================================
 
-export * from './agents';
+export * from '@holoscript/framework/agents';
 
 // =============================================================================
 // Choreography Module (v3.1 Agentic Choreography)
 // =============================================================================
 
-export * from './choreography';
+export * from '@holoscript/engine/choreography';
 
 // =============================================================================
 // Negotiation Module (v3.1 Agentic Choreography)
 // =============================================================================
 
-export * from './negotiation';
+export * from '@holoscript/framework/negotiation';
 
 // =============================================================================
 // Swarm Module � MOVED to @holoscript/framework (v6.0)
@@ -1980,13 +1980,13 @@ export * from './recovery';
 // Shader Module (v3.3 Visual Shader Graph)
 // =============================================================================
 
-export * from './shader';
+export * from '@holoscript/engine/shader';
 
 // =============================================================================
 // Post-Processing Module (v3.3 Screen-Space Effects)
 // =============================================================================
 
-export * from './postfx';
+export * from '@holoscript/engine/postfx';
 
 // =============================================================================
 // Physics Module (v3.3 Rigid Body Dynamics)
@@ -2259,7 +2259,7 @@ export {
   CodecEncodeError,
   CodecMemoryError,
   CodecDecompressError,
-} from './gpu/codecs';
+} from '@holoscript/engine/gpu';
 
 export type {
   // Core data types
@@ -2289,7 +2289,7 @@ export type {
   // Registry types
   CodecDetectOptions,
   RegisteredCodec,
-} from './gpu/codecs';
+} from '@holoscript/engine/gpu';
 
 // ═══════════════════════════════════════════════════════════════════
 // Compile-Time Safety System (Sprint CXXIV - 5-Layer Safety Stack)
@@ -2455,11 +2455,11 @@ export type {
   NormScope,
 } from './traits/CultureTraits';
 
-export { CulturalMemory } from './agents/CulturalMemory';
-export type { EpisodicMemory, StigmergicTrace, SemanticSOP } from './agents/CulturalMemory';
+export { CulturalMemory } from '@holoscript/framework/agents';
+export type { EpisodicMemory, StigmergicTrace, SemanticSOP } from '@holoscript/framework/agents';
 
-export { NormEngine } from './agents/NormEngine';
-export type { NormViolation, NormProposal } from './agents/NormEngine';
+export { NormEngine } from '@holoscript/framework/agents';
+export type { NormViolation, NormProposal } from '@holoscript/framework/agents';
 
 // ═══════════════════════════════════════════════════════════════════
 // Cross-Reality Handoff + Authenticated CRDTs
@@ -2470,7 +2470,7 @@ export {
   createMVCPayload,
   estimatePayloadSize,
   validatePayloadBudget,
-} from './agents/CrossRealityHandoff';
+} from '@holoscript/framework/agents';
 export type {
   MVCPayload,
   DecisionEntry,
@@ -2479,7 +2479,7 @@ export type {
   SpatialContext,
   EvidenceEntry,
   HandoffNegotiation,
-} from './agents/CrossRealityHandoff';
+} from '@holoscript/framework/agents';
 
 export {
   signOperation,
@@ -2493,8 +2493,8 @@ export {
   incrementCounter,
   getCounter,
   mergeStates,
-} from './agents/AuthenticatedCRDT';
-export type { DID, SignedOperation, AuthenticatedAgentState } from './agents/AuthenticatedCRDT';
+} from '@holoscript/framework/agents';
+export type { DID, SignedOperation, AuthenticatedAgentState } from '@holoscript/framework/agents';
 
 // Cross-Reality Trait Registry (Compile-time cross-reality trait declarations)
 export {
@@ -2549,8 +2549,8 @@ export type {
 // ═══════════════════════════════════════════════════════════════════
 
 // ── AI: Behavior Tree ──────────────────────────────────────────────
-export { BehaviorTree } from './ai';
-export type { BTTreeContext, BTTreeDef } from './ai';
+export { BehaviorTree } from '@holoscript/framework/ai';
+export type { BTTreeContext, BTTreeDef } from '@holoscript/framework/ai';
 export {
   BTNode,
   SequenceNode,
@@ -2562,9 +2562,9 @@ export {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from './ai';
-export type { BTStatus } from './ai';
-export { Blackboard } from './ai';
+} from '@holoscript/framework/ai';
+export type { BTStatus } from '@holoscript/framework/ai';
+export { Blackboard } from '@holoscript/framework/ai';
 
 // ── Dialogue ───────────────────────────────────────────────────────
 export type {
@@ -2712,8 +2712,8 @@ export type {
 // ── LOD ── MOVED to @holoscript/engine (A.011) ──────────────────────
 
 // ── AI / State Machine ─────────────────────────────────────────────
-export { StateMachine } from './ai';
-export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai';
+export { StateMachine } from '@holoscript/framework/ai';
+export type { StateConfig, TransitionConfig, StateAction, GuardFn } from '@holoscript/framework/ai';
 
 // ── Input ──────────────────────────────────────────────────────────
 
@@ -3216,7 +3216,7 @@ export {
 
 export { WebSocketSignaler } from './network/WebSocketSignaler';
 
-export { GaussianSplatExtractor, type ExtractorOptions } from './gpu/GaussianSplatExtractor';
+export { GaussianSplatExtractor, type ExtractorOptions } from '@holoscript/engine/gpu';
 
 // ModalitySelector already exported explicitly above (~line 2605)
 
@@ -3227,8 +3227,8 @@ export {
   SparsityMonitor,
   createSparsityMonitor,
   type LayerActivityInput,
-} from './training/SparsityMonitor';
-export type * from './training/SparsityMonitorTypes';
+} from '@holoscript/framework/training';
+export type * from '@holoscript/framework/training';
 
 // Events
 export {

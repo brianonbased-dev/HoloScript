@@ -26,13 +26,13 @@ import {
 } from '../compiler/NIRToWGSLCompiler';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
-import { SpatialTrainingDataGenerator } from '../training/SpatialTrainingDataGenerator';
+import { SpatialTrainingDataGenerator } from '@holoscript/framework/training';
 import type {
   SpatialTrainingExample,
   SpatialGeneratorConfig,
-} from '../training/SpatialTrainingDataTypes';
-import { SparsityMonitor, type LayerActivityInput } from '../training/SparsityMonitor';
-import type { SparsityMonitorConfig, SparsityMonitorStats } from '../training/SparsityMonitorTypes';
+} from '@holoscript/framework/training';
+import { SparsityMonitor, type LayerActivityInput } from '@holoscript/framework/training';
+import type { SparsityMonitorConfig, SparsityMonitorStats } from '@holoscript/framework/training';
 
 // =============================================================================
 // TOOL SCHEMA TYPE

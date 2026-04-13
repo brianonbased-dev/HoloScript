@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SpatialAwarenessTrait, createSpatialAwarenessTrait } from './SpatialAwarenessTrait';
-import { SpatialContextProvider } from '../spatial/SpatialContextProvider';
-import { SpatialEntity } from '../spatial/SpatialTypes';
+import { SpatialContextProvider } from '@holoscript/engine/spatial';
+import { SpatialEntity } from '@holoscript/engine/spatial';
 
 describe('SpatialAwarenessTrait', () => {
   let trait: SpatialAwarenessTrait;

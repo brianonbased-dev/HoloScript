@@ -37,7 +37,7 @@ const output = compiler.compile(ast);
 - **Multi-format Parser** - Supports `.hs`, `.hsplus`, and `.holo` files
 - **Complete AST** - Full abstract syntax tree representation
 - **Validation** - Comprehensive error checking with recovery
-- **33 Compile Targets** - Web (R3F, Babylon), Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF
+- **30+ Compile Targets** - Web (R3F, Babylon), Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF
 - **3,300+ Traits** - Modularized across 114 category files covering VR interactions, physics, networking, AI, scripting, automation, animation, nature, magic, sci-fi, emotions, and more
 - **AI Integration** - Adapters for OpenAI, Anthropic, Gemini, Ollama, and more
 - **Reactive State** - `reactive()`, `computed()`, `effect()`, `bind()`
@@ -51,7 +51,7 @@ const output = compiler.compile(ast);
 | `HoloScript2DParser`    | `.hs`      | Basic logic and protocols               |
 | `HoloScriptParser`      | `.hs`      | Legacy parser                           |
 
-## Compilers (33 implementations, 24 registered dialects, 29 ExportTargets)
+## Compilers (30+ implementations; verify live targets via health + ExportTarget enum)
 
 | Compiler                 | Target                    | Output            |
 | ------------------------ | ------------------------- | ----------------- |

@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type { AgentManifest, AgentCapability } from '../agents/AgentManifest';
+import type { AgentManifest, AgentCapability } from '@holoscript/framework/agents';
 import type { AgentInspection, InspectedTask, BreakpointInfo } from './TelemetryTypes';
 import type { TelemetryCollector } from './TelemetryCollector';
 

@@ -7,7 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { logger } from '../logger';
-import type { AgentManifest } from '../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 import {
   TelemetryCollector,
   getTelemetryCollector,
