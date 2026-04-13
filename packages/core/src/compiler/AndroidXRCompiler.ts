@@ -35,7 +35,7 @@
  */
 
 import { CompilerBase, type CompilerToken } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import type { Extensible } from '../types/utility-types';
 import type {
   HoloComposition,

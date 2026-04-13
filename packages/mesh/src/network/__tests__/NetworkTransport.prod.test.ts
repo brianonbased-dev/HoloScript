@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NetworkTransport } from '../NetworkTransport';
+import { NetworkTransport } from '@holoscript/core';
 
 // ─── Suite ───────────────────────────────────────────────────────────────────
 

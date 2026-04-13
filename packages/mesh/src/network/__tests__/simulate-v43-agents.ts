@@ -1,4 +1,4 @@
-import { StateSynchronizer } from '../StateSynchronizer';
+import { StateSynchronizer } from '@holoscript/core';
 
 async function fetchV43(prompt: string) {
   try {

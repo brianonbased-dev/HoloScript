@@ -9,8 +9,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { CRDTDocument, type CRDTDocumentConfig } from '../CRDTDocument';
-import type { DocumentIdentifier, CursorPosition, SelectionRange } from '../CRDTDocument';
+import { CRDTDocument, type CRDTDocumentConfig } from '@holoscript/core';
+import type { DocumentIdentifier, CursorPosition, SelectionRange } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
 // Helpers

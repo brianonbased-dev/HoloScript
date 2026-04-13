@@ -490,7 +490,7 @@ export class HoloVM {
       case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
-          position: [operands[1] as number, operands[2] as number, operands[3] as number,],
+          position: { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number },
           rotation: {
             x: operands[4] as number,
             y: operands[5] as number,
@@ -519,7 +519,7 @@ export class HoloVM {
       case HoloOpCode.ROTATE: {
         const entityId = operands[0] as number;
         this.world.setComponent(entityId, ComponentType.Transform, {
-          position: [0, 0, 0],
+          position: { x: 0, y: 0, z: 0 },
           rotation: {
             x: operands[1] as number,
             y: operands[2] as number,

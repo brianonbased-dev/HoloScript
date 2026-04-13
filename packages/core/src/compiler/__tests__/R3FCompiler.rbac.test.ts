@@ -13,8 +13,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { R3FCompiler } from '../R3FCompiler';
 import { UnauthorizedCompilerAccessError } from '../CompilerBase';
-import { ResourceType, type AccessDecision } from '../identity/AgentRBAC';
-import { WorkflowStep } from '../identity/AgentIdentity';
+import { ResourceType, type AccessDecision } from '@holoscript/platform';
+import { WorkflowStep } from '@holoscript/platform';
 
 // ---------------------------------------------------------------------------
 // Mock getRBAC so we can control checkAccess() per-test

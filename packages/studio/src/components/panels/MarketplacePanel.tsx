@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMarketplace } from '../../hooks/useMarketplace';
-import type { ContentCategory } from '@holoscript/core';
+import { ContentCategory } from "@holoscript/platform";
 
 // ═══════════════════════════════════════════════════════════════════
 

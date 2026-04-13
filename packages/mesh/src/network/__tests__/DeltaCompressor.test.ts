@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { DeltaCompressor, StateDelta } from '../DeltaCompressor';
+import { DeltaCompressor, StateDelta } from '@holoscript/core';
 import { LWWRegister, PNCounter } from '../CRDT';
 
 describe('DeltaCompressor', () => {

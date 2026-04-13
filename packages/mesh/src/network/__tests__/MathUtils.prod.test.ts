@@ -8,8 +8,8 @@ import {
   catmullRom,
   hermiteInterpolate,
   cubicBezier,
-} from '../MathUtils';
-import type { IVector3 } from '../NetworkTypes';
+} from '@holoscript/core';
+import type { IVector3 } from '@holoscript/core';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

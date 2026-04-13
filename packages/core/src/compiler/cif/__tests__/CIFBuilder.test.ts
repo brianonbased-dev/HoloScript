@@ -13,7 +13,7 @@ import {
   type CIFSectionKind,
   type CIFPriority,
 } from '../CanonicalIntermediateFormat';
-import type { CulturalProfileMetadata } from '../../identity/AgentIdentity';
+import type { CulturalProfileMetadata } from '@holoscript/platform';
 
 // ---- Helpers ----
 

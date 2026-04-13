@@ -38,7 +38,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import { WEBXR_TRAITS } from '../traits/constants/mobile/webxr';
 
 // ---------------------------------------------------------------------------

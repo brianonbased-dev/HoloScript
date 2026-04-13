@@ -15,8 +15,8 @@
  */
 
 import type { HSPlusNode, HSPlusAST } from '../types/HoloScriptPlus';
-import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
-import { WorkflowStep } from './identity/AgentIdentity';
+import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
+import { WorkflowStep } from '@holoscript/platform';
 
 // =============================================================================
 // TYPES

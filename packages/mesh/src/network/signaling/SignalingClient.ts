@@ -8,7 +8,7 @@
  * @Sprint Sprint 2: Performance Optimization
  */
 
-import { logger } from '../../logger';
+import { logger } from '@holoscript/core';
 import {
   type SignalingPayload,
   type JoinMessage,

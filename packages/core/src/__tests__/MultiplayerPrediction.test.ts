@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ClientPrediction, type PredictedState } from '@holoscript/mesh/multiplayer/ClientPrediction';
-import { SnapshotInterpolation } from '@holoscript/mesh/multiplayer/SnapshotInterpolation';
-import { LagCompensation } from '@holoscript/mesh/multiplayer/LagCompensation';
+import { ClientPrediction, type PredictedState } from '@holoscript/mesh';
+import { SnapshotInterpolation } from '@holoscript/mesh';
+import { LagCompensation } from '@holoscript/mesh';
 
 describe('Cycle 157: Multiplayer Prediction', () => {
   // -------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ChannelManager } from '../ChannelManager';
+import { ChannelManager } from '@holoscript/core';
 
 // Mock the MessagingTypes dependency
 vi.mock('../MessagingTypes', () => ({

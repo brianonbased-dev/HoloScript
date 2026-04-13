@@ -18,7 +18,7 @@ import {
   type ICIFRenderer,
 } from '../CIFRenderer';
 import { CIFBuilder, type CIFDocument, type CIFTargetModel } from '../CanonicalIntermediateFormat';
-import type { CulturalProfileMetadata } from '../../identity/AgentIdentity';
+import type { CulturalProfileMetadata } from '@holoscript/platform';
 
 // ---- Helpers ----
 

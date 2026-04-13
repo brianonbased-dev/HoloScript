@@ -11,14 +11,14 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { LocalRegistry } from '../../../registry/src/LocalRegistry.js';
-import { PackageResolver } from '../../../registry/src/PackageResolver.js';
+import { LocalRegistry } from '@holoscript/platform';
+import { PackageResolver } from '@holoscript/platform';
 import {
   ROLE_PERMISSIONS,
   hasPermission,
   canManageMembers,
   canPublishPackages,
-} from '../../../registry/src/types.js';
+} from '@holoscript/platform';
 
 import {
   SDK_VERSION,

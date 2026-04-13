@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SocialGraph, SocialUser } from '@holoscript/mesh/social/SocialGraph';
-import { FriendManager } from '@holoscript/mesh/social/FriendManager';
+import { SocialGraph, SocialUser } from '@holoscript/mesh';
+import { FriendManager } from '@holoscript/mesh';
 import { SocialUIPanel } from '../SocialUIPanel';
 import { FriendList } from '../FriendList';
 import { UserProfileCard } from '../UserProfileCard';

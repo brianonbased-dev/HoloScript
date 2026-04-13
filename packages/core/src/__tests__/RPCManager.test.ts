@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RPCManager } from '@holoscript/mesh/network/RPCManager';
+import { RPCManager } from '@holoscript/mesh';
 
 // =============================================================================
 // C256 — RPC Manager

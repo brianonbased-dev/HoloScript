@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SnapshotInterpolation } from '../SnapshotInterpolation';
-import type { Snapshot } from '../SnapshotInterpolation';
+import { SnapshotInterpolation } from '@holoscript/core';
+import type { Snapshot } from '@holoscript/core';
 
 describe('SnapshotInterpolation', () => {
   let interp: SnapshotInterpolation;

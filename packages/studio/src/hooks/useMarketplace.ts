@@ -5,13 +5,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  MarketplaceRegistry,
-  createSubmission,
-  verifySubmission,
-  publishSubmission,
-} from '@holoscript/core';
 import { seedMarketplace } from '../data/marketplace-seeds';
+import { MarketplaceRegistry, createSubmission, verifySubmission, publishSubmission } from "@holoscript/platform";
 
 type MarketplaceRegistryInstance = InstanceType<typeof MarketplaceRegistry>;
 type PackageListing = NonNullable<ReturnType<MarketplaceRegistryInstance['get']>>;

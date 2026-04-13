@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NetEntitySync } from '@holoscript/mesh/network/NetEntitySync';
-import { NetEventBus } from '@holoscript/mesh/network/NetEventBus';
-import { SessionManager } from '@holoscript/mesh/network/SessionManager';
+import { NetEntitySync } from '@holoscript/mesh';
+import { NetEventBus } from '@holoscript/mesh';
+import { SessionManager } from '@holoscript/mesh';
 
 describe('Multiplayer Sync (Cycle 175)', () => {
   describe('NetEntitySync', () => {

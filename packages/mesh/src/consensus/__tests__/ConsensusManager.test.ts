@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ConsensusManager } from '../ConsensusManager';
+import { ConsensusManager } from '@holoscript/core';
 
 describe('ConsensusManager', () => {
   let manager: ConsensusManager;

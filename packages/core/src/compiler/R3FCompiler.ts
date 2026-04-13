@@ -20,9 +20,9 @@ import {
   weatherToR3F,
   simulationToR3F,
 } from './DomainBlockCompilerMixin';
-import { getRBAC, ResourceType } from './identity/AgentRBAC';
+import { getRBAC, ResourceType } from '@holoscript/platform';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
-import { WorkflowStep } from './identity/AgentIdentity';
+import { WorkflowStep } from '@holoscript/platform';
 import { ASTNodePool } from './ObjectPool';
 
 // OOM fix: Pre-allocation reduced from 20K to 0 (demand-allocated).

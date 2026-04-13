@@ -5,8 +5,8 @@ import {
   createTestCompilerToken,
   type ICompiler,
 } from '../CompilerBase';
-import { ResourceType, type AccessDecision } from '../identity/AgentRBAC';
-import { WorkflowStep } from '../identity/AgentIdentity';
+import { ResourceType, type AccessDecision } from '@holoscript/platform';
+import { WorkflowStep } from '@holoscript/platform';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // ---------------------------------------------------------------------------

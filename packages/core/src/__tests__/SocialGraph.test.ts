@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SocialGraph, SocialUser } from '@holoscript/mesh/social/SocialGraph';
+import { SocialGraph, SocialUser } from '@holoscript/mesh';
 
 function makeUser(id: string, overrides?: Partial<SocialUser>): SocialUser {
   return {

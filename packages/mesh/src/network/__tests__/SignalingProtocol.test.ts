@@ -20,7 +20,7 @@ import {
   type RoomStateMessage,
   type ErrorMessage,
   type SignalingPayload,
-} from '../signaling/SignalingProtocol';
+} from '@holoscript/core';
 
 describe('SignalingProtocol', () => {
   // =========================================================================

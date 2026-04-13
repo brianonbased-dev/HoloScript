@@ -5,7 +5,7 @@
  * custom state replication, vec3/quat diffing, stats, batch updates.
  */
 import { describe, it, expect } from 'vitest';
-import { ReplicationManager } from '../ReplicationManager';
+import { ReplicationManager } from '@holoscript/core';
 
 describe('ReplicationManager — Production', () => {
   // ─── Registration ─────────────────────────────────────────────────

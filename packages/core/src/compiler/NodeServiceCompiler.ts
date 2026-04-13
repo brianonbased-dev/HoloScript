@@ -39,8 +39,8 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import type { ANSCapabilityPathValue } from './identity/ANSNamespace';
-import { ANSCapabilityPath } from './identity/ANSNamespace';
+import type { ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath } from '@holoscript/platform';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type {
   HoloDomainBlock,

@@ -1,11 +1,4 @@
-/**
- * @fileoverview Marketplace seed data — starter packages for browsing
- *
- * Provide initial content for the marketplace so it's not empty
- * when users first open the Store panel.
- */
-
-import { MarketplaceRegistry } from '@holoscript/core';
+import { MarketplaceRegistry } from "@holoscript/platform";
 
 type MarketplacePackage = any;
 type Publisher = any;

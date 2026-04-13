@@ -17,7 +17,7 @@ import {
   CorrectionBlender,
   StateHistoryBuffer,
   LatencyCompensator,
-} from '../LatencyCompensation';
+} from '@holoscript/core';
 
 // ─── DEFAULT_LATENCY_CONFIG ───────────────────────────────────────────────────
 

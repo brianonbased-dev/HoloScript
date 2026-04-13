@@ -53,11 +53,6 @@
       "import": "./dist/storage/index.js",
       "require": "./dist/storage/index.cjs"
     },
-    "./wot": {
-      "types": "./dist/wot/index.d.ts",
-      "import": "./dist/wot/index.js",
-      "require": "./dist/wot/index.cjs"
-    },
     "./codebase": {
       "types": "./dist/codebase/index.d.ts",
       "import": "./dist/codebase/index.js",
@@ -147,6 +142,8 @@
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/core-types": "workspace:*",
+    "@holoscript/mesh": "workspace:*",
+    "@holoscript/platform": "workspace:*",
     "@holoscript/plugin-film-vfx": "workspace:*",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.0",
@@ -210,8 +207,6 @@
     "ws": "^8.16.0"
   },
   "peerDependencies": {
-    "@holoscript/engine": "workspace:*",
-    "@holoscript/framework": "workspace:*",
     "@pixiv/three-vrm": "^2.0.0",
     "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0",
@@ -231,6 +226,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "@holoscript/mesh": {
       "optional": true
     }
   },

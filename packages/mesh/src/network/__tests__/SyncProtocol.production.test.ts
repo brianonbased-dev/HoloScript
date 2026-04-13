@@ -37,7 +37,7 @@ import {
   SyncProtocol,
   createSyncProtocol,
   createLocalSync,
-} from '../SyncProtocol';
+} from '@holoscript/core';
 
 // ===========================================================================
 // DeltaEncoder

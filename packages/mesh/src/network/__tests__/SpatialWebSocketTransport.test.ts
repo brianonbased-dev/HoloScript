@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebSocketTransport } from '../WebSocketTransport';
+import { WebSocketTransport } from '@holoscript/core';
 
 // Mock the global WebSocket object
 class MockWebSocket {

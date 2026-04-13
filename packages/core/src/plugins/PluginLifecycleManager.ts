@@ -14,7 +14,7 @@
  */
 
 import type { TelemetryCollector } from '../debug/TelemetryCollector';
-import type { SignedPackage } from '../security/PackageSigner';
+import type { SignedPackage } from '@holoscript/platform';
 import {
   PluginSandboxRunner,
   DEFAULT_CAPABILITY_BUDGET,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RPCManager } from '../RPCManager';
+import { RPCManager } from '@holoscript/core';
 
 describe('RPCManager', () => {
   let rpc: RPCManager;

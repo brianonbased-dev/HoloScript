@@ -24,10 +24,10 @@ import { PackagePackager, createPackager } from '../../../cli/src/publish/packag
 import { PublishCommand, createPublishCommand } from '../../../cli/src/commands/publish';
 
 // â”€â”€ Feature 4: Token management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { TokenManager, createTokenManager } from '../../../registry/src/auth/TokenManager';
+import { TokenManager, createTokenManager } from '@holoscript/platform';
 
 // â”€â”€ Feature 5: Access control â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { AccessControl, createAccessControl } from '../../../registry/src/access/AccessControl';
+import { AccessControl, createAccessControl } from '@holoscript/platform';
 
 // â”€â”€ Feature 6: Access CLI command â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { AccessCommand, createAccessCommand } from '../../../cli/src/commands/access';

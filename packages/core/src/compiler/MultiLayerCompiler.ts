@@ -12,7 +12,7 @@ import { VRRCompiler, type VRRCompilationResult } from './VRRCompiler.js';
 import { ARCompiler, type ARCompilationResult } from './ARCompiler.js';
 import { BabylonCompiler } from './BabylonCompiler.js'; // Assuming standard VR target
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 
 export interface MultiLayerCompilerOptions {
   targets: Array<'vr' | 'vrr' | 'ar'>;

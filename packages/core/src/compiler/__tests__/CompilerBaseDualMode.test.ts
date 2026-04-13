@@ -13,11 +13,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AccessDecision } from '../identity/AgentRBAC';
-import { ResourceType } from '../identity/AgentRBAC';
-import type { CapabilityAccessDecision } from '../identity/CapabilityRBAC';
+import type { AccessDecision } from '@holoscript/platform';
+import { ResourceType } from '@holoscript/platform';
+import type { CapabilityAccessDecision } from '@holoscript/platform';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import type { CapabilityToken } from '../identity/CapabilityToken';
+import type { CapabilityToken } from '@holoscript/platform';
 
 // ---------------------------------------------------------------------------
 // Mock getRBAC (legacy JWT path)

@@ -15,9 +15,9 @@ import { EnvironmentManager } from '@holoscript/engine/environment/EnvironmentPr
 import { AnimationGraph } from '@holoscript/engine/animation/AnimationGraph';
 import { AnimationTransitionSystem } from '@holoscript/engine/animation/AnimationTransitions';
 import { CutsceneTimeline, CutsceneBuilder } from '@holoscript/engine/animation/CutsceneTimeline';
-import { EntityAuthority } from '@holoscript/mesh/multiplayer/EntityAuthority';
-import { NetworkInterpolation } from '@holoscript/mesh/multiplayer/NetworkInterpolation';
-import { ReplicationManager } from '@holoscript/mesh/multiplayer/ReplicationManager';
+import { EntityAuthority } from '@holoscript/mesh';
+import { NetworkInterpolation } from '@holoscript/mesh';
+import { ReplicationManager } from '@holoscript/mesh';
 import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';
 import { LSystemGenerator } from '@holoscript/engine/procedural/LSystemGenerator';
 import { BuildingGenerator } from '@holoscript/engine/procedural/BuildingGenerator';

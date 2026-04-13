@@ -2,7 +2,7 @@
  * Matchmaker — Production Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Matchmaker, type MatchmakingPlayer } from '../Matchmaker';
+import { Matchmaker, type MatchmakingPlayer } from '@holoscript/core';
 
 function player(
   id: string,

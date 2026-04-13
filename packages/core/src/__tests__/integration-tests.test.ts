@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Consensus
-import { ConsensusManager } from '@holoscript/mesh/consensus/ConsensusManager';
+import { ConsensusManager } from '@holoscript/mesh';
 
 // Spatial
 import { distance } from '@holoscript/engine/spatial';

@@ -16,7 +16,7 @@
 
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import { GEOSPATIAL_DEFAULTS } from '../traits/constants/mobile/geospatial';
 import {
   DEPTH_SCANNER_TRAITS,

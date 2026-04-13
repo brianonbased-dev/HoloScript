@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { StateReplicator } from '@holoscript/mesh/network/StateReplicator';
+import { StateReplicator } from '@holoscript/mesh';
 
 // =============================================================================
 // C276 — State Replicator

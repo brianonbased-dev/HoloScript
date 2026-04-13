@@ -12,7 +12,7 @@ import { StudioEvents } from '@/lib/analytics';
 
 // ─── Old session-based hook (used by CollaborationPanel) ───────────────────
 import { useState } from 'react';
-import { CollaborationSession } from '@holoscript/core';
+import { CollaborationSession } from "@holoscript/mesh";
 
 type CollaborationSessionInstance = InstanceType<typeof CollaborationSession>;
 type SessionPeer = ReturnType<CollaborationSessionInstance['getPeers']>[number];

@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { Web3Provider, type NFTAsset } from '../web3/Web3Provider.js';
+import { Web3Provider, type NFTAsset } from '@holoscript/platform';
 import {
   calculatePosition,
   dateToJulian,

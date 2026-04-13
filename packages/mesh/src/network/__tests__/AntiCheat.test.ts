@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AntiCheat } from '../AntiCheat';
+import { AntiCheat } from '@holoscript/core';
 
 describe('AntiCheat', () => {
   let ac: AntiCheat;

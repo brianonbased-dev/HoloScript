@@ -2,7 +2,7 @@
  * SessionManager Unit Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SessionManager } from '../SessionManager';
+import { SessionManager } from '@holoscript/core';
 
 describe('SessionManager', () => {
   let sm: SessionManager;

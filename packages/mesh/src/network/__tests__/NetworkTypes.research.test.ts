@@ -30,7 +30,7 @@ import {
   type EntityType,
   type ILWWRegister,
   type IGCounter,
-} from '../NetworkTypes';
+} from '@holoscript/core';
 
 // =============================================================================
 // SYNC TIER DEFAULTS (P.NET.01)

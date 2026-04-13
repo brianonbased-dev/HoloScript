@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LagCompensation } from '../LagCompensation';
-import type { HistoryState, HitQuery } from '../LagCompensation';
+import { LagCompensation } from '@holoscript/core';
+import type { HistoryState, HitQuery } from '@holoscript/core';
 
 describe('LagCompensation', () => {
   let lag: LagCompensation;

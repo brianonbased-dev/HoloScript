@@ -21,7 +21,6 @@ export default defineConfig({
     'type-checker': 'src/HoloScriptTypeChecker.ts',
     debugger: 'src/HoloScriptDebugger.ts',
     'storage/index': 'src/storage/index.ts',
-    'wot/index': 'src/wot/index.ts',
 
     // Compiler targets (dynamically loaded on-demand)
     // VR/AR/XR Compilers

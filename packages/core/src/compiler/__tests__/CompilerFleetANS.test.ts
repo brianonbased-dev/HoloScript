@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '../identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 
 // ---------------------------------------------------------------------------
 // Mock RBAC to prevent token validation errors during compiler instantiation

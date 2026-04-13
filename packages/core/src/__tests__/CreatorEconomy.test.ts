@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { World } from '@holoscript/engine/ecs/World';
 import { EditorUI } from '../editor/EditorUI';
-import { Web3Provider } from '../web3/Web3Provider';
+import { Web3Provider } from '@holoscript/platform';
 import { ReactiveState } from '../state/ReactiveState';
 import { AssetRegistry } from '../assets/AssetRegistry';
 

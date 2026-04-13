@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NetworkTransport } from '../NetworkTransport';
+import { NetworkTransport } from '@holoscript/core';
 
 describe('NetworkTransport', () => {
   let transport: NetworkTransport;

@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { RPCManager } from '../RPCManager';
+import { RPCManager } from '@holoscript/core';
 
 describe('RPCManager: comprehensive edge cases', () => {
   let rpc: RPCManager;

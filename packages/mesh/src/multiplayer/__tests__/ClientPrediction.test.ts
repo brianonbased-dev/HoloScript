@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ClientPrediction } from '../ClientPrediction';
-import type { PredictedState, InputFrame, PredictionFn } from '../ClientPrediction';
+import { ClientPrediction } from '@holoscript/core';
+import type { PredictedState, InputFrame, PredictionFn } from '@holoscript/core';
 
 const INITIAL_STATE: PredictedState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
 

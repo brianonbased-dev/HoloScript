@@ -32,8 +32,8 @@ import { ComplexityAnalyzer } from '../../../cli/src/analyze/ComplexityAnalyzer'
 import { ComplexityReporter } from '../../../cli/src/analyze/ComplexityReporter';
 
 // â”€â”€ Feature 5: Package Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { LocalRegistry } from '../../../registry/src/LocalRegistry';
-import { PackageResolver } from '../../../registry/src/PackageResolver';
+import { LocalRegistry } from '@holoscript/platform';
+import { PackageResolver } from '@holoscript/platform';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Feature 1: Dead Code Detection

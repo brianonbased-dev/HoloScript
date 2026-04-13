@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PresenceManager } from '../PresenceManager';
-import { SocialGraph, type SocialUser } from '../SocialGraph';
+import { PresenceManager } from '@holoscript/core';
+import { SocialGraph, type SocialUser } from '@holoscript/core';
 
 function makeUser(id: string, overrides: Partial<SocialUser> = {}): SocialUser {
   return {

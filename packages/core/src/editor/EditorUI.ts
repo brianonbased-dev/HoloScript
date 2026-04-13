@@ -8,7 +8,7 @@ import { EditorPersistence } from './EditorPersistence';
 import { AssetManager } from './AssetManager';
 import { AssetBrowserPanel } from './AssetBrowserPanel';
 import { MarketplacePanel } from './MarketplacePanel';
-import { NFTAsset } from '../web3/Web3Provider';
+import { NFTAsset } from '@holoscript/platform';
 import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
 import { Vector3, Quaternion } from '../types/HoloScriptPlus';

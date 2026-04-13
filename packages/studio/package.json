@@ -41,6 +41,8 @@
     "@holoscript/core": "workspace:*",
     "@holoscript/engine": "workspace:*",
     "@holoscript/framework": "workspace:*",
+    "@holoscript/mesh": "workspace:*",
+    "@holoscript/platform": "workspace:*",
     "@holoscript/r3f-renderer": "workspace:*",
     "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",

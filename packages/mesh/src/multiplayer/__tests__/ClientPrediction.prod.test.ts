@@ -5,7 +5,7 @@
  * misprediction tracking, pending input management, max pending cap.
  */
 import { describe, it, expect } from 'vitest';
-import { ClientPrediction, PredictedState, InputFrame } from '../ClientPrediction';
+import { ClientPrediction, PredictedState, InputFrame } from '@holoscript/core';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 const zeroState: PredictedState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };

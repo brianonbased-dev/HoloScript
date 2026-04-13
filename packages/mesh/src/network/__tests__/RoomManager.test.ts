@@ -2,7 +2,7 @@
  * RoomManager Unit Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RoomManager } from '../RoomManager';
+import { RoomManager } from '@holoscript/core';
 
 describe('RoomManager', () => {
   let rm: RoomManager;

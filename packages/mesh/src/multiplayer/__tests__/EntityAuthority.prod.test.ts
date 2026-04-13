@@ -5,7 +5,7 @@
  * (request/approve/deny/force), entity locking, pending requests.
  */
 import { describe, it, expect } from 'vitest';
-import { EntityAuthority } from '../EntityAuthority';
+import { EntityAuthority } from '@holoscript/core';
 
 describe('EntityAuthority — Production', () => {
   const LOCAL = 'player-local';

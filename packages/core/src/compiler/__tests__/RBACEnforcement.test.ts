@@ -13,9 +13,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AccessDecision } from '../identity/AgentRBAC';
-import { ResourceType } from '../identity/AgentRBAC';
-import { WorkflowStep } from '../identity/AgentIdentity';
+import type { AccessDecision } from '@holoscript/platform';
+import { ResourceType } from '@holoscript/platform';
+import { WorkflowStep } from '@holoscript/platform';
 
 // ── Mock getRBAC with controllable checkAccess ─────────────────────────────
 const mockCheckAccess = vi.fn<(...args: any[]) => AccessDecision>();

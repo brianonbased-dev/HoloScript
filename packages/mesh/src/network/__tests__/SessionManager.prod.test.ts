@@ -2,7 +2,7 @@
  * SessionManager — Production Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SessionManager } from '../SessionManager';
+import { SessionManager } from '@holoscript/core';
 
 describe('SessionManager — construction', () => {
   it('starts idle with no session', () => {

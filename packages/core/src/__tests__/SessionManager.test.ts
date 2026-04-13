@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SessionManager } from '@holoscript/mesh/network/SessionManager';
+import { SessionManager } from '@holoscript/mesh';
 
 // =============================================================================
 // C310 — SessionManager

@@ -6,8 +6,8 @@
  * Uses SocialGraph directly and mocks WebRTCTransport as optional.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FriendManager } from '../FriendManager';
-import { SocialGraph, SocialUser } from '../SocialGraph';
+import { FriendManager } from '@holoscript/core';
+import { SocialGraph, SocialUser } from '@holoscript/core';
 
 function makeUser(id: string, username = 'user'): SocialUser {
   return { id, username, displayName: username, status: 'online', lastSeen: Date.now() };

@@ -3,8 +3,8 @@
  * Sprint CLIII - Raft leader election, log replication, state machine
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { RaftConsensus } from '../RaftConsensus';
-import { ConsensusNode } from '../ConsensusTypes';
+import { RaftConsensus } from '@holoscript/core';
+import { ConsensusNode } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
 // Helper

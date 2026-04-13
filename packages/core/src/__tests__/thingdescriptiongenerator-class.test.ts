@@ -31,7 +31,7 @@ import {
   serializeThingDescription,
   validateThingDescription,
   type ThingDescription,
-} from '../wot/ThingDescriptionGenerator.js';
+} from '@holoscript/platform';
 
 // ---------------------------------------------------------------------------
 // Logging imports

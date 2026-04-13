@@ -17,7 +17,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import type {
   NFTMarketplaceAST,
   NFTContract,

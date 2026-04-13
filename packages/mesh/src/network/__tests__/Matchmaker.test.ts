@@ -2,7 +2,7 @@
  * Matchmaker Unit Tests
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Matchmaker } from '../Matchmaker';
+import { Matchmaker } from '@holoscript/core';
 
 describe('Matchmaker', () => {
   let mm: Matchmaker;

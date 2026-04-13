@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CollaborationSession } from '../CollaborationSession';
+import { CollaborationSession } from '@holoscript/core';
 
 function makeSession(overrides = {}) {
   return new CollaborationSession({

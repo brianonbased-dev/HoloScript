@@ -54,9 +54,9 @@ vi.mock('../../gpu/GaussianSplatExtractor', () => ({
   GaussianSplatExtractor: MockExtractorClass,
 }));
 
-import { NeuralStreamingService, type NeuralStreamingConfig } from '../NeuralStreamingService';
-import type { ISignalingBridge } from '../NeuralStreamingTransport';
-import type { INeuralPacket } from '../NetworkTypes';
+import { NeuralStreamingService, type NeuralStreamingConfig } from '@holoscript/core';
+import type { ISignalingBridge } from '@holoscript/core';
+import type { INeuralPacket } from '@holoscript/core';
 
 describe('NeuralStreamingService', () => {
   let service: NeuralStreamingService;

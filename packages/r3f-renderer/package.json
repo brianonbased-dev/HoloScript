@@ -22,7 +22,10 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
-    "@holoscript/engine": "workspace:*"
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/mesh": "workspace:*",
+    "@holoscript/platform": "workspace:*",
+    "@holoscript/ui": "workspace:*"
   },
   "peerDependencies": {
     "@react-three/drei": ">=10.0.0",

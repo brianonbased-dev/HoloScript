@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NetEventBus } from '../NetEventBus';
+import { NetEventBus } from '@holoscript/core';
 
 describe('NetEventBus', () => {
   let bus: NetEventBus;

@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AntiCheat } from '../AntiCheat';
+import { AntiCheat } from '@holoscript/core';
 
 // ─── Suite ───────────────────────────────────────────────────────────────────
 

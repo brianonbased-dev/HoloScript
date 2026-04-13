@@ -20,8 +20,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { WebSocketTransport, createWebSocketTransport } from '../WebSocketTransport';
-import type { WebSocketTransportConfig } from '../WebSocketTransport';
+import { WebSocketTransport, createWebSocketTransport } from '@holoscript/core';
+import type { WebSocketTransportConfig } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
 // Helpers

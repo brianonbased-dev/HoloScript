@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { networkedHandler } from '../NetworkedTraitHandler';
-import { SYNC_TIER_RATES } from '@holoscript/mesh/network/NetworkTypes';
+import { SYNC_TIER_RATES } from '@holoscript/mesh';
 
 // =============================================================================
 // MOCK HELPERS

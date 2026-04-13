@@ -1,0 +1,175 @@
+{
+  "name": "@holoscript/platform",
+  "version": "6.0.3",
+  "description": "Enterprise platform layer for HoloScript (security, web3, identity, registry)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./src/traits/visual/index.ts",
+    "./dist/traits/index.js"
+  ],
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "require": "./dist/*.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "node --max-old-space-size=16384 run-vitest.mjs",
+    "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "vr",
+    "ar",
+    "xr",
+    "webxr",
+    "virtual-reality",
+    "spatial-computing",
+    "parser",
+    "ast",
+    "compiler",
+    "runtime",
+    "3d",
+    "threejs",
+    "digital-twin",
+    "iot",
+    "declarative"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/platform"
+  },
+  "dependencies": {
+    "@holoscript/agent-protocol": "workspace:*",
+    "@holoscript/core-types": "workspace:*",
+    "@holoscript/plugin-film-vfx": "workspace:*",
+    "jose": "^6.2.2",
+    "jsonwebtoken": "^9.0.0",
+    "zod": "^3.24.0",
+    "@holoscript/alphafold-plugin": "workspace:*",
+    "@holoscript/plugin-banking-finance": "workspace:*",
+    "@holoscript/plugin-civil-engineering": "workspace:*",
+    "@holoscript/plugin-culture-keyword": "workspace:*",
+    "@holoscript/domain-plugin-template": "workspace:*",
+    "@holoscript/plugin-economic-primitives": "workspace:*",
+    "@holoscript/plugin-education-lms": "workspace:*",
+    "@holoscript/plugin-emergency-response": "workspace:*",
+    "@holoscript/plugin-fashion": "workspace:*",
+    "@holoscript/plugin-film3d-volumetrics": "workspace:*",
+    "@holoscript/plugin-fitness-wellness": "workspace:*",
+    "@holoscript/plugin-forensics": "workspace:*",
+    "@holoscript/plugin-geolocation-gis": "workspace:*",
+    "@holoscript/plugin-hardware-invention": "workspace:*",
+    "@holoscript/plugin-hr-workforce": "workspace:*",
+    "@holoscript/plugin-insurance": "workspace:*",
+    "@holoscript/plugin-legal-document": "workspace:*",
+    "@holoscript/plugin-manufacturing-qc": "workspace:*",
+    "@holoscript/medical-plugin": "workspace:*",
+    "@holoscript/plugin-neuroscience": "workspace:*",
+    "@holoscript/radio-astronomy-plugin": "workspace:*",
+    "@holoscript/plugin-restaurant": "workspace:*",
+    "@holoscript/plugin-retail-ecommerce": "workspace:*",
+    "@holoscript/robotics-plugin": "workspace:*",
+    "@holoscript/narupa-plugin": "workspace:*",
+    "@holoscript/plugin-therapy": "workspace:*",
+    "@holoscript/plugin-threat-intelligence": "workspace:*",
+    "@holoscript/plugin-trait-audit": "workspace:*",
+    "@holoscript/plugin-travel-hospitality": "workspace:*",
+    "@holoscript/plugin-urban-planning": "workspace:*",
+    "holoscript-web-preview": "workspace:*",
+    "@holoscript/plugin-wine-food-beverage": "workspace:*",
+    "@holoscript/plugin-wisdom-gotcha": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@gltf-transform/core": "^3.7.0",
+    "@gltf-transform/extensions": "^3.7.0",
+    "@gltf-transform/functions": "^3.7.0",
+    "@huggingface/transformers": "^3.8.1",
+    "@noble/post-quantum": "^0.6.0",
+    "basis_universal": "^1.0.0",
+    "discord.js": "^14.21.0",
+    "dotenv": "^16.4.5",
+    "draco3d": "^1.5.6",
+    "ipfs-http-client": "^60.0.1",
+    "openai": "^6.32.0",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "three": "^0.182.0",
+    "tree-sitter": "0.22.4",
+    "tree-sitter-go": "^0.23.4",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-python": "^0.23.6",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "web-tree-sitter": "^0.24.0",
+    "ws": "^8.16.0"
+  },
+  "peerDependencies": {
+    "@holoscript/engine": "workspace:*",
+    "@holoscript/framework": "workspace:*",
+    "@pixiv/three-vrm": "^2.0.0",
+    "ioredis": "^5.3.0",
+    "puppeteer": "^23.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "@holoscript/mesh": "workspace:*",
+    "@holoscript/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@holoscript/engine": {
+      "optional": true
+    },
+    "@pixiv/three-vrm": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    },
+    "puppeteer": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "@holoscript/mesh": {
+      "optional": true
+    },
+    "@holoscript/core": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "@types/three": "^0.170.0",
+    "@types/ws": "^8.5.10",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@webgpu/types": "^0.1.40",
+    "tsup": "^8.0.1",
+    "typedoc": "^0.28.17",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

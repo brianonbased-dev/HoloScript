@@ -9,7 +9,7 @@ import {
   executeSandbox,
   destroySandbox,
 } from '../index';
-import { createDefaultPolicy, createStrictPolicy } from '../security/SecurityPolicy';
+import { createDefaultPolicy, createStrictPolicy } from '@holoscript/platform';
 
 describe('CinematicDirector exports', () => {
   it('creates a scene with actors and cues', () => {

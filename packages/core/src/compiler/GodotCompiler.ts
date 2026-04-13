@@ -30,7 +30,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import {
   compileDomainBlocks,
   compileMaterialBlock,

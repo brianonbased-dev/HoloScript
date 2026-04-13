@@ -3,8 +3,8 @@
  * Sprint CLIII - Secure agent messaging system
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AgentMessaging } from '../AgentMessaging';
-import { ChannelManager } from '../ChannelManager';
+import { AgentMessaging } from '@holoscript/core';
+import { ChannelManager } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
 // Helpers

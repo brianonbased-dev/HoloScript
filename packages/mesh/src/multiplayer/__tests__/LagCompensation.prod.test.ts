@@ -5,7 +5,7 @@
  * latency estimation (EMA), max history enforcement.
  */
 import { describe, it, expect } from 'vitest';
-import { LagCompensation, HistoryState } from '../LagCompensation';
+import { LagCompensation, HistoryState } from '@holoscript/core';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeState(

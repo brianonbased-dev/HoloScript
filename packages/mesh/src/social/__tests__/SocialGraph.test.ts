@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SocialGraph, type SocialUser } from '../SocialGraph';
+import { SocialGraph, type SocialUser } from '@holoscript/core';
 
 function makeUser(id: string, name = `user_${id}`): SocialUser {
   return { id, username: name, displayName: name, status: 'online', lastSeen: Date.now() };

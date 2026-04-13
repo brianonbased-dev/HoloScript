@@ -30,12 +30,12 @@ import {
   CERTIFICATION_LEVELS,
   CertificationChecker,
   generateBadge as generateBadgeFromChecker,
-} from '../../../registry/src/certification/Checker.js';
+} from '@holoscript/platform';
 import type {
   CertificationResult,
   CertificationBadge as CheckerBadgeType,
-} from '../../../registry/src/certification/Checker.js';
-import type { Package } from '../../../registry/src/types.js';
+} from '@holoscript/platform';
+import type { Package } from '@holoscript/platform';
 
 import {
   issueBadge,
@@ -47,7 +47,7 @@ import {
   listBadges,
   revokeBadge,
   isActivelyCertified,
-} from '../../../registry/src/certification/Badge.js';
+} from '@holoscript/platform';
 
 // ============================================================================
 // Imports â€” Partner SDK

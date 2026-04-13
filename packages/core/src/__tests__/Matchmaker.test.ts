@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Matchmaker } from '@holoscript/mesh/network/Matchmaker';
+import { Matchmaker } from '@holoscript/mesh';
 
 describe('Matchmaker', () => {
   let mm: Matchmaker;

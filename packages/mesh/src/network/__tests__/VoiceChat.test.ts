@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WebRTCTransport } from '../WebRTCTransport';
+import { WebRTCTransport } from '@holoscript/core';
 
 // Improve Global Mocks
 class MockRTCPeerConnection {

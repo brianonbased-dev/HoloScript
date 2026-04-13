@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { LocalNetworkAdapter } from '../LocalNetworkAdapter';
+import { LocalNetworkAdapter } from '@holoscript/core';
 
 // Mock BroadcastChannel
 class BroadCastChannelMock {

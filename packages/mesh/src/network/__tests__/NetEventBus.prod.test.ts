@@ -2,7 +2,7 @@
  * NetEventBus — Production Tests
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetEventBus, type NetMessage } from '../NetEventBus';
+import { NetEventBus, type NetMessage } from '@holoscript/core';
 
 function makeMsg(
   channel: string,

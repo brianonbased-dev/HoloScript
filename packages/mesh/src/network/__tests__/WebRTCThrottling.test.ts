@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebRTCTransport, SocialPacket } from '../WebRTCTransport';
+import { WebRTCTransport, SocialPacket } from '@holoscript/core';
 
 // Mock WebSocket
 global.WebSocket = vi.fn().mockImplementation(() => ({

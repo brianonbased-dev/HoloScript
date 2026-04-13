@@ -15,7 +15,7 @@ import {
   canonicalizeManifest,
   type PackageManifest,
   type SignedPackage,
-} from '../../security/PackageSigner';
+} from '@holoscript/platform';
 
 function simpleCode() {
   return `

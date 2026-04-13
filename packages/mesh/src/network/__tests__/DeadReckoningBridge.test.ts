@@ -14,7 +14,7 @@ import {
   SNAPSHOT_BYTE_SIZE,
   type PhysicsSnapshot,
   type DeadReckoningConfig,
-} from '../DeadReckoningBridge';
+} from '@holoscript/core';
 
 // =============================================================================
 // Helpers

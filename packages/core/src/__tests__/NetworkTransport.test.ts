@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetworkTransport } from '@holoscript/mesh/network/NetworkTransport';
+import { NetworkTransport } from '@holoscript/mesh';
 
 // =============================================================================
 // C270 — Network Transport

@@ -11,8 +11,8 @@ import {
   type StreamingTransportConfig,
   type ISignalingBridge,
   type NeuralSignalPayload,
-} from '../NeuralStreamingTransport';
-import type { INeuralPacket, INeuralSplatPacket } from '../NetworkTypes';
+} from '@holoscript/core';
+import type { INeuralPacket, INeuralSplatPacket } from '@holoscript/core';
 
 // =========================================================================
 // Mock WebSocket

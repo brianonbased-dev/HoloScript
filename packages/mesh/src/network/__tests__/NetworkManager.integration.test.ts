@@ -9,9 +9,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NetworkManager } from '../NetworkManager';
-import { NetworkTransport } from '../NetworkTransport';
-import { BrainServerClient } from '../BrainServerClient';
+import { NetworkManager } from '@holoscript/core';
+import { NetworkTransport } from '@holoscript/core';
+import { BrainServerClient } from '@holoscript/core';
 
 // =============================================================================
 // TRANSPORT BRIDGE

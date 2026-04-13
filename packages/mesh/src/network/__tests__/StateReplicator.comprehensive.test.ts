@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { StateReplicator } from '../StateReplicator';
+import { StateReplicator } from '@holoscript/core';
 
 describe('StateReplicator: comprehensive edge cases', () => {
   let rep: StateReplicator;

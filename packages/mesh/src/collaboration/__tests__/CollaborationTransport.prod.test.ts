@@ -10,8 +10,8 @@ import {
   CollaborationTransport,
   encodeSyncMessage,
   decodeSyncMessage,
-} from '../CollaborationTransport';
-import type { SyncMessage } from '../CollaborationTransport';
+} from '@holoscript/core';
+import type { SyncMessage } from '@holoscript/core';
 
 describe('CollaborationTransport — Production', () => {
   // ─── Message Encoding/Decoding ────────────────────────────────────────────

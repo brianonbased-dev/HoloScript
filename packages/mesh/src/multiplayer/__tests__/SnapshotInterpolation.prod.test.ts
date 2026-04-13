@@ -5,7 +5,7 @@
  * render delay, jitter buffer ordering, entity filtering.
  */
 import { describe, it, expect } from 'vitest';
-import { SnapshotInterpolation, Snapshot } from '../SnapshotInterpolation';
+import { SnapshotInterpolation, Snapshot } from '@holoscript/core';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeSnapshot(

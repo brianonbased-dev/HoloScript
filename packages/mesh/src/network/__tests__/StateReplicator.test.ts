@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { StateReplicator } from '../StateReplicator';
+import { StateReplicator } from '@holoscript/core';
 
 describe('StateReplicator', () => {
   let rep: StateReplicator;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SocialGraph } from '../SocialGraph';
-import { FriendManager } from '../FriendManager';
-import { PresenceManager } from '../PresenceManager';
+import { SocialGraph } from '@holoscript/core';
+import { FriendManager } from '@holoscript/core';
+import { PresenceManager } from '@holoscript/core';
 import { WebRTCTransport, SocialPacket } from '../../network/WebRTCTransport';
 
 // Mock WebRTCTransport

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AntiCheat } from '../AntiCheat';
+import { AntiCheat } from '@holoscript/core';
 
 describe('AntiCheat: comprehensive edge cases', () => {
   let ac: AntiCheat;

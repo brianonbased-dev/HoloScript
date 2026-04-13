@@ -5,14 +5,14 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { CRDTDocument, DocumentIdentifier } from '@holoscript/mesh/collaboration/CRDTDocument';
-import { CollaborationSession, SessionPeer } from '@holoscript/mesh/collaboration/CollaborationSession';
+import { CRDTDocument, DocumentIdentifier } from '@holoscript/mesh';
+import { CollaborationSession, SessionPeer } from '@holoscript/mesh';
 import {
   CollaborationTransport,
   encodeSyncMessage,
   decodeSyncMessage,
   SyncMessage,
-} from '@holoscript/mesh/collaboration/CollaborationTransport';
+} from '@holoscript/mesh';
 
 // =============================================================================
 // HELPERS

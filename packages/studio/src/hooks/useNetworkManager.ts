@@ -4,7 +4,7 @@
  * useNetworkManager — Hook for multiplayer networking simulation
  */
 import { useState, useCallback, useRef } from 'react';
-import { NetworkManager } from '@holoscript/core';
+import { NetworkManager } from "@holoscript/mesh";
 
 export interface UseNetworkManagerReturn {
   connected: boolean;

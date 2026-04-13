@@ -148,7 +148,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import {
   compileDomainBlocks,
   compileMaterialBlock,

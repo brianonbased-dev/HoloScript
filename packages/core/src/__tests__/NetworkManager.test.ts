@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetworkManager, NetworkMessage } from '@holoscript/mesh/network/NetworkManager';
+import { NetworkManager, NetworkMessage } from '@holoscript/mesh';
 
 describe('NetworkManager', () => {
   let mgr: NetworkManager;

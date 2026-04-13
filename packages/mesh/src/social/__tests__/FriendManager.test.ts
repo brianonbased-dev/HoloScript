@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { FriendManager } from '../FriendManager';
-import { SocialGraph, type SocialUser } from '../SocialGraph';
+import { FriendManager } from '@holoscript/core';
+import { SocialGraph, type SocialUser } from '@holoscript/core';
 
 function makeUser(id: string): SocialUser {
   return {

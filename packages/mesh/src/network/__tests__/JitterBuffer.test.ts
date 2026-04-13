@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { JitterBuffer } from '../JitterBuffer';
+import { JitterBuffer } from '@holoscript/core';
 
 type TestState = {
   sequenceNumber: number;

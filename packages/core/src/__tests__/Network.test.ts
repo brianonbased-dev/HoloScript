@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { NetworkManager } from '@holoscript/mesh/network/NetworkManager';
-import { RoomManager } from '@holoscript/mesh/network/RoomManager';
+import { NetworkManager } from '@holoscript/mesh';
+import { RoomManager } from '@holoscript/mesh';
 
 describe('Networking & Multiplayer', () => {
   describe('NetworkManager', () => {

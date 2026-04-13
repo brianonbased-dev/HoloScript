@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AvatarPersistence, type AvatarConfig } from '../AvatarPersistence';
+import { AvatarPersistence, type AvatarConfig } from '@holoscript/core';
 
 function makeConfig(userId: string): AvatarConfig {
   return {

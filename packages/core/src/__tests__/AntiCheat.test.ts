@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AntiCheat } from '@holoscript/mesh/network/AntiCheat';
+import { AntiCheat } from '@holoscript/mesh';
 
 describe('AntiCheat', () => {
   let ac: AntiCheat;

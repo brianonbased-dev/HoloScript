@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LobbyManager } from '../LobbyManager';
+import { LobbyManager } from '@holoscript/core';
 
 describe('LobbyManager', () => {
   let lm: LobbyManager;

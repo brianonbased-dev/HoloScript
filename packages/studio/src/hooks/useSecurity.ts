@@ -3,13 +3,8 @@
  * useSecurity — Hook for sandbox execution and security analysis
  */
 import { useState, useCallback, useRef } from 'react';
-import {
-  createSandbox,
-  executeSandbox,
-  destroySandbox,
-  type Sandbox,
-  type SandboxExecutionResult,
-} from '@holoscript/core';
+import { executeSandbox, destroySandbox } from '@holoscript/core';
+import { createSandbox, type Sandbox, type SandboxExecutionResult } from "@holoscript/platform";
 
 export interface UseSecurityReturn {
   sandbox: Sandbox | null;

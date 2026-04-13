@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LobbyManager } from '@holoscript/mesh/network/LobbyManager';
+import { LobbyManager } from '@holoscript/mesh';
 
 describe('LobbyManager', () => {
   let lm: LobbyManager;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CRDTDocument } from '../CRDTDocument';
-import type { DocumentEvent } from '../CRDTDocument';
+import { CRDTDocument } from '@holoscript/core';
+import type { DocumentEvent } from '@holoscript/core';
 
 function makeDoc(peerId = 'peer-1', config = {}) {
   return new CRDTDocument(

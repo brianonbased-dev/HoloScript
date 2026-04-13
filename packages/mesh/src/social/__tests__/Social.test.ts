@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SocialGraph, SocialUser } from '../SocialGraph';
-import { FriendManager } from '../FriendManager';
-import { PresenceManager } from '../PresenceManager';
+import { SocialGraph, SocialUser } from '@holoscript/core';
+import { FriendManager } from '@holoscript/core';
+import { PresenceManager } from '@holoscript/core';
 
 // Create a mock that satisfies the WebRTCTransport shape expected by the constructors
 function createMockTransport() {

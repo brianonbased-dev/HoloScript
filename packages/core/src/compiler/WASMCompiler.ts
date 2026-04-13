@@ -16,7 +16,7 @@
 import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
 import { CompilerBase, createTestCompilerToken, type CompilerToken } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 import { compileDomainBlocks, compileMaterialBlock } from './DomainBlockCompilerMixin';
 
 // =============================================================================

@@ -6,8 +6,8 @@
  * Mocks WebRTCTransport and SocialGraph.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PartyManager } from '../PartyManager';
-import { SocialGraph } from '../SocialGraph';
+import { PartyManager } from '@holoscript/core';
+import { SocialGraph } from '@holoscript/core';
 
 function makeTransportMock() {
   const listeners: Array<(packet: any) => void> = [];

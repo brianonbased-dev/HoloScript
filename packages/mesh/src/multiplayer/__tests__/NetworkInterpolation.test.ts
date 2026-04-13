@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NetworkInterpolation, NetworkSnapshot } from '../NetworkInterpolation';
+import { NetworkInterpolation, NetworkSnapshot } from '@holoscript/core';
 
 function snap(
   entityId: string,

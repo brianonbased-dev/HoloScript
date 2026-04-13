@@ -10,9 +10,9 @@
  * @version 2.0.0
  */
 
-import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
-import { WorkflowStep } from './identity/AgentIdentity';
-import type { CulturalProfileMetadata } from './identity/AgentIdentity';
+import { getRBAC, ResourceType, type AccessDecision } from '@holoscript/platform';
+import { WorkflowStep } from '@holoscript/platform';
+import type { CulturalProfileMetadata } from '@holoscript/platform';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type {
@@ -22,20 +22,20 @@ import type {
   VRRCompilationResult,
   IOSCompileResult,
 } from './CompilerTypes';
-import { CapabilityRBAC, getCapabilityRBAC } from './identity/CapabilityRBAC';
-import type { CapabilityToken } from './identity/CapabilityToken';
+import { CapabilityRBAC, getCapabilityRBAC } from '@holoscript/platform';
+import type { CapabilityToken } from '@holoscript/platform';
 import {
   type CompilerName,
   type ANSCapabilityPathValue,
   COMPILER_ANS_MAP,
   isValidCompilerName,
-} from './identity/ANSNamespace';
+} from '@holoscript/platform';
 import {
   type SpatialZoneEnforcer,
   type SpatialAccessDecision,
   SpatialPermission,
   getSpatialZoneEnforcer,
-} from './identity/SpatialMemoryZones';
+} from '@holoscript/platform';
 import {
   CompilerDocumentationGenerator,
   type TripleOutputResult,

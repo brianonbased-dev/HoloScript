@@ -14,8 +14,8 @@ import {
   StateHistoryBuffer,
   DEFAULT_LATENCY_CONFIG,
   type IInteractable,
-} from '../LatencyCompensation';
-import type { IInputCommand, IVector3, IQuaternion } from '../NetworkTypes';
+} from '@holoscript/core';
+import type { IInputCommand, IVector3, IQuaternion } from '@holoscript/core';
 
 // Helpers
 function makeInput(tick: number, moveX = 0, moveZ = 0): IInputCommand {

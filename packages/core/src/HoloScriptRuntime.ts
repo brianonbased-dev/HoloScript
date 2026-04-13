@@ -20,7 +20,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { TimeManager } from '@holoscript/engine/orbital';
 import { ExpressionEvaluator, createState } from './ReactiveState';
 import { getSharedEventBus } from './events/EventBus';
-import { StateSynchronizer } from '@holoscript/mesh/network/StateSynchronizer';
+import { StateSynchronizer } from '@holoscript/mesh';
 import { AttentionEngine } from '@holoscript/engine/orbital';
 import { telemetry } from './monitoring/telemetry';
 import { stateMachineInterpreter } from '@holoscript/engine/runtime/StateMachineInterpreter';

@@ -5,7 +5,7 @@
  * smooth correction, snap threshold, nlerp quaternion, buffer management.
  */
 import { describe, it, expect } from 'vitest';
-import { NetworkInterpolation, NetworkSnapshot } from '../NetworkInterpolation';
+import { NetworkInterpolation, NetworkSnapshot } from '@holoscript/core';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeSnap(

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SocialGraph } from '../SocialGraph';
-import { FriendManager } from '../FriendManager';
-import { ConversationManager } from '../ConversationManager';
-import { PartyManager } from '../PartyManager';
+import { SocialGraph } from '@holoscript/core';
+import { FriendManager } from '@holoscript/core';
+import { ConversationManager } from '@holoscript/core';
+import { PartyManager } from '@holoscript/core';
 import { WebRTCTransport } from '../../network/WebRTCTransport';
 
 class MockTransport {

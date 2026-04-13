@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ReplicationManager } from '@holoscript/mesh/multiplayer/ReplicationManager';
-import type { DeltaUpdate } from '@holoscript/mesh/multiplayer/ReplicationManager';
+import { ReplicationManager } from '@holoscript/mesh';
+import type { DeltaUpdate } from '@holoscript/mesh';
 
 // â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JitterBuffer } from '../JitterBuffer';
+import { JitterBuffer } from '@holoscript/core';
 
 type State = { objectId: string; sequenceNumber: number; timestamp: number };
 

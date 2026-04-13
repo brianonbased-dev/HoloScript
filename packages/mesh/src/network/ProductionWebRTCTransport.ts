@@ -13,7 +13,7 @@
  * @Sprint Sprint 2: Performance Optimization
  */
 
-import { logger } from '../logger';
+import { logger } from '@holoscript/core';
 import { type Transport, type SyncMessage } from './SyncProtocol';
 import { SignalingClient } from './signaling/SignalingClient';
 

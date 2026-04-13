@@ -14,7 +14,7 @@ import {
   WebSocketTransport,
   createWebSocketTransport,
   type WebSocketTransportConfig,
-} from '../WebSocketTransport';
+} from '@holoscript/core';
 
 function makeConfig(overrides: Partial<WebSocketTransportConfig> = {}): WebSocketTransportConfig {
   return {

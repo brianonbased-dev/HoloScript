@@ -14,7 +14,7 @@ import {
   canonicalizeManifest,
   type PackageManifest,
   type SignedPackage,
-} from '../../security/PackageSigner';
+} from '@holoscript/platform';
 
 function createTestManifest(name = 'test-plugin', version = '1.0.0'): PackageManifest {
   return {

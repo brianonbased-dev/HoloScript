@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TokenBucketRateLimiter } from '../ratelimit/RateLimiter';
+import { TokenBucketRateLimiter } from '@holoscript/platform';
 
 // =============================================================================
 // C216 — Token Bucket Rate Limiter

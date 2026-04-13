@@ -1,7 +1,7 @@
 import { bench, describe } from 'vitest';
-import { SocialGraph, SocialUser } from '../SocialGraph';
-import { FriendManager } from '../FriendManager';
-import { PresenceManager } from '../PresenceManager';
+import { SocialGraph, SocialUser } from '@holoscript/core';
+import { FriendManager } from '@holoscript/core';
+import { PresenceManager } from '@holoscript/core';
 
 describe('Social System Performance', () => {
   const graph = new SocialGraph('local-user');

@@ -6,9 +6,9 @@
  * Mocks WebRTCTransport and FriendManager.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ConversationManager } from '../ConversationManager';
-import { FriendManager } from '../FriendManager';
-import { SocialGraph, SocialUser } from '../SocialGraph';
+import { ConversationManager } from '@holoscript/core';
+import { FriendManager } from '@holoscript/core';
+import { SocialGraph, SocialUser } from '@holoscript/core';
 
 // ─── Minimal mocks ────────────────────────────────────────────────────────────
 

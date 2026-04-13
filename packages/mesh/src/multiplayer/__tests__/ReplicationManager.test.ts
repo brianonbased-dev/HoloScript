@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ReplicationManager } from '../ReplicationManager';
+import { ReplicationManager } from '@holoscript/core';
 
 describe('ReplicationManager', () => {
   let mgr: ReplicationManager;

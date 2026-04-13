@@ -12,7 +12,7 @@
 
 import type { HoloDomainBlock, HoloDomainType, HoloValue } from '../parser/HoloCompositionTypes';
 import { escapeStringValue, type EscapeTarget } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
 
 /**
  * Escape a string for safe interpolation into a specific target language.

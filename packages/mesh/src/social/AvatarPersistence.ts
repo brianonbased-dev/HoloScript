@@ -11,7 +11,7 @@ import type {
   AvatarPersonality,
   AvatarTrackingSource,
   AvatarIKMode,
-} from '../traits/AvatarEmbodimentTrait';
+} from '@holoscript/core/traits';
 
 // =============================================================================
 // TYPES

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RPCManager } from '../RPCManager';
+import { RPCManager } from '@holoscript/core';
 
 // ─── Suite ───────────────────────────────────────────────────────────────────
 

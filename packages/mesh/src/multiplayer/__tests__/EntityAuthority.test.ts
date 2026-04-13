@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EntityAuthority } from '../EntityAuthority';
+import { EntityAuthority } from '@holoscript/core';
 
 describe('EntityAuthority', () => {
   let auth: EntityAuthority;

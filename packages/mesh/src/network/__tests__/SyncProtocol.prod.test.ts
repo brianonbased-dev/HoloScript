@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DeltaEncoder, InterestManager } from '../SyncProtocol';
+import { DeltaEncoder, InterestManager } from '@holoscript/core';
 
 // ============================================================================
 // DeltaEncoder

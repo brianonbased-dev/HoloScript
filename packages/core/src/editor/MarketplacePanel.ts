@@ -1,7 +1,7 @@
 // @ts-expect-error
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { UIBuilder } from './UIBuilder';
-import { Web3Provider, NFTAsset } from '../web3/Web3Provider';
+import { Web3Provider, NFTAsset } from '@holoscript/platform';
 import { createPanel, createButton, createText } from '../ui/UIComponents';
 
 export class MarketplacePanel {

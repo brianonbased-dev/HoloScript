@@ -3,7 +3,7 @@
  * Sprint CLIII - Agent communication channel lifecycle & membership
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ChannelManager } from '../ChannelManager';
+import { ChannelManager } from '@holoscript/core';
 
 describe('ChannelManager', () => {
   let cm: ChannelManager;

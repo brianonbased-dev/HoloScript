@@ -10,9 +10,9 @@ import {
   generateProposalId,
   isProposalExpired,
   Proposal,
-} from '../ConsensusTypes';
-import { ConsensusManager } from '../ConsensusManager';
-import { RaftConsensus, RaftMessageUnion } from '../RaftConsensus';
+} from '@holoscript/core';
+import { ConsensusManager } from '@holoscript/core';
+import { RaftConsensus, RaftMessageUnion } from '@holoscript/core';
 
 // =============================================================================
 // UTILITY FUNCTION TESTS
