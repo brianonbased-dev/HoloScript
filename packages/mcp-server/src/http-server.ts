@@ -81,6 +81,13 @@ const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
 
+const IS_RAILWAY = Boolean(
+  process.env.RAILWAY_PUBLIC_DOMAIN ||
+    process.env.RAILWAY_PROJECT_ID ||
+    process.env.RAILWAY_ENVIRONMENT
+);
+const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY;
+
 // Protocol Registry — in-memory store (production: back with PostgreSQL)
 const protocolRecords = new Map<string, Record<string, unknown>>();
 const compileRateMap = new Map<string, number[]>();
@@ -649,7 +656,7 @@ const httpServer = http.createServer(async (req, res) => {
         description:
           'HoloScript language tooling — parse, validate, compile, and render .hs/.hsplus/.holo compositions across 27 backend targets.',
         transport: {
-          type: 'sse',
+          type: ALLOW_SSE_TRANSPORT ? 'sse' : 'streamable-http',
           url: `${baseUrl}/mcp`,
           authentication: {
             type: 'oauth2',
@@ -1217,6 +1224,20 @@ const httpServer = http.createServer(async (req, res) => {
 
   // MCP SSE endpoint
   if (url === '/mcp' && req.method === 'GET') {
+    if (!ALLOW_SSE_TRANSPORT) {
+      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'SSE transport disabled',
+          reason:
+            'Railway edge routing can split GET /mcp and POST /mcp/messages across nodes, causing hanging sessions.',
+          hint: 'Use stateless MCP over POST /mcp (tools/list, tools/call).',
+          transport: 'streamable-http',
+        })
+      );
+      return;
+    }
+
     const auth = await authenticateRequest(req);
     if (!auth.active) {
       auditLog.logAuthEvent({
@@ -1261,6 +1282,18 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   if (url === '/mcp/messages' && req.method === 'POST') {
+    if (!ALLOW_SSE_TRANSPORT) {
+      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'SSE message endpoint disabled',
+          hint: 'Use stateless MCP over POST /mcp.',
+          transport: 'streamable-http',
+        })
+      );
+      return;
+    }
+
     const queryString = req.url?.split('?')[1] || '';
     const params = new URLSearchParams(queryString);
     const sessionId = params.get('sessionId');
@@ -2381,7 +2414,9 @@ initStores();
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
   console.info(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
-  console.info(`   Transport: Streamable HTTP (MCP spec 2025-03-26)`);
+  console.info(
+    `   Transport: Streamable HTTP (default)${ALLOW_SSE_TRANSPORT ? ' + SSE session mode enabled' : ' (SSE session mode disabled on Railway)'}`
+  );
   console.info(`   Port: ${PORT}`);
   console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
   console.info(
@@ -2408,8 +2443,10 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.info(`     POST /oauth/revoke                 - Token revocation`);
   console.info(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
   console.info(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
-  console.info(`     GET  /mcp                          - MCP session messages (authenticated)`);
-  console.info(`     DELETE /mcp                        - Close session (authenticated)`);
+  if (ALLOW_SSE_TRANSPORT) {
+    console.info(`     GET  /mcp                          - MCP SSE session bootstrap (authenticated)`);
+    console.info(`     POST /mcp/messages                 - MCP SSE session messages (authenticated)`);
+  }
   console.info(`     GET  /a2a                          - A2A protocol info (public)`);
   console.info(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
   console.info(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
