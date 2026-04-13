@@ -22,6 +22,7 @@ import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
+import { _handleSingleToolLogic } from './index';
 import { PluginManager } from './PluginManager';
 import { handleCompileToTarget } from './compiler-tools';
 import {
@@ -432,8 +433,23 @@ async function securedToolExecution(
 
   // Execute the tool
   try {
-    const pluginResult = await PluginManager.handleTool(toolName, args);
-    const result = pluginResult !== null ? pluginResult : await handleTool(toolName, args);
+    const dispatchResult = await _handleSingleToolLogic(toolName, args);
+
+    if ((dispatchResult as { isError?: boolean }).isError) {
+      const errorText =
+        (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ||
+        `Tool execution failed: ${toolName}`;
+      throw new Error(errorText);
+    }
+
+    const resultText =
+      (dispatchResult as { content?: Array<{ text?: string }> }).content?.[0]?.text ?? 'null';
+    let result: unknown = resultText;
+    try {
+      result = JSON.parse(resultText);
+    } catch {
+      // keep raw text result
+    }
 
     auditLog.logToolResult({
       invocationId,
@@ -691,7 +707,7 @@ const httpServer = http.createServer(async (req, res) => {
           audit: `${baseUrl}/api/audit`,
         },
         contact: {
-          repository: 'https://github.com/buildwithholoscript/HoloScript',
+          repository: 'https://github.com/brianonbased-dev/HoloScript',
         },
       })
     );

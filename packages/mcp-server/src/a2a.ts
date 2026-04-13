@@ -622,7 +622,7 @@ export function buildAgentCard(
       `AI-assisted code generation, graph analysis, multiplayer networking, and browser preview.`,
     endpoint: `${baseUrl}/a2a`,
     version: '1.0.0',
-    documentationUrl: 'https://github.com/buildwithholoscript/HoloScript',
+    documentationUrl: 'https://github.com/brianonbased-dev/HoloScript',
     provider: {
       organization: 'HoloScript',
       url: 'https://holoscript.net',
