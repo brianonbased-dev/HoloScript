@@ -90,21 +90,28 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
-# Copy workspace config
+# Copy workspace config + all package manifests for correct pnpm workspace resolution
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/crdt/package.json packages/crdt/
-COPY packages/agent-protocol/package.json packages/agent-protocol/
-COPY packages/core/package.json packages/core/
-COPY packages/engine/package.json packages/engine/
-COPY packages/framework/package.json packages/framework/
-COPY packages/cli/package.json packages/cli/
-COPY packages/llm-provider/package.json packages/llm-provider/
-COPY packages/config/package.json packages/config/
-COPY packages/absorb-service/package.json packages/absorb-service/
-COPY packages/mcp-server/package.json packages/mcp-server/
-COPY packages/platform/package.json packages/platform/
-COPY packages/mesh/package.json packages/mesh/
+COPY --from=builder /app/packages/crdt/package.json packages/crdt/
+COPY --from=builder /app/packages/agent-protocol/package.json packages/agent-protocol/
+COPY --from=builder /app/packages/core/package.json packages/core/
+COPY --from=builder /app/packages/engine/package.json packages/engine/
+COPY --from=builder /app/packages/framework/package.json packages/framework/
+COPY --from=builder /app/packages/cli/package.json packages/cli/
+COPY --from=builder /app/packages/llm-provider/package.json packages/llm-provider/
+COPY --from=builder /app/packages/config/package.json packages/config/
+COPY --from=builder /app/packages/absorb-service/package.json packages/absorb-service/
+COPY --from=builder /app/packages/mcp-server/package.json packages/mcp-server/
+COPY --from=builder /app/packages/platform/package.json packages/platform/
+COPY --from=builder /app/packages/mesh/package.json packages/mesh/
 
+# Copy ALL remaining package.json files for pnpm workspace resolution
+# (core imports packages like engine/platform/mesh that need workspace symlinks)
+RUN --mount=from=builder,source=/app,target=/builder \
+    find /builder/packages /builder/services /builder/benchmarks -name "package.json" -not -path "*/node_modules/*" 2>/dev/null | while read f; do \
+      rel="${f#/builder/}"; dir="$(dirname "$rel")"; \
+      mkdir -p "$dir" && cp "$f" "$rel" 2>/dev/null; \
+    done; true
 
 # Install all dependencies (some externalized packages like jsonwebtoken aren't
 # declared as prod deps but are required at runtime via core's CJS bundle)
