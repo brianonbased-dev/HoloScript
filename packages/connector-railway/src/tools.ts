@@ -76,4 +76,96 @@ export const railwayTools: Tool[] = [
       required: ['deploymentId'],
     },
   },
+  {
+    name: 'railway_redeploy',
+    description: 'Redeploy a service instance from the latest commit. Use this after pushing code to trigger a fresh build and deploy without needing GitHub Actions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serviceId: { type: 'string', description: 'Service ID (find via railway_service_list)' },
+        environmentId: { type: 'string', description: 'Environment ID (usually production)' },
+      },
+      required: ['serviceId', 'environmentId'],
+    },
+  },
+  {
+    name: 'railway_service_restart',
+    description: 'Restart a service instance without redeploying. Useful for clearing in-memory state or recovering from crashes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serviceId: { type: 'string' },
+        environmentId: { type: 'string' },
+      },
+      required: ['serviceId', 'environmentId'],
+    },
+  },
+  {
+    name: 'railway_deployment_logs',
+    description: 'Fetch recent deployment logs for a service. Returns the last N log lines from the most recent deployment.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deploymentId: { type: 'string', description: 'Deployment ID to fetch logs for' },
+        limit: { type: 'number', description: 'Max log lines to return (default: 100)' },
+      },
+      required: ['deploymentId'],
+    },
+  },
+  {
+    name: 'railway_variable_list',
+    description: 'List all environment variables for a service in a specific environment. Values are included — do NOT log or expose them.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string' },
+        environmentId: { type: 'string' },
+        serviceId: { type: 'string' },
+      },
+      required: ['projectId', 'environmentId', 'serviceId'],
+    },
+  },
+  {
+    name: 'railway_volume_list',
+    description: 'List all volumes attached to a project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string' },
+      },
+      required: ['projectId'],
+    },
+  },
+  {
+    name: 'railway_tcp_proxy',
+    description: 'Create a TCP proxy for a service (expose a port to the internet). Useful for database access or custom protocols.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serviceId: { type: 'string' },
+        environmentId: { type: 'string' },
+        applicationPort: { type: 'number', description: 'Internal port the service listens on' },
+      },
+      required: ['serviceId', 'environmentId', 'applicationPort'],
+    },
+  },
+  {
+    name: 'railway_service_list',
+    description: 'List all services in a project with their IDs and names. Essential for finding the serviceId needed by other tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string', description: 'Project ID (see GOLD vault w_gold_034 for registry)' },
+      },
+      required: ['projectId'],
+    },
+  },
+  {
+    name: 'railway_project_list',
+    description: 'List all Railway projects accessible to the current token.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ];

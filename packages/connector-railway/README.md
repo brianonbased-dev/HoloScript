@@ -115,6 +115,105 @@ Check the status of a specific deployment.
 
 **Returns:** Deployment object with `id` and `status`
 
+### railway_redeploy
+
+Redeploy a service from the latest commit. Use after pushing code — no GitHub Actions needed.
+
+**Parameters:**
+
+- `serviceId` (string, required): Service ID
+- `environmentId` (string, required): Environment ID
+
+**Returns:** `true` on success
+
+### railway_service_restart
+
+Restart a service without redeploying. Clears in-memory state, recovers from crashes.
+
+**Parameters:**
+
+- `serviceId` (string, required): Service ID
+- `environmentId` (string, required): Environment ID
+
+**Returns:** Success confirmation
+
+### railway_deployment_logs
+
+Fetch recent log lines from a deployment.
+
+**Parameters:**
+
+- `deploymentId` (string, required): Deployment ID
+- `limit` (number, optional): Max lines (default: 100)
+
+**Returns:** Array of `{ message, timestamp, severity }`
+
+### railway_variable_list
+
+List all environment variables for a service. Values are included — do not log or expose.
+
+**Parameters:**
+
+- `projectId` (string, required): Project ID
+- `environmentId` (string, required): Environment ID
+- `serviceId` (string, required): Service ID
+
+**Returns:** Key-value map of variables
+
+### railway_volume_list
+
+List all volumes attached to a project.
+
+**Parameters:**
+
+- `projectId` (string, required): Project ID
+
+**Returns:** Array of `{ id, name, mountPath, sizeGB }`
+
+### railway_tcp_proxy
+
+Create a TCP proxy to expose a port to the internet.
+
+**Parameters:**
+
+- `serviceId` (string, required): Service ID
+- `environmentId` (string, required): Environment ID
+- `applicationPort` (number, required): Internal port
+
+**Returns:** `{ id, proxyPort, domain }`
+
+### railway_service_list
+
+List all services in a project. Use this to find the `serviceId` needed by other tools.
+
+**Parameters:**
+
+- `projectId` (string, required): Project ID
+
+**Returns:** Array of `{ id, name }`
+
+### railway_project_list
+
+List all projects accessible to the current token.
+
+**Parameters:** None
+
+**Returns:** Array of `{ id, name }`
+
+## Authentication
+
+Two token types are supported:
+
+| Token Type | Env Var | Header | Scope |
+|-----------|---------|--------|-------|
+| Account | `RAILWAY_API_TOKEN` | `Authorization: Bearer` | All projects (recommended for agents) |
+| Project | `RAILWAY_TOKEN` | `Project-Access-Token` | One project + environment (CI/CD) |
+
+The connector auto-detects which token is available and uses the correct header.
+Priority: `RAILWAY_API_TOKEN` (account) → `RAILWAY_TOKEN` (project).
+
+Create account tokens at: https://railway.com/account/tokens → "No workspace"
+
 ## Rate Limiting
 
 The connector automatically handles Railway's rate limits:
@@ -207,7 +306,7 @@ RailwayConnector extends ServiceConnector
 ├── connect()               Auto-auth + orchestrator registration
 ├── disconnect()            Cleanup
 ├── health()                Connection status check
-├── listTools()             Enumerate 6 MCP tools
+├── listTools()             Enumerate 15 MCP tools
 ├── executeTool()           Route tool calls to GraphQL mutations/queries
 └── executeGraphQLWithBackoff()  HTTP client with rate limit handling
 ```

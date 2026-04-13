@@ -4,20 +4,29 @@ import { railwayTools } from './tools.js';
 
 export class RailwayConnector extends ServiceConnector {
   private apiKey: string | null = null;
-  private readonly apiUrl = 'https://backboard.railway.com/graphql/v2';
+  private readonly apiUrl = 'https://backboard.railway.app/graphql/v2';
   private registrar = new McpRegistrar();
 
   constructor() {
     super();
   }
 
+  private isProjectToken = false;
+
   async connect(): Promise<void> {
     // Authenticate via token
-    this.apiKey =
-      process.env.RAILWAY_TOKEN ||
-      process.env.PROJECT_RAILWAY_TOKEN ||
-      process.env.RAILWAY_API_TOKEN ||
-      null;
+    // Priority: Account token (broadest) → Project token (CI/CD scoped)
+    // Account/workspace tokens use: Authorization: Bearer <token>
+    // Project tokens use: Project-Access-Token: <token>
+    if (process.env.RAILWAY_API_TOKEN) {
+      this.apiKey = process.env.RAILWAY_API_TOKEN;
+      this.isProjectToken = false;
+    } else if (process.env.RAILWAY_TOKEN) {
+      this.apiKey = process.env.RAILWAY_TOKEN;
+      this.isProjectToken = true;
+    } else {
+      this.apiKey = null;
+    }
     if (this.apiKey) {
       this.isConnected = true;
       await this.registrar.register({
@@ -84,6 +93,38 @@ export class RailwayConnector extends ServiceConnector {
         query = `query Deployment($id: String!) { deployment(id: $id) { id status } }`;
         variables = { id: args.deploymentId };
         break;
+      case 'railway_redeploy':
+        query = `mutation Redeploy($serviceId: String!, $environmentId: String!) { serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId) }`;
+        variables = { serviceId: args.serviceId, environmentId: args.environmentId };
+        break;
+      case 'railway_service_restart':
+        query = `mutation Restart($serviceId: String!, $environmentId: String!) { serviceInstanceRestart(input: {serviceId: $serviceId, environmentId: $environmentId}) }`;
+        variables = { serviceId: args.serviceId, environmentId: args.environmentId };
+        break;
+      case 'railway_deployment_logs':
+        query = `query DeploymentLogs($deploymentId: String!, $limit: Int) { deploymentLogs(deploymentId: $deploymentId, limit: $limit) { message timestamp severity } }`;
+        variables = { deploymentId: args.deploymentId, limit: (args.limit as number) || 100 };
+        break;
+      case 'railway_variable_list':
+        query = `query Variables($projectId: String!, $environmentId: String!, $serviceId: String!) { variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) }`;
+        variables = { projectId: args.projectId, environmentId: args.environmentId, serviceId: args.serviceId };
+        break;
+      case 'railway_volume_list':
+        query = `query Volumes($projectId: String!) { project(id: $projectId) { volumes { edges { node { id name mountPath sizeGB } } } } }`;
+        variables = { projectId: args.projectId };
+        break;
+      case 'railway_tcp_proxy':
+        query = `mutation TcpProxy($serviceId: String!, $environmentId: String!, $applicationPort: Int!) { tcpProxyCreate(input: {serviceId: $serviceId, environmentId: $environmentId, applicationPort: $applicationPort}) { id proxyPort domain } }`;
+        variables = { serviceId: args.serviceId, environmentId: args.environmentId, applicationPort: args.applicationPort };
+        break;
+      case 'railway_service_list':
+        query = `query Services($projectId: String!) { project(id: $projectId) { services { edges { node { id name } } } } }`;
+        variables = { projectId: args.projectId };
+        break;
+      case 'railway_project_list':
+        query = `query { projects { edges { node { id name } } } }`;
+        variables = {};
+        break;
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -97,12 +138,19 @@ export class RailwayConnector extends ServiceConnector {
     retries: number = 3
   ): Promise<unknown> {
     for (let attempt = 0; attempt <= retries; attempt++) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      // Account/workspace tokens use Authorization: Bearer
+      // Project tokens use Project-Access-Token header
+      if (this.isProjectToken) {
+        headers['Project-Access-Token'] = this.apiKey!;
+      } else {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      }
       const response = await fetch(this.apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({ query, variables }),
       });
 
