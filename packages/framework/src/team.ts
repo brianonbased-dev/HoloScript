@@ -19,7 +19,7 @@ import type {
   ProposalResult,
   ReputationTier,
   Suggestion,
-  _SuggestionVoteEntry,
+  SuggestionVoteEntry,
   SuggestionCreateResult,
   SuggestionVoteResult,
   SuggestionListResult,
@@ -31,7 +31,7 @@ import type {
   HeartbeatResult,
   AgentPresence,
   AgentPresenceStatus,
-  _PresenceConfig,
+  PresenceConfig,
   SlotRole,
 } from './types';
 import { KnowledgeStore } from './knowledge/knowledge-store';

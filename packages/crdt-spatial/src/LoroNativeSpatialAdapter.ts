@@ -166,7 +166,7 @@ export function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
 
 /** Identity transform constant */
 export const NATIVE_IDENTITY_TRANSFORM: SpatialTransform = {
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
   rotation: { x: 0, y: 0, z: 0, w: 1 },
   scale: { x: 1, y: 1, z: 1 },
 };
@@ -233,7 +233,7 @@ function computeTransformHash(transform: SpatialTransform): string {
  *
  * // Update transform (queued for sync tier)
  * adapter.setTransform(playerId, {
- *   position: { x: 1, y: 2, z: 3 },
+ *   position: [1, 2, 3],
  *   rotation: { x: 0, y: 0, z: 0, w: 1 },
  *   scale: { x: 1, y: 1, z: 1 },
  * });
@@ -890,11 +890,7 @@ export class LoroNativeSpatialAdapter {
   /** Read a SpatialTransform from a LoroMap (node.data) */
   private readTransformFromMap(data: LoroMap): SpatialTransform {
     return {
-      position: {
-        x: (data.get('pos_x') as number) ?? 0,
-        y: (data.get('pos_y') as number) ?? 0,
-        z: (data.get('pos_z') as number) ?? 0,
-      },
+      position: [(data.get('pos_x') as number) ?? 0, (data.get('pos_y') as number) ?? 0, (data.get('pos_z') as number) ?? 0,],
       rotation: {
         x: (data.get('rot_x') as number) ?? 0,
         y: (data.get('rot_y') as number) ?? 0,

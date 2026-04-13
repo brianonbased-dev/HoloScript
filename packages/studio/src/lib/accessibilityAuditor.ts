@@ -455,7 +455,7 @@ export function vrWheelchairPerspective(
     .map((o) => o.id);
 
   return {
-    position: { x: position.x, y: eyeHeight, z: position.z },
+    position: [position.x, eyeHeight, position.z],
     eyeHeight,
     fovDegrees: 90,
     reachRadius,

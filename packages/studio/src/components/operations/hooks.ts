@@ -7,7 +7,7 @@ import {
   DeployStage,
   DeployStageStatus,
   DeployPipelineState,
-  _DeployStageState,
+  DeployStageState,
   LogLevel,
   LogEntry,
 } from './types';

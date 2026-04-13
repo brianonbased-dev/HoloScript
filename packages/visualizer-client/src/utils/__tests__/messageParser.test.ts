@@ -121,7 +121,7 @@ describe('applyOrbUpdate', () => {
     const updateMsg = parseMessage(
       JSON.stringify({
         type: 'orb_update',
-        payload: { orb: { id: 'earth', name: 'Earth', position: { x: 1, y: 0, z: 0 }, properties: {} } },
+        payload: { orb: { id: 'earth', name: 'Earth', position: [1, 0, 0], properties: {} } },
       }),
     )!;
     const result = applyOrbUpdate(existing, updateMsg);

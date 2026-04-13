@@ -50,7 +50,7 @@ export interface StigmergicTrace {
   /** Creator */
   creatorId: string;
   /** Spatial position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Zone the trace belongs to */
   zoneId: string;
   /** Type of trace */
@@ -209,7 +209,7 @@ export class CulturalMemory {
     creatorId: string,
     zoneId: string,
     label: string,
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     opts: Partial<
       Omit<
         StigmergicTrace,
@@ -249,7 +249,7 @@ export class CulturalMemory {
   /**
    * Perceive nearby traces from a position.
    */
-  perceiveTraces(zoneId: string, position: { x: number; y: number; z: number }): StigmergicTrace[] {
+  perceiveTraces(zoneId: string, position: [number, number, number]): StigmergicTrace[] {
     const traces = this.stigmergic.get(zoneId) || [];
     return traces
       .filter((t) => {

@@ -21,7 +21,7 @@ export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: H
         const ttuNode: HSPlusNode = {
           id: `ttu_manifest_${Date.now()}`,
           type: 'entity',
-          properties: { position: { x: 0, y: 0, z: 0 }, visible: true },
+          properties: { position: [0, 0, 0], visible: true },
           traits: new Map([
             ['text_to_universe', { llmProvider: 'claude-3-opus', narrativeConsistency: 'high', autoSpawning: true }]
           ]),

@@ -6,7 +6,7 @@
 
 import React, { memo, useMemo, useState } from 'react';
 import type { VisualGraph, CodeGenResult } from '../types';
-import { graphToCode, type _CodeGenOptions } from '../codegen/GraphToCode';
+import { graphToCode, type CodeGenOptions } from '../codegen/GraphToCode';
 
 /**
  * Code preview props

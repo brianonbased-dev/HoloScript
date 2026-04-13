@@ -343,9 +343,9 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
 
   it('spatial ASMR positions audio sources in 3D', () => {
     const asmrSources = [
-      { id: 'rain', position: { x: 0, y: 2, z: -1 }, type: 'nature' as const },
-      { id: 'whisper', position: { x: -0.5, y: 1, z: 0.3 }, type: 'voice' as const },
-      { id: 'crackling', position: { x: 1, y: 0, z: -0.5 }, type: 'nature' as const },
+      { id: 'rain', position: [0, 2, -1], type: 'nature' as const },
+      { id: 'whisper', position: [-0.5, 1, 0.3], type: 'voice' as const },
+      { id: 'crackling', position: [1, 0, -0.5], type: 'nature' as const },
     ];
     expect(asmrSources).toHaveLength(3);
     expect(asmrSources[1].position.x).toBeLessThan(0);

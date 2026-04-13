@@ -51,7 +51,7 @@ describe('captureSceneSnapshot', () => {
     const world = createWorld();
     const id = world.spawn('Box');
     world.setComponent(id, ComponentType.Transform, {
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       scale: { x: 1, y: 1, z: 1 },
     });
@@ -95,7 +95,7 @@ describe('applyActions', () => {
   it('should spawn entities', () => {
     const world = createWorld();
     const ids = applyActions(world, [
-      { type: 'spawn', name: 'NewEntity', position: { x: 5, y: 0, z: 0 } },
+      { type: 'spawn', name: 'NewEntity', position: [5, 0, 0] },
     ]);
 
     expect(ids).toHaveLength(1);
@@ -125,12 +125,12 @@ describe('applyActions', () => {
     const world = createWorld();
     const id = world.spawn('Mover');
     world.setComponent(id, ComponentType.Transform, {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       scale: { x: 1, y: 1, z: 1 },
     });
 
-    applyActions(world, [{ type: 'move', entityId: id, position: { x: 10, y: 20, z: 30 } }]);
+    applyActions(world, [{ type: 'move', entityId: id, position: [10, 20, 30] }]);
 
     const transform = world.getComponent<any>(id, ComponentType.Transform);
     expect(transform.position).toEqual({ x: 10, y: 20, z: 30 });
@@ -222,7 +222,7 @@ describe('SpatialCognitiveAgent', () => {
   describe('mutate()', () => {
     it('should apply spawn actions', () => {
       const ids = agent.mutate([
-        { type: 'spawn', name: 'AgentCreated', position: { x: 1, y: 2, z: 3 } },
+        { type: 'spawn', name: 'AgentCreated', position: [1, 2, 3] },
       ]);
 
       expect(ids).toHaveLength(1);

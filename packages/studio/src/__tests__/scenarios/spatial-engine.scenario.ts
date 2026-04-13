@@ -196,7 +196,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -214,7 +214,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -234,7 +234,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'ball',
-      position: { x: 0, y: 0.001, z: 0 },
+      position: [0, 0.001, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: -5, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -253,7 +253,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'floor',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -278,7 +278,7 @@ describe('PhysicsStep', () => {
     // The resolver will push them apart and fire the callback
     phys.addBody({
       id: 'a',
-      position: { x: 0, y: 5, z: 0 },
+      position: [0, 5, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -289,7 +289,7 @@ describe('PhysicsStep', () => {
     });
     phys.addBody({
       id: 'b',
-      position: { x: 0.3, y: 5, z: 0 },
+      position: [0.3, 5, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -313,7 +313,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'target',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },
@@ -333,7 +333,7 @@ describe('PhysicsStep', () => {
     const phys = new PhysicsStep();
     phys.addBody({
       id: 'x',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },

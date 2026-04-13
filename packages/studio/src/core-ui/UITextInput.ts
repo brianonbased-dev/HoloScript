@@ -67,7 +67,7 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
           text: initialText || placeholder,
           color: initialText ? textColor : '#888888', // Dim if placeholder
           fontSize: 0.03,
-          position: { x: -width / 2 + 0.02, y: 0, z: 0.005 }, // Left aligned with padding
+          position: [-width / 2 + 0.02, 0, 0.005], // Left aligned with padding
           anchorX: 'left',
           anchorY: 'middle',
         },
@@ -82,7 +82,7 @@ export function createUITextInput(id: string, config: UITextInputConfig = {}): H
           width: 0.002,
           height: 0.04,
           color: '#00AAFF',
-          position: { x: 0, y: 0, z: 0.006 },
+          position: [0, 0, 0.006],
           visible: false,
         },
       },

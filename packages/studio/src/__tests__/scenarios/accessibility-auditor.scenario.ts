@@ -39,7 +39,7 @@ describe('Scenario: Accessibility Auditor — Doorways', () => {
     const door: Doorway = {
       id: 'd1',
       name: 'Main Entrance',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       widthCm: 90,
       heightCm: 210,
       thresholdCm: 0.5,
@@ -55,7 +55,7 @@ describe('Scenario: Accessibility Auditor — Doorways', () => {
     const door: Doorway = {
       id: 'd2',
       name: 'Storage',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       widthCm: 70,
       heightCm: 200,
       thresholdCm: 0,
@@ -71,7 +71,7 @@ describe('Scenario: Accessibility Auditor — Doorways', () => {
     const door: Doorway = {
       id: 'd3',
       name: 'Patio',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       widthCm: 91.4,
       heightCm: 210,
       thresholdCm: 3,
@@ -87,7 +87,7 @@ describe('Scenario: Accessibility Auditor — Doorways', () => {
     const door: Doorway = {
       id: 'd4',
       name: 'Office',
-      position: { x: 15, y: 0, z: 0 },
+      position: [15, 0, 0],
       widthCm: 91.4,
       heightCm: 210,
       thresholdCm: 0,
@@ -103,7 +103,7 @@ describe('Scenario: Accessibility Auditor — Doorways', () => {
     const door: Doorway = {
       id: 'd5',
       name: 'Fire Door',
-      position: { x: 20, y: 0, z: 0 },
+      position: [20, 0, 0],
       widthCm: 91.4,
       heightCm: 210,
       thresholdCm: 0,
@@ -233,7 +233,7 @@ describe('Scenario: Accessibility Auditor — Elevators', () => {
   it('ADA-compliant elevator passes all checks', () => {
     const elev: Elevator = {
       id: 'e1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       cabWidthCm: 175,
       cabDepthCm: 140,
       doorWidthCm: 95,
@@ -249,7 +249,7 @@ describe('Scenario: Accessibility Auditor — Elevators', () => {
   it('narrow door fails ADA 407.3.6', () => {
     const elev: Elevator = {
       id: 'e2',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       cabWidthCm: 175,
       cabDepthCm: 140,
       doorWidthCm: 75,
@@ -264,7 +264,7 @@ describe('Scenario: Accessibility Auditor — Elevators', () => {
   it('high controls (150cm) fail ADA 407.4.6', () => {
     const elev: Elevator = {
       id: 'e3',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       cabWidthCm: 175,
       cabDepthCm: 140,
       doorWidthCm: 95,
@@ -279,7 +279,7 @@ describe('Scenario: Accessibility Auditor — Elevators', () => {
   it('missing Braille fails ADA 407.4.7', () => {
     const elev: Elevator = {
       id: 'e4',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       cabWidthCm: 175,
       cabDepthCm: 140,
       doorWidthCm: 95,
@@ -294,7 +294,7 @@ describe('Scenario: Accessibility Auditor — Elevators', () => {
   it('no audio announce gets warning', () => {
     const elev: Elevator = {
       id: 'e5',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       cabWidthCm: 175,
       cabDepthCm: 140,
       doorWidthCm: 95,
@@ -389,9 +389,9 @@ describe('Scenario: Accessibility Auditor — Reports & Mobility', () => {
 
   it('VR wheelchair perspective — render at seated eye height (112cm)', () => {
     const obstacles = [
-      { id: 'shelf', position: { x: 3, y: 0, z: 0 }, heightCm: 200 },
-      { id: 'table', position: { x: 2, y: 0, z: 0 }, heightCm: 75 },
-      { id: 'far-wall', position: { x: 50, y: 0, z: 0 }, heightCm: 300 },
+      { id: 'shelf', position: [3, 0, 0], heightCm: 200 },
+      { id: 'table', position: [2, 0, 0], heightCm: 75 },
+      { id: 'far-wall', position: [50, 0, 0], heightCm: 300 },
     ];
     const cam = vrWheelchairPerspective({ x: 0, y: 0, z: 0 }, obstacles);
     expect(cam.eyeHeight).toBeCloseTo(1.15, 1);
@@ -408,31 +408,31 @@ describe('Scenario: Accessibility Auditor — Reports & Mobility', () => {
     const nodes: PathNode[] = [
       {
         id: 'entrance',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         accessible: true,
         connections: ['hallway'],
       },
       {
         id: 'hallway',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         accessible: true,
         connections: ['entrance', 'stairs', 'ramp'],
       },
       {
         id: 'stairs',
-        position: { x: 5, y: 3, z: 0 },
+        position: [5, 3, 0],
         accessible: false,
         connections: ['hallway', 'office'],
       },
       {
         id: 'ramp',
-        position: { x: 8, y: 3, z: 0 },
+        position: [8, 3, 0],
         accessible: true,
         connections: ['hallway', 'office'],
       },
       {
         id: 'office',
-        position: { x: 10, y: 3, z: 0 },
+        position: [10, 3, 0],
         accessible: true,
         connections: ['stairs', 'ramp'],
       },

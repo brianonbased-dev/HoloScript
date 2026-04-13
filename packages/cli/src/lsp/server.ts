@@ -253,7 +253,7 @@ const ORB_PROPERTIES: CompletionItem[] = [
     label: 'position',
     kind: CompletionItemKind.Property,
     detail: 'Position',
-    insertText: 'position: { x: ${1:0}, y: ${2:0}, z: ${3:0} }',
+    insertText: 'position: [${1:0}, ${2:0}, ${3:0] }',
   },
   { label: 'size', kind: CompletionItemKind.Property, detail: 'Size', insertText: 'size: ${1:1}' },
   {

@@ -37,7 +37,7 @@ export class FriendList {
         text: `${friend.displayName} (${friend.status})`,
         width: 0.45,
         height: itemHeight,
-        position: { x: 0, y: currentY, z: 0.005 },
+        position: [0, currentY, 0.005],
         color: friend.status === 'online' ? '#2d3436' : '#2d3436', // darker for offline?
       });
 
@@ -45,7 +45,7 @@ export class FriendList {
       const dotColor = friend.status === 'online' ? '#00b894' : '#636e72';
       item.children?.push({
         type: 'entity',
-        properties: { position: { x: -0.2, y: 0, z: 0.01 } },
+        properties: { position: [-0.2, 0, 0.01] },
         traits: new Map([['render', { type: 'sphere', radius: 0.015, color: dotColor }]]),
       });
 

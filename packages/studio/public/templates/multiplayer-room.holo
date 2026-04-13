@@ -1,0 +1,46 @@
+composition "Multiplayer Room" {
+  environment {
+    skybox: "space_haze"
+    ambient: 0.4
+  }
+
+  object "Lounge Floor" @collidable {
+    geometry: "cylinder"
+    position: [0, -0.5, 0]
+    scale: [15, 0.5, 15]
+    color: "#111122"
+    material: "reflective_metal"
+  }
+
+  // Networked entities sync state via CRDT over HoloMesh
+  object "Meeting Table" @networked @collidable {
+    geometry: "box"
+    position: [0, 1, 0]
+    scale: [4, 0.2, 2.5]
+    color: "#aaaaaa"
+    material: "glass"
+  }
+
+  object "Presentation Screen" @networked {
+    geometry: "box"
+    position: [0, 3, -6]
+    scale: [8, 4.5, 0.2]
+    color: "#000000"
+    material: "emissive"
+    
+    // Sync interactions across clients
+    sync_state: "video_playback"
+  }
+
+  // Spatial audio drop-zone
+  object "Voice Zone 1" @voice_zone(radius: 5, attenuation: "logarithmic") {
+    position: [0, 1.5, 0]
+    debug_color: "rgba(0, 255, 0, 0.2)"
+  }
+
+  point_light "Chandelier" {
+    color: "#e0d0ff"
+    intensity: 2.0
+    position: [0, 6, 0]
+  }
+}

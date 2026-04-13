@@ -432,13 +432,13 @@ describe('LoroSpatialAdapter Benchmarks', () => {
 
       // Concurrent updates: A sets position, B sets position (different values)
       const transformA: SpatialTransform = {
-        position: { x: 10, y: 20, z: 30 },
+        position: [10, 20, 30],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       };
 
       const transformB: SpatialTransform = {
-        position: { x: 50, y: 60, z: 70 },
+        position: [50, 60, 70],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       };

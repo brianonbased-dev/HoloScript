@@ -13,6 +13,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import { SpatialCRDTBridge } from './SpatialCRDTBridge.js';
 import { LoroWebSocketProvider } from './LoroWebSocketProvider.js';
+import { MeshNodeIntegrator } from './MeshNodeIntegrator.js';
 
 import type {
   Vec3,
@@ -80,6 +81,9 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
     syncIntervalMs = 50,
     checkpointIntervalMs = 30_000,
     autoConnect = true,
+    teamId,
+    apiKey,
+    useWebRTC = false,
   } = options;
 
   // State
@@ -92,6 +96,7 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
   // Refs for stable references
   const bridgeRef = useRef<SpatialCRDTBridge | null>(null);
   const providerRef = useRef<LoroWebSocketProvider | null>(null);
+  const meshIntegratorRef = useRef<MeshNodeIntegrator | null>(null);
   const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Initialize bridge and provider
@@ -107,6 +112,14 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
       roomId,
     });
 
+    let meshIntegrator: MeshNodeIntegrator | null = null;
+    if (useWebRTC && teamId && apiKey) {
+      meshIntegrator = new MeshNodeIntegrator(roomId, teamId, apiKey);
+      if (autoConnect) {
+        meshIntegrator.connect();
+      }
+    }
+
     // Wire up events
     provider.onStateChange((state) => setConnectionState(state));
     provider.onPeerCountChange((count) => setPeerCount(count));
@@ -117,6 +130,7 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
 
     bridgeRef.current = bridge;
     providerRef.current = provider;
+    meshIntegratorRef.current = meshIntegrator;
 
     // Auto-connect if enabled
     if (autoConnect) {
@@ -139,7 +153,7 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
       bridgeRef.current = null;
       providerRef.current = null;
     };
-  }, [serverUrl, roomId, peerId, syncIntervalMs, checkpointIntervalMs, autoConnect]);
+  }, [serverUrl, roomId, peerId, syncIntervalMs, checkpointIntervalMs, autoConnect, useWebRTC, teamId, apiKey]);
 
   // Stable callbacks
   const setPosition = useCallback((nodeId: string, position: Vec3) => {

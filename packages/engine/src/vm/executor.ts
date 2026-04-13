@@ -18,8 +18,8 @@ import type {
   HoloBytecode,
   HoloInstruction,
   HoloOperand,
-  _HoloFunction,
-  _HoloEntityDef,
+  HoloFunction,
+  HoloEntityDef,
 } from './bytecode';
 
 // =============================================================================

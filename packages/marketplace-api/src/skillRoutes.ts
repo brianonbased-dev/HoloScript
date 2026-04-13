@@ -17,8 +17,8 @@ import type {
   SkillSummary,
   SkillSearchResult,
   SkillPublishResult,
-  _DownloadStats,
-  _TraitRating,
+  DownloadStats,
+  TraitRating,
 } from './types.js';
 import type { SkillMarketplaceService } from './SkillMarketplaceService.js';
 

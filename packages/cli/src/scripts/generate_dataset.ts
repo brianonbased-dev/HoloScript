@@ -110,7 +110,7 @@ function generateErgonomicPattern(): TrainingExample {
 
   const code = `orb ergonomic_${shape} {
   shape: "${shape}"
-  position: { x: 0, y: ${yHeight.toFixed(2)}, z: ${zDepth.toFixed(2)} }
+  position: [0, ${yHeight.toFixed(2)}, ${zDepth.toFixed(2)] }
   // Best Practice: Keep objects within arm's reach (0.5m-1.5m)
 }`;
 

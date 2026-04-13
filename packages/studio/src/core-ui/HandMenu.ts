@@ -1,4 +1,4 @@
-import type { VRHand, _Vector3, HSPlusNode } from '@holoscript/core';
+import type { VRHand, Vector3, HSPlusNode } from '@holoscript/core';
 // HSPlusRuntime not yet re-exported from @holoscript/core dist — local shim
 type _HSPlusRuntime = { vrContext?: unknown; [key: string]: unknown };
 import { createUIButton } from './UIButton';
@@ -63,14 +63,14 @@ export class HandMenuSystem {
       [
         createUIButton(`${menuId}_btn1`, {
           text: 'Home',
-          position: { x: 0, y: 0.03, z: 0.01 },
+          position: [0, 0.03, 0.01],
           width: 0.18,
           height: 0.04,
           data: { action: 'home' },
         }),
         createUIButton(`${menuId}_btn2`, {
           text: 'Settings',
-          position: { x: 0, y: -0.03, z: 0.01 },
+          position: [0, -0.03, 0.01],
           width: 0.18,
           height: 0.04,
           data: { action: 'settings' },

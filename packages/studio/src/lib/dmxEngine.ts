@@ -41,7 +41,7 @@ export interface LightFixture {
   channels: DMXChannel[];
   color: RGBColor;
   intensity: number; // 0-1
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   groupId?: string;
 }
 
@@ -130,7 +130,7 @@ export function createFixture(
     channels,
     color: { r: 0, g: 0, b: 0 },
     intensity: 0,
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   };
 }
 

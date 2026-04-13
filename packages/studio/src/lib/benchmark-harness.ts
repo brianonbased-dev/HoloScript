@@ -19,7 +19,7 @@
  */
 
 import { CompilerBridge, resetCompilerBridge } from './wasm-compiler-bridge';
-import { checkBudget, type _PerformanceBudget } from './platform-detect';
+import { checkBudget, type PerformanceBudget } from './platform-detect';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types

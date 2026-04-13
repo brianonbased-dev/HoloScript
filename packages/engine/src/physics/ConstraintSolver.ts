@@ -14,7 +14,7 @@
 
 import {
   IVector3,
-  _IQuaternion,
+  IQuaternion,
   Constraint,
   IFixedConstraint,
   IHingeConstraint,

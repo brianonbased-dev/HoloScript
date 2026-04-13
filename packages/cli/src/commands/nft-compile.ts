@@ -13,7 +13,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { NFTMarketplaceCompiler } from '@holoscript/core/compiler/NFTMarketplaceCompiler';
 import {
-  _GasOptimizationAnalyzer,
+  GasOptimizationAnalyzer,
   _ANALYZER_PRESETS,
 } from '@holoscript/core/compiler/GasOptimizationAnalyzer';
 import type { NFTMarketplaceAST } from '@holoscript/core/parser/NFTMarketplaceTypes';

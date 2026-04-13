@@ -55,7 +55,7 @@ import { ModelViewerPanel } from './ModelViewerPanel';
 import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { AssetPipelinePanel } from './AssetPipelinePanel';
-import { _LODMetricsPanel } from './LODMetricsPanel';
+import { LODMetricsPanel } from './LODMetricsPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';

@@ -34,7 +34,7 @@ import type {
   HoloObjectProperty,
   HoloSpatialGroup,
   HoloLight,
-  _HoloCamera,
+  HoloCamera,
   HoloTimeline,
   HoloTimelineEntry,
   HoloValue,

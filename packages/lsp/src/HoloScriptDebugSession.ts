@@ -41,10 +41,10 @@ import {
   type AttachConfig,
   type AttachBreakpointDescriptor,
   type AttachWatchDescriptor,
-  type _RemoteExecutionState,
+  type RemoteExecutionState,
   type HotReloadEvent,
-  type _TraitVariableInfo,
-  type _PerformanceFrame,
+  type TraitVariableInfo,
+  type PerformanceFrame,
 } from './dap/DAPHotReloadAdapter';
 
 // ── Launch/Attach Configuration ──────────────────────────────────────────────

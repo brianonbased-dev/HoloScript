@@ -137,7 +137,7 @@ export function useLighting(): UseLightingReturn {
       type: 'point',
       color: [0.4, 0.6, 1],
       intensity: 0.8,
-      position: { x: -5, y: 3, z: 5 },
+      position: [-5, 3, 5],
       range: 20,
     });
     modelRef.current.addLight({
@@ -145,7 +145,7 @@ export function useLighting(): UseLightingReturn {
       type: 'point',
       color: [1, 0.5, 0.2],
       intensity: 1.2,
-      position: { x: 8, y: 6, z: -3 },
+      position: [8, 6, -3],
       range: 15,
     });
     modelRef.current.addLight({
@@ -153,7 +153,7 @@ export function useLighting(): UseLightingReturn {
       type: 'spot',
       color: [0.8, 1, 0.6],
       intensity: 3,
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       spotAngle: 30,
       range: 25,
       castShadow: true,

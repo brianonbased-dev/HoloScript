@@ -14,7 +14,7 @@ import { AICopilot, CopilotResponse, CopilotSuggestion } from '../ai/AICopilot';
 // =============================================================================
 
 export interface CopilotPanelConfig {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   width: number;
   height: number;
   maxMessages: number;
@@ -23,7 +23,7 @@ export interface CopilotPanelConfig {
 export interface CopilotUIEntity {
   id: string;
   type: 'panel' | 'label' | 'button' | 'input' | 'message';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   size?: { width: number; height: number };
   text?: string;
   color?: string;
@@ -37,7 +37,7 @@ interface DisplayMessage {
 }
 
 const DEFAULT_CONFIG: CopilotPanelConfig = {
-  position: { x: 0.8, y: 1.5, z: -1 },
+  position: [0.8, 1.5, -1],
   width: 0.6,
   height: 0.8,
   maxMessages: 20,
@@ -80,7 +80,7 @@ export class CopilotPanel {
     entities.push({
       id: 'copilot_title',
       type: 'label',
-      position: { x: position.x, y: position.y + height * 0.45, z: position.z + 0.001 },
+      position: [position.x, position.y + height * 0.45, position.z + 0.001],
       text: '🤖 AI Copilot',
       color: '#00d4ff',
       data: { role: 'title' },
@@ -96,7 +96,7 @@ export class CopilotPanel {
       entities.push({
         id: `copilot_msg_${i}`,
         type: 'message',
-        position: { x: position.x, y: yPos, z: position.z + 0.001 },
+        position: [position.x, yPos, position.z + 0.001],
         text: `${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}`,
         color: msg.role === 'user' ? '#e0e0e0' : '#00d4ff',
         data: { role: 'message', messageIndex: i },
@@ -107,7 +107,7 @@ export class CopilotPanel {
     entities.push({
       id: 'copilot_input',
       type: 'input',
-      position: { x: position.x, y: position.y - height * 0.35, z: position.z + 0.001 },
+      position: [position.x, position.y - height * 0.35, position.z + 0.001],
       size: { width: width * 0.7, height: 0.04 },
       text: this.inputText || 'Type a prompt...',
       color: '#1a1a3e',
@@ -125,11 +125,7 @@ export class CopilotPanel {
       entities.push({
         id: `copilot_${btn.id}`,
         type: 'button',
-        position: {
-          x: position.x - width * 0.3 + i * (width * 0.3),
-          y: position.y - height * 0.45,
-          z: position.z + 0.001,
-        },
+        position: [position.x - width * 0.3 + i * (width * 0.3), position.y - height * 0.45, position.z + 0.001,],
         size: { width: width * 0.25, height: 0.035 },
         text: btn.text,
         color: '#16213e',

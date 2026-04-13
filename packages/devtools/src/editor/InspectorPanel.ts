@@ -2,7 +2,7 @@ import { World, Entity } from '@holoscript/engine/ecs/World';
 import { Inspector } from './Inspector';
 import { UIBuilder } from './UIBuilder';
 import { createPanel, createButton, createTextInput, createSlider } from '../ui/UIComponents';
-import { _Vector3, HSPlusNode } from '../types/HoloScriptPlus';
+import { Vector3, HSPlusNode } from '../types/HoloScriptPlus';
 
 interface PropertyBinding {
   component: string;

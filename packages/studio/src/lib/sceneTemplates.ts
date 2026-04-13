@@ -141,6 +141,65 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
   camera orbit distance: 4 auto-rotate: true
 }`,
   },
+  {
+    id: 'game-interactive-playground',
+    name: 'Interactive Playground',
+    description: 'A dynamic sandbox with clickable buttons, movers, and logic triggers.',
+    category: 'game',
+    thumbnail: '/templates/interactive-playground.png',
+    difficulty: 'intermediate',
+    tags: ['interactive', 'logic', 'events'],
+    estimatedObjects: 10,
+    featured: true,
+    holoScript: `composition "Interactive Playground" {
+  environment { skybox: "clear_day" ambient: 0.6 }
+  object "Red Button" @clickable @glowing @collidable {
+    geometry: "cylinder" position: [-3, 0.2, -2] scale: [0.8, 0.4, 0.8] color: "#ff0000" material: "plastic"
+    on_click: "trigger_fireworks"
+  }
+  object "Elevator Platform" @collidable @moving(axis: y, range: 5, speed: 2) {
+    geometry: "box" position: [4, 0, -4] scale: [3, 0.2, 3] color: "#00ddff"
+  }
+}`,
+  },
+  {
+    id: 'social-multiplayer-room',
+    name: 'Multiplayer Room',
+    description: 'A synchronized multiplayer spatial room with voice drop-zones and state sync.',
+    category: 'social',
+    thumbnail: '/templates/multiplayer-room.png',
+    difficulty: 'advanced',
+    tags: ['multiplayer', 'networked', 'social'],
+    estimatedObjects: 12,
+    featured: true,
+    holoScript: `composition "Multiplayer Room" {
+  environment { skybox: "space_haze" ambient: 0.4 }
+  object "Meeting Table" @networked @collidable {
+    geometry: "box" position: [0, 1, 0] scale: [4, 0.2, 2.5] color: "#aaaaaa" material: "glass"
+  }
+  object "Voice Zone 1" @voice_zone(radius: 5, attenuation: "logarithmic") {
+    position: [0, 1.5, 0] debug_color: "rgba(0, 255, 0, 0.2)"
+  }
+}`,
+  },
+  {
+    id: 'ai-agent-scene',
+    name: 'AI Agent Hub',
+    description: 'An environment with a smart NPC driven by behavioral trees and agent memory.',
+    category: 'sci-fi',
+    thumbnail: '/templates/ai-agent-scene.png',
+    difficulty: 'advanced',
+    tags: ['ai', 'agent', 'npc', 'dialogue'],
+    estimatedObjects: 8,
+    featured: true,
+    holoScript: `composition "AI Agent Scene" {
+  object "Helper Bot" @physics @behavior_tree(type: "assistant", root: "wander") @memory @dialogue {
+    geometry: "cylinder" position: [2, 1, 3] scale: [0.6, 1.8, 0.6] color: "#00ffcc" material: "chrome"
+    emotion: "helpful"
+    context_prompt: "You are a friendly guide inside the HoloScript AI Agent Scene."
+  }
+}`,
+  },
 
   // ── Native Assets (composed from geometric primitives) ──────────────────
   {

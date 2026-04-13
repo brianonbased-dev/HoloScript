@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SNN-WebGPU Paper Benchmarks (RTX 3060)</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+    pre { background: #16213e; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .pass { color: #4ade80; } .fail { color: #f87171; } .info { color: #60a5fa; }
+    h2 { color: #818cf8; }
+  </style>
+</head>
+<body>
+<h1>SNN-WebGPU Paper Benchmarks</h1>
+<pre id="log">Initializing WebGPU...</pre>
+<script type="module">
+const log = document.getElementById('log');
+function print(msg, cls = '') {
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = msg + '\n';
+  log.appendChild(span);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function run() {
+  // 1. Check WebGPU
+  if (!navigator.gpu) { print('WebGPU not supported', 'fail'); return; }
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+  if (!adapter) { print('No GPU adapter', 'fail'); return; }
+  const info = adapter.info || (adapter.requestAdapterInfo ? await adapter.requestAdapterInfo() : {});
+  print(`GPU: ${info.description || info.device || info.vendor || 'unknown'}`, 'info');
+  print(`Architecture: ${info.architecture || 'unknown'}`, 'info');
+
+  const device = await adapter.requestDevice({
+    requiredLimits: {
+      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+      maxBufferSize: adapter.limits.maxBufferSize,
+    }
+  });
+  print(`Max buffer: ${(device.limits.maxBufferSize / 1e6).toFixed(0)} MB`, 'info');
+  print('');
+
+  // 2. LIF Neuron Throughput Benchmark
+  print('=== LIF NEURON THROUGHPUT ===', 'info');
+  const lifShader = `
+    struct LIFParams { tau: f32, v_threshold: f32, v_reset: f32, v_rest: f32, dt: f32, pad1: f32, pad2: f32, pad3: f32 }
+    @group(0) @binding(0) var<storage, read_write> voltages: array<f32>;
+    @group(0) @binding(1) var<storage, read> currents: array<f32>;
+    @group(0) @binding(2) var<storage, read_write> spikes: array<f32>;
+    @group(0) @binding(3) var<uniform> params: LIFParams;
+
+    @compute @workgroup_size(256)
+    fn main(@builtin(global_invocation_id) gid: vec3u) {
+      let i = gid.x;
+      if (i >= arrayLength(&voltages)) { return; }
+      var v = params.v_rest + (voltages[i] - params.v_rest) * exp(-params.dt / params.tau) + currents[i];
+      if (v >= params.v_threshold) {
+        spikes[i] = 1.0;
+        v = params.v_reset;
+      } else {
+        spikes[i] = 0.0;
+      }
+      voltages[i] = v;
+    }
+  `;
+
+  const lifModule = device.createShaderModule({ code: lifShader });
+  const lifPipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: lifModule, entryPoint: 'main' }
+  });
+
+  const neuronCounts = [1024, 4096, 16384, 65536, 262144, 1048576];
+  const timesteps = 100;
+
+  for (const N of neuronCounts) {
+    const voltBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    const currBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    const spkBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE });
+    const paramBuf = device.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+
+    // Init: resting potential + random currents
+    const vData = new Float32Array(N).fill(-65.0);
+    const iData = new Float32Array(N);
+    for (let j = 0; j < N; j++) iData[j] = Math.random() * 20;
+    const pData = new Float32Array([20.0, -50.0, -65.0, -65.0, 1.0, 0, 0, 0]); // tau, thresh, reset, rest, dt
+
+    device.queue.writeBuffer(voltBuf, 0, vData);
+    device.queue.writeBuffer(currBuf, 0, iData);
+    device.queue.writeBuffer(paramBuf, 0, pData);
+
+    const bg = device.createBindGroup({
+      layout: lifPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: voltBuf } },
+        { binding: 1, resource: { buffer: currBuf } },
+        { binding: 2, resource: { buffer: spkBuf } },
+        { binding: 3, resource: { buffer: paramBuf } },
+      ]
+    });
+
+    // Warmup
+    for (let t = 0; t < 10; t++) {
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginComputePass();
+      pass.setPipeline(lifPipeline);
+      pass.setBindGroup(0, bg);
+      pass.dispatchWorkgroups(Math.ceil(N / 256));
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+    await device.queue.onSubmittedWorkDone();
+
+    // Timed run
+    const start = performance.now();
+    for (let t = 0; t < timesteps; t++) {
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginComputePass();
+      pass.setPipeline(lifPipeline);
+      pass.setBindGroup(0, bg);
+      pass.dispatchWorkgroups(Math.ceil(N / 256));
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+    await device.queue.onSubmittedWorkDone();
+    const elapsed = performance.now() - start;
+
+    const neuronsPerSec = (N * timesteps) / (elapsed / 1000);
+    print(`N=${N.toLocaleString().padStart(10)} | ${elapsed.toFixed(1).padStart(8)} ms | ${(neuronsPerSec/1e6).toFixed(1).padStart(8)} M neurons/s`, 'pass');
+
+    voltBuf.destroy(); currBuf.destroy(); spkBuf.destroy(); paramBuf.destroy();
+  }
+
+  // 3. Tropical GEMM Benchmark
+  print('');
+  print('=== TROPICAL MIN-PLUS GEMM ===', 'info');
+  const gemmShader = `
+    struct Dims { M: u32, N: u32, K: u32, pad: u32 }
+    @group(0) @binding(0) var<storage, read> A: array<f32>;
+    @group(0) @binding(1) var<storage, read> B: array<f32>;
+    @group(0) @binding(2) var<storage, read_write> C: array<f32>;
+    @group(0) @binding(3) var<uniform> dims: Dims;
+
+    @compute @workgroup_size(16, 16)
+    fn main(@builtin(global_invocation_id) gid: vec3u) {
+      let row = gid.y; let col = gid.x;
+      if (row >= dims.M || col >= dims.N) { return; }
+      var best: f32 = 1e30;
+      for (var k: u32 = 0u; k < dims.K; k++) {
+        let a = A[row * dims.K + k];
+        let b = B[k * dims.N + col];
+        let candidate = a + b;
+        if (candidate < best) { best = candidate; }
+      }
+      C[row * dims.N + col] = best;
+    }
+  `;
+
+  const gemmModule = device.createShaderModule({ code: gemmShader });
+  const gemmPipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: gemmModule, entryPoint: 'main' }
+  });
+
+  const sizes = [64, 128, 256, 512, 1024, 2048];
+  for (const N of sizes) {
+    const floats = N * N;
+    const bytes = floats * 4;
+    if (bytes > device.limits.maxBufferSize) {
+      print(`N=${N}: skipped (exceeds max buffer)`, 'fail');
+      continue;
+    }
+
+    const aBuf = device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    const bBuf = device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    const cBuf = device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE });
+    const dimBuf = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+
+    const aData = new Float32Array(floats);
+    const bData = new Float32Array(floats);
+    for (let i = 0; i < floats; i++) {
+      aData[i] = Math.random() < 0.15 ? 1 + Math.floor(Math.random() * 9) : 1e30;
+      bData[i] = Math.random() < 0.15 ? 1 + Math.floor(Math.random() * 9) : 1e30;
+    }
+    for (let i = 0; i < N; i++) { aData[i*N+i] = 0; bData[i*N+i] = 0; }
+
+    device.queue.writeBuffer(aBuf, 0, aData);
+    device.queue.writeBuffer(bBuf, 0, bData);
+    device.queue.writeBuffer(dimBuf, 0, new Uint32Array([N, N, N, 0]));
+
+    const bg = device.createBindGroup({
+      layout: gemmPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: aBuf } },
+        { binding: 1, resource: { buffer: bBuf } },
+        { binding: 2, resource: { buffer: cBuf } },
+        { binding: 3, resource: { buffer: dimBuf } },
+      ]
+    });
+
+    // Warmup
+    for (let w = 0; w < 3; w++) {
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginComputePass();
+      pass.setPipeline(gemmPipeline);
+      pass.setBindGroup(0, bg);
+      pass.dispatchWorkgroups(Math.ceil(N/16), Math.ceil(N/16));
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+    await device.queue.onSubmittedWorkDone();
+
+    // Timed: APSP via path doubling (log2(N) iterations)
+    const iters = Math.ceil(Math.log2(N));
+    const start = performance.now();
+    for (let i = 0; i < iters; i++) {
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginComputePass();
+      pass.setPipeline(gemmPipeline);
+      pass.setBindGroup(0, bg);
+      pass.dispatchWorkgroups(Math.ceil(N/16), Math.ceil(N/16));
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+    await device.queue.onSubmittedWorkDone();
+    const elapsed = performance.now() - start;
+
+    const gflops = (2 * N * N * N * iters) / (elapsed / 1000) / 1e9;
+    print(`N=${N.toString().padStart(5)} | ${iters} iters | ${elapsed.toFixed(1).padStart(8)} ms | ${gflops.toFixed(2).padStart(8)} GFLOP/s`, 'pass');
+
+    aBuf.destroy(); bBuf.destroy(); cBuf.destroy(); dimBuf.destroy();
+  }
+
+  // 4. Hash chain overhead
+  print('');
+  print('=== FNV-1a HASH CHAIN (CPU, for CAEL overhead) ===', 'info');
+  function fnv1a(str) {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = (hash * 0x01000193) >>> 0;
+    }
+    return hash;
+  }
+
+  const traceEntries = [1000, 10000, 100000];
+  for (const count of traceEntries) {
+    let prevHash = 0;
+    const payload = JSON.stringify({type:'action',tick:0,data:{force:[1,0,0]},contract:{geo:true}});
+    const start = performance.now();
+    for (let i = 0; i < count; i++) {
+      prevHash = fnv1a(prevHash.toString() + payload + i.toString());
+    }
+    const elapsed = performance.now() - start;
+    print(`${count.toLocaleString().padStart(8)} entries | ${elapsed.toFixed(1).padStart(8)} ms | ${(elapsed/count*1000).toFixed(2).padStart(8)} µs/entry`, 'pass');
+  }
+
+  print('');
+  print('=== BENCHMARK COMPLETE ===', 'info');
+  print(`GPU: ${info.description || info.device}`, 'info');
+  print(`Timestamp: ${new Date().toISOString()}`, 'info');
+}
+
+run().catch(e => print('Error: ' + e.message, 'fail'));
+</script>
+</body>
+</html>

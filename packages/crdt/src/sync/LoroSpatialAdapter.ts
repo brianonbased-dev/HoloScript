@@ -178,7 +178,7 @@ export function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
 
 /** Identity transform */
 export const IDENTITY_TRANSFORM: SpatialTransform = {
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
   rotation: { x: 0, y: 0, z: 0, w: 1 },
   scale: { x: 1, y: 1, z: 1 },
 };
@@ -235,7 +235,7 @@ function computeTransformHash(transform: SpatialTransform): string {
  *
  * // Update transform (queued for sync tier)
  * adapter.setTransform(playerId, {
- *   position: { x: 1, y: 2, z: 3 },
+ *   position: [1, 2, 3],
  *   rotation: { x: 0, y: 0, z: 0, w: 1 },
  *   scale: { x: 1, y: 1, z: 1 },
  * });

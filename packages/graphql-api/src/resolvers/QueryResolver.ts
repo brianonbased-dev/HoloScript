@@ -2,7 +2,7 @@ import { Resolver, Query, Arg } from 'type-graphql';
 import {
   ParseInput,
   ParseResult,
-  _ParseError,
+  ParseError,
   CompilerTarget,
   TargetInfo,
 } from '../types/GraphQLTypes.js';

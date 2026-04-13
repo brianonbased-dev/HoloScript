@@ -19,7 +19,7 @@ export interface CombatEntity {
   name: string;
   hp: number;
   maxHp: number;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   hitboxId?: string;
   hurtboxId?: string;
 }

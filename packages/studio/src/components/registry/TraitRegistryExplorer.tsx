@@ -41,6 +41,9 @@ export const TraitRegistryExplorer: React.FC = () => {
           <span className="bg-purple-900 px-3 py-1 rounded text-sm">
             Hololand: {traits.filter((t) => t.source === 'hololand').length}
           </span>
+          <span className="bg-orange-900 px-3 py-1 rounded text-sm">
+            Film VFX: {traits.filter((t) => t.source === 'film_vfx').length}
+          </span>
         </div>
       </div>
 
@@ -54,6 +57,7 @@ export const TraitRegistryExplorer: React.FC = () => {
           <option value="holoscript">HoloScript Core</option>
           <option value="trainingmonkey">Training Monkey</option>
           <option value="hololand">Hololand</option>
+          <option value="film_vfx">Film VFX</option>
         </select>
       </div>
 

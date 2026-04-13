@@ -1,7 +1,7 @@
 import {
   HSPlusRuntime,
   VRHand,
-  _Vector3,
+  Vector3,
   type HSPlusNode,
   createUIButton,
   createUIPanel,

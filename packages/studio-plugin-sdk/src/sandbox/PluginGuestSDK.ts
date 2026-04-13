@@ -49,7 +49,7 @@
 
 import type {
   SandboxPermission,
-  _SandboxMessageBase,
+  SandboxMessageBase,
   PluginToHostMessage,
   HostToPluginMessage,
   HostInitMessage,

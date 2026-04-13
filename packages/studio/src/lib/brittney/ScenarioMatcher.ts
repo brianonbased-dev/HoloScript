@@ -142,6 +142,16 @@ const DOMAIN_KEYWORDS: Record<string, string[]> = {
   constellation: ['stars'],
   astronomy: ['stars', 'astro-radio'],
 
+  // VFX & Arts
+  vfx: ['vfx-volumetric'],
+  volumetric: ['vfx-volumetric'],
+  nerf: ['vfx-volumetric'],
+  gaussian: ['vfx-volumetric'],
+  splat: ['vfx-volumetric'],
+  universe: ['text-to-universe'],
+  generative: ['text-to-universe'],
+  worldbuilding: ['text-to-universe'],
+
   // Society
   disaster: ['disaster'],
   emergency: ['disaster'],

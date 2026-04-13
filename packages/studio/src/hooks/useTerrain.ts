@@ -26,7 +26,7 @@ const DEFAULT_CONFIG: TerrainConfig = {
   depth: 64,
   resolution: 16,
   maxHeight: 20,
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
 };
 
 export function useTerrain(): UseTerrainReturn {

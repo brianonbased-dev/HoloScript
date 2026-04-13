@@ -382,6 +382,26 @@ export const SCENARIOS: ScenarioEntry[] = [
     engine: 'absorbOrchestration',
     testCount: 2,
   },
+  {
+    id: 'vfx-volumetric',
+    name: 'Volumetric VFX Studio',
+    emoji: '📽️',
+    category: 'arts',
+    description: 'Gaussian Splats, NeRF generation, and text-to-universe volumetric rendering',
+    tags: ['vfx', 'nerf', 'gaussian', 'volumetric', 'text_to_universe'],
+    engine: 'volumetricVfx',
+    testCount: 6,
+  },
+  {
+    id: 'text-to-universe',
+    name: 'Text-to-Universe Generator',
+    emoji: '🌌',
+    category: 'arts',
+    description: 'Generative AI pipeline converting text prompts to entire volumetric universes',
+    tags: ['ai', 'text_to_universe', 'generative', 'worldbuilding'],
+    engine: 'textToUniverse',
+    testCount: 5,
+  },
 ];
 
 // ─── Component ───────────────────────────────────────────────────

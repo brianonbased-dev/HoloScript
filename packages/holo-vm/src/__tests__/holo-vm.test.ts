@@ -434,7 +434,7 @@ describe('HoloVM', () => {
       vm.load(builder.build());
       vm.tick(16.67);
 
-      const transform = vm.world.getComponent<{ position: { x: number; y: number; z: number } }>(
+      const transform = vm.world.getComponent<{ position: [number, number, number] }>(
         1,
         ComponentType.Transform
       );

@@ -95,7 +95,7 @@ describe('parseHoloScript', () => {
     const result = parseHoloScript(`
       orb positioned {
         geometry: "sphere"
-        position: { x: 1.5, y: 2.5, z: 3.5 }
+        position: [1.5, 2.5, 3.5]
       }
     `);
 

@@ -12,6 +12,7 @@ import {
   registerSimulationSolvers,
 } from '@holoscript/engine/simulation';
 import { SimulationSolverFactory } from '@holoscript/core/traits';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 type SimulationType = 'thermal' | 'structural' | 'structural-tet10' | 'hydraulic';
 type AnySolver = ThermalSolver | StructuralSolver | StructuralSolverTET10 | HydraulicSolver;
@@ -123,7 +124,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({ type, co
 
   return (
     <SimulationContext.Provider value={{ solver: solverRef.current, scalarField, displacements, displacementBuffer, type, solving }}>
-      {children}
+      <StudioErrorBoundary label="Simulation Provider">
+        {children}
+      </StudioErrorBoundary>
     </SimulationContext.Provider>
   );
 };

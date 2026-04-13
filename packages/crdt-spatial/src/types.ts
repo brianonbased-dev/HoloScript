@@ -88,6 +88,13 @@ export interface SpatialCRDTBridgeConfig {
   maxDeltaBeforeCheckpoint: number;
   /** Enable debug logging */
   debug: boolean;
+  /** Optional CAEL recorder for provenance tracking */
+  caelRecorder?: CAELRecorderLike;
+}
+
+/** Structural type for CAELRecorder to avoid circular dependencies */
+export interface CAELRecorderLike {
+  logInteraction(type: string, data: Record<string, unknown>): void;
 }
 
 export const DEFAULT_BRIDGE_CONFIG: SpatialCRDTBridgeConfig = {
@@ -195,6 +202,12 @@ export interface UseSpatialSyncOptions {
   checkpointIntervalMs?: number;
   /** Auto-connect on mount (default: true) */
   autoConnect?: boolean;
+  /** Opt-in WebRTC mesh sync */
+  useWebRTC?: boolean;
+  /** HoloMesh API Key for WebRTC */
+  apiKey?: string;
+  /** Team ID for HoloMesh */
+  teamId?: string;
 }
 
 /** Return value from the useSpatialSync hook */

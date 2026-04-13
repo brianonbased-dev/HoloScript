@@ -39,7 +39,7 @@ describe('HandMenuSystem', () => {
 
     // Mock Left Hand
     runtime.vrContext.hands.left = {
-      position: { x: -0.2, y: 1.5, z: -0.5 },
+      position: [-0.2, 1.5, -0.5],
       rotation: [0, 0, 0],
     };
 
@@ -55,7 +55,7 @@ describe('HandMenuSystem', () => {
     (system as any).checkPalmFacingUser = vi.fn().mockReturnValue(false);
 
     runtime.vrContext.hands.left = {
-      position: { x: -0.2, y: 1.5, z: -0.5 },
+      position: [-0.2, 1.5, -0.5],
       rotation: [0, 0, 0],
     };
 
@@ -67,7 +67,7 @@ describe('HandMenuSystem', () => {
   it('hides menu if palm turns away', () => {
     // 1. Show it
     (system as any).checkPalmFacingUser = vi.fn().mockReturnValue(true);
-    runtime.vrContext.hands.left = { position: { x: 0, y: 0, z: 0 } };
+    runtime.vrContext.hands.left = { position: [0, 0, 0] };
     system.update(0.016);
 
     expect(mountedObjects.length).toBe(1);

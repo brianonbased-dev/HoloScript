@@ -75,7 +75,7 @@ describe('Scenario: Disaster Response — Earthquake', () => {
     const masonry: Building = {
       id: 'b1',
       name: 'Old Hall',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       floors: 3,
       occupancy: 100,
       condition: 'intact',
@@ -85,7 +85,7 @@ describe('Scenario: Disaster Response — Earthquake', () => {
     const steel: Building = {
       id: 'b2',
       name: 'Tower',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       floors: 20,
       occupancy: 500,
       condition: 'intact',
@@ -277,7 +277,7 @@ describe('Scenario: Disaster Response — Resources', () => {
     {
       id: 'ambu-1',
       type: 'ambulance',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       status: 'available',
       eta: 0,
       capacity: 4,
@@ -285,7 +285,7 @@ describe('Scenario: Disaster Response — Resources', () => {
     {
       id: 'heli-1',
       type: 'helicopter',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       status: 'deployed',
       eta: 30,
       capacity: 8,
@@ -293,7 +293,7 @@ describe('Scenario: Disaster Response — Resources', () => {
     {
       id: 'ambu-2',
       type: 'ambulance',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       status: 'available',
       eta: 0,
       capacity: 4,
@@ -301,7 +301,7 @@ describe('Scenario: Disaster Response — Resources', () => {
     {
       id: 'fire-1',
       type: 'fire-truck',
-      position: { x: 15, y: 0, z: 0 },
+      position: [15, 0, 0],
       status: 'en-route',
       eta: 10,
       capacity: 6,
@@ -324,7 +324,7 @@ describe('Scenario: Disaster Response — Resources', () => {
   it('isLZSuitable() requires flat, clear, wide area', () => {
     const good: HelicopterLZ = {
       id: 'lz1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       radiusMeters: 20,
       slope: 5,
       obstructions: [],
@@ -332,7 +332,7 @@ describe('Scenario: Disaster Response — Resources', () => {
     };
     const bad: HelicopterLZ = {
       id: 'lz2',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       radiusMeters: 10,
       slope: 15,
       obstructions: ['power line'],
@@ -368,10 +368,10 @@ describe('Scenario: Disaster Response — Resources', () => {
 
   it('fallbackRadioTopology — builds mesh from node positions', () => {
     const nodes = [
-      { id: 'HQ', position: { x: 0, y: 0, z: 0 }, rangeMeters: 500, isRelay: true },
-      { id: 'A', position: { x: 300, y: 0, z: 0 }, rangeMeters: 500, isRelay: false },
-      { id: 'B', position: { x: 0, y: 400, z: 0 }, rangeMeters: 500, isRelay: false },
-      { id: 'C', position: { x: 9000, y: 9000, z: 0 }, rangeMeters: 100, isRelay: false },
+      { id: 'HQ', position: [0, 0, 0], rangeMeters: 500, isRelay: true },
+      { id: 'A', position: [300, 0, 0], rangeMeters: 500, isRelay: false },
+      { id: 'B', position: [0, 400, 0], rangeMeters: 500, isRelay: false },
+      { id: 'C', position: [9000, 9000, 0], rangeMeters: 100, isRelay: false },
     ];
     const topo = fallbackRadioTopology(nodes);
     expect(topo.links.length).toBeGreaterThanOrEqual(2);

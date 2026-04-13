@@ -243,21 +243,21 @@ describe('Scenario: VR Walkthrough — Guided Tour', () => {
   const waypoints: WalkthroughWaypoint[] = [
     {
       id: 'wp1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       lookAt: { x: 5, y: 1, z: 0 },
       durationSec: 10,
       label: 'Entrance',
     },
     {
       id: 'wp2',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       lookAt: { x: 10, y: 1, z: 0 },
       durationSec: 15,
       label: 'Lobby',
     },
     {
       id: 'wp3',
-      position: { x: 10, y: 3, z: 5 },
+      position: [10, 3, 5],
       lookAt: { x: 10, y: 3, z: 10 },
       durationSec: 20,
       label: 'Rooftop',

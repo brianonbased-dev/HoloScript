@@ -42,7 +42,7 @@ const CONVEYOR: EquipmentNode = {
   id: 'conveyor_1',
   name: 'Main Conveyor',
   type: 'conveyor',
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
   dimensions: { x: 5, y: 0.5, z: 1 },
   traits: ['@conveyor_belt(speed: 0.5, direction: "x")'],
 };
@@ -51,7 +51,7 @@ const ARM_ROBOT: EquipmentNode = {
   id: 'robot_arm_1',
   name: 'Pick & Place Arm',
   type: 'robot_arm',
-  position: { x: 3, y: 0, z: 0 },
+  position: [3, 0, 0],
   dimensions: { x: 1, y: 1.5, z: 1 },
   traits: ['@robot_arm(dof: 6, reach: 1.2)', '@sensor(type: "proximity")'],
 };
@@ -60,7 +60,7 @@ const SAFETY_FENCE: EquipmentNode = {
   id: 'fence_1',
   name: 'Safety Fence A',
   type: 'safety_fence',
-  position: { x: 4, y: 0, z: 0 },
+  position: [4, 0, 0],
   dimensions: { x: 0.1, y: 2, z: 4 },
   traits: ['@safety_fence(height: 2, color: "#ff6600")'],
 };
@@ -169,42 +169,42 @@ describe('Scenario: Industrial Plant Designer — Distance Measurement', () => {
 
 describe('Scenario: Industrial Plant Designer — Safety Zones', () => {
   it('safetyZone() creates zone with correct nodeId and center', () => {
-    const zone = safetyZone({ id: 'robot_arm_1', position: { x: 3, y: 0, z: 0 } }, 1.5);
+    const zone = safetyZone({ id: 'robot_arm_1', position: [3, 0, 0] }, 1.5);
     expect(zone.nodeId).toBe('robot_arm_1');
     expect(zone.center).toEqual({ x: 3, y: 0, z: 0 });
     expect(zone.radius).toBe(1.5);
   });
 
   it('safetyZone() defaults to "exclusion" type', () => {
-    const zone = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 1);
+    const zone = safetyZone({ id: 'a', position: [0, 0, 0] }, 1);
     expect(zone.type).toBe('exclusion');
   });
 
   it('safetyZone() accepts "warning" type', () => {
-    const zone = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 2, 'warning');
+    const zone = safetyZone({ id: 'a', position: [0, 0, 0] }, 2, 'warning');
     expect(zone.type).toBe('warning');
   });
 
   it('isInsideSafetyZone() returns true for point within radius', () => {
-    const zone = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 2);
+    const zone = safetyZone({ id: 'a', position: [0, 0, 0] }, 2);
     expect(isInsideSafetyZone({ x: 1, y: 0, z: 0 }, zone)).toBe(true);
   });
 
   it('isInsideSafetyZone() returns false for point outside radius', () => {
-    const zone = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 2);
+    const zone = safetyZone({ id: 'a', position: [0, 0, 0] }, 2);
     expect(isInsideSafetyZone({ x: 5, y: 0, z: 0 }, zone)).toBe(false);
   });
 
   it('findOverlappingZones() detects overlapping safety zones', () => {
-    const zoneA = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 2);
-    const zoneB = safetyZone({ id: 'b', position: { x: 1, y: 0, z: 0 } }, 2); // centers only 1m apart, radii 2+2=4
+    const zoneA = safetyZone({ id: 'a', position: [0, 0, 0] }, 2);
+    const zoneB = safetyZone({ id: 'b', position: [1, 0, 0] }, 2); // centers only 1m apart, radii 2+2=4
     const overlaps = findOverlappingZones([zoneA, zoneB]);
     expect(overlaps).toHaveLength(1);
   });
 
   it('findOverlappingZones() returns empty for well-separated zones', () => {
-    const zoneA = safetyZone({ id: 'a', position: { x: 0, y: 0, z: 0 } }, 1);
-    const zoneB = safetyZone({ id: 'b', position: { x: 10, y: 0, z: 0 } }, 1);
+    const zoneA = safetyZone({ id: 'a', position: [0, 0, 0] }, 1);
+    const zoneB = safetyZone({ id: 'b', position: [10, 0, 0] }, 1);
     expect(findOverlappingZones([zoneA, zoneB])).toHaveLength(0);
   });
 
@@ -269,13 +269,13 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
     const nodeA: EquipmentNode = {
       ...CONVEYOR,
       id: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       dimensions: { x: 4, y: 1, z: 4 },
     };
     const nodeB: EquipmentNode = {
       ...ARM_ROBOT,
       id: 'b',
-      position: { x: 1, y: 0, z: 0 },
+      position: [1, 0, 0],
       dimensions: { x: 2, y: 1, z: 2 },
     };
     const collisions = findCollisions([nodeA, nodeB]);
@@ -288,13 +288,13 @@ describe('Scenario: Industrial Plant Designer — Equipment Collision Detection'
     const nodeA: EquipmentNode = {
       ...CONVEYOR,
       id: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       dimensions: { x: 1, y: 1, z: 1 },
     };
     const nodeB: EquipmentNode = {
       ...ARM_ROBOT,
       id: 'b',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       dimensions: { x: 1, y: 1, z: 1 },
     };
     expect(findCollisions([nodeA, nodeB])).toHaveLength(0);

@@ -259,7 +259,7 @@ export class ComparativeBenchmarks {
     const objects = Array(1000)
       .fill(null)
       .map(() => ({
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         velocity: { x: 1, y: 1, z: 1 },
       }));
 

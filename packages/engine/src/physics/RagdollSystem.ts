@@ -9,7 +9,7 @@
 
 import {
   IVector3,
-  _IQuaternion,
+  IQuaternion,
   IRigidBodyConfig,
   Constraint,
   IConeConstraint,

@@ -32,7 +32,7 @@ import {
   type CollectOptions,
   type CollectResult,
   type RevenueDistribution,
-  type _RevenueFlow,
+  type RevenueFlow,
   type ImportChainNode,
   type RevenueCalculatorOptions,
 } from '@holoscript/core';

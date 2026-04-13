@@ -14,9 +14,9 @@
  */
 
 import type {
-  _HoloVM,
+  HoloVM,
   ECSWorld,
-  _Entity,
+  Entity,
   TransformComponent,
   GeometryComponent,
   MaterialComponent,

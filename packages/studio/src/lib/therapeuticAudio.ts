@@ -89,7 +89,7 @@ export interface HRVReading {
 
 export interface SpatialAudioSource {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   type: 'nature' | 'voice' | 'frequency' | 'noise';
 }
 

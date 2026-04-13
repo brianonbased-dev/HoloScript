@@ -123,7 +123,7 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
       case 'move': {
         const existing = world.getComponent<TransformComponent>(action.entityId, 0x01);
         const transform = existing ?? {
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
           scale: { x: 1, y: 1, z: 1 },
         };

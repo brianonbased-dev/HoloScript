@@ -77,7 +77,7 @@ describe('WebXRSystem', () => {
 
     const controllers = new Map();
     controllers.set('left-hand', {
-      position: { x: -0.3, y: 1.0, z: -0.5 },
+      position: [-0.3, 1.0, -0.5],
       rotation: { x: 0, y: 0, z: 0 },
       trigger: 0.9,
       grip: 0.1,
@@ -107,7 +107,7 @@ describe('WebXRSystem', () => {
 
     const controllers = new Map();
     controllers.set('left-hand', {
-      position: { x: 0, y: 1, z: 0 },
+      position: [0, 1, 0],
       rotation: { x: 0, y: 0, z: 0 },
       trigger: 0,
       grip: 0,
@@ -155,7 +155,7 @@ describe('WebXRSystem', () => {
 
     const controllers = new Map();
     controllers.set('right-hand', {
-      position: { x: 0.3, y: 1, z: -0.3 },
+      position: [0.3, 1, -0.3],
       rotation: { x: 0, y: 0, z: 0 },
       trigger: 0,
       grip: 0.9, // Gripping!
@@ -267,9 +267,9 @@ describe('InterestManager', () => {
     im.setRadius(10);
 
     const entities = [
-      { id: 'near', position: { x: 5, y: 0, z: 0 } },
-      { id: 'far', position: { x: 100, y: 0, z: 0 } },
-      { id: 'edge', position: { x: 10, y: 0, z: 0 } },
+      { id: 'near', position: [5, 0, 0] },
+      { id: 'far', position: [100, 0, 0] },
+      { id: 'edge', position: [10, 0, 0] },
     ];
 
     const relevant = im.filterRelevant(entities);
@@ -311,7 +311,7 @@ describe('EntityInterpolator', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
       id: 'e1',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       timestamp: 0,
@@ -327,7 +327,7 @@ describe('EntityInterpolator', () => {
     const interp = new EntityInterpolator();
     interp.pushState({
       id: 'e1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       timestamp: 0,
@@ -392,7 +392,7 @@ describe('NetworkSystem', () => {
       {
         entityId: 'remote1',
         fields: {
-          position: { x: 10, y: 0, z: 5 },
+          position: [10, 0, 5],
           rotation: { x: 0, y: 0, z: 0 },
           velocity: { x: 0, y: 0, z: 0 },
         },

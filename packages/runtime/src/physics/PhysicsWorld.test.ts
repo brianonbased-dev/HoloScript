@@ -5,21 +5,17 @@ import { PhysicsWorld, PhysicsOptions } from './PhysicsWorld';
 
 // Mock Three.js Object3D
 function createMockMesh(
-  position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
+  position: [number, number, number] = { x: 0, y: 0, z: 0 },
   scale: { x: number; y: number; z: number } = { x: 1, y: 1, z: 1 },
   quaternion: { x: number; y: number; z: number; w: number } = { x: 0, y: 0, z: 0, w: 1 }
 ): THREE.Object3D {
   const mesh = {
-    position: {
-      x: position.x,
-      y: position.y,
-      z: position.z,
+    position: [position.x, position.y, position.z,
       copy: vi.fn(function (this: any, source: any) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;
-        return this;
-      }),
+        return this;]),
     },
     scale: {
       x: scale.x,

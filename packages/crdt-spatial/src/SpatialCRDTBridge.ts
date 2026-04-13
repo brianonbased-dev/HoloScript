@@ -242,6 +242,12 @@ export class SpatialCRDTBridge {
     nodeMap.set('pos_y', position.y);
     nodeMap.set('pos_z', position.z);
 
+    this.config.caelRecorder?.logInteraction('crdt.sync_event', {
+      action: 'setPosition',
+      nodeId,
+      position,
+    });
+
     this.emitTransformChange(nodeId);
   }
 
@@ -275,6 +281,12 @@ export class SpatialCRDTBridge {
     nodeMap.set('scale_x', scale.x);
     nodeMap.set('scale_y', scale.y);
     nodeMap.set('scale_z', scale.z);
+
+    this.config.caelRecorder?.logInteraction('crdt.sync_event', {
+      action: 'setScale',
+      nodeId,
+      scale,
+    });
 
     this.emitTransformChange(nodeId);
   }
@@ -330,6 +342,12 @@ export class SpatialCRDTBridge {
     // Check if we should force a checkpoint (deltas too large)
     this.maybeForceCheckpoint(nodeId);
 
+    this.config.caelRecorder?.logInteraction('crdt.sync_event', {
+      action: 'applyRotationDelta',
+      nodeId,
+      delta,
+    });
+
     this.emitTransformChange(nodeId);
   }
 
@@ -353,6 +371,12 @@ export class SpatialCRDTBridge {
     // Reset delta counters by creating new ones
     // (LoroCounter doesn't have a reset method - we decrement by current value)
     this.resetDeltaCounters(nodeId);
+
+    this.config.caelRecorder?.logInteraction('crdt.sync_event', {
+      action: 'setBaseRotation',
+      nodeId,
+      quaternion: normalized,
+    });
 
     this.emitTransformChange(nodeId);
   }
@@ -492,6 +516,10 @@ export class SpatialCRDTBridge {
    */
   importUpdate(bytes: Uint8Array): void {
     this.doc.import(bytes);
+    this.config.caelRecorder?.logInteraction('crdt.sync_event', {
+      action: 'importUpdate',
+      bytesLength: bytes.length,
+    });
   }
 
   /**

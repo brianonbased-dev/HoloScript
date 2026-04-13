@@ -11,9 +11,9 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node.js';
 import {
   runSafetyPass,
-  type _SafetyPassConfig,
+  type SafetyPassConfig,
   type EffectASTNode,
-  type _SafetyPassResult,
+  type SafetyPassResult,
   type EffectViolation,
   type BudgetDiagnostic,
   type CapabilityRequirement,

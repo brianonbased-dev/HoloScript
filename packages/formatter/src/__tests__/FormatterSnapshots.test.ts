@@ -20,7 +20,7 @@ describe('Formatter Visual Regression', () => {
       const source = `composition Orb {
   geometry: "sphere"
   color: "cyan"
-  position: { x: 0, y: 1.5, z: -2 }
+  position: [0, 1.5, -2]
   @grabbable
   @hoverable
 }`;
@@ -37,7 +37,7 @@ describe('Formatter Visual Regression', () => {
     roughness: 0.2
   }
   transform: {
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     rotation: { x: 45, y: 0, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   }
@@ -165,25 +165,25 @@ describe('Formatter Visual Regression', () => {
     test('interactive button panel', () => {
       const source = `composition ButtonPanel {
   group: "ui"
-  position: { x: 0, y: 1.5, z: -1 }
+  position: [0, 1.5, -1]
   
   buttons: [
     {
       id: "red",
       color: "red",
-      position: { x: -0.3, y: 0, z: 0 },
+      position: [-0.3, 0, 0],
       @clickable
     },
     {
       id: "green",
       color: "green",
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       @clickable
     },
     {
       id: "blue",
       color: "blue",
-      position: { x: 0.3, y: 0, z: 0 },
+      position: [0.3, 0, 0],
       @clickable
     }
   ]
@@ -354,7 +354,7 @@ composition Documented {
   color: "blue" // Sky blue
   
   // Position
-  position: { x: 0, y: 0, z: 0 }
+  position: [0, 0, 0]
 }`;
       const result = formatter.format(source, 'holo');
       expect(result.formatted).toMatchSnapshot();
@@ -442,7 +442,7 @@ composition Documented {
     test('formatting should be idempotent', () => {
       const source = `composition Test {
   color: "red"
-  position: { x: 0, y: 1, z: -2 }
+  position: [0, 1, -2]
 }`;
 
       const result1 = formatter.format(source, 'holo');

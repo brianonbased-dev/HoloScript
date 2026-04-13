@@ -165,10 +165,10 @@ describe('WizardFlow', () => {
   });
 
   describe('WIZARD_STAGES', () => {
-    it('has 9 stages in correct order', () => {
-      expect(WIZARD_STAGES).toHaveLength(9);
+    it('has 10 stages in correct order', () => {
+      expect(WIZARD_STAGES).toHaveLength(10);
       expect(WIZARD_STAGES[0]).toBe('greeting');
-      expect(WIZARD_STAGES[8]).toBe('deploy');
+      expect(WIZARD_STAGES[9]).toBe('deploy');
     });
 
     it('every stage has metadata', () => {

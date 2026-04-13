@@ -33,7 +33,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -47,7 +47,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -61,7 +61,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -76,7 +76,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -90,7 +90,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -111,7 +111,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -127,7 +127,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -145,7 +145,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection, gizmo } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 3, y: 4, z: 5 },
+        position: [3, 4, 5],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -168,7 +168,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection, gizmo } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -183,7 +183,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection, gizmo } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -198,7 +198,7 @@ describe('GizmoSystem — Production Tests', () => {
       const { world, selection, gizmo } = makeSetup();
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });

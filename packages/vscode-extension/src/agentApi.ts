@@ -258,7 +258,7 @@ export class HoloScriptAgentAPI {
       code = `orb ${objectName.toLowerCase()} {
   ${suggestedTraits.join('\n  ')}
   
-  position: { x: 0, y: 1, z: 0 }
+  position: [0, 1, 0]
   // TODO: ${description}
 }`;
     }

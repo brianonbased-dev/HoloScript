@@ -158,7 +158,7 @@ interface ParsedTemplate {
 interface ParsedObject {
   id: string;
   type: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   scale: { x: number; y: number; z: number };
   rotation?: { x: number; y: number; z: number };
   color?: string;

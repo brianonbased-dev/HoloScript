@@ -193,7 +193,7 @@ describe('Scenario: Sound Designer — Sync Configuration', () => {
       refDistance: 1,
       maxDistance: 100,
       rolloffFactor: 1,
-      position: { x: 2, y: 0, z: -3 },
+      position: [2, 0, -3],
     };
     expect(pannerConfig.panningModel).toBe('HRTF');
     expect(pannerConfig.distanceModel).toBe('inverse');

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
-import type { _OrbData } from '../types';
+import type { OrbData } from '../types';
 import { solveKepler } from '../utils/kepler';
 
 export const OrbitalPath = ({ orb, parentOrb, scale = 50 }: OrbitalPathProps) => {

@@ -204,9 +204,9 @@ describe('Scenario: Film Storyboard — Production', () => {
 
   it('previsualization — 3D camera path animation preview', () => {
     const keyframes: CameraKeyframe[] = [
-      { time: 0, position: { x: 0, y: 2, z: -5 }, lookAt: { x: 0, y: 0, z: 0 }, fov: 50 },
-      { time: 2, position: { x: 5, y: 3, z: 0 }, lookAt: { x: 0, y: 1, z: 0 }, fov: 35 },
-      { time: 4, position: { x: 0, y: 1, z: 5 }, lookAt: { x: 0, y: 0, z: 0 }, fov: 60 },
+      { time: 0, position: [0, 2, -5], lookAt: { x: 0, y: 0, z: 0 }, fov: 50 },
+      { time: 2, position: [5, 3, 0], lookAt: { x: 0, y: 1, z: 0 }, fov: 35 },
+      { time: 4, position: [0, 1, 5], lookAt: { x: 0, y: 0, z: 0 }, fov: 60 },
     ];
     const path = previsCamera(keyframes, 10); // 10 samples/sec over 4 sec
     expect(path.length).toBeGreaterThan(10);

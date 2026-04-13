@@ -3,7 +3,7 @@
  * useAssetRegistry — Hook for asset management and caching
  */
 import { useState, useCallback, useRef } from 'react';
-import { _AssetRegistry } from '@holoscript/core';
+import { AssetRegistry } from '@holoscript/core';
 
 export interface AssetEntry {
   id: string;

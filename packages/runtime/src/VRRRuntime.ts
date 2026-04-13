@@ -308,7 +308,7 @@ export interface IoTSensorData {
 
 export interface PlayerData {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   action: 'idle' | 'walking' | 'running' | 'interacting';
   quest_progress?: Record<string, number>; // quest_id → progress (0-100)
 }
@@ -647,7 +647,7 @@ export class VRRRuntime {
    * Update local player position and action for next broadcast tick.
    */
   updateLocalPlayer(
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     action: PlayerData['action']
   ): void {
     if (this.localPlayer) {

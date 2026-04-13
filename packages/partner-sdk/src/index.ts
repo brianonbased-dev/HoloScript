@@ -44,14 +44,14 @@
 import {
   RegistryClient as _RegistryClient,
   createRegistryClient as _createRegistryClient,
-  type PartnerCredentials as _PartnerCredentials,
+  type PartnerCredentials as PartnerCredentials,
 } from './api';
 import {
-  WebhookHandler as _WebhookHandler,
+  WebhookHandler as WebhookHandler,
   createWebhookHandler as _createWebhookHandler,
 } from './webhooks';
 import {
-  PartnerAnalytics as _PartnerAnalytics,
+  PartnerAnalytics as PartnerAnalytics,
   createPartnerAnalytics as _createPartnerAnalytics,
 } from './analytics';
 
@@ -158,10 +158,10 @@ export function createPartnerSDK(config: {
   baseUrl?: string;
 }): {
   api: _RegistryClient;
-  webhooks: _WebhookHandler | null;
-  analytics: _PartnerAnalytics;
+  webhooks: WebhookHandler | null;
+  analytics: PartnerAnalytics;
 } {
-  const credentials: _PartnerCredentials = {
+  const credentials: PartnerCredentials = {
     partnerId: config.partnerId,
     apiKey: config.apiKey,
     secretKey: config.secretKey,

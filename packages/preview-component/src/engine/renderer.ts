@@ -11,7 +11,7 @@ import { resolveColor, SKYBOX_GRADIENTS } from './colors';
 import type {
   ParsedObject,
   ParsedEnvironment,
-  _AnimatedEntry,
+  AnimatedEntry,
   SceneState,
   RendererConfig,
 } from './types';

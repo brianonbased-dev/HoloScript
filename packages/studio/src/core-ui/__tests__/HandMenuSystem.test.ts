@@ -14,7 +14,7 @@ function createMockRuntime() {
     vrContext: {
       hands: {
         left: {
-          position: { x: 0, y: 1, z: -0.5 },
+          position: [0, 1, -0.5],
           orientation: { x: 0, y: 0, z: 0, w: 1 },
         },
       },
@@ -63,7 +63,7 @@ describe('HandMenuSystem', () => {
     it('should return false by default (placeholder implementation)', () => {
       // Access private method via prototype for testing
       const result = (menu as any).checkPalmFacingUser({
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
         orientation: { x: 0, y: 0, z: 0, w: 1 },
       });
       expect(result).toBe(false);
@@ -73,7 +73,7 @@ describe('HandMenuSystem', () => {
   describe('showMenu / hideMenu', () => {
     it('should mount menu and set up transitions', () => {
       // Directly invoke private showMenu
-      const hand = { position: { x: -0.2, y: 1.2, z: -0.3 } };
+      const hand = { position: [-0.2, 1.2, -0.3] };
       (menu as any).showMenu(hand);
 
       expect(runtime.mountObject).toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe('HandMenuSystem', () => {
     });
 
     it('should position menu near hand position', () => {
-      const hand = { position: { x: 0.1, y: 1.5, z: -0.2 } };
+      const hand = { position: [0.1, 1.5, -0.2] };
       (menu as any).showMenu(hand);
 
       const mountedNode = runtime.mountObject.mock.calls[0][0];
@@ -92,14 +92,14 @@ describe('HandMenuSystem', () => {
     });
 
     it('should not show menu again if already showing', () => {
-      const hand = { position: { x: 0, y: 1, z: 0 } };
+      const hand = { position: [0, 1, 0] };
       (menu as any).showMenu(hand);
       (menu as any).showMenu(hand);
       expect(runtime.mountObject).toHaveBeenCalledTimes(1);
     });
 
     it('should hide menu and reset state', () => {
-      const hand = { position: { x: 0, y: 1, z: 0 } };
+      const hand = { position: [0, 1, 0] };
       (menu as any).showMenu(hand);
       (menu as any).hideMenu();
 
@@ -114,14 +114,14 @@ describe('HandMenuSystem', () => {
 
   describe('debounce', () => {
     it('should set lastToggleTime when showing menu', () => {
-      const hand = { position: { x: 0, y: 1, z: 0 } };
+      const hand = { position: [0, 1, 0] };
       const before = Date.now();
       (menu as any).showMenu(hand);
       expect((menu as any).lastToggleTime).toBeGreaterThanOrEqual(before);
     });
 
     it('should set lastToggleTime when hiding menu', () => {
-      const hand = { position: { x: 0, y: 1, z: 0 } };
+      const hand = { position: [0, 1, 0] };
       (menu as any).showMenu(hand);
       const beforeHide = Date.now();
       (menu as any).hideMenu();
@@ -131,7 +131,7 @@ describe('HandMenuSystem', () => {
 
   describe('transitions', () => {
     it('should start with zero opacity and scale', () => {
-      const hand = { position: { x: 0, y: 1, z: 0 } };
+      const hand = { position: [0, 1, 0] };
       (menu as any).showMenu(hand);
 
       const mountedNode = runtime.mountObject.mock.calls[0][0];

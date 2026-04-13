@@ -26,7 +26,7 @@ import type {
   PluginLogMessage,
   PluginErrorMessage,
   NetworkPolicy,
-  _SandboxAuditEntry,
+  SandboxAuditEntry,
 } from './types.js';
 import type { PluginSandbox } from './PluginSandbox.js';
 

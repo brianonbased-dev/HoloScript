@@ -1,7 +1,7 @@
 export interface OrbData {
   id: string;
   name: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   properties: Record<string, any>;
   hologram?: {
     color?: string;

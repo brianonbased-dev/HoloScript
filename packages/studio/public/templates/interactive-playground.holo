@@ -1,0 +1,57 @@
+composition "Interactive Playground" {
+  environment {
+    skybox: "clear_day"
+    ambient: 0.6
+  }
+
+  object "Playground Floor" @collidable {
+    geometry: "box"
+    position: [0, -0.5, 0]
+    scale: [20, 1, 20]
+    color: "#2a2a2a"
+    material: "grid"
+  }
+
+  object "Red Button" @clickable @glowing @collidable {
+    geometry: "cylinder"
+    position: [-3, 0.2, -2]
+    scale: [0.8, 0.4, 0.8]
+    color: "#ff0000"
+    material: "plastic"
+    
+    // Event handler for clicking the button
+    on_click: "trigger_fireworks"
+  }
+
+  object "Button Base" {
+    geometry: "cylinder"
+    position: [-3, 0.0, -2]
+    scale: [1.2, 0.2, 1.2]
+    color: "#444444"
+  }
+
+  object "Elevator Platform" @collidable @moving(axis: y, range: 5, speed: 2) {
+    geometry: "box"
+    position: [4, 0, -4]
+    scale: [3, 0.2, 3]
+    color: "#00ddff"
+    material: "metal"
+  }
+
+  object "Physics Spheres Spawner" @clickable {
+    geometry: "cube"
+    position: [0, 1, 4]
+    scale: [1, 1, 1]
+    color: "#ffaa00"
+    material: "emissive"
+
+    // Interaction triggers a spawner
+    on_click: "spawn_physics_sphere"
+  }
+
+  point_light "Main Light" {
+    color: "#ffffff"
+    intensity: 1.5
+    position: [0, 8, 0]
+  }
+}

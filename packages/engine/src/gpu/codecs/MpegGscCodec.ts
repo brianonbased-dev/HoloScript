@@ -26,7 +26,7 @@
 import {
   AbstractGaussianCodec,
   CodecNotSupportedError,
-  _CodecDecodeError,
+  CodecDecodeError,
 } from './IGaussianCodec.js';
 import type {
   GaussianSplatData,

@@ -14,7 +14,7 @@ import { NodeGraph, LogicNode, LogicConnection } from '../logic/NodeGraph';
 // =============================================================================
 
 export interface NodeGraphPanelConfig {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   nodeWidth: number;
   nodeHeight: number;
   gridSpacing: number;
@@ -23,7 +23,7 @@ export interface NodeGraphPanelConfig {
 export interface UIEntity {
   id: string;
   type: 'panel' | 'label' | 'port' | 'connection_line';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   size?: { width: number; height: number };
   text?: string;
   color?: string;
@@ -31,7 +31,7 @@ export interface UIEntity {
 }
 
 const DEFAULT_CONFIG: NodeGraphPanelConfig = {
-  position: { x: 0, y: 1.5, z: -1 },
+  position: [0, 1.5, -1],
   nodeWidth: 0.3,
   nodeHeight: 0.15,
   gridSpacing: 0.05,
@@ -99,7 +99,7 @@ export class NodeGraphPanel {
     this.entities.push({
       id: `node_body_${node.id}`,
       type: 'panel',
-      position: { x: worldX, y: worldY, z: worldZ + 0.001 },
+      position: [worldX, worldY, worldZ + 0.001],
       size: { width: this.config.nodeWidth, height: this.config.nodeHeight },
       color: isSelected ? '#e94560' : this.getNodeColor(node.type),
       data: { role: 'node', nodeId: node.id, nodeType: node.type },
@@ -109,7 +109,7 @@ export class NodeGraphPanel {
     this.entities.push({
       id: `node_title_${node.id}`,
       type: 'label',
-      position: { x: worldX, y: worldY + this.config.nodeHeight * 0.3, z: worldZ + 0.002 },
+      position: [worldX, worldY + this.config.nodeHeight * 0.3, worldZ + 0.002],
       text: node.type,
       color: '#ffffff',
       data: { role: 'title', nodeId: node.id },
@@ -120,11 +120,7 @@ export class NodeGraphPanel {
       this.entities.push({
         id: `port_in_${node.id}_${port.name}`,
         type: 'port',
-        position: {
-          x: worldX - this.config.nodeWidth * 0.45,
-          y: worldY - (i + 1) * 0.02,
-          z: worldZ + 0.002,
-        },
+        position: [worldX - this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002,],
         text: port.name,
         color: this.getPortColor(port.type),
         data: { role: 'input_port', nodeId: node.id, portName: port.name, portType: port.type },
@@ -136,11 +132,7 @@ export class NodeGraphPanel {
       this.entities.push({
         id: `port_out_${node.id}_${port.name}`,
         type: 'port',
-        position: {
-          x: worldX + this.config.nodeWidth * 0.45,
-          y: worldY - (i + 1) * 0.02,
-          z: worldZ + 0.002,
-        },
+        position: [worldX + this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002,],
         text: port.name,
         color: this.getPortColor(port.type),
         data: { role: 'output_port', nodeId: node.id, portName: port.name, portType: port.type },

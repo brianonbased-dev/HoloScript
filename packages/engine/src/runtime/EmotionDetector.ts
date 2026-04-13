@@ -4,7 +4,7 @@
  * Defines the @builtin runtime interface for multimodal affective computing.
  * Runtimes implement this to bridge with ML models (ONNX/TFLite) for emotion inference.
  */
-import type { Vector3 as _Vector3 } from '@holoscript/core';
+import type { Vector3 as Vector3 } from '@holoscript/core';
 
 /**
  * Multimodal signals for emotion inference

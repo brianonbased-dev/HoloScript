@@ -12,7 +12,7 @@
 export interface Atom {
   id: string;
   element: string; // 'C', 'N', 'O', 'H', 'S', 'P', etc.
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   charge: number; // partial charge
   radius: number; // van der Waals radius (Å)
 }
@@ -64,7 +64,7 @@ export interface ProteinResidue {
   id: number;
   aminoAcid: AminoAcid;
   chain: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
 }
 
 export interface BindingSite {
@@ -367,7 +367,7 @@ export type PharmacophoreType =
 
 export interface PharmacophoreFeature {
   type: PharmacophoreType;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   radius: number;
   atomIds: string[];
 }

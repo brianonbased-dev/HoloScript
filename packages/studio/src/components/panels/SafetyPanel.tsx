@@ -13,7 +13,7 @@
 
 import React, { useEffect, _useMemo } from 'react';
 import { useSafetyPass } from '../../hooks/useSafetyPass';
-import type { _SafetyReport, _SafetyVerdict } from '@holoscript/core';
+import type { SafetyReport, SafetyVerdict } from '@holoscript/core';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════

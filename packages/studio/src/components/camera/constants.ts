@@ -22,7 +22,7 @@ export const PRESET_DESCRIPTIONS: Record<CinematicPreset, string> = {
 };
 
 export const DEFAULT_CAMERA: CameraState = {
-  position: { x: 0, y: 2, z: 5 },
+  position: [0, 2, 5],
   target: { x: 0, y: 0, z: 0 },
   fov: 50,
   zoom: 1,

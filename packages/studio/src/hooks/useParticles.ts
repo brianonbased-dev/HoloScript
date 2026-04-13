@@ -22,7 +22,7 @@ interface EmitterConfig {
   sizeEnd: [number, number];
   colorStart: Color4;
   colorEnd: Color4;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction?: { x: number; y: number; z: number };
   coneAngle?: number;
 }
@@ -38,7 +38,7 @@ const PRESETS: Record<string, Partial<EmitterConfig>> = {
     sizeEnd: [0, 0.1],
     colorStart: { r: 1, g: 0.6, b: 0.1, a: 1 },
     colorEnd: { r: 1, g: 0, b: 0, a: 0 },
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     coneAngle: 20,
   },
   snow: {
@@ -51,7 +51,7 @@ const PRESETS: Record<string, Partial<EmitterConfig>> = {
     sizeEnd: [0.05, 0.1],
     colorStart: { r: 1, g: 1, b: 1, a: 0.9 },
     colorEnd: { r: 0.8, g: 0.9, b: 1, a: 0.2 },
-    position: { x: 0, y: 10, z: 0 },
+    position: [0, 10, 0],
     direction: { x: 0, y: -1, z: 0 },
   },
   sparks: {
@@ -64,7 +64,7 @@ const PRESETS: Record<string, Partial<EmitterConfig>> = {
     sizeEnd: [0, 0],
     colorStart: { r: 1, g: 0.9, b: 0.4, a: 1 },
     colorEnd: { r: 1, g: 0.3, b: 0, a: 0 },
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   },
   smoke: {
     shape: 'sphere',
@@ -76,7 +76,7 @@ const PRESETS: Record<string, Partial<EmitterConfig>> = {
     sizeEnd: [2, 3],
     colorStart: { r: 0.5, g: 0.5, b: 0.5, a: 0.6 },
     colorEnd: { r: 0.3, g: 0.3, b: 0.3, a: 0 },
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   },
 };
 
@@ -90,7 +90,7 @@ const DEFAULT_CONFIG: EmitterConfig = {
   sizeEnd: [0, 0.1],
   colorStart: { r: 1, g: 1, b: 1, a: 1 },
   colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
 };
 
 export interface UseParticlesReturn {

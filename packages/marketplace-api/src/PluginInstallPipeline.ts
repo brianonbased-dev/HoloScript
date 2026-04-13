@@ -28,7 +28,7 @@ import type {
   PluginInstallResult,
   PluginInstallState,
   SignatureVerificationResult,
-  _PluginSignature,
+  PluginSignature,
 } from './PluginPackageSpec.js';
 import { PluginSignatureService } from './PluginSignatureService.js';
 

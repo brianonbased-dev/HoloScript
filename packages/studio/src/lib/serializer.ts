@@ -12,7 +12,7 @@ export interface SceneNode {
   id: string;
   name: string;
   type: 'mesh' | 'light' | 'camera' | 'group' | 'audio' | 'particle';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   children: SceneNode[];

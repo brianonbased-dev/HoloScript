@@ -43,21 +43,21 @@ describe('Scenario: Molecular Drug Designer — Molecular Properties', () => {
   const carbon: Atom = {
     id: 'C1',
     element: 'C',
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     charge: 0,
     radius: 1.7,
   };
   const oxygen: Atom = {
     id: 'O1',
     element: 'O',
-    position: { x: 1.43, y: 0, z: 0 },
+    position: [1.43, 0, 0],
     charge: -0.5,
     radius: 1.52,
   };
   const hydrogen: Atom = {
     id: 'H1',
     element: 'H',
-    position: { x: -0.5, y: 0.87, z: 0 },
+    position: [-0.5, 0.87, 0],
     charge: 0.25,
     radius: 1.2,
   };
@@ -210,8 +210,8 @@ describe('Scenario: Molecular Drug Designer — Docking', () => {
 
   it('bindingSiteVolume() calculates bounding box volume', () => {
     const residues: ProteinResidue[] = [
-      { id: 1, aminoAcid: 'ALA', chain: 'A', position: { x: 0, y: 0, z: 0 } },
-      { id: 2, aminoAcid: 'GLY', chain: 'A', position: { x: 10, y: 10, z: 10 } },
+      { id: 1, aminoAcid: 'ALA', chain: 'A', position: [0, 0, 0] },
+      { id: 2, aminoAcid: 'GLY', chain: 'A', position: [10, 10, 10] },
     ];
     expect(bindingSiteVolume(residues)).toBe(1000); // 10*10*10
   });
@@ -269,8 +269,8 @@ describe('Scenario: Molecular Drug Designer — Amino Acids', () => {
 
   it('solventAccessibleSurface() — returns positive surface area', () => {
     const atoms: Atom[] = [
-      { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
-      { id: 'O1', element: 'O', position: { x: 1.43, y: 0, z: 0 }, charge: -0.5, radius: 1.52 },
+      { id: 'C1', element: 'C', position: [0, 0, 0], charge: 0, radius: 1.7 },
+      { id: 'O1', element: 'O', position: [1.43, 0, 0], charge: -0.5, radius: 1.52 },
     ];
     const sasa = solventAccessibleSurface(atoms);
     expect(sasa).toBeGreaterThan(0);
@@ -282,9 +282,9 @@ describe('Scenario: Molecular Drug Designer — Amino Acids', () => {
       name: 'Test',
       formula: 'CNO',
       atoms: [
-        { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
-        { id: 'N1', element: 'N', position: { x: 1, y: 0, z: 0 }, charge: 0.1, radius: 1.55 },
-        { id: 'O1', element: 'O', position: { x: 2, y: 0, z: 0 }, charge: -0.5, radius: 1.52 },
+        { id: 'C1', element: 'C', position: [0, 0, 0], charge: 0, radius: 1.7 },
+        { id: 'N1', element: 'N', position: [1, 0, 0], charge: 0.1, radius: 1.55 },
+        { id: 'O1', element: 'O', position: [2, 0, 0], charge: -0.5, radius: 1.52 },
       ],
       bonds: [],
       molecularWeight: 42,

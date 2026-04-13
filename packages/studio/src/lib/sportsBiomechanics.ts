@@ -217,7 +217,7 @@ export function motionCaptureReplay(
     timestamp: f.timestamp,
     joints: f.joints.map((j) => ({
       joint: j.joint,
-      position: { x: 0, y: 0, z: 0 }, // Would come from IK solver in real impl
+      position: [0, 0, 0], // Would come from IK solver in real impl
       angleDeg: j.angleDeg,
     })),
     annotations: f.joints

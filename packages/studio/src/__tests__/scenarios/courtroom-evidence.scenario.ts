@@ -55,7 +55,7 @@ describe('Scenario: Courtroom Evidence — Timeline & Exhibits', () => {
       description: 'Knife',
       admittedDate: '2024-01-15',
       objectionsRuled: 'admitted',
-      position: { x: 5, y: 0, z: 3 },
+      position: [5, 0, 3],
     },
     {
       id: 'e2',
@@ -118,7 +118,7 @@ describe('Scenario: Courtroom Evidence — Witness & Annotations', () => {
   const pov: WitnessPOV = {
     id: 'w1',
     witnessName: 'Mr. Park',
-    position: { x: 20, y: 1.6, z: 10 },
+    position: [20, 1.6, 10],
     lookDirection: { x: -1, y: 0, z: 0 },
     fovDegrees: 120,
     timeOfEvent: Date.now(),
@@ -129,7 +129,7 @@ describe('Scenario: Courtroom Evidence — Witness & Annotations', () => {
     {
       id: 'a1',
       type: 'label',
-      position: { x: 5, y: 1, z: 3 },
+      position: [5, 1, 3],
       text: 'Weapon location',
       color: '#ff0000',
       visible: true,
@@ -138,7 +138,7 @@ describe('Scenario: Courtroom Evidence — Witness & Annotations', () => {
     {
       id: 'a2',
       type: 'measurement',
-      position: { x: 5, y: 0, z: 3 },
+      position: [5, 0, 3],
       targetPosition: { x: 10, y: 0, z: 3 },
       text: '5m',
       color: '#00ff00',
@@ -148,7 +148,7 @@ describe('Scenario: Courtroom Evidence — Witness & Annotations', () => {
     {
       id: 'a3',
       type: 'arrow',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       text: 'Entry',
       color: '#0000ff',
       visible: true,

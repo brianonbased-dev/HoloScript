@@ -213,7 +213,7 @@ export function filmPacing(scenes: Scene[]): Record<NarrativeAct, number> {
 
 export interface CameraKeyframe {
   time: number; // seconds
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   lookAt: { x: number; y: number; z: number };
   fov: number; // field of view degrees
 }

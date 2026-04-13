@@ -28,7 +28,7 @@ import type {
   HostResponseMessage,
   HostEventMessage,
   HostShutdownMessage,
-  _SandboxMessageBase,
+  SandboxMessageBase,
   MessageId,
   SandboxPermission,
   ContentSecurityPolicyDirectives,

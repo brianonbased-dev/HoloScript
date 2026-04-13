@@ -21,8 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { SpatialTrainingDataGenerator } from '../SpatialTrainingDataGenerator';
 import type {
   SpatialTrainingExample,
-  _SpatialTrainingJSONLEntry,
-  _SpatialRelationshipType,
+  SpatialTrainingJSONLEntry,
+  SpatialRelationshipType,
   SpatialDifficulty,
 } from '../SpatialTrainingDataTypes';
 

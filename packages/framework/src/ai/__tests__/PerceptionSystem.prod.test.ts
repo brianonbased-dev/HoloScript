@@ -84,7 +84,7 @@ describe('PerceptionSystem — Production', () => {
       id: 'self',
       type: 'sight',
       sourceId: 'guard',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       intensity: 1,
       timestamp: 0,
     };

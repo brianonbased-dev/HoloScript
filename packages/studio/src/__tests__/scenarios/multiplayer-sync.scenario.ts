@@ -91,7 +91,7 @@ describe('Scenario: Multiplayer — Delta Compression', () => {
       tick: 1,
       timestamp: 100,
       entities: prev.entities.map((e, i) =>
-        i < 5 ? { ...e, position: { x: e.position.x + 1, y: 0, z: 0 } } : e
+        i < 5 ? { ...e, position: [e.position.x + 1, 0, 0] } : e
       ),
     };
     const delta = deltaCompress(prev, curr);

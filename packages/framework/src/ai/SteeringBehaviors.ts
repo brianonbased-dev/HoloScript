@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface SteeringAgent {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity: { x: number; y: number; z: number };
   maxSpeed: number;
   maxForce: number;

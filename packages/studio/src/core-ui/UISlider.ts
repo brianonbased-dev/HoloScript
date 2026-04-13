@@ -42,7 +42,7 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
         type: 'object',
         name: `SliderHandle_${id}`,
         properties: {
-          position: { x: 0, y: 0, z: 0 }, // Center of track (0.5 value)
+          position: [0, 0, 0], // Center of track (0.5 value)
           geometry: 'sphere',
           scale: { x: 0.03, y: 0.03, z: 0.03 },
           color: config.handleColor || '#FFFFFF',

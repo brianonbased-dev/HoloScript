@@ -6,7 +6,7 @@
  * concrete patch proposals that users can review and apply through Studio.
  */
 
-import { runDaemonJob, type _AbsorbGraphData } from './runner';
+import { runDaemonJob, type AbsorbGraphData } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import type {
   CreateDaemonJobInput,
