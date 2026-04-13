@@ -205,7 +205,7 @@ MIT
 
 ## Contributing
 
-See the main [HoloScript repository](https://github.com/brianonbased-dev/Holoscript) for contribution guidelines.
+See the main [HoloScript repository](https://github.com/brianonbased-dev/HoloScript) for contribution guidelines.
 
 ---
 

@@ -259,4 +259,4 @@ See `/examples` directory for 11+ patterns:
 - [Migration Guide](./MIGRATION_GUIDE.md)
 - [API Reference](./README.md#api-reference)
 - [Examples](./examples)
-- [GitHub Issues](https://github.com/brianonbased-dev/Holoscript/issues)
+- [GitHub Issues](https://github.com/brianonbased-dev/HoloScript/issues)

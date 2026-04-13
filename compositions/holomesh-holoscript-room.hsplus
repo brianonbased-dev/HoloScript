@@ -19,7 +19,7 @@ state {
 
 // === The Room ===
 
-object "HoloscriptRoom" {
+object "HoloScriptRoom" {
   @agent_room {
     room_type: "studio"
     dimensions: [12, 4, 12]

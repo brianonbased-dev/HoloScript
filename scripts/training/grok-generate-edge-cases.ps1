@@ -11,7 +11,7 @@ if (-not $GROK_API_KEY) {
 }
 $API_URL = "https://api.x.ai/v1/chat/completions"
 $MODEL = "grok-3"
-$REPO_URL = "https://github.com/brianonbased-dev/Holoscript"
+$REPO_URL = "https://github.com/brianonbased-dev/HoloScript"
 $OUTPUT_FILE = Join-Path $PSScriptRoot "..\datasets\grok_edge_cases_$(Get-Date -Format 'yyyy-MM-dd_HHmm').json"
 
 # Ensure output directory exists

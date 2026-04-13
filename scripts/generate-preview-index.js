@@ -124,7 +124,7 @@ function main() {
   html += `
     </div>
     <div class="footer">
-      Powered by <a href="https://github.com/brianonbased-dev/Holoscript">HoloScript</a> &middot;
+      Powered by <a href="https://github.com/brianonbased-dev/HoloScript">HoloScript</a> &middot;
       Three.js 3D Preview Engine &middot; Self-contained HTML files
     </div>
   </div>

@@ -8,7 +8,7 @@ info:
     Audit logs are append-only with integrity chains (ADR-004).
   contact:
     name: Brian X Base Team
-    url: https://github.com/brianonbased-dev/Holoscript
+    url: https://github.com/brianonbased-dev/HoloScript
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT

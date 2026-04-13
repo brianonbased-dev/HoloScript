@@ -331,7 +331,7 @@ function generatePreviewHTML(source, fileName, options = {}) {
 
   <div id="watermark">
     HoloScript 3D Preview &middot; PR #${prNumber} &middot;
-    <a href="https://github.com/brianonbased-dev/Holoscript" target="_blank">github.com/brianonbased-dev/Holoscript</a>
+    <a href="https://github.com/brianonbased-dev/HoloScript" target="_blank">github.com/brianonbased-dev/HoloScript</a>
   </div>
 
   <script type="importmap">

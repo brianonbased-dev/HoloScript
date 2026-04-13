@@ -188,7 +188,7 @@ composition BuildingDemolition {
 
 ## Contributing
 
-Contributions welcome! Please see the main [HoloScript repository](https://github.com/brianonbased-dev/Holoscript) for contribution guidelines.
+Contributions welcome! Please see the main [HoloScript repository](https://github.com/brianonbased-dev/HoloScript) for contribution guidelines.
 
 ### Development Tips
 
@@ -204,7 +204,7 @@ MIT © Brian X Base Team
 ## Links
 
 - [HoloScript Documentation](https://holoscript.net)
-- [GitHub Repository](https://github.com/brianonbased-dev/Holoscript)
+- [GitHub Repository](https://github.com/brianonbased-dev/HoloScript)
 - [NPM Package](https://www.npmjs.com/package/@holoscript/core)
 - [Discord Community](https://discord.gg/holoscript)
 

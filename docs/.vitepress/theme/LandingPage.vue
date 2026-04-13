@@ -172,8 +172,8 @@ onMounted(() => {
       <div class="container">
         <h2 class="section-title">More Than a Language</h2>
         <p class="section-sub">
-          HoloScript is a 6-layer open platform. <code>holoscript absorb</code> reveals 99 module
-          communities, 68K symbols, and 298K call edges &mdash; in the core package alone.
+          HoloScript is a 6-layer open platform. <code>holoscript absorb</code> maps semantic
+          structure, cross-package relationships, and code intelligence across the ecosystem.
         </p>
         <div class="platform-stack">
           <div class="stack-layer stack-6">
@@ -185,7 +185,7 @@ onMounted(() => {
           <div class="stack-layer stack-5">
             <span class="stack-num">5</span><strong>Studio</strong
             ><span class="stack-detail"
-              >AI scene builder &middot; 50+ app scenarios &middot; Node graph editor</span
+              >AI scene builder &middot; browser workflow &middot; node graph editor</span
             >
           </div>
           <div class="stack-layer stack-4">
@@ -197,8 +197,8 @@ onMounted(() => {
           <div class="stack-layer stack-3">
             <span class="stack-num">3</span><strong>Compiler</strong
             ><span class="stack-detail"
-              >16 named backends &middot; 30+ targets &middot; Circuit breaker &middot;
-              Incremental</span
+              >Named backends &middot; cross-target compilation &middot; circuit breaker &middot;
+              incremental builds</span
             >
           </div>
           <div class="stack-layer stack-2">
@@ -210,8 +210,8 @@ onMounted(() => {
           <div class="stack-layer stack-1">
             <span class="stack-num">1</span><strong>OS Core</strong
             ><span class="stack-detail"
-              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot; 2,000+
-              Traits</span
+              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot;
+              semantic traits</span
             >
           </div>
         </div>
@@ -353,10 +353,10 @@ animate();</code></pre>
     <!-- TRAITS -->
     <section class="section section--alt" id="traits">
       <div class="container">
-        <h2 class="section-title">2,000+ Semantic Traits</h2>
+        <h2 class="section-title">Semantic Traits at Platform Scale</h2>
         <p class="section-sub">
-          99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence, economy,
-          physics, rendering, multiplayer, and more. Add powerful behaviors with simple decorators.
+          Traits span VR, robotics, IoT, AI agents, swarm intelligence, economy, physics,
+          rendering, multiplayer, and more. Add powerful behaviors with simple decorators.
         </p>
         <div class="traits-grid">
           <div class="trait" v-for="t in traits" :key="t.name">
@@ -367,7 +367,7 @@ animate();</code></pre>
         </div>
         <p style="text-align: center; margin-top: 2rem">
           <a href="/traits/" class="btn btn-outline" style="padding: 0.75rem 2rem; font-size: 1rem"
-            >See All 2,000+ Traits &rarr;</a
+            >Browse Traits &rarr;</a
           >
         </p>
       </div>
@@ -406,9 +406,9 @@ animate();</code></pre>
             <div class="use-icon">&#x1F3AD;</div>
             <h3>Autonomous Intelligence</h3>
             <p>
-              65+ MCP tools, swarm intelligence (ant colony, particle swarm, flocking), 3-layer
-              agent comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a fine-tuned
-              model that writes native HoloScript. Your agents think, trade, and evolve.
+              MCP tooling, swarm intelligence (ant colony, particle swarm, flocking), 3-layer
+              agent comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a model that
+              writes native HoloScript. Your agents think, trade, and evolve.
             </p>
           </div>
           <div class="use-card">
@@ -525,21 +525,21 @@ animate();</code></pre>
         <h2 class="section-title">Everything You Need</h2>
         <div class="grid-3">
           <div class="card card--glow" style="text-align: center">
-            <div class="feature-number">2,000+</div>
+            <div class="card-icon">&#x2728;</div>
             <h3 class="card-title card-title--cyan">Semantic Traits</h3>
-            <p>99 communities: VR, physics, AI, swarm, economy, robotics, IoT, and more</p>
+            <p>Traits for VR, physics, AI, swarm, economy, robotics, IoT, and more</p>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F504;</div>
-            <h3 class="card-title card-title--cyan">30+ Compile Targets</h3>
+            <h3 class="card-title card-title--cyan">Cross-Target Compilation</h3>
             <p>
-              Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, OpenUSD,
-              and more
+              Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL,
+              OpenUSD, and more
             </p>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F916;</div>
-            <h3 class="card-title card-title--cyan">103+ MCP Tools</h3>
+            <h3 class="card-title card-title--cyan">MCP Tools</h3>
             <p>
               MCP server for Claude, Cursor, Copilot. Brittney fine-tuned model. Swarm intelligence.
               3-layer agent comms
@@ -559,7 +559,7 @@ animate();</code></pre>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F4BB;</div>
-            <h3 class="card-title card-title--cyan">4 IDE Integrations</h3>
+            <h3 class="card-title card-title--cyan">IDE + CLI Integrations</h3>
             <p>
               VS Code (debugger, DAP, collab), IntelliJ, Neovim, Tree-sitter. Plus CLI and Studio
             </p>
@@ -571,7 +571,7 @@ animate();</code></pre>
     <!-- CTA -->
     <section class="section cta-section">
       <div class="container" style="text-align: center">
-        <h2 class="cta-title">Ready to Build Your First VR World?</h2>
+        <h2 class="cta-title">Ready to Build Your First Spatial World?</h2>
         <p class="section-sub" style="margin-bottom: 2.5rem">
           Join creators worldwide using HoloScript. Free and open-source.
         </p>

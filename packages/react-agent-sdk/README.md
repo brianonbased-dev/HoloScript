@@ -374,7 +374,7 @@ MIT © [Brian X Base Team](https://github.com/brianonbased-dev)
 ## Support
 
 - Documentation: [https://docs.hololand.ai/react-agent-sdk](https://docs.hololand.ai/react-agent-sdk)
-- Issues: [GitHub Issues](https://github.com/brianonbased-dev/Holoscript/issues)
+- Issues: [GitHub Issues](https://github.com/brianonbased-dev/HoloScript/issues)
 - Discord: [HoloScript Community](https://discord.gg/holoscript)
 
 ## Related Packages

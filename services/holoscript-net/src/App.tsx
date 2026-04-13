@@ -483,7 +483,7 @@ export function HoloScriptLandingComponent() {
             </div>
             
             <div className="mt-16 flex flex-wrap justify-center gap-6 text-gray-800 font-bold mb-12">
-              <a href="https://github.com/brianonbased-dev/Holoscript" className="hover:text-cyan-800 transition-colors">GitHub</a>
+              <a href="https://github.com/brianonbased-dev/HoloScript" className="hover:text-cyan-800 transition-colors">GitHub</a>
               <a href="/guides/" className="hover:text-cyan-800 transition-colors">Docs</a>
               <a href="/guides/quick-start" className="hover:text-cyan-800 transition-colors">Quick Start</a>
               <a href="/examples/" className="hover:text-cyan-800 transition-colors">Examples</a>

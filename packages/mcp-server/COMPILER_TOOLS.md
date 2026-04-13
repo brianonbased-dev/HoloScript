@@ -578,7 +578,7 @@ const result = await client.callTool('compile_holoscript', args, {
 
 - **Documentation**: https://holoscript.dev/docs/mcp-compiler
 - **API Reference**: https://holoscript.dev/api/mcp
-- **GitHub**: https://github.com/brianonbased-dev/Holoscript
+- **GitHub**: https://github.com/brianonbased-dev/HoloScript
 - **Discord**: https://discord.gg/holoscript
 
 ## License

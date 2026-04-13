@@ -64,7 +64,7 @@ composition "Governed Treasury Demo" {
 
     @wisdom {
       description: "Escrow + credit + DAO prevents double-spend and griefing in shared treasuries"
-      source: "https://github.com/brianonbased-dev/Holoscript/commit/e48fb50"
+      source: "https://github.com/brianonbased-dev/HoloScript/commit/e48fb50"
       applies_to: [@credit, @escrow, @dao_proposal]
     }
 

@@ -511,5 +511,5 @@ const { data: newData } = useTask(agent, 'fetchData');
 
 - [Examples](./examples) - 11+ comprehensive examples
 - [API Documentation](./README.md) - Complete API reference
-- [GitHub Issues](https://github.com/brianonbased-dev/Holoscript/issues)
+- [GitHub Issues](https://github.com/brianonbased-dev/HoloScript/issues)
 - [Discord Community](https://discord.gg/holoscript)
