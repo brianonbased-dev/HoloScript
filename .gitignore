@@ -308,7 +308,10 @@ packages/vscode-extension/out/
 /any-*.txt
 /board_add_payload*.json
 /board.json
+/board_ide.json
 /board_latest.json
+/team_board*.json
+/temp_board.json
 /claim_*payload*.json
 /chat.mjs
 /check-types.mjs
@@ -342,6 +345,10 @@ packages/vscode-extension/out/
 /tmp-board*.json
 /tmp-diff*.txt
 room_*.ps1
+
+# Archived helper scripts and scratch exports should live under scripts/debug/archive/
+# Keep archive content tracked if intentionally preserved for future reference.
+# Any new throwaway scratch content should not live at repo root.
 
 # Package-level test/debug artifacts
 packages/absorb-service/vitest_err*.json

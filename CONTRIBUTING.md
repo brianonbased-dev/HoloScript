@@ -116,6 +116,13 @@ When writing docs or code comments, describe the problem solved first (pipeline,
 4. Run checks: `pnpm build && pnpm test`
 5. Submit a pull request
 
+## Repository Hygiene
+
+- Keep generated artifacts out of the repo root (`board*.json`, transient logs, test dumps).
+- If you need board/snapshot JSONs for manual workflows, regenerate them locally and keep them ignored by git.
+- Ambiguous helper scripts should be moved to `scripts/debug/archive/` rather than deleted from history without review.
+- Prefer explicit staging (`git add <files>`) so temporary artifacts are not committed accidentally.
+
 ## Adding a New Trait
 
 Every trait follows the same pattern across these files:
