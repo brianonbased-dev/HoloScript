@@ -6,6 +6,18 @@
 ## Role
 Core platform. Language, compilers, traits, MCP server, Studio, renderer. The center of everything.
 
+## HoloScript Code Generation (MANDATORY)
+
+**NEVER handwrite `.holo`, `.hsplus`, or `.hs` files directly.** Always use the MCP tool chain:
+
+```text
+1. suggest_traits({ description: "..." })
+2. generate_object / generate_scene({ description, traits })
+3. validate_holoscript({ code })
+```
+
+If MCP is unavailable: diagnose → start server → retry. If still down, **skip generation and notify** — do not hand-code. There is no CLI fallback for `suggest_traits` or `generate_*`.
+
 ## Rules
 - Strict TypeScript. No `any` (use `unknown`).
 - dist/index.d.ts is hand-crafted via generate-types.mjs -- not tsc.
