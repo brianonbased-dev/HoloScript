@@ -1,0 +1,34 @@
+{
+  "name": "@holoscript/connector-moltbook",
+  "version": "1.0.0",
+  "description": "Moltbook social platform connector — posts, comments, DMs, search, karma, submolts. Wraps moltbook.com/api/v1 as MCP tools with rate-limit awareness.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "keywords": ["holoscript", "moltbook", "agent", "social", "mcp"],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/connector-moltbook"
+  },
+  "dependencies": {
+    "@holoscript/connector-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
