@@ -86,14 +86,19 @@ export function requireTeamAccess(
     return null;
   }
 
-  const member = getTeamMember(team, caller.id);
+  // Check membership using both key-registry agentId and registered-agent id
+  // (they can differ when the key registry seeds a founder alias like "agent_founder"
+  //  but the agent store has a timestamped id like "agent_1776058303684_3p3i")
+  const agentId = caller.agent?.id;
+  const member = getTeamMember(team, caller.id) || (agentId && agentId !== caller.id ? getTeamMember(team, agentId) : undefined);
+  const effectiveId = member?.agentId || caller.id;
   // System agent (IDE/copilot) intrinsically bypasses membership checks
   if (!member && caller.id !== 'system') {
     json(res, 403, { error: 'Not a member of this team' });
     return null;
   }
 
-  if (permission && !hasTeamPermission(team, caller.id, permission)) {
+  if (permission && !hasTeamPermission(team, effectiveId, permission)) {
     json(res, 403, { error: `Permission denied: ${permission}` });
     return null;
   }
