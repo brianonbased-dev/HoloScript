@@ -878,19 +878,19 @@ async function runFullScan(
         : undefined
     );
 
-    saveEmbeddingsCache(embeddingIndex, rootDir);
+    saveEmbeddingsCache(embeddingIndex, primaryRootDir);
     setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
   } catch {
     // Embedding provider may not be available
   }
 
   // Sync with mesh (Phase 9)
-  await syncWithMesh(graph, rootDir);
+  await syncWithMesh(graph, primaryRootDir);
 
   const stats = graph.getStats();
   const diagnostics =
     stats.totalFiles === 0
-      ? buildAbsorbDiagnostics(rootDir, scanResult, includeBuildArtifacts)
+      ? buildAbsorbDiagnostics(primaryRootDir, scanResult, includeBuildArtifacts)
       : undefined;
 
   if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
@@ -899,7 +899,7 @@ async function runFullScan(
 
   if (outputFormat === 'stats') {
     result = {
-      rootDir,
+      rootDir: primaryRootDir,
       stats,
       gitCommitHash,
       diagnostics,
@@ -917,7 +917,7 @@ async function runFullScan(
     // Default: holo
     const emitter = new HoloEmitter();
     const holoSource = emitter.emit(graph, {
-      name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
+      name: primaryRootDir.split(/[/\\]/).pop() ?? 'codebase',
       layout: layout as 'force' | 'layered',
       lastPositions: graph.nodePositions,
     });
@@ -997,7 +997,7 @@ async function runIncrementalPatch(
     console.warn('[AbsorbIncremental] deserialization failed → full scan');
     return await runFullScan(
       mod,
-      rootDir,
+      [rootDir],
       undefined,
       undefined,
       includeBuildArtifacts,
@@ -1354,7 +1354,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         console.warn('[AbsorbIncremental] deserialization failed → full scan');
         const result = await runFullScan(
           mod,
-          rootDir,
+          [rootDir],
           languages,
           maxFiles,
           includeBuildArtifacts,
