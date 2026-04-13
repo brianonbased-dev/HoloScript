@@ -1,0 +1,23 @@
+{
+  "metadata": { "name": "Reputation & Audit Ledger", "version": "5.0.0" },
+  "traits": [ { "trait": "secret", "config": {} } ],
+  "entities": [
+    {
+      "id": "auditor",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('economy:transaction_completed', (tx) => {
+              emit('secret:store', { 
+                secretId: `audit_${Date.now()}`, 
+                value: JSON.stringify(tx),
+                deletionNonce: 'SYSTEM_AUDIT_KEY'
+              });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

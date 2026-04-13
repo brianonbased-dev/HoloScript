@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "name": "Sovereign Agent Federation Demo",
+    "description": "Production-grade example of cross-scene agent communication and migration using AgentPortalTrait.",
+    "version": "5.0.0",
+    "author": "HoloScript Core"
+  },
+  "config": {
+    "scene_id": "federation_node_01",
+    "relay_url": "wss://relay.holoscript.net/v5",
+    "capabilities": ["compute", "reasoning", "federation_member"]
+  },
+  "traits": [
+    {
+      "trait": "agent_portal",
+      "config": {
+        "agent_id": "master_coordinator",
+        "auto_reconnect": true,
+        "max_outbox_size": 100,
+        "heartbeat_interval": 5000
+      }
+    },
+    {
+      "trait": "multi_agent",
+      "config": {
+        "max_agents": 10,
+        "allow_remote_migration": true
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "portal_controller",
+      "name": "Federation Controller",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('portal:connected', (payload) => {
+              log('Successfully joined the Sovereign Agent Federation.');
+              emit('portal:broadcast', {
+                messageType: 'announcement',
+                data: { text: 'Node 01 is now online.' }
+              });
+            });
+
+            on('portal:message_in', (msg) => {
+              log(`Incoming message from ${msg.from.sceneId}:${msg.from.agentId}: ${msg.type}`);
+              if (msg.type === 'discovery_query') {
+                emit('portal:send', {
+                  to: msg.from,
+                  messageType: 'discovery_response',
+                  data: { capabilities: ['federation_member', 'deep_search'] }
+                });
+              }
+            });
+
+            on('portal:scene_discovered', (scene) => {
+              log(`New scene discovered: ${scene.name} (${scene.sceneId})`);
+              // Trigger migration of a worker agent if a specific capability is found
+              if (scene.capabilities.includes('heavy_compute')) {
+                log('Found heavy compute node. Migrating worker...');
+                emit('portal:migrate_out', {
+                  agentId: 'worker_01',
+                  targetScene: scene.sceneId,
+                  memory: { task: 'parallel_processing' }
+                });
+              }
+            });
+          "
+        }
+      ]
+    },
+    {
+      "id": "worker_01",
+      "name": "Scale Worker",
+      "components": [
+        {
+          "type": "agent_core",
+          "memory": {
+            "identity": "Autonomous worker capable of multi-scene migration"
+          }
+        }
+      ]
+    }
+  ]
+}

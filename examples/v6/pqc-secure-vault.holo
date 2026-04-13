@@ -1,0 +1,35 @@
+{
+  "version": "6.0.0",
+  "root": {
+    "id": "pqc-vault",
+    "type": "Group",
+    "name": "PQC Secured Data Vault",
+    "traits": [
+      {
+        "type": "Crypto",
+        "config": {
+          "pqcEnforced": true,
+          "algorithm": "Kyber1024",
+          "hybridMode": false
+        }
+      },
+      {
+        "type": "Secret",
+        "config": {
+          "auto_expire": true,
+          "max_secrets": 50
+        }
+      }
+    ],
+    "children": [
+      {
+        "id": "vault-door",
+        "type": "Component",
+        "name": "Quantum Encrypted Portal",
+        "traits": [
+          { "type": "AuthNode", "config": { "strategy": "x402-pqc" } }
+        ]
+      }
+    ]
+  }
+}

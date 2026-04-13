@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Secure Gateway PQC VPN", "version": "5.0.0" },
+  "traits": [ { "trait": "zk_private", "config": {} } ],
+  "entities": [
+    {
+      "id": "pqc_gateway",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('tunnel:init', (payload) => {
+              log('Establishing Quantum-Resistant VPN tunnel.');
+              emit('zk:prove', { identity: payload.nodeId, challenge: payload.challenge });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

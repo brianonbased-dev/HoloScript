@@ -31,6 +31,12 @@ export default defineConfig({
     'src/vm/index.ts',
     'src/vm-bridge/index.ts',
     'src/simulation/index.ts',
+    'src/spatial/index.ts',
+    'src/choreography/index.ts',
+    'src/gpu/index.ts',
+    'src/postfx/index.ts',
+    'src/shader/index.ts',
+    'src/runtime/protocols/index.ts',
   ],
   format: ['esm', 'cjs'],
   dts: false, // DTS disabled until HoloScriptPlusRuntime type errors are fixed

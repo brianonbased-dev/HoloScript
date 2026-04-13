@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Urban Grid Optimization", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "grid_controller",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('grid:demand_surge', (payload) => {
+              log(`Urban grid surge at ${payload.zoneId}. Propagating demand shift.`);
+              emit('portal:broadcast', { type: 'grid_load_shift', zone: payload.zoneId, amount: payload.reduction });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

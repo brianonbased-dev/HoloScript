@@ -245,8 +245,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onDetach — disconnect and cleanup
   // ===========================================================================
   onDetach(node: HSPlusNode, config: PortalConfig, context: TraitContext): void {
-    // @ts-expect-error
-    const state: PortalState | undefined = node.__portalState;
+    const state = node.__portalState as PortalState | undefined;
     if (!state) return;
 
     // Notify federation of departure
@@ -277,8 +276,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onUpdate — heartbeat, prune offline scenes, process inbox
   // ===========================================================================
   onUpdate(node: HSPlusNode, config: PortalConfig, context: TraitContext, delta: number): void {
-    // @ts-expect-error
-    const state: PortalState | undefined = node.__portalState;
+    const state = node.__portalState as PortalState | undefined;
     if (!state) return;
 
     // Heartbeat accumulator
@@ -350,8 +348,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
   // onEvent — handle portal events
   // ===========================================================================
   onEvent(node: HSPlusNode, config: PortalConfig, context: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const state: PortalState | undefined = node.__portalState;
+    const state = node.__portalState as PortalState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
@@ -380,7 +377,9 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       case 'portal:ws_disconnected': {
         state.connected = false;
-        const reason = payload?.reason ?? 'unknown';
+        const reason = (payload && typeof payload === 'object' && 'reason' in payload) 
+          ? String((payload as Record<string, any>).reason) 
+          : 'unknown';
         context.emit?.('portal:disconnected', {
           sceneId: config.scene_id,
           reason,
@@ -404,14 +403,17 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Outbound messaging ──────────────────────────────────────────
       case 'portal:send': {
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        
         const msg = createPortalMessage(
           state,
           config,
-          payload.to ?? null,
-          payload.messageType ?? 'data',
-          payload.data
+          p.to as FederatedAgentId | null,
+          p.messageType as string ?? 'data',
+          p.data
         );
-        if (payload.correlationId) msg.correlationId = payload.correlationId;
+        if (p.correlationId) msg.correlationId = String(p.correlationId);
 
         if (state.connected) {
           state.totalSent++;
@@ -430,12 +432,15 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
       }
 
       case 'portal:broadcast': {
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+
         const msg = createPortalMessage(
           state,
           config,
           null, // broadcast
-          payload.messageType ?? 'broadcast',
-          payload.data
+          p.messageType as string ?? 'broadcast',
+          p.data
         );
 
         if (state.connected) {
@@ -449,7 +454,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Inbound from relay (platform pushes these) ──────────────────
       case 'portal:relay_message': {
-        const inMsg = payload as PortalMessage;
+        const inMsg = payload as PortalMessage | undefined;
         if (inMsg && !isExpired(inMsg) && inMsg.hopCount <= config.max_hop_count) {
           state.inbox.push({ ...inMsg, hopCount: inMsg.hopCount + 1 });
         }
@@ -458,13 +463,16 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Scene discovery (relay pushes scene presence) ────────────────
       case 'portal:scene_announce': {
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+
         const sceneInfo: RemoteScene = {
-          sceneId: payload.sceneId,
-          name: payload.sceneName ?? payload.sceneId,
-          agentCount: payload.agentCount ?? 0,
-          capabilities: payload.capabilities ?? [],
+          sceneId: String(p.sceneId),
+          name: String(p.sceneName ?? p.sceneId),
+          agentCount: Number(p.agentCount ?? 0),
+          capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
           lastHeartbeat: Date.now(),
-          latencyMs: payload.latencyMs ?? 0,
+          latencyMs: Number(p.latencyMs ?? 0),
         };
 
         const isNew = !state.scenes.has(sceneInfo.sceneId);
@@ -483,7 +491,9 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Federation queries ───────────────────────────────────────────
       case 'portal:query_agents': {
-        const capability = payload?.capability as string;
+        const capability = (payload && typeof payload === 'object' && 'capability' in payload) 
+          ? String((payload as Record<string, any>).capability) 
+          : '';
         const results: RemoteAgent[] = [];
 
         for (const agent of state.remoteAgents.values()) {
@@ -502,7 +512,8 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Agent registry update from relay ─────────────────────────────
       case 'portal:remote_agents': {
-        const agents = (payload?.agents as RemoteAgent[]) ?? [];
+        if (!payload || typeof payload !== 'object' || !('agents' in payload)) return;
+        const agents = (payload as Record<string, any>).agents as RemoteAgent[];
         for (const agent of agents) {
           const key = `${agent.sceneId}:${agent.agentId}`;
           state.remoteAgents.set(key, agent);
@@ -512,14 +523,17 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Agent migration ──────────────────────────────────────────────
       case 'portal:migrate_out': {
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+
         const packet: AgentMigrationPacket = {
-          agentId: payload.agentId,
-          name: payload.name ?? payload.agentId,
-          capabilities: payload.capabilities ?? [],
-          memory: payload.memory ?? {},
-          state: payload.state ?? {},
+          agentId: String(p.agentId),
+          name: String(p.name ?? p.agentId),
+          capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
+          memory: (p.memory && typeof p.memory === 'object') ? (p.memory as Record<string, unknown>) : {},
+          state: (p.state && typeof p.state === 'object') ? (p.state as Record<string, unknown>) : {},
           sourceScene: config.scene_id,
-          targetScene: payload.targetScene,
+          targetScene: String(p.targetScene),
           timestamp: Date.now(),
         };
 
@@ -527,14 +541,14 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
         context.emit?.('portal:agent_migrated', {
           agentId: packet.agentId,
           fromScene: config.scene_id,
-          toScene: payload.targetScene,
+          toScene: packet.targetScene,
         });
 
         // Send migration packet through relay
         const migrationMsg = createPortalMessage(
           state,
           config,
-          { sceneId: payload.targetScene, agentId: '__portal__' },
+          { sceneId: packet.targetScene, agentId: '__portal__' },
           'agent_migration',
           packet
         );
@@ -549,7 +563,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
       }
 
       case 'portal:migrate_in': {
-        const packet = payload as AgentMigrationPacket;
+        const packet = payload as AgentMigrationPacket | undefined;
         if (packet && packet.targetScene === config.scene_id) {
           state.pendingMigrations.push(packet);
         }

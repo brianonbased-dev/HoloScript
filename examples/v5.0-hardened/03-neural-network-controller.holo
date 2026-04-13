@@ -1,0 +1,21 @@
+{
+  "metadata": { "name": "Neural Network Controller", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "nn_core",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('neural:inference_request', (input) => {
+              const output = simulateNeuralWeights(input);
+              emit('neural:inference_result', { output });
+            });
+            function simulateNeuralWeights(input) { return input.map(i => i * 0.5); }
+          "
+        }
+      ]
+    }
+  ]
+}

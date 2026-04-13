@@ -1,0 +1,21 @@
+{
+  "metadata": { "name": "Robotic Arm G-Code Bridge", "version": "5.0.0" },
+  "traits": [ { "trait": "economy_primitives", "config": {} } ],
+  "entities": [
+    {
+      "id": "robotic_arm",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('physical:move', (position) => {
+              const gcode = `G1 X${position.x} Y${position.y} Z${position.z}`;
+              log(`Manifesting physical motion: ${gcode}`);
+              emit('gcode:send', { code: gcode });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

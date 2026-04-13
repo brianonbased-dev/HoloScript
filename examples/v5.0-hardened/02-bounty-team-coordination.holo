@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "name": "Dynamic Bounty Coordination",
+    "description": "Distributed task matching and payout system for agent squads.",
+    "version": "5.0.0",
+    "author": "HoloScript Core"
+  },
+  "traits": [
+    { "trait": "economy_primitives", "config": {} },
+    { "trait": "agent_portal", "config": { "agent_id": "bounty_master" } }
+  ],
+  "entities": [
+    {
+      "id": "bounty_manager",
+      "name": "Bounty Manager",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('bounty:post', (payload) => {
+              log(`Bounty Posted: ${payload.title} (${payload.reward} BRIAN)`);
+              emit('portal:broadcast', { type: 'bounty_available', data: payload });
+            });
+
+            on('bounty:claim', (payload) => {
+              log(`Bounty ${payload.id} claimed by ${payload.agentId}`);
+              emit('economy:reserve', { amount: payload.reward, target: payload.agentId });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

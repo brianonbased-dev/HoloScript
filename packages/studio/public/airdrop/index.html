@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>HoloScript | Airdrop & Presale</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --studio-accent: #A855F7;
+                --studio-bg: #05050a;
+                --studio-panel: #11111a;
+                --studio-border: rgba(255, 255, 255, 0.1);
+                --studio-text: #ffffff;
+                --studio-muted: rgba(255, 255, 255, 0.6);
+            }
+
+            body {
+                background-color: var(--studio-bg);
+                color: var(--studio-text);
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                overflow-x: hidden;
+            }
+
+            .glass-card {
+                background: rgba(255, 255, 255, 0.03);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--studio-border);
+                border-radius: 24px;
+            }
+
+            .gradient-text {
+                background: linear-gradient(135deg, #fff 0%, #A855F7 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .btn-primary {
+                background: var(--studio-accent);
+                border: none;
+                border-radius: 12px;
+                padding: 12px 24px;
+                font-weight: 700;
+                transition: all 0.3s ease;
+            }
+
+            .btn-primary:hover {
+                background: #9333ea;
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+            }
+
+            .nav-link {
+                color: var(--studio-muted) !important;
+                font-weight: 500;
+                transition: color 0.3s ease;
+            }
+
+            .nav-link:hover {
+                color: #fff !important;
+            }
+
+            .badge-verified {
+                background: rgba(0, 219, 182, 0.1);
+                color: #00DBB6;
+                border: 1px solid rgba(0, 219, 182, 0.2);
+                padding: 4px 12px;
+                border-radius: 100px;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.05em;
+            }
+
+            .timer-box {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 16px;
+                padding: 15px;
+                min-width: 80px;
+                text-align: center;
+            }
+
+            .timer-val {
+                font-size: 28px;
+                font-weight: 800;
+                display: block;
+                color: #fff;
+            }
+
+            .timer-label {
+                font-size: 10px;
+                text-transform: uppercase;
+                color: var(--studio-muted);
+                letter-spacing: 0.1em;
+            }
+
+            .glow-bg {
+                position: absolute;
+                width: 600px;
+                height: 600px;
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+                border-radius: 50%;
+                z-index: -1;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="glow-bg" style="top: -200px; right: -200px;"></div>
+        <div class="glow-bg" style="bottom: -200px; left: -200px;"></div>
+
+        <nav class="navbar navbar-expand-lg py-4">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                    <img src="../favicon.ico" alt="HoloScript" width="32" height="32">
+                    <span class="fw-bold tracking-tight text-white mb-0 h4">HoloScript <span style="opacity: 0.5;">Store</span></span>
+                </a>
+                <div class="ms-auto d-flex align-items-center gap-3">
+                    <a href="/" class="nav-link d-none d-md-block">Home</a>
+                    <a href="/store" class="nav-link">Marketplace</a>
+                    <button class="btn btn-primary ms-3">CONNECT WALLET</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container py-5">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-7">
+                    <div class="badge-verified mb-4">AIRDROP PHASE 1 LIVE</div>
+                    <h1 class="display-3 fw-black mb-4">Claim Your <span class="gradient-text">HoloScript</span> Future</h1>
+                    <p class="lead text-studio-muted mb-5 pe-lg-5">
+                        Participate in the HoloScript Airdrop & Presale. Power the first AI-Native hardware ecosystem and secure your stake in the next generation of spatial computing.
+                    </p>
+                    
+                    <div class="glass-card p-4 p-md-5">
+                        <div class="d-flex flex-wrap gap-3 mb-4">
+                            <div class="timer-box">
+                                <span class="timer-val" id="days">14</span>
+                                <span class="timer-label">Days</span>
+                            </div>
+                            <div class="timer-box">
+                                <span class="timer-val" id="hours">23</span>
+                                <span class="timer-label">Hours</span>
+                            </div>
+                            <div class="timer-box">
+                                <span class="timer-val" id="minutes">59</span>
+                                <span class="timer-label">Min</span>
+                            </div>
+                            <div class="timer-box">
+                                <span class="timer-val" id="seconds">42</span>
+                                <span class="timer-label">Sec</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small text-studio-muted">Presale Progress (64%)</span>
+                                <span class="small fw-bold text-white">321.4 / 500 BNB</span>
+                            </div>
+                            <div class="progress" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 100px;">
+                                <div class="progress-bar" style="width: 64%; background: linear-gradient(90deg, #A855F7, #6366F1); border-radius: 100px;"></div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-100 py-3 text-uppercase tracking-widest">Contribute to Presale</button>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="glass-card p-4">
+                        <h4 class="fw-bold mb-4">Airdrop Tasks</h4>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="p-3 rounded-4 bg-white/5 border border-white/10 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Follow on Twitter</h6>
+                                    <span class="small text-studio-muted">+100 HOLO</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-light rounded-pill px-3">Start</button>
+                            </div>
+                            <div class="p-3 rounded-4 bg-white/5 border border-white/10 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Join Telegram</h6>
+                                    <span class="small text-studio-muted">+100 HOLO</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-light rounded-pill px-3">Start</button>
+                            </div>
+                            <div class="p-3 rounded-4 bg-white/5 border border-white/10 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Join Discord</h6>
+                                    <span class="small text-studio-muted">+150 HOLO</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-light rounded-pill px-3">Start</button>
+                            </div>
+                            <div class="p-3 rounded-4 bg-white/5 border border-white/10 d-flex justify-content-between align-items-center opacity-50">
+                                <div>
+                                    <h6 class="mb-1">Connect Wallet</h6>
+                                    <span class="small text-studio-muted">+500 HOLO</span>
+                                </div>
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 rounded-4 bg-studio-accent/10 border border-studio-accent/20">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <LucideIcons.Info className="h-4 w-4 text-studio-accent" />
+                                <span class="small fw-bold text-studio-accent">HoloScript Passport</span>
+                            </div>
+                            <p class="small text-studio-muted mb-0">Claiming the airdrop requires an active HoloScript Passport in your wallet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-5 pt-5">
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <h2 class="fw-black mb-1">10B</h2>
+                        <span class="text-studio-muted text-uppercase small tracking-widest">Total Supply</span>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <h2 class="fw-black mb-1">20%</h2>
+                        <span class="text-studio-muted text-uppercase small tracking-widest">Airdrop Pool</span>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <h2 class="fw-black mb-1">Q3</h2>
+                        <span class="text-studio-muted text-uppercase small tracking-widest">Launch Date</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="container py-5 mt-5 border-top border-white/5 text-center">
+            <p class="text-studio-muted small mb-0">© 2024 HoloScript Ecosystem. Empowering Artificial General Intelligence via Spatial Hardware.</p>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Simple countdown timer
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 14);
+
+            function updateTimer() {
+                const now = new Date().getTime();
+                const distance = targetDate - now;
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                document.getElementById('days').innerText = days;
+                document.getElementById('hours').innerText = hours;
+                document.getElementById('minutes').innerText = minutes;
+                document.getElementById('seconds').innerText = seconds;
+            }
+
+            setInterval(updateTimer, 1000);
+            updateTimer();
+        </script>
+    </body>
+</html>

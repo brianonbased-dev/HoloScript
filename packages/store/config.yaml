@@ -1,0 +1,102 @@
+# HoloScript SoftStore - Verdaccio Configuration
+# Local-first: runs on your machine, proxies npm, works offline.
+# Production mirror: deploy same config to Railway as store.holoscript.net.
+
+# Storage lives alongside config — add to .gitignore
+# The startup script can symlink this to %APPDATA%/HoloScript/store if needed
+storage: "${APPDATA}/HoloScript/store"  # Windows
+# storage: "~/.holoscript/store"        # Linux/Mac
+
+plugins: ./plugins
+
+middlewares:
+  # x402 payment gating plugin (custom Verdaccio middleware)
+  # Intercepts requests for @premium/ packages and returns HTTP 402 with invoice
+  x402-gateway:
+    enabled: true
+
+# Auth: HoloMesh wallet verification with htpasswd local fallback
+# When mcp.holoscript.net is down (502), local htpasswd still works
+auth:
+  htpasswd:
+    file: ./storage/htpasswd
+    max_users: 100
+
+# Package scopes — 7 types, all npm-compatible
+packages:
+  # Core packages — free, open source
+  '@holoscript/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+    proxy: npmjs
+
+  # Traits (.hsplus behaviors)
+  '@traits/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Domain plugins
+  '@plugins/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Compilers (community bridge compilers)
+  '@compilers/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Scenes (.holo spatial content)
+  '@scenes/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Templates (starter projects)
+  '@templates/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Experiences (runnable HoloLand worlds)
+  '@experiences/*':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+
+  # Premium — x402 payment required (future)
+  '@premium/*':
+    access: $authenticated
+    publish: root
+    unpublish: root
+
+  # Everything else proxied to npm (offline cache)
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: root
+    proxy: npmjs
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    cache: true
+
+# Deprecated 'logs' → 'log' for Verdaccio 6+
+log: { type: stdout, format: pretty, level: http }
+
+# Web UI — browse packages at http://localhost:4873
+web:
+  title: HoloScript Store
+  # logo: logo.png
+  scope: "@holoscript"
+  primary_color: "#6366f1"
+
+# Server config
+listen: 0.0.0.0:4873
+
+# Max package size (100MB for large .holo scenes)
+max_body_size: 100mb

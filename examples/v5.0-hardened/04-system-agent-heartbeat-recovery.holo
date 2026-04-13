@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "System Agent Heartbeat Recovery", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "guardian_agent",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('portal:heartbeat_missing', (agentId) => {
+              log(`CRITICAL: Heartbeat missing for ${agentId}. Restarting agent.`);
+              emit('system:respawn', { agentId: agentId });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

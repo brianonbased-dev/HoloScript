@@ -9,6 +9,7 @@
  */
 
 import { logger } from './logger';
+import { strategyToSemiring, NumericStrategySemiringName } from './compiler/traits/Semiring';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,6 +59,8 @@ export interface SwarmConfig {
   commanderId: string;
   /** Per-agent behavior factory: index -> config overrides */
   agentFactory: (index: number, commanderId: string) => Partial<SwarmAgentConfig>;
+  /** Optional aggregation strategy for numeric state (default: 'sum') */
+  aggregationStrategy?: NumericStrategySemiringName;
   /** Optional timeout in ms for the entire swarm lifecycle (default: 30000) */
   timeoutMs?: number;
 }
@@ -280,11 +283,21 @@ export class MitosisSwarm {
    */
   aggregate(): AggregatedReport {
     const aggregatedState: Record<string, number> = {};
+    const strategy = this.config.aggregationStrategy || 'sum';
+    const semiring = strategyToSemiring(strategy);
 
     for (const report of this.syncReports) {
       for (const [key, value] of Object.entries(report.result)) {
         if (typeof value === 'number') {
-          aggregatedState[key] = (aggregatedState[key] || 0) + value;
+          if (semiring) {
+            aggregatedState[key] =
+              aggregatedState[key] === undefined
+                ? value
+                : semiring.add(aggregatedState[key], value);
+          } else {
+            // Fallback for strategies not yet mapped to semirings (legacy behavior)
+            aggregatedState[key] = (aggregatedState[key] || 0) + value;
+          }
         }
       }
     }

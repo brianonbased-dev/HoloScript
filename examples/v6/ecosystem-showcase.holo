@@ -1,0 +1,38 @@
+{
+  "version": "6.0.0",
+  "root": {
+    "id": "root",
+    "type": "Group",
+    "name": "Ecosystem Showcase",
+    "transform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "traits": [
+      {
+        "type": "HoloMeshNode",
+        "config": {
+          "domain": "ecosystem.holoscript.net",
+          "connected": true
+        }
+      }
+    ],
+    "children": [
+      {
+        "id": "marketplace-portal",
+        "type": "Component",
+        "name": "Marketplace Portal",
+        "transform": { "position": [0, 1, -5] },
+        "traits": [
+          { "type": "StoreItem", "config": { "package": "@premium/architecture", "priceSats": 50000 } }
+        ]
+      },
+      {
+        "id": "agent-broker",
+        "type": "Component",
+        "name": "Registry Broker API",
+        "transform": { "position": [2, 0, -2] },
+        "traits": [
+          { "type": "Agent", "config": { "name": "Broker", "tier": "A" } }
+        ]
+      }
+    ]
+  }
+}

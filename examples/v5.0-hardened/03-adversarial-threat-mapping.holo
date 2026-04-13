@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Adversarial Threat Mapping", "version": "5.0.0" },
+  "traits": [ { "trait": "attack_graph", "config": {} } ],
+  "entities": [
+    {
+      "id": "security_visualizer",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('attack:risk_propagation', (payload) => {
+              log(`CRITICAL: Risk propagation detected from ${payload.fromNode} to ${payload.toNode}. Impact: ${payload.impact}`);
+              emit('security:alert', { level: 'high', path: payload.path });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

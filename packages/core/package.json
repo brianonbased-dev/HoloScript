@@ -234,6 +234,7 @@
   },
   "devDependencies": {
     "@holoscript/engine": "workspace:*",
+    "@holoscript/framework": "workspace:*",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/three": "^0.170.0",

@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Sensor Fusion: LiDAR & Gaussian", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "fusion_node",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('sensor:lidar_data', (data) => {
+              log('Updating spatial mesh with LiDAR depth data');
+              emit('spatial:update_gaussian_splat', { data: data });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

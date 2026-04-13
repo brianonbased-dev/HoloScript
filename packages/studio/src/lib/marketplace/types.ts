@@ -66,6 +66,7 @@ export interface MarketplaceItem {
   fileSize?: number; // bytes
   version?: string;
   compatibility?: string; // "HoloScript 3.42.0+"
+  priceSats?: number; // x402 price in satoshis
 }
 
 export interface MarketplaceCategory {

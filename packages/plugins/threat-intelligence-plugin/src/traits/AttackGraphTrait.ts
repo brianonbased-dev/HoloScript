@@ -26,8 +26,12 @@ export const attackGraphHandler: TraitHandler<AttackGraphConfig> = {
   onEvent(node: HSPlusNode, config: AttackGraphConfig, ctx: TraitContext, event: TraitEvent): void {
     const id = node.id ?? config.graphId ?? 'unknown';
     if (event.type === 'attack_graph:update') {
-      const score = Number(event.payload?.riskScore ?? 0);
+      const payload = event.payload;
+      if (!payload || typeof payload !== 'object') return;
+
+      const score = Number(payload.riskScore ?? 0);
       riskScores.set(id, score);
+      
       ctx.emit?.('attack_graph:updated', {
         nodeId: id,
         graphId: config.graphId,

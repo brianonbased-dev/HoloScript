@@ -1,0 +1,23 @@
+{
+  "metadata": { "name": "Sovereign Governance Voting", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "council",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            let votes = { yes: 0, no: 0 };
+            on('portal:message_in', (msg) => {
+              if (msg.type === 'vote') {
+                votes[msg.data.choice]++;
+                log(`Vote recorded: ${msg.data.choice}. Total: Y:${votes.yes} N:${votes.no}`);
+              }
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

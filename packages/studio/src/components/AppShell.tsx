@@ -31,6 +31,7 @@ const CORE_ITEMS: NavItem[] = [
 
 // Ecosystem
 const ECOSYSTEM_ITEMS: NavItem[] = [
+  { label: 'Store', href: '/store', icon: '🏪', description: 'AI hardware & software store' },
   { label: 'HoloMesh', href: '/holomesh', icon: '🌐', description: 'Knowledge exchange' },
   { label: 'Teams', href: '/teams', icon: '👥', description: 'Team workspaces' },
   { label: 'Agents', href: '/agents', icon: '🤖', description: 'AI agent network' },

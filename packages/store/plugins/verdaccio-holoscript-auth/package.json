@@ -1,0 +1,7 @@
+{
+  "name": "verdaccio-holoscript-auth",
+  "version": "1.0.0",
+  "description": "HoloMesh wallet authentication for HoloScript Store",
+  "main": "index.js",
+  "type": "module"
+}

@@ -214,8 +214,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onDetach
   // ===========================================================================
   onDetach(node: HSPlusNode, _config: EconomyConfig, context: TraitContext): void {
-    // @ts-expect-error
-    const state: EconomyState | undefined = node.__economyState;
+    const state = node.__economyState as EconomyState | undefined;
     if (state) {
       // Cancel all open bounties
       for (const bounty of state.bounties.values()) {
@@ -235,8 +234,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onUpdate — expire bounties, charge subscriptions
   // ===========================================================================
   onUpdate(node: HSPlusNode, config: EconomyConfig, context: TraitContext, _delta: number): void {
-    // @ts-expect-error
-    const state: EconomyState | undefined = node.__economyState;
+    const state = node.__economyState as EconomyState | undefined;
     if (!state) return;
 
     const now = Date.now();
@@ -303,8 +301,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
   // onEvent
   // ===========================================================================
   onEvent(node: HSPlusNode, config: EconomyConfig, context: TraitContext, event: TraitEvent): void {
-    // @ts-expect-error
-    const state: EconomyState | undefined = node.__economyState;
+    const state = node.__economyState as EconomyState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
@@ -313,8 +310,12 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
     switch (eventType) {
       // ─── Credit operations ─────────────────────────────────────────────
       case 'economy:earn': {
-        const account = getOrCreateAccount(state, payload.agentId, config, context);
-        const amount = Math.max(0, Number(payload.amount) || config.task_completion_reward);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const agentId = String(p.agentId);
+        
+        const account = getOrCreateAccount(state, agentId, config, context);
+        const amount = Math.max(0, Number(p.amount) || config.task_completion_reward);
         account.balance += amount;
         account.totalEarned += amount;
 
@@ -325,25 +326,29 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
             type: 'earn',
             amount,
             fromAgent: '__system__',
-            toAgent: payload.agentId,
-            reason: payload.reason ?? 'task_completion',
+            toAgent: agentId,
+            reason: String(p.reason ?? 'task_completion'),
             timestamp: Date.now(),
           },
           config.max_transaction_history
         );
 
         context.emit?.('economy:credit_earned', {
-          agentId: payload.agentId,
+          agentId,
           amount,
-          reason: payload.reason ?? 'task_completion',
+          reason: String(p.reason ?? 'task_completion'),
           newBalance: account.balance,
         });
         break;
       }
 
       case 'economy:spend': {
-        const account = getOrCreateAccount(state, payload.agentId, config, context);
-        const amount = Math.max(0, Number(payload.amount) || 0);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const agentId = String(p.agentId);
+
+        const account = getOrCreateAccount(state, agentId, config, context);
+        const amount = Math.max(0, Number(p.amount) || 0);
 
         resetSpendPeriodIfNeeded(account);
 
@@ -377,31 +382,36 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
             id: generateTxId(state),
             type: 'spend',
             amount,
-            fromAgent: payload.agentId,
-            toAgent: payload.target ?? '__system__',
-            reason: payload.reason ?? 'inference',
+            fromAgent: agentId,
+            toAgent: String(p.target ?? '__system__'),
+            reason: String(p.reason ?? 'inference'),
             timestamp: Date.now(),
           },
           config.max_transaction_history
         );
 
         context.emit?.('economy:credit_spent', {
-          agentId: payload.agentId,
+          agentId,
           amount,
-          reason: payload.reason ?? 'inference',
+          reason: String(p.reason ?? 'inference'),
           newBalance: account.balance,
         });
         break;
       }
 
       case 'economy:transfer': {
-        const from = getOrCreateAccount(state, payload.from, config, context);
-        const to = getOrCreateAccount(state, payload.to, config, context);
-        const amount = Math.max(0, Number(payload.amount) || 0);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const fromId = String(p.from);
+        const toId = String(p.to);
+
+        const from = getOrCreateAccount(state, fromId, config, context);
+        const to = getOrCreateAccount(state, toId, config, context);
+        const amount = Math.max(0, Number(p.amount) || 0);
 
         if (from.balance < amount) {
           context.emit?.('economy:insufficient_funds', {
-            agentId: payload.from,
+            agentId: fromId,
             amount,
             balance: from.balance,
           });
@@ -418,9 +428,9 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
           id: txId,
           type: 'transfer',
           amount,
-          fromAgent: payload.from,
-          toAgent: payload.to,
-          reason: payload.reason ?? 'transfer',
+          fromAgent: fromId,
+          toAgent: toId,
+          reason: String(p.reason ?? 'transfer'),
           timestamp: Date.now(),
         };
         addTransaction(from, tx, config.max_transaction_history);
@@ -428,23 +438,27 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
 
         context.emit?.('economy:transaction', {
           txId,
-          from: payload.from,
-          to: payload.to,
+          from: fromId,
+          to: toId,
           amount,
-          item: payload.item ?? null,
+          item: p.item ?? null,
         });
         break;
       }
 
       // ─── Bounty operations ─────────────────────────────────────────────
       case 'economy:post_bounty': {
-        const poster = getOrCreateAccount(state, payload.posterId, config, context);
-        const reward = Math.max(1, Number(payload.reward) || 0);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const posterId = String(p.posterId);
+
+        const poster = getOrCreateAccount(state, posterId, config, context);
+        const reward = Math.max(1, Number(p.reward) || 0);
 
         // Check max bounties
         let openCount = 0;
         for (const b of state.bounties.values()) {
-          if (b.posterId === payload.posterId && (b.status === 'open' || b.status === 'claimed'))
+          if (b.posterId === posterId && (b.status === 'open' || b.status === 'claimed'))
             openCount++;
         }
         if (openCount >= config.max_bounties_per_agent) break;
@@ -453,7 +467,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         if (config.escrow_enabled) {
           if (poster.balance < reward) {
             context.emit?.('economy:insufficient_funds', {
-              agentId: payload.posterId,
+              agentId: posterId,
               amount: reward,
               balance: poster.balance,
             });
@@ -466,7 +480,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
               id: generateTxId(state),
               type: 'escrow_lock',
               amount: reward,
-              fromAgent: payload.posterId,
+              fromAgent: posterId,
               toAgent: '__escrow__',
               reason: 'bounty_escrow',
               timestamp: Date.now(),
@@ -478,20 +492,20 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         const bountyId = generateBountyId(state);
         const bounty: Bounty = {
           id: bountyId,
-          posterId: payload.posterId,
+          posterId: posterId,
           reward,
-          description: payload.description ?? '',
-          requiredCapabilities: payload.requiredCapabilities ?? [],
+          description: String(p.description ?? ''),
+          requiredCapabilities: Array.isArray(p.requiredCapabilities) ? p.requiredCapabilities : [],
           status: 'open',
           claimantId: null,
           escrowLocked: config.escrow_enabled ? reward : 0,
           deadline:
-            payload.deadline ??
+            Number(p.deadline) ||
             (config.default_bounty_deadline > 0 ? Date.now() + config.default_bounty_deadline : 0),
           createdAt: Date.now(),
           completedAt: null,
           result: null,
-          maxClaimants: payload.maxClaimants ?? 1,
+          maxClaimants: Number(p.maxClaimants ?? 1),
         };
         state.bounties.set(bountyId, bounty);
 
@@ -505,30 +519,40 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
       }
 
       case 'economy:claim_bounty': {
-        const bounty = state.bounties.get(payload.bountyId);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const bountyId = String(p.bountyId);
+        const claimantId = String(p.claimantId);
+
+        const bounty = state.bounties.get(bountyId);
         if (!bounty || bounty.status !== 'open') break;
 
         bounty.status = 'claimed';
-        bounty.claimantId = payload.claimantId;
+        bounty.claimantId = claimantId;
 
         context.emit?.('economy:bounty_claimed', {
-          bountyId: payload.bountyId,
-          claimantId: payload.claimantId,
+          bountyId,
+          claimantId,
         });
         break;
       }
 
       case 'economy:complete_bounty': {
-        const bounty = state.bounties.get(payload.bountyId);
+        if (!payload || typeof payload !== 'object') return;
+        const p = payload as Record<string, any>;
+        const bountyId = String(p.bountyId);
+
+        const bounty = state.bounties.get(bountyId);
         if (!bounty || bounty.status !== 'claimed') break;
 
         bounty.status = 'completed';
         bounty.completedAt = Date.now();
-        bounty.result = payload.result ?? null;
+        bounty.result = p.result ?? null;
 
         // Release escrow to winner
         if (bounty.escrowLocked > 0) {
-          const winner = getOrCreateAccount(state, bounty.claimantId!, config, context);
+          const winnerId = bounty.claimantId!;
+          const winner = getOrCreateAccount(state, winnerId, config, context);
           winner.balance += bounty.escrowLocked;
           winner.totalEarned += bounty.escrowLocked;
 
@@ -539,8 +563,8 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
               type: 'escrow_release',
               amount: bounty.escrowLocked,
               fromAgent: '__escrow__',
-              toAgent: bounty.claimantId!,
-              reason: `Bounty ${payload.bountyId} completed`,
+              toAgent: winnerId,
+              reason: `Bounty ${bountyId} completed`,
               timestamp: Date.now(),
             },
             config.max_transaction_history
@@ -550,7 +574,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         }
 
         context.emit?.('economy:bounty_completed', {
-          bountyId: payload.bountyId,
+          bountyId,
           winnerId: bounty.claimantId,
           reward: bounty.reward,
         });
@@ -559,9 +583,11 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
 
       // ─── Query operations ──────────────────────────────────────────────
       case 'economy:get_balance': {
-        const account = getOrCreateAccount(state, payload.agentId, config, context);
+        if (!payload || typeof payload !== 'object') return;
+        const agentId = String((payload as any).agentId);
+        const account = getOrCreateAccount(state, agentId, config, context);
         context.emit?.('economy:balance', {
-          agentId: payload.agentId,
+          agentId,
           balance: account.balance,
           totalEarned: account.totalEarned,
           totalSpent: account.totalSpent,
@@ -570,7 +596,9 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
       }
 
       case 'economy:get_bounties': {
-        const status = payload?.status as BountyStatus | undefined;
+        const status = (payload && typeof payload === 'object' && 'status' in payload) 
+          ? (payload as any).status as BountyStatus 
+          : undefined;
         const bounties: Bounty[] = [];
         for (const b of state.bounties.values()) {
           if (!status || b.status === status) bounties.push(b);

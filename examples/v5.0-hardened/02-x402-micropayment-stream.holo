@@ -1,0 +1,21 @@
+{
+  "metadata": { "name": "x402 Micropayment Stream", "version": "5.0.0" },
+  "traits": [ { "trait": "economy_primitives", "config": {} } ],
+  "entities": [
+    {
+      "id": "streamer",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('update', (delta) => {
+              // Stream 0.01 BRIAN per second
+              const amount = delta * 0.01;
+              emit('economy:transfer', { to: 'service_provider', amount: amount, type: 'x402_stream' });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

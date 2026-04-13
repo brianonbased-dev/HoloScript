@@ -1,0 +1,26 @@
+{
+  "metadata": { "name": "Collaborative SLM Search", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": { "federation_id": "knowledge_citadel" } } ],
+  "entities": [
+    {
+      "id": "search_agent",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('portal:query', (payload) => {
+              log(`Searching for: ${payload.query}`);
+              emit('portal:broadcast', { type: 'slm_request', query: payload.query });
+            });
+
+            on('portal:message_in', (msg) => {
+              if (msg.type === 'slm_partial_result') {
+                log(`Synthesis Update: Received chunk from ${msg.fromId}`);
+              }
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

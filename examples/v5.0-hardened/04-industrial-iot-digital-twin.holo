@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Industrial IoT Digital Twin", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "digital_twin",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('iot:telemetry', (data) => {
+              log(`Syncing state from physical sensor: ${data.sensorId}`);
+              emit('state:update', { value: data.temp });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

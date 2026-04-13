@@ -1,0 +1,29 @@
+{
+  "version": "6.0.0",
+  "root": {
+    "id": "multi-tenant-root",
+    "type": "Group",
+    "name": "Tenant Controller",
+    "traits": [
+      {
+        "type": "TenantBoundary",
+        "config": {
+          "tenantId": "org-omega-7",
+          "isolationLevel": "strict",
+          "resourceQuota": { "compute": 80, "storage": 1024 }
+        }
+      }
+    ],
+    "children": [
+      {
+        "id": "tenant-workspace",
+        "type": "Component",
+        "name": "Isolated Workspace",
+        "traits": [
+          { "type": "Secret", "config": { "max_secrets": 10, "auto_expire": true } },
+          { "type": "Agent", "config": { "name": "TenantOrchestrator" } }
+        ]
+      }
+    ]
+  }
+}

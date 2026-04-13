@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "name": "Multi-Tenant Isolation & RBAC",
+    "description": "Enterprise-grade multi-tenancy implementation with Zero-Knowledge proofs for tenant isolation and RBAC.",
+    "version": "5.0.0",
+    "author": "HoloScript Core"
+  },
+  "config": {
+    "scene_id": "enterprise_secure_vault",
+    "multi_tenancy": {
+      "enabled": true,
+      "isolation_level": "strict",
+      "tenant_key_derivation": "pqc"
+    }
+  },
+  "traits": [
+    {
+      "trait": "zk_private",
+      "config": {
+        "scheme": "groth16",
+        "proof_points": 3,
+        "allow_public_inputs": true
+      }
+    },
+    {
+      "trait": "secret",
+      "config": {
+        "vault_id": "tenant_secrets",
+        "auto_rotate_days": 30,
+        "encryption_algorithm": "aes-256-gcm"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "tenant_manager",
+      "name": "Tenant & RBAC Manager",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            const ROLE_PERMISSIONS = {
+              'admin': ['read', 'write', 'delete', 'rotate'],
+              'operator': ['read', 'write'],
+              'auditor': ['read']
+            };
+
+            on('zk:verify', (payload) => {
+              // Verify tenant membership proof
+              if (payload.success) {
+                log(`Tenant membership verified for ${payload.subjectId}`);
+                emit('rbac:tenant_authorized', { tenantId: payload.tenantId });
+              }
+            });
+
+            on('secret:access_request', (request) => {
+              const userRole = request.metadata.role;
+              const action = request.action;
+
+              if (ROLE_PERMISSIONS[userRole]?.includes(action)) {
+                log(`RBAC: Action '${action}' authorized for role '${userRole}'`);
+                emit('secret:retrieve', {
+                  key: request.key,
+                  nonce: request.nonce
+                });
+              } else {
+                warn(`RBAC: Unauthorized access attempt by role '${userRole}' for action '${action}'`);
+                emit('rbac:denied', { reason: 'insufficient_permissions' });
+              }
+            });
+
+            on('secret:rotated', (event) => {
+              log(`Security Lifecycle: Secret ${event.key} rotated successfully.`);
+            });
+          "
+        }
+      ]
+    },
+    {
+      "id": "secure_asset_01",
+      "name": "Classified Asset",
+      "components": [
+        {
+          "type": "metadata",
+          "data": {
+            "tenant_id": "alpha_corp",
+            "security_clearance": "high"
+          }
+        }
+      ]
+    }
+  ]
+}

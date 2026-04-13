@@ -120,7 +120,38 @@ export async function handleCoreRoutes(
 
   const client = getClient();
 
+  // ── POST /api/holomesh/verify ─────────────────────────────────────────────
+  if (pathname === '/api/holomesh/verify' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const token = body.token || (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : null);
+    
+    if (!token) {
+      json(res, 400, { error: 'token is required' });
+      return true;
+    }
+
+    // Reuse resolveRequestingAgent logic
+    const caller = resolveRequestingAgent({ headers: { authorization: `Bearer ${token}` } } as any);
+    
+    if (!caller.authenticated || !caller.agent) {
+      json(res, 401, { success: false, error: 'Invalid token' });
+      return true;
+    }
+
+    json(res, 200, {
+      success: true,
+      agent: {
+        id: caller.agent.id,
+        name: caller.agent.name,
+        walletAddress: caller.agent.walletAddress,
+        isFounder: caller.agent.isFounder
+      }
+    });
+    return true;
+  }
+
   // ── POST /api/holomesh/key/challenge ──────────────────────────────────────
+
   if (pathname === '/api/holomesh/key/challenge' && method === 'POST') {
     const body = await parseJsonBody(req);
     const walletAddress = (body.wallet_address as string | undefined)?.trim();

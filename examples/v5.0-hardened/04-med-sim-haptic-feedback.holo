@@ -1,0 +1,20 @@
+{
+  "metadata": { "name": "Medical Simulation Haptic Feedback", "version": "5.0.0" },
+  "traits": [ { "trait": "brainwave_state", "config": {} } ],
+  "entities": [
+    {
+      "id": "haptic_surgical_tool",
+      "components": [
+        {
+          "type": "script",
+          "source": "
+            on('physical:collision', (impact) => {
+              log(`Surgical collision detected. Impact: ${impact.force}`);
+              emit('haptic:vibrate', { intensity: impact.force * 10 });
+            });
+          "
+        }
+      ]
+    }
+  ]
+}

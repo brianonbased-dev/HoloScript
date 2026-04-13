@@ -746,6 +746,36 @@
       "import": "./dist/spatial/index.js",
       "require": "./dist/spatial/index.cjs"
     },
+    "./choreography": {
+      "types": "./dist/choreography/index.d.ts",
+      "import": "./dist/choreography/index.js",
+      "require": "./dist/choreography/index.cjs"
+    },
+    "./gpu": {
+      "types": "./dist/gpu/index.d.ts",
+      "import": "./dist/gpu/index.js",
+      "require": "./dist/gpu/index.cjs"
+    },
+    "./postfx": {
+      "types": "./dist/postfx/index.d.ts",
+      "import": "./dist/postfx/index.js",
+      "require": "./dist/postfx/index.cjs"
+    },
+    "./shader": {
+      "types": "./dist/shader/index.d.ts",
+      "import": "./dist/shader/index.js",
+      "require": "./dist/shader/index.cjs"
+    },
+    "./runtime/protocols": {
+      "types": "./dist/runtime/protocols/index.d.ts",
+      "import": "./dist/runtime/protocols/index.js",
+      "require": "./dist/runtime/protocols/index.cjs"
+    },
+    "./runtime/protocols/MQTTClient": {
+      "types": "./dist/runtime/protocols/index.d.ts",
+      "import": "./dist/runtime/protocols/index.js",
+      "require": "./dist/runtime/protocols/index.cjs"
+    },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
@@ -753,8 +783,8 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts src/vm/index.ts src/vm-bridge/index.ts src/simulation/index.ts src/spatial/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts src/rendering/index.ts src/physics/index.ts src/runtime/index.ts src/audio/index.ts src/animation/index.ts src/navigation/index.ts src/camera/index.ts src/input/index.ts src/vr/index.ts src/procedural/index.ts src/tilemap/index.ts src/terrain/index.ts src/particles/index.ts src/character/index.ts src/gameplay/index.ts src/dialogue/index.ts src/combat/index.ts src/orbital/index.ts src/world/index.ts src/environment/index.ts src/scene/index.ts src/ecs/index.ts src/hologram/index.ts src/vm/index.ts src/vm-bridge/index.ts src/simulation/index.ts src/spatial/index.ts --format esm,cjs --dts --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
