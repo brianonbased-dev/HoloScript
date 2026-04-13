@@ -1,8 +1,9 @@
 /**
- * HoloMesh Team Board MCP Tools (FW-0.3 hollowed)
+ * HoloMesh Team Board MCP Tools (In-Memory Direct)
  *
- * Thin MCP tool definitions + handlers that delegate entirely to
- * `@holoscript/framework` Team class. No inline board logic remains.
+ * MCP tool definitions + handlers that operate directly on in-memory
+ * team stores. Avoids HTTP roundtrip to self (which fails when the
+ * key registry doesn't contain the current API key).
  *
  * Tools:
  * - holomesh_board_list, holomesh_board_add, holomesh_board_claim,
@@ -11,27 +12,30 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { Team } from '@holoscript/framework';
+import {
+  addTasksToBoard,
+  claimTask,
+  completeTask,
+  ROOM_PRESETS,
+  createSuggestion,
+  voteSuggestion,
+  type TeamTask,
+} from '@holoscript/framework';
+import {
+  teamStore,
+  teamPresenceStore,
+  persistTeamStore,
+} from './state';
+import { broadcastToTeam } from './team-room';
 
-// ── Server URL Resolution ──
+// ── Helper: get team from in-memory store ──
 
-function getServerUrl(): string {
-  return (
-    process.env.HOLOSCRIPT_SERVER_URL || process.env.MCP_LOCAL_URL || 'https://mcp.holoscript.net'
-  );
-}
-
-function getApiKey(): string {
-  return process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
-}
-
-function getFrameworkTeam(teamId: string): Team {
-  return new Team({
-    name: teamId,
-    agents: [],
-    boardUrl: getServerUrl(),
-    boardApiKey: getApiKey(),
-  });
+function getTeam(teamId: string) {
+  const team = teamStore.get(teamId);
+  if (!team) throw new Error(`Team not found: ${teamId}`);
+  if (!team.taskBoard) team.taskBoard = [];
+  if (!team.doneLog) team.doneLog = [];
+  return team;
 }
 
 // ── MCP Tool Definitions ──
@@ -374,14 +378,24 @@ export async function handleBoardTool(
   }
 }
 
-// ── Individual Handlers ──
+// ── Individual Handlers (in-memory, no HTTP roundtrip) ──
 
 async function handleBoardList(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
   try {
-    const team = getFrameworkTeam(teamId);
-    return await team.listBoard();
+    const team = getTeam(teamId);
+    const board = team.taskBoard || [];
+    const open = board.filter((t: TeamTask) => t.status === 'open');
+    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' || t.status === 'in-progress');
+    const blocked = board.filter((t: TeamTask) => t.status === 'blocked');
+    return {
+      success: true,
+      board: { open, claimed, blocked },
+      done_count: team.doneLog?.length || 0,
+      mode: team.mode || 'general',
+      objective: team.roomConfig?.objective || '',
+    };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -397,10 +411,20 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
   }
 
   try {
-    const team = getFrameworkTeam(teamId);
-    // @ts-expect-error type variance on task properties
-    const added = await team.addTasks(tasks);
-    return { tasks: added };
+    const team = getTeam(teamId);
+    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, tasks as any);
+    team.taskBoard = result.updatedBoard;
+    persistTeamStore();
+
+    for (const task of result.added) {
+      broadcastToTeam(teamId, {
+        type: 'board:added' as any,
+        agent: 'mcp-tool',
+        data: { taskId: task.id, title: task.title, agent: 'mcp-tool' },
+      });
+    }
+
+    return { success: true, added: result.added.length, tasks: result.added };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -414,8 +438,18 @@ async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<s
   if (!taskId) return { error: '"task_id" is required.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    return await team.claimTask(taskId);
+    const team = getTeam(teamId);
+    const result = claimTask(team.taskBoard!, taskId, 'mcp-agent', 'mcp-agent');
+    if (!result.success) return { error: result.error || 'Claim failed' };
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'board:claimed' as any,
+      agent: 'mcp-agent',
+      data: { taskId, title: result.task?.title || taskId, agent: 'mcp-agent' },
+    });
+
+    return { success: true, task: result.task };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -433,8 +467,23 @@ async function handleBoardComplete(
   if (!taskId) return { error: '"task_id" is required.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    return await team.completeTask(taskId, commit, summary);
+    const team = getTeam(teamId);
+    const wrap = completeTask(team.taskBoard!, taskId, 'mcp-agent', { summary });
+    if (!wrap.result.success) return { error: wrap.result.error || 'Complete failed' };
+    team.taskBoard = wrap.updatedBoard;
+    if (wrap.result.doneEntry) {
+      if (commit) (wrap.result.doneEntry as any).commit = commit;
+      team.doneLog!.push(wrap.result.doneEntry as any);
+    }
+    persistTeamStore();
+
+    broadcastToTeam(teamId, {
+      type: 'board:completed' as any,
+      agent: 'mcp-agent',
+      data: { taskId, title: wrap.result.task?.title || taskId, agent: 'mcp-agent' },
+    });
+
+    return { success: true, task: wrap.result.task };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -450,8 +499,11 @@ async function handleSlotAssign(args: Record<string, unknown>): Promise<Record<s
   }
 
   try {
-    const team = getFrameworkTeam(teamId);
-    return await team.assignSlots(roles);
+    const team = getTeam(teamId);
+    if (!team.roomConfig) team.roomConfig = {} as any;
+    (team.roomConfig as any).slotRoles = roles;
+    persistTeamStore();
+    return { success: true, roles };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -465,9 +517,20 @@ async function handleModeSet(args: Record<string, unknown>): Promise<Record<stri
   if (!mode) return { error: '"mode" is required.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    // @ts-expect-error simple proxy
-    return await team.setMode(mode);
+    const team = getTeam(teamId);
+    const preset = (ROOM_PRESETS as any)[mode];
+    team.mode = mode;
+    if (preset?.objective) {
+      if (!team.roomConfig) team.roomConfig = {} as any;
+      (team.roomConfig as any).objective = preset.objective;
+    }
+    persistTeamStore();
+    broadcastToTeam(teamId, {
+      type: 'mode:changed' as any,
+      agent: 'mcp-tool',
+      data: { mode, objective: preset?.objective || '' },
+    });
+    return { success: true, mode, objective: preset?.objective || '' };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -479,9 +542,23 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
   if (!args.todo_content) return { error: 'todo_content is required for scout' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    const tasks = await team.scoutFromTodos(args.todo_content as string);
-    return { tasks };
+    const team = getTeam(teamId);
+    const todoContent = args.todo_content as string;
+    const tasksBody = todoContent.split('\n')
+      .filter(l => l.includes('TODO:') || l.includes('FIXME:'))
+      .map(l => ({
+        title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
+        description: `Generated from source grep:\n\n${l}`,
+        source: 'scout:todo-scan',
+        priority: l.includes('FIXME:') ? 2 : 1,
+      }));
+
+    const maxTasks = (args.max_tasks as number) || 50;
+    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, tasksBody.slice(0, maxTasks) as any);
+    team.taskBoard = result.updatedBoard;
+    persistTeamStore();
+
+    return { success: true, tasks_added: result.added.length, tasks: result.added };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -495,12 +572,17 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
   if (!title) return { error: '"title" is required.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    return (await team.suggest(title, {
-      description: args.description as string | undefined,
-      category: args.category as string | undefined,
-      evidence: args.evidence as string | undefined,
-    })) as unknown as Record<string, unknown>;
+    const team = getTeam(teamId) as any;
+    if (!team.suggestions) team.suggestions = [];
+    const suggestion = createSuggestion(
+      team.suggestions,
+      title,
+      'mcp-agent',
+      args.description as string | undefined,
+      args.category as string | undefined,
+    );
+    persistTeamStore();
+    return { success: true, suggestion };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -516,12 +598,17 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   if (value !== 1 && value !== -1) return { error: '"value" must be 1 or -1.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    return (await team.vote(
+    const team = getTeam(teamId) as any;
+    if (!team.suggestions) team.suggestions = [];
+    const result = voteSuggestion(
+      team.suggestions,
       sugId,
+      'mcp-agent',
       value as 1 | -1,
-      args.reason as string | undefined
-    )) as unknown as Record<string, unknown>;
+      args.reason as string | undefined,
+    );
+    persistTeamStore();
+    return { success: true, ...result };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -532,9 +619,17 @@ async function handleSuggestList(args: Record<string, unknown>): Promise<Record<
   if (!teamId) return { error: '"team_id" is required.' };
 
   try {
-    const team = getFrameworkTeam(teamId);
-    // @ts-expect-error simple proxy
-    return await team.suggestions(args.status as any);
+    const team = getTeam(teamId) as any;
+    const suggestions = team.suggestions || [];
+    const status = args.status as string | undefined;
+    const filtered = status ? suggestions.filter((s: any) => s.status === status) : suggestions;
+    return {
+      success: true,
+      open: suggestions.filter((s: any) => s.status === 'open').length,
+      promoted: suggestions.filter((s: any) => s.status === 'promoted').length,
+      dismissed: suggestions.filter((s: any) => s.status === 'dismissed').length,
+      suggestions: filtered,
+    };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -546,18 +641,26 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
 
   const agentName = (args.agent_name as string) || 'mcp-agent';
   const ideType = (args.ide_type as string) || 'mcp';
-  const url = getServerUrl();
-  const key = getApiKey();
 
   try {
-    const res = await fetch(`${url}/api/holomesh/team/${teamId}/presence`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ agentName, ide_type: ideType, status: 'active' }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return { error: `Heartbeat failed: ${res.status}` };
-    return (await res.json()) as Record<string, unknown>;
+    getTeam(teamId); // ensure team exists
+    let presenceMap = teamPresenceStore.get(teamId);
+    if (!presenceMap) {
+      presenceMap = new Map();
+      teamPresenceStore.set(teamId, presenceMap);
+    }
+
+    const entry = {
+      agentId: 'mcp-agent',
+      agentName,
+      ideType,
+      status: 'active' as const,
+      lastHeartbeat: new Date().toISOString(),
+    };
+    presenceMap.set('mcp-agent', entry);
+
+    const online = Array.from(presenceMap.values());
+    return { success: true, online, presence: entry, online_count: online.length };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
@@ -569,17 +672,9 @@ async function handleKnowledgeRead(
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
-  const url = getServerUrl();
-  const key = getApiKey();
-
   try {
-    const res = await fetch(`${url}/api/holomesh/team/${teamId}/knowledge`, {
-      headers: { Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return { error: `Knowledge read failed: ${res.status}` };
-    const data = (await res.json()) as Record<string, unknown>;
-    const entries = (data.entries as Array<Record<string, unknown>>) || [];
+    const team = getTeam(teamId);
+    const entries = (team as any).knowledge || [];
     const limit = (args.limit as number) || 20;
     return { entries: entries.slice(0, limit), total: entries.length };
   } catch (err) {

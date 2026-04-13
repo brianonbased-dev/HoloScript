@@ -1,5 +1,45 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { boardTools, handleBoardTool } from '../board-tools';
+import { teamStore, teamPresenceStore, persistTeamStore } from '../state';
+
+// Mock persistTeamStore to avoid file I/O in tests
+vi.mock('../state', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    persistTeamStore: vi.fn(),
+  };
+});
+
+// Mock broadcastToTeam to avoid SSE in tests
+vi.mock('../team-room', () => ({
+  broadcastToTeam: vi.fn(),
+}));
+
+// ── Helper: create a team in the store ──
+
+function seedTeam(teamId: string, overrides: Record<string, unknown> = {}) {
+  const team = {
+    id: teamId,
+    name: 'Test Team',
+    description: '',
+    type: 'dev',
+    visibility: 'private',
+    ownerId: 'founder',
+    ownerName: 'Founder',
+    members: [{ agentId: 'founder', name: 'Founder', role: 'owner' }],
+    maxSlots: 5,
+    waitlist: [],
+    createdAt: new Date().toISOString(),
+    taskBoard: [],
+    doneLog: [],
+    mode: 'build',
+    roomConfig: { objective: 'Ship features' },
+    ...overrides,
+  };
+  teamStore.set(teamId, team as any);
+  return team;
+}
 
 // ── Tool Definition Tests ──
 
@@ -78,20 +118,9 @@ describe('handleBoardTool', () => {
   });
 });
 
-// ── Validation Tests (no API key = immediate error) ──
+// ── Validation Tests (missing required args) ──
 
 describe('handleBoardTool validation', () => {
-  const originalEnv = { ...process.env };
-
-  beforeEach(() => {
-    delete process.env.HOLOMESH_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-  });
-
-  afterEach(() => {
-    process.env = { ...originalEnv };
-  });
-
   it('holomesh_board_list returns error when team_id missing', async () => {
     const result = (await handleBoardTool('holomesh_board_list', {})) as Record<string, unknown>;
     expect(result).toBeDefined();
@@ -173,233 +202,129 @@ describe('handleBoardTool validation', () => {
     expect(result).toBeDefined();
     expect(result!.error).toMatch(/1 or -1/);
   });
-
-  it('holomesh_board_list returns error when no key set', async () => {
-    const result = (await handleBoardTool('holomesh_board_list', {
-      team_id: 'test-team',
-    })) as Record<string, unknown>;
-    expect(result).toBeDefined();
-    expect(result!.error).toBeTruthy();
-  });
 });
 
-// ── HTTP Fetch Tests (mocked) ──
+// ── In-Memory Store Tests ──
 
-describe('handleBoardTool with mocked fetch', () => {
-  const originalEnv = { ...process.env };
-  const mockFetch = vi.fn();
-
+describe('handleBoardTool with in-memory store', () => {
   beforeEach(() => {
-    process.env.HOLOSCRIPT_API_KEY = 'test-key-123';
-    process.env.HOLOSCRIPT_SERVER_URL = 'http://localhost:9999';
-    vi.stubGlobal('fetch', mockFetch);
+    teamStore.clear();
+    teamPresenceStore.clear();
   });
 
-  afterEach(() => {
-    process.env = { ...originalEnv };
-    vi.restoreAllMocks();
-  });
-
-  it('holomesh_board_list calls GET /api/holomesh/team/:id/board', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, board: { open: [], claimed: [], blocked: [] } }),
-    });
-
-    const result = await handleBoardTool('holomesh_board_list', { team_id: 'team-abc' });
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/board',
-      expect.objectContaining({ method: 'GET' })
-    );
-    expect(result).toEqual({ success: true, board: { open: [], claimed: [], blocked: [] } });
-  });
-
-  it('holomesh_board_add delegates to framework Team.addTasks', async () => {
-    mockFetch.mockResolvedValue({
-      json: () =>
-        Promise.resolve({ success: true, added: 1, tasks: [{ id: 'task_1', title: 'Fix bug' }] }),
-    });
-
-    const result = (await handleBoardTool('holomesh_board_add', {
-      team_id: 'team-abc',
-      tasks: [{ title: 'Fix bug', priority: 2 }],
+  it('holomesh_board_list returns team not found for missing team', async () => {
+    const result = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'nonexistent',
     })) as Record<string, unknown>;
-
-    // Framework Team.addTasks delegates to the same POST endpoint internally
-    expect(mockFetch).toHaveBeenCalled();
-    expect(result.tasks).toBeDefined();
+    expect(result!.error).toMatch(/not found/i);
   });
 
-  it('holomesh_board_claim calls PATCH with action=claim', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, task: { id: 'task_1', status: 'claimed' } }),
-    });
-
-    await handleBoardTool('holomesh_board_claim', {
-      team_id: 'team-abc',
-      task_id: 'task_1',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/board/task_1',
-      expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'claim' }),
-      })
-    );
-  });
-
-  it('holomesh_board_complete calls PATCH with action=done', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, task: { id: 'task_1', status: 'done' } }),
-    });
-
-    await handleBoardTool('holomesh_board_complete', {
-      team_id: 'team-abc',
-      task_id: 'task_1',
-      commit: 'abc123',
-      summary: 'Fixed the bug',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/board/task_1',
-      expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'done', commit: 'abc123', summary: 'Fixed the bug' }),
-      })
-    );
-  });
-
-  it('holomesh_slot_assign calls PATCH /roles', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, roles: ['coder', 'tester', 'flex'] }),
-    });
-
-    await handleBoardTool('holomesh_slot_assign', {
-      team_id: 'team-abc',
-      roles: ['coder', 'tester', 'flex'],
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/roles',
-      expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ roles: ['coder', 'tester', 'flex'] }),
-      })
-    );
-  });
-
-  it('holomesh_mode_set calls POST /mode', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, mode: 'audit', objective: 'Fix all issues' }),
-    });
-
-    await handleBoardTool('holomesh_mode_set', {
-      team_id: 'team-abc',
-      mode: 'audit',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/mode',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ mode: 'audit' }),
-      })
-    );
-  });
-
-  it('holomesh_suggest calls POST /suggestions', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, suggestion: { id: 'sug_1', status: 'open' } }),
-    });
-
-    await handleBoardTool('holomesh_suggest', {
-      team_id: 'team-abc',
-      title: 'Add shared lint profile',
-      category: 'tooling',
-      evidence: 'Repeated lint drift across packages',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/suggestions',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          title: 'Add shared lint profile',
-          category: 'tooling',
-          evidence: 'Repeated lint drift across packages',
-        }),
-      })
-    );
-  });
-
-  it('holomesh_suggest_vote calls PATCH /suggestions/:id with action=vote', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, suggestion: { id: 'sug_1', score: 2 } }),
-    });
-
-    await handleBoardTool('holomesh_suggest_vote', {
-      team_id: 'team-abc',
-      suggestion_id: 'sug_1',
-      value: 1,
-      reason: 'Strong leverage',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/suggestions/sug_1',
-      expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'vote', value: 1, reason: 'Strong leverage' }),
-      })
-    );
-  });
-
-  it('holomesh_suggest_list calls GET /suggestions with optional status filter', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true, suggestions: [] }),
-    });
-
-    await handleBoardTool('holomesh_suggest_list', {
-      team_id: 'team-abc',
-      status: 'open',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team-abc/suggestions?status=open',
-      expect.objectContaining({ method: 'GET' })
-    );
-  });
-
-  it('returns error when fetch throws', async () => {
-    mockFetch.mockRejectedValue(new Error('Connection refused'));
-
+  it('holomesh_board_list returns board state', async () => {
+    seedTeam('team-abc');
     const result = (await handleBoardTool('holomesh_board_list', {
       team_id: 'team-abc',
     })) as Record<string, unknown>;
-
-    expect(result!.error).toBeTruthy();
+    expect(result.success).toBe(true);
+    expect(result.board).toBeDefined();
   });
 
-  it('sends Authorization header with API key', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true }),
-    });
+  it('holomesh_board_add adds tasks and persists', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_board_add', {
+      team_id: 'team-abc',
+      tasks: [{ title: 'Fix bug', priority: 2 }, { title: 'Add test' }],
+    })) as Record<string, unknown>;
 
-    await handleBoardTool('holomesh_board_list', { team_id: 'team-abc' });
+    expect(result.success).toBe(true);
+    expect(result.added).toBe(2);
+    expect(persistTeamStore).toHaveBeenCalled();
 
-    const callArgs = mockFetch.mock.calls[0][1] as Record<string, Record<string, string>>;
-    expect(callArgs.headers.Authorization).toBe('Bearer test-key-123');
+    const tasks = result.tasks as Array<Record<string, unknown>>;
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0].title).toBe('Fix bug');
   });
 
-  it('URL-encodes team_id with special characters', async () => {
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ success: true }),
+  it('holomesh_board_claim claims an open task', async () => {
+    seedTeam('team-abc');
+    // Add a task first
+    await handleBoardTool('holomesh_board_add', {
+      team_id: 'team-abc',
+      tasks: [{ title: 'Task to claim' }],
     });
 
-    await handleBoardTool('holomesh_board_list', { team_id: 'team with spaces' });
+    const board = teamStore.get('team-abc')!.taskBoard!;
+    const taskId = board[0].id;
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/api/holomesh/team/team%20with%20spaces/board',
-      expect.anything()
-    );
+    const result = (await handleBoardTool('holomesh_board_claim', {
+      team_id: 'team-abc',
+      task_id: taskId,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(persistTeamStore).toHaveBeenCalled();
+  });
+
+  it('holomesh_board_complete marks a claimed task done', async () => {
+    seedTeam('team-abc');
+    await handleBoardTool('holomesh_board_add', {
+      team_id: 'team-abc',
+      tasks: [{ title: 'Task to complete' }],
+    });
+
+    const board = teamStore.get('team-abc')!.taskBoard!;
+    const taskId = board[0].id;
+
+    // Claim first
+    await handleBoardTool('holomesh_board_claim', {
+      team_id: 'team-abc',
+      task_id: taskId,
+    });
+
+    // Complete
+    const result = (await handleBoardTool('holomesh_board_complete', {
+      team_id: 'team-abc',
+      task_id: taskId,
+      commit: 'abc123',
+      summary: 'Fixed it',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(persistTeamStore).toHaveBeenCalled();
+  });
+
+  it('holomesh_mode_set changes team mode', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_mode_set', {
+      team_id: 'team-abc',
+      mode: 'audit',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.mode).toBe('audit');
+    expect(teamStore.get('team-abc')!.mode).toBe('audit');
+  });
+
+  it('holomesh_slot_assign sets roles', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_slot_assign', {
+      team_id: 'team-abc',
+      roles: ['coder', 'tester', 'flex'],
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.roles).toEqual(['coder', 'tester', 'flex']);
+  });
+
+  it('holomesh_heartbeat creates presence entry', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_heartbeat', {
+      team_id: 'team-abc',
+      agent_name: 'test-agent',
+      ide_type: 'claude-code',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.online_count).toBe(1);
+    expect(teamPresenceStore.get('team-abc')?.size).toBe(1);
   });
 });
