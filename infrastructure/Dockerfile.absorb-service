@@ -36,12 +36,16 @@ COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/absorb-service/ packages/absorb-service/
+COPY packages/platform/ packages/platform/
+COPY packages/mesh/ packages/mesh/
 COPY services/absorb-service/ services/absorb-service/
 
 # Build in dependency order (skip DTS for runtime)
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/platform && npx tsup --no-dts
+RUN cd packages/mesh && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd services/absorb-service && npx tsc
 
@@ -74,6 +78,8 @@ COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
+COPY --from=builder /app/packages/platform/dist packages/platform/dist
+COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/services/absorb-service/dist services/absorb-service/dist
 
 # Set ownership

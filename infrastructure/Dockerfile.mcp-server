@@ -30,6 +30,8 @@ COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/config/package.json packages/config/
 COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
+COPY packages/platform/package.json packages/platform/
+COPY packages/mesh/package.json packages/mesh/
 
 
 # Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
@@ -46,6 +48,8 @@ COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/config/ packages/config/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
+COPY packages/platform/ packages/platform/
+COPY packages/mesh/ packages/mesh/
 
 
 # Build in dependency order
@@ -53,6 +57,8 @@ COPY packages/mcp-server/ packages/mcp-server/
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/platform && npx tsup --no-dts
+RUN cd packages/mesh && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd packages/mcp-server && npx tsup
 
@@ -96,6 +102,8 @@ COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/config/package.json packages/config/
 COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
+COPY packages/platform/package.json packages/platform/
+COPY packages/mesh/package.json packages/mesh/
 
 
 # Install all dependencies (some externalized packages like jsonwebtoken aren't
@@ -112,6 +120,8 @@ COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
+COPY --from=builder /app/packages/platform/dist packages/platform/dist
+COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
