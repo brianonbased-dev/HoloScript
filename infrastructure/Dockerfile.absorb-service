@@ -19,7 +19,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Copy workspace config + all package.json manifests
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
