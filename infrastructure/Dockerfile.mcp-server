@@ -19,7 +19,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Copy workspace config + all package.json manifests
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
@@ -81,7 +81,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
 # Copy workspace config + ALL package manifests for correct pnpm workspace resolution
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY --from=manifests /manifests/ ./
 
 # Install all dependencies (full workspace resolution for correct symlinks)
