@@ -3,11 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "declaration": true,
-    "declarationMap": true,
-    "paths": {
-      "@holoscript/core": ["../core/dist/index.d.ts"],
-      "@holoscript/core/*": ["../core/dist/*"]
-    }
+    "declarationMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
