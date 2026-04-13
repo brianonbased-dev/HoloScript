@@ -39,7 +39,6 @@ import {
   codebaseTools,
   graphRagTools,
   absorbServiceTools,
-  oracleTools,
   handleCodebaseTool,
   handleGraphRagTool,
   handleAbsorbServiceTool,
@@ -240,9 +239,6 @@ registerCategory(graphRagTools, (name, args) => handleGraphRagTool(name, args));
 registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, args));
 registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
-
-// Explicit single overrides
-TOOL_DISPATCH_REGISTRY.set('holo_oracle_consult', (name, args) => handleOracleConsult(args));
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {

@@ -432,13 +432,6 @@ async function securedToolExecution(
 
   // Execute the tool
   try {
-    // Oracle gets priority — local handler, no cross-package deps
-    if (toolName === 'holo_oracle_consult') {
-      const { handleOracleConsult } = await import('./oracle-handler');
-      const oracleResult = await handleOracleConsult(args);
-      return { result: oracleResult, isError: false };
-    }
-
     const pluginResult = await PluginManager.handleTool(toolName, args);
     const result = pluginResult !== null ? pluginResult : await handleTool(toolName, args);
 

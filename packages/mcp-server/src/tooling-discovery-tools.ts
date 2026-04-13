@@ -324,6 +324,74 @@ export function suggestToolsForGoal(
   };
 }
 
+export async function handleToolingDiscoveryTool(
+  name: string,
+  args: Record<string, unknown>,
+  allTools: Tool[],
+  dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>
+): Promise<
+  | {
+      count: number;
+      categories: Record<string, number>;
+      tools: ToolManifestEntry[];
+    }
+  | {
+      goal: string;
+      suggestions: Array<{ name: string; score: number; reason: string }>;
+      suggestedBundles: Array<{ name: string; tools: string[]; reason: string }>;
+    }
+  | {
+      results: Array<{ index: number; name: string; ok: boolean; result?: unknown; error?: string }>;
+      summary: { total: number; succeeded: number; failed: number; stoppedEarly: boolean };
+    }
+  | null
+> {
+  if (name === 'get_tool_manifest') {
+    const includeInputSchema = args.includeInputSchema !== false;
+    const includeOutputSchema = args.includeOutputSchema !== false;
+    const includeExamples = args.includeExamples === true;
+
+    const manifest = buildToolManifest(allTools, {
+      includeInputSchema,
+      includeOutputSchema,
+      includeExamples,
+    });
+
+    const categories: Record<string, number> = {};
+    for (const item of manifest) categories[item.category] = (categories[item.category] || 0) + 1;
+
+    return {
+      count: manifest.length,
+      categories,
+      tools: manifest,
+    };
+  }
+
+  if (name === 'suggest_tools_for_goal') {
+    const goal = String(args.goal || '').trim();
+    if (!goal) throw new Error('goal is required');
+
+    const maxSuggestions =
+      typeof args.maxSuggestions === 'number' && args.maxSuggestions > 0
+        ? Math.floor(args.maxSuggestions)
+        : 8;
+
+    const manifest = buildToolManifest(allTools, {
+      includeInputSchema: false,
+      includeOutputSchema: false,
+      includeExamples: false,
+    });
+
+    return suggestToolsForGoal(goal, manifest, maxSuggestions);
+  }
+
+  if (name === 'batch_tool_call') {
+    return handleBatchToolCall(args, dispatch);
+  }
+
+  return null;
+}
+
 export async function handleBatchToolCall(
   args: Record<string, unknown>,
   dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>

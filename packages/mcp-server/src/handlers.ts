@@ -45,7 +45,9 @@ import {
   buildToolManifest,
   suggestToolsForGoal,
   handleBatchToolCall,
+  handleToolingDiscoveryTool,
 } from './tooling-discovery-tools';
+import { handleOracleConsult } from './oracle-handler';
 
 // Trait categories mapping — representative samples per category.
 // Full 1,800+ trait list is available via the 'all' category (sourced from @holoscript/core).
@@ -243,46 +245,21 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserExecute(BrowserExecuteSchema.parse(args));
     case 'browser_screenshot':
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
-    case 'get_tool_manifest': {
-      const includeInputSchema = args.includeInputSchema !== false;
-      const includeOutputSchema = args.includeOutputSchema !== false;
-      const includeExamples = args.includeExamples === true;
+    case 'get_tool_manifest':
+    case 'suggest_tools_for_goal':
+    case 'batch_tool_call': {
       const { tools: allTools } = await import('./tools');
-      const manifest = buildToolManifest(allTools, {
-        includeInputSchema,
-        includeOutputSchema,
-        includeExamples,
-      });
-
-      const categories: Record<string, number> = {};
-      for (const item of manifest) categories[item.category] = (categories[item.category] || 0) + 1;
-
-      return {
-        count: manifest.length,
-        categories,
-        tools: manifest,
-      };
+      const result = await handleToolingDiscoveryTool(
+        name,
+        args,
+        allTools,
+        (toolName, toolArgs) => handleTool(toolName, toolArgs)
+      );
+      if (result !== null) return result;
+      break;
     }
-    case 'suggest_tools_for_goal': {
-      const goal = String(args.goal || '').trim();
-      if (!goal) throw new Error('goal is required');
-
-      const maxSuggestions =
-        typeof args.maxSuggestions === 'number' && args.maxSuggestions > 0
-          ? Math.floor(args.maxSuggestions)
-          : 8;
-
-      const { tools: allTools } = await import('./tools');
-      const manifest = buildToolManifest(allTools, {
-        includeInputSchema: false,
-        includeOutputSchema: false,
-        includeExamples: false,
-      });
-
-      return suggestToolsForGoal(goal, manifest, maxSuggestions);
-    }
-    case 'batch_tool_call':
-      return handleBatchToolCall(args, (toolName, toolArgs) => handleTool(toolName, toolArgs));
+    case 'holo_oracle_consult':
+      return handleOracleConsult(args);
   }
 
   // Absorb provenance wrapper tool
@@ -297,21 +274,9 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleProtocolTool(name, args);
   }
 
-  // Route codebase-intelligence tools first, then wisdom/gotcha tools, then graph tools.
-  // All share the `holo_` prefix.
+  // All remaining holo_ tools go to the Graph tool handler 
+  // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
   if (name.startsWith('holo_')) {
-    // Oracle gets priority — must not fall through to graph tools
-    if (name === 'holo_oracle_consult') {
-      return { oracle_routed: true };
-    }
-    const codebaseResult = await handleCodebaseTool(name, args);
-    if (codebaseResult !== null) {
-      return codebaseResult;
-    }
-    const wisdomResult = await handleWisdomGotchaTool(name, args);
-    if (wisdomResult !== null) {
-      return wisdomResult;
-    }
     return handleGraphTool(name, args);
   }
 
