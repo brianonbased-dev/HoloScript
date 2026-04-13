@@ -250,13 +250,14 @@ export function analyzeManifests(
 ): DaemonProjectDNA {
   const manifests: ManifestData[] = [];
   const additionalStack: string[] = [];
-  // @ts-ignore - Automatic remediation for TS2344
-  let kindVotes: Record<DaemonProjectKind, number> = {
+  const kindVotes: Record<string, number> = {
     service: 0,
     data: 0,
     frontend: 0,
     spatial: 0,
     automation: 0,
+    'agent-backend': 0,
+    library: 0,
     unknown: 0,
   };
   let confidenceBoost = 0;

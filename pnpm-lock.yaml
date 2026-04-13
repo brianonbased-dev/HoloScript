@@ -916,6 +916,9 @@ importers:
         specifier: ^8.16.0
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     devDependencies:
+      '@holoscript/engine':
+        specifier: workspace:*
+        version: link:../engine
       '@types/pixelmatch':
         specifier: ^5.2.6
         version: 5.2.6
@@ -1252,6 +1255,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
 
+  packages/holoscript-agent: {}
+
   packages/holoscript-cdn:
     devDependencies:
       vitest:
@@ -1544,6 +1549,9 @@ importers:
       playwright:
         specifier: ^1.58.2
         version: 1.58.2
+      viem:
+        specifier: ^2.21.0
+        version: 2.47.2(typescript@5.9.3)(zod@3.25.76)
       ws:
         specifier: ^8.20.0
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
@@ -1772,6 +1780,12 @@ importers:
         specifier: ^8.16.0
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/node':
+        specifier: '20'
+        version: 20.19.29
       '@types/pixelmatch':
         specifier: ^5.2.6
         version: 5.2.6
@@ -1801,7 +1815,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/ui@4.1.2)(vite@7.3.2)
+        version: 4.1.0(@types/node@20.19.29)(vite@7.3.2)
 
   packages/mvc-schema:
     dependencies:
@@ -13908,7 +13922,7 @@ packages:
     resolution: {integrity: sha512-kCFuWS0ebDbmxs0AXYn6e2r2nrGAb5KwQhknjSPSPgJcGd8+HVSILlUyFhGqML2gk39HcG7D1ydW9/qpYkN00Q==}
     dependencies:
       '@types/express': 5.0.6
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/connect@3.4.38:
@@ -13919,7 +13933,7 @@ packages:
   /@types/cors@2.8.19:
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/d3-array@3.2.2:
@@ -14308,13 +14322,13 @@ packages:
   /@types/pixelmatch@5.2.6:
     resolution: {integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/pngjs@6.0.5:
     resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/prismjs@1.26.6:
@@ -14324,7 +14338,7 @@ packages:
   /@types/prompts@2.4.9:
     resolution: {integrity: sha512-qTxFi6Buiu8+50/+3DGIWLHM6QuWsEKugJnnP6iv2Mc4ncxE4A/OJkjuVOA+5X0X1S/nq5VJRa8Lu+nwcvbrKA==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
       kleur: 3.0.3
     dev: true
 
@@ -14458,7 +14472,7 @@ packages:
   /@types/simple-peer@9.11.9:
     resolution: {integrity: sha512-6Gdl7TSS5oh9nuwKD4Pl8cSmaxWycYeZz9HLnJBNvIwWjZuGVsmHe9RwW3+9RxfhC1aIR9Z83DvaJoMw6rhkbg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/stats.js@0.17.4:
@@ -30290,7 +30304,7 @@ packages:
         optional: true
     dependencies:
       '@graphql-yoga/subscription': 5.0.5
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
       '@types/semver': 7.7.1
       graphql: 16.13.2
       graphql-query-complexity: 1.1.0(graphql@16.13.2)
