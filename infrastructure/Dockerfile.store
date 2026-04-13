@@ -1,0 +1,29 @@
+# HoloScript Store — Verdaccio Package Registry
+# Deploys as a Railway service alongside mcp-server, absorb, studio
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install Verdaccio globally
+RUN npm install -g verdaccio@6
+
+# Copy store config and plugins
+COPY packages/store/config.yaml /app/config.yaml
+COPY packages/store/plugins/ /app/plugins/
+
+# Create storage directory (Railway volume will mount here)
+RUN mkdir -p /app/storage
+
+# Create production config overlay
+RUN sed -i 's|storage: .*|storage: /app/storage|' /app/config.yaml
+
+# Expose Verdaccio port
+EXPOSE 4873
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD wget -qO- http://localhost:4873/-/ping || exit 1
+
+# Run Verdaccio
+CMD ["verdaccio", "--config", "/app/config.yaml"]
