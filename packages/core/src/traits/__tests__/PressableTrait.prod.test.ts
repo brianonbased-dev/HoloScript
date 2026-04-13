@@ -18,7 +18,7 @@ function makeNode(overrides: any = {}) {
   return {
     id: 'press_node',
     properties: {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       distance: 0.01,
       stiffness: 100,
       damping: 5,

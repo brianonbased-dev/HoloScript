@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Anchor Trait
  *
  * Spatial anchor for attaching content to physical locations in AR/MR.
@@ -19,7 +19,7 @@ type Alignment = 'gravity' | 'camera' | 'plane' | 'none';
 type FallbackBehavior = 'freeze' | 'hide' | 'interpolate' | 'reset';
 
 interface AnchorPose {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   confidence: number;
 }
@@ -140,11 +140,7 @@ export const anchorHandler: TraitHandler<AnchorConfig> = {
       const [ox, oy, oz] = config.offset;
       context.emit?.('set_position', {
         node,
-        position: {
-          x: state.pose.position.x + ox,
-          y: state.pose.position.y + oy,
-          z: state.pose.position.z + oz,
-        },
+        position: [state.pose.position.x + ox, state.pose.position.y + oy, state.pose.position.z + oz,],
       });
 
       context.emit?.('set_rotation', {

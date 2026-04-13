@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FaceTracking Trait
  *
  * Face mesh and expression tracking for avatars and effects.
@@ -67,7 +67,7 @@ interface FaceTrackingState {
   leftEye: EyeGaze | null;
   rightEye: EyeGaze | null;
   headPose: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   } | null;
   lastUpdateTime: number;

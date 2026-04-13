@@ -16,7 +16,7 @@ describe('SpatialAwarenessTrait', () => {
     otherEntity = {
       id: 'entity-2',
       type: 'npc',
-      position: { x: 20, y: 0, z: 0 }, // Out of range initially (radius 10)
+      position: [20, 0, 0], // Out of range initially (radius 10)
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     };
@@ -65,7 +65,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.start();
     // Start close
     trait.setPosition({ x: 0, y: 0, z: 0 });
-    const closeEntity = { ...otherEntity, position: { x: 5, y: 0, z: 0 } };
+    const closeEntity = { ...otherEntity, position: [5, 0, 0] };
     trait['provider'].setEntity(closeEntity);
 
     // Initial update to establish "entered" state
@@ -89,12 +89,12 @@ describe('SpatialAwarenessTrait', () => {
     trait.setEntityTypeFilter(['player']);
     trait.start();
 
-    const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: { x: 5, y: 0, z: 0 } };
+    const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: [5, 0, 0] };
     const playerEntity = {
       ...otherEntity,
       id: 'player-1',
       type: 'player',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
     };
 
     trait['provider'].setEntity(npcEntity);
@@ -116,7 +116,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.setPosition({ x: 0, y: 0, z: 0 });
 
     // Set entity inside radius
-    const nearby = { ...otherEntity, position: { x: 5, y: 0, z: 0 } };
+    const nearby = { ...otherEntity, position: [5, 0, 0] };
     trait['provider'].setEntity(nearby);
     (trait as any).provider.update();
 
@@ -136,8 +136,8 @@ describe('SpatialAwarenessTrait', () => {
   it('should perform queries via provider', () => {
     trait.start();
     trait.setPosition({ x: 0, y: 0, z: 0 });
-    const e1 = { ...otherEntity, id: 'e1', position: { x: 5, y: 0, z: 0 } }; // Dist 5
-    const e2 = { ...otherEntity, id: 'e2', position: { x: 8, y: 5, z: 0 } }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
+    const e1 = { ...otherEntity, id: 'e1', position: [5, 0, 0] }; // Dist 5
+    const e2 = { ...otherEntity, id: 'e2', position: [8, 5, 0] }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
 
     trait['provider'].setEntities([e1, e2]);
 

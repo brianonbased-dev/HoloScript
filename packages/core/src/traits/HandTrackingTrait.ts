@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HandTracking Trait
  *
  * Articulated hand skeleton tracking with gesture recognition.
@@ -40,7 +40,7 @@ type HandJoint =
   | 'pinky_tip';
 
 interface JointPose {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   radius: number;
 }

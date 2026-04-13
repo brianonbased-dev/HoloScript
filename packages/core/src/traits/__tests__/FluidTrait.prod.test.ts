@@ -101,7 +101,7 @@ describe('fluidHandler — onUpdate', () => {
         type: 'fluid_add_emitter',
         emitterId: 'e1',
         rate: 100,
-        position: { x: 0, y: 5, z: 0 },
+        position: [0, 5, 0],
         velocity: { x: 0, y: -1, z: 0 },
       } as any
     );
@@ -122,7 +122,7 @@ describe('fluidHandler — onEvent: emitters', () => {
         type: 'fluid_add_emitter',
         emitterId: 'src1',
         rate: 50,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         velocity: { x: 0, y: -1, z: 0 },
       } as any
     );
@@ -194,7 +194,7 @@ describe('fluidHandler — onEvent: splash', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'fluid_splash', position: { x: 0, y: 0, z: 0 }, force: 20, radius: 1.0 } as any
+      { type: 'fluid_splash', position: [0, 0, 0], force: 20, radius: 1.0 } as any
     );
     expect(ctx.emitted.some((e: any) => e.type === 'fluid_apply_impulse')).toBe(true);
   });
@@ -204,7 +204,7 @@ describe('fluidHandler — onEvent: splash', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'fluid_splash', position: { x: 1, y: 0, z: 1 }, force: 10 } as any
+      { type: 'fluid_splash', position: [1, 0, 1], force: 10 } as any
     );
     expect(ctx.emitted.some((e: any) => e.type === 'on_fluid_splash')).toBe(true);
   });

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Rope Trait
  *
  * Rope/cable simulation with attachment points and breakability.
@@ -14,7 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 interface RopeSegment {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   prevPosition: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
 }
@@ -84,7 +84,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     const segmentLength = config.length / config.segments;
     for (let i = 0; i <= config.segments; i++) {
       state.segments.push({
-        position: { x: 0, y: -i * segmentLength, z: 0 },
+        position: [0, -i * segmentLength, 0],
         prevPosition: { x: 0, y: -i * segmentLength, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
       });

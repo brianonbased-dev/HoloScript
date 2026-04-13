@@ -29,7 +29,7 @@ function makeSys(overrides: Parameters<typeof VoronoiFractureSystem>[0] = {}) {
 
 // Full-damage event centred at origin, hits everything within radius 10
 const WIPE_EVENT: DamageEvent = {
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
   radius: 10,
   maxDamage: 1000,
   falloff: 1,
@@ -137,7 +137,7 @@ describe('VoronoiFractureSystem — applyDamage', () => {
   });
 
   it('applies damage: health decreases for fragments within radius', () => {
-    sys.applyDamage({ position: { x: 0, y: 0, z: 0 }, radius: 10, maxDamage: 50, falloff: 1 });
+    sys.applyDamage({ position: [0, 0, 0], radius: 10, maxDamage: 50, falloff: 1 });
     const damaged = sys.getFragments().filter((f) => f.damage > 0);
     expect(damaged.length).toBeGreaterThan(0);
   });
@@ -145,7 +145,7 @@ describe('VoronoiFractureSystem — applyDamage', () => {
   it('fragments outside radius are untouched', () => {
     // All fragments are within (-0.5,0.5) bounds; damage from very far away
     sys.applyDamage({
-      position: { x: 1000, y: 1000, z: 1000 },
+      position: [1000, 1000, 1000],
       radius: 0.01,
       maxDamage: 100,
       falloff: 1,
@@ -174,7 +174,7 @@ describe('VoronoiFractureSystem — applyDamage', () => {
   });
 
   it('getTotalDamage > 0 after damage applied', () => {
-    sys.applyDamage({ position: { x: 0, y: 0, z: 0 }, radius: 10, maxDamage: 30, falloff: 1 });
+    sys.applyDamage({ position: [0, 0, 0], radius: 10, maxDamage: 30, falloff: 1 });
     expect(sys.getTotalDamage()).toBeGreaterThan(0);
   });
 });
@@ -330,7 +330,7 @@ describe('VoronoiFractureSystem — propagateCracks', () => {
   it('propagateCracks is no-op when enableCrackPropagation=false', () => {
     const sys = makeSys({ enableCrackPropagation: false, voronoiSites: 4 });
     sys.generateVoronoiFracture();
-    sys.applyDamage({ position: { x: 0, y: 0, z: 0 }, radius: 1, maxDamage: 50, falloff: 1 });
+    sys.applyDamage({ position: [0, 0, 0], radius: 1, maxDamage: 50, falloff: 1 });
     const damagesBefore = sys.getFragments().map((f) => f.damage);
     sys.propagateCracks(1);
     const damagesAfter = sys.getFragments().map((f) => f.damage);
@@ -370,7 +370,7 @@ describe('VoronoiFractureSystem — analysis', () => {
   it('getAverageDamage > 0 after partial damage', () => {
     const sys = makeSys({ voronoiSites: 4 });
     sys.generateVoronoiFracture();
-    sys.applyDamage({ position: { x: 0, y: 0, z: 0 }, radius: 10, maxDamage: 10, falloff: 1 });
+    sys.applyDamage({ position: [0, 0, 0], radius: 10, maxDamage: 10, falloff: 1 });
     // Only active fragments counted: check active exist first
     if (sys.getActiveFragmentCount() > 0) {
       expect(sys.getAverageDamage()).toBeGreaterThanOrEqual(0);

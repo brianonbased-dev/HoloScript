@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SoftBody Trait
  *
  * Deformable body physics for squishy objects.
@@ -19,7 +19,7 @@ import {
 // =============================================================================
 
 interface SoftBodyVertex {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   restPosition: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   normal: { x: number; y: number; z: number };
@@ -182,7 +182,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
 
       // Sync back to internal vertex state
       state.vertices = particles.map((p) => ({
-        position: { x: p.position[0], y: p.position[1], z: p.position[2] },
+        position: [p.position[0], p.position[1], p.position[2]],
         restPosition: {
           x: p.previousPosition[0],
           y: p.previousPosition[1],

@@ -13,7 +13,7 @@ import type { BoneDefinition, AnimationClip, AnimationEvent } from '../SkeletonT
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 const BIND_POSE = {
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
   rotation: { x: 0, y: 0, z: 0, w: 1 },
   scale: { x: 1, y: 1, z: 1 },
 };
@@ -78,13 +78,13 @@ describe('SkeletonTrait — bones', () => {
 
   it('setBoneTransform updates position', () => {
     const sk = new SkeletonTrait({ bones: [makeBone('arm')] });
-    sk.setBoneTransform('arm', { position: { x: 1, y: 2, z: 3 } });
+    sk.setBoneTransform('arm', { position: [1, 2, 3] });
     expect(sk.getBoneTransform('arm')?.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('setBoneTransform on unknown bone is a no-op', () => {
     const sk = new SkeletonTrait();
-    expect(() => sk.setBoneTransform('ghost', { position: { x: 99, y: 0, z: 0 } })).not.toThrow();
+    expect(() => sk.setBoneTransform('ghost', { position: [99, 0, 0] })).not.toThrow();
   });
 
   it('returns undefined for unknown bone', () => {

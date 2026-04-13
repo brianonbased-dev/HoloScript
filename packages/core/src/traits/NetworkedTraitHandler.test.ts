@@ -36,7 +36,7 @@ function createMockContext(stateOverrides: Record<string, unknown> = {}): TraitC
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: { x: 0, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
+      headset: { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0 } },
       isPresenting: false,
     } as any,
     physics: {

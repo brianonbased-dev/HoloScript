@@ -115,7 +115,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
       ctx as any,
       {
         type: 'perception_detect',
-        target: { id: 'npc', position: { x: 0, y: 0, z: 5 }, tags: ['friendly'], threat: 0.1 },
+        target: { id: 'npc', position: [0, 0, 5], tags: ['friendly'], threat: 0.1 },
       } as any
     );
     expect((node as any).__perceptionState.entities.has('npc')).toBe(false);
@@ -130,7 +130,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
       ctx as any,
       {
         type: 'perception_detect',
-        target: { id: 'badguy', position: { x: 0, y: 0, z: 5 }, tags: ['enemy'], threat: 0.8 },
+        target: { id: 'badguy', position: [0, 0, 5], tags: ['enemy'], threat: 0.8 },
       } as any
     );
     expect((node as any).__perceptionState.entities.has('badguy')).toBe(true);
@@ -165,7 +165,7 @@ describe('perceptionHandler — onEvent: perception_detect', () => {
         node,
         cfg,
         ctx as any,
-        { type: 'perception_detect', target: { position: { x: 0, y: 0, z: 5 } } } as any
+        { type: 'perception_detect', target: { position: [0, 0, 5] } } as any
       )
     ).not.toThrow();
     expect((node as any).__perceptionState.entities.size).toBe(0);
@@ -181,7 +181,7 @@ describe('perceptionHandler — onEvent: perception_sound', () => {
       ctx as any,
       {
         type: 'perception_sound',
-        position: { x: 0, y: 0, z: 10 },
+        position: [0, 0, 10],
         sourceId: 'snd1',
         threat: 0.3,
       } as any
@@ -194,7 +194,7 @@ describe('perceptionHandler — onEvent: perception_sound', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'perception_sound', position: { x: 5, y: 0, z: 0 }, sourceId: 'snd2' } as any
+      { type: 'perception_sound', position: [5, 0, 0], sourceId: 'snd2' } as any
     );
     expect(ctx.emitted.some((e: any) => e.type === 'perception_sound_detected')).toBe(true);
   });
@@ -204,7 +204,7 @@ describe('perceptionHandler — onEvent: perception_sound', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'perception_sound', position: { x: 100, y: 0, z: 0 }, sourceId: 'far_snd' } as any
+      { type: 'perception_sound', position: [100, 0, 0], sourceId: 'far_snd' } as any
     );
     expect((node as any).__perceptionState.entities.has('far_snd')).toBe(false);
   });
@@ -217,7 +217,7 @@ describe('perceptionHandler — onEvent: perception_damage', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'perception_damage', attackerId: 'atk1', position: { x: 3, y: 0, z: 0 } } as any
+      { type: 'perception_damage', attackerId: 'atk1', position: [3, 0, 0] } as any
     );
     const entity = (node as any).__perceptionState.entities.get('atk1');
     expect(entity?.threat).toBe(1.0);
@@ -229,7 +229,7 @@ describe('perceptionHandler — onEvent: perception_damage', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'perception_damage', attackerId: 'atk2', position: { x: 1, y: 0, z: 0 } } as any
+      { type: 'perception_damage', attackerId: 'atk2', position: [1, 0, 0] } as any
     );
     expect((node as any).__perceptionState.alertLevel).toBe(1.0);
   });
@@ -239,7 +239,7 @@ describe('perceptionHandler — onEvent: perception_damage', () => {
       node,
       cfg,
       ctx as any,
-      { type: 'perception_damage', attackerId: 'atk3', position: { x: 2, y: 0, z: 0 } } as any
+      { type: 'perception_damage', attackerId: 'atk3', position: [2, 0, 0] } as any
     );
     expect(ctx.emitted.some((e: any) => e.type === 'perception_attacked')).toBe(true);
   });
@@ -250,7 +250,7 @@ describe('perceptionHandler — onEvent: perception_damage', () => {
         node,
         cfg,
         ctx as any,
-        { type: 'perception_damage', position: { x: 0, y: 0, z: 0 } } as any
+        { type: 'perception_damage', position: [0, 0, 0] } as any
       )
     ).not.toThrow();
   });
@@ -318,7 +318,7 @@ describe('perceptionHandler — onUpdate', () => {
     // Inject entity with high threat directly
     (node as any).__perceptionState.entities.set('threat_high', {
       id: 'threat_high',
-      position: { x: 0, y: 0, z: 5 },
+      position: [0, 0, 5],
       lastSeen: Date.now(),
       senseType: 'sight',
       confidence: 0.9,

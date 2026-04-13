@@ -244,7 +244,7 @@ describe('SpatialAwarenessTrait context access', () => {
 
   it('getNearbyEntities returns entities from lastContext', () => {
     const t = makeTrait('a');
-    const entity = { id: 'e1', type: 'npc', position: { x: 0, y: 0, z: 0 } };
+    const entity = { id: 'e1', type: 'npc', position: [0, 0, 0] };
     (t as any).lastContext = { nearbyEntities: [entity], currentRegions: [] };
     expect(t.getNearbyEntities()).toContain(entity);
   });
@@ -308,7 +308,7 @@ describe('SpatialAwarenessTrait queries', () => {
   it('getDistanceTo computes 3D euclidean distance', () => {
     const t = makeTrait('a', { initialPosition: { x: 0, y: 0, z: 0 } });
     (t as any).lastContext = {
-      nearbyEntities: [{ id: 'e1', type: 'npc', position: { x: 3, y: 4, z: 0 } }],
+      nearbyEntities: [{ id: 'e1', type: 'npc', position: [3, 4, 0] }],
       currentRegions: [],
     };
     // sqrt(9+16+0) = 5
@@ -321,7 +321,7 @@ describe('SpatialAwarenessTrait queries', () => {
 describe('SpatialAwarenessTrait entity management', () => {
   it('registerEntity calls provider.setEntity', () => {
     const t = makeTrait('a');
-    const entity = { id: 'e1', type: 'bot', position: { x: 0, y: 0, z: 0 } };
+    const entity = { id: 'e1', type: 'bot', position: [0, 0, 0] };
     t.registerEntity(entity as any);
     expect(getProvider(t).setEntity).toHaveBeenCalledWith(entity);
   });
@@ -334,7 +334,7 @@ describe('SpatialAwarenessTrait entity management', () => {
 
   it('registerEntities calls provider.setEntities', () => {
     const t = makeTrait('a');
-    const entities = [{ id: 'e1', type: 'npc', position: { x: 0, y: 0, z: 0 } }];
+    const entities = [{ id: 'e1', type: 'npc', position: [0, 0, 0] }];
     t.registerEntities(entities as any);
     expect(getProvider(t).setEntities).toHaveBeenCalledWith(entities);
   });
@@ -406,7 +406,7 @@ describe('SpatialAwarenessTrait event forwarding', () => {
     const cb = vi.fn();
     t.on('entity:entered', cb);
     const provider = getProvider(t);
-    const entity = { id: 'e1', type: 'npc', position: { x: 1, y: 0, z: 0 } };
+    const entity = { id: 'e1', type: 'npc', position: [1, 0, 0] };
     provider.emit('entity:entered', 'a', { type: 'entity_entered', entity, distance: 5 });
     expect(cb).toHaveBeenCalledWith(entity, 5);
   });

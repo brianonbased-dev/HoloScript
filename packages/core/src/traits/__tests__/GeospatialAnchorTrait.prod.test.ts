@@ -28,7 +28,7 @@ import { geospatialAnchorHandler } from '../GeospatialAnchorTrait';
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function makeNode() {
-  return { id: 'geo_node', properties: {}, position: { x: 0, y: 0, z: 0 } };
+  return { id: 'geo_node', properties: {}, position: [0, 0, 0] };
 }
 
 function makeCtx() {

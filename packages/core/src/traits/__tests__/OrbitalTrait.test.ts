@@ -80,7 +80,7 @@ describe('OrbitalTrait', () => {
   });
 
   it('adds parent offset for satellites', () => {
-    const parentNode = { position: { x: 100, y: 200, z: 300 } };
+    const parentNode = { position: [100, 200, 300] };
     ctx.getNode = vi.fn().mockReturnValue(parentNode);
     const moonCfg = { ...cfg, parent: 'earth' };
     updateTrait(orbitalHandler, node, moonCfg, ctx, 0.016);

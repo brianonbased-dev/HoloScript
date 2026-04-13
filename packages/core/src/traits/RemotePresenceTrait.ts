@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RemotePresence Trait
  *
  * Telepresence with avatar representation for remote collaboration.
@@ -25,15 +25,15 @@ interface RemotePeer {
   lastUpdate: number;
   pose: {
     head: {
-      position: { x: number; y: number; z: number };
+      position: [number, number, number];
       rotation: { x: number; y: number; z: number; w: number };
     };
     leftHand?: {
-      position: { x: number; y: number; z: number };
+      position: [number, number, number];
       rotation: { x: number; y: number; z: number; w: number };
     };
     rightHand?: {
-      position: { x: number; y: number; z: number };
+      position: [number, number, number];
       rotation: { x: number; y: number; z: number; w: number };
     };
   };
@@ -185,7 +185,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
         lastUpdate: Date.now(),
         pose: {
           head: {
-            position: { x: 0, y: 1.6, z: 0 },
+            position: [0, 1.6, 0],
             rotation: { x: 0, y: 0, z: 0, w: 1 },
           },
         },

@@ -48,7 +48,7 @@ describe('RooftopAnchorTrait', () => {
       buildingHeight: 50,
       floors: 15,
       confidence: 0.95,
-      position: { x: 10, y: 50, z: 20 },
+      position: [10, 50, 20],
     });
     const s = (node as any).__rooftopAnchorState;
     expect(s.state).toBe('resolved');
@@ -68,7 +68,7 @@ describe('RooftopAnchorTrait', () => {
   it('pose update sets tracking state', () => {
     sendEvent(rooftopAnchorHandler, node, cfg, ctx, {
       type: 'rooftop_pose_update',
-      position: { x: 5, y: 30, z: 10 },
+      position: [5, 30, 10],
     });
     expect((node as any).__rooftopAnchorState.state).toBe('tracking');
   });
@@ -88,7 +88,7 @@ describe('RooftopAnchorTrait', () => {
       type: 'rooftop_anchor_resolved',
       handle: 'a',
       buildingHeight: 20,
-      position: { x: 5, y: 20, z: 10 },
+      position: [5, 20, 10],
     });
     updateTrait(rooftopAnchorHandler, node, cfg, ctx, 0.016);
     expect(node.position.y).toBe(22); // 20 + 2 offset
@@ -107,7 +107,7 @@ describe('RooftopAnchorTrait', () => {
       type: 'rooftop_anchor_resolved',
       handle: 'anchor-1',
       buildingHeight: 20,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     rooftopAnchorHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(getEventCount(ctx, 'rooftop_anchor_release')).toBe(1);

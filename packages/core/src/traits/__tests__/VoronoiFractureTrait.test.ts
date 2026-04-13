@@ -121,7 +121,7 @@ describe('VoronoiFractureTrait', () => {
       system.generateVoronoiFracture();
 
       system.applyDamage({
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         radius: 5.0,
         maxDamage: 150,
         falloff: 1.0,

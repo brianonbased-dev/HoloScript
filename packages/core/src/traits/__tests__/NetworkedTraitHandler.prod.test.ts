@@ -246,7 +246,7 @@ describe('NetworkedTraitHandler — Production', () => {
 
   it('handles object-style position {x,y,z} in node.properties', () => {
     const inst = nextInstance({ isLocalOwner: true });
-    const node = makeNode({ properties: { position: { x: 3, y: 4, z: 5 }, rotation: [0, 0, 0] } });
+    const node = makeNode({ properties: { position: [3, 4, 5], rotation: [0, 0, 0] } });
     const { ctx, cfg } = doAttach(node);
     networkedHandler.onUpdate!(node, cfg, ctx as any, 16);
     expect(inst.setProperty).toHaveBeenCalledWith('position', [3, 4, 5]);

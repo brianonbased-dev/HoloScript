@@ -15,7 +15,7 @@ function mkNode(id = 'g-node') {
 }
 
 function mkHand(pos: { x: number; y: number; z?: number }, pinch = 0) {
-  return { position: { x: pos.x, y: pos.y, z: pos.z ?? 0 }, pinchStrength: pinch };
+  return { position: [pos.x, pos.y, pos.z ?? 0], pinchStrength: pinch };
 }
 
 function mkCtx(left: any = null, right: any = null) {

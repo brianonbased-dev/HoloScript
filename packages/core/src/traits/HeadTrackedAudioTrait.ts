@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HeadTrackedAudio Trait
  *
  * Audio that stays world-anchored while head/listener moves.
@@ -41,7 +41,7 @@ interface HeadTrackedAudioConfig {
 // =============================================================================
 
 function applyInverseRotation(
-  position: { x: number; y: number; z: number },
+  position: [number, number, number],
   rotation: { x: number; y: number; z: number; w: number }
 ): { x: number; y: number; z: number } {
   // Conjugate of quaternion for inverse rotation

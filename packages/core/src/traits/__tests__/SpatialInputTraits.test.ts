@@ -86,7 +86,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       tracked: true,
       joints: {
         wrist: {
-          position: { x: 0, y: 1, z: 0 },
+          position: [0, 1, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
           radius: 0.02,
         },
@@ -241,7 +241,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       tracked: true,
       joints: {
         wrist: {
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
           radius: 0.02,
         },
@@ -257,7 +257,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       tracked: true,
       joints: {
         wrist: {
-          position: { x: 1, y: 1, z: 1 },
+          position: [1, 1, 1],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
           radius: 0.02,
         },
@@ -280,7 +280,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       tracked: true,
       joints: {
         wrist: {
-          position: { x: 0.5, y: 1.2, z: -0.3 },
+          position: [0.5, 1.2, -0.3],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
           radius: 0.02,
         },
@@ -298,7 +298,7 @@ describe('SpatialInputHandTrackingTrait', () => {
     const state = (node as any).__spatialHandTrackingState as SpatialHandTrackingState;
     state.left.tracked = true;
     state.left.joints.set('wrist', {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       radius: 0.02,
     });
@@ -566,7 +566,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_resolved',
       pose: {
-        position: { x: 1, y: 0, z: -2 },
+        position: [1, 0, -2],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.95,
       },
@@ -609,7 +609,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_joined',
       pose: {
-        position: { x: 2, y: 1, z: -1 },
+        position: [2, 1, -1],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.9,
       },
@@ -706,7 +706,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
     state.resolveState = 'resolved';
     state.localPose = {
-      position: { x: 3, y: 0, z: -5 },
+      position: [3, 0, -5],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 0.9,
     };
@@ -723,7 +723,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_pose_update',
       pose: {
-        position: { x: 5, y: 1, z: -3 },
+        position: [5, 1, -3],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.8,
       },
@@ -735,7 +735,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
   it('ignores low-quality pose updates', () => {
     const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
     state.localPose = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 0.9,
     };
@@ -743,7 +743,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_pose_update',
       pose: {
-        position: { x: 99, y: 99, z: 99 },
+        position: [99, 99, 99],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.2,
       },
@@ -758,7 +758,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_transform_sync',
       peerId: 'peer-charlie',
-      transform: { position: { x: 10, y: 0, z: -10 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [10, 0, -10], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     });
 
     expect(getEventCount(ctx, 'shared_anchor_peer_transform')).toBe(1);
@@ -980,7 +980,7 @@ describe('SpatialInputControllerTrait', () => {
       hand: 'left',
       connected: true,
       pose: {
-        position: { x: -0.3, y: 1.0, z: -0.5 },
+        position: [-0.3, 1.0, -0.5],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 1.0,
       },

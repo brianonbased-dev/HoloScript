@@ -50,7 +50,7 @@ describe('BodyTrackingTrait', () => {
     ];
     for (const j of upperJoints) {
       joints[j] = {
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.9,
       };
@@ -79,7 +79,7 @@ describe('BodyTrackingTrait', () => {
     ];
     for (const j of upperJoints) {
       joints[j] = {
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.1,
       };
@@ -107,7 +107,7 @@ describe('BodyTrackingTrait', () => {
     ];
     for (const j of upperJoints) {
       joints[j] = {
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.9,
       };
@@ -117,7 +117,7 @@ describe('BodyTrackingTrait', () => {
     const lowJoints: Record<string, any> = {};
     for (const j of upperJoints) {
       lowJoints[j] = {
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         confidence: 0.1,
       };
@@ -130,7 +130,7 @@ describe('BodyTrackingTrait', () => {
     const s = (node as any).__bodyTrackingState;
     s.isTracking = true;
     s.joints.set('head', {
-      position: { x: 0, y: 1.8, z: 0 },
+      position: [0, 1.8, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 0.9,
     });
@@ -141,22 +141,22 @@ describe('BodyTrackingTrait', () => {
   it('body_calibrate measures height and arm span', () => {
     const s = (node as any).__bodyTrackingState;
     s.joints.set('head', {
-      position: { x: 0, y: 1.8, z: 0 },
+      position: [0, 1.8, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     });
     s.joints.set('foot_left', {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     });
     s.joints.set('hand_left', {
-      position: { x: -0.9, y: 1.2, z: 0 },
+      position: [-0.9, 1.2, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     });
     s.joints.set('hand_right', {
-      position: { x: 0.9, y: 1.2, z: 0 },
+      position: [0.9, 1.2, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     });

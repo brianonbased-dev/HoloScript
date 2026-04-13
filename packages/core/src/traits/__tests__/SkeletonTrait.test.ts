@@ -11,7 +11,7 @@ describe('SkeletonTrait', () => {
         {
           name: 'Hips',
           bindPose: {
-            position: { x: 0, y: 1, z: 0 },
+            position: [0, 1, 0],
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             scale: { x: 1, y: 1, z: 1 },
           },
@@ -21,7 +21,7 @@ describe('SkeletonTrait', () => {
           name: 'Spine',
           parent: 'Hips',
           bindPose: {
-            position: { x: 0, y: 1.1, z: 0 },
+            position: [0, 1.1, 0],
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             scale: { x: 1, y: 1, z: 1 },
           },

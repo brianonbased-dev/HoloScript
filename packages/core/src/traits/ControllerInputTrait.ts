@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ControllerInput Trait
  *
  * 6DOF controller input mapping with button states, triggers, and thumbsticks.
@@ -34,7 +34,7 @@ type ControllerHand = 'left' | 'right';
  * @example
  * ```typescript
  * const pose: ControllerPose = {
- *   position: { x: 0.5, y: 1.2, z: -0.8 },
+ *   position: [0.5, 1.2, -0.8],
  *   rotation: { x: 0, y: 0, z: 0, w: 1 }, // Identity quaternion
  *   velocity: { x: 0, y: 0, z: 0 }, // Stationary
  *   angularVelocity: { x: 0, y: 0, z: 0 }
@@ -43,7 +43,7 @@ type ControllerHand = 'left' | 'right';
  */
 interface ControllerPose {
   /** 3D position in meters relative to the tracking space origin */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Orientation as a quaternion (x, y, z, w) - normalized unit quaternion */
   rotation: { x: number; y: number; z: number; w: number };
   /** Linear velocity in meters per second */
@@ -112,7 +112,7 @@ function createEmptyControllerData(): ControllerData {
   return {
     connected: false,
     pose: {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },

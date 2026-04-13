@@ -69,7 +69,7 @@ describe('SkeletonTrait', () => {
 
     it('should set bone transform', () => {
       trait.setBoneTransform('Root', {
-        position: { x: 0, y: 1, z: 0 },
+        position: [0, 1, 0],
       });
       // Setting works even for non-existent bones (creates placeholder)
     });

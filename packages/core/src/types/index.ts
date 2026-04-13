@@ -1,5 +1,5 @@
-/**
- * Core Types Module — CANONICAL type definitions for HoloScript.
+﻿/**
+ * Core Types Module â€” CANONICAL type definitions for HoloScript.
  *
  * This is the authoritative source of truth for all HoloScript types.
  * A lightweight, zero-dependency mirror exists at `@holoscript/core-types`
@@ -145,7 +145,7 @@ export interface IComponent {
  */
 export interface ITransformComponent extends IComponent {
   componentType: 'transform';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
 }

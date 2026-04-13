@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cloth Trait
  *
  * Cloth simulation using position-based dynamics or Verlet integration.
@@ -14,7 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 interface ClothVertex {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   prevPosition: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   isPinned: boolean;
@@ -243,7 +243,7 @@ function initializeClothMesh(state: ClothState, config: ClothConfig): void {
       const isPinned = config.pin_vertices.some(([px, py]) => px === i && py === j);
 
       state.vertices[i][j] = {
-        position: { x: j / res, y: 0, z: i / res },
+        position: [j / res, 0, i / res],
         prevPosition: { x: j / res, y: 0, z: i / res },
         velocity: { x: 0, y: 0, z: 0 },
         isPinned,

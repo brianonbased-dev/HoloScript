@@ -159,7 +159,7 @@ describe('pointCloudHandler.onDetach', () => {
 describe('pointCloudHandler.onUpdate', () => {
   it('no-op when isLoaded=false', () => {
     const { node, ctx, config } = attach({ lod: true });
-    (ctx as any).camera = { position: { x: 0, y: 0, z: 100 } };
+    (ctx as any).camera = { position: [0, 0, 100] };
     ctx.emit.mockClear();
     pointCloudHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe('pointCloudHandler.onUpdate', () => {
   it('emits point_cloud_set_lod when LOD level changes', () => {
     // boundingBox center is [5,2.5,5]; camera at [5,2.5,55] → distance=50 → lodLevel=Math.min(3, floor(50/10))=3
     const { node, ctx, config } = attachLoaded({}, { lod: true, lod_levels: 4 });
-    (ctx as any).camera = { position: { x: 5, y: 2.5, z: 55 } };
+    (ctx as any).camera = { position: [5, 2.5, 55] };
     ctx.emit.mockClear();
     pointCloudHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -180,7 +180,7 @@ describe('pointCloudHandler.onUpdate', () => {
   it('does NOT emit point_cloud_set_lod when level is unchanged', () => {
     const { node, ctx, config } = attachLoaded({ lodLevel: 3 }, { lod: true, lod_levels: 4 });
     // Camera 50 units away → lod=3 (same as state)
-    (ctx as any).camera = { position: { x: 5, y: 2.5, z: 55 } };
+    (ctx as any).camera = { position: [5, 2.5, 55] };
     ctx.emit.mockClear();
     pointCloudHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('point_cloud_set_lod', expect.anything());
@@ -188,7 +188,7 @@ describe('pointCloudHandler.onUpdate', () => {
 
   it('no-op when lod=false', () => {
     const { node, ctx, config } = attachLoaded({}, { lod: false });
-    (ctx as any).camera = { position: { x: 5, y: 2.5, z: 55 } };
+    (ctx as any).camera = { position: [5, 2.5, 55] };
     ctx.emit.mockClear();
     pointCloudHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();

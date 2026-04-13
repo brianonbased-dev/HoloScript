@@ -129,7 +129,7 @@ describe('anchorHandler.onEvent — anchor_created', () => {
 
 describe('anchorHandler.onEvent — anchor_pose_update', () => {
   const pose = {
-    position: { x: 1, y: 2, z: 3 },
+    position: [1, 2, 3],
     rotation: { x: 0, y: 0, z: 0, w: 1 },
     confidence: 0.95,
   };
@@ -295,7 +295,7 @@ describe('anchorHandler.onUpdate — fallback: interpolate', () => {
     createAnchor(node, ctx, config);
     node.__anchorState.trackingState = 'lost';
     node.__anchorState.lastValidPose = {
-      position: { x: 5, y: 1, z: 2 },
+      position: [5, 1, 2],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     };
@@ -303,7 +303,7 @@ describe('anchorHandler.onUpdate — fallback: interpolate', () => {
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
     expect(ctx.emit).toHaveBeenCalledWith(
       'set_position',
-      expect.objectContaining({ position: { x: 5, y: 1, z: 2 } })
+      expect.objectContaining({ position: [5, 1, 2] })
     );
   });
 });
@@ -313,7 +313,7 @@ describe('anchorHandler.onUpdate — offset application', () => {
     const { node, ctx, config } = attach({ offset: [1, 0.5, 0] });
     createAnchor(node, ctx, config);
     node.__anchorState.pose = {
-      position: { x: 2, y: 1, z: 0 },
+      position: [2, 1, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       confidence: 1,
     };
@@ -328,7 +328,7 @@ describe('anchorHandler.onUpdate — offset application', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config);
     const rot = { x: 0, y: 0.7, z: 0, w: 0.7 };
-    node.__anchorState.pose = { position: { x: 0, y: 0, z: 0 }, rotation: rot, confidence: 1 };
+    node.__anchorState.pose = { position: [0, 0, 0], rotation: rot, confidence: 1 };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);
     expect(ctx.emit).toHaveBeenCalledWith(

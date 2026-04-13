@@ -12,8 +12,8 @@ describe('GestureTrait', () => {
 
     vrContext = {
       hands: {
-        left: { position: { x: 0, y: 0, z: 0 }, pinchStrength: 0 },
-        right: { position: { x: 0, y: 0, z: 0 }, pinchStrength: 0 },
+        left: { position: [0, 0, 0], pinchStrength: 0 },
+        right: { position: [0, 0, 0], pinchStrength: 0 },
       },
     };
 

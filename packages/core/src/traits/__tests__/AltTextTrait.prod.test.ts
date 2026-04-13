@@ -210,7 +210,7 @@ describe('altTextHandler.onEvent — alt_text_query', () => {
   it('appends spatial info when include_spatial=true and node has position', () => {
     const { node, ctx, config } = attach(
       { text: 'Cube', include_spatial: true },
-      { position: { x: 1.5, y: 2.0, z: -3.0 } }
+      { position: [1.5, 2.0, -3.0] }
     );
     altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_query', queryId: 'q' });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_response')!;
@@ -221,7 +221,7 @@ describe('altTextHandler.onEvent — alt_text_query', () => {
   it('no spatial suffix when include_spatial=false', () => {
     const { node, ctx, config } = attach(
       { text: 'Cube', include_spatial: false },
-      { position: { x: 1, y: 2, z: 3 } }
+      { position: [1, 2, 3] }
     );
     altTextHandler.onEvent!(node, config, ctx, { type: 'alt_text_query', queryId: 'q' });
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alt_text_response')!;

@@ -188,7 +188,7 @@ describe('PersistentAnchorTrait — onUpdate', () => {
   });
 
   it('applies localPosition to node.position when state=tracking', () => {
-    const node = { ...makeNode(), position: { x: 0, y: 0, z: 0 } };
+    const node = { ...makeNode(), position: [0, 0, 0] };
     const { cfg, ctx } = attach(node, { ttl: 0 });
     const s = st(node);
     s.state = 'tracking';
@@ -301,7 +301,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_create', () => {
   it('emits persistent_anchor_create_request with node position if available', () => {
     const node = {
       ...makeNode(),
-      position: { x: 10, y: 0, z: 20 },
+      position: [10, 0, 20],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
     const { cfg, ctx } = attach(node, {
@@ -318,7 +318,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_create', () => {
         name: 'new_anchor',
         storage: 'cloud',
         ttl: 7200,
-        position: { x: 10, y: 0, z: 20 },
+        position: [10, 0, 20],
       })
     );
   });

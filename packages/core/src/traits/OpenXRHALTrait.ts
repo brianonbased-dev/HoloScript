@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OpenXR HAL (Hardware Abstraction Layer) Trait
  *
  * Critical foundation for ALL haptic traits - abstracts XR hardware capabilities.
@@ -37,7 +37,7 @@ interface XRSessionLike {
 
 interface XRPoseResult {
   transform: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     orientation: { x: number; y: number; z: number; w: number };
   };
   radius?: number;
@@ -183,7 +183,7 @@ type HandJoint =
   | 'pinky-finger-tip';
 
 interface JointPose {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number }; // Quaternion
   radius: number; // Joint radius in meters
 }
@@ -1294,7 +1294,7 @@ function pollInputSources(state: OpenXRHALState, context: TraitContext, node: HS
           const t = xrPose.transform.position;
           const r = xrPose.transform.orientation;
           pose = {
-            position: { x: t.x, y: t.y, z: t.z },
+            position: [t.x, t.y, t.z],
             rotation: { x: r.x, y: r.y, z: r.z, w: r.w },
           };
         }
@@ -1494,7 +1494,7 @@ function getCapabilities(state: OpenXRHALState): Record<string, boolean> {
 
 /**
  * Reference space preference order for immersive sessions.
- * unbounded → bounded-floor → local-floor → local → viewer
+ * unbounded â†’ bounded-floor â†’ local-floor â†’ local â†’ viewer
  */
 const REFERENCE_SPACE_CHAIN = [
   'unbounded',

@@ -24,7 +24,7 @@ function makeNode(id = 'scroll_test') {
  * The content node will have properties.position.y we can inspect.
  */
 function makeCtx(nodeId: string) {
-  const contentNode = { properties: { position: { x: 0, y: 0, z: 0 } } };
+  const contentNode = { properties: { position: [0, 0, 0] } };
   return {
     emit: vi.fn(),
     getNode: vi.fn((id: string) => (id === `${nodeId}_content` ? contentNode : undefined)),

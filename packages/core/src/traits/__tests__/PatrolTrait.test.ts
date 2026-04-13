@@ -141,7 +141,7 @@ describe('PatrolTrait', () => {
     it('patrol_alert triggers alert state', () => {
       sendEvent(patrolHandler, node, { waypoints, alert_on_detection: true }, ctx, {
         type: 'patrol_alert',
-        position: { x: 5, y: 0, z: 5 },
+        position: [5, 0, 5],
       });
       const state = (node as any).__patrolState;
       expect(state.isAlerted).toBe(true);
@@ -159,7 +159,7 @@ describe('PatrolTrait', () => {
       );
       sendEvent(patrolHandler, node, { waypoints, alert_on_detection: true }, ctx, {
         type: 'patrol_alert',
-        position: { x: 5, y: 0, z: 5 },
+        position: [5, 0, 5],
       });
 
       const state = (node as any).__patrolState;

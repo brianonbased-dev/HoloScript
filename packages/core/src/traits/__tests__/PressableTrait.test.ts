@@ -29,7 +29,7 @@ describe('PressableTrait', () => {
         distance: 0.01,
         stiffness: 100,
         damping: 5,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         triggerPoint: 0.5,
         releasePoint: 0.3,
       },

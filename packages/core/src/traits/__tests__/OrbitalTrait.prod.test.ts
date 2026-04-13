@@ -30,7 +30,7 @@ const mockCalcPos = calculatePosition as ReturnType<typeof vi.fn>;
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function makeNode(properties: Record<string, any> = {}, name = 'earth') {
-  return { id: 'orb_node', name, properties, position: { x: 0, y: 0, z: 0 } };
+  return { id: 'orb_node', name, properties, position: [0, 0, 0] };
 }
 
 function makeCtx(overrides: Record<string, any> = {}) {
@@ -184,7 +184,7 @@ describe('orbitalHandler.onUpdate — position mapping (Keplerian→Three.js)', 
 describe('orbitalHandler.onUpdate — parent node offset', () => {
   it('adds parent node position when getNode resolves it', () => {
     mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
-    const parentNode = { position: { x: 100, y: 200, z: 300 } };
+    const parentNode = { position: [100, 200, 300] };
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(parentNode) });
     const node = makeNode({});
     orbitalHandler.onUpdate!(
@@ -215,7 +215,7 @@ describe('orbitalHandler.onUpdate — parent node offset', () => {
 
   it('supports parent passed as object reference (fallback path)', () => {
     mockCalcPos.mockReturnValue({ x: 0, y: 0, z: 0 });
-    const parentObj = { position: { x: 5, y: 10, z: 15 } };
+    const parentObj = { position: [5, 10, 15] };
     // getNode returns null, but parent IS the object
     const ctx = makeCtx({ getNode: vi.fn().mockReturnValue(null) });
     const node = makeNode({});

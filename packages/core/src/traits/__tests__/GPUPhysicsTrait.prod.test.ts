@@ -142,7 +142,7 @@ describe('extractPosition via onAttach', () => {
   });
 
   it('reads position from node.position {x,y,z} object', () => {
-    const node = makeNode({ position: { x: 7, y: 8, z: 9 } });
+    const node = makeNode({ position: [7, 8, 9] });
     const config = makeConfig();
     gpuPhysicsHandler.onAttach!(node as any, config, makeCtx() as any);
     expect(_mockEngine.addBody).toHaveBeenCalledWith(

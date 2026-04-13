@@ -35,7 +35,7 @@ function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
 }
 
 const POSE = {
-  position: { x: 1, y: 2, z: 3 },
+  position: [1, 2, 3],
   rotation: { x: 0, y: 0.707, z: 0, w: 0.707 },
 };
 
@@ -155,7 +155,7 @@ describe('VPSTrait — onUpdate', () => {
   it('applies pose to node.position when state=tracking', () => {
     const node = {
       ...makeNode(),
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 0 },
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
@@ -168,7 +168,7 @@ describe('VPSTrait — onUpdate', () => {
   });
 
   it('applies pose when state=localized', () => {
-    const node = { ...makeNode(), position: { x: 0, y: 0, z: 0 } };
+    const node = { ...makeNode(), position: [0, 0, 0] };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'localized';
     st(node).pose = POSE;
@@ -177,7 +177,7 @@ describe('VPSTrait — onUpdate', () => {
   });
 
   it('does not apply pose when state=idle', () => {
-    const node = { ...makeNode(), position: { x: 99, y: 0, z: 0 } };
+    const node = { ...makeNode(), position: [99, 0, 0] };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'idle';
     st(node).pose = POSE;
@@ -188,7 +188,7 @@ describe('VPSTrait — onUpdate', () => {
   it('applies rotation.w when node.rotation.w defined', () => {
     const node = {
       ...makeNode(),
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 0 },
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });

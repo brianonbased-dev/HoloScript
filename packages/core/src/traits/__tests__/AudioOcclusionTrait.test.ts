@@ -85,7 +85,7 @@ describe('AudioOcclusionTrait', () => {
   it('source_position_update updates source', () => {
     sendEvent(audioOcclusionHandler, node, cfg, ctx, {
       type: 'source_position_update',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
     });
     expect((node as any).__audioOcclusionState.sourcePosition).toEqual({ x: 10, y: 0, z: 0 });
   });

@@ -195,11 +195,7 @@ function smoothJointPose(
 ): SpatialHandJointPose {
   const inv = 1 - factor;
   return {
-    position: {
-      x: prev.position.x * factor + current.position.x * inv,
-      y: prev.position.y * factor + current.position.y * inv,
-      z: prev.position.z * factor + current.position.z * inv,
-    },
+    position: [prev.position.x * factor + current.position.x * inv, prev.position.y * factor + current.position.y * inv, prev.position.z * factor + current.position.z * inv,],
     rotation: {
       x: prev.rotation.x * factor + current.rotation.x * inv,
       y: prev.rotation.y * factor + current.rotation.y * inv,

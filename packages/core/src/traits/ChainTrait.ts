@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Chain Trait
  *
  * Rigid body chain constraint for linked objects.
@@ -14,7 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 interface ChainLink {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   bodyHandle: unknown;
 }
@@ -79,7 +79,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
     // Initialize links
     for (let i = 0; i < config.links; i++) {
       state.links.push({
-        position: { x: 0, y: -i * config.link_length, z: 0 },
+        position: [0, -i * config.link_length, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         bodyHandle: null,
       });

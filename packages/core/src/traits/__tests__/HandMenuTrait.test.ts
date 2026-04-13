@@ -30,12 +30,12 @@ describe('HandMenuTrait', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     node = createMockNode('menu1');
-    (node as any).properties = { position: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } };
+    (node as any).properties = { position: [0, 0, 0], scale: { x: 1, y: 1, z: 1 } };
     ctx = {
       ...createMockContext(),
       vr: {
         hands: {
-          left: { position: { x: -0.3, y: 1.2, z: 0.4 } },
+          left: { position: [-0.3, 1.2, 0.4] },
         },
       },
     };

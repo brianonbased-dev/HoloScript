@@ -226,7 +226,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     // Update position
     context.emit?.('set_position', {
       node,
-      position: { x: result.x, y: result.y, z: result.z },
+      position: [result.x, result.y, result.z],
     });
 
     // Look toward movement direction

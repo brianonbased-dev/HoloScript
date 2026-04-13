@@ -238,7 +238,7 @@ describe('AnalyticsTrait', () => {
 
       sendEvent(analyticsHandler, node, config, ctx, {
         type: 'analytics_interaction',
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
       });
 
       const state = (node as any).__analyticsState;
@@ -255,7 +255,7 @@ describe('AnalyticsTrait', () => {
 
       sendEvent(analyticsHandler, node, config, ctx, {
         type: 'analytics_interaction',
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
       });
 
       const state = (node as any).__analyticsState;
@@ -278,7 +278,7 @@ describe('AnalyticsTrait', () => {
       for (let i = 0; i < 5; i++) {
         sendEvent(analyticsHandler, node, engagementConfig, ctx, {
           type: 'analytics_interaction',
-          position: { x: i, y: 0, z: 0 },
+          position: [i, 0, 0],
         });
       }
 
@@ -292,11 +292,11 @@ describe('AnalyticsTrait', () => {
       // Two interactions at similar positions (same 2m grid bucket)
       sendEvent(analyticsHandler, node, engagementConfig, ctx, {
         type: 'analytics_interaction',
-        position: { x: 0.5, y: 0.5, z: 0.5 },
+        position: [0.5, 0.5, 0.5],
       });
       sendEvent(analyticsHandler, node, engagementConfig, ctx, {
         type: 'analytics_interaction',
-        position: { x: 1.5, y: 0.5, z: 0.5 },
+        position: [1.5, 0.5, 0.5],
       });
 
       const state = (node as any).__analyticsState;
@@ -341,7 +341,7 @@ describe('AnalyticsTrait', () => {
 
       sendEvent(analyticsHandler, node, engagementConfig, ctx, {
         type: 'analytics_interaction',
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
       });
 
       sendEvent(analyticsHandler, node, engagementConfig, ctx, {

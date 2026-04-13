@@ -30,7 +30,7 @@ function makeNode(overrides: Record<string, any> = {}) {
   return {
     id: 'slider_node',
     properties: {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       ...overrides,
     },
   };
@@ -129,7 +129,7 @@ describe('SlidableTrait.onUpdate — initialPos capture', () => {
 
   it('captures initialPos from node.properties.position on first call', () => {
     const trait = new SlidableTrait();
-    const node = makeNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ position: [0, 0, 0] });
     // First call with physics at initial pos (value should be 0.5 — centre)
     const ctx = makeCtx({ x: 0, y: 0, z: 0 });
     trait.onAttach(node, ctx as any);
@@ -148,7 +148,7 @@ describe('SlidableTrait.onUpdate — initialPos capture', () => {
 describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', () => {
   function make(physicsX: number) {
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'x', length: 0.1, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'x', length: 0.1, position: [0, 0, 0] });
     const ctx = makeCtx({ x: physicsX, y: 0, z: 0 });
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
@@ -201,7 +201,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
   it('does NOT emit ui_value_change when change < 0.01', () => {
     // Simulate two frames with nearly-identical positions → no duplicate event
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'x', length: 0.1, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'x', length: 0.1, position: [0, 0, 0] });
     const ctx = makeCtx({ x: 0, y: 0, z: 0 });
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
@@ -225,7 +225,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
 
   it('uses y-axis displacement when axis=y', () => {
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'y', length: 0.2, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'y', length: 0.2, position: [0, 0, 0] });
     const ctx = makeCtx({ x: 0, y: 0.1, z: 0 }); // +length/2 → value=1
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
@@ -236,7 +236,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
 
   it('uses z-axis displacement when axis=z', () => {
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'z', length: 0.2, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'z', length: 0.2, position: [0, 0, 0] });
     const ctx = makeCtx({ x: 0, y: 0, z: -0.1 }); // -length/2 → value=0; no emit (diff=0 from lastValue)
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
@@ -252,7 +252,7 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
   it('rumbles both hands when crossing a 10% boundary', () => {
     // lastValue=0, move to 0.15 → floor(0)=0, floor(0.15*10)=1 → different → rumble
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'x', length: 1.0, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'x', length: 1.0, position: [0, 0, 0] });
     // length=1.0 → min=-0.5, max=+0.5
     // To get value=0.15: delta = value*length - length/2 = 0.15 - 0.5 = -0.35
     const ctx = makeCtx({ x: -0.35, y: 0, z: 0 });
@@ -266,7 +266,7 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
 
   it('does NOT rumble when staying within the same 10% bucket', () => {
     const trait = new SlidableTrait();
-    const node = makeNode({ axis: 'x', length: 1.0, position: { x: 0, y: 0, z: 0 } });
+    const node = makeNode({ axis: 'x', length: 1.0, position: [0, 0, 0] });
     // Start at value≈0.52 (first frame sets lastValue)
     const ctx = makeCtx({ x: 0.02, y: 0, z: 0 });
     trait.onAttach(node, ctx as any);

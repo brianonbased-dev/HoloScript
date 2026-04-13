@@ -183,7 +183,7 @@ describe('FluidSimulationSystem — boundary management', () => {
   it('addBoundary + getBoundaries', () => {
     sim.addBoundary({
       type: 'plane',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       restitution: 0.5,
     });
@@ -192,7 +192,7 @@ describe('FluidSimulationSystem — boundary management', () => {
   it('clearBoundaries empties list', () => {
     sim.addBoundary({
       type: 'plane',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       restitution: 0,
     });
@@ -267,7 +267,7 @@ describe('FluidSimulationSystem — plane boundary collision', () => {
     const sim = new FluidSimulationSystem({ gravity: { x: 0, y: -9.81, z: 0 }, timeStep: 0.1 });
     sim.addBoundary({
       type: 'plane',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       restitution: 0,
     });
@@ -283,7 +283,7 @@ describe('FluidSimulationSystem — sphere boundary', () => {
     const sim = new FluidSimulationSystem({ gravity: { x: 0, y: 0, z: 0 }, timeStep: 0.016 });
     sim.addBoundary({
       type: 'sphere',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       radius: 1.0,
       restitution: 0,
     });
@@ -302,7 +302,7 @@ describe('FluidSimulationSystem — box boundary', () => {
     const boxSize = { x: 2, y: 2, z: 2 };
     sim.addBoundary({
       type: 'box',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: boxSize,
       restitution: 0,
     });

@@ -51,7 +51,7 @@ describe('LightingTrait', () => {
     it('should retrieve added light by ID', () => {
       const lightId = lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
@@ -70,7 +70,7 @@ describe('LightingTrait', () => {
       });
       lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 0, g: 1, b: 0 },
         intensity: 0.8,
         range: 5,
@@ -88,14 +88,14 @@ describe('LightingTrait', () => {
       });
       lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 0, g: 1, b: 0 },
         intensity: 0.8,
         range: 5,
       });
       lighting.addLight({
         type: 'point',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         color: { r: 0, g: 0, b: 1 },
         intensity: 0.5,
         range: 3,
@@ -109,7 +109,7 @@ describe('LightingTrait', () => {
     it('should update existing light', () => {
       const id = lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
@@ -127,7 +127,7 @@ describe('LightingTrait', () => {
     it('should remove light', () => {
       const id = lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
@@ -140,14 +140,14 @@ describe('LightingTrait', () => {
     it('should clear all lights', () => {
       lighting.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
       });
       lighting.addLight({
         type: 'point',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         color: { r: 0, g: 1, b: 0 },
         intensity: 1.0,
         range: 10,
@@ -253,7 +253,7 @@ describe('LightingTrait', () => {
       });
       lig.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
@@ -272,21 +272,21 @@ describe('LightingTrait', () => {
       });
       lig.addLight({
         type: 'point',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         color: { r: 1, g: 0, b: 0 },
         intensity: 1.0,
         range: 10,
       });
       lig.addLight({
         type: 'point',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         color: { r: 0, g: 1, b: 0 },
         intensity: 1.0,
         range: 10,
       });
       lig.addLight({
         type: 'spot',
-        position: { x: 0, y: 5, z: 0 },
+        position: [0, 5, 0],
         direction: { x: 0, y: -1, z: 0 },
         color: { r: 0, g: 0, b: 1 },
         intensity: 1.0,
@@ -304,7 +304,7 @@ describe('LightingTrait', () => {
       for (let i = 0; i < 10; i++) {
         lig.addLight({
           type: 'point',
-          position: { x: i, y: 0, z: 0 },
+          position: [i, 0, 0],
           color: { r: 1, g: 1, b: 1 },
           intensity: 0.5,
           range: 10,
@@ -320,7 +320,7 @@ describe('LightingTrait', () => {
       for (let i = 0; i < 5; i++) {
         lig.addLight({
           type: 'spot',
-          position: { x: i, y: 0, z: 0 },
+          position: [i, 0, 0],
           direction: { x: 0, y: -1, z: 0 },
           color: { r: 1, g: 1, b: 1 },
           intensity: 0.5,
@@ -412,7 +412,7 @@ describe('LightingTrait', () => {
       // Ambient key light
       lig.addLight({
         type: 'point',
-        position: { x: -5, y: 3, z: 0 },
+        position: [-5, 3, 0],
         color: { r: 1, g: 1, b: 1 },
         intensity: 0.6,
         range: 20,
@@ -421,7 +421,7 @@ describe('LightingTrait', () => {
       // Fill light
       lig.addLight({
         type: 'point',
-        position: { x: 5, y: 2, z: -5 },
+        position: [5, 2, -5],
         color: { r: 0.8, g: 0.8, b: 1 },
         intensity: 0.4,
         range: 15,
@@ -430,7 +430,7 @@ describe('LightingTrait', () => {
       // Rim light
       lig.addLight({
         type: 'spot',
-        position: { x: 0, y: 5, z: -10 },
+        position: [0, 5, -10],
         direction: { x: 0, y: -1, z: 0.5 },
         color: { r: 1, g: 1, b: 1 },
         intensity: 0.8,

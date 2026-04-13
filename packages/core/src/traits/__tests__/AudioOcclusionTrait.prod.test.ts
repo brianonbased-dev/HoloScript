@@ -332,7 +332,7 @@ describe('audioOcclusionHandler.onEvent — position updates', () => {
     const { node, ctx, config } = attach();
     audioOcclusionHandler.onEvent!(node as any, config, ctx as any, {
       type: 'source_position_update',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
     });
     expect((node as any).__audioOcclusionState.sourcePosition).toEqual({ x: 1, y: 2, z: 3 });
   });
@@ -341,7 +341,7 @@ describe('audioOcclusionHandler.onEvent — position updates', () => {
     const { node, ctx, config } = attach();
     audioOcclusionHandler.onEvent!(node as any, config, ctx as any, {
       type: 'listener_position_update',
-      position: { x: 7, y: 8, z: 9 },
+      position: [7, 8, 9],
     });
     expect((node as any).__audioOcclusionState.listenerPosition).toEqual({ x: 7, y: 8, z: 9 });
   });

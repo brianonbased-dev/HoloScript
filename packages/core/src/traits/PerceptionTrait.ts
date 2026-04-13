@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Perception Trait
  *
  * Agent sensory system for awareness with sight, hearing, and memory.
@@ -16,7 +16,7 @@ type SenseType = 'sight' | 'hearing' | 'proximity' | 'damage';
 
 interface PerceivedEntity {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   lastSeen: number;
   senseType: SenseType;
   confidence: number; // 0-1, decays over time
@@ -207,7 +207,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
       // External system reports a detected entity
       const target = event.target as {
         id: string;
-        position: { x: number; y: number; z: number };
+        position: [number, number, number];
         tags?: string[];
         threat?: number;
         velocity?: { x: number; y: number; z: number };

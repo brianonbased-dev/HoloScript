@@ -230,7 +230,7 @@ describe('hapticCueHandler.onEvent — custom_pattern', () => {
 
 describe('hapticCueHandler.onEvent — spatial_direction', () => {
   it('computes normalised direction from node.position when spatial_direction=true', () => {
-    const node = makeNode({ position: { x: 3, y: 0, z: 4 } }); // len=5
+    const node = makeNode({ position: [3, 0, 4] }); // len=5
     const ctx = makeCtx();
     const config = { ...hapticCueHandler.defaultConfig!, spatial_direction: true };
     hapticCueHandler.onAttach!(node as any, config, ctx as any);
@@ -242,7 +242,7 @@ describe('hapticCueHandler.onEvent — spatial_direction', () => {
   });
 
   it('no direction emitted when spatial_direction=false', () => {
-    const node = makeNode({ position: { x: 3, y: 0, z: 4 } });
+    const node = makeNode({ position: [3, 0, 4] });
     const ctx = makeCtx();
     const config = { ...hapticCueHandler.defaultConfig!, spatial_direction: false };
     hapticCueHandler.onAttach!(node as any, config, ctx as any);

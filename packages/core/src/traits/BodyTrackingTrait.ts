@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BodyTracking Trait
  *
  * Full-body skeleton tracking for avatars and motion capture.
@@ -40,7 +40,7 @@ type BodyJoint =
   | 'foot_right';
 
 interface JointPose {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   confidence: number;
   velocity?: { x: number; y: number; z: number };
@@ -117,11 +117,7 @@ function smoothPose(current: JointPose, prev: JointPose, smoothing: number): Joi
   const s = smoothing;
   const inv = 1 - s;
   return {
-    position: {
-      x: prev.position.x * s + current.position.x * inv,
-      y: prev.position.y * s + current.position.y * inv,
-      z: prev.position.z * s + current.position.z * inv,
-    },
+    position: [prev.position.x * s + current.position.x * inv, prev.position.y * s + current.position.y * inv, prev.position.z * s + current.position.z * inv,],
     rotation: {
       x: prev.rotation.x * s + current.rotation.x * inv,
       y: prev.rotation.y * s + current.rotation.y * inv,

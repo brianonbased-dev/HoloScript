@@ -40,7 +40,7 @@ describe('CoLocatedTrait', () => {
     sendEvent(coLocatedHandler, node, cfg, ctx, {
       type: 'co_located_aligned',
       anchorId: 'a1',
-      transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
       quality: 0.95,
     });
     const s = (node as any).__coLocatedState;
@@ -75,7 +75,7 @@ describe('CoLocatedTrait', () => {
     sendEvent(coLocatedHandler, node, cfg, ctx, {
       type: 'co_located_participant_aligned',
       userId: 'u1',
-      position: { x: 1, y: 0, z: 0 },
+      position: [1, 0, 0],
     });
     expect((node as any).__coLocatedState.participants.get('u1').isAligned).toBe(true);
   });
@@ -96,7 +96,7 @@ describe('CoLocatedTrait', () => {
     sendEvent(coLocatedHandler, node, cfg, ctx, {
       type: 'co_located_aligned',
       anchorId: 'a1',
-      transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     });
     sendEvent(coLocatedHandler, node, cfg, ctx, {
       type: 'co_located_quality_update',
@@ -116,7 +116,7 @@ describe('CoLocatedTrait', () => {
     sendEvent(coLocatedHandler, node, cfg, ctx, {
       type: 'co_located_aligned',
       anchorId: 'a1',
-      transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     });
     coLocatedHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__coLocatedState).toBeUndefined();

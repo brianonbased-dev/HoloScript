@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EmbeddingSearchTrait Tests
  *
  * Tests for semantic similarity search trait covering initialization,
@@ -20,7 +20,7 @@ interface StatefulMockContext {
   clearEvents: () => void;
   getState: () => Record<string, unknown>;
   setState: (updates: Record<string, unknown>) => void;
-  player?: { position: { x: number; y: number; z: number } };
+  player?: { position: [number, number, number] };
 }
 
 function createStatefulMockContext(): StatefulMockContext {

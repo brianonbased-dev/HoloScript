@@ -43,7 +43,7 @@ describe('FluidTrait', () => {
     sendEvent(fluidHandler, node, cfg, ctx, {
       type: 'fluid_add_emitter',
       emitterId: 'e1',
-      position: { x: 0, y: 1, z: 0 },
+      position: [0, 1, 0],
       rate: 200,
       velocity: { x: 0, y: -2, z: 0 },
     });
@@ -69,7 +69,7 @@ describe('FluidTrait', () => {
   it('splash emits impulse and event', () => {
     sendEvent(fluidHandler, node, cfg, ctx, {
       type: 'fluid_splash',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       force: 20,
       radius: 1,
     });

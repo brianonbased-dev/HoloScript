@@ -145,11 +145,7 @@ export class AdvancedClothSystem {
 
         this.particles.set(id, {
           id,
-          position: {
-            x: col * dx - size.width / 2,
-            y: 0,
-            z: row * dy,
-          },
+          position: [col * dx - size.width / 2, 0, row * dy,],
           prevPosition: {
             x: col * dx - size.width / 2,
             y: 0,

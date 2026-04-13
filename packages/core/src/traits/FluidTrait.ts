@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fluid Trait
  *
  * Fluid dynamics simulation using MLS-MPM (GPU) or SPH (CPU fallback).
@@ -35,7 +35,7 @@ interface FluidState {
   emitters: Map<
     string,
     {
-      position: { x: number; y: number; z: number };
+      position: [number, number, number];
       rate: number;
       velocity: { x: number; y: number; z: number };
     }
@@ -49,9 +49,9 @@ interface FluidState {
 interface FluidConfig {
   method: SimulationMethod;
   particle_count: number;
-  viscosity: number; // Pa·s
+  viscosity: number; // PaÂ·s
   surface_tension: number; // N/m
-  density: number; // kg/m³
+  density: number; // kg/mÂ³
   gravity: [number, number, number];
   render_mode: RenderMode;
   kernel_radius: number;

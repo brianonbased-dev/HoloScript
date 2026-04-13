@@ -130,7 +130,7 @@ describe('TerrainAnchorTrait — Production', () => {
       handle: 'TH1',
       terrainHeight: 100,
       confidence: 1.0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     ctx.emit.mockClear();
     terrainAnchorHandler.onDetach!(node, cfg as any, ctx as any);
@@ -158,7 +158,7 @@ describe('TerrainAnchorTrait — Production', () => {
       handle: 'TH2',
       terrainHeight: 250,
       confidence: 0.95,
-      position: { x: 1, y: 250, z: 2 },
+      position: [1, 250, 2],
     });
     const s = st(node);
     expect(s.state).toBe('resolved');
@@ -181,7 +181,7 @@ describe('TerrainAnchorTrait — Production', () => {
       type: 'terrain_anchor_resolved',
       handle: 'TH3',
       terrainHeight: 100,
-      position: { x: 0, y: 100, z: 0 },
+      position: [0, 100, 0],
     });
     expect(st(node).confidence).toBe(1.0);
   });
@@ -193,7 +193,7 @@ describe('TerrainAnchorTrait — Production', () => {
       type: 'terrain_anchor_resolved',
       handle: 'TH4',
       terrainHeight: 50,
-      position: { x: 0, y: 50, z: 0 },
+      position: [0, 50, 0],
       surfaceNormal: angled,
     });
     const s = st(node);
@@ -208,7 +208,7 @@ describe('TerrainAnchorTrait — Production', () => {
       type: 'terrain_anchor_resolved',
       handle: 'TH5',
       terrainHeight: 10,
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       surfaceNormal: { x: 0, y: 1, z: 0 }, // perfect up
     });
     // When normal is straight up, len < 0.001 → rotation unchanged (identity)
@@ -222,7 +222,7 @@ describe('TerrainAnchorTrait — Production', () => {
     const { node, ctx, cfg } = attach();
     fire(node, cfg, ctx, {
       type: 'terrain_pose_update',
-      position: { x: 5, y: 100, z: 3 },
+      position: [5, 100, 3],
       terrainHeight: 100,
     });
     const s = st(node);
@@ -236,7 +236,7 @@ describe('TerrainAnchorTrait — Production', () => {
     const norm = { x: 0.1, y: 0.99, z: 0.05 };
     fire(node, cfg, ctx, {
       type: 'terrain_pose_update',
-      position: { x: 0, y: 50, z: 0 },
+      position: [0, 50, 0],
       terrainHeight: 50,
       surfaceNormal: norm,
     });
@@ -293,7 +293,7 @@ describe('TerrainAnchorTrait — Production', () => {
       type: 'terrain_anchor_resolved',
       handle: 'TH6',
       terrainHeight: 10,
-      position: { x: 3, y: 10, z: 4 },
+      position: [3, 10, 4],
     });
     terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);
     expect(node.position.x).toBe(3);
@@ -308,7 +308,7 @@ describe('TerrainAnchorTrait — Production', () => {
       handle: 'H',
       terrainHeight: 0,
       confidence: 1,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     expect(() => terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0)).not.toThrow();
   });
@@ -322,7 +322,7 @@ describe('TerrainAnchorTrait — Production', () => {
       type: 'terrain_anchor_resolved',
       handle: 'TH7',
       terrainHeight: 5,
-      position: { x: 0, y: 5, z: 0 },
+      position: [0, 5, 0],
       surfaceNormal: angled,
     });
     terrainAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);

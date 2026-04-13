@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Destruction Trait
  *
  * Physics-based destruction with fragmentation, chain reactions, and debris
@@ -14,7 +14,7 @@ import type { TraitHandler, TraitContext } from './TraitTypes';
 
 interface Fragment {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   angularVelocity: { x: number; y: number; z: number };
@@ -70,7 +70,7 @@ function generateVoronoiPoints(
 }
 
 function generateFragments(
-  position: { x: number; y: number; z: number },
+  position: [number, number, number],
   scale: { x: number; y: number; z: number },
   impactPoint: { x: number; y: number; z: number } | null,
   config: DestructionConfig
@@ -91,11 +91,7 @@ function generateFragments(
 
     fragments.push({
       id: `fragment_${i}_${Date.now()}`,
-      position: {
-        x: position.x + points[i].x,
-        y: position.y + points[i].y,
-        z: position.z + points[i].z,
-      },
+      position: [position.x + points[i].x, position.y + points[i].y, position.z + points[i].z,],
       velocity: {
         x: (dx / dist) * explosionScale,
         y: (dy / dist) * explosionScale + Math.random() * 2, // Slight upward bias

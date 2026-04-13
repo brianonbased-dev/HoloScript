@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   VRTraitName,
   VRHand,
   ThrowVelocity,
@@ -20,7 +20,7 @@ export interface TraitHandler<TConfig = unknown> {
   onDetach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void;
   onUpdate?: (node: HSPlusNode, config: TConfig, context: TraitContext, delta: number) => void;
   onEvent?: (node: HSPlusNode, config: TConfig, context: TraitContext, event: TraitEvent) => void;
-  /** Compiler adapters, validators, and metadata — typed as unknown for extensibility */
+  /** Compiler adapters, validators, and metadata â€” typed as unknown for extensibility */
   [key: string]: unknown;
 }
 
@@ -90,12 +90,12 @@ export interface TraitContext {
   haptics: HapticsContext;
   accessibility?: AccessibilityContext;
   camera?: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation?: { x: number; y: number; z: number };
     fov?: number;
   };
   player?: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation?: { x: number; y: number; z: number };
   };
   emit: (event: string, payload?: unknown) => void;
@@ -103,7 +103,7 @@ export interface TraitContext {
   setState: (updates: Record<string, unknown>) => void;
   getScaleMultiplier: () => number;
   setScaleContext: (magnitude: string) => void;
-  /** Optional action dispatcher for BehaviorTreeTrait — maps action names to external handlers.
+  /** Optional action dispatcher for BehaviorTreeTrait â€” maps action names to external handlers.
    *  The blackboard parameter is the BT's shared state, allowing handlers to update conditions. */
   executeAction?: (
     owner: HSPlusNode,
@@ -199,7 +199,7 @@ export function extractPayload(event: TraitEvent): Record<string, any> {
 
 /**
  * Common interface for trait instance delegates stored on `node.__*_instance`.
- * All methods are optional — callers must guard with `typeof instance.X === 'function'`.
+ * All methods are optional â€” callers must guard with `typeof instance.X === 'function'`.
  */
 export interface TraitInstanceDelegate {
   onDetach?: (node: HSPlusNode, ctx: TraitContext) => void;

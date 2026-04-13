@@ -334,7 +334,7 @@ export class CharacterTrait {
     };
 
     this.state = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 0, y: 0, z: 0 },
       movementMode: 'walking',
       groundState: 'grounded',

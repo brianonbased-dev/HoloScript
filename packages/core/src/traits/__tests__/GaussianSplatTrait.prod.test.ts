@@ -25,7 +25,7 @@ function makeNode(id = 'splat_node') {
 }
 
 function makeCtx() {
-  return { emit: vi.fn(), camera: { position: { x: 0, y: 0, z: 0 } } };
+  return { emit: vi.fn(), camera: { position: [0, 0, 0] } };
 }
 
 function attach(cfg: Partial<typeof gaussianSplatHandler.defaultConfig> = {}) {

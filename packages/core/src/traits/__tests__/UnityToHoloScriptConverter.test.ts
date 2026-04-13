@@ -91,7 +91,7 @@ const MINIMAL_SCENE: UnityScene = {
   gameObjects: [
     {
       name: 'Cube',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 45, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
       components: [
@@ -178,7 +178,7 @@ describe('UnityConverter — scene conversion', () => {
       gameObjects: [
         {
           name: 'Parent',
-          children: [{ name: 'Child', position: { x: 0, y: 1, z: 0 } }],
+          children: [{ name: 'Child', position: [0, 1, 0] }],
         },
       ],
     };

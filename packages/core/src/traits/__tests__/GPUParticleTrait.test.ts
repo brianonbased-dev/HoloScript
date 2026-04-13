@@ -89,7 +89,7 @@ describe('GPUParticleTrait', () => {
   it('set emitter position and velocity', () => {
     sendEvent(gpuParticleHandler, node, cfg, ctx, {
       type: 'particle_set_emitter',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       velocity: { x: 0, y: 1, z: 0 },
     });
     expect((node as any).__gpuParticleState.emitterPosition).toEqual({ x: 1, y: 2, z: 3 });

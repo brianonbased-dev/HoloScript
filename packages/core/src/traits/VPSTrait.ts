@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VPS Trait
  *
  * Visual Positioning System integration for high-accuracy localization.
@@ -32,7 +32,7 @@ interface VPSState {
   continuousTrackingActive: boolean;
   locationId: string | null;
   pose: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   };
   localizationAttempts: number;
@@ -77,7 +77,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       continuousTrackingActive: false,
       locationId: null,
       pose: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
       },
       localizationAttempts: 0,

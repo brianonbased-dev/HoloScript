@@ -45,7 +45,7 @@ describe('TerrainAnchorTrait', () => {
       handle: 'h1',
       terrainHeight: 50,
       confidence: 0.95,
-      position: { x: 1, y: 50, z: 2 },
+      position: [1, 50, 2],
       surfaceNormal: { x: 0, y: 1, z: 0 },
     });
     const s = (node as any).__terrainAnchorState;
@@ -57,7 +57,7 @@ describe('TerrainAnchorTrait', () => {
   it('pose update transitions to tracking', () => {
     sendEvent(terrainAnchorHandler, node, cfg, ctx, {
       type: 'terrain_pose_update',
-      position: { x: 1, y: 51, z: 2 },
+      position: [1, 51, 2],
       terrainHeight: 51,
     });
     expect((node as any).__terrainAnchorState.state).toBe('tracking');
@@ -91,7 +91,7 @@ describe('TerrainAnchorTrait', () => {
       handle: 'h1',
       terrainHeight: 50,
       confidence: 1.0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     terrainAnchorHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(getEventCount(ctx, 'terrain_anchor_release')).toBe(1);

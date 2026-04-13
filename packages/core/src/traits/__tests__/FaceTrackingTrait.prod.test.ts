@@ -135,7 +135,7 @@ describe('faceTrackingHandler.onUpdate', () => {
     const { node, config, ctx } = attach();
     node.__faceTrackingState.isTracking = true;
     node.__faceTrackingState.headPose = {
-      position: { x: 0, y: 1.7, z: 0 },
+      position: [0, 1.7, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     };
     ctx.emit.mockClear();
@@ -143,7 +143,7 @@ describe('faceTrackingHandler.onUpdate', () => {
     expect(ctx.emit).toHaveBeenCalledWith(
       'avatar_head_pose',
       expect.objectContaining({
-        position: { x: 0, y: 1.7, z: 0 },
+        position: [0, 1.7, 0],
       })
     );
   });
@@ -263,7 +263,7 @@ describe('faceTrackingHandler.onEvent — face_data_update', () => {
   });
   it('stores headPose when provided', () => {
     const { node, config, ctx } = attach();
-    const hp = { position: { x: 0, y: 1.6, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } };
+    const hp = { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } };
     faceTrackingHandler.onEvent!(node, config, ctx, { type: 'face_data_update', headPose: hp });
     expect(node.__faceTrackingState.headPose).toEqual(hp);
   });

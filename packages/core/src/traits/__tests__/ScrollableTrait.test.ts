@@ -8,7 +8,7 @@ describe('ScrollableTrait', () => {
   let config: ScrollableConfig;
 
   beforeEach(() => {
-    contentNode = { properties: { position: { x: 0, y: 0, z: 0 } } };
+    contentNode = { properties: { position: [0, 0, 0] } };
     scrollableNode = { id: 'scroll_view', children: [] };
 
     context = {

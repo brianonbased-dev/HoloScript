@@ -21,7 +21,7 @@ import {
 function createMockNode(overrides: Record<string, any> = {}) {
   return {
     id: 'test-node',
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     ...overrides,
   };
 }
@@ -33,7 +33,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
+      headset: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 } },
       getPointerRay: () => null,
       getDominantHand: () => null,
     },
@@ -118,7 +118,7 @@ describe('spatialAdjacentHandler', () => {
   });
 
   it('should emit violation when distance exceeds maxDistance', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialAdjacentHandler.defaultConfig,
@@ -136,7 +136,7 @@ describe('spatialAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -152,7 +152,7 @@ describe('spatialAdjacentHandler', () => {
   });
 
   it('should emit resolved when violation clears', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialAdjacentHandler.defaultConfig,
@@ -170,7 +170,7 @@ describe('spatialAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -183,7 +183,7 @@ describe('spatialAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
       } as any
     );
     spatialAdjacentHandler.onUpdate!(node as any, config, context as any, 0.016);
@@ -198,7 +198,7 @@ describe('spatialAdjacentHandler', () => {
   });
 
   it('should correct position when enforcement is correct', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialAdjacentHandler.defaultConfig,
@@ -216,7 +216,7 @@ describe('spatialAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -356,7 +356,7 @@ describe('spatialReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'exit',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 

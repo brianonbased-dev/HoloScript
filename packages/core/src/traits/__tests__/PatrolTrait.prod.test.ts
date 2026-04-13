@@ -201,7 +201,7 @@ describe('patrolHandler.onEvent — patrol_alert', () => {
     ctx.emit.mockClear();
     patrolHandler.onEvent!(node, config, ctx, {
       type: 'patrol_alert',
-      position: { x: 5, y: 0, z: 5 },
+      position: [5, 0, 5],
     });
     expect(node.__patrolState.isAlerted).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('patrol_alerted', expect.anything());
@@ -212,7 +212,7 @@ describe('patrolHandler.onEvent — patrol_alert', () => {
     ctx.emit.mockClear();
     patrolHandler.onEvent!(node, config, ctx, {
       type: 'patrol_alert',
-      position: { x: 5, y: 0, z: 5 },
+      position: [5, 0, 5],
     });
     expect(node.__patrolState.isAlerted).toBe(false);
   });

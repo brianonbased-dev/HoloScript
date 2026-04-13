@@ -48,13 +48,13 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'LeftArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         }, // Placeholder
         {
           id: 'LeftForeArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
@@ -69,13 +69,13 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         {
           id: 'RightArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
         {
           id: 'RightForeArm',
           length: 0.3,
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0, w: 1 },
         },
       ],
@@ -107,9 +107,9 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
       // 1. Get Input (Mocked/Context)
       // In real scenario: const input = context.vr.getInput();
       const input = {
-        head: { position: { x: 0, y: 1.7, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-        leftHand: { position: { x: -0.3, y: 1.2, z: 0.4 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-        rightHand: { position: { x: 0.3, y: 1.2, z: 0.4 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+        head: { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+        leftHand: { position: [-0.3, 1.2, 0.4], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+        rightHand: { position: [0.3, 1.2, 0.4], rotation: { x: 0, y: 0, z: 0, w: 1 } },
         height: 1.7,
       };
 

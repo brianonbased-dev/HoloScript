@@ -170,7 +170,7 @@ describe('gpuParticleHandler.onUpdate — burst queue', () => {
     const { node, ctx, config } = attach({ emission_rate: 0 }); // disable continuous emit
     const state = getState(node);
     state.burstQueue.push({ count: 100 });
-    state.burstQueue.push({ count: 50, position: { x: 1, y: 0, z: 0 } });
+    state.burstQueue.push({ count: 50, position: [1, 0, 0] });
     ctx.emit.mockClear();
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
@@ -201,7 +201,7 @@ describe('gpuParticleHandler.onUpdate — burst queue', () => {
     gpuParticleHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
       'gpu_particle_burst',
-      expect.objectContaining({ position: { x: 5, y: 0, z: 0 } })
+      expect.objectContaining({ position: [5, 0, 0] })
     );
   });
 });
@@ -290,7 +290,7 @@ describe('gpuParticleHandler.onEvent', () => {
     const { node, ctx, config } = attach();
     gpuParticleHandler.onEvent!(node as any, config, ctx as any, {
       type: 'particle_set_emitter',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
     });
     expect(getState(node).emitterPosition).toEqual({ x: 1, y: 2, z: 3 });
   });

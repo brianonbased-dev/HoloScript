@@ -227,7 +227,7 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
       {
         type: 'soft_body_apply_force',
         force: { x: 1, y: 2, z: 3 },
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         radius: 0.2,
       } as any
     );
@@ -275,7 +275,7 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
       ctx as any,
       {
         type: 'soft_body_poke',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         force: 5,
         direction: { x: 0, y: -1, z: 0 },
       } as any
@@ -290,7 +290,7 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
       ctx as any,
       {
         type: 'soft_body_poke',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         force: 10,
         direction: { x: 0, y: -1, z: 0 },
       } as any
@@ -306,7 +306,7 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
       ctx as any,
       {
         type: 'soft_body_poke',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       } as any
     );
     const ev = ctx.emitted.find((e) => e.type === 'soft_body_impulse');
@@ -610,7 +610,7 @@ describe('softBodyHandler — edge cases', () => {
         mkNode() as any,
         mkConfig(),
         mkCtx() as any,
-        { type: 'soft_body_poke', position: { x: 0, y: 0, z: 0 } } as any
+        { type: 'soft_body_poke', position: [0, 0, 0] } as any
       )
     ).not.toThrow();
   });

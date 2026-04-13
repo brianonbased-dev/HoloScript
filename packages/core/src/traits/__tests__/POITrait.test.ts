@@ -41,25 +41,25 @@ describe('POITrait', () => {
   });
 
   it('calculates distance and emits proximity on enter trigger', () => {
-    (ctx as any).player = { position: { x: 5, y: 0, z: 0 } };
+    (ctx as any).player = { position: [5, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect((node as any).__poiState.distanceToUser).toBeCloseTo(5, 0);
     expect(getEventCount(ctx, 'on_poi_proximity')).toBe(1);
   });
 
   it('emits exit event when leaving trigger radius', () => {
-    (ctx as any).player = { position: { x: 5, y: 0, z: 0 } };
+    (ctx as any).player = { position: [5, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
-    (ctx as any).player = { position: { x: 50, y: 0, z: 0 } };
+    (ctx as any).player = { position: [50, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect(getEventCount(ctx, 'on_poi_exit')).toBe(1);
   });
 
   it('visibility changes with distance', () => {
-    (ctx as any).player = { position: { x: 50, y: 0, z: 0 } };
+    (ctx as any).player = { position: [50, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect((node as any).__poiState.isVisible).toBe(true);
-    (ctx as any).player = { position: { x: 200, y: 0, z: 0 } };
+    (ctx as any).player = { position: [200, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect((node as any).__poiState.isVisible).toBe(false);
     expect(getEventCount(ctx, 'poi_visibility_change')).toBe(2);
@@ -71,7 +71,7 @@ describe('POITrait', () => {
   });
 
   it('poi_reset clears trigger state', () => {
-    (ctx as any).player = { position: { x: 5, y: 0, z: 0 } };
+    (ctx as any).player = { position: [5, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect((node as any).__poiState.wasTriggered).toBe(true);
     sendEvent(poiHandler, node, cfg, ctx, { type: 'poi_reset' });

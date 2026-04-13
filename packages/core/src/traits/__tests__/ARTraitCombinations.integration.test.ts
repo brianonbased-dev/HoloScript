@@ -85,7 +85,7 @@ function makeFaceData(jawOpen = 0, smileL = 0, smileR = 0) {
       right: { direction: { x: 0, y: 0, z: -1 }, origin: { x: 0.03, y: 0, z: 0 }, confidence: 0.9 },
     },
     headPose: {
-      position: { x: 0, y: 1.6, z: 0 },
+      position: [0, 1.6, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     },
   };
@@ -393,7 +393,7 @@ describe('AR Trait Combination: Geospatial + VPS + Light Estimation', () => {
       accuracy: 0.3,
       locationId: 'sf-downtown',
       pose: {
-        position: { x: 1, y: 0, z: -2 },
+        position: [1, 0, -2],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
       },
     });

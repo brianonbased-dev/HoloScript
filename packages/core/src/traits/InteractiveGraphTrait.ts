@@ -247,7 +247,7 @@ function handlePointerMove(
       context.emit('graph:hover', {
         nodeId: hitNodeId,
         symbol,
-        position: { x: hit.point.x, y: hit.point.y, z: hit.point.z },
+        position: [hit.point.x, hit.point.y, hit.point.z],
       });
 
       // Highlight connected edges

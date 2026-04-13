@@ -51,7 +51,7 @@ describe('ChainTrait', () => {
     sendEvent(chainHandler, node, cfg, ctx, {
       type: 'chain_link_update',
       linkIndex: 2,
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
     expect((node as any).__chainState.links[2].position).toEqual({ x: 1, y: 2, z: 3 });

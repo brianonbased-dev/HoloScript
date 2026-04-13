@@ -251,7 +251,7 @@ describe('CharacterTrait', () => {
 
     it('should import state', () => {
       character.importState({
-        position: { x: 10, y: 20, z: 30 },
+        position: [10, 20, 30],
       });
 
       const pos = character.getPosition();

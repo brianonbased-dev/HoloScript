@@ -120,7 +120,7 @@ describe('RooftopAnchorTrait — Production', () => {
       handle: 'H1',
       buildingHeight: 30,
       confidence: 0.9,
-      position: { x: 0, y: 30, z: 0 },
+      position: [0, 30, 0],
     });
     ctx.emit.mockClear();
     rooftopAnchorHandler.onDetach!(node, cfg as any, ctx as any);
@@ -141,7 +141,7 @@ describe('RooftopAnchorTrait — Production', () => {
       buildingHeight: 45,
       floors: 15,
       confidence: 0.95,
-      position: { x: 10, y: 45, z: 5 },
+      position: [10, 45, 5],
     });
     const s = st(node);
     expect(s.state).toBe('resolved');
@@ -167,7 +167,7 @@ describe('RooftopAnchorTrait — Production', () => {
       handle: 'H3',
       buildingHeight: 30, // 30/3 = 10 floors
       confidence: 1.0,
-      position: { x: 0, y: 30, z: 0 },
+      position: [0, 30, 0],
     });
     expect(st(node).estimatedFloors).toBe(10);
   });
@@ -178,7 +178,7 @@ describe('RooftopAnchorTrait — Production', () => {
       type: 'rooftop_anchor_resolved',
       handle: 'H4',
       buildingHeight: 20,
-      position: { x: 0, y: 20, z: 0 },
+      position: [0, 20, 0],
     });
     expect(st(node).confidence).toBe(1.0);
   });
@@ -218,7 +218,7 @@ describe('RooftopAnchorTrait — Production', () => {
 
   it('pose_update transitions to tracking state', () => {
     const { node, ctx, cfg } = attach();
-    fire(node, cfg, ctx, { type: 'rooftop_pose_update', position: { x: 1, y: 20, z: 2 } });
+    fire(node, cfg, ctx, { type: 'rooftop_pose_update', position: [1, 20, 2] });
     expect(st(node).state).toBe('tracking');
     expect(st(node).rooftopPosition).toEqual({ x: 1, y: 20, z: 2 });
   });
@@ -273,7 +273,7 @@ describe('RooftopAnchorTrait — Production', () => {
       type: 'rooftop_anchor_resolved',
       handle: 'H9',
       buildingHeight: 20,
-      position: { x: 3, y: 20, z: 1 },
+      position: [3, 20, 1],
     });
     rooftopAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0);
     expect(node.position.x).toBe(3);
@@ -286,7 +286,7 @@ describe('RooftopAnchorTrait — Production', () => {
       type: 'rooftop_anchor_resolved',
       handle: 'H10',
       buildingHeight: 10,
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
     });
     expect(() => rooftopAnchorHandler.onUpdate!(node, cfg as any, ctx as any, 0)).not.toThrow();
   });

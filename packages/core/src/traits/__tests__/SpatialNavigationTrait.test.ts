@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SpatialNavigationTrait Tests
  *
  * Tests for spatial navigation trait covering initialization,
@@ -21,7 +21,7 @@ interface StatefulMockContext {
   clearEvents: () => void;
   getState: () => Record<string, unknown>;
   setState: (updates: Record<string, unknown>) => void;
-  player?: { position: { x: number; y: number; z: number } };
+  player?: { position: [number, number, number] };
 }
 
 function createStatefulMockContext(): StatefulMockContext {
@@ -242,7 +242,7 @@ describe('SpatialNavigationTrait', () => {
 
   describe('onUpdate waypoint detection', () => {
     it('does nothing when not navigating', () => {
-      ctx.player = { position: { x: 0, y: 0, z: 0 } };
+      ctx.player = { position: [0, 0, 0] };
       ctx.clearEvents();
 
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, ctx as any, 0.016);
@@ -274,7 +274,7 @@ describe('SpatialNavigationTrait', () => {
       ctx.clearEvents();
 
       // Player is at [10, 0, 20] - exactly at wp1
-      ctx.player = { position: { x: 10, y: 0, z: 20 } };
+      ctx.player = { position: [10, 0, 20] };
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, ctx as any, 0.016);
 
       const state = ctx.getState().spatialNavigation as any;
@@ -292,7 +292,7 @@ describe('SpatialNavigationTrait', () => {
       });
       ctx.clearEvents();
 
-      ctx.player = { position: { x: 5, y: 0, z: 5 } };
+      ctx.player = { position: [5, 0, 5] };
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, ctx as any, 0.016);
 
       expect(getEventCount(ctx, 'navigation:waypoint_reached')).toBe(1);
@@ -310,7 +310,7 @@ describe('SpatialNavigationTrait', () => {
         },
       });
 
-      ctx.player = { position: { x: 0, y: 0, z: 0 } };
+      ctx.player = { position: [0, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, ctx as any, 0.016);
 
       const state = ctx.getState().spatialNavigation as any;
@@ -331,7 +331,7 @@ describe('SpatialNavigationTrait', () => {
       });
 
       // Reach wp1
-      ctx.player = { position: { x: 0, y: 0, z: 0 } };
+      ctx.player = { position: [0, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, tightRadius, ctx as any, 0.016);
       ctx.clearEvents();
 
@@ -349,7 +349,7 @@ describe('SpatialNavigationTrait', () => {
       });
       ctx.clearEvents();
 
-      ctx.player = { position: { x: 0, y: 0, z: 0 } };
+      ctx.player = { position: [0, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, ctx as any, 0.016);
 
       expect(getEventCount(ctx, 'navigation:waypoint_reached')).toBe(0);
@@ -380,17 +380,17 @@ describe('SpatialNavigationTrait', () => {
       ctx.clearEvents();
 
       // Reach waypoint A
-      ctx.player = { position: { x: 10, y: 0, z: 0 } };
+      ctx.player = { position: [10, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, config, ctx as any, 0.016);
       expect(getEventCount(ctx, 'navigation:waypoint_reached')).toBe(1);
 
       // Reach waypoint B
-      ctx.player = { position: { x: 20, y: 0, z: 0 } };
+      ctx.player = { position: [20, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, config, ctx as any, 0.016);
       expect(getEventCount(ctx, 'navigation:waypoint_reached')).toBe(2);
 
       // Reach waypoint C (final)
-      ctx.player = { position: { x: 30, y: 0, z: 0 } };
+      ctx.player = { position: [30, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, config, ctx as any, 0.016);
       expect(getEventCount(ctx, 'navigation:waypoint_reached')).toBe(3);
       expect(getEventCount(ctx, 'navigation:arrived')).toBe(1);
@@ -407,7 +407,7 @@ describe('SpatialNavigationTrait', () => {
   describe('no state guard', () => {
     it('onUpdate does nothing when state is not set', () => {
       const freshCtx = createStatefulMockContext();
-      freshCtx.player = { position: { x: 0, y: 0, z: 0 } };
+      freshCtx.player = { position: [0, 0, 0] };
       spatialNavigationHandler.onUpdate!(node as any, defaultConfig, freshCtx as any, 0.016);
       expect(freshCtx.emittedEvents).toHaveLength(0);
     });

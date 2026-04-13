@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VoronoiFractureTrait.ts
  * Advanced procedural destruction and fracture simulation with Voronoi cells
  *
@@ -24,7 +24,7 @@ export interface FractureFragment {
   /** Fragment ID */
   id: number;
   /** Centroid position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Bounding box min */
   boundsMin: { x: number; y: number; z: number };
   /** Bounding box max */
@@ -50,7 +50,7 @@ export interface FractureFragment {
  */
 export interface VoronoiSite {
   /** Position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Cell ID */
   id: number;
 }
@@ -60,7 +60,7 @@ export interface VoronoiSite {
  */
 export interface DamageEvent {
   /** Position of impact */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Damage radius */
   radius: number;
   /** Maximum damage at center */
@@ -225,7 +225,7 @@ export class VoronoiFractureSystem {
     Object.assign(this.config, config);
   }
 
-  setCameraPosition(position: { x: number; y: number; z: number }): void {
+  setCameraPosition(position: [number, number, number]): void {
     this.cameraPosition = { ...position };
   }
 
@@ -653,14 +653,14 @@ export interface VoronoiFractureTrait {
 
   // Damage events (optional)
   initial_damage_events?: Array<{
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     radius: number;
     max_damage: number;
     falloff: number;
   }>;
 }
 
-// ── Handler (delegates to VoronoiFractureSystem) ──
+// â”€â”€ Handler (delegates to VoronoiFractureSystem) â”€â”€
 import type {
   TraitHandler,
   HSPlusNode,

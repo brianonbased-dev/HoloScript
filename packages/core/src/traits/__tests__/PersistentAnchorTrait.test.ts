@@ -62,7 +62,7 @@ describe('PersistentAnchorTrait', () => {
   it('pose_update sets tracking state', () => {
     sendEvent(persistentAnchorHandler, node, cfg, ctx, {
       type: 'persistent_anchor_pose_update',
-      position: { x: 5, y: 6, z: 7 },
+      position: [5, 6, 7],
       rotation: { x: 0, y: 1, z: 0, w: 0 },
     });
     const s = (node as any).__persistentAnchorState;

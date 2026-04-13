@@ -71,7 +71,7 @@ describe('HeadTrackedAudioTrait', () => {
   it('world position update stores position', () => {
     sendEvent(headTrackedAudioHandler, node, cfg, ctx, {
       type: 'audio_set_world_position',
-      position: { x: 5, y: 10, z: 15 },
+      position: [5, 10, 15],
     });
     expect((node as any).__headTrackedAudioState.worldPosition.x).toBe(5);
   });

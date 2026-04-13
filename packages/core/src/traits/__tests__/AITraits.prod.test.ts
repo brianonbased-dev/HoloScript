@@ -203,7 +203,7 @@ describe('SpatialNavigationTrait — Production', () => {
   });
 
   it('onUpdate reaches waypoint within radius', () => {
-    const ctx = mockContext({ position: { x: 10, y: 0, z: 10 } });
+    const ctx = mockContext({ position: [10, 0, 10] });
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, {
       type: 'navigation:start',
@@ -215,7 +215,7 @@ describe('SpatialNavigationTrait — Production', () => {
   });
 
   it('onUpdate advances to next waypoint', () => {
-    const ctx = mockContext({ position: { x: 10, y: 0, z: 10 } });
+    const ctx = mockContext({ position: [10, 0, 10] });
     handler.onAttach!(mockNode, config, ctx);
     handler.onEvent!(mockNode, config, ctx, {
       type: 'navigation:start',

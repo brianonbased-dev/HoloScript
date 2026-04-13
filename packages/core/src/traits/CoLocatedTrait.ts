@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CoLocated Trait
  *
  * Shared experience in same physical space with spatial alignment.
@@ -21,7 +21,7 @@ interface Participant {
   isAligned: boolean;
   alignedAt: number;
   lastSeen: number;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
 }
 
 interface CoLocatedState {
@@ -30,7 +30,7 @@ interface CoLocatedState {
   participants: Map<string, Participant>;
   sharedAnchorId: string | null;
   alignmentTransform: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   };
   alignmentQuality: number;
@@ -71,7 +71,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       participants: new Map(),
       sharedAnchorId: config.shared_anchor_id || null,
       alignmentTransform: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
       },
       alignmentQuality: 0,
@@ -180,7 +180,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
           isAligned: false,
           alignedAt: 0,
           lastSeen: Date.now(),
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
         });
 
         context.emit?.('on_co_presence_joined', {

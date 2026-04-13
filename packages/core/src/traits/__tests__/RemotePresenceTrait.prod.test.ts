@@ -346,7 +346,7 @@ describe('RemotePresenceTrait — onEvent: pose, voice, video', () => {
     const { cfg, ctx } = attach(node);
     peerJoin(node, cfg, ctx, 'p1');
     const newPose = {
-      head: { position: { x: 1, y: 1.8, z: -1 }, rotation: { x: 0, y: 0.7, z: 0, w: 0.7 } },
+      head: { position: [1, 1.8, -1], rotation: { x: 0, y: 0.7, z: 0, w: 0.7 } },
     };
     fireEvent(node, cfg, ctx, {
       type: 'remote_presence_pose_update',

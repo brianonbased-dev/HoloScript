@@ -24,7 +24,7 @@ import {
 function createMockNode(overrides: Record<string, any> = {}) {
   return {
     id: 'test-node',
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     ...overrides,
   };
 }
@@ -37,7 +37,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
     vr: {
       hands: { left: null, right: null },
       headset: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0 },
       },
       getPointerRay: () => null,
@@ -236,7 +236,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
       } as any
     );
 
@@ -245,7 +245,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should accumulate duration while in range', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -264,7 +264,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 2, y: 0, z: 0 },
+        position: [2, 0, 0],
       } as any
     );
 
@@ -280,7 +280,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should emit violation after grace period when leaving range', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -300,7 +300,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
       } as any
     );
 
@@ -317,7 +317,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -342,7 +342,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should emit resolved when returning to range and satisfying duration', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -362,7 +362,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -378,7 +378,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
       } as any
     );
 
@@ -401,7 +401,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should reset duration when adjacency breaks', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -421,7 +421,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
       } as any
     );
 
@@ -442,7 +442,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -454,7 +454,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should correct position when enforcement is correct', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -475,7 +475,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
       } as any
     );
 
@@ -486,7 +486,7 @@ describe('spatialTemporalAdjacentHandler', () => {
   });
 
   it('should respect minDistance constraint', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalAdjacentHandler.defaultConfig,
@@ -507,7 +507,7 @@ describe('spatialTemporalAdjacentHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'other',
-        position: { x: 0.5, y: 0, z: 0 },
+        position: [0.5, 0, 0],
       } as any
     );
 
@@ -564,7 +564,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
       } as any
     );
 
@@ -586,7 +586,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'moving_obstacle_update',
         obstacleId: 'car_1',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
         velocity: { x: -2, y: 0, z: 0 },
         radius: 1.0,
       } as any
@@ -612,7 +612,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'moving_obstacle_update',
         obstacleId: 'car_1',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
         velocity: { x: 0, y: 0, z: 0 },
         radius: 1.0,
       } as any
@@ -633,7 +633,7 @@ describe('spatialTemporalReachableHandler', () => {
   });
 
   it('should detect when max path length is exceeded', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalReachableHandler.defaultConfig,
@@ -650,7 +650,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
       } as any
     );
 
@@ -665,7 +665,7 @@ describe('spatialTemporalReachableHandler', () => {
   });
 
   it('should detect moving obstacle predicted to block path', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalReachableHandler.defaultConfig,
@@ -685,7 +685,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
       } as any
     );
 
@@ -699,7 +699,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
-        position: { x: 10, y: 5, z: 0 },
+        position: [10, 5, 0],
         velocity: { x: 0, y: -2, z: 0 },
         radius: 1.0,
       } as any
@@ -725,7 +725,7 @@ describe('spatialTemporalReachableHandler', () => {
   });
 
   it('should not violate when obstacle moves away from path', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalReachableHandler.defaultConfig,
@@ -744,7 +744,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
       } as any
     );
 
@@ -756,7 +756,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
-        position: { x: 10, y: 5, z: 0 },
+        position: [10, 5, 0],
         velocity: { x: 0, y: 5, z: 0 }, // Moving away from path
         radius: 0.5,
       } as any
@@ -772,7 +772,7 @@ describe('spatialTemporalReachableHandler', () => {
   });
 
   it('should emit resolved when path clears', () => {
-    const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+    const node = createMockNode({ position: [0, 0, 0] });
     const context = createMockContext();
     const config = {
       ...spatialTemporalReachableHandler.defaultConfig,
@@ -790,7 +790,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
       } as any
     );
 
@@ -807,7 +807,7 @@ describe('spatialTemporalReachableHandler', () => {
       {
         type: 'spatial_target_update',
         targetId: 'pad',
-        position: { x: 3, y: 0, z: 0 },
+        position: [3, 0, 0],
       } as any
     );
 
@@ -929,7 +929,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('keep_in mode', () => {
     it('should not violate when trajectory stays inside box region', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -976,7 +976,7 @@ describe('spatialTrajectoryHandler', () => {
     });
 
     it('should violate when trajectory leaves box region', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1031,7 +1031,7 @@ describe('spatialTrajectoryHandler', () => {
     });
 
     it('should handle spherical region bounds', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1080,7 +1080,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('keep_out mode', () => {
     it('should not violate when trajectory avoids forbidden region', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1124,7 +1124,7 @@ describe('spatialTrajectoryHandler', () => {
     });
 
     it('should violate when trajectory enters forbidden region', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1181,7 +1181,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('follow mode', () => {
     it('should not violate when trajectory follows reference path', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1217,7 +1217,7 @@ describe('spatialTrajectoryHandler', () => {
     });
 
     it('should violate when trajectory deviates beyond maxDeviation', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1264,7 +1264,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('waypoint mode', () => {
     it('should not violate when trajectory passes through all waypoints', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1272,8 +1272,8 @@ describe('spatialTrajectoryHandler', () => {
         horizon: 10.0,
         sampleCount: 20,
         waypoints: [
-          { position: { x: 5, y: 0, z: 0 }, radius: 2.0 },
-          { position: { x: 10, y: 0, z: 0 }, radius: 2.0 },
+          { position: [5, 0, 0], radius: 2.0 },
+          { position: [10, 0, 0], radius: 2.0 },
         ],
       };
 
@@ -1300,7 +1300,7 @@ describe('spatialTrajectoryHandler', () => {
     });
 
     it('should violate when trajectory misses a waypoint', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1308,8 +1308,8 @@ describe('spatialTrajectoryHandler', () => {
         horizon: 5.0,
         sampleCount: 10,
         waypoints: [
-          { position: { x: 5, y: 0, z: 0 }, radius: 1.0, label: 'checkpoint_1' },
-          { position: { x: 5, y: 20, z: 0 }, radius: 1.0, label: 'checkpoint_2' },
+          { position: [5, 0, 0], radius: 1.0, label: 'checkpoint_1' },
+          { position: [5, 20, 0], radius: 1.0, label: 'checkpoint_2' },
         ],
       };
 
@@ -1348,7 +1348,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('acceleration prediction', () => {
     it('should use quadratic prediction when useAcceleration is true', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,
@@ -1405,7 +1405,7 @@ describe('spatialTrajectoryHandler', () => {
 
   describe('violation resolution', () => {
     it('should emit resolved when constraint is re-satisfied', () => {
-      const node = createMockNode({ position: { x: 0, y: 0, z: 0 } });
+      const node = createMockNode({ position: [0, 0, 0] });
       const context = createMockContext();
       const config = {
         ...spatialTrajectoryHandler.defaultConfig,

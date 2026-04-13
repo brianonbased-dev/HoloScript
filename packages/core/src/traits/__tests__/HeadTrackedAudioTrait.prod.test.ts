@@ -280,7 +280,7 @@ describe('headTrackedAudioHandler.onEvent', () => {
     const { node, ctx, config } = attach();
     headTrackedAudioHandler.onEvent!(node as any, config, ctx as any, {
       type: 'audio_set_world_position',
-      position: { x: 10, y: 5, z: -3 },
+      position: [10, 5, -3],
     });
     expect((node as any).__headTrackedAudioState.worldPosition).toEqual({ x: 10, y: 5, z: -3 });
   });
@@ -289,7 +289,7 @@ describe('headTrackedAudioHandler.onEvent', () => {
     const { node, ctx, config } = attach();
     headTrackedAudioHandler.onEvent!(node as any, config, ctx as any, {
       type: 'audio_set_relative_position',
-      position: { x: 0, y: -0.5, z: 1 },
+      position: [0, -0.5, 1],
     });
     expect((node as any).__headTrackedAudioState.relativePosition).toEqual({ x: 0, y: -0.5, z: 1 });
   });

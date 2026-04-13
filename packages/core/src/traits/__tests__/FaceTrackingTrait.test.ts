@@ -84,7 +84,7 @@ describe('FaceTrackingTrait', () => {
     sendEvent(faceTrackingHandler, node, cfg, ctx, {
       type: 'face_data_update',
       blendShapes: {},
-      headPose: { position: { x: 0, y: 1.7, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      headPose: { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     });
     expect((node as any).__faceTrackingState.headPose).not.toBeNull();
   });

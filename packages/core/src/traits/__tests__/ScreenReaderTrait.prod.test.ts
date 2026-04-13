@@ -53,7 +53,7 @@ describe('screenReaderHandler.onAttach', () => {
   it('childNodes = []', () =>
     expect((attachNode().node as any).__screenReaderState.childNodes).toEqual([]));
   it('captures initial position from node.position', () => {
-    const { node } = attachNode({}, { position: { x: 1, y: 2, z: 3 } });
+    const { node } = attachNode({}, { position: [1, 2, 3] });
     expect((node as any).__screenReaderState.lastPosition).toEqual({ x: 1, y: 2, z: 3 });
   });
   it('emits screen_reader_register with order, semanticStructure, readingMode', () => {
@@ -187,7 +187,7 @@ describe('screenReaderHandler.onEvent — screen_reader_focus', () => {
     expect(call?.[1].message).toContain('interactive element');
   });
   it('reading_mode=spatial appends Position to announcement', () => {
-    const node = { id: 'n', name: 'Box', type: 'mesh', position: { x: 1, y: 2, z: 3 } } as any;
+    const node = { id: 'n', name: 'Box', type: 'mesh', position: [1, 2, 3] } as any;
     const ctx = makeContext();
     const cfg = {
       ...screenReaderHandler.defaultConfig!,

@@ -125,7 +125,7 @@ describe('FluidSimulationSystem', () => {
     const customFluid = new FluidSimulationSystem({ smoothingRadius: 0.5 });
     customFluid.addBoundary({
       type: 'box',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       restitution: 0.5,
     });
