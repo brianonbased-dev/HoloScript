@@ -310,7 +310,9 @@ export function analyzeManifests(
     .sort(([, a], [, b]) => b - a)[0];
 
   // @ts-ignore - Automatic remediation for TS18046
-  const enrichedKind = maxVoteKind ? (maxVoteKind[0] as DaemonProjectKind) : baseDna.kind;
+  const rawKind = maxVoteKind ? (maxVoteKind[0] as DaemonProjectKind) : baseDna.kind;
+  // DaemonProjectDNA.kind excludes 'library' and 'agent-backend' — map to 'unknown'
+  const enrichedKind = (rawKind === 'library' || rawKind === 'agent-backend') ? 'unknown' as const : rawKind;
   // @ts-ignore - Automatic remediation for TS18046
   const enrichedConfidence = Math.min(0.99, baseDna.confidence + confidenceBoost * 0.5);
 
