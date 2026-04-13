@@ -44,7 +44,7 @@ HoloScript/                     # This repo - complete language system
 │   │       ├── runtime/        # Scene runner, WebXR, keyboard, network predictor
 │   │       ├── scene/          # Scene graph and management
 │   │       ├── terrain/        # Terrain, foliage, world streaming
-│   │       ├── traits/         # 2,000+ trait definitions (75 modules) + implementations
+│   │       ├── traits/         # 2,000+ trait definitions (118 modules) + implementations
 │   │       ├── ui/             # Spatial UI components
 │   │       └── world/          # World streaming and management
 │   ├── runtime/                # Browser runtime, traits, physics, events

@@ -47,7 +47,7 @@ Tool count changes — discover via MCP `tools/list`, verify via `curl mcp.holos
 
 ## Quick Trait Reference
 
-116 trait category files — full list via `ls packages/core/src/traits/constants/`. Key groups:
+118 trait category files — full list via `ls packages/core/src/traits/constants/`. Key groups:
 
 ```
 SPATIAL/XR:

@@ -85,7 +85,7 @@ const result = await compiler.compile(source, 'test-token');
 
 ## Traits
 
-All traits live in `@holoscript/core/src/traits/`. Count via `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`. Category files in `traits/constants/` (116 files — verify via `ls`).
+All traits live in `@holoscript/core/src/traits/`. Count via `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`. Category files in `traits/constants/` (118 files — verify via `ls`).
 
 Categories span far beyond spatial:
 

@@ -43,7 +43,7 @@ const result = compiler.compile(ast, compileFunc, { preserveState: true });
 
 ## Traits
 
-2,000+ traits organized across 75 category files in `src/traits/constants/`.
+2,000+ traits organized across 118 category files in `src/traits/constants/`.
 
 **Core:** `@physics`, `@grabbable`, `@hoverable`, `@clickable`, `@spatial_audio`
 **UI:** `@ui_floating`, `@ui_anchored`, `@ui_hand_menu`, `@ui_billboard`
