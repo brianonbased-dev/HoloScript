@@ -70,21 +70,22 @@ COPY --from=manifests /manifests/ ./
 # Install production dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Copy built artifacts
-COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
-COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
-COPY --from=builder /app/packages/config/dist packages/config/dist
-COPY --from=builder /app/packages/core/dist packages/core/dist
-COPY --from=builder /app/packages/engine/dist packages/engine/dist
-COPY --from=builder /app/packages/framework/dist packages/framework/dist
-COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
-COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
-COPY --from=builder /app/packages/platform/dist packages/platform/dist
-COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
-COPY --from=builder /app/services/absorb-service/dist services/absorb-service/dist
+# Copy built artifacts and source core for CodebaseScanner
+COPY --from=builder /app/packages packages
+COPY --from=builder /app/services services
+COPY --from=builder /app/benchmarks benchmarks
+COPY --from=builder /app/docs docs
+COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/tsconfig.base.json ./
+
+# Copy entrypoint
+COPY services/absorb-service/scripts/docker-entrypoint.sh /app/services/absorb-service/scripts/docker-entrypoint.sh
 
 # Set ownership
 RUN chown -R nodejs:nodejs /app
+
+# Ensure entrypoint is executable
+RUN chmod +x /app/services/absorb-service/scripts/docker-entrypoint.sh
 
 USER nodejs
 
@@ -96,4 +97,4 @@ EXPOSE 3005
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:${PORT:-3005}/health',(r)=>process.exit(r.statusCode===200?0:1))"
 
-CMD ["node", "services/absorb-service/dist/server.js"]
+CMD ["/app/services/absorb-service/scripts/docker-entrypoint.sh"]
