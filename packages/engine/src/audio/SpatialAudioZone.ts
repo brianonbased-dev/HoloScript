@@ -23,7 +23,7 @@ export interface ReverbPreset {
 export interface AudioZoneConfig {
   id: string;
   shape: 'box' | 'sphere';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   size: { x: number; y: number; z: number }; // half-extents for box, radius in x for sphere
   reverb: ReverbPreset;
   ambientClipId?: string;
@@ -34,7 +34,7 @@ export interface AudioZoneConfig {
 
 export interface AudioPortal {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   normal: { x: number; y: number; z: number };
   width: number;
   height: number;

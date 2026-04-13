@@ -267,7 +267,7 @@ export interface VisualizerOrb {
  * Payload emitted from trait onUpdate for position changes.
  */
 export interface PositionUpdatePayload {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   [key: string]: unknown;
 }
 

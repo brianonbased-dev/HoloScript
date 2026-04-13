@@ -396,10 +396,10 @@ export interface GenerationStats {
  * const composition: SpatialComposition = {
  *   name: "Meeting Room",
  *   objects: [
- *     { id: "table", name: "Table", type: "cube", position: { x: 0, y: 0.75, z: 0 },
+ *     { id: "table", name: "Table", type: "cube", position: [0, 0.75, 0],
  *       bounds: { min: { x: -1.5, y: 0.7, z: -0.75 }, max: { x: 1.5, y: 0.8, z: 0.75 } } },
- *     { id: "chair1", name: "Chair1", type: "cube", position: { x: -1, y: 0.5, z: 1.2 } },
- *     { id: "chair2", name: "Chair2", type: "cube", position: { x: 1, y: 0.5, z: 1.2 } },
+ *     { id: "chair1", name: "Chair1", type: "cube", position: [-1, 0.5, 1.2] },
+ *     { id: "chair2", name: "Chair2", type: "cube", position: [1, 0.5, 1.2] },
  *   ]
  * };
  *

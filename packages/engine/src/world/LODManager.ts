@@ -19,7 +19,7 @@ export interface LODLevel {
 
 export interface LODObject {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   currentLevel: number;
   levels: LODLevel[];
   bias: number; // Multiplier to push LOD transitions
@@ -71,7 +71,7 @@ export class LODManager {
 
   register(
     id: string,
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     levels?: LODLevel[],
     bias = 1
   ): LODObject {

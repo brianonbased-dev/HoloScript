@@ -14,7 +14,7 @@
 export interface HitBox {
   id: string;
   ownerId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   size: { x: number; y: number; z: number };
   active: boolean;
   damage: number;
@@ -25,7 +25,7 @@ export interface HitBox {
 export interface HurtBox {
   id: string;
   ownerId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   size: { x: number; y: number; z: number };
   active: boolean;
 }
@@ -54,7 +54,7 @@ export interface Cooldown {
 
 export interface CombatTarget {
   entityId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   priority: number;
   distance: number;
 }
@@ -202,10 +202,10 @@ export class CombatManager {
   // ---------------------------------------------------------------------------
 
   findTargets(
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     candidates: Array<{
       entityId: string;
-      position: { x: number; y: number; z: number };
+      position: [number, number, number];
       priority?: number;
     }>,
     maxRange: number

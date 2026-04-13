@@ -26,7 +26,7 @@ export interface CloudConfig {
 }
 
 export interface CloudSample {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   density: number;
   lighting: number;
 }

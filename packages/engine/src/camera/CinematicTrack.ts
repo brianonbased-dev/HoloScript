@@ -30,7 +30,7 @@ export interface CinematicCue {
 }
 
 export interface CinematicState {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { pitch: number; yaw: number; roll: number };
   fov: number;
   zoom: number;
@@ -147,7 +147,7 @@ export class CinematicTrack {
 
   evaluate(time: number): CinematicState {
     const state: CinematicState = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { pitch: 0, yaw: 0, roll: 0 },
       fov: 60,
       zoom: 1,

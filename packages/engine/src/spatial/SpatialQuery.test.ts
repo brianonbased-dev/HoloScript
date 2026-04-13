@@ -15,13 +15,13 @@ describe('SpatialQueryExecutor', () => {
       {
         id: 'entity-1',
         type: 'player',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
       },
       {
         id: 'entity-2',
         type: 'npc',
-        position: { x: 10, y: 0, z: 0 }, // 10m away
+        position: [10, 0, 0], // 10m away
         rotation: { x: 0, y: 0, z: 0, w: 1 },
 
         bounds: { min: { x: 9.5, y: -0.5, z: -0.5 }, max: { x: 10.5, y: 0.5, z: 0.5 } }, // Box bounds
@@ -29,7 +29,7 @@ describe('SpatialQueryExecutor', () => {
       {
         id: 'entity-3',
         type: 'item',
-        position: { x: 0, y: 10, z: 0 }, // 10m up
+        position: [0, 10, 0], // 10m up
         rotation: { x: 0, y: 0, z: 0, w: 1 },
 
         bounds: { radius: 1, center: { x: 0, y: 10, z: 0 } }, // Sphere bounds
@@ -37,7 +37,7 @@ describe('SpatialQueryExecutor', () => {
       {
         id: 'entity-4',
         type: 'obstacle',
-        position: { x: 5, y: 0, z: 0 }, // Between 1 and 2
+        position: [5, 0, 0], // Between 1 and 2
         rotation: { x: 0, y: 0, z: 0, w: 1 },
 
         bounds: { min: { x: 4.5, y: -2.5, z: -2.5 }, max: { x: 5.5, y: 2.5, z: 2.5 } },

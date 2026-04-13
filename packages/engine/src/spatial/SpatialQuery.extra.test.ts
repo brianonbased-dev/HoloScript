@@ -5,10 +5,10 @@ import { SpatialEntity, Region, Vector3 } from './SpatialTypes';
 describe('SpatialQueryExecutor - Supplementary Tests', () => {
   const executor = new SpatialQueryExecutor();
   const entities: SpatialEntity[] = [
-    { id: '1', type: 'agent', position: { x: 0, y: 0, z: 0 } },
-    { id: '2', type: 'object', position: { x: 10, y: 0, z: 0 } },
-    { id: '3', type: 'object', position: { x: 5, y: 5, z: 0 } },
-    { id: '4', type: 'agent', position: { x: -5, y: 0, z: 0 } },
+    { id: '1', type: 'agent', position: [0, 0, 0] },
+    { id: '2', type: 'object', position: [10, 0, 0] },
+    { id: '3', type: 'object', position: [5, 5, 0] },
+    { id: '4', type: 'agent', position: [-5, 0, 0] },
   ];
 
   executor.updateEntities(entities);
@@ -19,7 +19,7 @@ describe('SpatialQueryExecutor - Supplementary Tests', () => {
         {
           id: 'obs1',
           type: 'wall',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           bounds: { radius: 1, center: { x: 5, y: 0, z: 0 } },
         },
       ];

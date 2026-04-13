@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface RopeNode {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   previous: { x: number; y: number; z: number };
   mass: number;
   pinned: boolean;
@@ -74,11 +74,7 @@ export class RopeSystem {
     for (let i = 0; i <= cfg.segmentCount; i++) {
       const t = i / cfg.segmentCount;
       nodes.push({
-        position: {
-          x: start.x + (end.x - start.x) * t,
-          y: start.y + (end.y - start.y) * t,
-          z: start.z + (end.z - start.z) * t,
-        },
+        position: [start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t, start.z + (end.z - start.z) * t,],
         previous: {
           x: start.x + (end.x - start.x) * t,
           y: start.y + (end.y - start.y) * t,

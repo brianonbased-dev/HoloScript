@@ -149,7 +149,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       right: null,
     },
     headset: {
-      position: { x: 0, y: 1.6, z: 0 },
+      position: [0, 1.6, 0],
       rotation: { x: 0, y: 0, z: 0 },
     },
     controllers: {
@@ -533,7 +533,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           id: `${handSide}_hand`,
           grip: 0,
           trigger: 0,
-          position: { x: position.x, y: position.y, z: position.z },
+          position: [position.x, position.y, position.z],
           rotation: this.quaternionToEuler([
             orientation.x,
             orientation.y,
@@ -2443,7 +2443,7 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
         runtime.vrContext.hands.left ||
         ({
           id: 'right',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: { x: 0, y: 0, z: 0 },
           velocity: { x: 0, y: 0, z: 0 },
           gripStrength: 0,

@@ -43,7 +43,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'box1',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [],
         },
       ];
@@ -57,7 +57,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             { kind: 'spatial_adjacent', sourceId: 'a', targetId: 'b', maxDistance: 5 },
             { kind: 'spatial_adjacent', sourceId: 'a', targetId: 'c', maxDistance: 3 },
@@ -66,7 +66,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [
             {
               kind: 'spatial_contains',
@@ -78,13 +78,13 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'c',
           entityType: 'orb',
-          position: { x: 2, y: 0, z: 0 },
+          position: [2, 0, 0],
           constraints: [],
         },
         {
           entityId: 'd',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [
             { kind: 'spatial_reachable', sourceId: 'd', targetId: 'a', maxPathLength: 10 },
           ],
@@ -109,7 +109,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'shelf',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -122,7 +122,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'book',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -137,7 +137,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'shelf',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -150,7 +150,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'book',
           entityType: 'orb',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -169,7 +169,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -183,7 +183,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 0.5, y: 0, z: 0 },
+          position: [0.5, 0, 0],
           constraints: [],
         },
       ];
@@ -198,7 +198,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -212,7 +212,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 1, y: 100, z: 0 }, // Far on Y but close on XZ
+          position: [1, 100, 0], // Far on Y but close on XZ
           constraints: [],
         },
       ];
@@ -227,7 +227,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -241,7 +241,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 3, y: 0, z: 3 }, // XZ distance = ~4.24
+          position: [3, 0, 3], // XZ distance = ~4.24
           constraints: [],
         },
       ];
@@ -269,7 +269,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -285,7 +285,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -299,7 +299,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -313,7 +313,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -326,7 +326,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -348,7 +348,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -5, y: -5, z: -5 },
             max: { x: 5, y: 5, z: 5 },
@@ -364,7 +364,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'chair',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 1 },
+          position: [1, 0, 1],
           constraints: [],
         },
       ];
@@ -378,7 +378,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -5, y: -5, z: -5 },
             max: { x: 5, y: 5, z: 5 },
@@ -394,7 +394,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'chair',
           entityType: 'orb',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -410,7 +410,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'bubble',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             center: { x: 0, y: 0, z: 0 },
             radius: 10,
@@ -426,7 +426,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'particle',
           entityType: 'orb',
-          position: { x: 3, y: 3, z: 3 }, // dist ~5.2, inside radius 10
+          position: [3, 3, 3], // dist ~5.2, inside radius 10
           constraints: [],
         },
       ];
@@ -440,7 +440,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'bubble',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             center: { x: 0, y: 0, z: 0 },
             radius: 3,
@@ -456,7 +456,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'particle',
           entityType: 'orb',
-          position: { x: 3, y: 3, z: 3 }, // dist ~5.2, outside radius 3
+          position: [3, 3, 3], // dist ~5.2, outside radius 3
           constraints: [],
         },
       ];
@@ -470,7 +470,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -5, y: -5, z: -5 },
             max: { x: 5, y: 5, z: 5 },
@@ -487,7 +487,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'chair',
           entityType: 'orb',
-          position: { x: 4, y: 0, z: 0 }, // Inside bounds but outside with 2m margin
+          position: [4, 0, 0], // Inside bounds but outside with 2m margin
           constraints: [],
         },
       ];
@@ -502,7 +502,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           // No bounds
           constraints: [
             {
@@ -515,7 +515,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'chair',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -531,7 +531,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -5, y: -5, z: -5 },
             max: { x: 5, y: 5, z: 5 },
@@ -548,7 +548,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'table',
           entityType: 'orb',
-          position: { x: 4, y: 0, z: 0 },
+          position: [4, 0, 0],
           bounds: {
             min: { x: -2, y: -1, z: -1 },
             max: { x: 2, y: 1, z: 1 },
@@ -575,7 +575,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'npc',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_reachable',
@@ -588,7 +588,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'exit',
           entityType: 'orb',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -602,7 +602,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'npc',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_reachable',
@@ -615,7 +615,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'exit',
           entityType: 'orb',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -631,7 +631,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'npc',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_reachable',
@@ -645,13 +645,13 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'exit',
           entityType: 'orb',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
         {
           entityId: 'wall1',
           entityType: 'wall',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           bounds: {
             min: { x: 9, y: -5, z: -5 },
             max: { x: 11, y: 5, z: 5 },
@@ -670,7 +670,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'npc',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_reachable',
@@ -684,13 +684,13 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'exit',
           entityType: 'orb',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
         {
           entityId: 'wall1',
           entityType: 'wall',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           bounds: {
             min: { x: 9, y: -5, z: -5 },
             max: { x: 11, y: 5, z: 5 },
@@ -723,7 +723,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'exit',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -744,7 +744,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -767,7 +767,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'shelf',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -780,7 +780,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'table_01',
           entityType: 'furniture',
-          position: { x: 2, y: 0, z: 0 },
+          position: [2, 0, 0],
           constraints: [],
         },
       ];
@@ -800,7 +800,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -10, y: -10, z: -10 },
             max: { x: 10, y: 10, z: 10 },
@@ -816,7 +816,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -10, y: -10, z: -10 },
             max: { x: 10, y: 10, z: 10 },
@@ -849,7 +849,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'room',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -5, y: -5, z: -5 },
             max: { x: 5, y: 5, z: 5 },
@@ -866,7 +866,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'npc',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -880,7 +880,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'faraway',
           entityType: 'orb',
-          position: { x: 100, y: 0, z: 0 },
+          position: [100, 0, 0],
           constraints: [],
         },
       ];
@@ -902,13 +902,13 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [],
         },
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
       ];
@@ -968,7 +968,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'a',
           entityType: 'orb',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_adjacent',
@@ -981,7 +981,7 @@ describe('SpatialConstraintValidator', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];

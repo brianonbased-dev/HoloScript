@@ -66,7 +66,7 @@ export interface EmitterConfig {
   /** End color (interpolates over lifetime) */
   colorEnd: Color4;
   /** Emitter world position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** For cone shape: half-angle in radians */
   coneAngle?: number;
   /** For sphere/box: radius/extents */

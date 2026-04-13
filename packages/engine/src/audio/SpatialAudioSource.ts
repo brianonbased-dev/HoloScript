@@ -20,7 +20,7 @@ export interface AudioCone {
 }
 
 export interface SpatialAudioConfig {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity: { x: number; y: number; z: number };
   rolloff: RolloffModel;
   minDistance: number;
@@ -49,7 +49,7 @@ export class SpatialAudioSource {
 
   constructor(config?: Partial<SpatialAudioConfig>) {
     this.config = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 0, y: 0, z: 0 },
       rolloff: 'inverse',
       minDistance: 3, // Tuned for voice: audible within 3m

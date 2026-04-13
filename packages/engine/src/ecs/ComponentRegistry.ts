@@ -66,7 +66,7 @@ export function registerBuiltInComponents(registry: ComponentRegistry): void {
   registry.register({
     type: 'transform',
     defaultData: () => ({
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       scale: { x: 1, y: 1, z: 1 },
     }),

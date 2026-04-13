@@ -12,15 +12,15 @@ import { BoneSystem } from './BoneSystem';
 
 export interface AvatarInput {
   head: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   };
   leftHand: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   };
   rightHand: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
   };
   height: number;

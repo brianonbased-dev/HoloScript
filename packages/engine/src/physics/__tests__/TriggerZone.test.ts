@@ -37,7 +37,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone('z3', 0, 0, 0, 5));
     const cb = vi.fn();
     sys.onTrigger('z3', cb);
-    sys.update([{ id: 'e1', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e1', position: [0, 0, 0] }]);
     expect(cb).toHaveBeenCalledWith('e1', 'z3', 'enter');
   });
 
@@ -45,8 +45,8 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone('z4', 0, 0, 0, 5));
     const cb = vi.fn();
     sys.onTrigger('z4', cb);
-    sys.update([{ id: 'e2', position: { x: 0, y: 0, z: 0 } }]);
-    sys.update([{ id: 'e2', position: { x: 1, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e2', position: [0, 0, 0] }]);
+    sys.update([{ id: 'e2', position: [1, 0, 0] }]);
     expect(cb).toHaveBeenCalledWith('e2', 'z4', 'stay');
   });
 
@@ -54,7 +54,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone('z5', 0, 0, 0, 1));
     const cb = vi.fn();
     sys.onTrigger('z5', cb);
-    sys.update([{ id: 'e3', position: { x: 0, y: 0, z: 0 } }]); // enter
+    sys.update([{ id: 'e3', position: [0, 0, 0] }]); // enter
     sys.update([]); // entity gone → exit
     expect(cb).toHaveBeenCalledWith('e3', 'z5', 'exit');
   });
@@ -64,7 +64,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(boxZone('box1', 0, 0, 0, 2, 2, 2));
     const cb = vi.fn();
     sys.onTrigger('box1', cb);
-    sys.update([{ id: 'e4', position: { x: 1, y: 1, z: 1 } }]);
+    sys.update([{ id: 'e4', position: [1, 1, 1] }]);
     expect(cb).toHaveBeenCalledWith('e4', 'box1', 'enter');
   });
 
@@ -72,7 +72,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(boxZone('box2', 0, 0, 0, 1, 1, 1));
     const cb = vi.fn();
     sys.onTrigger('box2', cb);
-    sys.update([{ id: 'e5', position: { x: 5, y: 5, z: 5 } }]);
+    sys.update([{ id: 'e5', position: [5, 5, 5] }]);
     expect(cb).not.toHaveBeenCalled();
   });
 
@@ -82,22 +82,22 @@ describe('TriggerZoneSystem', () => {
     sys.enableZone('z6', false);
     const cb = vi.fn();
     sys.onTrigger('z6', cb);
-    sys.update([{ id: 'e6', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e6', position: [0, 0, 0] }]);
     expect(cb).not.toHaveBeenCalled();
   });
 
   // ---------- Queries ----------
   it('isInside returns true for overlapping entity', () => {
     sys.addZone(sphereZone('z7', 0, 0, 0, 5));
-    sys.update([{ id: 'e7', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e7', position: [0, 0, 0] }]);
     expect(sys.isInside('e7', 'z7')).toBe(true);
   });
 
   it('getOccupants lists entities inside zone', () => {
     sys.addZone(sphereZone('z8', 0, 0, 0, 5));
     sys.update([
-      { id: 'a', position: { x: 0, y: 0, z: 0 } },
-      { id: 'b', position: { x: 1, y: 0, z: 0 } },
+      { id: 'a', position: [0, 0, 0] },
+      { id: 'b', position: [1, 0, 0] },
     ]);
     expect(sys.getOccupants('z8')).toContain('a');
     expect(sys.getOccupants('z8')).toContain('b');
@@ -106,7 +106,7 @@ describe('TriggerZoneSystem', () => {
   it('getZonesForEntity returns zones containing entity', () => {
     sys.addZone(sphereZone('z9a', 0, 0, 0, 5));
     sys.addZone(sphereZone('z9b', 1, 0, 0, 5));
-    sys.update([{ id: 'e9', position: { x: 0.5, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e9', position: [0.5, 0, 0] }]);
     const zones = sys.getZonesForEntity('e9');
     expect(zones).toContain('z9a');
     expect(zones).toContain('z9b');

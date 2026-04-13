@@ -16,7 +16,7 @@ export type TriggerCallback = (entityId: string, zoneId: string, event: TriggerE
 
 export interface TriggerShape {
   type: 'box' | 'sphere';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   // Box: halfExtents, Sphere: radius
   halfExtents?: { x: number; y: number; z: number };
   radius?: number;
@@ -78,7 +78,7 @@ export class TriggerZoneSystem {
   // ---------------------------------------------------------------------------
 
   update(
-    entities: Array<{ id: string; position: { x: number; y: number; z: number }; radius?: number }>
+    entities: Array<{ id: string; position: [number, number, number]; radius?: number }>
   ): void {
     for (const [zoneId, zone] of this.zones) {
       if (!zone.enabled) continue;

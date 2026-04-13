@@ -206,7 +206,7 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'fire',
         type: WindZoneType.POINT,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         direction: { x: 0, y: 1, z: 0 },
         force: 4.0,
         radius: 2.0,
@@ -251,7 +251,7 @@ describe('WindZoneManager', () => {
       mgr.addZone({
         id: 'window',
         type: WindZoneType.DIRECTIONAL,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         direction: { x: 1, y: 0, z: 0 },
         force: 5.0,
         coneAngle: Math.PI / 4, // 45 degrees

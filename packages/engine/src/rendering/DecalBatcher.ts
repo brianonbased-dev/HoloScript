@@ -14,7 +14,7 @@
 export interface DecalInstance {
   id: string;
   textureId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   scale: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
   opacity: number;

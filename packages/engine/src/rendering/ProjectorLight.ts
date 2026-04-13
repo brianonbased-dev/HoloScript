@@ -14,7 +14,7 @@
 
 export interface ProjectorConfig {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction: { x: number; y: number; z: number };
   cookieTextureId: string;
   fov: number; // degrees

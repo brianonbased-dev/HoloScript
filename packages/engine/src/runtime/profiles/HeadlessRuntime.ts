@@ -489,7 +489,7 @@ export class HeadlessRuntime {
     return {
       vr: {
         hands: { left: null, right: null },
-        headset: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } },
+        headset: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 } },
         getPointerRay: () => null,
         getDominantHand: () => null,
       },

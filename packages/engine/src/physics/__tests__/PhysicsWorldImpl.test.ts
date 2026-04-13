@@ -59,7 +59,7 @@ describe('PhysicsWorldImpl', () => {
           id: 'box1',
           type: 'dynamic',
           shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
-          position: { x: 0, y: 5, z: 0 },
+          position: [0, 5, 0],
           mass: 1,
         })
       );
@@ -96,7 +96,7 @@ describe('PhysicsWorldImpl', () => {
           id: 'b',
           type: 'static',
           shape: { type: 'box', halfExtents: { x: 10, y: 0.5, z: 10 } },
-          position: { x: 0, y: -1, z: 0 },
+          position: [0, -1, 0],
           mass: 0,
         })
       );
@@ -142,7 +142,7 @@ describe('PhysicsWorldImpl', () => {
   describe('constraints', () => {
     beforeEach(() => {
       world.createBody(bodyConfig({ id: 'cA' }));
-      world.createBody(bodyConfig({ id: 'cB', position: { x: 5, y: 0, z: 0 } }));
+      world.createBody(bodyConfig({ id: 'cB', position: [5, 0, 0] }));
     });
 
     it('creates a distance constraint', () => {
@@ -219,7 +219,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'fall',
           shape: { type: 'sphere', radius: 0.5 },
-          position: { x: 0, y: 10, z: 0 },
+          position: [0, 10, 0],
         })
       );
       world.step(1 / 60);
@@ -242,7 +242,7 @@ describe('PhysicsWorldImpl', () => {
 
     it('sphere-sphere collision generates events', () => {
       world.createBody(bodyConfig({ id: 's1' }));
-      world.createBody(bodyConfig({ id: 's2', position: { x: 1.5, y: 0, z: 0 } }));
+      world.createBody(bodyConfig({ id: 's2', position: [1.5, 0, 0] }));
       world.step(1 / 60);
       const contacts = world.getContacts();
       expect(contacts.length).toBeGreaterThan(0);
@@ -259,7 +259,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'target',
           shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
-          position: { x: 0, y: 0, z: -5 },
+          position: [0, 0, -5],
         })
       );
     });

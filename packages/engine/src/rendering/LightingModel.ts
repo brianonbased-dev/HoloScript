@@ -18,7 +18,7 @@ export interface Light {
   type: LightType;
   color: [number, number, number];
   intensity: number;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction: { x: number; y: number; z: number };
   range: number; // Point/Spot
   spotAngle: number; // Spot only (degrees)
@@ -40,7 +40,7 @@ export interface AmbientConfig {
 
 export interface GIProbe {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   radius: number;
   irradiance: [number, number, number]; // Average bounce light
   weight: number;
@@ -70,7 +70,7 @@ export class LightingModel {
     const light: Light = {
       color: [1, 1, 1],
       intensity: 1,
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       direction: { x: 0, y: -1, z: 0 },
       range: 50,
       spotAngle: 45,
@@ -119,7 +119,7 @@ export class LightingModel {
     this.probes = this.probes.filter((p) => p.id !== id);
   }
 
-  sampleGI(position: { x: number; y: number; z: number }): [number, number, number] {
+  sampleGI(position: [number, number, number]): [number, number, number] {
     let r = 0,
       g = 0,
       b = 0,

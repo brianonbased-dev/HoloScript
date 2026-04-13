@@ -65,14 +65,14 @@ export class HandMenuSystem {
       [
         createUIButton(`${menuId}_btn1`, {
           text: 'Home',
-          position: { x: 0, y: 0.03, z: 0.01 },
+          position: [0, 0.03, 0.01],
           width: 0.18,
           height: 0.04,
           data: { action: 'home' },
         }),
         createUIButton(`${menuId}_btn2`, {
           text: 'Settings',
-          position: { x: 0, y: -0.03, z: 0.01 },
+          position: [0, -0.03, 0.01],
           width: 0.18,
           height: 0.04,
           data: { action: 'settings' },

@@ -16,7 +16,7 @@ function makeDynamic(overrides: any = {}): RigidBody {
     shape: 'box',
     mass: 1.0,
     transform: {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: identityQuaternion(),
     },
     ...overrides,
@@ -29,7 +29,7 @@ function makeStatic(): RigidBody {
     type: 'static',
     shape: 'box',
     transform: {
-      position: { x: 0, y: 5, z: 0 },
+      position: [0, 5, 0],
       rotation: identityQuaternion(),
     },
   });
@@ -189,7 +189,7 @@ describe('RigidBody — Production', () => {
   describe('getTransform / setTransform', () => {
     it('round-trips transform', () => {
       const t = {
-        position: { x: 5, y: 10, z: 15 },
+        position: [5, 10, 15],
         rotation: identityQuaternion(),
       };
       body.setTransform(t);

@@ -263,13 +263,13 @@ export class ParticleEmitter {
 
     switch (shape) {
       case 'point':
-        return { position: { x: 0, y: 0, z: 0 }, direction: this.randomDirection() };
+        return { position: [0, 0, 0], direction: this.randomDirection() };
 
       case 'sphere': {
         const dir = this.randomDirection();
         const r = (params.radius ?? 1) * Math.cbrt(Math.random());
         return {
-          position: { x: dir.x * r, y: dir.y * r, z: dir.z * r },
+          position: [dir.x * r, dir.y * r, dir.z * r],
           direction: dir,
         };
       }
@@ -292,7 +292,7 @@ export class ParticleEmitter {
         const cosTheta = Math.cos(angle * Math.random());
         const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
         return {
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           direction: {
             x: sinTheta * Math.cos(phi),
             y: cosTheta,
@@ -305,7 +305,7 @@ export class ParticleEmitter {
         const r = (params.radius ?? 1) * Math.sqrt(Math.random());
         const theta = Math.random() * 2 * Math.PI;
         return {
-          position: { x: r * Math.cos(theta), y: 0, z: r * Math.sin(theta) },
+          position: [r * Math.cos(theta), 0, r * Math.sin(theta)],
           direction: { x: 0, y: 1, z: 0 },
         };
       }
@@ -332,7 +332,7 @@ export class ParticleEmitter {
 
   private createDeadParticle(): Particle {
     return {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 0, y: 0, z: 0 },
       color: { r: 1, g: 1, b: 1, a: 1 },
       size: 1,

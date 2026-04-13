@@ -25,7 +25,7 @@ export interface FoliageType {
 
 export interface FoliageInstance {
   typeId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   scale: number;
   rotation: number; // Y-axis rotation in radians
   windPhase: number; // offset to prevent uniform sway

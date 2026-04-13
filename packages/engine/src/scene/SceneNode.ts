@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface Transform {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number }; // Euler angles
   scale: { x: number; y: number; z: number };
 }
@@ -41,7 +41,7 @@ export class SceneNode {
     this.id = id;
     this.name = name || id;
     this.local = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     };

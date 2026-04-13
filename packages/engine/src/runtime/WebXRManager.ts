@@ -55,7 +55,7 @@ export interface XRViewerPose {
 
 export interface XRView {
   transform: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     orientation: { x: number; y: number; z: number; w: number };
     inverse: { matrix: Float32Array };
   };

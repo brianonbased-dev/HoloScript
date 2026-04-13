@@ -13,7 +13,7 @@
 
 export interface IKBone {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   length: number;
   minAngle?: number; // radians

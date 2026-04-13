@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface GrassBlade {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   height: number;
   width: number;
   bendFactor: number;

@@ -14,7 +14,7 @@
 export type CameraMode = 'follow' | 'orbit' | 'free' | 'topDown' | 'fixed';
 
 export interface CameraState {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { pitch: number; yaw: number; roll: number };
   zoom: number;
   fov: number;
@@ -117,7 +117,7 @@ export class CameraController {
   constructor(config?: Partial<CameraConfig>) {
     this.config = { ...DEFAULT_CAMERA, ...config };
     this.state = {
-      position: { x: 0, y: 5, z: -10 },
+      position: [0, 5, -10],
       rotation: { pitch: 0, yaw: 0, roll: 0 },
       zoom: 1,
       fov: this.config.fov,

@@ -24,7 +24,7 @@ export interface TreeTemplate {
 export interface PlacedTree {
   id: string;
   templateId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   scale: number;
   rotation: number; // Y-axis radians
 }

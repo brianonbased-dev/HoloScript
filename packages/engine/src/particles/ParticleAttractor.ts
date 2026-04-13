@@ -16,7 +16,7 @@ export type AttractorShape = 'point' | 'line' | 'plane';
 export interface Attractor {
   id: string;
   shape: AttractorShape;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction: { x: number; y: number; z: number }; // Used by line/plane
   strength: number;
   radius: number; // Max influence radius

@@ -247,7 +247,7 @@ export class CultureRuntime {
     agentId: string,
     zoneId: string,
     label: string,
-    position: { x: number; y: number; z: number }
+    position: [number, number, number]
   ): StigmergicTrace {
     return this.memory.leaveTrace(agentId, zoneId, label, position);
   }
@@ -255,7 +255,7 @@ export class CultureRuntime {
   /**
    * Perceive nearby traces.
    */
-  perceiveTraces(zoneId: string, position: { x: number; y: number; z: number }): StigmergicTrace[] {
+  perceiveTraces(zoneId: string, position: [number, number, number]): StigmergicTrace[] {
     return this.memory.perceiveTraces(zoneId, position);
   }
 

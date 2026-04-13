@@ -274,7 +274,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
           vertices: [-1, -1, -1, 1, -1, -1, 0, 1, -1, 0, 0, 1],
         },
         mass: 1,
-        transform: { position: { x: 0, y: 0, z: 0 }, rotation: identityQuaternion() },
+        transform: { position: [0, 0, 0], rotation: identityQuaternion() },
       };
 
       const hullB: IRigidBodyConfig = {
@@ -285,7 +285,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
           vertices: [-1, -1, -1, 1, -1, -1, 0, 1, -1, 0, 0, 1],
         },
         mass: 1,
-        transform: { position: { x: 0.5, y: 0, z: 0 }, rotation: identityQuaternion() },
+        transform: { position: [0.5, 0, 0], rotation: identityQuaternion() },
       };
 
       world.createBody(hullA);
@@ -308,7 +308,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
           vertices: [-1, -1, -1, 1, -1, -1, 0, 1, -1, 0, 0, 1],
         },
         mass: 1,
-        transform: { position: { x: 0, y: 0, z: 0 }, rotation: identityQuaternion() },
+        transform: { position: [0, 0, 0], rotation: identityQuaternion() },
       };
 
       const hullB: IRigidBodyConfig = {
@@ -319,7 +319,7 @@ describe('PhysicsWorldImpl - Collision Detection', () => {
           vertices: [-1, -1, -1, 1, -1, -1, 0, 1, -1, 0, 0, 1],
         },
         mass: 1,
-        transform: { position: { x: 10, y: 0, z: 0 }, rotation: identityQuaternion() },
+        transform: { position: [10, 0, 0], rotation: identityQuaternion() },
       };
 
       world.createBody(hullA);

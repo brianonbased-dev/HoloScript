@@ -18,7 +18,7 @@ export type DistanceModel = 'linear' | 'inverse' | 'exponential';
 
 export interface AudioSourceConfig {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   volume: number; // 0-1
   pitch: number; // Playback rate multiplier
   loop: boolean;
@@ -40,7 +40,7 @@ export interface AudioSource {
 }
 
 export interface ListenerState {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   forward: { x: number; y: number; z: number };
   up: { x: number; y: number; z: number };
 }
@@ -112,7 +112,7 @@ function computePan(
 export class AudioEngine {
   private sources: Map<string, AudioSource> = new Map();
   private listener: ListenerState = {
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     forward: { x: 0, y: 0, z: -1 },
     up: { x: 0, y: 1, z: 0 },
   };
@@ -146,7 +146,7 @@ export class AudioEngine {
 
     const fullConfig: AudioSourceConfig = {
       id,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       volume: 1,
       pitch: 1,
       loop: false,

@@ -14,7 +14,7 @@ import { SceneNode } from './SceneNode';
 // =============================================================================
 
 export interface Frustum {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction: { x: number; y: number; z: number };
   fov: number; // Degrees
   near: number;

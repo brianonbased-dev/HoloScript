@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface FluidParticle {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity: { x: number; y: number; z: number };
   density: number;
   pressure: number;
@@ -61,7 +61,7 @@ export class FluidSim {
   // ---------------------------------------------------------------------------
 
   addParticle(
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     velocity?: { x: number; y: number; z: number }
   ): void {
     this.particles.push({

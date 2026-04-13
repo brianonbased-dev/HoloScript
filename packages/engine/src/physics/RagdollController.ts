@@ -15,7 +15,7 @@ export interface RagdollBone {
   id: string;
   name: string;
   parentId: string | null;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   angularVelocity: { x: number; y: number; z: number };
@@ -66,7 +66,7 @@ export class RagdollController {
       id: name,
       name,
       parentId,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },

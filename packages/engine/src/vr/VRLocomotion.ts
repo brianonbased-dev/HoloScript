@@ -25,7 +25,7 @@ export interface LocomotionConfig {
 
 export class VRLocomotion {
   private config: LocomotionConfig;
-  private position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  private position: [number, number, number] = { x: 0, y: 0, z: 0 };
   private rotation: number = 0; // yaw in degrees
   private teleportHistory: TeleportTarget[] = [];
   private boundaryDistance: number = Infinity;

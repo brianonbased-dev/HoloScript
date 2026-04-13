@@ -74,7 +74,7 @@ export class CameraPath {
   }
 
   update(dt: number): {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     lookAt: { x: number; y: number; z: number } | null;
   } | null {
     if (!this.playing || this.points.length < 2) return null;
@@ -107,11 +107,11 @@ export class CameraPath {
   // ---------------------------------------------------------------------------
 
   evaluate(t: number): {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     lookAt: { x: number; y: number; z: number } | null;
   } {
     const n = this.points.length;
-    if (n === 0) return { position: { x: 0, y: 0, z: 0 }, lookAt: null };
+    if (n === 0) return { position: [0, 0, 0], lookAt: null };
     if (n === 1) return { position: { ...this.points[0] }, lookAt: null };
 
     const f = t * (n - 1);

@@ -13,7 +13,7 @@
 
 export interface VolumetricLightConfig {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   direction: { x: number; y: number; z: number };
   color: [number, number, number];
   intensity: number;
@@ -26,7 +26,7 @@ export interface VolumetricLightConfig {
 }
 
 export interface VolumetricSample {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   accumulated: number;
   step: number;
 }
@@ -44,7 +44,7 @@ export class VolumetricLight {
 
   addLight(config: Partial<VolumetricLightConfig> & { id: string }): VolumetricLightConfig {
     const light: VolumetricLightConfig = {
-      position: { x: 0, y: 50, z: 0 },
+      position: [0, 50, 0],
       direction: { x: 0, y: -1, z: 0 },
       color: [1, 0.95, 0.8],
       intensity: 1,
