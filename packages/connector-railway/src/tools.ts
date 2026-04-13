@@ -102,14 +102,38 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_deployment_logs',
-    description: 'Fetch recent deployment logs for a service. Returns the last N log lines from the most recent deployment.',
+    description: 'Fetch runtime logs from a deployment (stdout/stderr after the container starts). Use railway_build_logs for build-phase output.',
     inputSchema: {
       type: 'object',
       properties: {
-        deploymentId: { type: 'string', description: 'Deployment ID to fetch logs for' },
+        deploymentId: { type: 'string', description: 'Deployment ID (use railway_latest_deployment to find it)' },
         limit: { type: 'number', description: 'Max log lines to return (default: 100)' },
       },
       required: ['deploymentId'],
+    },
+  },
+  {
+    name: 'railway_build_logs',
+    description: 'Fetch build logs from a deployment (Dockerfile/Nixpacks output, compile errors, healthcheck results). Use this to debug failed deploys.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deploymentId: { type: 'string', description: 'Deployment ID (use railway_latest_deployment to find it)' },
+        limit: { type: 'number', description: 'Max log lines to return (default: 100)' },
+      },
+      required: ['deploymentId'],
+    },
+  },
+  {
+    name: 'railway_latest_deployment',
+    description: 'Get the latest deployment for a service — returns deployment ID, status, and creation time. Essential for feeding into railway_build_logs and railway_deployment_logs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        serviceId: { type: 'string', description: 'Service ID' },
+        projectId: { type: 'string', description: 'Project ID' },
+      },
+      required: ['serviceId', 'projectId'],
     },
   },
   {

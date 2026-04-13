@@ -105,6 +105,31 @@ export class RailwayConnector extends ServiceConnector {
         query = `query DeploymentLogs($deploymentId: String!, $limit: Int) { deploymentLogs(deploymentId: $deploymentId, limit: $limit) { message timestamp severity } }`;
         variables = { deploymentId: args.deploymentId, limit: (args.limit as number) || 100 };
         break;
+      case 'railway_build_logs':
+        query = `query BuildLogs($deploymentId: String!, $limit: Int) { buildLogs(deploymentId: $deploymentId, limit: $limit) { message timestamp } }`;
+        variables = { deploymentId: args.deploymentId, limit: (args.limit as number) || 100 };
+        break;
+      case 'railway_latest_deployment':
+        query = `query LatestDeploy($projectId: String!) { project(id: $projectId) { services { edges { node { id name serviceInstances { edges { node { latestDeployment { id status createdAt } } } } } } } } }`;
+        variables = { projectId: args.projectId };
+        // Post-process: filter to the requested serviceId
+        return this.executeGraphQLWithBackoff(query, variables).then((result: unknown) => {
+          const data = result as { data?: { project?: { services?: { edges?: Array<{ node: { id: string; name: string; serviceInstances?: { edges?: Array<{ node: { latestDeployment?: { id: string; status: string; createdAt: string } } }> } } }> } } } };
+          const services = data?.data?.project?.services?.edges || [];
+          const match = services.find(s => s.node.id === args.serviceId);
+          if (!match) {
+            return { data: { error: `Service ${args.serviceId} not found in project` } };
+          }
+          const instances = match.node.serviceInstances?.edges || [];
+          const dep = instances[0]?.node?.latestDeployment;
+          return {
+            data: {
+              service: match.node.name,
+              serviceId: match.node.id,
+              latestDeployment: dep || null,
+            },
+          };
+        });
       case 'railway_variable_list':
         query = `query Variables($projectId: String!, $environmentId: String!, $serviceId: String!) { variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) }`;
         variables = { projectId: args.projectId, environmentId: args.environmentId, serviceId: args.serviceId };
