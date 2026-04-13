@@ -90,7 +90,7 @@ HoloScript Studio auto-configures the MCP Mesh Orchestrator:
 {
   name: 'mcp-orchestrator',
   url: 'http://localhost:5567',
-  apiKey: 'YOUR_MCP_API_KEY',
+  apiKey: 'YOUR_HOLOSCRIPT_API_KEY',
   enabled: true,
   healthCheckInterval: 30000,  // 30 seconds
   timeout: 10000,              // 10 seconds
@@ -372,7 +372,7 @@ Add your server to the orchestrator config:
 
 ```bash
 curl -X POST http://localhost:5567/servers \
-  -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
+  -H "x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "my-custom-server",
@@ -429,7 +429,7 @@ Configure API keys for secure server access:
 const server: MCPServerConfig = {
   name: 'secure-server',
   url: 'https://api.example.com',
-  apiKey: process.env.MCP_API_KEY, // ← From environment
+  apiKey: process.env.HOLOSCRIPT_API_KEY, // ← From environment
   enabled: true,
 };
 ```
@@ -442,7 +442,7 @@ API keys are sent in request headers:
 POST /tools/call HTTP/1.1
 Host: localhost:5567
 Content-Type: application/json
-x-mcp-api-key: YOUR_MCP_API_KEY
+x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY
 
 {
   "server": "semantic-search-hub",
@@ -463,7 +463,7 @@ x-mcp-api-key: YOUR_MCP_API_KEY
 
 ```typescript
 // Load from localStorage (dev mode)
-const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', 'YOUR_MCP_API_KEY');
+const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', 'YOUR_HOLOSCRIPT_API_KEY');
 
 // Update server config
 updateMCPServer('mcp-orchestrator', { apiKey });
@@ -699,7 +699,7 @@ curl http://localhost:5567/health
 **Step 2:** List Available Servers
 
 ```bash
-curl -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
+curl -H "x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY" \
   http://localhost:5567/servers
 # Expected: [{ "name": "semantic-search-hub", ... }]
 ```
@@ -708,7 +708,7 @@ curl -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
 
 ```bash
 curl -X POST http://localhost:5567/tools/call \
-  -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
+  -H "x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "server": "semantic-search-hub",

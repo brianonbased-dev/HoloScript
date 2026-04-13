@@ -93,7 +93,7 @@ export default defineConfig({
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   format: ['cjs', 'esm'],
-  dts: false, // Temporarily disabled — type mismatches to resolve before re-enabling
+  dts: true,
   clean: true,
   sourcemap: true,
   splitting: true, // Enable code splitting for shared chunks

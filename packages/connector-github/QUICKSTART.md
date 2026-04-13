@@ -93,7 +93,7 @@ In your GitHub repository:
 1. Go to Settings → Secrets and variables → Actions
 2. Add the following secrets:
    - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
-   - `MCP_API_KEY` - Your HoloScript MCP orchestrator key (optional)
+   - `HOLOSCRIPT_API_KEY` - Your HoloScript MCP orchestrator key (optional)
    - `ANTHROPIC_API_KEY` - For AI-powered validation (optional)
 
 ### Push and Test

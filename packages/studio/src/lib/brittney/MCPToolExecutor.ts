@@ -54,7 +54,7 @@ function getAbsorbMCPUrl(): string {
 }
 
 function getAPIKey(): string {
-  return process.env['MCP_API_KEY'] ?? '';
+  return process.env['HOLOSCRIPT_API_KEY'] ?? process.env['MCP_API_KEY'] ?? '';
 }
 
 // ─── Orchestrator route registry ────────────────────────────────────────────

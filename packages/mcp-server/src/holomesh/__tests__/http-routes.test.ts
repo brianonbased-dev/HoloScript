@@ -177,7 +177,7 @@ describe('HoloMesh HTTP Routes', () => {
     mockExistsSync.mockReturnValue(false);
     mockVerifyMessage.mockResolvedValue(true);
     mockVerifyTypedData.mockResolvedValue(true);
-    process.env.MCP_API_KEY = 'test-api-key';
+    process.env.HOLOSCRIPT_API_KEY = 'test-api-key';
     process.env.HOLOMESH_AGENT_NAME = 'test-agent';
   });
 

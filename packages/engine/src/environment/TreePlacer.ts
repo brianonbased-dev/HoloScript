@@ -140,14 +140,14 @@ export class TreePlacer {
   private checkSpacing(x: number, z: number, minSpacing: number, placed: PlacedTree[]): boolean {
     const minSq = minSpacing * minSpacing;
     for (const tree of placed) {
-      const dx = tree.position.x - x;
-      const dz = tree.position.z - z;
+      const dx = tree.position[0] - x;
+      const dz = tree.position[2] - z;
       if (dx * dx + dz * dz < minSq) return false;
     }
     // Also check existing trees
     for (const tree of this.trees) {
-      const dx = tree.position.x - x;
-      const dz = tree.position.z - z;
+      const dx = tree.position[0] - x;
+      const dz = tree.position[2] - z;
       if (dx * dx + dz * dz < minSq) return false;
     }
     return true;
@@ -180,8 +180,8 @@ export class TreePlacer {
   getTreesInRadius(x: number, z: number, radius: number): PlacedTree[] {
     const rSq = radius * radius;
     return this.trees.filter((t) => {
-      const dx = t.position.x - x;
-      const dz = t.position.z - z;
+      const dx = t.position[0] - x;
+      const dz = t.position[2] - z;
       return dx * dx + dz * dz <= rSq;
     });
   }

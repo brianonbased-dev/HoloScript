@@ -5,7 +5,7 @@
       "type": "http",
       "url": "https://mcp.holoscript.net/mcp",
       "headers": {
-        "Authorization": "Bearer ${MCP_API_KEY}"
+        "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       },
       "description": "HoloScript MCP — 156 tools: parse, compile, render, codebase, team board, knowledge"
     },
@@ -13,7 +13,7 @@
       "type": "http",
       "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
       "headers": {
-        "Authorization": "Bearer ${MCP_API_KEY}"
+        "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       },
       "description": "MCP Orchestrator — tool discovery, knowledge federation (2K+ entries)"
     },

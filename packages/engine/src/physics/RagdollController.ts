@@ -129,9 +129,9 @@ export class RagdollController {
       bone.velocity.y *= this.config.damping;
       bone.velocity.z *= this.config.damping;
 
-      bone.position.x += bone.velocity.x * dt;
-      bone.position.y += bone.velocity.y * dt;
-      bone.position.z += bone.velocity.z * dt;
+      bone.position[0] += bone.velocity[0] * dt;
+      bone.position[1] += bone.velocity[1] * dt;
+      bone.position[2] += bone.velocity[2] * dt;
     }
 
     // Constraint solving (distance constraints between parent-child)
@@ -141,9 +141,9 @@ export class RagdollController {
         const parent = this.bones.get(bone.parentId);
         if (!parent) continue;
 
-        const dx = bone.position.x - parent.position.x;
-        const dy = bone.position.y - parent.position.y;
-        const dz = bone.position.z - parent.position.z;
+        const dx = bone.position[0] - parent.position[0];
+        const dy = bone.position[1] - parent.position[1];
+        const dz = bone.position[2] - parent.position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist > 0 && dist !== bone.length) {
@@ -152,12 +152,12 @@ export class RagdollController {
           const my = dy * diff * 0.5;
           const mz = dz * diff * 0.5;
 
-          bone.position.x -= mx;
-          bone.position.y -= my;
-          bone.position.z -= mz;
-          parent.position.x += mx;
-          parent.position.y += my;
-          parent.position.z += mz;
+          bone.position[0] -= mx;
+          bone.position[1] -= my;
+          bone.position[2] -= mz;
+          parent.position[0] += mx;
+          parent.position[1] += my;
+          parent.position[2] += mz;
         }
 
         // Joint limits

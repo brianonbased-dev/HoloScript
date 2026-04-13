@@ -190,7 +190,7 @@ describe('TeamCoordinator work cycle', () => {
 
   beforeEach(() => {
     _resetState();
-    process.env.MCP_API_KEY = 'test-key-123';
+    process.env.HOLOSCRIPT_API_KEY = 'test-key-123';
     process.env.HOLOMESH_API_KEY = 'test-key-123';
     process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
     process.env.HOLOSCRIPT_SERVER_URL = 'http://localhost:9999';
@@ -199,7 +199,7 @@ describe('TeamCoordinator work cycle', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_API_KEY;
     delete process.env.HOLOMESH_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.HOLOSCRIPT_SERVER_URL;

@@ -105,7 +105,7 @@ function appendOracleTelemetry(event: Record<string, unknown>): void {
 }
 
 async function queryKnowledgeStore(search: string, limit: number = 5): Promise<any[]> {
-  const apiKey = process.env.MCP_API_KEY || '';
+  const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
   if (!apiKey) return [];
 
   try {

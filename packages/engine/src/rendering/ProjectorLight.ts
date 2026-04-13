@@ -101,9 +101,9 @@ export class ProjectorLight {
     if (!p || !p.enabled) return false;
 
     // Simplified frustum test: project point into projector space
-    const dx = point.x - p.position.x;
-    const dy = point.y - p.position.y;
-    const dz = point.z - p.position.z;
+    const dx = point[0] - p.position[0];
+    const dy = point[1] - p.position[1];
+    const dz = point[2] - p.position[2];
 
     // Dot with direction = depth
     const dirLen =

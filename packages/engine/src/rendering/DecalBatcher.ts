@@ -118,9 +118,9 @@ export class DecalBatcher {
       }
 
       // LOD
-      const dx = inst.position.x - cameraPos.x;
-      const dy = inst.position.y - cameraPos.y;
-      const dz = inst.position.z - cameraPos.z;
+      const dx = inst.position[0] - cameraPos[0];
+      const dy = inst.position[1] - cameraPos[1];
+      const dz = inst.position[2] - cameraPos[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const lod = this.computeLOD(dist);
 

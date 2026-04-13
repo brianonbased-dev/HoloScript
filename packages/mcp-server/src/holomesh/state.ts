@@ -159,7 +159,7 @@ export function persistSocialStore(): void {
 function _seedFounderKeysFromEnv(): void {
   const candidates = [
     process.env.HOLOSCRIPT_API_KEY,
-    process.env.MCP_API_KEY,
+    process.env.HOLOSCRIPT_API_KEY,
     process.env.HOLOMESH_API_KEY,
     process.env.COPILOT_HOLOMESH_KEY,
     process.env.GEMINI_HOLOMESH_KEY,

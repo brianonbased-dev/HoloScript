@@ -67,14 +67,14 @@ export class AvatarController {
     this.solver.setTarget(
       'leftArm',
       input.leftHand.position.x,
-      input.leftHand.position.y,
-      input.leftHand.position.z
+      input.leftHand.position[1],
+      input.leftHand.position[2]
     );
     this.solver.setTarget(
       'rightArm',
-      input.rightHand.position.x,
-      input.rightHand.position.y,
-      input.rightHand.position.z
+      input.rightHand.position[0],
+      input.rightHand.position[1],
+      input.rightHand.position[2]
     );
 
     // Set orientations if solver supported it (IKSolver currently only does position targets for chains)

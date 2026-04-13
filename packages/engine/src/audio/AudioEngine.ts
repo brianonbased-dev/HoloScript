@@ -91,8 +91,8 @@ function computePan(
   const rx = listener.forward.y * listener.up.z - listener.forward.z * listener.up.y;
   const rz = listener.forward.x * listener.up.y - listener.forward.y * listener.up.x;
 
-  const dx = sourcePos.x - listener.position.x;
-  const dz = sourcePos.z - listener.position.z;
+  const dx = sourcePos[0] - listener.position[0];
+  const dz = sourcePos[2] - listener.position[2];
 
   const dist = Math.sqrt(dx * dx + dz * dz);
   if (dist < 0.001) return 0;

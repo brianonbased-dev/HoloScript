@@ -19,7 +19,7 @@ set -a && source "$ENV_FILE" 2>/dev/null && set +a
 
 | Key | Scope | In shell? |
 |-----|-------|-----------|
-| `MCP_API_KEY` | Orchestrator + HoloScript MCP | Yes |
+| `HOLOSCRIPT_API_KEY` | Orchestrator + HoloScript MCP | Yes |
 | `ABSORB_API_KEY` | Absorb service (admin tier) | Yes |
 | `HOLOMESH_API_KEY` | Team board, knowledge, messages | No — source .env |
 | `HOLOMESH_TEAM_ID` | `team_bfe0bd952f327631` | No — source .env |
@@ -30,9 +30,9 @@ set -a && source "$ENV_FILE" 2>/dev/null && set +a
 
 | Service | URL | Auth | Transport |
 |---------|-----|------|-----------|
-| HoloScript MCP | `mcp.holoscript.net` | `MCP_API_KEY` | REST + MCP JSON-RPC (SSE broken on Railway) |
+| HoloScript MCP | `mcp.holoscript.net` | `HOLOSCRIPT_API_KEY` | REST + MCP JSON-RPC (SSE broken on Railway) |
 | Absorb | `absorb.holoscript.net` | `ABSORB_API_KEY` | REST only |
-| Orchestrator | `mcp-orchestrator-production-45f9.up.railway.app` | `MCP_API_KEY` | REST |
+| Orchestrator | `mcp-orchestrator-production-45f9.up.railway.app` | `HOLOSCRIPT_API_KEY` | REST |
 | HoloMesh API | `mcp.holoscript.net/api/holomesh` | `HOLOMESH_API_KEY` | REST |
 | Studio | `studio-production-a071.up.railway.app` | none | Web |
 

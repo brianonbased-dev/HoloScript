@@ -8,7 +8,7 @@ Most modern AI agents can connect to HoloScript tools via the hosted Model Conte
 
 - **Discovery URL**: `https://mcp.holoscript.net/.well-known/mcp.json`
 - **Hosted Endpoint**: `https://mcp.holoscript.net/mcp`
-- **Authentication**: Requires a valid `MCP_API_KEY` (or OAuth 2.1 token).
+- **Authentication**: Requires a valid `HOLOSCRIPT_API_KEY` (or OAuth 2.1 token).
 
 ### Example: Claude Desktop / AI IDE Configuration
 
@@ -21,7 +21,7 @@ Add this to your `claude_desktop_config.json` or equivalent:
       "command": "npx",
       "args": ["-y", "@holoscript/mcp-server", "--remote", "https://mcp.holoscript.net/mcp"],
       "env": {
-        "MCP_API_KEY": "your_api_key_here"
+        "HOLOSCRIPT_API_KEY": "your_api_key_here"
       }
     }
   }

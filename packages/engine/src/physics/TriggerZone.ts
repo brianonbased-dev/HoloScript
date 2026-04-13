@@ -117,18 +117,18 @@ export class TriggerZoneSystem {
     entityRadius: number
   ): boolean {
     if (shape.type === 'sphere' && shape.radius !== undefined) {
-      const dx = pos.x - shape.position.x,
-        dy = pos.y - shape.position.y,
-        dz = pos.z - shape.position.z;
+      const dx = pos[0] - shape.position[0],
+        dy = pos[1] - shape.position[1],
+        dz = pos[2] - shape.position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       return dist <= shape.radius + entityRadius;
     }
 
     if (shape.type === 'box' && shape.halfExtents) {
       const he = shape.halfExtents;
-      const dx = Math.abs(pos.x - shape.position.x),
-        dy = Math.abs(pos.y - shape.position.y),
-        dz = Math.abs(pos.z - shape.position.z);
+      const dx = Math.abs(pos[0] - shape.position[0]),
+        dy = Math.abs(pos[1] - shape.position[1]),
+        dz = Math.abs(pos[2] - shape.position[2]);
       return dx <= he.x + entityRadius && dy <= he.y + entityRadius && dz <= he.z + entityRadius;
     }
 

@@ -34,8 +34,8 @@ describe('create-holoscript-app', () => {
 
   // ─── Template Registry ──────────────────────────────────
   describe('TEMPLATES registry', () => {
-    it('should contain exactly 4 templates', () => {
-      expect(TEMPLATES).toHaveLength(4);
+    it('should contain exactly 5 templates', () => {
+      expect(TEMPLATES).toHaveLength(5);
     });
 
     it('should include hello-world as the first template', () => {
@@ -47,6 +47,7 @@ describe('create-holoscript-app', () => {
       const names = TEMPLATES.map((t) => t.name);
       expect(names).toEqual([
         'hello-world',
+        'instant',
         'physics-playground',
         'interactive-gallery',
         '2d-revolution',
@@ -234,6 +235,15 @@ describe('create-holoscript-app', () => {
       expect((pkg.dependencies as Record<string, string>)['react']).toBeUndefined();
     });
 
+    it('should produce zero-dependency package.json for instant template', () => {
+      const pkg = buildPackageJson({ projectName: 'quick-app', templateName: 'instant' });
+      expect(pkg.name).toBe('quick-app');
+      expect(pkg.version).toBe('0.1.0');
+      expect(pkg.dependencies).toBeUndefined();
+      expect(pkg.devDependencies).toBeUndefined();
+      expect((pkg.scripts as Record<string, string>).dev).toBe('npx serve .');
+    });
+
     it('should include React deps for 2d-revolution template', () => {
       const pkg = buildPackageJson({ projectName: 'rev-app', templateName: '2d-revolution' });
       const deps = pkg.dependencies as Record<string, string>;
@@ -242,7 +252,7 @@ describe('create-holoscript-app', () => {
       expect(deps['react-dom']).toBe('^18.2.0');
       expect(deps['@react-three/fiber']).toBe('^8.17.10');
       expect(deps['@react-three/drei']).toBe('^9.114.0');
-      expect(deps['@holoscript/semantic-2d']).toBe('workspace:*');
+      expect(deps['@holoscript/semantic-2d']).toBe('^6.0.1');
       expect(devDeps['@vitejs/plugin-react']).toBe('^4.3.4');
     });
 

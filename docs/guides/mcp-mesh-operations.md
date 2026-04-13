@@ -34,7 +34,7 @@ It checks `http://localhost:5567/health` and, if needed, attempts to start the o
 
 - The script is non-destructive and only starts the mesh when health checks fail.
 - If the orchestrator path cannot be found, start it manually from the `mcp-orchestrator` repository.
-- Keep `MCP_API_KEY` set if you run secured endpoints from scripts.
+- Keep `HOLOSCRIPT_API_KEY` set if you run secured endpoints from scripts.
 
 ## Troubleshooting
 

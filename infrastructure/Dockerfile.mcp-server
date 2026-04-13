@@ -27,8 +27,10 @@ COPY packages/engine/package.json packages/engine/
 COPY packages/framework/package.json packages/framework/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
+COPY packages/config/package.json packages/config/
 COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
+
 
 # Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -41,15 +43,19 @@ COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
+COPY packages/config/ packages/config/
 COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
+
 
 # Build in dependency order
 # Skip DTS for shared runtime stack — server image only needs JS runtime.
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
+RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd packages/mcp-server && npx tsup
+
 
 # --- Production stage ---
 FROM node:20-alpine
@@ -87,8 +93,10 @@ COPY packages/engine/package.json packages/engine/
 COPY packages/framework/package.json packages/framework/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
+COPY packages/config/package.json packages/config/
 COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
+
 
 # Install all dependencies (some externalized packages like jsonwebtoken aren't
 # declared as prod deps but are required at runtime via core's CJS bundle)
@@ -100,10 +108,13 @@ COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/di
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/engine/dist packages/engine/dist
 COPY --from=builder /app/packages/framework/dist packages/framework/dist
+COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
+COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
+
 
 # Fail fast if framework build artifacts are missing (prevents runtime breakage
 # when mcp-server resolves @holoscript/framework in production).

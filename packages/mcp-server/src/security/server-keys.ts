@@ -10,7 +10,7 @@
  *   Example: MCP_KEY_HOLOSCRIPT_TOOLS=abc123
  *            MCP_KEY_HOLOMESH=def456
  *
- * Falls back to MCP_API_KEY if no per-server key is configured (backwards compatible).
+ * Falls back to HOLOSCRIPT_API_KEY (or legacy MCP_API_KEY) if no per-server key is configured.
  *
  * @module security/server-keys
  */
@@ -54,7 +54,7 @@ export interface ServerKeyValidation {
 export function resolveServerKey(serverId: string): string {
   // Convert server-id to MCP_KEY_SERVER_ID
   const envKey = `MCP_KEY_${serverId.toUpperCase().replace(/-/g, '_')}`;
-  return process.env[envKey] || process.env.MCP_API_KEY || '';
+  return process.env[envKey] || process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY || '';
 }
 
 /**
@@ -121,8 +121,9 @@ export function validateServerKey(
     }
   }
 
-  // Fallback: check shared MCP_API_KEY
-  if (incomingKey === process.env.MCP_API_KEY) {
+  // Fallback: check shared HOLOSCRIPT_API_KEY (or legacy MCP_API_KEY)
+  const sharedKey = process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY;
+  if (sharedKey && incomingKey === sharedKey) {
     return {
       valid: true,
       serverId: expectedServerId || 'shared',

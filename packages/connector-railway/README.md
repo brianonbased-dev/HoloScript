@@ -173,7 +173,7 @@ await railway.executeTool('railway_variable_set', {
   projectId: project.data.projectCreate.id,
   environmentId: 'production-env-id',
   serviceId: service.data.serviceCreate.id,
-  name: 'MCP_API_KEY',
+  name: 'HOLOSCRIPT_API_KEY',
   value: 'dev-key-12345',
 });
 

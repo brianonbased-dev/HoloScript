@@ -75,7 +75,7 @@ interface RevenueDistributionResult {
 }
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const MCP_API_KEY = process.env.MCP_API_KEY || '';
+const MCP_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';

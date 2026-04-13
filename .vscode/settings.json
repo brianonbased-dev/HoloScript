@@ -6,7 +6,7 @@
     ],
     "holoscript.mcp.enabled": true,
     "holoscript.mcp.orchestratorUrl": "https://mcp-orchestrator-production-45f9.up.railway.app",
-    "holoscript.mcp.apiKey": "${env:MCP_API_KEY}",
+    "holoscript.mcp.apiKey": "${env:HOLOSCRIPT_API_KEY}",
     "holoscript.mcp.heartbeatSeconds": 20,
     "holoscript.mcp.visibility": "public",
     "holoscript.mcp.workspaceId": "holoscript",

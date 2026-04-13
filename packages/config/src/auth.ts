@@ -26,10 +26,10 @@ function assertServer(caller: string): void {
 // KEY ACCESSORS
 // =============================================================================
 
-/** MCP Orchestrator API key (legacy format, used for tool calls and knowledge sync) */
+/** HoloScript platform API key (used for orchestrator tool calls and knowledge sync) */
 export function getMcpApiKey(): string {
   assertServer('getMcpApiKey');
-  return process.env.MCP_API_KEY || '';
+  return process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY || '';
 }
 
 /** HoloMesh agent API key (holomesh_sk_* format) */
@@ -80,7 +80,7 @@ export function getTeamId(): string {
 
 /** Build Authorization header for MCP Orchestrator */
 export function mcpAuthHeaders(): Record<string, string> {
-  return { 'x-mcp-api-key': getMcpApiKey() };
+  return { 'x-holoscript-api-key': getMcpApiKey(), 'x-mcp-api-key': getMcpApiKey() };
 }
 
 /** Build Authorization header for HoloMesh API */

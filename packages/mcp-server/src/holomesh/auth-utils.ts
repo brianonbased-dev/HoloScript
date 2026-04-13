@@ -76,7 +76,7 @@ export function resolveRequestingAgent(
   // 3. Raw env key comparison (deprecated — legacy system/IDE keys)
   const systemKeys = [
     process.env.HOLOSCRIPT_API_KEY,
-    process.env.MCP_API_KEY,
+    process.env.HOLOSCRIPT_API_KEY,
     process.env.HOLOMESH_API_KEY,
     process.env.COPILOT_HOLOMESH_KEY,
     process.env.GEMINI_HOLOMESH_KEY,

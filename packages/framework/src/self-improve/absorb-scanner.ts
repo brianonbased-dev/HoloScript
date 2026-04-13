@@ -71,7 +71,7 @@ interface KnowledgeEntry {
  */
 export async function scanFramework(config: AbsorbScanConfig = {}): Promise<ScanResult> {
   const orchestratorUrl = config.orchestratorUrl || DEFAULT_ORCHESTRATOR_URL;
-  const apiKey = config.mcpApiKey || process.env.MCP_API_KEY || '';
+  const apiKey = config.mcpApiKey || process.env.HOLOSCRIPT_API_KEY || '';
   const workspaceId = config.workspaceId || DEFAULT_WORKSPACE_ID;
   const maxTasks = config.maxTasks || 20;
   const searchQuery =

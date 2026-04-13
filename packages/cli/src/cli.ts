@@ -3596,7 +3596,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
     case 'setup-mcp': {
       console.log('\n\x1b[1m🚀 Provisioning HoloScript MCP Environment\x1b[0m\n');
-      const apiKey = options.input || process.env.MCP_API_KEY;
+      const apiKey = options.input || process.env.HOLOSCRIPT_API_KEY;
       if (!apiKey) {
         console.error('\x1b[31mError: No API key specified.\x1b[0m');
         console.log('Usage: npx @holoscript/cli setup-mcp <your-api-key>');

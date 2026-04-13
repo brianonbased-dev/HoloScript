@@ -291,13 +291,13 @@ const retryPolicy = {
 ```javascript
 // In browser console
 localStorage.getItem('mcp-api-key');
-// Should return: "YOUR_MCP_API_KEY" or your key
+// Should return: "YOUR_HOLOSCRIPT_API_KEY" or your key
 ```
 
 **Step 2:** Check server expects key
 
 ```bash
-curl -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
+curl -H "x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY" \
   http://localhost:5567/servers
 
 # If 401: key is invalid
@@ -316,7 +316,7 @@ updateMCPServer('mcp-orchestrator', { apiKey });
 **Reset to default key:**
 
 ```javascript
-localStorage.setItem('mcp-api-key', 'YOUR_MCP_API_KEY');
+localStorage.setItem('mcp-api-key', 'YOUR_HOLOSCRIPT_API_KEY');
 location.reload();
 ```
 
@@ -325,7 +325,7 @@ location.reload();
 ```typescript
 // In orchestrator config file
 {
-  apiKey: process.env.MCP_API_KEY || 'YOUR_MCP_API_KEY';
+  apiKey: process.env.HOLOSCRIPT_API_KEY || 'YOUR_HOLOSCRIPT_API_KEY';
 }
 ```
 
@@ -340,7 +340,7 @@ location.reload();
 **Step 1:** List available tools
 
 ```bash
-curl -H "x-mcp-api-key: YOUR_MCP_API_KEY" \
+curl -H "x-mcp-api-key: YOUR_HOLOSCRIPT_API_KEY" \
   http://localhost:5567/tools
 
 # Returns array of tools from all servers

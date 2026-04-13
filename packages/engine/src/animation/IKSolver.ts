@@ -100,9 +100,9 @@ export class IKSolver {
     const b = mid.length; // forearm
 
     const target = chain.target;
-    const dx = target.x - root.position.x;
-    const dy = target.y - root.position.y;
-    const dz = target.z - root.position.z;
+    const dx = target[0] - root.position[0];
+    const dy = target[1] - root.position[1];
+    const dz = target[2] - root.position[2];
     const distSq = dx * dx + dy * dy + dz * dz;
     const dist = Math.sqrt(distSq);
 
@@ -126,17 +126,17 @@ export class IKSolver {
 
     // Position mid bone
     mid.position = {
-      x: root.position.x + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
-      y: root.position.y + Math.sin(totalRootAngle) * a,
-      z: root.position.z + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
+      x: root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
+      y: root.position[1] + Math.sin(totalRootAngle) * a,
+      z: root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
     };
 
     // Position end bone (if exists)
     if (end) {
       const blendedTarget = {
-        x: end.position.x + (target.x - end.position.x) * chain.weight,
-        y: end.position.y + (target.y - end.position.y) * chain.weight,
-        z: end.position.z + (target.z - end.position.z) * chain.weight,
+        x: end.position[0] + (target[0] - end.position[0]) * chain.weight,
+        y: end.position[1] + (target[1] - end.position[1]) * chain.weight,
+        z: end.position[2] + (target[2] - end.position[2]) * chain.weight,
       };
       end.position = blendedTarget;
     }
@@ -162,16 +162,16 @@ export class IKSolver {
 
         // Vector from bone to end effector
         const toEnd = {
-          x: endEffector.position.x - bone.position.x,
-          y: endEffector.position.y - bone.position.y,
-          z: endEffector.position.z - bone.position.z,
+          x: endEffector.position[0] - bone.position[0],
+          y: endEffector.position[1] - bone.position[1],
+          z: endEffector.position[2] - bone.position[2],
         };
 
         // Vector from bone to target
         const toTarget = {
-          x: target.x - bone.position.x,
-          y: target.y - bone.position.y,
-          z: target.z - bone.position.z,
+          x: target[0] - bone.position[0],
+          y: target[1] - bone.position[1],
+          z: target[2] - bone.position[2],
         };
 
         // Compute rotation angle (2D simplification in XY plane)
@@ -189,21 +189,21 @@ export class IKSolver {
           sinA = Math.sin(angle);
         for (let j = i + 1; j < bones.length; j++) {
           const child = bones[j];
-          const rx = child.position.x - bone.position.x;
-          const ry = child.position.y - bone.position.y;
+          const rx = child.position[0] - bone.position[0];
+          const ry = child.position[1] - bone.position[1];
           child.position = {
-            x: bone.position.x + rx * cosA - ry * sinA,
-            y: bone.position.y + rx * sinA + ry * cosA,
-            z: child.position.z,
+            x: bone.position[0] + rx * cosA - ry * sinA,
+            y: bone.position[1] + rx * sinA + ry * cosA,
+            z: child.position[2],
           };
         }
       }
 
       // Check if close enough
       const end = bones[bones.length - 1];
-      const dx = end.position.x - target.x;
-      const dy = end.position.y - target.y;
-      const dz = end.position.z - target.z;
+      const dx = end.position[0] - target[0];
+      const dy = end.position[1] - target[1];
+      const dz = end.position[2] - target[2];
       if (dx * dx + dy * dy + dz * dz < 0.001) return true;
     }
 

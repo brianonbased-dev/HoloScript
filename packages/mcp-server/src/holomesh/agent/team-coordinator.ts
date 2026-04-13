@@ -104,7 +104,7 @@ function getServerUrl(): string {
 }
 
 function getApiKey(): string {
-  return process.env.HOLOMESH_API_KEY || process.env.MCP_API_KEY || '';
+  return process.env.HOLOMESH_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
 }
 
 // ── Core Functions ──

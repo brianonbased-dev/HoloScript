@@ -62,7 +62,7 @@ metric "Git contributors" \
   "git shortlog -sn --all | wc -l | tr -d ' '"
 
 metric "HoloMesh agents (live)" \
-  "curl -sf --max-time 5 'https://mcp.holoscript.net/api/holomesh/agents' -H 'Authorization: Bearer ${MCP_API_KEY:-none}' | python3 -c \"import sys,json; print(json.load(sys.stdin).get('count','?'))\" 2>/dev/null || echo '?'"
+  "curl -sf --max-time 5 'https://mcp.holoscript.net/api/holomesh/agents' -H 'Authorization: Bearer ${HOLOSCRIPT_API_KEY:-none}' | python3 -c \"import sys,json; print(json.load(sys.stdin).get('count','?'))\" 2>/dev/null || echo '?'"
 
 metric ": any in core" \
   "grep -rn ': any' packages/core/src/ --include='*.ts' | grep -v node_modules | grep -v __tests__ | grep -v '.test.' | grep -v '.d.ts' | wc -l | tr -d ' '"

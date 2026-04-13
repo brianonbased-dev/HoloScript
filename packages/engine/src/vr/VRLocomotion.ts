@@ -25,7 +25,7 @@ export interface LocomotionConfig {
 
 export class VRLocomotion {
   private config: LocomotionConfig;
-  private position: [number, number, number] = { x: 0, y: 0, z: 0 };
+  private position: [number, number, number] = [0, 0, 0 ];
   private rotation: number = 0; // yaw in degrees
   private teleportHistory: TeleportTarget[] = [];
   private boundaryDistance: number = Infinity;
@@ -46,10 +46,10 @@ export class VRLocomotion {
    */
   teleport(target: TeleportTarget): boolean {
     if (!target.valid) return false;
-    const dist = Math.sqrt((target.x - this.position.x) ** 2 + (target.z - this.position.z) ** 2);
+    const dist = Math.sqrt((target.x - this.position[0]) ** 2 + (target.z - this.position[2]) ** 2);
     if (dist > this.config.teleportRange) return false;
 
-    this.position = { x: target.x, y: target.y, z: target.z };
+    this.position = [target.x, target.y, target.z ];
     this.teleportHistory.push(target);
     return true;
   }
@@ -61,8 +61,8 @@ export class VRLocomotion {
     const speed = this.config.moveSpeed * deltaTime;
     // Rotate movement by current yaw
     const rad = (this.rotation * Math.PI) / 180;
-    this.position.x += (dx * Math.cos(rad) - dz * Math.sin(rad)) * speed;
-    this.position.z += (dx * Math.sin(rad) + dz * Math.cos(rad)) * speed;
+    this.position[0] += (dx * Math.cos(rad) - dz * Math.sin(rad)) * speed;
+    this.position[2] += (dx * Math.sin(rad) + dz * Math.cos(rad)) * speed;
   }
 
   /**
@@ -96,7 +96,7 @@ export class VRLocomotion {
   }
 
   getPosition(): { x: number; y: number; z: number } {
-    return { ...this.position };
+    return { x: this.position[0], y: this.position[1], z: this.position[2] };
   }
   getRotation(): number {
     return this.rotation;

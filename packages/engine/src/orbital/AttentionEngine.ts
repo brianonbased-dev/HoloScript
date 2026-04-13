@@ -27,9 +27,9 @@ export class AttentionEngine {
     target: AttendedEntity
   ): number {
     // 1. Proximity (Inverse squared distance approximation)
-    const dx = target.position.x - observerPos.x;
-    const dy = target.position.y - observerPos.y;
-    const dz = target.position.z - observerPos.z;
+    const dx = target.position[0] - observerPos[0];
+    const dy = target.position[1] - observerPos[1];
+    const dz = target.position[2] - observerPos[2];
     const distSq = dx * dx + dy * dy + dz * dz;
 
     // Closer than 2 units is max proximity weight (1.0). Fades out to 0 at ~100 units.

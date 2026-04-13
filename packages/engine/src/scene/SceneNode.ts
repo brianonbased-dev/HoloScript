@@ -174,9 +174,9 @@ export class SceneNode {
     m[10] = cy * cx * s.z;
     m[11] = 0;
 
-    m[12] = p.x;
-    m[13] = p.y;
-    m[14] = p.z;
+    m[12] = p[0];
+    m[13] = p[1];
+    m[14] = p[2];
     m[15] = 1;
 
     return m;

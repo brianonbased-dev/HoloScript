@@ -286,7 +286,7 @@ let meshClient: HoloMeshOrchestratorClient | null = null;
 
 function getOrCreateClient(): HoloMeshOrchestratorClient {
   if (!meshClient) {
-    const apiKey = process.env.MCP_API_KEY || '';
+    const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
     if (!apiKey) {
       throw new Error('MCP_API_KEY not configured. Set it to enable HoloMesh.');
     }
@@ -307,7 +307,7 @@ export function getHoloMeshClient(): HoloMeshOrchestratorClient | null {
 }
 
 export function hasHoloMeshKey(): boolean {
-  return !!process.env.MCP_API_KEY;
+  return !!process.env.HOLOSCRIPT_API_KEY;
 }
 
 // ── Handler ──

@@ -90,9 +90,9 @@ export class SceneQuery {
       if (!node.visible) return;
 
       const wp = node.getWorldPosition();
-      const dx = wp.x - frustum.position.x;
-      const dy = wp.y - frustum.position.y;
-      const dz = wp.z - frustum.position.z;
+      const dx = wp[0] - frustum.position[0];
+      const dy = wp[1] - frustum.position[1];
+      const dz = wp[2] - frustum.position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist < frustum.near || dist > frustum.far) return;

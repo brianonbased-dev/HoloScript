@@ -242,9 +242,9 @@ export class ParticleSystem {
     p.alive = true;
     p.age = 0;
     p.lifetime = randRange(cfg.lifetime[0], cfg.lifetime[1]);
-    p.x = cfg.position.x + px;
-    p.y = cfg.position.y + py;
-    p.z = cfg.position.z + pz;
+    p[0] = cfg.position[0] + px;
+    p[1] = cfg.position[1] + py;
+    p[2] = cfg.position[2] + pz;
 
     const speed = randRange(cfg.speed[0], cfg.speed[1]);
     p.vx = vx * speed;

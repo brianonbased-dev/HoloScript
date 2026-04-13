@@ -7,7 +7,7 @@
       "type": "http",
       "url": "https://mcp.holoscript.net/mcp",
       "headers": {
-        "Authorization": "Bearer ${MCP_API_KEY}"
+        "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       }
     },
     "mcp-orchestrator": {
@@ -16,7 +16,7 @@
       "type": "http",
       "url": "https://mcp-orchestrator-production-45f9.up.railway.app/mcp",
       "headers": {
-        "Authorization": "Bearer ${MCP_API_KEY}"
+        "Authorization": "Bearer ${HOLOSCRIPT_API_KEY}"
       }
     },
     "holoscript-local": {

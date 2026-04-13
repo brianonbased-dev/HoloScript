@@ -100,7 +100,7 @@ describe('executeMCPTool', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    vi.stubEnv('MCP_API_KEY', 'test-api-key');
+    vi.stubEnv('HOLOSCRIPT_API_KEY', 'test-api-key');
     vi.stubEnv('NEXT_PUBLIC_MCP_ORCHESTRATOR_URL', 'https://orch.test');
     vi.stubEnv('HOLOSCRIPT_MCP', 'https://holo.test');
     vi.stubEnv('ABSORB_MCP', 'https://absorb.test');

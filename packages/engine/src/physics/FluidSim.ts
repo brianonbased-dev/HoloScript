@@ -124,9 +124,9 @@ export class FluidSim {
     for (const pi of this.particles) {
       pi.density = 0;
       for (const pj of this.particles) {
-        const dx = pj.position.x - pi.position.x;
-        const dy = pj.position.y - pi.position.y;
-        const dz = pj.position.z - pi.position.z;
+        const dx = pj.position[0] - pi.position[0];
+        const dy = pj.position[1] - pi.position[1];
+        const dz = pj.position[2] - pi.position[2];
         const r2 = dx * dx + dy * dy + dz * dz;
         pi.density += pj.mass * this.poly6(r2, h);
       }
@@ -142,9 +142,9 @@ export class FluidSim {
       for (const pj of this.particles) {
         if (pi === pj) continue;
 
-        const dx = pj.position.x - pi.position.x;
-        const dy = pj.position.y - pi.position.y;
-        const dz = pj.position.z - pi.position.z;
+        const dx = pj.position[0] - pi.position[0];
+        const dy = pj.position[1] - pi.position[1];
+        const dz = pj.position[2] - pi.position[2];
         const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (r < h && r > 0) {
@@ -176,9 +176,9 @@ export class FluidSim {
       pi.velocity.y += fy * invDensity * dt;
       pi.velocity.z += fz * invDensity * dt;
 
-      pi.position.x += pi.velocity.x * dt;
-      pi.position.y += pi.velocity.y * dt;
-      pi.position.z += pi.velocity.z * dt;
+      pi.position[0] += pi.velocity[0] * dt;
+      pi.position[1] += pi.velocity[1] * dt;
+      pi.position[2] += pi.velocity[2] * dt;
     }
 
     // 3. Boundary enforcement
@@ -188,28 +188,28 @@ export class FluidSim {
   private enforceBoundaries(): void {
     const { boundaryMin: mn, boundaryMax: mx, boundaryDamping: d } = this.config;
     for (const p of this.particles) {
-      if (p.position.x < mn.x) {
-        p.position.x = mn.x;
+      if (p.position[0] < mn[0]) {
+        p.position[0] = mn[0];
         p.velocity.x *= -d;
       }
-      if (p.position.x > mx.x) {
-        p.position.x = mx.x;
+      if (p.position[0] > mx[0]) {
+        p.position[0] = mx[0];
         p.velocity.x *= -d;
       }
-      if (p.position.y < mn.y) {
-        p.position.y = mn.y;
+      if (p.position[1] < mn[1]) {
+        p.position[1] = mn[1];
         p.velocity.y *= -d;
       }
-      if (p.position.y > mx.y) {
-        p.position.y = mx.y;
+      if (p.position[1] > mx[1]) {
+        p.position[1] = mx[1];
         p.velocity.y *= -d;
       }
-      if (p.position.z < mn.z) {
-        p.position.z = mn.z;
+      if (p.position[2] < mn[2]) {
+        p.position[2] = mn[2];
         p.velocity.z *= -d;
       }
-      if (p.position.z > mx.z) {
-        p.position.z = mx.z;
+      if (p.position[2] > mx[2]) {
+        p.position[2] = mx[2];
         p.velocity.z *= -d;
       }
     }

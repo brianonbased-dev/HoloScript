@@ -1811,7 +1811,7 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
   const symbolName = args.symbolName as string;
   const limit = (args.limit as number) ?? 5;
   const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
-  const apiKey = process.env.MCP_API_KEY;
+  const apiKey = process.env.HOLOSCRIPT_API_KEY;
 
   try {
     const response = await fetch(`${orchestratorUrl}/knowledge/query`, {
@@ -1852,7 +1852,7 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
  */
 export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
   const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
-  const apiKey = process.env.MCP_API_KEY;
+  const apiKey = process.env.HOLOSCRIPT_API_KEY;
   const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
 
   const symbols = graph.getAllSymbols().filter((s: any) => s.visibility === 'public');

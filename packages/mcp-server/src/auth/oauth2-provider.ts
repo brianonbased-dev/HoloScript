@@ -71,7 +71,7 @@ export const DEFAULT_PROVIDER_CONFIG: OAuth2ProviderConfig = {
     authCodeTTL: parseInt(process.env.OAUTH_CODE_TTL || '300', 10),
   },
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
-  legacyApiKey: process.env.MCP_API_KEY || '',
+  legacyApiKey: process.env.HOLOSCRIPT_API_KEY || '',
   maxClients: 1000,
   requireDPoP: process.env.OAUTH_REQUIRE_DPOP === 'true',
 };

@@ -173,23 +173,23 @@ export class CameraController {
     const desiredZ = this.target.z + off.z;
 
     // Dead zone check
-    const dx = Math.abs(this.target.x - this.state.position.x + off.x);
-    const dy = Math.abs(this.target.y - this.state.position.y + off.y);
+    const dx = Math.abs(this.target[0] - this.state.position[0] + off[0]);
+    const dy = Math.abs(this.target[1] - this.state.position[1] + off[1]);
     const dz = this.config.deadZone;
     if (dx < dz.x && dy < dz.y) return;
 
     const s = 1 - Math.pow(1 - this.config.smoothing, dt * 60);
-    this.state.position.x = this.lerp(this.state.position.x, desiredX, s);
-    this.state.position.y = this.lerp(this.state.position.y, desiredY, s);
-    this.state.position.z = this.lerp(this.state.position.z, desiredZ, s);
+    this.state.position[0] = this.lerp(this.state.position[0], desiredX, s);
+    this.state.position[1] = this.lerp(this.state.position[1], desiredY, s);
+    this.state.position[2] = this.lerp(this.state.position[2], desiredZ, s);
   }
 
   private updateOrbit(_dt: number): void {
     const d = this.config.orbitDistance * this.state.zoom;
-    this.state.position.x =
+    this.state.position[0] =
       this.target.x + Math.sin(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
-    this.state.position.y = this.target.y + Math.sin(this.orbitPitch) * d;
-    this.state.position.z =
+    this.state.position[1] = this.target[1] + Math.sin(this.orbitPitch) * d;
+    this.state.position[2] =
       this.target.z + Math.cos(this.orbitAngle) * Math.cos(this.orbitPitch) * d;
     this.state.rotation.yaw = this.orbitAngle;
     this.state.rotation.pitch = -this.orbitPitch;
@@ -198,18 +198,18 @@ export class CameraController {
   private updateTopDown(_dt: number): void {
     const height = 20 * this.state.zoom;
     const s = 1 - Math.pow(1 - this.config.smoothing, 1);
-    this.state.position.x = this.lerp(this.state.position.x, this.target.x, s);
-    this.state.position.y = height;
-    this.state.position.z = this.lerp(this.state.position.z, this.target.z, s);
+    this.state.position[0] = this.lerp(this.state.position[0], this.target[0], s);
+    this.state.position[1] = height;
+    this.state.position[2] = this.lerp(this.state.position[2], this.target[2], s);
     this.state.rotation.pitch = -Math.PI / 2;
     this.state.rotation.yaw = 0;
   }
 
   private clampToBounds(): void {
     const b = this.config.bounds!;
-    this.state.position.x = Math.max(b.min.x, Math.min(b.max.x, this.state.position.x));
-    this.state.position.y = Math.max(b.min.y, Math.min(b.max.y, this.state.position.y));
-    this.state.position.z = Math.max(b.min.z, Math.min(b.max.z, this.state.position.z));
+    this.state.position[0] = Math.max(b.min[0], Math.min(b.max[0], this.state.position[0]));
+    this.state.position[1] = Math.max(b.min[1], Math.min(b.max[1], this.state.position[1]));
+    this.state.position[2] = Math.max(b.min[2], Math.min(b.max[2], this.state.position[2]));
   }
 
   // ---------------------------------------------------------------------------
@@ -304,9 +304,9 @@ export class CameraController {
    * ```
    */
   moveCamera(dx: number, dy: number, dz: number): void {
-    this.state.position.x += dx * this.config.freeSpeed;
-    this.state.position.y += dy * this.config.freeSpeed;
-    this.state.position.z += dz * this.config.freeSpeed;
+    this.state.position[0] += dx * this.config.freeSpeed;
+    this.state.position[1] += dy * this.config.freeSpeed;
+    this.state.position[2] += dz * this.config.freeSpeed;
   }
 
   /**

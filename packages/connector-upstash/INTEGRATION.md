@@ -324,7 +324,7 @@ await connector.connect();
 
 // Tools become available via orchestrator
 curl -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call \
-  -H "x-mcp-api-key: $MCP_API_KEY" \
+  -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{"server": "holoscript-upstash", "tool": "upstash_redis_cache_get", "args": {"key": "scene:test"}}'
 ```
 

@@ -139,7 +139,7 @@ const result = await fetch('http://localhost:5567/tools/call', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-mcp-api-key': process.env.MCP_API_KEY
+    'x-mcp-api-key': process.env.HOLOSCRIPT_API_KEY
   },
   body: JSON.stringify({
     server: '${server}',

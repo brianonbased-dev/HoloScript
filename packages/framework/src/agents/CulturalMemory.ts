@@ -253,9 +253,9 @@ export class CulturalMemory {
     const traces = this.stigmergic.get(zoneId) || [];
     return traces
       .filter((t) => {
-        const dx = t.position.x - position.x;
-        const dy = t.position.y - position.y;
-        const dz = t.position.z - position.z;
+        const dx = t.position[0] - position[0];
+        const dy = t.position[1] - position[1];
+        const dz = t.position[2] - position[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         return dist <= t.radius && t.intensity > 0.01;
       })

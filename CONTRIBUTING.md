@@ -25,7 +25,7 @@ Copy `.env.example` to `.env` and fill in your keys. The `.env` file is gitignor
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-api03-...   # For AI features
-MCP_API_KEY=your-key                  # For MCP tool calls
+HOLOSCRIPT_API_KEY=your-key            # For MCP tool calls
 ```
 
 **For full platform features (optional):**

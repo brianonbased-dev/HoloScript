@@ -175,9 +175,9 @@ export class SteeringBehaviors {
     for (const n of neighbors) {
       const d = this.dist(agent.position, n.position);
       if (d > 0 && d < this.config.cohesionRadius) {
-        center.x += n.position.x;
-        center.y += n.position.y;
-        center.z += n.position.z;
+        center[0] += n.position[0];
+        center[1] += n.position[1];
+        center[2] += n.position[2];
         count++;
       }
     }
@@ -243,9 +243,9 @@ export class SteeringBehaviors {
       agent.velocity.z *= ratio;
     }
 
-    agent.position.x += agent.velocity.x * dt;
-    agent.position.y += agent.velocity.y * dt;
-    agent.position.z += agent.velocity.z * dt;
+    agent.position[0] += agent.velocity[0] * dt;
+    agent.position[1] += agent.velocity[1] * dt;
+    agent.position[2] += agent.velocity[2] * dt;
   }
 
   // ---------------------------------------------------------------------------

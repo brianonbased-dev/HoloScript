@@ -1,7 +1,7 @@
 {
   "name": "create-holoscript-app",
-  "version": "1.1.0",
-  "description": "Create HoloScript apps with zero configuration — scaffold 3D/XR projects and preview in your browser in under 2 minutes",
+  "version": "1.2.0",
+  "description": "Create HoloScript apps with zero configuration — 3D scene in your browser in 30 seconds",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {

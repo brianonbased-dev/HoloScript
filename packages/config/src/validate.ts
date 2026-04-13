@@ -46,8 +46,8 @@ export function requireConfig(required: string[], serviceName?: string): void {
 
 /** Common required vars for each service type */
 export const REQUIRED_VARS = {
-  MCP_SERVER: ['MCP_API_KEY'],
-  ABSORB_SERVICE: ['MCP_API_KEY', 'DATABASE_URL'],
-  STUDIO: ['MCP_API_KEY'],
-  ORCHESTRATOR: ['MCP_API_KEY', 'DATABASE_URL'],
+  MCP_SERVER: ['HOLOSCRIPT_API_KEY'],
+  ABSORB_SERVICE: ['HOLOSCRIPT_API_KEY', 'DATABASE_URL'],
+  STUDIO: ['HOLOSCRIPT_API_KEY'],
+  ORCHESTRATOR: ['HOLOSCRIPT_API_KEY', 'DATABASE_URL'],
 } as const;

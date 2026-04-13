@@ -212,9 +212,9 @@ export class CombatManager {
   ): CombatTarget[] {
     return candidates
       .map((c) => {
-        const dx = c.position.x - position.x;
-        const dy = c.position.y - position.y;
-        const dz = c.position.z - position.z;
+        const dx = c.position[0] - position[0];
+        const dy = c.position[1] - position[1];
+        const dz = c.position[2] - position[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         return { entityId: c.entityId, position: c.position, priority: c.priority ?? 0, distance };
       })

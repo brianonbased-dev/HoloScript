@@ -19,7 +19,7 @@
 const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
-const API_KEY = process.env.MCP_API_KEY;
+const API_KEY = process.env.HOLOSCRIPT_API_KEY;
 
 if (!API_KEY) {
   console.error('ERROR: MCP_API_KEY environment variable is required.');

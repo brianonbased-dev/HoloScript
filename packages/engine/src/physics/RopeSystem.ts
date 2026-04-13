@@ -121,14 +121,14 @@ export class RopeSystem {
       for (const n of nodes) {
         if (n.pinned) continue;
 
-        const vx = (n.position.x - n.previous.x) * config.damping;
-        const vy = (n.position.y - n.previous.y) * config.damping;
-        const vz = (n.position.z - n.previous.z) * config.damping;
+        const vx = (n.position[0] - n.previous[0]) * config.damping;
+        const vy = (n.position[1] - n.previous[1]) * config.damping;
+        const vz = (n.position[2] - n.previous[2]) * config.damping;
 
         n.previous = { ...n.position };
-        n.position.x += vx + config.gravity.x * dt2;
-        n.position.y += vy + config.gravity.y * dt2;
-        n.position.z += vz + config.gravity.z * dt2;
+        n.position[0] += vx + config.gravity[0] * dt2;
+        n.position[1] += vy + config.gravity[1] * dt2;
+        n.position[2] += vz + config.gravity[2] * dt2;
       }
 
       // Constraint solving
@@ -136,9 +136,9 @@ export class RopeSystem {
         for (let i = 0; i < nodes.length - 1; i++) {
           const a = nodes[i],
             b = nodes[i + 1];
-          const dx = b.position.x - a.position.x;
-          const dy = b.position.y - a.position.y;
-          const dz = b.position.z - a.position.z;
+          const dx = b.position[0] - a.position[0];
+          const dy = b.position[1] - a.position[1];
+          const dz = b.position[2] - a.position[2];
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.0001;
           const diff = ((config.segmentLength - dist) / dist) * config.elasticity * 0.5;
 
@@ -146,14 +146,14 @@ export class RopeSystem {
             oy = dy * diff,
             oz = dz * diff;
           if (!a.pinned) {
-            a.position.x -= ox;
-            a.position.y -= oy;
-            a.position.z -= oz;
+            a.position[0] -= ox;
+            a.position[1] -= oy;
+            a.position[2] -= oz;
           }
           if (!b.pinned) {
-            b.position.x += ox;
-            b.position.y += oy;
-            b.position.z += oz;
+            b.position[0] += ox;
+            b.position[1] += oy;
+            b.position[2] += oz;
           }
         }
       }
@@ -174,9 +174,9 @@ export class RopeSystem {
     for (let i = 1; i < nodes.length; i++) {
       const a = nodes[i - 1].position,
         b = nodes[i].position;
-      const dx = b.x - a.x,
-        dy = b.y - a.y,
-        dz = b.z - a.z;
+      const dx = b[0] - a[0],
+        dy = b[1] - a[1],
+        dz = b[2] - a[2];
       len += Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
     return len;
@@ -186,9 +186,9 @@ export class RopeSystem {
     if (!rope || nodeIndex < 0 || nodeIndex >= rope.nodes.length - 1) return 0;
     const a = rope.nodes[nodeIndex].position,
       b = rope.nodes[nodeIndex + 1].position;
-    const dx = b.x - a.x,
-      dy = b.y - a.y,
-      dz = b.z - a.z;
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      dz = b[2] - a[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     return Math.abs(dist - rope.config.segmentLength) / rope.config.segmentLength;
   }

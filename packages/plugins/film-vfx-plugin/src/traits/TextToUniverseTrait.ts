@@ -13,9 +13,16 @@ export interface TextToUniverseState {
   spawnedNodes: string[];
 }
 
-import type { TraitHandler, _HSPlusNode, _TraitContext, _TraitEvent } from './types';
+export interface TextToUniverseTraitHandler {
+  name: 'text_to_universe';
+  defaultConfig: TextToUniverseConfig;
+  onAttach(n: unknown, c: TextToUniverseConfig, ctx: unknown): void;
+  onDetach(n: unknown, c: TextToUniverseConfig, ctx: unknown): void;
+  onUpdate(n: unknown, c: Partial<TextToUniverseConfig>, ctx: unknown): void;
+  onEvent(n: unknown, c: TextToUniverseConfig, ctx: unknown, e: unknown): void;
+}
 
-export function createTextToUniverseHandler(): TraitHandler<TextToUniverseConfig> {
+export function createTextToUniverseHandler(): TextToUniverseTraitHandler {
   return {
     name: 'text_to_universe',
     defaultConfig: { llmProvider: 'claude-3-opus', autoSpawning: true, maxEntityCount: 1000, narrativeConsistency: 'high' },

@@ -178,9 +178,9 @@ export class SpatialAudioZoneSystem {
   }
 
   private distanceToZone(zone: AudioZoneConfig): number {
-    const dx = this.listenerPos.x - zone.position.x;
-    const dy = this.listenerPos.y - zone.position.y;
-    const dz = this.listenerPos.z - zone.position.z;
+    const dx = this.listenerPos[0] - zone.position[0];
+    const dy = this.listenerPos[1] - zone.position[1];
+    const dz = this.listenerPos[2] - zone.position[2];
 
     if (zone.shape === 'sphere') {
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);

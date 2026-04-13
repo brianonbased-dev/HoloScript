@@ -97,9 +97,9 @@ export class VolumetricLight {
 
       // Phase function (Henyey-Greenstein approximation)
       const toLight = {
-        x: light.position.x - samplePos.x,
-        y: light.position.y - samplePos.y,
-        z: light.position.z - samplePos.z,
+        x: light.position[0] - samplePos[0],
+        y: light.position[1] - samplePos[1],
+        z: light.position[2] - samplePos[2],
       };
       const dist = Math.sqrt(toLight.x ** 2 + toLight.y ** 2 + toLight.z ** 2) || 1;
       const ndl = (toLight.x * dir.x + toLight.y * dir.y + toLight.z * dir.z) / dist;
@@ -125,9 +125,9 @@ export class VolumetricLight {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return 0;
 
-    const dx = worldPos.x - light.position.x;
-    const dy = worldPos.y - light.position.y;
-    const dz = worldPos.z - light.position.z;
+    const dx = worldPos[0] - light.position[0];
+    const dy = worldPos[1] - light.position[1];
+    const dz = worldPos[2] - light.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist > light.maxDistance) return 0;

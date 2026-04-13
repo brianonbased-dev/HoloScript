@@ -51,7 +51,7 @@ export interface RegistrationResult {
 // =============================================================================
 
 function requireApiKey(): string {
-  const key = process.env.MCP_API_KEY;
+  const key = process.env.HOLOSCRIPT_API_KEY;
   if (!key) {
     throw new Error(
       'MCP_API_KEY environment variable is required. ' +

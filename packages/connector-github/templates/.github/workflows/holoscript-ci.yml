@@ -243,7 +243,7 @@ jobs:
       - name: Run agentic validation
         id: agentic-validation
         env:
-          MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
+          HOLOSCRIPT_API_KEY: ${{ secrets.HOLOSCRIPT_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           # Find changed .holo files
@@ -262,7 +262,7 @@ jobs:
             # Call HoloScript MCP validation with AI analysis
             RESULT=$(curl -s -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call \
               -H "Content-Type: application/json" \
-              -H "x-mcp-api-key: $MCP_API_KEY" \
+              -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
               -d "{
                 \"server\": \"holoscript-remote\",
                 \"tool\": \"validate_holoscript\",

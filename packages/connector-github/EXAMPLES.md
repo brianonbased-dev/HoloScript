@@ -500,7 +500,7 @@ All examples assume the following environment variables:
 export GITHUB_TOKEN="ghp_your_personal_access_token"
 
 # Optional (for enhanced features)
-export MCP_API_KEY="your_mcp_orchestrator_key"
+export HOLOSCRIPT_API_KEY="your_mcp_orchestrator_key"
 export ANTHROPIC_API_KEY="your_anthropic_key"
 ```
 

@@ -124,8 +124,9 @@ async function main(): Promise<void> {
 
   // ─── Install Dependencies ──────
   const pm = detectPackageManager();
+  const isInstant = template.name === 'instant';
 
-  if (!skipPrompts) {
+  if (!isInstant && !skipPrompts) {
     console.log();
     console.log(`  ${pc.blue('⧗')} Installing dependencies with ${pc.bold(pm)}...`);
     try {
@@ -148,14 +149,24 @@ async function main(): Promise<void> {
   console.log('  Next steps:');
   console.log();
   console.log(`    ${pc.cyan('cd')} ${projectName}`);
-  if (skipPrompts) {
-    console.log(`    ${pc.cyan(installCommand(pm))}`);
+
+  if (isInstant) {
+    console.log(`    ${pc.cyan('npx serve .')}  ${pc.dim('(or python -m http.server 8000)')}`);
+    console.log();
+    console.log(
+      `  ${pc.dim('Open')} ${pc.bold('http://localhost:3000')} ${pc.dim('in your browser')}`
+    );
+  } else {
+    if (skipPrompts) {
+      console.log(`    ${pc.cyan(installCommand(pm))}`);
+    }
+    console.log(`    ${pc.cyan(devCommand(pm))}`);
+    console.log();
+    console.log(
+      `  ${pc.dim('Your scene will open at')} ${pc.bold('http://localhost:5173')}`
+    );
   }
-  console.log(`    ${pc.cyan(devCommand(pm))}`);
-  console.log();
-  console.log(
-    `  ${pc.dim('Your scene will open at')} ${pc.bold('http://localhost:5173')} ${pc.dim('🚀')}`
-  );
+
   console.log();
   console.log(
     `  ${pc.dim('Edit')} ${pc.bold('src/scene.holo')} ${pc.dim('and save to see live changes.')}`

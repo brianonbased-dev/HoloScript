@@ -85,7 +85,7 @@ describe('handleBoardTool validation', () => {
 
   beforeEach(() => {
     delete process.env.HOLOMESH_API_KEY;
-    delete process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_API_KEY;
   });
 
   afterEach(() => {
@@ -190,7 +190,7 @@ describe('handleBoardTool with mocked fetch', () => {
   const mockFetch = vi.fn();
 
   beforeEach(() => {
-    process.env.MCP_API_KEY = 'test-key-123';
+    process.env.HOLOSCRIPT_API_KEY = 'test-key-123';
     process.env.HOLOSCRIPT_SERVER_URL = 'http://localhost:9999';
     vi.stubGlobal('fetch', mockFetch);
   });

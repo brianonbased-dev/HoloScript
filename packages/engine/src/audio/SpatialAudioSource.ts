@@ -149,9 +149,9 @@ export class SpatialAudioSource {
     }
 
     // Compute distance
-    const dx = this.config.position.x - listenerPos.x;
-    const dy = this.config.position.y - listenerPos.y;
-    const dz = this.config.position.z - listenerPos.z;
+    const dx = this.config.position[0] - listenerPos[0];
+    const dy = this.config.position[1] - listenerPos[1];
+    const dz = this.config.position[2] - listenerPos[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Attenuation
@@ -198,8 +198,8 @@ export class SpatialAudioSource {
 
   private computeConeGain(listenerPos: { x: number; y: number; z: number }): number {
     if (!this.config.cone) return 1;
-    const dx = listenerPos.x - this.config.position.x;
-    const dz = listenerPos.z - this.config.position.z;
+    const dx = listenerPos[0] - this.config.position[0];
+    const dz = listenerPos[2] - this.config.position[2];
     const angle = Math.abs(Math.atan2(dz, dx) * (180 / Math.PI));
 
     const halfInner = this.config.cone.innerAngle / 2;

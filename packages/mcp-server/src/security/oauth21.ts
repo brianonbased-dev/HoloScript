@@ -48,7 +48,7 @@ export const DEFAULT_OAUTH_CONFIG: OAuth21Config = {
   authCodeTTL: 300,
   tokenSecret: process.env.OAUTH_TOKEN_SECRET || '',
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
-  legacyApiKey: process.env.MCP_API_KEY || '',
+  legacyApiKey: process.env.HOLOSCRIPT_API_KEY || '',
   maxClients: 1000,
   requireDPoP: process.env.OAUTH_REQUIRE_DPOP === 'true',
 };

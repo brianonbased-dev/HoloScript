@@ -370,7 +370,7 @@ tracking.
 | `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)            |
 | `EMBEDDING_PROVIDER`    | Optional         | Override auto-detection: `openai`, `ollama`, or `xenova`       |
 | `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`) |
-| `MCP_API_KEY`           | For orchestrator | MCP orchestrator API key                                       |
+| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                       |
 | `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                      |
 | `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                  |
 

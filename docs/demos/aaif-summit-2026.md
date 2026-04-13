@@ -12,7 +12,7 @@
 
 - [ ] Terminal with `curl` and `jq` installed
 - [ ] `mcp.holoscript.net` accessible (verify: `curl -s https://mcp.holoscript.net/health | jq`)
-- [ ] API key set: `export MCP_API_KEY=<your-key>`
+- [ ] API key set: `export HOLOSCRIPT_API_KEY=<your-key>`
 - [ ] Backup: `node docs/demos/aaif-summit-demo.mjs` ready for offline/local mode
 - [ ] Font size: 18pt+ in terminal for readability from back of room
 - [ ] Second screen: slide deck open on slide 1 (architecture diagram)
@@ -175,7 +175,7 @@ curl -s http://localhost:4200/.well-known/agent-card.json | jq '{ id, name, skil
 ```bash
 curl -s -X POST https://mcp.holoscript.net/a2a \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{
     "jsonrpc": "2.0",
     "id": "demo-1",
@@ -211,7 +211,7 @@ curl -s -X POST https://mcp.holoscript.net/a2a \
 # Save the task ID from step 1 (or use the demo ID)
 TASK_ID=$(curl -s -X POST https://mcp.holoscript.net/a2a \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{
     "jsonrpc": "2.0",
     "id": "demo-2",
@@ -228,7 +228,7 @@ echo "Task ID: $TASK_ID"
 # Retrieve the task
 curl -s -X POST https://mcp.holoscript.net/a2a \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d "{
     \"jsonrpc\": \"2.0\",
     \"id\": \"demo-3\",
@@ -251,7 +251,7 @@ curl -s -X POST https://mcp.holoscript.net/a2a \
 ```bash
 curl -s -X POST https://mcp.holoscript.net/a2a \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{
     "jsonrpc": "2.0",
     "id": "demo-4",
@@ -302,7 +302,7 @@ curl -s -X POST http://localhost:4200/a2a \
 ```bash
 curl -s -X POST https://mcp.holoscript.net/a2a \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{
     "jsonrpc": "2.0",
     "id": "demo-pay-1",
@@ -549,7 +549,7 @@ node docs/demos/aaif-summit-demo.mjs --act 4
 ```bash
 curl -s -X POST https://mcp.holoscript.net/oauth/register \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d '{
     "clientName": "AAIF Demo Agent",
     "redirectUris": ["https://demo.example.com/callback"],
@@ -582,7 +582,7 @@ echo "PKCE Challenge (S256): $CODE_CHALLENGE"
 # Get authorization code
 curl -s -X POST https://mcp.holoscript.net/oauth/authorize \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MCP_API_KEY" \
+  -H "x-api-key: $HOLOSCRIPT_API_KEY" \
   -d "{
     \"client_id\": \"CLIENT_ID_FROM_STEP_1\",
     \"redirect_uri\": \"https://demo.example.com/callback\",

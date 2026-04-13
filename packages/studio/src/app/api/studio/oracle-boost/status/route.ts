@@ -19,7 +19,7 @@ const KNOWLEDGE_ENDPOINT = normalizeEndpoint(
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL || process.env.MCP_ORCHESTRATOR_URL
 );
 
-const MCP_API_KEY = process.env.MCP_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
+const MCP_API_KEY = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
 
 const ORACLE_TELEMETRY_PATH =
   process.env.ORACLE_TELEMETRY_PATH ||

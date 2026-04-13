@@ -31,7 +31,7 @@
 
 import type { CAELRecorder } from './CAELRecorder';
 import type { CAELTrace, CAELTraceEntry } from './CAELTrace';
-import { parseCAELJSONL, verifyCAELChain } from './CAELTrace';
+import { parseCAELJSONL, verifyCAELHashChain } from './CAELTrace';
 import type { SimSolver } from './SimSolver';
 import type { ContractConfig } from './SimulationContract';
 import type { ActionDecision, CAELAgentConfig } from './CAELAgent';
@@ -125,7 +125,7 @@ export function forkTrace(
     : parentTrace;
 
   // Validate the trace up to the fork point
-  const prefixValid = verifyCAELChain(trace.slice(0, forkIndex + 1));
+  const prefixValid = verifyCAELHashChain(trace.slice(0, forkIndex + 1));
   if (!prefixValid) {
     throw new Error(`CAEL fork failed: trace is corrupted before fork index ${forkIndex}`);
   }

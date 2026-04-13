@@ -53,7 +53,7 @@ jobs:
         if: github.event.inputs.mode == 'optimize' || github.event_name == 'schedule'
         id: optimize
         env:
-          MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
+          HOLOSCRIPT_API_KEY: ${{ secrets.HOLOSCRIPT_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           CHANGES_MADE=false
@@ -65,7 +65,7 @@ jobs:
             # Get AI suggestions via HoloScript MCP
             SUGGESTIONS=$(curl -s -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call \
               -H "Content-Type: application/json" \
-              -H "x-mcp-api-key: $MCP_API_KEY" \
+              -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
               -d "{
                 \"server\": \"holoscript-remote\",
                 \"tool\": \"hs_ai_review\",
@@ -91,7 +91,7 @@ jobs:
         if: github.event.inputs.mode == 'suggest-traits'
         id: suggest-traits
         env:
-          MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
+          HOLOSCRIPT_API_KEY: ${{ secrets.HOLOSCRIPT_API_KEY }}
         run: |
           TRAIT_SUGGESTIONS=""
 
@@ -101,7 +101,7 @@ jobs:
 
               SUGGESTIONS=$(curl -s -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call \
                 -H "Content-Type: application/json" \
-                -H "x-mcp-api-key: $MCP_API_KEY" \
+                -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
                 -d "{
                   \"server\": \"holoscript-remote\",
                   \"tool\": \"suggest_traits\",

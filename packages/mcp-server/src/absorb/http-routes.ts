@@ -14,7 +14,7 @@ const ABSORB_URL = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.
 const ABSORB_KEY =
   process.env.ABSORB_API_KEY ||
   process.env.HOLOSCRIPT_API_KEY ||
-  process.env.MCP_API_KEY ||
+  process.env.HOLOSCRIPT_API_KEY ||
   '';
 
 // ── Multi-tenant Moltbook Agent State (in-memory, per-deploy) ──

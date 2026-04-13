@@ -102,9 +102,9 @@ export class LODManager {
 
   update(dt: number): void {
     for (const obj of this.objects.values()) {
-      const dx = obj.position.x - this.viewerPosition.x;
-      const dy = obj.position.y - this.viewerPosition.y;
-      const dz = obj.position.z - this.viewerPosition.z;
+      const dx = obj.position[0] - this.viewerPosition[0];
+      const dy = obj.position[1] - this.viewerPosition[1];
+      const dz = obj.position[2] - this.viewerPosition[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) * obj.bias;
 
       // Find appropriate LOD level

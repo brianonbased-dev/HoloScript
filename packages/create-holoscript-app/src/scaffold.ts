@@ -15,6 +15,11 @@ export const TEMPLATES: TemplateInfo[] = [
     dir: 'hello-world',
   },
   {
+    name: 'instant',
+    description: 'Zero-install CDN template — open in browser, no npm needed',
+    dir: 'instant',
+  },
+  {
     name: 'physics-playground',
     description: 'Throwable objects, collisions, and particle effects',
     dir: 'physics-playground',
@@ -82,6 +87,19 @@ export interface PackageJsonOptions {
 }
 
 export function buildPackageJson(opts: PackageJsonOptions): Record<string, unknown> {
+  // Instant template has no npm dependencies — Three.js loads from CDN
+  if (opts.templateName === 'instant') {
+    return {
+      name: opts.projectName,
+      version: '0.1.0',
+      private: true,
+      type: 'module',
+      scripts: {
+        dev: 'npx serve .',
+      },
+    };
+  }
+
   const pkg: Record<string, unknown> = {
     name: opts.projectName,
     version: '0.1.0',
@@ -105,7 +123,7 @@ export function buildPackageJson(opts: PackageJsonOptions): Record<string, unkno
     (pkg.dependencies as Record<string, string>)['react-dom'] = '^18.2.0';
     (pkg.dependencies as Record<string, string>)['@react-three/fiber'] = '^8.17.10';
     (pkg.dependencies as Record<string, string>)['@react-three/drei'] = '^9.114.0';
-    (pkg.dependencies as Record<string, string>)['@holoscript/semantic-2d'] = 'workspace:*';
+    (pkg.dependencies as Record<string, string>)['@holoscript/semantic-2d'] = '^6.0.1';
     (pkg.devDependencies as Record<string, string>)['@vitejs/plugin-react'] = '^4.3.4';
   }
 

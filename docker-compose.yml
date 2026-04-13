@@ -37,7 +37,7 @@ services:
       - NEXTAUTH_SECRET=dev-secret-change-in-production
       - NEXTAUTH_URL=http://localhost:3105
       - MCP_ORCHESTRATOR_URL=${MCP_ORCHESTRATOR_URL:-https://mcp-orchestrator-production-45f9.up.railway.app}
-      - MCP_API_KEY=${MCP_API_KEY:-}
+      - HOLOSCRIPT_API_KEY=${HOLOSCRIPT_API_KEY:-}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
     depends_on:

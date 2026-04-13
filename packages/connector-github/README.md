@@ -209,7 +209,7 @@ cp node_modules/@holoscript/connector-github/templates/.github/workflows/holoscr
 
 2. Configure secrets in your GitHub repository settings:
    - `GITHUB_TOKEN` (automatically provided)
-   - `MCP_API_KEY` (for HoloScript MCP access)
+   - `HOLOSCRIPT_API_KEY` (for HoloScript MCP access)
    - `ANTHROPIC_API_KEY` (for AI-powered validation)
    - `RAILWAY_TOKEN` (optional, for preview deployments)
 
@@ -327,7 +327,7 @@ jobs:
       - name: Run agentic optimizer
         uses: holoscript/agentic-optimizer-action@v1
         with:
-          mcp-api-key: ${{ secrets.MCP_API_KEY }}
+          mcp-api-key: ${{ secrets.HOLOSCRIPT_API_KEY }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           mode: 'optimize'
           auto-pr: true
@@ -336,7 +336,7 @@ jobs:
 ## Environment Variables
 
 - `GITHUB_TOKEN` - GitHub personal access token (required)
-- `MCP_API_KEY` - HoloScript MCP orchestrator API key (optional, for enhanced features)
+- `HOLOSCRIPT_API_KEY` - HoloScript MCP orchestrator API key (optional, for enhanced features)
 - `ANTHROPIC_API_KEY` - Anthropic API key (optional, for agentic validation)
 
 ## MCP Registration

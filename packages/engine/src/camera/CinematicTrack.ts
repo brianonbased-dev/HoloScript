@@ -181,9 +181,9 @@ export class CinematicTrack {
 
     // Interpolate
     if (kA.position && kB.position) {
-      state.position.x = kA.position.x + (kB.position.x - kA.position.x) * t;
-      state.position.y = kA.position.y + (kB.position.y - kA.position.y) * t;
-      state.position.z = kA.position.z + (kB.position.z - kA.position.z) * t;
+      state.position[0] = kA.position[0] + (kB.position[0] - kA.position[0]) * t;
+      state.position[1] = kA.position[1] + (kB.position[1] - kA.position[1]) * t;
+      state.position[2] = kA.position[2] + (kB.position[2] - kA.position[2]) * t;
     } else if (kB.position) {
       state.position = { ...kB.position };
     } else if (kA.position) {

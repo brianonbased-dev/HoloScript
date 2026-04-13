@@ -360,7 +360,7 @@ All three layers share authentication through uAA2 JWT tokens:
 | ----------- | ------------------------------------------ | ---------------------------------------- |
 | L1 RealTime | `?token=<jwt>` query param on WebSocket    | `COLLAB_AUTH_SECRET` / `NEXTAUTH_SECRET` |
 | L2 A2A      | `AgentIdentity.id` + RBAC capability check | `CompilerBase.getRBAC()`                 |
-| L3 MCP      | `Authorization: Bearer <token>` header     | `MCP_API_KEY` env var                    |
+| L3 MCP      | `Authorization: Bearer <token>` header     | `HOLOSCRIPT_API_KEY` env var             |
 
 ### Layer Bridging
 

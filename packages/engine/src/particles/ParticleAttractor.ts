@@ -53,9 +53,9 @@ export class ParticleAttractorSystem {
       for (const p of particles) {
         if (!p.alive) continue;
 
-        const dx = attractor.position.x - p.x;
-        const dy = attractor.position.y - p.y;
-        const dz = attractor.position.z - p.z;
+        const dx = attractor.position[0] - p[0];
+        const dy = attractor.position[1] - p[1];
+        const dz = attractor.position[2] - p[2];
         const distSq = dx * dx + dy * dy + dz * dz;
         const dist = Math.sqrt(distSq);
 

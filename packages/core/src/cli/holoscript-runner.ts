@@ -2492,7 +2492,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     process.exit(1);
   }
 
-  if (!process.env.MCP_API_KEY) {
+  if (!process.env.HOLOSCRIPT_API_KEY) {
     console.error('[holomesh-daemon] MCP_API_KEY environment variable is required');
     process.exit(1);
   }
@@ -2592,7 +2592,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   const meshConfig = {
     orchestratorUrl:
       process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
-    apiKey: process.env.MCP_API_KEY!,
+    apiKey: process.env.HOLOSCRIPT_API_KEY!,
     workspace: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
     agentName: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
     discoveryIntervalMs: 5 * 60 * 1000,

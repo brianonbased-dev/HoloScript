@@ -89,7 +89,7 @@ export async function handleOracleConsult(
   if (dtMatches.length > 0) results.push('## Decision Tree Matches\n' + dtMatches.join('\n\n'));
 
   // Query knowledge store
-  const apiKey = process.env.MCP_API_KEY || process.env.ABSORB_API_KEY;
+  const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.ABSORB_API_KEY;
   if (apiKey) {
     try {
       const url =

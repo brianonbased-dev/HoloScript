@@ -100,4 +100,3 @@ export class MultiLayerCompiler extends CompilerBase {
   }
 }
 
-export default MultiLayerCompiler;

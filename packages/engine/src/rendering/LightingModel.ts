@@ -125,9 +125,9 @@ export class LightingModel {
       b = 0,
       totalWeight = 0;
     for (const probe of this.probes) {
-      const dx = position.x - probe.position.x;
-      const dy = position.y - probe.position.y;
-      const dz = position.z - probe.position.z;
+      const dx = position[0] - probe.position[0];
+      const dy = position[1] - probe.position[1];
+      const dz = position[2] - probe.position[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist > probe.radius) continue;
 
@@ -158,9 +158,9 @@ export class LightingModel {
 
     if (light.type === 'directional') return 1; // No distance falloff
 
-    const dx = worldPos.x - light.position.x;
-    const dy = worldPos.y - light.position.y;
-    const dz = worldPos.z - light.position.z;
+    const dx = worldPos[0] - light.position[0];
+    const dy = worldPos[1] - light.position[1];
+    const dz = worldPos[2] - light.position[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist >= light.range) return 0;
@@ -206,9 +206,9 @@ export class LightingModel {
         continue;
       }
 
-      const dx = light.position.x - cameraPos.x;
-      const dy = light.position.y - cameraPos.y;
-      const dz = light.position.z - cameraPos.z;
+      const dx = light.position[0] - cameraPos[0];
+      const dy = light.position[1] - cameraPos[1];
+      const dz = light.position[2] - cameraPos[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist < maxRange + light.range) visible.push(light);
     }

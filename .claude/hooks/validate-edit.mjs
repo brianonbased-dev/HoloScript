@@ -16,7 +16,7 @@ try {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.MCP_API_KEY || ''}`,
+        Authorization: `Bearer ${process.env.HOLOSCRIPT_API_KEY || ''}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -37,7 +37,7 @@ try {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.MCP_API_KEY || ''}`,
+        Authorization: `Bearer ${process.env.HOLOSCRIPT_API_KEY || ''}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',

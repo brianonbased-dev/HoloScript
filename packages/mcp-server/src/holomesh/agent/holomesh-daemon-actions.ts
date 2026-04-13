@@ -799,7 +799,7 @@ export function createHoloMeshDaemonActions(
 
   const WORKSPACE_URL = config.workspaceUrl || process.env.AI_WORKSPACE_URL || '';
   const WORKSPACE_KEY =
-    config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.MCP_API_KEY || '';
+    config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.HOLOSCRIPT_API_KEY || '';
   const MOLTBOOK_KEY = config.moltbookApiKey || process.env.MOLTBOOK_API_KEY || '';
   const _MOLTBOOK_AGENT =
     config.moltbookAgentName || process.env.HOLOMESH_AGENT_NAME || 'holoscript';

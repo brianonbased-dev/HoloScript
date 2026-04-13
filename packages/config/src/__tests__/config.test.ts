@@ -26,12 +26,12 @@ describe('endpoints', () => {
 
 describe('auth (server-side)', () => {
   beforeEach(() => {
-    process.env.MCP_API_KEY = 'test-mcp-key';
+    process.env.HOLOSCRIPT_API_KEY = 'test-mcp-key';
     process.env.HOLOMESH_API_KEY = 'test-holomesh-key';
   });
 
   afterEach(() => {
-    delete process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_API_KEY;
     delete process.env.HOLOMESH_API_KEY;
   });
 
@@ -44,7 +44,7 @@ describe('auth (server-side)', () => {
   });
 
   it('returns empty string when env not set', () => {
-    delete process.env.MCP_API_KEY;
+    delete process.env.HOLOSCRIPT_API_KEY;
     expect(getMcpApiKey()).toBe('');
   });
 

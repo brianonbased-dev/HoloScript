@@ -67,7 +67,7 @@ const ORCHESTRATOR_URL =
   process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';
 
-const MASTER_API_KEY = process.env.MCP_API_KEY || '';
+const MASTER_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 
 // ── Step 1: Provision API Key ────────────────────────────────────────────────
 
