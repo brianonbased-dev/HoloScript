@@ -5,7 +5,7 @@
  * Implements async mesh loading, priority queues, prefetching, and resource budgets.
  */
 
-import type { _LODLevel, LODConfig } from './LODTypes';
+import type { LODLevel, LODConfig } from './LODTypes';
 import type { LODManager } from './LODManager';
 import type { MeshData } from './LODGenerator';
 

@@ -13,7 +13,7 @@
  */
 
 import type { Team } from '../team';
-import type { _KnowledgeInsight } from '../types';
+import type { KnowledgeInsight } from '../types';
 import { scanFramework, scanTodos } from './absorb-scanner';
 import type { AbsorbScanConfig, ScanResult, ImprovementTask } from './absorb-scanner';
 

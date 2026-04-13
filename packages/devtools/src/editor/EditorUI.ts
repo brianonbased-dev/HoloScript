@@ -10,7 +10,7 @@ import { MarketplacePanel } from './MarketplacePanel';
 import { NFTAsset } from '../web3/Web3Provider';
 import { UIBuilder } from './UIBuilder';
 import { createButton, createPanel } from '../ui/UIComponents';
-import { Vector3, _Quaternion } from '../types/HoloScriptPlus';
+import { Vector3, Quaternion } from '../types/HoloScriptPlus';
 
 /**
  * EditorUI
@@ -109,7 +109,7 @@ export class EditorUI {
       id: 'system_menu',
       width: 0.4,
       height: 0.15,
-      position: { x: -0.5, y: 2.0, z: -1 }, // Above Inspector
+      position: [-0.5, 2.0, -1], // Above Inspector
       color: '#444',
     });
 
@@ -121,7 +121,7 @@ export class EditorUI {
       text: 'Save',
       width: 0.1,
       height: 0.08,
-      position: { x: -0.1, y: 0, z: 0.01 },
+      position: [-0.1, 0, 0.01],
       color: '#28a745',
     });
     const saveEntity = this.uiBuilder.spawn(saveBtn, this.systemMenuRoot);
@@ -132,7 +132,7 @@ export class EditorUI {
       text: 'Load',
       width: 0.1,
       height: 0.08,
-      position: { x: 0.1, y: 0, z: 0.01 },
+      position: [0.1, 0, 0.01],
       color: '#007bff',
     });
     const loadEntity = this.uiBuilder.spawn(loadBtn, this.systemMenuRoot);
@@ -143,7 +143,7 @@ export class EditorUI {
       text: 'Market',
       width: 0.1,
       height: 0.08,
-      position: { x: 0.2, y: 0, z: 0.01 }, // Right of Load
+      position: [0.2, 0, 0.01], // Right of Load
       color: '#8a2be2', // Violet
     });
     const marketEntity = this.uiBuilder.spawn(marketBtn, this.systemMenuRoot);

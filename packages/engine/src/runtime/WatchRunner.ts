@@ -14,7 +14,7 @@
  * // Ctrl+C to stop
  * ```
  */
-import { HotReloadWatcher, type _HotReloadConfig } from '@holoscript/core';
+import { HotReloadWatcher, type HotReloadConfig } from '@holoscript/core';
 import { ScriptTestRunner } from '@holoscript/core';
 import { createHeadlessRuntime, type HeadlessRuntime } from './HeadlessRuntime';
 import type { HSPlusAST } from '@holoscript/core';

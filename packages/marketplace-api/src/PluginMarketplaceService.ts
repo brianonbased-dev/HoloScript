@@ -35,7 +35,7 @@ import type {
   IPluginMarketplaceAPI,
   SignatureVerificationResult,
 } from './PluginPackageSpec.js';
-import type { _Author, RateLimitTier } from './types.js';
+import type { Author, RateLimitTier } from './types.js';
 import { RATE_LIMITS } from './types.js';
 import { PluginSignatureService } from './PluginSignatureService.js';
 import { VerificationService, RateLimiter, SpamDetector } from './VerificationService.js';

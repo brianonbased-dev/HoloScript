@@ -42,7 +42,7 @@
  */
 
 import { ParticleType } from './PhysicsTypes';
-import type { UnifiedParticleBuffer, _ParticleRange } from './UnifiedParticleBuffer';
+import type { UnifiedParticleBuffer, ParticleRange } from './UnifiedParticleBuffer';
 
 // =============================================================================
 // Constants

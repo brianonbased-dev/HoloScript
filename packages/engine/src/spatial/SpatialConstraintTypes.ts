@@ -15,7 +15,7 @@
  * @module spatial/SpatialConstraintTypes
  */
 
-import type { Vector3, BoundingBox, BoundingSphere, _SpatialEntity, _Region } from './SpatialTypes';
+import type { Vector3, BoundingBox, BoundingSphere, SpatialEntity, Region } from './SpatialTypes';
 
 // =============================================================================
 // SPATIAL CONSTRAINT KIND

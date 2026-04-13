@@ -22,7 +22,7 @@ import type {
   PerformanceMetrics,
   ExportFormat,
 } from './ProtocolTypes';
-import type { _SpatialClaim } from './Layer2A2A';
+import type { SpatialClaim } from './Layer2A2A';
 
 // ============================================================================
 // FRAME BUDGET TRACKER

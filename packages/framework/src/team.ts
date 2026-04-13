@@ -42,7 +42,7 @@ import { callLLM } from './llm/llm-adapter';
 import type { LLMMessage } from './llm/llm-adapter';
 import { runProtocolCycle } from './protocol-agent';
 import { GoalSynthesizer } from './protocol/goal-synthesizer';
-import type { GoalContext, _SynthesizedGoal } from './protocol/goal-synthesizer';
+import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
 import type { DecompositionResult, TaskDescription } from './protocol/micro-phase-decomposer';

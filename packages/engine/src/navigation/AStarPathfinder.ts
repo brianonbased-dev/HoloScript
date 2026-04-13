@@ -7,7 +7,7 @@
  * @module navigation
  */
 
-import { NavMesh, NavPoint, _NavPolygon } from './NavMesh';
+import { NavMesh, NavPoint, NavPolygon } from './NavMesh';
 
 // =============================================================================
 // TYPES

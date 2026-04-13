@@ -5,7 +5,7 @@
  * Enables complex choreographed animation sequences.
  */
 
-import { AnimationEngine, AnimationClip, _Easing } from './AnimationEngine';
+import { AnimationEngine, AnimationClip, Easing } from './AnimationEngine';
 
 // =============================================================================
 // TYPES

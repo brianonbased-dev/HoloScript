@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import type { MVCObject, _MVCType } from '../types';
+import type { MVCObject, MVCType } from '../types';
 
 /**
  * Compression options

@@ -1,4 +1,4 @@
-import { ObjectType, Field, _ID, registerEnumType, InputType } from 'type-graphql';
+import { ObjectType, Field, ID, registerEnumType, InputType } from 'type-graphql';
 import 'reflect-metadata';
 
 // ============================================================================
