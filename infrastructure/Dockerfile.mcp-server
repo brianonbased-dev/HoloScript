@@ -103,10 +103,19 @@ COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
 
-# Debug: verify workspace symlinks exist
-RUN ls -la /app/node_modules/@holoscript/framework 2>/dev/null || echo "NO FRAMEWORK SYMLINK" && \
-    ls -la /app/node_modules/@holoscript/engine 2>/dev/null || echo "NO ENGINE SYMLINK" && \
-    ls /app/packages/framework/dist/learning/ 2>/dev/null || echo "NO FRAMEWORK LEARNING DIST"
+# Force workspace symlinks for packages that core externalizes at runtime.
+# pnpm's virtual store may not create these in the paths CJS require() expects.
+RUN mkdir -p /app/node_modules/@holoscript && \
+    ln -sfn /app/packages/framework /app/node_modules/@holoscript/framework && \
+    ln -sfn /app/packages/engine /app/node_modules/@holoscript/engine && \
+    ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \
+    ln -sfn /app/packages/mesh /app/node_modules/@holoscript/mesh && \
+    ln -sfn /app/packages/absorb-service /app/node_modules/@holoscript/absorb-service && \
+    ln -sfn /app/packages/core /app/node_modules/@holoscript/core && \
+    ln -sfn /app/packages/agent-protocol /app/node_modules/@holoscript/agent-protocol && \
+    ln -sfn /app/packages/crdt /app/node_modules/@holoscript/crdt && \
+    ln -sfn /app/packages/config /app/node_modules/@holoscript/config && \
+    ln -sfn /app/packages/llm-provider /app/node_modules/@holoscript/llm-provider
 
 # Fail fast if critical build artifacts are missing
 RUN test -f /app/packages/core/dist/index.cjs && \
