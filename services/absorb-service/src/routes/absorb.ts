@@ -69,7 +69,8 @@ router.post('/scan', async (req: Request, res: Response) => {
 
     // @ts-ignore - Automatic remediation for TS18046
     const scanner = new CodebaseScanner();
-    const scanResult = await scanner.scan(body.path, {
+    const scanResult = await scanner.scan({
+      rootDir: body.path,
       languages: body.languages as any,
       shallow: body.shallow,
     });
