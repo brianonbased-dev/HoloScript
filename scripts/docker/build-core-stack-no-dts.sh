@@ -10,9 +10,9 @@ cd ../agent-protocol
 npx tsup --no-dts
 
 cd ../core
-# Use Docker-specific config that inlines workspace deps to avoid pnpm resolution issues
-# tsup needs tsx for .ts configs — use .js fallback if tsx unavailable
-npx tsup --config ../../scripts/docker/tsup.core.docker.js
+# Docker config inlines all workspace deps (engine, framework, mesh, platform, plugins)
+# Uses .cjs to prevent tsup from ESM-bundling the config file
+npx tsup --config ../../scripts/docker/tsup.core.docker.cjs
 node scripts/generate-types.mjs
 
 cd ../..
