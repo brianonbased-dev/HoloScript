@@ -11,7 +11,8 @@ npx tsup --no-dts
 
 cd ../core
 # Use Docker-specific config that inlines workspace deps to avoid pnpm resolution issues
-npx tsup --config ../../scripts/docker/tsup.core.docker.ts
+# tsup needs tsx for .ts configs — use .js fallback if tsx unavailable
+npx tsup --config ../../scripts/docker/tsup.core.docker.js
 node scripts/generate-types.mjs
 
 cd ../..
