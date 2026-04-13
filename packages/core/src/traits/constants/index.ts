@@ -113,6 +113,8 @@ import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
+import { CONNECTOR_INTEGRATION_TRAITS } from './connector-integration';
+
 
 // Phone Sleeve VR (smartphone-as-headset)
 import { PHONE_SLEEVE_VR_TRAITS } from './mobile/phone-sleeve-vr';
@@ -452,7 +454,11 @@ export const VR_TRAITS = [
 
   // Google Lens (7 traits — M.010.20)
   ...GOOGLE_LENS_TRAITS,
+
+  // Connector Integration (4 traits)
+  ...CONNECTOR_INTEGRATION_TRAITS,
 ] as const;
+
 
 /**
  * String literal union type of all valid VR trait names.
@@ -794,3 +800,15 @@ export { WEBXR_TRAITS, type WebXRTraitName } from './mobile/webxr';
 
 // Google Lens (7 traits — M.010.20)
 export { GOOGLE_LENS_TRAITS, type GoogleLensTraitName } from './mobile/google-lens';
+
+// Connector Integration
+export {
+  CONNECTOR_INTEGRATION_TRAITS,
+  KNOWN_CONNECTORS,
+  CONNECTOR_ENV_REQUIREMENTS,
+  CONNECTOR_PACKAGES,
+  CONNECTOR_CLASSES,
+  type ConnectorIntegrationTraitName,
+  type KnownConnector,
+} from './connector-integration';
+

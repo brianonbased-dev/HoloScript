@@ -39,8 +39,8 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import type { ANSCapabilityPathValue } from '@holoscript/platform';
-import { ANSCapabilityPath } from '@holoscript/platform';
+import { ANSCapabilityPath } from './identity';
+import type { ANSCapabilityPathValue } from './identity';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type {
   HoloDomainBlock,
@@ -50,6 +50,13 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { DialectRegistry } from './DialectRegistry';
+import {
+  KNOWN_CONNECTORS,
+  CONNECTOR_ENV_REQUIREMENTS,
+  CONNECTOR_PACKAGES,
+  type KnownConnector,
+} from '../traits/constants';
+
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,12 +86,34 @@ interface RouteInfo {
   serviceName: string;
 }
 
+export interface ConnectorRef {
+  name: string;
+  config: Record<string, unknown>;
+}
+
+export interface EnvVarDecl {
+  name: string;
+  required: boolean;
+  defaultValue?: string;
+}
+
+export interface DeployConfig {
+  platform: string;
+  service?: string;
+  environment?: string;
+  healthPath?: string;
+}
+
 interface ServiceInfo {
   name: string;
   routes: RouteInfo[];
   middleware: string[];
   port: number;
+  connectors: ConnectorRef[];
+  envVars: EnvVarDecl[];
+  deploy?: DeployConfig;
 }
+
 
 // ── Compiler ───────────────────────────────────────────────────────────────
 
@@ -115,7 +144,10 @@ export class NodeServiceCompiler extends CompilerBase {
     agentToken: string,
     outputPath?: string
   ): Record<string, string> {
+    console.log('DEBUG: Composition:', JSON.stringify(composition, null, 2));
+
     this.validateCompilerAccess(agentToken, outputPath);
+
 
     // Reset state
     this.services = [];
@@ -140,6 +172,25 @@ export class NodeServiceCompiler extends CompilerBase {
       output[this.ext('middleware/index')] = this.emitMiddlewareIndex(allMiddleware);
     }
 
+    // Generate environment config
+    const allEnvVars = this.collectEnvVars();
+    if (allEnvVars.length > 0) {
+      output[this.ext('config/env')] = this.emitEnvConfig(allEnvVars);
+    }
+
+    // Generate connectors
+    const allConnectors = this.collectConnectors();
+    if (allConnectors.length > 0) {
+      output[this.ext('connectors/index')] = this.emitConnectorsIndex(allConnectors);
+    }
+
+    // Generate Railway config
+    const railwayService = this.services.find((s) => s.deploy?.platform === 'railway');
+    if (railwayService?.deploy) {
+      output['railway.json'] = this.emitRailwayConfig(railwayService.deploy);
+    }
+
+
     // Generate package.json
     output['package.json'] = this.emitPackageJson(composition.name);
 
@@ -153,8 +204,12 @@ export class NodeServiceCompiler extends CompilerBase {
       output['Dockerfile'] = this.emitDockerfile();
     }
 
+    // Perform connector validation
+    this.validateConnectorIntegration();
+
     return output;
   }
+
 
   // ── Extraction ─────────────────────────────────────────────────────────
 
@@ -169,11 +224,14 @@ export class NodeServiceCompiler extends CompilerBase {
     }
 
     // Extract from objects with @service trait
-    for (const obj of composition.objects) {
-      if (this.hasServiceTraits(obj)) {
-        this.services.push(this.parseServiceObject(obj));
+    if (composition.objects) {
+      for (const obj of composition.objects) {
+        if (this.hasServiceTraits(obj)) {
+          this.services.push(this.parseServiceObject(obj));
+        }
       }
     }
+
 
     // If no services found, create a default from composition name
     if (this.services.length === 0) {
@@ -181,6 +239,8 @@ export class NodeServiceCompiler extends CompilerBase {
         name: composition.name || 'App',
         routes: [],
         middleware: [],
+        connectors: [],
+        envVars: [],
         port: this.options.port,
       });
     }
@@ -197,9 +257,10 @@ export class NodeServiceCompiler extends CompilerBase {
 
   private hasServiceTraits(obj: HoloObjectDecl): boolean {
     if (!obj.traits) return false;
-    const serviceTraits = ['service', 'endpoint', 'http', 'handler', 'route'];
+    const serviceTraits = ['service', 'endpoint', 'http', 'handler', 'route', 'connector', 'env', 'deploy'];
     return obj.traits.some((t) => serviceTraits.includes(t.name));
   }
+
 
   private parseServiceBlock(block: HoloDomainBlock): ServiceInfo {
     const service: ServiceInfo = {
@@ -207,12 +268,18 @@ export class NodeServiceCompiler extends CompilerBase {
       routes: [],
       middleware: [],
       port: this.resolveNumber(block.properties['port']) ?? this.options.port,
+      connectors: [],
+      envVars: [],
     };
 
-    // Extract routes from traits
+    // Extract traits from block
     if (block.traits) {
       service.middleware = this.extractMiddlewareFromTraits(block.traits);
+      service.connectors = this.extractConnectors(block.traits, block.properties);
+      service.envVars = this.extractEnvVars(block.traits, block.properties);
+      service.deploy = this.extractDeploy(block.traits, block.properties);
     }
+
 
     // Extract routes from nested children
     if (block.children) {
@@ -235,11 +302,18 @@ export class NodeServiceCompiler extends CompilerBase {
       routes: [],
       middleware: [],
       port: this.options.port,
+      connectors: [],
+      envVars: [],
     };
 
     if (obj.traits) {
-      service.middleware = this.extractMiddlewareFromTraits(obj.traits.map((t) => t.name));
+      const traitNames = obj.traits.map((t) => t.name);
+      service.middleware = this.extractMiddlewareFromTraits(traitNames);
+      service.connectors = this.extractConnectors(traitNames, this.objectPropsToMap(obj.properties));
+      service.envVars = this.extractEnvVars(traitNames, this.objectPropsToMap(obj.properties));
+      service.deploy = this.extractDeploy(traitNames, this.objectPropsToMap(obj.properties));
     }
+
 
     // Extract route from object itself
     const route = this.extractRoute(obj, obj.name);
@@ -315,6 +389,83 @@ export class NodeServiceCompiler extends CompilerBase {
     return [...set];
   }
 
+
+
+  // ── Connector Extraction ──────────────────────────────────────────────
+
+  private extractConnectors(
+    traits: string[],
+    props: Record<string, HoloValue> | Map<string, HoloValue>
+  ): ConnectorRef[] {
+    const connectors: ConnectorRef[] = [];
+    const propMap = props instanceof Map ? props : this.objectPropsToMapFromRecord(props);
+
+    // This is simple trait-based extraction. In a real compiler, we would
+    // look at the arguments of the trait, but here we assume the trait name
+    // or associated properties carry the info for this version.
+    for (const t of traits) {
+      if (t === 'connector' || t === '@connector') {
+        const name = this.resolveString(propMap.get('connector_name')) || 'unknown';
+        connectors.push({ name, config: {} });
+      }
+    }
+
+    return connectors;
+  }
+
+  private extractEnvVars(
+    traits: string[],
+    props: Record<string, HoloValue> | Map<string, HoloValue>
+  ): EnvVarDecl[] {
+    const envVars: EnvVarDecl[] = [];
+    const propMap = props instanceof Map ? props : this.objectPropsToMapFromRecord(props);
+
+    for (const t of traits) {
+      if (t === 'env' || t === '@env') {
+
+        const name = this.resolveString(propMap.get('env_name')) || 'UNKNOWN_VAR';
+        envVars.push({
+          name,
+          required: this.resolveBoolean(propMap.get('env_required')) ?? true,
+          defaultValue: this.resolveString(propMap.get('env_default')),
+        });
+      }
+    }
+    return envVars;
+  }
+
+  private extractDeploy(
+    traits: string[],
+    props: Record<string, HoloValue> | Map<string, HoloValue>
+  ): DeployConfig | undefined {
+    if (!traits.some(t => t === 'deploy' || t === '@deploy')) return undefined;
+
+
+    const propMap = props instanceof Map ? props : this.objectPropsToMapFromRecord(props);
+    return {
+      platform: this.resolveString(propMap.get('platform')) || 'railway',
+      service: this.resolveString(propMap.get('service')),
+      environment: this.resolveString(propMap.get('environment')),
+      healthPath: this.resolveString(propMap.get('healthPath')) || '/health',
+    };
+  }
+
+  private objectPropsToMapFromRecord(props: Record<string, HoloValue>): Map<string, HoloValue> {
+    const map = new Map<string, HoloValue>();
+    for (const [k, v] of Object.entries(props)) {
+      map.set(k, v);
+    }
+    return map;
+  }
+
+  private resolveBoolean(val: HoloValue | undefined): boolean | undefined {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') return val === 'true';
+    return undefined;
+  }
+
+
   // ── Code Emission ──────────────────────────────────────────────────────
 
   private emitEntryPoint(): string {
@@ -329,6 +480,11 @@ export class NodeServiceCompiler extends CompilerBase {
 
     if (isExpress) {
       lines.push(`import express from 'express';`);
+      lines.push(`import './config/env';`);
+      const hasConnectors = this.collectConnectors().length > 0;
+      if (hasConnectors) {
+        lines.push(`import { initConnectors } from './connectors';`);
+      }
       for (const service of this.services) {
         const importName = `${this.toCamelCase(service.name)}Routes`;
         lines.push(`import { ${importName} } from './routes/${this.toFileName(service.name)}';`);
@@ -346,9 +502,18 @@ export class NodeServiceCompiler extends CompilerBase {
       }
       lines.push('');
       lines.push(`const PORT = process.env['PORT'] || ${this.options.port};`);
-      lines.push(`app.listen(PORT, () => {`);
-      lines.push(`  console.log(\`Server running on port \${PORT}\`);`);
-      lines.push(`});`);
+      
+      if (hasConnectors) {
+        lines.push(`initConnectors().then(() => {`);
+        lines.push(`  app.listen(PORT, () => {`);
+        lines.push(`    console.log(\`Server running on port \${PORT}\`);`);
+        lines.push(`  });`);
+        lines.push(`});`);
+      } else {
+        lines.push(`app.listen(PORT, () => {`);
+        lines.push(`  console.log(\`Server running on port \${PORT}\`);`);
+        lines.push(`});`);
+      }
       lines.push('');
       lines.push(`export { app };`);
     } else {
@@ -520,6 +685,19 @@ export class NodeServiceCompiler extends CompilerBase {
     const name = this.toKebab(projectName || 'holoscript-service');
     const isExpress = this.options.framework === 'express';
 
+    const dependencies: Record<string, string> = isExpress 
+      ? { express: '^4.21.0', dotenv: '^16.4.0' } 
+      : { fastify: '^5.0.0', dotenv: '^16.4.0' };
+
+    // Add connector dependencies
+    const connectors = this.collectConnectors();
+    for (const conn of connectors) {
+      const pkg = CONNECTOR_PACKAGES[conn.name as KnownConnector];
+      if (pkg) {
+        dependencies[pkg] = 'latest'; // Or a specific version if known
+      }
+    }
+
     const pkg: Record<string, unknown> = {
       name,
       version: '0.1.0',
@@ -537,7 +715,7 @@ export class NodeServiceCompiler extends CompilerBase {
               dev: 'node --watch index.js',
             }),
       },
-      dependencies: isExpress ? { express: '^4.21.0' } : { fastify: '^5.0.0' },
+      dependencies,
       ...(this.options.typescript && {
         devDependencies: {
           typescript: '^5.5.0',
@@ -548,6 +726,7 @@ export class NodeServiceCompiler extends CompilerBase {
         },
       }),
     };
+
 
     return JSON.stringify(pkg, null, 2);
   }
@@ -596,7 +775,132 @@ export class NodeServiceCompiler extends CompilerBase {
 
   // ── Utilities ──────────────────────────────────────────────────────────
 
+  private collectEnvVars(): EnvVarDecl[] {
+    const map = new Map<string, EnvVarDecl>();
+    for (const service of this.services) {
+      for (const env of service.envVars) {
+        map.set(env.name, env);
+      }
+      // Automagically add env vars required by connectors
+      for (const conn of service.connectors) {
+        const requirements = CONNECTOR_ENV_REQUIREMENTS[conn.name as KnownConnector] || [];
+        for (const req of requirements) {
+          if (!map.has(req)) {
+            map.set(req, { name: req, required: true });
+          }
+        }
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  private collectConnectors(): ConnectorRef[] {
+    const map = new Map<string, ConnectorRef>();
+    for (const service of this.services) {
+      for (const conn of service.connectors) {
+        map.set(conn.name, conn);
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  // ── Emitters ──────────────────────────────────────────────────────────
+
+  private emitEnvConfig(envVars: EnvVarDecl[]): string {
+    const lines: string[] = [];
+    lines.push(`/**`);
+    lines.push(` * Environment Configuration`);
+    lines.push(` * Auto-generated by HoloScript NodeServiceCompiler`);
+    lines.push(` */`);
+    lines.push(``);
+    lines.push(`import dotenv from 'dotenv';`);
+    lines.push(`dotenv.config();`);
+    lines.push(``);
+    lines.push(`export const env = {`);
+    for (const ev of envVars) {
+      const fallback = ev.defaultValue ? ` || '${ev.defaultValue}'` : '';
+      lines.push(`  ${ev.name}: process.env['${ev.name}']${fallback},`);
+    }
+    lines.push(`};`);
+    lines.push(``);
+    lines.push(`// Validation`);
+    lines.push(`const missing: string[] = [];`);
+    for (const ev of envVars) {
+      if (ev.required) {
+        lines.push(`if (!env.${ev.name}) missing.push('${ev.name}');`);
+      }
+    }
+    lines.push(``);
+    lines.push(`if (missing.length > 0) {`);
+    lines.push(`  console.error('Missing required environment variables:', missing.join(', '));`);
+    lines.push(`  process.exit(1);`);
+    lines.push(`}`);
+    return lines.join('\n');
+  }
+
+  private emitConnectorsIndex(connectors: ConnectorRef[]): string {
+    const lines: string[] = [];
+    lines.push(`/**`);
+    lines.push(` * Connector Registry`);
+    lines.push(` * Auto-generated by HoloScript NodeServiceCompiler`);
+    lines.push(` */`);
+    lines.push(``);
+    for (const conn of connectors) {
+      const pkg = CONNECTOR_PACKAGES[conn.name as KnownConnector];
+      if (pkg) {
+        lines.push(`import { ${this.toClassName(conn.name)}Connector } from '${pkg}';`);
+      }
+    }
+    lines.push(``);
+    for (const conn of connectors) {
+      const className = this.toClassName(conn.name);
+      lines.push(`export const ${conn.name} = new ${className}Connector();`);
+    }
+    lines.push(``);
+    lines.push(`export async function initConnectors(): Promise<void> {`);
+    lines.push(`  await Promise.all([`);
+    for (const conn of connectors) {
+      lines.push(`    ${conn.name}.connect(),`);
+    }
+    lines.push(`  ]);`);
+    for (const conn of connectors) {
+      lines.push(`  console.log('[connectors] ${conn.name}: connected');`);
+    }
+    lines.push(`}`);
+    lines.push(``);
+    lines.push(`export async function shutdownConnectors(): Promise<void> {`);
+    lines.push(`  await Promise.all([`);
+    for (const conn of connectors) {
+      lines.push(`    ${conn.name}.disconnect(),`);
+    }
+    lines.push(`  ]);`);
+    lines.push(`}`);
+    return lines.join('\n');
+  }
+
+  private emitRailwayConfig(deploy: DeployConfig): string {
+    const config = {
+      $schema: 'https://railway.app/railway.schema.json',
+      build: {
+        builder: 'DOCKERFILE',
+        dockerfilePath: 'Dockerfile',
+      },
+      deploy: {
+        numReplicas: 1,
+        sleepApplication: false,
+        restartPolicyType: 'ON_FAILURE',
+        healthcheckPath: deploy.healthPath || '/health',
+      },
+    };
+    return JSON.stringify(config, null, 2);
+  }
+
+  private toClassName(name: string): string {
+    return name.charAt(0).toUpperCase() + this.toCamelCase(name).slice(1);
+  }
+
   /** Convert HoloObjectProperty[] to a Map for key-based lookup */
+
   private objectPropsToMap(props: HoloObjectProperty[] | undefined): Map<string, HoloValue> {
     const map = new Map<string, HoloValue>();
     if (!props) return map;
@@ -657,7 +961,44 @@ export class NodeServiceCompiler extends CompilerBase {
     }
     return undefined;
   }
+
+  private validateConnectorIntegration(): void {
+    const connectors = this.collectConnectors();
+    const envVars = this.collectEnvVars();
+    const envMap = new Map(envVars.map((ev) => [ev.name, ev]));
+
+    for (const conn of connectors) {
+
+
+
+      // 1. Check if connector is known
+      if (!KNOWN_CONNECTORS.includes(conn.name as KnownConnector)) {
+        console.warn(`[NodeServiceCompiler] Warning: Unknown connector '${conn.name}'. Package dependency will not be added.`);
+      } else {
+        // 2. Check for missing environment variables
+        const requirements = CONNECTOR_ENV_REQUIREMENTS[conn.name as KnownConnector] || [];
+        for (const req of requirements) {
+          if (!envMap.has(req)) {
+            // This is a validation error — the user must declare the env var
+            throw new Error(`Connector '${conn.name}' requires environment variable '${req}'`);
+          }
+
+        }
+      }
+    }
+
+    // 3. Validate deployment target
+    const deployable = this.services.find((s) => s.deploy);
+    if (deployable?.deploy) {
+      if (deployable.deploy.platform !== 'railway') {
+        console.warn(
+          `[NodeServiceCompiler] Warning: Platform '${deployable.deploy.platform}' is not explicitly supported for config generation yet.`
+        );
+      }
+    }
+  }
 }
+
 
 // ── Dialect Registration ───────────────────────────────────────────────────
 
@@ -683,7 +1024,12 @@ DialectRegistry.register({
     'cors',
     'rate_limit',
     'validation',
+    'connector',
+    'env',
+    'deploy',
+    'on_connector_event',
   ],
+
   riskTier: 'standard',
   factory: (options) => new NodeServiceCompiler(options as NodeServiceCompilerOptions),
   outputExtensions: ['.ts', '.js', '.json'],

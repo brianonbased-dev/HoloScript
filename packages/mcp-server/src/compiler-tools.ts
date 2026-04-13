@@ -1052,12 +1052,26 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_node_service',
-    description: 'Compile HoloScript to Node.js Express/Fastify backend service skeleton',
+    description:
+      'Compile HoloScript to Node.js Express/Fastify backend service. ' +
+      'Supports @connector(name) for external services, @env(VAR) for env validation, ' +
+      '@deploy(railway) for deployment config. Generates: routes, middleware, env config, ' +
+      'connector init/shutdown, railway.json, Dockerfile, package.json.',
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
+        code: { type: 'string', description: 'HoloScript composition code with @service, @connector, @env, @deploy traits' },
+        options: {
+          type: 'object',
+          description: 'Compiler options',
+          properties: {
+            framework: { type: 'string', enum: ['express', 'fastify'], description: 'Target framework (default: express)' },
+            port: { type: 'number', description: 'Base port (default: 3000)' },
+            typescript: { type: 'boolean', description: 'Generate TypeScript (default: true)' },
+            includeDocker: { type: 'boolean', description: 'Include Dockerfile (default: true)' },
+            nodeVersion: { type: 'string', enum: ['18', '20', '22'], description: 'Node.js target (default: 20)' },
+          },
+        },
       },
       required: ['code'],
     },
