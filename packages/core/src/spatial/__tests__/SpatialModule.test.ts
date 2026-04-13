@@ -648,7 +648,7 @@ describe('SpatialContextProvider Additional Coverage', () => {
         {
           id: 'blocker',
           type: 'obstacle',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           bounds: { center: { x: 10, y: 0, z: 0 }, radius: 3 },
         } as SpatialEntity,
       ]);
@@ -666,7 +666,7 @@ describe('SpatialContextProvider Additional Coverage', () => {
       const sphereEntity: SpatialEntity = {
         id: 'sphere',
         type: 'object',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         bounds: { center: { x: 5, y: 0, z: 0 }, radius: 2 },
       };
 
@@ -681,7 +681,7 @@ describe('SpatialContextProvider Additional Coverage', () => {
       const boxEntity: SpatialEntity = {
         id: 'box',
         type: 'object',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         bounds: { min: { x: 4, y: -1, z: -1 }, max: { x: 6, y: 1, z: 1 } },
       };
 

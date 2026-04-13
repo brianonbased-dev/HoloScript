@@ -137,13 +137,13 @@ describe('NetworkInterpolation', () => {
     ni.pushSnapshot({
       entityId: 'e1',
       timestamp: 0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
     ni.pushSnapshot({
       entityId: 'e1',
       timestamp: 200,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 1, z: 0, w: 0 },
     });
     const state = ni.getInterpolatedState('e1', 200); // renderTime = 100 → midway

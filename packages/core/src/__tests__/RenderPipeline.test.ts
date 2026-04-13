@@ -109,7 +109,7 @@ describe('Cycle 147: Render Pipeline', () => {
     lm.addLight({
       id: 'lamp',
       type: 'point',
-      position: { x: 0, y: 5, z: 0 },
+      position: [0, 5, 0],
       intensity: 1,
       range: 20,
     });
@@ -126,7 +126,7 @@ describe('Cycle 147: Render Pipeline', () => {
     const lm = new LightingModel();
     lm.addGIProbe({
       id: 'p1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       radius: 10,
       irradiance: [0.5, 0.4, 0.3],
       weight: 1,
@@ -146,14 +146,14 @@ describe('Cycle 147: Render Pipeline', () => {
     lm.addLight({
       id: 'close',
       type: 'point',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       range: 10,
       layer: 1,
     });
     lm.addLight({
       id: 'far',
       type: 'point',
-      position: { x: 500, y: 0, z: 0 },
+      position: [500, 0, 0],
       range: 10,
       layer: 2,
     });

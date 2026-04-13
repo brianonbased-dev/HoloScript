@@ -103,7 +103,7 @@ export class GizmoSystem {
     // For now, we'll manually sync positions in update().
     // Initial relative transform
     this.world.addComponent(axis, 'Transform', {
-      position: { x: 0, y: 0, z: 0 }, // Relative to parent (simulated)
+      position: [0, 0, 0], // Relative to parent (simulated)
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       scale: { x: this.axisLength, y: this.axisThickness, z: this.axisThickness },
     });

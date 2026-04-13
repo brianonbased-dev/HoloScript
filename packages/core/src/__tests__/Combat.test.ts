@@ -53,7 +53,7 @@ describe('Cycle 141: Damage & Combat', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'player',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 50,
@@ -63,14 +63,14 @@ describe('Cycle 141: Damage & Combat', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'enemy',
-      position: { x: 1, y: 0, z: 0 },
+      position: [1, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
     cm.addHurtBox({
       id: 'hr2',
       ownerId: 'player',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     }); // Self — should NOT hit
@@ -116,9 +116,9 @@ describe('Cycle 141: Damage & Combat', () => {
     const targets = cm.findTargets(
       { x: 0, y: 0, z: 0 },
       [
-        { entityId: 'far', position: { x: 100, y: 0, z: 0 } },
-        { entityId: 'close', position: { x: 3, y: 0, z: 0 }, priority: 1 },
-        { entityId: 'mid', position: { x: 5, y: 0, z: 0 }, priority: 2 },
+        { entityId: 'far', position: [100, 0, 0] },
+        { entityId: 'close', position: [3, 0, 0], priority: 1 },
+        { entityId: 'mid', position: [5, 0, 0], priority: 2 },
       ],
       10
     );

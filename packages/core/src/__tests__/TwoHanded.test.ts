@@ -11,7 +11,7 @@ describe('Two-Handed Interactions', () => {
     node = {
       id: 'test_node',
       properties: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
       },
@@ -48,12 +48,12 @@ describe('Two-Handed Interactions', () => {
     // Setup initial grab with 2 hands (Unit distance 1.0)
     // Left at -0.5, Right at 0.5
     context.vr.hands.left = {
-      position: { x: -0.5, y: 0, z: 0 },
+      position: [-0.5, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
-      position: { x: 0.5, y: 0, z: 0 },
+      position: [0.5, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       pinchStrength: 1,
     } as any;
@@ -78,12 +78,12 @@ describe('Two-Handed Interactions', () => {
   it('rotates object based on steering angle', () => {
     // Setup initial grab (Horizontal)
     context.vr.hands.left = {
-      position: { x: -0.5, y: 0, z: 0 },
+      position: [-0.5, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
-      position: { x: 0.5, y: 0, z: 0 },
+      position: [0.5, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       pinchStrength: 1,
     } as any;

@@ -15,7 +15,7 @@ const BASE_CONFIG: TerrainConfig = {
   depth: 100,
   resolution: 33, // Fast for tests — still power-of-2+1 class
   maxHeight: 50,
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
 };
 
 describe('TerrainSystem', () => {

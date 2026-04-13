@@ -745,11 +745,7 @@ export function multiplyTransforms(a: ITransform, b: ITransform): ITransform {
   // Simplified: just add positions and multiply scales
   // Full implementation would use matrix multiplication
   return {
-    position: {
-      x: a.position.x + b.position.x * a.scale.x,
-      y: a.position.y + b.position.y * a.scale.y,
-      z: a.position.z + b.position.z * a.scale.z,
-    },
+    position: [a.position.x + b.position.x * a.scale.x, a.position.y + b.position.y * a.scale.y, a.position.z + b.position.z * a.scale.z,],
     rotation: multiplyQuaternions(a.rotation, b.rotation),
     scale: {
       x: a.scale.x * b.scale.x,

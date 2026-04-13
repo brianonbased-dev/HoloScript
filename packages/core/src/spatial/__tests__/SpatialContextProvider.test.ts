@@ -32,23 +32,23 @@ describe('SpatialContextProvider', () => {
   // =========== Entity Management ===========
 
   it('setEntity adds entity', () => {
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 1, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [1, 0, 0] });
     const entities = provider.getEntities();
     expect(entities).toHaveLength(1);
     expect(entities[0].id).toBe('e1');
   });
 
   it('removeEntity removes entity', () => {
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 1, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [1, 0, 0] });
     provider.removeEntity('e1');
     expect(provider.getEntities()).toHaveLength(0);
   });
 
   it('setEntities replaces all entities', () => {
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 1, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [1, 0, 0] });
     provider.setEntities([
-      { id: 'e2', type: 'item', position: { x: 2, y: 0, z: 0 } },
-      { id: 'e3', type: 'item', position: { x: 3, y: 0, z: 0 } },
+      { id: 'e2', type: 'item', position: [2, 0, 0] },
+      { id: 'e3', type: 'item', position: [3, 0, 0] },
     ]);
     const entities = provider.getEntities();
     expect(entities).toHaveLength(2);
@@ -79,7 +79,7 @@ describe('SpatialContextProvider', () => {
 
   it('update populates agent context', () => {
     provider.registerAgent('agent1', { x: 0, y: 0, z: 0 }, { perceptionRadius: 100 });
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 5, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [5, 0, 0] });
     provider.update();
     const ctx = provider.getContext('agent1');
     expect(ctx).not.toBeNull();
@@ -89,7 +89,7 @@ describe('SpatialContextProvider', () => {
 
   it('entities outside perception radius are not in context', () => {
     provider.registerAgent('agent1', { x: 0, y: 0, z: 0 }, { perceptionRadius: 5 });
-    provider.setEntity({ id: 'far', type: 'npc', position: { x: 100, y: 0, z: 0 } });
+    provider.setEntity({ id: 'far', type: 'npc', position: [100, 0, 0] });
     provider.update();
     const ctx = provider.getContext('agent1')!;
     expect(ctx.nearbyEntities).toHaveLength(0);
@@ -100,7 +100,7 @@ describe('SpatialContextProvider', () => {
     provider.on('entity:entered', handler);
 
     provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 50 });
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 10, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [10, 0, 0] });
     provider.update();
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -113,12 +113,12 @@ describe('SpatialContextProvider', () => {
     provider.on('entity:exited', handler);
 
     provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 50 });
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 10, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [10, 0, 0] });
     provider.update(); // e1 enters
 
     // Move entity far away
     provider.removeEntity('e1');
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 999, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [999, 0, 0] });
     provider.update(); // e1 exits
 
     expect(handler).toHaveBeenCalledTimes(1);
@@ -161,7 +161,7 @@ describe('SpatialContextProvider', () => {
 
   it('updateAgentPosition updates agent state', () => {
     provider.registerAgent('a', { x: 0, y: 0, z: 0 }, { perceptionRadius: 100 });
-    provider.setEntity({ id: 'e1', type: 'npc', position: { x: 50, y: 0, z: 0 } });
+    provider.setEntity({ id: 'e1', type: 'npc', position: [50, 0, 0] });
     provider.update();
 
     provider.updateAgentPosition('a', { x: 49, y: 0, z: 0 });
@@ -207,16 +207,16 @@ describe('SpatialContextProvider', () => {
   // =========== findNearest / findWithin ===========
 
   it('findNearest returns closest entity', () => {
-    provider.setEntity({ id: 'far', type: 'npc', position: { x: 100, y: 0, z: 0 } });
-    provider.setEntity({ id: 'near', type: 'npc', position: { x: 1, y: 0, z: 0 } });
+    provider.setEntity({ id: 'far', type: 'npc', position: [100, 0, 0] });
+    provider.setEntity({ id: 'near', type: 'npc', position: [1, 0, 0] });
     const results = provider.findNearest({ x: 0, y: 0, z: 0 }, 1);
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results[0].entity.id).toBe('near');
   });
 
   it('findWithin returns entities in radius', () => {
-    provider.setEntity({ id: 'close', type: 'npc', position: { x: 3, y: 0, z: 0 } });
-    provider.setEntity({ id: 'far', type: 'npc', position: { x: 500, y: 0, z: 0 } });
+    provider.setEntity({ id: 'close', type: 'npc', position: [3, 0, 0] });
+    provider.setEntity({ id: 'far', type: 'npc', position: [500, 0, 0] });
     const results = provider.findWithin({ x: 0, y: 0, z: 0 }, 10);
     expect(results).toHaveLength(1);
     expect(results[0].entity.id).toBe('close');

@@ -43,7 +43,7 @@ describe('HumanoidLoader — Production', () => {
   describe('setTransform', () => {
     it('no-ops for missing avatar', () => {
       // Should not throw
-      loader.setTransform('missing', { position: { x: 1, y: 2, z: 3 } });
+      loader.setTransform('missing', { position: [1, 2, 3] });
     });
   });
 

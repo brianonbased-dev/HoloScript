@@ -56,13 +56,13 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
     interp.pushSnapshot({
       entityId: 'e1',
       timestamp: 0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
     interp.pushSnapshot({
       entityId: 'e1',
       timestamp: 100,
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
 
@@ -79,7 +79,7 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
     interp.pushSnapshot({
       entityId: 'e2',
       timestamp: 0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       velocity: { x: 10, y: 0, z: 0 }, // Moving 10 units/sec
     });
@@ -114,7 +114,7 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
 
     mgr.register('car1', 'vehicle', 'player1', { priority: 8, updateIntervalMs: 0 });
     mgr.updateSnapshot('car1', {
-      position: { x: 10, y: 0, z: 5 },
+      position: [10, 0, 5],
       velocity: { x: 1, y: 0, z: 0 },
     });
 
@@ -130,11 +130,11 @@ describe('Cycle 108: Multiplayer Scene Sync', () => {
     mgr.register('ragdoll1', 'ragdoll', 'player1', { updateIntervalMs: 0 });
 
     // First update (full)
-    mgr.updateSnapshot('ragdoll1', { position: { x: 0, y: 0, z: 0 } });
+    mgr.updateSnapshot('ragdoll1', { position: [0, 0, 0] });
     mgr.generateUpdates(100000);
 
     // Second update (delta: only position changed)
-    mgr.updateSnapshot('ragdoll1', { position: { x: 5, y: 0, z: 0 } });
+    mgr.updateSnapshot('ragdoll1', { position: [5, 0, 0] });
     const updates = mgr.generateUpdates(200000);
 
     expect(updates.length).toBe(1);

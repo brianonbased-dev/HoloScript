@@ -69,7 +69,7 @@ function makeFluidSystem(densityAtPos = 0.0) {
 function makeClothSystem() {
   const particles: any[] = [
     {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 1, y: -1, z: 0 },
       force: { x: 0, y: 0, z: 0 },
       mass: 0.5,

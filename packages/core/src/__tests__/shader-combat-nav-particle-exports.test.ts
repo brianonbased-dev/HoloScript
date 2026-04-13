@@ -68,7 +68,7 @@ describe('CombatManager exports', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -78,7 +78,7 @@ describe('CombatManager exports', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'b',
-      position: { x: 0.5, y: 0, z: 0 },
+      position: [0.5, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
     });
@@ -116,8 +116,8 @@ describe('CombatManager exports', () => {
     const targets = cm.findTargets(
       { x: 0, y: 0, z: 0 },
       [
-        { entityId: 'far', position: { x: 10, y: 0, z: 0 } },
-        { entityId: 'near', position: { x: 2, y: 0, z: 0 } },
+        { entityId: 'far', position: [10, 0, 0] },
+        { entityId: 'near', position: [2, 0, 0] },
       ],
       20
     );
@@ -130,7 +130,7 @@ describe('CombatManager exports', () => {
     cm.addHitBox({
       id: 'self-hb',
       ownerId: 'player',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -140,7 +140,7 @@ describe('CombatManager exports', () => {
     cm.addHurtBox({
       id: 'self-hr',
       ownerId: 'player',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
     });
@@ -217,7 +217,7 @@ describe('ParticleSystem exports', () => {
       sizeEnd: [0, 0],
       colorStart: { r: 1, g: 1, b: 1, a: 1 },
       colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     ps.update(0.1);
     expect(ps.getActiveCount()).toBeGreaterThan(0);
@@ -234,7 +234,7 @@ describe('ParticleSystem exports', () => {
       sizeEnd: [0, 0],
       colorStart: { r: 1, g: 1, b: 1, a: 1 },
       colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     ps.burst(20);
     ps.update(0.016); // Tick to process burst
@@ -252,7 +252,7 @@ describe('ParticleSystem exports', () => {
       sizeEnd: [0, 0],
       colorStart: { r: 1, g: 1, b: 1, a: 1 },
       colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     expect(ps.isEmitting()).toBe(true);
     ps.setEmitting(false);
@@ -270,7 +270,7 @@ describe('ParticleSystem exports', () => {
       sizeEnd: [0, 0],
       colorStart: { r: 1, g: 1, b: 1, a: 1 },
       colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     ps.update(0.01); // Emit some
     const countBefore = ps.getActiveCount();
@@ -291,7 +291,7 @@ describe('ParticleSystem exports', () => {
       sizeEnd: [0, 0],
       colorStart: { r: 1, g: 1, b: 1, a: 1 },
       colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     ps.setPosition(5, 10, 3);
     expect(ps.getConfig().position.x).toBe(5);

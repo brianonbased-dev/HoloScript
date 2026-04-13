@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CameraRig.ts
  *
  * Camera rigs: dolly, crane, steadicam, and shake presets
@@ -15,7 +15,7 @@ export type RigMode = 'dolly' | 'crane' | 'steadicam' | 'static' | 'handheld';
 
 export interface CameraRigConfig {
   mode: RigMode;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   target: { x: number; y: number; z: number };
   fov: number;
   nearClip: number;
@@ -33,7 +33,7 @@ export interface ShakePreset {
 }
 
 export interface RigState {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   target: { x: number; y: number; z: number };
   fov: number;
   shakeOffset: { x: number; y: number; z: number };
@@ -56,7 +56,7 @@ export class CameraRig {
   constructor(config?: Partial<CameraRigConfig>) {
     this.config = {
       mode: 'static',
-      position: { x: 0, y: 5, z: -10 },
+      position: [0, 5, -10],
       target: { x: 0, y: 0, z: 0 },
       fov: 60,
       nearClip: 0.1,
@@ -155,7 +155,7 @@ export class CameraRig {
       case 'handheld':
         this.updateHandheld(dt);
         break;
-      // static — no movement
+      // static â€” no movement
     }
 
     // Shake
@@ -235,11 +235,7 @@ export class CameraRig {
 
   getState(): RigState {
     return {
-      position: {
-        x: this.state.position.x + this.state.shakeOffset.x,
-        y: this.state.position.y + this.state.shakeOffset.y,
-        z: this.state.position.z + this.state.shakeOffset.z,
-      },
+      position: [this.state.position.x + this.state.shakeOffset.x, this.state.position.y + this.state.shakeOffset.y, this.state.position.z + this.state.shakeOffset.z,],
       target: { ...this.state.target },
       fov: this.state.fov,
       shakeOffset: { ...this.state.shakeOffset },

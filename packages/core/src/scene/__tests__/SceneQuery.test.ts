@@ -84,7 +84,7 @@ describe('SceneQuery', () => {
       b.setPosition(100, 0, 0); // far to the side
 
       const result = SceneQuery.frustumCull(root, {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         direction: { x: 0, y: 0, z: 1 },
         fov: 90,
         near: 1,
@@ -101,7 +101,7 @@ describe('SceneQuery', () => {
       a.visible = false;
 
       const result = SceneQuery.frustumCull(root, {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         direction: { x: 0, y: 0, z: 1 },
         fov: 90,
         near: 1,

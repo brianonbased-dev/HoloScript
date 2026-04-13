@@ -31,7 +31,7 @@ function mockNode(id = 'obj-1', props: Record<string, any> = {}) {
   return {
     id,
     properties: {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       scale: { x: 1, y: 1, z: 1 },
       rotation: { x: 0, y: 0, z: 0 },
       ...props,

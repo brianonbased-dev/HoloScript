@@ -35,7 +35,7 @@ describe('ReplicationManager — Production', () => {
   it('updateSnapshot marks entity dirty', () => {
     const rm = new ReplicationManager();
     rm.register('e1', 'transform', 'owner');
-    rm.updateSnapshot('e1', { position: { x: 1, y: 2, z: 3 } });
+    rm.updateSnapshot('e1', { position: [1, 2, 3] });
     const ent = rm.getEntity('e1')!;
     expect(ent.isDirty).toBe(true);
     expect(ent.snapshot.position).toEqual({ x: 1, y: 2, z: 3 });
@@ -54,7 +54,7 @@ describe('ReplicationManager — Production', () => {
   it('generateUpdates produces full snapshot on first update', () => {
     const rm = new ReplicationManager();
     rm.register('e1', 'transform', 'owner');
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
     const updates = rm.generateUpdates(1000);
     expect(updates.length).toBe(1);
     expect(updates[0].isFullSnapshot).toBe(true);
@@ -63,11 +63,11 @@ describe('ReplicationManager — Production', () => {
   it('generateUpdates produces delta after first snapshot', () => {
     const rm = new ReplicationManager();
     rm.register('e1', 'transform', 'owner');
-    rm.updateSnapshot('e1', { position: { x: 0, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [0, 0, 0] });
     rm.generateUpdates(1000); // full snapshot sent
 
     // Now change position
-    rm.updateSnapshot('e1', { position: { x: 5, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [5, 0, 0] });
     const updates = rm.generateUpdates(2000);
     expect(updates.length).toBe(1);
     expect(updates[0].isFullSnapshot).toBe(false);
@@ -89,7 +89,7 @@ describe('ReplicationManager — Production', () => {
     rm.applyRemoteUpdate({
       entityId: 'e1',
       timestamp: 100,
-      fields: { position: { x: 10, y: 20, z: 30 } },
+      fields: { position: [10, 20, 30] },
       isFullSnapshot: false,
     });
     const ent = rm.getEntity('e1')!;
@@ -101,7 +101,7 @@ describe('ReplicationManager — Production', () => {
     const rm = new ReplicationManager();
     rm.register('e1', 'transform', 'owner');
     rm.register('e2', 'transform', 'owner');
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
     const stats = rm.getStats();
     expect(stats.totalEntities).toBe(2);
     expect(stats.dirtyEntities).toBe(2);

@@ -23,7 +23,7 @@ import type {
   IVector3,
   IQuaternion,
   IInputCommand,
-  IPredictionState as _IPredictionState,
+  IPredictionState as IPredictionState,
 } from './NetworkTypes';
 import { lerpVector3, slerpQuaternion, distanceVector3 } from './NetworkTypes';
 
@@ -704,7 +704,7 @@ export class LatencyCompensator {
     this.stateHistory = new StateHistoryBuffer(this.config.stateHistorySize);
 
     this.currentState = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       velocity: { x: 0, y: 0, z: 0 },
       angularVelocity: { x: 0, y: 0, z: 0 },

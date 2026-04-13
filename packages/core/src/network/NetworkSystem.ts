@@ -239,11 +239,7 @@ export class EntityInterpolator {
 
     return {
       id: entityId,
-      position: {
-        x: before.state.position.x + (after.state.position.x - before.state.position.x) * t,
-        y: before.state.position.y + (after.state.position.y - before.state.position.y) * t,
-        z: before.state.position.z + (after.state.position.z - before.state.position.z) * t,
-      },
+      position: [before.state.position.x + (after.state.position.x - before.state.position.x) * t, before.state.position.y + (after.state.position.y - before.state.position.y) * t, before.state.position.z + (after.state.position.z - before.state.position.z) * t,],
       rotation: {
         x: before.state.rotation.x + (after.state.rotation.x - before.state.rotation.x) * t,
         y: before.state.rotation.y + (after.state.rotation.y - before.state.rotation.y) * t,

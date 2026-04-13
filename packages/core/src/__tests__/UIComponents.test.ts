@@ -29,7 +29,7 @@ describe('createUIButton', () => {
       depth: 0.08,
       color: '#FF0000',
       textColor: '#000000',
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
     };
     const btn = createUIButton('custom', config);
     expect(btn.properties.position).toEqual({ x: 1, y: 2, z: 3 });

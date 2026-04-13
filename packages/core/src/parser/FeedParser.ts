@@ -1,4 +1,4 @@
-import { IncrementalParseResult, ChunkBasedIncrementalParser } from './IncrementalParser';
+﻿import { IncrementalParseResult, ChunkBasedIncrementalParser } from './IncrementalParser';
 import { ASTNode } from '../types/base';
 import type { VRTraitName } from '../types/base';
 import * as crypto from 'crypto';
@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 export interface SpatialEntity {
   id: string;
   ast: ASTNode;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity?: [number, number, number];
   traits: Map<string, Record<string, unknown>>;
   author: string;

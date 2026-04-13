@@ -41,7 +41,7 @@ function makeStatic(id = 'wall'): RigidBody {
   return new RigidBody({
     id,
     type: 'static',
-    transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    transform: { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     shape: { type: 'box', halfExtents: { x: 1, y: 1, z: 1 } },
   } as IRigidBodyConfig);
 }
@@ -333,7 +333,7 @@ describe('Feature 3A: TriggerZoneSystem â€” zone management', () => {
   it('addZone increments getZoneCount()', () => {
     sys.addZone({
       id: 'z1',
-      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      shape: { type: 'sphere', position: [0, 0, 0], radius: 2 },
       enabled: true,
       tags: [],
     });
@@ -343,7 +343,7 @@ describe('Feature 3A: TriggerZoneSystem â€” zone management', () => {
   it('removeZone decrements count', () => {
     sys.addZone({
       id: 'z1',
-      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      shape: { type: 'sphere', position: [0, 0, 0], radius: 2 },
       enabled: true,
       tags: [],
     });
@@ -354,7 +354,7 @@ describe('Feature 3A: TriggerZoneSystem â€” zone management', () => {
   it('enableZone(false) disables zone', () => {
     sys.addZone({
       id: 'z1',
-      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      shape: { type: 'sphere', position: [0, 0, 0], radius: 2 },
       enabled: true,
       tags: [],
     });
@@ -363,14 +363,14 @@ describe('Feature 3A: TriggerZoneSystem â€” zone management', () => {
     sys.onTrigger('z1', () => {
       fired = true;
     });
-    sys.update([{ id: 'e1', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'e1', position: [0, 0, 0] }]);
     expect(fired).toBe(false);
   });
 
   it('getOccupants() returns empty when no entities', () => {
     sys.addZone({
       id: 'z1',
-      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 2 },
+      shape: { type: 'sphere', position: [0, 0, 0], radius: 2 },
       enabled: true,
       tags: [],
     });
@@ -386,12 +386,12 @@ describe('Feature 3B: TriggerZoneSystem â€” enter/stay/exit', () => {
   let sys: TriggerZoneSystem;
   const zone = {
     id: 'z1',
-    shape: { type: 'sphere' as const, position: { x: 0, y: 0, z: 0 }, radius: 5 },
+    shape: { type: 'sphere' as const, position: [0, 0, 0], radius: 5 },
     enabled: true,
     tags: [],
   };
-  const inside = { id: 'player', position: { x: 0, y: 0, z: 0 } };
-  const outside = { id: 'player', position: { x: 100, y: 0, z: 0 } };
+  const inside = { id: 'player', position: [0, 0, 0] };
+  const outside = { id: 'player', position: [100, 0, 0] };
 
   beforeEach(() => {
     sys = new TriggerZoneSystem();

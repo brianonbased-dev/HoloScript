@@ -13,7 +13,7 @@ describe('Cycle 158: Particle Forces', () => {
     sys.addAttractor({
       id: 'a1',
       shape: 'point',
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
       direction: { x: 0, y: 0, z: 0 },
       strength: 100,
       radius: 50,
@@ -32,7 +32,7 @@ describe('Cycle 158: Particle Forces', () => {
     sys.addAttractor({
       id: 'a1',
       shape: 'point',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       direction: { x: 0, y: 0, z: 0 },
       strength: 1,
       radius: 50,

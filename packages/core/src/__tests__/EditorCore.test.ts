@@ -47,7 +47,7 @@ describe('Editor Core (Selection & Gizmos)', () => {
     const gizmoSystem = new GizmoSystem(world, sm);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { position: { x: 10, y: 0, z: 0 } });
+    world.addComponent(e1, 'Transform', { position: [10, 0, 0] });
 
     // Initial state: no gizmos
     expect(world.entityCount).toBe(1);
@@ -77,7 +77,7 @@ describe('Editor Core (Selection & Gizmos)', () => {
     const _gs = new GizmoSystem(world, sm);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { position: { x: 0, y: 0, z: 0 } });
+    world.addComponent(e1, 'Transform', { position: [0, 0, 0] });
 
     sm.select(e1);
     await Promise.resolve();
@@ -95,7 +95,7 @@ describe('Editor Core (Selection & Gizmos)', () => {
     const gs = new GizmoSystem(world, sm);
 
     const e1 = world.createEntity();
-    world.addComponent(e1, 'Transform', { position: { x: 0, y: 0, z: 0 } });
+    world.addComponent(e1, 'Transform', { position: [0, 0, 0] });
 
     sm.select(e1);
     await Promise.resolve();

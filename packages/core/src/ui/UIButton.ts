@@ -41,7 +41,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
         type: 'object',
         name: `Button_${id}`,
         properties: {
-          position: { x: 0, y: 0, z: depth / 2 }, // Slightly protruding
+          position: [0, 0, depth / 2], // Slightly protruding
           geometry: 'box',
           scale: { x: width * 0.9, y: height * 0.9, z: depth },
           color: config.color || '#007AFF',
@@ -68,7 +68,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
             type: 'text',
             name: `ButtonText_${id}`,
             properties: {
-              position: { x: 0, y: 0, z: depth / 2 + 0.001 }, // On face
+              position: [0, 0, depth / 2 + 0.001], // On face
               text: config.text || 'Button',
               color: config.textColor || '#FFFFFF',
               fontSize: 0.05,

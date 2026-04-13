@@ -76,16 +76,16 @@ describe('HoloScript Runtime - Memory Execution', () => {
     const memoryNode: MemoryNode = {
       type: 'memory',
       name: 'AgentMemory',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       semantic: {
         type: 'semantic-memory',
         properties: { capacity: 10000, storage: 'postgresql+pgvector' },
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       episodic: {
         type: 'episodic-memory',
         properties: { retention: '30 days', storage: 'redis_streams' },
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
     };
 

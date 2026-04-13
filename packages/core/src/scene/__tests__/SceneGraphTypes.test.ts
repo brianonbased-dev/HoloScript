@@ -36,7 +36,7 @@ function createTestTransform(
   sz = 1
 ): ASTTransform {
   return {
-    position: { x: px, y: py, z: pz },
+    position: [px, py, pz],
     rotation: { x: rx, y: ry, z: rz },
     scale: { x: sx, y: sy, z: sz },
   };
@@ -621,7 +621,7 @@ describe('SceneGraphDescriptor', () => {
 describe('Type Interoperability', () => {
   it('SceneNodeDescriptor transform is compatible with ASTTransform', () => {
     const transform: ASTTransform = {
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     };

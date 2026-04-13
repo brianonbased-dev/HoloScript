@@ -14,7 +14,7 @@ function makeFlatTerrain(resolution = 33): { system: TerrainSystem; id: string }
     depth: 100,
     resolution,
     maxHeight: 50,
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   };
   const heightmap = new Float32Array(resolution * resolution).fill(0.5);
   system.createFromHeightmap(cfg, heightmap);

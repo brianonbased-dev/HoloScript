@@ -1,5 +1,5 @@
-/**
- * AntiCheat — Server authority validation and cheat detection
+﻿/**
+ * AntiCheat â€” Server authority validation and cheat detection
  *
  * Implements speed/teleport detection, rate limiting, and
  * server authority validation for multiplayer integrity.
@@ -13,7 +13,7 @@
 
 export interface PlayerState {
   id: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   velocity: { x: number; y: number; z: number };
   lastUpdateAt: number;
   violations: Violation[];
@@ -109,7 +109,7 @@ export class AntiCheat {
       return { valid: false, violation };
     }
 
-    // Speed detection — only meaningful when dt >= 10ms (sub-ms deltas produce invalid computed speeds)
+    // Speed detection â€” only meaningful when dt >= 10ms (sub-ms deltas produce invalid computed speeds)
     if (dt >= 0.01) {
       const speed = distance / dt;
       if (speed > this.config.maxSpeed) {

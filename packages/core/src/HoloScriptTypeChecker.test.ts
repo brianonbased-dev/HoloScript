@@ -631,7 +631,7 @@ describe('HoloScriptTypeChecker', () => {
             radius: 1.5,
             color: 'blue',
             visible: true,
-            position: { x: 0, y: 1, z: 0 },
+            position: [0, 1, 0],
           },
         } as OrbNode,
       ];
@@ -771,7 +771,7 @@ describe('HoloScriptTypeChecker', () => {
           type: 'orb',
           name: 'orbB',
           shape: 'cube',
-          properties: { position: { x: 1, y: 2, z: 3 } }, // vec3-like
+          properties: { position: [1, 2, 3] }, // vec3-like
         } as OrbNode,
       ];
 

@@ -302,7 +302,7 @@ describe('IncrementalCompiler', () => {
   describe('State Management', () => {
     it('should save and restore state', () => {
       const states = new Map<string, Record<string, unknown>>([
-        ['orb1', { position: { x: 1, y: 2, z: 3 }, color: 'red' }],
+        ['orb1', { position: [1, 2, 3], color: 'red' }],
         ['orb2', { visible: true }],
       ]);
 
@@ -311,7 +311,7 @@ describe('IncrementalCompiler', () => {
 
       expect(restored).not.toBeNull();
       expect(restored?.objectStates.get('orb1')).toEqual({
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
         color: 'red',
       });
       expect(restored?.objectStates.get('orb2')).toEqual({ visible: true });
@@ -484,7 +484,7 @@ describe('IncrementalCompiler', () => {
         spatialGroups: [
           {
             name: 'group1',
-            position: { x: 0, y: 0, z: 0 },
+            position: [0, 0, 0],
             objects: [{ name: 'groupedOrb', type: 'orb', properties: [] }],
           },
         ],

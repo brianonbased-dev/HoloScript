@@ -85,8 +85,8 @@ describe('Cycle 123: Camera System', () => {
 
   it('should interpolate between keyframes', () => {
     const track = new CinematicTrack();
-    track.addKeyframe({ time: 0, position: { x: 0, y: 0, z: 0 }, easing: 'linear' });
-    track.addKeyframe({ time: 2, position: { x: 10, y: 0, z: 0 }, easing: 'linear' });
+    track.addKeyframe({ time: 0, position: [0, 0, 0], easing: 'linear' });
+    track.addKeyframe({ time: 2, position: [10, 0, 0], easing: 'linear' });
 
     const state = track.evaluate(1);
     expect(state.position.x).toBeCloseTo(5);
@@ -94,8 +94,8 @@ describe('Cycle 123: Camera System', () => {
 
   it('should fire cues during playback', () => {
     const track = new CinematicTrack();
-    track.addKeyframe({ time: 0, position: { x: 0, y: 0, z: 0 }, easing: 'linear' });
-    track.addKeyframe({ time: 3, position: { x: 10, y: 0, z: 0 }, easing: 'linear' });
+    track.addKeyframe({ time: 0, position: [0, 0, 0], easing: 'linear' });
+    track.addKeyframe({ time: 3, position: [10, 0, 0], easing: 'linear' });
     track.addCue(1, 'explosion', { size: 'big' });
 
     const fired: string[] = [];
@@ -108,8 +108,8 @@ describe('Cycle 123: Camera System', () => {
 
   it('should apply easing curves', () => {
     const track = new CinematicTrack();
-    track.addKeyframe({ time: 0, position: { x: 0, y: 0, z: 0 }, easing: 'linear' });
-    track.addKeyframe({ time: 1, position: { x: 10, y: 0, z: 0 }, easing: 'easeIn' });
+    track.addKeyframe({ time: 0, position: [0, 0, 0], easing: 'linear' });
+    track.addKeyframe({ time: 1, position: [10, 0, 0], easing: 'easeIn' });
 
     const state = track.evaluate(0.5);
     // easeIn at t=0.5 → t²=0.25 → x≈2.5

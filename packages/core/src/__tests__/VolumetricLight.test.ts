@@ -65,18 +65,18 @@ describe('VolumetricLight', () => {
   });
 
   it('getScatteringAt returns 0 beyond maxDistance', () => {
-    vol.addLight({ id: 'sun', maxDistance: 10, position: { x: 0, y: 0, z: 0 } });
+    vol.addLight({ id: 'sun', maxDistance: 10, position: [0, 0, 0] });
     expect(vol.getScatteringAt('sun', { x: 100, y: 0, z: 0 })).toBe(0);
   });
 
   it('getScatteringAt positive at light position', () => {
-    vol.addLight({ id: 'sun', position: { x: 0, y: 50, z: 0 } });
+    vol.addLight({ id: 'sun', position: [0, 50, 0] });
     const s = vol.getScatteringAt('sun', { x: 0, y: 50, z: 0 });
     expect(s).toBeGreaterThan(0);
   });
 
   it('getScatteringAt decreases with distance', () => {
-    vol.addLight({ id: 'sun', position: { x: 0, y: 0, z: 0 }, maxDistance: 100 });
+    vol.addLight({ id: 'sun', position: [0, 0, 0], maxDistance: 100 });
     const near = vol.getScatteringAt('sun', { x: 10, y: 0, z: 0 });
     const far = vol.getScatteringAt('sun', { x: 50, y: 0, z: 0 });
     expect(near).toBeGreaterThan(far);

@@ -36,7 +36,7 @@ describe('Pipeline integration in .holo files', () => {
 
         object "counter" {
           geometry: "cube"
-          position: { x: 0, y: 1, z: 0 }
+          position: [0, 1, 0]
         }
       }
     `);
@@ -99,7 +99,7 @@ describe('Pipeline integration in .holo files', () => {
 
         object "statusPanel" {
           geometry: "plane"
-          position: { x: 0, y: 2, z: -3 }
+          position: [0, 2, -3]
         }
       }
     `);

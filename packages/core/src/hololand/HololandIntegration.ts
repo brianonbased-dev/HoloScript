@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @holoscript/core Hololand Integration
  *
  * Bridge between HoloScript language and the Hololand runtime platform.
@@ -137,7 +137,7 @@ export interface AudioService {
   stop(handle: AudioHandle): void;
 
   /** Set listener position */
-  setListenerPosition(position: { x: number; y: number; z: number }): void;
+  setListenerPosition(position: [number, number, number]): void;
 
   /** Set listener orientation */
   setListenerOrientation(
@@ -149,7 +149,7 @@ export interface AudioService {
   setMasterVolume(volume: number): void;
 
   /** Create audio source */
-  createSource(soundId: string, position: { x: number; y: number; z: number }): AudioSource;
+  createSource(soundId: string, position: [number, number, number]): AudioSource;
 }
 
 export interface AudioPlayOptions {
@@ -174,7 +174,7 @@ export interface AudioSource {
   id: string;
   play(): void;
   stop(): void;
-  setPosition(position: { x: number; y: number; z: number }): void;
+  setPosition(position: [number, number, number]): void;
   setVolume(volume: number): void;
   destroy(): void;
 }
@@ -191,7 +191,7 @@ export interface PhysicsService {
   ): RaycastResult | null;
 
   /** Overlap query */
-  overlap(shape: ColliderShape, position: { x: number; y: number; z: number }): PhysicsBody[];
+  overlap(shape: ColliderShape, position: [number, number, number]): PhysicsBody[];
 
   /** Set gravity */
   setGravity(gravity: { x: number; y: number; z: number }): void;
@@ -202,7 +202,7 @@ export interface PhysicsService {
 
 export interface RigidBodyConfig {
   type: 'static' | 'dynamic' | 'kinematic';
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   mass?: number;
   friction?: number;
@@ -220,7 +220,7 @@ export interface ColliderShape {
 
 export interface PhysicsBody {
   id: string;
-  setPosition(position: { x: number; y: number; z: number }): void;
+  setPosition(position: [number, number, number]): void;
   setRotation(rotation: { x: number; y: number; z: number; w: number }): void;
   setVelocity(velocity: { x: number; y: number; z: number }): void;
   applyForce(force: { x: number; y: number; z: number }): void;
@@ -264,7 +264,7 @@ export interface InputService {
 }
 
 export interface XRControllerState {
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number; w: number };
   grip: number;
   trigger: number;
@@ -427,7 +427,7 @@ export class HololandClient {
     HololandClient.instance = null;
   }
 
-  // ─── Connection Management ────────────────────────────────────────────────
+  // â”€â”€â”€ Connection Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Connect to Hololand server
@@ -477,7 +477,7 @@ export class HololandClient {
     return { ...this.connectionInfo };
   }
 
-  // ─── World Management ─────────────────────────────────────────────────────
+  // â”€â”€â”€ World Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Join a world
@@ -538,7 +538,7 @@ export class HololandClient {
     this.emit('worldUpdated', { worldId, updates });
   }
 
-  // ─── Runtime Services ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Runtime Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Get runtime services
@@ -566,7 +566,7 @@ export class HololandClient {
     };
   }
 
-  // ─── Service Factory Methods ──────────────────────────────────────────────
+  // â”€â”€â”€ Service Factory Methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private createAssetService(): AssetStreamingService {
     return {
@@ -751,7 +751,7 @@ export class HololandClient {
     };
   }
 
-  // ─── Event System ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Event System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Subscribe to events
@@ -780,7 +780,7 @@ export class HololandClient {
     }
   }
 
-  // ─── Internal Helpers ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Internal Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private setConnectionState(state: ConnectionState): void {
     this.connectionInfo.state = state;

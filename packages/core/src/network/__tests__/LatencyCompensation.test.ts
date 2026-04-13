@@ -92,14 +92,14 @@ describe('IntentPredictor', () => {
 
   it('should register interactables without error', () => {
     const interactables: IInteractable[] = [
-      { id: 'door1', position: { x: 10, y: 0, z: 0 }, radius: 2, type: 'door' },
+      { id: 'door1', position: [10, 0, 0], radius: 2, type: 'door' },
     ];
     expect(() => predictor.setInteractables(interactables)).not.toThrow();
   });
 
   it('should return null with insufficient trajectory', () => {
     predictor.setInteractables([
-      { id: 'x', position: { x: 5, y: 0, z: 0 }, radius: 1, type: 'pickup' },
+      { id: 'x', position: [5, 0, 0], radius: 1, type: 'pickup' },
     ]);
     const result = predictor.predictIntent(ZERO_VEC3, { x: 1, y: 0, z: 0 });
     expect(result).toBeNull(); // < 5 trajectory records
@@ -113,7 +113,7 @@ describe('IntentPredictor', () => {
 
   it('should predict towards nearby interactable when moving towards it', () => {
     predictor.setInteractables([
-      { id: 'pickup1', position: { x: 5, y: 0, z: 0 }, radius: 1.5, type: 'pickup' },
+      { id: 'pickup1', position: [5, 0, 0], radius: 1.5, type: 'pickup' },
     ]);
     for (let i = 0; i < 8; i++) predictor.recordPosition({ x: i * 0.5, y: 0, z: 0 }, i * 100);
 
@@ -134,7 +134,7 @@ describe('IntentPredictor', () => {
     for (let i = 0; i < 10; i++) predictor.recordPosition({ x: i, y: 0, z: 0 }, i * 100);
     predictor.clear();
     predictor.setInteractables([
-      { id: 'x', position: { x: 5, y: 0, z: 0 }, radius: 1, type: 'generic' },
+      { id: 'x', position: [5, 0, 0], radius: 1, type: 'generic' },
     ]);
     const result = predictor.predictIntent({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
     expect(result).toBeNull(); // cleared

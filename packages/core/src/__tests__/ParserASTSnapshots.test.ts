@@ -20,7 +20,7 @@ describe('Parser AST Visual Regression', () => {
       const source = `composition SimpleOrb {
   geometry: "sphere"
   color: "cyan"
-  position: { x: 0, y: 1.5, z: -2 }
+  position: [0, 1.5, -2]
 }`;
       const ast = parser.parse(source);
       expect(ast).toMatchSnapshot();
@@ -48,7 +48,7 @@ describe('Parser AST Visual Regression', () => {
     test('nested object AST', () => {
       const source = `composition NestedTest {
   transform: {
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     rotation: { x: 0, y: 0, z: 0 }
   }
 }`;
@@ -400,7 +400,7 @@ composition Second {
     test('parsing same source twice produces identical AST', () => {
       const source = `composition Consistency {
   color: "red"
-  position: { x: 0, y: 1, z: -2 }
+  position: [0, 1, -2]
 }`;
 
       const ast1 = parser.parse(source);
@@ -437,7 +437,7 @@ composition Second {
       id: "orb1",
       geometry: "sphere",
       color: "red",
-      position: { x: -1, y: 1, z: -2 },
+      position: [-1, 1, -2],
       @grabbable,
       @throwable
     },
@@ -445,7 +445,7 @@ composition Second {
       id: "orb2",
       geometry: "sphere",
       color: "blue",
-      position: { x: 1, y: 1, z: -2 },
+      position: [1, 1, -2],
       @grabbable,
       @throwable
     }

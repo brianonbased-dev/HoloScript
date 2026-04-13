@@ -155,7 +155,7 @@ describe('Cycle 112: Particle System', () => {
       id: 'attract',
       type: 'attractor',
       strength: 5,
-      position: { x: 10, y: 0, z: 0 },
+      position: [10, 0, 0],
     });
 
     const particles = emitter.getAliveParticles();

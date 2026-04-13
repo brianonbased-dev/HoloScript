@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HoloScript Runtime Engine
  *
  * Executes HoloScript AST in VR environment with spatial computation.
@@ -104,7 +104,7 @@ const RUNTIME_SECURITY_LIMITS = {
 type EventHandler = (data?: HoloScriptValue) => void | Promise<void>;
 
 /**
- * Runtime orb data — the shape of an orb stored in context.variables.
+ * Runtime orb data â€” the shape of an orb stored in context.variables.
  * Used to avoid `as unknown` casts when reading dynamic orb state.
  */
 interface OrbData {
@@ -3874,7 +3874,7 @@ export class HoloScriptRuntime {
               string,
               HoloScriptValue
             >) || {};
-          // Only set state defaults — never overwrite runtime-modified values
+          // Only set state defaults â€” never overwrite runtime-modified values
           for (const [key, val] of Object.entries(stateBody)) {
             if (existingProps[key] === undefined) {
               existingProps[key] = val;
@@ -3931,7 +3931,7 @@ export class HoloScriptRuntime {
   /**
    * Set orb position and broadcast update
    */
-  setOrbPosition(orbName: string, position: { x: number; y: number; z: number }): void {
+  setOrbPosition(orbName: string, position: [number, number, number]): void {
     const orb = this.context.variables.get(orbName);
     if (orb && typeof orb === 'object' && (orb as Record<string, unknown>).__type === 'orb') {
       (orb as Record<string, unknown>).position = position;

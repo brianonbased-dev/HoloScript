@@ -30,7 +30,7 @@ describe('CinematicDirector', () => {
     dir.createScene('s1', 'Intro', 10);
     dir.addActorMark('s1', {
       actorId: 'hero',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
     });
     const scene = dir.getScene('s1')!;

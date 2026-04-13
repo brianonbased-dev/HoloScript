@@ -1,5 +1,5 @@
-/**
- * @fileoverview Cultural Memory — Dual Memory Architecture
+﻿/**
+ * @fileoverview Cultural Memory â€” Dual Memory Architecture
  * @module @holoscript/core/agents
  *
  * Implements the dual memory model for emergent agent culture:
@@ -7,7 +7,7 @@
  * - Stigmergic Memory: Environmental traces visible to all agents
  *
  * Memory consolidation converts repeated episodic patterns into
- * Semantic SOPs (Standard Operating Procedures) — the mechanism
+ * Semantic SOPs (Standard Operating Procedures) â€” the mechanism
  * by which culture persists across sessions.
  *
  * Based on:
@@ -22,7 +22,7 @@
 // MEMORY TYPES
 // =============================================================================
 
-/** An episodic memory entry — a single experience */
+/** An episodic memory entry â€” a single experience */
 export interface EpisodicMemory {
   id: string;
   agentId: string;
@@ -44,13 +44,13 @@ export interface EpisodicMemory {
   tags: string[];
 }
 
-/** A stigmergic trace — environmental memory visible to all */
+/** A stigmergic trace â€” environmental memory visible to all */
 export interface StigmergicTrace {
   id: string;
   /** Creator */
   creatorId: string;
   /** Spatial position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** Zone the trace belongs to */
   zoneId: string;
   /** Type of trace */
@@ -71,7 +71,7 @@ export interface StigmergicTrace {
   reinforcements: number;
 }
 
-/** A semantic SOP — consolidated cultural knowledge */
+/** A semantic SOP â€” consolidated cultural knowledge */
 export interface SemanticSOP {
   id: string;
   /** The norm or convention this SOP encodes */
@@ -121,7 +121,7 @@ const DEFAULT_CONFIG: CulturalMemoryConfig = {
 };
 
 /**
- * CulturalMemory — dual memory system for emergent agent culture.
+ * CulturalMemory â€” dual memory system for emergent agent culture.
  *
  * Manages three memory tiers:
  * 1. Episodic (per-agent, decaying personal experiences)
@@ -130,16 +130,16 @@ const DEFAULT_CONFIG: CulturalMemoryConfig = {
  */
 export class CulturalMemory {
   private config: CulturalMemoryConfig;
-  private episodic: Map<string, EpisodicMemory[]> = new Map(); // agentId → memories
-  private stigmergic: Map<string, StigmergicTrace[]> = new Map(); // zoneId → traces
-  private sops: Map<string, SemanticSOP> = new Map(); // sopId → SOP
+  private episodic: Map<string, EpisodicMemory[]> = new Map(); // agentId â†’ memories
+  private stigmergic: Map<string, StigmergicTrace[]> = new Map(); // zoneId â†’ traces
+  private sops: Map<string, SemanticSOP> = new Map(); // sopId â†’ SOP
   private currentTick: number = 0;
 
   constructor(config: Partial<CulturalMemoryConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  // ── Episodic Memory ──────────────────────────────────────────────────────
+  // â”€â”€ Episodic Memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Record an episodic memory for an agent.
@@ -200,7 +200,7 @@ export class CulturalMemory {
     return (this.episodic.get(agentId) || []).length;
   }
 
-  // ── Stigmergic Memory ────────────────────────────────────────────────────
+  // â”€â”€ Stigmergic Memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Leave a stigmergic trace in the environment.
@@ -209,7 +209,7 @@ export class CulturalMemory {
     creatorId: string,
     zoneId: string,
     label: string,
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     opts: Partial<
       Omit<
         StigmergicTrace,
@@ -249,7 +249,7 @@ export class CulturalMemory {
   /**
    * Perceive nearby traces from a position.
    */
-  perceiveTraces(zoneId: string, position: { x: number; y: number; z: number }): StigmergicTrace[] {
+  perceiveTraces(zoneId: string, position: [number, number, number]): StigmergicTrace[] {
     const traces = this.stigmergic.get(zoneId) || [];
     return traces
       .filter((t) => {
@@ -283,7 +283,7 @@ export class CulturalMemory {
     return (this.stigmergic.get(zoneId) || []).filter((t) => t.intensity > 0.01);
   }
 
-  // ── Semantic SOPs ────────────────────────────────────────────────────────
+  // â”€â”€ Semantic SOPs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Attempt to consolidate episodic memories into a semantic SOP.
@@ -354,7 +354,7 @@ export class CulturalMemory {
     return this.sops.get(`sop_${agentId}_${normId}`);
   }
 
-  // ── Tick / Lifecycle ─────────────────────────────────────────────────────
+  // â”€â”€ Tick / Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Advance one tick: decay memories and traces, prune dead entries.

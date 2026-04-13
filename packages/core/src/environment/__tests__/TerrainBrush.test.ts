@@ -11,7 +11,7 @@ describe('TerrainBrush', () => {
     depth: 100,
     resolution: 32,
     maxHeight: 50,
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   };
 
   beforeEach(() => {

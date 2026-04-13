@@ -10,7 +10,7 @@ import type { TriggerZoneConfig } from '@holoscript/engine/physics/TriggerZone';
 function sphereZone(): TriggerZoneConfig {
   return {
     id: 'zone1',
-    shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 10 },
+    shape: { type: 'sphere', position: [0, 0, 0], radius: 10 },
     enabled: true,
     tags: ['combat'],
   };
@@ -19,7 +19,7 @@ function sphereZone(): TriggerZoneConfig {
 function boxZone(): TriggerZoneConfig {
   return {
     id: 'zone2',
-    shape: { type: 'box', position: { x: 50, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
+    shape: { type: 'box', position: [50, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
     enabled: true,
     tags: ['shop'],
   };
@@ -46,7 +46,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone());
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     expect(cb).toHaveBeenCalledWith('player', 'zone1', 'enter');
   });
 
@@ -54,7 +54,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone());
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    const player = { id: 'player', position: { x: 0, y: 0, z: 0 } };
+    const player = { id: 'player', position: [0, 0, 0] };
     sys.update([player]); // enter
     cb.mockClear();
     sys.update([player]); // stay
@@ -65,9 +65,9 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone());
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     cb.mockClear();
-    sys.update([{ id: 'player', position: { x: 100, y: 100, z: 100 } }]);
+    sys.update([{ id: 'player', position: [100, 100, 100] }]);
     expect(cb).toHaveBeenCalledWith('player', 'zone1', 'exit');
   });
 
@@ -75,7 +75,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone());
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     cb.mockClear();
     sys.update([]);
     expect(cb).toHaveBeenCalledWith('player', 'zone1', 'exit');
@@ -85,7 +85,7 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(sphereZone());
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    sys.update([{ id: 'enemy', position: { x: 100, y: 100, z: 100 } }]);
+    sys.update([{ id: 'enemy', position: [100, 100, 100] }]);
     expect(cb).not.toHaveBeenCalled();
   });
 
@@ -94,7 +94,7 @@ describe('TriggerZoneSystem', () => {
     sys.enableZone('zone1', false);
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     expect(cb).not.toHaveBeenCalled();
   });
 
@@ -102,13 +102,13 @@ describe('TriggerZoneSystem', () => {
     sys.addZone(boxZone());
     const cb = vi.fn();
     sys.onTrigger('zone2', cb);
-    sys.update([{ id: 'p', position: { x: 52, y: 0, z: 0 } }]);
+    sys.update([{ id: 'p', position: [52, 0, 0] }]);
     expect(cb).toHaveBeenCalledWith('p', 'zone2', 'enter');
   });
 
   it('isInside reflects current state after update', () => {
     sys.addZone(sphereZone());
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     expect(sys.isInside('player', 'zone1')).toBe(true);
     expect(sys.isInside('nobody', 'zone1')).toBe(false);
   });
@@ -116,8 +116,8 @@ describe('TriggerZoneSystem', () => {
   it('getOccupants lists entities currently inside', () => {
     sys.addZone(sphereZone());
     sys.update([
-      { id: 'player', position: { x: 0, y: 0, z: 0 } },
-      { id: 'ally', position: { x: 1, y: 1, z: 1 } },
+      { id: 'player', position: [0, 0, 0] },
+      { id: 'ally', position: [1, 1, 1] },
     ]);
     const occ = sys.getOccupants('zone1');
     expect(occ).toContain('player');
@@ -127,7 +127,7 @@ describe('TriggerZoneSystem', () => {
   it('getZonesForEntity returns correct zones', () => {
     sys.addZone(sphereZone());
     sys.addZone(boxZone());
-    sys.update([{ id: 'player', position: { x: 0, y: 0, z: 0 } }]);
+    sys.update([{ id: 'player', position: [0, 0, 0] }]);
     const zones = sys.getZonesForEntity('player');
     expect(zones).toContain('zone1');
     expect(zones).not.toContain('zone2');
@@ -138,7 +138,7 @@ describe('TriggerZoneSystem', () => {
     const cb = vi.fn();
     sys.onTrigger('zone1', cb);
     // Entity at distance 12, but with radius 5 → overlaps (12 <= 10+5)
-    sys.update([{ id: 'big', position: { x: 12, y: 0, z: 0 }, radius: 5 }]);
+    sys.update([{ id: 'big', position: [12, 0, 0], radius: 5 }]);
     expect(cb).toHaveBeenCalledWith('big', 'zone1', 'enter');
   });
 });

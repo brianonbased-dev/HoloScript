@@ -113,7 +113,7 @@ class SpatialTestAgent extends BaseAgent {
 
     if (reflectData.needsAction) {
       const ids = this.cognitiveAgent.mutate([
-        { type: 'spawn', name: 'AgentCreatedEntity', position: { x: 1, y: 2, z: 3 } },
+        { type: 'spawn', name: 'AgentCreatedEntity', position: [1, 2, 3] },
       ]);
       actionsApplied = ids.length;
     }
@@ -578,14 +578,14 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const world = new ECSWorld();
       const id1 = world.spawn('Player');
       world.setComponent(id1, ComponentType.Transform, {
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
 
       const id2 = world.spawn('Enemy');
       world.setComponent(id2, ComponentType.Transform, {
-        position: { x: 10, y: 0, z: 5 },
+        position: [10, 0, 5],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -606,15 +606,15 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const world = new ECSWorld();
       const existingId = world.spawn('Existing');
       world.setComponent(existingId, ComponentType.Transform, {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         scale: { x: 1, y: 1, z: 1 },
       });
 
       const actions: AgentAction[] = [
-        { type: 'spawn', name: 'NewEntity1', position: { x: 5, y: 0, z: 0 } },
-        { type: 'spawn', name: 'NewEntity2', position: { x: 10, y: 0, z: 0 } },
-        { type: 'move', entityId: existingId, position: { x: 99, y: 99, z: 99 } },
+        { type: 'spawn', name: 'NewEntity1', position: [5, 0, 0] },
+        { type: 'spawn', name: 'NewEntity2', position: [10, 0, 0] },
+        { type: 'move', entityId: existingId, position: [99, 99, 99] },
         { type: 'applyTrait', entityId: existingId, traitId: 42 },
       ];
 

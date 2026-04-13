@@ -33,7 +33,7 @@ export class UserProfileCard {
     // @ts-expect-error
     panel.children?.push({
       type: 'entity',
-      properties: { position: { x: 0, y: 0.15, z: 0.01 } },
+      properties: { position: [0, 0.15, 0.01] },
       traits: new Map([
         ['render', { type: 'sphere', color: '#0984e3', radius: 0.05 }], // Simple avatar
       ]),
@@ -45,7 +45,7 @@ export class UserProfileCard {
       type: 'text',
       properties: {
         text: user.displayName,
-        position: { x: 0, y: 0.08, z: 0.01 },
+        position: [0, 0.08, 0.01],
         fontSize: 0.05,
         color: '#ffffff',
       },
@@ -65,7 +65,7 @@ export class UserProfileCard {
       type: 'text',
       properties: {
         text: `${user.status} ${user.currentActivity ? '- ' + user.currentActivity : ''}`,
-        position: { x: 0, y: 0.04, z: 0.01 },
+        position: [0, 0.04, 0.01],
         fontSize: 0.03,
         color: statusColors[user.status] || '#b2bec3',
       },
@@ -82,7 +82,7 @@ export class UserProfileCard {
         text,
         width: 0.3,
         height: btnHeight,
-        position: { x: 0, y: actionY, z: 0.01 },
+        position: [0, actionY, 0.01],
         color: '#636e72',
       });
       // In a real system, we'd bind the onClick event properly.

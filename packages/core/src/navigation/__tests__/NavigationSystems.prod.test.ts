@@ -378,7 +378,7 @@ describe('SteeringBehaviors', () => {
     // Agent moving along +x; ahead point ≈ (8,0,0). Place obstacle slightly off-center
     // so normalize(ahead - obstacle) is non-zero and force is generated.
     const agent = makeAgent({ x: 0, y: 0, z: 0 }, { x: 5, y: 0, z: 0 });
-    const obstacle = { position: { x: 8, y: 0, z: 1 }, radius: 3 }; // z=1 offset
+    const obstacle = { position: [8, 0, 1], radius: 3 }; // z=1 offset
     const force = sb.avoidObstacles(agent, [obstacle]);
     const mag = Math.sqrt(force.x ** 2 + force.y ** 2 + force.z ** 2);
     expect(mag).toBeGreaterThan(0);

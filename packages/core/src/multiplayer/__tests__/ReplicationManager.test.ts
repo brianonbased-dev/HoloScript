@@ -47,7 +47,7 @@ describe('ReplicationManager', () => {
     it('updates position and marks dirty', () => {
       mgr.register('e1', 'dynamic', 'p1');
       mgr.updateSnapshot('e1', {
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         timestamp: 100,
       });
       const entity = mgr.getEntity('e1');
@@ -78,7 +78,7 @@ describe('ReplicationManager', () => {
 
     it('generates full snapshot for new entities', () => {
       mgr.register('e1', 'dynamic', 'p1');
-      mgr.updateSnapshot('e1', { position: { x: 1, y: 2, z: 3 }, timestamp: 100 });
+      mgr.updateSnapshot('e1', { position: [1, 2, 3], timestamp: 100 });
       const updates = mgr.generateUpdates(Date.now() + 1000);
       expect(updates.length).toBeGreaterThanOrEqual(1);
       if (updates.length > 0) {
@@ -89,11 +89,11 @@ describe('ReplicationManager', () => {
 
     it('generates delta updates after first full snapshot', () => {
       mgr.register('e1', 'dynamic', 'p1');
-      mgr.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 }, timestamp: 100 });
+      mgr.updateSnapshot('e1', { position: [1, 0, 0], timestamp: 100 });
       mgr.generateUpdates(Date.now() + 1000); // First = full
 
       // Move entity
-      mgr.updateSnapshot('e1', { position: { x: 5, y: 0, z: 0 }, timestamp: 200 });
+      mgr.updateSnapshot('e1', { position: [5, 0, 0], timestamp: 200 });
       const updates = mgr.generateUpdates(Date.now() + 2000);
       if (updates.length > 0) {
         expect(updates[0].isFullSnapshot).toBe(false);
@@ -111,7 +111,7 @@ describe('ReplicationManager', () => {
         entityId: 'e1',
         timestamp: 200,
         fields: {
-          position: { x: 10, y: 20, z: 30 },
+          position: [10, 20, 30],
         },
         isFullSnapshot: true,
       });
@@ -124,7 +124,7 @@ describe('ReplicationManager', () => {
       mgr.applyRemoteUpdate({
         entityId: 'e1',
         timestamp: 100,
-        fields: { position: { x: 1, y: 1, z: 1 } },
+        fields: { position: [1, 1, 1] },
         isFullSnapshot: true,
       });
       mgr.applyRemoteUpdate({

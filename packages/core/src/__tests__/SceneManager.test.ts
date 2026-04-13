@@ -15,7 +15,7 @@ function makeNode(id: string, children: any[] = []): any {
     id,
     type: 'object',
     name: `Node_${id}`,
-    properties: { position: { x: 0, y: 0, z: 0 } },
+    properties: { position: [0, 0, 0] },
     children,
     traits: new Map(),
     directives: [],

@@ -13,7 +13,7 @@ describe('CharacterController', () => {
 
   it('initializes with custom options', () => {
     const cc = new CharacterController({
-      position: { x: 1, y: 5, z: 3 },
+      position: [1, 5, 3],
       rotation: { x: 0, y: 90, z: 0 },
       height: 2.0,
       gravity: -15,

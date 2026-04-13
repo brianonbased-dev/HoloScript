@@ -99,7 +99,7 @@ describe('SpatialAudioZoneSystem', () => {
   it('addPortal and getPortalAttenuation', () => {
     sys.addPortal({
       id: 'p1',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       normal: { x: 1, y: 0, z: 0 },
       width: 2,
       height: 3,

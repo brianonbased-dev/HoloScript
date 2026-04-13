@@ -70,7 +70,7 @@ describe('CameraRig', () => {
   it('steadicam smoothly interpolates', () => {
     const custom = new CameraRig({
       mode: 'steadicam',
-      position: { x: 10, y: 5, z: -20 },
+      position: [10, 5, -20],
       smoothing: 0.5,
     });
     const s1 = custom.getState();

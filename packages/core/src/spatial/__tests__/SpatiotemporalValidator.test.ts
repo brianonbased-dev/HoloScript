@@ -33,7 +33,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'guard',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -47,7 +47,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'prisoner',
           entityType: 'agent',
-          position: { x: 2, y: 0, z: 0 },
+          position: [2, 0, 0],
           constraints: [],
         },
       ];
@@ -62,7 +62,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'guard',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -76,7 +76,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'prisoner',
           entityType: 'agent',
-          position: { x: 10, y: 0, z: 0 },
+          position: [10, 0, 0],
           constraints: [],
         },
       ];
@@ -92,7 +92,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -106,7 +106,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -121,7 +121,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -136,7 +136,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -151,7 +151,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -166,7 +166,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -198,7 +198,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [],
         },
       ];
@@ -215,7 +215,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -230,7 +230,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 100, z: 0 }, // Far on Y but close on XZ
+          position: [1, 100, 0], // Far on Y but close on XZ
           constraints: [],
         },
       ];
@@ -244,7 +244,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_adjacent',
@@ -273,7 +273,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'drone',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_reachable',
@@ -288,7 +288,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'pad',
           entityType: 'orb',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
       ];
@@ -303,7 +303,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'drone',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_reachable',
@@ -317,7 +317,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'pad',
           entityType: 'orb',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
       ];
@@ -337,7 +337,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_reachable',
@@ -350,7 +350,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -365,7 +365,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_reachable',
@@ -379,7 +379,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -394,7 +394,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_temporal_reachable',
@@ -407,7 +407,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -439,7 +439,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [],
         },
       ];
@@ -464,7 +464,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'missile',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -478,7 +478,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'corridor',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: {
             min: { x: -10, y: -10, z: -10 },
             max: { x: 10, y: 10, z: 10 },
@@ -496,7 +496,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -510,7 +510,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'zone',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } },
           constraints: [],
         },
@@ -526,7 +526,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -541,7 +541,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'zone',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: { min: { x: -5, y: -5, z: -5 }, max: { x: 5, y: 5, z: 5 } },
           constraints: [],
         },
@@ -559,7 +559,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -581,7 +581,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -603,7 +603,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -617,7 +617,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'zone',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           // No bounds
           constraints: [],
         },
@@ -637,7 +637,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -652,7 +652,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'zone',
           entityType: 'zone',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           bounds: { min: { x: -10, y: -10, z: -10 }, max: { x: 10, y: 10, z: 10 } },
           constraints: [],
         },
@@ -669,7 +669,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -694,7 +694,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -717,7 +717,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -744,7 +744,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 50, y: 50, z: 0 },
+          position: [50, 50, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -773,7 +773,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -802,7 +802,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -824,14 +824,14 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
               sourceId: 'a',
               mode: 'waypoint',
               horizon: 5,
-              waypoints: [{ position: { x: 5, y: 0, z: 0 }, radius: 0, label: 'wp1' }],
+              waypoints: [{ position: [5, 0, 0], radius: 0, label: 'wp1' }],
             },
           ],
         },
@@ -847,7 +847,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
@@ -856,9 +856,9 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
               horizon: 10,
               sampleCount: 20,
               waypoints: [
-                { position: { x: 5, y: 0, z: 0 }, radius: 1.0, label: 'checkpoint_1' },
-                { position: { x: 10, y: 5, z: 0 }, radius: 2.0, label: 'checkpoint_2' },
-                { position: { x: 15, y: 0, z: 0 }, radius: 1.5, label: 'finish' },
+                { position: [5, 0, 0], radius: 1.0, label: 'checkpoint_1' },
+                { position: [10, 5, 0], radius: 2.0, label: 'checkpoint_2' },
+                { position: [15, 0, 0], radius: 1.5, label: 'finish' },
               ],
             },
           ],
@@ -880,13 +880,13 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [],
         },
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 20, y: 0, z: 0 },
+          position: [20, 0, 0],
           constraints: [],
         },
       ];
@@ -909,7 +909,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'missile',
           entityType: 'projectile',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [],
         },
       ];
@@ -938,7 +938,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'a',
           entityType: 'agent',
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           constraints: [
             { kind: 'spatial_adjacent', sourceId: 'a', targetId: 'b', maxDistance: 10 },
             {
@@ -953,7 +953,7 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'b',
           entityType: 'agent',
-          position: { x: 1, y: 0, z: 0 },
+          position: [1, 0, 0],
           constraints: [
             { kind: 'spatial_reachable', sourceId: 'b', targetId: 'c' },
             {
@@ -968,14 +968,14 @@ describe('SpatialConstraintValidator - Spatiotemporal Extensions', () => {
         {
           entityId: 'c',
           entityType: 'orb',
-          position: { x: 5, y: 0, z: 0 },
+          position: [5, 0, 0],
           constraints: [
             {
               kind: 'spatial_trajectory',
               sourceId: 'c',
               mode: 'waypoint',
               horizon: 5,
-              waypoints: [{ position: { x: 10, y: 0, z: 0 }, radius: 1 }],
+              waypoints: [{ position: [10, 0, 0], radius: 1 }],
             },
           ],
         },

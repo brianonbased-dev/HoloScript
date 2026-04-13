@@ -7,7 +7,7 @@ import { ProjectorLight } from '../rendering/ProjectorLight';
 
 function defaultConfig() {
   return {
-    position: { x: 0, y: 10, z: 0 },
+    position: [0, 10, 0],
     direction: { x: 0, y: -1, z: 0 },
     cookieTextureId: 'cookie_01',
     fov: 60,

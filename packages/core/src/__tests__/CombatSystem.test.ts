@@ -22,7 +22,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'p1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
       damage: 10,
@@ -32,7 +32,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'p2',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
     });
@@ -44,7 +44,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 5,
@@ -54,7 +54,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr',
       ownerId: 'b',
-      position: { x: 0.5, y: 0, z: 0 },
+      position: [0.5, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -66,7 +66,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb',
       ownerId: 'same',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -76,7 +76,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr',
       ownerId: 'same',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -87,7 +87,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: false,
       damage: 5,
@@ -97,7 +97,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr',
       ownerId: 'b',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -143,9 +143,9 @@ describe('CombatManager', () => {
     const targets = cm.findTargets(
       { x: 0, y: 0, z: 0 },
       [
-        { entityId: 'far', position: { x: 100, y: 0, z: 0 }, priority: 5 },
-        { entityId: 'close', position: { x: 5, y: 0, z: 0 }, priority: 10 },
-        { entityId: 'out', position: { x: 1000, y: 0, z: 0 }, priority: 0 },
+        { entityId: 'far', position: [100, 0, 0], priority: 5 },
+        { entityId: 'close', position: [5, 0, 0], priority: 10 },
+        { entityId: 'out', position: [1000, 0, 0], priority: 0 },
       ],
       200
     );

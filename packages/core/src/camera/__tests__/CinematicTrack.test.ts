@@ -15,7 +15,7 @@ describe('CinematicTrack', () => {
   // ---- Keyframe Management ----
 
   it('addKeyframe increases count', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
     expect(track.getKeyframeCount()).toBe(1);
   });
 
@@ -50,8 +50,8 @@ describe('CinematicTrack', () => {
   });
 
   it('stop resets time', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(1, { position: { x: 10, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(1, { position: [10, 0, 0] }));
     track.play();
     track.update(0.5);
     track.stop();
@@ -68,8 +68,8 @@ describe('CinematicTrack', () => {
   // ---- Update / Evaluate ----
 
   it('update advances time', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(2, { position: { x: 20, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(2, { position: [20, 0, 0] }));
     track.play();
     const state = track.update(1);
     expect(state).not.toBeNull();
@@ -82,8 +82,8 @@ describe('CinematicTrack', () => {
   });
 
   it('update stops at end when not looping', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(1, { position: { x: 10, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(1, { position: [10, 0, 0] }));
     track.play();
     track.update(2);
     expect(track.isPlaying()).toBe(false);
@@ -91,8 +91,8 @@ describe('CinematicTrack', () => {
   });
 
   it('update loops when enabled', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(1, { position: { x: 10, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(1, { position: [10, 0, 0] }));
     track.setLooping(true);
     track.play();
     track.update(1.5);
@@ -103,8 +103,8 @@ describe('CinematicTrack', () => {
   // ---- Easing ----
 
   it('easeIn produces slower start', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(1, { position: { x: 10, y: 0, z: 0 }, easing: 'easeIn' }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(1, { position: [10, 0, 0], easing: 'easeIn' }));
     const state = track.evaluate(0.25);
     // easeIn: t*t → 0.0625 → x ≈ 0.625  (less than linear 2.5)
     expect(state.position.x).toBeLessThan(2.5);
@@ -124,8 +124,8 @@ describe('CinematicTrack', () => {
   it('fires cues at correct time', () => {
     const listener = vi.fn();
     track.onCue(listener);
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(2, { position: { x: 20, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(2, { position: [20, 0, 0] }));
     track.addCue(0.5, 'explosion', { size: 5 });
     track.play();
     track.update(1);
@@ -135,8 +135,8 @@ describe('CinematicTrack', () => {
   it('cue fires only once', () => {
     const listener = vi.fn();
     track.onCue(listener);
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(2, { position: { x: 20, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(2, { position: [20, 0, 0] }));
     track.addCue(0.1, 'hit', {});
     track.play();
     track.update(0.5);
@@ -159,8 +159,8 @@ describe('CinematicTrack', () => {
   // ---- Speed ----
 
   it('setSpeed doubles time advancement', () => {
-    track.addKeyframe(kf(0, { position: { x: 0, y: 0, z: 0 } }));
-    track.addKeyframe(kf(2, { position: { x: 20, y: 0, z: 0 } }));
+    track.addKeyframe(kf(0, { position: [0, 0, 0] }));
+    track.addKeyframe(kf(2, { position: [20, 0, 0] }));
     track.setSpeed(2);
     track.play();
     track.update(0.5); // Should advance by 1 second

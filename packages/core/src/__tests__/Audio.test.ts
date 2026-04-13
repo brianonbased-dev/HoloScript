@@ -27,7 +27,7 @@ describe('Audio System', () => {
 
       const id = engine.play('sound', {
         id: 'dist_test',
-        position: { x: 10, y: 0, z: 0 },
+        position: [10, 0, 0],
         volume: 1,
         refDistance: 1,
         maxDistance: 50,
@@ -48,7 +48,7 @@ describe('Audio System', () => {
 
       const nearId = engine.play('s', {
         id: 'near',
-        position: { x: 1, y: 0, z: 0 },
+        position: [1, 0, 0],
         volume: 1,
         spatialize: true,
         distanceModel: 'inverse',
@@ -58,7 +58,7 @@ describe('Audio System', () => {
       });
       const farId = engine.play('s', {
         id: 'far',
-        position: { x: 20, y: 0, z: 0 },
+        position: [20, 0, 0],
         volume: 1,
         spatialize: true,
         distanceModel: 'inverse',
@@ -80,12 +80,12 @@ describe('Audio System', () => {
 
       const rightId = engine.play('s', {
         id: 'right',
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
         spatialize: true,
       });
       const leftId = engine.play('s', {
         id: 'left',
-        position: { x: -5, y: 0, z: 0 },
+        position: [-5, 0, 0],
         spatialize: true,
       });
 

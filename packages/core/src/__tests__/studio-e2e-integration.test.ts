@@ -149,7 +149,7 @@ describe('E2E: Terrain System', () => {
         depth: 16,
         resolution: 4,
         maxHeight: 10,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       { seed: 42, octaves: 4, scale: 1 }
     );
@@ -165,7 +165,7 @@ describe('E2E: Terrain System', () => {
       depth: 8,
       resolution: 4,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     terrain.setHeightAt('t1', 0, 0, 0.99);
     // Just verify no crash
@@ -180,7 +180,7 @@ describe('E2E: Terrain System', () => {
       depth: 8,
       resolution: 4,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     terrain.setLayers('t2', [
       {

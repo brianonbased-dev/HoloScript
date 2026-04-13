@@ -54,7 +54,7 @@ export class HoloScriptPersistenceParser {
     const node: MemoryNode = {
       type: 'memory',
       name,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
 
     if (this.ctx.check('punctuation', '{')) {
@@ -88,19 +88,19 @@ export class HoloScriptPersistenceParser {
               node.semantic = {
                 type: 'semantic-memory',
                 properties,
-                position: { x: 0, y: 0, z: 0 },
+                position: [0, 0, 0],
               };
             } else if (key === 'episodic' && typeToken.value === 'EpisodicMemory') {
               node.episodic = {
                 type: 'episodic-memory',
                 properties,
-                position: { x: 0, y: 0, z: 0 },
+                position: [0, 0, 0],
               };
             } else if (key === 'procedural' && typeToken.value === 'ProceduralMemory') {
               node.procedural = {
                 type: 'procedural-memory',
                 properties,
-                position: { x: 0, y: 0, z: 0 },
+                position: [0, 0, 0],
               };
             }
           }

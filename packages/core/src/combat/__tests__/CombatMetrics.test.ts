@@ -17,7 +17,7 @@ describe('Combat Metrics & Systems', () => {
       const hitbox: HitBox = {
         id: 'hb-1',
         ownerId: 'player_1',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         size: { x: 2, y: 2, z: 2 },
         active: true,
         damage: 50,
@@ -29,7 +29,7 @@ describe('Combat Metrics & Systems', () => {
       const hitTarget: HurtBox = {
         id: 'hr-1',
         ownerId: 'enemy_1',
-        position: { x: 1, y: 1, z: 0 },
+        position: [1, 1, 0],
         size: { x: 2, y: 2, z: 2 }, // Intersects
         active: true,
       };
@@ -37,7 +37,7 @@ describe('Combat Metrics & Systems', () => {
       const missTarget: HurtBox = {
         id: 'hr-2',
         ownerId: 'enemy_2',
-        position: { x: 10, y: 10, z: 10 },
+        position: [10, 10, 10],
         size: { x: 1, y: 1, z: 1 }, // No intersection
         active: true,
       };
@@ -58,7 +58,7 @@ describe('Combat Metrics & Systems', () => {
       const hitbox: HitBox = {
         id: 'hb-self',
         ownerId: 'player_1',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         size: { x: 2, y: 2, z: 2 },
         active: true,
         damage: 10,
@@ -68,7 +68,7 @@ describe('Combat Metrics & Systems', () => {
       const hurtbox: HurtBox = {
         id: 'hr-self',
         ownerId: 'player_1',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         size: { x: 2, y: 2, z: 2 },
         active: true,
       };
@@ -81,7 +81,7 @@ describe('Combat Metrics & Systems', () => {
       const hrEnemy: HurtBox = {
         id: 'hr-enemy',
         ownerId: 'enemy_1',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         size: { x: 2, y: 2, z: 2 },
         active: false, // Inactive
       };
@@ -117,9 +117,9 @@ describe('Combat Metrics & Systems', () => {
     it('prioritizes targets by distance and priority tags', () => {
       const origin = { x: 0, y: 0, z: 0 };
       const candidates = [
-        { entityId: 'far_enemy', position: { x: 10, y: 0, z: 0 }, priority: 1 },
-        { entityId: 'near_enemy', position: { x: 5, y: 0, z: 0 }, priority: 1 },
-        { entityId: 'priority_enemy', position: { x: 8, y: 0, z: 0 }, priority: 10 },
+        { entityId: 'far_enemy', position: [10, 0, 0], priority: 1 },
+        { entityId: 'near_enemy', position: [5, 0, 0], priority: 1 },
+        { entityId: 'priority_enemy', position: [8, 0, 0], priority: 10 },
       ];
 
       const targets = combatManager.findTargets(origin, candidates, 20);

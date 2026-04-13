@@ -134,7 +134,7 @@ describe('Animation Engine exports', () => {
 describe('Audio Engine exports', () => {
   it('AudioEngine plays sources with 3D position', () => {
     const engine = new AudioEngine();
-    const id = engine.play('test-sound', { position: { x: 5, y: 0, z: 3 }, volume: 0.8 });
+    const id = engine.play('test-sound', { position: [5, 0, 3], volume: 0.8 });
     expect(typeof id).toBe('string');
     expect(engine.getActiveCount()).toBe(1);
   });
@@ -142,7 +142,7 @@ describe('Audio Engine exports', () => {
   it('AudioEngine updateListener and spatial computation', () => {
     const engine = new AudioEngine();
     engine.setListenerPosition({ x: 0, y: 0, z: 0 });
-    engine.play('far-sound', { position: { x: 100, y: 0, z: 0 }, volume: 1 });
+    engine.play('far-sound', { position: [100, 0, 0], volume: 1 });
     engine.update(0.016);
     const sources = engine.getActiveSources();
     expect(sources.length).toBe(1);
@@ -161,8 +161,8 @@ describe('Audio Engine exports', () => {
   it('AudioEngine distance attenuation reduces far sources', () => {
     const engine = new AudioEngine();
     engine.setListenerPosition({ x: 0, y: 0, z: 0 });
-    engine.play('near', { position: { x: 1, y: 0, z: 0 }, volume: 1 });
-    engine.play('far', { position: { x: 50, y: 0, z: 0 }, volume: 1 });
+    engine.play('near', { position: [1, 0, 0], volume: 1 });
+    engine.play('far', { position: [50, 0, 0], volume: 1 });
     engine.update(0.016);
     const sources = engine.getActiveSources();
     const near = sources.find((s) => s.soundId === 'near')!;
@@ -174,7 +174,7 @@ describe('Audio Engine exports', () => {
     const engine = new AudioEngine();
     engine.setListenerPosition({ x: 0, y: 0, z: 0 });
     engine.setListenerOrientation({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 });
-    engine.play('right', { position: { x: 5, y: 0, z: 0 }, volume: 1 });
+    engine.play('right', { position: [5, 0, 0], volume: 1 });
     engine.update(0.016);
     const s = engine.getActiveSources()[0];
     expect(s.computedPan).toBeGreaterThan(0); // Right side

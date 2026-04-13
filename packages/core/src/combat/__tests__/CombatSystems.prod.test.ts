@@ -30,7 +30,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -44,7 +44,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'b',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -55,7 +55,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -70,7 +70,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'attacker',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 20,
@@ -80,7 +80,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'defender',
-      position: { x: 0.5, y: 0.5, z: 0.5 },
+      position: [0.5, 0.5, 0.5],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -93,7 +93,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'same',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -103,7 +103,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'same',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -114,7 +114,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: false,
       damage: 10,
@@ -124,7 +124,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'b',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -135,7 +135,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: false,
       damage: 10,
@@ -145,7 +145,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'b',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });
@@ -192,9 +192,9 @@ describe('CombatManager', () => {
 
   it('findTargets filters by range and sorts by priority', () => {
     const candidates = [
-      { entityId: 'far', position: { x: 100, y: 0, z: 0 }, priority: 10 },
-      { entityId: 'near-lo', position: { x: 2, y: 0, z: 0 }, priority: 0 },
-      { entityId: 'near-hi', position: { x: 3, y: 0, z: 0 }, priority: 5 },
+      { entityId: 'far', position: [100, 0, 0], priority: 10 },
+      { entityId: 'near-lo', position: [2, 0, 0], priority: 0 },
+      { entityId: 'near-hi', position: [3, 0, 0], priority: 5 },
     ];
     const targets = cm.findTargets({ x: 0, y: 0, z: 0 }, candidates, 10);
     expect(targets.length).toBe(2);
@@ -205,7 +205,7 @@ describe('CombatManager', () => {
     cm.addHitBox({
       id: 'hb1',
       ownerId: 'a',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
       damage: 10,
@@ -215,7 +215,7 @@ describe('CombatManager', () => {
     cm.addHurtBox({
       id: 'hr1',
       ownerId: 'b',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 2, y: 2, z: 2 },
       active: true,
     });

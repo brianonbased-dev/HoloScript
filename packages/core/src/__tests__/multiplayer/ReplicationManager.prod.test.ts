@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReplicationManager Production Tests
  *
  * Covers: register (defaults, options, isDirty), unregister, getEntity,
@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { ReplicationManager } from '../../multiplayer/ReplicationManager';
 import type { DeltaUpdate } from '../../multiplayer/ReplicationManager';
 
-// ── fixtures ──────────────────────────────────────────────────────────────────
+// â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeRM() {
   return new ReplicationManager();
@@ -26,7 +26,7 @@ const quat0 = () => ({ x: 0, y: 0, z: 0, w: 1 });
 
 function makeSnapshot(
   overrides: Partial<{
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
     velocity: { x: number; y: number; z: number };
   }> = {}
@@ -40,9 +40,9 @@ function makeSnapshot(
   };
 }
 
-// ── register / unregister ─────────────────────────────────────────────────────
+// â”€â”€ register / unregister â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — register', () => {
+describe('ReplicationManager â€” register', () => {
   it('register creates an entity entry', () => {
     const rm = makeRM();
     const e = rm.register('car1', 'vehicle', 'player1');
@@ -89,13 +89,13 @@ describe('ReplicationManager — register', () => {
   });
 });
 
-// ── updateSnapshot ────────────────────────────────────────────────────────────
+// â”€â”€ updateSnapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — updateSnapshot', () => {
+describe('ReplicationManager â€” updateSnapshot', () => {
   it('updateSnapshot marks entity dirty', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
-    rm.updateSnapshot('e1', { position: { x: 5, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [5, 0, 0] });
     const e = rm.getEntity('e1')!;
     expect(e.isDirty).toBe(true);
   });
@@ -103,7 +103,7 @@ describe('ReplicationManager — updateSnapshot', () => {
   it('updateSnapshot merges position into snapshot', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
-    rm.updateSnapshot('e1', { position: { x: 10, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [10, 0, 0] });
     const e = rm.getEntity('e1')!;
     expect(e.snapshot.position.x).toBe(10);
   });
@@ -114,9 +114,9 @@ describe('ReplicationManager — updateSnapshot', () => {
   });
 });
 
-// ── setCustomState ────────────────────────────────────────────────────────────
+// â”€â”€ setCustomState â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — setCustomState', () => {
+describe('ReplicationManager â€” setCustomState', () => {
   it('setCustomState stores key-value in snapshot.customState', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
@@ -138,13 +138,13 @@ describe('ReplicationManager — setCustomState', () => {
   });
 });
 
-// ── generateUpdates ───────────────────────────────────────────────────────────
+// â”€â”€ generateUpdates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — generateUpdates', () => {
+describe('ReplicationManager â€” generateUpdates', () => {
   it('first generateUpdates produces a full snapshot', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1', { updateIntervalMs: 0 });
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
     const updates = rm.generateUpdates(Date.now());
     expect(updates.some((u) => u.entityId === 'e1' && u.isFullSnapshot === true)).toBe(true);
   });
@@ -152,10 +152,10 @@ describe('ReplicationManager — generateUpdates', () => {
   it('subsequent generateUpdates produces delta (not full snapshot)', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1', { updateIntervalMs: 0 });
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
-    rm.generateUpdates(0); // first call — full snapshot sent
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
+    rm.generateUpdates(0); // first call â€” full snapshot sent
     // Move to new position
-    rm.updateSnapshot('e1', { position: { x: 5, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [5, 0, 0] });
     const updates = rm.generateUpdates(100);
     const update = updates.find((u) => u.entityId === 'e1');
     if (update) {
@@ -166,7 +166,7 @@ describe('ReplicationManager — generateUpdates', () => {
   it('generateUpdates returns empty when no entities are dirty', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
-    // Don't update snapshot — entity is not dirty
+    // Don't update snapshot â€” entity is not dirty
     const updates = rm.generateUpdates(Date.now());
     // Either empty or the first-time snapshot check triggers it; either is acceptable
     // The key check: no exception
@@ -176,25 +176,25 @@ describe('ReplicationManager — generateUpdates', () => {
   it('generateUpdates respects updateIntervalMs', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1', { updateIntervalMs: 1000 });
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
-    const first = rm.generateUpdates(0); // first time → sends
-    rm.updateSnapshot('e1', { position: { x: 2, y: 0, z: 0 } });
-    const second = rm.generateUpdates(50); // only 50ms later → skipped
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
+    const first = rm.generateUpdates(0); // first time â†’ sends
+    rm.updateSnapshot('e1', { position: [2, 0, 0] });
+    const second = rm.generateUpdates(50); // only 50ms later â†’ skipped
     // second may be empty since we haven't exceeded the 1000ms interval
     expect(second.find((u) => u.entityId === 'e1')).toBeUndefined();
   });
 });
 
-// ── applyRemoteUpdate ─────────────────────────────────────────────────────────
+// â”€â”€ applyRemoteUpdate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — applyRemoteUpdate', () => {
+describe('ReplicationManager â€” applyRemoteUpdate', () => {
   it('applyRemoteUpdate full snapshot sets position', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
     const update: DeltaUpdate = {
       entityId: 'e1',
       timestamp: Date.now(),
-      fields: { position: { x: 99, y: 0, z: 0 } },
+      fields: { position: [99, 0, 0] },
       isFullSnapshot: true,
     };
     rm.applyRemoteUpdate(update);
@@ -205,7 +205,7 @@ describe('ReplicationManager — applyRemoteUpdate', () => {
   it('applyRemoteUpdate delta updates only provided fields', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
-    rm.updateSnapshot('e1', { position: { x: 5, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [5, 0, 0] });
     const delta: DeltaUpdate = {
       entityId: 'e1',
       timestamp: Date.now(),
@@ -231,9 +231,9 @@ describe('ReplicationManager — applyRemoteUpdate', () => {
   });
 });
 
-// ── getStats ──────────────────────────────────────────────────────────────────
+// â”€â”€ getStats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — getStats', () => {
+describe('ReplicationManager â€” getStats', () => {
   it('totalEntities counts all registered entities', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
@@ -245,15 +245,15 @@ describe('ReplicationManager — getStats', () => {
     const rm = makeRM();
     rm.register('e1', 'player', 'p1');
     rm.register('e2', 'vehicle', 'p2');
-    rm.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
+    rm.updateSnapshot('e1', { position: [1, 0, 0] });
     const stats = rm.getStats();
     expect(stats.dirtyEntities).toBeGreaterThanOrEqual(1);
   });
 });
 
-// ── getEntitiesByType ─────────────────────────────────────────────────────────
+// â”€â”€ getEntitiesByType â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('ReplicationManager — getEntitiesByType', () => {
+describe('ReplicationManager â€” getEntitiesByType', () => {
   it('returns entity ids matching the given type', () => {
     const rm = makeRM();
     rm.register('car1', 'vehicle', 'p1');

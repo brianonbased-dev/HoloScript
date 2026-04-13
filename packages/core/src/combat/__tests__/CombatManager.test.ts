@@ -172,9 +172,9 @@ describe('CombatManager', () => {
   // --- Targeting ---
   it('findTargets returns sorted by priority then distance', () => {
     const candidates = [
-      { entityId: 'far', position: { x: 10, y: 0, z: 0 }, priority: 1 },
-      { entityId: 'close', position: { x: 2, y: 0, z: 0 }, priority: 1 },
-      { entityId: 'high', position: { x: 5, y: 0, z: 0 }, priority: 5 },
+      { entityId: 'far', position: [10, 0, 0], priority: 1 },
+      { entityId: 'close', position: [2, 0, 0], priority: 1 },
+      { entityId: 'high', position: [5, 0, 0], priority: 5 },
     ];
     const targets = cm.findTargets({ x: 0, y: 0, z: 0 }, candidates, 20);
     expect(targets[0].entityId).toBe('high'); // highest priority
@@ -183,8 +183,8 @@ describe('CombatManager', () => {
 
   it('findTargets filters by maxRange', () => {
     const candidates = [
-      { entityId: 'close', position: { x: 2, y: 0, z: 0 } },
-      { entityId: 'far', position: { x: 100, y: 0, z: 0 } },
+      { entityId: 'close', position: [2, 0, 0] },
+      { entityId: 'far', position: [100, 0, 0] },
     ];
     const targets = cm.findTargets({ x: 0, y: 0, z: 0 }, candidates, 10);
     expect(targets).toHaveLength(1);

@@ -13,7 +13,7 @@ describe('Tactile UI Interactions', () => {
     node = {
       id: 'test_node',
       properties: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         distance: 0.1, // 10cm press range for button
         axis: 'x', // Slider axis
         length: 1.0, // 1m slider

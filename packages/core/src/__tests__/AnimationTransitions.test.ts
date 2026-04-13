@@ -7,8 +7,8 @@ import {
 describe('AnimationTransitionSystem', () => {
   let sys: AnimationTransitionSystem;
   const pose: BonePose[] = [
-    { boneId: 'hip', position: { x: 0, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-    { boneId: 'head', position: { x: 0, y: 2, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    { boneId: 'hip', position: [0, 1, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+    { boneId: 'head', position: [0, 2, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
   ];
 
   beforeEach(() => {
@@ -43,8 +43,8 @@ describe('AnimationTransitionSystem', () => {
 
   it('blends positions between source and target', () => {
     const ragPose: BonePose[] = [
-      { boneId: 'hip', position: { x: 10, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-      { boneId: 'head', position: { x: 10, y: 2, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneId: 'hip', position: [10, 1, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneId: 'head', position: [10, 2, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     ];
     sys.startAnimToRagdoll('e1', pose);
     const results = sys.update(0.5, new Map([['e1', ragPose]]), new Map([['e1', pose]]));
@@ -73,7 +73,7 @@ describe('AnimationTransitionSystem', () => {
 
   it('deep copies source pose to prevent mutation', () => {
     const mutablePose: BonePose[] = [
-      { boneId: 'a', position: { x: 1, y: 2, z: 3 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneId: 'a', position: [1, 2, 3], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     ];
     sys.startAnimToRagdoll('e1', mutablePose);
     mutablePose[0].position.x = 999;
@@ -86,10 +86,10 @@ describe('AnimationTransitionSystem', () => {
   it('ease_in_out curve applies correctly at edges', () => {
     const eased = new AnimationTransitionSystem({ duration: 1, curve: 'ease_in_out' });
     const ragPose: BonePose[] = [
-      { boneId: 'hip', position: { x: 100, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneId: 'hip', position: [100, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     ];
     const animPose: BonePose[] = [
-      { boneId: 'hip', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { boneId: 'hip', position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
     ];
     eased.startAnimToRagdoll('e1', animPose);
     // At t=0.5, ease_in_out gives 0.5 → same as linear midpoint
@@ -100,7 +100,7 @@ describe('AnimationTransitionSystem', () => {
 
   it('nlerp normalizes rotation quaternion', () => {
     const rotPose: BonePose[] = [
-      { boneId: 'hip', position: { x: 0, y: 0, z: 0 }, rotation: { x: 1, y: 0, z: 0, w: 0 } },
+      { boneId: 'hip', position: [0, 0, 0], rotation: { x: 1, y: 0, z: 0, w: 0 } },
     ];
     sys.startAnimToRagdoll('e1', pose);
     const results = sys.update(0.5, new Map([['e1', rotPose]]), new Map([['e1', pose]]));

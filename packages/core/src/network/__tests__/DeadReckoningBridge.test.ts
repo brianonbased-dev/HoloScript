@@ -25,7 +25,7 @@ function makeSnapshot(overrides: Partial<PhysicsSnapshot> = {}): PhysicsSnapshot
     entityId: 'entity-1',
     timestamp: 1000,
     sequence: 1,
-    position: { x: 0, y: 10, z: 0 },
+    position: [0, 10, 0],
     rotation: { x: 0, y: 0, z: 0, w: 1 },
     velocity: { x: 5, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 },
@@ -67,7 +67,7 @@ describe('DeadReckoningPredictor', () => {
   it('linear extrapolation for kinematic bodies', () => {
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 5, z: 0 },
+      position: [0, 5, 0],
       velocity: { x: 10, y: 0, z: 0 },
       isKinematic: true,
     });
@@ -84,7 +84,7 @@ describe('DeadReckoningPredictor', () => {
     predictor = new DeadReckoningPredictor({ maxExtrapolation: 2000 });
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 100, z: 0 },
+      position: [0, 100, 0],
       velocity: { x: 0, y: 0, z: 0 },
       mass: 1,
       useGravity: true,
@@ -103,7 +103,7 @@ describe('DeadReckoningPredictor', () => {
   it('applies linear damping', () => {
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 10, y: 0, z: 0 },
       mass: 1,
       useGravity: false,
@@ -121,7 +121,7 @@ describe('DeadReckoningPredictor', () => {
   it('includes applied forces in prediction', () => {
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 0, y: 0, z: 0 },
       appliedForce: { x: 20, y: 0, z: 0 }, // 20N on 2kg mass = 10 m/s²
       mass: 2,
@@ -141,7 +141,7 @@ describe('DeadReckoningPredictor', () => {
     predictor = new DeadReckoningPredictor({ maxExtrapolation: 100 });
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 10, y: 0, z: 0 },
       useGravity: false,
       isKinematic: true,
@@ -189,8 +189,8 @@ describe('DeadReckoningPredictor — Correction', () => {
   });
 
   it('computeCorrection returns "none" for invisible errors', () => {
-    const predicted = makeSnapshot({ position: { x: 0, y: 0, z: 0 } });
-    const authoritative = makeSnapshot({ position: { x: 0.005, y: 0, z: 0 } });
+    const predicted = makeSnapshot({ position: [0, 0, 0] });
+    const authoritative = makeSnapshot({ position: [0.005, 0, 0] });
 
     const result = predictor.computeCorrection(predicted, authoritative);
     expect(result.strategy).toBe('none');
@@ -198,8 +198,8 @@ describe('DeadReckoningPredictor — Correction', () => {
   });
 
   it('computeCorrection returns "exponential" for smooth-range errors', () => {
-    const predicted = makeSnapshot({ position: { x: 0, y: 0, z: 0 } });
-    const authoritative = makeSnapshot({ position: { x: 0.3, y: 0, z: 0 } });
+    const predicted = makeSnapshot({ position: [0, 0, 0] });
+    const authoritative = makeSnapshot({ position: [0.3, 0, 0] });
 
     const result = predictor.computeCorrection(predicted, authoritative);
     expect(result.strategy).toBe('exponential');
@@ -208,8 +208,8 @@ describe('DeadReckoningPredictor — Correction', () => {
   });
 
   it('computeCorrection returns "snap" for large errors', () => {
-    const predicted = makeSnapshot({ position: { x: 0, y: 0, z: 0 } });
-    const authoritative = makeSnapshot({ position: { x: 5, y: 0, z: 0 } });
+    const predicted = makeSnapshot({ position: [0, 0, 0] });
+    const authoritative = makeSnapshot({ position: [5, 0, 0] });
 
     const result = predictor.computeCorrection(predicted, authoritative);
     expect(result.strategy).toBe('snap');
@@ -237,7 +237,7 @@ describe('DeadReckoningPredictor — Correction', () => {
   it('getInterpolatedPosition combines prediction and correction', () => {
     const snap = makeSnapshot({
       timestamp: 1000,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 10, y: 0, z: 0 },
       useGravity: false,
       isKinematic: true,
@@ -265,7 +265,7 @@ describe('extractPhysicsSnapshot', () => {
       42,
       5000,
       {
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
         rotation: { x: 0, y: 0.707, z: 0, w: 0.707 },
       },
       {
@@ -294,7 +294,7 @@ describe('extractPhysicsSnapshot', () => {
       'obj-2',
       1,
       0,
-      { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0, w: 1 } },
       { velocity: { x: 0, y: 0, z: 0 }, angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1 }
     );
 
@@ -422,7 +422,7 @@ describe('Dead-Reckoning Pipeline (integration)', () => {
     // T=0: Ball thrown with velocity (10, 20, 0) from origin
     const t0 = makeSnapshot({
       timestamp: 0,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 10, y: 20, z: 0 },
       mass: 1,
       useGravity: true,
@@ -442,7 +442,7 @@ describe('Dead-Reckoning Pipeline (integration)', () => {
     // Now authoritative state arrives (slightly different due to collision)
     const auth1 = makeSnapshot({
       timestamp: 1000,
-      position: { x: 10, y: 9.7, z: 0 }, // 0.3m lower than predicted
+      position: [10, 9.7, 0], // 0.3m lower than predicted
       velocity: { x: 10, y: 8, z: 0 },
       mass: 1,
       useGravity: true,
@@ -475,7 +475,7 @@ describe('Dead-Reckoning Pipeline (integration)', () => {
         makeSnapshot({
           timestamp: t,
           sequence: i,
-          position: { x: i * 0.5, y: 0, z: 0 },
+          position: [i * 0.5, 0, 0],
           velocity: { x: 10, y: 0, z: 0 },
           useGravity: false,
           isKinematic: true,

@@ -82,7 +82,7 @@ function makePointEmitter(max = 50): EmitterConfig {
     sizeEnd: [0, 0.1],
     colorStart: COLOR_WHITE,
     colorEnd: COLOR_RED,
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   };
 }
 
@@ -309,7 +309,7 @@ describe('Feature 3A: SpatialAudioSource', () => {
   let src: SpatialAudioSource;
 
   beforeEach(() => {
-    src = new SpatialAudioSource({ position: { x: 0, y: 0, z: 0 } });
+    src = new SpatialAudioSource({ position: [0, 0, 0] });
   });
 
   it('isPlaying returns false initially', () => {

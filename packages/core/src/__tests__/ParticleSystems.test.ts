@@ -22,7 +22,7 @@ describe('ParticleSystem', () => {
     sizeEnd: [0.01, 0.05] as [number, number],
     colorStart: { r: 1, g: 1, b: 1, a: 1 },
     colorEnd: { r: 1, g: 0, b: 0, a: 0 },
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
   };
 
   let ps: ParticleSystem;

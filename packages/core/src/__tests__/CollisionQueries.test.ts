@@ -103,7 +103,7 @@ describe('Cycle 151: Collision Queries', () => {
     const tz = new TriggerZoneSystem();
     tz.addZone({
       id: 'zone1',
-      shape: { type: 'sphere', position: { x: 0, y: 0, z: 0 }, radius: 5 },
+      shape: { type: 'sphere', position: [0, 0, 0], radius: 5 },
       enabled: true,
       tags: ['safe'],
     });
@@ -112,15 +112,15 @@ describe('Cycle 151: Collision Queries', () => {
     tz.onTrigger('zone1', (entityId, _z, event) => events.push({ entity: entityId, event }));
 
     // Frame 1: entity enters
-    tz.update([{ id: 'player', position: { x: 1, y: 0, z: 0 } }]);
+    tz.update([{ id: 'player', position: [1, 0, 0] }]);
     expect(events[0]).toEqual({ entity: 'player', event: 'enter' });
 
     // Frame 2: entity stays
-    tz.update([{ id: 'player', position: { x: 2, y: 0, z: 0 } }]);
+    tz.update([{ id: 'player', position: [2, 0, 0] }]);
     expect(events[1]).toEqual({ entity: 'player', event: 'stay' });
 
     // Frame 3: entity exits
-    tz.update([{ id: 'player', position: { x: 100, y: 0, z: 0 } }]);
+    tz.update([{ id: 'player', position: [100, 0, 0] }]);
     expect(events[2]).toEqual({ entity: 'player', event: 'exit' });
   });
 
@@ -128,18 +128,18 @@ describe('Cycle 151: Collision Queries', () => {
     const tz = new TriggerZoneSystem();
     tz.addZone({
       id: 'z1',
-      shape: { type: 'box', position: { x: 0, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
+      shape: { type: 'box', position: [0, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
       enabled: true,
       tags: [],
     });
     tz.addZone({
       id: 'z2',
-      shape: { type: 'box', position: { x: 3, y: 0, z: 0 }, halfExtents: { x: 5, y: 5, z: 5 } },
+      shape: { type: 'box', position: [3, 0, 0], halfExtents: { x: 5, y: 5, z: 5 } },
       enabled: true,
       tags: [],
     });
 
-    tz.update([{ id: 'npc', position: { x: 2, y: 0, z: 0 } }]);
+    tz.update([{ id: 'npc', position: [2, 0, 0] }]);
 
     expect(tz.isInside('npc', 'z1')).toBe(true);
     expect(tz.isInside('npc', 'z2')).toBe(true);

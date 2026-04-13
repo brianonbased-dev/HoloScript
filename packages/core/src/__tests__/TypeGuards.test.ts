@@ -29,7 +29,7 @@ describe('HoloScript Type Guards', () => {
         {
           type: 'expression-statement',
           expression: 'x',
-          position: { x: 1, y: 1, z: 0 },
+          position: [1, 1, 0],
         } as any,
       ],
       falsePath: [],
@@ -65,7 +65,7 @@ describe('HoloScript Type Guards', () => {
     const afterGate: ASTNode = {
       type: 'expression-statement',
       expression: 'y',
-      position: { x: 2, y: 1, z: 0 },
+      position: [2, 1, 0],
     } as any;
 
     const result = typeChecker.check([varDecl, gate, afterGate]);

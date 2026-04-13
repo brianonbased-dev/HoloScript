@@ -115,7 +115,7 @@ describe('BinaryWriter: production', () => {
 
   it('writeTransform stores 10 floats (3+4+3)', () => {
     writer.writeTransform({
-      position: { x: 1, y: 2, z: 3 },
+      position: [1, 2, 3],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       scale: { x: 1, y: 1, z: 1 },
     });

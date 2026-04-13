@@ -11,7 +11,7 @@ function makeAttractor(overrides: Partial<Attractor> = {}): Attractor {
   return {
     id: 'a1',
     shape: 'point',
-    position: { x: 10, y: 0, z: 0 },
+    position: [10, 0, 0],
     direction: { x: 0, y: 1, z: 0 },
     strength: 5,
     radius: 20,

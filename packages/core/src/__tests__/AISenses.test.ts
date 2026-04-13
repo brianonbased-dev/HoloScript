@@ -21,7 +21,7 @@ describe('Cycle 148: AI Senses', () => {
       id: 's1',
       type: 'sight',
       sourceId: 'player',
-      position: { x: 0, y: 0, z: 10 },
+      position: [0, 0, 10],
       intensity: 1,
       timestamp: 0,
     });
@@ -30,7 +30,7 @@ describe('Cycle 148: AI Senses', () => {
       id: 's2',
       type: 'sight',
       sourceId: 'player2',
-      position: { x: 0, y: 0, z: -10 },
+      position: [0, 0, -10],
       intensity: 1,
       timestamp: 0,
     });
@@ -39,7 +39,7 @@ describe('Cycle 148: AI Senses', () => {
       id: 's3',
       type: 'hearing',
       sourceId: 'noise',
-      position: { x: 25, y: 0, z: 0 },
+      position: [25, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -59,7 +59,7 @@ describe('Cycle 148: AI Senses', () => {
       id: 'sound',
       type: 'hearing',
       sourceId: 'x',
-      position: { x: 1, y: 0, z: 0 },
+      position: [1, 0, 0],
       intensity: 1,
       timestamp: 0,
     });
@@ -78,7 +78,7 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should seek toward and flee from targets', () => {
     const agent: SteeringAgent = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 0, y: 0, z: 0 },
       maxSpeed: 5,
       maxForce: 3,
@@ -94,7 +94,7 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should arrive and slow down near target', () => {
     const agent: SteeringAgent = {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       velocity: { x: 2, y: 0, z: 0 },
       maxSpeed: 5,
       maxForce: 3,
@@ -110,7 +110,7 @@ describe('Cycle 148: AI Senses', () => {
 
   it('should produce flock forces for a group', () => {
     const agents: SteeringAgent[] = Array.from({ length: 5 }, (_, i) => ({
-      position: { x: i * 2, y: 0, z: 0 },
+      position: [i * 2, 0, 0],
       velocity: { x: 1, y: 0, z: 0 },
       maxSpeed: 5,
       maxForce: 3,

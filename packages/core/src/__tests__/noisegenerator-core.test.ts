@@ -490,7 +490,7 @@ describe('Feature 10: TerrainBrush', () => {
       depth: 64,
       resolution: 9,
       maxHeight: 50,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     return ts;
   }

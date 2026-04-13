@@ -996,7 +996,7 @@ export class HoloScriptCodeParser {
       condition: this.parseConditionExpression(condition.trim()),
       update: update.trim(),
       body,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1041,7 +1041,7 @@ export class HoloScriptCodeParser {
       type: 'while-loop',
       condition: this.parseConditionExpression(condition.trim()),
       body: [],
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1071,7 +1071,7 @@ export class HoloScriptCodeParser {
       variable: variable || 'item',
       collection: collection || 'items',
       body: [],
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1094,7 +1094,7 @@ export class HoloScriptCodeParser {
         type: 'import',
         imports: [],
         modulePath,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
     }
 
@@ -1126,7 +1126,7 @@ export class HoloScriptCodeParser {
       imports,
       defaultImport,
       modulePath,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1143,7 +1143,7 @@ export class HoloScriptCodeParser {
       return {
         type: 'export',
         declaration: declaration || undefined,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
     }
 
@@ -1162,7 +1162,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'export',
       exports,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1190,7 +1190,7 @@ export class HoloScriptCodeParser {
       name,
       dataType,
       value: undefined,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
 
     if (this.check('punctuation', '=')) {
@@ -1539,7 +1539,7 @@ export class HoloScriptCodeParser {
       parameters,
       body,
       returnType,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       hologram: { shape: 'cube', color: '#ff6b35', size: 1.5, glow: true, interactive: true },
     };
   }
@@ -1607,7 +1607,7 @@ export class HoloScriptCodeParser {
       magnitude,
       multiplier: multipliers[magnitude] || 1,
       body,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -1634,7 +1634,7 @@ export class HoloScriptCodeParser {
       type: 'focus',
       target,
       body,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -2357,7 +2357,7 @@ export class HoloScriptCodeParser {
       type: 'migration',
       fromVersion,
       body: body.trim(),
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     };
   }
 
@@ -2423,7 +2423,7 @@ export class HoloScriptCodeParser {
       condition: this.parseConditionExpression(condition.trim()),
       truePath: truePath,
       falsePath: falsePath,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       hologram: { shape: 'pyramid', color: '#4ecdc4', size: 1, glow: true, interactive: true },
     };
   }
@@ -2470,7 +2470,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'return',
       value: expression.trim(), // Use 'value' to match runtime's executeReturn
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as unknown as ASTNode;
   }
 
@@ -2518,7 +2518,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'expression-statement',
       expression: expression.trim(),
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as unknown as ASTNode;
   }
 
@@ -2552,7 +2552,7 @@ export class HoloScriptCodeParser {
       name,
       source,
       transformations: [],
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       hologram: { shape: 'cylinder', color: '#45b7d1', size: 2, glow: true, interactive: true },
     };
   }
@@ -2577,7 +2577,7 @@ export class HoloScriptCodeParser {
 
     return {
       type: 'nexus',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       hologram: { shape: 'sphere', color: '#9b59b6', size: 3, glow: true, interactive: true },
     };
   }
@@ -2602,7 +2602,7 @@ export class HoloScriptCodeParser {
 
     return {
       type: 'building',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       hologram: { shape: 'cube', color: '#e74c3c', size: 4, glow: true, interactive: true },
     };
   }
@@ -2880,7 +2880,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'expression-statement',
       expression: `animate("${target}", ${JSON.stringify(properties)})`,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as ASTNode;
   }
 
@@ -2912,7 +2912,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'expression-statement',
       expression: `modify("${target}", ${JSON.stringify(properties)})`,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as ASTNode;
   }
 
@@ -2963,7 +2963,7 @@ export class HoloScriptCodeParser {
       type: 'ui2d',
       name: elementType,
       properties: { id: elementId, ...properties },
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as ASTNode;
   }
 
@@ -2975,7 +2975,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'expression-statement',
       expression: 'showSettings()',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as ASTNode;
   }
 
@@ -2984,7 +2984,7 @@ export class HoloScriptCodeParser {
     return {
       type: 'expression-statement',
       expression: 'openChat()',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     } as ASTNode;
   }
 

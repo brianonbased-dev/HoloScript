@@ -12,13 +12,13 @@ describe('Cycle 138: Decals & Projectors', () => {
     const ds = new DecalSystem();
     const d1 = ds.spawn({
       textureId: 'blood',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       lifetime: 5,
     });
     const d2 = ds.spawn({
       textureId: 'crack',
-      position: { x: 1, y: 0, z: 0 },
+      position: [1, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       lifetime: 3,
     });
@@ -31,7 +31,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     // Spawn reuses pooled instance
     const d3 = ds.spawn({
       textureId: 'scorch',
-      position: { x: 2, y: 0, z: 0 },
+      position: [2, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
     });
     expect(d3).toBeDefined();
@@ -41,7 +41,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     const ds = new DecalSystem();
     ds.spawn({
       textureId: 'test',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       normal: { x: 0, y: 1, z: 0 },
       lifetime: 2,
       fadeInDuration: 0.5,
@@ -69,7 +69,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     for (let i = 0; i < 5; i++) {
       ds.spawn({
         textureId: `tex${i}`,
-        position: { x: i, y: 0, z: 0 },
+        position: [i, 0, 0],
         normal: { x: 0, y: 1, z: 0 },
       });
     }
@@ -84,7 +84,7 @@ describe('Cycle 138: Decals & Projectors', () => {
   it('should create projectors and test frustum containment', () => {
     const pl = new ProjectorLight();
     pl.create({
-      position: { x: 0, y: 10, z: 0 },
+      position: [0, 10, 0],
       direction: { x: 0, y: -1, z: 0 },
       cookieTextureId: 'spotlight_cookie',
       fov: 60,
@@ -111,7 +111,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     const pl = new ProjectorLight();
     pl.create({
       id: 'p1',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       direction: { x: 0, y: 0, z: 1 },
       cookieTextureId: 'cookie',
       fov: 90,
@@ -141,7 +141,7 @@ describe('Cycle 138: Decals & Projectors', () => {
       batcher.addInstance({
         id: `d${i}`,
         textureId: i < 5 ? 'blood' : 'scorch',
-        position: { x: i * 5, y: 0, z: 0 },
+        position: [i * 5, 0, 0],
         scale: { x: 1, y: 1, z: 1 },
         rotation: { x: 0, y: 0, z: 0, w: 1 },
         opacity: 1,
@@ -163,7 +163,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     batcher.addInstance({
       id: 'visible',
       textureId: 'tex',
-      position: { x: 5, y: 0, z: 0 },
+      position: [5, 0, 0],
       scale: { x: 1, y: 1, z: 1 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       opacity: 1,
@@ -172,7 +172,7 @@ describe('Cycle 138: Decals & Projectors', () => {
     batcher.addInstance({
       id: 'hidden',
       textureId: 'tex',
-      position: { x: 500, y: 0, z: 0 },
+      position: [500, 0, 0],
       scale: { x: 1, y: 1, z: 1 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       opacity: 1,

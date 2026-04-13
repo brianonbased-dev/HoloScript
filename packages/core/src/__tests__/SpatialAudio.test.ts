@@ -5,7 +5,7 @@ import { audioOcclusionHandler } from '../traits/AudioOcclusionTrait';
 describe('Spatial Audio Verification (Cycle 74)', () => {
   describe('HeadTrackedAudioTrait', () => {
     it('should compensate for head rotation (World Anchor)', () => {
-      const node = { position: { x: 10, y: 0, z: 0 } }; // Source is to the RIGHT
+      const node = { position: [10, 0, 0] }; // Source is to the RIGHT
       const context = { emit: vi.fn() };
       const config = {
         ...headTrackedAudioHandler.defaultConfig,

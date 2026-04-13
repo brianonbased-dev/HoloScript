@@ -370,6 +370,7 @@ type TokenType =
   | 'TIMEOUT_BLOCK'
   | 'FALLBACK_BLOCK'
   | 'BULKHEAD_BLOCK'
+  | 'METADATA_BLOCK'
   // Spatial primitives
   | 'SPAWN_GROUP'
   | 'WAYPOINTS'
@@ -684,6 +685,18 @@ const KEYWORDS: Record<string, TokenType> = {
   // Process pipeline directives (.hs format — v5)
   connect: 'CONNECT',
   execute: 'EXECUTE',
+  scene: 'COMPOSITION',
+  entity: 'OBJECT',
+  compute_pipeline: 'PIPELINE_BLOCK',
+  frame_loop: 'LOGIC',
+  buffer: 'MODEL_BLOCK',
+  constants: 'STATE',
+  profiler: 'METRIC_BLOCK',
+  export_config: 'METADATA_BLOCK',
+  texture: 'MODEL_BLOCK',
+  sampler: 'MODEL_BLOCK',
+  metadata: 'METADATA_BLOCK',
+  post_process: 'POST_PROCESSING',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -1601,11 +1614,7 @@ export class HoloCompositionParser {
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('MODULE')) {
-          // Module block — capture name and skip opaque body
-          this.advance(); // consume 'module'
-          if (this.check('STRING')) this.expectString();
-          else if (this.check('IDENTIFIER')) this.expectIdentifier();
-          if (this.check('LBRACE')) this.skipBlock();
+          composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('AT')) {
           // Check for @platform(...) decorator at composition level
           if (
@@ -1664,12 +1673,9 @@ export class HoloCompositionParser {
             }
           }
         } else if (this.check('ACTION') || this.check('ASYNC')) {
-          // action / async action at composition level — skip entirely
-          if (this.check('ASYNC')) this.advance();
-          this.advance(); // consume ACTION
-          if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional name
-          if (this.check('LPAREN')) this.skipParens();
-          if (this.check('LBRACE')) this.skipBlock();
+          // action / async action at composition level
+          composition.actions = composition.actions || [];
+          composition.actions.push(this.parseAction());
         } else if (this.check('USING')) {
           // using "path/to/module" [as Name] at composition level
           this.advance(); // consume USING
@@ -1678,6 +1684,34 @@ export class HoloCompositionParser {
             this.advance(); // as
             if (this.check('IDENTIFIER')) this.advance(); // alias
           }
+        } else if (
+          this.check('IDENTIFIER') &&
+          this.current().value === 'on' &&
+          this.peek(1).type === 'IDENTIFIER'
+        ) {
+          const eventName = this.peek(1).value;
+          this.advance(); // consume 'on'
+          this.advance(); // consume event name
+
+          while (this.check('DOT')) {
+            this.advance(); // consume '.'
+            if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
+          }
+
+          let parameters: HoloParameter[] = [];
+          if (this.check('LPAREN')) {
+            parameters = this.parseParameterList();
+          }
+
+          if (this.check('LBRACE')) this.skipBlock();
+          
+          composition.eventHandlers = composition.eventHandlers || [];
+          composition.eventHandlers.push({
+            type: 'EventHandler',
+            event: eventName,
+            parameters,
+            body: [], // Skipped body
+          });
         } else if (this.check('COLON')) {
           // Stray colon at composition level (e.g. from @anchored_to: "value")
           this.advance(); // skip colon
@@ -2827,8 +2861,11 @@ export class HoloCompositionParser {
           // Named sub-block: gesture "pinch" { }, text "ModuleTitle" { }, animation "walk" { }
           const blockName = this.advance().value; // consume quoted name
           if (this.check('LPAREN')) this.skipParens();
-          if (this.check('LBRACE')) this.skipBlock();
-          directives.push({ type: key, name: blockName, parameters: [], body: '' });
+          let parsedBody: Record<string, any> | '' = '';
+          if (this.check('LBRACE')) {
+            parsedBody = this.parseBlockTraitConfig();
+          }
+          directives.push({ type: key, name: blockName, parameters: [], body: parsedBody });
         } else {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });

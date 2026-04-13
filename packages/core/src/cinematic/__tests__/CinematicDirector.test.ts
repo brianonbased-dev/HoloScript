@@ -160,7 +160,7 @@ describe('CinematicDirector', () => {
     director.createScene('s', 'S', 3);
     director.addActorMark('s', {
       actorId: 'hero',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
       animation: 'idle',
     });

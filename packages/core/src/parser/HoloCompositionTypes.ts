@@ -120,6 +120,12 @@ export interface HoloComposition extends HoloNode {
   traitDefinitions?: HoloTraitDefinition[];
   /** Root-level trait attachments (e.g. @page, @metadata) */
   traits?: HoloObjectTrait[];
+  /** Event handlers attached at the composition level (e.g. on(Target, "event") {}) */
+  eventHandlers?: HoloEventHandler[];
+  /** Actions available at the composition level */
+  actions?: HoloAction[];
+  /** Raw metadata key-value properties */
+  metadata?: Record<string, HoloValue>;
   // Spatial primitives (v4 — March 2026)
   spawnGroups?: HoloSpawnGroup[];
   waypointSets?: HoloWaypoints[];

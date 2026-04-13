@@ -111,7 +111,7 @@ describe('SceneQuery — Production', () => {
   it('frustumCull returns visible nodes in frustum', () => {
     const { root } = makeTree();
     const results = SceneQuery.frustumCull(root, {
-      position: { x: -10, y: 0, z: 0 },
+      position: [-10, 0, 0],
       direction: { x: 1, y: 0, z: 0 },
       fov: 90,
       near: 0.1,
@@ -129,7 +129,7 @@ describe('SceneQuery — Production', () => {
     root.addChild(hidden);
 
     const results = SceneQuery.frustumCull(root, {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       direction: { x: 0, y: 0, z: 1 },
       fov: 90,
       near: 0.1,

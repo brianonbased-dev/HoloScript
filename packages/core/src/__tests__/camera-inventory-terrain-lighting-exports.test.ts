@@ -117,7 +117,7 @@ describe('TerrainSystem exports', () => {
       depth: 32,
       resolution: 8,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     expect(typeof id).toBe('string');
     expect(ts.getTerrainIds().length).toBe(1);
@@ -132,7 +132,7 @@ describe('TerrainSystem exports', () => {
         depth: 16,
         resolution: 4,
         maxHeight: 5,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       { seed: 42 }
     );
@@ -149,7 +149,7 @@ describe('TerrainSystem exports', () => {
       depth: 32,
       resolution: res,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     const gx = 3,
       gz = 3;
@@ -168,7 +168,7 @@ describe('TerrainSystem exports', () => {
       depth: 16,
       resolution: 4,
       maxHeight: 5,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     const collider = ts.getCollider(id);
     expect(collider).not.toBeNull();
@@ -183,7 +183,7 @@ describe('TerrainSystem exports', () => {
       depth: 8,
       resolution: 4,
       maxHeight: 5,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
     expect(ts.removeTerrain(id)).toBe(true);
     expect(ts.getTerrainIds().length).toBe(0);
@@ -194,7 +194,7 @@ describe('LightingModel exports', () => {
   it('adds directional/point/spot lights', () => {
     const lm = new LightingModel();
     lm.addLight({ id: 'sun', type: 'directional' });
-    lm.addLight({ id: 'lamp', type: 'point', position: { x: 5, y: 3, z: 0 } });
+    lm.addLight({ id: 'lamp', type: 'point', position: [5, 3, 0] });
     lm.addLight({ id: 'flash', type: 'spot', spotAngle: 30 });
     expect(lm.getLightCount()).toBe(3);
   });
@@ -209,7 +209,7 @@ describe('LightingModel exports', () => {
 
   it('calculateAttenuation falls off with distance', () => {
     const lm = new LightingModel();
-    lm.addLight({ id: 'p', type: 'point', position: { x: 0, y: 0, z: 0 }, range: 10 });
+    lm.addLight({ id: 'p', type: 'point', position: [0, 0, 0], range: 10 });
     const near = lm.calculateAttenuation('p', { x: 1, y: 0, z: 0 });
     const far = lm.calculateAttenuation('p', { x: 8, y: 0, z: 0 });
     expect(near).toBeGreaterThan(far);

@@ -17,7 +17,7 @@ const BASIC_CONFIG: EmitterConfig = {
   sizeEnd: [0, 0],
   colorStart: { r: 1, g: 1, b: 1, a: 1 },
   colorEnd: { r: 1, g: 1, b: 1, a: 0 },
-  position: { x: 0, y: 0, z: 0 },
+  position: [0, 0, 0],
 };
 
 describe('ParticleSystem — Production', () => {

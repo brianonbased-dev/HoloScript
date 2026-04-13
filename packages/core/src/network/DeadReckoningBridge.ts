@@ -215,11 +215,7 @@ export class DeadReckoningPredictor {
         ...latest,
         timestamp: currentTime,
         rotation: nextRotation,
-        position: {
-          x: latest.position.x + latest.velocity.x * clampedDt,
-          y: latest.position.y + latest.velocity.y * clampedDt,
-          z: latest.position.z + latest.velocity.z * clampedDt,
-        },
+        position: [latest.position.x + latest.velocity.x * clampedDt, latest.position.y + latest.velocity.y * clampedDt, latest.position.z + latest.velocity.z * clampedDt,],
       };
     }
 
@@ -251,7 +247,7 @@ export class DeadReckoningPredictor {
     return {
       ...latest,
       timestamp: currentTime,
-      position: { x: px, y: py, z: pz },
+      position: [px, py, pz],
       velocity: { x: vx, y: vy, z: vz },
       rotation: nextRotation,
     };

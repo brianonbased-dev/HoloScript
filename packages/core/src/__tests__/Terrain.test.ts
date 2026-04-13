@@ -21,7 +21,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
       depth: 100,
       resolution: 33,
       maxHeight: 20,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
 
     expect(id).toBe('test_terrain');
@@ -44,7 +44,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
         depth: 10,
         resolution: res,
         maxHeight: 10,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       heightmap
     );
@@ -66,7 +66,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
       depth: 100,
       resolution: 33,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
 
     const normal = system.getNormalAt('normal_terrain', 50, 50);
@@ -84,7 +84,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
       depth: 100,
       resolution: 33,
       maxHeight: 10,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
 
     const collider = system.getCollider('collider_terrain');
@@ -152,7 +152,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
         depth: 100,
         resolution: res,
         maxHeight: 10,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       heightmap
     );
@@ -178,7 +178,7 @@ describe('Cycle 106: Terrain & Environment System', () => {
         depth: 50,
         resolution: res,
         maxHeight: 10,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       heightmap
     );

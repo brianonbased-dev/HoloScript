@@ -67,7 +67,7 @@ describe('ParticleForceSystem — Production', () => {
 
   describe('attractor', () => {
     it('pulls toward position', () => {
-      pfs.addForce({ id: 'a', type: 'attractor', strength: 10, position: { x: 10, y: 0, z: 0 } });
+      pfs.addForce({ id: 'a', type: 'attractor', strength: 10, position: [10, 0, 0] });
       const p = makeParticle();
       pfs.apply([p], 1.0);
       expect(p.velocity.x).toBeGreaterThan(0);

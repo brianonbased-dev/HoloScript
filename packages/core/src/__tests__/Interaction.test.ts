@@ -9,7 +9,7 @@ vi.mock('@holoscript/engine/physics/PhysicsWorldImpl', () => {
     PhysicsWorldImpl: vi.fn().mockImplementation(function () {
       const bodies = new Map();
       bodies.set('box1', {
-        position: { x: 0, y: 0, z: -0.5 },
+        position: [0, 0, -0.5],
         velocity: { x: 0, y: 0, z: 0 },
         type: 'dynamic',
       });
@@ -100,7 +100,7 @@ describe('Physics Interaction', () => {
   it('creates hand bodies in physics world on update', () => {
     const bridge = (runtime as any).vrPhysicsBridge;
     const handData = {
-      position: { x: -0.2, y: 1.5, z: -0.5 },
+      position: [-0.2, 1.5, -0.5],
       rotation: { x: 0, y: 0, z: 0 },
       pinchStrength: 0,
     };
@@ -115,7 +115,7 @@ describe('Physics Interaction', () => {
     // Ensure hand body exists
     const bridge = (runtime as any).vrPhysicsBridge;
     bridge.updateHand(
-      { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, pinchStrength: 1 },
+      { position: [0, 0, 0], rotation: { x: 0, y: 0, z: 0 }, pinchStrength: 1 },
       'right',
       0.016
     );

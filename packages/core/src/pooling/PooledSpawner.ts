@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PooledSpawner.ts
  *
  * Prefab spawning from pools: lifecycle management,
@@ -16,7 +16,7 @@ import { ObjectPool } from './ObjectPool';
 export interface SpawnedEntity {
   id: string;
   prefabId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   active: boolean;
@@ -56,7 +56,7 @@ export class PooledSpawner {
       factory: () => ({
         id: '',
         prefabId: def.id,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
         active: false,

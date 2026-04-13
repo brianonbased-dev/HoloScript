@@ -12,7 +12,7 @@ function makeConfig(overrides?: Partial<EmitterConfig>): EmitterConfig {
     sizeEnd: [0.5, 1],
     colorStart: { r: 1, g: 1, b: 1, a: 1 },
     colorEnd: { r: 1, g: 0, b: 0, a: 0 },
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     ...overrides,
   };
 }

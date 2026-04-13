@@ -440,7 +440,7 @@ describe('Feature 7: CombatManager', () => {
     return {
       id,
       ownerId,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
       damage: 20,
@@ -452,7 +452,7 @@ describe('Feature 7: CombatManager', () => {
     return {
       id,
       ownerId,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 1, y: 1, z: 1 },
       active: true,
     };

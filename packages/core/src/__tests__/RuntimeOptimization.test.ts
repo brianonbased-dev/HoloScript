@@ -24,7 +24,7 @@ describe('Runtime Optimization', () => {
     for (let i = 0; i < 10000; i++) {
       root.children.push({
         type: 'object',
-        properties: { position: { x: i, y: 0, z: 0 }, color: '#fff' },
+        properties: { position: [i, 0, 0], color: '#fff' },
       });
     }
 

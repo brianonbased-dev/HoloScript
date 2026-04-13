@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CinematicDirector.ts
  *
  * Scene orchestration: actor positioning, cue system,
@@ -16,7 +16,7 @@ import { CameraRig } from './CameraRig';
 
 export interface ActorMark {
   actorId: string;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: { x: number; y: number; z: number };
   animation?: string;
 }

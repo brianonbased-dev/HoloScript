@@ -268,7 +268,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
   it('sets needsSort and emits splat_sort when camera moves', () => {
     const { node, ctx, st, cfg } = attachLoaded();
     st.lastCameraPosition = { x: 0, y: 0, z: 0 };
-    ctx.camera = { position: { x: 1, y: 0, z: 0 } };
+    ctx.camera = { position: [1, 0, 0] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
 
@@ -280,7 +280,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
     const { node, ctx, st, cfg } = attachLoaded({ sort_mode: 'radix' });
     st.lastCameraPosition = { x: 0, y: 0, z: 0 };
     st.needsSort = true;
-    ctx.camera = { position: { x: 1, y: 0, z: 0 } };
+    ctx.camera = { position: [1, 0, 0] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_sort')).toBe(false);
@@ -289,7 +289,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
   it('sets initial camera position on first update', () => {
     const { node, ctx, st, cfg } = attachLoaded();
     st.lastCameraPosition = null;
-    ctx.camera = { position: { x: 5, y: 5, z: 5 } };
+    ctx.camera = { position: [5, 5, 5] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(st.lastCameraPosition).toEqual({ x: 5, y: 5, z: 5 });
@@ -298,7 +298,7 @@ describe('GaussianSplatTrait — onUpdate', () => {
   it('no sort when camera moves less than threshold (0.1)', () => {
     const { node, ctx, st, cfg } = attachLoaded();
     st.lastCameraPosition = { x: 0, y: 0, z: 0 };
-    ctx.camera = { position: { x: 0.05, y: 0, z: 0 } };
+    ctx.camera = { position: [0.05, 0, 0] };
 
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_sort')).toBe(false);
@@ -336,7 +336,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
     const { node, ctx, st, cfg } = attachLoadedWithLOD();
     st.lastCameraPosition = { x: 5, y: 5, z: 5 };
     // Camera at (5,5,50) -> dist from center (5,5,5) = 45 -> beyond 30 -> level 3
-    ctx.camera = { position: { x: 5, y: 5, z: 50 } };
+    ctx.camera = { position: [5, 5, 50] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
 
     const lodEvt = ctx.emitted.find((e) => e.event === 'splat_lod_change');
@@ -348,7 +348,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
   it('does NOT emit splat_lod_change when mode=none', () => {
     const { node, ctx, st, cfg } = attachLoadedWithLOD({ mode: 'none' });
     st.lastCameraPosition = { x: 5, y: 5, z: 5 };
-    ctx.camera = { position: { x: 5, y: 5, z: 50 } };
+    ctx.camera = { position: [5, 5, 50] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_lod_change')).toBe(false);
   });
@@ -358,7 +358,7 @@ describe('GaussianSplatTrait — onUpdate LOD', () => {
     st.lastCameraPosition = { x: 5, y: 5, z: 5 };
     st.currentLODLevel = 0;
     // Camera at center -> dist = 0 -> level 0 (same as current)
-    ctx.camera = { position: { x: 5, y: 5.2, z: 5 } };
+    ctx.camera = { position: [5, 5.2, 5] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_lod_change')).toBe(false);
   });
@@ -390,7 +390,7 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
       { total_cap: 180000, per_avatar_reservation: 60000 },
       200000
     );
-    ctx.camera = { position: { x: 0, y: 0, z: 0 } };
+    ctx.camera = { position: [0, 0, 0] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     const evt = ctx.emitted.find((e) => e.event === 'splat_budget_exceeded');
     expect(evt).toBeDefined();
@@ -404,7 +404,7 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
       { total_cap: 180000, per_avatar_reservation: 60000 },
       150000
     );
-    ctx.camera = { position: { x: 0, y: 0, z: 0 } };
+    ctx.camera = { position: [0, 0, 0] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_budget_exceeded')).toBe(false);
   });
@@ -414,7 +414,7 @@ describe('GaussianSplatTrait — onUpdate Budget', () => {
       { total_cap: 0, per_avatar_reservation: 0 },
       500000
     );
-    ctx.camera = { position: { x: 0, y: 0, z: 0 } };
+    ctx.camera = { position: [0, 0, 0] };
     gaussianSplatHandler.onUpdate!(node as any, cfg, ctx as any, 16);
     expect(ctx.emitted.some((e) => e.event === 'splat_budget_exceeded')).toBe(false);
   });

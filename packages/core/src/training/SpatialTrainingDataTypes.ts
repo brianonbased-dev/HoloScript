@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Spatial Training Data Types
  *
  * Type definitions for the spatial reasoning training data pipeline.
@@ -44,7 +44,7 @@ export interface SceneObject {
   /** Object type (e.g., 'cube', 'sphere', 'zone', 'npc') */
   type: string;
   /** 3D position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   /** 3D scale */
   scale: { x: number; y: number; z: number };
   /** Bounding box (for containment checks) */

@@ -44,7 +44,7 @@ describe('Cycle 110: Edge Case Tests', () => {
       depth: 10,
       resolution: 5,
       maxHeight: 5,
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
     });
 
     expect(terrain.getHeightAt('t', -100, -100)).toBe(0);
@@ -139,7 +139,7 @@ describe('Cycle 110: Edge Case Tests', () => {
   it('should not generate updates for non-dirty entities', () => {
     const mgr = new ReplicationManager();
     mgr.register('e1', 'transform', 'p1', { updateIntervalMs: 0 });
-    mgr.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 } });
+    mgr.updateSnapshot('e1', { position: [1, 0, 0] });
 
     // First update
     mgr.generateUpdates(100000);

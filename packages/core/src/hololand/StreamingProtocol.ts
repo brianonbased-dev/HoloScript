@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @holoscript/core Streaming Protocol
  *
  * Real-time streaming protocol for asset delivery, entity state synchronization,
@@ -184,7 +184,7 @@ export interface EntityState {
 
   /** Transform */
   transform: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number; w: number };
     scale: { x: number; y: number; z: number };
   };
@@ -321,7 +321,7 @@ export interface PlayerState {
   avatarId: string;
 
   /** Position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
 
   /** Rotation (head orientation) */
   rotation: { x: number; y: number; z: number; w: number };
@@ -463,7 +463,7 @@ export class StreamProtocol {
     StreamProtocol.instance = null;
   }
 
-  // ─── Connection Management ────────────────────────────────────────────────
+  // â”€â”€â”€ Connection Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Connect to streaming server
@@ -555,7 +555,7 @@ export class StreamProtocol {
     return this.connectionState === 'connected';
   }
 
-  // ─── Message Handling ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Message Handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Subscribe to message type
@@ -608,7 +608,7 @@ export class StreamProtocol {
     this.emit(message.type, message);
   }
 
-  // ─── Message Sending ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Message Sending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Send message
@@ -655,7 +655,7 @@ export class StreamProtocol {
     });
   }
 
-  // ─── Specific Message Senders ─────────────────────────────────────────────
+  // â”€â”€â”€ Specific Message Senders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Send handshake
@@ -842,7 +842,7 @@ export class StreamProtocol {
     });
   }
 
-  // ─── Serialization ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Serialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Serialize message to binary
@@ -880,7 +880,7 @@ export class StreamProtocol {
     });
   }
 
-  // ─── Heartbeat ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Heartbeat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Start heartbeat timer
@@ -902,7 +902,7 @@ export class StreamProtocol {
     }
   }
 
-  // ─── Statistics ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Statistics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Get protocol statistics

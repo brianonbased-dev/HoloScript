@@ -107,9 +107,9 @@ describe('CombatManager — Production', () => {
     const cm = new CombatManager();
     const pos = { x: 0, y: 0, z: 0 };
     const candidates = [
-      { entityId: 'near', position: { x: 5, y: 0, z: 0 }, priority: 1 },
-      { entityId: 'far', position: { x: 100, y: 0, z: 0 }, priority: 10 },
-      { entityId: 'mid', position: { x: 10, y: 0, z: 0 }, priority: 5 },
+      { entityId: 'near', position: [5, 0, 0], priority: 1 },
+      { entityId: 'far', position: [100, 0, 0], priority: 10 },
+      { entityId: 'mid', position: [10, 0, 0], priority: 5 },
     ];
     const targets = cm.findTargets(pos, candidates, 20);
     expect(targets.length).toBe(2); // far is out of range

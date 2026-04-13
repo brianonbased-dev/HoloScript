@@ -57,7 +57,7 @@ describe('Cycle 152: Volumetric Effects', () => {
     const vl = new VolumetricLight();
     vl.addLight({
       id: 'sun',
-      position: { x: 0, y: 100, z: 0 },
+      position: [0, 100, 0],
       intensity: 2,
       scattering: 0.5,
       samples: 16,
@@ -76,7 +76,7 @@ describe('Cycle 152: Volumetric Effects', () => {
     const vl = new VolumetricLight();
     vl.addLight({
       id: 'spot',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       maxDistance: 50,
       scattering: 0.8,
       intensity: 1,

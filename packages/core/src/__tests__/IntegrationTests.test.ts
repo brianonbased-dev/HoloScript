@@ -82,7 +82,7 @@ describe('Cycle 110: Integration Tests', () => {
         depth: 100,
         resolution: res,
         maxHeight: 15,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       heightmap
     );
@@ -208,7 +208,7 @@ describe('Cycle 110: Integration Tests', () => {
         depth: 50,
         resolution: 17,
         maxHeight: 10,
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       },
       heightmap
     );
@@ -251,13 +251,13 @@ describe('Cycle 110: Integration Tests', () => {
     interp.pushSnapshot({
       entityId: 'crate',
       timestamp: 0,
-      position: { x: 0, y: 1, z: 0 },
+      position: [0, 1, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
     interp.pushSnapshot({
       entityId: 'crate',
       timestamp: 100,
-      position: { x: 5, y: 1, z: 0 },
+      position: [5, 1, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     });
 

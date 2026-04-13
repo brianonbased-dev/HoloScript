@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GhostRunner.ts
  *
  * Ghost data: records player path for overlay rendering,
@@ -13,7 +13,7 @@
 
 export interface GhostSample {
   time: number;
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
   rotation: number; // Y-axis heading
   speed: number;
   metadata?: Record<string, unknown>;
@@ -71,7 +71,7 @@ export class GhostRunner {
   }
 
   addCheckpoint(time: number): void {
-    // Checkpoint at current recording time — stored in finishRecording
+    // Checkpoint at current recording time â€” stored in finishRecording
   }
 
   finishRecording(name = 'run'): GhostRun {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SpatialInputCompilerMixin.ts
  *
  * Generates platform-specific input handling code for each spatial input trait
@@ -82,7 +82,7 @@ export type CompiledSpatialInput =
   | { kind: 'controller_input'; data: CompiledControllerInput };
 
 // =============================================================================
-// COMPILE FUNCTIONS — Extract from AST Domain Blocks
+// COMPILE FUNCTIONS â€” Extract from AST Domain Blocks
 // =============================================================================
 
 export function compileHandTrackingBlock(block: HoloDomainBlock): CompiledHandTracking {
@@ -176,7 +176,7 @@ export function compileSpatialInputBlock(block: HoloDomainBlock): CompiledSpatia
 }
 
 // =============================================================================
-// ARCore (Kotlin) — Android XR / ARCore Extensions
+// ARCore (Kotlin) â€” Android XR / ARCore Extensions
 // =============================================================================
 
 export function handTrackingToARCore(ht: CompiledHandTracking, varPrefix = ''): string {
@@ -375,7 +375,7 @@ export function controllerInputToARCore(ctrl: CompiledControllerInput, varPrefix
 }
 
 // =============================================================================
-// ARKit (Swift) — visionOS / iOS
+// ARKit (Swift) â€” visionOS / iOS
 // =============================================================================
 
 export function handTrackingToARKit(ht: CompiledHandTracking, varPrefix = ''): string {
@@ -583,7 +583,7 @@ export function controllerInputToARKit(ctrl: CompiledControllerInput, varPrefix 
 }
 
 // =============================================================================
-// OpenXR (C++) — Cross-Platform XR
+// OpenXR (C++) â€” Cross-Platform XR
 // =============================================================================
 
 export function handTrackingToOpenXR(ht: CompiledHandTracking, varPrefix = ''): string {
@@ -685,7 +685,7 @@ export function gazeTransientPointerToOpenXR(
     `    xrCreateActionSpace(session, &spaceInfo, &${v}gazeSpace);`,
     `}`,
     ``,
-    `// Called ONLY at pinch/commit moment — never continuously`,
+    `// Called ONLY at pinch/commit moment â€” never continuously`,
     `void ${v}processGazeCommit(XrSpace baseSpace, XrTime time) {`,
     `    XrSpaceLocation location{XR_TYPE_SPACE_LOCATION};`,
     `    xrLocateSpace(${v}gazeSpace, baseSpace, time, &location);`,
@@ -713,7 +713,7 @@ export function gazeTransientPointerToOpenXR(
   lines.push(
     `        }`,
     `    }`,
-    `    // NOTE: gaze pose is NOT stored — privacy invariant maintained`,
+    `    // NOTE: gaze pose is NOT stored â€” privacy invariant maintained`,
     `}`
   );
 
@@ -877,7 +877,7 @@ export function controllerInputToOpenXR(ctrl: CompiledControllerInput, varPrefix
 }
 
 // =============================================================================
-// WebXR (TypeScript/JavaScript) — Browser XR
+// WebXR (TypeScript/JavaScript) â€” Browser XR
 // =============================================================================
 
 export function handTrackingToWebXR(ht: CompiledHandTracking, varPrefix = ''): string {
@@ -979,7 +979,7 @@ export function gazeTransientPointerToWebXR(
   const v = varPrefix ? `${varPrefix}_` : '';
   const lines: string[] = [
     `// Gaze Transient Pointer: ${gaze.name} (privacy-first)`,
-    `// Uses 'transient-pointer' input source — gaze direction NEVER exposed`,
+    `// Uses 'transient-pointer' input source â€” gaze direction NEVER exposed`,
     ``,
     `let ${v}dwellAccum = 0;`,
     `const ${v}DWELL_TIME_MS = ${gaze.dwellTimeMs};`,
@@ -1052,7 +1052,7 @@ export function sharedAnchorToWebXR(anchor: CompiledSharedSpatialAnchor, varPref
     `interface ${v}SharedAnchorData {`,
     `  anchorId: string;`,
     `  roomId: string;`,
-    `  pose: { position: { x: number; y: number; z: number }; orientation: { x: number; y: number; z: number; w: number } };`,
+    `  pose: { position: [number, number, number]; orientation: { x: number; y: number; z: number; w: number } };`,
     `}`,
     ``,
     `let ${v}resolveAttempts = 0;`,
@@ -1078,7 +1078,7 @@ export function sharedAnchorToWebXR(anchor: CompiledSharedSpatialAnchor, varPref
     `      anchorId,`,
     `      roomId: '${anchor.roomId}',`,
     `      pose: {`,
-    `        position: { x: pose.position.x, y: pose.position.y, z: pose.position.z },`,
+    `        position: [pose.position.x, pose.position.y, pose.position.z],`,
     `        orientation: { x: pose.orientation.x, y: pose.orientation.y, z: pose.orientation.z, w: pose.orientation.w },`,
     `      },`,
     `    };`,

@@ -89,13 +89,13 @@ describe('Skeletal & IK Performance', () => {
         bones: [
           {
             id: `b1-${c}`,
-            position: { x: 0, y: 0, z: 0 },
+            position: [0, 0, 0],
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             length: 0.3,
           },
           {
             id: `b2-${c}`,
-            position: { x: 0.3, y: 0, z: 0 },
+            position: [0.3, 0, 0],
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             length: 0.3,
           },
@@ -200,7 +200,7 @@ describe('Serialization Performance', () => {
       nodes.push({
         id: `node-${i}`,
         type: 'entity',
-        properties: { position: { x: i, y: i * 2, z: 0 }, scale: 1.0, color: '#ff0000' },
+        properties: { position: [i, i * 2, 0], scale: 1.0, color: '#ff0000' },
         traits: ['pressable', 'grabbable'],
         children: i < 999 ? [`node-${i + 1}`] : [],
       });

@@ -87,7 +87,7 @@ describe('SteeringBehaviors — Production', () => {
     it('pushes away from obstacle', () => {
       const agent = makeAgent(0, 0, 0);
       agent.velocity = { x: 1, y: 0, z: 0 };
-      const force = sb.avoidObstacles(agent, [{ position: { x: 3, y: 0, z: 0 }, radius: 2 }]);
+      const force = sb.avoidObstacles(agent, [{ position: [3, 0, 0], radius: 2 }]);
       expect(typeof force.x).toBe('number');
     });
   });

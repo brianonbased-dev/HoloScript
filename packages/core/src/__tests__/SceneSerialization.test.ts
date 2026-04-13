@@ -9,7 +9,7 @@ function makeTestScene(): HSPlusNode {
     id: 'root',
     type: 'composition',
     properties: {
-      position: { x: 0, y: 1, z: -2 },
+      position: [0, 1, -2],
       text: 'Hello World',
       visible: true,
       _internal: 'should_be_stripped',
@@ -22,7 +22,7 @@ function makeTestScene(): HSPlusNode {
       {
         id: 'child_1',
         type: 'entity',
-        properties: { position: { x: 1, y: 0, z: 0 }, tag: 'cube' },
+        properties: { position: [1, 0, 0], tag: 'cube' },
         traits: new Map([['collider', { type: 'box', size: [0.5, 0.5, 0.5] }]]),
         children: [],
       } as any,

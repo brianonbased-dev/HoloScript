@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @holoscript/core World Definition Schema
  *
  * Comprehensive schema for defining HoloScript worlds that integrate
@@ -431,7 +431,7 @@ export interface SpawnPoint {
   name: string;
 
   /** Position */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
 
   /** Rotation (euler angles) */
   rotation: { x: number; y: number; z: number };
@@ -513,7 +513,7 @@ export interface SceneNode {
 
   /** Transform */
   transform: {
-    position: { x: number; y: number; z: number };
+    position: [number, number, number];
     rotation: { x: number; y: number; z: number };
     scale: { x: number; y: number; z: number };
   };
@@ -776,7 +776,7 @@ export function createWorldDefinition(
       {
         id: 'default-spawn',
         name: 'Default Spawn',
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0 },
         type: 'default',
         priority: 10,
@@ -791,7 +791,7 @@ export function createWorldDefinition(
       name: 'Root',
       type: 'group',
       transform: {
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: 1, y: 1, z: 1 },
       },

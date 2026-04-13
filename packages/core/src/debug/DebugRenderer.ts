@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DebugRenderer.ts
  *
  * Debug visualization primitives: wireframe shapes, gizmos,
@@ -126,7 +126,7 @@ export class DebugRenderer {
   }
 
   drawText(
-    position: { x: number; y: number; z: number },
+    position: [number, number, number],
     text: string,
     color = DebugColors.white,
     duration = 0

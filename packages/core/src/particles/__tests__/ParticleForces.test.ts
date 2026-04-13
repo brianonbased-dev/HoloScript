@@ -4,7 +4,7 @@ import type { Particle } from '../ParticleEmitter';
 
 function makeParticle(overrides: Partial<Particle> = {}): Particle {
   return {
-    position: { x: 0, y: 0, z: 0 },
+    position: [0, 0, 0],
     velocity: { x: 0, y: 0, z: 0 },
     color: { r: 1, g: 1, b: 1, a: 1 },
     size: 1,
@@ -73,7 +73,7 @@ describe('ParticleForceSystem', () => {
 
   // Attractor
   it('attractor pulls particle toward position', () => {
-    system.addForce({ id: 'a', type: 'attractor', strength: 10, position: { x: 5, y: 0, z: 0 } });
+    system.addForce({ id: 'a', type: 'attractor', strength: 10, position: [5, 0, 0] });
     const p = makeParticle();
     system.apply([p], 0.1);
     expect(p.velocity.x).toBeGreaterThan(0);
@@ -99,7 +99,7 @@ describe('ParticleForceSystem', () => {
   // Turbulence (just assert it modifies velocity somehow)
   it('turbulence changes particle velocity', () => {
     system.addForce({ id: 't', type: 'turbulence', strength: 5, frequency: 1 });
-    const p = makeParticle({ position: { x: 1, y: 2, z: 3 } } as any);
+    const p = makeParticle({ position: [1, 2, 3] } as any);
     system.apply([p], 0.1);
     const moved = p.velocity.x !== 0 || p.velocity.y !== 0 || p.velocity.z !== 0;
     expect(moved).toBe(true);
@@ -107,8 +107,8 @@ describe('ParticleForceSystem', () => {
 
   // Vortex
   it('vortex applies tangential force', () => {
-    system.addForce({ id: 'v', type: 'vortex', strength: 5, position: { x: 0, y: 0, z: 0 } });
-    const p = makeParticle({ position: { x: 1, y: 0, z: 0 } } as any);
+    system.addForce({ id: 'v', type: 'vortex', strength: 5, position: [0, 0, 0] });
+    const p = makeParticle({ position: [1, 0, 0] } as any);
     system.apply([p], 0.1);
     // Vortex creates tangential (perpendicular) velocity in XZ
     expect(p.velocity.z).not.toBe(0);

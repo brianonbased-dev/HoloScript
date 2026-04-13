@@ -11,7 +11,7 @@ describe('AIOutputValidator — safe code', () => {
       object "Player" {
         @grabbable { physics: true }
         @networked { sync: "position" }
-        position: { x: 0, y: 1, z: 0 }
+        position: [0, 1, 0]
       }
     `;
     const result = validateAIOutput(code);

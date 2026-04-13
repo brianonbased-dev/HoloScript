@@ -83,14 +83,14 @@ export const createTextInput = (config: TextInputConfig): HSPlusNode => {
           text: config.text || config.placeholder || '',
           color: '#000000',
           fontSize: 0.08,
-          position: { x: -0.2, y: 0, z: 0.011 }, // Left align?
+          position: [-0.2, 0, 0.011], // Left align?
         },
       },
       {
         id: `${config.id || getID('input')}_cursor`,
         type: 'entity',
         properties: {
-          position: { x: -0.2, y: 0, z: 0.012 },
+          position: [-0.2, 0, 0.012],
           tag: 'cursor',
           visible: false, // Hidden by default, toggled by focus
         },
@@ -172,7 +172,7 @@ export const createButton = (config: ButtonConfig): HSPlusNode => {
         type: 'text',
         properties: {
           text: config.text,
-          position: { x: 0, y: 0, z: depth / 2 + 0.001 }, // Slightly in front
+          position: [0, 0, depth / 2 + 0.001], // Slightly in front
           color: '#ffffff',
           fontSize: 0.1,
         },
@@ -211,7 +211,7 @@ export const createSlider = (config: SliderConfig): HSPlusNode => {
         id: knobID,
         type: 'entity',
         properties: {
-          position: { x: 0, y: 0, z: 0 }, // Start at center? or min?
+          position: [0, 0, 0], // Start at center? or min?
         },
         traits: new Map([
           ['slidable', { axis, length: trackWidth, value: config.value || 0.5 }],

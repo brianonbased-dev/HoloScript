@@ -25,7 +25,7 @@ describe('HoloScriptRuntime', () => {
         name: 'testOrb',
         properties: { message: 'Hello World' },
         methods: [],
-        position: { x: 1, y: 2, z: 3 },
+        position: [1, 2, 3],
         hologram: { shape: 'orb', color: '#00ffff', size: 1, glow: true, interactive: true },
       };
 
@@ -42,7 +42,7 @@ describe('HoloScriptRuntime', () => {
         name: 'testFunc',
         parameters: [{ type: 'parameter', name: 'x', dataType: 'number' }],
         body: [],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
 
       const result = await runtime.executeNode(funcNode);
@@ -58,14 +58,14 @@ describe('HoloScriptRuntime', () => {
         name: 'source',
         properties: {},
         methods: [],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
       const orb2: OrbNode = {
         type: 'orb',
         name: 'target',
         properties: {},
         methods: [],
-        position: { x: 5, y: 0, z: 0 },
+        position: [5, 0, 0],
       };
 
       await runtime.executeNode(orb1);
@@ -205,7 +205,7 @@ describe('HoloScriptRuntime', () => {
         condition: 'value > 5',
         truePath: [],
         falsePath: [],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
 
       const result = await runtime.executeNode(gateNode);
@@ -222,7 +222,7 @@ describe('HoloScriptRuntime', () => {
         condition: 'value > 5',
         truePath: [],
         falsePath: [],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
 
       const result = await runtime.executeNode(gateNode);
@@ -283,7 +283,7 @@ describe('HoloScriptRuntime', () => {
         name: 'testStream',
         source: 'numbers',
         transformations: [{ type: 'transformation', operation: 'sum', parameters: {} }],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
 
       const result = await runtime.executeNode(streamNode);
@@ -303,7 +303,7 @@ describe('HoloScriptRuntime', () => {
           { type: 'transformation', operation: 'sort', parameters: {} },
           { type: 'transformation', operation: 'take', parameters: { count: 3 } },
         ],
-        position: { x: 0, y: 0, z: 0 },
+        position: [0, 0, 0],
       };
 
       const result = await runtime.executeNode(streamNode);

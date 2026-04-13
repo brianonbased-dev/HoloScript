@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Graph Grammar Rule System
  *
  * Exposes HoloScript composition rules as recursively expandable grammar nodes
@@ -79,7 +79,7 @@ export interface GrammarNode {
  */
 export interface NodeTransform {
   /** Position (can be absolute or relative to parent) */
-  position: { x: number; y: number; z: number };
+  position: [number, number, number];
 
   /** Rotation in degrees */
   rotation: { x: number; y: number; z: number };
@@ -572,7 +572,7 @@ let nodeIdCounter = 0;
  */
 export function createNonTerminal(
   symbol: string,
-  position: { x: number; y: number; z: number },
+  position: [number, number, number],
   tags: string[] = []
 ): GrammarNode {
   return {
@@ -599,7 +599,7 @@ export function createNonTerminal(
 export function createTerminal(
   symbol: string,
   traits: string[],
-  position: { x: number; y: number; z: number },
+  position: [number, number, number],
   config: Record<string, unknown> = {},
   tags: string[] = []
 ): GrammarNode {
@@ -626,7 +626,7 @@ export function createTerminal(
  */
 export function createAnchor(
   name: string,
-  position: { x: number; y: number; z: number },
+  position: [number, number, number],
   bounds?: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
 ): GrammarNode {
   return {

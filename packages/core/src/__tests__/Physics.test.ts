@@ -230,7 +230,7 @@ describe('RigidBody', () => {
     it('should set transform', () => {
       const body = new RigidBody(dynamicBody('test', sphereShape(1), 1));
       body.setTransform({
-        position: { x: 10, y: 20, z: 30 },
+        position: [10, 20, 30],
         rotation: { x: 0, y: 1, z: 0, w: 0 },
         scale: { x: 1, y: 1, z: 1 },
       });
@@ -467,7 +467,7 @@ describe('PhysicsWorldImpl', () => {
 
     it('should set transform', () => {
       world.setTransform('ball', {
-        position: { x: 5, y: 5, z: 5 },
+        position: [5, 5, 5],
         rotation: identityQuaternion(),
         scale: { x: 1, y: 1, z: 1 },
       });

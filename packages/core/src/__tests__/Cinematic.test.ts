@@ -106,7 +106,7 @@ describe('Cycle 144: Cinematic Sequencer', () => {
     dir.createScene('battle', 'Battle', 10);
     dir.addActorMark('battle', {
       actorId: 'hero',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 90, z: 0 },
       animation: 'idle',
     });

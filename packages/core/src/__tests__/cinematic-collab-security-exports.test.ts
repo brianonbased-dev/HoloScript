@@ -19,7 +19,7 @@ describe('CinematicDirector exports', () => {
     expect(scene.duration).toBe(5);
     dir.addActorMark('s1', {
       actorId: 'hero',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0 },
     });
     expect(dir.getScene('s1')?.actors.length).toBe(1);

@@ -32,7 +32,7 @@ export class SocialUIPanel {
     const tabContainer = createPanel({
       width: 0.3,
       height: 0.75,
-      position: { x: -0.33, y: 0, z: 0.01 },
+      position: [-0.33, 0, 0.01],
       color: '#2d3436',
     });
     mainPanel.children?.push(tabContainer);
@@ -43,7 +43,7 @@ export class SocialUIPanel {
         text: 'Friends',
         width: 0.25,
         height: 0.1,
-        position: { x: 0, y: 0.3, z: 0.01 },
+        position: [0, 0.3, 0.01],
       })
     );
 
@@ -53,7 +53,7 @@ export class SocialUIPanel {
         text: 'Requests',
         width: 0.25,
         height: 0.1,
-        position: { x: 0, y: 0.18, z: 0.01 },
+        position: [0, 0.18, 0.01],
       })
     );
 
@@ -62,7 +62,7 @@ export class SocialUIPanel {
       id: 'social_content_area',
       width: 0.65,
       height: 0.75,
-      position: { x: 0.15, y: 0, z: 0.01 },
+      position: [0.15, 0, 0.01],
       color: '#34495e', // Placeholder BG
     });
     mainPanel.children?.push(contentArea);

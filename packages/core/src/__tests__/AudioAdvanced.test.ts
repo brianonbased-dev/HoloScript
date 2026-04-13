@@ -13,7 +13,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     system.addZone({
       id: 'room1',
       shape: 'box',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 5, y: 3, z: 5 },
       reverb: REVERB_PRESETS.room,
       priority: 1,
@@ -33,7 +33,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     system.addZone({
       id: 'hall',
       shape: 'sphere',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 10, y: 10, z: 10 },
       reverb: REVERB_PRESETS.hall,
       priority: 1,
@@ -54,7 +54,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     system.addZone({
       id: 'z1',
       shape: 'box',
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       size: { x: 5, y: 3, z: 5 },
       reverb: REVERB_PRESETS.cathedral,
       priority: 2,
@@ -63,7 +63,7 @@ describe('Cycle 111: Audio & Spatial Sound', () => {
     system.addZone({
       id: 'z2',
       shape: 'box',
-      position: { x: 8, y: 0, z: 0 },
+      position: [8, 0, 0],
       size: { x: 5, y: 3, z: 5 },
       reverb: REVERB_PRESETS.outdoor,
       priority: 1,
