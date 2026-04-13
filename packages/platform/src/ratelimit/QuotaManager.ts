@@ -16,7 +16,7 @@
  * Configuration for quota limits.
  * Use -1 for unlimited quotas.
  */
-export interface QuotaConfig {
+export interface RateLimitQuotaConfig {
   daily: {
     parseOperations: number;
     compileOperations: number;
@@ -107,17 +107,17 @@ interface KeyUsage {
  * A limit of -1 means unlimited.
  */
 export class QuotaManager {
-  private readonly config: QuotaConfig;
+  private readonly config: RateLimitQuotaConfig;
   private readonly usage: Map<string, KeyUsage> = new Map();
 
-  constructor(config: QuotaConfig) {
+  constructor(config: RateLimitQuotaConfig) {
     this.config = structuredClone(config);
   }
 
   /**
    * Get the configuration for this quota manager.
    */
-  getConfig(): Readonly<QuotaConfig> {
+  getConfig(): Readonly<RateLimitQuotaConfig> {
     return structuredClone(this.config);
   }
 

@@ -13,7 +13,7 @@
 
 import {
   MarketplaceSubmission,
-  PackageMetadata,
+  MarketplacePackageMetadata,
   ContentCategory,
   SemanticVersion,
   Publisher,
@@ -28,7 +28,7 @@ import { PlatformTarget } from '@holoscript/core';
 /** A published package listing */
 export interface PackageListing {
   /** Package metadata */
-  metadata: PackageMetadata;
+  metadata: MarketplacePackageMetadata;
   /** Safety report from verification */
   safetyReport: SafetyReport;
   /** Download count */
@@ -61,7 +61,7 @@ export interface SearchFilters {
 }
 
 /** Search result */
-export interface SearchResult {
+export interface MarketplaceSearchResult {
   listings: PackageListing[];
   total: number;
   offset: number;
@@ -127,7 +127,7 @@ export class MarketplaceRegistry {
   /**
    * Search the registry.
    */
-  search(filters: SearchFilters = {}): SearchResult {
+  search(filters: SearchFilters = {}): MarketplaceSearchResult {
     let results = [...this.packages.values()];
 
     // Text search (name, description, tags)
@@ -217,7 +217,7 @@ export class MarketplaceRegistry {
       version: listing.metadata.version,
       safetyVerdict: listing.safetyReport.verdict,
       dangerScore: listing.safetyReport.dangerScore,
-      requiredCapabilities: listing.safetyReport.capabilities.required.map((r) => r.scope),
+      requiredCapabilities: listing.safetyReport.capabilities.required.map((r: { scope: string }) => r.scope),
       targetPlatforms: listing.metadata.platforms,
       dependencies: listing.metadata.dependencies,
       installedAt: new Date().toISOString(),

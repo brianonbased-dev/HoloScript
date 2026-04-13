@@ -9,7 +9,7 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { TenantContext, Permission } from './TenantManager';
+import type { TenantContext, TenantPermission } from './TenantManager';
 
 // =============================================================================
 // TYPES
@@ -41,7 +41,7 @@ const tenantStorage = new AsyncLocalStorage<TenantContext>();
 export function createContext(
   tenantId: string,
   userId?: string,
-  permissions?: Permission[]
+  permissions?: TenantPermission[]
 ): TenantContext {
   if (!tenantId || tenantId.trim().length === 0) {
     throw new Error('tenantId is required');
@@ -66,7 +66,7 @@ export function createContext(
 export function validateAccess(
   context: TenantContext,
   resource: ResourceDescriptor,
-  permission: Permission
+  permission: TenantPermission
 ): boolean {
   // Cross-tenant access is never allowed
   if (context.tenantId !== resource.tenantId) {

@@ -1174,7 +1174,7 @@ export {
   createPackageManifest,
   canonicalizeManifest,
 } from '@holoscript/platform';
-export type { Ed25519KeyPair, PackageManifest, SignedPackage } from '@holoscript/platform';
+export type { Ed25519KeyPair, SigningManifest as PackageManifest, SignedPackage } from '@holoscript/platform';
 
 // ── Persistence / Save ─────────────────────────────────────────────
 export { SaveManager } from './persistence/SaveManager';

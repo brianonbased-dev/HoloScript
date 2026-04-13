@@ -54,7 +54,7 @@ export interface Publisher {
 }
 
 /** Package metadata */
-export interface PackageMetadata {
+export interface MarketplacePackageMetadata {
   /** Unique package ID (e.g., @publisher/package-name) */
   id: string;
   /** Display name */
@@ -83,7 +83,7 @@ export interface PackageMetadata {
 
 /** A marketplace package ready for submission */
 export interface MarketplacePackage {
-  metadata: PackageMetadata;
+  metadata: MarketplacePackageMetadata;
   /** Bundled AST nodes for safety verification */
   nodes: EffectASTNode[];
   /** Asset manifest (file paths → sizes) */
@@ -205,12 +205,12 @@ export function verifySubmission(
     submission.status = 'rejected';
     submission.rejectionReasons = [
       ...safetyResult.report.effects.violations
-        .filter((v) => v.severity === 'error')
-        .map((v) => v.message),
+        .filter((v: { severity: string; message: string }) => v.severity === 'error')
+        .map((v: { severity: string; message: string }) => v.message),
       ...safetyResult.report.budget.diagnostics
-        .filter((d) => d.severity === 'error')
-        .map((d) => d.message),
-      ...safetyResult.report.capabilities.missing.map((m) => `Missing capability: ${m.scope}`),
+        .filter((d: { severity: string; message: string }) => d.severity === 'error')
+        .map((d: { severity: string; message: string }) => d.message),
+      ...safetyResult.report.capabilities.missing.map((m: { scope: string }) => `Missing capability: ${m.scope}`),
     ];
   } else if (safetyResult.report.verdict === 'warnings' && !cfg.allowWarnings) {
     submission.status = 'rejected';

@@ -39,13 +39,13 @@ export interface Tenant {
   metadata: Record<string, unknown>;
 }
 
-export type Permission = 'read' | 'write' | 'admin' | 'compile' | 'deploy' | 'publish';
+export type TenantPermission = 'read' | 'write' | 'admin' | 'compile' | 'deploy' | 'publish';
 
 export interface TenantContext {
   tenantId: string;
   userId?: string;
   sessionId: string;
-  permissions: Permission[];
+  permissions: TenantPermission[];
 }
 
 export interface CreateTenantConfig {

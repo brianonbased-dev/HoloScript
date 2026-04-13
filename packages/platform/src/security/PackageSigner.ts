@@ -28,7 +28,7 @@ export interface Ed25519KeyPair {
 /**
  * A signed package manifest containing metadata and signature.
  */
-export interface PackageManifest {
+export interface SigningManifest {
   /** Package name */
   name: string;
   /** Semver version string */
@@ -46,10 +46,11 @@ export interface PackageManifest {
  */
 export interface SignedPackage {
   /** The package manifest */
-  manifest: PackageManifest;
+  manifest: SigningManifest;
   /** Base64-encoded ed25519 signature of the canonical manifest JSON */
   signature: string;
 }
+
 
 // =============================================================================
 // KEY GENERATION
@@ -170,7 +171,7 @@ export async function createPackageManifest(
   name: string,
   version: string,
   files: string[]
-): Promise<PackageManifest> {
+): Promise<SigningManifest> {
   const sortedFiles = [...files].sort();
   const createdAt = new Date().toISOString();
 
@@ -191,7 +192,7 @@ export async function createPackageManifest(
  * Serialize a manifest to its canonical JSON string for signing.
  * Uses deterministic key ordering.
  */
-export function canonicalizeManifest(manifest: PackageManifest): string {
+export function canonicalizeManifest(manifest: SigningManifest): string {
   return JSON.stringify({
     name: manifest.name,
     version: manifest.version,

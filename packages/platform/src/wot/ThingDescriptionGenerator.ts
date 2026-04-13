@@ -8,8 +8,10 @@
  * @version 1.0.0
  */
 
-import type { HSPlusDirective } from '@holoscript/core';
 import type { HSPlusNode } from '@holoscript/core';
+
+// Local directive type (HSPlusDirective is not exported from @holoscript/core)
+type HSPlusDirective = { type: string; name?: string; [key: string]: unknown };
 
 // =============================================================================
 // W3C THING DESCRIPTION TYPES (TD 1.1)
@@ -317,8 +319,8 @@ export class ThingDescriptionGenerator {
 
     // Find @state directive (use any for flexibility with directive variants)
     const stateDirective = node.directives.find(
-      (d) =>
-        d.type === 'state' || (d.type === 'directive' && (d as { name?: string }).name === 'state')
+      (d: { type: string; name?: string; [key: string]: unknown }) =>
+        d.type === 'state' || (d.type === 'directive' && d.name === 'state')
     );
 
     if (!stateDirective || !(stateDirective as { body?: unknown }).body) {

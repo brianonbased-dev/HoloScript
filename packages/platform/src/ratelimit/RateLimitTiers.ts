@@ -8,7 +8,7 @@
  */
 
 import type { RateLimitConfig } from './RateLimiter';
-import type { QuotaConfig } from './QuotaManager';
+import type { RateLimitQuotaConfig } from './QuotaManager';
 
 // =============================================================================
 // TIER NAMES
@@ -61,7 +61,7 @@ export const RATE_LIMIT_TIERS: Record<TierName, RateLimitConfig> = {
  * - pro: Generous limits for production use
  * - enterprise: Unlimited (all limits set to -1)
  */
-export const QUOTA_TIERS: Record<TierName, QuotaConfig> = {
+export const QUOTA_TIERS: Record<TierName, RateLimitQuotaConfig> = {
   free: {
     daily: {
       parseOperations: 100,
@@ -115,7 +115,7 @@ export function getRateLimitConfig(tier: TierName): RateLimitConfig {
 /**
  * Get the quota configuration for a tier.
  */
-export function getQuotaConfig(tier: TierName): QuotaConfig {
+export function getQuotaConfig(tier: TierName): RateLimitQuotaConfig {
   const config = QUOTA_TIERS[tier];
   if (!config) {
     throw new Error(`Unknown tier: ${tier}`);

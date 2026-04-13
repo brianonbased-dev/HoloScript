@@ -53,7 +53,7 @@ export interface CertificationResult {
 /**
  * Package manifest for certification
  */
-export interface PackageManifest {
+export interface CertificationManifest {
   name: string;
   version: string;
   description?: string;
@@ -75,7 +75,7 @@ export interface PackageManifest {
  * Package files for analysis
  */
 export interface PackageFiles {
-  manifest: PackageManifest;
+  manifest: CertificationManifest;
   readme?: string;
   changelog?: string;
   license?: string;
@@ -723,7 +723,7 @@ export class CertificationChecker {
     return requiredPassed && (grade === 'A' || grade === 'B');
   }
 
-  private generateCertificateId(manifest: PackageManifest): string {
+  private generateCertificateId(manifest: CertificationManifest): string {
     const timestamp = Date.now();
     const hash = this.simpleHash(`${manifest.name}:${manifest.version}:${timestamp}`);
     return `CERT-${hash.toUpperCase()}`;
