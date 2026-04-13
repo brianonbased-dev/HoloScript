@@ -15,7 +15,11 @@ export function createKitchenDisplayHandler(): TraitHandler<KitchenDisplayConfig
     onEvent(n: HSPlusNode, c: KitchenDisplayConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__kdsState as KitchenDisplayState | undefined; if (!s) return;
       if (e.type === 'kds:new_ticket') {
-        const ticket: KitchenTicket = { orderId: (e.payload?.orderId as string) ?? '', items: (e.payload?.items as string[]) ?? [], priority: (e.payload?.priority as KitchenTicket['priority']) ?? 'normal', receivedAt: Date.now(), startedAt: null, completedAt: null };
+        const orderId = e.payload?.orderId;
+        const items = e.payload?.items;
+        if (typeof orderId !== 'string' || orderId.trim() === '') { ctx.emit?.('kds:error', { type: e.type, reason: 'invalid_order_id' }); return; }
+        if (!Array.isArray(items)) { ctx.emit?.('kds:error', { type: e.type, reason: 'invalid_items' }); return; }
+        const ticket: KitchenTicket = { orderId, items: items as string[], priority: (e.payload?.priority as KitchenTicket['priority']) ?? 'normal', receivedAt: Date.now(), startedAt: null, completedAt: null };
         if (s.activeTickets.length < c.maxActiveTickets) { s.activeTickets.push(ticket); ctx.emit?.('kds:ticket_received', { orderId: ticket.orderId }); }
         else ctx.emit?.('kds:queue_full');
       }
