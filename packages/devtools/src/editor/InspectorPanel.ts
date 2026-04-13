@@ -1,7 +1,7 @@
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { Inspector } from './Inspector';
 import { UIBuilder } from './UIBuilder';
-import { createPanel, createButton, _createTextInput, _createSlider } from '../ui/UIComponents';
+import { createPanel, createButton, createTextInput, createSlider } from '../ui/UIComponents';
 import { _Vector3, HSPlusNode } from '../types/HoloScriptPlus';
 
 interface PropertyBinding {
@@ -52,7 +52,7 @@ export class InspectorPanel {
     // 3. Create Panel Root
     // Position it relative to the user/camera (fixed for now)
     const panelNode = createPanel({
-      position: { x: -0.5, y: 1.5, z: -1 }, // Left and up
+      position: [-0.5, 1.5, -1], // Left and up
       width: 0.6,
       height: 0.8,
       color: '#222222',

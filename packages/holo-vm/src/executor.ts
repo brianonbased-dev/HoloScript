@@ -13,13 +13,13 @@
  *   - Timer Queue: scheduled delayed actions
  */
 
-import { HoloOpCode, ComponentType, GeometryType, _getOpcodeName, _isControlFlow } from './opcodes';
+import { HoloOpCode, ComponentType, GeometryType, getOpcodeName, isControlFlow } from './opcodes';
 import type {
   HoloBytecode,
   HoloInstruction,
   HoloOperand,
-  _HoloFunction,
-  _HoloEntityDef,
+  HoloFunction,
+  HoloEntityDef,
 } from './bytecode';
 
 // =============================================================================
@@ -490,11 +490,7 @@ export class HoloVM {
       case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
-          position: {
-            x: operands[1] as number,
-            y: operands[2] as number,
-            z: operands[3] as number,
-          },
+          position: [operands[1] as number, operands[2] as number, operands[3] as number,],
           rotation: {
             x: operands[4] as number,
             y: operands[5] as number,
@@ -523,7 +519,7 @@ export class HoloVM {
       case HoloOpCode.ROTATE: {
         const entityId = operands[0] as number;
         this.world.setComponent(entityId, ComponentType.Transform, {
-          position: { x: 0, y: 0, z: 0 },
+          position: [0, 0, 0],
           rotation: {
             x: operands[1] as number,
             y: operands[2] as number,

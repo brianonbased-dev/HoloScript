@@ -1,7 +1,7 @@
 import { World, Entity } from '@holoscript/engine/ecs/World';
 import { UIBuilder } from './UIBuilder';
 import { Web3Provider, NFTAsset } from '../web3/Web3Provider';
-import { _createPanel, _createButton, _createText } from '../ui/UIComponents';
+import { createPanel, createButton, createText } from '../ui/UIComponents';
 
 export class MarketplacePanel {
   public world: World;
@@ -28,7 +28,7 @@ export class MarketplacePanel {
         width: 0.8,
         height: 0.6,
         color: '#1a1a1a',
-        position: { x: -0.8, y: 1.5, z: -0.5 },
+        position: [-0.8, 1.5, -0.5],
         rotation: { x: 0, y: 0.5, z: 0 },
         borderRadius: 0.02,
       },
@@ -51,7 +51,7 @@ export class MarketplacePanel {
         properties: {
           text: 'Infinite Market (Base)',
           fontSize: 0.05,
-          position: { x: 0, y: 0.25, z: 0.02 },
+          position: [0, 0.25, 0.02],
           color: '#ffffff',
           align: 'center',
         },
@@ -76,7 +76,7 @@ export class MarketplacePanel {
           text: 'Connect Wallet',
           width: 0.3,
           height: 0.1,
-          position: { x: 0, y: 0, z: 0.02 },
+          position: [0, 0, 0.02],
           color: '#0052ff',
         },
       },
@@ -108,7 +108,7 @@ export class MarketplacePanel {
             text: asset.name,
             width: 0.6,
             height: 0.1,
-            position: { x: 0, y: 0.1 - i * 0.12, z: 0.02 },
+            position: [0, 0.1 - i * 0.12, 0.02],
             color: '#333',
           },
         },

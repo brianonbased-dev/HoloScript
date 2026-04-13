@@ -13,7 +13,7 @@
  *   - Timer Queue: scheduled delayed actions
  */
 
-import { HoloOpCode, ComponentType, GeometryType, _getOpcodeName, _isControlFlow } from './opcodes';
+import { HoloOpCode, ComponentType, GeometryType, getOpcodeName, isControlFlow } from './opcodes';
 import type {
   HoloBytecode,
   HoloInstruction,

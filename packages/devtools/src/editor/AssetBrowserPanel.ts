@@ -2,7 +2,7 @@ import { World, Entity } from '@holoscript/engine/ecs/World';
 import { AssetManager } from './AssetManager';
 import { UIBuilder } from './UIBuilder';
 import { AssetMetadata, AssetType } from '../assets/AssetMetadata';
-import { createPanel, _createButton, _createText } from '../ui/UIComponents';
+import { createPanel, createButton, createText } from '../ui/UIComponents';
 
 export class AssetBrowserPanel {
   private world: World;
@@ -36,7 +36,7 @@ export class AssetBrowserPanel {
         height: 0.6,
         color: '#222222',
         borderRadius: 0.02,
-        position: { x: 0.8, y: 1.5, z: -0.5 },
+        position: [0.8, 1.5, -0.5],
         rotation: { x: 0, y: -0.5, z: 0 }, // Angled towards user
       },
       children: [],
@@ -63,7 +63,7 @@ export class AssetBrowserPanel {
           text: 'Models',
           width: 0.2,
           height: 0.08,
-          position: { x: -0.2, y: 0.25, z: 0.02 },
+          position: [-0.2, 0.25, 0.02],
           color: this.currentTab === 'model' ? '#007bff' : '#444',
         },
       },
@@ -80,7 +80,7 @@ export class AssetBrowserPanel {
           text: 'Textures',
           width: 0.2,
           height: 0.08,
-          position: { x: 0.2, y: 0.25, z: 0.02 },
+          position: [0.2, 0.25, 0.02],
           color: this.currentTab === 'texture' ? '#007bff' : '#444',
         },
       },
@@ -127,11 +127,7 @@ export class AssetBrowserPanel {
             text: asset.name.length > 10 ? asset.name.substring(0, 10) + '...' : asset.name,
             width: 0.2,
             height: 0.15,
-            position: {
-              x: startX + col * gapX,
-              y: startY - row * gapY,
-              z: 0.02,
-            },
+            position: [startX + col * gapX, startY - row * gapY, 0.02,],
             color: '#3a3a3a',
           },
         },
