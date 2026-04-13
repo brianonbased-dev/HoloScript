@@ -12,7 +12,7 @@
 
 import type { HoloDomainBlock, HoloDomainType, HoloValue } from '../parser/HoloCompositionTypes';
 import { escapeStringValue, type EscapeTarget } from './CompilerBase';
-import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/platform';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 /**
  * Escape a string for safe interpolation into a specific target language.
@@ -4695,8 +4695,10 @@ function hexToRGBA(hex: string, alpha: number): number[] {
  * Since DomainBlockCompilerMixin is a utility module (not a CompilerBase subclass),
  * it exposes its required capability as an exported constant and helper function.
  */
+// Use getter to avoid circular dependency initialization order issues in CJS bundles
+// (ANSCapabilityPath may not be initialized when this module first loads)
 export const DOMAIN_BLOCK_COMPILER_MIXIN_CAPABILITY: ANSCapabilityPathValue =
-  ANSCapabilityPath.DOMAIN_BLOCK;
+  '/compile/mixin/domain-block' as ANSCapabilityPathValue;
 
 /**
  * Get the ANS capability namespace path for DomainBlockCompilerMixin.
