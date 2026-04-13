@@ -1,4 +1,4 @@
-import type { HoloSceneTarget, _HoloSceneFallback } from './types';
+import type { HoloSceneTarget, HoloSceneFallback } from './types';
 import { HoloSceneRenderer } from './HoloSceneRenderer';
 
 export class HoloSceneElement extends HTMLElement {
