@@ -256,7 +256,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         }
 
         // Create a temporary engine with the custom LLM provider
-        const { GraphRAGEngine } = await import('@holoscript/core/codebase');
+        const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
         const graph =
           // @ts-ignore - Automatic remediation for TS2339
           cachedGraphRAGEngine.graph ||

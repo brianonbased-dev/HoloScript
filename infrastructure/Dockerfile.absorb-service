@@ -73,10 +73,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy built artifacts and source core for CodebaseScanner
 COPY --from=builder /app/packages packages
 COPY --from=builder /app/services services
-COPY --from=builder /app/benchmarks benchmarks
-COPY --from=builder /app/docs docs
-COPY --from=builder /app/tsconfig.json ./
-COPY --from=builder /app/tsconfig.base.json ./
+COPY tsconfig.json tsconfig.base.json ./
 
 # Copy entrypoint
 COPY services/absorb-service/scripts/docker-entrypoint.sh /app/services/absorb-service/scripts/docker-entrypoint.sh
