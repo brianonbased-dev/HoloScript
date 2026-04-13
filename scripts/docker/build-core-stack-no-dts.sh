@@ -10,7 +10,7 @@ cd ../agent-protocol
 npx tsup --no-dts
 
 cd ../core
-npx tsup --no-dts
+npx tsup --no-dts --no-splitting
 node scripts/generate-types.mjs
 
 cd ../..
