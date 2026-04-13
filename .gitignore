@@ -442,3 +442,5 @@ packages/*/test-out*.txt
 /test_*.ts
 /patch_*.mjs
 /read_*.mjs
+.preflight-result.json
+.preflight-history.jsonl
