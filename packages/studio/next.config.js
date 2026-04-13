@@ -187,7 +187,7 @@ const nextConfig = {
     // Catch-all: stub Node.js-only packages that leak into client bundle via @holoscript/core
     config.plugins.push(
       new (require('webpack').NormalModuleReplacementPlugin)(
-        /^@holoscript\/(engine|framework)(\/.*)?$/,
+        /^@holoscript\/(engine|framework|mesh|platform)(\/.*)?$/,
         require.resolve('./src/lib/empty-module.js')
       )
     );
