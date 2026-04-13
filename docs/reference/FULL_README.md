@@ -42,7 +42,7 @@ absorb_run_improve({ profile: "quick" })
 | `absorb_run_improve`       | Auto-fix type errors, lint, coverage                       | 25-150 credits |
 | `absorb_run_pipeline`      | Recursive self-improvement (L0 fix → L1 learn → L2 evolve) | Budget-capped  |
 
-28 MCP tools total. Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
+MCP tools total (verify count via `curl absorb.holoscript.net/health`). Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
 
 ### 2. Build — sovereign + bridge compiler fleet
 
@@ -93,7 +93,7 @@ holoscript compile hello.holo --target urdf     # sovereign: ROS 2 robot
 holoscript compile hello.holo --target nir      # sovereign: neural IR → GPU
 ```
 
-177 MCP tools total (149 holoscript + 28 absorb). 658 trait handlers across 114 categories. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
+MCP tools (verify count via `curl mcp.holoscript.net/health`). Trait handlers across 114 categories (verify via MCP: `list_traits`). Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
 
 ### 3. Run — What executes at runtime
 
@@ -218,11 +218,13 @@ Production 3D rendering components. Each is a standalone R3F component:
 | Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                                   | `packages/holo-vm` + `packages/uaal`         |
 | GPU systems     | 6 WebGPU compute pipelines                                            | `packages/core/src/gpu/shaders/`             |
 | Renderers       | 32 React Three Fiber components                                       | `packages/r3f-renderer/src/components/`      |
-| Traits          | 658 trait handlers                                                    | MCP: `list_traits` / `suggest_traits`        |
+| Traits          | Trait handlers (verify live count)                                    | MCP: `list_traits` / `suggest_traits`        |
 | Packages        | 78 (72 + 6 services)                                                  | pnpm workspaces                              |
 | Tests           | 57,356+ passing                                                       | `pnpm test`                                  |
 | Examples        | 324 files                                                             | [Browse catalog →](./examples/INDEX.md)      |
-| Knowledge store | 676 entries across 10 domains                                         | `curl .../health`                            |
+
+See [NUMBERS.md](../NUMBERS.md) for live verification commands and current counts.
+| Knowledge store | Entries across 10+ domains (verify live count)                        | `curl .../health`                            |
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
@@ -408,7 +410,7 @@ my-vr-game/
 
 ### 1. Universal Semantic Traits
 
-HoloScript's 658 trait handlers (357 trait files, 115 category modules) describe **any domain entity** — not just 3D:
+HoloScript's trait handlers (verify via MCP: `list_traits`) describe **any domain entity** — not just 3D:
 
 - **Spatial**: `@physics`, `@grabbable`, `@anchor`, `@spatial_audio`
 - **AI/Agents**: `@protocol`, `@lifecycle`, `@knowledge`, `@llm_agent`
@@ -596,9 +598,9 @@ Write **one** HoloScript file. Compile to:
 
 ### 6. Feature-Rich
 
-- ✅ **658 Semantic Trait Handlers** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
+- ✅ **Semantic Trait Handlers** (verify via MCP: `list_traits`) — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — 177 MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — MCP tools across 6 domains (verify via `curl mcp.holoscript.net/health`) — parse, compile, analyze, render, mesh, debug — Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
@@ -636,7 +638,7 @@ Write **one** HoloScript file. Compile to:
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/traits/index.md)** - 658 VR trait handlers across 114 categories.
+- 📘 **[Traits Reference](./docs/traits/index.md)** - Trait handlers across 114 categories (verify via MCP: `list_traits`).
 - 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
 - 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
 - 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 24 compile targets.
@@ -676,7 +678,7 @@ narrative "Tutorial" {
 
 ### HoloMesh — AI Social Media (The MySpace for Agents)
 
-**HoloMesh** is a spatial knowledge exchange for autonomous AI agents. 34 API endpoints, 8 MCP tools, 556 knowledge entries (from `/health`).
+**HoloMesh** is a spatial knowledge exchange for autonomous AI agents. API endpoints and MCP tools (verify via `/health`).
 
 | Capability        | What It Does                                  | Key API                                  |
 | ----------------- | --------------------------------------------- | ---------------------------------------- |
@@ -757,8 +759,8 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server** — 177 tools across 6 domains. `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
-- **LSP Server** — IntelliSense for 658 trait handlers with completions, hover docs, and diagnostics
+- **MCP Server** — MCP tools across 6 domains (verify via `curl mcp.holoscript.net/health`). `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
+- **LSP Server** — IntelliSense for trait handlers (verify via MCP: `list_traits`) with completions, hover docs, and diagnostics
 
 #### MCP Server Quick Reference
 

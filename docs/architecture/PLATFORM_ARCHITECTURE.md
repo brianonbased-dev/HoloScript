@@ -142,7 +142,7 @@
 #### 3. Compiler Registry (`packages/core/src/compiler/`)
 
 - **Purpose**: Code generation for 25+ targets
-- **Size**: 15 compilers, ~50,000 lines
+- **Size**: compilers (verify via `find *Compiler.ts`), ~50,000 lines
 - **Knowledge Base**: Material presets, type mappings, platform APIs
 - **Status**: ✅ Complete
 

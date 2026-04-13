@@ -2,7 +2,7 @@
 
 This list closes every gap we’ve discussed — especially **realistic simulation** (physics, fluids, destruction, emergent behavior), while also enabling persistence, massive multiplayer, deep economy, seamless publishing flow, cross-device performance, and moderation at scale.
 
-Everything is built on your existing foundation (WebGPU + Rust runtime, 1,800+ traits, MCP 3-layer comms, OpenClaw swarms, 25 targets). I’ve grouped them into categories with:
+Everything is built on your existing foundation (WebGPU + Rust runtime, traits, MCP 3-layer comms, OpenClaw swarms, 25 targets). I’ve grouped them into categories with:
 
 - **Current State** (what already exists today)  
 - **Needed Upgrades** (exact enhancements)  

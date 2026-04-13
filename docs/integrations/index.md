@@ -17,7 +17,7 @@ HoloScript integrates with AI systems, platforms, and external services.
 
 ## MCP Server (AI Integration)
 
-The HoloScript MCP Server provides **34 tools** for AI assistants:
+The HoloScript MCP Server provides **MCP tools** for AI assistants (verify via `curl mcp.holoscript.net/health`):
 
 ```bash
 # Install globally

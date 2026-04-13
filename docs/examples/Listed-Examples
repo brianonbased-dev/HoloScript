@@ -1,7 +1,7 @@
 **100 Brief HoloScript Use Case Examples**  
 (With Basic → Advanced Iterations + HoloScript Utility)  
 
-Built directly from holoscript.net’s 50+ scenarios, 1,800+ traits, 25+ targets (Unity/Unreal/Godot/visionOS/ROS2/OpenUSD/DTDL/W3C WoT/URDF), OpenClaw swarms, MCP 3-layer comms, and Studio’s “anywhere browser” access. Each is concise so you can copy-paste into docs, ROADMAP, or feed to your IDE agents.
+Built directly from holoscript.net’s scenarios, semantic traits, and compilation targets (Unity/Unreal/Godot/visionOS/ROS2/OpenUSD/DTDL/W3C WoT/URDF and more — see [NUMBERS.md](../NUMBERS.md) for current counts), OpenClaw swarms, MCP comms, and Studio’s “anywhere browser” access. Each is concise so you can copy-paste into docs, ROADMAP, or feed to your IDE agents.
 
 ### 1-10: Spatial XR Entertainment & Gaming
 1. **Floating Crystal Castle**  
@@ -1541,7 +1541,7 @@ Want 10–20 of these turned into sample Studio prompts, .holo code skeletons, o
    Advanced: Interconnect any twin (home + city + planet).  
    Utility: Studio from anywhere → full backend + IoT power.
 
-This set is 100% new, zero overlap with the prior 200, and directly addresses the backend + IoT + twin + agent depth you described. Every utility is actually shippable today with your existing 1,800 traits, MCP layers, OpenClaw, and 25 targets.
+This set is 100% new, zero overlap with the prior 200, and directly addresses the backend + IoT + twin + agent depth you described. Every utility is actually shippable today with your existing traits, MCP layers, OpenClaw, and compilation targets (see [NUMBERS.md](../NUMBERS.md)).
 
 Want any 10 turned into .holo code skeletons, Studio prompts, or agent-generated demos? Or merge into ROADMAP.md format? Just say which slice to ship next. 🚀
 

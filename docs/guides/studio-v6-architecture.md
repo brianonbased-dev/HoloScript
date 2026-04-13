@@ -7,7 +7,7 @@ Based on the recent changes, documents (`VISION_V6.md`, `PAGES_ARCHITECTURE.md`,
 HoloScript V6.0 shifts focus from building new foundational paradigms to **stabilizing, optimizing, and decoupling** the V1-V5 stack into a production-grade ecosystem.
 
 - **Pillar I (Hardening the Core Engine):** Zero-allocation compiler execution paths, 100% test coverage for pure CPU logic.
-- **Pillar II (Trait Reiteration):** Optimizing and deeply documenting the existing 1,800+ traits to ensure seamless interaction (physics, AI, networking) without edge-case crashes.
+- **Pillar II (Trait Reiteration):** Optimizing and deeply documenting the existing traits (see [NUMBERS.md](../../NUMBERS.md) for current count) to ensure seamless interaction (physics, AI, networking) without edge-case crashes.
 - **Pillar III (Maturing Autonomous Systems):** Productionizing the agentic mesh and autonomous economics, adding OpenTelemetry tracing.
 - **Pillar IV (Sovereign Mesh):** Extreme scalability through Kubernetes & Edge, physical world unification (Robotics/IoT), and integrating the unified uAAL reasoning VM.
 

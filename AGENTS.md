@@ -47,7 +47,7 @@ packages/
   r3f-renderer/       # React Three Fiber components
   lsp/                # Language Server Protocol
   connectors/         # GitHub, Railway, Docker connectors
-  plugins/            # 36 domain plugins (banking, neuroscience, film, etc.)
+  plugins/            # Domain plugins (banking, neuroscience, film, etc. — count via `ls packages/plugins/`)
   snn-webgpu/         # GPU spiking neural networks
   ...                 # More — run `ls packages/` for full list
 
@@ -85,9 +85,26 @@ const result = await compiler.compile(source, 'test-token');
 
 ## Traits
 
-All traits live in `@holoscript/core/src/traits/`. Count via `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`.
+All traits live in `@holoscript/core/src/traits/`. Count via `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`. Category files in `traits/constants/` (116 files — verify via `ls`).
 
-Categories span spatial (physics, interaction, visual, audio) and non-spatial (economics, IoT, security, AI, state management, accessibility). Adding a new trait:
+Categories span far beyond spatial:
+
+| Domain | Example categories |
+|--------|-------------------|
+| **Spatial/XR** | core-vr-interaction, physics-expansion, locomotion-movement, xr-platform, spatial-algorithms |
+| **Rendering** | rendering, post-processing, global-illumination, visual-effects, volumetric-webgpu, vfx-audio |
+| **Characters** | humanoid-avatar, facial-expression, character-pipeline, character-materials, npc-roles, creatures-mythical |
+| **Environment** | atmosphere-sky, terrain-ocean, weather-phenomena, weather-particles, environmental-biome, nature-life |
+| **AI/ML** | intelligence-behavior, ml-inference, ml-tensor, networking-ai, iot-autonomous-agents |
+| **Data/Services** | data-pipeline, data-storage, database-persistence, api-gateway, search, file-storage |
+| **Business** | payment, social-commerce, enterprise-multitenancy, workflow-bpm, compliance-governance, audit-trail |
+| **Industry** | robotics-industrial, healthcare-medical, scientific-computing, construction-building, maritime-naval |
+| **Security** | auth-identity, security-crypto, safety-boundaries, feature-flags |
+| **DevOps** | devops-ci, testing-qa, observability, analytics-observability, containers-storage |
+| **Creative** | music-performance, narrative-storytelling, procedural-generation, magic-fantasy, cooking-food |
+| **Communication** | communication, notification-alerting, signs-communication, media-content |
+
+Adding a new trait:
 
 1. Define constant in `packages/core/src/traits/constants/`
 2. Add visual preset in `packages/core/src/traits/visual/presets/`
@@ -128,6 +145,17 @@ Never call `holo_absorb_repo` with `force: true` unless `holo_graph_status` repo
 - Run `pnpm test` before committing
 - Run `pnpm lint` for style issues
 - All tests must pass
+
+## Numbers Policy
+
+**Never hardcode ecosystem counts** (tools, compilers, traits, tests, plugins, packages) in docs, configs, or code comments. They change with every deploy.
+
+- **SSOT**: `docs/NUMBERS.md` — verification commands for every metric
+- **In docs**: reference the command or link to NUMBERS.md
+- **In code comments**: say "verify via `find *Compiler.ts`" not "44 compilers"
+- **MCP tools**: discover via `tools/list`, verify via `GET /health` → `tools` field
+- **Compilers**: `find packages/core/src -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*"`
+- **Traits**: `find packages/core/src/traits -name "*.ts" -not -name "*.test.*"`
 
 ## Git Rules
 

@@ -10,7 +10,7 @@ HoloScript implements a 3-layer communication stack that covers real-time scene 
 | ---------------- | --------------------------------------- | ----------------------------------- | -------- | ---------------------------------------------------------------- |
 | **L1: RealTime** | In-scene state sync, CRDT collaboration | WebSocket, WebRTC, BroadcastChannel | <16ms    | `core/src/network/`, `collab-server/`, `core/src/collaboration/` |
 | **L2: A2A**      | Agent-to-agent task delegation          | HTTP JSON-RPC, Agent Cards          | 50–500ms | `agent-protocol/`, `core/src/compiler/A2AAgentCardCompiler.ts`   |
-| **L3: MCP**      | Tool discovery and invocation           | Streamable HTTP, JSON-RPC           | 100ms–5s | `mcp-server/` (88 tools across 14 files)                         |
+| **L3: MCP**      | Tool discovery and invocation           | Streamable HTTP, JSON-RPC           | 100ms–5s | `mcp-server/` (verify tool count via `curl mcp.holoscript.net/health`) |
 
 ## Architecture Diagram
 
@@ -37,7 +37,7 @@ flowchart TB
 
     subgraph L3["Layer 3 — MCP (100ms-5s)"]
         DISC["/.well-known/mcp<br/>discovery endpoint"]
-        TOOLS["88 MCP Tools<br/>14 tool modules"]
+        TOOLS["MCP Tools<br/>(see /health for count)"]
         STATE["push_state_delta<br/>fetch_authoritative_state"]
         STREAM["Streamable HTTP<br/>POST /mcp"]
         DISC --> TOOLS
@@ -248,7 +248,7 @@ sequenceDiagram
 
 ### Purpose
 
-Standardized tool discovery and invocation for LLM agents. HoloScript exposes 88 tools across 14 modules via the MCP Streamable HTTP transport.
+Standardized tool discovery and invocation for LLM agents. HoloScript exposes MCP tools (verify count via `curl mcp.holoscript.net/health`) via the MCP Streamable HTTP transport.
 
 ### Discovery Endpoint
 
@@ -265,7 +265,7 @@ Response shape:
     "url": "https://mcp.holoscript.net/mcp",
     "authentication": { "type": "bearer", "header": "Authorization" }
   },
-  "capabilities": { "tools": { "count": 88 } },
+  "capabilities": { "tools": { "count": "..." } },
   "tools": [{ "name": "parse_hs", "description": "..." }, ...],
   "endpoints": {
     "mcp": "https://mcp.holoscript.net/mcp",
@@ -276,14 +276,14 @@ Response shape:
 }
 ```
 
-### Tool Categories (88 tools, 14 modules)
+### Tool Categories (verify counts via `GET /health`)
 
 | Module              | Tools                                                                                             | Source                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | **Core language**   | `parse_hs`, `parse_holo`, `validate_holoscript`, `explain_code`, `analyze_code`, `convert_format` | `tools.ts`, `handlers.ts`              |
-| **Traits**          | `list_traits` (1,800+), `explain_trait`, `suggest_traits`                                         | `handlers.ts:285–340`                  |
+| **Traits**          | `list_traits`, `explain_trait`, `suggest_traits`                                                  | `handlers.ts:285–340`                  |
 | **Generators**      | `generate_object`, `generate_scene`                                                               | `generators.ts`                        |
-| **Compiler**        | Compilation to 27 backend targets                                                                 | `compiler-tools.ts`                    |
+| **Compiler**        | Compilation to backend targets (verify via `find *Compiler.ts`)                                   | `compiler-tools.ts`                    |
 | **Graph analysis**  | Scene graph traversal, dependency analysis                                                        | `graph-tools.ts`, `graph-rag-tools.ts` |
 | **IDE integration** | LSP-adjacent tools for editors                                                                    | `ide-tools.ts`                         |
 | **Browser**         | `browser_launch`, `browser_execute`, `browser_screenshot`                                         | `browser/`                             |
@@ -402,7 +402,7 @@ L2 ←→ L1:  Agents set presence via CRDTDocument.setWorldPosition()
 | ---------------------------- | -------------------------------------------- | -------------------------------------------------------------- | ------------------- |
 | Streamable HTTP transport    | Replaced SSE (2025-03-26)                    | `POST /mcp` with streaming support                             | Aligned             |
 | `.well-known/mcp` discovery  | Active SEP (not yet finalized)               | `http-server.ts:297` — full manifest + tool list               | **Ahead of spec**   |
-| Tool invocation              | JSON-RPC over HTTP                           | 88 tools via `handleTool()` dispatcher                         | Aligned             |
+| Tool invocation              | JSON-RPC over HTTP                           | MCP tools via `handleTool()` dispatcher                        | Aligned             |
 | Resources                    | Resource templates + subscriptions           | Not implemented (tools-only model)                             | Intentional gap     |
 | Prompts                      | Prompt templates                             | Not implemented                                                | Intentional gap     |
 | Tasks primitive              | Added in 2025-11-25 spec                     | Agent protocol handles task lifecycle at L2                    | **Different layer** |
@@ -419,7 +419,7 @@ The MCP specification defines a single-layer tool protocol. HoloScript extends t
 
 2. **L2 fills the agent coordination gap** — MCP defines tool discovery but not agent-to-agent delegation. The uAA2++ protocol + A2A Agent Cards provide a structured lifecycle for multi-agent systems.
 
-3. **L3 aligns with MCP** while extending it with domain-specific capabilities (spatial state sync, 1,800+ VR traits, 27 compiler targets) that demonstrate how vertical MCP servers can specialize beyond generic tool providers.
+3. **L3 aligns with MCP** while extending it with domain-specific capabilities (spatial state sync, semantic traits via `find packages/core/src/traits`, compiler targets via `find *Compiler.ts`) that demonstrate how vertical MCP servers can specialize beyond generic tool providers.
 
 ---
 

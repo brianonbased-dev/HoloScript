@@ -1,3 +1,5 @@
+> **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../NUMBERS.md).
+
 # HoloScript MCP Server Guide
 
 Model Context Protocol (MCP) server for HoloScript language tooling. Enables AI agents to parse, validate, and generate HoloScript code.

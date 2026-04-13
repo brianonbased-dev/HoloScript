@@ -8,7 +8,7 @@
 
 ## The Trajectory
 
-HoloScript v6.0 "Universal Semantic Platform" has officially shipped, bringing 122 MCP tools, the bidirectional absorb loop, and a foundational three-tier language architecture. We have leveled the playing field. Now, we go wide open.
+HoloScript v6.0 "Universal Semantic Platform" has officially shipped, bringing 122 MCP tools (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current), the bidirectional absorb loop, and a foundational three-tier language architecture. We have leveled the playing field. Now, we go wide open.
 
 This RFC outlines the next 12–36 months of iterations, culminating in **v8.0: The Universal Semantic OS**.
 
@@ -48,7 +48,7 @@ Our traits are our superpower. Let’s aggressively expand the core repository:
 
 ## 3. Agent Swarm & Autonomous Economy (x402 + uAAL native)
 
-Using the 122 MCP tools and recursive self-improvement loops:
+Using the 122 MCP tools (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current) and recursive self-improvement loops:
 
 - **Agent Marketplace with Built-in x402 Settlement**
   - Autonomous agents buy/sell traits, skills, or entire sub-worlds. Need a scene blocked out? Rent the "Film3D Director Agent" template for the afternoon.

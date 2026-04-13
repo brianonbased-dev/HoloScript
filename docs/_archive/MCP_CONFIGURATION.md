@@ -1,3 +1,5 @@
+> **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../NUMBERS.md).
+
 # MCP Configuration Reference
 
 Quick reference for configuring HoloScript and Hololand MCP servers across different IDEs.

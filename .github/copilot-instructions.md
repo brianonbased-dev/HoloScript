@@ -47,22 +47,37 @@ Tool count changes — discover via MCP `tools/list`, verify via `curl mcp.holos
 
 ## Quick Trait Reference
 
+116 trait category files — full list via `ls packages/core/src/traits/constants/`. Key groups:
+
 ```
-SPATIAL:
+SPATIAL/XR:
   interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable @scalable
   physics       @collidable @physics @rigid @kinematic @trigger @gravity @soft_body
   visual        @glowing @emissive @transparent @reflective @animated @billboard @particle
   spatial       @anchor @tracked @world_locked @hand_tracked @eye_tracked
   audio         @spatial_audio @ambient @voice_activated @reverb
 
-NON-SPATIAL:
+AI/ML:
+  behavior      @npc @pathfinding @llm_agent @crowd @behavior_tree @goal_oriented
+  ml            @training_loop @inference @embedding @rag_knowledge @tensor_op
+  neural        @LIF_Neuron @synapse (→ NIRCompiler → GPU compute)
+
+BUSINESS/DATA:
   state-logic   @state @reactive @observable @computed @state_machine
-  ai-behavior   @npc @pathfinding @llm_agent @crowd
-  networking    @networked @synced @persistent @owned @host_only @replicated
-  economics     @wallet @nft_asset @token_gated @marketplace @economy_primitive
+  payments      @stripe @wallet @nft_asset @economy_primitive @credit
+  compliance    @gdpr @audit_log @consent_management @data_retention
+  data          @database @cache @etl @vector_db @pipeline
+  devops        @deploy @canary @circuit_breaker @healthcheck @feature_flag
+
+INDUSTRY:
   iot           @iot_sensor @digital_twin @mqtt_bridge @telemetry
-  security      @zero_knowledge_proof @vulnerability_scanner @audit_log
-  simulation    @thermal_simulation @structural_fem @hydraulic_pipe @saturation_*
+  robotics      @joint_revolute @urdf (→ URDFCompiler → ROS 2)
+  medical       @dicom (→ medical-plugin)
+  science       @structural_fem @thermal_simulation @fluid_simulation
+
+NETWORKING:
+  multiplayer   @networked @synced @persistent @owned @host_only @replicated
+  security      @zero_knowledge_proof @vulnerability_scanner @audit_log @encryption
 ```
 
 ## Completion Patterns

@@ -1465,7 +1465,7 @@ async function main() {
       console.log(`  ${RED}OAuth${RESET} for enterprise security`);
       console.log();
       console.log(`  Production: ${BOLD}https://mcp.holoscript.net${RESET}`);
-      console.log(`  82 tools | 28 targets | 1800+ traits`);
+      console.log(`  Tools, targets, traits — verify live at /health`);
       console.log();
     }
   } finally {

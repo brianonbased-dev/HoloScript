@@ -14,15 +14,15 @@ v6.0.2 shipped 2026-04-06. The v5.x "Great Refinement" goals have been met or ex
 
 | Metric          | v5.0 Target | v6.0.2 Actual                                                                          |
 | --------------- | ----------- | -------------------------------------------------------------------------------------- |
-| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.2)                                                 |
-| Traits          | 1,800+      | 3,300+ across 116 categories                                                           |
-| Compile targets | 15          | 40 compilers (12 sovereign + 28 bridge), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
+| Tests           | 1,500+      | 58,000+ passing (1,100+ new in v6.0.2, at time of writing)                             |
+| Traits          | 1,800+      | 3,300+ across 116 categories (at time of writing)                                      |
+| Compile targets | 15          | 40 compilers (12 sovereign + 28 bridge, at time of writing), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
 | MCP tools       | —           | Check via `curl mcp.holoscript.net/health` + `curl absorb.holoscript.net/health`       |
-| Packages        | —           | 68                                                                                     |
-| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (54 tools)                      |
-| HoloMesh        | concept     | V8+: endpoints via health check, 8 MCP tools, 15 BT actions                            |
+| Packages        | —           | 68 (at time of writing)                                                                |
+| Studio          | prototype   | 18 routes (progressive disclosure funnel), Brittney AI (54 tools, at time of writing)  |
+| HoloMesh        | concept     | V8+: endpoints via health check, 8 MCP tools, 15 BT actions (at time of writing)      |
 | Knowledge store | —           | Entry count via `curl orchestrator.../health`                                          |
-| Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction)                                    |
+| Type safety     | —           | `as any` reduced from 1,748 to 17 (97.8% reduction, at time of writing)                |
 
 What shipped in v6.0.2:
 

@@ -1,3 +1,5 @@
+> **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../NUMBERS.md).
+
 # Documentation & Implementation Audit Report (2026-02-07)
 
 > Historical audit snapshot: package names and status notes reflect repository state at audit time and are preserved for traceability.

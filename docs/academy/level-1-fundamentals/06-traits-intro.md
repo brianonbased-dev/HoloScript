@@ -291,7 +291,7 @@ Many traits accept parameters:
 @animated(speed: 30)
 ```
 
-## All 1,800+ VR Traits
+## All Semantic Traits
 
 Here's the complete list organized by category:
 

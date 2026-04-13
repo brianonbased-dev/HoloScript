@@ -1,4 +1,6 @@
-﻿<!-- markdownlint-disable MD012 MD024 MD026 MD031 MD032 MD033 MD036 MD040 MD051 MD060 -->
+﻿> **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../../NUMBERS.md).
+
+<!-- markdownlint-disable MD012 MD024 MD026 MD031 MD032 MD033 MD036 MD040 MD051 MD060 -->
 
 # HoloScript Roadmap 2026-2028
 

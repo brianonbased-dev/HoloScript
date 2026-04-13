@@ -156,7 +156,7 @@ But HoloScript works without Hololand.
 
 | Package                        | Purpose                                 | Version |
 | ------------------------------ | --------------------------------------- | ------- |
-| `@holoscript/mcp-server`       | MCP for AI agent integration (35 tools) | v3.4.0  |
+| `@holoscript/mcp-server`       | MCP for AI agent integration (see [NUMBERS.md](../NUMBERS.md)) | v3.4.0  |
 | `@holoscript/sdk`              | Smart Asset SDK & HoloHub client        | v3.0.0  |
 | `@holoscript/wasm`             | WebAssembly parser for browsers         | v3.0.0  |
 | `@holoscript/registry`         | Package registry & team workspace API   | v3.0.0  |
@@ -203,7 +203,7 @@ AI Agent (Grok/Claude/Copilot)
          │
          ▼
 ┌─────────────────────┐
-│ @holoscript/mcp-server │  ← 122 MCP tools
+│ @holoscript/mcp-server │  ← MCP tools (see NUMBERS.md)
 └────────┬────────────┘
          │ parse, validate, generate
          ▼

@@ -1,3 +1,5 @@
+> **ARCHIVED** — This document contains historical numbers that were accurate at time of writing. For current ecosystem metrics, see [NUMBERS.md](../../NUMBERS.md).
+
 # HoloScript Roadmap v3.0.x – v5.0 (Merged)
 
 **Generated**: 2026-02-07 (Revised: 2026-03-03)
