@@ -49,7 +49,7 @@ RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-sta
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 # platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
-RUN cd packages/absorb-service && npx tsup
+RUN cd packages/absorb-service && npx tsup --no-dts
 RUN cd packages/mcp-server && npx tsup
 
 

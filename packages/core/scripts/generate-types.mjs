@@ -3527,12 +3527,108 @@ for (const file of files) {
   }
 }
 
+// Stub DTS for subpaths missing from hand-crafted declarations
+const codebaseDTS = `// @holoscript/core/codebase — local dedup + god-file detection utilities
+export declare class DedupFilter {
+  constructor(config?: { hashFn?: (item: unknown) => string; [key: string]: unknown });
+  add(item: unknown): boolean;
+  has(item: unknown): boolean;
+  report(): { duplicates: unknown[]; removals: unknown[] };
+  [key: string]: unknown;
+}
+export declare function createDedupFilter(config?: unknown): DedupFilter;
+export declare class GodFileDetector {
+  constructor(thresholds?: unknown);
+  analyze(path: string, content: string): unknown;
+  [key: string]: unknown;
+}
+export declare function createGodFileDetector(thresholds?: unknown): GodFileDetector;
+export type Dedupable = unknown;
+export type DedupReport = { duplicates: unknown[]; removals: unknown[] };
+export type DedupRemoval = unknown;
+export type DedupConfig = unknown;
+export type FileMetrics = unknown;
+export type GodFileClassification = unknown;
+export type GodFileReport = unknown;
+export type VirtualSplitPlan = unknown;
+export type SplitSegment = unknown;
+export type GodFileThresholds = unknown;
+`;
+
+const storageDTS = `// @holoscript/core/storage — IPFS storage utilities
+export declare class IPFSService {
+  constructor(options?: unknown);
+  upload(file: Uint8Array | string, options?: unknown): Promise<unknown>;
+  pin(cid: string): Promise<unknown>;
+  unpin(cid: string): Promise<unknown>;
+  [key: string]: unknown;
+}
+export declare class PinataProvider { constructor(options?: unknown); [key: string]: unknown; }
+export declare class NFTStorageProvider { constructor(options?: unknown); [key: string]: unknown; }
+export declare class InfuraProvider { constructor(options?: unknown); [key: string]: unknown; }
+export declare class IPFSUploadError extends Error {}
+export declare class IPFSPinError extends Error {}
+export declare class FileSizeExceededError extends Error {}
+export type IPFSProvider = unknown;
+export type IPFSServiceOptions = unknown;
+export type FallbackProvider = unknown;
+export type IPFSFile = unknown;
+export type UploadProgress = unknown;
+export type UploadOptions = unknown;
+export type UploadResult = unknown;
+export type PinStatus = unknown;
+export type PinInfo = unknown;
+export type IIPFSProvider = unknown;
+`;
+
+const toolsDTS = `// @holoscript/core/tools — developer tools and integrations
+export declare class ErrorFormatter { format(error: unknown): string; [key: string]: unknown; }
+export declare class HoloScriptREPL { start(): void; [key: string]: unknown; }
+export declare function startREPL(): HoloScriptREPL;
+export declare class HotReloadWatcher { watch(path: string): void; [key: string]: unknown; }
+export declare class SourceMapGenerator { generate(source: string): string; [key: string]: unknown; }
+export declare class MaterialEditor { constructor(config?: unknown); [key: string]: unknown; }
+export declare class SceneInspector { constructor(config?: unknown); [key: string]: unknown; }
+export declare class VisualEditor { constructor(config?: unknown); [key: string]: unknown; }
+export type MaterialEditorPreset = unknown;
+export type MaterialEditorConfig = unknown;
+export type MaterialPreset = unknown;
+`;
+
+const constantsDTS = `// @holoscript/core/constants — trait name constants
+export { VR_TRAITS } from './traits/index.js';
+export type { VRTraitName } from './traits/index.js';
+`;
+
+const scriptingDTS = `// @holoscript/core/scripting — headless runtime and scripting traits
+export declare function createHeadlessRuntime(options?: unknown): unknown;
+export declare function getProfile(name: string): unknown;
+export declare const HEADLESS_PROFILE: unknown;
+export type HeadlessRuntime = unknown;
+export type HeadlessRuntimeOptions = unknown;
+export type RuntimeProfile = unknown;
+`;
+
+const interopDTS = `// @holoscript/core/interop — interop bindings and resilience patterns
+export declare class InteropBindingGenerator {
+  generate(exports: unknown[]): string;
+  [key: string]: unknown;
+}
+export declare class ModuleResolver { resolve(id: string): unknown; [key: string]: unknown; }
+export type BindingExport = unknown;
+export type BindingParameter = unknown;
+export type GeneratedBinding = unknown;
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
   { dir: 'traits', content: traitsDTS },
   { dir: 'compiler', content: compilerDTS },
   { dir: 'self-improvement', content: selfImprovementDTS },
+  { dir: 'codebase', content: codebaseDTS },
+  { dir: 'storage', content: storageDTS },
+  { dir: 'tools', content: toolsDTS },
 ];
 
 for (const { dir, content } of subdirDeclarations) {
@@ -3545,6 +3641,25 @@ for (const { dir, content } of subdirDeclarations) {
     console.log(`✓ Created ${dir}/index.d.ts`);
   } catch (err) {
     console.error(`✗ Failed to create ${dir}/index.d.ts:`, err.message);
+  }
+}
+
+// Create entries/ subdirectory declaration files
+const entriesDir = path.join(distDir, 'entries');
+if (!fs.existsSync(entriesDir)) {
+  fs.mkdirSync(entriesDir, { recursive: true });
+}
+const entriesDeclarations = [
+  { name: 'scripting.d.ts', content: scriptingDTS },
+  { name: 'interop.d.ts', content: interopDTS },
+  { name: '../constants.d.ts', content: constantsDTS },
+];
+for (const { name, content } of entriesDeclarations) {
+  try {
+    fs.writeFileSync(path.join(entriesDir, name), content, 'utf8');
+    console.log(`✓ Created entries/${name}`);
+  } catch (err) {
+    console.error(`✗ Failed to create entries/${name}:`, err.message);
   }
 }
 
