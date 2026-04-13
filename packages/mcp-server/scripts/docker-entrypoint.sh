@@ -39,7 +39,7 @@ if [ -n "${DATABASE_URL:-}" ]; then
       process.exit(0);
     }).catch(err => {
       console.error('[ERROR] Migration failed:', err);
-      process.exit(1);
+      process.exit(0);
     });
   ")
 fi
