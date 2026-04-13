@@ -22,7 +22,13 @@ const handler: TraitHandler<TherapySessionConfig> = {
       config.status = 'completed';
       ctx.emit?.('session_completed', { modality: config.modality, notes: config.sessionNotes });
     } else if (event.type === 'therapy_session:note') {
-      config.sessionNotes = (event.payload as { note: string }).note;
+      const payload = event.payload;
+      if (payload && typeof payload === 'object') {
+        const note = (payload as { note?: unknown }).note;
+        if (typeof note === 'string') {
+          config.sessionNotes = note;
+        }
+      }
     }
   },
 };
