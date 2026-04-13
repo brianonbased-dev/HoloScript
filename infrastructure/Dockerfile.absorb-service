@@ -47,7 +47,7 @@ RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/platform && npx tsup --no-dts
 RUN cd packages/mesh && npx tsup --no-dts
-RUN cd packages/absorb-service && npx tsup
+RUN cd packages/absorb-service && npx tsup --no-dts
 RUN cd services/absorb-service && npx tsc
 
 # --- Production stage ---
