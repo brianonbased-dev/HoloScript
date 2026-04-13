@@ -123,6 +123,10 @@ export default defineConfig({
     /^@holoscript\/engine\//,
     /^@holoscript\/framework\//,
     '@holoscript/agent-protocol',
+    '@holoscript/mesh',
+    /^@holoscript\/mesh\//,
+    '@holoscript/platform',
+    /^@holoscript\/platform\//,
     '@holoscript/mcp-server',
     // loro-crdt is only needed by mcp-server at runtime, but esbuild follows
     // relative imports from holoscript-runner.ts into mcp-server source
