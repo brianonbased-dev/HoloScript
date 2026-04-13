@@ -498,7 +498,7 @@ export interface TeamMessage {
 export const TEAM_ROLE_PERMISSIONS: Record<TeamRole, string[]> = {
   owner: ['board:write', 'board:read', 'members:manage', 'config:write', 'messages:write', 'messages:read'],
   lead: ['board:write', 'board:read', 'members:invite', 'messages:write', 'messages:read'],
-  member: ['board:read', 'board:claim', 'messages:write', 'messages:read'],
+  member: ['board:read', 'board:write', 'board:claim', 'messages:write', 'messages:read'],
   guest: ['board:read', 'messages:read'],
 };
 
