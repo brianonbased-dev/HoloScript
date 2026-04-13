@@ -1,6 +1,13 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@holoscript/framework': resolve(__dirname, './packages/framework/src'),
+      '@holoscript/engine': resolve(__dirname, './packages/engine/src')
+    }
+  },
   test: {
     coverage: {
       provider: 'v8',

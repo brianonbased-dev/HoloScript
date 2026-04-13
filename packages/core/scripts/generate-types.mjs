@@ -3001,11 +3001,6 @@ export interface Trait {
   [key: string]: any;
 }
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> c2b19933 (fix(core): make TraitHandler context params required, remove dup block)
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;
   process?: HostProcessCapabilities;
