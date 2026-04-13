@@ -103,6 +103,11 @@ COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
 
+# Debug: verify workspace symlinks exist
+RUN ls -la /app/node_modules/@holoscript/framework 2>/dev/null || echo "NO FRAMEWORK SYMLINK" && \
+    ls -la /app/node_modules/@holoscript/engine 2>/dev/null || echo "NO ENGINE SYMLINK" && \
+    ls /app/packages/framework/dist/learning/ 2>/dev/null || echo "NO FRAMEWORK LEARNING DIST"
+
 # Fail fast if critical build artifacts are missing
 RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/engine/dist/choreography/index.cjs && \
