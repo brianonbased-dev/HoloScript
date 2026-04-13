@@ -10,7 +10,8 @@ cd ../agent-protocol
 npx tsup --no-dts
 
 cd ../core
-npx tsup --no-dts --no-splitting
+# Use Docker-specific config that inlines workspace deps to avoid pnpm resolution issues
+npx tsup --config ../../scripts/docker/tsup.core.docker.ts
 node scripts/generate-types.mjs
 
 cd ../..

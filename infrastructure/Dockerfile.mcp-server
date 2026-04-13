@@ -47,8 +47,7 @@ COPY packages/mesh/ packages/mesh/
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/config && npx tsup --no-dts
 RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd packages/platform && npx tsup --no-dts
-RUN cd packages/mesh && npx tsup --no-dts
+# platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
 RUN cd packages/absorb-service && npx tsup
 RUN cd packages/mcp-server && npx tsup
 
@@ -88,24 +87,21 @@ COPY --from=manifests /manifests/ ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
+# Core's Docker bundle inlines engine/framework/platform/mesh/plugins — only copy
+# packages that mcp-server/absorb-service import directly at runtime.
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
-COPY --from=builder /app/packages/engine/dist packages/engine/dist
-COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
-COPY --from=builder /app/packages/platform/dist packages/platform/dist
-COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
 
-# Fail fast if framework build artifacts are missing (prevents runtime breakage
-# when mcp-server resolves @holoscript/framework in production).
-RUN test -f /app/packages/framework/dist/index.js
+# Fail fast if core bundle exists
+RUN test -f /app/packages/core/dist/index.cjs
 
 # Create persistent directories (Railway volume mount points)
 RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh
