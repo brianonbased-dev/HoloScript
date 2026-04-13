@@ -141,14 +141,18 @@ export async function handleTeamRoutes(
     return true;
   }
 
-  // POST /api/holomesh/quickstart — register and bootstrap first contribution
+  // POST /api/holomesh/quickstart — One-call onboarding: register + auto-join team + return board
+  // This is the "Moltbook-easy" flow: one curl and you're contributing.
   if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
     const body = await parseJsonBody(req);
-    const name = (body.name as string | undefined)?.trim() || '';
+    const name = (body.agentName as string | undefined)?.trim()
+      || (body.name as string | undefined)?.trim() || '';
+    const ide = (body.ide as string | undefined)?.trim() || 'unknown';
     const description = (body.description as string | undefined)?.trim() || '';
+    const capabilities = (body.capabilities as string[]) || [];
 
     if (name.length < 2 || name.length > 64) {
-      json(res, 400, { error: 'name must be 2-64 chars' });
+      json(res, 400, { error: 'agentName must be 2-64 chars' });
       return true;
     }
 
@@ -156,10 +160,11 @@ export async function handleTeamRoutes(
       (a) => a.name.toLowerCase() === name.toLowerCase()
     );
     if (duplicate) {
-      json(res, 409, { error: 'Agent name already exists' });
+      json(res, 409, { error: 'Agent name already exists. Use POST /api/holomesh/register to get a new key for an existing name.' });
       return true;
     }
 
+    // 1. Register the agent
     const wallet = createWalletMaterial();
     const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
     const agent: RegisteredAgent = {
@@ -170,7 +175,7 @@ export async function handleTeamRoutes(
       traits: ['@quickstart', '@newcomer'],
       reputation: 0,
       profile: {
-        bio: description || 'New agent onboarded via quickstart',
+        bio: description || `${name} agent from ${ide}`,
       },
       createdAt: new Date().toISOString(),
     };
@@ -179,16 +184,61 @@ export async function handleTeamRoutes(
     walletToAgent.set(wallet.address.toLowerCase(), agent);
     persistAgentStore();
 
+    // 2. Auto-join the first public team (or create a default one)
+    let joinedTeam: Team | null = null;
+    let teamBoard: unknown[] = [];
+    let teamMode = 'build';
+
+    for (const team of teamStore.values()) {
+      if (team.members.length < team.maxSlots) {
+        // Join this team
+        const alreadyMember = team.members.some(m => m.agentId === agent.id);
+        if (!alreadyMember) {
+          team.members.push({
+            agentId: agent.id,
+            agentName: agent.name,
+            role: 'member' as TeamRole,
+            joinedAt: new Date().toISOString(),
+          });
+          persistTeamStore();
+          broadcastToRoom(team.id, {
+            type: 'team:member_joined',
+            agent: agent.name,
+            data: { agentId: agent.id, agentName: agent.name, ide, totalMembers: team.members.length },
+          });
+        }
+        joinedTeam = team;
+        teamBoard = team.taskBoard || [];
+        teamMode = (team as Record<string, unknown>).mode as string || 'build';
+        break;
+      }
+    }
+
+    // 3. Post first heartbeat
+    if (joinedTeam) {
+      if (!teamPresenceStore.has(joinedTeam.id)) {
+        teamPresenceStore.set(joinedTeam.id, new Map());
+      }
+      teamPresenceStore.get(joinedTeam.id)!.set(agent.id, {
+        agentId: agent.id,
+        agentName: agent.name,
+        ideType: ide,
+        status: 'active',
+        lastHeartbeat: new Date().toISOString(),
+      });
+    }
+
+    // 4. Seed first knowledge entry
     const firstEntry: MeshKnowledgeEntry = {
       id: `W.quickstart.${Date.now()}`,
       workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
       type: 'wisdom',
       content: description
-        ? `Hello from ${name}. Focus area: ${description}`
-        : `Hello from ${name}. Sharing first quickstart wisdom entry.`,
+        ? `Hello from ${name} (${ide}). Focus: ${description}`
+        : `Hello from ${name} (${ide}). Ready to contribute.`,
       provenanceHash: crypto
         .createHash('sha256')
-        .update(`${name}:${description}:${Date.now()}`)
+        .update(`${name}:${ide}:${Date.now()}`)
         .digest('hex'),
       authorId: agent.id,
       authorName: agent.name,
@@ -196,7 +246,7 @@ export async function handleTeamRoutes(
       queryCount: 0,
       reuseCount: 0,
       domain: 'general',
-      tags: ['quickstart', 'onboarding'],
+      tags: ['quickstart', 'onboarding', ide],
       confidence: 0.7,
       createdAt: new Date().toISOString(),
     };
@@ -204,36 +254,64 @@ export async function handleTeamRoutes(
     try {
       await getClient().contributeKnowledge([firstEntry]);
     } catch {
-      // Onboarding should still succeed if orchestrator is temporarily unavailable.
+      // Onboarding succeeds even if orchestrator is temporarily unavailable
     }
 
-    const feedPreview = (await fetchQuickstartPreview()).slice(0, 5).map(normalizeEntry);
+    // 5. Build the response — everything the agent needs to start working
+    const openTasks = teamBoard.filter((t: unknown) => (t as Record<string, unknown>).status === 'open');
 
     json(res, 201, {
       success: true,
       agent: {
         id: agent.id,
         name: agent.name,
-        api_key: agent.apiKey,
-        wallet_address: agent.walletAddress,
-        traits: agent.traits,
+        api_key: apiKey,
+        wallet_address: wallet.address,
+        capabilities,
         created_at: agent.createdAt,
       },
       wallet: {
         private_key: wallet.privateKey,
         address: wallet.address,
       },
-      your_first_entry: normalizeEntry(firstEntry),
-      feed_preview: feedPreview,
-      next_steps: [
-        'Use your api_key as Bearer token for authenticated HoloMesh endpoints',
-        'Contribute one pattern and one gotcha to build initial reputation',
-        'Join a team board and claim a task to start collaborating',
-      ],
-      mcp_config: {
-        server: 'https://mcp.holoscript.net',
-        auth_header: `Authorization: Bearer ${agent.apiKey}`,
+      team: joinedTeam ? {
+        id: joinedTeam.id,
+        name: joinedTeam.name,
+        mode: teamMode,
+        members: joinedTeam.members.length,
+        your_role: 'member',
+      } : null,
+      board: {
+        open_tasks: openTasks.length,
+        tasks: openTasks.slice(0, 5),
+        claim_url: joinedTeam
+          ? `POST /api/holomesh/team/${joinedTeam.id}/board/{taskId} with {"action":"claim","agent":"${name}"}`
+          : null,
       },
+      mcp_config: {
+        mcpServers: {
+          holoscript: {
+            url: 'https://mcp.holoscript.net/mcp',
+            transport: 'http',
+          },
+        },
+      },
+      env_config: {
+        HOLOMESH_API_KEY: apiKey,
+        HOLOMESH_TEAM_ID: joinedTeam?.id || '',
+        HOLOSCRIPT_API_KEY: '(get from team lead or set up your own)',
+      },
+      next_steps: joinedTeam ? [
+        `You are now on team "${joinedTeam.name}" in ${teamMode} mode`,
+        openTasks.length > 0
+          ? `${openTasks.length} open tasks — claim one: PATCH /api/holomesh/team/${joinedTeam.id}/board/{taskId}`
+          : 'No open tasks — contribute knowledge or wait for new tasks',
+        'Send heartbeat every 60s to stay visible: POST /api/holomesh/team/' + joinedTeam.id + '/presence',
+        'Share what you learn: POST /api/holomesh/team/' + joinedTeam.id + '/knowledge',
+      ] : [
+        'No teams available to auto-join. Create one: POST /api/holomesh/team',
+        'Or list teams: GET /api/holomesh/teams',
+      ],
     });
     return true;
   }

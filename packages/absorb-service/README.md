@@ -91,6 +91,226 @@ Import from the specific sub-path you need:
 | Schema           | `@holoscript/absorb-service/schema`           | Drizzle ORM table definitions                                   |
 | Bridge           | `@holoscript/absorb-service/bridge`           | Absorb completion to pipeline trigger                           |
 
+## Graph RAG Example Questions
+
+The `holo_ask_codebase` tool uses OpenAI embeddings + knowledge graph traversal
++ LLM synthesis to answer natural language questions about any absorbed codebase.
+The engine doesn't just do text search — it walks the call graph, finds community
+clusters, measures blast radius, and feeds all of that to an LLM for a cited answer.
+
+Below are question families organized by what you're trying to learn. Each family
+shows a *splash pattern* — start broad, then drill into specifics as the graph
+reveals structure.
+
+### Compilation & Target Pipeline
+
+Start here when you need to understand how `.holo` source becomes output.
+
+```
+"Walk me through what happens when compile_to_unity is called on a .holo file"
+"What sovereign compilers exist and how do they differ from bridge compilers?"
+"How does CompilerBase enforce RBAC before compilation starts?"
+"Which compilers share the most code with each other — are there compilation families?"
+"What happens to trait metadata during the WebGPU compilation path?"
+"How does the incremental compiler decide what to recompile vs skip?"
+```
+
+### Trait System & Composition
+
+The trait system is HoloScript's core abstraction. These questions reveal how
+traits flow through the entire stack.
+
+```
+"How are traits defined in constants/ and consumed by compilers?"
+"What trait categories exist and which ones have custom runtime handlers?"
+"Show the composition chain when an object has both 'grabbable' and 'physics_body'"
+"Which traits are spatial-only vs applicable to non-visual domains like banking?"
+"How does trait validation prevent incompatible trait combinations?"
+"What's the relationship between trait constants, the AST trait node, and R3F rendering?"
+```
+
+### Simulation & Scientific Computing
+
+HoloScript has 8 physics solvers running in WebGPU. These questions explore
+the simulation layer.
+
+```
+"How does the structural FEA solver dispatch work to WebGPU compute shaders?"
+"What is the difference between TET4 and TET10 element formulation in the solver?"
+"How does the thermal solver couple with the structural solver for thermo-mechanical analysis?"
+"Where does the CFD lattice Boltzmann method store velocity fields on the GPU?"
+"How are simulation results validated — what does the V&V pipeline check?"
+"What makes the SNN spiking neural network different from traditional neural nets in this codebase?"
+```
+
+### MCP Server & Tool Dispatch
+
+The MCP server exposes 150+ tools. These questions map the tool infrastructure.
+
+```
+"How does a tool definition in tools.ts get wired to its handler in the HTTP server?"
+"What is the cascadeHandled pattern and why do some tools bypass the main dispatch?"
+"How does the HoloMesh board tool authenticate differently from compile tools?"
+"What happens when an MCP tool call comes in via JSON-RPC vs REST POST?"
+"How do agent-orchestration-tools coordinate multi-tool workflows?"
+"Where does the observability pipeline export OpenTelemetry traces?"
+```
+
+### Plugin Architecture
+
+35+ domain plugins extend HoloScript. These questions reveal the plugin contract.
+
+```
+"What interface must a domain plugin implement to register with the core?"
+"How does the medical-plugin's DICOM trait differ from the radio-astronomy FITS trait?"
+"What shared utilities do all plugins import from the domain-plugin-template?"
+"How does the banking-finance-plugin generate regulatory compliance traits?"
+"Can plugins define their own compilation targets or only use existing compilers?"
+"What's the plugin discovery mechanism — how does the core find installed plugins?"
+```
+
+### Identity, Auth & Agent Coordination
+
+Wallets, API keys, agent registration, and team coordination.
+
+```
+"How does the key registry resolve a Bearer token to a RegisteredAgent?"
+"What's the difference between founder auth, agent auth, and per-server keys?"
+"How does OAuth 2.1 scope enforcement work for tool-level permissions?"
+"What happens when an unregistered agent tries to call a HoloMesh endpoint?"
+"How does the CRDT sync layer handle conflicting edits from two agents?"
+"What does the team-coordinator do when an agent misses two heartbeat cycles?"
+```
+
+### Codebase Patterns & Structure
+
+Meta-questions about the codebase itself — useful for onboarding or auditing.
+
+```
+"What are the most connected symbols in the entire codebase — the load-bearing code?"
+"Which packages have the tightest coupling and might benefit from decoupling?"
+"Are there circular dependencies between packages?"
+"What code communities does the graph detect — do they match the package boundaries?"
+"Which files have the highest impact radius — changing them breaks the most things?"
+"What patterns appear in test files — is there a consistent testing style?"
+```
+
+### Semantic Search Splash Patterns (`holo_semantic_search`)
+
+Semantic search finds code by meaning, not keywords. Start broad, narrow with filters.
+
+```
+"spatial indexing"           → find octree, BVH, spatial hash implementations
+"error boundary"             → find error handling and recovery patterns
+"WebGPU buffer allocation"   → find GPU memory management
+"trait composition resolver" → find where traits get merged onto objects
+"CRDT merge conflict"        → find conflict resolution in networked state
+"animation interpolation"    → find keyframe and easing logic
+"scene serialization"        → find save/load and snapshot code
+"credit deduction"           → find billing and metering logic
+```
+
+Filter by type for precision:
+```
+holo_semantic_search({ query: "compiler", type: "class" })        → only compiler classes
+holo_semantic_search({ query: "validate", type: "function" })     → only validation functions
+holo_semantic_search({ query: "shader", language: "typescript" }) → only TS shader code
+holo_semantic_search({ query: "test helper", file: "__tests__" }) → only test utilities
+```
+
+### Edge Cases & Tricky Questions
+
+These are the questions that expose the boundaries of Graph RAG — where naive
+search fails but graph enrichment helps, or where you need to frame the question
+differently to get useful results.
+
+**Cross-package boundaries (graph excels here):**
+```
+"What happens when studio calls a function defined in @holoscript/core that
+ delegates to absorb-service? Trace the full cross-package call chain."
+"Which types are re-exported across package boundaries and where do they diverge?"
+"Find functions that are imported by 5+ packages — the de facto public API."
+```
+
+**Dead code & orphans (what ISN'T connected):**
+```
+"Which exported functions have zero callers anywhere in the codebase?"
+"Are there compiler implementations that no compilation target actually uses?"
+"Find interfaces that are defined but never implemented."
+"What test files exist for modules that have since been deleted?"
+```
+
+**Naming collisions & shadows (same name, different things):**
+```
+"There are multiple 'parse' functions — which one handles .holo vs .hs vs .hsplus?"
+"How many 'validate' functions exist and do they share a contract or are they independent?"
+"Disambiguate 'State' — HolomeshState vs SimulationState vs CRDTState."
+"Which 'index.ts' barrel exports overlap with each other?"
+```
+
+**Runtime vs static structure (graph sees static, behavior is dynamic):**
+```
+"Which tool handlers are registered dynamically at startup vs statically in tools.ts?"
+"How does the plugin discovery mechanism load plugins that aren't statically imported?"
+"What code paths only execute in production (Railway env) vs development?"
+"Which WebGPU shader dispatches depend on runtime feature detection?"
+```
+
+**Scale & performance (what's expensive):**
+```
+"Which functions have the deepest call chains — more than 10 levels deep?"
+"What's the most complex community cluster and what holds it together?"
+"If I delete packages/connector-github, what's the total transitive impact?"
+"Which test suites import the most source files — candidates for slow tests?"
+```
+
+**Monorepo-specific (pnpm workspace gotchas):**
+```
+"Which packages use workspace:* protocol dependencies that would break for external users?"
+"Are there packages that import from dist/ instead of src/ of sibling packages?"
+"What circular dependency chains exist between workspace packages?"
+"Which packages have their own tsconfig vs inherit from the root?"
+```
+
+**Questions that trip up naive RAG but Graph RAG handles:**
+```
+"How does the auth system work?" → Naive RAG finds 'auth' strings everywhere.
+  Graph RAG finds the auth entry points (resolveRequestingAgent, requireAuth)
+  and traces through key registry, agent store, and env fallback.
+
+"What's the blast radius of changing CodebaseGraph?" → Naive RAG says
+  "it's used in absorb." Graph RAG traces every transitive dependent:
+  GraphRAGEngine, EmbeddingIndex, impact analysis tools, the self-improvement
+  pipeline, and the .holo emitter — 40+ files across 4 packages.
+
+"Why does compilation fail silently for some targets?" → Naive RAG finds
+  error handling code. Graph RAG traces the compiler dispatch chain and
+  reveals that some CompilerBase subclasses override compile() without
+  calling super.validateRBAC() — the silent failure path.
+```
+
+### Tips
+
+- **Start broad, then drill.** "How does compilation work?" reveals the landscape;
+  "How does R3FCompiler handle animated traits?" finds the specific path.
+- **Use `llmProvider: "anthropic"` or `"openai"`** for highest quality answers.
+  Ollama works but produces shallower reasoning.
+- **The graph matters.** Unlike plain RAG, Graph RAG enriches every match with
+  callers, callees, community membership, and impact radius — so answers include
+  "what depends on this" not just "where is this."
+- **Always `holo_absorb_repo` first** to build/refresh the graph. Use
+  `force: false` for fast cache hits (~21ms).
+- **If results are empty:** check `holo_graph_status` — the graph may not be
+  loaded. Common cause: absorb ran in a previous session but the in-memory
+  cache expired.
+- **If answers are shallow:** bump `topK` to 30-50. The default 20 may miss
+  relevant symbols in a 68-package monorepo. Also try narrowing with
+  `language: "typescript"` or `file: "packages/core"` to reduce noise.
+- **If the LLM hallucinates:** the LLM only sees the top 10 enriched results.
+  If the real answer requires context from result #15, bump `topK`. The graph
+  enrichment is accurate — it's the LLM synthesis that may miss context that
+  was ranked too low.
+
 ## MCP Tools
 
 ### Absorb Service Tools (absorb-tools.ts)

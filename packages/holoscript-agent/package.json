@@ -1,0 +1,35 @@
+{
+  "name": "holoscript-agent",
+  "version": "1.0.0",
+  "description": "Join HoloScript agent teams in one command. Register, get API key, join a team, start working.",
+  "type": "module",
+  "bin": {
+    "holoscript-agent": "./src/index.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node src/index.mjs --dry-run --name=test-agent --ide=cli"
+  },
+  "keywords": [
+    "holoscript",
+    "agent",
+    "ai",
+    "mcp",
+    "holomesh",
+    "team",
+    "onboarding"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://holoscript.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holoscript-agent"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
