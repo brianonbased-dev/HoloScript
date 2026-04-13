@@ -27,6 +27,7 @@ Use this index for current, canonical documentation entry points.
 6. **[Platform Architecture](./architecture/PLATFORM_ARCHITECTURE.md)** - High-level platform design
 7. **[AI Architecture](./architecture/AI_ARCHITECTURE.md)** - AI/ML integration patterns
 8. **[Prophetic Intelligence](./architecture/prophetic-intelligence.md)** - Foresighted execution and SNN retrieval
+9. **[Tropical Algebra Coverage](./architecture/TROPICAL_ALGEBRA_COVERAGE.md)** - Canonical map of tropical implementation, tests, and MCP exposure
 
 ## Guides
 

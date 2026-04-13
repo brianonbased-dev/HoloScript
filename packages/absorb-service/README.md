@@ -127,6 +127,19 @@ Two tiers: free (local) and paid (proxied to Studio with credit deduction).
 | `holo_impact_analysis` | Given changed files, compute all transitively affected symbols.                        |
 | `holo_detect_changes`  | Diff two graph snapshots to find what changed.                                         |
 
+#### `holo_query_codebase` trace strategy guidance
+
+For `queryType="trace"`, use the strategy that matches your intent:
+
+- `traceStrategy="bfs"` (default)
+  - Minimizes hop count only.
+  - Best for structural navigation and quick explainability.
+- `traceStrategy="tropical-min-plus"`
+  - Computes weighted shortest paths with min-plus cost accumulation.
+  - Best when edge cost matters (e.g., penalizing low-confidence or high-risk transitions).
+
+If no edge-weight callback is provided, the tropical strategy falls back to uniform edge weight `1`.
+
 ### Graph RAG Tools (graph-rag-tools.ts)
 
 | Tool                   | Description                                                                                                    |

@@ -56,6 +56,7 @@
     "docs:api:watch": "typedoc --watch",
     "docs:api:json": "typedoc --json docs/api/api.json",
     "docs:roadmap:drift": "node scripts/check-roadmap-drift.mjs",
+    "check:tropical-mentions": "node scripts/check-tropical-mentions.mjs",
     "test:mutate": "npx stryker run",
     "audit:security": "pnpm audit --audit-level=moderate",
     "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html",
