@@ -23,6 +23,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 COPY scripts/docker/build-core-stack-no-dts.sh scripts/docker/build-core-stack-no-dts.sh
+COPY scripts/docker/tsup.core.docker.cjs scripts/docker/tsup.core.docker.cjs
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
