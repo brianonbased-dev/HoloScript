@@ -553,8 +553,7 @@ export const compilerTools: Tool[] = [
   // Trait Composition (Unlocks Pillar 3 Thin-Client Delegation)
   {
     name: 'holoscript_compose_traits',
-    description:
-      'Cryptographically delegate heavy trait algebra and physics composition to the cloud. Accepts raw composition declarations (e.g., trait C = A + B) and returns fully resolved trait nodes using the ProvenanceSemiring.',
+    description: 'Cryptographically delegate heavy trait algebra and physics composition to the cloud. Accepts raw composition declarations (e.g., trait C = A + B) and returns fully resolved trait nodes using the ProvenanceSemiring.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -573,8 +572,7 @@ export const compilerTools: Tool[] = [
         },
         baseTraits: {
           type: 'object',
-          description:
-            'Optional map of base trait names to their handler configs to resolve against',
+          description: 'Optional map of base trait names to their handler configs to resolve against',
         },
       },
       required: ['declarations'],
@@ -583,8 +581,7 @@ export const compilerTools: Tool[] = [
   // Domain Block Compilers (5 of 21 — from DomainBlockCompilerMixin, 4,614 LOC)
   ...(['healthcare', 'robotics', 'iot', 'education', 'music'] as const).map((domain) => ({
     name: `holoscript_compile_${domain}` as string,
-    description:
-      `Compile a ${domain} domain block from .holo code or raw properties. ` +
+    description: `Compile a ${domain} domain block from .holo code or raw properties. ` +
       `Part of 21 domain-specific code generators in DomainBlockCompilerMixin. ` +
       `Accepts either "code" (full .holo with ${domain} {} block) or "properties" (direct property map).`,
     inputSchema: {
@@ -604,8 +601,7 @@ export const compilerTools: Tool[] = [
   // Universal Schema-to-Trait Mapper (Domain Bridge — any data → .holo)
   {
     name: 'holoscript_map_schema',
-    description:
-      'Map any structured data schema to HoloScript traits and generate a .holo composition. ' +
+    description: 'Map any structured data schema to HoloScript traits and generate a .holo composition. ' +
       'The universal domain bridge: dispensary menu, restaurant catalog, real estate listings, IoT sensors — ' +
       'any data schema maps onto the 3,300+ trait system. Returns per-field trait mappings with confidence scores, ' +
       'parameter bindings, spatial role assignments, and a ready-to-compile .holo composition.',
@@ -641,8 +637,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'holoscript_map_csv',
-    description:
-      'Map CSV headers to HoloScript traits. Provide column headers and optionally a sample row ' +
+    description: 'Map CSV headers to HoloScript traits. Provide column headers and optionally a sample row ' +
       'for type inference. Returns the same trait mappings and .holo composition as holoscript_map_schema.',
     inputSchema: {
       type: 'object',
@@ -657,8 +652,7 @@ export const compilerTools: Tool[] = [
         description: { type: 'string' },
         sample_row: {
           type: 'object',
-          description:
-            'Optional sample data row for type inference (keys = headers, values = sample data)',
+          description: 'Optional sample data row for type inference (keys = headers, values = sample data)',
         },
       },
       required: ['headers'],
@@ -667,8 +661,7 @@ export const compilerTools: Tool[] = [
   // Modality Transliteration (Pillar 1: device → embodiment → compiler)
   {
     name: 'holoscript_select_modality',
-    description:
-      'Auto-select the optimal output modality for a device platform. ' +
+    description: 'Auto-select the optimal output modality for a device platform. ' +
       'Given a platform target (quest3, ios, android-auto, etc.), returns the embodiment type ' +
       '(FullAvatar, UI2D, VoiceOnly, GlassOverlay), the ExportTarget to compile to, ' +
       'whether the device can render spatially, and whether neural streaming is recommended. ' +
@@ -714,8 +707,7 @@ export const compilerTools: Tool[] = [
   // Generic compilation tool (supports all targets)
   {
     name: 'compile_holoscript',
-    description:
-      'Compile HoloScript composition to any export target (Unity, Unreal, URDF, SDF, WebGPU, WASM, etc.). ' +
+    description: 'Compile HoloScript composition to any export target (Unity, Unreal, URDF, SDF, WebGPU, WASM, etc.). ' +
       'Returns compiled output with circuit breaker protection and comprehensive error reporting. ' +
       'Supports 18+ export targets across game engines, VR platforms, mobile AR, web, robotics, and 3D formats.',
     inputSchema: {
@@ -1012,8 +1004,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_sdf',
-    description:
-      'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+    description: 'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1037,8 +1028,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_nir',
-    description:
-      'Compile HoloScript to NIR (Neuromorphic Intermediate Representation) for Intel Loihi 2, SpiNNaker 2',
+    description: 'Compile HoloScript to NIR (Neuromorphic Intermediate Representation) for Intel Loihi 2, SpiNNaker 2',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1074,8 +1064,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'compile_to_a2a_agent_card',
-    description:
-      'Compile HoloScript to A2A Protocol Agent Card JSON (agent identity, skills, capabilities)',
+    description: 'Compile HoloScript to A2A Protocol Agent Card JSON (agent identity, skills, capabilities)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1101,8 +1090,7 @@ export const compilerTools: Tool[] = [
   // Job tracking and circuit breaker tools
   {
     name: 'get_compilation_status',
-    description:
-      'Get status of a compilation job by job ID. Returns progress, result, and timing information.',
+    description: 'Get status of a compilation job by job ID. Returns progress, result, and timing information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1116,8 +1104,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'list_export_targets',
-    description:
-      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.)',
+    description: 'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.)',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1125,8 +1112,7 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'get_circuit_breaker_status',
-    description:
-      'Get circuit breaker status for a specific export target. Shows failure rate, degraded mode time, and retry availability.',
+    description: 'Get circuit breaker status for a specific export target. Shows failure rate, degraded mode time, and retry availability.',
     inputSchema: {
       type: 'object',
       properties: {

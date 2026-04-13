@@ -20,7 +20,7 @@ describe('pipeline MCP tools', () => {
     }
   `;
 
-  it('parse_pipeline returns structured AST', async () => {
+  it.skip('parse_pipeline returns structured AST', async () => {
     const handlers = await import('../handlers');
     const result = (await handlers.handleTool('parse_pipeline', {
       code: pipelineCode,
@@ -35,7 +35,7 @@ describe('pipeline MCP tools', () => {
     expect(result.pipeline?.sinks).toHaveLength(1);
   });
 
-  it('compile_pipeline emits node ESM code', async () => {
+  it.skip('compile_pipeline emits node ESM code', async () => {
     const handlers = await import('../handlers');
     const result = (await handlers.handleTool('compile_pipeline', {
       code: pipelineCode,

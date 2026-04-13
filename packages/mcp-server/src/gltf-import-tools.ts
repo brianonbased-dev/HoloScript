@@ -826,8 +826,7 @@ export async function handleGltfTool(
 export const gltfImportTools: Tool[] = [
   {
     name: 'import_gltf',
-    description:
-      'Import a glTF 2.0 or GLB file and convert it to HoloScript .holo composition code. ' +
+    description: 'Import a glTF 2.0 or GLB file and convert it to HoloScript .holo composition code. ' +
       'Supports three input modes: file path, inline glTF JSON, or base64-encoded GLB binary. ' +
       'Handles node hierarchy, PBR materials (baseColor, metalness, roughness, emissive), ' +
       'animations, physics extensions (KHR_rigid_bodies, MSFT_physics), and automatic ' +
@@ -838,26 +837,22 @@ export const gltfImportTools: Tool[] = [
       properties: {
         filePath: {
           type: 'string',
-          description:
-            'Absolute path to a .gltf or .glb file on disk. ' +
+          description: 'Absolute path to a .gltf or .glb file on disk. ' +
             'Use this for importing files from the local filesystem.',
         },
         gltfJson: {
           type: 'string',
-          description:
-            'Inline glTF JSON document as a string. ' +
+          description: 'Inline glTF JSON document as a string. ' +
             'Use this when you have the glTF JSON data directly without a file.',
         },
         glbBase64: {
           type: 'string',
-          description:
-            'Base64-encoded GLB binary data. ' +
+          description: 'Base64-encoded GLB binary data. ' +
             'Use this when you have GLB binary data (e.g., from an API or download).',
         },
         sourceName: {
           type: 'string',
-          description:
-            'Source file name hint used in generated comments and geometry references. ' +
+          description: 'Source file name hint used in generated comments and geometry references. ' +
             'Defaults to "imported.gltf" or "imported.glb" based on input type.',
         },
       },
@@ -865,8 +860,7 @@ export const gltfImportTools: Tool[] = [
   },
   {
     name: 'compile_to_gltf',
-    description:
-      'Compile HoloScript composition code to glTF 2.0 / GLB binary format. ' +
+    description: 'Compile HoloScript composition code to glTF 2.0 / GLB binary format. ' +
       'Uses the full GLTFPipeline with PBR material support, mesh primitives ' +
       '(cube, sphere, cylinder, cone, plane), skeletal animation, LOD generation, ' +
       'normal smoothing, and texture embedding. Returns base64-encoded GLB binary ' +
@@ -883,8 +877,7 @@ export const gltfImportTools: Tool[] = [
         format: {
           type: 'string',
           enum: ['glb', 'gltf'],
-          description:
-            'Output format. "glb" (default) for single binary file, ' +
+          description: 'Output format. "glb" (default) for single binary file, ' +
             '"gltf" for JSON document with separate binary buffer.',
         },
         dracoCompression: {
@@ -909,8 +902,7 @@ export const gltfImportTools: Tool[] = [
         },
         generator: {
           type: 'string',
-          description:
-            'Generator string for glTF metadata (default: "HoloScript GLTFPipeline v1.0.0")',
+          description: 'Generator string for glTF metadata (default: "HoloScript GLTFPipeline v1.0.0")',
         },
         copyright: {
           type: 'string',

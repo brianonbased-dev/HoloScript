@@ -229,8 +229,7 @@ export async function handleAuditNumbers(_args: Record<string, unknown>): Promis
 export const auditTools: Tool[] = [
   {
     name: 'holoscript_audit_numbers',
-    description:
-      'Audit all ecosystem metrics against live ground truth. Runs verification commands ' +
+    description: 'Audit all ecosystem metrics against live ground truth. Runs verification commands ' +
       '(compiler count, trait categories, knowledge entries), scans all docs/configs/skills ' +
       'for each metric, and reports mismatches. Replaces manual re-audit loops.',
     inputSchema: {

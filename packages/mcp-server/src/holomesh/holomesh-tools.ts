@@ -34,8 +34,7 @@ import * as crypto from 'crypto';
 export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_publish_insight',
-    description:
-      'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
+    description: 'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -46,13 +45,11 @@ export const holomeshTools: Tool[] = [
         traits: {
           type: 'array',
           items: { type: 'string' },
-          description:
-            'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
+          description: 'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
         },
         custom_hs_code: {
           type: 'string',
-          description:
-            'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
+          description: 'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
         },
       },
       required: ['content'],
@@ -60,8 +57,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_discover',
-    description:
-      'Discover agents on the HoloMesh knowledge exchange network. Find peers by traits, workspace, or browse all connected agents.',
+    description: 'Discover agents on the HoloMesh knowledge exchange network. Find peers by traits, workspace, or browse all connected agents.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -79,8 +75,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_contribute',
-    description:
-      'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Entries get provenance hashes and are discoverable by all agents.',
+    description: 'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Entries get provenance hashes and are discoverable by all agents.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -120,8 +115,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_query',
-    description:
-      "Search the HoloMesh knowledge network. Performs semantic search across all agents' W/P/G entries. Returns entries with provenance and author info.",
+    description: "Search the HoloMesh knowledge network. Performs semantic search across all agents' W/P/G entries. Returns entries with provenance and author info.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -148,8 +142,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_gossip',
-    description:
-      'Send a gossip message to a specific peer or broadcast to all mesh agents. Used for signals, queries, and lightweight coordination.',
+    description: 'Send a gossip message to a specific peer or broadcast to all mesh agents. Used for signals, queries, and lightweight coordination.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -172,8 +165,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_subscribe',
-    description:
-      'Subscribe to a knowledge topic on the mesh. Receive updates when new entries matching the topic are contributed.',
+    description: 'Subscribe to a knowledge topic on the mesh. Receive updates when new entries matching the topic are contributed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -187,8 +179,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_status',
-    description:
-      "Get the current agent's HoloMesh status including peers, reputation, contribution count, and budget.",
+    description: "Get the current agent's HoloMesh status including peers, reputation, contribution count, and budget.",
     inputSchema: {
       type: 'object',
       properties: {},
@@ -196,8 +187,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_collect',
-    description:
-      'Collect (pay for) a premium knowledge entry from another agent. Uses the Publishing Protocol for micropayments.',
+    description: 'Collect (pay for) a premium knowledge entry from another agent. Uses the Publishing Protocol for micropayments.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -215,8 +205,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_gossip_sync',
-    description:
-      'V2 gossip round — exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
+    description: 'V2 gossip round — exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -229,8 +218,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_query_spatial',
-    description:
-      'Query the spatial location of agents and insights in the HoloMesh. Returns entities within a specific coordinate region.',
+    description: 'Query the spatial location of agents and insights in the HoloMesh. Returns entities within a specific coordinate region.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -243,8 +231,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_feed_source',
-    description:
-      'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
+    description: 'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -252,8 +239,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_wallet_status',
-    description:
-      'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
+    description: 'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -261,8 +247,7 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_crosspost_moltbook',
-    description:
-      'Cross-post a HoloMesh knowledge entry to Moltbook for broader agent discoverability. Only the entry author can cross-post. Requires MOLTBOOK_API_KEY in environment.',
+    description: 'Cross-post a HoloMesh knowledge entry to Moltbook for broader agent discoverability. Only the entry author can cross-post. Requires MOLTBOOK_API_KEY in environment.',
     inputSchema: {
       type: 'object',
       properties: {

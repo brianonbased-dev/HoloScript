@@ -24,8 +24,7 @@ import * as path from 'path';
 export const refactorCodegenTools: Tool[] = [
   {
     name: 'holo_generate_refactor_plan',
-    description:
-      'Generate a concrete, graph-informed refactoring plan for a target symbol, file, or community. ' +
+    description: 'Generate a concrete, graph-informed refactoring plan for a target symbol, file, or community. ' +
       'Uses the absorbed codebase graph to understand callers/callees, community boundaries, and impact radius. ' +
       'Returns a step-by-step plan with affected files, risk score, and detected codebase patterns. ' +
       'Requires a prior holo_absorb_repo call.',
@@ -34,8 +33,7 @@ export const refactorCodegenTools: Tool[] = [
       properties: {
         target: {
           type: 'string',
-          description:
-            'Symbol name, file path, or community ID to refactor. ' +
+          description: 'Symbol name, file path, or community ID to refactor. ' +
             'Examples: "UserService", "src/auth/handler.ts", "community:3"',
         },
         goal: {
@@ -53,8 +51,7 @@ export const refactorCodegenTools: Tool[] = [
         },
         scope: {
           type: 'number',
-          description:
-            'Maximum number of files the plan should touch. Defaults to 10. ' +
+          description: 'Maximum number of files the plan should touch. Defaults to 10. ' +
             'Lower values produce safer, more focused plans.',
         },
       },
@@ -63,8 +60,7 @@ export const refactorCodegenTools: Tool[] = [
   },
   {
     name: 'holo_scaffold_code',
-    description:
-      'Generate a code scaffold (test, interface, module, trait, component) that follows ' +
+    description: 'Generate a code scaffold (test, interface, module, trait, component) that follows ' +
       'the naming and style conventions detected in the absorbed codebase. ' +
       'Analyzes existing files in the target directory for patterns. ' +
       'Optionally pulls context from a specific symbol in the knowledge graph.',
@@ -86,14 +82,12 @@ export const refactorCodegenTools: Tool[] = [
         },
         context: {
           type: 'string',
-          description:
-            'Optional symbol name or file path to scaffold from. ' +
+          description: 'Optional symbol name or file path to scaffold from. ' +
             'For tests: the symbol to test. For interfaces: the class to extract from.',
         },
         language: {
           type: 'string',
-          description:
-            'Target language. Auto-detected from targetDir if omitted. ' +
+          description: 'Target language. Auto-detected from targetDir if omitted. ' +
             'Supports: typescript, javascript, holoscript',
         },
       },

@@ -1,5 +1,14 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { Simulation } from '@holoscript/engine';
+
+// Lazy import to avoid breaking tests when @holoscript/engine isn't resolvable
+let _Simulation: typeof import('@holoscript/engine').Simulation | null = null;
+async function getSimulation() {
+  if (!_Simulation) {
+    const mod = await import('@holoscript/engine');
+    _Simulation = mod.Simulation;
+  }
+  return _Simulation;
+}
 
 const traceRegistry = new Map<string, string>();
 
@@ -138,13 +147,41 @@ class LocalTraceRecorder {
 export const simulationTools: Tool[] = [
   {
     name: 'solve_structural',
-    description: 'Run a structural simulation using TET10 elements and return a proven CAEL trace. Generates a trace proving the solution was executed correctly.',
+    description: 'Run a TET10 structural FEA simulation. Returns displacement/stress results + a CAEL trace proving execution integrity. Input: nodes, elements, materials, forces, constraints.',
     inputSchema: {
       type: 'object',
       properties: {
         config: {
           type: 'object',
-          description: 'Structural solver configuration (nodes, elements, materials, forces, constraints).',
+          description: 'Structural solver configuration.',
+          properties: {
+            nodes: {
+              type: 'array',
+              description: 'Array of [x, y, z] node coordinates.',
+              items: { type: 'array', items: { type: 'number' } },
+            },
+            elements: {
+              type: 'array',
+              description: 'Array of node-index arrays (10 indices per TET10 element).',
+              items: { type: 'array', items: { type: 'number' } },
+            },
+            materials: {
+              type: 'object',
+              description: 'Material properties.',
+              properties: {
+                E: { type: 'number', description: "Young's modulus (Pa)" },
+                nu: { type: 'number', description: "Poisson's ratio (0-0.5)" },
+              },
+            },
+            forces: {
+              type: 'array',
+              description: 'Array of { nodeIndex, fx, fy, fz } force vectors (N).',
+            },
+            constraints: {
+              type: 'array',
+              description: 'Array of { nodeIndex, dx, dy, dz } fixed DOFs (true = fixed).',
+            },
+          },
         },
       },
       required: ['config'],
@@ -152,13 +189,39 @@ export const simulationTools: Tool[] = [
   },
   {
     name: 'solve_thermal',
-    description: 'Run a thermal simulation and return a proven CAEL trace. Generates a trace proving the solution was executed correctly.',
+    description: 'Run a thermal conduction simulation on a structured grid. Returns temperature field + a CAEL trace proving execution integrity. Input: grid, material, sources, BCs.',
     inputSchema: {
       type: 'object',
       properties: {
         config: {
           type: 'object',
-          description: 'Thermal solver configuration (gridSize, spacing, material, sources, boundaryConditions).',
+          description: 'Thermal solver configuration.',
+          properties: {
+            gridSize: {
+              type: 'array',
+              description: 'Grid dimensions [nx, ny, nz].',
+              items: { type: 'number' },
+            },
+            spacing: {
+              type: 'number',
+              description: 'Grid spacing in meters.',
+            },
+            material: {
+              type: 'object',
+              description: 'Material thermal properties.',
+              properties: {
+                conductivity: { type: 'number', description: 'Thermal conductivity (W/m·K)' },
+              },
+            },
+            sources: {
+              type: 'array',
+              description: 'Heat sources: array of { position: [x,y,z], power: watts }.',
+            },
+            boundaryConditions: {
+              type: 'array',
+              description: 'BCs: array of { face: "x0"|"x1"|"y0"|"y1"|"z0"|"z1", type: "dirichlet"|"neumann", value: number }.',
+            },
+          },
         },
       },
       required: ['config'],
@@ -166,18 +229,17 @@ export const simulationTools: Tool[] = [
   },
   {
     name: 'verify_cael_trace',
-    description:
-      'Verify a CAEL trace by checking hash-chain integrity and replaying it deterministically. Accepts traceId (from previous solve_* call) or raw traceJSONL.',
+    description: 'Verify a CAEL trace hash-chain for tamper detection. Pass traceId (from solve_* result) or raw JSONL. Returns { valid, entries, brokenAt?, reason? }.',
     inputSchema: {
       type: 'object',
       properties: {
         traceId: {
           type: 'string',
-          description: 'Trace identifier returned by solve_structural/solve_thermal.',
+          description: 'Trace identifier returned by solve_structural or solve_thermal.',
         },
         traceJSONL: {
           type: 'string',
-          description: 'Optional raw CAEL JSONL trace. If provided, used directly.',
+          description: 'Raw CAEL trace as newline-delimited JSON. Used directly if provided (traceId ignored).',
         },
       },
     },
@@ -200,8 +262,10 @@ export async function handleSimulationTool(name: string, args: Record<string, un
     let recorder: LocalTraceRecorder;
     let result: Record<string, unknown> = {};
 
+    const Sim = await getSimulation();
+
     if (name === 'solve_structural') {
-      const solver = new Simulation.StructuralSolverTET10(config as Simulation.TET10Config);
+      const solver = new Sim.StructuralSolverTET10(config as Parameters<typeof Sim.StructuralSolverTET10>[0]);
       recorder = new LocalTraceRecorder(name, config);
 
       await Promise.resolve(solver.solve());
@@ -212,7 +276,7 @@ export async function handleSimulationTool(name: string, args: Record<string, un
         safetyFactor: solver.getSafetyFactor(),
       };
     } else {
-      const solver = new Simulation.ThermalSolver(config as Simulation.ThermalConfig);
+      const solver = new Sim.ThermalSolver(config as Parameters<typeof Sim.ThermalSolver>[0]);
       recorder = new LocalTraceRecorder(name, config);
 
       const dt = typeof config.timeStep === 'number' ? config.timeStep : 0.01;
@@ -286,11 +350,13 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
     let totalSteps = 0;
     let totalSimTime = 0;
 
+    const Sim = await getSimulation();
+
     if (solverType === 'solve_structural') {
-      const solver = new Simulation.StructuralSolverTET10((init?.payload?.config ?? {}) as Simulation.TET10Config);
+      const solver = new Sim.StructuralSolverTET10((init?.payload?.config ?? {}) as Parameters<typeof Sim.StructuralSolverTET10>[0]);
       await Promise.resolve(solver.solve());
     } else if (solverType === 'solve_thermal') {
-      const solver = new Simulation.ThermalSolver((init?.payload?.config ?? {}) as Simulation.ThermalConfig);
+      const solver = new Sim.ThermalSolver((init?.payload?.config ?? {}) as Parameters<typeof Sim.ThermalSolver>[0]);
       for (const e of trace) {
         if (e.event === 'step') {
           const dt = Number(e.payload.wallDelta ?? 0.01);

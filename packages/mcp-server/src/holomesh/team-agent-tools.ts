@@ -22,8 +22,7 @@ import { getAllProfiles, TEAM_AGENT_PROFILES } from './agent/team-agents';
 export const teamAgentTools: Tool[] = [
   {
     name: 'holomesh_team_load_agents',
-    description:
-      'Load agent profiles into a team room. Agents are assigned slot roles and can then participate in work cycles. Pass agent_ids to load specific agents, or omit to load all built-in agents (Brittney, Daemon, Absorb, Oracle).',
+    description: 'Load agent profiles into a team room. Agents are assigned slot roles and can then participate in work cycles. Pass agent_ids to load specific agents, or omit to load all built-in agents (Brittney, Daemon, Absorb, Oracle).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -34,8 +33,7 @@ export const teamAgentTools: Tool[] = [
         agent_ids: {
           type: 'array',
           items: { type: 'string' },
-          description:
-            'Agent profile IDs to load. Available: agent_brittney, agent_daemon, agent_absorb, agent_oracle. Omit to load all.',
+          description: 'Agent profile IDs to load. Available: agent_brittney, agent_daemon, agent_absorb, agent_oracle. Omit to load all.',
         },
       },
       required: ['team_id'],
@@ -43,8 +41,7 @@ export const teamAgentTools: Tool[] = [
   },
   {
     name: 'holomesh_team_run_cycle',
-    description:
-      'Execute one work cycle for all agents loaded in a team room. Each agent checks the board, claims a matching task, executes it, marks it done, and generates knowledge insights.',
+    description: 'Execute one work cycle for all agents loaded in a team room. Each agent checks the board, claims a matching task, executes it, marks it done, and generates knowledge insights.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -58,8 +55,7 @@ export const teamAgentTools: Tool[] = [
   },
   {
     name: 'holomesh_team_compound',
-    description:
-      'Trigger knowledge compounding for a team room. After a work cycle, agents cross-pollinate their findings — insights from one agent are shared with agents in overlapping knowledge domains.',
+    description: 'Trigger knowledge compounding for a team room. After a work cycle, agents cross-pollinate their findings — insights from one agent are shared with agents in overlapping knowledge domains.',
     inputSchema: {
       type: 'object',
       properties: {

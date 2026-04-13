@@ -16,11 +16,13 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
   PaymentWebhookService,
+  CreatorRevenueAggregator,
+} from '@holoscript/framework';
+import {
   UsageMeter,
   AgentBudgetEnforcer,
-  CreatorRevenueAggregator,
   SubscriptionManager,
-} from '@holoscript/core';
+} from '@holoscript/framework/economy';
 import { handleEconomyTool, resetEconomySingletons } from '../economy-tools';
 
 // =============================================================================

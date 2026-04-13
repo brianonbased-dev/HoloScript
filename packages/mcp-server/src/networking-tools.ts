@@ -74,8 +74,7 @@ function broadcastDeltas(deltas: ReturnType<typeof computeDeltas>): void {
 export const networkingTools = [
   {
     name: 'push_state_delta',
-    description:
-      'Push a raw spatial or semantic state delta securely to the Global Sync Mesh. ' +
+    description: 'Push a raw spatial or semantic state delta securely to the Global Sync Mesh. ' +
       'Automatically performs Server-Authoritative Conflict Resolution (Last-Write-Wins) and diff compression.',
     inputSchema: {
       type: 'object',
@@ -86,8 +85,7 @@ export const networkingTools = [
         },
         payload: {
           type: 'object',
-          description:
-            'A JSON object containing only the fields that have been modified (new values).',
+          description: 'A JSON object containing only the fields that have been modified (new values).',
         },
       },
       required: ['entityId', 'payload'],
@@ -95,8 +93,7 @@ export const networkingTools = [
   },
   {
     name: 'fetch_authoritative_state',
-    description:
-      'Pull the current absolute truth for an Entity from the StateAuthority layer safely bypassing out-of-sync local caches.',
+    description: 'Pull the current absolute truth for an Entity from the StateAuthority layer safely bypassing out-of-sync local caches.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -38,8 +38,7 @@ const execAsync = promisify(exec);
 export const selfImproveTools: Tool[] = [
   {
     name: 'holo_write_file',
-    description:
-      'Write content to a file. Creates parent directories if needed. ' +
+    description: 'Write content to a file. Creates parent directories if needed. ' +
       'Use for generating tests, documentation, or applying fixes. ' +
       'Path must be within the project root directory.',
     inputSchema: {
@@ -63,8 +62,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_edit_file',
-    description:
-      'Apply a search-and-replace edit to an existing file. ' +
+    description: 'Apply a search-and-replace edit to an existing file. ' +
       'The old_string must match exactly (including whitespace). ' +
       'Use for targeted code fixes without rewriting entire files.',
     inputSchema: {
@@ -110,8 +108,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_git_commit',
-    description:
-      'Stage changed files and create a git commit. ' +
+    description: 'Stage changed files and create a git commit. ' +
       'Only commits files within the project root.',
     inputSchema: {
       type: 'object',
@@ -123,8 +120,7 @@ export const selfImproveTools: Tool[] = [
         files: {
           type: 'array',
           items: { type: 'string' },
-          description:
-            'File paths to stage (relative to rootDir). If empty, stages all changed files.',
+          description: 'File paths to stage (relative to rootDir). If empty, stages all changed files.',
         },
         message: {
           type: 'string',
@@ -136,8 +132,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_run_tests_targeted',
-    description:
-      'Run vitest on specific test files instead of the entire suite. ' +
+    description: 'Run vitest on specific test files instead of the entire suite. ' +
       'Much faster than full test run for validating individual changes.',
     inputSchema: {
       type: 'object',
@@ -161,8 +156,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_list_type_errors',
-    description:
-      'Run tsc --noEmit and return the actual TypeScript errors grouped by file. ' +
+    description: 'Run tsc --noEmit and return the actual TypeScript errors grouped by file. ' +
       'Use this to find and fix specific type errors. Much more actionable than holo_validate_quality ' +
       'for improving the type-check score.',
     inputSchema: {
@@ -186,8 +180,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_batch_type_fix',
-    description:
-      'Group TypeScript errors by error code (TS7006, TS2339, etc.) and return ' +
+    description: 'Group TypeScript errors by error code (TS7006, TS2339, etc.) and return ' +
       'batch fix suggestions. Much more efficient than fixing one error at a time. ' +
       'Returns errors grouped by code with fix patterns.',
     inputSchema: {
@@ -199,8 +192,7 @@ export const selfImproveTools: Tool[] = [
         },
         errorCode: {
           type: 'string',
-          description:
-            'Filter to a specific error code (e.g. "TS7006"). If omitted, groups all errors.',
+          description: 'Filter to a specific error code (e.g. "TS7006"). If omitted, groups all errors.',
         },
         maxFiles: {
           type: 'number',
@@ -212,8 +204,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_verify_before_commit',
-    description:
-      'Run tsc --noEmit on specific changed files to verify they compile before committing. ' +
+    description: 'Run tsc --noEmit on specific changed files to verify they compile before committing. ' +
       'Much faster than full tsc. Use after edits and before holo_git_commit.',
     inputSchema: {
       type: 'object',
@@ -233,8 +224,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_run_related_tests',
-    description:
-      'Run only tests related to specific source files using vitest --related. ' +
+    description: 'Run only tests related to specific source files using vitest --related. ' +
       'Much faster than running the full test suite. Use after editing source files.',
     inputSchema: {
       type: 'object',
@@ -254,8 +244,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_quality_trend',
-    description:
-      'Analyze quality score history to detect trends, plateaus, and regressions. ' +
+    description: 'Analyze quality score history to detect trends, plateaus, and regressions. ' +
       "Returns trend analysis and strategy recommendations based on what has and hasn't worked.",
     inputSchema: {
       type: 'object',
@@ -274,8 +263,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_self_diagnose',
-    description:
-      'Diagnose a codebase for improvement opportunities using Graph RAG. ' +
+    description: 'Diagnose a codebase for improvement opportunities using Graph RAG. ' +
       'Runs pre-built analytical queries to identify: untested code with high impact, ' +
       'missing documentation on public APIs, high-complexity modules, and structural issues. ' +
       'Returns a prioritized list of improvement candidates. Requires a prior holo_absorb_repo call.',
@@ -284,14 +272,12 @@ export const selfImproveTools: Tool[] = [
       properties: {
         rootDir: {
           type: 'string',
-          description:
-            'Root directory of the project (for test discovery). Defaults to the last absorbed directory.',
+          description: 'Root directory of the project (for test discovery). Defaults to the last absorbed directory.',
         },
         focus: {
           type: 'string',
           enum: ['coverage', 'docs', 'complexity', 'all'],
-          description:
-            'Focus area for diagnosis. "coverage" = untested code, "docs" = missing docs, "complexity" = high-complexity modules, "all" = everything. Defaults to "all".',
+          description: 'Focus area for diagnosis. "coverage" = untested code, "docs" = missing docs, "complexity" = high-complexity modules, "all" = everything. Defaults to "all".',
         },
         maxResults: {
           type: 'number',
@@ -302,8 +288,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_validate_quality',
-    description:
-      'Calculate a composite quality score for the codebase. Runs type checking (tsc), ' +
+    description: 'Calculate a composite quality score for the codebase. Runs type checking (tsc), ' +
       'test suite (vitest), and lint checks. Returns individual scores and a weighted composite. ' +
       'Use after making changes to verify improvement, or before changes to establish a baseline.',
     inputSchema: {

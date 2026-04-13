@@ -68,8 +68,7 @@ export const snapshotTools = [
   },
   {
     name: 'load_temporal_snapshot',
-    description:
-      'Reads the meta parameters of a specific keyframe without enforcing a world rewind.',
+    description: 'Reads the meta parameters of a specific keyframe without enforcing a world rewind.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -80,8 +79,7 @@ export const snapshotTools = [
   },
   {
     name: 'rewind_world_state',
-    description:
-      'Forces the replication mesh backward, reverting the world to a safely stored Temporal Snapshot.',
+    description: 'Forces the replication mesh backward, reverting the world to a safely stored Temporal Snapshot.',
     inputSchema: {
       type: 'object',
       properties: {

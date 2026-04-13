@@ -249,8 +249,7 @@ function missingFeedback(detail: string): AgentFeedback {
 export const holotestTools: Tool[] = [
   {
     name: 'execute_holotest',
-    description:
-      'Execute spatial assertions against a HoloScript scene and return semantic feedback ' +
+    description: 'Execute spatial assertions against a HoloScript scene and return semantic feedback ' +
       'for AI agent self-correction. Parses the scene to extract object bounds, then runs: ' +
       '(1) explicit assertions you specify, or (2) auto-detects all intersecting object pairs. ' +
       'Returns structured JSON-RPC with a semantic_message, spatial_hint, and fix_suggestion ' +
@@ -260,8 +259,7 @@ export const holotestTools: Tool[] = [
       properties: {
         code: {
           type: 'string',
-          description:
-            'HoloScript scene code (.hs, .hsplus, or .holo). Objects with position/size properties ' +
+          description: 'HoloScript scene code (.hs, .hsplus, or .holo). Objects with position/size properties ' +
             'will be extracted and tested.',
         },
         format: {
@@ -271,8 +269,7 @@ export const holotestTools: Tool[] = [
         },
         assertions: {
           type: 'array',
-          description:
-            'Optional list of explicit spatial assertions to run. ' +
+          description: 'Optional list of explicit spatial assertions to run. ' +
             'If omitted, all object pairs are checked for unexpected intersections.',
           items: {
             type: 'object',
@@ -281,8 +278,7 @@ export const holotestTools: Tool[] = [
               type: {
                 type: 'string',
                 enum: ['no_intersect', 'intersects', 'within_volume', 'poly_count'],
-                description:
-                  'Assertion type: ' +
+                description: 'Assertion type: ' +
                   '"no_intersect" = expect no clipping, ' +
                   '"intersects" = expect overlap, ' +
                   '"within_volume" = entity must be inside a box, ' +
@@ -309,8 +305,7 @@ export const holotestTools: Tool[] = [
         },
         auto_check_intersections: {
           type: 'boolean',
-          description:
-            'When true (default when no assertions specified), automatically checks all object pairs ' +
+          description: 'When true (default when no assertions specified), automatically checks all object pairs ' +
             'for unintended intersections and reports clipping issues.',
         },
       },

@@ -17,8 +17,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const protocolTools: Tool[] = [
   {
     name: 'holo_protocol_publish',
-    description:
-      'Publish a HoloScript composition to the HoloScript Protocol. ' +
+    description: 'Publish a HoloScript composition to the HoloScript Protocol. ' +
       'Registers the composition on-chain (content hash, author, imports, license) ' +
       'and deploys to CDN. Returns protocol ID, collect URL, and revenue preview.',
     inputSchema: {
@@ -51,8 +50,7 @@ export const protocolTools: Tool[] = [
   },
   {
     name: 'holo_protocol_collect',
-    description:
-      'Collect (mint an edition of) a published HoloScript composition. ' +
+    description: 'Collect (mint an edition of) a published HoloScript composition. ' +
       'Revenue is automatically distributed to creator, platform, and upstream import authors.',
     inputSchema: {
       type: 'object',
@@ -75,8 +73,7 @@ export const protocolTools: Tool[] = [
   },
   {
     name: 'holo_protocol_revenue',
-    description:
-      'Preview the revenue distribution for a composition. ' +
+    description: 'Preview the revenue distribution for a composition. ' +
       'Shows how collect revenue would flow to creator, platform (2.5%), ' +
       'import authors (5% per level, max 3 levels), and referrer (2%).',
     inputSchema: {
@@ -112,8 +109,7 @@ export const protocolTools: Tool[] = [
   },
   {
     name: 'holo_protocol_lookup',
-    description:
-      'Look up a published composition by content hash or author. ' +
+    description: 'Look up a published composition by content hash or author. ' +
       'Returns the protocol record with on-chain metadata, collect URL, and edition count.',
     inputSchema: {
       type: 'object',

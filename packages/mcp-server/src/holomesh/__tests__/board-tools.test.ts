@@ -4,13 +4,13 @@ import { boardTools, handleBoardTool } from '../board-tools';
 // ── Tool Definition Tests ──
 
 describe('boardTools definitions', () => {
-  it('exports 10 tool definitions', () => {
-    expect(boardTools).toHaveLength(10);
+  it('exports 12 tool definitions', () => {
+    expect(boardTools).toHaveLength(12);
   });
 
   it('all tool names use expected holomesh prefixes', () => {
     for (const tool of boardTools) {
-      expect(tool.name).toMatch(/^holomesh_(board_|slot_|mode_|scout|suggest)/);
+      expect(tool.name).toMatch(/^holomesh_(board_|slot_|mode_|scout|suggest|heartbeat|knowledge_)/);
     }
   });
 
@@ -25,6 +25,8 @@ describe('boardTools definitions', () => {
     'holomesh_suggest',
     'holomesh_suggest_vote',
     'holomesh_suggest_list',
+    'holomesh_heartbeat',
+    'holomesh_knowledge_read',
   ];
 
   it.each(expectedTools)('includes %s', (name) => {

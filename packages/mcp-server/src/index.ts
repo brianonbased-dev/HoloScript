@@ -66,18 +66,11 @@ const server = new Server(
   }
 );
 
-// Unified list of all tools
+// tools.ts is the single source of truth for all tool definitions.
+// Compiler, networking, snapshot, monitoring, holotest, refactor-codegen are now in tools.ts.
+// Only add synthetic meta-tools here (discover + batch).
 const ALL_AVAILABLE_TOOLS: Tool[] = [
-  ...tools, // All core/graph/IDE/AI/codebase/graphRAG/selfImprove/plugins (from tools.ts)
-  ...compilerTools, // 8 compiler tools (Unity, Unreal, URDF, WebGPU, R3F, etc.)
-  ...networkingTools, // 2 networking RPC tools
-  ...snapshotTools, // 3 temporal snapshot tools
-  ...monitoringTools, // 1 telemetry tool
-  ...holotestTools, // 1 spatial testing tool (execute_holotest)
-  ...refactorCodegenTools, // 2 refactor/codegen tools (Phase 10)
-];
-
-ALL_AVAILABLE_TOOLS.push(
+  ...tools,
   {
     name: 'holoscript_discover_tools',
     description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
@@ -111,8 +104,8 @@ ALL_AVAILABLE_TOOLS.push(
       },
       required: ['requests']
     }
-  }
-);
+  },
+];
 
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {

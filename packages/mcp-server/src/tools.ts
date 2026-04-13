@@ -34,6 +34,12 @@ import { codeHealthTools } from './code-health-tools';
 import { simulationTools } from './simulation-tools';
 import { absorbProvenanceTools } from './absorb-provenance-tools';
 import { toolingDiscoveryTools } from './tooling-discovery-tools';
+import { compilerTools } from './compiler-tools';
+import { networkingTools } from './networking-tools';
+import { snapshotTools } from './snapshot-tools';
+import { monitoringTools } from './monitoring-tools';
+import { holotestTools } from './holotest-tools';
+import { refactorCodegenTools } from './refactor-codegen-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -708,10 +714,9 @@ export const hololandTrainingTools: Tool[] = [
 ];
 
 /**
- * All tools combined:
- * Core (19) + Graph (13) + IDE (9) + Brittney-Lite (4) + Codebase (5) + GraphRAG (2)
- * + Self-Improve (2) + GLTF (2) + EditHolo (1) + Absorb Service (10) = 67 language tools
- * (+ dynamic plugins; compiler/networking/snapshot/monitoring/holotest added separately in index.ts)
+ * All MCP tools — single source of truth.
+ * Both stdio (index.ts) and HTTP (http-server.ts) import this array.
+ * Never add tools to index.ts or http-server.ts separately.
  */
 export const tools: Tool[] = [
   ...coreTools,
@@ -743,6 +748,12 @@ export const tools: Tool[] = [
   ...simulationTools,
   ...absorbProvenanceTools,
   ...toolingDiscoveryTools,
+  ...compilerTools,
+  ...networkingTools,
+  ...snapshotTools,
+  ...monitoringTools,
+  ...holotestTools,
+  ...refactorCodegenTools,
   ...PluginManager.getTools(),
 ];
 

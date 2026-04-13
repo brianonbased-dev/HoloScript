@@ -19,8 +19,7 @@ import { ComplexityAnalyzer } from '@holoscript/core';
 export const codeHealthTools: Tool[] = [
   {
     name: 'holoscript_code_health',
-    description:
-      'Analyze code health and return a 0-10 score with grade (A+ through F). ' +
+    description: 'Analyze code health and return a 0-10 score with grade (A+ through F). ' +
       'Works with HoloScript (.hs, .hsplus, .holo) and TypeScript (.ts, .tsx) code. ' +
       'Scores 5 dimensions: complexity, trait coherence, documentation, test presence, issue density.',
     inputSchema: {

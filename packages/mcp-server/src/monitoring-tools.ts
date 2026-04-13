@@ -4,8 +4,7 @@ import { telemetry } from '@holoscript/core';
 export const monitoringTools: Tool[] = [
   {
     name: 'get_telemetry_metrics',
-    description:
-      'System: Retrieves the current Prometheus-style telemetry snapshot including counters, gauges, and latency histograms from the spatial runtime.',
+    description: 'System: Retrieves the current Prometheus-style telemetry snapshot including counters, gauges, and latency histograms from the spatial runtime.',
     inputSchema: {
       type: 'object',
       properties: {},

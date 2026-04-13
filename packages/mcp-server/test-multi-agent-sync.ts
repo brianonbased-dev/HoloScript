@@ -19,7 +19,7 @@ async function runMultiAgentE2E() {
     (deltas) => {
       receivedDeltasC.push(...deltas);
     },
-    { position: { x: 500, y: 0, z: 500 }, interactionRadius: 50 }
+    { position: [500, 0, 500], interactionRadius: 50 }
   );
 
   console.log('➜ 1. Agent A pushes initial state to Server Authority');

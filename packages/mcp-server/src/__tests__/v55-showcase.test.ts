@@ -16,14 +16,14 @@ import {
   handleAgentOrchestrationTool,
   resetOrchestrationSingletons,
 } from '../agent-orchestration-tools';
+import { OrchestratorAgent } from '@holoscript/framework';
 import {
   getDefaultRegistry,
   resetDefaultRegistry,
-  OrchestratorAgent,
   FederatedRegistryAdapter,
   TaskDelegationService,
   SkillWorkflowEngine,
-} from '@holoscript/framework';
+} from '@holoscript/framework/agents';
 
 // =============================================================================
 // FIXTURES

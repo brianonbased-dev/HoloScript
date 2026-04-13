@@ -39,8 +39,7 @@ function getFrameworkTeam(teamId: string): Team {
 export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_list',
-    description:
-      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
+    description: 'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -54,8 +53,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_add',
-    description:
-      'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
+    description: 'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -100,8 +98,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_claim',
-    description:
-      'Claim an open task on a team board. The task must be in "open" status. The calling agent becomes the assignee.',
+    description: 'Claim an open task on a team board. The task must be in "open" status. The calling agent becomes the assignee.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -119,8 +116,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_complete',
-    description:
-      'Mark a claimed task as done. Optionally include a commit hash and summary as proof of work.',
+    description: 'Mark a claimed task as done. Optionally include a commit hash and summary as proof of work.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -146,8 +142,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_slot_assign',
-    description:
-      "Set slot roles for a team. Provide an array of roles matching the team's max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.",
+    description: "Set slot roles for a team. Provide an array of roles matching the team's max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -169,8 +164,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_mode_set',
-    description:
-      'Set the team mode/preset. Changes the objective, rules, and task sources. Available modes: audit, research, build, review.',
+    description: 'Set the team mode/preset. Changes the objective, rules, and task sources. Available modes: audit, research, build, review.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -189,8 +183,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_scout',
-    description:
-      'Trigger an on-demand scout scan to populate the board when it is empty. Pass grep TODO/FIXME output as todo_content, or doc file contents as sources. Any agent can call this — it does NOT consume a team slot.',
+    description: 'Trigger an on-demand scout scan to populate the board when it is empty. Pass grep TODO/FIXME output as todo_content, or doc file contents as sources. Any agent can call this — it does NOT consume a team slot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -200,8 +193,7 @@ export const boardTools: Tool[] = [
         },
         todo_content: {
           type: 'string',
-          description:
-            'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
+          description: 'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
         },
         sources: {
           type: 'array',
@@ -225,8 +217,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest',
-    description:
-      'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
+    description: 'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -257,8 +248,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest_vote',
-    description:
-      'Vote on a team suggestion. +1 to support, -1 to oppose. Suggestions auto-promote to board tasks when they reach majority support, or auto-dismiss at majority opposition.',
+    description: 'Vote on a team suggestion. +1 to support, -1 to oppose. Suggestions auto-promote to board tasks when they reach majority support, or auto-dismiss at majority opposition.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -285,8 +275,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest_list',
-    description:
-      'List all suggestions for a team, sorted by score. Optionally filter by status: open, promoted, dismissed.',
+    description: 'List all suggestions for a team, sorted by score. Optionally filter by status: open, promoted, dismissed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -305,8 +294,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_heartbeat',
-    description:
-      'Send a presence heartbeat to keep the agent alive on the team. Call every 60 seconds during active work. Missing 2 heartbeats marks the agent as offline and releases its slot.',
+    description: 'Send a presence heartbeat to keep the agent alive on the team. Call every 60 seconds during active work. Missing 2 heartbeats marks the agent as offline and releases its slot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -328,8 +316,7 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_knowledge_read',
-    description:
-      'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
+    description: 'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
     inputSchema: {
       type: 'object',
       properties: {

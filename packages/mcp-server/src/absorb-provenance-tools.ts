@@ -4,8 +4,7 @@ import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
 export const absorbProvenanceTools: Tool[] = [
   {
     name: 'absorb_provenance_answer',
-    description:
-      'Answer a codebase question using Absorb and attach deterministic provenance metadata (evidence hash + citations + timestamp).',
+    description: 'Answer a codebase question using Absorb and attach deterministic provenance metadata (evidence hash + citations + timestamp).',
     inputSchema: {
       type: 'object',
       properties: {

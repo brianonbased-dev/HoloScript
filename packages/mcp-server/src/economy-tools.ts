@@ -62,8 +62,7 @@ export function resetEconomySingletons(): void {
 export const economyTools: Tool[] = [
   {
     name: 'check_agent_budget',
-    description:
-      'Check budget status for an agent. Returns spent, remaining, limit, enforcement mode, and circuit breaker state.',
+    description: 'Check budget status for an agent. Returns spent, remaining, limit, enforcement mode, and circuit breaker state.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -78,8 +77,7 @@ export const economyTools: Tool[] = [
   },
   {
     name: 'get_usage_summary',
-    description:
-      'Get usage summary for an agent or globally. Shows per-tool cost breakdown, free-tier status, and top tools.',
+    description: 'Get usage summary for an agent or globally. Shows per-tool cost breakdown, free-tier status, and top tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -98,8 +96,7 @@ export const economyTools: Tool[] = [
   },
   {
     name: 'get_creator_earnings',
-    description:
-      'Get earnings for a plugin creator. Shows revenue by plugin, platform fees, payout eligibility, and payout history.',
+    description: 'Get earnings for a plugin creator. Shows revenue by plugin, platform fees, payout eligibility, and payout history.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -118,8 +115,7 @@ export const economyTools: Tool[] = [
 
   {
     name: 'optimize_scene_budget',
-    description:
-      "Run equimarginal allocation on a scene's traits against a platform budget. Returns which traits to include, LOD levels, and what to shed — sorted by value/cost ratio so the most efficient traits survive.",
+    description: "Run equimarginal allocation on a scene's traits against a platform budget. Returns which traits to include, LOD levels, and what to shed — sorted by value/cost ratio so the most efficient traits survive.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -165,8 +161,7 @@ export const economyTools: Tool[] = [
   },
   {
     name: 'validate_marketplace_pricing',
-    description:
-      'Validate that a marketplace trait listing price meets the resource cost floor. Prevents economic denial-of-rendering attacks where a cheap trait consumes massive GPU resources.',
+    description: 'Validate that a marketplace trait listing price meets the resource cost floor. Prevents economic denial-of-rendering attacks where a cheap trait consumes massive GPU resources.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -187,8 +182,7 @@ export const economyTools: Tool[] = [
   },
   {
     name: 'get_unified_budget_state',
-    description:
-      'Get a unified view of budget pressure across economy + rendering for an agent. Returns economic pressure, resource pressure per category, suggested LOD, and shed candidates.',
+    description: 'Get a unified view of budget pressure across economy + rendering for an agent. Returns economic pressure, resource pressure per category, suggested LOD, and shed candidates.',
     inputSchema: {
       type: 'object',
       properties: {

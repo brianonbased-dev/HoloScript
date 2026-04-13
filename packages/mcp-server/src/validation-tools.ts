@@ -393,8 +393,7 @@ export async function handleValidationTool(
 export const validationTools: Tool[] = [
   {
     name: 'validate_composition',
-    description:
-      'Validate a .holo composition against trait constraints (requires/conflicts), ' +
+    description: 'Validate a .holo composition against trait constraints (requires/conflicts), ' +
       'v6 domain coherence, and dependency rules. Returns diagnostics with suggestions.',
     inputSchema: {
       type: 'object',

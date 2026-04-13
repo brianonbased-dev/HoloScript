@@ -24,8 +24,7 @@ import { HoloScriptPlusParser } from '@holoscript/core';
 export const wisdomGotchaTools: Tool[] = [
   {
     name: 'holo_query_wisdom',
-    description:
-      'Query @wisdom meta-traits from HoloScript compositions. ' +
+    description: 'Query @wisdom meta-traits from HoloScript compositions. ' +
       'Returns battle-tested insights with provenance, applicable traits, and examples. ' +
       'Use to learn best practices before making changes.',
     inputSchema: {
@@ -45,8 +44,7 @@ export const wisdomGotchaTools: Tool[] = [
         },
         compositionFile: {
           type: 'string',
-          description:
-            'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
+          description: 'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
         },
       },
       required: ['rootDir'],
@@ -54,8 +52,7 @@ export const wisdomGotchaTools: Tool[] = [
   },
   {
     name: 'holo_list_gotchas',
-    description:
-      'List @gotcha meta-traits from HoloScript compositions. ' +
+    description: 'List @gotcha meta-traits from HoloScript compositions. ' +
       'Returns known failure modes with severity levels, mitigation strategies, and trigger events. ' +
       'Use before making changes to understand failure risks.',
     inputSchema: {
@@ -76,8 +73,7 @@ export const wisdomGotchaTools: Tool[] = [
         },
         compositionFile: {
           type: 'string',
-          description:
-            'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
+          description: 'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
         },
       },
       required: ['rootDir'],
@@ -85,8 +81,7 @@ export const wisdomGotchaTools: Tool[] = [
   },
   {
     name: 'holo_check_gotchas',
-    description:
-      'Validate a composition for critical @gotcha violations. ' +
+    description: 'Validate a composition for critical @gotcha violations. ' +
       'Returns pass/fail with details on which gotchas would trigger. ' +
       'Use as a pre-commit check or CI gate with --enforce-gotchas semantics.',
     inputSchema: {

@@ -15,7 +15,7 @@ async function runShardingTest() {
       callsExtracted += deltas.length;
     },
     {
-      position: { x: 0, y: 0, z: 0 },
+      position: [0, 0, 0],
       interactionRadius: 50,
     }
   );
