@@ -339,6 +339,6 @@ export class ParticleSystem {
    * Update emitter position.
    */
   setPosition(x: number, y: number, z: number): void {
-    this.config.position = { x, y, z };
+    this.config.position = [x, y, z];
   }
 }

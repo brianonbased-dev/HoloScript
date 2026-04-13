@@ -284,13 +284,13 @@ export function getMaterialAtTemperature(
 
   return {
     conductivity: tDep.conductivity
-      ? interpolate(tDep.conductivity, T)
+      ? (interpolate(tDep.conductivity, T) as any)
       : getMaterialFallback(name).conductivity,
     specific_heat: tDep.specific_heat
-      ? interpolate(tDep.specific_heat, T)
+      ? (interpolate(tDep.specific_heat, T) as any)
       : getMaterialFallback(name).specific_heat,
     density: tDep.density
-      ? interpolate(tDep.density, T)
+      ? (interpolate(tDep.density, T) as any)
       : getMaterialFallback(name).density,
   };
 }
@@ -300,7 +300,7 @@ export function getMaterialAtTemperature(
  */
 export function getThermalConductivity(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.conductivity) return interpolate(tDep.conductivity, T);
+  if (tDep?.conductivity) return (interpolate(tDep.conductivity, T) as any);
   return getMaterialFallback(name).conductivity;
 }
 
@@ -309,7 +309,7 @@ export function getThermalConductivity(name: string, T: number): number {
  */
 export function getSpecificHeat(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.specific_heat) return interpolate(tDep.specific_heat, T);
+  if (tDep?.specific_heat) return (interpolate(tDep.specific_heat, T) as any);
   return getMaterialFallback(name).specific_heat;
 }
 
@@ -318,7 +318,7 @@ export function getSpecificHeat(name: string, T: number): number {
  */
 export function getDensity(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.density) return interpolate(tDep.density, T);
+  if (tDep?.density) return (interpolate(tDep.density, T) as any);
   return getMaterialFallback(name).density;
 }
 

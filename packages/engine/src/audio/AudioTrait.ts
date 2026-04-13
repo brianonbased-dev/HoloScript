@@ -78,7 +78,7 @@ export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
     };
 
     const sourceId = engine.play(config.soundId, {
-      position: pos,
+      position: { x: pos.x, y: pos.y, z: pos.z },
       volume: config.volume,
       pitch: config.pitch,
       loop: config.loop,

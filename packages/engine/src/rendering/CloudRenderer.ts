@@ -128,7 +128,7 @@ export class CloudRenderer {
     }
 
     return {
-      position: { x, y, z },
+      position: [x, y, z],
       density,
       lighting: transmittance,
     };

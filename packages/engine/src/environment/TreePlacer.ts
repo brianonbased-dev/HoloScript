@@ -125,7 +125,7 @@ export class TreePlacer {
       const tree: PlacedTree = {
         id: `tree_${_treeId++}`,
         templateId: template.id,
-        position: { x, y, z },
+        position: [x, y, z],
         scale,
         rotation: rand() * Math.PI * 2,
       };

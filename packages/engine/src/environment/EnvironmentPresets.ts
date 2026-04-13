@@ -225,7 +225,7 @@ export const PRESET_SCIFI: EnvironmentConfig = {
       shadowMapSize: 2048,
     },
     { type: 'ambient', color: '#1a003a', intensity: 0.2 },
-    { type: 'point', color: '#ff00ff', intensity: 2.0, position: [0, 10, 0] },
+    { type: 'point', color: '#ff00ff', intensity: 2.0, position: {x: 0, y: 10, z: 0} },
   ],
   fog: { type: 'exponential2', color: '#0a001a', density: 0.003 },
   atmosphere: {

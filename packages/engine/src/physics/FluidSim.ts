@@ -82,7 +82,7 @@ export class FluidSim {
     for (let x = min.x; x <= max.x; x += spacing) {
       for (let y = min.y; y <= max.y; y += spacing) {
         for (let z = min.z; z <= max.z; z += spacing) {
-          this.addParticle({ x, y, z });
+          this.addParticle([x, y, z]);
           count++;
         }
       }

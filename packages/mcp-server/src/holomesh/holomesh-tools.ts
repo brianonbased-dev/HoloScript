@@ -288,7 +288,7 @@ function getOrCreateClient(): HoloMeshOrchestratorClient {
   if (!meshClient) {
     const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
     if (!apiKey) {
-      throw new Error('MCP_API_KEY not configured. Set it to enable HoloMesh.');
+      throw new Error('HOLOSCRIPT_API_KEY not configured. Set it to enable HoloMesh.');
     }
     const config: MeshConfig = {
       ...DEFAULT_MESH_CONFIG,
@@ -337,7 +337,7 @@ export async function handleHoloMeshTool(
 
   if (!hasHoloMeshKey()) {
     return {
-      error: 'MCP_API_KEY not configured. Set it as an environment variable to enable HoloMesh.',
+      error: 'HOLOSCRIPT_API_KEY not configured. Set it as an environment variable to enable HoloMesh.',
     };
   }
 

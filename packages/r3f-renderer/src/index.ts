@@ -66,7 +66,7 @@ export type {
 // Simulation Visualization Components (Phase R2 + Phase R3)
 export { SimulationProvider } from './components/SimulationProvider';
 export type { SimulationProviderProps, SimulationContextValue } from './components/SimulationProvider';
-export { ScalarFieldOverlay } from './components/ScalarFieldOverlay';
+export { ScalarFieldOverlay, type ColormapName } from './components/ScalarFieldOverlay';
 export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarFieldOverlay';
 export { SimResultsMesh } from './components/SimResultsMesh';
 export type { SimResultsMeshProps } from './components/SimResultsMesh';

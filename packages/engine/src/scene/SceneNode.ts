@@ -54,7 +54,7 @@ export class SceneNode {
   // ---------------------------------------------------------------------------
 
   setPosition(x: number, y: number, z: number): void {
-    this.local.position = { x, y, z };
+    this.local.position = [x, y, z];
     this.markDirty();
   }
   setRotation(x: number, y: number, z: number): void {

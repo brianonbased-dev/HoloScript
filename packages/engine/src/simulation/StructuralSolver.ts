@@ -610,7 +610,7 @@ export class StructuralSolver {
   }
 
   /** Update a load and re-solve */
-  updateLoad(id: string, force: [number, number, number]): void {
+  updateLoad(id: string, force: [Force, Force, Force]): void {
     const load = this.config.loads.find((l) => l.id === id);
     if (load) {
       load.force = force;

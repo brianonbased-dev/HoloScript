@@ -75,7 +75,7 @@ export class ExperimentOrchestrator {
     tracker?: ProvenanceTracker,
   ) {
     this.solverFactory = solverFactory;
-    this.tracker = tracker ?? new ProvenanceTracker();
+    this.tracker = tracker ?? new ProvenanceTracker('1.0.0');
   }
 
   /**

@@ -125,7 +125,7 @@ export class RopeSystem {
         const vy = (n.position[1] - n.previous[1]) * config.damping;
         const vz = (n.position[2] - n.previous[2]) * config.damping;
 
-        n.previous = { ...n.position };
+        n.previous = { ...n.position } as any;
         n.position[0] += vx + config.gravity[0] * dt2;
         n.position[1] += vy + config.gravity[1] * dt2;
         n.position[2] += vz + config.gravity[2] * dt2;

@@ -107,7 +107,7 @@ export class FoliageSystem {
 
       instances.push({
         typeId,
-        position: { x, y: 0, z },
+        position: [x, 0, z],
         scale,
         rotation: nextRand() * Math.PI * 2,
         windPhase: nextRand() * Math.PI * 2,

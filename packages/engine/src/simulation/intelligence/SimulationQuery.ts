@@ -161,7 +161,7 @@ function matches(q: string, keywords: string[]): boolean {
   return keywords.some((k) => q.includes(k));
 }
 
-function dig(stats: Record<string, unknown>, ...paths: string[]): number | boolean | null {
+function dig(stats: Record<string, unknown>, ...paths: string[]): any {
   for (const path of paths) {
     const parts = path.split('.');
     let val: unknown = stats;

@@ -101,7 +101,7 @@ export class CombatManager {
         if (!hr.active) continue;
         if (hb.ownerId === hr.ownerId) continue; // No self-hit
 
-        if (this.aabbOverlap(hb.position, hb.size, hr.position, hr.size)) {
+        if (this.aabbOverlap(hb.position as any, hb.size, hr.position as any, hr.size)) {
           hits.push({ hitbox: hb, hurtbox: hr });
           this.hitLog.push({ hitboxId: hb.id, hurtboxId: hr.id, time: Date.now() });
         }

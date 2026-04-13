@@ -12,7 +12,7 @@
 // =============================================================================
 
 export interface SteeringAgent {
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   maxSpeed: number;
   maxForce: number;
@@ -34,7 +34,7 @@ export interface SteeringConfig {
 }
 
 export interface SteeringObstacle {
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   radius: number;
 }
 
@@ -175,9 +175,9 @@ export class SteeringBehaviors {
     for (const n of neighbors) {
       const d = this.dist(agent.position, n.position);
       if (d > 0 && d < this.config.cohesionRadius) {
-        center[0] += n.position[0];
-        center[1] += n.position[1];
-        center[2] += n.position[2];
+        center.x += n.position.x;
+        center.y += n.position.y;
+        center.z += n.position.z;
         count++;
       }
     }
@@ -243,9 +243,9 @@ export class SteeringBehaviors {
       agent.velocity.z *= ratio;
     }
 
-    agent.position[0] += agent.velocity[0] * dt;
-    agent.position[1] += agent.velocity[1] * dt;
-    agent.position[2] += agent.velocity[2] * dt;
+    agent.position.x += agent.velocity.x * dt;
+    agent.position.y += agent.velocity.y * dt;
+    agent.position.z += agent.velocity.z * dt;
   }
 
   // ---------------------------------------------------------------------------

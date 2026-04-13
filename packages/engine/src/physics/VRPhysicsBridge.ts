@@ -70,7 +70,7 @@ export class VRPhysicsBridge {
         type: 'kinematic',
         mass: 1, // Infinite mass for kinematic
         transform: {
-          position: [hand.position?.x ?? 0, hand.position?.y ?? 0, hand.position?.z ?? 0,],
+          position: {x: hand.position?.x ?? 0, y: hand.position?.y ?? 0, z: hand.position?.z ?? 0},
           rotation: {
             x: hand.rotation?.x ?? 0,
             y: hand.rotation?.y ?? 0,

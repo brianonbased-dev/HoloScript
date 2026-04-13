@@ -85,7 +85,7 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
       issuesFound: 0,
       improvements: [],
       knowledge: [],
-      error: 'MCP_API_KEY required for knowledge store query',
+      error: 'HOLOSCRIPT_API_KEY required for knowledge store query',
     };
   }
 

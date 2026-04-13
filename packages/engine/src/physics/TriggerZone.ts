@@ -113,7 +113,7 @@ export class TriggerZoneSystem {
 
   private overlaps(
     shape: TriggerShape,
-    pos: { x: number; y: number; z: number },
+    pos: [number, number, number],
     entityRadius: number
   ): boolean {
     if (shape.type === 'sphere' && shape.radius !== undefined) {

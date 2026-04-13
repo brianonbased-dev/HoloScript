@@ -66,7 +66,7 @@ export class AvatarController {
     // 2. Arms
     this.solver.setTarget(
       'leftArm',
-      input.leftHand.position.x,
+      input.leftHand.position[0],
       input.leftHand.position[1],
       input.leftHand.position[2]
     );

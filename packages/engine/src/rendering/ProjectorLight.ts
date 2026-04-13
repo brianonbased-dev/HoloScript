@@ -63,7 +63,7 @@ export class ProjectorLight {
 
   setPosition(id: string, x: number, y: number, z: number): void {
     const p = this.projectors.get(id);
-    if (p) p.position = { x, y, z };
+    if (p) p.position = [x, y, z];
   }
 
   setDirection(id: string, x: number, y: number, z: number): void {

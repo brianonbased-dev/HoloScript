@@ -112,7 +112,7 @@ export class CameraPath {
   } {
     const n = this.points.length;
     if (n === 0) return { position: [0, 0, 0], lookAt: null };
-    if (n === 1) return { position: { ...this.points[0] }, lookAt: null };
+    if (n === 1) return { position: { ...this.points[0] } as any, lookAt: null };
 
     const f = t * (n - 1);
     const i = Math.min(Math.floor(f), n - 2);
@@ -140,7 +140,7 @@ export class CameraPath {
       };
     }
 
-    return { position, lookAt };
+    return { position: position as any, lookAt };
   }
 
   private catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {

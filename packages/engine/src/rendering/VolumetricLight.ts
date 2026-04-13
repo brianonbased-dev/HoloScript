@@ -111,7 +111,7 @@ export class VolumetricLight {
       const contribution = phase * light.intensity * attenuation * stepSize;
       accumulated += contribution;
 
-      samples.push({ position: samplePos, accumulated, step: i });
+      samples.push({ position: [samplePos.x, samplePos.y, samplePos.z], accumulated, step: i });
     }
 
     return samples;

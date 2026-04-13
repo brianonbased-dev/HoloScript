@@ -149,7 +149,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       right: null,
     },
     headset: {
-      position: [0, 1.6, 0],
+      position: { x: 0, y: 1.6, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
     },
     controllers: {
@@ -234,7 +234,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     });
 
     this.on('physics_add_constraint', (payload: any) => {
-      const { _type, nodeId, axis, min, max, _spring } = payload as {
+      const { type, nodeId, axis, min, max, spring } = payload as {
         type: string;
         nodeId: string;
         axis?: IVector3;
@@ -262,7 +262,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // We defer full initialization until enterVR() or if renderer provides context now
     if (
       options.renderer &&
-      (options.renderer as Partial<WebXRRenderer>).context &&
+        (options.renderer as any).context &&
       options.vrEnabled
     ) {
       // We could pre-warm here, but for now we wait for explicit enterVR
@@ -376,7 +376,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // We need access to the WebGPU context from the renderer
     // This assumes the renderer in options has a 'context' property or we can get it
     // Since Renderer interface in this file is generic, we cast it for now
-    const renderer = this.options.renderer as Partial<WebXRRenderer> | undefined;
+    const renderer = this.options.renderer as any;
     if (!renderer) {
       console.error('Cannot enter VR: No renderer found');
       return;
@@ -448,7 +448,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     if (this.handMenuSystem) this.handMenuSystem.update(delta);
 
     // Render XR Frame
-    const renderer = this.options.renderer as Partial<WebXRRenderer> | undefined;
+    const renderer = this.options.renderer as any;
     if (renderer?.renderXR) {
       renderer.renderXR(frame);
     }
@@ -1384,7 +1384,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     if (instance.node.traits?.has('networked')) {
       const interpolated = this.networkSync.getInterpolatedState(
         instance.node.id || ''
-      ) as InterpolatedState | null;
+      ) as any;
       const body = this.physicsWorld.getBody(instance.node.id || '');
 
       if (interpolated && instance.node.properties) {
@@ -1451,7 +1451,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             'kinematic'
         ) {
           body.type = (instance.node as unknown as Record<string, unknown>)
-            .__originalPhysicsType as string;
+            .__originalPhysicsType as any;
         }
       }
     }
@@ -1691,12 +1691,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         },
         getBodyPosition: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body) return { ...body.position };
+          if (body && body.position) return { x: body.position.x || 0, y: body.position.y || 0, z: body.position.z || 0 };
           return null;
         },
         getBodyVelocity: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body) return { ...body.velocity };
+          if (body && body.velocity) return { x: body.velocity.x || 0, y: body.velocity.y || 0, z: body.velocity.z || 0 };
           return null;
         },
       },

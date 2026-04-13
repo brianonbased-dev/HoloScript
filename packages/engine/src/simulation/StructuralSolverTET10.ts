@@ -151,7 +151,7 @@ export interface TET10Stats {
   minSafetyFactor: number;
   solveResult: ConvergenceResult | null;
   solveTimeMs: number;
-  usedGPU: boolean;
+  useGPU: boolean;
 }
 
 // ── Gauss Quadrature ──────────────────────────────────────────────────────────
@@ -1398,7 +1398,7 @@ export class StructuralSolverTET10 {
       const gpuResult = await this.solveGPU(rhs);
       if (gpuResult) {
         this.solveResult = gpuResult;
-        this.usedGPU = true;
+        this.useGPU = true;
         this.recoverStress();
         this.solveTimeMs = performance.now() - t0;
         return this.solveResult;
@@ -1407,7 +1407,7 @@ export class StructuralSolverTET10 {
 
     // CPU fallback
     this.solveResult = this.solveCPU(rhs);
-    this.usedGPU = false;
+    this.useGPU = false;
     this.recoverStress();
     this.solveTimeMs = performance.now() - t0;
     return this.solveResult;
@@ -1482,7 +1482,7 @@ export class StructuralSolverTET10 {
       this.recoverStress();
       this.solveTimeMs = performance.now() - t0;
       this.solveResult = result;
-      this.usedGPU = false;
+      this.useGPU = false;
     }
 
     return result;
@@ -1759,7 +1759,7 @@ export class StructuralSolverTET10 {
       minSafetyFactor: minSF,
       solveResult: this.solveResult,
       solveTimeMs: this.solveTimeMs,
-      usedGPU: this.usedGPU,
+      useGPU: this.useGPU,
     };
   }
 

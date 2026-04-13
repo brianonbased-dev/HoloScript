@@ -88,7 +88,7 @@ export class GrassRenderer {
       const colorVar = (rand() - 0.5) * 2 * this.config.colorVariation;
 
       this.blades.push({
-        position: { x, y: 0, z },
+        position: [x, 0, z],
         height: this.config.baseHeight * heightMul,
         width: this.config.baseWidth * Math.max(0.5, widthMul),
         bendFactor: rand() * this.config.bendRange,

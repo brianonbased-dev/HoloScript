@@ -75,7 +75,7 @@ interface RevenueDistributionResult {
 }
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const MCP_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
+const HOLOSCRIPT_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
@@ -138,11 +138,11 @@ if (process.env.DATABASE_URL) {
 
 // Initialize security services
 const oauth = getOAuth21Service({
-  legacyApiKey: MCP_API_KEY,
+  legacyApiKey: HOLOSCRIPT_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
 });
 const oauth2 = getOAuth2Provider({
-  legacyApiKey: MCP_API_KEY,
+  legacyApiKey: HOLOSCRIPT_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
   backend: tokenBackend,
 });
@@ -723,7 +723,7 @@ const httpServer = http.createServer(async (req, res) => {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : `http://localhost:${PORT}`;
 
-    const card = buildAgentCard(allTools, baseUrl, !!MCP_API_KEY);
+    const card = buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
     res.writeHead(200, {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=3600',
@@ -834,7 +834,7 @@ const httpServer = http.createServer(async (req, res) => {
         const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
           ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
           : `http://localhost:${PORT}`;
-        return buildAgentCard(allTools, baseUrl, !!MCP_API_KEY);
+        return buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
       };
 
       // Handle the JSON-RPC request
@@ -2372,7 +2372,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
   );
   console.info(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
-  console.info(`   Legacy API Key: ${MCP_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
+  console.info(`   Legacy API Key: ${HOLOSCRIPT_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
   console.info(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
   console.info(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
   console.info(`   Audit: EU AI Act compliant (Articles 12-14)`);

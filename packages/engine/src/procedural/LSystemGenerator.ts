@@ -176,7 +176,7 @@ export class LSystemGenerator {
 
     const stack: TurtleState[] = [];
     let state: TurtleState = {
-      position: [0, 0, 0],
+      position: {x: 0, y: 0, z: 0},
       direction: { x: 0, y: 1, z: 0 }, // Growing upward
       up: { x: 0, y: 0, z: 1 },
       length: config.length,

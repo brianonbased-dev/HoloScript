@@ -2,10 +2,11 @@ import {
   HSPlusRuntime,
   VRHand,
   Vector3,
-  type HSPlusNode,
-  createUIButton,
-  createUIPanel,
 } from '@holoscript/core';
+
+type UIComponent = any;
+const createUIButton = (id: string, props: any) => ({id, type: 'button', properties: props});
+const createUIPanel = (id: string, props: any, children: any[]) => ({id, type: 'panel', properties: props, children});
 import { TransitionSystem } from '../animation/TransitionSystem';
 import { AnimationEngine } from '../animation/AnimationEngine';
 
@@ -83,7 +84,7 @@ export class HandMenuSystem {
     // Position near the hand
     menu.properties!.position = {
       x: hand.position.x,
-      // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
+
       y: hand.position.y + 0.1,
       z: hand.position.z,
     };
@@ -92,7 +93,7 @@ export class HandMenuSystem {
     menu.properties!.opacity = 0;
     menu.properties!.scale = 0;
 
-    (this.runtime as unknown as { mountObject(node: HSPlusNode): void }).mountObject(menu);
+    (this.runtime as unknown as { mountObject(node: UIComponent): void }).mountObject(menu);
     this.menuNodeId = menuId;
     this.menuNode = menu;
     this.isMenuVisible = true;
@@ -139,11 +140,7 @@ export class HandMenuSystem {
       {
         duration: 0.25,
         onComplete: () => {
-          // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-          if (this.runtime.unmountObject) {
-            // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-            this.runtime.unmountObject(nodeIdToRemove);
-          }
+          this.runtime.unmountObject(nodeIdToRemove);
           this.isTransitioning = false;
         },
       }

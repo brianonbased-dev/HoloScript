@@ -271,7 +271,7 @@ export class AdvancedLightingManager {
   addLight(config: Partial<AdvancedLight> & { type: LightType }): AdvancedLight {
     const light: AdvancedLight = {
       id: `alight_${_lightId++}`,
-      position: [0, 5, 0],
+      position: {x: 0, y: 5, z: 0},
       direction: { x: 0, y: -1, z: 0 },
       color: [1, 1, 1],
       intensity: 1,

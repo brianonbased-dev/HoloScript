@@ -104,6 +104,17 @@ REST fallback: `POST https://absorb.holoscript.net/api/query` with Bearer `$ABSO
 | Suggestions | `holomesh_suggest` | `POST .../team/:id/suggestions` |
 | SSE room | — | `GET .../team/:id/room/live` |
 
+## Session Handoff Contract (all agents)
+
+Every agent MUST post a handoff message on session end containing:
+1. **Completed:** What you did (commit hashes if applicable)
+2. **Unfinished:** What's left and why (blocked? context limit? needs research?)
+3. **Next agent:** Who should pick this up and what they should do first
+4. **Knowledge:** IDs of any W/P/G entries you graduated
+5. **Warnings:** Anything that will surprise the next agent (broken endpoints, stale keys, test failures)
+
+Script: `node C:/Users/Josep/.ai-ecosystem/hooks/team-connect.mjs --report --name=<you> --ide=<your-ide>`
+
 ## Coding Standards
 
 - Strict TypeScript. No `any` (use `unknown`).

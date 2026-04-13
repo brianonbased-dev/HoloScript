@@ -156,7 +156,7 @@ export class CinematicTrack {
     if (this.keyframes.length === 0) return state;
     if (this.keyframes.length === 1) {
       const k = this.keyframes[0];
-      if (k.position) state.position = { ...k.position };
+      if (k.position) state.position = { ...k.position } as any;
       if (k.rotation) state.rotation = { ...k.rotation };
       if (k.fov !== undefined) state.fov = k.fov;
       if (k.zoom !== undefined) state.zoom = k.zoom;
@@ -185,9 +185,9 @@ export class CinematicTrack {
       state.position[1] = kA.position[1] + (kB.position[1] - kA.position[1]) * t;
       state.position[2] = kA.position[2] + (kB.position[2] - kA.position[2]) * t;
     } else if (kB.position) {
-      state.position = { ...kB.position };
+      state.position = { ...kB.position } as any;
     } else if (kA.position) {
-      state.position = { ...kA.position };
+      state.position = { ...kA.position } as any;
     }
 
     if (kA.rotation && kB.rotation) {

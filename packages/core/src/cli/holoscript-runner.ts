@@ -2493,7 +2493,7 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   }
 
   if (!process.env.HOLOSCRIPT_API_KEY) {
-    console.error('[holomesh-daemon] MCP_API_KEY environment variable is required');
+    console.error('[holomesh-daemon] HOLOSCRIPT_API_KEY environment variable is required');
     process.exit(1);
   }
 

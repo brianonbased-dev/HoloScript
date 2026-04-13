@@ -317,7 +317,7 @@ export class TerrainSystem {
             const worldY = config.position.y + h * config.maxHeight;
 
             vertices.push({
-              position: [worldX, worldY, worldZ],
+              position: {x: worldX, y: worldY, z: worldZ},
               normal: { x: 0, y: 1, z: 0 }, // Simplified; real normals computed post-pass
               uv: { u: x / (res - 1), v: z / (res - 1) },
               height: h,

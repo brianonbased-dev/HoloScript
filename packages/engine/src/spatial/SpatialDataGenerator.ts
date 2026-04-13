@@ -27,11 +27,11 @@ import type { Vector3, Quaternion, BoundingBox, BoundingSphere } from './Spatial
 import {
   distance,
   isPointInBox,
-  _isPointInSphere,
+  isPointInSphere,
   normalize,
   subtract,
-  _boxesOverlap,
-  _getBoxCenter,
+  boxesOverlap,
+  getBoxCenter,
 } from './SpatialTypes';
 
 // =============================================================================

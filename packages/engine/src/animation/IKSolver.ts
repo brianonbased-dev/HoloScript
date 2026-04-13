@@ -125,19 +125,19 @@ export class IKSolver {
     const totalRootAngle = rootAngle + rootBendAngle * chain.weight;
 
     // Position mid bone
-    mid.position = {
-      x: root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
-      y: root.position[1] + Math.sin(totalRootAngle) * a,
-      z: root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
-    };
+    mid.position = [
+      root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
+      root.position[1] + Math.sin(totalRootAngle) * a,
+      root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
+    ];
 
     // Position end bone (if exists)
     if (end) {
-      const blendedTarget = {
-        x: end.position[0] + (target[0] - end.position[0]) * chain.weight,
-        y: end.position[1] + (target[1] - end.position[1]) * chain.weight,
-        z: end.position[2] + (target[2] - end.position[2]) * chain.weight,
-      };
+      const blendedTarget: [number, number, number] = [
+        end.position[0] + (target[0] - end.position[0]) * chain.weight,
+        end.position[1] + (target[1] - end.position[1]) * chain.weight,
+        end.position[2] + (target[2] - end.position[2]) * chain.weight,
+      ];
       end.position = blendedTarget;
     }
 
@@ -191,11 +191,11 @@ export class IKSolver {
           const child = bones[j];
           const rx = child.position[0] - bone.position[0];
           const ry = child.position[1] - bone.position[1];
-          child.position = {
-            x: bone.position[0] + rx * cosA - ry * sinA,
-            y: bone.position[1] + rx * sinA + ry * cosA,
-            z: child.position[2],
-          };
+          child.position = [
+            bone.position[0] + rx * cosA - ry * sinA,
+            bone.position[1] + rx * sinA + ry * cosA,
+            child.position[2],
+          ];
         }
       }
 
