@@ -88,21 +88,25 @@ COPY --from=manifests /manifests/ ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
-# Core's Docker bundle inlines engine/framework/platform/mesh/plugins — only copy
-# packages that mcp-server/absorb-service import directly at runtime.
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/engine/dist packages/engine/dist
+COPY --from=builder /app/packages/framework/dist packages/framework/dist
 COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
+COPY --from=builder /app/packages/platform/dist packages/platform/dist
+COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
 
-# Fail fast if core bundle exists
-RUN test -f /app/packages/core/dist/index.cjs
+# Fail fast if critical build artifacts are missing
+RUN test -f /app/packages/core/dist/index.cjs && \
+    test -f /app/packages/engine/dist/choreography/index.cjs && \
+    test -f /app/packages/framework/dist/learning/index.cjs
 
 # Create persistent directories (Railway volume mount points)
 RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh

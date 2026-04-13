@@ -37,6 +37,17 @@ module.exports = {
   treeshake: true,
   minify: false,
   external: [
+    // Self-reference (can't inline a package into itself)
+    '@holoscript/core',
+    /^@holoscript\/core\//,
+    // Workspace packages with complex subpath exports (keep external, resolve at runtime)
+    '@holoscript/engine',
+    /^@holoscript\/engine\//,
+    '@holoscript/framework',
+    /^@holoscript\/framework\//,
+    '@holoscript/absorb-service',
+    /^@holoscript\/absorb-service\//,
+    // Native/Node packages
     'dotenv', 'jsonwebtoken', 'jws', 'safe-buffer', 'ws',
     'react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei',
     'loro-crdt', 'pg', 'puppeteer', 'playwright', '@playwright/test',
