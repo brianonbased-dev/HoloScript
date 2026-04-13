@@ -2,9 +2,15 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: { 'index': 'src/index.ts' },
   format: ['cjs', 'esm'],
-  dts: false,
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['@holoscript/core', '@holoscript/mesh'],
+  external: [
+    '@holoscript/core',
+    /^@holoscript\/core\//,
+    '@holoscript/mesh',
+    /^@holoscript\/mesh\//,
+    '@holoscript/platform',
+  ],
 });

@@ -19,7 +19,7 @@ export default defineConfig({
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   format: ['cjs', 'esm'],
-  dts: false, // Temporarily disabled — type mismatches to resolve before re-enabling
+  dts: true, // Re-enable DTS generation
   clean: true,
   sourcemap: true,
   splitting: true, // Enable code splitting for shared chunks
@@ -44,11 +44,16 @@ export default defineConfig({
     '@holoscript/absorb-service/engine',
     '@holoscript/absorb-service/self-improvement',
     '@holoscript/absorb-service/daemon',
+    '@holoscript/core',
     '@holoscript/engine',
     '@holoscript/framework',
     /^@holoscript\/engine\//,
     /^@holoscript\/framework\//,
     '@holoscript/agent-protocol',
+    '@holoscript/mesh',
+    /^@holoscript\/mesh\//,
+    '@holoscript/platform',
+    /^@holoscript\/platform\//,
     '@holoscript/mcp-server',
     // loro-crdt is only needed by mcp-server at runtime, but esbuild follows
     // relative imports from holoscript-runner.ts into mcp-server source
