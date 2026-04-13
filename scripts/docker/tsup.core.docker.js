@@ -10,7 +10,6 @@
  * reliably create the symlinks that CJS require() traversal expects for subpath exports
  * like @holoscript/engine/choreography → engine/dist/choreography/index.cjs.
  */
-const { defineConfig } = require("tsup");
 const { execSync } = require("child_process");
 const { readFileSync } = require("fs");
 
@@ -20,7 +19,7 @@ try {
   gitSha = execSync('git rev-parse --short HEAD').toString().trim();
 } catch { /* not in git */ }
 
-module.exports = defineConfig({
+module.exports = {
   entry: {
     index: 'src/index.ts',
     'math/vec3': 'src/math/vec3.ts',
@@ -111,4 +110,4 @@ module.exports = defineConfig({
   esbuildOptions(options) {
     options.treeShaking = true;
   },
-});
+};
