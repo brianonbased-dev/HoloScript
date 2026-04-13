@@ -18,7 +18,7 @@ import {
   resetDelegationEngine,
   DelegateTaskOptions,
 } from '../DelegationEngine';
-import type { AgentManifest, AgentCapability } from '../../agents/AgentTypes';
+import type { AgentManifest, AgentCapability } from '@holoscript/framework/agents';
 import type { DelegationRule, TaskError } from '../HierarchyTypes';
 
 // =============================================================================

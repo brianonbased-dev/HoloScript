@@ -16,17 +16,17 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { InventorySystem } from '../gameplay/InventorySystem.js';
-import { LootTable } from '../gameplay/LootTable.js';
-import { CraftingSystem } from '../gameplay/CraftingSystem.js';
-import { QuestManager } from '../gameplay/QuestManager.js';
-import { AchievementSystem } from '../gameplay/AchievementSystem.js';
-import { DamageSystem } from '../combat/DamageSystem.js';
-import { CombatManager } from '../combat/CombatManager.js';
+import { InventorySystem } from '@holoscript/engine/gameplay';
+import { LootTable } from '@holoscript/engine/gameplay';
+import { CraftingSystem } from '@holoscript/engine/gameplay';
+import { QuestManager } from '@holoscript/engine/gameplay';
+import { AchievementSystem } from '@holoscript/engine/gameplay';
+import { DamageSystem } from '@holoscript/engine/combat';
+import { CombatManager } from '@holoscript/engine/combat';
 import { InputManager } from '@holoscript/engine/input/InputManager.js';
-import { NavMesh } from '../navigation/NavMesh.js';
-import { DialogueGraph } from '../dialogue/DialogueGraph.js';
-import { EmotionSystem } from '../dialogue/EmotionSystem.js';
+import { NavMesh } from '@holoscript/engine/navigation';
+import { DialogueGraph } from '@holoscript/engine/dialogue';
+import { EmotionSystem } from '@holoscript/engine/dialogue';
 
 // =============================================================================
 // FEATURE 1: gameplay/InventorySystem

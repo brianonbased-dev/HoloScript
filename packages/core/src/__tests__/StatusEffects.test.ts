@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { StatusEffectSystem, type StatusEffect } from '../combat/StatusEffects';
+import { StatusEffectSystem, type StatusEffect } from '@holoscript/engine/combat';
 
 // =============================================================================
 // C300 — StatusEffects

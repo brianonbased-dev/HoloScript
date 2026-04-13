@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { DamageSystem } from '../combat/DamageSystem';
-import { CombatManager } from '../combat/CombatManager';
-import { StatusEffectSystem } from '../combat/StatusEffects';
+import { DamageSystem } from '@holoscript/engine/combat';
+import { CombatManager } from '@holoscript/engine/combat';
+import { StatusEffectSystem } from '@holoscript/engine/combat';
 
 describe('Cycle 141: Damage & Combat', () => {
   // -------------------------------------------------------------------------

@@ -30,7 +30,7 @@ import {
   DEFAULT_POSTFX_PIPELINE,
   createPostFXPipeline,
   mergeEffectConfig,
-} from '../postfx/index.js';
+} from '@holoscript/engine/postfx';
 
 // ---------------------------------------------------------------------------
 // Helpers

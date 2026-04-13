@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MaterialSystem } from '../rendering/MaterialSystem';
-import { ShaderGraph } from '../shader/graph/ShaderGraph';
+import { ShaderGraph } from '@holoscript/engine/shader';
 
 describe('MaterialSystem', () => {
   let ms: MaterialSystem;

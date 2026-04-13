@@ -16,11 +16,11 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { SceneNode } from '../scene/SceneNode.js';
-import { SceneSerializer } from '../scene/SceneSerializer.js';
-import { SceneDeserializer } from '../scene/SceneDeserializer.js';
-import { SceneManager } from '../scene/SceneManager.js';
-import { StateSnapshotCapture } from '../scene/StateSnapshot.js';
+import { SceneNode } from '@holoscript/engine/scene';
+import { SceneSerializer } from '@holoscript/engine/scene';
+import { SceneDeserializer } from '@holoscript/engine/scene';
+import { SceneManager } from '@holoscript/engine/scene';
+import { StateSnapshotCapture } from '@holoscript/engine/scene';
 import { SplinePath } from '../math/SplinePath.js';
 import { SplineFollower } from '../math/SplineFollower.js';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EntityAuthority } from '../multiplayer/EntityAuthority';
-import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation';
-import { ReplicationManager } from '../multiplayer/ReplicationManager';
+import { EntityAuthority } from '@holoscript/mesh/multiplayer/EntityAuthority';
+import { NetworkInterpolation } from '@holoscript/mesh/multiplayer/NetworkInterpolation';
+import { ReplicationManager } from '@holoscript/mesh/multiplayer/ReplicationManager';
 
 describe('Cycle 108: Multiplayer Scene Sync', () => {
   // -------------------------------------------------------------------------

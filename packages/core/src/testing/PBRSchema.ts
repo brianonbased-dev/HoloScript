@@ -7,7 +7,7 @@
  * This file should be moved to materials/PBRSchema.ts once the directory
  * is created. Update imports in MaterialLibrary.ts, MaterialEditor.ts,
  * and rendering/index.ts accordingly:
- *   import { ... } from '../materials/PBRSchema';
+ *   import { ... } from '@holoscript/engine/materials';
  *
  * This module defines the single canonical set of PBR types shared across
  * all HoloScript subsystems:

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SceneManager, SavedScene } from '../scene/SceneManager';
+import { SceneManager, SavedScene } from '@holoscript/engine/scene';
 
 /**
  * SceneManager depends on SceneSerializer + SceneDeserializer internally.

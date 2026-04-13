@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PartyManager } from '../social/PartyManager';
-import { SocialGraph } from '../social/SocialGraph';
+import { PartyManager } from '@holoscript/mesh/social/PartyManager';
+import { SocialGraph } from '@holoscript/mesh/social/SocialGraph';
 
 // =============================================================================
 // MOCK TRANSPORT

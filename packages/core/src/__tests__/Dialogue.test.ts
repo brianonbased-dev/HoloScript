@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { DialogueGraph } from '../dialogue/DialogueGraph';
-import { ChoiceManager } from '../dialogue/ChoiceManager';
-import { Localization } from '../dialogue/Localization';
+import { DialogueGraph } from '@holoscript/engine/dialogue';
+import { ChoiceManager } from '@holoscript/engine/dialogue';
+import { Localization } from '@holoscript/engine/dialogue';
 
 describe('Cycle 127: Dialogue System', () => {
   // -------------------------------------------------------------------------

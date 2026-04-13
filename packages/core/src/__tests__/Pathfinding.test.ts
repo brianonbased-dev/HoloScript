@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { NavMesh } from '../navigation/NavMesh';
-import { AStarPathfinder } from '../navigation/AStarPathfinder';
-import { SteeringBehaviors, SteeringAgent } from '../navigation/SteeringBehaviors';
+import { NavMesh } from '@holoscript/engine/navigation';
+import { AStarPathfinder } from '@holoscript/engine/navigation';
+import { SteeringBehaviors, SteeringAgent } from '@holoscript/engine/navigation';
 
 describe('Cycle 118: Pathfinding & Navigation', () => {
   // -------------------------------------------------------------------------

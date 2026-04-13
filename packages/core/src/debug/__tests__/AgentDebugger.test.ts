@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AgentDebugger, getAgentDebugger, resetAgentDebugger } from '../AgentDebugger';
 import { resetTelemetryCollector } from '../TelemetryCollector';
 import { AgentInspector, resetAgentInspector } from '../AgentInspector';
-import type { AgentManifest } from '../../agents/AgentTypes';
+import type { AgentManifest } from '@holoscript/framework/agents';
 import type { BreakpointContext } from '../TelemetryTypes';
 
 // =============================================================================

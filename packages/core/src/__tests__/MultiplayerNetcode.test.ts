@@ -4,8 +4,8 @@
  * Tests for ReplicationManager and ClientPrediction.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ReplicationManager } from '../multiplayer/ReplicationManager';
-import { ClientPrediction } from '../multiplayer/ClientPrediction';
+import { ReplicationManager } from '@holoscript/mesh/multiplayer/ReplicationManager';
+import { ClientPrediction } from '@holoscript/mesh/multiplayer/ClientPrediction';
 
 // =============================================================================
 // REPLICATION MANAGER

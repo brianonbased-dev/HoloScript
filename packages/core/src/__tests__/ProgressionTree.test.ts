@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ProgressionTree } from '../gameplay/ProgressionTree';
-import type { SkillNode } from '../gameplay/ProgressionTree';
+import { ProgressionTree } from '@holoscript/engine/gameplay';
+import type { SkillNode } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C231 — Progression Tree (Skill Tree)

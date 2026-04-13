@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CraftingSystem } from '../gameplay/CraftingSystem';
-import type { CraftingRecipe } from '../gameplay/CraftingSystem';
+import { CraftingSystem } from '@holoscript/engine/gameplay';
+import type { CraftingRecipe } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C228 — Crafting System

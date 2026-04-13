@@ -4,8 +4,8 @@
  * Tests for OctreeSystem and FrustumCuller.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OctreeSystem } from '../spatial/OctreeSystem';
-import { FrustumCuller } from '../spatial/FrustumCuller';
+import { OctreeSystem } from '@holoscript/engine/spatial';
+import { FrustumCuller } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // OCTREE SYSTEM

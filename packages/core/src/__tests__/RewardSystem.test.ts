@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RewardSystem } from '../gameplay/RewardSystem';
+import { RewardSystem } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C266 — Reward System

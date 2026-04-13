@@ -20,11 +20,11 @@ import { UIWidgetFactory } from '../ui/UIWidgets.js';
 import { UILayoutEngine } from '../ui/UILayout.js';
 import { UIEventRouter } from '../ui/UIEventRouter.js';
 import { UIDataBinding } from '../ui/UIDataBinding.js';
-import { CameraController } from '../camera/CameraController.js';
-import { CameraEffects } from '../camera/CameraEffects.js';
-import { CameraShake } from '../camera/CameraShake.js';
-import { HandTracker } from '../vr/HandTracker.js';
-import { VRLocomotion } from '../vr/VRLocomotion.js';
+import { CameraController } from '@holoscript/engine/camera';
+import { CameraEffects } from '@holoscript/engine/camera';
+import { CameraShake } from '@holoscript/engine/camera';
+import { HandTracker } from '@holoscript/engine/vr';
+import { VRLocomotion } from '@holoscript/engine/vr';
 
 // =============================================================================
 // FEATURE 1: ui/UIRenderer

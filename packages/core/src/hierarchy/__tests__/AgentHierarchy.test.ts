@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HierarchyManager, resetHierarchyManager } from '../AgentHierarchy';
-import type { AgentManifest, AgentCapability } from '../../agents/AgentManifest';
+import type { AgentManifest, AgentCapability } from '@holoscript/framework/agents';
 
 function makeManifest(
   id: string,

@@ -6,8 +6,8 @@ import {
   DEFAULT_POSTFX_PIPELINE,
   createPostFXPipeline,
   mergeEffectConfig,
-} from '../postfx/index';
-import type { BloomConfig, PostFXPipeline } from '../postfx/index';
+} from '@holoscript/engine/postfx';
+import type { BloomConfig, PostFXPipeline } from '@holoscript/engine/postfx';
 
 // =============================================================================
 // C209 — PostFX Pipeline

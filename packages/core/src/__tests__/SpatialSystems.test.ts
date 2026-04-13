@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { TransformGraph } from '../spatial/TransformGraph';
-import { OctreeSystem } from '../spatial/OctreeSystem';
-import { FrustumCuller } from '../spatial/FrustumCuller';
+import { TransformGraph } from '@holoscript/engine/spatial';
+import { OctreeSystem } from '@holoscript/engine/spatial';
+import { FrustumCuller } from '@holoscript/engine/spatial';
 
 describe('Cycle 154: Spatial Systems', () => {
   // -------------------------------------------------------------------------

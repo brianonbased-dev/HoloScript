@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { LootTable } from '../gameplay/LootTable';
-import type { LootEntry } from '../gameplay/LootTable';
+import { LootTable } from '@holoscript/engine/gameplay';
+import type { LootEntry } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C226 — Loot Table

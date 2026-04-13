@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { CameraShake } from '../camera/CameraShake';
-import { CameraConstraints } from '../camera/CameraConstraints';
-import { CameraPath } from '../camera/CameraPath';
+import { CameraShake } from '@holoscript/engine/camera';
+import { CameraConstraints } from '@holoscript/engine/camera';
+import { CameraPath } from '@holoscript/engine/camera';
 
 describe('Cycle 165: Camera Extensions', () => {
   // -------------------------------------------------------------------------

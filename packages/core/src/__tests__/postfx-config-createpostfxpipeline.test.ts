@@ -21,8 +21,8 @@ import {
   DEFAULT_COLOR_GRADING_CONFIG,
   DEFAULT_VIGNETTE_CONFIG,
   DEFAULT_POSTFX_PIPELINE,
-} from '../postfx/index.js';
-import type { BloomConfig, VignetteConfig } from '../postfx/index.js';
+} from '@holoscript/engine/postfx';
+import type { BloomConfig, VignetteConfig } from '@holoscript/engine/postfx';
 
 // PostProcess types (no GPU)
 import {
@@ -45,7 +45,7 @@ import {
 } from '../rendering/postprocess/PostProcessPipeline.js';
 
 // ShaderGraph
-import { ShaderGraph } from '../shader/graph/ShaderGraph.js';
+import { ShaderGraph } from '@holoscript/engine/shader';
 
 // ShaderGraphTypes utilities
 import {
@@ -54,7 +54,7 @@ import {
   getNodeTemplate,
   TYPE_SIZES,
   ALL_NODE_TEMPLATES,
-} from '../shader/graph/ShaderGraphTypes.js';
+} from '@holoscript/engine/shader';
 
 // Build modules
 import { PlatformExporter } from '../build/PlatformExporter.js';

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { InventorySystem } from '../gameplay/InventorySystem';
-import { CraftingSystem } from '../gameplay/CraftingSystem';
-import { LootTable } from '../gameplay/LootTable';
+import { InventorySystem } from '@holoscript/engine/gameplay';
+import { CraftingSystem } from '@holoscript/engine/gameplay';
+import { LootTable } from '@holoscript/engine/gameplay';
 
 const sword = {
   id: 'sword',

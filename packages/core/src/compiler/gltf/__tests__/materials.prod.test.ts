@@ -18,8 +18,8 @@ import {
   linearToSRGB,
   createMaterial,
   applyPreset,
-} from '../materials';
-import type { PBRMaterialConfig } from '../materials';
+} from '@holoscript/engine/materials';
+import type { PBRMaterialConfig } from '@holoscript/engine/materials';
 
 describe('glTF Materials — Production', () => {
   // ─── Constants ─────────────────────────────────────────────────────────────

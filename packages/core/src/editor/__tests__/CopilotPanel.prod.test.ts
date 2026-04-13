@@ -8,8 +8,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CopilotPanel } from '../CopilotPanel';
-import { AICopilot } from '../../ai/AICopilot';
-import type { AIAdapter } from '../../ai/AIAdapter';
+import { AICopilot } from '@holoscript/framework/ai';
+import type { AIAdapter } from '@holoscript/framework/ai';
 
 // =============================================================================
 // MOCK HELPERS

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HitboxSystem, type Hitbox, type Hurtbox } from '../combat/HitboxSystem';
+import { HitboxSystem, type Hitbox, type Hurtbox } from '@holoscript/engine/combat';
 
 // =============================================================================
 // C308 — HitboxSystem

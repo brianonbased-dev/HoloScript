@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { StateMachine } from '../ai/StateMachine.js';
+import { StateMachine } from '@holoscript/framework/ai';
 
 describe('Dialogue State Machine Fuzzing & Stress', () => {
   it('should handle rapid deep-chain transitions without call stack limits', () => {

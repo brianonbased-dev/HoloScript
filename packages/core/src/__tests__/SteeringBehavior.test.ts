@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehavior } from '../ai/SteeringBehavior';
-import type { SteeringAgent, Vec2 } from '../ai/SteeringBehavior';
+import { SteeringBehavior } from '@holoscript/framework/ai';
+import type { SteeringAgent, Vec2 } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C214 — AI Steering Behaviors

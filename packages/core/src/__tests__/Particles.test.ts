@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ParticleEmitter, EmitterConfig } from '../particles/ParticleEmitter';
-import { ParticleForceSystem } from '../particles/ParticleForces';
+import { ParticleEmitter, EmitterConfig } from '@holoscript/engine/particles';
+import { ParticleForceSystem } from '@holoscript/engine/particles';
 
 describe('Cycle 112: Particle System', () => {
   const baseConfig: EmitterConfig = {

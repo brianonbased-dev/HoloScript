@@ -21,7 +21,7 @@ export {
   linearToSRGB,
   createMaterial,
   applyPreset,
-} from './materials';
+} from '@holoscript/engine/materials';
 
 // Extension utilities
 export {

@@ -4,7 +4,7 @@
  * Generates a scrollable list of friends with status indicators.
  */
 
-import { SocialUser } from '../../social/SocialGraph';
+import { SocialUser } from '@holoscript/mesh/social/SocialGraph';
 import { createScrollView, createButton } from '../UIComponents';
 import { HSPlusNode } from '../../types/HoloScriptPlus';
 

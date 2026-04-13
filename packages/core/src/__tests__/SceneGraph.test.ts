@@ -9,8 +9,8 @@
  * work around this by directly seeding the storage with properly-formed SavedScene objects.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SceneNode } from '../scene/SceneNode';
-import { SceneManager } from '../scene/SceneManager';
+import { SceneNode } from '@holoscript/engine/scene';
+import { SceneManager } from '@holoscript/engine/scene';
 
 // =============================================================================
 // SCENE NODE

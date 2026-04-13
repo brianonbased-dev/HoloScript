@@ -225,9 +225,9 @@ export {
 } from './state/ReactiveState';
 
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
-export { DeltaCompressor, type StateDelta } from './network/DeltaCompressor';
-export { StateSynchronizer, type StateSubscriber } from './network/StateSynchronizer';
-export type { INeuralSplatPacket } from './network/NetworkTypes';
+export { DeltaCompressor, type StateDelta } from '@holoscript/mesh/network/DeltaCompressor';
+export { StateSynchronizer, type StateSubscriber } from '@holoscript/mesh/network/StateSynchronizer';
+export type { INeuralSplatPacket } from '@holoscript/mesh/network/NetworkTypes';
 
 // Performance Monitoring (Phase 7)
 export { telemetry } from './monitoring/telemetry';
@@ -1889,7 +1889,7 @@ export {
   type SyncStats,
   type SyncEventType,
   type SyncEventCallback,
-} from './network/SyncProtocol';
+} from '@holoscript/mesh/network/SyncProtocol';
 
 // Local Network Adapter (existing)
 export {
@@ -1897,7 +1897,7 @@ export {
   createLocalNetworkAdapter,
   type NetworkUpdate,
   type UpdateCallback,
-} from './network/LocalNetworkAdapter';
+} from '@holoscript/mesh/network/LocalNetworkAdapter';
 
 // =============================================================================
 // Package Certification (Sprint 9-10)
@@ -2003,12 +2003,12 @@ export * from '@holoscript/engine/postfx';
 // Network Module (v3.3 State Synchronization)
 // =============================================================================
 
-export * as network from './network';
+export * as network from '@holoscript/mesh/network';
 export {
   ConnectionState as NetworkConnectionState,
   createMessage as createNetworkMessage,
   MessageHandler as NetworkMessageHandler,
-} from './network';
+} from '@holoscript/mesh/network';
 
 // =============================================================================
 // WASM Parser Bridge (v3.3 Performance Optimization)
@@ -2022,7 +2022,7 @@ export { WasmParserBridge, type ParseResult, type WasmParserConfig } from './was
 // High-Frequency Sync (v3.3 60Hz Spatial Optimization)
 // =============================================================================
 
-export * as sync from './sync';
+export * as sync from '@holoscript/mesh/sync';
 export {
   quantizePosition,
   dequantizePosition,
@@ -2030,7 +2030,7 @@ export {
   decompressQuaternion,
   PriorityScheduler,
   JitterBuffer,
-} from './sync';
+} from '@holoscript/mesh/sync';
 
 // =============================================================================
 // LOD Module — MOVED to @holoscript/engine (A.011 migration)
@@ -2096,13 +2096,13 @@ export {
   generateChannelId,
   isMessageExpired,
   validateMessageSchema,
-} from './messaging/MessagingTypes';
-export { AgentMessaging } from './messaging/AgentMessaging';
+} from '@holoscript/mesh/messaging/MessagingTypes';
+export { AgentMessaging } from '@holoscript/mesh/messaging/AgentMessaging';
 export {
   ProtocolBridgeRegistry,
   type IAgentProtocolBridge,
   type GenericAgentMessage,
-} from './messaging/AgentProtocolBridge';
+} from '@holoscript/mesh/messaging/AgentProtocolBridge';
 
 // =============================================================================
 // Audit Logging & Compliance (Sprint 9 - Priority 6)
@@ -2599,13 +2599,13 @@ export { CameraRig } from './cinematic/CameraRig';
 export { SequenceTrack } from './cinematic/SequenceTrack';
 
 // ── Collaboration ──────────────────────────────────────────────────
-export { CollaborationSession } from './collaboration/CollaborationSession';
+export { CollaborationSession } from '@holoscript/mesh/collaboration/CollaborationSession';
 export type {
   SessionPeer,
   SessionConfig,
   SessionStats,
   SessionState,
-} from './collaboration/CollaborationSession';
+} from '@holoscript/mesh/collaboration/CollaborationSession';
 
 // ── Security / Sandbox ─────────────────────────────────────────────
 export {
@@ -2718,8 +2718,8 @@ export type { StateConfig, TransitionConfig, StateAction, GuardFn } from '@holos
 // ── Input ──────────────────────────────────────────────────────────
 
 // ── Network ────────────────────────────────────────────────────────
-export { NetworkManager } from './network/NetworkManager';
-export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
+export { NetworkManager } from '@holoscript/mesh/network/NetworkManager';
+export type { NetworkMessage, PeerInfo, MessageType } from '@holoscript/mesh/network/NetworkManager';
 
 // ── Animation Timeline ─────────────────────────────────────────────
 
@@ -3205,16 +3205,16 @@ export {
 export {
   NeuralStreamingService,
   type NeuralStreamingConfig,
-} from './network/NeuralStreamingService';
+} from '@holoscript/mesh/network/NeuralStreamingService';
 
 export {
   NeuralStreamingTransport,
   type StreamingTransportConfig,
   type ISignalingBridge,
   type NeuralSignalPayload,
-} from './network/NeuralStreamingTransport';
+} from '@holoscript/mesh/network/NeuralStreamingTransport';
 
-export { WebSocketSignaler } from './network/WebSocketSignaler';
+export { WebSocketSignaler } from '@holoscript/mesh/network/WebSocketSignaler';
 
 export { GaussianSplatExtractor, type ExtractorOptions } from '@holoscript/engine/gpu';
 

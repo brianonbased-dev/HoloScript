@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { QuestManager } from '../gameplay/QuestManager';
-import { RewardSystem } from '../gameplay/RewardSystem';
-import { JournalTracker } from '../gameplay/JournalTracker';
+import { QuestManager } from '@holoscript/engine/gameplay';
+import { RewardSystem } from '@holoscript/engine/gameplay';
+import { JournalTracker } from '@holoscript/engine/gameplay';
 
 describe('Cycle 131: Quest & Objectives', () => {
   // -------------------------------------------------------------------------

@@ -23,9 +23,9 @@ import { ConstraintSolver } from '@holoscript/engine/physics/ConstraintSolver';
 import { VehicleSystem, createDefaultCar } from '@holoscript/engine/physics/VehicleSystem';
 
 // Multiplayer layer
-import { EntityAuthority } from '../multiplayer/EntityAuthority';
-import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation';
-import { ReplicationManager } from '../multiplayer/ReplicationManager';
+import { EntityAuthority } from '@holoscript/mesh/multiplayer/EntityAuthority';
+import { NetworkInterpolation } from '@holoscript/mesh/multiplayer/NetworkInterpolation';
+import { ReplicationManager } from '@holoscript/mesh/multiplayer/ReplicationManager';
 
 // Procedural layer
 import { NoiseGenerator } from '@holoscript/engine/procedural/NoiseGenerator';

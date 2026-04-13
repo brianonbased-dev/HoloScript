@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InfluenceMap } from '../ai/InfluenceMap';
-import type { InfluenceConfig } from '../ai/InfluenceMap';
+import { InfluenceMap } from '@holoscript/framework/ai';
+import type { InfluenceConfig } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C233 — Influence Map

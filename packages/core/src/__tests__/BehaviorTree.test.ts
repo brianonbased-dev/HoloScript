@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { BehaviorTree } from '../ai/BehaviorTree';
+import { BehaviorTree } from '@holoscript/framework/ai';
 import {
   SequenceNode,
   SelectorNode,
@@ -10,8 +10,8 @@ import {
   ActionNode,
   ConditionNode,
   WaitNode,
-} from '../ai/BTNodes';
-import { Blackboard } from '../ai/Blackboard';
+} from '@holoscript/framework/ai';
+import { Blackboard } from '@holoscript/framework/ai';
 
 describe('Cycle 126: AI Behavior Trees', () => {
   // -------------------------------------------------------------------------

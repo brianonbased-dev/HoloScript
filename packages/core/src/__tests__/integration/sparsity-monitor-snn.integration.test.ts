@@ -21,13 +21,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SparsityMonitor, createSparsityMonitor } from '../../training/SparsityMonitor';
-import type { LayerActivityInput } from '../../training/SparsityMonitor';
+import { SparsityMonitor, createSparsityMonitor } from '@holoscript/framework/training';
+import type { LayerActivityInput } from '@holoscript/framework/training';
 import type {
   SparsityQualityHistoryEntry,
   SparsitySnapshot,
   SparsityMonitorStats,
-} from '../../training/SparsityMonitorTypes';
+} from '@holoscript/framework/training';
 
 // =============================================================================
 // SIMULATED SNN-WEBGPU TYPES (matching @holoscript/snn-webgpu shapes)

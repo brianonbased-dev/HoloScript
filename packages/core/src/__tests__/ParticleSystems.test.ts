@@ -4,8 +4,8 @@
  * Tests for ParticleSystem and ParticleEmitter.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ParticleSystem } from '../particles/ParticleSystem';
-import { ParticleEmitter } from '../particles/ParticleEmitter';
+import { ParticleSystem } from '@holoscript/engine/particles';
+import { ParticleEmitter } from '@holoscript/engine/particles';
 
 // =============================================================================
 // PARTICLE SYSTEM

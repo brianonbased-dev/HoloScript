@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ProjectileSystem } from '../combat/ProjectileSystem';
-import { ComboTracker } from '../combat/ComboTracker';
-import { HitboxSystem } from '../combat/HitboxSystem';
+import { ProjectileSystem } from '@holoscript/engine/combat';
+import { ComboTracker } from '@holoscript/engine/combat';
+import { HitboxSystem } from '@holoscript/engine/combat';
 
 describe('Cycle 161: Combat Extensions', () => {
   // -------------------------------------------------------------------------

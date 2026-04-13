@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LobbyManager } from '../network/LobbyManager';
-import { Matchmaker } from '../network/Matchmaker';
-import { AntiCheat } from '../network/AntiCheat';
+import { LobbyManager } from '@holoscript/mesh/network/LobbyManager';
+import { Matchmaker } from '@holoscript/mesh/network/Matchmaker';
+import { AntiCheat } from '@holoscript/mesh/network/AntiCheat';
 
 describe('Networking Hardening (Cycle 170)', () => {
   // ===========================================================================

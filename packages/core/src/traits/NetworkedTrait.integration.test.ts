@@ -6,7 +6,7 @@
 
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import { NetworkedTrait, createNetworkedTrait } from './NetworkedTrait';
-import { WebSocketTransport } from '../network/WebSocketTransport';
+import { WebSocketTransport } from '@holoscript/mesh/network/WebSocketTransport';
 
 describe('NetworkedTrait - WebSocket Integration', () => {
   let trait: NetworkedTrait;

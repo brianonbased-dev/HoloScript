@@ -46,7 +46,7 @@ vi.mock('../../agents/AgentRegistry', () => {
 });
 
 import { agentDiscoveryHandler } from '../AgentDiscoveryTrait';
-import * as AgentRegistryModule from '../../agents/AgentRegistry';
+import * as AgentRegistryModule from '@holoscript/framework/agents';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

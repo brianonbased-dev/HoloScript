@@ -13,7 +13,7 @@ import {
 } from '../TelemetryCollector';
 import { AgentInspector, getAgentInspector, resetAgentInspector } from '../AgentInspector';
 import { AgentDebugger, getAgentDebugger, resetAgentDebugger } from '../AgentDebugger';
-import type { AgentManifest, AgentCapability } from '../../agents/AgentTypes';
+import type { AgentManifest, AgentCapability } from '@holoscript/framework/agents';
 import type { TelemetryConfig } from '../TelemetryTypes';
 
 // =============================================================================

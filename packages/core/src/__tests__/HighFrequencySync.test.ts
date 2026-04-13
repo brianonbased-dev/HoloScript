@@ -5,7 +5,7 @@ import {
   compressQuaternion,
   decompressQuaternion,
   PriorityScheduler,
-} from '../sync/HighFrequencySync';
+} from '@holoscript/mesh/sync/HighFrequencySync';
 
 // =============================================================================
 // C215 — High-Frequency Sync

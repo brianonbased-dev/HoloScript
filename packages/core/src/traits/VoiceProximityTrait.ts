@@ -72,7 +72,7 @@ function calculateAttenuation(
   }
 }
 
-function isInZone(position: [number, number, number], zone: VoiceZone): boolean {
+function isInZone(position: { x: number; y: number; z: number }, zone: VoiceZone): boolean {
   const dx = position.x - zone.bounds.center.x;
   const dy = position.y - zone.bounds.center.y;
   const dz = position.z - zone.bounds.center.z;

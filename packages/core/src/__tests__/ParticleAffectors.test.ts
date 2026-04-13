@@ -8,7 +8,7 @@ import {
   vortex,
   floorBounce,
   sizeOscillate,
-} from '../particles/ParticleAffectors';
+} from '@holoscript/engine/particles';
 
 function particle(overrides: Record<string, number> = {}) {
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { QuestManager, type QuestObjective } from '../gameplay/QuestManager';
+import { QuestManager, type QuestObjective } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C281 — Quest Manager

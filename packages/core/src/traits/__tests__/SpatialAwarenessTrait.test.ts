@@ -12,8 +12,8 @@ import {
   createSpatialAwarenessTrait,
   createSharedSpatialProvider,
 } from '../SpatialAwarenessTrait';
-import { SpatialContextProvider } from '../../spatial/SpatialContextProvider';
-import { Vector3, SpatialEntity, Region } from '../../spatial/SpatialTypes';
+import { SpatialContextProvider } from '@holoscript/engine/spatial';
+import { Vector3, SpatialEntity, Region } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // HELPERS

@@ -4,9 +4,9 @@
  * Tests for CombatManager, DamageSystem, and ComboTracker.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CombatManager } from '../combat/CombatManager';
-import { DamageSystem } from '../combat/DamageSystem';
-import { ComboTracker } from '../combat/ComboTracker';
+import { CombatManager } from '@holoscript/engine/combat';
+import { DamageSystem } from '@holoscript/engine/combat';
+import { ComboTracker } from '@holoscript/engine/combat';
 
 // =============================================================================
 // CombatManager

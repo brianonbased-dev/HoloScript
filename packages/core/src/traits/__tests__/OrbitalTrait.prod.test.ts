@@ -23,7 +23,7 @@ vi.mock('../../orbital/KeplerianCalculator', () => ({
 }));
 
 import { orbitalHandler } from '../OrbitalTrait';
-import { calculatePosition } from '../../orbital/KeplerianCalculator';
+import { calculatePosition } from '@holoscript/engine/orbital';
 
 const mockCalcPos = calculatePosition as ReturnType<typeof vi.fn>;
 

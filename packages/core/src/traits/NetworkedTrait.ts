@@ -21,9 +21,9 @@
  * ```
  */
 
-import { SyncProtocol, type TransportType, type SyncState } from '../network/SyncProtocol';
-import { WebSocketTransport, type NetworkMessage } from '../network/WebSocketTransport';
-import { WebRTCTransport } from '../network/WebRTCTransport';
+import { SyncProtocol, type TransportType, type SyncState } from '@holoscript/mesh/network/SyncProtocol';
+import { WebSocketTransport, type NetworkMessage } from '@holoscript/mesh/network/WebSocketTransport';
+import { WebRTCTransport } from '@holoscript/mesh/network/WebRTCTransport';
 import { logger } from '../logger';
 
 export type NetworkSyncMode = 'owner' | 'shared' | 'server';

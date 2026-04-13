@@ -14,10 +14,10 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Feature 1A
-import { StateMachine as AiSM } from '../ai/StateMachine.js';
+import { StateMachine as AiSM } from '@holoscript/framework/ai';
 
 // Feature 1B
-import { Blackboard } from '../ai/Blackboard.js';
+import { Blackboard } from '@holoscript/framework/ai';
 
 // Feature 2A
 import {
@@ -31,21 +31,21 @@ import {
   BehaviorTree as BehaviorBT,
   type BTContext,
   type NodeStatus,
-} from '../behavior/BehaviorTree.js';
+} from '@holoscript/framework/behavior';
 
 // Feature 2B
-import { StateMachine as BehaviorSM } from '../behavior/StateMachine.js';
+import { StateMachine as BehaviorSM } from '@holoscript/framework/behavior';
 
 // Feature 3A
-import { GoalPlanner } from '../ai/GoalPlanner.js';
-import type { PlanAction, Goal } from '../ai/GoalPlanner.js';
+import { GoalPlanner } from '@holoscript/framework/ai';
+import type { PlanAction, Goal } from '@holoscript/framework/ai';
 
 // Feature 3B
-import { UtilityAI } from '../ai/UtilityAI.js';
-import type { UtilityAction } from '../ai/UtilityAI.js';
+import { UtilityAI } from '@holoscript/framework/ai';
+import type { UtilityAction } from '@holoscript/framework/ai';
 
 // Feature 4A
-import { BehaviorTree as AiBT } from '../ai/BehaviorTree.js';
+import { BehaviorTree as AiBT } from '@holoscript/framework/ai';
 import {
   ActionNode as AIActionNode,
   ConditionNode as AIConditionNode,
@@ -53,10 +53,10 @@ import {
   SelectorNode as AISelectorNode,
   InverterNode as AIInverterNode,
   WaitNode as AIWaitNode,
-} from '../ai/BTNodes.js';
+} from '@holoscript/framework/ai';
 
 // Feature 4B
-import { PHASE_ORDER, DEFAULT_PHASE_TIMINGS } from '../agents/AgentTypes.js';
+import { PHASE_ORDER, DEFAULT_PHASE_TIMINGS } from '@holoscript/framework/agents';
 
 // =============================================================================
 // FEATURE 1A: ai/StateMachine

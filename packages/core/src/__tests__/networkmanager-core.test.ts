@@ -15,10 +15,10 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-import { NetworkManager } from '../network/NetworkManager.js';
-import { LobbyManager } from '../network/LobbyManager.js';
-import { Matchmaker } from '../network/Matchmaker.js';
-import { RoomManager } from '../network/RoomManager.js';
+import { NetworkManager } from '@holoscript/mesh/network/NetworkManager.js';
+import { LobbyManager } from '@holoscript/mesh/network/LobbyManager.js';
+import { Matchmaker } from '@holoscript/mesh/network/Matchmaker.js';
+import { RoomManager } from '@holoscript/mesh/network/RoomManager.js';
 import {
   generateMessageId,
   generatePeerId,
@@ -27,12 +27,12 @@ import {
   lerpVector3,
   distanceVector3,
   createSpawnRequest,
-} from '../network/NetworkTypes.js';
-import { NetworkTransport } from '../network/NetworkTransport.js';
-import { RPCManager } from '../network/RPCManager.js';
-import { StateReplicator } from '../network/StateReplicator.js';
-import { ClientPrediction } from '../multiplayer/ClientPrediction.js';
-import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation.js';
+} from '@holoscript/mesh/network/NetworkTypes.js';
+import { NetworkTransport } from '@holoscript/mesh/network/NetworkTransport.js';
+import { RPCManager } from '@holoscript/mesh/network/RPCManager.js';
+import { StateReplicator } from '@holoscript/mesh/network/StateReplicator.js';
+import { ClientPrediction } from '@holoscript/mesh/multiplayer/ClientPrediction.js';
+import { NetworkInterpolation } from '@holoscript/mesh/multiplayer/NetworkInterpolation.js';
 
 // =============================================================================
 // FEATURE 1: network/NetworkManager

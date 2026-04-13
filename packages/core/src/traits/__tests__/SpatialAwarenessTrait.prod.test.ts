@@ -50,7 +50,7 @@ import {
   createSharedSpatialProvider,
   DEFAULT_TRAIT_CONFIG,
 } from '../SpatialAwarenessTrait';
-import { SpatialContextProvider } from '../../spatial/SpatialContextProvider';
+import { SpatialContextProvider } from '@holoscript/engine/spatial';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

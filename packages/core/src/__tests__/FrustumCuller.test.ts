@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FrustumCuller } from '../spatial/FrustumCuller';
-import type { Plane4, BoundingVolume } from '../spatial/FrustumCuller';
+import { FrustumCuller } from '@holoscript/engine/spatial';
+import type { Plane4, BoundingVolume } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // C234 — Frustum Culler

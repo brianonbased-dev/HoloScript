@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ParticleAttractorSystem, type Particle } from '../particles/ParticleAttractor';
-import { ParticleTurbulence } from '../particles/ParticleTurbulence';
-import { ParticleCollisionSystem, type CollidableParticle } from '../particles/ParticleCollision';
+import { ParticleAttractorSystem, type Particle } from '@holoscript/engine/particles';
+import { ParticleTurbulence } from '@holoscript/engine/particles';
+import { ParticleCollisionSystem, type CollidableParticle } from '@holoscript/engine/particles';
 
 describe('Cycle 158: Particle Forces', () => {
   // -------------------------------------------------------------------------

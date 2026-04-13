@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Blackboard } from '../ai/Blackboard';
+import { Blackboard } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C279 — Blackboard

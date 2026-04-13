@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { NetworkTransport } from '../network/NetworkTransport';
-import { StateReplicator } from '../network/StateReplicator';
-import { RPCManager } from '../network/RPCManager';
+import { NetworkTransport } from '@holoscript/mesh/network/NetworkTransport';
+import { StateReplicator } from '@holoscript/mesh/network/StateReplicator';
+import { RPCManager } from '@holoscript/mesh/network/RPCManager';
 
 describe('Cycle 121: Networking & Replication', () => {
   afterEach(() => {

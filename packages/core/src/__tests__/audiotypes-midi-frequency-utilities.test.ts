@@ -47,15 +47,15 @@ import { SoundPool } from '../audio/SoundPool.js';
 import type { SoundDefinition } from '../audio/SoundPool.js';
 
 // ParticleSystem
-import { ParticleSystem } from '../particles/ParticleSystem.js';
-import type { EmitterConfig, Color4 } from '../particles/ParticleSystem.js';
+import { ParticleSystem } from '@holoscript/engine/particles';
+import type { EmitterConfig, Color4 } from '@holoscript/engine/particles';
 
 // ParticleEmitter
-import { ParticleEmitter } from '../particles/ParticleEmitter.js';
-import type { EmitterConfig as EmitterCfg2 } from '../particles/ParticleEmitter.js';
+import { ParticleEmitter } from '@holoscript/engine/particles';
+import type { EmitterConfig as EmitterCfg2 } from '@holoscript/engine/particles';
 
 // ParticleForceSystem
-import { ParticleForceSystem } from '../particles/ParticleForces.js';
+import { ParticleForceSystem } from '@holoscript/engine/particles';
 
 // TerrainPaintLayer
 import { TerrainPaintLayer } from '@holoscript/engine/terrain/TerrainPaintLayer.js';

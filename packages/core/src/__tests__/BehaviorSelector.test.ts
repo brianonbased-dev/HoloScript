@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BehaviorSelector, type Behavior } from '../ai/BehaviorSelector';
+import { BehaviorSelector, type Behavior } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C280 — Behavior Selector

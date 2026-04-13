@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ProjectileSystem, ProjectileConfig } from '../combat/ProjectileSystem';
+import { ProjectileSystem, ProjectileConfig } from '@holoscript/engine/combat';
 
 function config(overrides: Partial<ProjectileConfig> = {}): ProjectileConfig {
   return {

@@ -17,7 +17,7 @@ import {
   linearToSRGB,
   createMaterial,
   applyPreset,
-} from '../materials';
+} from '@holoscript/engine/materials';
 
 describe('glTF Materials — Production', () => {
   // ─── Named Colors ─────────────────────────────────────────────────

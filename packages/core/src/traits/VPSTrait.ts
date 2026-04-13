@@ -32,7 +32,7 @@ interface VPSState {
   continuousTrackingActive: boolean;
   locationId: string | null;
   pose: {
-    position: [number, number, number];
+    position: { x: number; y: number; z: number };
     rotation: { x: number; y: number; z: number; w: number };
   };
   localizationAttempts: number;

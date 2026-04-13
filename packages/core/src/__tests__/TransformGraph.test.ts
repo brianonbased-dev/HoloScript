@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TransformGraph } from '../spatial/TransformGraph';
+import { TransformGraph } from '@holoscript/engine/spatial';
 
 // =============================================================================
 // C238 — Transform Graph (Spatial Hierarchy)

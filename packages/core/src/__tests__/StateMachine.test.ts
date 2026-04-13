@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { StateMachine } from '../behavior/StateMachine';
+import { StateMachine } from '@holoscript/framework/behavior';
 import {
   BehaviorTree,
   ActionNode,
@@ -9,8 +9,8 @@ import {
   SelectorNode,
   InverterNode,
   RepeaterNode,
-} from '../behavior/BehaviorTree';
-import { createPatrolBehavior, createIdleBehavior } from '../behavior/BehaviorPresets';
+} from '@holoscript/framework/behavior';
+import { createPatrolBehavior, createIdleBehavior } from '@holoscript/framework/behavior';
 
 describe('State Machine & Behavior System', () => {
   describe('StateMachine', () => {

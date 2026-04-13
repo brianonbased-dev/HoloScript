@@ -16,7 +16,7 @@ vi.mock('@holoscript/engine/logger', () => ({
 }));
 
 import { orbitalHandler } from '../OrbitalTrait';
-import { calculatePosition } from '../../orbital/KeplerianCalculator';
+import { calculatePosition } from '@holoscript/engine/orbital';
 import { logger } from '../../logger';
 
 describe('OrbitalTrait', () => {

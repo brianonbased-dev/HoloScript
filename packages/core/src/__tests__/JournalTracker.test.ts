@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { JournalTracker } from '../gameplay/JournalTracker';
+import { JournalTracker } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C260 — Journal Tracker

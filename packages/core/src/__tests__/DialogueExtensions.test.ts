@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { DialogueRunner, type DialogueNode } from '../dialogue/DialogueRunner';
-import { EmotionSystem } from '../dialogue/EmotionSystem';
-import { BarkManager } from '../dialogue/BarkManager';
+import { DialogueRunner, type DialogueNode } from '@holoscript/engine/dialogue';
+import { EmotionSystem } from '@holoscript/engine/dialogue';
+import { BarkManager } from '@holoscript/engine/dialogue';
 
 describe('Cycle 162: Dialogue Extensions', () => {
   // -------------------------------------------------------------------------

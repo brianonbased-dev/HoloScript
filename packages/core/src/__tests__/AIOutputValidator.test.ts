@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateAIOutput, isAISafe, ValidationResult } from '../ai/AIOutputValidator';
+import { validateAIOutput, isAISafe, ValidationResult } from '@holoscript/framework/ai';
 
 // =============================================================================
 // SAFE CODE

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AchievementSystem } from '../gameplay/AchievementSystem';
+import { AchievementSystem } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C282 — Achievement System

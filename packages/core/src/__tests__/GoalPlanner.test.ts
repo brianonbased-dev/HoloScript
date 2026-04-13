@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GoalPlanner, type WorldState, type PlanAction } from '../ai/GoalPlanner';
+import { GoalPlanner, type WorldState, type PlanAction } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C272 — Goal Planner

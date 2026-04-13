@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NavMesh } from '../ai/NavMesh';
+import { NavMesh } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C277 — NavMesh

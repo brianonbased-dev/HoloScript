@@ -8,10 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Consensus
-import { ConsensusManager } from '../consensus/ConsensusManager';
+import { ConsensusManager } from '@holoscript/mesh/consensus/ConsensusManager';
 
 // Spatial
-import { distance } from '../spatial/SpatialTypes';
+import { distance } from '@holoscript/engine/spatial';
 
 // Debug/Telemetry
 import {
@@ -24,7 +24,7 @@ import {
 } from '../debug';
 
 // Agent manifest helpers
-import type { AgentManifest } from '../agents/AgentTypes';
+import type { AgentManifest } from '@holoscript/framework/agents';
 
 // =============================================================================
 // TEST HELPERS

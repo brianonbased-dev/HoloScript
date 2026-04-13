@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PerceptionSystem } from '../ai/PerceptionSystem';
+import { PerceptionSystem } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C273 — Perception System

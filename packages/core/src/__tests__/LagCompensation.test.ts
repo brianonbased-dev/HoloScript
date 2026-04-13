@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LagCompensation, HistoryState } from '../multiplayer/LagCompensation';
+import { LagCompensation, HistoryState } from '@holoscript/mesh/multiplayer/LagCompensation';
 
 function makeState(
   ts: number,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HandTracker } from '../vr/HandTracker';
-import { VRLocomotion } from '../vr/VRLocomotion';
-import { HapticFeedback } from '../vr/HapticFeedback';
+import { HandTracker } from '@holoscript/engine/vr';
+import { VRLocomotion } from '@holoscript/engine/vr';
+import { HapticFeedback } from '@holoscript/engine/vr';
 
 describe('VR Interaction (Cycle 179)', () => {
   describe('HandTracker', () => {

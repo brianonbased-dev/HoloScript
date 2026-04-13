@@ -24,7 +24,7 @@ export interface FractureFragment {
   /** Fragment ID */
   id: number;
   /** Centroid position */
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   /** Bounding box min */
   boundsMin: { x: number; y: number; z: number };
   /** Bounding box max */
@@ -50,7 +50,7 @@ export interface FractureFragment {
  */
 export interface VoronoiSite {
   /** Position */
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   /** Cell ID */
   id: number;
 }
@@ -60,7 +60,7 @@ export interface VoronoiSite {
  */
 export interface DamageEvent {
   /** Position of impact */
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   /** Damage radius */
   radius: number;
   /** Maximum damage at center */
@@ -91,7 +91,7 @@ export interface VoronoiFractureConfig {
   /** Enable LOD system? */
   enableLOD: boolean;
   /** Distance thresholds for LOD levels [LOD1, LOD2, LOD3] */
-  lodDistances: [number, number, number];
+  lodDistances: { x: number; y: number; z: number };
   /** Enable fragment pooling? */
   enablePooling: boolean;
   /** Maximum pooled fragments */
@@ -225,7 +225,7 @@ export class VoronoiFractureSystem {
     Object.assign(this.config, config);
   }
 
-  setCameraPosition(position: [number, number, number]): void {
+  setCameraPosition(position: { x: number; y: number; z: number }): void {
     this.cameraPosition = { ...position };
   }
 
@@ -642,7 +642,7 @@ export interface VoronoiFractureTrait {
 
   // LOD settings
   enable_lod: boolean;
-  lod_distances: [number, number, number]; // [LOD1, LOD2, LOD3]
+  lod_distances: { x: number; y: number; z: number }; // [LOD1, LOD2, LOD3]
 
   // Performance settings
   enable_pooling: boolean;
@@ -653,7 +653,7 @@ export interface VoronoiFractureTrait {
 
   // Damage events (optional)
   initial_damage_events?: Array<{
-    position: [number, number, number];
+    position: { x: number; y: number; z: number };
     radius: number;
     max_damage: number;
     falloff: number;

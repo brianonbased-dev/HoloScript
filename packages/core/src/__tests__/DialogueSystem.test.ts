@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DialogueGraph } from '../dialogue/DialogueGraph';
-import { DialogueRunner } from '../dialogue/DialogueRunner';
-import { Localization } from '../dialogue/Localization';
+import { DialogueGraph } from '@holoscript/engine/dialogue';
+import { DialogueRunner } from '@holoscript/engine/dialogue';
+import { Localization } from '@holoscript/engine/dialogue';
 
 describe('Dialogue System (Cycle 181)', () => {
   describe('DialogueGraph', () => {

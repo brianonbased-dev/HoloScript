@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ParticleSystem, EmitterConfig } from '../particles/ParticleSystem';
-import { gravity, wind, drag, turbulence, floorBounce } from '../particles/ParticleAffectors';
-import { ParticlePresets } from '../particles/ParticlePresets';
+import { ParticleSystem, EmitterConfig } from '@holoscript/engine/particles';
+import { gravity, wind, drag, turbulence, floorBounce } from '@holoscript/engine/particles';
+import { ParticlePresets } from '@holoscript/engine/particles';
 
 function makeEmitter(overrides: Partial<EmitterConfig> = {}): EmitterConfig {
   return {

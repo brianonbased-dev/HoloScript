@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { AchievementSystem } from '../gameplay/AchievementSystem';
-import { ProgressionTree } from '../gameplay/ProgressionTree';
-import { LeaderboardManager } from '../gameplay/LeaderboardManager';
+import { AchievementSystem } from '@holoscript/engine/gameplay';
+import { ProgressionTree } from '@holoscript/engine/gameplay';
+import { LeaderboardManager } from '@holoscript/engine/gameplay';
 
 describe('Cycle 135: Achievement & Progression', () => {
   // -------------------------------------------------------------------------

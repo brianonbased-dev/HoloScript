@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PresenceManager } from '../social/PresenceManager';
-import { ConversationManager } from '../social/ConversationManager';
-import { SocialGraph } from '../social/SocialGraph';
-import { FriendManager } from '../social/FriendManager';
+import { PresenceManager } from '@holoscript/mesh/social/PresenceManager';
+import { ConversationManager } from '@holoscript/mesh/social/ConversationManager';
+import { SocialGraph } from '@holoscript/mesh/social/SocialGraph';
+import { FriendManager } from '@holoscript/mesh/social/FriendManager';
 
 // =============================================================================
 // MOCK TRANSPORT

@@ -10,7 +10,7 @@ import {
   ConditionNode,
   WaitNode,
   type BTContext,
-} from '../ai/BTNodes';
+} from '@holoscript/framework/ai';
 
 // =============================================================================
 // C288 — BT Nodes

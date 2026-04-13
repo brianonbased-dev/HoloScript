@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehaviors, SteeringAgent, FlockConfig } from '../ai/SteeringBehaviors';
+import { SteeringBehaviors, SteeringAgent, FlockConfig } from '@holoscript/framework/ai';
 
 function agent(x = 0, y = 0, z = 0, vx = 1, vy = 0, vz = 0): SteeringAgent {
   return {

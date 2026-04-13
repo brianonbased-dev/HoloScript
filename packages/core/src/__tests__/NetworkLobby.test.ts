@@ -4,7 +4,7 @@
  * Covers LobbyManager (room creation, join/leave, host migration, ready/start, listing)
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LobbyManager } from '../network/LobbyManager';
+import { LobbyManager } from '@holoscript/mesh/network/LobbyManager';
 
 describe('LobbyManager', () => {
   let lobby: LobbyManager;

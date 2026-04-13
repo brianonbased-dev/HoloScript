@@ -5,8 +5,8 @@
  * Manages tabs (Friends, Requests, Search) and detailed profile views.
  */
 
-import { SocialGraph } from '../../social/SocialGraph';
-import { FriendManager } from '../../social/FriendManager';
+import { SocialGraph } from '@holoscript/mesh/social/SocialGraph';
+import { FriendManager } from '@holoscript/mesh/social/FriendManager';
 import { FriendList } from './FriendList';
 import { UserProfileCard } from './UserProfileCard';
 import { createPanel, createButton } from '../UIComponents';

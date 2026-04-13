@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { UtilityAI, type UtilityAction } from '../ai/UtilityAI';
-import { GoalPlanner, type WorldState } from '../ai/GoalPlanner';
-import { BehaviorSelector, type Behavior } from '../ai/BehaviorSelector';
+import { UtilityAI, type UtilityAction } from '@holoscript/framework/ai';
+import { GoalPlanner, type WorldState } from '@holoscript/framework/ai';
+import { BehaviorSelector, type Behavior } from '@holoscript/framework/ai';
 
 describe('Cycle 153: AI Decision Systems', () => {
   // -------------------------------------------------------------------------

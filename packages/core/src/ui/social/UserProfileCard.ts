@@ -4,7 +4,7 @@
  * Creates a UI card displaying a user's profile and action buttons.
  */
 
-import { SocialUser } from '../../social/SocialGraph';
+import { SocialUser } from '@holoscript/mesh/social/SocialGraph';
 import { createPanel, createButton } from '../UIComponents';
 import { HSPlusNode } from '../../types/HoloScriptPlus';
 

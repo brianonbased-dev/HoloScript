@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PerceptionSystem } from '../ai/PerceptionSystem';
-import { SteeringBehaviors, type SteeringAgent } from '../ai/SteeringBehaviors';
-import { InfluenceMap } from '../ai/InfluenceMap';
+import { PerceptionSystem } from '@holoscript/framework/ai';
+import { SteeringBehaviors, type SteeringAgent } from '@holoscript/framework/ai';
+import { InfluenceMap } from '@holoscript/framework/ai';
 
 describe('Cycle 148: AI Senses', () => {
   // -------------------------------------------------------------------------

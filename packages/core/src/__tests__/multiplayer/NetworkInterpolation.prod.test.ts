@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { NetworkInterpolation } from '../../multiplayer/NetworkInterpolation';
-import type { NetworkSnapshot } from '../../multiplayer/NetworkInterpolation';
+import { NetworkInterpolation } from '@holoscript/mesh/multiplayer/NetworkInterpolation';
+import type { NetworkSnapshot } from '@holoscript/mesh/multiplayer/NetworkInterpolation';
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
 

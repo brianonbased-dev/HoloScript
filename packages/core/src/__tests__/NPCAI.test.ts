@@ -1,6 +1,6 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { npcAIHandler } from '../traits/NPCAITrait';
-import { registerAIAdapter, unregisterAIAdapter, type AIAdapter } from '../ai/AIAdapter';
+import { registerAIAdapter, unregisterAIAdapter, type AIAdapter } from '@holoscript/framework/ai';
 
 describe('NPCAI Trait', () => {
   beforeEach(() => {

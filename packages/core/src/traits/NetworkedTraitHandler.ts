@@ -31,8 +31,8 @@
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
-import type { SyncTier } from '../network/NetworkTypes';
-import { SYNC_TIER_RATES } from '../network/NetworkTypes';
+import type { SyncTier } from '@holoscript/mesh/network/NetworkTypes';
+import { SYNC_TIER_RATES } from '@holoscript/mesh/network/NetworkTypes';
 
 // =============================================================================
 // TYPES

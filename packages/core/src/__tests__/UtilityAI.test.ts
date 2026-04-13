@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UtilityAI } from '../ai/UtilityAI';
-import type { UtilityAction, Consideration } from '../ai/UtilityAI';
+import { UtilityAI } from '@holoscript/framework/ai';
+import type { UtilityAction, Consideration } from '@holoscript/framework/ai';
 
 // =============================================================================
 // C254 — Utility AI

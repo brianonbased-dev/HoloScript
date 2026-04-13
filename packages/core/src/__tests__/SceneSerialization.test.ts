@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { SceneSerializer } from '../scene/SceneSerializer';
-import { SceneDeserializer } from '../scene/SceneDeserializer';
-import { SceneManager } from '../scene/SceneManager';
+import { SceneSerializer } from '@holoscript/engine/scene';
+import { SceneDeserializer } from '@holoscript/engine/scene';
+import { SceneManager } from '@holoscript/engine/scene';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 function makeTestScene(): HSPlusNode {

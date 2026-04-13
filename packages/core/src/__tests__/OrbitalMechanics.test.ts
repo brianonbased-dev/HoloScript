@@ -11,9 +11,9 @@ import {
   julianToDate,
   toDegrees,
   generateOrbitalPath,
-} from '../orbital/KeplerianCalculator';
-import type { OrbitalElements } from '../orbital/KeplerianCalculator';
-import { TimeManager } from '../orbital/TimeManager';
+} from '@holoscript/engine/orbital';
+import type { OrbitalElements } from '@holoscript/engine/orbital';
+import { TimeManager } from '@holoscript/engine/orbital';
 
 // Earth-like orbital elements for test
 const EARTH: OrbitalElements = {

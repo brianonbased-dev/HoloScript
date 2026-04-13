@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AStarPathfinder } from '../navigation/AStarPathfinder';
-import type { NavMesh, NavPoint, NavPolygon } from '../navigation/NavMesh';
+import { AStarPathfinder } from '@holoscript/engine/navigation';
+import type { NavMesh, NavPoint, NavPolygon } from '@holoscript/engine/navigation';
 
 // =============================================================================
 // C224 — A* Pathfinder

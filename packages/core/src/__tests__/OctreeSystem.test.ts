@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OctreeSystem } from '../spatial/OctreeSystem';
+import { OctreeSystem } from '@holoscript/engine/spatial';
 
 describe('OctreeSystem', () => {
   let oct: OctreeSystem;

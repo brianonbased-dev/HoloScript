@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DamageSystem } from '../combat/DamageSystem';
+import { DamageSystem } from '@holoscript/engine/combat';
 
 // =============================================================================
 // C301 — DamageSystem

@@ -24,8 +24,8 @@ import {
   toDegrees,
   type OrbitalElements,
   type Position3D,
-} from '../orbital/KeplerianCalculator.js';
-import { TimeManager } from '../orbital/TimeManager.js';
+} from '@holoscript/engine/orbital';
+import { TimeManager } from '@holoscript/engine/orbital';
 
 // ---------------------------------------------------------------------------
 // Earth's orbital elements (well-known test values)

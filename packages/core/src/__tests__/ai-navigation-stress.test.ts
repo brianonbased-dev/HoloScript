@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NavMesh } from '../ai/NavMesh.js';
+import { NavMesh } from '@holoscript/framework/ai';
 
 describe('NavMesh Stress Testing & Fallbacks', () => {
   it('should return null when navigating across disjointed navmesh islands', () => {

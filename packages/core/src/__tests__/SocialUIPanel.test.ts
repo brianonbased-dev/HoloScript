@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SocialUIPanel } from '../ui/social/SocialUIPanel';
-import { SocialGraph, SocialUser } from '../social/SocialGraph';
-import { FriendManager } from '../social/FriendManager';
+import { SocialGraph, SocialUser } from '@holoscript/mesh/social/SocialGraph';
+import { FriendManager } from '@holoscript/mesh/social/FriendManager';
 
 function makeUser(id: string): SocialUser {
   return {

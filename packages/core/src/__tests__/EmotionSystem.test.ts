@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EmotionSystem } from '../dialogue/EmotionSystem';
+import { EmotionSystem } from '@holoscript/engine/dialogue';
 
 // =============================================================================
 // C232 — Emotion System

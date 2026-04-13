@@ -12,9 +12,9 @@ import {
   ConsensusNode,
   ProposalResult,
   ConsensusMechanism,
-} from '../consensus/ConsensusTypes';
-import { ConsensusManager } from '../consensus/ConsensusManager';
-import { RaftConsensus } from '../consensus/RaftConsensus';
+} from '@holoscript/mesh/consensus/ConsensusTypes';
+import { ConsensusManager } from '@holoscript/mesh/consensus/ConsensusManager';
+import { RaftConsensus } from '@holoscript/mesh/consensus/RaftConsensus';
 
 // =============================================================================
 // TRAIT CONFIGURATION

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { CameraController } from '../camera/CameraController';
-import { CameraEffects } from '../camera/CameraEffects';
-import { CinematicTrack } from '../camera/CinematicTrack';
+import { CameraController } from '@holoscript/engine/camera';
+import { CameraEffects } from '@holoscript/engine/camera';
+import { CinematicTrack } from '@holoscript/engine/camera';
 
 describe('Cycle 123: Camera System', () => {
   // -------------------------------------------------------------------------

@@ -12,8 +12,8 @@
 import { describe, bench, beforeAll } from 'vitest';
 import { AnimationEngine, Easing } from '../animation/AnimationEngine';
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
-import { EntityRegistry } from '../ecs/EntityRegistry';
-import { ComponentStore } from '../ecs/ComponentStore';
+import { EntityRegistry } from '@holoscript/engine/ecs';
+import { ComponentStore } from '@holoscript/engine/ecs';
 import { BoneSystem } from '../animation/BoneSystem';
 import { IKSolver } from '../animation/IKSolver';
 

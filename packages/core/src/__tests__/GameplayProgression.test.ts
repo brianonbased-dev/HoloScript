@@ -4,10 +4,10 @@
  * Tests for InventorySystem, QuestManager, and LootTable.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InventorySystem } from '../gameplay/InventorySystem';
-import { QuestManager } from '../gameplay/QuestManager';
-import { LootTable } from '../gameplay/LootTable';
-import type { ItemDef } from '../gameplay/InventorySystem';
+import { InventorySystem } from '@holoscript/engine/gameplay';
+import { QuestManager } from '@holoscript/engine/gameplay';
+import { LootTable } from '@holoscript/engine/gameplay';
+import type { ItemDef } from '@holoscript/engine/gameplay';
 
 const sword: ItemDef = {
   id: 'sword',

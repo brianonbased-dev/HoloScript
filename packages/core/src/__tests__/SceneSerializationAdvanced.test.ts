@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ProjectManager } from '../scene/ProjectManager';
-import { VersionMigration, CURRENT_SCHEMA_VERSION } from '../scene/VersionMigration';
+import { ProjectManager } from '@holoscript/engine/scene';
+import { VersionMigration, CURRENT_SCHEMA_VERSION } from '@holoscript/engine/scene';
 
 describe('Cycle 115: Scene Serialization', () => {
   // -------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AICopilot } from '../ai/AICopilot';
+import { AICopilot } from '@holoscript/framework/ai';
 import { CopilotPanel } from '../editor/CopilotPanel';
-import { AIAdapter } from '../ai/AIAdapter';
+import { AIAdapter } from '@holoscript/framework/ai';
 
 // =============================================================================
 // MOCK AI ADAPTER

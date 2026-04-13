@@ -5,7 +5,7 @@ import {
   createInteractBehavior,
   createFollowBehavior,
   createAlertBehavior,
-} from '../behavior/BehaviorPresets';
+} from '@holoscript/framework/behavior';
 
 describe('BehaviorPresets', () => {
   it('createPatrolBehavior returns repeater node', () => {

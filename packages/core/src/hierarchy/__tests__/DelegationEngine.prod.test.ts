@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DelegationEngine } from '../DelegationEngine';
 import { HierarchyManager } from '../AgentHierarchy';
-import type { AgentManifest } from '../../agents/AgentManifest';
+import type { AgentManifest } from '@holoscript/framework/agents';
 
 // ---------------------------------------------------------------------------
 // Helpers

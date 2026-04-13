@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LeaderboardManager } from '../gameplay/LeaderboardManager';
+import { LeaderboardManager } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C283 — Leaderboard Manager

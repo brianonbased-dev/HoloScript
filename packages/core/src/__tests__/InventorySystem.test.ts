@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InventorySystem, type ItemDef } from '../gameplay/InventorySystem';
+import { InventorySystem, type ItemDef } from '@holoscript/engine/gameplay';
 
 // =============================================================================
 // C302 — InventorySystem

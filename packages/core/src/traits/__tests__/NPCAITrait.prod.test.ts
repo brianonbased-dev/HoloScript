@@ -2,7 +2,7 @@
  * NPCAITrait — Production Test Suite
  *
  * Dependencies mocked:
- * - getDefaultAIAdapter from '../../ai/AIAdapter' — provides chat() mock
+ * - getDefaultAIAdapter from '@holoscript/framework/ai' — provides chat() mock
  *
  * Key behaviours:
  * 1. defaultConfig — 6 fields
