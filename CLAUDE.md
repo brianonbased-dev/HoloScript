@@ -176,7 +176,7 @@ If any MCP tool call fails:
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
 TRAITS      2,000+ traits in 40+ categories — ALL in @holoscript/core (no separate package)
 COMPILERS   30+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
-MCP         packages/mcp-server/ — 65 tools — start with: npx tsx packages/mcp-server/src/index.ts
+MCP         packages/mcp-server/ — 82+ tools — start with: npx tsx packages/mcp-server/src/index.ts
 CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
 TEST        pnpm test | pnpm test --filter @holoscript/core | createComposition() pattern
@@ -190,7 +190,7 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 
 ```text
 @holoscript/core             Parser · AST · 2,000+ traits · 30+ compilers
-@holoscript/mcp-server       65 AI tools (parse, validate, generate, compile, codebase intelligence)
+@holoscript/mcp-server       82+ AI tools (parse, validate, generate, compile, codebase intelligence)
 @holoscript/cli              holo build · holo compile · holo validate
 @holoscript/runtime          Scene execution runtime
 @holoscript/lsp              Language Server Protocol (VS Code, Neovim)

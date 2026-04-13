@@ -11,11 +11,11 @@ The trait system is the semantic core of HoloScript. Traits like `@physics`, `@g
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │  TRAIT DEFINITION                                       │
-│  src/traits/constants/ (101 category files)             │
+│  src/traits/constants/ (118 category files)             │
 │  ├── core-vr-interaction.ts  (grabbable, throwable...)  │
 │  ├── physics.ts              (rigidbody, collider...)   │
 │  ├── audio.ts                (spatial_audio, reverb...) │
-│  └── ... 98 more categories                             │
+│  └── ... 115 more categories                             │
 └────────────────────┬────────────────────────────────────┘
                      ▼
 ┌─────────────────────────────────────────────────────────┐
