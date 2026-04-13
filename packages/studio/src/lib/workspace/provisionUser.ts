@@ -171,7 +171,7 @@ async function seedRepo(
   // Seed .env with the provisioned API key (don't overwrite if exists)
   const envContent = [
     '# HoloScript Platform — auto-provisioned by Brittney',
-    `MCP_API_KEY=${apiKey}`,
+    `HOLOSCRIPT_API_KEY=${apiKey}`,
     `MCP_WORKSPACE_ID=${workspaceId}`,
     `MCP_ORCHESTRATOR_URL=${ORCHESTRATOR_URL}`,
     `HOLOSCRIPT_MCP=https://mcp.holoscript.net`,

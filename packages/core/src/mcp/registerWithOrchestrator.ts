@@ -12,7 +12,7 @@
  *
  * Environment variables:
  *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)
- *   MCP_API_KEY           - API key for orchestrator auth (REQUIRED — no fallback)
+ *   HOLOSCRIPT_API_KEY    - API key for orchestrator auth (REQUIRED — no fallback)
  *   MCP_SERVER_NAME       - Server name to register as (default: holoscript-tools)
  *
  * @module mcp/registerWithOrchestrator
@@ -54,7 +54,7 @@ function requireApiKey(): string {
   const key = process.env.HOLOSCRIPT_API_KEY;
   if (!key) {
     throw new Error(
-      'MCP_API_KEY environment variable is required. ' +
+      'HOLOSCRIPT_API_KEY environment variable is required. ' +
         'Set it in .env or pass --api-key on the command line.'
     );
   }
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
       console.log(
         '  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)'
       );
-      console.log('  --api-key <key>        API key (or set MCP_API_KEY env var)');
+      console.log('  --api-key <key>        API key (or set HOLOSCRIPT_API_KEY env var)');
       console.log('  --server-name <name>   Server name (default: holoscript-tools)');
       console.log('  --unregister           Remove registration instead of registering');
       console.log('  --help                 Show this help message');

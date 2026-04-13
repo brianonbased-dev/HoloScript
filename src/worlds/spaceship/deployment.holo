@@ -32,7 +32,7 @@
         enabled: true
         port: 5566
         host: "localhost"
-        api_key: "${MCP_API_KEY}"
+        api_key: "${HOLOSCRIPT_API_KEY}"
       }
 
       holoscript_server: {
@@ -79,7 +79,7 @@
         enabled: true
         port: 5566
         host: "${STAGING_HOST}"
-        api_key: "${MCP_API_KEY}"
+        api_key: "${HOLOSCRIPT_API_KEY}"       
         tls: true
       }
 
@@ -128,7 +128,7 @@
         enabled: true
         port: 5566
         host: "${PROD_ORCHESTRATOR_HOST}"
-        api_key: "${MCP_API_KEY}"
+        api_key: "${HOLOSCRIPT_API_KEY}"      
         tls: true
         replicas: 3
         load_balancer: "round_robin"
@@ -326,7 +326,7 @@
     }
 
     @environment {
-      inherit: ["MCP_API_KEY", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]
+      inherit: ["HOLOSCRIPT_API_KEY", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]
       NODE_ENV: "production"
     }
   }
@@ -350,7 +350,7 @@
     }
 
     @environment {
-      inherit: ["MCP_ORCHESTRATOR_URL", "MCP_API_KEY"]
+      inherit: ["MCP_ORCHESTRATOR_URL", "HOLOSCRIPT_API_KEY"]
     }
   }
 
@@ -365,7 +365,7 @@
         image: "mcp-orchestrator:latest"
         ports: ["5566:5566"]
         environment: {
-          MCP_API_KEY: "${MCP_API_KEY}"
+          HOLOSCRIPT_API_KEY: "${HOLOSCRIPT_API_KEY}"
           NODE_ENV: "development"
         }
         healthcheck: {
@@ -508,18 +508,18 @@
    */
   @required {
     all: [
-      "MCP_API_KEY"
+      "HOLOSCRIPT_API_KEY"
     ]
 
     production: [
-      "MCP_API_KEY"
+      "HOLOSCRIPT_API_KEY"
       "UPSTASH_REDIS_REST_URL"
       "UPSTASH_REDIS_REST_TOKEN"
       "ANTHROPIC_API_KEY"
     ]
 
     staging: [
-      "MCP_API_KEY"
+      "HOLOSCRIPT_API_KEY"
       "UPSTASH_REDIS_REST_URL"
       "UPSTASH_REDIS_REST_TOKEN"
     ]
@@ -529,7 +529,7 @@
    * Secret rotation
    */
   @rotation {
-    MCP_API_KEY: {
+    HOLOSCRIPT_API_KEY: {
       frequency: "90d"
       auto_rotate: false
       notify_before: "7d"

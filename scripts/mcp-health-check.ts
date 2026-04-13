@@ -9,7 +9,7 @@
  *
  * Environment:
  *   MCP_ORCHESTRATOR_URL  - Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)
- *   MCP_API_KEY           - API key for orchestrator auth (REQUIRED)
+ *   HOLOSCRIPT_API_KEY    - API key for orchestrator auth (REQUIRED)
  *
  * Exits with code 1 if any server is unhealthy.
  */
@@ -22,8 +22,8 @@ const ORCHESTRATOR_URL =
 const API_KEY = process.env.HOLOSCRIPT_API_KEY;
 
 if (!API_KEY) {
-  console.error('ERROR: MCP_API_KEY environment variable is required.');
-  console.error('  Set it in .env or export MCP_API_KEY=<your-key>');
+  console.error('ERROR: HOLOSCRIPT_API_KEY environment variable is required.');
+  console.error('  Set it in .env or export HOLOSCRIPT_API_KEY=<your-key>');
   process.exit(1);
 }
 
