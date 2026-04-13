@@ -36,106 +36,19 @@ import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
 import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
 import {
+  codebaseTools,
+  graphRagTools,
+  absorbServiceTools,
+  oracleTools,
   handleCodebaseTool,
   handleGraphRagTool,
   handleAbsorbServiceTool,
 } from '@holoscript/absorb-service/mcp';
-
-// Oracle handler inlined to avoid cross-package import issues in Docker build
-async function handleOracleConsult(
-  args: Record<string, unknown>
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  const question = String(args.question || '').toLowerCase();
-  const context = String(args.context || '');
-  const results: string[] = [];
-
-  const TREES: Record<string, string> = {
-    package:
-      'Add to the closest relevant existing package. Only create a new package if standalone service or shared by 3+ packages.',
-    commit:
-      'Commit after coherent unit. 10+ files: MUST split into sectioned commits by topic. NEVER git add -A.',
-    test: 'Fix if yours, skip if pre-existing (VRChatCompiler = known). Can fix in <15 min? Fix. Complex? Note and continue.',
-    mcp: 'Use MCP if reachable (richer). CLI as fallback.',
-    cache:
-      '<12h fresh. 12-24h OK. 24-48h stale. >48h force refresh. NEVER force:true unless corrupt.',
-    todo: '1.Security 2.FIXME 3.Blocking 4.Performance 5.Tech-debt 6.Nice-to-have. Max 3/cycle.',
-    version: "Breaking=MAJOR. New feature=MINOR. Bug fix=PATCH. Don't bump unless releasing.",
-    doc: 'New public API=always. Internal refactor=no. Bug fix=only if documented behavior affected.',
-    cost: '<$1 auto. $1-5 proceed+mention. $5-20 ASK. >$20 ALWAYS ASK.',
-    conflict:
-      'User > project CLAUDE.md > AGENTS.md > global CLAUDE.md > NORTH_STAR.md > memory > research > README.',
-    repo: 'Default: HoloScript. Unless explicitly told otherwise.',
-    embedding: 'ALWAYS OpenAI. BM25 deprecated. Ensure OPENAI_API_KEY in env.',
-    git: 'ALWAYS explicit file paths. NEVER git add -A or git add .',
-  };
-
-  const dtMatches: string[] = [];
-  for (const [key, answer] of Object.entries(TREES)) {
-    if (question.includes(key)) dtMatches.push(`**[${key}]**: ${answer}`);
-  }
-  if (dtMatches.length > 0) results.push('## Decision Tree Matches\n' + dtMatches.join('\n\n'));
-
-  // Query knowledge store
-  const apiKey = process.env.MCP_API_KEY || process.env.ABSORB_API_KEY;
-  if (apiKey) {
-    try {
-      const url =
-        process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
-        'https://mcp-orchestrator-production-45f9.up.railway.app';
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 5000);
-      const res = await fetch(`${url}/knowledge/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey },
-        body: JSON.stringify({
-          search: `${question} ${context}`.trim(),
-          limit: 5,
-          workspace_id: 'ai-ecosystem',
-        }),
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        interface KnowledgeEntry {
-          id?: string;
-          type?: string;
-          content?: string;
-        }
-        const data = (await res.json()) as {
-          results?: KnowledgeEntry[];
-          entries?: KnowledgeEntry[];
-        };
-        const entries = data.results || data.entries || [];
-        if (entries.length > 0) {
-          results.push(
-            '## Knowledge Store\n' +
-              entries
-                .map(
-                  (e: KnowledgeEntry) =>
-                    `- **[${e.id || e.type}]** ${String(e.content || '').substring(0, 200)}`
-                )
-                .join('\n')
-          );
-        }
-      }
-    } catch {
-      /* timeout or network — continue without knowledge */
-    }
-  }
-
-  if (results.length === 0) {
-    results.push(
-      '## No Oracle Match\nMake the conservative choice (easier to undo) and note what you decided.'
-    );
-  } else {
-    results.push('\n---\n*Oracle answered. Proceed without asking the user.*');
-  }
-  return { content: [{ type: 'text', text: results.join('\n\n') }] };
-}
+import { handleOracleConsult } from './oracle-handler';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
-import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
+import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 
@@ -304,119 +217,67 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   return await executeSingleTool(name, args || {});
 });
 
+// === O(1) TOOL DISPATCH REGISTRY ===
+type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<any> | any;
+const TOOL_DISPATCH_REGISTRY = new Map<string, ToolHandler>();
+
+function registerCategory(toolArray: Tool[], handler: ToolHandler) {
+  for (const t of toolArray) {
+    if (t.name) TOOL_DISPATCH_REGISTRY.set(t.name, handler);
+  }
+}
+
+// 1. Explicitly mapped domains
+registerCategory(compilerTools, (name, args) => handleCompilerTool(name, args));
+registerCategory(networkingTools, (name, args) => handleNetworkingTool(name, args));
+registerCategory(snapshotTools, (name, args) => handleSnapshotTool(name, args));
+registerCategory(monitoringTools, (name, args) => handleMonitoringTool(name, args));
+registerCategory(holotestTools, (name, args) => handleHolotestTool(name, args));
+registerCategory(refactorCodegenTools, (name, args) => handleRefactorCodegenTool(name, args));
+registerCategory(absorbServiceTools, (name, args) => handleAbsorbServiceTool(name, args));
+registerCategory(codebaseTools, (name, args) => handleCodebaseTool(name, args));
+registerCategory(graphRagTools, (name, args) => handleGraphRagTool(name, args));
+registerCategory(selfImproveTools, (name, args) => handleSelfImproveTool(name, args));
+registerCategory(gltfImportTools, (name, args) => handleGltfTool(name, args));
+registerCategory(wisdomGotchaTools, (name, args) => handleWisdomGotchaTool(name, args));
+
+// Explicit single overrides
+TOOL_DISPATCH_REGISTRY.set('holo_oracle_consult', (name, args) => handleOracleConsult(args));
+
+// 2. Core fallback (anything else exported in `tools.ts` array)
+for (const t of tools) {
+  if (t.name && !TOOL_DISPATCH_REGISTRY.has(t.name)) {
+    TOOL_DISPATCH_REGISTRY.set(t.name, (name, args) => handleTool(name, args));
+  }
+}
+
 // Implementation of executeSingleTool logic previously bound above
 export async function _handleSingleToolLogic(name: string, args: Record<string, unknown>) {
   try {
-    // Check plugins first (for proprietary tools like uaa2_)
-    const pluginResult = await PluginManager.handleTool(name, args || {});
-    if (pluginResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(pluginResult, null, 2) }],
-      };
+    // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
+    if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {
+      const pluginResult = await PluginManager.handleTool(name, args || {});
+      if (pluginResult !== null) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify(pluginResult, null, 2) }],
+        };
+      }
+      throw new Error(`Plugin tool '${name}' not found or failed.`);
     }
 
-    // Check compiler tools (compile_holoscript, compile_to_*, get_compilation_status, etc.)
-    const compilerResult = await handleCompilerTool(name, args || {});
-    if (compilerResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(compilerResult, null, 2) }],
-      };
+    // 2. Fast O(1) Dispatch
+    const handler = TOOL_DISPATCH_REGISTRY.get(name);
+    if (!handler) {
+      throw new Error(`Unknown tool: ${name}`);
     }
 
-    // Check custom Networking RPC Layer
-    const networkingResult = await handleNetworkingTool(name, args || {});
-    if (networkingResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(networkingResult, null, 2) }],
-      };
+    const result = await handler(name, args || {});
+    
+    // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
+    if (result === null) {
+      throw new Error(`Handler for '${name}' returned null (tool not processed).`);
     }
 
-    // Check custom Temporal Snapshot Layer
-    const snapshotResult = await handleSnapshotTool(name, args || {});
-    if (snapshotResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshotResult, null, 2) }],
-      };
-    }
-
-    // Check custom Monitoring Layer
-    const monitoringResult = await handleMonitoringTool(name, args || {});
-    if (monitoringResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(monitoringResult, null, 2) }],
-      };
-    }
-
-    // Check Oracle tools FIRST (before other holo_* handlers catch the prefix)
-    if (name === 'holo_oracle_consult') {
-      return await handleOracleConsult(args || ({} as Record<string, unknown>));
-    }
-
-    // Check Codebase Absorption tools
-    const codebaseResult = await handleCodebaseTool(name, args || {});
-    if (codebaseResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(codebaseResult, null, 2) }],
-      };
-    }
-
-    // Check Graph RAG tools (semantic search, ask codebase)
-    const graphRagResult = await handleGraphRagTool(name, args || {});
-    if (graphRagResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(graphRagResult, null, 2) }],
-      };
-    }
-
-    // Check Self-Improve tools (diagnose, validate quality)
-    const selfImproveResult = await handleSelfImproveTool(name, args || {});
-    if (selfImproveResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(selfImproveResult, null, 2) }],
-      };
-    }
-
-    // Check Wisdom/Gotcha tools (query_wisdom, list_gotchas, check_gotchas)
-    const wisdomGotchaResult = await handleWisdomGotchaTool(name, args || {});
-    if (wisdomGotchaResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(wisdomGotchaResult, null, 2) }],
-      };
-    }
-
-    // Check GLTF Import/Export tools (import_gltf, compile_to_gltf)
-    const gltfResult = await handleGltfTool(name, args || {});
-    if (gltfResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(gltfResult, null, 2) }],
-      };
-    }
-
-    // Check HoloTest spatial testing tool (execute_holotest)
-    const holotestResult = await handleHolotestTool(name, args || {});
-    if (holotestResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(holotestResult, null, 2) }],
-      };
-    }
-
-    // Check Refactor/CodeGen tools (Phase 10: refactor plan, scaffold)
-    const refactorResult = await handleRefactorCodegenTool(name, args || {});
-    if (refactorResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(refactorResult, null, 2) }],
-      };
-    }
-
-    // Check Absorb Service tools (project management, credit-gated operations)
-    const absorbServiceResult = await handleAbsorbServiceTool(name, args || {});
-    if (absorbServiceResult !== null) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify(absorbServiceResult, null, 2) }],
-      };
-    }
-
-    const result = await handleTool(name, args || {});
     return {
       content: [
         {
