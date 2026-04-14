@@ -81,6 +81,8 @@ function Stop-Service($name, $pidFile) {
 }
 
 function Start-MCP {
+    # HTTP transport for agents/tools on :3000 — must use dist/http-server.js.
+    # dist/index.js is stdio MCP only (Cursor/Claude); it does not speak HTTP.
     Write-Host "`n[MCP Server] Starting on :3000..." -ForegroundColor Cyan
     $distCheck = "$HoloRoot\packages\mcp-server\dist\http-server.js"
     if (-not (Test-Path $distCheck)) {
