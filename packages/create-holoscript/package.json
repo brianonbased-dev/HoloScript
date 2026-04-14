@@ -1,0 +1,60 @@
+{
+  "name": "create-holoscript",
+  "version": "1.2.0",
+  "description": "Create HoloScript apps with zero configuration — 3D scene in your browser in 30 seconds",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "create-holoscript": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "xr",
+    "webxr",
+    "vr",
+    "ar",
+    "spatial-computing",
+    "create-app",
+    "scaffold",
+    "3d",
+    "metaverse",
+    "threejs",
+    "vite",
+    "declarative",
+    "scene-graph",
+    "digital-twin"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/create-holoscript"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

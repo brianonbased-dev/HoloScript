@@ -50,7 +50,7 @@ function Install-Prerequisites {
 
 function Setup-HoloScript {
     Write-Host "[2/5] Setting up HoloScript Core..." -ForegroundColor Gray
-    $repoUrl = "https://github.com/joseph/HoloScript.git"
+    $repoUrl = "https://github.com/brianonbased-dev/HoloScript.git"
     $targetPath = "$env:USERPROFILE\Documents\GitHub\HoloScript"
 
     if (-not (Test-Path $targetPath)) {
@@ -70,7 +70,7 @@ function Setup-HoloScript {
 function Register-FileAssociations {
     Write-Host "[3/5] Registering HoloScript file associations..." -ForegroundColor Gray
     $extensions = @(".holo", ".hs", ".hsplus")
-    $cliPath = "hs.cmd" # Assuming 'hs' command is in path after build/install
+    $cliPath = "npx hs" # Execute via npx to prevent phantom command issues
 
     foreach ($ext in $extensions) {
         $progId = "HoloScript.Source.$($ext.TrimStart('.'))"
@@ -83,8 +83,8 @@ function Register-FileAssociations {
 function Configure-Registry {
     Write-Host "[4/5] Configuring HoloMesh Registry..." -ForegroundColor Gray
     $registryUrl = "https://store.holoscript.net"
-    npm config set registry $registryUrl
-    pnpm config set registry $registryUrl
+    npm config set @holoscript:registry $registryUrl
+    pnpm config set @holoscript:registry $registryUrl
     Write-Host "✓ Registry set to $registryUrl" -ForegroundColor Green
 }
 

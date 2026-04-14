@@ -1668,17 +1668,26 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /mcp — Stateless JSON-RPC HTTP transport (Railway CDN friendly)
   if (url === '/mcp' && req.method === 'POST') {
-    const auth = await authenticateRequest(req);
-    if (!auth.active) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid token required' }));
-      return;
-    }
+    let auth = await authenticateRequest(req);
 
     try {
       const body = (await parseJsonBody(req)) as Record<string, unknown>;
       const method = typeof body.method === 'string' ? body.method : '';
       const id = body.id;
+
+      const params = (body.params as Record<string, unknown>) || {};
+      const name = typeof params.name === 'string' ? params.name : '';
+      const isFreeTool = method === 'tools/call' && (name === 'parse_hs' || name === 'health');
+
+      if (!auth.active) {
+        if (isFreeTool) {
+          auth = { active: true, scopes: ['tools:read'], agentId: 'anonymous' };
+        } else {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid token required' }));
+          return;
+        }
+      }
 
       if (method === 'tools/list') {
         const allTools = [...tools, ...PluginManager.getTools()];
@@ -1694,8 +1703,6 @@ const httpServer = http.createServer(async (req, res) => {
       }
 
       if (method === 'tools/call') {
-        const params = (body.params as Record<string, unknown>) || {};
-        const name = typeof params.name === 'string' ? params.name : '';
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
           requestPath: '/mcp',

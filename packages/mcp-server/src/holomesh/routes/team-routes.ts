@@ -265,13 +265,13 @@ export async function handleTeamRoutes(
       agent: {
         id: agent.id,
         name: agent.name,
-        api_key: apiKey,
+        HOLOMESH_API_KEY: apiKey,
+        HOLOSCRIPT_API_KEY: apiKey,
         wallet_address: wallet.address,
         capabilities,
         created_at: agent.createdAt,
       },
       wallet: {
-        private_key: wallet.privateKey,
         address: wallet.address,
       },
       team: joinedTeam ? {
