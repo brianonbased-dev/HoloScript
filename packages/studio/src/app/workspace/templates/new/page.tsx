@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { useSceneStore } from '@/lib/stores';
+import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
   () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
@@ -74,6 +75,8 @@ function TemplateConfigurationForm() {
           Define a structural blueprint for reusability. Strict schema enforces topology before provisioning.
         </p>
       </div>
+
+      <AIGeneratorWizard contextName="Template" />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="p-5 bg-zinc-800 rounded border border-zinc-700 space-y-4">
@@ -143,8 +146,9 @@ export default function WorkspaceNewTemplatePage() {
   const setCode = useSceneStore((s) => s.setCode);
 
   useEffect(() => {
-    setCode(`// Template code is not prefilled here.
-// Generate HoloScript templates with MCP tools, then paste the validated result.
+    setCode(`// This workspace features AI-native provisioning.
+// Use the AI Template Generator on the left panel to scaffold boilerplate structures.
+// You can also manually paste validated HoloScript configurations here.
 `);
   }, [setCode]);
 

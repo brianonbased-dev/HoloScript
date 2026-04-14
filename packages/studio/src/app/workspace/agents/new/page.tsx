@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { useSceneStore } from '@/lib/stores';
+import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
   () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
@@ -109,6 +110,8 @@ function AgentConfigurationForm() {
           structural topology and validation against the core Engine configuration schemas.
         </p>
       </div>
+
+      <AIGeneratorWizard contextName="Agent" />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Core Identity */}
@@ -230,13 +233,9 @@ export default function WorkspaceNewAgentPage() {
   const setCode = useSceneStore((s) => s.setCode);
 
   useEffect(() => {
-    setCode(`// This workspace intentionally avoids injecting hand-written HoloScript starter code.
-// Generate agent scaffolds with the MCP tool flow instead:
-// 1. suggest_traits
-// 2. generate_object or generate_scene
-// 3. validate_holoscript
-//
-// Once generated, paste the validated output here.
+    setCode(`// This workspace features AI-native provisioning.
+// Use the AI Agent Generator on the left panel to scaffold HoloScript code via the MCP backlink.
+// You can also manually paste validated HoloScript configurations here.
 `);
   }, [setCode]);
 

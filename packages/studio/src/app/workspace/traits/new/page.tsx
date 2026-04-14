@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { useSceneStore } from '@/lib/stores';
+import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
   () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
@@ -59,6 +60,8 @@ function TraitConfigurationForm() {
         </p>
       </div>
 
+      <AIGeneratorWizard contextName="Trait" />
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 bg-zinc-800 p-5 rounded border border-zinc-700">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -105,9 +108,9 @@ export default function WorkspaceNewTraitPage() {
   const setCode = useSceneStore((s) => s.setCode);
 
   useEffect(() => {
-    setCode(`// Trait authoring starts blank here by design.
-// Avoid hand-written HoloScript starter code.
-// Generate and validate traits through MCP tooling before inserting content.
+    setCode(`// This workspace features AI-native provisioning.
+// Use the AI Trait Generator on the left panel to scaffold boilerplate structures.
+// You can also manually paste validated HoloScript configurations here.
 `);
   }, [setCode]);
 

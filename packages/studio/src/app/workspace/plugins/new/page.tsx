@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { useSceneStore } from '@/lib/stores';
+import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
   () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
@@ -71,6 +72,8 @@ function PluginConfigurationForm() {
         </p>
       </div>
 
+      <AIGeneratorWizard contextName="Plugin" />
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="p-5 bg-zinc-800 rounded border border-zinc-700 space-y-4">
           <h2 className="text-lg font-semibold border-b border-zinc-700 pb-2">Plugin Manifest</h2>
@@ -128,9 +131,9 @@ export default function WorkspaceNewPluginPage() {
   const setCode = useSceneStore((s) => s.setCode);
 
   useEffect(() => {
-    setCode(`// This editor starts blank on purpose.
-// Do not seed plugin assets with hand-written HoloScript.
-// Use the MCP generation flow and paste validated output here.
+    setCode(`// This workspace features AI-native provisioning.
+// Use the AI Plugin Generator on the left panel to scaffold boilerplate structures.
+// You can also manually paste validated HoloScript configurations here.
 `);
   }, [setCode]);
 
