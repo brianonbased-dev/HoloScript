@@ -1,12 +1,12 @@
 # HoloScript Trait-to-Backend Mappings — Cross-Target Specification
 
-> **Date**: 2026-03-20 | **Source**: Direct audit of 11 compiler files + 4 trait maps | **Traits**: 1,800+ registered, 100+ cross-mapped
+> **Date**: 2026-04-13 | **Source**: Direct audit of 41 compiler files + 4 trait maps | **Traits**: 388 trait files, 369 registered handlers, 116 constant modules
 
-HoloScript traits are declarative annotations (`@grabbable`, `@physics`, `@haptic`) that compile to platform-native code. This document shows exactly what each trait becomes on each target.
+HoloScript traits are declarative annotations (`@grabbable`, `@physics`, `@haptic`) that compile to platform-native code. This document shows exactly what each trait becomes on each target. 41 compiler implementations exist (verify via `find *Compiler.ts`); the cross-target tables below cover the 11 with the deepest trait mapping.
 
 ## Trait Resolution Pipeline
 
-```
+```text
 .holo source                Parser                     Compiler                  Runtime
 ─────────────────  ──────────────────────────  ──────────────────────────  ─────────────────────
 object "Cube"      HoloCompositionParser.ts    R3FCompiler (or target)    VRTraitRegistry
@@ -19,13 +19,12 @@ object "Cube"      HoloCompositionParser.ts    R3FCompiler (or target)    VRTrai
 
 **Key files in pipeline:**
 
-| Stage     | File                                          | Lines     |
-| --------- | --------------------------------------------- | --------- |
-| Parse     | `core/src/parser/HoloCompositionParser.ts`    | 2540–2625 |
-| Compile   | `core/src/compiler/R3FCompiler.ts`            | 2687–2850 |
-| Registry  | `core/src/traits/VRTraitSystem.ts`            | 1366–1934 |
-| Runtime   | `core/src/runtime/TraitRuntimeIntegration.ts` | 55–150    |
-| Constants | `core/src/traits/constants/index.ts`          | 124–295   |
+| Stage     | File                                       | LOC   |
+| --------- | ------------------------------------------ | ----- |
+| Parse     | `core/src/parser/HoloCompositionParser.ts` | 6,186 |
+| Compile   | `core/src/compiler/R3FCompiler.ts`         | 4,002 |
+| Registry  | `core/src/traits/VRTraitSystem.ts`         | 2,424 |
+| Constants | `core/src/traits/constants/` (116 files)   | —     |
 
 **Two architectural patterns:**
 
@@ -273,21 +272,21 @@ cube.setParent(cubeAnchor)
 
 ## Platform Coverage Summary
 
-| Platform       | Full | Partial | Comment | Unsupported | Trait Map File                          |
-| -------------- | ---- | ------- | ------- | ----------- | --------------------------------------- |
-| **Unity**      | 75+  | 15      | 10      | 5           | Inline (`UnityCompiler.ts`, 861 LOC)    |
-| **Unreal**     | 80+  | 10      | 5       | 10          | Inline (`UnrealCompiler.ts`, 821 LOC)   |
-| **visionOS**   | 100+ | 5       | 2       | 0           | `VisionOSTraitMap.ts` (1,330 LOC)       |
-| **AndroidXR**  | 100+ | 3       | 2       | 0           | `AndroidXRTraitMap.ts` (2,026 LOC)      |
-| **Godot**      | 60+  | 20      | 10      | 15          | Inline (`GodotCompiler.ts`, 846 LOC)    |
-| **BabylonJS**  | 50+  | 25      | 15      | 15          | Inline (`BabylonCompiler.ts`, 922 LOC)  |
-| **R3F**        | 30+  | 20      | 40      | 15          | Inline (`R3FCompiler.ts`, 3,619 LOC)    |
-| **OpenXR**     | 20+  | 30      | 40      | 15          | Inline (`OpenXRCompiler.ts`, 1,195 LOC) |
-| **NIR**        | 25   | 10      | 5       | 65          | `NIRTraitMap.ts` (984 LOC)              |
-| **AI Glasses** | 23   | 12      | 13      | 60          | `AIGlassesTraitMap.ts` (1,228 LOC)      |
-| **URDF**       | 15   | 5       | 0       | 85          | Inline (`URDFCompiler.ts`, 2,009 LOC)   |
+| Platform       | Full | Partial | Comment | Unsupported | Trait Map File                            |
+| -------------- | ---- | ------- | ------- | ----------- | ----------------------------------------- |
+| **Unity**      | 75+  | 15      | 10      | 5           | Inline (`UnityCompiler.ts`, 918 LOC)      |
+| **Unreal**     | 80+  | 10      | 5       | 10          | Inline (`UnrealCompiler.ts`, 851 LOC)     |
+| **visionOS**   | 100+ | 5       | 2       | 0           | `VisionOSTraitMap.ts` (1,329 LOC)         |
+| **AndroidXR**  | 100+ | 3       | 2       | 0           | `AndroidXRTraitMap.ts` (3,632 LOC)        |
+| **Godot**      | 60+  | 20      | 10      | 15          | Inline (`GodotCompiler.ts`, 859 LOC)      |
+| **BabylonJS**  | 50+  | 25      | 15      | 15          | Inline (`BabylonCompiler.ts`, 971 LOC)    |
+| **R3F**        | 30+  | 20      | 40      | 15          | Inline (`R3FCompiler.ts`, 4,002 LOC)      |
+| **OpenXR**     | 20+  | 30      | 40      | 15          | Inline (`OpenXRCompiler.ts`, 1,213 LOC)   |
+| **NIR**        | 25   | 10      | 5       | 65          | `NIRTraitMap.ts` (983 LOC)                |
+| **AI Glasses** | 23   | 12      | 13      | 60          | `AIGlassesTraitMap.ts` (1,373 LOC)        |
+| **URDF**       | 15   | 5       | 0       | 85          | Inline (`URDFCompiler.ts`, 2,030 LOC)     |
 
-**AI Glasses constraint breakdown** (`AIGlassesTraitMap.ts:1194–1206`):
+**AI Glasses constraint breakdown** (`AIGlassesTraitMap.ts`):
 
 - 55.6% traits blocked by form factor (no 3D rendering, no depth sensors, no hand tracking)
 - 21.3% fully supported (2D overlays, voice, touchpad, notifications)
@@ -371,12 +370,21 @@ const grabbableHandler: TraitHandler<GrabbableTrait> = {
 To verify trait coverage for any compiler:
 
 ```bash
-# Count traits handled by a specific compiler
-grep -c "trait\|@" packages/core/src/compiler/UnityCompiler.ts
+# Count registered handlers (369 as of 2026-04-13)
+grep -c "this.register" packages/core/src/traits/VRTraitSystem.ts
+
+# Count trait files (388 as of 2026-04-13)
+find packages/core/src/traits -maxdepth 1 -name "*.ts" -not -name "*.test.*" | wc -l
+
+# Count constant modules (116 as of 2026-04-13)
+find packages/core/src/traits/constants -maxdepth 1 -name "*.ts" | wc -l
+
+# Count compiler implementations (41 as of 2026-04-13)
+find packages/core/src/compiler -name "*Compiler.ts" -not -name "CompilerBase*" -not -name "*.test.*" | wc -l
 
 # List all trait map files
 ls packages/core/src/compiler/*TraitMap*.ts
 
-# Count registered handlers
-grep -c "this.register" packages/core/src/traits/VRTraitSystem.ts
+# Count traits handled by a specific compiler
+grep -c "trait\|@" packages/core/src/compiler/UnityCompiler.ts
 ```
