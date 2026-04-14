@@ -285,6 +285,36 @@ export async function handleComposeTraits(args: Record<string, unknown>): Promis
   }
 }
 
+export async function handleCompileMCPConfig(args: Record<string, unknown>): Promise<unknown> {
+  try {
+    const code = args.code as string;
+    if (!code) return { error: 'Missing required field: code' };
+
+    const target = (args.target as string) || 'generic';
+    const envValues = (args.envValues as Record<string, string>) || {};
+
+    const { parseHolo } = await import('@holoscript/core');
+    const { MCPConfigCompiler } = await import('@holoscript/core/compiler');
+
+    const composition = parseHolo(code);
+    const compiler = new MCPConfigCompiler({
+      target: target as 'claude' | 'vscode' | 'cursor' | 'antigravity' | 'generic',
+      envValues,
+    });
+
+    const output = compiler.compile(composition, 'mcp-config-token');
+
+    return {
+      success: true,
+      target,
+      config: JSON.parse(output),
+      raw: output,
+    };
+  } catch (err) {
+    return { error: `MCP config compilation failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 export async function handleSelectModality(args: Record<string, unknown>): Promise<unknown> {
   const { platform, platforms, preferStreaming } = args as {
     platform?: string;
@@ -506,6 +536,9 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
     case 'compile_to_state':
       return handleCompileToTarget({ ...args, target: 'state' });
+
+    case 'compile_to_mcp_config':
+      return handleCompileMCPConfig(args);
 
     // Modality Transliteration (Pillar 1)
     case 'holoscript_select_modality':
@@ -1096,6 +1129,37 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_mcp_config',
+    description:
+      'Compile .holo MCP server definitions to IDE-specific config JSON. ' +
+      'One source, multiple outputs: claude (${VAR}), vscode (${env:VAR}), ' +
+      'cursor (${VAR}), antigravity (literal key injection), generic.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description:
+            'HoloScript with server objects using @connector and @env traits. ' +
+            'Example: server my_server { @connector(holoscript, transport: "http") url: "https://mcp.holoscript.net/mcp" @env(HOLOSCRIPT_API_KEY, header: "Authorization: Bearer") }',
+        },
+        target: {
+          type: 'string',
+          enum: ['claude', 'vscode', 'cursor', 'antigravity', 'generic'],
+          description: 'Target IDE format (default: generic)',
+        },
+        envValues: {
+          type: 'object',
+          description:
+            'Key-value map of env var values for literal injection (required for antigravity target). ' +
+            'Example: {"HOLOSCRIPT_API_KEY": "USNo/..."}',
+        },
       },
       required: ['code'],
     },

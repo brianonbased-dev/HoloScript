@@ -90,6 +90,8 @@ export { RemotionBridge } from './RemotionBridge';
 export { createReproducibilityContext, parseReproducibilityFlags } from './ReproducibilityMode';
 export type { ReproducibilityContext, ReproducibilityConfig } from './ReproducibilityMode';
 export { SemanticSceneGraph } from './SemanticSceneGraph';
+export { MCPConfigCompiler } from './MCPConfigCompiler';
+export type { MCPConfigCompilerOptions, MCPConfigTarget } from './MCPConfigCompiler';
 
 // Sprint 3: Agent inference
 // @ts-expect-error During migration
