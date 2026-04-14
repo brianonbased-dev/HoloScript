@@ -1,5 +1,3 @@
-version: '3.8'
-
 # HoloScript Studio Local Development Stack
 # Usage: docker compose up (or: pnpm dev:all for non-Docker local dev)
 #
@@ -34,10 +32,16 @@ services:
       dockerfile: infrastructure/Dockerfile.mcp-server
     ports:
       - '3101:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       - NODE_ENV=development
       - PORT=3000
       - HOLOSCRIPT_CACHE_DIR=/app/.holoscript
+      # Same DB as Studio — MCP token persistence (auth) when running the full stack
+      - DATABASE_URL=postgresql://holoscript:holoscript_dev@postgres:5432/holoscript_studio
+      - DATABASE_SSL=false
     env_file:
       - path: .env.local
         required: false
