@@ -115,9 +115,30 @@ function LiveCursors({ peers }: { peers: Record<string, CursorState> }) {
   );
 }
 
+const CLI_QUICKSTART = 'npx create-holoscript@latest my-world';
+const MCP_CONFIG_BLOCK = `{
+  "mcpServers": {
+    "holoscript": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.holoscript.net/mcp"]
+    }
+  }
+}`;
+
 export function HoloScriptLandingComponent() {
   const { peers, localCursor, scrollY, localColor, setLocalColor, localLabel, setLocalLabel } = usePresence();
   const [showMagicMoment, setShowMagicMoment] = useState(false);
+  const [copiedHint, setCopiedHint] = useState<'cli' | 'mcp' | null>(null);
+
+  const copyText = useCallback(async (label: 'cli' | 'mcp', text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedHint(label);
+      window.setTimeout(() => setCopiedHint(null), 2000);
+    } catch (_e) {
+      setCopiedHint(null);
+    }
+  }, []);
 
   return (
     <div className="holoscript-v6-root w-full relative min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
@@ -198,12 +219,87 @@ export function HoloScriptLandingComponent() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button onClick={() => setShowMagicMoment(true)} className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)]">
-                Try Studio
-              </button>
-              <a href="/guides/quick-start" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors">
-                Get Started Free
+              <a
+                href="https://studio.holoscript.net"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] text-center"
+              >
+                Open HoloScript Studio
               </a>
+              <button
+                type="button"
+                onClick={() => setShowMagicMoment(true)}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors"
+              >
+                Try the wizard
+              </button>
+              <a href="/guides/quick-start" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors text-center">
+                Docs: Quick start
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* First-visit CTAs: CLI + MCP + plugin store */}
+        <section className="relative z-10 w-full max-w-4xl mx-auto px-6 pb-12 -mt-2">
+          <div className="rounded-2xl border border-cyan-500/25 bg-[#0a0a14]/95 backdrop-blur-md p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,255,0.06)]">
+            <h2 className="text-xl md:text-2xl font-bold text-center text-white mb-2">Start in your terminal or IDE</h2>
+            <p className="text-center text-gray-400 text-sm mb-8 max-w-2xl mx-auto">
+              Scaffold a project with the CLI, paste the MCP block into Claude Code or Cursor for live tools, then browse plugins — or grab a free API key in Studio when you need authenticated MCP calls.
+            </p>
+            <div className="space-y-6 text-left">
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-400/90">CLI</span>
+                  <button
+                    type="button"
+                    onClick={() => copyText('cli', CLI_QUICKSTART)}
+                    className="text-xs font-semibold text-cyan-300 hover:text-white px-3 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/30"
+                  >
+                    {copiedHint === 'cli' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <pre className="bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-cyan-200 overflow-x-auto font-mono">
+                  <code>{CLI_QUICKSTART}</code>
+                </pre>
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-400/90">MCP config</span>
+                  <button
+                    type="button"
+                    onClick={() => copyText('mcp', MCP_CONFIG_BLOCK)}
+                    className="text-xs font-semibold text-purple-200 hover:text-white px-3 py-1 rounded-md bg-purple-500/10 border border-purple-500/30"
+                  >
+                    {copiedHint === 'mcp' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <pre className="bg-black/50 border border-white/10 rounded-xl p-4 text-xs md:text-sm text-gray-200 overflow-x-auto font-mono leading-relaxed">
+                  <code>{MCP_CONFIG_BLOCK}</code>
+                </pre>
+                <p className="mt-2 text-xs text-gray-500">
+                  For tools that need auth, set <code className="text-cyan-500/90">HOLOSCRIPT_API_KEY</code> next to this block (get a key from Studio → Account).
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 pt-2">
+                <a
+                  href="https://studio.holoscript.net/store"
+                  className="inline-flex justify-center px-6 py-3 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold text-center hover:opacity-95 transition-opacity shadow-[0_0_24px_rgba(147,51,234,0.25)]"
+                >
+                  Browse the plugin store
+                </a>
+                <a
+                  href="https://studio.holoscript.net"
+                  className="inline-flex justify-center px-6 py-3 rounded-lg bg-white/5 border border-white/15 text-white font-semibold text-center hover:bg-white/10 transition-colors"
+                >
+                  Studio &amp; API keys
+                </a>
+                <a
+                  href="/guides/quick-start"
+                  className="inline-flex justify-center px-6 py-3 rounded-lg bg-transparent border border-cyan-500/30 text-cyan-200 font-semibold text-center hover:bg-cyan-500/10 transition-colors"
+                >
+                  Read the quick start
+                </a>
+              </div>
             </div>
           </div>
         </section>
