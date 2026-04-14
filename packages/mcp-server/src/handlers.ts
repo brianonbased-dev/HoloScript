@@ -48,10 +48,14 @@ import {
   handleToolingDiscoveryTool,
 } from './tooling-discovery-tools';
 import { handleOracleConsult } from './oracle-handler';
+import {
+  LEGACY_TRAIT_CATEGORY_ALIASES,
+  loadTraitCategoriesFromCore,
+  resolveTraitCategorySlug,
+} from './trait-categories-from-core';
 
-// Trait categories mapping — representative samples per category.
-// Full 1,800+ trait list is available via the 'all' category (sourced from @holoscript/core).
-const TRAIT_CATEGORIES: Record<string, string[]> = {
+/** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
+const TRAIT_CATEGORIES_FALLBACK: Record<string, string[]> = {
   interaction: [
     '@grabbable',
     '@throwable',
@@ -182,6 +186,19 @@ const TRAIT_CATEGORIES: Record<string, string[]> = {
   ],
   social: ['@shareable', '@collaborative', '@tweetable'],
 };
+
+function getTraitCategoryMap(): Record<string, string[]> {
+  const fromCore = loadTraitCategoriesFromCore();
+  if (Object.keys(fromCore).length > 0) {
+    const merged = { ...fromCore };
+    for (const [legacy, slug] of Object.entries(LEGACY_TRAIT_CATEGORY_ALIASES)) {
+      const traits = merged[slug];
+      if (traits) merged[legacy] = traits;
+    }
+    return merged;
+  }
+  return TRAIT_CATEGORIES_FALLBACK;
+}
 
 // All 1,800+ traits from @holoscript/core
 const ALL_TRAITS: readonly string[] = VR_TRAITS;
@@ -576,27 +593,40 @@ async function handleValidate(args: Record<string, unknown>) {
 
 async function handleListTraits(args: Record<string, unknown>) {
   const category = (args.category as string) || 'all';
+  const map = getTraitCategoryMap();
 
   if (category === 'all') {
+    const fromCore = loadTraitCategoriesFromCore();
+    const coreSlugs = Object.keys(fromCore).sort();
+    const categories =
+      coreSlugs.length > 0
+        ? Object.fromEntries(coreSlugs.map((s) => [s, fromCore[s].length]))
+        : Object.fromEntries(
+            Object.entries(TRAIT_CATEGORIES_FALLBACK).map(([k, v]) => [k, v.length])
+          );
     return {
       total: ALL_TRAITS.length,
-      categories: Object.fromEntries(
-        Object.entries(TRAIT_CATEGORIES).map(([k, v]) => [k, v.length])
-      ),
+      categories,
+      categorySlugs: coreSlugs.length > 0 ? coreSlugs : Object.keys(TRAIT_CATEGORIES_FALLBACK),
+      legacyAliases: Object.keys(LEGACY_TRAIT_CATEGORY_ALIASES),
       list: ALL_TRAITS,
     };
   }
 
-  const traits = TRAIT_CATEGORIES[category];
+  const slug = resolveTraitCategorySlug(category);
+  const traits = map[category] ?? map[slug];
   if (!traits) {
     return {
       error: `Unknown category: ${category}`,
-      validCategories: Object.keys(TRAIT_CATEGORIES),
+      resolvedSlug: slug,
+      validCategoriesSample: Object.keys(map).slice(0, 48),
+      hint: 'Use category=all for categorySlugs and legacyAliases, or pass a core slug (e.g. core-vr-interaction).',
     };
   }
 
   return {
-    category,
+    category: slug,
+    requestedAs: category,
     count: traits.length,
     traits,
   };

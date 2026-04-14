@@ -164,30 +164,15 @@ export const coreTools: Tool[] = [
   // === TRAITS ===
   {
     name: 'list_traits',
-    description: 'List traits available in HoloScript across 115 categories (verify count: node scripts/generate-trait-mappings.mjs).',
+    description:
+      'List traits available in HoloScript. Category slugs match packages/core/src/traits/constants/*.ts (basename without .ts). Legacy short names (interaction, physics, …) still work. Use category=all for full list plus categorySlugs.',
     inputSchema: {
       type: 'object',
       properties: {
         category: {
           type: 'string',
-          enum: [
-            'interaction',
-            'physics',
-            'visual',
-            'networking',
-            'behavior',
-            'spatial',
-            'audio',
-            'state',
-            'ai',
-            'accessibility',
-            'iot',
-            'web3',
-            'advanced',
-            'social',
-            'all',
-          ],
-          description: 'Filter by category. Defaults to all.',
+          description:
+            "Filter: 'all' (default), a core slug (e.g. core-vr-interaction, physics-expansion), or a legacy alias (interaction, physics, visual, …).",
         },
       },
     },
@@ -209,7 +194,8 @@ export const coreTools: Tool[] = [
   },
   {
     name: 'suggest_traits',
-    description: 'Suggest appropriate VR traits for an object based on its description.',
+    description:
+      'Suggest appropriate VR traits for an object based on its description. For browsing by category, use list_traits (slugs align with packages/core/src/traits/constants).',
     inputSchema: {
       type: 'object',
       properties: {
