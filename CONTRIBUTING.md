@@ -301,7 +301,25 @@ pnpm vitest run \
   src/__tests__/TargetSpecific.comprehensive.test.ts
 ```
 
-### Known Test Limitations
+### Paper Benchmark Tests
+ 
+ These tests validate the scientific foundations reported in the 8-paper program. Run them to verify algebraic provenance and solver convergence.
+ 
+ ```bash
+ # Paper 0b: Trust by Construction (TET10 Convergence)
+ pnpm vitest run packages/engine/src/simulation/__tests__/StructuralSolver.comprehensive.test.ts
+ 
+ # Paper #2: Browser-Native SNN (LIF Performance)
+ pnpm vitest run packages/snn-webgpu/src/__tests__/LIFPerformance.test.ts
+ 
+ # Paper #3: Conflict-Free Spatial State (Tropical Semiring)
+ pnpm vitest run packages/core/src/crdt/__tests__/ProvenanceSemiring.test.ts
+ 
+ # Paper #4: Sandboxed Embodied Simulation (Attack Detection)
+ pnpm vitest run packages/core/src/security/__tests__/SandboxContract.test.ts
+ ```
+ 
+ ### Known Test Limitations
 
 Three edge cases in ParserEdgeCases.test.ts are expected to fail (non-blocking):
 

@@ -1,12 +1,18 @@
 # Agent Interface — HoloScript Core Team
 
-Shared operational contract for all agents (Claude, Copilot, Gemini, Cursor).
+Shared operational contract for all agents (Claude, Copilot, Gemini, Cursor, Codex).
 Per-LLM behavior lives in each agent's own config. This file covers what's identical.
 
 ## Team
 
-Team **HoloScript Core** (`team_bfe0bd952f327631`).
+Team **HoloScript Core** (`team_1775935947314_f0noxi`).
 Principal: **Josep (brianonbased-dev)** — Founder. All operations authorized.
+Agents:
+- **Claude (Antigravity)**: Strategic architecture & implementation (IDE).
+- **Claude Code (CLI)**: Primary orchestration, file operations, and Git lifecycle.
+- **Gemini**: Research, synthesis, and visual audits.
+- **GPT-4o (Builder)**: Scaffolding, boilerplate, and routine features.
+- **Codex**: Hardware-native execution, local validation, and performance anchor.
 Wallet: `0xc277ecc96b4fef62c0d00133c6dd95c40c16700d`
 
 ## Credentials
@@ -128,8 +134,8 @@ Script: `node C:/Users/Josep/.ai-ecosystem/hooks/team-connect.mjs --report --nam
 ## Gotchas
 
 - **G.IDE.001**: Use structural graph over regex for impact analysis
-- **G.IDE.004**: Windows: use `curl.exe` not `curl` (PS alias breaks JSON)
-- **G.ENV.16**: PS `>` writes UTF-16LE — use `Out-File -Encoding utf8`
+- **G.IDE.004**: Windows: use `curl.exe` not `curl` (PS alias breaks JSON). Use **PowerShell 7 (pwsh)** as the standard shell for all agents; avoid legacy Windows PowerShell 5.1.
+- **G.ENV.16**: PS `>` writes UTF-16LE — use `Out-File -Encoding utf8`.
 - **G.CODE.15**: `TransformError` in refactors masks type errors — use `tsc --noEmit`
 - **G.ARCH.18**: `saveState()` ≠ I/O — use `persistState()` for durability
 - Never put ML in VR render loop (11.1ms budget @ 90Hz)

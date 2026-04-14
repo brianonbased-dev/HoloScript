@@ -400,6 +400,60 @@ function checkCircular() {
   }
 }
 
+// ── Check 7: Simulation Contracts ──────────────────────────────────────────
+
+function checkSimulationContracts() {
+  const start = Date.now();
+  const changedFiles = getChangedFiles();
+  const simFiles = changedFiles.filter(f => f.endsWith('.holo') || f.endsWith('.hsplus'));
+
+  if (simFiles.length === 0) {
+    record('simulation_contract', 'skip', 'No simulation files changed', [], 0);
+    return;
+  }
+
+  const issues = [];
+  for (const file of simFiles) {
+    try {
+      const content = readFileSync(join(ROOT, file), 'utf8');
+      
+      // Basic heuristic: does it use physical traits or solver blocks?
+      const hasPhysics = content.includes('@physics') || content.includes('solver') || content.includes('@material');
+      if (!hasPhysics) continue;
+
+      // 1. Check for basic unit validation (simple regex for common patterns)
+      // In HoloScript, units should be explicit: density: 7850 kg/m3 or density: 7850
+      // If it has raw high-magnitude numbers without units, warn.
+      const largeNumbers = content.match(/\d{5,}/g);
+      if (largeNumbers && !content.includes('kg/m') && !content.includes('Pa')) {
+        issues.push({
+          file,
+          reason: 'Simulation contains raw large numbers without explicit unit labels (@units).',
+          suggestion: 'Annotate physical constants with @units(kg/m3) or equivalent.'
+        });
+      }
+
+      // 2. Check for determinism (fixed-dt)
+      if (content.includes('solver') && !content.includes('fixed_dt')) {
+        issues.push({
+          file,
+          reason: 'Solver block lacks fixed_dt. Deterministic replay will fail.',
+          suggestion: 'Add fixed_dt: 0.001 (or appropriate) to the solver configuration.'
+        });
+      }
+
+    } catch { /* skip */ }
+  }
+
+  const duration = Date.now() - start;
+
+  if (issues.length === 0) {
+    record('simulation_contract', 'pass', `SimulationContract checks passed for ${simFiles.length} files`, [], duration);
+  } else {
+    record('simulation_contract', 'fail', `${issues.length} contract violations found`, issues, duration);
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const totalStart = Date.now();
@@ -415,6 +469,7 @@ if (shouldRun('loaders') || shouldRun('loader_imports')) checkLoaderImports();
 if (shouldRun('typescript') || shouldRun('ts')) checkTypeScript();
 if (shouldRun('dts')) checkDTS();
 if (shouldRun('circular')) checkCircular();
+if (shouldRun('simulation') || shouldRun('holosim')) checkSimulationContracts();
 
 const totalDuration = Date.now() - totalStart;
 

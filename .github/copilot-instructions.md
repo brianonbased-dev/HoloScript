@@ -29,13 +29,14 @@ When the user is in a HoloScript file, complete with HoloScript syntax:
 
 When in TypeScript — only if it's tooling (parser, CLI, adapter, infra).
 
-## MCP-First Workflow
-
-Before writing HoloScript code, use MCP tools:
+Before writing HoloScript code, use MCP tools or skill commands:
 
 ```
-suggest_traits → generate_object/generate_scene → validate_holoscript
+/holoscript suggest → generate → /holosim verify → validate_holoscript
 ```
+
+**CAEL / holosim Workflow:**
+When building agents or physics scenes, ensure CAEL logging is enabled. Every simulation result must be verified by replaying the CAEL trace. Use the `/holosim` skill to run verified simulations that satisfy the `SimulationContract`.
 
 Before editing TypeScript:
 

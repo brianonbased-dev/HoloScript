@@ -41,6 +41,8 @@
     "hooks:install": "node scripts/install-hooks.js",
     "health:repo": "node scripts/repo-health.js",
     "health:repo:quick": "node scripts/repo-health.js --skip-tests",
+    "architecture:check": "node scripts/check-architecture-coupling.js",
+    "tests:hotspots": "node scripts/check-hotspot-test-coverage.js",
     "smoke:prod": "node scripts/smoke-prod.mjs",
     "version:check": "node scripts/check-version-policy.js",
     "version:check:strict": "node scripts/check-version-policy.js --strict",

@@ -52,6 +52,12 @@ jobs:
       - name: Check version lane policy
         run: pnpm version:check
 
+      - name: Check architecture coupling guard
+        run: pnpm architecture:check
+
+      - name: Check hotspot test coverage
+        run: pnpm tests:hotspots
+
       - name: Repository health summary
         if: always()
         run: node scripts/repo-health.js --summary-only

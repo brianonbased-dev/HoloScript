@@ -25,6 +25,9 @@ function run(label, command, commandArgs) {
 const checks = [
   () => run('Version policy', 'node', ['scripts/check-version-policy.js', '--strict']),
   () => run('Workspace protocol deps', 'node', ['scripts/check-workspace-deps.js']),
+  () => run('Architecture coupling', 'node', ['scripts/check-architecture-coupling.js']),
+  () => run('Hotspot test coverage', 'node', ['scripts/check-hotspot-test-coverage.js']),
+  () => run('Scientific Verification (8-Paper Suite)', 'pnpm', ['bench:ci']),
 ];
 
 if (!skipTests && !summaryOnly) {

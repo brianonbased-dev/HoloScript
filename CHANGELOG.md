@@ -4,11 +4,27 @@ All notable changes to HoloScript are documented here.
 
 ---
 
-## [Unreleased] — 2026-04-12
+## [Unreleased] — 2026-04-14
 
-Post-6.1.0 work focused on CAEL reliability, SNN cognition integration, and MCP provenance envelope hardening.
+Finalized the core of the 8-paper research program, centering HoloScript as a provenance-native platform where trust is algebraically composable via tropical semirings.
 
 ### Added
+
+- **The 8-Paper Research Program (10,900 Lines — COMPLETE)**
+  - Finalized the 8-paper portfolio (10,886 lines total) across 7 top-tier venues (TVCG, AAMAS, USENIX, NeurIPS, ECOOP, ICSE, UIST).
+  - **Paper 0b (TVCG):** "Trust by Construction" (1,409 lines) — TET10 convergence.
+  - **Paper 0c (AAMAS):** "CAEL Agent Contracts" (1,473 lines) — forkable agent traces.
+  - **Paper #1 (USENIX Sec):** "Trustworthy Tool Use" (1,458 lines) — trace replay.
+  - **Paper #2 (NeurIPS):** "Browser-Native SNN" (1,087 lines) — `snn-webgpu` benchmarks.
+  - **Paper #3 (ECOOP):** "CRDT Spatial State" (1,443 lines) — algebraic conflict resolution.
+  - **Paper #4 (USENIX Sec):** "Sandboxed Simulation" (1,777 lines) — V8 isolate verification.
+  - **Paper #5 (ICSE):** "GraphRAG Self-Understanding" (1,389 lines) — provenance envelopes.
+  - **Capstone (UIST):** "Notation to Cognition" (~850 lines) — the unified architecture.
+  - *Closing Principle:* "The provenance semiring is not a feature — it is the architecture."
+
+- **Tropical Algebra Foundation**
+  - Implementation of provenance semirings for conflict resolution and trait composition in `packages/core`.
+  - Formal proof of ReLU as tropical max-plus addition integrated into SNN documentation.
 
 - **CAEL/Sandbox Contracted Execution**
   - `@holoscript/security-sandbox` gained contracted simulation execution path with CAEL trace metadata emission.
