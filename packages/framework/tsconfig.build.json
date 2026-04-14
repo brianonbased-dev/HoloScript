@@ -1,0 +1,30 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "forceConsistentCasingInFileNames": true
+  },
+  "files": [
+    "src/index.ts",
+    "src/behavior.ts",
+    "src/agents/index.ts",
+    "src/economy/index.ts",
+    "src/swarm/index.ts",
+    "src/ai/index.ts",
+    "src/training/index.ts",
+    "src/learning/index.ts",
+    "src/skills/index.ts",
+    "src/negotiation/index.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.prod.test.ts",
+    "src/**/__tests__/**/*",
+    "src/learning/learning/**/*",
+    "src/training/training/**/*"
+  ]
+}

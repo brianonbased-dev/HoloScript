@@ -2,8 +2,8 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    index: 'src/index.ts',
-    behavior: 'src/behavior.ts',
+    'skills/index': 'src/skills/index.ts',
+    'negotiation/index': 'src/negotiation/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,

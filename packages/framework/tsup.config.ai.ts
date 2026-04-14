@@ -2,8 +2,9 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    index: 'src/index.ts',
-    behavior: 'src/behavior.ts',
+    'ai/index': 'src/ai/index.ts',
+    'training/index': 'src/training/index.ts',
+    'learning/index': 'src/learning/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: false,
