@@ -231,7 +231,12 @@ export async function handleBoardRoutes(
       data: { taskId, title: result.task?.title || taskId, agent: caller.name },
     });
 
-    json(res, 200, { success: true, task: result.task });
+    // Clients must attribute claims to the authenticated agent (Bearer), not body.agentName.
+    const payload: Record<string, unknown> = { success: true, task: result.task };
+    if (action === 'claim') {
+      payload.claimedAs = { id: caller.id, name: caller.name };
+    }
+    json(res, 200, payload);
     return true;
   }
 
