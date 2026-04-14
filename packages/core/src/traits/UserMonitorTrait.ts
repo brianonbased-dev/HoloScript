@@ -110,15 +110,15 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
     const hand = context.vr.getDominantHand();
     const handPos = hand ? hand.position : null;
 
-    const hx = Array.isArray(headPos) ? headPos[0] : (headPos.x ?? 0);
-    const hy = Array.isArray(headPos) ? headPos[1] : (headPos.y ?? 0);
-    const hz = Array.isArray(headPos) ? headPos[2] : (headPos.z ?? 0);
-    state.headPositions.push([hx, hy, hz] as unknown as Vector3);
+    const hx = headPos[0];
+    const hy = headPos[1];
+    const hz = headPos[2];
+    state.headPositions.push([hx, hy, hz]);
     if (handPos) {
-      const px = Array.isArray(handPos) ? handPos[0] : (handPos.x ?? 0);
-      const py = Array.isArray(handPos) ? handPos[1] : (handPos.y ?? 0);
-      const pz = Array.isArray(handPos) ? handPos[2] : (handPos.z ?? 0);
-      state.handPositions.push([px, py, pz] as unknown as Vector3);
+      const px = handPos[0];
+      const py = handPos[1];
+      const pz = handPos[2];
+      state.handPositions.push([px, py, pz]);
     }
 
     // Keep buffers small (last 30 frames ~0.5s)
@@ -158,9 +158,9 @@ function calculateStability(positions: Vector3[]): number {
     const p1 = positions[i - 1];
     const p2 = positions[i];
     totalDelta += Math.sqrt(
-      ((p2.x ?? p2[0] ?? 0) - (p1.x ?? p1[0] ?? 0)) ** 2 +
-        ((p2.y ?? p2[1] ?? 0) - (p1.y ?? p1[1] ?? 0)) ** 2 +
-        ((p2.z ?? p2[2] ?? 0) - (p1.z ?? p1[2] ?? 0)) ** 2
+      (p2[0] - p1[0]) ** 2 +
+        (p2[1] - p1[1]) ** 2 +
+        (p2[2] - p1[2]) ** 2
     );
   }
 

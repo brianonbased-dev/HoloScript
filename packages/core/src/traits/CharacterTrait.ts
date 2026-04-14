@@ -24,11 +24,7 @@
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vector3 = [number, number, number];
 
 /**
  * Movement mode
@@ -335,7 +331,7 @@ export class CharacterTrait {
 
     this.state = {
       position: [0, 0, 0],
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: [0, 0, 0],
       movementMode: 'walking',
       groundState: 'grounded',
       isCrouching: false,
@@ -370,28 +366,28 @@ export class CharacterTrait {
    * Get position
    */
   public getPosition(): Vector3 {
-    return { ...this.state.position };
+    return [...this.state.position];
   }
 
   /**
    * Set position
    */
   public setPosition(position: Vector3): void {
-    this.state.position = { ...position };
+    this.state.position = [...position];
   }
 
   /**
    * Get velocity
    */
   public getVelocity(): Vector3 {
-    return { ...this.state.velocity };
+    return [...this.state.velocity];
   }
 
   /**
    * Set velocity
    */
   public setVelocity(velocity: Vector3): void {
-    this.state.velocity = { ...velocity };
+    this.state.velocity = [...velocity];
   }
 
   // ============================================================================
@@ -428,13 +424,13 @@ export class CharacterTrait {
     this.applyGravity(deltaTime);
 
     // Apply position
-    this.state.position.x += this.state.velocity.x * deltaTime;
-    this.state.position.y += this.state.velocity.y * deltaTime;
-    this.state.position.z += this.state.velocity.z * deltaTime;
+    this.state.position[0] += this.state.velocity[0] * deltaTime;
+    this.state.position[1] += this.state.velocity[1] * deltaTime;
+    this.state.position[2] += this.state.velocity[2] * deltaTime;
 
     // Update state
     this.state.isMoving = Math.abs(input.forward) > 0.01 || Math.abs(input.strafe) > 0.01;
-    this.state.currentSpeed = Math.sqrt(this.state.velocity.x ** 2 + this.state.velocity.z ** 2);
+    this.state.currentSpeed = Math.sqrt(this.state.velocity[0] ** 2 + this.state.velocity[2] ** 2);
 
     // Check for mode changes
     if (prevState.movementMode !== this.state.movementMode) {
@@ -463,11 +459,11 @@ export class CharacterTrait {
 
     // In walking mode, use look direction for movement
     // This is a simplified version - real implementation would use camera transform
-    return {
-      x: input.strafe * speed,
-      y: 0,
-      z: input.forward * speed,
-    };
+    return [
+      input.strafe * speed,
+      0,
+      input.forward * speed,
+    ];
   }
 
   /**
@@ -483,15 +479,15 @@ export class CharacterTrait {
       : (this.config.airFriction ?? 0.5);
 
     // Apply friction
-    this.state.velocity.x -= this.state.velocity.x * friction * deltaTime;
-    this.state.velocity.z -= this.state.velocity.z * friction * deltaTime;
+    this.state.velocity[0] -= this.state.velocity[0] * friction * deltaTime;
+    this.state.velocity[2] -= this.state.velocity[2] * friction * deltaTime;
 
     // Accelerate toward target
-    const diffX = target.x - this.state.velocity.x;
-    const diffZ = target.z - this.state.velocity.z;
+    const diffX = target[0] - this.state.velocity[0];
+    const diffZ = target[2] - this.state.velocity[2];
 
-    this.state.velocity.x += diffX * acceleration * deltaTime;
-    this.state.velocity.z += diffZ * acceleration * deltaTime;
+    this.state.velocity[0] += diffX * acceleration * deltaTime;
+    this.state.velocity[2] += diffZ * acceleration * deltaTime;
   }
 
   /**
@@ -504,7 +500,7 @@ export class CharacterTrait {
     const gravity = this.config.gravity ?? -9.81;
     const multiplier = this.config.airGravityMultiplier ?? 1.0;
 
-    this.state.velocity.y += gravity * multiplier * deltaTime;
+    this.state.velocity[1] += gravity * multiplier * deltaTime;
   }
 
   /**
@@ -555,7 +551,7 @@ export class CharacterTrait {
     const gravity = Math.abs(this.config.gravity ?? 9.81);
     const jumpVelocity = Math.sqrt(2 * gravity * jumpHeight);
 
-    this.state.velocity.y = jumpVelocity;
+    this.state.velocity[1] = jumpVelocity;
     this.state.groundState = 'jumping';
     this.jumpsRemaining--;
     this.coyoteTimer = 0;
@@ -574,8 +570,8 @@ export class CharacterTrait {
    * Cancel jump (for variable height jumps)
    */
   public cancelJump(): void {
-    if (this.state.velocity.y > 0) {
-      this.state.velocity.y *= 0.5;
+    if (this.state.velocity[1] > 0) {
+      this.state.velocity[1] *= 0.5;
     }
   }
 
@@ -622,7 +618,7 @@ export class CharacterTrait {
         this.coyoteTimer = this.config.coyoteTime ?? 0.15;
 
         // Check if falling or just walked off edge
-        if (this.state.velocity.y <= 0) {
+        if (this.state.velocity[1] <= 0) {
           this.state.groundState = 'falling';
 
           this.emit({
@@ -632,7 +628,7 @@ export class CharacterTrait {
             timestamp: Date.now(),
           });
         }
-      } else if (this.state.groundState === 'jumping' && this.state.velocity.y <= 0) {
+      } else if (this.state.groundState === 'jumping' && this.state.velocity[1] <= 0) {
         this.state.groundState = 'falling';
       }
 
@@ -799,14 +795,14 @@ export class CharacterTrait {
 
     // Slide along walls
     const dot =
-      this.state.velocity.x * normal.x +
-      this.state.velocity.y * normal.y +
-      this.state.velocity.z * normal.z;
+      this.state.velocity[0] * normal[0] +
+      this.state.velocity[1] * normal[1] +
+      this.state.velocity[2] * normal[2];
 
     if (dot < 0) {
-      this.state.velocity.x -= normal.x * dot;
-      this.state.velocity.y -= normal.y * dot;
-      this.state.velocity.z -= normal.z * dot;
+      this.state.velocity[0] -= normal[0] * dot;
+      this.state.velocity[1] -= normal[1] * dot;
+      this.state.velocity[2] -= normal[2] * dot;
     }
   }
 
@@ -827,9 +823,9 @@ export class CharacterTrait {
    * Teleport to position
    */
   public teleport(position: Vector3, resetVelocity: boolean = true): void {
-    this.state.position = { ...position };
+    this.state.position = [...position];
     if (resetVelocity) {
-      this.state.velocity = { x: 0, y: 0, z: 0 };
+      this.state.velocity = [0, 0, 0];
     }
   }
 
@@ -838,9 +834,9 @@ export class CharacterTrait {
    */
   public applyImpulse(impulse: Vector3): void {
     const mass = this.config.mass ?? 70;
-    this.state.velocity.x += impulse.x / mass;
-    this.state.velocity.y += impulse.y / mass;
-    this.state.velocity.z += impulse.z / mass;
+    this.state.velocity[0] += impulse[0] / mass;
+    this.state.velocity[1] += impulse[1] / mass;
+    this.state.velocity[2] += impulse[2] / mass;
   }
 
   // ============================================================================

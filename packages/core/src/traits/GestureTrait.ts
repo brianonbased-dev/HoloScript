@@ -73,17 +73,11 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
         state.isPinching = isPinching;
       }
 
-      // Helper to extract x/y consistently
-      const getX = (p: Vector3) => (Array.isArray(p) ? p[0] : (p.x ?? 0));
-      const getY = (p: Vector3) => (Array.isArray(p) ? p[1] : (p.y ?? 0));
-
       // 2. Swipe Detection
       // Require tracked movement over short window
-      if (state.lastPosition) {
-        // @ts-expect-error
-        const dx = getX(hand.position) - getX(state.lastPosition);
-        // @ts-expect-error
-        const dy = getY(hand.position) - getY(state.lastPosition);
+      if (state.lastPosition && hand.position) {
+        const dx = hand.position[0] - state.lastPosition[0];
+        const dy = hand.position[1] - state.lastPosition[1];
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > (config.swipeThreshold || 0.1)) {
@@ -105,10 +99,7 @@ export const gestureHandler: TraitHandler<GestureConfig> = {
         }
       }
 
-      // @ts-expect-error
-      state.lastPosition = Array.isArray(hand.position)
-        ? [...hand.position]
-        : { x: hand.position.x ?? 0, y: hand.position.y ?? 0, z: hand.position.z ?? 0 };
+      state.lastPosition = hand.position ? [...hand.position] : null;
       state.lastTime = time;
     });
   },

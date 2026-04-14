@@ -21,11 +21,7 @@
 /**
  * 3D Vector
  */
-interface Vector3 {
-  x: number;
-  y: number;
-  z: number;
-}
+export type Vector3 = [number, number, number];
 
 /**
  * Body type determines physics behavior
@@ -269,11 +265,11 @@ export class RigidbodyTrait {
     this.state = {
       position: [0, 0, 0],
       rotation: { x: 0, y: 0, z: 0, w: 1 },
-      velocity: config.velocity ?? { x: 0, y: 0, z: 0 },
-      angularVelocity: config.angularVelocity ?? { x: 0, y: 0, z: 0 },
+      velocity: config.velocity ?? [0, 0, 0],
+      angularVelocity: config.angularVelocity ?? [0, 0, 0],
       isSleeping: false,
-      force: { x: 0, y: 0, z: 0 },
-      torque: { x: 0, y: 0, z: 0 },
+      force: [0, 0, 0],
+      torque: [0, 0, 0],
     };
   }
 
@@ -366,27 +362,27 @@ export class RigidbodyTrait {
     switch (mode) {
       case 'force':
         // Add force (will be integrated over time)
-        this.state.force.x += force.x;
-        this.state.force.y += force.y;
-        this.state.force.z += force.z;
+        this.state.force[0] += force[0];
+        this.state.force[1] += force[1];
+        this.state.force[2] += force[2];
         break;
       case 'impulse':
         // Instant velocity change (F = mv, so v = F/m)
-        this.state.velocity.x += force.x / mass;
-        this.state.velocity.y += force.y / mass;
-        this.state.velocity.z += force.z / mass;
+        this.state.velocity[0] += force[0] / mass;
+        this.state.velocity[1] += force[1] / mass;
+        this.state.velocity[2] += force[2] / mass;
         break;
       case 'velocity-change':
         // Direct velocity change (ignores mass)
-        this.state.velocity.x += force.x;
-        this.state.velocity.y += force.y;
-        this.state.velocity.z += force.z;
+        this.state.velocity[0] += force[0];
+        this.state.velocity[1] += force[1];
+        this.state.velocity[2] += force[2];
         break;
       case 'acceleration':
         // Add acceleration (multiply by mass to get force)
-        this.state.force.x += force.x * mass;
-        this.state.force.y += force.y * mass;
-        this.state.force.z += force.z * mass;
+        this.state.force[0] += force[0] * mass;
+        this.state.force[1] += force[1] * mass;
+        this.state.force[2] += force[2] * mass;
         break;
     }
 
@@ -401,18 +397,18 @@ export class RigidbodyTrait {
     this.addForce(force, mode);
 
     // Calculate torque from offset
-    const offset = {
-      x: position.x - this.state.position.x,
-      y: position.y - this.state.position.y,
-      z: position.z - this.state.position.z,
-    };
+    const offset = [
+      position[0] - this.state.position[0],
+      position[1] - this.state.position[1],
+      position[2] - this.state.position[2],
+    ];
 
     // Cross product: torque = offset x force
-    const torque = {
-      x: offset.y * force.z - offset.z * force.y,
-      y: offset.z * force.x - offset.x * force.z,
-      z: offset.x * force.y - offset.y * force.x,
-    };
+    const torque: [number, number, number] = [
+      offset[1] * force[2] - offset[2] * force[1],
+      offset[2] * force[0] - offset[0] * force[2],
+      offset[0] * force[1] - offset[1] * force[0],
+    ];
 
     this.addTorque(torque, mode);
   }
@@ -423,28 +419,28 @@ export class RigidbodyTrait {
   public addTorque(torque: Vector3, mode: ForceMode = 'force'): void {
     if (this.config.isKinematic) return;
 
-    const inertia = this.config.inertiaTensor ?? { x: 1, y: 1, z: 1 };
+    const inertia = this.config.inertiaTensor ?? [1, 1, 1];
 
     switch (mode) {
       case 'force':
-        this.state.torque.x += torque.x;
-        this.state.torque.y += torque.y;
-        this.state.torque.z += torque.z;
+        this.state.torque[0] += torque[0];
+        this.state.torque[1] += torque[1];
+        this.state.torque[2] += torque[2];
         break;
       case 'impulse':
-        this.state.angularVelocity.x += torque.x / inertia.x;
-        this.state.angularVelocity.y += torque.y / inertia.y;
-        this.state.angularVelocity.z += torque.z / inertia.z;
+        this.state.angularVelocity[0] += torque[0] / inertia[0];
+        this.state.angularVelocity[1] += torque[1] / inertia[1];
+        this.state.angularVelocity[2] += torque[2] / inertia[2];
         break;
       case 'velocity-change':
-        this.state.angularVelocity.x += torque.x;
-        this.state.angularVelocity.y += torque.y;
-        this.state.angularVelocity.z += torque.z;
+        this.state.angularVelocity[0] += torque[0];
+        this.state.angularVelocity[1] += torque[1];
+        this.state.angularVelocity[2] += torque[2];
         break;
       case 'acceleration':
-        this.state.torque.x += torque.x * inertia.x;
-        this.state.torque.y += torque.y * inertia.y;
-        this.state.torque.z += torque.z * inertia.z;
+        this.state.torque[0] += torque[0] * inertia[0];
+        this.state.torque[1] += torque[1] * inertia[1];
+        this.state.torque[2] += torque[2] * inertia[2];
         break;
     }
 
@@ -455,7 +451,7 @@ export class RigidbodyTrait {
    * Set velocity directly
    */
   public setVelocity(velocity: Vector3): void {
-    this.state.velocity = { ...velocity };
+    this.state.velocity = [...velocity];
     this.wakeUp();
   }
 
@@ -463,14 +459,14 @@ export class RigidbodyTrait {
    * Get velocity
    */
   public getVelocity(): Vector3 {
-    return { ...this.state.velocity };
+    return [...this.state.velocity];
   }
 
   /**
    * Set angular velocity
    */
   public setAngularVelocity(angularVelocity: Vector3): void {
-    this.state.angularVelocity = { ...angularVelocity };
+    this.state.angularVelocity = [...angularVelocity];
     this.wakeUp();
   }
 
@@ -478,7 +474,7 @@ export class RigidbodyTrait {
    * Get angular velocity
    */
   public getAngularVelocity(): Vector3 {
-    return { ...this.state.angularVelocity };
+    return [...this.state.angularVelocity];
   }
 
   /**
@@ -486,7 +482,7 @@ export class RigidbodyTrait {
    */
   public movePosition(position: Vector3): void {
     if (this.config.isKinematic) {
-      this.state.position = { ...position };
+      this.state.position = [...position];
     }
   }
 
@@ -503,7 +499,7 @@ export class RigidbodyTrait {
    * Get position
    */
   public getPosition(): Vector3 {
-    return { ...this.state.position };
+    return [...this.state.position];
   }
 
   // ============================================================================
@@ -522,8 +518,8 @@ export class RigidbodyTrait {
    */
   public sleep(): void {
     this.state.isSleeping = true;
-    this.state.velocity = { x: 0, y: 0, z: 0 };
-    this.state.angularVelocity = { x: 0, y: 0, z: 0 };
+    this.state.velocity = [0, 0, 0];
+    this.state.angularVelocity = [0, 0, 0];
   }
 
   /**
@@ -629,8 +625,8 @@ export class RigidbodyTrait {
    * Clear accumulated forces (called after physics step)
    */
   public clearForces(): void {
-    this.state.force = { x: 0, y: 0, z: 0 };
-    this.state.torque = { x: 0, y: 0, z: 0 };
+    this.state.force = [0, 0, 0];
+    this.state.torque = [0, 0, 0];
   }
 
   // ============================================================================
